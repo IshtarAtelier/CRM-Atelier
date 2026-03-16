@@ -4,8 +4,9 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
+    "build": "prisma generate && prisma migrate deploy && next build",
+    "postinstall": "prisma generate",
+    "start": "next start -p $PORT",
     "lint": "eslint",
     "whatsapp": "node whatsapp-server.js",
     "db:backup": "node scripts/backup-db.js",
