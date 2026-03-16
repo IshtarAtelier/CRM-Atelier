@@ -1,0 +1,24 @@
+{
+    "name": "Atelier Óptica CRM",
+    "short_name": "Atelier",
+    "description": "Sistema de gestión para Atelier Óptica",
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#faf9f7",
+    "theme_color": "#c8a55c",
+    "orientation": "any",
+    "icons": [
+        {
+            "src": "/assets/logo-atelier-optica.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "any maskable"
+        },
+        {
+            "src": "/assets/logo-atelier-optica.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "any maskable"
+        }
+    ]
+}

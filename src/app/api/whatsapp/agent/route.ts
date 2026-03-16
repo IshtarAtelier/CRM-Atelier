@@ -1,0 +1,30 @@
+import { NextResponse } from 'next/server';
+
+const WA_SERVER = 'http://localhost:3100';
+
+// GET /api/whatsapp/agent — obtener configuración del agente
+export async function GET() {
+    try {
+        const res = await fetch(`${WA_SERVER}/api/agent`, { cache: 'no-store' });
+        const data = await res.json();
+        return NextResponse.json(data);
+    } catch {
+        return NextResponse.json({ prompt: '', enabled: false, apiKey: '', model: 'gpt-4o-mini', configured: false });
+    }
+}
+
+// POST /api/whatsapp/agent — guardar configuración del agente (prompt, enabled, apiKey, model)
+export async function POST(request: Request) {
+    try {
+        const body = await request.json();
+        const res = await fetch(`${WA_SERVER}/api/agent`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+        });
+        const data = await res.json();
+        return NextResponse.json(data);
+    } catch {
+        return NextResponse.json({ error: 'Error al guardar agente' }, { status: 500 });
+    }
+}
