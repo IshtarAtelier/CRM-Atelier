@@ -171,7 +171,7 @@ export default function InventarioPage() {
     };
 
     return (
-        <div className="p-6 max-w-6xl mx-auto space-y-6 animate-in fade-in duration-500 pb-20">
+        <div className="p-4 lg:p-6 max-w-6xl mx-auto space-y-6 animate-in fade-in duration-500 pb-20">
 
             {/* Import Result Toast */}
             {importResult && (
@@ -192,7 +192,7 @@ export default function InventarioPage() {
                     </h1>
                     <p className="text-stone-400 mt-1 font-medium uppercase text-[10px] tracking-[0.2em]">Control de inventario y catálogo</p>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                     {isAdmin && (
                         <>
                             <a
@@ -356,7 +356,7 @@ export default function InventarioPage() {
             )}
 
             {/* Product List */}
-            <div className="bg-white dark:bg-stone-900 rounded-3xl border border-stone-100 dark:border-stone-800 overflow-hidden shadow-sm">
+            <div className="bg-white dark:bg-stone-900 rounded-3xl border border-stone-100 dark:border-stone-800 overflow-hidden shadow-sm overflow-x-auto">
 
                 {/* Table header */}
                 <div className="grid grid-cols-[auto_2fr_1fr_auto_1fr_1fr_1fr_auto] gap-4 px-6 py-3 bg-stone-50 dark:bg-stone-800/50 border-b border-stone-100 dark:border-stone-800 items-center">

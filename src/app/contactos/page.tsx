@@ -87,7 +87,7 @@ export default function ContactosPage() {
     ];
 
     return (
-        <div className="p-8 max-w-7xl mx-auto space-y-8 animate-in fade-in duration-500 pb-20 relative">
+        <div className="p-4 lg:p-8 max-w-7xl mx-auto space-y-8 animate-in fade-in duration-500 pb-20 relative">
             <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
                 <div>
                     <h1 className="text-4xl font-black text-stone-800 dark:text-stone-100 tracking-tight italic">

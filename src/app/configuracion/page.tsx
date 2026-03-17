@@ -283,7 +283,7 @@ export default function ConfiguracionPage() {
     // ── Render ──────────────────────────
 
     return (
-        <main className="p-8 max-w-5xl mx-auto animate-in fade-in duration-500 pb-20">
+        <main className="p-4 lg:p-8 max-w-5xl mx-auto animate-in fade-in duration-500 pb-20">
             {/* Header */}
             <div className="flex items-center justify-between mb-10">
                 <div>

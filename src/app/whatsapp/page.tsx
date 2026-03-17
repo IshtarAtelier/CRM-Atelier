@@ -151,7 +151,7 @@ export default function WhatsAppPage() {
     // ── QR / Connection Screen ────────────────────
     if (!status.connected) {
         return (
-            <main className="p-8 max-w-4xl mx-auto">
+            <main className="p-4 lg:p-8 max-w-4xl mx-auto">
                 <div className="text-center mb-10">
                     <h1 className="text-4xl font-black text-stone-800 dark:text-white tracking-tight flex items-center justify-center gap-3">
                         <MessageCircle className="w-9 h-9 text-emerald-500" /> WhatsApp

@@ -497,7 +497,7 @@ ${order.frameSource ? `<div style='background:#fffbeb;border:2px solid #fbbf24;b
     };
 
     return (
-        <main className="p-8 max-w-7xl mx-auto">
+        <main className="p-4 lg:p-8 max-w-7xl mx-auto">
             {/* Header */}
             <div className="flex items-center justify-between mb-8">
                 <div>
@@ -513,7 +513,7 @@ ${order.frameSource ? `<div style='background:#fffbeb;border:2px solid #fbbf24;b
             </div>
 
             {/* Stats */}
-            <div className="grid grid-cols-5 gap-4 mb-8">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-8">
                 {[
                     { label: 'Total Ventas', value: stats.total, color: 'bg-stone-900 text-white' },
                     { label: 'Enviadas', value: stats.sent, color: 'bg-blue-100 text-blue-600' },

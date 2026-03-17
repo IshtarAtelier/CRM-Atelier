@@ -125,7 +125,7 @@ export default function ReportesPage() {
 
     if (loading && !data) {
         return (
-            <main className="p-8 max-w-7xl mx-auto flex items-center justify-center min-h-[60vh]">
+            <main className="p-4 lg:p-8 max-w-7xl mx-auto flex items-center justify-center min-h-[60vh]">
                 <div className="text-center">
                     <Loader2 className="w-10 h-10 text-primary animate-spin mx-auto mb-4" />
                     <p className="text-sm font-bold text-stone-400">Generando reporte...</p>

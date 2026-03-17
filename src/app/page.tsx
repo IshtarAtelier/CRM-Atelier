@@ -68,7 +68,7 @@ export default function Home() {
   };
 
   return (
-    <div className="p-8 max-w-7xl mx-auto space-y-10 animate-in fade-in duration-500 pb-20">
+    <div className="p-4 lg:p-8 max-w-7xl mx-auto space-y-10 animate-in fade-in duration-500 pb-20">
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-4xl font-extrabold tracking-tight text-stone-800 dark:text-stone-100 italic">

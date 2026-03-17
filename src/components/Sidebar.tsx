@@ -1,8 +1,9 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Users, Glasses, Package, ClipboardList, LayoutDashboard, Cog, FileText, Contact, Calculator, ShoppingCart, MessageCircle, Wallet, Search } from "lucide-react";
+import { Users, Glasses, Package, ClipboardList, LayoutDashboard, Cog, FileText, Contact, Calculator, ShoppingCart, MessageCircle, Wallet, Search, Menu, X } from "lucide-react";
 import { UserProfile } from "./UserProfile";
 import { NotificationBell } from "./NotificationBell";
 
@@ -13,8 +14,24 @@ interface SidebarProps {
 
 export function Sidebar({ userName = "Usuario", userRole = "STAFF" }: SidebarProps) {
   const pathname = usePathname();
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   const isAdmin = userRole === "ADMIN";
+
+  // Close drawer on route change
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [pathname]);
+
+  // Prevent body scroll when drawer is open
+  useEffect(() => {
+    if (mobileOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => { document.body.style.overflow = ''; };
+  }, [mobileOpen]);
 
   const allLinks = [
     { href: "/", label: "Dashboard", icon: LayoutDashboard, adminOnly: false },
@@ -30,10 +47,17 @@ export function Sidebar({ userName = "Usuario", userRole = "STAFF" }: SidebarPro
 
   const links = allLinks.filter(link => !link.adminOnly || isAdmin);
 
-  return (
-    <aside className="w-64 bg-sidebar border-r border-sidebar-border h-screen flex flex-col fixed left-0 top-0">
-      <div className="px-5 py-5 flex items-center justify-center">
+  const sidebarContent = (
+    <>
+      <div className="px-5 py-5 flex items-center justify-between">
         <img src="/assets/logo-atelier-optica.png" alt="Logo Atelier Óptica" className="h-10 object-contain dark:invert" />
+        {/* Close button only on mobile */}
+        <button
+          onClick={() => setMobileOpen(false)}
+          className="lg:hidden p-2 rounded-xl hover:bg-foreground/5 text-foreground/50 transition-colors"
+        >
+          <X size={20} />
+        </button>
       </div>
 
       <nav className="flex-1 px-4 space-y-1.5 overflow-y-auto">
@@ -64,7 +88,7 @@ export function Sidebar({ userName = "Usuario", userRole = "STAFF" }: SidebarPro
         >
           <Search size={16} />
           <span className="text-xs flex-1 text-left">Buscar...</span>
-          <kbd className="px-1.5 py-0.5 bg-foreground/5 rounded text-[9px] font-bold border border-foreground/10">⌘K</kbd>
+          <kbd className="px-1.5 py-0.5 bg-foreground/5 rounded text-[9px] font-bold border border-foreground/10 hidden sm:inline">⌘K</kbd>
         </button>
         <div className="flex items-center gap-1 px-2">
           {isAdmin && <NotificationBell />}
@@ -73,6 +97,41 @@ export function Sidebar({ userName = "Usuario", userRole = "STAFF" }: SidebarPro
           </div>
         </div>
       </div>
-    </aside>
+    </>
+  );
+
+  return (
+    <>
+      {/* Mobile hamburger button */}
+      <button
+        onClick={() => setMobileOpen(true)}
+        className="lg:hidden fixed top-4 left-4 z-50 p-2.5 bg-sidebar border border-sidebar-border rounded-xl shadow-lg hover:scale-105 active:scale-95 transition-all"
+        aria-label="Abrir menú"
+      >
+        <Menu size={20} className="text-foreground/70" />
+      </button>
+
+      {/* Desktop sidebar — always visible on lg+ */}
+      <aside className="hidden lg:flex w-64 bg-sidebar border-r border-sidebar-border h-screen flex-col fixed left-0 top-0 z-40">
+        {sidebarContent}
+      </aside>
+
+      {/* Mobile overlay */}
+      {mobileOpen && (
+        <div
+          className="lg:hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-50 animate-in fade-in duration-200"
+          onClick={() => setMobileOpen(false)}
+        />
+      )}
+
+      {/* Mobile drawer */}
+      <aside
+        className={`lg:hidden fixed top-0 left-0 h-screen w-72 bg-sidebar border-r border-sidebar-border flex flex-col z-50 transition-transform duration-300 ease-out ${
+          mobileOpen ? 'translate-x-0' : '-translate-x-full'
+        }`}
+      >
+        {sidebarContent}
+      </aside>
+    </>
   );
 }

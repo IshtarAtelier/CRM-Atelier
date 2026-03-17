@@ -451,7 +451,7 @@ ${order.frameSource ? `<div style='background:#fffbeb;border:2px solid #fbbf24;b
     // ── Render ─────────────────────────────────
 
     return (
-        <main className="p-8 max-w-7xl mx-auto animate-in fade-in duration-500">
+        <main className="p-4 lg:p-8 max-w-7xl mx-auto animate-in fade-in duration-500">
             {/* Header */}
             <div className="flex items-center justify-between mb-10">
                 <div>
@@ -469,7 +469,7 @@ ${order.frameSource ? `<div style='background:#fffbeb;border:2px solid #fbbf24;b
             </div>
 
             {/* Pipeline Stats */}
-            <div className="grid grid-cols-5 gap-3 mb-8">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 mb-8">
                 {stats.map((step) => {
                     const Icon = step.icon;
                     const isActive = filterStatus === step.key;
