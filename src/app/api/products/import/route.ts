@@ -96,8 +96,8 @@ export async function POST(request: Request) {
                     type: null,
                     category: forceCategory || 'FRAME',
                     lensIndex: null,
-                    price: parseFloat(priceStr) || 0,
-                    cost: parseFloat(costStr) || 0,
+                    price: parseArgentineNumber(priceStr),
+                    cost: parseArgentineNumber(costStr),
                     stock: parseInt(stockStr) || 0,
                     unitType: 'UNIDAD',
                     laboratory: null,
@@ -131,8 +131,8 @@ export async function POST(request: Request) {
                     type: type || null,
                     category,
                     lensIndex: lensIndex || null,
-                    price: parseFloat(priceStr) || 0,
-                    cost: parseFloat(costStr) || 0,
+                    price: parseArgentineNumber(priceStr),
+                    cost: parseArgentineNumber(costStr),
                     stock: parseInt(stockStr) || 0,
                     unitType: (unitType || 'PAR').toUpperCase(),
                     laboratory: laboratory || null,
@@ -169,6 +169,20 @@ export async function POST(request: Request) {
         console.error('Error importing products:', error);
         return NextResponse.json({ error: error.message || 'Error al importar' }, { status: 500 });
     }
+}
+
+// Parse Argentine-format numbers: "$567.732,00" → 567732
+// Handles: $, dots as thousands separator, comma as decimal separator
+function parseArgentineNumber(s: string): number {
+    if (!s) return 0;
+    const cleaned = s
+        .replace(/\$/g, '')   // Remove $ sign
+        .replace(/\s/g, '')   // Remove spaces
+        .replace(/\./g, '')   // Remove dots (thousands separator)
+        .replace(',', '.')    // Convert comma decimal to dot
+        .trim();
+    const n = parseFloat(cleaned);
+    return isNaN(n) ? 0 : n;
 }
 
 // Simple CSV line parser that handles quoted fields
