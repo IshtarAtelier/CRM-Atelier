@@ -1,5 +1,7 @@
 'use client';
 
+import FileDropZone from '@/components/FileDropZone';
+
 import { useState, useEffect, useRef } from 'react';
 import {
     Stethoscope, ChevronDown, DollarSign, TrendingUp, Wallet,
@@ -428,38 +430,18 @@ export default function DoctorCommissions() {
                                     {payMethod === 'TRANSFER' && (
                                         <div className="mt-4 space-y-1.5">
                                             <label className="text-[9px] font-black text-stone-400 uppercase tracking-widest">Comprobante</label>
-                                            <div className="flex items-center gap-3">
-                                                <input
-                                                    ref={fileRef}
-                                                    type="file"
-                                                    accept="image/*"
-                                                    onChange={handleFileChange}
-                                                    className="hidden"
-                                                />
-                                                <button
-                                                    type="button"
-                                                    onClick={() => fileRef.current?.click()}
-                                                    className="px-4 py-2.5 bg-stone-100 dark:bg-stone-800 border-2 border-dashed border-stone-300 dark:border-stone-600 rounded-xl text-xs font-bold text-stone-500 hover:border-blue-400 hover:text-blue-500 transition-all flex items-center gap-2"
-                                                >
-                                                    <Upload className="w-4 h-4" />
-                                                    {payReceipt ? payReceipt.name : 'Subir comprobante...'}
-                                                </button>
-                                                {receiptPreview && (
-                                                    <div className="relative">
-                                                        <img
-                                                            src={receiptPreview}
-                                                            alt="Preview"
-                                                            className="w-12 h-12 rounded-lg object-cover border-2 border-stone-200"
-                                                        />
-                                                        <button
-                                                            onClick={() => { setPayReceipt(null); setReceiptPreview(null); }}
-                                                            className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center"
-                                                        >
-                                                            <X className="w-3 h-3" />
-                                                        </button>
-                                                    </div>
-                                                )}
-                                            </div>
+                                            <FileDropZone
+                                                accept="image/*"
+                                                maxSizeMB={10}
+                                                label="Arrastrá el comprobante aquí"
+                                                preview={receiptPreview}
+                                                onClearPreview={() => { setPayReceipt(null); setReceiptPreview(null); }}
+                                                onFile={(file) => {
+                                                    setPayReceipt(file);
+                                                    setReceiptPreview(URL.createObjectURL(file));
+                                                }}
+                                                compact
+                                            />
                                         </div>
                                     )}
 

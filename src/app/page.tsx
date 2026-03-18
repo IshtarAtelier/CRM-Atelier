@@ -23,6 +23,19 @@ export default function Home() {
   const [funnelTipo, setFunnelTipo] = useState('ALL');
   const [dateFrom, setDateFrom] = useState<string | undefined>();
   const [dateTo, setDateTo] = useState<string | undefined>();
+  const [userRole, setUserRole] = useState('STAFF');
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('user');
+      if (stored) {
+        const u = JSON.parse(stored);
+        setUserRole(u.role || 'STAFF');
+      }
+    } catch { }
+  }, []);
+
+  const isAdmin = userRole === 'ADMIN';
 
   useEffect(() => {
     fetchDashboard();
@@ -186,9 +199,11 @@ export default function Home() {
                     </div>
                     <div className="text-right">
                       <div className="font-black text-sm text-stone-800 dark:text-stone-200 tracking-tight">${type.total.toLocaleString()}</div>
-                      <div className={`text-[9px] font-black tracking-[0.1em] ${margin > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-stone-400'}`}>
-                        {margin.toFixed(1)}% RENTAB.
-                      </div>
+                      {isAdmin && (
+                        <div className={`text-[9px] font-black tracking-[0.1em] ${margin > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-stone-400'}`}>
+                          {margin.toFixed(1)}% RENTAB.
+                        </div>
+                      )}
                     </div>
                   </div>
                 );

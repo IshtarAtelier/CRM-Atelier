@@ -14,17 +14,35 @@ const TEMPLATES: Record<string, { filename: string; headers: string[]; examples:
     },
     armazones: {
         filename: 'plantilla_armazones_atelier.csv',
+        headers: ['Marca', 'Modelo', 'Tipo', 'Precio', 'Costo', 'Stock'],
+        examples: [
+            'Ray-Ban,RB5154 Clubmaster,Armazón de Receta,125000,62000,2',
+            'Oakley,OX8046 Airdrop,Armazón de Receta,98000,48000,1',
+            'Guess,GU2700,Armazón de Receta,45000,22000,3',
+            'Tommy Hilfiger,TH1760,Armazón de Receta,78000,38000,1',
+        ],
+    },
+    sol: {
+        filename: 'plantilla_lentes_sol_atelier.csv',
         headers: ['Marca', 'Modelo', 'Precio', 'Costo', 'Stock'],
         examples: [
-            'Ray-Ban,RB5154 Clubmaster,125000,62000,2',
-            'Oakley,OX8046 Airdrop,98000,48000,1',
-            'Guess,GU2700,45000,22000,3',
-            'Tommy Hilfiger,TH1760,78000,38000,1',
+            'Ray-Ban,RB3025 Aviator,185000,92000,2',
+            'Oakley,Holbrook OO9102,145000,71000,1',
+            'Carrera,1056/S,98000,48000,3',
+        ],
+    },
+    accesorios: {
+        filename: 'plantilla_accesorios_atelier.csv',
+        headers: ['Nombre', 'Marca', 'Precio', 'Costo', 'Stock'],
+        examples: [
+            'Líquido Limpiador 120ml,Zeiss,5500,2800,10',
+            'Estuche Rígido Premium,Atelier,8000,3500,15',
+            'Paño Microfibra,Atelier,2000,800,25',
         ],
     },
 };
 
-// GET /api/products/import?type=cristales|armazones — Download CSV template
+// GET /api/products/import?type=cristales|armazones|sol|accesorios — Download CSV template
 export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const type = searchParams.get('type') || 'cristales';
@@ -39,6 +57,28 @@ export async function GET(request: Request) {
             'Content-Disposition': `attachment; filename="${template.filename}"`,
         },
     });
+}
+
+// Map user-friendly tipo text → (category, type) for the Product model
+function resolveCategory(tipoText: string): { category: string; type: string } {
+    const t = (tipoText || '').toLowerCase().trim();
+
+    // Cristales subtypes
+    if (t.includes('monofocal')) return { category: 'Cristal', type: 'Cristal Monofocal' };
+    if (t.includes('multifocal') || t.includes('progresivo')) return { category: 'Cristal', type: 'Cristal Multifocal' };
+    if (t.includes('bifocal')) return { category: 'Cristal', type: 'Cristal Bifocal' };
+    if (t.includes('ocupacional')) return { category: 'Cristal', type: 'Cristal Ocupacional' };
+    if (t.includes('coquil')) return { category: 'Cristal', type: 'Cristal Coquil' };
+
+    // Non-crystal categories
+    if (t.includes('sol') || t.includes('sun')) return { category: 'Lentes de Sol', type: 'Lentes de Sol' };
+    if (t.includes('contacto') || t.includes('contact')) return { category: 'Lentes de Contacto', type: 'Lentes de Contacto' };
+    if (t.includes('especial')) return { category: 'Lentes Especiales', type: 'Lentes Especiales' };
+    if (t.includes('accesorio') || t.includes('accessory')) return { category: 'Lentes Especiales', type: 'Lentes Especiales' };
+    if (t.includes('armazon') || t.includes('armazón') || t.includes('receta') || t.includes('frame')) return { category: 'Armazón de Receta', type: 'Armazón de Receta' };
+
+    // Default: treat as crystal if nothing matched but has crystal-like context
+    return { category: 'Cristal', type: tipoText || 'Cristal' };
 }
 
 // POST /api/products/import — Bulk import from CSV (auto-detects category)
@@ -64,8 +104,21 @@ export async function POST(request: Request) {
         }
 
         // Detect template type from header row
-        const headerRow = parseCSVLine(lines[0]).map(h => h.toLowerCase());
-        const isFrameTemplate = headerRow.includes('modelo') && !headerRow.includes('indice');
+        const headerRow = parseCSVLine(lines[0]).map(h => h.toLowerCase().trim());
+
+        // Detection logic:
+        // - Has "indice" → cristales template
+        // - Has "modelo" + "tipo" but no "indice" → armazones template (with Tipo column)
+        // - Has "modelo" but no "tipo" and no "indice" → sol template
+        // - Has "nombre" but no "modelo" → accesorios template
+        const hasIndice = headerRow.includes('indice');
+        const hasModelo = headerRow.includes('modelo');
+        const hasTipo = headerRow.includes('tipo');
+        const hasNombre = headerRow.includes('nombre');
+        const isCristalTemplate = hasIndice;
+        const isArmazonTemplate = hasModelo && hasTipo && !hasIndice;
+        const isSolTemplate = hasModelo && !hasTipo && !hasIndice;
+        const isAccesorioTemplate = hasNombre && !hasModelo && !hasIndice;
 
         const dataRows = lines.slice(1);
         const errors: string[] = [];
@@ -75,8 +128,79 @@ export async function POST(request: Request) {
             const row = dataRows[i];
             const cols = parseCSVLine(row);
 
-            if (isFrameTemplate) {
-                // ─── ARMAZONES logic ───
+            if (isCristalTemplate) {
+                // ─── CRISTALES logic ───
+                // Headers: Marca, Nombre, Tipo, Indice, Precio, Costo, Stock, Unidad, Laboratorio, Esf_Min, Esf_Max, Cil_Min, Cil_Max, Adic_Min, Adic_Max
+                if (cols.length < 5) {
+                    errors.push(`Fila ${i + 2}: faltan columnas (mínimo: Marca, Nombre, Tipo, Índice, Precio)`);
+                    continue;
+                }
+
+                const [brand, name, type, lensIndex, priceStr, costStr, stockStr, unitType, laboratory, sphMinStr, sphMaxStr, cylMinStr, cylMaxStr, addMinStr, addMaxStr] = cols;
+
+                if (!brand && !name) {
+                    errors.push(`Fila ${i + 2}: se necesita al menos Marca o Nombre`);
+                    continue;
+                }
+
+                const resolved = forceCategory
+                    ? { category: forceCategory, type: type || forceCategory }
+                    : resolveCategory(type || 'Cristal');
+
+                validItems.push({
+                    brand: brand || null,
+                    name: name || null,
+                    model: name || null,
+                    type: resolved.type,
+                    category: resolved.category,
+                    lensIndex: lensIndex || null,
+                    price: parseArgentineNumber(priceStr),
+                    cost: parseArgentineNumber(costStr),
+                    stock: parseInt(stockStr) || 0,
+                    unitType: (unitType || 'PAR').toUpperCase(),
+                    laboratory: laboratory || null,
+                    sphereMin: sphMinStr ? parseFloat(sphMinStr) : null,
+                    sphereMax: sphMaxStr ? parseFloat(sphMaxStr) : null,
+                    cylinderMin: cylMinStr ? parseFloat(cylMinStr) : null,
+                    cylinderMax: cylMaxStr ? parseFloat(cylMaxStr) : null,
+                    additionMin: addMinStr ? parseFloat(addMinStr) : null,
+                    additionMax: addMaxStr ? parseFloat(addMaxStr) : null,
+                });
+            } else if (isArmazonTemplate) {
+                // ─── ARMAZONES logic (with Tipo column) ───
+                // Headers: Marca, Modelo, Tipo, Precio, Costo, Stock
+                if (cols.length < 4) {
+                    errors.push(`Fila ${i + 2}: faltan columnas (mínimo: Marca, Modelo, Tipo, Precio)`);
+                    continue;
+                }
+
+                const [brand, model, tipo, priceStr, costStr, stockStr] = cols;
+
+                if (!brand && !model) {
+                    errors.push(`Fila ${i + 2}: se necesita al menos Marca o Modelo`);
+                    continue;
+                }
+
+                const resolved = forceCategory
+                    ? { category: forceCategory, type: tipo || forceCategory }
+                    : resolveCategory(tipo || 'Armazón de Receta');
+
+                validItems.push({
+                    brand: brand || null,
+                    name: model || null,
+                    model: model || null,
+                    type: resolved.type,
+                    category: resolved.category,
+                    lensIndex: null,
+                    price: parseArgentineNumber(priceStr),
+                    cost: parseArgentineNumber(costStr),
+                    stock: parseInt(stockStr) || 0,
+                    unitType: 'UNIDAD',
+                    laboratory: null,
+                });
+            } else if (isSolTemplate) {
+                // ─── LENTES DE SOL logic ───
+                // Headers: Marca, Modelo, Precio, Costo, Stock
                 if (cols.length < 3) {
                     errors.push(`Fila ${i + 2}: faltan columnas (mínimo: Marca, Modelo, Precio)`);
                     continue;
@@ -93,8 +217,36 @@ export async function POST(request: Request) {
                     brand: brand || null,
                     name: model || null,
                     model: model || null,
-                    type: null,
-                    category: forceCategory || 'FRAME',
+                    type: forceCategory || 'Lentes de Sol',
+                    category: forceCategory || 'Lentes de Sol',
+                    lensIndex: null,
+                    price: parseArgentineNumber(priceStr),
+                    cost: parseArgentineNumber(costStr),
+                    stock: parseInt(stockStr) || 0,
+                    unitType: 'UNIDAD',
+                    laboratory: null,
+                });
+            } else if (isAccesorioTemplate) {
+                // ─── ACCESORIOS logic ───
+                // Headers: Nombre, Marca, Precio, Costo, Stock
+                if (cols.length < 3) {
+                    errors.push(`Fila ${i + 2}: faltan columnas (mínimo: Nombre, Marca, Precio)`);
+                    continue;
+                }
+
+                const [name, brand, priceStr, costStr, stockStr] = cols;
+
+                if (!name && !brand) {
+                    errors.push(`Fila ${i + 2}: se necesita al menos Nombre o Marca`);
+                    continue;
+                }
+
+                validItems.push({
+                    brand: brand || null,
+                    name: name || null,
+                    model: null,
+                    type: forceCategory || 'Lentes Especiales',
+                    category: forceCategory || 'Lentes Especiales',
                     lensIndex: null,
                     price: parseArgentineNumber(priceStr),
                     cost: parseArgentineNumber(costStr),
@@ -103,45 +255,31 @@ export async function POST(request: Request) {
                     laboratory: null,
                 });
             } else {
-                // ─── CRISTALES logic ───
-                if (cols.length < 5) {
-                    errors.push(`Fila ${i + 2}: faltan columnas (mínimo: Marca, Nombre, Tipo, Índice, Precio)`);
+                // ─── FALLBACK: legacy armazones format (Marca, Modelo, Precio, Costo, Stock) ───
+                if (cols.length < 3) {
+                    errors.push(`Fila ${i + 2}: faltan columnas`);
                     continue;
                 }
 
-                const [brand, name, type, lensIndex, priceStr, costStr, stockStr, unitType, laboratory, sphMinStr, sphMaxStr, cylMinStr, cylMaxStr, addMinStr, addMaxStr] = cols;
+                const [brand, model, priceStr, costStr, stockStr] = cols;
 
-                if (!brand && !name) {
-                    errors.push(`Fila ${i + 2}: se necesita al menos Marca o Nombre`);
+                if (!brand && !model) {
+                    errors.push(`Fila ${i + 2}: se necesita al menos Marca o Modelo`);
                     continue;
-                }
-
-                const typeLower = (type || '').toLowerCase();
-                let category = forceCategory || 'LENS';
-                if (!forceCategory) {
-                    if (typeLower.includes('sol') || typeLower.includes('sun')) category = 'SUNGLASS';
-                    else if (typeLower.includes('armazon') || typeLower.includes('frame')) category = 'FRAME';
-                    else if (typeLower.includes('accesorio') || typeLower.includes('accessory')) category = 'ACCESSORY';
                 }
 
                 validItems.push({
                     brand: brand || null,
-                    name: name || null,
-                    model: name || null,
-                    type: type || null,
-                    category,
-                    lensIndex: lensIndex || null,
+                    name: model || null,
+                    model: model || null,
+                    type: forceCategory || 'Armazón de Receta',
+                    category: forceCategory || 'Armazón de Receta',
+                    lensIndex: null,
                     price: parseArgentineNumber(priceStr),
                     cost: parseArgentineNumber(costStr),
                     stock: parseInt(stockStr) || 0,
-                    unitType: (unitType || 'PAR').toUpperCase(),
-                    laboratory: laboratory || null,
-                    sphereMin: sphMinStr ? parseFloat(sphMinStr) : null,
-                    sphereMax: sphMaxStr ? parseFloat(sphMaxStr) : null,
-                    cylinderMin: cylMinStr ? parseFloat(cylMinStr) : null,
-                    cylinderMax: cylMaxStr ? parseFloat(cylMaxStr) : null,
-                    additionMin: addMinStr ? parseFloat(addMinStr) : null,
-                    additionMax: addMaxStr ? parseFloat(addMaxStr) : null,
+                    unitType: 'UNIDAD',
+                    laboratory: null,
                 });
             }
         }
@@ -157,13 +295,16 @@ export async function POST(request: Request) {
             }
         }
 
-        const label = isFrameTemplate ? 'armazones' : 'cristales';
+        const templateLabel = isCristalTemplate ? 'cristales'
+            : isArmazonTemplate ? 'armazones'
+            : isSolTemplate ? 'lentes de sol'
+            : isAccesorioTemplate ? 'accesorios'
+            : 'productos';
         return NextResponse.json({
             success: true,
             imported: importedCount,
-            category: isFrameTemplate ? 'FRAME' : 'LENS',
             errors: errors.length > 0 ? errors : undefined,
-            message: `Se importaron ${importedCount} de ${dataRows.length} ${label}${errors.length > 0 ? `. ${errors.length} errores.` : '.'}`,
+            message: `Se importaron ${importedCount} de ${dataRows.length} ${templateLabel}${errors.length > 0 ? `. ${errors.length} errores.` : '.'}`,
         });
     } catch (error: any) {
         console.error('Error importing products:', error);

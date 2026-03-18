@@ -6,9 +6,10 @@ import { Product } from '@/hooks/useProducts';
 interface ProductCardProps {
     product: Product;
     onDelete: (id: string) => void;
+    isAdmin?: boolean;
 }
 
-export function ProductCard({ product, onDelete }: ProductCardProps) {
+export function ProductCard({ product, onDelete, isAdmin = false }: ProductCardProps) {
     const isCristal = product.category === 'Cristal' || product.type?.startsWith('Cristal');
     const isLowStock = !isCristal && product.stock <= 2;
 
@@ -52,12 +53,14 @@ export function ProductCard({ product, onDelete }: ProductCardProps) {
                 </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4 mt-8 pt-6 border-t border-stone-50 dark:border-stone-800">
+            <div className={`grid ${isAdmin ? 'grid-cols-2' : 'grid-cols-1'} gap-4 mt-8 pt-6 border-t border-stone-50 dark:border-stone-800`}>
+                {isAdmin && (
                 <div className="space-y-1">
                     <p className="text-[9px] font-black text-stone-400 uppercase tracking-widest">Inversión (Costo)</p>
                     <p className="text-sm font-black text-stone-600 dark:text-stone-300 uppercase tracking-tighter">${product.cost.toLocaleString()}</p>
                 </div>
-                <div className="space-y-1 text-right">
+                )}
+                <div className={`space-y-1 ${isAdmin ? 'text-right' : ''}`}>
                     <p className="text-[9px] font-black text-stone-400 uppercase tracking-widest">Precio Venta</p>
                     <p className="text-xl font-black text-primary tracking-tighter">${product.price.toLocaleString()}</p>
                 </div>

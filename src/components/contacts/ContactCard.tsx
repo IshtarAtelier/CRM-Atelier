@@ -130,10 +130,24 @@ export const ContactCard: React.FC<ContactCardProps> = ({
                         </button>
                     )}
                     {contact.status === 'CONFIRMED' && (
-                        <span className="px-4 py-3 bg-indigo-50 text-indigo-600 dark:bg-indigo-900/20 dark:text-indigo-400 rounded-2xl text-[10px] font-black uppercase tracking-widest border border-indigo-100 dark:border-indigo-800/50 flex items-center gap-2 cursor-default" title="Abrí el detalle para cerrar la venta">
-                            <UserCheck className="w-4 h-4" />
-                            En Proceso
-                        </span>
+                        <div className="flex items-center gap-2">
+                            <span className="px-4 py-3 bg-indigo-50 text-indigo-600 dark:bg-indigo-900/20 dark:text-indigo-400 rounded-2xl text-[10px] font-black uppercase tracking-widest border border-indigo-100 dark:border-indigo-800/50 flex items-center gap-2 cursor-default" title="Abrí el detalle para cerrar la venta">
+                                <UserCheck className="w-4 h-4" />
+                                En Proceso
+                            </span>
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (confirm('¿Volver este pedido a estado Contacto?')) {
+                                        onStatusChange(contact.id, 'CONTACT');
+                                    }
+                                }}
+                                className="px-3 py-3 bg-amber-50 text-amber-600 dark:bg-amber-900/20 dark:text-amber-400 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-amber-100 dark:hover:bg-amber-900/40 transition-colors border border-amber-200 dark:border-amber-800/50 flex items-center gap-1.5"
+                                title="Retroceder a Contacto"
+                            >
+                                ← Retroceder
+                            </button>
+                        </div>
                     )}
                     <button
                         onClick={() => onClick(contact.id)}

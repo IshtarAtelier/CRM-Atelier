@@ -38,7 +38,7 @@ export async function PATCH(
     try {
         const { id } = await params;
         const body = await request.json();
-        const { labStatus, labNotes, orderType, labOrderNumber, frameSource, userFrameBrand, userFrameModel, userFrameNotes, labColor, labTreatment, labDiameter, labPdOd, labPdOi } = body;
+        const { labStatus, labNotes, orderType, labOrderNumber, frameSource, userFrameBrand, userFrameModel, userFrameNotes, labColor, labTreatment, labDiameter, labPdOd, labPdOi, prescriptionId } = body;
 
         const data: any = {};
         if (labStatus) {
@@ -49,6 +49,7 @@ export async function PATCH(
         }
         if (labNotes !== undefined) data.labNotes = labNotes;
         if (labOrderNumber !== undefined) data.labOrderNumber = labOrderNumber;
+        if (prescriptionId !== undefined) data.prescriptionId = prescriptionId;
 
         // Frame data updates
         if (frameSource !== undefined) data.frameSource = frameSource;

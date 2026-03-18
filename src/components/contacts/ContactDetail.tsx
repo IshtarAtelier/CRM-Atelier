@@ -14,6 +14,7 @@ import {
     TrendingUp, ArrowRightLeft
 } from 'lucide-react';
 import { Contact, Interaction, Prescription, Order } from '@/types/contacts';
+import FileDropZone from '@/components/FileDropZone';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
@@ -151,6 +152,128 @@ export default function ContactDetail({
     const [priceChanges, setPriceChanges] = useState<{ itemId: string; productName: string; oldPrice: number; newPrice: number }[] | null>(null);
     const [refreshingPrices, setRefreshingPrices] = useState(false);
     const [pendingConvertOrderId, setPendingConvertOrderId] = useState<string | null>(null);
+
+    // Prescription modal for sale conversion
+    const [rxModalOrderId, setRxModalOrderId] = useState<string | null>(null);
+    const [rxForm, setRxForm] = useState({
+        sphereOD: '', cylinderOD: '', axisOD: '',
+        sphereOI: '', cylinderOI: '', axisOI: '',
+        additionOD: '', additionOI: '',
+        distanceOD: '', distanceOI: '',
+        heightOD: '', heightOI: '',
+        notes: '', imageUrl: '',
+    });
+    const [rxSaving, setRxSaving] = useState(false);
+    const [rxError, setRxError] = useState<string | null>(null);
+    const [rxUploading, setRxUploading] = useState(false);
+
+    const resetRxForm = () => {
+        setRxForm({ sphereOD: '', cylinderOD: '', axisOD: '', sphereOI: '', cylinderOI: '', axisOI: '', additionOD: '', additionOI: '', distanceOD: '', distanceOI: '', heightOD: '', heightOI: '', notes: '', imageUrl: '' });
+        setRxError(null);
+    };
+
+    const openRxModal = (orderId: string) => {
+        resetRxForm();
+        // Pre-fill from existing prescription if order already has one
+        const order = contact?.orders?.find((o: any) => o.id === orderId);
+        if (order?.prescriptionId && contact?.prescriptions) {
+            const existingRx: any = contact.prescriptions.find((p: any) => p.id === order.prescriptionId);
+            if (existingRx) {
+                setRxForm({
+                    sphereOD: existingRx.sphereOD != null ? String(existingRx.sphereOD) : '',
+                    cylinderOD: existingRx.cylinderOD != null ? String(existingRx.cylinderOD) : '',
+                    axisOD: existingRx.axisOD != null ? String(existingRx.axisOD) : '',
+                    sphereOI: existingRx.sphereOI != null ? String(existingRx.sphereOI) : '',
+                    cylinderOI: existingRx.cylinderOI != null ? String(existingRx.cylinderOI) : '',
+                    axisOI: existingRx.axisOI != null ? String(existingRx.axisOI) : '',
+                    additionOD: existingRx.additionOD != null ? String(existingRx.additionOD) : (existingRx.addition != null ? String(existingRx.addition) : ''),
+                    additionOI: existingRx.additionOI != null ? String(existingRx.additionOI) : (existingRx.addition != null ? String(existingRx.addition) : ''),
+                    distanceOD: existingRx.distanceOD != null ? String(existingRx.distanceOD) : (existingRx.pd != null ? String(existingRx.pd) : ''),
+                    distanceOI: existingRx.distanceOI != null ? String(existingRx.distanceOI) : (existingRx.pd != null ? String(existingRx.pd) : ''),
+                    heightOD: existingRx.heightOD != null ? String(existingRx.heightOD) : '',
+                    heightOI: existingRx.heightOI != null ? String(existingRx.heightOI) : '',
+                    notes: existingRx.notes || '',
+                    imageUrl: existingRx.imageUrl || '',
+                });
+            }
+        }
+        setRxModalOrderId(orderId);
+    };
+
+    const handleRxSubmitAndConvert = async () => {
+        if (!rxModalOrderId || !contact) return;
+        // Validate minimum fields
+        if (!rxForm.sphereOD && !rxForm.sphereOI) {
+            setRxError('Completá al menos el esférico de un ojo');
+            return;
+        }
+        setRxSaving(true);
+        setRxError(null);
+        try {
+            // 1. Create prescription
+            const rxPayload: any = { clientId: contact.id };
+            if (rxForm.sphereOD) rxPayload.sphereOD = parseFloat(rxForm.sphereOD);
+            if (rxForm.cylinderOD) rxPayload.cylinderOD = parseFloat(rxForm.cylinderOD);
+            if (rxForm.axisOD) rxPayload.axisOD = parseInt(rxForm.axisOD);
+            if (rxForm.sphereOI) rxPayload.sphereOI = parseFloat(rxForm.sphereOI);
+            if (rxForm.cylinderOI) rxPayload.cylinderOI = parseFloat(rxForm.cylinderOI);
+            if (rxForm.axisOI) rxPayload.axisOI = parseInt(rxForm.axisOI);
+            if (rxForm.additionOD) rxPayload.additionOD = parseFloat(rxForm.additionOD);
+            if (rxForm.additionOI) rxPayload.additionOI = parseFloat(rxForm.additionOI);
+            if (rxForm.distanceOD) rxPayload.distanceOD = parseFloat(rxForm.distanceOD);
+            if (rxForm.distanceOI) rxPayload.distanceOI = parseFloat(rxForm.distanceOI);
+            if (rxForm.heightOD) rxPayload.heightOD = parseFloat(rxForm.heightOD);
+            if (rxForm.heightOI) rxPayload.heightOI = parseFloat(rxForm.heightOI);
+            if (rxForm.notes) rxPayload.notes = rxForm.notes;
+            if (rxForm.imageUrl) rxPayload.imageUrl = rxForm.imageUrl;
+
+            const rxRes = await fetch(`/api/contacts/${contact.id}/prescriptions`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(rxPayload),
+            });
+            if (!rxRes.ok) {
+                const errData = await rxRes.json();
+                throw new Error(errData.error || 'Error al guardar la receta');
+            }
+            const newRx = await rxRes.json();
+
+            // 2. Convert to SALE with prescriptionId
+            const saleRes = await fetch(`/api/orders/${rxModalOrderId}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ orderType: 'SALE', prescriptionId: newRx.id }),
+            });
+            if (!saleRes.ok) {
+                const errData = await saleRes.json();
+                throw new Error(errData.error || 'Error al convertir en venta');
+            }
+
+            setRxModalOrderId(null);
+            resetRxForm();
+            fetchContact();
+        } catch (e: any) {
+            setRxError(e.message || 'Error de conexión');
+        } finally {
+            setRxSaving(false);
+        }
+    };
+
+    const handleRxImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        setRxUploading(true);
+        try {
+            const formData = new FormData();
+            formData.append('file', file);
+            const res = await fetch('/api/upload', { method: 'POST', body: formData });
+            const data = await res.json();
+            if (data.url) {
+                setRxForm(prev => ({ ...prev, imageUrl: data.url }));
+            }
+        } catch { }
+        setRxUploading(false);
+    };
 
     // Role Simulation (Until full auth is implemented)
     const [currentUserRole, setCurrentUserRole] = useState<'ADMIN' | 'STAFF'>('STAFF');
@@ -889,25 +1012,24 @@ export default function ContactDetail({
                             {/* Prescription Form / Scanner */}
                             {!isAddingPrescription ? (
                                 <div className="bg-stone-50 dark:bg-stone-800/30 p-12 rounded-[3rem] border-2 border-dashed border-stone-200 dark:border-stone-700 text-center flex flex-col items-center justify-center gap-6">
-                                    <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center text-primary">
-                                        <FileText className="w-10 h-10" />
-                                    </div>
-                                    <div className="max-w-xs mx-auto">
-                                        <h3 className="text-xl font-black text-stone-800 dark:text-stone-100 mb-2">Nueva Receta</h3>
-                                        <p className="text-xs font-medium text-stone-500 mb-8 lowercase tracking-tight">Sube una foto de la receta física o carga los datos manualmente con transposición automática.</p>
-                                    </div>
-                                    <div className="flex gap-4">
-                                        <label className="bg-stone-900 text-white dark:bg-primary dark:text-primary-foreground px-8 py-4 rounded-3xl font-black text-xs uppercase tracking-widest cursor-pointer hover:scale-105 active:scale-95 transition-all shadow-xl shadow-stone-900/10">
-                                            {isScanning ? `Escaneando ${scanProgress}%...` : 'SUBIR FOTO (OCR)'}
-                                            <input type="file" className="hidden" accept="image/*" onChange={handleScanImage} disabled={isScanning} />
-                                        </label>
-                                        <button
-                                            onClick={() => setIsAddingPrescription(true)}
-                                            className="bg-white dark:bg-stone-800 text-stone-900 dark:text-white border border-stone-200 dark:border-stone-700 px-8 py-4 rounded-3xl font-black text-xs uppercase tracking-widest hover:bg-stone-50 transition-all shadow-sm"
-                                        >
-                                            CARGA MANUAL
-                                        </button>
-                                    </div>
+                                    <FileDropZone
+                                        accept="image/*"
+                                        maxSizeMB={10}
+                                        label="Arrastrá la foto de la receta o hacé click"
+                                        loading={isScanning}
+                                        loadingLabel={`Escaneando ${scanProgress}%...`}
+                                        onFile={(file) => {
+                                            const fakeEvent = { target: { files: [file] } } as unknown as React.ChangeEvent<HTMLInputElement>;
+                                            handleScanImage(fakeEvent);
+                                        }}
+                                        className="mb-6"
+                                    />
+                                    <button
+                                        onClick={() => setIsAddingPrescription(true)}
+                                        className="bg-white dark:bg-stone-800 text-stone-900 dark:text-white border border-stone-200 dark:border-stone-700 px-8 py-4 rounded-3xl font-black text-xs uppercase tracking-widest hover:bg-stone-50 transition-all shadow-sm"
+                                    >
+                                        CARGA MANUAL
+                                    </button>
                                 </div>
                             ) : (
                                 <div className="bg-white dark:bg-stone-800 border-2 border-primary/20 rounded-[3rem] p-8 shadow-2xl animate-in zoom-in-95 duration-300">
@@ -2028,7 +2150,11 @@ export default function ContactDetail({
                                                                                     return;
                                                                                 }
 
-                                                                                // No price changes — proceed with conversion
+                                                                                // No price changes — open prescription modal
+                                                                                openRxModal(order.id);
+                                                                                setRefreshingPrices(false);
+                                                                                return;
+                                                                                /* OLD: direct conversion
                                                                                 const res = await fetch(`/api/orders/${order.id}`, {
                                                                                     method: 'PATCH',
                                                                                     headers: { 'Content-Type': 'application/json' },
@@ -2040,6 +2166,7 @@ export default function ContactDetail({
                                                                                     return;
                                                                                 }
                                                                                 fetchContact();
+                                                                                */
                                                                             } catch (e) {
                                                                                 setConvertError('Error de conexión');
                                                                             } finally {
@@ -2384,23 +2511,18 @@ ${(() => {
                                             </div>
                                             <div>
                                                 <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest block mb-3">Comprobante (opcional)</label>
-                                                {paymentReceiptUrl ? (
-                                                    <div className="relative">
-                                                        <img src={paymentReceiptUrl} alt="Comprobante" className="w-full h-40 object-cover rounded-2xl border-2 border-emerald-200 dark:border-emerald-800" />
-                                                        <button
-                                                            onClick={() => setPaymentReceiptUrl('')}
-                                                            className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-full hover:scale-110 transition-all shadow-lg"
-                                                        >
-                                                            <X className="w-3.5 h-3.5" />
-                                                        </button>
-                                                    </div>
-                                                ) : (
-                                                    <label className="flex flex-col items-center justify-center w-full h-28 bg-stone-50 dark:bg-stone-900 border-2 border-dashed border-stone-200 dark:border-stone-700 rounded-2xl cursor-pointer hover:border-primary transition-all group">
-                                                        <ImageIcon className="w-6 h-6 text-stone-300 group-hover:text-primary transition-colors mb-2" />
-                                                        <span className="text-[10px] font-black text-stone-400 group-hover:text-primary uppercase tracking-widest">Subir foto del comprobante</span>
-                                                        <input type="file" className="hidden" accept="image/*" onChange={handlePaymentReceiptUpload} />
-                                                    </label>
-                                                )}
+                                                <FileDropZone
+                                                    accept="image/*"
+                                                    maxSizeMB={10}
+                                                    label="Arrastrá el comprobante aquí"
+                                                    preview={paymentReceiptUrl || null}
+                                                    onClearPreview={() => setPaymentReceiptUrl('')}
+                                                    onFile={(file) => {
+                                                        const fakeEvent = { target: { files: [file] } } as unknown as React.ChangeEvent<HTMLInputElement>;
+                                                        handlePaymentReceiptUpload(fakeEvent);
+                                                    }}
+                                                    compact
+                                                />
                                             </div>
                                         </div>
                                         <div className="mt-8 flex gap-4">
@@ -2437,29 +2559,153 @@ ${(() => {
                                                 REVISAR
                                             </button>
                                             <button
-                                                onClick={async () => {
+                                                onClick={() => {
                                                     if (!pendingConvertOrderId) return;
-                                                    try {
-                                                        const res = await fetch(`/api/orders/${pendingConvertOrderId}`, {
-                                                            method: 'PATCH',
-                                                            headers: { 'Content-Type': 'application/json' },
-                                                            body: JSON.stringify({ orderType: 'SALE' })
-                                                        });
-                                                        if (!res.ok) {
-                                                            const data = await res.json();
-                                                            setConvertError(data.error || 'Error al convertir');
-                                                        }
-                                                        fetchContact();
-                                                    } catch (e) {
-                                                        setConvertError('Error de conexión');
-                                                    } finally {
-                                                        setPriceChanges(null);
-                                                        setPendingConvertOrderId(null);
-                                                    }
+                                                    openRxModal(pendingConvertOrderId);
+                                                    setPriceChanges(null);
+                                                    setPendingConvertOrderId(null);
                                                 }}
                                                 className="flex-1 py-4 bg-emerald-500 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-emerald-600 transition-all"
                                             >
                                                 CONTINUAR CON VENTA
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Modal de Receta para Conversión a Venta */}
+                            {rxModalOrderId && (
+                                <div className="fixed inset-0 bg-stone-900/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-in fade-in duration-300">
+                                    <div className="bg-white dark:bg-stone-800 w-full max-w-xl rounded-[2.5rem] p-8 shadow-huge animate-in zoom-in-95 max-h-[90vh] overflow-y-auto">
+                                        <h3 className="text-xl font-black text-stone-800 dark:text-white mb-1 tracking-tighter flex items-center gap-2">
+                                            📋 Cargar Receta
+                                        </h3>
+                                        <p className="text-[10px] font-bold text-stone-400 mb-6">Completá los datos de la receta antes de convertir el presupuesto en venta.</p>
+
+                                        <div className="space-y-4">
+                                            {/* OD Row */}
+                                            <div>
+                                                <p className="text-[9px] font-black text-emerald-600 uppercase tracking-widest mb-2">👁️ Ojo Derecho (OD)</p>
+                                                <div className="grid grid-cols-4 gap-2">
+                                                    <div>
+                                                        <label className="text-[8px] font-black text-stone-400 uppercase block mb-0.5">Esférico</label>
+                                                        <input type="number" step="0.25" value={rxForm.sphereOD} onChange={e => setRxForm(p => ({...p, sphereOD: e.target.value}))} className="w-full bg-stone-50 dark:bg-stone-900 border border-stone-200 dark:border-stone-700 p-2.5 rounded-xl text-sm font-bold text-center outline-none focus:ring-2 focus:ring-emerald-300" placeholder="0.00" />
+                                                    </div>
+                                                    <div>
+                                                        <label className="text-[8px] font-black text-stone-400 uppercase block mb-0.5">Cilíndrico</label>
+                                                        <input type="number" step="0.25" value={rxForm.cylinderOD} onChange={e => setRxForm(p => ({...p, cylinderOD: e.target.value}))} className="w-full bg-stone-50 dark:bg-stone-900 border border-stone-200 dark:border-stone-700 p-2.5 rounded-xl text-sm font-bold text-center outline-none focus:ring-2 focus:ring-emerald-300" placeholder="0.00" />
+                                                    </div>
+                                                    <div>
+                                                        <label className="text-[8px] font-black text-stone-400 uppercase block mb-0.5">Eje</label>
+                                                        <input type="number" step="1" min="0" max="180" value={rxForm.axisOD} onChange={e => setRxForm(p => ({...p, axisOD: e.target.value}))} className="w-full bg-stone-50 dark:bg-stone-900 border border-stone-200 dark:border-stone-700 p-2.5 rounded-xl text-sm font-bold text-center outline-none focus:ring-2 focus:ring-emerald-300" placeholder="0°" />
+                                                    </div>
+                                                    <div>
+                                                        <label className="text-[8px] font-black text-stone-400 uppercase block mb-0.5">Adición</label>
+                                                        <input type="number" step="0.25" value={rxForm.additionOD} onChange={e => setRxForm(p => ({...p, additionOD: e.target.value}))} className="w-full bg-stone-50 dark:bg-stone-900 border border-stone-200 dark:border-stone-700 p-2.5 rounded-xl text-sm font-bold text-center outline-none focus:ring-2 focus:ring-emerald-300" placeholder="0.00" />
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {/* OI Row */}
+                                            <div>
+                                                <p className="text-[9px] font-black text-blue-600 uppercase tracking-widest mb-2">👁️ Ojo Izquierdo (OI)</p>
+                                                <div className="grid grid-cols-4 gap-2">
+                                                    <div>
+                                                        <label className="text-[8px] font-black text-stone-400 uppercase block mb-0.5">Esférico</label>
+                                                        <input type="number" step="0.25" value={rxForm.sphereOI} onChange={e => setRxForm(p => ({...p, sphereOI: e.target.value}))} className="w-full bg-stone-50 dark:bg-stone-900 border border-stone-200 dark:border-stone-700 p-2.5 rounded-xl text-sm font-bold text-center outline-none focus:ring-2 focus:ring-blue-300" placeholder="0.00" />
+                                                    </div>
+                                                    <div>
+                                                        <label className="text-[8px] font-black text-stone-400 uppercase block mb-0.5">Cilíndrico</label>
+                                                        <input type="number" step="0.25" value={rxForm.cylinderOI} onChange={e => setRxForm(p => ({...p, cylinderOI: e.target.value}))} className="w-full bg-stone-50 dark:bg-stone-900 border border-stone-200 dark:border-stone-700 p-2.5 rounded-xl text-sm font-bold text-center outline-none focus:ring-2 focus:ring-blue-300" placeholder="0.00" />
+                                                    </div>
+                                                    <div>
+                                                        <label className="text-[8px] font-black text-stone-400 uppercase block mb-0.5">Eje</label>
+                                                        <input type="number" step="1" min="0" max="180" value={rxForm.axisOI} onChange={e => setRxForm(p => ({...p, axisOI: e.target.value}))} className="w-full bg-stone-50 dark:bg-stone-900 border border-stone-200 dark:border-stone-700 p-2.5 rounded-xl text-sm font-bold text-center outline-none focus:ring-2 focus:ring-blue-300" placeholder="0°" />
+                                                    </div>
+                                                    <div>
+                                                        <label className="text-[8px] font-black text-stone-400 uppercase block mb-0.5">Adición</label>
+                                                        <input type="number" step="0.25" value={rxForm.additionOI} onChange={e => setRxForm(p => ({...p, additionOI: e.target.value}))} className="w-full bg-stone-50 dark:bg-stone-900 border border-stone-200 dark:border-stone-700 p-2.5 rounded-xl text-sm font-bold text-center outline-none focus:ring-2 focus:ring-blue-300" placeholder="0.00" />
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {/* DNP + Altura */}
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <div>
+                                                    <p className="text-[9px] font-black text-violet-600 uppercase tracking-widest mb-2">📏 DNP (Dist. Pupilar)</p>
+                                                    <div className="grid grid-cols-2 gap-2">
+                                                        <div>
+                                                            <label className="text-[8px] font-black text-stone-400 uppercase block mb-0.5">OD</label>
+                                                            <input type="number" step="0.5" value={rxForm.distanceOD} onChange={e => setRxForm(p => ({...p, distanceOD: e.target.value}))} className="w-full bg-stone-50 dark:bg-stone-900 border border-stone-200 dark:border-stone-700 p-2.5 rounded-xl text-sm font-bold text-center outline-none focus:ring-2 focus:ring-violet-300" placeholder="mm" />
+                                                        </div>
+                                                        <div>
+                                                            <label className="text-[8px] font-black text-stone-400 uppercase block mb-0.5">OI</label>
+                                                            <input type="number" step="0.5" value={rxForm.distanceOI} onChange={e => setRxForm(p => ({...p, distanceOI: e.target.value}))} className="w-full bg-stone-50 dark:bg-stone-900 border border-stone-200 dark:border-stone-700 p-2.5 rounded-xl text-sm font-bold text-center outline-none focus:ring-2 focus:ring-violet-300" placeholder="mm" />
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <p className="text-[9px] font-black text-amber-600 uppercase tracking-widest mb-2">📐 Altura</p>
+                                                    <div className="grid grid-cols-2 gap-2">
+                                                        <div>
+                                                            <label className="text-[8px] font-black text-stone-400 uppercase block mb-0.5">OD</label>
+                                                            <input type="number" step="0.5" value={rxForm.heightOD} onChange={e => setRxForm(p => ({...p, heightOD: e.target.value}))} className="w-full bg-stone-50 dark:bg-stone-900 border border-stone-200 dark:border-stone-700 p-2.5 rounded-xl text-sm font-bold text-center outline-none focus:ring-2 focus:ring-amber-300" placeholder="mm" />
+                                                        </div>
+                                                        <div>
+                                                            <label className="text-[8px] font-black text-stone-400 uppercase block mb-0.5">OI</label>
+                                                            <input type="number" step="0.5" value={rxForm.heightOI} onChange={e => setRxForm(p => ({...p, heightOI: e.target.value}))} className="w-full bg-stone-50 dark:bg-stone-900 border border-stone-200 dark:border-stone-700 p-2.5 rounded-xl text-sm font-bold text-center outline-none focus:ring-2 focus:ring-amber-300" placeholder="mm" />
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {/* Notas */}
+                                            <div>
+                                                <label className="text-[9px] font-black text-stone-400 uppercase tracking-widest block mb-1">Notas de la receta</label>
+                                                <textarea value={rxForm.notes} onChange={e => setRxForm(p => ({...p, notes: e.target.value}))} className="w-full bg-stone-50 dark:bg-stone-900 border border-stone-200 dark:border-stone-700 p-3 rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-stone-300" placeholder="Observaciones, indicaciones médicas..." rows={2} />
+                                            </div>
+
+                                            {/* Foto de la receta */}
+                                            <div>
+                                                <label className="text-[9px] font-black text-stone-400 uppercase tracking-widest block mb-2">📷 Foto de la receta (opcional)</label>
+                                                {rxForm.imageUrl ? (
+                                                    <div className="relative">
+                                                        <img src={rxForm.imageUrl} alt="Receta" className="w-full max-h-40 object-contain rounded-xl border-2 border-emerald-200" />
+                                                        <button onClick={() => setRxForm(p => ({...p, imageUrl: ''}))} className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-full hover:scale-110 transition-all">
+                                                            <X className="w-3 h-3" />
+                                                        </button>
+                                                    </div>
+                                                ) : (
+                                                    <label className="flex items-center justify-center gap-2 p-4 border-2 border-dashed border-stone-200 dark:border-stone-700 rounded-xl cursor-pointer hover:border-emerald-300 transition-colors">
+                                                        <input type="file" accept="image/*" onChange={handleRxImageUpload} className="hidden" />
+                                                        {rxUploading ? (
+                                                            <span className="text-xs font-bold text-stone-400">Subiendo...</span>
+                                                        ) : (
+                                                            <span className="text-xs font-bold text-stone-400">Tocar para subir foto de la receta</span>
+                                                        )}
+                                                    </label>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        {rxError && (
+                                            <p className="mt-4 text-[10px] font-black text-red-500 bg-red-50 dark:bg-red-900/20 px-3 py-2 rounded-xl text-center">⚠️ {rxError}</p>
+                                        )}
+
+                                        <div className="mt-6 flex gap-4">
+                                            <button
+                                                onClick={() => { setRxModalOrderId(null); resetRxForm(); }}
+                                                className="flex-1 py-4 bg-stone-100 dark:bg-stone-700 text-stone-500 dark:text-stone-300 rounded-2xl font-black text-xs uppercase tracking-widest"
+                                            >
+                                                CANCELAR
+                                            </button>
+                                            <button
+                                                onClick={handleRxSubmitAndConvert}
+                                                disabled={rxSaving || (!rxForm.sphereOD && !rxForm.sphereOI)}
+                                                className={`flex-1 py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${rxSaving || (!rxForm.sphereOD && !rxForm.sphereOI) ? 'bg-stone-200 text-stone-400 cursor-not-allowed' : 'bg-emerald-500 text-white hover:bg-emerald-600 shadow-lg'}`}
+                                            >
+                                                {rxSaving ? (<><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span> GUARDANDO...</>) : (<><CheckCircle2 className="w-4 h-4" /> GUARDAR Y CONVERTIR EN VENTA</>)}
                                             </button>
                                         </div>
                                     </div>

@@ -213,6 +213,24 @@ export default function InventarioPage() {
                                 <Download className="w-4 h-4" />
                                 👓 Armazones
                             </a>
+                            <a
+                                href="/api/products/import?type=sol"
+                                download="plantilla_lentes_sol_atelier.csv"
+                                className="flex items-center gap-2 px-4 py-3 bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-300 rounded-xl text-[10px] font-black hover:scale-105 active:scale-95 transition-all uppercase tracking-widest border border-stone-200 dark:border-stone-700 no-underline"
+                                title="Descargar plantilla CSV para cargar lentes de sol masivamente"
+                            >
+                                <Download className="w-4 h-4" />
+                                🕶️ Sol
+                            </a>
+                            <a
+                                href="/api/products/import?type=accesorios"
+                                download="plantilla_accesorios_atelier.csv"
+                                className="flex items-center gap-2 px-4 py-3 bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-300 rounded-xl text-[10px] font-black hover:scale-105 active:scale-95 transition-all uppercase tracking-widest border border-stone-200 dark:border-stone-700 no-underline"
+                                title="Descargar plantilla CSV para cargar accesorios masivamente"
+                            >
+                                <Download className="w-4 h-4" />
+                                ✨ Accesorios
+                            </a>
                             <label
                                 className={`flex items-center gap-2 px-4 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest cursor-pointer transition-all border hover:scale-105 active:scale-95 ${importing
                                     ? 'bg-stone-200 dark:bg-stone-700 text-stone-400 border-stone-300'
@@ -237,12 +255,12 @@ export default function InventarioPage() {
             </header>
 
             {/* Stats */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div className={`grid grid-cols-2 ${isAdmin ? 'md:grid-cols-4' : 'md:grid-cols-3'} gap-3`}>
                 {[
                     { label: 'Artículos', value: stats.totalProducts, icon: ShoppingBag },
                     { label: 'Stock Total', value: stats.totalStock, icon: Package },
                     { label: 'Stock Crítico', value: stats.lowStock, icon: AlertCircle },
-                    { label: 'Valorización', value: `$${stats.inventoryValue.toLocaleString()}`, icon: ArrowUpRight },
+                    ...(isAdmin ? [{ label: 'Valorización', value: `$${stats.inventoryValue.toLocaleString()}`, icon: ArrowUpRight }] : []),
                 ].map((s, i) => (
                     <div key={i} className="bg-white dark:bg-stone-900 p-4 rounded-2xl border border-stone-100 dark:border-stone-800 flex items-center gap-3">
                         <s.icon className="w-5 h-5 text-stone-400 shrink-0" />
@@ -359,7 +377,7 @@ export default function InventarioPage() {
             <div className="bg-white dark:bg-stone-900 rounded-3xl border border-stone-100 dark:border-stone-800 overflow-hidden shadow-sm overflow-x-auto">
 
                 {/* Table header */}
-                <div className="grid grid-cols-[auto_2fr_1fr_auto_1fr_1fr_1fr_auto] gap-4 px-6 py-3 bg-stone-50 dark:bg-stone-800/50 border-b border-stone-100 dark:border-stone-800 items-center">
+                <div className={`grid ${isAdmin ? 'grid-cols-[auto_2fr_1fr_auto_1fr_1fr_1fr_auto]' : 'grid-cols-[auto_2fr_1fr_auto_1fr_1fr_auto]'} gap-4 px-6 py-3 bg-stone-50 dark:bg-stone-800/50 border-b border-stone-100 dark:border-stone-800 items-center`}>
                     {/* Select all checkbox */}
                     <button
                         onClick={toggleSelectAll}
@@ -371,7 +389,7 @@ export default function InventarioPage() {
                             <Square className="w-4 h-4" />
                         )}
                     </button>
-                    {['Producto', 'Tipo', 'Índice', 'Stock', 'Costo', 'Precio', ''].map((h, i) => (
+                    {(isAdmin ? ['Producto', 'Tipo', 'Índice', 'Stock', 'Costo', 'Precio', ''] : ['Producto', 'Tipo', 'Índice', 'Stock', 'Precio', '']).map((h, i) => (
                         <span key={i} className="text-[9px] font-black text-stone-400 uppercase tracking-widest">{h}</span>
                     ))}
                 </div>
@@ -395,7 +413,7 @@ export default function InventarioPage() {
                             return (
                                 <div
                                     key={p.id}
-                                    className={`grid grid-cols-[auto_2fr_1fr_auto_1fr_1fr_1fr_auto] gap-4 px-6 py-4 items-center hover:bg-stone-50/70 dark:hover:bg-stone-800/30 transition-colors group ${isSelected ? 'bg-primary/5' : ''}`}
+                                    className={`grid ${isAdmin ? 'grid-cols-[auto_2fr_1fr_auto_1fr_1fr_1fr_auto]' : 'grid-cols-[auto_2fr_1fr_auto_1fr_1fr_auto]'} gap-4 px-6 py-4 items-center hover:bg-stone-50/70 dark:hover:bg-stone-800/30 transition-colors group ${isSelected ? 'bg-primary/5' : ''}`}
                                 >
                                     {/* Checkbox */}
                                     <button
@@ -458,12 +476,14 @@ export default function InventarioPage() {
                                         )}
                                     </div>
 
-                                    {/* Costo */}
+                                    {/* Costo — solo admin */}
+                                    {isAdmin && (
                                     <div>
                                         <span className="text-sm font-bold text-stone-400">
                                             ${p.cost?.toLocaleString() ?? '0'}
                                         </span>
                                     </div>
+                                    )}
 
                                     {/* Precio */}
                                     <div>
@@ -545,10 +565,12 @@ export default function InventarioPage() {
                                         <input type="number" min={0} value={editForm.stock} onChange={e => setEditForm({ ...editForm, stock: parseInt(e.target.value) || 0 })} className="w-full px-5 py-4 bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-2xl font-bold text-sm outline-none focus:border-primary" />
                                     </div>
                                 )}
+                                {isAdmin && (
                                 <div className="space-y-1">
                                     <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest ml-3">Costo ($)</label>
                                     <input type="number" min={0} value={editForm.cost} onChange={e => setEditForm({ ...editForm, cost: parseFloat(e.target.value) || 0 })} className="w-full px-5 py-4 bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-2xl font-bold text-sm outline-none focus:border-primary" />
                                 </div>
+                                )}
                                 <div className="col-span-2 space-y-1">
                                     <label className="text-[10px] font-black text-primary uppercase tracking-widest ml-3">Precio Venta ($)</label>
                                     <input type="number" min={0} value={editForm.price} onChange={e => setEditForm({ ...editForm, price: parseFloat(e.target.value) || 0 })} className="w-full px-5 py-5 bg-primary/5 border-2 border-primary/20 rounded-2xl font-black text-xl outline-none focus:border-primary text-primary" />
