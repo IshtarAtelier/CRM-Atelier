@@ -26,6 +26,33 @@ interface OrderItem {
     additionVal?: number | null;
 }
 
+interface Prescription {
+    id: string;
+    sphereOD?: number | null;
+    cylinderOD?: number | null;
+    axisOD?: number | null;
+    sphereOI?: number | null;
+    cylinderOI?: number | null;
+    axisOI?: number | null;
+    addition?: number | null;
+    additionOD?: number | null;
+    additionOI?: number | null;
+    pd?: number | null;
+    distanceOD?: number | null;
+    distanceOI?: number | null;
+    heightOD?: number | null;
+    heightOI?: number | null;
+    notes?: string | null;
+    imageUrl?: string | null;
+    prescriptionType?: string | null;
+    nearSphereOD?: number | null;
+    nearSphereOI?: number | null;
+    nearCylinderOD?: number | null;
+    nearAxisOD?: number | null;
+    nearCylinderOI?: number | null;
+    nearAxisOI?: number | null;
+}
+
 interface Order {
     id: string;
     clientId: string;
@@ -55,6 +82,8 @@ interface Order {
     labDiameter?: string | null;
     labPdOd?: string | null;
     labPdOi?: string | null;
+    prescriptionId?: string | null;
+    prescription?: Prescription | null;
     client: {
         id: string;
         name: string;
@@ -998,6 +1027,118 @@ ${order.frameSource ? `<div style='background:#fffbeb;border:2px solid #fbbf24;b
                                         </tbody>
                                     </table>
                                 </div>
+
+                                {/* Datos de la Receta */}
+                                {order.prescription && (() => {
+                                    const rx = order.prescription;
+                                    const fmtVal = (v: number | null | undefined, suffix = '') => {
+                                        if (v == null) return '—';
+                                        return (v > 0 ? `+${v.toFixed(2)}` : v.toFixed(2)) + suffix;
+                                    };
+                                    const fmtNum = (v: number | null | undefined) => v != null ? String(v) : '—';
+                                    const hasNear = rx.prescriptionType === 'NEAR' && (rx.nearSphereOD != null || rx.nearSphereOI != null);
+                                    const hasDnp = rx.distanceOD != null || rx.distanceOI != null || rx.pd != null;
+                                    const hasHeight = rx.heightOD != null || rx.heightOI != null;
+
+                                    return (
+                                        <div className="border-2 border-emerald-200 dark:border-emerald-800 bg-emerald-50/50 dark:bg-emerald-950/30 rounded-2xl overflow-hidden">
+                                            <div className="px-5 py-3 bg-emerald-100/60 dark:bg-emerald-900/40 border-b border-emerald-200 dark:border-emerald-800 flex items-center justify-between">
+                                                <h3 className="text-[10px] font-black text-emerald-700 dark:text-emerald-400 uppercase tracking-widest">📋 Receta Vinculada</h3>
+                                                {rx.imageUrl && (
+                                                    <a href={rx.imageUrl} target="_blank" className="text-[9px] font-black text-emerald-600 uppercase tracking-widest hover:underline flex items-center gap-1">
+                                                        <Eye className="w-3 h-3" /> Ver Foto
+                                                    </a>
+                                                )}
+                                            </div>
+                                            <div className="p-5 space-y-4">
+                                                {/* Lejos */}
+                                                <table className="w-full">
+                                                    <thead>
+                                                        <tr className="border-b border-emerald-200/50 dark:border-emerald-800/50">
+                                                            <th className="text-left text-[9px] font-black text-emerald-600 uppercase tracking-widest px-3 py-2 w-16">{hasNear ? 'LEJOS' : ''}</th>
+                                                            <th className="text-center text-[9px] font-black text-emerald-600/60 uppercase tracking-widest px-2 py-2">Esf</th>
+                                                            <th className="text-center text-[9px] font-black text-emerald-600/60 uppercase tracking-widest px-2 py-2">Cil</th>
+                                                            <th className="text-center text-[9px] font-black text-emerald-600/60 uppercase tracking-widest px-2 py-2">Eje</th>
+                                                            {(rx.additionOD != null || rx.additionOI != null || rx.addition != null) && (
+                                                                <th className="text-center text-[9px] font-black text-emerald-600/60 uppercase tracking-widest px-2 py-2">Add</th>
+                                                            )}
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        {[{ label: 'OD', sph: rx.sphereOD, cyl: rx.cylinderOD, axis: rx.axisOD, add: rx.additionOD ?? rx.addition },
+                                                          { label: 'OI', sph: rx.sphereOI, cyl: rx.cylinderOI, axis: rx.axisOI, add: rx.additionOI ?? rx.addition }].map(eye => (
+                                                            <tr key={eye.label} className="border-b border-emerald-100/50 dark:border-emerald-800/30 last:border-0">
+                                                                <td className="px-3 py-2 text-xs font-black text-emerald-700 dark:text-emerald-300">{eye.label}</td>
+                                                                <td className="px-2 py-2 text-center text-sm font-bold text-stone-800 dark:text-white">{fmtVal(eye.sph)}</td>
+                                                                <td className="px-2 py-2 text-center text-sm font-bold text-stone-800 dark:text-white">{fmtVal(eye.cyl)}</td>
+                                                                <td className="px-2 py-2 text-center text-sm font-bold text-stone-800 dark:text-white">{eye.axis != null ? `${eye.axis}°` : '—'}</td>
+                                                                {(rx.additionOD != null || rx.additionOI != null || rx.addition != null) && (
+                                                                    <td className="px-2 py-2 text-center text-sm font-bold text-stone-800 dark:text-white">{fmtVal(eye.add)}</td>
+                                                                )}
+                                                            </tr>
+                                                        ))}
+                                                    </tbody>
+                                                </table>
+
+                                                {/* Cerca (si prescriptionType = NEAR) */}
+                                                {hasNear && (
+                                                    <table className="w-full">
+                                                        <thead>
+                                                            <tr className="border-b border-emerald-200/50 dark:border-emerald-800/50">
+                                                                <th className="text-left text-[9px] font-black text-emerald-600 uppercase tracking-widest px-3 py-2 w-16">CERCA</th>
+                                                                <th className="text-center text-[9px] font-black text-emerald-600/60 uppercase tracking-widest px-2 py-2">Esf</th>
+                                                                <th className="text-center text-[9px] font-black text-emerald-600/60 uppercase tracking-widest px-2 py-2">Cil</th>
+                                                                <th className="text-center text-[9px] font-black text-emerald-600/60 uppercase tracking-widest px-2 py-2">Eje</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            {[{ label: 'OD', sph: rx.nearSphereOD, cyl: rx.nearCylinderOD, axis: rx.nearAxisOD },
+                                                              { label: 'OI', sph: rx.nearSphereOI, cyl: rx.nearCylinderOI, axis: rx.nearAxisOI }].map(eye => (
+                                                                <tr key={eye.label} className="border-b border-emerald-100/50 dark:border-emerald-800/30 last:border-0">
+                                                                    <td className="px-3 py-2 text-xs font-black text-emerald-700 dark:text-emerald-300">{eye.label}</td>
+                                                                    <td className="px-2 py-2 text-center text-sm font-bold text-stone-800 dark:text-white">{fmtVal(eye.sph)}</td>
+                                                                    <td className="px-2 py-2 text-center text-sm font-bold text-stone-800 dark:text-white">{fmtVal(eye.cyl)}</td>
+                                                                    <td className="px-2 py-2 text-center text-sm font-bold text-stone-800 dark:text-white">{eye.axis != null ? `${eye.axis}°` : '—'}</td>
+                                                                </tr>
+                                                            ))}
+                                                        </tbody>
+                                                    </table>
+                                                )}
+
+                                                {/* DNP + Altura */}
+                                                {(hasDnp || hasHeight) && (
+                                                    <div className="grid grid-cols-2 gap-3">
+                                                        {hasDnp && (
+                                                            <div className="bg-white/60 dark:bg-stone-800/60 rounded-xl p-3">
+                                                                <span className="text-[9px] font-black text-emerald-600/60 uppercase tracking-widest block mb-1">DNP (Dist. Pupilar)</span>
+                                                                <div className="flex gap-4 text-sm font-bold text-stone-800 dark:text-white">
+                                                                    <span>OD: {fmtNum(rx.distanceOD ?? rx.pd)}</span>
+                                                                    <span>OI: {fmtNum(rx.distanceOI ?? rx.pd)}</span>
+                                                                </div>
+                                                            </div>
+                                                        )}
+                                                        {hasHeight && (
+                                                            <div className="bg-white/60 dark:bg-stone-800/60 rounded-xl p-3">
+                                                                <span className="text-[9px] font-black text-emerald-600/60 uppercase tracking-widest block mb-1">Altura</span>
+                                                                <div className="flex gap-4 text-sm font-bold text-stone-800 dark:text-white">
+                                                                    <span>OD: {fmtNum(rx.heightOD)}</span>
+                                                                    <span>OI: {fmtNum(rx.heightOI)}</span>
+                                                                </div>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                )}
+
+                                                {/* Notas de la receta */}
+                                                {rx.notes && (
+                                                    <div className="text-xs text-emerald-800 dark:text-emerald-300 bg-white/40 dark:bg-stone-800/40 rounded-lg px-3 py-2">
+                                                        <span className="font-black">Notas:</span> {rx.notes}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    );
+                                })()}
 
                                 {/* Material, Marca, Laboratorio */}
                                 <div className="grid grid-cols-3 gap-4">

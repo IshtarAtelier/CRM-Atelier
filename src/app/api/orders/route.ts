@@ -94,6 +94,7 @@ export async function GET() {
                 items: { include: { product: true } },
                 payments: true,
                 invoices: true,
+                prescription: true,
             },
             orderBy: { createdAt: 'desc' },
         });
