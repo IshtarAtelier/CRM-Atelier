@@ -96,7 +96,7 @@ export async function GET(request: Request) {
                 o.paid,
                 o.total - o.paid,
                 [...new Set(o.payments.map(p => p.method))].join(' / '),
-                o.items.map(i => `${i.product.brand || ''} ${i.product.name} x${i.quantity}`).join(' | '),
+                o.items.map(i => `${i.product?.brand || ''} ${i.product?.name || ''} x${i.quantity}`).join(' | '),
             ]);
             csv = toCSV(headers, rows);
             filename = `ventas_${Date.now()}.csv`;
