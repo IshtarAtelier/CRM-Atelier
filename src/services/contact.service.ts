@@ -36,10 +36,10 @@ export const ContactService = {
         }
         if (search) {
             where.OR = [
-                { name: { contains: search } },
-                { phone: { contains: search } },
-                { interest: { contains: search } },
-                { insurance: { contains: search } }
+                { name: { contains: search, mode: 'insensitive' } },
+                { phone: { contains: search, mode: 'insensitive' } },
+                { interest: { contains: search, mode: 'insensitive' } },
+                { insurance: { contains: search, mode: 'insensitive' } }
             ];
         }
 
