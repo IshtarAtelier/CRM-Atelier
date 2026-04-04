@@ -38,11 +38,11 @@ export const CashService = {
     /**
      * Registra un nuevo movimiento de caja (entrada o salida).
      */
-    async registerMovement(params: { type: 'IN' | 'OUT', amount: number, reason: string, userId: string }) {
-        const { type, amount, reason, userId } = params;
+    async registerMovement(params: { type: 'IN' | 'OUT', amount: number, reason: string, userId: string, receiptUrl?: string }) {
+        const { type, amount, reason, userId, receiptUrl } = params;
 
         const movement = await (prisma as any).cashMovement.create({
-            data: { type, amount, reason, userId },
+            data: { type, amount, reason, userId, receiptUrl },
             include: { user: true }
         });
 

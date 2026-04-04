@@ -21,6 +21,7 @@ model User {
   updatedAt DateTime @updatedAt
 
   orders    Order[]
+  cashMovements CashMovement[]
 }
 
 model Client {
@@ -51,6 +52,18 @@ model Client {
   @@index([status])
   @@index([doctor])
   @@index([isFavorite])
+}
+
+model CashMovement {
+  id        String   @id @default(cuid())
+  type      String   // IN (Entrada) or OUT (Salida)
+  amount    Float
+  reason    String
+  userId    String
+  receiptUrl String? // Nuevo: Imagen del comprobante
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
 }
 
 model Interaction {
