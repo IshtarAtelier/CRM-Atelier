@@ -379,7 +379,7 @@ export default function CotizadorPage() {
         // Promo badge
         if (hasAnyMultifocal) {
             text += `\n🎁 *Promoción Multifocal 2x1*`;
-            if (hasMultifocalPromo) text += ` — Incluye armazón Atelier sin cargo (siempre y cuando se adquiera un armazón de la óptica)`;
+            if (hasMultifocalPromo) text += ` — Incluye armazón Atelier sin cargo (con la compra del primer armazón, el segundo es sin cargo o con descuento equivalente)`;
             text += `\n`;
         }
         text += `\n`;

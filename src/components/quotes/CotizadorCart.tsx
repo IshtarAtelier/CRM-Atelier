@@ -221,7 +221,7 @@ export default function CotizadorCart({
                         </p>
                         <p className={`text-[10px] font-bold ${hasMultifocalPromo ? 'text-emerald-600 dark:text-emerald-400' : 'text-blue-600 dark:text-blue-400'}`}>
                             {hasMultifocalPromo
-                                ? `Incluye armazón Atelier sin cargo${atelierAvgPrice > 0 ? ` (valor de referencia ~$${atelierAvgPrice.toLocaleString()})` : ''}`
+                                ? `Incluye armazón Atelier sin cargo (comprando el primer armazón de la óptica el segundo es sin cargo)${atelierAvgPrice > 0 ? ` — Ref: ~$${atelierAvgPrice.toLocaleString()}` : ''}`
                                 : 'Solo incluye el par de cristales de última tecnología'
                             }
                         </p>
