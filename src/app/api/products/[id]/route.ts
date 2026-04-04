@@ -17,17 +17,6 @@ export async function DELETE(
 
         const { id } = await params;
 
-        // Check if product has associated order items
-        const orderItemCount = await prisma.orderItem.count({
-            where: { productId: id }
-        });
-
-        if (orderItemCount > 0) {
-            return NextResponse.json({
-                error: `No se puede eliminar: este producto está asociado a ${orderItemCount} venta(s). Considere desactivar el producto en su lugar.`
-            }, { status: 400 });
-        }
-
         await prisma.product.delete({
             where: { id }
         });

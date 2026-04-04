@@ -57,6 +57,7 @@ export async function GET(request: Request) {
         const monthlyStats: Record<string, { revenue: number; cost: number; profit: number; orders: number }> = {};
         const paymentMethodStats: Record<string, { total: number; count: number; commission: number }> = {};
         const vendorStats: Record<string, { name: string; revenue: number; orders: number; avgTicket: number }> = {};
+        const labProfitStats: Record<string, { laboratory: string; revenue: number; cost: number; profit: number; ordersCount: number }> = {};
 
         const monthNames = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
 
@@ -117,6 +118,15 @@ export async function GET(request: Request) {
 
                 // Add to monthly cost
                 monthlyStats[monthKey].cost += itemCost;
+
+                // Lab profit stats (only for LENS items with a laboratory)
+                const labName = (product as any).laboratory;
+                if ((cat.includes('LENS') || (product.type || '').includes('Cristal') || (product.type || '').includes('Multifocal') || (product.type || '').includes('Monofocal')) && labName) {
+                    if (!labProfitStats[labName]) labProfitStats[labName] = { laboratory: labName, revenue: 0, cost: 0, profit: 0, ordersCount: 0 };
+                    labProfitStats[labName].revenue += itemRevenue;
+                    labProfitStats[labName].cost += itemCost;
+                    labProfitStats[labName].profit += itemRevenue - itemCost;
+                }
             }
 
             // Payment method stats & platform fees
@@ -169,6 +179,23 @@ export async function GET(request: Request) {
             paymentMethods: Object.entries(paymentMethodStats)
                 .map(([method, data]) => ({ method, ...data }))
                 .sort((a, b) => b.total - a.total),
+            labStats: (() => {
+                // Count unique orders per lab
+                const labOrderIds: Record<string, Set<string>> = {};
+                for (const order of orders) {
+                    for (const item of order.items) {
+                        const cat = ((item.product as any).category || '').toUpperCase();
+                        const labName = (item.product as any).laboratory;
+                        if (labName && (cat.includes('LENS') || ((item.product as any).type || '').includes('Cristal') || ((item.product as any).type || '').includes('Multifocal') || ((item.product as any).type || '').includes('Monofocal'))) {
+                            if (!labOrderIds[labName]) labOrderIds[labName] = new Set();
+                            labOrderIds[labName].add(order.id);
+                        }
+                    }
+                }
+                return Object.values(labProfitStats)
+                    .map(ls => ({ ...ls, ordersCount: labOrderIds[ls.laboratory]?.size || 0 }))
+                    .sort((a, b) => b.revenue - a.revenue);
+            })(),
         });
     } catch (error: any) {
         console.error('Error generating report:', error);

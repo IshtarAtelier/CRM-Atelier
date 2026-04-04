@@ -75,24 +75,32 @@ export function useProducts(searchQuery: string = '', selectedType: string = 'AL
     const deleteProduct = async (id: string) => {
         try {
             const res = await fetch(`/api/products/${id}`, { method: 'DELETE' });
+            const data = await res.json();
             if (res.ok) {
                 await fetchProducts();
-                return true;
+                return { success: true };
             }
-            return false;
+            return { success: false, error: data.error || 'Error al eliminar producto' };
         } catch (error) {
-            return false;
+            return { success: false, error: 'Error de conexión' };
         }
     };
 
     const bulkDelete = async (ids: string[]) => {
-        try {
-            await Promise.all(ids.map(id => fetch(`/api/products/${id}`, { method: 'DELETE' })));
-            await fetchProducts();
-            return true;
-        } catch (error) {
-            return false;
+        const errors: string[] = [];
+        for (const id of ids) {
+            try {
+                const res = await fetch(`/api/products/${id}`, { method: 'DELETE' });
+                if (!res.ok) {
+                    const data = await res.json();
+                    errors.push(data.error || `Error eliminando producto ${id}`);
+                }
+            } catch {
+                errors.push(`Error de conexión eliminando producto ${id}`);
+            }
         }
+        await fetchProducts();
+        return { success: errors.length === 0, errors };
     };
 
     return {

@@ -10,7 +10,9 @@ interface ProductCardProps {
 }
 
 export function ProductCard({ product, onDelete, isAdmin = false }: ProductCardProps) {
-    const isCristal = product.category === 'Cristal' || product.type?.startsWith('Cristal');
+    const isCristal = product.category === 'Cristal' || product.category === 'LENS'
+        || product.type?.startsWith('Cristal')
+        || ['MONOFOCAL','MULTIFOCAL','BIFOCAL','OCUPACIONAL'].includes(product.type?.toUpperCase() || '');
     const isLowStock = !isCristal && product.stock <= 2;
 
     return (

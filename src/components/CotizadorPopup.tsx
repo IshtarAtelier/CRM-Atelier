@@ -5,7 +5,7 @@ import {
     Search, Plus, Minus, Trash2, Copy, MessageCircle,
     Calculator, RotateCcw, Percent, Check, Glasses,
     Layers, Sun, Watch, Eye, ShoppingBag, Sparkles, Pill,
-    Pencil, X, User, Save
+    Pencil, X, User, Save, Gift
 } from 'lucide-react';
 
 interface Product {
@@ -179,7 +179,58 @@ export default function CotizadorPopup({ clientName, clientId, onClose }: Cotiza
         return name.includes('multifocal') || name.includes('progresivo') || (p.type || '').toLowerCase().includes('multifocal');
     }, []);
 
-    const addToQuote = useCallback((product: Product) => {
+    const isMiPrimerVarilux = useCallback((p: Product) => {
+        return (p.name || '').toLowerCase().includes('mi primer varilux');
+    }, []);
+
+    const isAtelierFrame = useCallback((p: Product) => {
+        return (p.brand || '').toLowerCase().includes('atelier');
+    }, []);
+
+    // Average Atelier frame price for bonification
+    const atelierAvgPrice = useMemo(() => {
+        const atelierFrames = products.filter(p =>
+            (p.type === 'Armazón' || p.category === 'FRAME') &&
+            (p.brand || '').toLowerCase().includes('atelier') &&
+            p.price > 0
+        );
+        if (atelierFrames.length === 0) return 0;
+        return Math.round(atelierFrames.reduce((sum, f) => sum + f.price, 0) / atelierFrames.length);
+    }, [products]);
+
+    // Check if quote has a multifocal that qualifies for frame promo
+    const hasMultifocalPromo = useMemo(() => {
+        return quoteItems.some(item =>
+            isCrystalProduct(item.product) && isMultifocalProduct(item.product) && !isMiPrimerVarilux(item.product)
+        );
+    }, [quoteItems, isCrystalProduct, isMultifocalProduct, isMiPrimerVarilux]);
+
+    // Check if quote has any multifocal at all
+    const hasAnyMultifocal = useMemo(() => {
+        return quoteItems.some(item =>
+            isCrystalProduct(item.product) && isMultifocalProduct(item.product)
+        );
+    }, [quoteItems, isCrystalProduct, isMultifocalProduct]);
+
+    // Promo frame discount calculation
+    const promoFrameDiscount = useMemo(() => {
+        if (!hasMultifocalPromo) return 0;
+        const frameItem = quoteItems.find(item =>
+            item.product.type === 'Armazón' || item.product.category === 'FRAME'
+        );
+        if (!frameItem) return 0;
+        if (isAtelierFrame(frameItem.product)) return frameItem.product.price;
+        return Math.min(atelierAvgPrice, frameItem.product.price);
+    }, [hasMultifocalPromo, quoteItems, isAtelierFrame, atelierAvgPrice]);
+
+    // Frame item for promo display
+    const frameItemInQuote = useMemo(() => {
+        return quoteItems.find(item =>
+            item.product.type === 'Armazón' || item.product.category === 'FRAME'
+        );
+    }, [quoteItems]);
+
+    const addToQuote = useCallback((product: Product, isPromoFrame?: boolean) => {
         if (isCrystalProduct(product)) {
             // Crystals always add as OD + OI pair
             setQuoteItems(prev => {
@@ -224,10 +275,19 @@ export default function CotizadorPopup({ clientName, clientId, onClose }: Cotiza
                             : item
                     );
                 }
-                return [...prev, { product, quantity: 1, customPrice: product.price, uid: Date.now() }];
+                // If promo frame: Atelier = $0, non-Atelier = price - Atelier avg
+                let framePrice = product.price;
+                if (isPromoFrame) {
+                    if (isAtelierFrame(product)) {
+                        framePrice = 0;
+                    } else {
+                        framePrice = Math.max(0, product.price - atelierAvgPrice);
+                    }
+                }
+                return [...prev, { product, quantity: 1, customPrice: framePrice, uid: Date.now() }];
             });
         }
-    }, [isCrystalProduct, isMultifocalProduct, prescription]);
+    }, [isCrystalProduct, isMultifocalProduct, prescription, isAtelierFrame, atelierAvgPrice]);
 
     const updateQuantity = useCallback((uid: number, delta: number) => {
         setQuoteItems(prev =>
@@ -274,7 +334,16 @@ export default function CotizadorPopup({ clientName, clientId, onClose }: Cotiza
         const lines = quoteItems.map(item => {
             let label = `• ${item.product.brand || ''} ${item.product.model || item.product.name || ''}`;
             if (item.eye) label += ` (${item.eye})`;
-            label += ` x${item.quantity} — $${(item.customPrice * item.quantity).toLocaleString()}`;
+            label += ` x${item.quantity}`;
+            // Check if this is a bonified frame
+            const isFrame = item.product.type === 'Armazón' || item.product.category === 'FRAME';
+            if (isFrame && hasMultifocalPromo && isAtelierFrame(item.product)) {
+                label += ` — *BONIFICADO* ✨`;
+            } else if (isFrame && hasMultifocalPromo && promoFrameDiscount > 0) {
+                label += ` — $${(item.customPrice * item.quantity).toLocaleString()} (Bonif. -$${promoFrameDiscount.toLocaleString()})`;
+            } else {
+                label += ` — $${(item.customPrice * item.quantity).toLocaleString()}`;
+            }
             if (item.eye && item.sphereVal != null) {
                 label += `\n   Esf: ${item.sphereVal} | Cil: ${item.cylinderVal ?? '—'} | Eje: ${item.axisVal ?? '—'}`;
                 if (item.additionVal != null) label += ` | ADD: ${item.additionVal}`;
@@ -285,6 +354,12 @@ export default function CotizadorPopup({ clientName, clientId, onClose }: Cotiza
         text += `📍 José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba\n`;
         text += `🏆 La óptica mejor calificada en Google Business ⭐ 5/5\n`;
         text += `\n👤 *Cliente:* ${clientName}\n`;
+        // Promo badge
+        if (hasAnyMultifocal) {
+            text += `\n🎁 *Promoción Multifocal 2x1*`;
+            if (hasMultifocalPromo) text += ` — Incluye armazón Atelier sin cargo`;
+            text += `\n`;
+        }
         text += `\n`;
         text += lines.join('\n');
         // Frame info
@@ -293,7 +368,14 @@ export default function CotizadorPopup({ clientName, clientId, onClose }: Cotiza
             if (frameSource === 'OPTICA') {
                 const frameItem = quoteItems.find(i => i.product.type === 'Armazón' || i.product.category === 'FRAME');
                 if (frameItem) {
-                    text += ` ${frameItem.product.brand || ''} ${frameItem.product.model || ''} (de la óptica)`;
+                    text += ` ${frameItem.product.brand || ''} ${frameItem.product.model || ''}`;
+                    if (hasMultifocalPromo && isAtelierFrame(frameItem.product)) {
+                        text += ` ✨ *BONIFICADO*`;
+                    } else if (hasMultifocalPromo && promoFrameDiscount > 0) {
+                        text += ` (Bonif. Atelier -$${promoFrameDiscount.toLocaleString()})`;
+                    } else {
+                        text += ` (de la óptica)`;
+                    }
                 }
             } else {
                 text += ` ${userFrameData.brand || ''} ${userFrameData.model || ''} (armazón del cliente)`;
@@ -631,11 +713,37 @@ export default function CotizadorPopup({ clientName, clientId, onClose }: Cotiza
                                         </div>
                                     ))}
 
+                                    {/* Promo banner */}
+                                    {hasAnyMultifocal && (
+                                        <div className={`mt-3 p-2.5 rounded-xl border-2 flex items-center gap-2 ${hasMultifocalPromo
+                                            ? 'bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 border-emerald-300 dark:border-emerald-700'
+                                            : 'bg-blue-50 dark:bg-blue-900/10 border-blue-200 dark:border-blue-800'
+                                        }`}>
+                                            <Gift className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                                            <div>
+                                                <p className="text-[9px] font-black text-emerald-800 dark:text-emerald-300 uppercase tracking-wider">
+                                                    🎁 Promo 2x1
+                                                </p>
+                                                <p className="text-[8px] font-bold text-emerald-600 dark:text-emerald-400">
+                                                    {hasMultifocalPromo
+                                                        ? `+ Armazón Atelier bonificado`
+                                                        : 'Mi Primer Varilux — solo el par'
+                                                    }
+                                                </p>
+                                            </div>
+                                        </div>
+                                    )}
+
                                     {/* Frame Section — only when crystals are in quote */}
                                     {hasCrystals && (
                                         <div className="mt-3 p-3 bg-amber-50 dark:bg-amber-900/10 rounded-xl border-2 border-amber-200 dark:border-amber-800 animate-in slide-in-from-right-4 duration-300">
                                             <p className="text-[9px] font-black text-amber-700 dark:text-amber-400 uppercase tracking-widest mb-2 flex items-center gap-1.5">
                                                 <Glasses className="w-3.5 h-3.5" /> Armazón
+                                                {hasMultifocalPromo && (
+                                                    <span className="px-1.5 py-0.5 bg-emerald-500 text-white rounded-full text-[7px] font-black uppercase tracking-wider ml-1 animate-pulse">
+                                                        Bonificado
+                                                    </span>
+                                                )}
                                             </p>
 
                                             {/* Toggle buttons */}
@@ -678,14 +786,30 @@ export default function CotizadorPopup({ clientName, clientId, onClose }: Cotiza
                                                             {frameResults.map(fr => (
                                                                 <button
                                                                     key={fr.id}
-                                                                    onClick={() => { addToQuote(fr); setFrameSearch(''); }}
-                                                                    className="w-full flex items-center justify-between p-2 bg-white dark:bg-stone-800 rounded-lg border border-stone-100 dark:border-stone-700 hover:border-amber-300 transition-all text-left"
+                                                                    onClick={() => { addToQuote(fr, hasMultifocalPromo); setFrameSearch(''); }}
+                                                                    className={`w-full flex items-center justify-between p-2 rounded-lg border transition-all text-left ${hasMultifocalPromo && isAtelierFrame(fr)
+                                                                        ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-700 hover:border-emerald-400'
+                                                                        : 'bg-white dark:bg-stone-800 border-stone-100 dark:border-stone-700 hover:border-amber-300'
+                                                                    }`}
                                                                 >
                                                                     <div className="min-w-0 flex-1">
                                                                         <p className="text-[10px] font-black truncate">{fr.brand} {fr.model || ''}</p>
-                                                                        <p className="text-[8px] text-stone-400 font-bold">${fr.price.toLocaleString()}</p>
+                                                                        {hasMultifocalPromo && isAtelierFrame(fr) ? (
+                                                                            <p className="text-[8px] font-black text-emerald-600">✨ BONIFICADO <span className="line-through text-stone-400 font-bold">${fr.price.toLocaleString()}</span></p>
+                                                                        ) : hasMultifocalPromo ? (
+                                                                            <p className="text-[8px] font-bold text-stone-400">
+                                                                                <span className="line-through">${fr.price.toLocaleString()}</span>
+                                                                                <span className="text-emerald-600 ml-1 font-black">${Math.max(0, fr.price - atelierAvgPrice).toLocaleString()}</span>
+                                                                            </p>
+                                                                        ) : (
+                                                                            <p className="text-[8px] text-stone-400 font-bold">${fr.price.toLocaleString()}</p>
+                                                                        )}
                                                                     </div>
-                                                                    <Plus className="w-3 h-3 text-amber-500 flex-shrink-0" />
+                                                                    {hasMultifocalPromo && isAtelierFrame(fr) ? (
+                                                                        <Gift className="w-3 h-3 text-emerald-500 flex-shrink-0" />
+                                                                    ) : (
+                                                                        <Plus className="w-3 h-3 text-amber-500 flex-shrink-0" />
+                                                                    )}
                                                                 </button>
                                                             ))}
                                                         </div>
@@ -695,9 +819,26 @@ export default function CotizadorPopup({ clientName, clientId, onClose }: Cotiza
 
                                             {/* Optica frame: already selected */}
                                             {frameSource === 'OPTICA' && hasFrameFromOptica && (
-                                                <p className="text-[10px] font-bold text-amber-700 dark:text-amber-400 flex items-center gap-1.5">
-                                                    <Check className="w-3 h-3" /> Armazón incluido en el presupuesto
-                                                </p>
+                                                <div>
+                                                    {hasMultifocalPromo && frameItemInQuote ? (
+                                                        <div className="flex items-center gap-1.5">
+                                                            <Check className="w-3 h-3 text-emerald-600" />
+                                                            {isAtelierFrame(frameItemInQuote.product) ? (
+                                                                <p className="text-[10px] font-black text-emerald-700 dark:text-emerald-400">
+                                                                    ✨ {frameItemInQuote.product.brand} {frameItemInQuote.product.model || ''} — BONIFICADO
+                                                                </p>
+                                                            ) : (
+                                                                <p className="text-[10px] font-bold text-amber-700 dark:text-amber-400">
+                                                                    {frameItemInQuote.product.brand} {frameItemInQuote.product.model || ''} — Bonif. -${promoFrameDiscount.toLocaleString()}
+                                                                </p>
+                                                            )}
+                                                        </div>
+                                                    ) : (
+                                                        <p className="text-[10px] font-bold text-amber-700 dark:text-amber-400 flex items-center gap-1.5">
+                                                            <Check className="w-3 h-3" /> Armazón incluido en el presupuesto
+                                                        </p>
+                                                    )}
+                                                </div>
                                             )}
 
                                             {/* User frame: fields */}

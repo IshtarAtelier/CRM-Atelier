@@ -184,6 +184,7 @@ export const ContactService = {
                     return !(cat === 'LENS' || (type || '').includes('Cristal'));
                 });
                 for (const item of stockItems) {
+                    if (!item.productId) continue;
                     await tx.product.update({
                         where: { id: item.productId },
                         data: { stock: { increment: item.quantity } },

@@ -246,7 +246,7 @@ model Invoice {
 model OrderItem {
   id        String @id @default(cuid())
   orderId   String
-  productId String
+  productId String?
   quantity  Int    @default(1)
   price     Float  @default(0.0) // Precio al momento de la venta
 
@@ -258,7 +258,7 @@ model OrderItem {
   additionVal Float?
 
   order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  product Product @relation(fields: [productId], references: [id])
+  product Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
 }
 
 model Payment {

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { ShoppingCart, Download, Search, Package, Clock, CheckCircle2, Truck, Eye, Pencil, Save, X, AlertTriangle, MessageCircle, FileText, Banknote, ArrowRightLeft, CreditCard, ChevronRight, ExternalLink, Clipboard, CheckCheck, Copy, Loader2, ArrowRight } from 'lucide-react';
+import { ShoppingCart, Download, Search, Package, Clock, CheckCircle2, Truck, Eye, Pencil, Save, X, AlertTriangle, MessageCircle, FileText, Banknote, ArrowRightLeft, CreditCard, ChevronRight, ExternalLink, Clipboard, CheckCheck, Copy, Loader2, ArrowRight, FlaskConical, Calendar } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import InvoiceModal from '@/components/InvoiceModal';
@@ -116,6 +116,9 @@ export default function VentasPage() {
     const [orders, setOrders] = useState<Order[]>([]);
     const [search, setSearch] = useState('');
     const [filterLab, setFilterLab] = useState<string>('ALL');
+    const [filterLaboratory, setFilterLaboratory] = useState<string>('ALL');
+    const [dateFrom, setDateFrom] = useState('');
+    const [dateTo, setDateTo] = useState('');
     const [editingOrderNumber, setEditingOrderNumber] = useState<string | null>(null);
     const [editValue, setEditValue] = useState('');
     const [userRole, setUserRole] = useState('STAFF');
@@ -165,13 +168,26 @@ export default function VentasPage() {
 
     const isAdmin = userRole === 'ADMIN';
 
+    // Extract unique laboratories from lens items
+    const uniqueLaboratories = Array.from(
+        new Set(
+            orders.flatMap(o =>
+                o.items
+                    .filter(i => i.product?.category === 'LENS' && (i.product as any)?.laboratory)
+                    .map(i => (i.product as any).laboratory as string)
+            )
+        )
+    ).sort();
+
     const filteredOrders = orders.filter(o => {
         const matchSearch = search === '' ||
             o.client.name.toLowerCase().includes(search.toLowerCase()) ||
             o.id.toLowerCase().includes(search.toLowerCase()) ||
             (o.labOrderNumber || '').toLowerCase().includes(search.toLowerCase());
         const matchLab = filterLab === 'ALL' || (o.labStatus || 'NONE') === filterLab;
-        return matchSearch && matchLab;
+        const matchLaboratory = filterLaboratory === 'ALL' || o.items.some(i => i.product?.category === 'LENS' && (i.product as any)?.laboratory === filterLaboratory);
+        const matchDate = (!dateFrom || new Date(o.createdAt) >= new Date(dateFrom)) && (!dateTo || new Date(o.createdAt) <= new Date(dateTo + 'T23:59:59'));
+        return matchSearch && matchLab && matchLaboratory && matchDate;
     });
 
     const saveLabOrderNumber = async (orderId: string) => {
@@ -558,27 +574,78 @@ ${order.frameSource ? `<div style='background:#fffbeb;border:2px solid #fbbf24;b
             </div>
 
             {/* Filters */}
-            <div className="flex gap-4 mb-6">
-                <div className="relative flex-1">
-                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400" />
-                    <input
-                        type="text"
-                        placeholder="Buscar por cliente, N° venta o N° operación lab..."
-                        value={search}
-                        onChange={e => setSearch(e.target.value)}
-                        className="w-full pl-12 pr-4 py-3 bg-white dark:bg-stone-800 border-2 border-stone-100 dark:border-stone-700 rounded-2xl text-sm font-medium focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
-                    />
+            <div className="space-y-4 mb-6">
+                <div className="flex gap-4">
+                    <div className="relative flex-1">
+                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400" />
+                        <input
+                            type="text"
+                            placeholder="Buscar por cliente, N° venta o N° operación lab..."
+                            value={search}
+                            onChange={e => setSearch(e.target.value)}
+                            className="w-full pl-12 pr-4 py-3 bg-white dark:bg-stone-800 border-2 border-stone-100 dark:border-stone-700 rounded-2xl text-sm font-medium focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
+                        />
+                    </div>
+                    <div className="flex gap-2">
+                        {['ALL', 'SENT', 'IN_PROGRESS', 'READY', 'DELIVERED'].map(f => (
+                            <button
+                                key={f}
+                                onClick={() => setFilterLab(f)}
+                                className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${filterLab === f ? 'bg-stone-900 text-white dark:bg-white dark:text-stone-900' : 'bg-stone-100 dark:bg-stone-800 text-stone-500 hover:bg-stone-200'}`}
+                            >
+                                {f === 'ALL' ? 'Todas' : LAB_STATUS[f]?.label || f}
+                            </button>
+                        ))}
+                    </div>
                 </div>
-                <div className="flex gap-2">
-                    {['ALL', 'SENT', 'IN_PROGRESS', 'READY', 'DELIVERED'].map(f => (
-                        <button
-                            key={f}
-                            onClick={() => setFilterLab(f)}
-                            className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${filterLab === f ? 'bg-stone-900 text-white dark:bg-white dark:text-stone-900' : 'bg-stone-100 dark:bg-stone-800 text-stone-500 hover:bg-stone-200'}`}
+
+                {/* Laboratory & Date Filters */}
+                <div className="flex items-center gap-4 flex-wrap">
+                    {/* Lab filter dropdown */}
+                    <div className="flex items-center gap-2">
+                        <FlaskConical className="w-4 h-4 text-stone-400" />
+                        <span className="text-[10px] font-black text-stone-400 uppercase tracking-widest">Lab:</span>
+                        <select
+                            value={filterLaboratory}
+                            onChange={e => setFilterLaboratory(e.target.value)}
+                            className="px-3 py-2 bg-white dark:bg-stone-800 border-2 border-stone-100 dark:border-stone-700 rounded-xl text-xs font-bold text-stone-700 dark:text-stone-300 outline-none focus:border-emerald-500 transition-all cursor-pointer"
                         >
-                            {f === 'ALL' ? 'Todas' : LAB_STATUS[f]?.label || f}
-                        </button>
-                    ))}
+                            <option value="ALL">Todos los laboratorios</option>
+                            {uniqueLaboratories.map(lab => (
+                                <option key={lab} value={lab}>{lab}</option>
+                            ))}
+                        </select>
+                    </div>
+
+                    <div className="h-6 w-px bg-stone-200 dark:bg-stone-600" />
+
+                    {/* Date filters */}
+                    <div className="flex items-center gap-2">
+                        <Calendar className="w-4 h-4 text-stone-400" />
+                        <span className="text-[10px] font-black text-stone-400 uppercase tracking-widest">Desde:</span>
+                        <input
+                            type="date"
+                            value={dateFrom}
+                            onChange={e => setDateFrom(e.target.value)}
+                            className="px-3 py-2 border-2 border-stone-100 dark:border-stone-600 rounded-xl text-xs font-bold bg-white dark:bg-stone-900 text-stone-700 dark:text-stone-300 outline-none focus:border-emerald-500"
+                        />
+                        <span className="text-stone-400 text-xs font-bold">a</span>
+                        <input
+                            type="date"
+                            value={dateTo}
+                            onChange={e => setDateTo(e.target.value)}
+                            className="px-3 py-2 border-2 border-stone-100 dark:border-stone-600 rounded-xl text-xs font-bold bg-white dark:bg-stone-900 text-stone-700 dark:text-stone-300 outline-none focus:border-emerald-500"
+                        />
+                        {(dateFrom || dateTo) && (
+                            <button
+                                onClick={() => { setDateFrom(''); setDateTo(''); }}
+                                className="p-2 bg-stone-100 dark:bg-stone-800 text-stone-400 rounded-xl hover:bg-stone-200 dark:hover:bg-stone-700 transition-all hover:scale-105"
+                                title="Limpiar fechas"
+                            >
+                                <X className="w-3.5 h-3.5" />
+                            </button>
+                        )}
+                    </div>
                 </div>
             </div>
 

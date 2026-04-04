@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import {
     FileText, TrendingUp, DollarSign, ShoppingBag, Users, Package,
     Calendar, ArrowDown, ArrowUp, Minus, Loader2, CreditCard, Banknote,
-    PieChart, BarChart3, Printer, RefreshCw, ChevronDown, Award
+    PieChart, BarChart3, Printer, RefreshCw, ChevronDown, Award, FlaskConical
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -31,6 +31,7 @@ interface ReportData {
     vendorStats: { name: string; revenue: number; orders: number; avgTicket: number }[];
     monthlyStats: { month: string; revenue: number; cost: number; profit: number; orders: number }[];
     paymentMethods: { method: string; total: number; count: number; commission: number }[];
+    labStats: { laboratory: string; revenue: number; cost: number; profit: number; ordersCount: number }[];
 }
 
 const METHOD_LABELS: Record<string, string> = {
@@ -417,6 +418,65 @@ export default function ReportesPage() {
                                     <div className="w-3 h-3 rounded bg-red-200 dark:bg-red-900" />
                                     <span className="text-[9px] font-bold text-stone-400 uppercase tracking-widest">Costos</span>
                                 </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Lab Profit Report */}
+                    {data?.labStats && data.labStats.length > 0 && (
+                        <div className="bg-white dark:bg-stone-800 border-2 border-stone-100 dark:border-stone-700 rounded-2xl p-6 mb-8">
+                            <div className="flex items-center gap-2 mb-6">
+                                <FlaskConical className="w-5 h-5 text-cyan-500" />
+                                <h2 className="text-xs font-black uppercase tracking-widest text-stone-400">Rentabilidad por Laboratorio</h2>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                {data.labStats.map((lab, i) => {
+                                    const margin = lab.revenue > 0 ? ((lab.revenue - lab.cost) / lab.revenue) * 100 : 0;
+                                    const maxRevenue = Math.max(...data.labStats.map(l => l.revenue));
+                                    const barPct = maxRevenue > 0 ? (lab.revenue / maxRevenue) * 100 : 0;
+                                    return (
+                                        <div key={lab.laboratory} className="relative p-5 bg-gradient-to-br from-stone-50 to-stone-100/50 dark:from-stone-900 dark:to-stone-800/50 rounded-2xl border border-stone-100 dark:border-stone-700 hover:shadow-md transition-all group overflow-hidden">
+                                            {/* Background bar */}
+                                            <div className="absolute bottom-0 left-0 h-1 bg-cyan-500/20 rounded-full transition-all" style={{ width: `${barPct}%` }} />
+
+                                            <div className="flex items-center justify-between mb-4">
+                                                <div className="flex items-center gap-3">
+                                                    <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${i === 0 ? 'bg-cyan-500 text-white' : 'bg-stone-200 dark:bg-stone-700 text-stone-500'}`}>
+                                                        <FlaskConical className="w-4 h-4" />
+                                                    </div>
+                                                    <div>
+                                                        <span className="font-black text-stone-800 dark:text-white text-sm block">{lab.laboratory}</span>
+                                                        <span className="text-[9px] font-bold text-stone-400 uppercase tracking-widest">{lab.ordersCount} venta{lab.ordersCount !== 1 ? 's' : ''}</span>
+                                                    </div>
+                                                </div>
+                                                <div className={`px-2.5 py-1 rounded-lg text-[10px] font-black ${margin > 30 ? 'bg-emerald-100 dark:bg-emerald-950 text-emerald-600' : margin > 0 ? 'bg-amber-100 dark:bg-amber-950 text-amber-600' : 'bg-red-100 dark:bg-red-950 text-red-600'}`}>
+                                                    {margin.toFixed(0)}%
+                                                </div>
+                                            </div>
+
+                                            <div className="grid grid-cols-3 gap-3">
+                                                <div>
+                                                    <p className="text-[9px] font-black text-stone-400 uppercase tracking-widest">Costo</p>
+                                                    <p className="text-base font-black text-red-500">${lab.cost.toLocaleString()}</p>
+                                                </div>
+                                                <div>
+                                                    <p className="text-[9px] font-black text-stone-400 uppercase tracking-widest">Facturación</p>
+                                                    <p className="text-base font-black text-stone-800 dark:text-white">${lab.revenue.toLocaleString()}</p>
+                                                </div>
+                                                <div>
+                                                    <p className="text-[9px] font-black text-stone-400 uppercase tracking-widest">Ganancia</p>
+                                                    <p className={`text-base font-black ${lab.profit >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>${lab.profit.toLocaleString()}</p>
+                                                </div>
+                                            </div>
+
+                                            {/* Margin bar */}
+                                            <div className="mt-3 w-full bg-stone-200 dark:bg-stone-700 h-2 rounded-full overflow-hidden">
+                                                <div className={`h-full rounded-full transition-all duration-700 ${margin > 30 ? 'bg-emerald-500' : margin > 0 ? 'bg-amber-500' : 'bg-red-500'}`} style={{ width: `${Math.min(Math.max(margin, 0), 100)}%` }} />
+                                            </div>
+                                        </div>
+                                    );
+                                })}
                             </div>
                         </div>
                     )}

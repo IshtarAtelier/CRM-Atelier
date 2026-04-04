@@ -26,6 +26,7 @@ export default function InventarioPage() {
     const [editForm, setEditForm] = useState({ name: '', brand: '', model: '', stock: 0, cost: 0, price: 0, lensIndex: '', laboratory: '', sphereMin: '' as string, sphereMax: '' as string, cylinderMin: '' as string, cylinderMax: '' as string, additionMin: '' as string, additionMax: '' as string });
     const [savingEdit, setSavingEdit] = useState(false);
     const [selectedBrand, setSelectedBrand] = useState('');
+    const [showAllBrands, setShowAllBrands] = useState(false);
     const [importing, setImporting] = useState(false);
     const [importResult, setImportResult] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
     const [userRole, setUserRole] = useState('STAFF');
@@ -53,8 +54,14 @@ export default function InventarioPage() {
     const uniqueBrands = Array.from(new Set(rawProducts.map(p => p.brand).filter(Boolean) as string[])).sort();
     const products = selectedBrand ? rawProducts.filter(p => p.brand === selectedBrand) : rawProducts;
 
+    // Helper: detecta cristales (incluye valores legacy LENS/MULTIFOCAL/etc)
+    const checkCristal = (p: { category?: string; type?: string | null }) =>
+        p.category === 'Cristal' || p.category === 'LENS'
+        || p.type?.startsWith('Cristal')
+        || ['MONOFOCAL','MULTIFOCAL','BIFOCAL','OCUPACIONAL'].includes(p.type?.toUpperCase() || '');
+
     // Excluir cristales del cálculo de stock (se compran bajo demanda)
-    const nonCrystalProducts = products.filter(p => p.category !== 'Cristal' && !p.type?.startsWith('Cristal'));
+    const nonCrystalProducts = products.filter(p => !checkCristal(p));
     const stats = {
         totalProducts: products.length,
         totalStock: nonCrystalProducts.reduce((acc, p) => acc + p.stock, 0),
@@ -64,9 +71,13 @@ export default function InventarioPage() {
 
     const handleDelete = async (id: string, name: string) => {
         if (confirm(`¿Eliminar "${name}"?`)) {
-            await deleteProduct(id);
-            selectedIds.delete(id);
-            setSelectedIds(new Set(selectedIds));
+            const result = await deleteProduct(id);
+            if (result.success) {
+                selectedIds.delete(id);
+                setSelectedIds(new Set(selectedIds));
+            } else {
+                alert(result.error || 'No se pudo eliminar el producto');
+            }
         }
     };
 
@@ -74,7 +85,10 @@ export default function InventarioPage() {
         if (selectedIds.size === 0) return;
         if (confirm(`¿Eliminar ${selectedIds.size} producto(s)?`)) {
             setIsDeleting(true);
-            await bulkDelete(Array.from(selectedIds));
+            const result = await bulkDelete(Array.from(selectedIds));
+            if (result.errors && result.errors.length > 0) {
+                alert(`Algunos productos no se pudieron eliminar:\n${result.errors.join('\n')}`);
+            }
             setSelectedIds(new Set());
             setIsDeleting(false);
         }
@@ -108,10 +122,26 @@ export default function InventarioPage() {
 
     const handleSaveEdit = async () => {
         if (!editingProduct) return;
+        const isEditCristal = checkCristal(editingProduct);
+        // Validar laboratorio obligatorio para cristales
+        if (isEditCristal && !editForm.laboratory.trim()) {
+            alert('El laboratorio es obligatorio para cristales');
+            return;
+        }
         setSavingEdit(true);
         try {
+            // Normalizar category/type legacy al guardar
+            const normalizedFields: Record<string, string> = {};
+            if (isEditCristal) {
+                if (editingProduct.category !== 'Cristal') normalizedFields.category = 'Cristal';
+                if (editingProduct.type && !editingProduct.type.startsWith('Cristal')) {
+                    const sub = editingProduct.type.charAt(0).toUpperCase() + editingProduct.type.slice(1).toLowerCase();
+                    normalizedFields.type = `Cristal ${sub}`;
+                }
+            }
             const payload = {
                 ...editForm,
+                ...normalizedFields,
                 sphereMin: editForm.sphereMin !== '' ? parseFloat(editForm.sphereMin) : null,
                 sphereMax: editForm.sphereMax !== '' ? parseFloat(editForm.sphereMax) : null,
                 cylinderMin: editForm.cylinderMin !== '' ? parseFloat(editForm.cylinderMin) : null,
@@ -300,7 +330,7 @@ export default function InventarioPage() {
             </div>
 
             {/* Category filters */}
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-1.5">
                 {PRODUCT_CATEGORIES.map((cat) => (
                     <button
                         key={cat.id}
@@ -308,10 +338,11 @@ export default function InventarioPage() {
                             setSelectedCategory(cat.id);
                             setSelectedSubtype('');
                             setSelectedBrand('');
+                            setShowAllBrands(false);
                         }}
-                        className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border ${selectedCategory === cat.id && !selectedSubtype
-                            ? 'bg-stone-900 dark:bg-primary border-transparent text-white shadow-lg'
-                            : 'bg-white dark:bg-stone-800 border-stone-200 dark:border-stone-700 text-stone-500 hover:border-stone-300'
+                        className={`px-3 py-1.5 rounded-lg text-[9px] font-bold uppercase tracking-wider transition-all border ${selectedCategory === cat.id && !selectedSubtype
+                            ? 'bg-stone-900 dark:bg-primary border-transparent text-white shadow-md'
+                            : 'bg-transparent border-stone-200 dark:border-stone-700 text-stone-500 hover:border-stone-300'
                             }`}
                     >
                         {cat.label}
@@ -321,23 +352,24 @@ export default function InventarioPage() {
 
             {/* Subtype filters — only when Cristal is selected */}
             {selectedCategory === 'Cristal' && activeCategory?.subtypes && (
-                <div className="flex flex-wrap gap-2 pl-4 border-l-4 border-primary/30 animate-in fade-in slide-in-from-top-2 duration-300">
+                <div className="flex flex-wrap gap-1.5 items-center animate-in fade-in slide-in-from-top-2 duration-300">
+                    <span className="text-[9px] font-black text-stone-300 uppercase tracking-widest mr-1">Tipo:</span>
                     <button
                         onClick={() => setSelectedSubtype('')}
-                        className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border ${!selectedSubtype
+                        className={`px-3 py-1.5 rounded-lg text-[9px] font-bold uppercase tracking-wider transition-all border ${!selectedSubtype
                             ? 'bg-primary/10 border-primary text-primary'
-                            : 'bg-white dark:bg-stone-800 border-stone-200 dark:border-stone-700 text-stone-400 hover:border-stone-300'
+                            : 'bg-transparent border-stone-200 dark:border-stone-700 text-stone-400 hover:border-stone-300'
                             }`}
                     >
-                        Todos los Cristales
+                        Todos
                     </button>
                     {activeCategory.subtypes.map(sub => (
                         <button
                             key={sub}
                             onClick={() => setSelectedSubtype(sub)}
-                            className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border ${selectedSubtype === sub
-                                ? 'bg-primary border-transparent text-white shadow-lg'
-                                : 'bg-white dark:bg-stone-800 border-stone-200 dark:border-stone-700 text-stone-400 hover:border-stone-300'
+                            className={`px-3 py-1.5 rounded-lg text-[9px] font-bold uppercase tracking-wider transition-all border ${selectedSubtype === sub
+                                ? 'bg-primary border-transparent text-white shadow-md'
+                                : 'bg-transparent border-stone-200 dark:border-stone-700 text-stone-400 hover:border-stone-300'
                                 }`}
                         >
                             {sub}
@@ -346,30 +378,41 @@ export default function InventarioPage() {
                 </div>
             )}
 
-            {/* Brand filters — show when there are brands to filter */}
+            {/* Brand filters — compact collapsible */}
             {uniqueBrands.length > 1 && (
-                <div className="flex flex-wrap gap-2 pl-4 border-l-4 border-amber-300/50 animate-in fade-in slide-in-from-top-2 duration-300">
-                    <button
-                        onClick={() => setSelectedBrand('')}
-                        className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border ${!selectedBrand
-                            ? 'bg-amber-100 dark:bg-amber-900/20 border-amber-400 text-amber-700 dark:text-amber-400'
-                            : 'bg-white dark:bg-stone-800 border-stone-200 dark:border-stone-700 text-stone-400 hover:border-stone-300'
-                            }`}
-                    >
-                        Todas las Marcas
-                    </button>
-                    {uniqueBrands.map(brand => (
+                <div className="animate-in fade-in slide-in-from-top-2 duration-300">
+                    <div className="flex flex-wrap gap-1.5 items-center">
+                        <span className="text-[9px] font-black text-stone-300 uppercase tracking-widest mr-1">Marca:</span>
                         <button
-                            key={brand}
-                            onClick={() => setSelectedBrand(brand)}
-                            className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border ${selectedBrand === brand
-                                ? 'bg-amber-500 border-transparent text-white shadow-lg'
-                                : 'bg-white dark:bg-stone-800 border-stone-200 dark:border-stone-700 text-stone-400 hover:border-stone-300'
+                            onClick={() => setSelectedBrand('')}
+                            className={`px-3 py-1.5 rounded-lg text-[9px] font-bold uppercase tracking-wider transition-all border ${!selectedBrand
+                                ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-300 text-amber-700 dark:text-amber-400'
+                                : 'bg-transparent border-stone-200 dark:border-stone-700 text-stone-400 hover:border-stone-300'
                                 }`}
                         >
-                            {brand}
+                            Todas
                         </button>
-                    ))}
+                        {(showAllBrands ? uniqueBrands : uniqueBrands.slice(0, 10)).map(brand => (
+                            <button
+                                key={brand}
+                                onClick={() => setSelectedBrand(brand)}
+                                className={`px-3 py-1.5 rounded-lg text-[9px] font-bold uppercase tracking-wider transition-all border ${selectedBrand === brand
+                                    ? 'bg-amber-500 border-transparent text-white shadow-md'
+                                    : 'bg-transparent border-stone-200 dark:border-stone-700 text-stone-400 hover:border-stone-300 hover:text-stone-600'
+                                    }`}
+                            >
+                                {brand}
+                            </button>
+                        ))}
+                        {uniqueBrands.length > 10 && (
+                            <button
+                                onClick={() => setShowAllBrands(!showAllBrands)}
+                                className="px-3 py-1.5 rounded-lg text-[9px] font-bold uppercase tracking-wider transition-all text-primary hover:bg-primary/10 border border-primary/20"
+                            >
+                                {showAllBrands ? '▲ Menos' : `+${uniqueBrands.length - 10} más ▼`}
+                            </button>
+                        )}
+                    </div>
                 </div>
             )}
 
@@ -377,7 +420,7 @@ export default function InventarioPage() {
             <div className="bg-white dark:bg-stone-900 rounded-3xl border border-stone-100 dark:border-stone-800 overflow-hidden shadow-sm overflow-x-auto">
 
                 {/* Table header */}
-                <div className={`grid ${isAdmin ? 'grid-cols-[auto_2fr_1fr_auto_1fr_1fr_1fr_auto]' : 'grid-cols-[auto_2fr_1fr_auto_1fr_1fr_auto]'} gap-4 px-6 py-3 bg-stone-50 dark:bg-stone-800/50 border-b border-stone-100 dark:border-stone-800 items-center`}>
+                <div className={`grid ${isAdmin ? 'grid-cols-[auto_3fr_1fr_auto_1fr_1fr_1fr_auto]' : 'grid-cols-[auto_3fr_1fr_auto_1fr_1fr_auto]'} gap-4 px-6 py-3 bg-stone-50 dark:bg-stone-800/50 border-b border-stone-100 dark:border-stone-800 items-center`}>
                     {/* Select all checkbox */}
                     <button
                         onClick={toggleSelectAll}
@@ -389,8 +432,8 @@ export default function InventarioPage() {
                             <Square className="w-4 h-4" />
                         )}
                     </button>
-                    {(isAdmin ? ['Producto', 'Tipo', 'Índice', 'Stock', 'Costo', 'Precio', ''] : ['Producto', 'Tipo', 'Índice', 'Stock', 'Precio', '']).map((h, i) => (
-                        <span key={i} className="text-[9px] font-black text-stone-400 uppercase tracking-widest">{h}</span>
+                    {(isAdmin ? ['Producto', 'Tipo', 'Índice', 'Stock', 'Costo', 'Precio', ''] : ['Producto', 'Tipo', 'Índice', 'Stock', 'Precio', '']).map((h, i, arr) => (
+                        <span key={i} className={`text-[9px] font-black text-stone-400 uppercase tracking-widest ${h === 'Precio' ? 'text-right' : ''}`}>{h}</span>
                     ))}
                 </div>
 
@@ -408,12 +451,12 @@ export default function InventarioPage() {
                 ) : products.length > 0 ? (
                     <div className="divide-y divide-stone-50 dark:divide-stone-800">
                         {products.map((p) => {
-                            const isCristal = p.category === 'Cristal' || p.type?.startsWith('Cristal');
+                            const isCristal = checkCristal(p);
                             const isSelected = selectedIds.has(p.id);
                             return (
                                 <div
                                     key={p.id}
-                                    className={`grid ${isAdmin ? 'grid-cols-[auto_2fr_1fr_auto_1fr_1fr_1fr_auto]' : 'grid-cols-[auto_2fr_1fr_auto_1fr_1fr_auto]'} gap-4 px-6 py-4 items-center hover:bg-stone-50/70 dark:hover:bg-stone-800/30 transition-colors group ${isSelected ? 'bg-primary/5' : ''}`}
+                                    className={`grid ${isAdmin ? 'grid-cols-[auto_3fr_1fr_auto_1fr_1fr_1fr_auto]' : 'grid-cols-[auto_3fr_1fr_auto_1fr_1fr_auto]'} gap-4 px-6 py-4 items-center hover:bg-stone-50/70 dark:hover:bg-stone-800/30 transition-colors group ${isSelected ? 'bg-primary/5' : ''}`}
                                 >
                                     {/* Checkbox */}
                                     <button
@@ -486,7 +529,7 @@ export default function InventarioPage() {
                                     )}
 
                                     {/* Precio */}
-                                    <div>
+                                    <div className="text-right">
                                         <span className="text-sm font-black text-stone-800 dark:text-stone-100">
                                             ${p.price?.toLocaleString() ?? '0'}
                                         </span>
@@ -559,7 +602,7 @@ export default function InventarioPage() {
                                     <input type="text" value={editForm.model} onChange={e => setEditForm({ ...editForm, model: e.target.value })} className="w-full px-5 py-4 bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-2xl font-bold text-sm outline-none focus:border-primary" />
                                 </div>
                                 {/* Ocultar stock para cristales — se compran bajo demanda */}
-                                {!(editingProduct.category === 'Cristal' || editingProduct.type?.startsWith('Cristal')) && (
+                                {!checkCristal(editingProduct) && (
                                     <div className="space-y-1">
                                         <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest ml-3">Stock</label>
                                         <input type="number" min={0} value={editForm.stock} onChange={e => setEditForm({ ...editForm, stock: parseInt(e.target.value) || 0 })} className="w-full px-5 py-4 bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-2xl font-bold text-sm outline-none focus:border-primary" />
@@ -576,16 +619,17 @@ export default function InventarioPage() {
                                     <input type="number" min={0} value={editForm.price} onChange={e => setEditForm({ ...editForm, price: parseFloat(e.target.value) || 0 })} className="w-full px-5 py-5 bg-primary/5 border-2 border-primary/20 rounded-2xl font-black text-xl outline-none focus:border-primary text-primary" />
                                 </div>
 
-                                {/* Laboratorio — solo cristales */}
-                                {(editingProduct.category === 'Cristal' || editingProduct.type?.startsWith('Cristal')) && (
+                                {/* Laboratorio — obligatorio para cristales */}
+                                {checkCristal(editingProduct) && (
                                     <div className="col-span-2 space-y-1">
-                                        <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest ml-3">Laboratorio</label>
-                                        <input type="text" placeholder="Ej: OPTOVISION" value={editForm.laboratory} onChange={e => setEditForm({ ...editForm, laboratory: e.target.value })} className="w-full px-5 py-4 bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-2xl font-bold text-sm outline-none focus:border-primary" />
+                                        <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest ml-3">🏭 Laboratorio <span className="text-red-500">*</span></label>
+                                        <input type="text" required placeholder="Ej: OPTOVISION" value={editForm.laboratory} onChange={e => setEditForm({ ...editForm, laboratory: e.target.value.toUpperCase() })} className={`w-full px-5 py-4 bg-stone-50 dark:bg-stone-800 border rounded-2xl font-bold text-sm outline-none focus:border-primary uppercase ${!editForm.laboratory ? 'border-red-300 dark:border-red-700' : 'border-stone-200 dark:border-stone-700'}`} />
+                                        {!editForm.laboratory && <p className="text-[9px] font-bold text-red-400 ml-3">El laboratorio es obligatorio para cristales</p>}
                                     </div>
                                 )}
 
                                 {/* Rangos de Fabricación — solo cristales */}
-                                {(editingProduct.category === 'Cristal' || editingProduct.type?.startsWith('Cristal')) && (
+                                {checkCristal(editingProduct) && (
                                     <div className="col-span-2 space-y-3 pt-3 border-t border-stone-100 dark:border-stone-800">
                                         <span className="text-[10px] font-black text-amber-600 uppercase tracking-widest">📐 Rangos de Fabricación</span>
                                         <div className="grid grid-cols-[auto_1fr_auto_1fr] items-center gap-2">

@@ -103,7 +103,25 @@ export default function ContactDetail({
         { key: 'NARANJA_Z_YANI', label: 'Naranja Z Yani', icon: CreditCard, color: 'bg-orange-400' },
         { key: 'GO_CUOTAS', label: 'Go Cuotas', icon: CreditCard, color: 'bg-violet-500' },
         { key: 'EFECTIVO', label: 'Efectivo', icon: Banknote, color: 'bg-emerald-500' },
+        { key: 'TRANSFERENCIA_ISHTAR', label: 'Transf. Cuenta Ishtar', icon: ArrowRightLeft, color: 'bg-sky-500' },
+        { key: 'TRANSFERENCIA_LUCIA', label: 'Transf. Cuenta Lucía', icon: ArrowRightLeft, color: 'bg-sky-400' },
+        { key: 'TRANSFERENCIA_ALTERNATIVA', label: 'Transf. Cuenta Alternativa', icon: ArrowRightLeft, color: 'bg-sky-600' },
     ];
+
+    // Compute the correct order total based on the selected payment method
+    const getOrderTotalForMethod = (order: any, method: string): number => {
+        const listPrice = order.subtotalWithMarkup || order.total || 0;
+        // Card / installment methods → cuotas price (list price with card discount)
+        if (method.startsWith('PAY_WAY') || method.startsWith('NARANJA') || method === 'GO_CUOTAS') {
+            return Math.round(listPrice * (1 - (order.discountCard || 0) / 100));
+        }
+        // Transfer methods → transfer price
+        if (method.startsWith('TRANSFERENCIA')) {
+            return Math.round(listPrice * (1 - (order.discountTransfer || 0) / 100));
+        }
+        // Cash → existing total (already cash-discounted)
+        return order.total || 0;
+    };
 
     const getPaymentLabel = (method: string) => {
         return PAYMENT_METHODS.find(m => m.key === method)?.label || method;
@@ -175,7 +193,7 @@ export default function ContactDetail({
     const openRxModal = (orderId: string) => {
         resetRxForm();
         // Pre-fill from existing prescription if order already has one
-        const order = contact?.orders?.find((o: any) => o.id === orderId);
+        const order: any = contact?.orders?.find((o: any) => o.id === orderId);
         if (order?.prescriptionId && contact?.prescriptions) {
             const existingRx: any = contact.prescriptions.find((p: any) => p.id === order.prescriptionId);
             if (existingRx) {
@@ -427,9 +445,10 @@ export default function ContactDetail({
         const amount = Number(paymentAmount.replace(/\D/g, ''));
         if (!amount || amount <= 0) return;
 
-        const pendingBalance = (lastOrder.total || 0) - (lastOrder.paid || 0);
+        const orderTotalForMethod = getOrderTotalForMethod(lastOrder, paymentMethod);
+        const pendingBalance = orderTotalForMethod - (lastOrder.paid || 0);
         if (amount > pendingBalance && pendingBalance > 0 && !paymentWarning) {
-            setPaymentWarning(`El monto ($${amount.toLocaleString('es-AR')}) supera el saldo pendiente de $${pendingBalance.toLocaleString('es-AR')}. Presioná de nuevo para confirmar.`);
+            setPaymentWarning(`El monto ($${amount.toLocaleString('es-AR')}) supera el saldo pendiente de $${pendingBalance.toLocaleString('es-AR')} (${getPaymentLabel(paymentMethod)}). Presioná de nuevo para confirmar.`);
             return;
         }
 
@@ -473,6 +492,7 @@ export default function ContactDetail({
             PAY_WAY_6_YANI: 'Pay Way 6 Yani', PAY_WAY_3_YANI: 'Pay Way 3 Yani', NARANJA_Z_YANI: 'Naranja Z Yani',
             GO_CUOTAS: 'Go Cuotas',
             EFECTIVO: 'Efectivo', CASH: 'Efectivo', DEBIT: 'Débito', CREDIT: 'Crédito', TRANSFER: 'Transferencia',
+            TRANSFERENCIA_ISHTAR: 'Transf. Cuenta Ishtar', TRANSFERENCIA_LUCIA: 'Transf. Cuenta Lucía', TRANSFERENCIA_ALTERNATIVA: 'Transf. Cuenta Alternativa',
         };
         const html = `<!DOCTYPE html><html><head><meta charset='utf-8'>
 <title>Comprobante de Pago - ${contact?.name}</title>
@@ -2492,7 +2512,7 @@ ${(() => {
                                                         return (
                                                             <button
                                                                 key={m.key}
-                                                                onClick={() => setPaymentMethod(m.key)}
+                                                                onClick={() => { setPaymentMethod(m.key); setPaymentWarning(null); }}
                                                                 className={`flex items-center gap-2.5 px-4 py-3 rounded-xl text-xs font-black transition-all border-2 ${isSelected
                                                                     ? `${m.color} text-white border-transparent shadow-lg scale-[1.02]`
                                                                     : 'bg-stone-50 dark:bg-stone-900 text-stone-600 dark:text-stone-300 border-stone-100 dark:border-stone-700 hover:border-stone-300 dark:hover:border-stone-500'

@@ -50,6 +50,11 @@ export default function ProductForm({ onClose, onSuccess }: ProductFormProps) {
 
     const handleSingleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        // Laboratorio obligatorio para cristales
+        if (isCristal && !formData.laboratory.trim()) {
+            alert('El laboratorio es obligatorio para cristales');
+            return;
+        }
         setSaving(true);
         try {
             const payload = {
@@ -257,13 +262,14 @@ export default function ProductForm({ onClose, onSuccess }: ProductFormProps) {
                                 />
                             </div>
 
-                            {/* Laboratorio */}
+                            {/* Laboratorio — obligatorio */}
                             <div className="space-y-2 col-span-2">
-                                <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest ml-4">🏭 Laboratorio</label>
-                                <input type="text" placeholder="Ej: OPTOVISION, GRUPO OPTICO"
-                                    className="w-full px-6 py-4 bg-stone-50/50 dark:bg-stone-800/30 border border-stone-200 dark:border-stone-700 rounded-[1.5rem] font-bold text-sm outline-none focus:border-primary transition-all uppercase"
+                                <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest ml-4">🏭 Laboratorio <span className="text-red-500">*</span></label>
+                                <input required type="text" placeholder="Ej: OPTOVISION, GRUPO OPTICO"
+                                    className={`w-full px-6 py-4 bg-stone-50/50 dark:bg-stone-800/30 border rounded-[1.5rem] font-bold text-sm outline-none focus:border-primary transition-all uppercase ${!formData.laboratory ? 'border-red-300 dark:border-red-700' : 'border-stone-200 dark:border-stone-700'}`}
                                     value={formData.laboratory} onChange={e => setFormData({ ...formData, laboratory: e.target.value.toUpperCase() })}
                                 />
+                                {!formData.laboratory && <p className="text-[9px] font-bold text-red-400 ml-4">El laboratorio es obligatorio para cristales</p>}
                             </div>
 
                             {/* Índice de refracción */}
@@ -312,14 +318,7 @@ export default function ProductForm({ onClose, onSuccess }: ProductFormProps) {
                                 </div>
                             </div>
 
-                            {/* Laboratorio Proveedor */}
-                            <div className="space-y-2 col-span-2">
-                                <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest ml-4">🏭 Laboratorio Proveedor</label>
-                                <input type="text" placeholder="Ej: Optovision, Grupo Óptico"
-                                    className="w-full px-6 py-4 bg-stone-50/50 dark:bg-stone-800/30 border border-stone-200 dark:border-stone-700 rounded-[1.5rem] font-bold text-sm outline-none focus:border-primary transition-all"
-                                    value={formData.laboratory} onChange={e => setFormData({ ...formData, laboratory: e.target.value })}
-                                />
-                            </div>
+
 
                             {/* ── Rangos de Fabricación ── */}
                             <div className="col-span-2 space-y-4 pt-2">

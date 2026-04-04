@@ -300,10 +300,17 @@ export async function POST(request: Request) {
             : isSolTemplate ? 'lentes de sol'
             : isAccesorioTemplate ? 'accesorios'
             : 'productos';
+
+        // Debug: muestra datos del primer item para verificar parsing
+        const sampleData = validItems.length > 0
+            ? { brand: validItems[0].brand, name: validItems[0].name?.substring(0, 40), laboratory: validItems[0].laboratory, lensIndex: validItems[0].lensIndex, price: validItems[0].price, cost: validItems[0].cost, columnsInFirstRow: parseCSVLine(dataRows[0]).length }
+            : null;
+
         return NextResponse.json({
             success: true,
             imported: importedCount,
             errors: errors.length > 0 ? errors : undefined,
+            sampleData,
             message: `Se importaron ${importedCount} de ${dataRows.length} ${templateLabel}${errors.length > 0 ? `. ${errors.length} errores.` : '.'}`,
         });
     } catch (error: any) {
@@ -326,7 +333,7 @@ function parseArgentineNumber(s: string): number {
     return isNaN(n) ? 0 : n;
 }
 
-// Simple CSV line parser that handles quoted fields
+// CSV line parser that handles quoted fields + tab/comma/semicolon delimiters
 function parseCSVLine(line: string): string[] {
     const result: string[] = [];
     let current = '';
@@ -336,7 +343,7 @@ function parseCSVLine(line: string): string[] {
         const char = line[i];
         if (char === '"') {
             inQuotes = !inQuotes;
-        } else if ((char === ',' || char === ';') && !inQuotes) {
+        } else if ((char === ',' || char === ';' || char === '\t') && !inQuotes) {
             result.push(current.trim());
             current = '';
         } else {

@@ -175,7 +175,9 @@ export async function PATCH(
                     return !(cat === 'LENS' || (type || '').includes('Cristal'));
                 });
 
-                const stockUpdates = stockItems.map((item: any) =>
+                const stockUpdates = stockItems
+                    .filter((item: any) => item.productId)
+                    .map((item: any) =>
                     prisma.product.update({
                         where: { id: item.productId },
                         data: { stock: { decrement: item.quantity } },
