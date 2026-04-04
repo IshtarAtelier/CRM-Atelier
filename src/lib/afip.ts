@@ -5,8 +5,9 @@ import Afip from '@afipsdk/afip.js';
  * Billing accounts — cada monotributo es una cuenta independiente.
  * ISH = pagos con Pay Way Ish, Naranja Z Ish
  * YANI = pagos con Pay Way Yani, Naranja Z Yani
+ * LUCIA = pagos con Cuenta Lucía
  */
-export type BillingAccount = 'ISH' | 'YANI';
+export type BillingAccount = 'ISH' | 'YANI' | 'LUCIA';
 
 export interface BillingAccountConfig {
     cuit: number;
@@ -24,6 +25,11 @@ const BILLING_ACCOUNTS: Record<BillingAccount, BillingAccountConfig> = {
         cuit: parseInt(process.env.AFIP_CUIT_YANI || '20409378472'),
         label: 'Yani',
         puntoDeVenta: parseInt(process.env.AFIP_PUNTO_VENTA_YANI || '1'),
+    },
+    LUCIA: {
+        cuit: parseInt(process.env.AFIP_CUIT_LUCIA || '27338615234'), // CUIT placeholder para Lucía
+        label: 'Lucía Pissano',
+        puntoDeVenta: parseInt(process.env.AFIP_PUNTO_VENTA_LUCIA || '1'),
     },
 };
 
@@ -48,12 +54,14 @@ export function getAfipInstance(account: BillingAccount = 'ISH'): any {
             CUIT: accountConfig.cuit,
             access_token: account === 'ISH'
                 ? (process.env.AFIP_ACCESS_TOKEN_ISH || '')
-                : (process.env.AFIP_ACCESS_TOKEN_YANI || ''),
+                : account === 'YANI'
+                    ? (process.env.AFIP_ACCESS_TOKEN_YANI || '')
+                    : (process.env.AFIP_ACCESS_TOKEN_LUCIA || ''),
         };
 
         // Producción: certificados por cuenta
-        const certEnv = account === 'ISH' ? 'AFIP_CERT_ISH' : 'AFIP_CERT_YANI';
-        const keyEnv = account === 'ISH' ? 'AFIP_KEY_ISH' : 'AFIP_KEY_YANI';
+        const certEnv = `AFIP_CERT_${account}`;
+        const keyEnv = `AFIP_KEY_${account}`;
         if (process.env[certEnv] && process.env[keyEnv]) {
             config.cert = process.env[certEnv];
             config.key = process.env[keyEnv];
@@ -69,6 +77,7 @@ export function getAfipInstance(account: BillingAccount = 'ISH'): any {
  */
 const ISH_METHODS = ['PAY_WAY_6_ISH', 'PAY_WAY_3_ISH', 'NARANJA_Z_ISH', 'GO_CUOTAS_ISH'];
 const YANI_METHODS = ['PAY_WAY_6_YANI', 'PAY_WAY_3_YANI', 'NARANJA_Z_YANI'];
+const LUCIA_METHODS = ['TRANSFERENCIA_LUCIA'];
 
 /**
  * Detecta la cuenta de facturación a partir de los métodos de pago de una orden.
@@ -78,9 +87,11 @@ const YANI_METHODS = ['PAY_WAY_6_YANI', 'PAY_WAY_3_YANI', 'NARANJA_Z_YANI'];
 export function detectBillingAccount(payments: { method: string }[]): BillingAccount | null {
     const hasIsh = payments.some(p => ISH_METHODS.includes(p.method));
     const hasYani = payments.some(p => YANI_METHODS.includes(p.method));
+    const hasLucia = payments.some(p => LUCIA_METHODS.includes(p.method));
 
-    if (hasIsh && !hasYani) return 'ISH';
-    if (hasYani && !hasIsh) return 'YANI';
+    if (hasIsh && !hasYani && !hasLucia) return 'ISH';
+    if (hasYani && !hasIsh && !hasLucia) return 'YANI';
+    if (hasLucia && !hasIsh && !hasYani) return 'LUCIA';
     return null; // Ambivalente — usuario elige
 }
 

@@ -224,7 +224,11 @@ export default function BillingPage() {
                                             <h3 className="font-black text-stone-800 dark:text-white flex items-center gap-2 tracking-tight">
                                                 {order.client.name}
                                                 {!isBilled && (
-                                                    <span className={`text-[9px] px-2 py-1 rounded-full text-white uppercase tracking-widest ${accountRecommendation === 'ISH' ? 'bg-blue-500' : accountRecommendation === 'YANI' ? 'bg-indigo-500' : 'bg-stone-400'}`}>
+                                                    <span className={`text-[9px] px-2 py-1 rounded-full text-white uppercase tracking-widest ${
+                                                        accountRecommendation === 'ISH' ? 'bg-blue-500' : 
+                                                        accountRecommendation === 'YANI' ? 'bg-indigo-500' : 
+                                                        accountRecommendation === 'LUCIA' ? 'bg-sky-500' : 'bg-stone-400'
+                                                    }`}>
                                                         {accountRecommendation || 'ELECCIÓN MANUAL'}
                                                     </span>
                                                 )}

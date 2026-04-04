@@ -14,7 +14,7 @@ interface InvoiceModalProps {
         };
         payments?: { method: string }[];
     };
-    initialAccount?: 'ISH' | 'YANI';
+    initialAccount?: 'ISH' | 'YANI' | 'LUCIA';
     onClose: () => void;
     onSuccess: () => void;
 }
@@ -28,7 +28,7 @@ const DOC_TYPES = [
 export default function InvoiceModal({ order, initialAccount, onClose, onSuccess }: InvoiceModalProps) {
     const [docTipo, setDocTipo] = useState(order.client.dni ? 96 : 99);
     const [docNro, setDocNro] = useState(order.client.dni || '');
-    const [account, setAccount] = useState<'ISH' | 'YANI'>(initialAccount || 'ISH');
+    const [account, setAccount] = useState<'ISH' | 'YANI' | 'LUCIA'>(initialAccount || 'ISH');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState<{
@@ -154,7 +154,8 @@ export default function InvoiceModal({ order, initialAccount, onClose, onSuccess
                                 <div className="flex gap-2 p-1.5 bg-stone-100 dark:bg-stone-700 rounded-2xl">
                                     {[
                                         { key: 'ISH', label: 'Cuenta ISH' },
-                                        { key: 'YANI', label: 'Cuenta YANI' }
+                                        { key: 'YANI', label: 'Cuenta YANI' },
+                                        { key: 'LUCIA', label: 'Cuenta LUCIA' }
                                     ].map(acc => (
                                         <button
                                             key={acc.key}
