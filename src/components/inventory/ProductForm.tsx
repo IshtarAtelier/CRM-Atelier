@@ -6,6 +6,7 @@ import { X, Save, Package, Layers, DollarSign, Plus, Upload, Database, ChevronDo
 interface ProductFormProps {
     onClose: () => void;
     onSuccess: () => void;
+    isAdmin?: boolean;
 }
 
 const LENS_INDICES = ['1.5', '1.56', '1.59', '1.67', '1.74', 'Foto'];
@@ -24,7 +25,7 @@ const PRODUCT_CATEGORIES: { id: string; label: string; icon: string; noStock?: b
     { id: 'Lentes Especiales', label: 'Lentes Especiales', icon: '✨' },
 ];
 
-export default function ProductForm({ onClose, onSuccess }: ProductFormProps) {
+export default function ProductForm({ onClose, onSuccess, isAdmin = false }: ProductFormProps) {
     const [mode, setMode] = useState<'single' | 'bulk'>('single');
     // Steps: 1 = tipo, 2 = detalles (single) | 1 = tipo, 2 = CSV (bulk)
     const [step, setStep] = useState<1 | 2>(1);
@@ -305,7 +306,8 @@ export default function ProductForm({ onClose, onSuccess }: ProductFormProps) {
                                 </div>
                             </div>
 
-                            {/* Costo */}
+                            {/* Costo — solo admin */}
+                            {isAdmin && (
                             <div className="space-y-2">
                                 <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest ml-4">Costo ($) *</label>
                                 <div className="relative group">
@@ -317,6 +319,7 @@ export default function ProductForm({ onClose, onSuccess }: ProductFormProps) {
                                     />
                                 </div>
                             </div>
+                            )}
 
 
 
@@ -427,7 +430,8 @@ export default function ProductForm({ onClose, onSuccess }: ProductFormProps) {
                                 </div>
                             </div>
 
-                            {/* Costo */}
+                            {/* Costo — solo admin */}
+                            {isAdmin && (
                             <div className="space-y-2">
                                 <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest ml-4">Costo ($) *</label>
                                 <div className="relative group">
@@ -439,6 +443,7 @@ export default function ProductForm({ onClose, onSuccess }: ProductFormProps) {
                                     />
                                 </div>
                             </div>
+                            )}
 
                             {/* Precio Venta */}
                             <div className="space-y-2 col-span-2">
@@ -480,8 +485,8 @@ export default function ProductForm({ onClose, onSuccess }: ProductFormProps) {
                     <p className="text-[10px] font-black text-amber-800 dark:text-amber-400 uppercase tracking-widest mb-1">Formato por línea</p>
                     <p className="text-[10px] font-bold text-amber-600/80 leading-relaxed">
                         {isCristal
-                            ? <><span className="font-black text-amber-700 dark:text-amber-300">MARCA, NOMBRE, ÍNDICE, PRECIO, COSTO, LABORATORIO</span> <span className="text-[9px] bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-full font-black ml-1">PAR automático</span><br /><span className="text-[8px] text-amber-500">Opcional al final: ESF_MIN, ESF_MAX, CIL_MIN, CIL_MAX, ADIC_MIN, ADIC_MAX</span></>
-                            : <><span className="font-black text-amber-700 dark:text-amber-300">NOMBRE, MARCA, MODELO, PRECIO, COSTO, STOCK</span></>
+                            ? <><span className="font-black text-amber-700 dark:text-amber-300">MARCA, NOMBRE, ÍNDICE, PRECIO{isAdmin ? ', COSTO' : ''}, LABORATORIO</span> <span className="text-[9px] bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-full font-black ml-1">PAR automático</span><br /><span className="text-[8px] text-amber-500">Opcional al final: ESF_MIN, ESF_MAX, CIL_MIN, CIL_MAX, ADIC_MIN, ADIC_MAX</span></>
+                            : <><span className="font-black text-amber-700 dark:text-amber-300">NOMBRE, MARCA, MODELO, PRECIO{isAdmin ? ', COSTO' : ''}, STOCK</span></>
                         }
                     </p>
                 </div>

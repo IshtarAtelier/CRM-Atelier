@@ -55,18 +55,16 @@ export async function GET(request: Request) {
         } else if (type === 'products') {
             const products = await prisma.product.findMany({ orderBy: { type: 'asc' } });
 
-            const headers = ['Tipo', 'Marca', 'Nombre', 'Modelo', 'Índice', 'Precio', 'Costo', 'Stock', 'Unidad'];
-            const rows = products.map(p => [
-                p.type,
-                p.brand || '',
-                p.name,
-                p.model || '',
-                p.lensIndex || '',
-                p.price,
-                p.cost,
-                p.stock,
-                p.unitType || 'UNIDAD',
-            ]);
+            const userRole = request.headers.get('x-user-role') || 'STAFF';
+            const showCost = userRole === 'ADMIN';
+
+            const headers = showCost
+                ? ['Tipo', 'Marca', 'Nombre', 'Modelo', 'Índice', 'Precio', 'Costo', 'Stock', 'Unidad']
+                : ['Tipo', 'Marca', 'Nombre', 'Modelo', 'Índice', 'Precio', 'Stock', 'Unidad'];
+            const rows = products.map(p => showCost
+                ? [p.type, p.brand || '', p.name, p.model || '', p.lensIndex || '', p.price, p.cost, p.stock, p.unitType || 'UNIDAD']
+                : [p.type, p.brand || '', p.name, p.model || '', p.lensIndex || '', p.price, p.stock, p.unitType || 'UNIDAD']
+            );
             csv = toCSV(headers, rows);
             filename = `inventario_${Date.now()}.csv`;
 

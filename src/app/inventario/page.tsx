@@ -571,6 +571,7 @@ export default function InventarioPage() {
                 <ProductForm
                     onClose={() => setShowForm(false)}
                     onSuccess={() => refresh()}
+                    isAdmin={isAdmin}
                 />
             )}
 
