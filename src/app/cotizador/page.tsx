@@ -144,8 +144,13 @@ export default function CotizadorPage() {
 
     // ── Promotion helpers ──────────────────────────────────────
     const isMultifocalProduct = useCallback((p: Product) => {
-        const name = `${p.brand || ''} ${p.name || ''} ${p.model || ''}`.toLowerCase();
-        return name.includes('multifocal') || name.includes('progresivo') || (p.type || '').toLowerCase().includes('multifocal');
+        const name = (p.name || '').toLowerCase();
+        const type = (p.type || '').toLowerCase();
+        const isMT = name.includes('multifocal') || type.includes('multifocal') || 
+                     name.includes('progresivo') || type.includes('progresivo');
+        const isP = name.includes('promo') || type.includes('promo') || 
+                   name.includes('2x1') || type.includes('2x1');
+        return isMT && isP;
     }, []);
 
     const isMiPrimerVarilux = useCallback((p: Product) => {
@@ -153,16 +158,19 @@ export default function CotizadorPage() {
     }, []);
 
     const isAtelierFrame = useCallback((p: Product) => {
-        return (p.brand || '').toLowerCase().includes('atelier');
+        return (p.brand || '').toLowerCase().includes('atelier') || p.category === 'ATELIER';
     }, []);
 
     // Average Atelier frame price for bonification
     const atelierAvgPrice = useMemo(() => {
-        const atelierFrames = products.filter(p =>
-            (p.type === 'Armazón' || p.category === 'FRAME') &&
-            (p.brand || '').toLowerCase().includes('atelier') &&
-            p.price > 0
-        );
+        const atelierFrames = products.filter(p => {
+            const type = (p.type || '').toLowerCase();
+            const category = (p.category || '').toLowerCase();
+            const isFrame = type.includes('armazón') || type.includes('armazon') || 
+                            category.includes('armazón') || category.includes('armazon') ||
+                            category === 'frame' || type === 'frame';
+            return isFrame && (p.brand || '').toLowerCase().includes('atelier') && p.price > 0;
+        });
         if (atelierFrames.length === 0) return 0;
         return Math.round(atelierFrames.reduce((sum, f) => sum + f.price, 0) / atelierFrames.length);
     }, [products]);
@@ -208,9 +216,13 @@ export default function CotizadorPage() {
 
     // Check if quote already has a frame from optica
     const hasFrameFromOptica = useMemo(() => {
-        return quoteItems.some(item =>
-            item.product.type === 'Armazón' || item.product.category === 'FRAME'
-        );
+        return quoteItems.some(item => {
+            const type = (item.product.type || '').toLowerCase();
+            const category = (item.product.category || '').toLowerCase();
+            return type.includes('armazón') || type.includes('armazon') || 
+                   category.includes('armazón') || category.includes('armazon') ||
+                   category === 'frame' || type === 'frame';
+        });
     }, [quoteItems]);
 
     // Promo frame discount calculation
@@ -250,13 +262,19 @@ export default function CotizadorPage() {
     const frameResults = useMemo(() => {
         if (!frameSearch) return [];
         const q = frameSearch.toLowerCase();
-        return products.filter(p =>
-            (p.type === 'Armazón' || p.category === 'FRAME') &&
-            p.stock > 0 &&
-            ((p.brand?.toLowerCase().includes(q)) ||
+        return products.filter(p => {
+            const type = (p.type || '').toLowerCase();
+            const category = (p.category || '').toLowerCase();
+            const isFrame = type.includes('armazón') || type.includes('armazon') || 
+                            category.includes('armazón') || category.includes('armazon') ||
+                            category === 'frame' || type === 'frame';
+            
+            return isFrame && (
+                (p.brand?.toLowerCase().includes(q)) ||
                 (p.model?.toLowerCase().includes(q)) ||
-                (p.name?.toLowerCase().includes(q)))
-        ).slice(0, 8);
+                (p.name?.toLowerCase().includes(q))
+            );
+        }).slice(0, 8);
     }, [products, frameSearch]);
 
     const addToQuote = useCallback((product: Product, isPromoFrame?: boolean) => {
@@ -341,14 +359,24 @@ export default function CotizadorPage() {
 
     // Frame item for promo display
     const frameItemInQuote = useMemo(() => {
-        return quoteItems.find(item =>
-            item.product.type === 'Armazón' || item.product.category === 'FRAME'
-        );
+        return quoteItems.find(item => {
+            const type = (item.product.type || '').toLowerCase();
+            const category = (item.product.category || '').toLowerCase();
+            return type.includes('armazón') || type.includes('armazon') || 
+                   category.includes('armazón') || category.includes('armazon') ||
+                   category === 'frame' || type === 'frame';
+        });
     }, [quoteItems]);
 
     const buildQuoteText = () => {
         // Encontrar cuál es el armazón que recibe el descuento para marcarlo en el texto
-        const frames = quoteItems.filter(item => item.product.type === 'Armazón' || item.product.category === 'FRAME');
+        const frames = quoteItems.filter(item => {
+            const type = (item.product.type || '').toLowerCase();
+            const category = (item.product.category || '').toLowerCase();
+            return type.includes('armazón') || type.includes('armazon') || 
+                   category.includes('armazón') || category.includes('armazon') ||
+                   category === 'frame' || type === 'frame';
+        });
         const sortedFrames = [...frames].sort((a, b) => b.product.price - a.product.price);
         const secondFrameUid = sortedFrames.length >= 2 ? sortedFrames[1].uid : null;
 
@@ -359,7 +387,14 @@ export default function CotizadorPage() {
             if (item.isPromo) {
                 label += ` — *SIN CARGO PROMO 2x1* ✨`;
             } else {
-                const isFrame = item.product.type === 'Armazón' || item.product.category === 'FRAME';
+                const isFrame = (() => {
+                    const type = (item.product.type || '').toLowerCase();
+                    const category = (item.product.category || '').toLowerCase();
+                    return type.includes('armazón') || type.includes('armazon') || 
+                           category.includes('armazón') || category.includes('armazon') ||
+                           category === 'frame' || type === 'frame';
+                })();
+
                 if (isFrame && item.uid === secondFrameUid && promoFrameDiscount > 0) {
                     if (isAtelierFrame(item.product)) {
                         label += ` — *BONIFICADO* ✨`;
@@ -388,7 +423,13 @@ export default function CotizadorPage() {
         if (hasCrystals && frameSource) {
             text += `\n\n🕶️ *Armazón:*`;
             if (frameSource === 'OPTICA') {
-                const frameItem = quoteItems.find(i => i.product.type === 'Armazón' || i.product.category === 'FRAME');
+                const frameItem = quoteItems.find(i => {
+                    const type = (i.product.type || '').toLowerCase();
+                    const category = (i.product.category || '').toLowerCase();
+                    return type.includes('armazón') || type.includes('armazon') || 
+                           category.includes('armazón') || category.includes('armazon') ||
+                           category === 'frame' || type === 'frame';
+                });
                 if (frameItem) {
                     text += ` ${frameItem.product.brand || ''} ${frameItem.product.model || ''}`;
                     if (hasMultifocalPromo && isAtelierFrame(frameItem.product)) {
@@ -488,6 +529,10 @@ export default function CotizadorPage() {
                 setSavedContact({ id: contactId, name: contactName });
                 setPendingContact(null);
                 setEditingQuoteId(null);
+                // Redirect to the contact's file
+                setTimeout(() => {
+                    router.push(`/contactos?clientId=${contactId}`);
+                }, 1000);
             } else {
                 const err = await res.json();
                 alert(`❌ ${err.error || 'Error al guardar'}`);
@@ -1033,7 +1078,7 @@ export default function CotizadorPage() {
                                                     </div>
                                                     <div className="flex gap-4 justify-center pt-4">
                                                         <button
-                                                            onClick={() => router.push(`/contactos?open=${savedContact.id}`)}
+                                                            onClick={() => router.push(`/contactos?clientId=${savedContact.id}`)}
                                                             className="px-8 py-4 bg-emerald-500 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:scale-105 transition-all shadow-lg"
                                                         >
                                                             VER FICHA DE CONTACTO

@@ -8,7 +8,7 @@ import { BillingService } from '@/services/billing.service';
 export async function POST(request: Request) {
     try {
         const body = await request.json();
-        const { orderId, docTipo, docNro, puntoDeVenta } = body;
+        const { orderId, account, docTipo, docNro, puntoDeVenta } = body;
 
         if (!orderId) {
             return NextResponse.json({ error: 'orderId es requerido' }, { status: 400 });
@@ -16,6 +16,7 @@ export async function POST(request: Request) {
 
         const invoice = await BillingService.createInvoice({
             orderId,
+            account: account || 'ISH',
             docTipo: docTipo || 99,
             docNro: docNro || '0',
             puntoDeVenta,
@@ -39,13 +40,19 @@ export async function GET(request: Request) {
     try {
         const { searchParams } = new URL(request.url);
         const orderId = searchParams.get('orderId');
+        const invoiceId = searchParams.get('invoiceId');
 
-        if (!orderId) {
-            return NextResponse.json({ error: 'orderId es requerido' }, { status: 400 });
+        if (invoiceId) {
+            const pdfUrl = await BillingService.getInvoicePdfUrl(invoiceId);
+            return NextResponse.json({ pdfUrl });
         }
 
-        const invoices = await BillingService.getInvoicesByOrder(orderId);
-        return NextResponse.json(invoices);
+        if (orderId) {
+            const invoices = await BillingService.getInvoicesByOrder(orderId);
+            return NextResponse.json(invoices);
+        }
+
+        return NextResponse.json({ error: 'orderId o invoiceId es requerido' }, { status: 400 });
     } catch (error: any) {
         return NextResponse.json({ error: error.message }, { status: 500 });
     }

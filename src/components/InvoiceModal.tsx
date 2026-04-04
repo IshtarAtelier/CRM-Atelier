@@ -12,7 +12,9 @@ interface InvoiceModalProps {
             dni?: string | null;
             phone?: string | null;
         };
+        payments?: { method: string }[];
     };
+    initialAccount?: 'ISH' | 'YANI';
     onClose: () => void;
     onSuccess: () => void;
 }
@@ -23,9 +25,10 @@ const DOC_TYPES = [
     { value: 80, label: 'CUIT' },
 ];
 
-export default function InvoiceModal({ order, onClose, onSuccess }: InvoiceModalProps) {
+export default function InvoiceModal({ order, initialAccount, onClose, onSuccess }: InvoiceModalProps) {
     const [docTipo, setDocTipo] = useState(order.client.dni ? 96 : 99);
     const [docNro, setDocNro] = useState(order.client.dni || '');
+    const [account, setAccount] = useState<'ISH' | 'YANI'>(initialAccount || 'ISH');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState<{
@@ -53,6 +56,7 @@ export default function InvoiceModal({ order, onClose, onSuccess }: InvoiceModal
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     orderId: order.id,
+                    account,
                     docTipo,
                     docNro: docTipo === 99 ? '0' : docNro.replace(/\D/g, ''),
                 }),
@@ -142,6 +146,30 @@ export default function InvoiceModal({ order, onClose, onSuccess }: InvoiceModal
                         </div>
                     ) : (
                         <>
+                             {/* Account Selection */}
+                             <div className="mb-6">
+                                <label className="block text-[10px] font-black text-stone-400 uppercase tracking-widest mb-2">
+                                    Cuenta de Facturación
+                                </label>
+                                <div className="flex gap-2 p-1.5 bg-stone-100 dark:bg-stone-700 rounded-2xl">
+                                    {[
+                                        { key: 'ISH', label: 'Cuenta ISH' },
+                                        { key: 'YANI', label: 'Cuenta YANI' }
+                                    ].map(acc => (
+                                        <button
+                                            key={acc.key}
+                                            onClick={() => setAccount(acc.key as any)}
+                                            className={`flex-1 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${account === acc.key
+                                                ? 'bg-white dark:bg-stone-600 text-blue-600 shadow-sm'
+                                                : 'text-stone-400 hover:text-stone-600'
+                                                }`}
+                                        >
+                                            {acc.label}
+                                        </button>
+                                    ))}
+                                </div>
+                             </div>
+
                             {/* Order summary */}
                             <div className="bg-stone-50 dark:bg-stone-700 rounded-2xl p-4 mb-6">
                                 <div className="flex justify-between items-center mb-2">

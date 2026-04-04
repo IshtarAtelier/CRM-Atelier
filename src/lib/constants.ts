@@ -17,6 +17,7 @@ export const PLATFORM_COMMISSIONS: Record<string, number> = {
 
     // ── Go Cuotas (20% plataforma) ──
     'GO_CUOTAS': 0.20,
+    'GO_CUOTAS_ISH': 0.20,
 
     // ── Sin comisión ──
     'EFECTIVO': 0,

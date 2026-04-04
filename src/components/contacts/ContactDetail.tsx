@@ -100,6 +100,7 @@ export default function ContactDetail({
         { key: 'PAY_WAY_6_ISH', label: 'Pay Way 6 Ish', icon: CreditCard, color: 'bg-blue-500' },
         { key: 'PAY_WAY_3_ISH', label: 'Pay Way 3 Ish', icon: CreditCard, color: 'bg-blue-400' },
         { key: 'NARANJA_Z_ISH', label: 'Naranja Z Ish', icon: CreditCard, color: 'bg-orange-500' },
+        { key: 'GO_CUOTAS_ISH', label: 'Go Cuotas Ish', icon: CreditCard, color: 'bg-violet-600' },
         { key: 'PAY_WAY_6_YANI', label: 'Pay Way 6 Yani', icon: CreditCard, color: 'bg-indigo-500' },
         { key: 'PAY_WAY_3_YANI', label: 'Pay Way 3 Yani', icon: CreditCard, color: 'bg-indigo-400' },
         { key: 'NARANJA_Z_YANI', label: 'Naranja Z Yani', icon: CreditCard, color: 'bg-orange-400' },
@@ -114,7 +115,7 @@ export default function ContactDetail({
     const getOrderTotalForMethod = (order: any, method: string): number => {
         const listPrice = order.subtotalWithMarkup || order.total || 0;
         // Card / installment methods → cuotas price (list price with card discount)
-        if (method.startsWith('PAY_WAY') || method.startsWith('NARANJA') || method === 'GO_CUOTAS') {
+        if (method.startsWith('PAY_WAY') || method.startsWith('NARANJA') || method.startsWith('GO_CUOTAS')) {
             return Math.round(listPrice * (1 - (order.discountCard || 0) / 100));
         }
         // Transfer methods → transfer price

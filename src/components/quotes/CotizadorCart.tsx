@@ -78,26 +78,44 @@ export default function CotizadorCart({
 
     const [frameSearch, setFrameSearch] = useState('');
 
-    // Promotion Logic: Multifocal 2x1 & Atelier Frame Bonus
     const isMultifocalProduct = (p: any) => {
-        const name = `${p.brand || ''} ${p.name || ''} ${p.model || ''}`.toLowerCase();
-        return name.includes('multifocal') || name.includes('progresivo') || (p.type || '').toLowerCase().includes('multifocal');
+        const name = (p.name || '').toLowerCase();
+        const type = (p.type || '').toLowerCase();
+        const isMT = name.includes('multifocal') || type.includes('multifocal') || 
+                     name.includes('progresivo') || type.includes('progresivo');
+        const isP = name.includes('promo') || type.includes('promo') || 
+                   name.includes('2x1') || type.includes('2x1');
+        return isMT && isP;
     };
     const isMiPrimerVarilux = (p: any) => (p?.name || '').toLowerCase().includes('mi primer varilux');
-    const isAtelierFrame = (p: any) => p?.brand?.toLowerCase().includes('atelier') || p?.category === 'ATELIER';
-    
-    const hasMultifocalPromo = items.some(i => 
-        (i.product.type === 'Cristal' || i.product.category === 'LENS') && 
-        isMultifocalProduct(i.product) && 
-        !isMiPrimerVarilux(i.product)
-    );
+    const isAtelierFrame = (p: any) => (p?.brand || '').toLowerCase().includes('atelier') || p?.category === 'ATELIER';
+
+    const hasMultifocalPromo = useMemo(() => {
+        return items.some(it => isMultifocalProduct(it.product));
+    }, [items]);
+
     const hasAnyMultifocal = items.some(i => isMultifocalProduct(i.product));
 
-    const atelierFrames = availableProducts.filter(p => (p.type === 'Armazón' || p.category === 'FRAME') && isAtelierFrame(p));
-    const atelierAvgPrice = atelierFrames.length > 0 ? Math.round(atelierFrames.reduce((s, f) => s + f.price, 0) / atelierFrames.length) : 0;
+    const atelierAvgPrice = useMemo(() => {
+        const atelierFrames = availableProducts.filter(p => {
+            const type = (p.type || '').toLowerCase();
+            const category = (p.category || '').toLowerCase();
+            const isFrame = type.includes('armazón') || type.includes('armazon') || 
+                            category.includes('armazón') || category.includes('armazon') ||
+                            category === 'frame' || type === 'frame';
+            return isFrame && (p.brand || '').toLowerCase().includes('atelier') && p.price > 0;
+        });
+        return atelierFrames.length > 0 ? Math.round(atelierFrames.reduce((s, f) => s + f.price, 0) / atelierFrames.length) : 0;
+    }, [availableProducts]);
     
     // Check frames in quote for the promo
-    const framesInQuote = items.filter(i => i.product.type === 'Armazón' || i.product.category === 'FRAME');
+    const framesInQuote = items.filter(i => {
+        const type = (i.product.type || '').toLowerCase();
+        const category = (i.product.category || '').toLowerCase();
+        return type.includes('armazón') || type.includes('armazon') || 
+               category.includes('armazón') || category.includes('armazon') ||
+               category === 'frame' || type === 'frame';
+    });
     const sortedFrames = [...framesInQuote].sort((a, b) => b.price - a.price);
     const secondFrameUid = sortedFrames.length >= 2 ? sortedFrames[1].uid : null;
     
@@ -116,13 +134,22 @@ export default function CotizadorCart({
     const totalTransfer = priceWithMarkup * (1 - discountTransfer / 100);
     const totalCard = priceWithMarkup * (1 - discountCard / 100);
 
-    const frameResults = frameSearch ? availableProducts.filter(p => 
-        (p.type === 'Armazón' || p.category === 'FRAME') && 
-        p.stock > 0 && 
-        (p.brand?.toLowerCase().includes(frameSearch.toLowerCase()) || 
-         p.model?.toLowerCase().includes(frameSearch.toLowerCase()) || 
-         p.name?.toLowerCase().includes(frameSearch.toLowerCase()))
-    ).slice(0, 8) : [];
+    const frameResults = frameSearch ? availableProducts.filter(p => {
+        const type = (p.type || '').toLowerCase();
+        const category = (p.category || '').toLowerCase();
+        const isFrame = type.includes('armazón') || type.includes('armazon') || 
+                        category.includes('armazón') || category.includes('armazon') ||
+                        category === 'frame' || type === 'frame';
+        
+        if (!isFrame) return false;
+
+        const q = frameSearch.toLowerCase();
+        return (
+            (p.brand?.toLowerCase().includes(q)) || 
+            (p.model?.toLowerCase().includes(q)) || 
+            (p.name?.toLowerCase().includes(q))
+        );
+    }).slice(0, 8) : [];
 
     const handleUpdateQuantity = (idx: number, delta: number) => {
         setItems(prev => prev.map((item, i) => {
@@ -289,7 +316,10 @@ export default function CotizadorCart({
                                             }`}
                                         >
                                             <div className="flex-1 min-w-0">
-                                                <p className="text-[11px] font-black text-stone-800 dark:text-white truncate uppercase tracking-tight group-hover/btn:text-primary">{fr.brand} {fr.model || ''}</p>
+                                                <div className="flex items-center gap-1.5">
+                                                    <p className="text-[11px] font-black text-stone-800 dark:text-white truncate uppercase tracking-tight group-hover/btn:text-primary">{fr.brand} {fr.model || ''}</p>
+                                                    {fr.stock <= 0 && <span className="px-1 py-0.5 bg-red-100 text-red-600 text-[7px] font-black rounded uppercase">SIN STOCK</span>}
+                                                </div>
                                                 {hasMultifocalPromo && isAtelierFrame(fr) ? (
                                                     <p className="text-[9px] font-black text-emerald-600 uppercase tracking-widest mt-0.5">✨ BONIFICADO</p>
                                                 ) : (

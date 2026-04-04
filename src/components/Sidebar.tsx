@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Users, Glasses, Package, ClipboardList, LayoutDashboard, Cog, FileText, Contact, Calculator, ShoppingCart, MessageCircle, Wallet, Search, Menu, X } from "lucide-react";
+import { Users, Glasses, Package, ClipboardList, LayoutDashboard, Cog, FileText, Contact, Calculator, ShoppingCart, MessageCircle, Wallet, Search, Menu, X, Receipt } from "lucide-react";
 import { UserProfile } from "./UserProfile";
 import { NotificationBell } from "./NotificationBell";
 
@@ -39,6 +39,7 @@ export function Sidebar({ userName = "Usuario", userRole = "STAFF" }: SidebarPro
     { href: "/inventario", label: "Stock y Productos", icon: Glasses, adminOnly: false },
     { href: "/cotizador", label: "Cotizador", icon: Calculator, adminOnly: false },
     { href: "/ventas", label: "Ventas / Laboratorio", icon: ShoppingCart, adminOnly: false },
+    { href: "/facturacion", label: "Facturación", icon: Receipt, adminOnly: true },
     { href: "/whatsapp", label: "WhatsApp", icon: MessageCircle, adminOnly: false },
     { href: "/administracion", label: "Caja / Pagos", icon: Wallet, adminOnly: true },
     { href: "/reportes", label: "Reportes", icon: FileText, adminOnly: true },

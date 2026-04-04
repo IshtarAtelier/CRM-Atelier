@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/db';
-import { getAfipInstance, formatAfipDate } from '@/lib/afip';
+import { BillingAccount, getAfipInstance, formatAfipDate, getBillingAccountConfig } from '@/lib/afip';
 
 // Tipos de comprobante — Monotributista siempre emite Factura C
 const VOUCHER_TYPE_FC = 11;    // Factura C
@@ -7,9 +7,10 @@ const VOUCHER_TYPE_NCC = 13;   // Nota de Crédito C
 
 export interface CreateInvoiceParams {
     orderId: string;
+    account: BillingAccount;
     docTipo?: number;     // 80=CUIT, 96=DNI, 99=Sin identificar (default)
     docNro?: string;      // Número de documento del receptor
-    puntoDeVenta?: number; // Punto de venta (default: env AFIP_PUNTO_VENTA)
+    puntoDeVenta?: number; // Punto de venta (default: config de la cuenta)
 }
 
 export const BillingService = {
@@ -18,7 +19,7 @@ export const BillingService = {
      * Emite una Factura C electrónica para una orden de tipo SALE.
      */
     async createInvoice(params: CreateInvoiceParams) {
-        const { orderId, docTipo = 99, docNro = '0', puntoDeVenta } = params;
+        const { orderId, account = 'ISH', docTipo = 99, docNro = '0', puntoDeVenta } = params;
 
         // 1. Validar orden
         const order = await prisma.order.findUnique({
@@ -45,8 +46,9 @@ export const BillingService = {
         const totalAmount = order.total || 0;
 
         // 3. Preparar datos para ARCA
-        const ptoVta = puntoDeVenta || parseInt(process.env.AFIP_PUNTO_VENTA || '1');
-        const afip = getAfipInstance();
+        const accountConfig = getBillingAccountConfig(account);
+        const ptoVta = puntoDeVenta || accountConfig.puntoDeVenta;
+        const afip = getAfipInstance(account);
 
         const voucherData: any = {
             'CantReg': 1,
@@ -87,6 +89,7 @@ export const BillingService = {
                 totalAmount,
                 docType: docTipo,
                 docNumber: docNro || '0',
+                billingAccount: account,
                 status: 'COMPLETED',
             },
         });
@@ -130,42 +133,43 @@ export const BillingService = {
     /**
      * Obtiene el último número de comprobante para un punto de venta
      */
-    async getLastVoucherNumber(puntoDeVenta?: number) {
-        const ptoVta = puntoDeVenta || parseInt(process.env.AFIP_PUNTO_VENTA || '1');
-        const afip = getAfipInstance();
+    async getLastVoucherNumber(account: BillingAccount = 'ISH', puntoDeVenta?: number) {
+        const accountConfig = getBillingAccountConfig(account);
+        const ptoVta = puntoDeVenta || accountConfig.puntoDeVenta;
+        const afip = getAfipInstance(account);
         const lastVoucher = await afip.ElectronicBilling.getLastVoucher(ptoVta, VOUCHER_TYPE_FC);
-        return { lastVoucher, pointOfSale: ptoVta, voucherType: VOUCHER_TYPE_FC };
+        return { lastVoucher, pointOfSale: ptoVta, voucherType: VOUCHER_TYPE_FC, account };
     },
 
     /**
-     * Obtiene los puntos de venta disponibles en ARCA
+     * Obtiene los puntos de venta disponibles en ARCA para una cuenta
      */
-    async getSalesPoints() {
-        const afip = getAfipInstance();
+    async getSalesPoints(account: BillingAccount = 'ISH') {
+        const afip = getAfipInstance(account);
         return await afip.ElectronicBilling.getSalesPoints();
     },
 
     /**
-     * Verifica la conexión con ARCA
+     * Verifica la conexión con ARCA para una cuenta
      */
-    async checkConnection() {
+    async checkConnection(account: BillingAccount = 'ISH') {
         try {
-            const afip = getAfipInstance();
+            const afip = getAfipInstance(account);
             const serverStatus = await afip.ElectronicBilling.getServerStatus();
+            const accountConfig = getBillingAccountConfig(account);
             return {
                 connected: true,
                 status: serverStatus,
-                cuit: process.env.AFIP_CUIT || '20409378472',
-                hasCert: !!(process.env.AFIP_CERT && process.env.AFIP_KEY),
-                hasAccessToken: !!process.env.AFIP_ACCESS_TOKEN,
+                account,
+                cuit: accountConfig.cuit,
+                label: accountConfig.label,
+                hasCert: true, // Si llegamos aquí tiene lo necesario
             };
         } catch (error: any) {
             return {
                 connected: false,
                 error: error.message,
-                cuit: process.env.AFIP_CUIT || '20409378472',
-                hasCert: !!(process.env.AFIP_CERT && process.env.AFIP_KEY),
-                hasAccessToken: !!process.env.AFIP_ACCESS_TOKEN,
+                account,
             };
         }
     },
@@ -185,7 +189,7 @@ export const BillingService = {
 
         // Generar PDF via Afip SDK
         try {
-            const afip = getAfipInstance();
+            const afip = getAfipInstance(invoice.billingAccount as BillingAccount);
             const pdfInfo = await afip.ElectronicBilling.createPDF({
                 // Datos del comprobante
                 CbteTipo: invoice.voucherType,
