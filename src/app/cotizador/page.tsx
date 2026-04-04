@@ -12,6 +12,10 @@ import {
 } from 'lucide-react';
 import CotizadorCart from '@/components/quotes/CotizadorCart';
 import QuoteSummary from '@/components/quotes/QuoteSummary';
+import { 
+    isMultifocal2x1, isAtelierFrame, isCrystal, 
+    isMiPrimerVarilux, getCategoryKey 
+} from '@/lib/promo-utils';
 
 interface Product {
     id: string;
@@ -54,22 +58,7 @@ function getTypeConfig(type: string | null) {
 }
 
 // Map any product sub-type to its parent category key in TYPE_CONFIG
-function getCategoryKey(type: string | null): string {
-    if (!type) return 'Otros';
-    // Direct match
-    if (TYPE_CONFIG[type]) return type;
-    // Sub-type matching: check if the type starts with or contains a root key
-    const t = type.toLowerCase();
-    if (t.includes('armazón') || t.includes('armazon')) return 'Armazón';
-    if (t.includes('cristal') || t.includes('monofocal') || t.includes('multifocal') || t.includes('bifocal') || t.includes('ocupacional') || t.includes('coquil') || t.includes('progresivo')) return 'Cristal';
-    if (t.includes('lente de sol') || t.includes('sol')) return 'Lente de sol';
-    if (t.includes('lente de contacto') || t.includes('contacto')) return 'Lente de contacto';
-    if (t.includes('accesorio')) return 'Accesorio';
-    if (t.includes('reloj')) return 'Reloj';
-    if (t.includes('líquido') || t.includes('solución') || t.includes('liquido') || t.includes('solucion')) return 'Líquido / Solución';
-    if (t.includes('joyería') || t.includes('joyeria')) return 'Joyería';
-    return 'Otros';
-}
+// Delegated to promo-utils
 
 export default function CotizadorPage() {
     const router = useRouter();
@@ -138,27 +127,7 @@ export default function CotizadorPage() {
         });
     }, [products]);
 
-    const isCrystal = useCallback((p: Product) => {
-        return p.category === 'LENS' || (p.type || '').includes('Cristal');
-    }, []);
-
-    // ── Promotion helpers ──────────────────────────────────────
-    const isMultifocalProduct = useCallback((p: Product) => {
-        const name = (p.name || '').toLowerCase();
-        const type = (p.type || '').toLowerCase();
-        const isMT = name.includes('multifocal') || type.includes('multifocal') || 
-                     name.includes('progresivo') || type.includes('progresivo');
-        const isP = name.includes('2x1') || type.includes('2x1');
-        return isMT && isP;
-    }, []);
-
-    const isMiPrimerVarilux = useCallback((p: Product) => {
-        return (p.name || '').toLowerCase().includes('mi primer varilux');
-    }, []);
-
-    const isAtelierFrame = useCallback((p: Product) => {
-        return (p.brand || '').toLowerCase().includes('atelier') || p.category === 'ATELIER';
-    }, []);
+    // ── Promotion helpers (Delegated to promo-utils) ──────────
 
     // Average Atelier frame price for bonification
     const atelierAvgPrice = useMemo(() => {
@@ -177,16 +146,14 @@ export default function CotizadorPage() {
     // Check if quote has a multifocal that qualifies for frame promo
     const hasMultifocalPromo = useMemo(() => {
         return quoteItems.some(item =>
-            isCrystal(item.product) && isMultifocalProduct(item.product) && !isMiPrimerVarilux(item.product)
+            isCrystal(item.product) && isMultifocal2x1(item.product) && !isMiPrimerVarilux(item.product)
         );
-    }, [quoteItems, isCrystal, isMultifocalProduct, isMiPrimerVarilux]);
+    }, [quoteItems]);
 
     // Check if quote has any multifocal at all (including Mi Primer Varilux)
     const hasAnyMultifocal = useMemo(() => {
-        return quoteItems.some(item =>
-            isCrystal(item.product) && isMultifocalProduct(item.product)
-        );
-    }, [quoteItems, isCrystal, isMultifocalProduct]);
+        return quoteItems.some(item => isMultifocal2x1(item.product));
+    }, [quoteItems]);
 
     const filtered = useMemo(() => {
         if (activeType === 'NONE' && !search) return [];
@@ -204,7 +171,7 @@ export default function CotizadorPage() {
                 (p.type?.toLowerCase().includes(q))
             );
         });
-    }, [products, search, activeType, isCrystal]);
+    }, [products, search, activeType]);
 
     // Check if quote has crystals
     const hasCrystals = useMemo(() => {
@@ -244,7 +211,7 @@ export default function CotizadorPage() {
         }
         // Non-Atelier = discount up to Atelier avg price
         return Math.min(atelierAvgPrice, secondFrame.product.price);
-    }, [hasMultifocalPromo, quoteItems, isAtelierFrame, atelierAvgPrice]);
+    }, [hasMultifocalPromo, quoteItems, atelierAvgPrice]);
 
     // Auto-set frame source
     useEffect(() => {
@@ -277,8 +244,8 @@ export default function CotizadorPage() {
     }, [products, frameSearch]);
 
     const addToQuote = useCallback((product: Product, isPromoFrame?: boolean) => {
+        const isMultifocal = isMultifocal2x1(product);
         if (isCrystal(product)) {
-            const isMultifocal = isMultifocalProduct(product);
             const halfPrice = Math.round(product.price / 2);
             
             if (isMultifocal) {
@@ -321,7 +288,7 @@ export default function CotizadorPage() {
             }
             return [...prev, { product, quantity: 1, customPrice: framePrice, uid: Date.now() }];
         });
-    }, [isCrystal, isAtelierFrame, atelierAvgPrice]);
+    }, [atelierAvgPrice]);
 
     const updateQuantity = useCallback((uid: number, delta: number) => {
         setQuoteItems(prev =>
@@ -822,7 +789,7 @@ export default function CotizadorPage() {
                                                             <p className="text-[9px] font-bold text-stone-700 dark:text-stone-200 leading-tight max-w-[280px] truncate" title={product.name || ''}>
                                                                 {product.name || `${product.brand || ''} ${product.model || ''}`}
                                                             </p>
-                                                            {isMultifocalProduct(product) && (
+                                                            {isMultifocal2x1(product) && (
                                                                 <span className={`flex-shrink-0 inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[7px] font-black uppercase tracking-wider whitespace-nowrap ${
                                                                     isMiPrimerVarilux(product)
                                                                         ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400'

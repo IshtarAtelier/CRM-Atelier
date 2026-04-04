@@ -8,6 +8,10 @@ import {
     MessageCircle, Copy, BookOpen, Save,
     Loader2, Gift, FileText, CheckCircle2
 } from 'lucide-react';
+import { 
+    isMultifocal2x1, isAtelierFrame, isCrystal, 
+    isMiPrimerVarilux, getCategoryKey 
+} from '@/lib/promo-utils';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
@@ -78,43 +82,21 @@ export default function CotizadorCart({
 
     const [frameSearch, setFrameSearch] = useState('');
 
-    const isMultifocalProduct = (p: any) => {
-        const name = (p.name || '').toLowerCase();
-        const type = (p.type || '').toLowerCase();
-        const isMT = name.includes('multifocal') || type.includes('multifocal') || 
-                     name.includes('progresivo') || type.includes('progresivo');
-        const isP = name.includes('2x1') || type.includes('2x1');
-        return isMT && isP;
-    };
-    const isMiPrimerVarilux = (p: any) => (p?.name || '').toLowerCase().includes('mi primer varilux');
-    const isAtelierFrame = (p: any) => (p?.brand || '').toLowerCase().includes('atelier') || p?.category === 'ATELIER';
-
     const hasMultifocalPromo = useMemo(() => {
-        return items.some(it => isMultifocalProduct(it.product));
+        return items.some(it => isCrystal(it.product) && isMultifocal2x1(it.product) && !isMiPrimerVarilux(it.product));
     }, [items]);
 
-    const hasAnyMultifocal = items.some(i => isMultifocalProduct(i.product));
+    const hasAnyMultifocal = useMemo(() => {
+        return items.some(it => isMultifocal2x1(it.product));
+    }, [items]);
 
     const atelierAvgPrice = useMemo(() => {
-        const atelierFrames = availableProducts.filter(p => {
-            const type = (p.type || '').toLowerCase();
-            const category = (p.category || '').toLowerCase();
-            const isFrame = type.includes('armazón') || type.includes('armazon') || 
-                            category.includes('armazón') || category.includes('armazon') ||
-                            category === 'frame' || type === 'frame';
-            return isFrame && (p.brand || '').toLowerCase().includes('atelier') && p.price > 0;
-        });
+        const atelierFrames = availableProducts.filter(p => getCategoryKey(p.type) === 'Armazón' && isAtelierFrame(p) && p.price > 0);
         return atelierFrames.length > 0 ? Math.round(atelierFrames.reduce((s, f) => s + f.price, 0) / atelierFrames.length) : 0;
     }, [availableProducts]);
     
     // Check frames in quote for the promo
-    const framesInQuote = items.filter(i => {
-        const type = (i.product.type || '').toLowerCase();
-        const category = (i.product.category || '').toLowerCase();
-        return type.includes('armazón') || type.includes('armazon') || 
-               category.includes('armazón') || category.includes('armazon') ||
-               category === 'frame' || type === 'frame';
-    });
+    const framesInQuote = items.filter(i => getCategoryKey(i.product.type) === 'Armazón');
     const sortedFrames = [...framesInQuote].sort((a, b) => b.price - a.price);
     const secondFrameUid = sortedFrames.length >= 2 ? sortedFrames[1].uid : null;
     
@@ -202,7 +184,7 @@ export default function CotizadorCart({
                                 </p>
                                 <p className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">
                                     {item.product.type || item.product.category}
-                                    {item.isPromo && <span className="text-emerald-500 ml-2">✨ SIN CARGO PROMO 2x1</span>}
+                                    {item.isPromo && <span className="text-emerald-500 ml-2">† SIN CARGO 2x1</span>}
                                 </p>
                             </div>
                             {!item.isPromo && (

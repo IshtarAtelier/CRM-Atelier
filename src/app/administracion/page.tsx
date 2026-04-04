@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import {
     Wallet, DollarSign, CreditCard, Banknote, Calendar,
     Loader2, RefreshCw, Filter, Hash, TrendingUp,
-    ChevronDown, Search, Receipt, Eye
+    ChevronDown, Search, Receipt, Eye, Plus, X, AlertCircle
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -22,6 +22,20 @@ interface PaymentRecord {
     clientPhone: string;
     orderId: string;
     orderTotal: number;
+}
+
+interface CashData {
+    total: number;
+    paymentsTotal: number;
+    manualBalance: number;
+    movements: {
+        id: string;
+        type: 'IN' | 'OUT';
+        amount: number;
+        reason: string;
+        createdAt: string;
+        user: { name: string };
+    }[];
 }
 
 interface PaymentsData {
@@ -88,14 +102,29 @@ export default function AdministracionPage() {
     const [selectedMethod, setSelectedMethod] = useState<string>('');
     const [searchQuery, setSearchQuery] = useState('');
     const [viewingReceipt, setViewingReceipt] = useState<string | null>(null);
+    const [cashData, setCashData] = useState<CashData | null>(null);
+    const [showMovementModal, setShowMovementModal] = useState(false);
+    const [movementAmount, setMovementAmount] = useState('');
+    const [movementReason, setMovementReason] = useState('');
+    const [isSavingMovement, setIsSavingMovement] = useState(false);
 
     useEffect(() => {
-        // Default to current month
         const preset = getPresetDates('month');
         setDateFrom(preset.from);
         setDateTo(preset.to);
         fetchPayments(preset.from, preset.to);
+        fetchCashData();
     }, []);
+
+    const fetchCashData = async () => {
+        try {
+            const res = await fetch('/api/cash');
+            const json = await res.json();
+            setCashData(json);
+        } catch (error) {
+            console.error('Error fetching cash data:', error);
+        }
+    };
 
     const fetchPayments = async (from?: string, to?: string, method?: string) => {
         setLoading(true);
@@ -146,9 +175,43 @@ export default function AdministracionPage() {
         setDateTo(preset.to);
         setActivePreset('month');
         fetchPayments(preset.from, preset.to);
+        fetchCashData();
     };
 
-    // Filter by search query (client name)
+    const handleSaveMovement = async () => {
+        if (!movementAmount || !movementReason) return;
+        setIsSavingMovement(true);
+        try {
+            const userRes = await fetch('/api/auth/me');
+            const userData = await userRes.json();
+            
+            const res = await fetch('/api/cash/movement', {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'x-user-id': userData.id 
+                },
+                body: JSON.stringify({
+                    type: 'OUT',
+                    amount: parseFloat(movementAmount),
+                    reason: movementReason
+                })
+            });
+
+            if (res.ok) {
+                setShowMovementModal(false);
+                setMovementAmount('');
+                setMovementReason('');
+                fetchCashData();
+                fetchPayments(dateFrom || undefined, dateTo || undefined, selectedMethod || undefined);
+            }
+        } catch (error) {
+            console.error('Error saving movement:', error);
+        } finally {
+            setIsSavingMovement(false);
+        }
+    };
+
     const filteredPayments = data?.payments?.filter(p =>
         !searchQuery || p.clientName.toLowerCase().includes(searchQuery.toLowerCase())
     ) || [];
@@ -178,20 +241,40 @@ export default function AdministracionPage() {
                         Control y seguimiento de todos los pagos registrados
                     </p>
                 </div>
-                <div className="flex items-center gap-3">
-                    <button
-                        onClick={() => fetchPayments(dateFrom || undefined, dateTo || undefined, selectedMethod || undefined)}
-                        className="p-3 bg-stone-100 dark:bg-stone-800 rounded-xl text-stone-500 hover:bg-stone-200 dark:hover:bg-stone-700 transition-all hover:scale-105"
-                        title="Actualizar"
-                    >
-                        <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-                    </button>
-                    <button
-                        onClick={clearFilters}
-                        className="px-5 py-3 bg-stone-100 dark:bg-stone-800 text-stone-500 rounded-xl text-xs font-black uppercase tracking-widest hover:scale-105 transition-all flex items-center gap-2"
-                    >
-                        <Filter className="w-4 h-4" /> Limpiar
-                    </button>
+                <div className="flex items-center gap-6">
+                    <div className="bg-emerald-500/10 border-2 border-emerald-500/20 px-6 py-3 rounded-2xl animate-in zoom-in duration-300">
+                        <span className="text-[9px] font-black text-emerald-600 uppercase tracking-widest block mb-0.5">Efectivo en Caja</span>
+                        <div className="flex items-center gap-2">
+                            <span className="text-2xl font-black text-emerald-600 tracking-tighter">
+                                ${cashData?.total.toLocaleString('es-AR') || '0'}
+                            </span>
+                            <button 
+                                onClick={() => setShowMovementModal(true)}
+                                className="ml-2 bg-emerald-600 text-white p-1.5 rounded-lg hover:bg-emerald-700 transition-colors shadow-lg shadow-emerald-600/20"
+                                title="Registrar Salida"
+                            >
+                                <Plus size={16} />
+                            </button>
+                        </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                        <button
+                            onClick={() => {
+                                fetchPayments(dateFrom || undefined, dateTo || undefined, selectedMethod || undefined);
+                                fetchCashData();
+                            }}
+                            className="p-3 bg-stone-100 dark:bg-stone-800 rounded-xl text-stone-500 hover:bg-stone-200 dark:hover:bg-stone-700 transition-all hover:scale-105"
+                            title="Actualizar"
+                        >
+                            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+                        </button>
+                        <button
+                            onClick={clearFilters}
+                            className="px-5 py-3 bg-stone-100 dark:bg-stone-800 text-stone-500 rounded-xl text-xs font-black uppercase tracking-widest hover:scale-105 transition-all flex items-center gap-2"
+                        >
+                            <Filter className="w-4 h-4" /> Limpiar
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -464,6 +547,72 @@ export default function AdministracionPage() {
                         >
                             Cerrar
                         </button>
+                    </div>
+                </div>
+            )}
+
+            {/* Cash Movement Modal */}
+            {showMovementModal && (
+                <div className="fixed inset-0 bg-stone-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-in fade-in duration-300">
+                    <div className="bg-white dark:bg-stone-800 rounded-[2.5rem] w-full max-w-md overflow-hidden shadow-2xl animate-in zoom-in-95 duration-300">
+                        <div className="p-8">
+                            <div className="flex items-center justify-between mb-8">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-12 h-12 bg-red-50 dark:bg-red-900/20 rounded-2xl flex items-center justify-center text-red-500">
+                                        <TrendingUp className="rotate-180" />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-xl font-black text-stone-800 dark:text-white tracking-tight">Registrar Salida</h3>
+                                        <p className="text-stone-400 text-[10px] font-black uppercase tracking-widest italic">Egreso de Efectivo</p>
+                                    </div>
+                                </div>
+                                <button onClick={() => setShowMovementModal(false)} className="p-2 hover:bg-stone-100 dark:hover:bg-stone-700 rounded-full transition-colors">
+                                    <X size={20} />
+                                </button>
+                            </div>
+
+                            <div className="space-y-6">
+                                <div>
+                                    <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest mb-2 block">Monto a retirar</label>
+                                    <div className="relative">
+                                        <span className="absolute left-5 top-1/2 -translate-y-1/2 text-2xl font-black text-stone-300">$</span>
+                                        <input 
+                                            type="number" 
+                                            value={movementAmount}
+                                            onChange={e => setMovementAmount(e.target.value)}
+                                            placeholder="0"
+                                            className="w-full bg-stone-50 dark:bg-stone-900 border-none rounded-2xl py-5 pl-10 pr-6 text-2xl font-black outline-none focus:ring-4 focus:ring-red-500/10 transition-all"
+                                        />
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest mb-2 block">Motivo / Descripción</label>
+                                    <textarea 
+                                        value={movementReason}
+                                        onChange={e => setMovementReason(e.target.value)}
+                                        placeholder="Ej: Pago a proveedores, Gastos diarios..."
+                                        rows={3}
+                                        className="w-full bg-stone-50 dark:bg-stone-900 border-none rounded-2xl p-5 text-sm font-bold outline-none focus:ring-4 focus:ring-red-500/10 transition-all resize-none"
+                                    />
+                                </div>
+
+                                <div className="bg-amber-50 dark:bg-amber-900/20 p-4 rounded-2xl flex gap-3 border border-amber-100 dark:border-amber-900/30">
+                                    <AlertCircle className="w-5 h-5 text-amber-500 shrink-0" />
+                                    <p className="text-[10px] font-medium text-amber-700 dark:text-amber-400 leading-relaxed italic">
+                                        Se enviará una notificación y un correo a la administración con los detalles de este movimiento.
+                                    </p>
+                                </div>
+
+                                <button 
+                                    onClick={handleSaveMovement}
+                                    disabled={!movementAmount || !movementReason || isSavingMovement}
+                                    className="w-full bg-stone-900 dark:bg-white text-white dark:text-stone-900 py-5 rounded-2xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-95 transition-all shadow-xl disabled:opacity-50 disabled:scale-100"
+                                >
+                                    {isSavingMovement ? <Loader2 className="animate-spin" /> : 'Confirmar Salida'}
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             )}

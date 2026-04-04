@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/db';
+import { CashService } from './cash.service';
 
 export interface ContactCreateData {
     name: string;
@@ -466,6 +467,12 @@ export const ContactService = {
                 where: { id: orderId },
                 data: { paid: { increment: amount } }
             });
+
+            // Si es efectivo, verificar alerta de saldo
+            if (method === 'EFECTIVO' || method === 'CASH') {
+                // No esperamos a que termine para no bloquear la transacción, aunque es asíncrono afuera
+                CashService.checkBalanceAndAlert().catch(err => console.error('Error in cash alert:', err));
+            }
 
             return payment;
         });
