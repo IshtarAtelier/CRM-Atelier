@@ -16,9 +16,9 @@ export async function GET(request: Request) {
         const contacts = await prisma.client.findMany({
             where: {
                 OR: [
-                    { name: { contains: searchTerm } },
-                    { phone: { contains: searchTerm } },
-                    { email: { contains: searchTerm } },
+                    { name: { contains: searchTerm, mode: 'insensitive' } },
+                    { phone: { contains: searchTerm, mode: 'insensitive' } },
+                    { email: { contains: searchTerm, mode: 'insensitive' } },
                 ]
             },
             select: { id: true, name: true, phone: true, status: true, doctor: true },
@@ -30,9 +30,9 @@ export async function GET(request: Request) {
         const products = await prisma.product.findMany({
             where: {
                 OR: [
-                    { name: { contains: searchTerm } },
-                    { brand: { contains: searchTerm } },
-                    { model: { contains: searchTerm } },
+                    { name: { contains: searchTerm, mode: 'insensitive' } },
+                    { brand: { contains: searchTerm, mode: 'insensitive' } },
+                    { model: { contains: searchTerm, mode: 'insensitive' } },
                 ]
             },
             select: { id: true, name: true, brand: true, type: true, price: true, stock: true },
@@ -45,7 +45,7 @@ export async function GET(request: Request) {
             where: {
                 isDeleted: false,
                 client: {
-                    name: { contains: searchTerm }
+                    name: { contains: searchTerm, mode: 'insensitive' }
                 }
             },
             select: {
