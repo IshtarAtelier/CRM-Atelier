@@ -83,8 +83,7 @@ export default function CotizadorCart({
         const type = (p.type || '').toLowerCase();
         const isMT = name.includes('multifocal') || type.includes('multifocal') || 
                      name.includes('progresivo') || type.includes('progresivo');
-        const isP = name.includes('promo') || type.includes('promo') || 
-                   name.includes('2x1') || type.includes('2x1');
+        const isP = name.includes('2x1') || type.includes('2x1');
         return isMT && isP;
     };
     const isMiPrimerVarilux = (p: any) => (p?.name || '').toLowerCase().includes('mi primer varilux');
