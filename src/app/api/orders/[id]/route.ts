@@ -38,15 +38,46 @@ export async function PATCH(
     try {
         const { id } = await params;
         const body = await request.json();
-        const { labStatus, labNotes, orderType, labOrderNumber, frameSource, userFrameBrand, userFrameModel, userFrameNotes, labColor, labTreatment, labDiameter, labPdOd, labPdOi, prescriptionId } = body;
+        const { 
+            labStatus, labNotes, orderType, labOrderNumber, 
+            frameSource, userFrameBrand, userFrameModel, userFrameNotes, 
+            labColor, labTreatment, labDiameter, labPdOd, labPdOi, 
+            prescriptionId, items, total, markup, 
+            discountCash, discountTransfer, discountCard, subtotalWithMarkup
+        } = body;
 
         const data: any = {};
+        
+        if (total !== undefined) data.total = total;
+        if (markup !== undefined) data.markup = Math.max(0, markup);
+        if (discountCash !== undefined) data.discountCash = discountCash;
+        if (discountTransfer !== undefined) data.discountTransfer = discountTransfer;
+        if (discountCard !== undefined) data.discountCard = discountCard;
+        if (subtotalWithMarkup !== undefined) data.subtotalWithMarkup = subtotalWithMarkup;
+
+        if (items && Array.isArray(items)) {
+            data.items = {
+                deleteMany: {},
+                create: items.map((item: any) => ({
+                    productId: item.productId,
+                    quantity: item.quantity,
+                    price: item.price,
+                    eye: item.eye || null,
+                    sphereVal: item.sphereVal ?? null,
+                    cylinderVal: item.cylinderVal ?? null,
+                    axisVal: item.axisVal ?? null,
+                    additionVal: item.additionVal ?? null,
+                })),
+            };
+        }
+
         if (labStatus) {
             data.labStatus = labStatus;
             if (labStatus === 'SENT') {
                 data.labSentAt = new Date();
             }
         }
+
         if (labNotes !== undefined) data.labNotes = labNotes;
         if (labOrderNumber !== undefined) data.labOrderNumber = labOrderNumber;
         if (prescriptionId !== undefined) data.prescriptionId = prescriptionId;

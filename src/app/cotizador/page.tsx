@@ -6,10 +6,12 @@ import {
     Search, Plus, Minus, Trash2, Copy, MessageCircle,
     Calculator, RotateCcw, Percent, Check, Glasses,
     Layers, Sun, Watch, Eye, ShoppingBag, Sparkles, Pill,
-    Pencil, ChevronUp, ChevronDown, X, User, Save,
+    Pencil, ChevronUp, ChevronDown, ChevronRight, X, User, Save,
     UserPlus, Phone, ArrowRight, ExternalLink, Loader2, BookOpen, FileText,
-    TrendingUp, Banknote, CreditCard, ArrowRightLeft, Gift, Tag
+    TrendingUp, Banknote, CreditCard, ArrowRightLeft, Gift, Tag, History
 } from 'lucide-react';
+import CotizadorCart from '@/components/quotes/CotizadorCart';
+import QuoteSummary from '@/components/quotes/QuoteSummary';
 
 interface Product {
     id: string;
@@ -32,6 +34,7 @@ interface QuoteItem {
     customPrice: number;
     uid: number;
     eye?: 'OD' | 'OI';
+    isPromo?: boolean;
 }
 
 const TYPE_CONFIG: Record<string, { label: string; icon: any; color: string }> = {
@@ -97,6 +100,9 @@ export default function CotizadorPage() {
     const [savingQuote, setSavingQuote] = useState(false);
     const [savedContact, setSavedContact] = useState<{ id: string; name: string } | null>(null);
     const [pendingContact, setPendingContact] = useState<{ id: string; name: string; prescriptions?: any[] } | null>(null);
+    const [previousQuotes, setPreviousQuotes] = useState<any[]>([]);
+    const [showHistory, setShowHistory] = useState(false);
+    const [editingQuoteId, setEditingQuoteId] = useState<string | null>(null);
     const [quotePrescriptionId, setQuotePrescriptionId] = useState<string | null>(null);
     const contactSearchRef = useRef<HTMLInputElement>(null);
 
@@ -210,16 +216,23 @@ export default function CotizadorPage() {
     // Promo frame discount calculation
     const promoFrameDiscount = useMemo(() => {
         if (!hasMultifocalPromo) return 0;
-        const frameItem = quoteItems.find(item =>
+        const frames = quoteItems.filter(item =>
             item.product.type === 'Armazón' || item.product.category === 'FRAME'
         );
-        if (!frameItem) return 0;
-        if (isAtelierFrame(frameItem.product)) {
-            // Atelier frame = 100% bonificado
-            return frameItem.product.price;
+        
+        // El segundo es sin cargo (siempre y cuando compre uno)
+        if (frames.length < 2) return 0;
+
+        // Ordenamos por precio descendente: pagás el más caro, el segundo (o más barato) tiene el beneficio
+        const sortedFrames = [...frames].sort((a, b) => b.product.price - a.product.price);
+        const secondFrame = sortedFrames[1];
+
+        if (isAtelierFrame(secondFrame.product)) {
+            // Atelier = 100% bonificado
+            return secondFrame.product.price;
         }
         // Non-Atelier = discount up to Atelier avg price
-        return Math.min(atelierAvgPrice, frameItem.product.price);
+        return Math.min(atelierAvgPrice, secondFrame.product.price);
     }, [hasMultifocalPromo, quoteItems, isAtelierFrame, atelierAvgPrice]);
 
     // Auto-set frame source
@@ -248,12 +261,25 @@ export default function CotizadorPage() {
 
     const addToQuote = useCallback((product: Product, isPromoFrame?: boolean) => {
         if (isCrystal(product)) {
+            const isMultifocal = isMultifocalProduct(product);
             const halfPrice = Math.round(product.price / 2);
-            setQuoteItems(prev => [
-                ...prev,
-                { product, quantity: 1, customPrice: halfPrice, uid: Date.now(), eye: 'OD' },
-                { product, quantity: 1, customPrice: halfPrice, uid: Date.now() + 1, eye: 'OI' }
-            ]);
+            
+            if (isMultifocal) {
+                // Add 4 items (2 paid pairs, 2 promo pairs)
+                setQuoteItems(prev => [
+                    ...prev,
+                    { product, quantity: 1, customPrice: halfPrice, uid: Date.now(), eye: 'OD' },
+                    { product, quantity: 1, customPrice: halfPrice, uid: Date.now() + 1, eye: 'OI' },
+                    { product, quantity: 1, customPrice: 0, uid: Date.now() + 2, eye: 'OD', isPromo: true },
+                    { product, quantity: 1, customPrice: 0, uid: Date.now() + 3, eye: 'OI', isPromo: true }
+                ]);
+            } else {
+                setQuoteItems(prev => [
+                    ...prev,
+                    { product, quantity: 1, customPrice: halfPrice, uid: Date.now(), eye: 'OD' },
+                    { product, quantity: 1, customPrice: halfPrice, uid: Date.now() + 1, eye: 'OI' }
+                ]);
+            }
             return;
         }
         setQuoteItems(prev => {
@@ -304,7 +330,7 @@ export default function CotizadorPage() {
         setQuoteItems(prev => prev.filter(item => item.uid !== uid));
     }, []);
 
-    const subtotal = quoteItems.reduce((acc, item) => acc + item.customPrice * item.quantity, 0);
+    const subtotal = Math.max(0, quoteItems.reduce((acc, item) => acc + item.customPrice * item.quantity, 0) - promoFrameDiscount);
     const markupAmount = subtotal * (markup / 100);
     const priceWithMarkup = subtotal + markupAmount;
     const totalCash = priceWithMarkup * (1 - discountCash / 100);
@@ -321,16 +347,28 @@ export default function CotizadorPage() {
     }, [quoteItems]);
 
     const buildQuoteText = () => {
+        // Encontrar cuál es el armazón que recibe el descuento para marcarlo en el texto
+        const frames = quoteItems.filter(item => item.product.type === 'Armazón' || item.product.category === 'FRAME');
+        const sortedFrames = [...frames].sort((a, b) => b.product.price - a.product.price);
+        const secondFrameUid = sortedFrames.length >= 2 ? sortedFrames[1].uid : null;
+
         const lines = quoteItems.map(item => {
             let label = `• ${item.product.brand || ''} ${item.product.model || item.product.name || ''} x${item.quantity}`;
-            // Check if this is a bonified frame
-            const isFrame = item.product.type === 'Armazón' || item.product.category === 'FRAME';
-            if (isFrame && hasMultifocalPromo && isAtelierFrame(item.product)) {
-                label += ` — *BONIFICADO* ✨`;
-            } else if (isFrame && hasMultifocalPromo && promoFrameDiscount > 0) {
-                label += ` — $${Math.round(item.customPrice * item.quantity * (1 + markup / 100)).toLocaleString()} (Bonif. -$${promoFrameDiscount.toLocaleString()})`;
+            if (item.eye) label += ` (${item.eye})`;
+
+            if (item.isPromo) {
+                label += ` — *SIN CARGO PROMO 2x1* ✨`;
             } else {
-                label += ` — $${Math.round(item.customPrice * item.quantity * (1 + markup / 100)).toLocaleString()}`;
+                const isFrame = item.product.type === 'Armazón' || item.product.category === 'FRAME';
+                if (isFrame && item.uid === secondFrameUid && promoFrameDiscount > 0) {
+                    if (isAtelierFrame(item.product)) {
+                        label += ` — *BONIFICADO* ✨`;
+                    } else {
+                        label += ` — $${Math.round(item.customPrice * item.quantity * (1 + markup / 100)).toLocaleString()} (Bonif. -$${promoFrameDiscount.toLocaleString()})`;
+                    }
+                } else {
+                    label += ` — $${Math.round(item.customPrice * item.quantity * (1 + markup / 100)).toLocaleString()}`;
+                }
             }
             return label;
         });
@@ -341,7 +379,7 @@ export default function CotizadorPage() {
         // Promo badge
         if (hasAnyMultifocal) {
             text += `\n🎁 *Promoción Multifocal 2x1*`;
-            if (hasMultifocalPromo) text += ` — Incluye armazón Atelier sin cargo`;
+            if (hasMultifocalPromo) text += ` — Incluye armazón Atelier sin cargo (siempre y cuando se adquiera un armazón de la óptica)`;
             text += `\n`;
         }
         text += `\n`;
@@ -422,8 +460,11 @@ export default function CotizadorPage() {
                 eye: item.eye,
             }));
 
-            const res = await fetch('/api/orders', {
-                method: 'POST',
+            const url = editingQuoteId ? `/api/orders/${editingQuoteId}` : '/api/orders';
+            const method = editingQuoteId ? 'PATCH' : 'POST';
+
+            const res = await fetch(url, {
+                method,
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     clientId: contactId,
@@ -446,6 +487,7 @@ export default function CotizadorPage() {
             if (res.ok) {
                 setSavedContact({ id: contactId, name: contactName });
                 setPendingContact(null);
+                setEditingQuoteId(null);
             } else {
                 const err = await res.json();
                 alert(`❌ ${err.error || 'Error al guardar'}`);
@@ -456,6 +498,55 @@ export default function CotizadorPage() {
         setSavingQuote(false);
     };
 
+    const handleEditQuote = (order: any) => {
+        // Map database items back to QuoteItem structure
+        const mappedItems: QuoteItem[] = (order.items || []).map((it: any, idx: number) => ({
+            product: it.product,
+            quantity: it.quantity,
+            customPrice: it.price,
+            uid: Date.now() + idx, // Ensure unique UIDs
+            eye: it.eye as 'OD' | 'OI' | undefined
+        }));
+
+        setQuoteItems(mappedItems);
+        setMarkup(order.markup || 0);
+        setDiscountCash(order.discountCash ?? (order.discount || 20));
+        setDiscountTransfer(order.discountTransfer ?? 15);
+        setDiscountCard(order.discountCard ?? 0);
+        setFrameSource(order.frameSource);
+        setUserFrameData({
+            brand: order.userFrameBrand || '',
+            model: order.userFrameModel || '',
+            notes: order.userFrameNotes || ''
+        });
+        setQuotePrescriptionId(order.prescriptionId || null);
+        
+        // Find existing contact in results if possible, or set pendings
+        if (order.client) {
+            setPendingContact({
+                id: order.client.id,
+                name: order.client.name,
+                prescriptions: order.client.prescriptions || []
+            });
+        }
+        
+        setEditingQuoteId(order.id);
+        setCartExpanded(true);
+        setShowHistory(false);
+        // Scroll to top of cart
+        window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+    };
+
+    const handleCancelEdit = () => {
+        setEditingQuoteId(null);
+        setQuoteItems([]);
+        setMarkup(0);
+        setFrameSource(null);
+        setUserFrameData({ brand: '', model: '', notes: '' });
+        setQuotePrescriptionId(null);
+        setPendingContact(null);
+    };
+
     const selectContactForQuote = async (c: any) => {
         setContactSearching(true);
         try {
@@ -463,6 +554,8 @@ export default function CotizadorPage() {
             if (res.ok) {
                 const data = await res.json();
                 setPendingContact(data);
+                // Also load previous quotes
+                setPreviousQuotes((data.orders || []).filter((o: any) => o.orderType === 'QUOTE' && !o.isDeleted));
             } else {
                 setPendingContact(c);
             }
@@ -857,532 +950,197 @@ export default function CotizadorPage() {
 
                         {/* Expanded panel */}
                         {cartExpanded && (
-                            <div className="border-t border-sidebar-border animate-in slide-in-from-bottom-4 duration-200">
-                                <div className="max-w-5xl mx-auto px-6 py-4">
-                                    {/* Items row */}
-                                    <div className="flex gap-3 overflow-x-auto pb-3 mb-3" style={{ scrollbarWidth: 'thin' }}>
-                                        {quoteItems.map(item => (
-                                            <div
-                                                key={item.uid}
-                                                className="flex-shrink-0 w-56 p-3 bg-white dark:bg-stone-800 rounded-xl border border-stone-100 dark:border-stone-700 shadow-sm"
-                                            >
-                                                <div className="flex items-start justify-between mb-2">
-                                                    <div className="min-w-0 flex-1 flex flex-col gap-1">
-                                                        {item.eye && (
-                                                            <span className={`self-start px-2 py-0.5 rounded-lg text-[8px] font-black uppercase tracking-widest italic leading-none ${item.eye === 'OD' ? 'bg-stone-900 text-white dark:bg-stone-700' : 'bg-stone-200 text-stone-600 dark:bg-stone-800 dark:text-stone-300'}`}>
-                                                                {item.eye}
-                                                            </span>
-                                                        )}
-                                                        <p className="font-black text-[10px] uppercase tracking-tight truncate leading-tight">
-                                                            {item.product.brand} {item.product.model || ''}
-                                                        </p>
-                                                        <p className="text-[8px] font-bold text-stone-400 tracking-widest uppercase truncate">
-                                                            {item.product.name || item.product.type || '—'}
-                                                        </p>
-                                                    </div>
-                                                    <button onClick={() => removeItem(item.uid)} className="p-0.5 text-stone-200 hover:text-red-500 transition-colors">
-                                                        <X className="w-3 h-3" />
-                                                    </button>
-                                                </div>
-                                                <div className="flex items-center justify-between">
-                                                    <div className="flex items-center gap-1 bg-stone-50 dark:bg-stone-900 rounded-lg p-0.5 border border-stone-100 dark:border-stone-700">
-                                                        <button onClick={() => updateQuantity(item.uid, -1)} className="w-6 h-6 rounded-md hover:bg-stone-200 dark:hover:bg-stone-700 flex items-center justify-center transition-colors">
-                                                            <Minus className="w-2.5 h-2.5" />
-                                                        </button>
-                                                        <span className="font-black text-[11px] w-5 text-center">{item.quantity}</span>
-                                                        <button onClick={() => updateQuantity(item.uid, 1)} className="w-6 h-6 rounded-md hover:bg-stone-200 dark:hover:bg-stone-700 flex items-center justify-center transition-colors">
-                                                            <Plus className="w-2.5 h-2.5" />
-                                                        </button>
-                                                    </div>
-                                                    <div className="flex items-center gap-1 px-1.5 py-1">
-                                                        <span className="font-black text-[11px] text-stone-500 cursor-not-allowed select-none">
-                                                            ${(item.customPrice * item.quantity * (1 + markup / 100)).toLocaleString(undefined, { maximumFractionDigits: 2 })}
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-
-                                    {/* Promo banner */}
-                                    {hasAnyMultifocal && (
-                                        <div className={`mb-3 p-3 rounded-xl border-2 flex items-center gap-3 ${hasMultifocalPromo
-                                            ? 'bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 border-emerald-300 dark:border-emerald-700'
-                                            : 'bg-blue-50 dark:bg-blue-900/10 border-blue-200 dark:border-blue-800'
-                                        }`}>
-                                            <Gift className="w-5 h-5 text-emerald-600 flex-shrink-0" />
-                                            <div>
-                                                <p className="text-[10px] font-black text-emerald-800 dark:text-emerald-300 uppercase tracking-wider">
-                                                    🎁 Promoción Multifocal 2x1
-                                                </p>
-                                                <p className="text-[9px] font-bold text-emerald-600 dark:text-emerald-400">
-                                                    {hasMultifocalPromo
-                                                        ? `Incluye armazón Atelier sin cargo${atelierAvgPrice > 0 ? ` (valor bonif. ~$${atelierAvgPrice.toLocaleString()})` : ''}`
-                                                        : 'Mi Primer Varilux — solo incluye el par de cristales'
+                            <div className="border-t border-sidebar-border animate-in slide-in-from-bottom-4 duration-200 p-6 overscroll-contain overflow-y-auto max-h-[calc(100vh-100px)]">
+                                <div className="max-w-5xl mx-auto">
+                                    <div className="flex gap-6 overflow-hidden">
+                                        <div className={`flex-1 transition-all duration-500 ${showHistory ? 'max-w-[70%]' : 'max-w-full'}`}>
+                                            {!showRegister ? (
+                                                <CotizadorCart
+                                                    items={quoteItems.map(it => ({ ...it, price: it.customPrice }))}
+                                                    setItems={(updater: any) => {
+                                                        if (typeof updater === 'function') {
+                                                            setQuoteItems(prev => {
+                                                                const mapped = prev.map(it => ({ ...it, price: it.customPrice }));
+                                                                const result = updater(mapped);
+                                                                return result.map((it: any) => ({ ...it, customPrice: it.price }));
+                                                            });
+                                                        } else {
+                                                            setQuoteItems(updater.map((it: any) => ({ ...it, customPrice: it.price })));
+                                                        }
+                                                    }}
+                                                    markup={markup}
+                                                    setMarkup={setMarkup}
+                                                    discountCash={discountCash}
+                                                    setDiscountCash={setDiscountCash}
+                                                    discountTransfer={discountTransfer}
+                                                    setDiscountTransfer={setDiscountTransfer}
+                                                    discountCard={discountCard}
+                                                    setDiscountCard={setDiscountCard}
+                                                    frameSource={frameSource}
+                                                    setFrameSource={setFrameSource}
+                                                    userFrameData={userFrameData}
+                                                    setUserFrameData={setUserFrameData}
+                                                    prescriptionId={quotePrescriptionId}
+                                                    setPrescriptionId={setQuotePrescriptionId}
+                                                    availableProducts={products}
+                                                    prescriptions={pendingContact?.prescriptions || []}
+                                                    onSave={async () => {
+                                                        if (pendingContact) {
+                                                            await saveQuoteToContact(pendingContact.id, pendingContact.name);
+                                                        } else {
+                                                            setShowRegister(true);
+                                                        }
+                                                    }}
+                                                    isSaving={savingQuote}
+                                                    contactName={pendingContact?.name}
+                                                    onClose={() => setCartExpanded(false)}
+                                                    onWhatsApp={handleWhatsApp}
+                                                    onCopy={handleCopy}
+                                                    editingQuoteId={editingQuoteId}
+                                                    onCancelEdit={handleCancelEdit}
+                                                    extraActions={
+                                                        previousQuotes.length > 0 && (
+                                                            <button
+                                                                onClick={() => setShowHistory(!showHistory)}
+                                                                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${showHistory 
+                                                                    ? 'bg-stone-900 text-white dark:bg-white dark:text-stone-900 shadow-lg' 
+                                                                    : 'bg-stone-100 dark:bg-stone-800 text-stone-500 hover:bg-stone-200'}`}
+                                                            >
+                                                                <History className="w-3.5 h-3.5" />
+                                                                {showHistory ? 'Cerrar Historial' : `Ver Historial (${previousQuotes.length})`}
+                                                            </button>
+                                                        )
                                                     }
-                                                </p>
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    {/* Frame section — when crystals are present */}
-                                    {hasCrystals && (
-                                        <div className="mb-3 p-3 bg-amber-50 dark:bg-amber-900/10 rounded-xl border-2 border-amber-200 dark:border-amber-800 flex items-start gap-4">
-                                            <div className="flex items-center gap-2 flex-shrink-0">
-                                                <Glasses className="w-4 h-4 text-amber-600" />
-                                                <span className="text-[10px] font-black text-amber-700 uppercase tracking-widest">Armazón</span>
-                                                {hasMultifocalPromo && (
-                                                    <span className="px-2 py-0.5 bg-emerald-500 text-white rounded-full text-[7px] font-black uppercase tracking-wider animate-pulse">
-                                                        Bonificado
-                                                    </span>
-                                                )}
-                                            </div>
-                                            <div className="flex gap-2 flex-shrink-0">
-                                                <button
-                                                    onClick={() => { setFrameSource('OPTICA'); setFrameSearch(''); }}
-                                                    className={`px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all border ${frameSource === 'OPTICA'
-                                                        ? 'bg-amber-500 text-white border-amber-500 shadow-md'
-                                                        : 'bg-white dark:bg-stone-800 text-stone-400 border-stone-200 dark:border-stone-700 hover:border-amber-300'
-                                                        }`}
-                                                >
-                                                    De la Óptica
-                                                </button>
-                                                <button
-                                                    onClick={() => setFrameSource('USUARIO')}
-                                                    className={`px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all border flex items-center gap-1 ${frameSource === 'USUARIO'
-                                                        ? 'bg-amber-500 text-white border-amber-500 shadow-md'
-                                                        : 'bg-white dark:bg-stone-800 text-stone-400 border-stone-200 dark:border-stone-700 hover:border-amber-300'
-                                                        }`}
-                                                >
-                                                    <User className="w-3 h-3" /> Del Usuario
-                                                </button>
-                                            </div>
-                                            <div className="flex-1 min-w-0">
-                                                {frameSource === 'OPTICA' && !hasFrameFromOptica && (
-                                                    <div>
-                                                        <div className="relative mb-1.5">
-                                                            <Search className="w-3 h-3 absolute left-2.5 top-1/2 -translate-y-1/2 text-stone-300" />
-                                                            <input
-                                                                type="text"
-                                                                placeholder="Buscar armazón..."
-                                                                value={frameSearch}
-                                                                onChange={e => setFrameSearch(e.target.value)}
-                                                                className="w-full bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 py-1.5 pl-7 pr-3 rounded-lg text-[10px] font-semibold outline-none focus:ring-2 focus:ring-amber-200 placeholder:text-stone-300"
-                                                            />
-                                                        </div>
-                                                        {frameResults.length > 0 && (
-                                                            <div className="flex gap-2 overflow-x-auto" style={{ scrollbarWidth: 'thin' }}>
-                                                                {frameResults.map(fr => (
-                                                                    <button
-                                                                        key={fr.id}
-                                                                        onClick={() => { addToQuote(fr, hasMultifocalPromo); setFrameSearch(''); }}
-                                                                        className={`flex-shrink-0 flex items-center gap-2 p-2 rounded-lg border transition-all ${hasMultifocalPromo && isAtelierFrame(fr)
-                                                                            ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-700 hover:border-emerald-400 ring-1 ring-emerald-300/50'
-                                                                            : 'bg-white dark:bg-stone-800 border-stone-100 dark:border-stone-700 hover:border-amber-300'
-                                                                        }`}
-                                                                    >
-                                                                        <div className="min-w-0">
-                                                                            <p className="text-[10px] font-black truncate">{fr.brand} {fr.model || ''}</p>
-                                                                            {hasMultifocalPromo && isAtelierFrame(fr) ? (
-                                                                                <p className="text-[8px] font-black text-emerald-600">✨ BONIFICADO <span className="line-through text-stone-400 font-bold">${fr.price.toLocaleString()}</span></p>
-                                                                            ) : hasMultifocalPromo ? (
-                                                                                <p className="text-[8px] font-bold text-stone-400">
-                                                                                    <span className="line-through">${fr.price.toLocaleString()}</span>
-                                                                                    <span className="text-emerald-600 ml-1 font-black">${Math.max(0, fr.price - atelierAvgPrice).toLocaleString()}</span>
-                                                                                    <span className="text-emerald-500 ml-0.5">(-${Math.min(atelierAvgPrice, fr.price).toLocaleString()})</span>
-                                                                                </p>
-                                                                            ) : (
-                                                                                <p className="text-[8px] text-stone-400 font-bold">${fr.price.toLocaleString()}</p>
-                                                                            )}
-                                                                        </div>
-                                                                        {hasMultifocalPromo && isAtelierFrame(fr) ? (
-                                                                            <Gift className="w-3 h-3 text-emerald-500 flex-shrink-0" />
-                                                                        ) : (
-                                                                            <Plus className="w-3 h-3 text-amber-500 flex-shrink-0" />
-                                                                        )}
-                                                                    </button>
-                                                                ))}
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                )}
-                                                {frameSource === 'OPTICA' && hasFrameFromOptica && (
-                                                    <div className="py-1">
-                                                        {hasMultifocalPromo && frameItemInQuote ? (
-                                                            <div className="flex items-center gap-2">
-                                                                <Check className="w-3 h-3 text-emerald-600" />
-                                                                {isAtelierFrame(frameItemInQuote.product) ? (
-                                                                    <p className="text-[10px] font-black text-emerald-700 dark:text-emerald-400">
-                                                                        ✨ {frameItemInQuote.product.brand} {frameItemInQuote.product.model || ''} — BONIFICADO
-                                                                    </p>
-                                                                ) : (
-                                                                    <p className="text-[10px] font-bold text-amber-700 dark:text-amber-400">
-                                                                        {frameItemInQuote.product.brand} {frameItemInQuote.product.model || ''} — Bonif. Atelier -${promoFrameDiscount.toLocaleString()}
-                                                                    </p>
-                                                                )}
-                                                            </div>
-                                                        ) : (
-                                                            <p className="text-[10px] font-bold text-amber-700 dark:text-amber-400 flex items-center gap-1.5">
-                                                                <Check className="w-3 h-3" /> Armazón incluido en el presupuesto
-                                                            </p>
-                                                        )}
-                                                    </div>
-                                                )}
-                                                {frameSource === 'USUARIO' && (
-                                                    <div className="flex gap-2">
-                                                        <input
-                                                            type="text"
-                                                            placeholder="Marca"
-                                                            value={userFrameData.brand}
-                                                            onChange={e => setUserFrameData(prev => ({ ...prev, brand: e.target.value }))}
-                                                            className="flex-1 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 py-1.5 px-3 rounded-lg text-[10px] font-bold outline-none focus:ring-2 focus:ring-amber-200 placeholder:text-stone-300"
-                                                        />
-                                                        <input
-                                                            type="text"
-                                                            placeholder="Modelo"
-                                                            value={userFrameData.model}
-                                                            onChange={e => setUserFrameData(prev => ({ ...prev, model: e.target.value }))}
-                                                            className="flex-1 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 py-1.5 px-3 rounded-lg text-[10px] font-bold outline-none focus:ring-2 focus:ring-amber-200 placeholder:text-stone-300"
-                                                        />
-                                                        <input
-                                                            type="text"
-                                                            placeholder="Observaciones"
-                                                            value={userFrameData.notes}
-                                                            onChange={e => setUserFrameData(prev => ({ ...prev, notes: e.target.value }))}
-                                                            className="flex-1 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 py-1.5 px-3 rounded-lg text-[10px] font-bold outline-none focus:ring-2 focus:ring-amber-200 placeholder:text-stone-300"
-                                                        />
-                                                    </div>
-                                                )}
-                                                {!frameSource && (
-                                                    <p className="text-[9px] font-black text-amber-600 animate-pulse py-1">⚠️ Seleccioná un armazón para los cristales</p>
-                                                )}
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    {/* Bottom row: markup + discounts + totals + actions */}
-                                    <div className="pt-3 border-t border-stone-100 dark:border-stone-700 space-y-3">
-                                        {/* Markup + Discounts Row */}
-                                        <div className="flex items-start gap-6 flex-wrap">
-                                            {/* Markup */}
-                                            <div className="flex items-center gap-1.5">
-                                                <TrendingUp className="w-3.5 h-3.5 text-blue-500" />
-                                                <span className="text-[9px] font-black text-blue-600 uppercase tracking-widest">Markup</span>
-                                                <input
-                                                    type="number"
-                                                    min={0}
-                                                    value={markup || ''}
-                                                    onChange={e => setMarkup(Math.abs(Number(e.target.value)))}
-                                                    onKeyDown={e => { if (e.key === '-' || e.key === 'e') e.preventDefault(); }}
-                                                    placeholder="0"
-                                                    className="w-16 bg-white dark:bg-stone-800 border border-blue-200 dark:border-stone-700 rounded-md px-2 py-1 text-[10px] font-black text-center outline-none focus:ring-2 focus:ring-blue-200"
                                                 />
-                                                <span className="text-[9px] font-bold text-stone-400">%</span>
-                                                {markup > 0 && <span className="text-[10px] font-bold text-blue-500">+${Math.round(markupAmount).toLocaleString()}</span>}
-                                            </div>
+                                            ) : (
+                                                <div className="bg-white dark:bg-stone-800 border-2 border-primary/20 rounded-[2.5rem] p-8 shadow-2xl relative">
 
-                                            <div className="w-px h-8 bg-stone-200 dark:bg-stone-700" />
-
-                                            {/* Dto Efectivo */}
-                                            <div className="flex items-center gap-1.5">
-                                                <Banknote className="w-3.5 h-3.5 text-emerald-500" />
-                                                <span className="text-[9px] font-black text-emerald-600 uppercase tracking-widest">Efvo</span>
-                                                <select
-                                                    value={discountCash}
-                                                    onChange={e => setDiscountCash(Number(e.target.value))}
-                                                    className="w-16 bg-white dark:bg-stone-800 border border-emerald-200 dark:border-stone-700 rounded-md px-1 py-1 text-[10px] font-black outline-none focus:ring-2 focus:ring-emerald-200"
-                                                >
-                                                    {Array.from({ length: 5 }, (_, i) => i * 5).map(val => (
-                                                        <option key={val} value={val}>{val === 0 ? '0%' : `-${val}%`}</option>
-                                                    ))}
-                                                </select>
-                                            </div>
-
-                                            {/* Dto Transferencia */}
-                                            <div className="flex items-center gap-1.5">
-                                                <ArrowRightLeft className="w-3.5 h-3.5 text-violet-500" />
-                                                <span className="text-[9px] font-black text-violet-600 uppercase tracking-widest">Transf</span>
-                                                <select
-                                                    value={discountTransfer}
-                                                    onChange={e => setDiscountTransfer(Number(e.target.value))}
-                                                    className="w-16 bg-white dark:bg-stone-800 border border-violet-200 dark:border-stone-700 rounded-md px-1 py-1 text-[10px] font-black outline-none focus:ring-2 focus:ring-violet-200"
-                                                >
-                                                    {Array.from({ length: 4 }, (_, i) => i * 5).map(val => (
-                                                        <option key={val} value={val}>{val === 0 ? '0%' : `-${val}%`}</option>
-                                                    ))}
-                                                </select>
-                                            </div>
-
-                                            {/* Dto Cuotas */}
-                                            <div className="flex items-center gap-1.5">
-                                                <CreditCard className="w-3.5 h-3.5 text-orange-500" />
-                                                <span className="text-[9px] font-black text-orange-600 uppercase tracking-widest">Cuotas</span>
-                                                <select
-                                                    value={discountCard}
-                                                    onChange={e => setDiscountCard(Number(e.target.value))}
-                                                    className="w-16 bg-white dark:bg-stone-800 border border-orange-200 dark:border-stone-700 rounded-md px-1 py-1 text-[10px] font-black outline-none focus:ring-2 focus:ring-orange-200"
-                                                >
-                                                    {[0].map(val => (
-                                                        <option key={val} value={val}>{val === 0 ? '0%' : `-${val}%`}</option>
-                                                    ))}
-                                                </select>
-                                            </div>
-                                        </div>
-
-                                        {/* Totals + Actions Row */}
-                                        <div className="flex items-center justify-between gap-4">
-                                            {/* Totals */}
-                                            <div className="flex items-center gap-4">
-                                                <div className="text-right">
-                                                    <div className="text-[8px] font-bold text-stone-400 uppercase tracking-wider">Subtotal</div>
-                                                    <div className="text-[11px] font-black">${subtotal.toLocaleString()}</div>
-                                                </div>
-                                                {markup > 0 && (
-                                                    <div className="text-right">
-                                                        <div className="text-[8px] font-bold text-blue-500 uppercase tracking-wider">+{markup}%</div>
-                                                        <div className="text-[11px] font-black text-blue-600">+${Math.round(markupAmount).toLocaleString()}</div>
-                                                    </div>
-                                                )}
-                                                <div className="text-right pl-3 border-l border-stone-200 dark:border-stone-700">
-                                                    <div className="text-[8px] font-black text-stone-400 uppercase tracking-widest">Lista</div>
-                                                    <div className="text-sm font-black text-stone-600 dark:text-stone-300 tracking-tighter">${Math.round(priceWithMarkup).toLocaleString()}</div>
-                                                </div>
-                                                <div className="flex gap-3 pl-3 border-l border-stone-200 dark:border-stone-700">
-                                                    <div className="text-right">
-                                                        <div className="text-[8px] font-black text-emerald-600 uppercase tracking-widest flex items-center gap-0.5 justify-end"><Banknote className="w-2.5 h-2.5" /> Efvo</div>
-                                                        <div className="text-lg font-black text-emerald-600 tracking-tighter">${Math.round(totalCash).toLocaleString()}</div>
-                                                    </div>
-                                                    <div className="text-right">
-                                                        <div className="text-[8px] font-black text-violet-600 uppercase tracking-widest flex items-center gap-0.5 justify-end"><ArrowRightLeft className="w-2.5 h-2.5" /> Transf</div>
-                                                        <div className="text-sm font-black text-violet-600 tracking-tighter">${Math.round(totalTransfer).toLocaleString()}</div>
-                                                    </div>
-                                                    <div className="text-right">
-                                                        <div className="text-[8px] font-black text-orange-600 uppercase tracking-widest flex items-center gap-0.5 justify-end"><CreditCard className="w-2.5 h-2.5" /> Cuotas</div>
-                                                        <div className="text-sm font-black text-orange-500 tracking-tighter">${Math.round(totalCard).toLocaleString()}</div>
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                            {/* Actions */}
-                                            <div className="flex items-center gap-2 flex-shrink-0">
-                                                <button
-                                                    onClick={handleCopy}
-                                                    className={`px-4 py-2.5 rounded-xl font-black text-[9px] uppercase tracking-widest transition-all flex items-center gap-1.5 border ${copied
-                                                        ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 border-emerald-200'
-                                                        : 'bg-white dark:bg-stone-800 text-stone-500 border-stone-100 dark:border-stone-700 hover:border-primary/40 hover:text-primary'
-                                                        }`}
-                                                >
-                                                    {copied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
-                                                    {copied ? 'Copiado!' : 'Copiar'}
-                                                </button>
-                                                <button
-                                                    onClick={handleWhatsApp}
-                                                    className="px-4 py-2.5 bg-emerald-500 text-white rounded-xl font-black text-[9px] uppercase tracking-widest hover:scale-105 active:scale-95 transition-all shadow-lg shadow-emerald-500/20 flex items-center gap-1.5"
-                                                >
-                                                    <MessageCircle className="w-3 h-3" /> WhatsApp
-                                                </button>
-                                                <button
-                                                    onClick={() => { setShowRegister(!showRegister); setSavedContact(null); }}
-                                                    className={`px-4 py-2.5 rounded-xl font-black text-[9px] uppercase tracking-widest transition-all flex items-center gap-1.5 shadow-lg hover:scale-105 active:scale-95 ${showRegister
-                                                        ? 'bg-stone-800 text-white shadow-stone-800/20'
-                                                        : 'bg-primary text-primary-foreground shadow-primary/20 animate-pulse hover:animate-none'
-                                                        }`}
-                                                >
-                                                    <BookOpen className="w-3 h-3" /> {showRegister ? 'Cerrar' : 'Registrar'}
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* ── Register Quote Panel ─────────────────────── */}
-                                    {showRegister && (
-                                        <div className="mt-3 pt-3 border-t border-stone-100 dark:border-stone-700 animate-in slide-in-from-bottom-2 duration-200">
+                                            <button 
+                                                onClick={() => setShowRegister(false)}
+                                                className="absolute top-8 right-8 text-stone-400 hover:text-stone-800 transition-colors"
+                                            >
+                                                <X className="w-6 h-6" />
+                                            </button>
+                                            
                                             {savedContact ? (
-                                                /* ── Success ── */
-                                                <div className="flex items-center gap-4 p-4 bg-emerald-50 dark:bg-emerald-950/30 border-2 border-emerald-200 dark:border-emerald-800 rounded-2xl">
-                                                    <div className="w-12 h-12 bg-emerald-500 rounded-2xl flex items-center justify-center flex-shrink-0">
-                                                        <Check className="w-6 h-6 text-white" />
+                                                <div className="py-12 space-y-6 text-center animate-in zoom-in-95 duration-300">
+                                                    <div className="w-20 h-20 bg-emerald-500 rounded-full flex items-center justify-center mx-auto shadow-xl shadow-emerald-500/20">
+                                                        <Check className="w-10 h-10 text-white" />
                                                     </div>
-                                                    <div className="flex-1">
-                                                        <p className="text-sm font-black text-emerald-800 dark:text-emerald-300">
-                                                            ¡Presupuesto registrado!
-                                                        </p>
-                                                        <p className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400">
-                                                            Guardado en la ficha de <strong>{savedContact.name}</strong>
-                                                        </p>
+                                                    <div>
+                                                        <h4 className="text-2xl font-black text-stone-800 dark:text-white tracking-tighter">¡Presupuesto Guardado!</h4>
+                                                        <p className="text-stone-500 font-bold mt-2">Registrado en la ficha de {savedContact.name}</p>
                                                     </div>
-                                                    <div className="flex gap-2">
+                                                    <div className="flex gap-4 justify-center pt-4">
                                                         <button
                                                             onClick={() => router.push(`/contactos?open=${savedContact.id}`)}
-                                                            className="px-4 py-2 bg-emerald-500 text-white rounded-xl text-[9px] font-black uppercase tracking-widest hover:scale-105 transition-all flex items-center gap-1.5"
+                                                            className="px-8 py-4 bg-emerald-500 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:scale-105 transition-all shadow-lg"
                                                         >
-                                                            <ExternalLink className="w-3 h-3" /> Ver Ficha
+                                                            VER FICHA DE CONTACTO
                                                         </button>
                                                         <button
-                                                            onClick={() => { resetRegister(); setQuoteItems([]); setMarkup(0); setDiscountCash(20); setDiscountTransfer(15); setDiscountCard(0); setFrameSource(null); setCartExpanded(false); }}
-                                                            className="px-4 py-2 bg-white dark:bg-stone-800 text-stone-500 rounded-xl text-[9px] font-black uppercase tracking-widest border border-stone-200 dark:border-stone-700 hover:scale-105 transition-all flex items-center gap-1.5"
+                                                            onClick={() => { resetRegister(); setQuoteItems([]); setMarkup(0); setFrameSource(null); setCartExpanded(false); }}
+                                                            className="px-8 py-4 bg-stone-100 dark:bg-stone-700 text-stone-600 dark:text-stone-200 rounded-2xl font-black text-xs uppercase tracking-widest hover:scale-105 transition-all"
                                                         >
-                                                            <RotateCcw className="w-3 h-3" /> Nuevo
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            ) : pendingContact ? (
-                                                /* ── Selected Contact & Prescription Step ── */
-                                                <div className="space-y-4">
-                                                    <div className="flex items-center gap-3">
-                                                        <Save className="w-4 h-4 text-primary" />
-                                                        <span className="text-[10px] font-black text-stone-500 uppercase tracking-widest">
-                                                            Guardar en {pendingContact.name}
-                                                        </span>
-                                                    </div>
-
-                                                    {/* Prescription Section if Crystals are present */}
-                                                    {hasCrystals && (
-                                                        <div className="p-4 bg-emerald-50 dark:bg-emerald-900/10 rounded-2xl border-2 border-emerald-200 dark:border-emerald-800">
-                                                            <p className="text-[10px] font-black text-emerald-700 dark:text-emerald-400 uppercase tracking-widest mb-3 flex items-center gap-1.5">
-                                                                <FileText className="w-4 h-4" /> Receta para los cristales
-                                                            </p>
-                                                            {pendingContact.prescriptions && pendingContact.prescriptions.length > 0 ? (
-                                                                <div className="space-y-2">
-                                                                    <select
-                                                                        value={quotePrescriptionId || ''}
-                                                                        onChange={e => setQuotePrescriptionId(e.target.value || null)}
-                                                                        className="w-full bg-white dark:bg-stone-800 border border-emerald-200 dark:border-emerald-800 py-2 px-3 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-emerald-300"
-                                                                    >
-                                                                        <option value="">Seleccionar receta guardada...</option>
-                                                                        {pendingContact.prescriptions.map((p: any) => (
-                                                                            <option key={p.id} value={p.id}>
-                                                                                {new Date(p.date).toLocaleDateString('es-AR')} — OD: {p.sphereOD > 0 ? '+' : ''}{p.sphereOD || 0} / OI: {p.sphereOI > 0 ? '+' : ''}{p.sphereOI || 0}
-                                                                            </option>
-                                                                        ))}
-                                                                    </select>
-                                                                    {!quotePrescriptionId && (
-                                                                        <p className="text-[9px] font-black text-emerald-600 animate-pulse">⚠️ Seleccioná una receta para el presupuesto</p>
-                                                                    )}
-                                                                </div>
-                                                            ) : (
-                                                                <p className="text-xs font-bold text-emerald-700 dark:text-emerald-400">
-                                                                    Este contacto no tiene recetas guardadas. Podés guardar el presupuesto y agregar la receta más tarde desde su ficha.
-                                                                </p>
-                                                            )}
-                                                        </div>
-                                                    )}
-
-                                                    <div className="flex gap-2">
-                                                        <button
-                                                            onClick={() => saveQuoteToContact(pendingContact.id, pendingContact.name)}
-                                                            disabled={savingQuote}
-                                                            className="flex-1 py-2.5 bg-primary text-primary-foreground rounded-xl font-black text-[10px] uppercase tracking-widest hover:scale-105 active:scale-95 transition-all flex justify-center items-center gap-2 shadow-lg shadow-primary/20"
-                                                        >
-                                                            {savingQuote ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                                                            Confirmar Guardado
-                                                        </button>
-                                                        <button
-                                                            onClick={() => { setPendingContact(null); setQuotePrescriptionId(null); }}
-                                                            className="px-4 py-2.5 bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-300 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-stone-200 dark:hover:bg-stone-700 transition-colors"
-                                                        >
-                                                            Atrás
+                                                            NUEVO PRESUPUESTO
                                                         </button>
                                                     </div>
                                                 </div>
                                             ) : (
-                                                /* ── Search / Create Contact ── */
-                                                <div className="space-y-3">
-                                                    <div className="flex items-center gap-3">
-                                                        <Save className="w-4 h-4 text-primary" />
-                                                        <span className="text-[10px] font-black text-stone-500 uppercase tracking-widest">Registrar presupuesto en un contacto</span>
+                                                <div className="space-y-8">
+                                                    <div>
+                                                        <h3 className="text-2xl font-black text-stone-800 dark:text-white tracking-tighter">Vincular Contacto</h3>
+                                                        <p className="text-[10px] font-bold text-stone-400 uppercase tracking-widest mt-1">Seleccioná un cliente para guardar el presupuesto</p>
                                                     </div>
 
                                                     {!showNewContact ? (
-                                                        /* Search existing contact */
-                                                        <div>
-                                                            <div className="flex gap-2">
+                                                        <div className="space-y-6">
+                                                            <div className="flex gap-4">
                                                                 <div className="relative flex-1">
-                                                                    <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-stone-300" />
+                                                                    <Search className="w-5 h-5 absolute left-5 top-1/2 -translate-y-1/2 text-stone-300" />
                                                                     <input
                                                                         ref={contactSearchRef}
                                                                         type="text"
-                                                                        placeholder="Buscar contacto por nombre..."
+                                                                        placeholder="Buscar por nombre..."
                                                                         value={contactSearch}
                                                                         onChange={e => setContactSearch(e.target.value)}
-                                                                        className="w-full bg-white dark:bg-stone-800 border-2 border-stone-100 dark:border-stone-700 py-2.5 px-9 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/30 transition-all placeholder:text-stone-300"
+                                                                        className="w-full bg-stone-50 dark:bg-stone-900 border-2 border-stone-100 dark:border-stone-800 py-4 px-14 rounded-3xl text-sm font-black outline-none focus:ring-4 focus:ring-primary/10 transition-all placeholder:text-stone-300"
                                                                     />
-                                                                    {contactSearching && <Loader2 className="w-3.5 h-3.5 absolute right-3 top-1/2 -translate-y-1/2 text-primary animate-spin" />}
+                                                                    {contactSearching && <Loader2 className="w-5 h-5 absolute right-5 top-1/2 -translate-y-1/2 text-primary animate-spin" />}
                                                                 </div>
                                                                 <button
                                                                     onClick={() => { setShowNewContact(true); setNewContactName(contactSearch); }}
-                                                                    className="px-4 py-2.5 bg-primary/10 text-primary border-2 border-primary/20 rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-primary hover:text-white transition-all flex items-center gap-1.5 whitespace-nowrap"
+                                                                    className="px-8 py-4 bg-primary/10 text-primary border-2 border-primary/20 rounded-3xl font-black text-xs uppercase tracking-widest hover:bg-primary hover:text-white transition-all flex items-center gap-2"
                                                                 >
-                                                                    <UserPlus className="w-3.5 h-3.5" /> Nuevo
+                                                                    <Plus className="w-5 h-5" /> NUEVO
                                                                 </button>
                                                             </div>
 
-                                                            {/* Contact Results */}
                                                             {contactResults.length > 0 && (
-                                                                <div className="mt-2 flex gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth: 'thin' }}>
+                                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-64 overflow-y-auto pr-2 pb-4" style={{ scrollbarWidth: 'thin' }}>
                                                                     {contactResults.map((c: any) => (
                                                                         <button
                                                                             key={c.id}
                                                                             onClick={() => selectContactForQuote(c)}
-                                                                            disabled={savingQuote}
-                                                                            className="flex-shrink-0 flex items-center gap-3 px-4 py-2.5 bg-white dark:bg-stone-800 border-2 border-stone-100 dark:border-stone-700 rounded-xl hover:border-primary/40 hover:shadow-md transition-all group disabled:opacity-50"
+                                                                            className="flex items-center gap-4 p-5 bg-stone-50 dark:bg-stone-900/50 border-2 border-stone-100 dark:border-stone-800 rounded-[2rem] hover:border-primary/40 hover:shadow-xl hover:scale-[1.02] transition-all group text-left"
                                                                         >
-                                                                            <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                                                                                <User className="w-3.5 h-3.5 text-primary" />
+                                                                            <div className="w-12 h-12 rounded-2xl bg-white dark:bg-stone-800 shadow-sm flex items-center justify-center border border-stone-100 dark:border-stone-700">
+                                                                                <User className="w-6 h-6 text-primary" />
                                                                             </div>
-                                                                            <div className="text-left">
-                                                                                <p className="text-[11px] font-black text-stone-800 dark:text-white truncate max-w-[120px]">{c.name}</p>
-                                                                                {c.phone && <p className="text-[9px] font-bold text-stone-400">{c.phone}</p>}
+                                                                            <div className="flex-1 min-w-0">
+                                                                                <p className="text-sm font-black text-stone-800 dark:text-white truncate">{c.name}</p>
+                                                                                {c.phone && <p className="text-[10px] font-bold text-stone-400">{c.phone}</p>}
                                                                             </div>
-                                                                            <ArrowRight className="w-3 h-3 text-stone-300 group-hover:text-primary transition-colors ml-1" />
+                                                                            <ChevronRight className="w-5 h-5 text-stone-300 group-hover:text-primary transition-colors" />
                                                                         </button>
                                                                     ))}
                                                                 </div>
                                                             )}
-
-                                                            {contactSearch && contactResults.length === 0 && !contactSearching && (
-                                                                <p className="mt-2 text-[10px] font-bold text-stone-400 italic">No se encontraron contactos. <button onClick={() => { setShowNewContact(true); setNewContactName(contactSearch); }} className="text-primary hover:underline font-black">Crear uno nuevo →</button></p>
-                                                            )}
                                                         </div>
                                                     ) : (
-                                                        /* Create new contact */
-                                                        <div className="p-4 bg-primary/5 border-2 border-primary/20 rounded-2xl space-y-3">
-                                                            <div className="flex items-center gap-2">
-                                                                <UserPlus className="w-4 h-4 text-primary" />
-                                                                <span className="text-[10px] font-black text-primary uppercase tracking-widest">Nuevo contacto</span>
-                                                                <button onClick={() => setShowNewContact(false)} className="ml-auto text-stone-400 hover:text-stone-600 transition-colors">
-                                                                    <X className="w-3.5 h-3.5" />
-                                                                </button>
+                                                        <div className="p-8 bg-stone-50 dark:bg-stone-900 border-2 border-stone-100 dark:border-stone-800 rounded-[2.5rem] space-y-6 animate-in slide-in-from-top-4 duration-300">
+                                                            <div className="flex items-center gap-4 mb-2">
+                                                                <div className="w-10 h-10 rounded-xl bg-primary text-white flex items-center justify-center shadow-lg shadow-primary/20">
+                                                                    <Plus className="w-5 h-5" />
+                                                                </div>
+                                                                <h4 className="text-lg font-black text-stone-800 dark:text-white tracking-tighter">Nuevo Cliente</h4>
                                                             </div>
-                                                            <div className="flex gap-2">
-                                                                <div className="relative flex-1">
-                                                                    <User className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-stone-300" />
+                                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                                <div className="space-y-2">
+                                                                    <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest ml-4">Nombre Completo *</label>
                                                                     <input
                                                                         type="text"
-                                                                        placeholder="Nombre del cliente *"
+                                                                        placeholder="Ej: Juan Pérez"
                                                                         value={newContactName}
                                                                         onChange={e => setNewContactName(e.target.value)}
-                                                                        autoFocus
-                                                                        className="w-full bg-white dark:bg-stone-800 border-2 border-stone-200 dark:border-stone-700 py-2.5 px-9 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/30 transition-all placeholder:text-stone-300"
+                                                                        className="w-full bg-white dark:bg-stone-800 border-2 border-stone-100 dark:border-stone-700 py-4 px-6 rounded-2xl text-xs font-bold outline-none focus:ring-4 focus:ring-primary/10 transition-all"
                                                                     />
                                                                 </div>
-                                                                <div className="relative flex-1">
-                                                                    <Phone className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-stone-300" />
+                                                                <div className="space-y-2">
+                                                                    <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest ml-4">WhatsApp</label>
                                                                     <input
                                                                         type="tel"
-                                                                        placeholder="Teléfono (opcional)"
+                                                                        placeholder="Ej: 3511234567"
                                                                         value={newContactPhone}
                                                                         onChange={e => setNewContactPhone(e.target.value)}
-                                                                        className="w-full bg-white dark:bg-stone-800 border-2 border-stone-200 dark:border-stone-700 py-2.5 px-9 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/30 transition-all placeholder:text-stone-300"
+                                                                        className="w-full bg-white dark:bg-stone-800 border-2 border-stone-100 dark:border-stone-700 py-4 px-6 rounded-2xl text-xs font-bold outline-none focus:ring-4 focus:ring-primary/10 transition-all"
                                                                     />
                                                                 </div>
+                                                            </div>
+                                                            <div className="flex gap-3 pt-2">
                                                                 <button
                                                                     onClick={handleCreateAndSave}
                                                                     disabled={!newContactName.trim() || savingQuote}
-                                                                    className="px-5 py-2.5 bg-primary text-primary-foreground rounded-xl text-[9px] font-black uppercase tracking-widest hover:scale-105 active:scale-95 transition-all shadow-lg shadow-primary/20 flex items-center gap-1.5 disabled:opacity-50 disabled:hover:scale-100 whitespace-nowrap"
+                                                                    className="flex-1 py-5 bg-primary text-primary-foreground rounded-[2rem] font-black text-xs uppercase tracking-[0.2em] hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-primary/20 flex justify-center items-center gap-3 disabled:opacity-50"
                                                                 >
-                                                                    {savingQuote ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
-                                                                    {savingQuote ? 'Guardando...' : 'Crear y Guardar'}
+                                                                    {savingQuote ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
+                                                                    {savingQuote ? 'CREANDO...' : 'CREAR Y GUARDAR'}
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => setShowNewContact(false)}
+                                                                    className="px-8 py-5 bg-white dark:bg-stone-800 text-stone-400 rounded-[2rem] font-black text-[10px] uppercase tracking-widest border-2 border-stone-100 dark:border-stone-700 hover:text-stone-800 transition-all"
+                                                                >
+                                                                    CANCELAR
                                                                 </button>
                                                             </div>
                                                         </div>
@@ -1392,11 +1150,38 @@ export default function CotizadorPage() {
                                         </div>
                                     )}
                                 </div>
+
+
+
+                                        {showHistory && (
+                                            <div className="w-[30%] border-l border-stone-100 dark:border-stone-800 bg-stone-50/10 dark:bg-stone-900/50 overflow-y-auto p-6 animate-in slide-in-from-right duration-500">
+                                                <div className="space-y-6">
+                                                    <div className="flex items-center gap-2 mb-2">
+                                                        <History className="w-4 h-4 text-stone-400" />
+                                                        <h3 className="text-xs font-black text-stone-400 uppercase tracking-widest">Presupuestos Anteriores</h3>
+                                                    </div>
+                                                    {previousQuotes.map(quote => (
+                                                        <QuoteSummary 
+                                                            key={quote.id} 
+                                                            order={quote} 
+                                                            contact={{ id: pendingContact?.id || '', name: pendingContact?.name || '' }} 
+                                                            compact={true}
+                                                            onEdit={handleEditQuote}
+                                                        />
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
                             </div>
                         )}
                     </div>
                 )
             }
-        </div >
+        </div>
     );
 }
+
+
+

@@ -6,7 +6,8 @@ import {
     CheckCircle2, X, Plus, Clock, Glasses, 
     User, Banknote, ArrowRightLeft, CreditCard,
     TrendingUp, Lock, Shield, ArrowRight,
-    ChevronRight, ChevronDown, ChevronUp, FileText
+    ChevronRight, ChevronDown, ChevronUp, FileText,
+    Pencil
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -16,7 +17,7 @@ interface QuoteSummaryProps {
     contact: {
         id: string;
         name: string;
-        phone?: string;
+        phone?: string | null;
         status?: string;
     };
     currentUserRole?: 'ADMIN' | 'STAFF';
@@ -28,7 +29,11 @@ interface QuoteSummaryProps {
     isExpanded?: boolean;
     onToggleExpand?: () => void;
     showActions?: boolean;
+    compact?: boolean;
+    onEdit?: (order: any) => void;
 }
+
+
 
 export default function QuoteSummary({
     order,
@@ -41,8 +46,71 @@ export default function QuoteSummary({
     onCloseSale,
     isExpanded = true,
     onToggleExpand,
-    showActions = true
+    showActions = true,
+    compact = false,
+    onEdit
 }: QuoteSummaryProps) {
+    if (compact) {
+        const total = order.total || 0;
+        const paid = order.paid || 0;
+        const pending = Math.max(0, total - paid);
+        const isPaid = paid >= total && total > 0;
+
+        return (
+            <div className="bg-white dark:bg-stone-800 border border-stone-100 dark:border-stone-700 rounded-2xl p-4 hover:shadow-md transition-all group">
+                <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 bg-amber-500/10 rounded-xl flex items-center justify-center">
+                            <FileText className="w-4 h-4 text-amber-500" />
+                        </div>
+                        <div>
+                            <p className="text-[10px] font-black text-stone-400 uppercase tracking-widest">#{order.id.slice(-4).toUpperCase()}</p>
+                            <p className="text-[10px] font-bold text-stone-500">{format(new Date(order.createdAt), "d MMM", { locale: es })}</p>
+                        </div>
+                    </div>
+                    <div className="text-right">
+                        <p className="text-sm font-black text-stone-800 dark:text-white">${total.toLocaleString()}</p>
+                        <p className={`text-[8px] font-black uppercase tracking-widest ${isPaid ? 'text-emerald-500' : 'text-amber-500'}`}>
+                            {isPaid ? 'PAGADO' : `SALDO: $${pending.toLocaleString()}`}
+                        </p>
+                    </div>
+                </div>
+
+                <div className="space-y-1 mb-3">
+                    {order.items?.map((item: any) => (
+                        <div key={item.id} className="flex items-center justify-between text-[10px] font-medium text-stone-600 dark:text-stone-400">
+                            <span className="truncate max-w-[120px]">
+                                {item.product?.brand || ''} {item.product?.model || item.product?.name || ''}
+                            </span>
+                            <span>x{item.quantity}</span>
+                        </div>
+                    ))}
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                    <button 
+                        onClick={() => {
+                            const url = `/api/orders/${order.id}/pdf`;
+                            window.open(url, '_blank');
+                        }}
+                        className="py-2 bg-stone-50 dark:bg-stone-700/50 hover:bg-primary/10 hover:text-primary rounded-xl text-[9px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2"
+                    >
+                        <Download className="w-3 h-3" /> PDF
+                    </button>
+                    {order.orderType === 'QUOTE' && onEdit && (
+                        <button 
+                            onClick={() => onEdit(order)}
+                            className="py-2 bg-stone-900 text-white rounded-xl text-[9px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2"
+                        >
+                            <Pencil className="w-3 h-3" /> EDITAR
+                        </button>
+                    )}
+                </div>
+
+            </div>
+        );
+    }
+
     const isSale = order.orderType === 'SALE';
     const isQuote = !isSale;
     const isLockedSale = isSale && currentUserRole !== 'ADMIN';
@@ -433,13 +501,22 @@ ${(order.paid > 0) ? `
                     {/* Main Action Component */}
                     <div className="col-span-3 pb-2">
                         {isQuote ? (
-                            <button
-                                onClick={() => onConvert?.(order.id)}
-                                className="w-full py-5 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-[2rem] font-black text-xs uppercase tracking-[0.2em] hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-emerald-500/20 flex items-center justify-center gap-3"
-                            >
-                                <CheckCircle2 className="w-5 h-5" /> CONVERTIR EN VENTA
-                            </button>
+                            <div className="grid grid-cols-5 gap-3">
+                                <button
+                                    onClick={() => onConvert?.(order.id)}
+                                    className="col-span-3 py-5 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-[2rem] font-black text-xs uppercase tracking-[0.15em] hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-emerald-500/20 flex items-center justify-center gap-3"
+                                >
+                                    <CheckCircle2 className="w-5 h-5" /> CONVERTIR EN VENTA
+                                </button>
+                                <button
+                                    onClick={() => onEdit?.(order)}
+                                    className="col-span-2 py-5 bg-stone-900 dark:bg-stone-800 text-white rounded-[2rem] font-black text-xs uppercase tracking-[0.15em] hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-stone-500/20 flex items-center justify-center gap-3"
+                                >
+                                    <Pencil className="w-5 h-5" /> EDITAR
+                                </button>
+                            </div>
                         ) : isLockedSale ? (
+
                             <div className="flex items-center gap-4 p-5 bg-stone-50 dark:bg-stone-900 border-2 border-stone-200 dark:border-stone-700 rounded-3xl shadow-inner">
                                 <Lock className="w-6 h-6 text-stone-400 flex-shrink-0" />
                                 <div>
@@ -483,8 +560,8 @@ ${(order.paid > 0) ? `
 
                     <button
                         onClick={() => onDelete?.(order.id)}
-                        disabled={isLockedSale && currentUserRole !== 'ADMIN'}
-                        className={`py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${isLockedSale && currentUserRole !== 'ADMIN' 
+                        disabled={isLockedSale}
+                        className={`py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${isLockedSale 
                             ? 'bg-stone-50 text-stone-300 cursor-not-allowed opacity-50' 
                             : 'bg-red-50 text-red-500 hover:bg-red-100'}`}
                     >

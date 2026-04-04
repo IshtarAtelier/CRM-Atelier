@@ -17,6 +17,8 @@ import { Contact, Interaction, Prescription, Order } from '@/types/contacts';
 import FileDropZone from '@/components/FileDropZone';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import CotizadorCart from '@/components/quotes/CotizadorCart';
+import QuoteSummary from '@/components/quotes/QuoteSummary';
 
 interface ContactDetailProps {
     contactId: string;
@@ -147,11 +149,12 @@ export default function ContactDetail({
     const [isQuoting, setIsQuoting] = useState(false);
     const [availableProducts, setAvailableProducts] = useState<any[]>([]);
     const [quoteSearch, setQuoteSearch] = useState('');
-    const [quoteItems, setQuoteItems] = useState<{ product: any; quantity: number; price: number; eye?: 'OD' | 'OI' }[]>([]);
+    const [quoteItems, setQuoteItems] = useState<{ product: any; quantity: number; price: number; eye?: 'OD' | 'OI'; uid: number }[]>([]);
     const [quoteMarkup, setQuoteMarkup] = useState(0);
     const [quoteDiscountCash, setQuoteDiscountCash] = useState(20);
     const [quoteDiscountTransfer, setQuoteDiscountTransfer] = useState(15);
     const [quoteDiscountCard, setQuoteDiscountCard] = useState(0);
+    const [editingQuoteId, setEditingQuoteId] = useState<string | null>(null);
     const [savingQuote, setSavingQuote] = useState(false);
 
     // Frame State for inline cotizador
@@ -299,6 +302,95 @@ export default function ContactDetail({
     useEffect(() => {
         fetchContact();
     }, [contactId]);
+
+    const handleEditQuote = (order: any) => {
+        setQuoteItems((order.items || []).map((it: any, idx: number) => ({
+            product: it.product,
+            quantity: it.quantity,
+            price: it.price,
+            eye: it.eye,
+            uid: Date.now() + idx
+        })));
+        setQuoteMarkup(order.markup || 0);
+        setQuoteDiscountCash(order.discountCash ?? (order.discount || 20));
+        setQuoteDiscountTransfer(order.discountTransfer ?? 15);
+        setQuoteDiscountCard(order.discountCard ?? 0);
+        setQuoteFrameSource(order.frameSource);
+        setQuoteUserFrame({
+            brand: order.userFrameBrand || '',
+            model: order.userFrameModel || '',
+            notes: order.userFrameNotes || ''
+        });
+        setQuotePrescriptionId(order.prescriptionId || null);
+        setEditingQuoteId(order.id);
+        setIsQuoting(true);
+        setActiveSection('budget');
+    };
+
+    const handleCancelEditQuote = () => {
+        setEditingQuoteId(null);
+        setQuoteItems([]);
+        setQuoteMarkup(0);
+        setQuoteFrameSource(null);
+        setQuoteUserFrame({ brand: '', model: '', notes: '' });
+        setQuotePrescriptionId(null);
+        setIsQuoting(false);
+    };
+
+    const handleSaveQuote = async () => {
+        setSavingQuote(true);
+        try {
+            const hasCrystals = quoteItems.some(i => i.product.type === 'Cristal' || i.product.category === 'LENS');
+            const url = editingQuoteId ? `/api/orders/${editingQuoteId}` : '/api/orders';
+            const method = editingQuoteId ? 'PATCH' : 'POST';
+
+            await fetch(url, {
+                method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    clientId: contactId,
+                    items: quoteItems.map(i => ({ productId: i.product.id, quantity: i.quantity, price: i.price, eye: i.eye })),
+                    markup: quoteMarkup,
+                    discountCash: quoteDiscountCash,
+                    discountTransfer: quoteDiscountTransfer,
+                    discountCard: quoteDiscountCard,
+                    frameSource: hasCrystals ? quoteFrameSource : null,
+                    userFrameBrand: quoteFrameSource === 'USUARIO' ? quoteUserFrame.brand : null,
+                    userFrameModel: quoteFrameSource === 'USUARIO' ? quoteUserFrame.model : null,
+                    userFrameNotes: quoteFrameSource === 'USUARIO' ? quoteUserFrame.notes : null,
+                    prescriptionId: hasCrystals ? quotePrescriptionId : null,
+                })
+            });
+            setIsQuoting(false);
+            setEditingQuoteId(null);
+            setQuoteItems([]);
+            setQuoteMarkup(0);
+            setQuotePrescriptionId(null);
+            fetchContact();
+        } catch (e) {
+            console.error('Error saving quote:', e);
+        } finally {
+            setSavingQuote(false);
+        }
+    };
+
+    const handleConvertQuote = async (orderId: string) => {
+        const order = contact?.orders?.find((o: any) => o.id === orderId);
+        if (!order) return;
+        const hasCrystals = order.items.some((it: any) => it.product?.type === 'Cristal' || it.product?.category === 'LENS');
+        if (hasCrystals) {
+            openRxModal(orderId);
+        } else {
+            try {
+                await fetch(`/api/orders/${orderId}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ orderType: 'SALE' }),
+                });
+                fetchContact();
+            } catch (e) { console.error(e); }
+        }
+    };
 
     const fetchContact = async () => {
         try {
@@ -1442,385 +1534,39 @@ export default function ContactDetail({
 
                             {/* Cotizador Inline */}
                             {isQuoting && activeSection === 'budget' && (
-                                <div className="bg-white dark:bg-stone-800 border-2 border-primary/20 rounded-[2.5rem] p-8 shadow-2xl animate-in zoom-in-95 duration-300">
-                                    <div className="flex justify-between items-center mb-6">
-                                        <h3 className="text-xl font-black text-stone-800 dark:text-white tracking-tighter">
-                                            Cotizar <span className="text-primary italic">— {contact.name}</span>
-                                        </h3>
-                                        <button onClick={() => setIsQuoting(false)} className="text-stone-400 hover:text-stone-800 font-bold text-xs uppercase tracking-widest">CANCELAR</button>
-                                    </div>
-
-                                    {/* Search */}
-                                    <div className="relative mb-6">
-                                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400" />
-                                        <input
-                                            type="text"
-                                            placeholder="Buscar producto..."
-                                            value={quoteSearch}
-                                            onChange={e => setQuoteSearch(e.target.value)}
-                                            className="w-full pl-11 pr-4 py-3 bg-stone-50 dark:bg-stone-900 border border-stone-200 dark:border-stone-700 rounded-2xl text-sm font-bold outline-none focus:border-primary"
-                                        />
-                                    </div>
-
-                                    {/* Product Grid */}
-                                    {quoteSearch && (
-                                        <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 mb-6 max-h-48 overflow-y-auto custom-scrollbar">
-                                            {availableProducts
-                                                .filter(p => {
-                                                    const q = quoteSearch.toLowerCase();
-                                                    return (p.name?.toLowerCase().includes(q) || p.brand?.toLowerCase().includes(q) || p.model?.toLowerCase().includes(q) || p.type?.toLowerCase().includes(q));
-                                                })
-                                                .slice(0, 12)
-                                                .map(product => {
-                                                    const inCart = quoteItems.some(i => i.product.id === product.id);
-                                                    return (
-                                                        <button
-                                                            key={product.id}
-                                                            onClick={() => {
-                                                                if (inCart) return;
-                                                                if (product.type === 'Cristal' || product.category === 'LENS') {
-                                                                    const halfPrice = Math.round(product.price / 2);
-                                                                    setQuoteItems(prev => [
-                                                                        ...prev,
-                                                                        { product, quantity: 1, price: halfPrice, eye: 'OD' },
-                                                                        { product, quantity: 1, price: halfPrice, eye: 'OI' }
-                                                                    ]);
-                                                                } else {
-                                                                    setQuoteItems(prev => [...prev, { product, quantity: 1, price: product.price }]);
-                                                                }
-                                                            }}
-                                                            className={`p-3 rounded-2xl border text-left transition-all ${inCart ? 'bg-primary/10 border-primary/30 opacity-60' : 'bg-stone-50 dark:bg-stone-900 border-stone-200 dark:border-stone-700 hover:border-primary/40 hover:shadow-md'}`}
-                                                        >
-                                                            <p className="text-[10px] font-black text-stone-400 uppercase tracking-widest truncate">{product.type || product.category}</p>
-                                                            <p className="text-xs font-black text-stone-800 dark:text-white truncate">{product.brand} {product.model || product.name}</p>
-                                                            <p className="text-sm font-black text-primary mt-1">${product.price?.toLocaleString()}</p>
-                                                        </button>
-                                                    );
-                                                })}
-                                        </div>
-                                    )}
-
-                                    {/* Quote Items */}
-                                    {quoteItems.length > 0 && (
-                                        <div className="space-y-3 mb-6">
-                                            <h4 className="text-[10px] font-black text-stone-400 uppercase tracking-widest">Productos seleccionados</h4>
-                                            {quoteItems.map((item, idx) => (
-                                                <div key={idx} className="flex items-center gap-3 bg-stone-50 dark:bg-stone-900 p-3 rounded-2xl border border-stone-100 dark:border-stone-700">
-                                                    {item.eye && (
-                                                        <span className={`px-2 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest italic shrink-0 ${item.eye === 'OD' ? 'bg-stone-900 text-white dark:bg-stone-700' : 'bg-stone-200 text-stone-600 dark:bg-stone-800 dark:text-stone-300'}`}>
-                                                            {item.eye}
-                                                        </span>
-                                                    )}
-                                                    <div className="flex-1 min-w-0">
-                                                        <p className="text-xs font-black text-stone-800 dark:text-white truncate">{item.product.brand} {item.product.model || item.product.name}</p>
-                                                    </div>
-                                                    <div className="flex items-center gap-2">
-                                                        <button onClick={() => setQuoteItems(prev => prev.map((it, i) => i === idx ? { ...it, quantity: Math.max(1, it.quantity - 1) } : it))} className="w-7 h-7 bg-stone-200 dark:bg-stone-700 rounded-lg flex items-center justify-center text-stone-600 hover:bg-stone-300"><Minus className="w-3 h-3" /></button>
-                                                        <span className="text-sm font-black w-6 text-center">{item.quantity}</span>
-                                                        {(() => {
-                                                            const isCrystalItem = item.product.type === 'Cristal' || item.product.category === 'LENS';
-                                                            const atMax = !isCrystalItem && item.quantity >= (item.product.stock || 0);
-                                                            return (
-                                                                <button
-                                                                    onClick={() => {
-                                                                        if (atMax) return;
-                                                                        setQuoteItems(prev => prev.map((it, i) => i === idx ? { ...it, quantity: it.quantity + 1 } : it));
-                                                                    }}
-                                                                    disabled={atMax}
-                                                                    className={`w-7 h-7 rounded-lg flex items-center justify-center ${atMax ? 'bg-red-100 text-red-400 cursor-not-allowed' : 'bg-stone-200 dark:bg-stone-700 text-stone-600 hover:bg-stone-300'}`}
-                                                                    title={atMax ? `Stock máximo: ${item.product.stock}` : ''}
-                                                                >
-                                                                    <Plus className="w-3 h-3" />
-                                                                </button>
-                                                            );
-                                                        })()}
-                                                    </div>
-                                                    <div className="w-24 bg-stone-50 dark:bg-stone-900 border border-stone-100 dark:border-stone-800 rounded-xl p-2 text-sm font-black text-right text-stone-500 cursor-not-allowed select-none">
-                                                        ${(item.price * (1 + (quoteMarkup || 0) / 100)).toLocaleString(undefined, { maximumFractionDigits: 2 })}
-                                                    </div>
-                                                    <button onClick={() => setQuoteItems(prev => prev.filter((_, i) => i !== idx))} className="text-red-400 hover:text-red-500 p-1"><X className="w-4 h-4" /></button>
-                                                </div>
-                                            ))}
-
-                                            {/* Frame Section — when crystals are in quote */}
-                                            {(() => {
-                                                const quoteCrystals = quoteItems.some(i => i.product.type === 'Cristal' || i.product.category === 'LENS');
-                                                const quoteHasFrame = quoteItems.some(i => i.product.type === 'Armazón' || i.product.category === 'FRAME');
-                                                if (!quoteCrystals) return null;
-                                                return (
-                                                    <div className="p-4 bg-amber-50 dark:bg-amber-900/10 rounded-2xl border-2 border-amber-200 dark:border-amber-800 mt-3">
-                                                        <p className="text-[10px] font-black text-amber-700 dark:text-amber-400 uppercase tracking-widest mb-3 flex items-center gap-1.5">
-                                                            <Glasses className="w-4 h-4" /> Armazón para los cristales
-                                                        </p>
-                                                        <div className="flex gap-2 mb-3">
-                                                            <button
-                                                                onClick={() => { setQuoteFrameSource('OPTICA'); setQuoteFrameSearch(''); }}
-                                                                className={`flex-1 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all border ${quoteFrameSource === 'OPTICA'
-                                                                    ? 'bg-amber-500 text-white border-amber-500 shadow-md'
-                                                                    : 'bg-white dark:bg-stone-800 text-stone-400 border-stone-200 dark:border-stone-700 hover:border-amber-300'
-                                                                    }`}
-                                                            >
-                                                                De la Óptica
-                                                            </button>
-                                                            <button
-                                                                onClick={() => setQuoteFrameSource('USUARIO')}
-                                                                className={`flex-1 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all border flex items-center justify-center gap-1 ${quoteFrameSource === 'USUARIO'
-                                                                    ? 'bg-amber-500 text-white border-amber-500 shadow-md'
-                                                                    : 'bg-white dark:bg-stone-800 text-stone-400 border-stone-200 dark:border-stone-700 hover:border-amber-300'
-                                                                    }`}
-                                                            >
-                                                                <User className="w-3 h-3" /> Del Usuario
-                                                            </button>
-                                                        </div>
-                                                        {quoteFrameSource === 'OPTICA' && !quoteHasFrame && (
-                                                            <div>
-                                                                <div className="relative mb-2">
-                                                                    <Search className="w-3 h-3 absolute left-2.5 top-1/2 -translate-y-1/2 text-stone-300" />
-                                                                    <input
-                                                                        type="text"
-                                                                        placeholder="Buscar armazón..."
-                                                                        value={quoteFrameSearch}
-                                                                        onChange={e => setQuoteFrameSearch(e.target.value)}
-                                                                        className="w-full bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 py-2 pl-7 pr-3 rounded-xl text-xs font-semibold outline-none focus:ring-2 focus:ring-amber-200 placeholder:text-stone-300"
-                                                                    />
-                                                                </div>
-                                                                {quoteFrameSearch && (
-                                                                    <div className="space-y-1 max-h-32 overflow-y-auto">
-                                                                        {availableProducts
-                                                                            .filter(p => (p.type === 'Armazón' || p.category === 'FRAME') && p.stock > 0 && (p.brand?.toLowerCase().includes(quoteFrameSearch.toLowerCase()) || p.model?.toLowerCase().includes(quoteFrameSearch.toLowerCase()) || p.name?.toLowerCase().includes(quoteFrameSearch.toLowerCase())))
-                                                                            .slice(0, 6)
-                                                                            .map(fr => (
-                                                                                <button
-                                                                                    key={fr.id}
-                                                                                    onClick={() => { setQuoteItems(prev => [...prev, { product: fr, quantity: 1, price: fr.price }]); setQuoteFrameSearch(''); }}
-                                                                                    className="w-full flex items-center justify-between p-2 bg-white dark:bg-stone-800 rounded-lg border border-stone-100 dark:border-stone-700 hover:border-amber-300 transition-all text-left"
-                                                                                >
-                                                                                    <div>
-                                                                                        <p className="text-[10px] font-black truncate">{fr.brand} {fr.model || ''}</p>
-                                                                                        <p className="text-[8px] text-stone-400 font-bold">${fr.price.toLocaleString()}</p>
-                                                                                    </div>
-                                                                                    <Plus className="w-3 h-3 text-amber-500" />
-                                                                                </button>
-                                                                            ))}
-                                                                    </div>
-                                                                )}
-                                                            </div>
-                                                        )}
-                                                        {quoteFrameSource === 'OPTICA' && quoteHasFrame && (
-                                                            <p className="text-[10px] font-bold text-amber-700 dark:text-amber-400 flex items-center gap-1.5">
-                                                                <Check className="w-3 h-3" /> Armazón incluido en el presupuesto
-                                                            </p>
-                                                        )}
-                                                        {quoteFrameSource === 'USUARIO' && (
-                                                            <div className="space-y-2">
-                                                                <input
-                                                                    type="text"
-                                                                    placeholder="Marca del armazón"
-                                                                    value={quoteUserFrame.brand}
-                                                                    onChange={e => setQuoteUserFrame(prev => ({ ...prev, brand: e.target.value }))}
-                                                                    className="w-full bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 py-2 px-3 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-amber-200 placeholder:text-stone-300"
-                                                                />
-                                                                <input
-                                                                    type="text"
-                                                                    placeholder="Modelo del armazón"
-                                                                    value={quoteUserFrame.model}
-                                                                    onChange={e => setQuoteUserFrame(prev => ({ ...prev, model: e.target.value }))}
-                                                                    className="w-full bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 py-2 px-3 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-amber-200 placeholder:text-stone-300"
-                                                                />
-                                                                <input
-                                                                    type="text"
-                                                                    placeholder="Observaciones (color, estado...)"
-                                                                    value={quoteUserFrame.notes}
-                                                                    onChange={e => setQuoteUserFrame(prev => ({ ...prev, notes: e.target.value }))}
-                                                                    className="w-full bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 py-2 px-3 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-amber-200 placeholder:text-stone-300"
-                                                                />
-                                                            </div>
-                                                        )}
-                                                        {!quoteFrameSource && (
-                                                            <p className="text-[9px] font-black text-amber-600 animate-pulse">⚠️ Seleccioná un armazón para los cristales</p>
-                                                        )}
-                                                    </div>
-                                                );
-                                            })()}
-
-                                            {/* Prescription Section — when crystals are in quote */}
-                                            {(() => {
-                                                const quoteCrystals = quoteItems.some(i => i.product.type === 'Cristal' || i.product.category === 'LENS');
-                                                if (!quoteCrystals) return null;
-                                                return (
-                                                    <div className="p-4 bg-emerald-50 dark:bg-emerald-900/10 rounded-2xl border-2 border-emerald-200 dark:border-emerald-800 mt-3">
-                                                        <p className="text-[10px] font-black text-emerald-700 dark:text-emerald-400 uppercase tracking-widest mb-3 flex items-center gap-1.5">
-                                                            <FileText className="w-4 h-4" /> Receta para los cristales
-                                                        </p>
-                                                        {contact.prescriptions && contact.prescriptions.length > 0 ? (
-                                                            <div className="space-y-2">
-                                                                <select
-                                                                    value={quotePrescriptionId || ''}
-                                                                    onChange={e => setQuotePrescriptionId(e.target.value || null)}
-                                                                    className="w-full bg-white dark:bg-stone-800 border border-emerald-200 dark:border-emerald-800 py-2 px-3 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-emerald-300"
-                                                                >
-                                                                    <option value="">Seleccionar receta guardada...</option>
-                                                                    {contact.prescriptions.map((p: any) => (
-                                                                        <option key={p.id} value={p.id}>
-                                                                            {format(new Date(p.date), 'dd/MM/yyyy')} — OD: {p.sphereOD > 0 ? '+' : ''}{p.sphereOD || 0} / OI: {p.sphereOI > 0 ? '+' : ''}{p.sphereOI || 0}
-                                                                        </option>
-                                                                    ))}
-                                                                </select>
-                                                                {!quotePrescriptionId && (
-                                                                    <p className="text-[9px] font-black text-emerald-600 animate-pulse">⚠️ Seleccioná una receta para el presupuesto</p>
-                                                                )}
-                                                            </div>
-                                                        ) : (
-                                                            <p className="text-xs font-bold text-emerald-700 dark:text-emerald-400">
-                                                                Este contacto no tiene recetas guardadas. Podés guardar el presupuesto y agregar la receta más tarde desde la pestaña "Recetas".
-                                                            </p>
-                                                        )}
-                                                    </div>
-                                                );
-                                            })()}
-                                        </div>
-                                    )}
-
-                                    {/* Totals + Markup + Discounts + Save */}
-                                    {quoteItems.length > 0 && (() => {
-                                        const subtotal = quoteItems.reduce((s, i) => s + i.price * i.quantity, 0);
-                                        const markupAmount = subtotal * (quoteMarkup / 100);
-                                        const priceWithMarkup = subtotal + markupAmount;
-                                        const totalCash = priceWithMarkup * (1 - quoteDiscountCash / 100);
-                                        const totalTransfer = priceWithMarkup * (1 - quoteDiscountTransfer / 100);
-                                        const totalCard = priceWithMarkup * (1 - quoteDiscountCard / 100);
-                                        return (
-                                            <div className="border-t border-stone-100 dark:border-stone-700 pt-6 space-y-4">
-                                                {/* Markup */}
-                                                <div className="flex items-center gap-3">
-                                                    <span className="text-[10px] font-black text-blue-600 uppercase tracking-widest flex items-center gap-1"><TrendingUp className="w-3 h-3" /> Markup</span>
-                                                    <input
-                                                        type="number"
-                                                        min={0}
-                                                        value={quoteMarkup || ''}
-                                                        onChange={e => setQuoteMarkup(Math.abs(Number(e.target.value)))}
-                                                        onKeyDown={e => { if (e.key === '-' || e.key === 'e') e.preventDefault(); }}
-                                                        placeholder="0"
-                                                        className="w-16 bg-white dark:bg-stone-800 border border-blue-200 dark:border-stone-700 rounded-xl p-2 text-xs font-black text-center outline-none focus:ring-2 focus:ring-blue-200"
-                                                    />
-                                                    <span className="text-[10px] font-bold text-stone-400">%</span>
-                                                    {quoteMarkup > 0 && <span className="text-[10px] font-bold text-blue-500">+${Math.round(markupAmount).toLocaleString()}</span>}
-                                                </div>
-                                                {/* Discounts Row */}
-                                                <div className="flex items-center gap-4 flex-wrap">
-                                                    <div className="flex items-center gap-2">
-                                                        <Banknote className="w-3.5 h-3.5 text-emerald-500" />
-                                                        <span className="text-[9px] font-black text-emerald-600 uppercase tracking-widest">Efvo</span>
-                                                        <select
-                                                            value={quoteDiscountCash}
-                                                            onChange={e => setQuoteDiscountCash(Number(e.target.value))}
-                                                            className="w-16 bg-white dark:bg-stone-800 border border-emerald-200 dark:border-stone-700 rounded-md px-1 py-1 text-[10px] font-black outline-none focus:ring-2 focus:ring-emerald-200"
-                                                        >
-                                                            {Array.from({ length: 5 }, (_, i) => i * 5).map(val => (
-                                                                <option key={val} value={val}>{val === 0 ? '0%' : `-${val}%`}</option>
-                                                            ))}
-                                                        </select>
-                                                    </div>
-                                                    <div className="flex items-center gap-2">
-                                                        <ArrowRightLeft className="w-3.5 h-3.5 text-violet-500" />
-                                                        <span className="text-[9px] font-black text-violet-600 uppercase tracking-widest">Transf</span>
-                                                        <select
-                                                            value={quoteDiscountTransfer}
-                                                            onChange={e => setQuoteDiscountTransfer(Number(e.target.value))}
-                                                            className="w-16 bg-white dark:bg-stone-800 border border-violet-200 dark:border-stone-700 rounded-md px-1 py-1 text-[10px] font-black outline-none focus:ring-2 focus:ring-violet-200"
-                                                        >
-                                                            {Array.from({ length: 4 }, (_, i) => i * 5).map(val => (
-                                                                <option key={val} value={val}>{val === 0 ? '0%' : `-${val}%`}</option>
-                                                            ))}
-                                                        </select>
-                                                    </div>
-                                                    <div className="flex items-center gap-2">
-                                                        <CreditCard className="w-3.5 h-3.5 text-orange-500" />
-                                                        <span className="text-[9px] font-black text-orange-600 uppercase tracking-widest">Cuotas</span>
-                                                        <select
-                                                            value={quoteDiscountCard}
-                                                            onChange={e => setQuoteDiscountCard(Number(e.target.value))}
-                                                            className="w-16 bg-white dark:bg-stone-800 border border-orange-200 dark:border-stone-700 rounded-md px-1 py-1 text-[10px] font-black outline-none focus:ring-2 focus:ring-orange-200"
-                                                        >
-                                                            {[0].map(val => (
-                                                                <option key={val} value={val}>{val === 0 ? '0%' : `-${val}%`}</option>
-                                                            ))}
-                                                        </select>
-                                                    </div>
-                                                </div>
-                                                {/* Totals */}
-                                                <div className="flex justify-between items-end">
-                                                    <div>
-                                                        <p className="text-[10px] font-black text-stone-400 uppercase tracking-widest">Subtotal: ${subtotal.toLocaleString()}</p>
-                                                        {quoteMarkup > 0 && <p className="text-[10px] font-bold text-blue-500">Precio de Lista: ${Math.round(priceWithMarkup).toLocaleString()}</p>}
-                                                    </div>
-                                                    <div className="flex gap-4 items-end">
-                                                        <div className="text-right">
-                                                            <p className="text-[8px] font-black text-emerald-600 uppercase tracking-widest">💵 Efvo</p>
-                                                            <p className="text-xl font-black text-emerald-600 tracking-tighter">${Math.round(totalCash).toLocaleString()}</p>
-                                                        </div>
-                                                        <div className="text-right">
-                                                            <p className="text-[8px] font-black text-violet-600 uppercase tracking-widest">🏦 Transf</p>
-                                                            <p className="text-sm font-black text-violet-600 tracking-tighter">${Math.round(totalTransfer).toLocaleString()}</p>
-                                                        </div>
-                                                        <div className="text-right">
-                                                            <p className="text-[8px] font-black text-orange-600 uppercase tracking-widest">💳 Cuotas</p>
-                                                            <p className="text-sm font-black text-orange-500 tracking-tighter">${Math.round(totalCard).toLocaleString()}</p>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <button
-                                                    onClick={async () => {
-                                                        setSavingQuote(true);
-                                                        try {
-                                                            const quoteCrystals = quoteItems.some(i => i.product.type === 'Cristal' || i.product.category === 'LENS');
-                                                            await fetch('/api/orders', {
-                                                                method: 'POST',
-                                                                headers: { 'Content-Type': 'application/json' },
-                                                                body: JSON.stringify({
-                                                                    clientId: contactId,
-                                                                    items: quoteItems.map(i => ({ productId: i.product.id, quantity: i.quantity, price: i.price, eye: i.eye })),
-                                                                    discount: quoteDiscountCash,
-                                                                    markup: quoteMarkup,
-                                                                    discountCash: quoteDiscountCash,
-                                                                    discountTransfer: quoteDiscountTransfer,
-                                                                    discountCard: quoteDiscountCard,
-                                                                    subtotalWithMarkup: priceWithMarkup,
-                                                                    total: Math.round(totalCash),
-                                                                    frameSource: quoteCrystals ? quoteFrameSource : null,
-                                                                    userFrameBrand: quoteFrameSource === 'USUARIO' ? quoteUserFrame.brand : null,
-                                                                    userFrameModel: quoteFrameSource === 'USUARIO' ? quoteUserFrame.model : null,
-                                                                    userFrameNotes: quoteFrameSource === 'USUARIO' ? quoteUserFrame.notes : null,
-                                                                    prescriptionId: quoteCrystals ? quotePrescriptionId : null,
-                                                                })
-                                                            });
-                                                            setIsQuoting(false);
-                                                            setQuoteItems([]);
-                                                            setQuoteMarkup(0);
-                                                            setQuoteDiscountCash(20);
-                                                            setQuoteDiscountTransfer(15);
-                                                            setQuoteDiscountCard(0);
-                                                            setQuotePrescriptionId(null);
-                                                            fetchContact();
-                                                        } catch (e) { console.error(e); }
-                                                        finally { setSavingQuote(false); }
-                                                    }}
-                                                    disabled={savingQuote}
-                                                    className="w-full py-5 bg-emerald-500 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:scale-[1.02] active:scale-95 transition-all shadow-xl flex items-center justify-center gap-2"
-                                                >
-                                                    {savingQuote ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span> GUARDANDO...</> : <><Save className="w-4 h-4" /> GUARDAR PRESUPUESTO</>}
-                                                </button>
-                                            </div>
-                                        );
-                                    })()}
-                                </div>
+                                <CotizadorCart
+                                    items={quoteItems}
+                                    setItems={setQuoteItems}
+                                    markup={quoteMarkup}
+                                    setMarkup={setQuoteMarkup}
+                                    discountCash={quoteDiscountCash}
+                                    setDiscountCash={setQuoteDiscountCash}
+                                    discountTransfer={quoteDiscountTransfer}
+                                    setDiscountTransfer={setQuoteDiscountTransfer}
+                                    discountCard={quoteDiscountCard}
+                                    setDiscountCard={setQuoteDiscountCard}
+                                    frameSource={quoteFrameSource}
+                                    setFrameSource={setQuoteFrameSource}
+                                    userFrameData={quoteUserFrame}
+                                    setUserFrameData={setQuoteUserFrame}
+                                    prescriptionId={quotePrescriptionId}
+                                    setPrescriptionId={setQuotePrescriptionId}
+                                    availableProducts={availableProducts}
+                                    prescriptions={contact.prescriptions}
+                                    onSave={handleSaveQuote}
+                                    isSaving={savingQuote}
+                                    contactName={contact.name}
+                                    onClose={() => setIsQuoting(false)}
+                                    editingQuoteId={editingQuoteId}
+                                    onCancelEdit={handleCancelEditQuote}
+                                />
                             )}
 
                             {/* Orders List with Lab Status */}
                             {contact.orders && contact.orders.length > 0 ? (
                                 (() => {
-                                    const salesOrders = contact.orders.filter((o: any) => o.orderType === 'SALE');
-                                    const quoteOrders = contact.orders.filter((o: any) => o.orderType !== 'SALE');
+                                    const salesOrders = (contact.orders || []).filter((o: any) => o.orderType === 'SALE');
+                                    const quoteOrders = (contact.orders || []).filter((o: any) => o.orderType !== 'SALE');
                                     const relevantOrders = activeSection === 'sales' ? salesOrders : quoteOrders;
 
                                     if (relevantOrders.length === 0) {
@@ -1837,20 +1583,15 @@ export default function ContactDetail({
                                     let salesRendered = false;
                                     let quotesRendered = false;
                                     return relevantOrders.map((order: any, idx: number) => {
-                                        const progress = (order.paid / order.total) * 100;
-                                        const minRequired = (order.total || 0) * 0.4;
-                                        const isConfirmed = contact.status === 'CONFIRMED';
-                                        const labStatus = order.labStatus || 'NONE';
                                         const isSale = order.orderType === 'SALE';
                                         const isQuote = !isSale;
-                                        const isLockedSale = isSale && currentUserRole !== 'ADMIN';
 
                                         // Section headers
                                         let sectionHeader = null;
                                         if (isSale && !salesRendered) {
                                             salesRendered = true;
                                             sectionHeader = (
-                                                <div key="sales-header" className="flex items-center gap-3 mb-2">
+                                                <div key="sales-header" className="flex items-center gap-3 mb-6">
                                                     <div className="h-px flex-1 bg-emerald-200 dark:bg-emerald-800" />
                                                     <span className="text-[10px] font-black text-emerald-600 uppercase tracking-[0.2em] flex items-center gap-1.5">
                                                         <Receipt className="w-3.5 h-3.5" /> Ventas Registradas ({salesOrders.length})
@@ -1862,7 +1603,7 @@ export default function ContactDetail({
                                         if (isQuote && !quotesRendered) {
                                             quotesRendered = true;
                                             sectionHeader = (
-                                                <div key="quotes-header" className={`flex items-center gap-3 mb-2`}>
+                                                <div key="quotes-header" className={`flex items-center gap-3 mb-6`}>
                                                     <div className="h-px flex-1 bg-amber-200 dark:bg-amber-800" />
                                                     <span className="text-[10px] font-black text-amber-600 uppercase tracking-[0.2em] flex items-center gap-1.5">
                                                         <Calculator className="w-3.5 h-3.5" /> Presupuestos ({quoteOrders.length})
@@ -1872,609 +1613,24 @@ export default function ContactDetail({
                                             );
                                         }
 
-                                        const LAB_LABELS: Record<string, { label: string; color: string; next?: string; nextLabel?: string }> = {
-                                            'NONE': { label: 'Sin enviar', color: 'bg-stone-100 text-stone-500', next: 'SENT', nextLabel: 'Enviar a Lab' },
-                                            'SENT': { label: 'Enviado', color: 'bg-blue-100 text-blue-600', next: 'IN_PROGRESS', nextLabel: 'En Proceso' },
-                                            'IN_PROGRESS': { label: 'En Lab', color: 'bg-amber-100 text-amber-600', next: 'READY', nextLabel: 'Marcar Listo' },
-                                            'READY': { label: 'Listo', color: 'bg-emerald-100 text-emerald-600', next: 'DELIVERED', nextLabel: 'Entregado' },
-                                            'DELIVERED': { label: 'Entregado', color: 'bg-indigo-100 text-indigo-600' },
-                                        };
-                                        const labInfo = LAB_LABELS[labStatus] || LAB_LABELS['NONE'];
-
-                                        // Collapsed summary line for quotes
-                                        if (isQuote && expandedOrderId !== order.id) {
-                                            return (
-                                                <React.Fragment key={order.id}>
-                                                    {sectionHeader}
-                                                    <button
-                                                        onClick={() => setExpandedOrderId(order.id)}
-                                                        className={`w-full flex items-center justify-between bg-white dark:bg-stone-800 border ${order.isDeleted ? 'border-red-100 opacity-50' : 'border-stone-200 dark:border-stone-700 hover:border-amber-300 dark:hover:border-amber-700'} rounded-2xl px-5 py-4 transition-all hover:shadow-md group text-left`}
-                                                    >
-                                                        <div className="flex items-center gap-3">
-                                                            <span className="text-base">{order.isDeleted ? '🗑️' : '📋'}</span>
-                                                            <div>
-                                                                <span className="text-xs font-black text-stone-700 dark:text-stone-200 block">
-                                                                    #{order.id.slice(-4).toUpperCase()} · ${(order.total || 0).toLocaleString()}
-                                                                </span>
-                                                                <span className="text-[9px] font-bold text-stone-400 block">
-                                                                    {format(new Date(order.createdAt), "d MMM yy", { locale: es })} · {order.items?.length || 0} productos
-                                                                    {order.discount > 0 ? ` · ${order.discount}% desc.` : ''}
-                                                                </span>
-                                                            </div>
-                                                        </div>
-                                                        <div className="flex items-center gap-2">
-                                                            {order.paid > 0 && (
-                                                                <span className="text-[9px] font-black text-emerald-500 bg-emerald-50 px-2 py-1 rounded-lg">
-                                                                    ${(order.paid || 0).toLocaleString()} pagado
-                                                                </span>
-                                                            )}
-                                                            <ChevronRight className="w-4 h-4 text-stone-300 group-hover:text-amber-500 transition-colors" />
-                                                        </div>
-                                                    </button>
-                                                </React.Fragment>
-                                            );
-                                        }
-
                                         return (
                                             <React.Fragment key={order.id}>
                                                 {sectionHeader}
-                                                <div className={`bg-white dark:bg-stone-800 border-2 ${isSale ? 'border-emerald-200 dark:border-emerald-800 shadow-2xl' : 'border-amber-200 dark:border-amber-800 shadow-xl'} rounded-[2.5rem] p-8 transition-all relative`}>
-                                                    {/* Locked sale overlay indicator */}
-                                                    {isLockedSale && (
-                                                        <div className="absolute top-4 right-4 flex items-center gap-1.5 px-3 py-1.5 bg-stone-100 dark:bg-stone-700 rounded-xl border border-stone-200 dark:border-stone-600">
-                                                            <Lock className="w-3 h-3 text-stone-400" />
-                                                            <span className="text-[8px] font-black text-stone-400 uppercase tracking-widest">Bloqueado</span>
-                                                        </div>
-                                                    )}
-                                                    {/* Header */}
-                                                    <div className="flex justify-between items-start mb-6">
-                                                        <div>
-                                                            <span className="text-[10px] font-black text-primary uppercase tracking-widest flex items-center gap-2 mb-1">
-                                                                <Calculator className="w-3 h-3" /> {isSale ? 'Venta' : 'Presupuesto'} #{order.id.slice(-4).toUpperCase()}
-                                                            </span>
-                                                            <h3 className="text-2xl font-black text-stone-800 dark:text-white tracking-tighter">
-                                                                ${(order.total || 0).toLocaleString()}
-                                                            </h3>
-                                                        </div>
-                                                        <div className="flex items-center gap-2 flex-wrap justify-end">
-                                                            {/* Quote/Sale badge */}
-                                                            <span className={`px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest ${isSale ? 'bg-emerald-500 text-white' : 'bg-amber-100 text-amber-700'}`}>
-                                                                {isSale ? '🛒 VENTA' : '📋 PRESUPUESTO'}
-                                                            </span>
-                                                            {/* Lab status - only for sales */}
-                                                            {isSale && (
-                                                                <span className={`px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest ${labInfo.color}`}>
-                                                                    {labInfo.label}
-                                                                </span>
-                                                            )}
-                                                            {/* Payment status */}
-                                                            {order.paid >= order.total ? (
-                                                                <span className="px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest bg-emerald-100 text-emerald-600">PAGADO</span>
-                                                            ) : (
-                                                                <span className="px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest bg-stone-900 text-white">
-                                                                    Saldo: ${((order.total || 0) - (order.paid || 0)).toLocaleString()}
-                                                                    {order.discountCash > 0 && ' (efvo)'}
-                                                                </span>
-                                                            )}
-                                                            {/* Collapse button for expanded quotes */}
-                                                            {isQuote && (
-                                                                <button onClick={() => setExpandedOrderId(null)} className="p-1.5 rounded-lg hover:bg-stone-100 dark:hover:bg-stone-700 transition-colors" title="Colapsar">
-                                                                    <X className="w-3.5 h-3.5 text-stone-400" />
-                                                                </button>
-                                                            )}
-                                                        </div>
-                                                    </div>
-
-                                                    {/* Order Items */}
-                                                    {order.items && order.items.length > 0 && (
-                                                        <div className="mb-6 space-y-2">
-                                                            {order.items.map((item: any) => (
-                                                                <div key={item.id} className="flex justify-between items-center bg-stone-50 dark:bg-stone-900/50 px-4 py-2 rounded-xl">
-                                                                    <span className="text-xs font-bold text-stone-600 dark:text-stone-300">{item.product?.brand} {item.product?.model || item.product?.name} x{item.quantity}</span>
-                                                                    <span className="text-xs font-black text-stone-800 dark:text-white">
-                                                                        ${((item.price * item.quantity) * (1 + (order.markup || 0) / 100)).toLocaleString(undefined, { maximumFractionDigits: 2 })}
-                                                                    </span>
-                                                                </div>
-                                                            ))}
-                                                            {(order.discount > 0 || order.discountCash > 0) && (
-                                                                <div className="flex justify-end gap-3 flex-wrap">
-                                                                    {order.markup > 0 && (
-                                                                        <span className="text-[10px] font-bold text-blue-500 italic">+{order.markup}% markup</span>
-                                                                    )}
-                                                                    {order.discountCash > 0 && (
-                                                                        <span className="text-[10px] font-bold text-emerald-500 italic">-{order.discountCash}% efectivo</span>
-                                                                    )}
-                                                                    {order.discountTransfer > 0 && (
-                                                                        <span className="text-[10px] font-bold text-violet-500 italic">-{order.discountTransfer}% transferencia</span>
-                                                                    )}
-                                                                    {order.discountCard > 0 && (
-                                                                        <span className="text-[10px] font-bold text-orange-500 italic">-{order.discountCard}% cuotas</span>
-                                                                    )}
-                                                                    {!(order.discountCash > 0) && order.discount > 0 && (
-                                                                        <span className="text-[10px] font-bold text-red-400 italic">-{order.discount}% descuento aplicado</span>
-                                                                    )}
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                    )}
-
-                                                    {/* Frame Info */}
-                                                    {order.frameSource && (
-                                                        <div className="mb-4 flex items-center gap-3 p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-2xl">
-                                                            <span className="text-base">🕶️</span>
-                                                            <div>
-                                                                <p className="text-[9px] font-black text-amber-700 dark:text-amber-400 uppercase tracking-widest">Armazón</p>
-                                                                <p className="text-[11px] font-bold text-amber-900 dark:text-amber-300">
-                                                                    {order.frameSource === 'OPTICA'
-                                                                        ? 'De la óptica (incluido)'
-                                                                        : `Del cliente — ${order.userFrameBrand || ''} ${order.userFrameModel || ''}${order.userFrameNotes ? ' · ' + order.userFrameNotes : ''}`
-                                                                    }
-                                                                </p>
-                                                            </div>
-                                                        </div>
-                                                    )}
-
-                                                    {/* Payment Progress + Dual Saldo */}
-                                                    <div className="space-y-3 mb-6">
-                                                        <div className="flex justify-between items-end">
-                                                            <div>
-                                                                <span className="text-[9px] font-black text-stone-400 uppercase tracking-widest block mb-0.5">Pagado</span>
-                                                                <span className="text-lg font-black text-emerald-500 tracking-tighter">${(order.paid || 0).toLocaleString()}</span>
-                                                            </div>
-                                                            {/* Dual/Triple Saldo */}
-                                                            {order.subtotalWithMarkup > 0 && (order.discountCash > 0 || order.discountTransfer > 0) ? (
-                                                                <div className="flex gap-4 text-right">
-                                                                    {order.discountCash > 0 && (() => {
-                                                                        const saldoCash = Math.max(0, (order.total || 0) - (order.paid || 0));
-                                                                        return (
-                                                                            <div>
-                                                                                <span className="text-[8px] font-black text-emerald-600 uppercase tracking-widest block mb-0.5 flex items-center gap-0.5 justify-end">💵 Saldo Efvo</span>
-                                                                                <span className="text-sm font-black text-emerald-600">${saldoCash.toLocaleString()}</span>
-                                                                            </div>
-                                                                        );
-                                                                    })()}
-                                                                    {order.discountTransfer > 0 && (() => {
-                                                                        const totalTransfer = (order.subtotalWithMarkup || 0) * (1 - (order.discountTransfer || 0) / 100);
-                                                                        const saldoTransfer = Math.max(0, Math.round(totalTransfer) - (order.paid || 0));
-                                                                        return (
-                                                                            <div>
-                                                                                <span className="text-[8px] font-black text-violet-600 uppercase tracking-widest block mb-0.5 flex items-center gap-0.5 justify-end">🏦 Saldo Transf</span>
-                                                                                <span className="text-sm font-black text-violet-600">${saldoTransfer.toLocaleString()}</span>
-                                                                            </div>
-                                                                        );
-                                                                    })()}
-                                                                    {(() => {
-                                                                        const totalCard = (order.subtotalWithMarkup || 0) * (1 - (order.discountCard || 0) / 100);
-                                                                        const saldoCard = Math.max(0, Math.round(totalCard) - (order.paid || 0));
-                                                                        return (
-                                                                            <div>
-                                                                                <span className="text-[8px] font-black text-orange-600 uppercase tracking-widest block mb-0.5 flex items-center gap-0.5 justify-end">💳 Saldo Cuotas</span>
-                                                                                <span className="text-sm font-black text-orange-500">${saldoCard.toLocaleString()}</span>
-                                                                            </div>
-                                                                        );
-                                                                    })()}
-                                                                </div>
-                                                            ) : (
-                                                                <div className="text-right">
-                                                                    <span className="text-[9px] font-black text-stone-400 uppercase tracking-widest block mb-0.5">Saldo</span>
-                                                                    <span className="text-sm font-black text-stone-800 dark:text-stone-300">${((order.total || 0) - (order.paid || 0)).toLocaleString()}</span>
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                        <div className="h-4 bg-stone-100 dark:bg-stone-900 rounded-full border border-stone-200 dark:border-stone-700 overflow-hidden relative">
-                                                            <div className={`h-full transition-all duration-1000 ${order.paid >= minRequired ? 'bg-emerald-500' : 'bg-amber-500'}`} style={{ width: `${Math.min(progress, 100)}%` }} />
-                                                            <div className="absolute top-0 left-[40%] h-full w-0.5 bg-stone-900/10 dark:bg-white/10" />
-                                                        </div>
-                                                    </div>
-
-                                                    {/* Payments History */}
-                                                    {order.payments && order.payments.length > 0 && (
-                                                        <div className="mb-6">
-                                                            <h4 className="text-[9px] font-black text-stone-400 uppercase tracking-widest mb-3">Pagos Registrados</h4>
-                                                            <div className="space-y-2">
-                                                                {order.payments.map((p: any) => (
-                                                                    <div key={p.id} className="flex items-center justify-between bg-stone-50 dark:bg-stone-900/50 px-4 py-3 rounded-xl">
-                                                                        <div className="flex items-center gap-3">
-                                                                            <div className="w-8 h-8 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 rounded-lg flex items-center justify-center">
-                                                                                <Banknote className="w-4 h-4" />
-                                                                            </div>
-                                                                            <div>
-                                                                                <span className="text-xs font-black text-stone-700 dark:text-stone-200 block">{getPaymentLabel(p.method)}</span>
-                                                                                <span className="text-[9px] text-stone-400">{new Date(p.date).toLocaleDateString('es-AR')} {p.notes ? `· ${p.notes}` : ''}</span>
-                                                                            </div>
-                                                                        </div>
-                                                                        <div className="flex items-center gap-3">
-                                                                            {p.receiptUrl && (
-                                                                                <button
-                                                                                    onClick={() => setViewingReceipt(p.receiptUrl)}
-                                                                                    className="p-1.5 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-lg hover:scale-110 transition-all"
-                                                                                    title="Ver comprobante"
-                                                                                >
-                                                                                    <Receipt className="w-3.5 h-3.5" />
-                                                                                </button>
-                                                                            )}
-                                                                            <span className="text-sm font-black text-emerald-600 dark:text-emerald-400">${p.amount?.toLocaleString()}</span>
-                                                                        </div>
-                                                                    </div>
-                                                                ))}
-                                                            </div>
-                                                        </div>
-                                                    )}
-
-                                                    {/* Download Paid Receipt */}
-                                                    {order.paid >= order.total && order.total > 0 && (
-                                                        <button
-                                                            onClick={() => downloadPaidReceipt(order)}
-                                                            className="w-full mb-4 py-3 bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 border-2 border-emerald-200 dark:border-emerald-800 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:scale-[1.02] transition-all flex items-center justify-center gap-2"
-                                                        >
-                                                            <Download className="w-3.5 h-3.5" /> Descargar Comprobante Saldado
-                                                        </button>
-                                                    )}
-
-                                                    {/* Lab Status Action — only for sales */}
-                                                    {isSale && !order.isDeleted && labInfo.next && (
-                                                        <div className="flex gap-3 mb-4">
-                                                            <button
-                                                                onClick={async () => {
-                                                                    await fetch(`/api/orders/${order.id}`, {
-                                                                        method: 'PATCH',
-                                                                        headers: { 'Content-Type': 'application/json' },
-                                                                        body: JSON.stringify({ labStatus: labInfo.next })
-                                                                    });
-                                                                    fetchContact();
-                                                                }}
-                                                                className="flex-1 py-3 bg-blue-500 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-2"
-                                                            >
-                                                                <ArrowRight className="w-3.5 h-3.5" /> {labInfo.nextLabel}
-                                                            </button>
-                                                        </div>
-                                                    )}
-
-                                                    {/* Lab Sent Date */}
-                                                    {order.labSentAt && (
-                                                        <p className="text-[9px] font-bold text-stone-400 italic mb-4">
-                                                            Enviado al lab: {format(new Date(order.labSentAt), "d 'de' MMM, HH:mm", { locale: es })}
-                                                        </p>
-                                                    )}
-
-                                                    {/* Actions */}
-                                                    {!order.isDeleted && (
-                                                        <div className="pt-4 border-t border-stone-100 dark:border-stone-700 space-y-3">
-                                                            {/* Locked sale message for non-admin */}
-                                                            {isLockedSale && (
-                                                                <div className="flex items-center gap-3 p-4 bg-stone-50 dark:bg-stone-900/50 border-2 border-stone-200 dark:border-stone-700 rounded-2xl">
-                                                                    <Lock className="w-5 h-5 text-stone-400 flex-shrink-0" />
-                                                                    <div>
-                                                                        <p className="text-[10px] font-black text-stone-500 uppercase tracking-widest">Venta Registrada — Solo lectura</p>
-                                                                        <p className="text-[9px] font-bold text-stone-400 mt-0.5">Para modificar o eliminar esta venta, solicitá autorización al administrador.</p>
-                                                                    </div>
-                                                                </div>
-                                                            )}
-                                                            {isQuote && (
-                                                                <>
-                                                                    <button
-                                                                        onClick={async () => {
-                                                                            setConvertError(null);
-                                                                            setRefreshingPrices(true);
-                                                                            try {
-                                                                                // Auto-check for price changes first
-                                                                                const refreshRes = await fetch(`/api/orders/${order.id}/refresh-prices`, { method: 'POST' });
-                                                                                const refreshData = await refreshRes.json();
-
-                                                                                if (refreshData.updated && refreshData.changes?.length > 0) {
-                                                                                    // Prices changed — show confirmation dialog
-                                                                                    setPriceChanges(refreshData.changes);
-                                                                                    setPendingConvertOrderId(order.id);
-                                                                                    setRefreshingPrices(false);
-                                                                                    fetchContact();
-                                                                                    return;
-                                                                                }
-
-                                                                                // No price changes — open prescription modal
-                                                                                openRxModal(order.id);
-                                                                                setRefreshingPrices(false);
-                                                                                return;
-                                                                                /* OLD: direct conversion
-                                                                                const res = await fetch(`/api/orders/${order.id}`, {
-                                                                                    method: 'PATCH',
-                                                                                    headers: { 'Content-Type': 'application/json' },
-                                                                                    body: JSON.stringify({ orderType: 'SALE' })
-                                                                                });
-                                                                                if (!res.ok) {
-                                                                                    const data = await res.json();
-                                                                                    setConvertError(data.error || 'Error al convertir en venta');
-                                                                                    return;
-                                                                                }
-                                                                                fetchContact();
-                                                                                */
-                                                                            } catch (e) {
-                                                                                setConvertError('Error de conexión');
-                                                                            } finally {
-                                                                                setRefreshingPrices(false);
-                                                                            }
-                                                                        }}
-                                                                        disabled={refreshingPrices}
-                                                                        className="w-full py-4 bg-emerald-500 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:scale-[1.02] active:scale-95 transition-all shadow-xl flex items-center justify-center gap-2"
-                                                                    >
-                                                                        {refreshingPrices
-                                                                            ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span> VERIFICANDO PRECIOS...</>
-                                                                            : <><CheckCircle2 className="w-4 h-4" /> CONVERTIR EN VENTA</>
-                                                                        }
-                                                                    </button>
-                                                                    {convertError && (
-                                                                        <p className="mt-2 text-[10px] font-black text-red-500 bg-red-50 dark:bg-red-900/20 px-3 py-2 rounded-xl text-center">
-                                                                            ⚠️ {convertError}
-                                                                        </p>
-                                                                    )}
-                                                                </>
-                                                            )}
-                                                            <div className={`grid ${isLockedSale ? 'grid-cols-2' : 'grid-cols-3'} gap-3`}>
-                                                                <button
-                                                                    onClick={() => setIsAddingPayment(order.id)}
-                                                                    className="py-3 bg-stone-900 text-white dark:bg-stone-700 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:scale-105 transition-all flex items-center justify-center gap-2"
-                                                                >
-                                                                    <Plus className="w-3.5 h-3.5" /> REGISTRAR PAGO
-                                                                </button>
-                                                                {order.paid >= minRequired && contact.status === 'CONFIRMED' && (
-                                                                    <button
-                                                                        onClick={handleCloseSale}
-                                                                        className="py-3 bg-emerald-500 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:scale-105 transition-all flex items-center justify-center gap-2"
-                                                                    >
-                                                                        <CheckCircle2 className="w-3.5 h-3.5" /> CERRAR VENTA
-                                                                    </button>
-                                                                )}
-                                                                <button
-                                                                    onClick={() => {
-                                                                        const items = order.items || [];
-                                                                        const subtotalBase = items.reduce((s: number, it: any) => s + (it.price * it.quantity), 0);
-                                                                        const markupPct = order.markup || 0;
-                                                                        const listPrice = subtotalBase * (1 + markupPct / 100);
-                                                                        const discountCash = order.discountCash !== null ? order.discountCash : (order.discount || 20);
-                                                                        const discountTransfer = order.discountTransfer !== null ? order.discountTransfer : 15;
-
-                                                                        const amtCash = Math.round(listPrice * (1 - discountCash / 100));
-                                                                        const amtTransfer = Math.round(listPrice * (1 - discountTransfer / 100));
-                                                                        const cuota3 = Math.round(listPrice / 3);
-                                                                        const cuota6 = Math.round(listPrice / 6);
-
-                                                                        const dateStr = new Date(order.createdAt).toLocaleDateString('es-AR', { year: 'numeric', month: 'long', day: 'numeric' });
-                                                                        const logoUrl = `${window.location.origin}/assets/logo-atelier-optica.png`;
-
-                                                                        const progress = listPrice > 0 ? (order.paid / listPrice) * 100 : 0;
-                                                                        const saldoCash = Math.max(0, amtCash - (order.paid || 0));
-                                                                        const saldoTransfer = Math.max(0, amtTransfer - (order.paid || 0));
-                                                                        const saldoCard = Math.max(0, Math.round(listPrice) - (order.paid || 0));
-
-                                                                        const html = `<!DOCTYPE html><html><head><meta charset='utf-8'>
-<title>Presupuesto ${contact.name}</title>
-<style>
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap');
-  * { margin:0; padding:0; box-sizing:border-box; font-family:'Inter',sans-serif; }
-  body { padding:40px 50px; color:#1c1917; line-height:1.5; }
-  .letterhead { display:flex; justify-content:space-between; align-items:center; padding-bottom:20px; margin-bottom:8px; border-bottom:3px solid #1c1917; }
-  .letterhead-left { display:flex; align-items:center; gap:16px; }
-  .letterhead-logo { height:52px; }
-  .letterhead-right { text-align:right; font-size:10px; color:#78716c; line-height:1.6; }
-  .letterhead-right .address { font-weight:600; color:#57534e; }
-  .tagline { text-align:center; font-size:9px; font-weight:800; text-transform:uppercase; letter-spacing:3px; color:#a0845e; padding:10px 0 20px; }
-  .meta-row { display:flex; justify-content:space-between; align-items:center; margin-bottom:24px; }
-  .meta-row .doc-id { font-size:13px; font-weight:900; color:#1c1917; }
-  .meta-row .doc-date { font-size:11px; color:#78716c; }
-  .client { background:#fafaf9; border:1px solid #e7e5e4; border-radius:12px; padding:16px 20px; margin-bottom:28px; }
-  .client-label { font-size:9px; font-weight:800; text-transform:uppercase; letter-spacing:2px; color:#a8a29e; }
-  .client-name { font-size:18px; font-weight:900; color:#1c1917; margin-top:2px; }
-  table { width:100%; border-collapse:collapse; margin-bottom:24px; }
-  th { background:#1c1917; color:white; font-size:9px; font-weight:800; text-transform:uppercase; letter-spacing:2px; padding:12px 16px; text-align:left; }
-  th:last-child, td:last-child { text-align:right; }
-  td { padding:12px 16px; font-size:13px; border-bottom:1px solid #f5f5f4; }
-  td:first-child { font-weight:700; }
-  .totals { display:flex; justify-content:flex-end; }
-  .totals-box { background:#fafaf9; border:2px solid #e7e5e4; border-radius:16px; padding:20px 28px; min-width:320px; }
-  .total-row { display:flex; justify-content:space-between; font-size:13px; margin-bottom:8px; color:#57534e; }
-  .total-row.highlight-transf { font-size:15px; font-weight:800; color:#8b5cf6; margin-top:12px; border-top:1px solid #e7e5e4; padding-top:12px; }
-  .total-row.final { font-size:22px; font-weight:900; color:#10b981; border-top:2px solid #10b981; padding-top:10px; margin-top:8px; }
-  .footer { margin-top:48px; padding-top:20px; border-top:1px solid #e7e5e4; font-size:10px; color:#a8a29e; text-align:center; text-transform:uppercase; letter-spacing:2px; }
-  
-  /* Progress and Payment Styles */
-  .payments-section { border: 2px solid #10b981; border-radius: 16px; padding: 20px; margin-bottom: 24px; }
-  .payments-header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 20px; }
-  .payment-stat h4 { font-size: 9px; font-weight: 900; text-transform: uppercase; letter-spacing: 2px; color: #a8a29e; margin-bottom: 4px; }
-  .payment-stat .val-paid { font-size: 24px; font-weight: 900; color: #10b981; }
-  .saldos-block { display: flex; gap: 24px; text-align: right; }
-  .saldo-item .label { font-size: 8px; font-weight: 900; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 4px; display: block; }
-  .saldo-item .val { font-size: 14px; font-weight: 900; }
-  .s-efvo .label, .s-efvo .val { color: #10b981; }
-  .s-transf .label, .s-transf .val { color: #8b5cf6; }
-  .s-cuotas .label, .s-cuotas .val { color: #f97316; }
-  .progress-bg { height: 16px; background: #f5f5f4; border-radius: 8px; overflow: hidden; position: relative; border: 1px solid #e7e5e4; margin-bottom: 20px; }
-  .progress-bar { height: 100%; background: #10b981; transition: width 0.3s; }
-  .marker { position: absolute; top: 0; left: 40%; height: 100%; width: 2px; background: rgba(0,0,0,0.1); }
-  .payments-list h4 { font-size: 9px; font-weight: 900; text-transform: uppercase; letter-spacing: 2px; color: #a8a29e; margin-bottom: 12px; }
-  .payment-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; background: #fafaf9; border-radius: 12px; margin-bottom: 8px; }
-  .payment-row .info { display: flex; flex-direction: column; }
-  .payment-row .method { font-size: 12px; font-weight: 900; color: #44403c; }
-  .payment-row .date { font-size: 9px; color: #a8a29e; margin-top: 2px; }
-  .payment-row .amount { font-size: 14px; font-weight: 900; color: #10b981; }
-</style></head><body>
-<div class='letterhead'>
-  <div class='letterhead-left'>
-    <img src='${logoUrl}' class='letterhead-logo' alt='Atelier Óptica' />
-  </div>
-  <div class='letterhead-right'>
-    <div class='address'>José Luis de Tejeda 4380</div>
-    <div>Cerro de las Rosas, Córdoba</div>
-  </div>
-</div>
-<div class='tagline'>La óptica mejor calificada en Google Business ⭐ 5/5</div>
-<div class='meta-row'>
-  <span class='doc-id'>Presupuesto #${order.id.slice(-4).toUpperCase()}</span>
-  <span class='doc-date'>${dateStr}</span>
-</div>
-<div class='client'>
-  <div class='client-label'>Cliente</div>
-  <div class='client-name'>${contact.name}</div>
-</div>
-<table>
-  <thead><tr><th>Producto</th><th>Cant.</th><th>Precio Unit.</th><th>Subtotal</th></tr></thead>
-  <tbody>${items.map((it: any) => {
-                                                                            const itPriceWithMarkup = it.price * (1 + markupPct / 100);
-                                                                            return `<tr><td>${it.product?.brand || ''} ${it.product?.model || it.product?.name || ''}</td><td style='text-align:center'>${it.quantity}</td><td>$${itPriceWithMarkup.toLocaleString(undefined, { maximumFractionDigits: 2 })}</td><td>$${(itPriceWithMarkup * it.quantity).toLocaleString(undefined, { maximumFractionDigits: 2 })}</td></tr>`;
-                                                                        }).join('')}</tbody>
-</table>
-${order.frameSource ? `<div style='background:#fffbeb;border:1px solid #fbbf24;border-radius:12px;padding:12px 16px;margin-bottom:16px;font-size:12px'><strong style='color:#92400e'>🕶️ Armazón:</strong> ${order.frameSource === 'OPTICA' ? 'De la óptica (incluido en el presupuesto)' : `Del cliente — ${order.userFrameBrand || ''} ${order.userFrameModel || ''}${order.userFrameNotes ? ' · ' + order.userFrameNotes : ''}`}</div>` : ''}
-
-${(order.paid > 0 || (order.payments && order.payments.length > 0)) ? `
-<div class='payments-section'>
-  <div class='payments-header'>
-    <div class='payment-stat'>
-      <h4>Pagado</h4>
-      <div class='val-paid'>$${(order.paid || 0).toLocaleString()}</div>
-    </div>
-    <div class='saldos-block'>
-      ${order.discountCash > 0 ? `<div class='saldo-item s-efvo'><span class='label'>💵 Saldo Efvo</span><span class='val'>$${saldoCash.toLocaleString()}</span></div>` : ''}
-      ${order.discountTransfer > 0 ? `<div class='saldo-item s-transf'><span class='label'>🏦 Saldo Transf</span><span class='val'>$${saldoTransfer.toLocaleString()}</span></div>` : ''}
-      <div class='saldo-item s-cuotas'><span class='label'>💳 Saldo Cuotas</span><span class='val'>$${saldoCard.toLocaleString()}</span></div>
-    </div>
-  </div>
-  <div class='progress-bg'>
-    <div class='progress-bar' style='width: ${Math.min(progress, 100)}%;'></div>
-    <div class='marker'></div>
-  </div>
-  ${(order.payments && order.payments.length > 0) ? `
-  <div class='payments-list'>
-    <h4>Pagos Registrados</h4>
-    ${order.payments.map((p: any) => `
-    <div class='payment-row'>
-      <div class='info'>
-        <span class='method'>${getPaymentLabel(p.method)}</span>
-        <span class='date'>${new Date(p.date).toLocaleDateString('es-AR')} ${p.notes ? '· ' + p.notes : ''}</span>
-      </div>
-      <span class='amount'>$${p.amount?.toLocaleString()}</span>
-    </div>
-    `).join('')}
-  </div>
-  ` : ''}
-</div>
-` : ''}
-
-<div class='totals'><div class='totals-box'>
-  <div class='total-row' style='font-size: 15px; font-weight: 800; color: #1c1917'><span>Precio de Lista (Cuotas)</span><span>$${Math.round(listPrice).toLocaleString()}</span></div>
-  <div class='total-row' style='font-size:11px; margin-top:-4px; margin-bottom: 2px'><span>↳ 3 cuotas s/interés de</span><span>$${cuota3.toLocaleString()}</span></div>
-  <div class='total-row' style='font-size:11px; margin-top:0px'><span>↳ 6 cuotas s/interés de</span><span>$${cuota6.toLocaleString()}</span></div>
-  <div class='total-row highlight-transf'><span>Total Transferencia (-${discountTransfer}%)</span><span>$${amtTransfer.toLocaleString()}</span></div>
-  <div class='total-row final'><span>Total Efectivo (-${discountCash}%)</span><span>$${amtCash.toLocaleString()}</span></div>
-</div></div>
-
-${(() => {
-  const hasMultifocal = items.some((it: any) => {
-    const n = (it.product?.name || '').toLowerCase();
-    const t = (it.product?.type || '').toLowerCase();
-    return n.includes('multifocal') || n.includes('progresivo') || t.includes('multifocal');
-  });
-  const hasMonofocal = items.some((it: any) => {
-    const n = (it.product?.name || '').toLowerCase();
-    const t = (it.product?.type || '').toLowerCase();
-    const cat = (it.product?.category || '').toUpperCase();
-    return n.includes('monofocal') || t.includes('monofocal') || cat === 'LENS' || t.includes('cristal');
-  });
-  if (hasMultifocal || hasMonofocal) {
-    const dias = hasMultifocal ? 10 : 5;
-    const tipo = hasMultifocal ? 'Multifocal' : 'Monofocal';
-    return `<div style='margin-top:20px;padding:14px 20px;background:#eff6ff;border:2px solid #93c5fd;border-radius:14px;display:flex;align-items:center;gap:12px'>
-      <span style='font-size:22px'>🕐</span>
-      <div>
-        <span style='font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:2px;color:#3b82f6;display:block'>Tiempo de confección</span>
-        <span style='font-size:14px;font-weight:900;color:#1e40af'>Cristales ${tipo}: ${dias} días hábiles</span>
-      </div>
-    </div>`;
-  }
-  return '';
-})()}
-
-<div class='footer'>Presupuesto válido por 5 días hábiles · Atelier Óptica · José Luis de Tejeda 4380, Córdoba</div>
-</body></html>`;
-
-                                                                        const printWindow = window.open('', '_blank', 'width=800,height=900');
-                                                                        if (printWindow) {
-                                                                            printWindow.document.write(html);
-                                                                            printWindow.document.close();
-                                                                            setTimeout(() => printWindow.print(), 400);
-                                                                        }
-                                                                    }}
-                                                                    className="py-3 bg-stone-100 dark:bg-stone-700 text-stone-600 dark:text-stone-300 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:scale-105 transition-all flex items-center justify-center gap-2"
-                                                                >
-                                                                    <Download className="w-3.5 h-3.5" /> PDF
-                                                                </button>
-                                                                <button
-                                                                    onClick={() => {
-                                                                        const items = order.items || [];
-                                                                        const subtotalBase = items.reduce((s: number, it: any) => s + (it.price * it.quantity), 0);
-                                                                        const markupPct = order.markup || 0;
-                                                                        const listPrice = subtotalBase * (1 + markupPct / 100);
-                                                                        const discountCash = order.discountCash !== null ? order.discountCash : (order.discount || 20);
-                                                                        const discountTransfer = order.discountTransfer !== null ? order.discountTransfer : 15;
-
-                                                                        const amtCash = Math.round(listPrice * (1 - discountCash / 100));
-                                                                        const amtTransfer = Math.round(listPrice * (1 - discountTransfer / 100));
-                                                                        const cuota3 = Math.round(listPrice / 3);
-                                                                        const cuota6 = Math.round(listPrice / 6);
-
-                                                                        const lines = items.map((it: any) => {
-                                                                            const itemTotalWithMarkup = (it.price * it.quantity) * (1 + markupPct / 100);
-                                                                            return `• ${it.product?.brand || ''} ${it.product?.model || it.product?.name || ''} x${it.quantity} — $${itemTotalWithMarkup.toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
-                                                                        });
-                                                                        let text = `✨ *PRESUPUESTO — ATELIER ÓPTICA* ✨\n`;
-                                                                        text += `📍 José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba\n`;
-                                                                        text += `🏆 La óptica mejor calificada en Google Business ⭐ 5/5\n`;
-                                                                        text += `\n👤 *Cliente:* ${contact.name}\n\n`;
-                                                                        text += lines.join('\n');
-                                                                        if (order.frameSource) {
-                                                                            text += `\n\n🕶️ *Armazón:* ${order.frameSource === 'OPTICA' ? 'De la óptica (incluido)' : `Del cliente — ${order.userFrameBrand || ''} ${order.userFrameModel || ''}${order.userFrameNotes ? ' · ' + order.userFrameNotes : ''}`}`;
-                                                                        }
-                                                                        text += `\n\n———————————————`;
-                                                                        text += `\n*Precio de Lista (Cuotas): $${Math.round(listPrice).toLocaleString()}*`;
-                                                                        text += `\n↳ 3 cuotas s/interés de $${cuota3.toLocaleString()}`;
-                                                                        text += `\n↳ 6 cuotas s/interés de $${cuota6.toLocaleString()}`;
-
-                                                                        text += `\n\n🏦 *Total Transferencia (-${discountTransfer}%): $${amtTransfer.toLocaleString()}*`;
-                                                                        text += `\n💵 *Total Efectivo (-${discountCash}%): $${amtCash.toLocaleString()}*`;
-                                                                        text += `\n\n_Presupuesto válido por 5 días hábiles._`;
-                                                                        const phone = contact.phone?.replace(/\D/g, '') || '';
-                                                                        const waUrl = phone ? `https://wa.me/${phone}?text=${encodeURIComponent(text)}` : `https://wa.me/?text=${encodeURIComponent(text)}`;
-                                                                        window.open(waUrl, '_blank');
-                                                                    }}
-                                                                    className="py-3 bg-emerald-500 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:scale-105 transition-all flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20"
-                                                                >
-                                                                    <MessageCircle className="w-3.5 h-3.5" /> WhatsApp
-                                                                </button>
-                                                            </div>
-                                                        </div>
-                                                    )
-                                                    }
-
-                                                    {
-                                                        order.isDeleted && (
-                                                            <div className="mt-4 p-3 bg-red-50 text-red-600 rounded-xl border border-red-100">
-                                                                <p className="text-[10px] font-black uppercase tracking-widest italic">Pedido Eliminado — {order.deletedReason}</p>
-                                                            </div>
-                                                        )
-                                                    }
-
-                                                    {!order.isDeleted && !isLockedSale && (
-                                                        <button onClick={() => setIsDeletingOrder(order.id)} className="mt-4 text-[9px] font-black text-red-300 uppercase tracking-widest hover:text-red-500 transition-colors">
-                                                            Eliminar Pedido
-                                                        </button>
-                                                    )}
-                                                    {!order.isDeleted && isSale && currentUserRole === 'ADMIN' && (
-                                                        <button onClick={() => setIsDeletingOrder(order.id)} className="mt-4 text-[9px] font-black text-red-300 uppercase tracking-widest hover:text-red-500 transition-colors flex items-center gap-1">
-                                                            <Shield className="w-3 h-3" /> Eliminar Venta (Admin)
-                                                        </button>
-                                                    )}
-
-                                                    {validationError && contact.status === 'CONFIRMED' && idx === 0 && (
-                                                        <p className="mt-3 text-center text-[10px] font-black text-red-500 uppercase tracking-widest animate-bounce">{validationError}</p>
-                                                    )}
-                                                </div>
+                                                <QuoteSummary
+                                                    order={order}
+                                                    contact={contact}
+                                                    currentUserRole={currentUserRole}
+                                                    onConvert={handleConvertQuote}
+                                                    onEdit={handleEditQuote}
+                                                    onDelete={(id) => setIsDeletingOrder(id)}
+                                                    onAddPayment={(id) => setIsAddingPayment(id)}
+                                                    onStatusChange={async (id, status) => {
+                                                        const success = await onStatusChange(id, status);
+                                                        if (success) fetchContact();
+                                                    }}
+                                                    isExpanded={expandedOrderId === order.id}
+                                                    onToggleExpand={() => setExpandedOrderId(expandedOrderId === order.id ? null : order.id)}
+                                                />
                                             </React.Fragment>
                                         );
                                     });
