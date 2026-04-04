@@ -80,11 +80,14 @@ export async function GET(request: Request) {
         const typeStats: Record<string, { total: number; count: number; cost: number }> = {};
         currentMonthOrders.forEach((order: any) => {
             order.items.forEach((item: any) => {
-                const type = item.product.type || "OTROS";
+                const product = item.product;
+                if (!product) return; // Skip if product was deleted
+
+                const type = product.type || "OTROS";
                 if (!typeStats[type]) typeStats[type] = { total: 0, count: 0, cost: 0 };
                 typeStats[type].total += item.price * item.quantity;
                 typeStats[type].count += item.quantity;
-                typeStats[type].cost += (item.product.cost || 0) * item.quantity;
+                typeStats[type].cost += (product.cost || 0) * item.quantity;
             });
         });
 

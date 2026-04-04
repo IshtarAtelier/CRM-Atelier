@@ -29,6 +29,8 @@ export async function POST(
 
         for (const item of order.items) {
             const product = item.product;
+            if (!product) continue; // Skip if product was deleted
+
             // Crystals sold per eye have item.eye set. Their unit price is product price / 2
             let currentPrice = product.price;
             if (item.eye) {

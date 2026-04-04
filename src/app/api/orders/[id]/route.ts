@@ -147,6 +147,9 @@ export async function PATCH(
                     if (product && product.stock < item.quantity) {
                         const name = `${product.brand || ''} ${product.model || product.name || ''}`.trim();
                         insufficientStock.push(`${name}: stock ${product.stock}, necesitás ${item.quantity}`);
+                    } else if (!product) {
+                        // If product is missing, we treat it as an error or just skip? 
+                        // Usually it shouldn't happen during conversion if it was valid before.
                     }
                 }
                 if (insufficientStock.length > 0) {

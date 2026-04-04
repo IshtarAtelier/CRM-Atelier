@@ -95,6 +95,8 @@ export async function GET(request: Request) {
             // Item costs
             for (const item of order.items) {
                 const product = item.product;
+                if (!product) continue; // Skip if product was deleted
+
                 const itemCost = (product.cost || 0) * item.quantity;
                 const itemRevenue = item.price * item.quantity;
 
@@ -184,9 +186,12 @@ export async function GET(request: Request) {
                 const labOrderIds: Record<string, Set<string>> = {};
                 for (const order of orders) {
                     for (const item of order.items) {
-                        const cat = ((item.product as any).category || '').toUpperCase();
-                        const labName = (item.product as any).laboratory;
-                        if (labName && (cat.includes('LENS') || ((item.product as any).type || '').includes('Cristal') || ((item.product as any).type || '').includes('Multifocal') || ((item.product as any).type || '').includes('Monofocal'))) {
+                        const product = item.product;
+                        if (!product) continue;
+
+                        const cat = (product.category || '').toUpperCase();
+                        const labName = (product as any).laboratory;
+                        if (labName && (cat.includes('LENS') || (product.type || '').includes('Cristal') || (product.type || '').includes('Multifocal') || (product.type || '').includes('Monofocal'))) {
                             if (!labOrderIds[labName]) labOrderIds[labName] = new Set();
                             labOrderIds[labName].add(order.id);
                         }
