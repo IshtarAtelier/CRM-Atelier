@@ -55,9 +55,14 @@ export function getAfipInstance(account: BillingAccount = 'ISH'): any {
         // Producción: certificados por cuenta
         const certEnv = `AFIP_CERT_${account}`;
         const keyEnv = `AFIP_KEY_${account}`;
+        
         if (process.env[certEnv] && process.env[keyEnv]) {
             config.cert = process.env[certEnv];
             config.key = process.env[keyEnv];
+            config.production = true; // Activar producción si hay certificados
+            console.log(`[AFIP] Instancia ${account} configurada en MODO PRODUCCIÓN`);
+        } else {
+            console.log(`[AFIP] Instancia ${account} configurada en MODO SANDBOX (Faltan certificados)`);
         }
 
         afipInstances[account] = new Afip(config);

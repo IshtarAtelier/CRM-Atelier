@@ -947,8 +947,12 @@ export default function ConfiguracionPage() {
                                 <span>Configurá <code>AFIP_CERT_YANI</code> y <code>AFIP_KEY_YANI</code> en Railway para Yani.</span>
                             </li>
                             <li className="flex items-start gap-2">
+                                <span className="text-amber-500 font-black">•</span>
+                                <span><b>Importante:</b> Si tu punto de venta en AFIP no es el 1, agregá la variable <code>AFIP_PUNTO_VENTA_ISH</code> o <code>AFIP_PUNTO_VENTA_YANI</code> en Railway.</span>
+                            </li>
+                            <li className="flex items-start gap-2">
                                 <span className="text-stone-500 font-black">•</span>
-                                <span>Asegurate que el Punto de Venta esté habilitado para Factura Electrónica.</span>
+                                <span>Asegurate que el Punto de Venta esté habilitado para Factura Electrónica (WebService) en la web de AFIP.</span>
                             </li>
                         </ul>
                     </div>

@@ -127,7 +127,13 @@ export default function AdministracionPage() {
         try {
             const res = await fetch('/api/cash');
             const json = await res.json();
-            setCashData(json);
+            
+            if (json.error) {
+                console.error('API Error fetching cash data:', json.error);
+                setCashData(null);
+            } else {
+                setCashData(json);
+            }
         } catch (error) {
             console.error('Error fetching cash data:', error);
         }
@@ -142,7 +148,13 @@ export default function AdministracionPage() {
             if (method) params.set('method', method);
             const res = await fetch(`/api/payments?${params.toString()}`);
             const json = await res.json();
-            setData(json);
+            
+            if (json.error) {
+                console.error('API Error fetching payments:', json.error);
+                setData(null);
+            } else {
+                setData(json);
+            }
         } catch (error) {
             console.error('Error fetching payments:', error);
         }
@@ -299,7 +311,7 @@ export default function AdministracionPage() {
                         <span className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-widest mb-1">Efectivo en Caja</span>
                         <div className="flex items-center gap-3">
                             <span className="text-3xl font-black text-emerald-600 dark:text-emerald-400 tracking-tighter">
-                                ${cashData?.total.toLocaleString('es-AR') || '0'}
+                                ${cashData?.total?.toLocaleString('es-AR') ?? '0'}
                             </span>
                             <button 
                                 onClick={() => setShowMovementModal(true)}
@@ -379,9 +391,9 @@ export default function AdministracionPage() {
                     {s && (
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
                             {[
-                                { label: 'Total Recaudado', val: `$${s.grandTotal.toLocaleString('es-AR')}`, sub: selectedMethod ? getMethodInfo(selectedMethod).label : 'Todos los métodos', icon: DollarSign, color: 'text-emerald-500', bg: 'bg-emerald-50 dark:bg-emerald-900/20' },
-                                { label: 'Cant. Operaciones', val: s.totalCount, sub: 'Pagos registrados', icon: Hash, color: 'text-blue-500', bg: 'bg-blue-50 dark:bg-blue-900/20' },
-                                { label: 'Ticket Promedio', val: `$${s.averagePayment.toLocaleString('es-AR', { maximumFractionDigits: 0 })}`, sub: 'por transacción', icon: TrendingUp, color: 'text-amber-500', bg: 'bg-amber-50 dark:bg-amber-900/20' },
+                                { label: 'Total Recaudado', val: `$${(s?.grandTotal ?? 0).toLocaleString('es-AR')}`, sub: selectedMethod ? getMethodInfo(selectedMethod).label : 'Todos los métodos', icon: DollarSign, color: 'text-emerald-500', bg: 'bg-emerald-50 dark:bg-emerald-900/20' },
+                                { label: 'Cant. Operaciones', val: s?.totalCount ?? 0, sub: 'Pagos registrados', icon: Hash, color: 'text-blue-500', bg: 'bg-blue-50 dark:bg-blue-900/20' },
+                                { label: 'Ticket Promedio', val: `$${(s?.averagePayment ?? 0).toLocaleString('es-AR', { maximumFractionDigits: 0 })}`, sub: 'por transacción', icon: TrendingUp, color: 'text-amber-500', bg: 'bg-amber-50 dark:bg-amber-900/20' },
                             ].map((kpi, idx) => (
                                 <div key={idx} className="bg-white dark:bg-stone-800 border border-stone-100 dark:border-stone-700 rounded-[2rem] p-7 transition-all hover:shadow-xl hover:shadow-stone-200/40 dark:hover:shadow-black/20 group">
                                     <div className="flex items-center gap-4 mb-4">
@@ -459,8 +471,12 @@ export default function AdministracionPage() {
                                             return (
                                                 <tr key={p.id} className="hover:bg-stone-50/50 dark:hover:bg-stone-800/30 transition-colors group">
                                                     <td className="px-8 py-5">
-                                                        <p className="text-xs font-black text-stone-800 dark:text-stone-200">{format(new Date(p.date), 'dd MMM yyyy', { locale: es })}</p>
-                                                        <p className="text-[10px] font-bold text-stone-400">{format(new Date(p.date), 'HH:mm')} hs</p>
+                                                        <p className="text-xs font-black text-stone-800 dark:text-stone-200">
+                                                            {p.date ? format(new Date(p.date), 'dd MMM yyyy', { locale: es }) : '---'}
+                                                        </p>
+                                                        <p className="text-[10px] font-bold text-stone-400">
+                                                            {p.date ? format(new Date(p.date), 'HH:mm') : '--:--'} hs
+                                                        </p>
                                                     </td>
                                                     <td className="px-8 py-5">
                                                         <p className="text-sm font-black text-stone-800 dark:text-stone-200">{p.clientName}</p>
@@ -483,7 +499,7 @@ export default function AdministracionPage() {
                                                     </td>
                                                     <td className="px-8 py-5 text-right">
                                                         <p className="text-lg font-black text-stone-800 dark:text-white tracking-tighter">
-                                                            ${p.amount.toLocaleString('es-AR')}
+                                                            ${(p.amount ?? 0).toLocaleString('es-AR')}
                                                         </p>
                                                     </td>
                                                     <td className="px-8 py-5 text-center">
@@ -521,7 +537,7 @@ export default function AdministracionPage() {
                         <div className="lg:col-span-1 border border-stone-100 dark:border-stone-800 bg-white dark:bg-stone-900 rounded-[2.5rem] p-8 flex flex-col gap-6 shadow-sm">
                             <h3 className="text-[10px] font-black uppercase tracking-widest text-stone-400">Balance Manual</h3>
                             <div>
-                                <p className="text-4xl font-black text-stone-800 dark:text-white tracking-tighter">${cashData?.manualBalance.toLocaleString('es-AR') || '0'}</p>
+                                <p className="text-4xl font-black text-stone-800 dark:text-white tracking-tighter">${(cashData?.manualBalance ?? 0).toLocaleString('es-AR')}</p>
                                 <p className="text-[10px] font-bold text-stone-400 mt-1 uppercase tracking-widest">Registros de Entradas y Salidas</p>
                             </div>
                             <div className="h-px bg-stone-100 dark:bg-stone-800 w-full" />
@@ -532,7 +548,7 @@ export default function AdministracionPage() {
                                 </div>
                                 <div className="flex items-center justify-between">
                                     <span className="text-[10px] font-black text-stone-400 uppercase tracking-widest">Egresos Manuales</span>
-                                    <span className="text-xs font-black text-red-500">${(Math.abs(cashData?.manualBalance || 0)).toLocaleString('es-AR')}</span>
+                                    <span className="text-xs font-black text-red-500">${(Math.abs(cashData?.manualBalance ?? 0)).toLocaleString('es-AR')}</span>
                                 </div>
                             </div>
                             <button 
@@ -569,9 +585,9 @@ export default function AdministracionPage() {
                                                         </span>
                                                     </div>
                                                     <div className="flex items-center gap-4 text-[10px] font-bold text-stone-400 uppercase tracking-widest">
-                                                        <span>{format(new Date(m.createdAt), 'dd MMMM, HH:mm', { locale: es })}</span>
+                                                        <span>{m.createdAt ? format(new Date(m.createdAt), 'dd MMMM, HH:mm', { locale: es }) : '---'}</span>
                                                         <span className="text-stone-200">|</span>
-                                                        <span>Por: {m.user.name}</span>
+                                                        <span>Por: {m.user?.name ?? 'Desconocido'}</span>
                                                     </div>
                                                 </div>
                                                 <div className="flex items-center gap-6">
@@ -585,7 +601,7 @@ export default function AdministracionPage() {
                                                         </button>
                                                     )}
                                                     <p className={`text-xl font-black tracking-tight ${m.type === 'IN' ? 'text-emerald-500' : 'text-red-500'}`}>
-                                                        {m.type === 'IN' ? '+' : '-'}${m.amount.toLocaleString('es-AR')}
+                                                        {m.type === 'IN' ? '+' : '-'}${(m.amount ?? 0).toLocaleString('es-AR')}
                                                     </p>
                                                 </div>
                                             </div>
