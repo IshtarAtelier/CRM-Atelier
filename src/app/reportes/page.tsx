@@ -94,9 +94,16 @@ export default function ReportesPage() {
             if (to) params.set('to', to);
             const res = await fetch(`/api/reports?${params.toString()}`);
             const json = await res.json();
-            setData(json);
+            
+            if (json.error) {
+                console.error('API Error fetching reports:', json.error);
+                setData(null);
+            } else {
+                setData(json);
+            }
         } catch (error) {
             console.error('Error fetching report:', error);
+            setData(null);
         }
         setLoading(false);
     };
@@ -221,21 +228,21 @@ export default function ReportesPage() {
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
                         <KPICard
                             title="Facturación Total"
-                            value={`$${s.totalRevenue.toLocaleString()}`}
+                            value={`$${(s?.totalRevenue ?? 0).toLocaleString()}`}
                             sub={`${s.ordersCount} operaciones`}
                             icon={DollarSign}
                             color="stone"
                         />
                         <KPICard
                             title="Costos Totales"
-                            value={`$${s.totalCosts.toLocaleString()}`}
-                            sub={`+ $${s.totalPlatformFees.toLocaleString()} comisiones`}
+                            value={`$${(s?.totalCosts ?? 0).toLocaleString()}`}
+                            sub={`+ $${(s?.totalPlatformFees ?? 0).toLocaleString()} comisiones`}
                             icon={ArrowDown}
                             color="red"
                         />
                         <KPICard
                             title="Ganancia Neta"
-                            value={`$${s.netProfit.toLocaleString()}`}
+                            value={`$${(s?.netProfit ?? 0).toLocaleString()}`}
                             sub={`${s.profitMargin.toFixed(1)}% margen`}
                             icon={TrendingUp}
                             color="emerald"
@@ -243,8 +250,8 @@ export default function ReportesPage() {
                         />
                         <KPICard
                             title="Cobrado / Pendiente"
-                            value={`$${s.totalPaid.toLocaleString()}`}
-                            sub={`$${s.totalPending.toLocaleString()} pendiente`}
+                            value={`$${(s?.totalPaid ?? 0).toLocaleString()}`}
+                            sub={`$${(s?.totalPending ?? 0).toLocaleString()} pendiente`}
                             icon={CreditCard}
                             color="blue"
                         />
@@ -289,8 +296,8 @@ export default function ReportesPage() {
                                 <div className="border-t-2 border-stone-100 dark:border-stone-700 pt-4 mt-4">
                                     <div className="flex justify-between items-center">
                                         <span className="text-sm font-black text-stone-800 dark:text-white uppercase tracking-tight">Ganancia Neta</span>
-                                        <span className={`text-xl font-black ${s.netProfit >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
-                                            ${s.netProfit.toLocaleString()}
+                                        <span className={`text-xl font-black ${(s?.netProfit ?? 0) >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
+                                            ${(s?.netProfit ?? 0).toLocaleString()}
                                         </span>
                                     </div>
                                     {/* Visual breakdown bar */}
