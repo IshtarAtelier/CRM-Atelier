@@ -1,39 +1,35 @@
 import { NextResponse } from 'next/server';
 import { BillingService } from '@/services/billing.service';
+import { getAllBillingAccounts, BillingAccount } from '@/lib/afip';
 
 /**
- * GET /api/billing/config — Estado de la configuración de ARCA
+ * GET /api/billing/config — Estado de la configuración de ARCA para todas las cuentas
  */
 export async function GET() {
     try {
-        const status = await BillingService.checkConnection();
+        const accounts = getAllBillingAccounts();
+        const results = await Promise.all(
+            Object.keys(accounts).map(async (accKey) => {
+                const account = accKey as BillingAccount;
+                const status = await BillingService.checkConnection(account);
+                
+                let lastVoucherNum = null;
+                if (status.connected) {
+                    try {
+                        const lastVoucherData = await BillingService.getLastVoucherNumber(account);
+                        lastVoucherNum = lastVoucherData.lastVoucher;
+                    } catch { }
+                }
 
-        // Obtener puntos de venta si está conectado
-        let salesPoints: any[] = [];
-        if (status.connected) {
-            try {
-                salesPoints = await BillingService.getSalesPoints();
-            } catch {
-                // No critical — puede fallar si no tiene permisos
-            }
-        }
+                return {
+                    ...status,
+                    puntoDeVenta: accounts[account].puntoDeVenta,
+                    lastVoucherNumber: lastVoucherNum,
+                };
+            })
+        );
 
-        // Obtener último comprobante
-        let lastVoucher = null;
-        if (status.connected) {
-            try {
-                lastVoucher = await BillingService.getLastVoucherNumber();
-            } catch {
-                // No critical
-            }
-        }
-
-        return NextResponse.json({
-            ...status,
-            salesPoints,
-            lastVoucher,
-            puntoDeVenta: process.env.AFIP_PUNTO_VENTA || '1',
-        });
+        return NextResponse.json(results);
     } catch (error: any) {
         return NextResponse.json(
             { error: error.message || 'Error verificando configuración' },

@@ -5,7 +5,7 @@ import {
     Cog, Users, Plus, Pencil, Trash2, Save, X, Eye, EyeOff,
     Shield, ShieldCheck, Loader2, Lock, UserPlus, AlertTriangle,
     CheckCircle2, Stethoscope, Bot, MessageCircle, Wifi, WifiOff,
-    Sparkles, RotateCcw, Copy, Download, Database
+    Sparkles, RotateCcw, Copy, Download, Database, RefreshCw
 } from 'lucide-react';
 
 // ── Types ─────────────────────────────────────
@@ -22,6 +22,16 @@ interface Doctor {
     id: string;
     name: string;
     createdAt: string;
+}
+
+interface BillingConfig {
+    account: string;
+    label: string;
+    cuit: number;
+    puntoDeVenta: number;
+    connected?: boolean;
+    error?: string;
+    lastVoucherNumber?: number | null;
 }
 
 // ── Page ──────────────────────────────────
@@ -58,6 +68,10 @@ export default function ConfiguracionPage() {
     const [newRole, setNewRole] = useState('STAFF');
     const [showPassword, setShowPassword] = useState(false);
     const [creating, setCreating] = useState(false);
+    
+    // Billing state
+    const [billingConfig, setBillingConfig] = useState<BillingConfig[] | null>(null);
+    const [loadingBilling, setLoadingBilling] = useState(false);
 
     // Edit form
     const [editName, setEditName] = useState('');
@@ -72,8 +86,24 @@ export default function ConfiguracionPage() {
         fetchDoctors();
         fetchAgentConfig();
         fetchWaStatus();
+        fetchBillingConfig();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
+
+    const fetchBillingConfig = async () => {
+        setLoadingBilling(true);
+        try {
+            const res = await fetch('/api/billing/config');
+            if (res.ok) {
+                const data = await res.json();
+                setBillingConfig(data);
+            }
+        } catch (error) {
+            console.error('Error fetching billing config:', error);
+        } finally {
+            setLoadingBilling(false);
+        }
+    };
 
     const fetchAgentConfig = async () => {
         try {
@@ -821,61 +851,106 @@ export default function ConfiguracionPage() {
                         <Shield className="w-5 h-5 text-blue-500" />
                         <h2 className="text-xs font-black uppercase tracking-widest text-stone-400">Facturación Electrónica ARCA</h2>
                     </div>
+                    <button
+                        onClick={async () => {
+                            setLoadingBilling(true);
+                            try {
+                                const res = await fetch('/api/billing/config');
+                                const data = await res.json();
+                                setBillingConfig(data);
+                                setMessage({ type: 'success', text: 'Estados de facturación actualizados' });
+                            } catch {
+                                setMessage({ type: 'error', text: 'Error al actualizar configuración de ARCA' });
+                            } finally {
+                                setLoadingBilling(false);
+                            }
+                        }}
+                        disabled={loadingBilling}
+                        className="p-2 text-stone-400 hover:text-blue-500 transition-all hover:rotate-180"
+                        title="Refrescar estados"
+                    >
+                        <RefreshCw className={`w-4 h-4 ${loadingBilling ? 'animate-spin' : ''}`} />
+                    </button>
                 </div>
                 <div className="p-6">
                     <div className="bg-blue-50 dark:bg-blue-950/30 rounded-2xl p-4 mb-6 border border-blue-200 dark:border-blue-800">
                         <div className="flex items-start gap-3">
                             <ShieldCheck className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" />
                             <div>
-                                <p className="text-sm font-bold text-blue-700 dark:text-blue-300 mb-1">Factura C — Monotributista</p>
-                                <p className="text-xs text-blue-600/70 dark:text-blue-400/70">
-                                    Emite facturas electrónicas desde la sección de Ventas. Los comprobantes se registran automáticamente en ARCA con su CAE correspondiente.
+                                <p className="text-sm font-bold text-blue-700 dark:text-blue-300 mb-1">Múltiples Puntos de Facturación</p>
+                                <p className="text-xs text-blue-600/70 dark:text-blue-400/70 leading-relaxed">
+                                    El sistema soporta facturar desde diferentes CUITs según la cuenta (Ishtar, Yani, Lucía).
+                                    Asegurate de tener los certificados configurados en Railway para cada cuenta.
                                 </p>
                             </div>
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                        <div className="p-4 bg-stone-50 dark:bg-stone-900 rounded-xl">
-                            <p className="text-[9px] font-black text-stone-400 uppercase tracking-widest mb-1">CUIT Emisor</p>
-                            <p className="text-sm font-mono font-bold text-stone-700 dark:text-stone-200">
-                                {process.env.NEXT_PUBLIC_AFIP_CUIT || '20-40937847-2'}
-                            </p>
-                            <p className="text-[10px] text-stone-400 mt-1">CUIT de prueba (testing)</p>
-                        </div>
-                        <div className="p-4 bg-stone-50 dark:bg-stone-900 rounded-xl">
-                            <p className="text-[9px] font-black text-stone-400 uppercase tracking-widest mb-1">Punto de Venta</p>
-                            <p className="text-sm font-bold text-stone-700 dark:text-stone-200">1</p>
-                            <p className="text-[10px] text-stone-400 mt-1">Configurable vía `.env`</p>
-                        </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {(billingConfig || [
+                            { account: 'ISH', label: 'Ishtar Pissano', cuit: 23386152314, puntoDeVenta: 1 },
+                            { account: 'YANI', label: 'Yani Pissano', cuit: 20409378472, puntoDeVenta: 1 },
+                            { account: 'LUCIA', label: 'Lucía Pissano', cuit: 27338615234, puntoDeVenta: 1 }
+                        ]).map((cfg: BillingConfig) => (
+                            <div key={cfg.account} className="bg-stone-50 dark:bg-stone-900 rounded-3xl p-6 border border-stone-100 dark:border-stone-800 flex flex-col gap-4">
+                                <div className="flex justify-between items-start">
+                                    <div>
+                                        <h3 className="text-sm font-black text-stone-800 dark:text-white uppercase tracking-tight">{cfg.label}</h3>
+                                        <p className="text-[10px] font-bold text-stone-400 uppercase tracking-widest mt-0.5">{cfg.account} ACCOUNT</p>
+                                    </div>
+                                    {cfg.connected !== undefined && (
+                                        <span className={`px-2 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest ${cfg.connected ? 'bg-emerald-100 text-emerald-600' : 'bg-red-100 text-red-600'}`}>
+                                            {cfg.connected ? '● Online' : '○ Offline'}
+                                        </span>
+                                    )}
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div className="p-3 bg-white dark:bg-stone-800 rounded-2xl shadow-sm">
+                                        <p className="text-[8px] font-black text-stone-400 uppercase tracking-widest mb-0.5">CUIT</p>
+                                        <p className="text-xs font-mono font-bold text-stone-700 dark:text-stone-300">{cfg.cuit}</p>
+                                    </div>
+                                    <div className="p-3 bg-white dark:bg-stone-800 rounded-2xl shadow-sm">
+                                        <p className="text-[8px] font-black text-stone-400 uppercase tracking-widest mb-0.5">Pto Venta</p>
+                                        <p className="text-xs font-bold text-stone-700 dark:text-stone-300">{cfg.puntoDeVenta}</p>
+                                    </div>
+                                </div>
+
+                                {cfg.connected && (
+                                    <div className="bg-emerald-50 dark:bg-emerald-950/20 p-3 rounded-2xl flex flex-col gap-1 border border-emerald-100 dark:border-emerald-900/30">
+                                        <div className="flex justify-between items-center text-[10px] font-bold">
+                                            <span className="text-emerald-600/70">Última FC emitida:</span>
+                                            <span className="text-emerald-600 uppercase font-black">N° {cfg.lastVoucherNumber || '---'}</span>
+                                        </div>
+                                    </div>
+                                )}
+                                
+                                {cfg.error && (
+                                    <div className="bg-red-50 dark:bg-red-950/20 p-3 rounded-2xl flex flex-col gap-1 border border-red-100 dark:border-red-900/30">
+                                        <p className="text-[9px] font-bold text-red-600 leading-tight">
+                                           ⚠️ Error: {cfg.error}
+                                        </p>
+                                    </div>
+                                )}
+                            </div>
+                        ))}
                     </div>
 
-                    <button
-                        onClick={async () => {
-                            try {
-                                const res = await fetch('/api/billing/config');
-                                const data = await res.json();
-                                if (data.connected) {
-                                    setMessage({ type: 'success', text: `✅ Conexión con ARCA exitosa. Último Nro: ${data.lastVoucher?.lastVoucher ?? 'N/A'}` });
-                                } else {
-                                    setMessage({ type: 'error', text: `❌ No se pudo conectar a ARCA: ${data.error || 'Error desconocido'}` });
-                                }
-                            } catch {
-                                setMessage({ type: 'error', text: 'Error al verificar conexión con ARCA' });
-                            }
-                        }}
-                        className="w-full py-3 bg-blue-600 text-white rounded-xl text-xs font-black uppercase tracking-widest hover:scale-[1.02] transition-all shadow-lg shadow-blue-600/20 flex items-center justify-center gap-2"
-                    >
-                        <Wifi className="w-4 h-4" /> Verificar Conexión con ARCA
-                    </button>
-
-                    <div className="mt-4 p-4 bg-stone-50 dark:bg-stone-900 rounded-xl border border-stone-100 dark:border-stone-700">
-                        <p className="text-[10px] font-black text-stone-400 uppercase tracking-widest mb-2">📋 Para producción necesitás</p>
-                        <ul className="text-xs text-stone-400 space-y-1">
-                            <li>• Access Token de <a href="https://app.afipsdk.com" target="_blank" className="text-blue-500 hover:underline">app.afipsdk.com</a></li>
-                            <li>• Certificado digital (.crt) y clave privada (.key) de ARCA</li>
-                            <li>• Punto de venta electrónico habilitado</li>
-                            <li>• Configurar las variables en el archivo <code className="bg-stone-200 dark:bg-stone-700 px-1 rounded">.env</code></li>
+                    <div className="mt-6 p-4 bg-stone-50 dark:bg-stone-900 rounded-2xl border border-stone-100 dark:border-stone-700">
+                        <p className="text-[10px] font-black text-stone-400 uppercase tracking-widest mb-2">📋 Configuración para Producción</p>
+                        <ul className="text-xs text-stone-400 space-y-1.5 leading-relaxed">
+                            <li className="flex items-start gap-2">
+                                <span className="text-blue-500 font-black">•</span>
+                                <span>Configurá <code>AFIP_CERT_ISH</code> y <code>AFIP_KEY_ISH</code> en Railway para Ishtar.</span>
+                            </li>
+                            <li className="flex items-start gap-2">
+                                <span className="text-indigo-500 font-black">•</span>
+                                <span>Configurá <code>AFIP_CERT_YANI</code> y <code>AFIP_KEY_YANI</code> en Railway para Yani.</span>
+                            </li>
+                            <li className="flex items-start gap-2">
+                                <span className="text-stone-500 font-black">•</span>
+                                <span>Asegurate que el Punto de Venta esté habilitado para Factura Electrónica.</span>
+                            </li>
                         </ul>
                     </div>
                 </div>

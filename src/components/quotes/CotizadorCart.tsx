@@ -97,17 +97,17 @@ export default function CotizadorCart({
     
     // Check frames in quote for the promo
     const framesInQuote = items.filter(i => getCategoryKey(i.product.type) === 'Armazón');
-    const sortedFrames = [...framesInQuote].sort((a, b) => b.price - a.price);
+    const sortedFrames = [...framesInQuote].sort((a, b) => b.customPrice - a.customPrice);
     const secondFrameUid = sortedFrames.length >= 2 ? sortedFrames[1].uid : null;
     
     const promoFrameDiscount = useMemo(() => {
         if (!hasMultifocalPromo || sortedFrames.length < 2) return 0;
         const secondFrame = sortedFrames[1];
-        if (isAtelierFrame(secondFrame.product)) return secondFrame.price;
-        return Math.min(secondFrame.price, atelierAvgPrice);
+        if (isAtelierFrame(secondFrame.product)) return secondFrame.customPrice;
+        return Math.min(secondFrame.customPrice, atelierAvgPrice);
     }, [hasMultifocalPromo, sortedFrames, atelierAvgPrice]);
 
-    const subtotal = Math.max(0, items.reduce((s, i) => s + i.price * i.quantity, 0) - promoFrameDiscount);
+    const subtotal = Math.max(0, items.reduce((s, i) => s + i.customPrice * i.quantity, 0) - promoFrameDiscount);
 
     const markupAmount = subtotal * (markup / 100);
     const priceWithMarkup = subtotal + markupAmount;
@@ -140,6 +140,31 @@ export default function CotizadorCart({
 
     const hasCrystals = items.some(i => isCrystal(i.product));
 
+    const [fullSearch, setFullSearch] = useState('');
+    const fullSearchResults = fullSearch ? availableProducts.filter(p => {
+        const q = fullSearch.toLowerCase();
+        return (
+            (p.brand?.toLowerCase().includes(q)) || 
+            (p.model?.toLowerCase().includes(q)) || 
+            (p.name?.toLowerCase().includes(q)) ||
+            (p.type?.toLowerCase().includes(q))
+        );
+    }).slice(0, 5) : [];
+
+    const handleAddItem = (product: any) => {
+        if (isCrystal(product)) {
+            // Default to OD if crystal
+            setItems(prev => [
+                ...prev,
+                { product, quantity: 1, price: Math.round(product.price / 2), eye: 'OD', uid: Date.now() },
+                { product, quantity: 1, price: Math.round(product.price / 2), eye: 'OI', uid: Date.now() + 1 }
+            ]);
+        } else {
+            setItems(prev => [...prev, { product, quantity: 1, price: product.price, uid: Date.now() }]);
+        }
+        setFullSearch('');
+    };
+
     return (
         <div className="bg-white dark:bg-stone-800 border-2 border-primary/20 rounded-[2.5rem] p-8 shadow-2xl animate-in zoom-in-95 duration-300">
             {/* Header */}
@@ -152,17 +177,58 @@ export default function CotizadorCart({
                 </div>
                 {onClose && (
                     <button onClick={onClose} className="px-4 py-2 bg-stone-100 dark:bg-stone-900 text-stone-400 hover:text-stone-800 dark:hover:text-stone-100 rounded-xl font-black text-[10px] uppercase tracking-widest transition-colors border border-stone-200 dark:border-stone-700">
-                        CANCELAR
+                        CERRAR
                     </button>
+                )}
+            </div>
+
+            {/* General Product Search (New) */}
+            <div className="mb-8 relative group/search">
+                <div className="relative">
+                    <Search className="w-5 h-5 absolute left-5 top-1/2 -translate-y-1/2 text-stone-300 group-hover/search:text-primary transition-colors" />
+                    <input
+                        type="text"
+                        placeholder="Agregar cualquier producto (Cristal, Armazón, etc.)..."
+                        value={fullSearch}
+                        onChange={e => setFullSearch(e.target.value)}
+                        className="w-full bg-stone-50 dark:bg-stone-900/50 border-2 border-stone-100 dark:border-stone-800 py-4 px-14 rounded-3xl text-sm font-black outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary/40 transition-all placeholder:text-stone-300"
+                    />
+                </div>
+                {fullSearchResults.length > 0 && (
+                    <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-stone-900 border-2 border-primary/20 rounded-3xl shadow-2xl z-[100] overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                        {fullSearchResults.map(p => (
+                            <button
+                                key={p.id}
+                                onClick={() => handleAddItem(p)}
+                                className="w-full flex items-center justify-between p-4 hover:bg-primary/5 transition-colors text-left group/item border-b border-stone-50 dark:border-stone-800 last:border-0"
+                            >
+                                <div className="flex-1">
+                                    <p className="text-xs font-black text-stone-800 dark:text-white uppercase">
+                                        {p.brand} {p.model || p.name}
+                                    </p>
+                                    <p className="text-[9px] font-bold text-stone-400 uppercase tracking-widest">
+                                        {p.type || p.category} {p.lensIndex ? `· ${p.lensIndex}` : ''}
+                                    </p>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                    <span className="text-[10px] font-black text-primary">${p.price.toLocaleString()}</span>
+                                    <div className="w-7 h-7 bg-primary text-white rounded-lg flex items-center justify-center scale-0 group-hover/item:scale-100 transition-all">
+                                        <Plus className="w-4 h-4" />
+                                    </div>
+                                </div>
+                            </button>
+                        ))}
+                    </div>
                 )}
             </div>
 
             {/* Cart Items */}
             <div className="space-y-4 mb-8">
                 {items.length === 0 ? (
-                    <div className="py-12 text-center border-2 border-dashed border-stone-200 dark:border-stone-700 rounded-3xl">
-                        <ShoppingBag className="w-10 h-10 text-stone-200 dark:text-stone-700 mx-auto mb-3" />
-                        <p className="text-xs font-black text-stone-300 uppercase tracking-widest">No hay productos seleccionados</p>
+                    <div className="py-12 text-center border-2 border-dashed border-stone-200 dark:border-stone-700 rounded-[2.5rem] bg-stone-50/50 dark:bg-stone-900/20">
+                        <ShoppingBag className="w-12 h-12 text-stone-200 dark:text-stone-700 mx-auto mb-4" />
+                        <p className="text-xs font-black text-stone-300 uppercase tracking-widest">El presupuesto está vacío</p>
+                        <p className="text-[10px] font-bold text-stone-400 mt-2">Usá el buscador de arriba para agregar ítems</p>
                     </div>
                 ) : (
                     items.map((item, idx) => (
@@ -191,14 +257,14 @@ export default function CotizadorCart({
                             <div className="w-28 text-right pr-2">
                                 {item.uid === secondFrameUid && promoFrameDiscount > 0 ? (
                                     <div className="flex flex-col">
-                                        <span className="text-[10px] line-through text-stone-400 font-bold">${item.price.toLocaleString()}</span>
-                                        <span className="text-sm font-black text-emerald-500">${Math.max(0, item.price - promoFrameDiscount).toLocaleString()}</span>
+                                        <span className="text-[10px] line-through text-stone-400 font-bold">${item.customPrice.toLocaleString()}</span>
+                                        <span className="text-sm font-black text-emerald-500">${Math.max(0, item.customPrice - promoFrameDiscount).toLocaleString()}</span>
                                     </div>
                                 ) : item.isPromo ? (
                                     <span className="text-sm font-black text-emerald-500">SIN CARGO</span>
                                 ) : (
                                     <span className="text-sm font-black text-stone-500">
-                                        ${(item.price * (1 + markup / 100)).toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                                        ${(item.customPrice * (1 + markup / 100)).toLocaleString(undefined, { maximumFractionDigits: 2 })}
                                     </span>
                                 )}
                             </div>
@@ -396,8 +462,8 @@ export default function CotizadorCart({
                 </div>
             )}
 
-            {/* Pricing Controls & Totals */}
-            <div className="pt-8 border-t-2 border-stone-100 dark:border-stone-700">
+            {/* Pricing Controls & Totals - Sticky Footer */}
+            <div className="sticky bottom-[-32px] bg-white dark:bg-stone-800 pt-8 border-t-2 border-stone-100 dark:border-stone-700 mt-2 z-20 pb-4 shadow-[0_-20px_20px_-10px_rgba(255,255,255,1)] dark:shadow-[0_-20px_20px_-10px_rgba(28,25,23,1)]">
                 {/* Markup + Discounts */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
                     <div className="p-4 bg-blue-50/50 dark:bg-blue-950/20 rounded-3xl border-2 border-blue-100 dark:border-blue-900/30 group/markup">
