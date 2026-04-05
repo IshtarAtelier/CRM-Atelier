@@ -204,7 +204,7 @@ export const BillingService = {
                 DocNro: invoice.docNumber,
                 // Items  
                 items: invoice.order.items.map((item: any) => ({
-                    description: `${item.product?.brand || ''} ${item.product?.model || item.product?.name || ''}`.trim(),
+                    description: `${item.product?.brand || ''} ${item.product?.model || item.product?.name || ''} ${item.eye ? '(' + item.eye + ')' : ''}`.trim(),
                     quantity: item.quantity,
                     unitPrice: item.price,
                     total: item.price * item.quantity,

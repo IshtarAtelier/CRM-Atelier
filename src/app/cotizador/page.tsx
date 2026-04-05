@@ -320,7 +320,7 @@ export default function CotizadorPage() {
 
         const lines = quoteItems.map(item => {
             let label = `• ${item.product.brand || ''} ${item.product.model || item.product.name || ''} x${item.quantity}`;
-            if (item.eye) label += ` (${item.eye})`;
+            if (item.eye) label += ` (${item.eye === 'OD' ? 'Ojo Derecho' : 'Ojo Izquierdo'})`;
 
             if (item.isPromo) {
                 label += ` — *SIN CARGO PROMO 2x1* ✨`;

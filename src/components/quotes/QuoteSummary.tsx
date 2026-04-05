@@ -221,9 +221,19 @@ export default function QuoteSummary({
 </div>
 <table>
   <thead><tr><th>Producto</th><th>Cant.</th><th>Precio Unit.</th><th>Subtotal</th></tr></thead>
-  <tbody>${items.map((it: any) => {
-            const itPriceWithMarkup = it.price * (1 + markupPct / 100);
-            return `<tr><td>${it.product?.brand || ''} ${it.product?.model || it.product?.name || ''}</td><td style='text-align:center'>${it.quantity}</td><td>$${itPriceWithMarkup.toLocaleString(undefined, { maximumFractionDigits: 2 })}</td><td>$${(itPriceWithMarkup * it.quantity).toLocaleString(undefined, { maximumFractionDigits: 2 })}</td></tr>`;
+  <tbody>${order.items.map((it: any) => {
+            const eyeLabel = it.eye ? `<span style="color: #666; font-weight: bold;">(${it.eye === 'OD' ? 'Ojo Derecho' : 'Ojo Izquierdo'})</span>` : '';
+            const productDesc = `${it.product?.brand || ''} ${it.product?.model || it.product?.name || ''}`.trim();
+            
+            return `<tr>
+                <td>
+                    <div style="font-weight: 600;">${productDesc}</div>
+                    ${eyeLabel ? `<div style="font-size: 9px; margin-top: 2px;">${eyeLabel}</div>` : ''}
+                </td>
+                <td style="text-align: center;">${it.quantity}</td>
+                <td style="text-align: right;">$${Math.round(it.price * (1 + (order.markup || 0) / 100)).toLocaleString()}</td>
+                <td style="text-align: right;">$${Math.round(it.price * it.quantity * (1 + (order.markup || 0) / 100)).toLocaleString()}</td>
+            </tr>`;
         }).join('')}</tbody>
 </table>
 ${order.frameSource ? `<div style='background:#fffbeb;border:1px solid #fbbf24;border-radius:12px;padding:12px 16px;margin-bottom:16px;font-size:12px'><strong style='color:#92400e'>🕶️ Armazón:</strong> ${order.frameSource === 'OPTICA' ? 'De la óptica (incluido en el presupuesto)' : `Del cliente — ${order.userFrameBrand || ''} ${order.userFrameModel || ''}${order.userFrameNotes ? ' · ' + order.userFrameNotes : ''}`}</div>` : ''}
@@ -273,9 +283,11 @@ ${(order.paid > 0) ? `
         const cuota3 = Math.round(listPrice / 3);
         const cuota6 = Math.round(listPrice / 6);
 
-        const lines = items.map((it: any) => {
-            const itemTotalWithMarkup = (it.price * it.quantity) * (1 + markupPct / 100);
-            return `• ${it.product?.brand || ''} ${it.product?.model || it.product?.name || ''} x${it.quantity} — $${itemTotalWithMarkup.toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
+        const lines = order.items.map((it: any) => {
+            let label = `• ${it.product?.brand || ''} ${it.product?.model || it.product?.name || ''} x${it.quantity}`;
+            if (it.eye) label += ` (${it.eye === 'OD' ? 'Ojo Derecho' : 'Ojo Izquierdo'})`;
+            label += ` — $${Math.round(it.price * it.quantity * (1 + (order.markup || 0) / 100)).toLocaleString()}`;
+            return label;
         });
         
         let text = `✨ *${isSale ? 'VENTA' : 'PRESUPUESTO'} — ATELIER ÓPTICA* ✨\n`;
