@@ -879,7 +879,7 @@ export default function ConfiguracionPage() {
                             <div>
                                 <p className="text-sm font-bold text-blue-700 dark:text-blue-300 mb-1">Múltiples Puntos de Facturación</p>
                                 <p className="text-xs text-blue-600/70 dark:text-blue-400/70 leading-relaxed">
-                                    El sistema soporta facturar desde diferentes CUITs según la cuenta (Ishtar, Yani, Lucía).
+                                    El sistema soporta facturar desde diferentes CUITs según la cuenta (Ishtar, Yani).
                                     Asegurate de tener los certificados configurados en Railway para cada cuenta.
                                 </p>
                             </div>
@@ -889,8 +889,7 @@ export default function ConfiguracionPage() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         {(billingConfig || [
                             { account: 'ISH', label: 'Ishtar Pissano', cuit: 23386152314, puntoDeVenta: 1 },
-                            { account: 'YANI', label: 'Yani Pissano', cuit: 20409378472, puntoDeVenta: 1 },
-                            { account: 'LUCIA', label: 'Lucía Pissano', cuit: 27338615234, puntoDeVenta: 1 }
+                            { account: 'YANI', label: 'Yani Pissano', cuit: 20409378472, puntoDeVenta: 1 }
                         ]).map((cfg: BillingConfig) => (
                             <div key={cfg.account} className="bg-stone-50 dark:bg-stone-900 rounded-3xl p-6 border border-stone-100 dark:border-stone-800 flex flex-col gap-4">
                                 <div className="flex justify-between items-start">

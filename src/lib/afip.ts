@@ -7,7 +7,7 @@ import Afip from '@afipsdk/afip.js';
  * YANI = pagos con Pay Way Yani, Naranja Z Yani
  * LUCIA = pagos con Cuenta Lucía
  */
-export type BillingAccount = 'ISH' | 'YANI' | 'LUCIA';
+export type BillingAccount = 'ISH' | 'YANI';
 
 export interface BillingAccountConfig {
     cuit: number;
@@ -23,13 +23,8 @@ const BILLING_ACCOUNTS: Record<BillingAccount, BillingAccountConfig> = {
     },
     YANI: {
         cuit: parseInt(process.env.AFIP_CUIT_YANI || '20409378472'),
-        label: 'Yani',
+        label: 'Yani Pissano',
         puntoDeVenta: parseInt(process.env.AFIP_PUNTO_VENTA_YANI || '1'),
-    },
-    LUCIA: {
-        cuit: parseInt(process.env.AFIP_CUIT_LUCIA || '27338615234'), // CUIT placeholder para Lucía
-        label: 'Lucía Pissano',
-        puntoDeVenta: parseInt(process.env.AFIP_PUNTO_VENTA_LUCIA || '1'),
     },
 };
 
@@ -54,9 +49,7 @@ export function getAfipInstance(account: BillingAccount = 'ISH'): any {
             CUIT: accountConfig.cuit,
             access_token: account === 'ISH'
                 ? (process.env.AFIP_ACCESS_TOKEN_ISH || '')
-                : account === 'YANI'
-                    ? (process.env.AFIP_ACCESS_TOKEN_YANI || '')
-                    : (process.env.AFIP_ACCESS_TOKEN_LUCIA || ''),
+                : (process.env.AFIP_ACCESS_TOKEN_YANI || ''),
         };
 
         // Producción: certificados por cuenta
@@ -77,7 +70,6 @@ export function getAfipInstance(account: BillingAccount = 'ISH'): any {
  */
 const ISH_METHODS = ['PAY_WAY_6_ISH', 'PAY_WAY_3_ISH', 'NARANJA_Z_ISH', 'GO_CUOTAS_ISH'];
 const YANI_METHODS = ['PAY_WAY_6_YANI', 'PAY_WAY_3_YANI', 'NARANJA_Z_YANI'];
-const LUCIA_METHODS = ['TRANSFERENCIA_LUCIA'];
 
 /**
  * Detecta la cuenta de facturación a partir de los métodos de pago de una orden.
@@ -87,11 +79,9 @@ const LUCIA_METHODS = ['TRANSFERENCIA_LUCIA'];
 export function detectBillingAccount(payments: { method: string }[]): BillingAccount | null {
     const hasIsh = payments.some(p => ISH_METHODS.includes(p.method));
     const hasYani = payments.some(p => YANI_METHODS.includes(p.method));
-    const hasLucia = payments.some(p => LUCIA_METHODS.includes(p.method));
 
-    if (hasIsh && !hasYani && !hasLucia) return 'ISH';
-    if (hasYani && !hasIsh && !hasLucia) return 'YANI';
-    if (hasLucia && !hasIsh && !hasYani) return 'LUCIA';
+    if (hasIsh && !hasYani) return 'ISH';
+    if (hasYani && !hasIsh) return 'YANI';
     return null; // Ambivalente — usuario elige
 }
 
