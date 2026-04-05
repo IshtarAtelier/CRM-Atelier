@@ -49,6 +49,18 @@ export const isMiPrimerVarilux = (p: any): boolean => {
 };
 
 /**
+ * Robust check if a product is a frame (armazón).
+ */
+export const isFrame = (p: any): boolean => {
+    if (!p) return false;
+    const type = (p.type || '').toLowerCase();
+    const category = (p.category || '').toLowerCase();
+    return type.includes('armazón') || type.includes('armazon') || 
+           category.includes('armazón') || category.includes('armazon') ||
+           category === 'frame' || type === 'frame';
+};
+
+/**
  * Determines the general category key for consistent styling and logic.
  */
 export function getCategoryKey(type: string | null): string {

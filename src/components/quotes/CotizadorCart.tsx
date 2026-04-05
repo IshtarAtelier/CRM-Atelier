@@ -10,7 +10,7 @@ import {
 } from 'lucide-react';
 import { 
     isMultifocal2x1, isAtelierFrame, isCrystal, 
-    isMiPrimerVarilux, getCategoryKey 
+    isMiPrimerVarilux, getCategoryKey, isFrame 
 } from '@/lib/promo-utils';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -116,13 +116,7 @@ export default function CotizadorCart({
     const totalCard = priceWithMarkup * (1 - discountCard / 100);
 
     const frameResults = frameSearch ? availableProducts.filter(p => {
-        const type = (p.type || '').toLowerCase();
-        const category = (p.category || '').toLowerCase();
-        const isFrame = type.includes('armazón') || type.includes('armazon') || 
-                        category.includes('armazón') || category.includes('armazon') ||
-                        category === 'frame' || type === 'frame';
-        
-        if (!isFrame) return false;
+        if (!isFrame(p)) return false;
 
         const q = frameSearch.toLowerCase();
         return (
@@ -144,7 +138,7 @@ export default function CotizadorCart({
         setItems(prev => prev.filter((_, i) => i !== idx));
     };
 
-    const hasCrystals = items.some(i => i.product.type === 'Cristal' || i.product.category === 'LENS');
+    const hasCrystals = items.some(i => isCrystal(i.product));
 
     return (
         <div className="bg-white dark:bg-stone-800 border-2 border-primary/20 rounded-[2.5rem] p-8 shadow-2xl animate-in zoom-in-95 duration-300">
