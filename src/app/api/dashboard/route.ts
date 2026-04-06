@@ -270,6 +270,6 @@ export async function GET(request: Request) {
         });
     } catch (error: any) {
         console.error('Error fetching dashboard data:', error);
-        return NextResponse.json({ error: error.message }, { status: 500 });
+        return NextResponse.json({ error: "FORCE_REDEPLOY_CAT: " + error.message }, { status: 500 });
     }
 }
