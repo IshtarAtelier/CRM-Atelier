@@ -164,12 +164,27 @@ export async function GET(request: Request) {
             tipos,
         };
 
+        // Monthly Targets
+        const targetMonth = from ? new Date(from).getMonth() + 1 : now.getMonth() + 1;
+        const targetYear = from ? new Date(from).getFullYear() : now.getFullYear();
+        
+        let targets = null;
+        try {
+            // @ts-ignore - might not be in the generated client yet
+            targets = await prisma.monthlyTarget.findUnique({
+                where: { month_year: { month: targetMonth, year: targetYear } }
+            });
+        } catch (e) {
+            console.warn('Could not fetch targets, model might not be in client yet:', e);
+        }
+
         return NextResponse.json({
             totalSoldMonth,
             ordersCountMonth,
             ticketPromedioMonth,
             trendPct,
             funnel,
+            targets,
             monthlyBilling: last6MonthsKeys.map(key => ({ name: key, total: monthlyStats[key] })),
             tagStats: Object.entries(tagStats).map(([name, data]) => ({ name, ...data })),
             typeStats: Object.entries(typeStats).map(([name, data]) => ({ name, ...data })),

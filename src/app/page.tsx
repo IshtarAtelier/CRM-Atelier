@@ -13,6 +13,7 @@ interface DashboardData {
   monthlyBilling: { name: string; total: number }[];
   tagStats: { name: string; total: number; count: number }[];
   typeStats: { name: string; total: number; count: number; cost: number }[];
+  targets: { target1: number; target2: number } | null;
 }
 
 export default function Home() {
@@ -78,7 +79,15 @@ export default function Home() {
     monthlyBilling: [],
     tagStats: [],
     typeStats: [],
+    targets: null,
   };
+
+  const currentTotal = d.totalSoldMonth;
+  const t1 = d.targets?.target1 || 18000000;
+  const t2 = d.targets?.target2 || 24000000;
+  
+  const progress1 = Math.min((currentTotal / t1) * 100, 100);
+  const progress2 = Math.min((currentTotal / t2) * 100, 100);
 
   return (
     <div className="p-4 lg:p-8 max-w-7xl mx-auto space-y-10 animate-in fade-in duration-500 pb-20">
@@ -91,6 +100,72 @@ export default function Home() {
         </div>
         <DashboardActions onPeriodChange={handlePeriodChange} />
       </header>
+
+      {/* OBJETIVOS MENSUALES */}
+      <section className="bg-gradient-to-br from-stone-900 to-stone-800 rounded-3xl p-8 shadow-2xl relative overflow-hidden text-white border border-white/5">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-primary/10 rounded-full -mr-32 -mt-32 blur-3xl" />
+        <div className="relative z-10">
+          <div className="flex items-center gap-3 mb-8">
+            <div className="bg-primary/20 p-2 rounded-xl">
+              <TrendingUp className="text-primary w-5 h-5" />
+            </div>
+            <div>
+              <h2 className="text-xs font-black uppercase tracking-[0.2em] text-stone-400">Objetivos Mensuales</h2>
+              <p className="text-lg font-bold">Progreso de Facturación {periodLabel}</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+            {/* Objetivo 1 */}
+            <div className="space-y-4">
+              <div className="flex justify-between items-end">
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-stone-400 mb-1">Primer Objetivo</p>
+                  <h3 className="text-2xl font-black italic">${t1.toLocaleString()}</h3>
+                </div>
+                <div className="text-right">
+                  <span className={`text-2xl font-black ${progress1 >= 100 ? 'text-emerald-400' : 'text-primary'}`}>
+                    {progress1.toFixed(1)}%
+                  </span>
+                </div>
+              </div>
+              <div className="h-4 bg-white/5 rounded-full overflow-hidden p-1 backdrop-blur-sm border border-white/10">
+                <div 
+                  className={`h-full rounded-full transition-all duration-1000 ease-out shadow-[0_0_15px_rgba(var(--primary),0.5)] ${progress1 >= 100 ? 'bg-emerald-500' : 'bg-primary'}`}
+                  style={{ width: `${progress1}%` }}
+                />
+              </div>
+              <p className="text-[9px] font-bold text-stone-500 uppercase tracking-tighter">
+                {progress1 >= 100 ? '¡Objetivo Alcanzado!' : `Faltan $${Math.max(t1 - currentTotal, 0).toLocaleString()} para la meta.`}
+              </p>
+            </div>
+
+            {/* Objetivo 2 */}
+            <div className="space-y-4">
+              <div className="flex justify-between items-end">
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-stone-400 mb-1">Segundo Objetivo (Stretch)</p>
+                  <h3 className="text-2xl font-black italic text-stone-200">${t2.toLocaleString()}</h3>
+                </div>
+                <div className="text-right">
+                  <span className={`text-2xl font-black ${progress2 >= 100 ? 'text-emerald-400' : 'text-stone-400'}`}>
+                    {progress2.toFixed(1)}%
+                  </span>
+                </div>
+              </div>
+              <div className="h-4 bg-white/5 rounded-full overflow-hidden p-1 backdrop-blur-sm border border-white/10">
+                <div 
+                  className={`h-full rounded-full transition-all duration-1000 ease-out shadow-[0_0_15px_rgba(34,197,94,0.3)] ${progress2 >= 100 ? 'bg-emerald-500' : 'bg-stone-600'}`}
+                  style={{ width: `${progress2}%` }}
+                />
+              </div>
+              <p className="text-[9px] font-bold text-stone-500 uppercase tracking-tighter">
+                {progress2 >= 100 ? '¡Nivel Experto Completado!' : progress1 >= 100 ? '¡A por el siguiente nivel!' : 'Próxima gran meta de facturación.'}
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
 
       {/* 1. Reporte General de Ventas */}
       <section className="space-y-4">

@@ -354,3 +354,15 @@ model Notification {
 
   @@index([status])
 }
+
+model MonthlyTarget {
+  id        String   @id @default(cuid())
+  month     Int      // 1-12
+  year      Int
+  target1   Float    // Primer objetivo (mínimo)
+  target2   Float    // Segundo objetivo (ideal)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([month, year])
+}
