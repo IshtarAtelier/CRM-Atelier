@@ -92,9 +92,16 @@ export default function Home() {
   };
 
   const currentTotal = d.totalSoldMonth;
-  const t1 = d.targets?.target1 || 18000000;
-  const t2 = d.targets?.target2 || 24000000;
-  const t3 = d.targets?.target3 || 30000000;
+  
+  // Base USD equivalents: $18M ≈ 12k, $24M ≈ 16k, $30M ≈ 20k (using 1500 as initial ref)
+  const refUSD1 = 12000;
+  const refUSD2 = 16000;
+  const refUSD3 = 20000;
+
+  // Actual targets are the MAX between the base pesos and the current USD equivalent
+  const t1 = Math.max(d.targets?.target1 || 18000000, refUSD1 * (dolarBlue || 0));
+  const t2 = Math.max(d.targets?.target2 || 24000000, refUSD2 * (dolarBlue || 0));
+  const t3 = Math.max(d.targets?.target3 || 30000000, refUSD3 * (dolarBlue || 0));
   
   const progress1 = Math.min((currentTotal / t1) * 100, 100);
   const progress2 = Math.min((currentTotal / t2) * 100, 100);

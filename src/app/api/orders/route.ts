@@ -6,7 +6,7 @@ import { prisma } from '@/lib/db';
 export async function POST(request: Request) {
     try {
         const body = await request.json();
-        const { clientId, items, discount, total, frameSource, userFrameBrand, userFrameModel, userFrameNotes, markup, discountCash, discountTransfer, discountCard, subtotalWithMarkup } = body;
+        const { clientId, items, discount, total, frameSource, userFrameBrand, userFrameModel, userFrameNotes, markup, discountCash, discountTransfer, discountCard, subtotalWithMarkup, prescriptionId } = body;
 
         if (!clientId || !items || items.length === 0) {
             return NextResponse.json({ error: 'clientId and items are required' }, { status: 400 });
@@ -43,6 +43,7 @@ export async function POST(request: Request) {
                 userFrameBrand: userFrameBrand || null,
                 userFrameModel: userFrameModel || null,
                 userFrameNotes: userFrameNotes || null,
+                prescriptionId: prescriptionId || null,
                 items: {
                     create: items.map((item: { productId: string; quantity: number; price: number; eye?: string; sphereVal?: number; cylinderVal?: number; axisVal?: number; additionVal?: number }) => ({
                         productId: item.productId,
