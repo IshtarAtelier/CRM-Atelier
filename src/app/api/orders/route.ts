@@ -109,7 +109,16 @@ export async function GET(request: Request) {
 
         // Base query conditions
         const where = { isDeleted: false };
-        const include = {
+        const select = {
+            id: true,
+            total: true,
+            paid: true,
+            status: true,
+            orderType: true,
+            createdAt: true,
+            labStatus: true,
+            clientId: true,
+            userId: true,
             client: true,
             user: { select: { name: true } },
             items: { include: { product: true } },
@@ -123,7 +132,7 @@ export async function GET(request: Request) {
             const [orders, total] = await Promise.all([
                 prisma.order.findMany({
                     where,
-                    include,
+                    select,
                     orderBy,
                     skip,
                     take: limit,
@@ -144,7 +153,7 @@ export async function GET(request: Request) {
             // Limited list for backwards compatibility
             const orders = await prisma.order.findMany({
                 where,
-                include,
+                select,
                 orderBy,
                 take: 100, // Safety limit to avoid 502/timeouts
             });

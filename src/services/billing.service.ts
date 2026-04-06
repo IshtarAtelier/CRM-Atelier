@@ -24,7 +24,13 @@ export const BillingService = {
         // 1. Validar orden
         const order = await prisma.order.findUnique({
             where: { id: orderId },
-            include: {
+            select: {
+                id: true,
+                total: true,
+                orderType: true,
+                isDeleted: true,
+                clientId: true,
+                subtotalWithMarkup: true,
                 client: true,
                 items: { include: { product: true } },
                 invoices: true,
@@ -125,7 +131,16 @@ export const BillingService = {
     async getInvoice(invoiceId: string) {
         return await prisma.invoice.findUnique({
             where: { id: invoiceId },
-            include: { order: { include: { client: true, items: { include: { product: true } } } } },
+            include: { 
+                order: { 
+                    select: {
+                        id: true,
+                        total: true, // Needed for PDF and info
+                        client: true,
+                        items: { include: { product: true } }
+                    }
+                } 
+            },
         });
     },
 
@@ -189,7 +204,14 @@ export const BillingService = {
     async getInvoicePdfUrl(invoiceId: string) {
         const invoice = await prisma.invoice.findUnique({
             where: { id: invoiceId },
-            include: { order: { include: { client: true, items: { include: { product: true } } } } },
+            include: { 
+                order: { 
+                    select: {
+                        id: true,
+                        items: { include: { product: true } }
+                    }
+                } 
+            },
         });
         if (!invoice) throw new Error('Factura no encontrada');
 

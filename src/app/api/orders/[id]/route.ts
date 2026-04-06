@@ -58,7 +58,19 @@ export async function PATCH(
         if (items || markup !== undefined || discountCash !== undefined || subtotalWithMarkup === undefined || total === undefined) {
             const currentOrder = await prisma.order.findUnique({
                 where: { id },
-                include: { items: true }
+                select: {
+                    id: true,
+                    total: true,
+                    markup: true,
+                    discountCash: true,
+                    orderType: true,
+                    items: {
+                        select: {
+                            price: true,
+                            quantity: true
+                        }
+                    }
+                }
             });
 
             if (currentOrder) {
@@ -129,11 +141,11 @@ export async function PATCH(
         if (labPdOd !== undefined) data.labPdOd = labPdOd;
         if (labPdOi !== undefined) data.labPdOi = labPdOi;
 
-        // Frame measurement fields (for SmartLab)
-        if (frameA !== undefined) data.frameA = frameA;
-        if (frameB !== undefined) data.frameB = frameB;
-        if (frameDbl !== undefined) data.frameDbl = frameDbl;
-        if (frameEdc !== undefined) data.frameEdc = frameEdc;
+        // Frame measurement fields (for SmartLab) - Temporarily disabled to avoid DB error until migration
+        // if (frameA !== undefined) data.frameA = frameA;
+        // if (frameB !== undefined) data.frameB = frameB;
+        // if (frameDbl !== undefined) data.frameDbl = frameDbl;
+        // if (frameEdc !== undefined) data.frameEdc = frameEdc;
         if (smartLabScreenshot !== undefined) data.smartLabScreenshot = smartLabScreenshot;
 
         // High-precision lab fields
@@ -146,7 +158,10 @@ export async function PATCH(
         if (orderType) {
             // Prevent reverting a SALE back to QUOTE
             if (orderType === 'QUOTE') {
-                const current = await prisma.order.findUnique({ where: { id } });
+                const current = await prisma.order.findUnique({ 
+                    where: { id },
+                    select: { orderType: true }
+                });
                 if (current?.orderType === 'SALE') {
                     return NextResponse.json(
                         { error: 'No se puede revertir una venta a presupuesto' },
@@ -158,10 +173,23 @@ export async function PATCH(
             if (orderType === 'SALE') {
                 const existingOrder = await prisma.order.findUnique({
                     where: { id },
-                    include: {
-                        items: { include: { product: true } },
-                        payments: true,
+                    select: {
+                        id: true,
+                        total: true,
+                        paid: true,
+                        orderType: true,
+                        prescriptionId: true,
+                        frameSource: true,
+                        userFrameBrand: true,
+                        userFrameModel: true,
                         client: true,
+                        items: {
+                            select: {
+                                product: { select: { type: true, category: true, brand: true, model: true, name: true, stock: true } },
+                                quantity: true
+                            }
+                        },
+                        payments: true
                     },
                 });
 
@@ -249,7 +277,15 @@ export async function PATCH(
             if (orderType === 'SALE') {
                 const orderForStock = await prisma.order.findUnique({
                     where: { id },
-                    include: { items: { include: { product: true } } },
+                    select: {
+                        items: {
+                            select: {
+                                productId: true,
+                                quantity: true,
+                                product: { select: { category: true, type: true } }
+                            }
+                        }
+                    }
                 });
                 const stockItems = (orderForStock?.items || []).filter((item: any) => {
                     const cat = item.product?.category;
@@ -270,7 +306,8 @@ export async function PATCH(
                     prisma.order.update({
                         where: { id },
                         data,
-                        include: {
+                        select: {
+                            id: true,
                             items: { include: { product: true } },
                             payments: true,
                             prescription: true,
@@ -315,7 +352,8 @@ export async function PATCH(
         const order = await prisma.order.update({
             where: { id },
             data,
-            include: {
+            select: {
+                id: true,
                 items: { include: { product: true } },
                 payments: true,
             },

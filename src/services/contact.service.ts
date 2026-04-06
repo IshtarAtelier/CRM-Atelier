@@ -124,7 +124,13 @@ export const ContactService = {
     async updateStatus(id: string, status: string, userRole: string = 'STAFF') {
         const client = await prisma.client.findUnique({
             where: { id },
-            include: { orders: { orderBy: { createdAt: 'desc' }, take: 1 } }
+            include: { 
+                orders: { 
+                    select: { id: true, paid: true, total: true, orderType: true },
+                    orderBy: { createdAt: 'desc' }, 
+                    take: 1 
+                } 
+            }
         });
 
         if (!client) throw new Error('Cliente no encontrado');
@@ -175,7 +181,17 @@ export const ContactService = {
             // FIX: Restore stock for SALE orders before soft-deleting
             const order = await tx.order.findUnique({
                 where: { id: orderId },
-                include: { items: { include: { product: true } } },
+                select: {
+                    id: true,
+                    orderType: true,
+                    items: {
+                        select: {
+                            productId: true,
+                            quantity: true,
+                            product: { select: { category: true, type: true } }
+                        }
+                    }
+                },
             });
 
             if (order?.orderType === 'SALE') {
@@ -253,7 +269,42 @@ export const ContactService = {
                     orderBy: { date: 'desc' }
                 },
                 orders: {
-                    include: { items: { include: { product: true } }, payments: true, prescription: true },
+                    select: {
+                        id: true,
+                        total: true,
+                        paid: true,
+                        status: true,
+                        orderType: true,
+                        createdAt: true,
+                        labStatus: true,
+                        items: { include: { product: true } },
+                        payments: true,
+                        prescription: true,
+                        frameSource: true,
+                        userFrameBrand: true,
+                        userFrameModel: true,
+                        userFrameNotes: true,
+                        labColor: true,
+                        labTreatment: true,
+                        labDiameter: true,
+                        labPdOd: true,
+                        labPdOi: true,
+                        labPrismOD: true,
+                        labPrismOI: true,
+                        labBaseCurve: true,
+                        labFrameType: true,
+                        labBevelPosition: true,
+                        smartLabScreenshot: true,
+                        labOrderNumber: true,
+                        labNotes: true,
+                        discount: true,
+                        markup: true,
+                        discountCash: true,
+                        discountTransfer: true,
+                        discountCard: true,
+                        subtotalWithMarkup: true
+                    },
+                    where: { isDeleted: false },
                     orderBy: { createdAt: 'desc' }
                 }
             }
@@ -449,7 +500,10 @@ export const ContactService = {
     async addPayment(orderId: string, amount: number, method: string, notes?: string, receiptUrl?: string) {
         return await prisma.$transaction(async (tx) => {
             // Verificar que la orden existe y calcular si no se excede el total
-            const order = await tx.order.findUnique({ where: { id: orderId } });
+            const order = await tx.order.findUnique({ 
+                where: { id: orderId },
+                select: { id: true, paid: true, total: true, subtotalWithMarkup: true }
+            });
             if (!order) throw new Error('Orden no encontrada');
 
             const newPaid = (order.paid || 0) + amount;
@@ -487,8 +541,22 @@ export const ContactService = {
                     where: { orderType: 'SALE', isDeleted: false },
                     orderBy: { createdAt: 'desc' },
                     take: 1,
-                    include: {
-                        items: { include: { product: true } }
+                    select: {
+                        id: true,
+                        total: true,
+                        paid: true,
+                        prescriptionId: true,
+                        frameSource: true,
+                        userFrameBrand: true,
+                        userFrameModel: true,
+                        items: {
+                            select: {
+                                eye: true,
+                                sphereVal: true,
+                                additionVal: true,
+                                product: { select: { type: true, category: true, brand: true, name: true, model: true } }
+                            }
+                        }
                     }
                 }
             }

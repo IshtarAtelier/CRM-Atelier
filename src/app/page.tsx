@@ -67,10 +67,13 @@ export default function Home() {
       if (etiqueta && etiqueta !== 'ALL') params.set('etiqueta', etiqueta);
       if (tipo && tipo !== 'ALL') params.set('tipo', tipo);
       const res = await fetch(`/api/dashboard?${params.toString()}`);
+      if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
       const json = await res.json();
+      if (json.error) throw new Error(json.error);
       setData(json);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching dashboard:', error);
+      setData(null); // Reset to fallback state on error
     }
     setLoading(false);
   };
@@ -82,7 +85,7 @@ export default function Home() {
     fetchDashboard(from || undefined, to || undefined, funnelEtiqueta, funnelTipo);
   };
 
-  const d = data || {
+  const d = data && !('error' in data) ? data : {
     totalSoldMonth: 0,
     ordersCountMonth: 0,
     ticketPromedioMonth: 0,
@@ -97,7 +100,7 @@ export default function Home() {
     suggestedFollowUps: [],
   };
 
-  const currentTotal = d.totalSoldMonth;
+  const currentTotal = d.totalSoldMonth || 0;
   
   // Base USD equivalents: $18M ≈ 12k, $24M ≈ 16k, $30M ≈ 20k (using 1500 as initial ref)
   const refUSD1 = 12000;
@@ -109,16 +112,16 @@ export default function Home() {
   const t2 = Math.max(d.targets?.target2 || 24000000, refUSD2 * (dolarBlue || 0));
   const t3 = Math.max(d.targets?.target3 || 30000000, refUSD3 * (dolarBlue || 0));
   
-  const progress1 = Math.min((currentTotal / t1) * 100, 100);
-  const progress2 = Math.min((currentTotal / t2) * 100, 100);
-  const progress3 = Math.min((currentTotal / t3) * 100, 100);
+  const progress1 = t1 > 0 ? Math.min((currentTotal / t1) * 100, 100) : 0;
+  const progress2 = t2 > 0 ? Math.min((currentTotal / t2) * 100, 100) : 0;
+  const progress3 = t3 > 0 ? Math.min((currentTotal / t3) * 100, 100) : 0;
 
-  const toUSD = (ars: number) => dolarBlue ? (ars / dolarBlue) : null;
+  const toUSD = (ars: number) => (dolarBlue && ars) ? (ars / dolarBlue) : null;
 
   // Motivation / Pace logic
   const now = new Date();
   const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-  const currentDay = now.getDate();
+  const currentDay = Math.max(now.getDate(), 1);
   const paceTotal = (currentTotal / currentDay) * daysInMonth;
   const isPaceAboveT1 = paceTotal >= t1;
   const isPaceAboveT2 = paceTotal >= t2;

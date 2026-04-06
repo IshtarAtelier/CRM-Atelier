@@ -31,9 +31,28 @@ export async function GET(request: Request) {
 
         const currentMonthOrders = await prisma.order.findMany({
             where: whereClause,
-            include: {
-                items: { include: { product: true } },
-                tags: true,
+            select: {
+                total: true,
+                paid: true,
+                createdAt: true,
+                items: {
+                    select: {
+                        price: true,
+                        quantity: true,
+                        product: {
+                            select: {
+                                type: true,
+                                cost: true,
+                                category: true
+                            }
+                        }
+                    }
+                },
+                tags: {
+                    select: {
+                        name: true
+                    }
+                },
             },
         });
 
@@ -78,9 +97,26 @@ export async function GET(request: Request) {
                     { items: { some: { product: { category: 'LENS' } } } }
                 ]
             },
-            include: {
-                client: true,
-                items: { include: { product: true } }
+            select: {
+                id: true,
+                total: true,
+                createdAt: true,
+                client: {
+                    select: {
+                        name: true
+                    }
+                },
+                items: {
+                    select: {
+                        product: {
+                            select: {
+                                brand: true,
+                                model: true,
+                                name: true
+                            }
+                        }
+                    }
+                }
             },
             orderBy: { createdAt: 'desc' },
             take: 5
