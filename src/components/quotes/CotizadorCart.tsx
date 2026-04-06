@@ -153,14 +153,19 @@ export default function CotizadorCart({
 
     const handleAddItem = (product: any) => {
         if (isCrystal(product)) {
-            // Default to OD if crystal
-            setItems(prev => [
-                ...prev,
-                { product, quantity: 1, price: Math.round(product.price / 2), eye: 'OD', uid: Date.now() },
-                { product, quantity: 1, price: Math.round(product.price / 2), eye: 'OI', uid: Date.now() + 1 }
-            ]);
+            setItems(prev => {
+                // Guard: if this crystal is already in the cart (OD/OI), skip to avoid 4-item bug
+                const alreadyInCart = prev.some(it => it.product.id === product.id);
+                if (alreadyInCart) return prev;
+                const ts = Date.now();
+                return [
+                    ...prev,
+                    { product, quantity: 1, customPrice: Math.round(product.price / 2), eye: 'OD', uid: ts },
+                    { product, quantity: 1, customPrice: Math.round(product.price / 2), eye: 'OI', uid: ts + 1 }
+                ];
+            });
         } else {
-            setItems(prev => [...prev, { product, quantity: 1, price: product.price, uid: Date.now() }]);
+            setItems(prev => [...prev, { product, quantity: 1, customPrice: product.price, uid: Date.now() }]);
         }
         setFullSearch('');
     };
@@ -348,7 +353,7 @@ export default function CotizadorCart({
                                         <button
                                             key={fr.id}
                                             onClick={() => { 
-                                                setItems(prev => [...prev, { product: fr, quantity: 1, price: fr.price, uid: Date.now() }]); 
+                                                setItems(prev => [...prev, { product: fr, quantity: 1, customPrice: fr.price, uid: Date.now() }]); 
                                                 setFrameSearch(''); 
                                             }}
                                             className={`flex items-center gap-3 p-3 rounded-2xl border-2 transition-all text-left group/btn ${hasMultifocalPromo && isAtelierFrame(fr)

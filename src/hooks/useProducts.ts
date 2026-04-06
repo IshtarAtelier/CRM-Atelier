@@ -48,12 +48,20 @@ export function useProducts(searchQuery: string = '', selectedType: string = 'AL
 
                 if (selectedType !== 'ALL') {
                     const q = selectedType.toLowerCase();
-                    data = data.filter(p =>
-                        p.category?.toLowerCase() === q ||
-                        p.type?.toLowerCase() === q ||
-                        p.type?.toLowerCase().includes(q) ||
-                        p.category?.toLowerCase().includes(q)
-                    );
+                    // Also extract the subtype without "cristal " prefix
+                    // e.g. "Cristal Multifocal" → "multifocal" to match legacy type="MULTIFOCAL"
+                    const subtype = q.startsWith('cristal ') ? q.replace('cristal ', '') : null;
+                    data = data.filter(p => {
+                        const type = p.type?.toLowerCase() || '';
+                        const category = p.category?.toLowerCase() || '';
+                        return (
+                            type === q ||
+                            type.includes(q) ||
+                            category === q ||
+                            category.includes(q) ||
+                            (subtype !== null && (type === subtype || type.includes(subtype)))
+                        );
+                    });
                 }
 
                 setProducts(data);

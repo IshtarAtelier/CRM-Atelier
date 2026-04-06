@@ -214,21 +214,6 @@ export default function CotizadorPage() {
         });
     }, [products, search, activeType]);
 
-    // Helper functions
-    const isCrystal = (p: Product) => {
-        const type = p.type?.toLowerCase() || '';
-        return type.includes('cristal') || type.includes('lens');
-    };
-
-    const isMultifocal2x1 = (p: Product) => {
-        const name = p.name?.toLowerCase() || '';
-        return (name.includes('multifocal') || name.includes('varilux')) && !name.includes('mi primer varilux');
-    };
-
-    const isMiPrimerVarilux = (p: Product) => {
-        return p.name?.toLowerCase().includes('mi primer varilux');
-    };
-
     // Cart logic
     const addToQuote = (p: Product) => {
         if (isCrystal(p)) {
@@ -238,8 +223,8 @@ export default function CotizadorPage() {
                 if (hasExisting) return prev;
                 return [
                     ...prev,
-                    { product: p, quantity: 1, customPrice: p.price, eye: 'OD' },
-                    { product: p, quantity: 1, customPrice: p.price, eye: 'OI' }
+                    { product: p, quantity: 1, customPrice: p.price, eye: 'OD', uid: Date.now() },
+                    { product: p, quantity: 1, customPrice: p.price, eye: 'OI', uid: Date.now() + 1 }
                 ];
             });
         } else {
@@ -258,6 +243,7 @@ export default function CotizadorPage() {
     const totalWithMarkup = totalList * (1 + markup / 100);
     const totalCash = totalWithMarkup * (1 - discountCash / 100);
     const itemCount = quoteItems.reduce((acc, it) => acc + it.quantity, 0);
+    // Use centralized isCrystal from promo-utils (handles legacy types like MULTIFOCAL, LENS, etc.)
     const hasCrystals = quoteItems.some(i => isCrystal(i.product));
 
     const selectContactForQuote = (contact: any) => {
@@ -394,22 +380,28 @@ export default function CotizadorPage() {
     };
 
     const handleEditQuote = (quote: any) => {
-        // Map items
-        const mappedItems = quote.items.map((it: any) => ({
+        // Map items — API returns `price`, CotizadorCart expects `customPrice`
+        const mappedItems = quote.items.map((it: any, idx: number) => ({
             product: it.product,
             quantity: it.quantity,
             customPrice: it.price,
-            eye: it.eye
+            eye: it.eye,
+            uid: Date.now() + idx
         }));
         setQuoteItems(mappedItems);
         
-        // Set metadata
-        if (quote.metadata) {
-            setMarkup(quote.metadata.markup || 0);
-            setDiscountCash(quote.metadata.discountCash ?? 20);
-        }
+        // Restore all pricing settings — fields are on the order object directly (not in metadata)
+        setMarkup(quote.markup || 0);
+        setDiscountCash(quote.discountCash ?? 20);
+        setDiscountTransfer(quote.discountTransfer ?? 15);
+        setDiscountCard(quote.discountCard ?? 0);
         
         if (quote.frameSource) setFrameSource(quote.frameSource);
+        setUserFrameData({
+            brand: quote.userFrameBrand || '',
+            model: quote.userFrameModel || '',
+            notes: quote.userFrameNotes || ''
+        });
         setEditingQuoteId(quote.id);
         setShowHistory(false);
     };
@@ -621,18 +613,8 @@ export default function CotizadorPage() {
                             <div className={`flex-1 transition-all duration-500 p-8 overflow-y-auto ${showHistory ? 'max-w-[70%]' : 'max-w-full'}`} style={{ scrollbarWidth: 'thin' }}>
                                 {!showRegister ? (
                                     <CotizadorCart 
-                                        items={quoteItems.map(it => ({ ...it, price: it.customPrice }))}
-                                        setItems={(updater: any) => {
-                                            if (typeof updater === 'function') {
-                                                setQuoteItems(prev => {
-                                                    const mapped = prev.map(it => ({ ...it, price: it.customPrice }));
-                                                    const result = updater(mapped);
-                                                    return result.map((it: any) => ({ ...it, customPrice: it.price }));
-                                                });
-                                            } else {
-                                                setQuoteItems(updater.map((it: any) => ({ ...it, customPrice: it.price })));
-                                            }
-                                        }}
+                                        items={quoteItems}
+                                        setItems={setQuoteItems}
                                         markup={markup}
                                         setMarkup={setMarkup}
                                         discountCash={discountCash}
