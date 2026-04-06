@@ -368,6 +368,7 @@ model MonthlyTarget {
   year      Int
   target1   Float    // Primer objetivo (mínimo)
   target2   Float    // Segundo objetivo (ideal)
+  target3   Float?   // Tercer objetivo (elite / aspiracional)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

@@ -253,7 +253,7 @@ export const ContactService = {
                     orderBy: { date: 'desc' }
                 },
                 orders: {
-                    include: { items: { include: { product: true } }, payments: true },
+                    include: { items: { include: { product: true } }, payments: true, prescription: true },
                     orderBy: { createdAt: 'desc' }
                 }
             }

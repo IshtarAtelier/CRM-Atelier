@@ -130,6 +130,8 @@ export default function VentasPage() {
     const [copiedField, setCopiedField] = useState<string | null>(null);
     const [labFields, setLabFields] = useState<Record<string, string>>({});
     const [savingField, setSavingField] = useState<string | null>(null);
+    const [autoValidationStatus, setAutoValidationStatus] = useState<'idle' | 'validating' | 'valid' | 'invalid' | 'error'>('idle');
+    const [autoValidationResult, setAutoValidationResult] = useState<any>(null);
 
     useEffect(() => {
         fetchOrders();
@@ -347,6 +349,55 @@ export default function VentasPage() {
         copyToClipboard(lines.join('\n'), 'all');
     };
 
+    const validateSmartLab = async (orderId: string) => {
+        setAutoValidationStatus('validating');
+        try {
+            const res = await fetch('/api/smartlab-submit', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ orderId, action: 'validate' }),
+            });
+            if (res.ok) {
+                const data = await res.json();
+                setAutoValidationResult(data);
+                setAutoValidationStatus(data.validation?.isValid ? 'valid' : 'invalid');
+            } else {
+                setAutoValidationStatus('error');
+            }
+        } catch (err) {
+            console.error('Error validating SmartLab:', err);
+            setAutoValidationStatus('error');
+        }
+    };
+
+    const submitToSmartLab = async (orderId: string) => {
+        if (!confirm('¿Enviar este pedido automáticamente a SmartLab?')) return;
+        setAutoValidationStatus('validating');
+        try {
+            const res = await fetch('/api/smartlab-submit', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ orderId, action: 'submit' }),
+            });
+            const data = await res.json();
+            if (res.ok) {
+                alert(`✅ ${data.message || 'Pedido enviado exitosamente'}`);
+                // Advance status to SENT if successful
+                const currentOrder = orders.find(o => o.id === orderId);
+                if (currentOrder && currentOrder.labStatus === 'NONE') {
+                    await advanceStatus(orderId, 'NONE');
+                }
+                setSmartLabId(null);
+            } else {
+                alert(`❌ Error: ${data.error || 'No se pudo enviar el pedido'}`);
+                setAutoValidationStatus('invalid');
+            }
+        } catch (err: any) {
+            alert(`❌ Error de conexión: ${err.message}`);
+            setAutoValidationStatus('error');
+        }
+    };
+
     const saveLabField = async (orderId: string, field: string, value: string) => {
         const key = `${orderId}_${field}`;
         setLabFields(prev => ({ ...prev, [key]: value }));
@@ -358,6 +409,10 @@ export default function VentasPage() {
                 diameter: 'labDiameter',
                 pdOd: 'labPdOd',
                 pdOi: 'labPdOi',
+                frameA: 'frameA',
+                frameB: 'frameB',
+                frameDbl: 'frameDbl',
+                frameEdc: 'frameEdc',
             };
             await fetch(`/api/orders/${orderId}`, {
                 method: 'PATCH',
@@ -365,6 +420,11 @@ export default function VentasPage() {
                 body: JSON.stringify({ [bodyMap[field]]: value }),
             });
             setOrders(prev => prev.map(o => o.id === orderId ? { ...o, [bodyMap[field]]: value } : o));
+            
+            // Re-validate after saving if modal is open
+            if (smartLabId === orderId) {
+                validateSmartLab(orderId);
+            }
         } catch (err) {
             console.error('Error saving lab field:', err);
         }
@@ -810,7 +870,10 @@ ${order.frameSource ? `<div style='background:#fffbeb;border:2px solid #fbbf24;b
 
                                         {/* SmartLab Button */}
                                         <button
-                                            onClick={() => setSmartLabId(order.id)}
+                                            onClick={() => {
+                                                setSmartLabId(order.id);
+                                                validateSmartLab(order.id);
+                                            }}
                                             className="p-3 bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-400 rounded-xl hover:scale-110 hover:bg-blue-100 dark:hover:bg-blue-900 transition-all"
                                             title="Cargar en SmartLab"
                                         >
@@ -972,6 +1035,15 @@ ${order.frameSource ? `<div style='background:#fffbeb;border:2px solid #fbbf24;b
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-2">
+                                        {autoValidationStatus === 'valid' && (
+                                            <button
+                                                onClick={() => submitToSmartLab(order.id)}
+                                                className="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-xs font-black flex items-center gap-2 hover:scale-105 transition-all shadow-lg"
+                                            >
+                                                <Package className="w-4 h-4" />
+                                                Enviar SmartLab (Auto)
+                                            </button>
+                                        )}
                                         <button
                                             onClick={() => copyAllSmartLab(order)}
                                             className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all hover:scale-105 ${copiedField === 'all'
@@ -987,7 +1059,7 @@ ${order.frameSource ? `<div style='background:#fffbeb;border:2px solid #fbbf24;b
                                             className="px-4 py-2 bg-white text-blue-700 rounded-xl text-xs font-black flex items-center gap-2 hover:scale-105 transition-all shadow-lg"
                                         >
                                             <ExternalLink className="w-4 h-4" />
-                                            Abrir SmartLab
+                                            Manual
                                         </button>
                                         <button
                                             onClick={() => setSmartLabId(null)}
@@ -997,6 +1069,49 @@ ${order.frameSource ? `<div style='background:#fffbeb;border:2px solid #fbbf24;b
                                         </button>
                                     </div>
                                 </div>
+                            </div>
+
+                            {/* Validation Status Banner */}
+                            <div className={`px-8 py-3 border-b flex items-center justify-between transition-all duration-300 ${
+                                autoValidationStatus === 'validating' ? 'bg-stone-50 border-stone-100' :
+                                autoValidationStatus === 'valid' ? 'bg-emerald-50 border-emerald-100' :
+                                autoValidationStatus === 'invalid' ? 'bg-amber-50 border-amber-100' :
+                                'bg-red-50 border-red-100'
+                            }`}>
+                                <div className="flex items-center gap-3">
+                                    {autoValidationStatus === 'validating' ? (
+                                        <Loader2 className="w-4 h-4 text-stone-400 animate-spin" />
+                                    ) : autoValidationStatus === 'valid' ? (
+                                        <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                                    ) : (
+                                        <AlertTriangle className="w-4 h-4 text-amber-500" />
+                                    )}
+                                    <span className={`text-[10px] font-black uppercase tracking-widest ${
+                                        autoValidationStatus === 'validating' ? 'text-stone-400' :
+                                        autoValidationStatus === 'valid' ? 'text-emerald-600' :
+                                        autoValidationStatus === 'invalid' ? 'text-amber-600' :
+                                        'text-red-600'
+                                    }`}>
+                                        {autoValidationStatus === 'validating' ? 'Validando datos...' :
+                                         autoValidationStatus === 'valid' ? 'Pedido listo para enviar' :
+                                         autoValidationStatus === 'invalid' ? 'Faltan datos requeridos' :
+                                         'Error de validación'}
+                                    </span>
+                                </div>
+                                {autoValidationResult?.validation?.missingFields?.length > 0 && (
+                                    <div className="flex flex-wrap gap-2 justify-end max-w-[60%]">
+                                        {autoValidationResult.validation.missingFields.map((f: string) => (
+                                            <span key={f} className="px-2 py-0.5 bg-red-100 text-red-600 rounded text-[9px] font-black uppercase">Falta: {f}</span>
+                                        ))}
+                                    </div>
+                                )}
+                                {autoValidationResult?.validation?.warnings?.length > 0 && autoValidationStatus === 'valid' && (
+                                    <div className="flex flex-wrap gap-2 justify-end max-w-[60%]">
+                                        {autoValidationResult.validation.warnings.map((w: string) => (
+                                            <span key={w} className="px-2 py-0.5 bg-amber-100 text-amber-600 rounded text-[9px] font-black uppercase" title={w}>⚠️ Sugerencia</span>
+                                        ))}
+                                    </div>
+                                )}
                             </div>
 
                             {/* Content */}
@@ -1365,6 +1480,122 @@ ${order.frameSource ? `<div style='background:#fffbeb;border:2px solid #fbbf24;b
                                         </div>
                                     );
                                 })()}
+
+                                {/* ── Medidas del Armazón ─────────────── */}
+                                <div className="border-2 border-violet-200 dark:border-violet-800 bg-violet-50/50 dark:bg-violet-950/30 rounded-2xl overflow-hidden">
+                                    <div className="px-5 py-3 bg-violet-100/60 dark:bg-violet-900/40 border-b border-violet-200 dark:border-violet-800">
+                                        <h3 className="text-[10px] font-black text-violet-700 dark:text-violet-400 uppercase tracking-widest">📐 Medidas del Armazón</h3>
+                                    </div>
+                                    <div className="grid grid-cols-4 gap-3 p-4">
+                                        {[
+                                            { label: 'A (Ancho)', field: 'frameA', key: 'frameA' },
+                                            { label: 'B (Alto)', field: 'frameB', key: 'frameB' },
+                                            { label: 'DBL (Puente)', field: 'frameDbl', key: 'frameDbl' },
+                                            { label: 'EDC (Diagonal)', field: 'frameEdc', key: 'frameEdc' },
+                                        ].map(f => {
+                                            const val = labFields[`${order.id}_${f.key}`] ?? (order as any)[f.key] ?? '';
+                                            return (
+                                                <div key={f.key}>
+                                                    <label className="text-[9px] font-black text-violet-600/70 uppercase tracking-widest block mb-1">{f.label}</label>
+                                                    <input
+                                                        type="text"
+                                                        value={val}
+                                                        onChange={e => setLabFields(prev => ({ ...prev, [`${order.id}_${f.key}`]: e.target.value }))}
+                                                        onBlur={e => saveLabField(order.id, f.key, e.target.value)}
+                                                        placeholder="mm"
+                                                        className="w-full px-3 py-2 border-2 border-violet-200 dark:border-violet-700 rounded-xl text-sm font-bold text-center focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 outline-none bg-white dark:bg-stone-900 transition-all"
+                                                    />
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+
+                                {/* ── Validación y Carga Automática ──────── */}
+                                <div className="border-2 border-blue-200 dark:border-blue-800 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 rounded-2xl overflow-hidden">
+                                    <div className="px-5 py-3 bg-blue-100/60 dark:bg-blue-900/40 border-b border-blue-200 dark:border-blue-800 flex items-center justify-between">
+                                        <h3 className="text-[10px] font-black text-blue-700 dark:text-blue-400 uppercase tracking-widest flex items-center gap-2">
+                                            🤖 Carga Automática SmartLab
+                                        </h3>
+                                        <button
+                                            onClick={async () => {
+                                                setAutoValidationStatus('validating');
+                                                try {
+                                                    const res = await fetch('/api/smartlab-submit', {
+                                                        method: 'POST',
+                                                        headers: { 'Content-Type': 'application/json' },
+                                                        body: JSON.stringify({ orderId: order.id, action: 'validate' }),
+                                                    });
+                                                    const data = await res.json();
+                                                    setAutoValidationResult(data);
+                                                    setAutoValidationStatus(data.validation?.isValid ? 'valid' : 'invalid');
+                                                } catch (err) {
+                                                    setAutoValidationStatus('error');
+                                                }
+                                            }}
+                                            disabled={autoValidationStatus === 'validating'}
+                                            className="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-blue-700 transition-all hover:scale-105 disabled:opacity-50 flex items-center gap-1.5"
+                                        >
+                                            {autoValidationStatus === 'validating' ? (
+                                                <><Loader2 className="w-3 h-3 animate-spin" /> Validando...</>
+                                            ) : (
+                                                <><CheckCircle2 className="w-3 h-3" /> Validar Datos</>
+                                            )}
+                                        </button>
+                                    </div>
+
+                                    <div className="p-5 space-y-3">
+                                        {autoValidationStatus === 'idle' && (
+                                            <p className="text-xs text-blue-600 dark:text-blue-400 font-medium text-center py-2">
+                                                Hacé clic en <strong>&quot;Validar Datos&quot;</strong> para verificar que todos los campos estén completos antes de cargar en SmartLab.
+                                            </p>
+                                        )}
+
+                                        {autoValidationResult && (
+                                            <>
+                                                {/* Missing fields */}
+                                                {autoValidationResult.validation?.missingFields?.length > 0 && (
+                                                    <div className="bg-red-50 dark:bg-red-950/50 border-2 border-red-200 dark:border-red-800 rounded-xl p-3">
+                                                        <p className="text-[9px] font-black text-red-600 uppercase tracking-widest mb-2">❌ Campos Obligatorios Faltantes</p>
+                                                        <ul className="space-y-1">
+                                                            {autoValidationResult.validation.missingFields.map((f: string, i: number) => (
+                                                                <li key={i} className="text-xs font-bold text-red-700 dark:text-red-400 flex items-center gap-2">
+                                                                    <span className="w-1.5 h-1.5 bg-red-500 rounded-full" /> {f}
+                                                                </li>
+                                                            ))}
+                                                        </ul>
+                                                    </div>
+                                                )}
+
+                                                {/* Warnings */}
+                                                {autoValidationResult.validation?.warnings?.length > 0 && (
+                                                    <div className="bg-amber-50 dark:bg-amber-950/50 border-2 border-amber-200 dark:border-amber-800 rounded-xl p-3">
+                                                        <p className="text-[9px] font-black text-amber-600 uppercase tracking-widest mb-2">⚠️ Advertencias</p>
+                                                        <ul className="space-y-1">
+                                                            {autoValidationResult.validation.warnings.map((w: string, i: number) => (
+                                                                <li key={i} className="text-xs font-medium text-amber-700 dark:text-amber-400 flex items-center gap-2">
+                                                                    <span className="w-1.5 h-1.5 bg-amber-500 rounded-full" /> {w}
+                                                                </li>
+                                                            ))}
+                                                        </ul>
+                                                    </div>
+                                                )}
+
+                                                {/* Valid */}
+                                                {autoValidationStatus === 'valid' && (
+                                                    <div className="bg-emerald-50 dark:bg-emerald-950/50 border-2 border-emerald-200 dark:border-emerald-800 rounded-xl p-4 text-center">
+                                                        <CheckCircle2 className="w-8 h-8 text-emerald-500 mx-auto mb-2" />
+                                                        <p className="text-sm font-black text-emerald-700 dark:text-emerald-400">✅ Todos los datos están completos</p>
+                                                        <p className="text-[10px] text-emerald-600 dark:text-emerald-500 mt-1">
+                                                            El pedido está listo para ser cargado en SmartLab.
+                                                            <br />La carga automática se habilitará cuando la cuenta de SmartLab esté activa.
+                                                        </p>
+                                                    </div>
+                                                )}
+                                            </>
+                                        )}
+                                    </div>
+                                </div>
 
                                 {/* Reference */}
                                 <div className="flex items-center justify-between text-[10px] font-bold text-stone-400 uppercase tracking-widest pt-2">

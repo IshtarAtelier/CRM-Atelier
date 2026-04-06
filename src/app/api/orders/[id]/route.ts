@@ -96,6 +96,13 @@ export async function PATCH(
         if (labPdOd !== undefined) data.labPdOd = labPdOd;
         if (labPdOi !== undefined) data.labPdOi = labPdOi;
 
+        // Frame measurement fields (for SmartLab)
+        if (frameA !== undefined) data.frameA = frameA;
+        if (frameB !== undefined) data.frameB = frameB;
+        if (frameDbl !== undefined) data.frameDbl = frameDbl;
+        if (frameEdc !== undefined) data.frameEdc = frameEdc;
+        if (smartLabScreenshot !== undefined) data.smartLabScreenshot = smartLabScreenshot;
+
         if (orderType) {
             // Prevent reverting a SALE back to QUOTE
             if (orderType === 'QUOTE') {
@@ -226,10 +233,40 @@ export async function PATCH(
                         include: {
                             items: { include: { product: true } },
                             payments: true,
+                            prescription: true,
                         },
                     }),
                     ...stockUpdates,
                 ]);
+
+                // Populate per-eye prescription values on crystal OrderItems
+                if (updatedOrder.prescription) {
+                    const rx = updatedOrder.prescription;
+                    const crystalItemUpdates = updatedOrder.items
+                        .filter((item: any) => {
+                            const cat = item.product?.category;
+                            const type = item.product?.type;
+                            return cat === 'LENS' || (type || '').includes('Cristal');
+                        })
+                        .map((item: any) => {
+                            const isOD = item.eye === 'OD';
+                            const isOI = item.eye === 'OI';
+                            if (!isOD && !isOI) return null;
+                            return prisma.orderItem.update({
+                                where: { id: item.id },
+                                data: {
+                                    sphereVal: isOD ? rx.sphereOD : rx.sphereOI,
+                                    cylinderVal: isOD ? rx.cylinderOD : rx.cylinderOI,
+                                    axisVal: isOD ? rx.axisOD : rx.axisOI,
+                                    additionVal: isOD ? (rx.additionOD ?? rx.addition) : (rx.additionOI ?? rx.addition),
+                                },
+                            });
+                        })
+                        .filter(Boolean);
+                    if (crystalItemUpdates.length > 0) {
+                        await prisma.$transaction(crystalItemUpdates as any[]);
+                    }
+                }
 
                 return NextResponse.json(updatedOrder);
             }

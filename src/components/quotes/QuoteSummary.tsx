@@ -427,6 +427,96 @@ ${(order.paid > 0) ? `
                 ))}
             </div>
 
+            {/* ═══ Prescription Data Table (for Sales/Orders with linked Rx) ═══ */}
+            {order.prescription && (
+                <div className="mb-8 relative z-10">
+                    <h4 className="text-[10px] font-black text-stone-400 uppercase tracking-widest mb-3 flex items-center gap-2">
+                        📋 Receta Óptica
+                    </h4>
+                    <div className="bg-stone-50/50 dark:bg-stone-900/30 border border-stone-100 dark:border-stone-800 rounded-2xl overflow-hidden">
+                        {/* Table Header */}
+                        <div className="grid grid-cols-8 bg-stone-900 dark:bg-stone-950 text-white text-[8px] font-black uppercase tracking-widest">
+                            <div className="px-3 py-2.5 text-center border-r border-stone-700"></div>
+                            <div className="px-3 py-2.5 text-center border-r border-stone-700">ESF</div>
+                            <div className="px-3 py-2.5 text-center border-r border-stone-700">CIL</div>
+                            <div className="px-3 py-2.5 text-center border-r border-stone-700">EJE</div>
+                            <div className="px-3 py-2.5 text-center border-r border-stone-700">ADD</div>
+                            <div className="px-3 py-2.5 text-center border-r border-stone-700">DNP</div>
+                            <div className="px-3 py-2.5 text-center border-r border-stone-700">ALTURA</div>
+                            <div className="px-3 py-2.5 text-center">PRISMA</div>
+                        </div>
+                        {/* OD Row */}
+                        <div className="grid grid-cols-8 border-b border-stone-100 dark:border-stone-800">
+                            <div className="px-3 py-3 text-center border-r border-stone-100 dark:border-stone-800">
+                                <span className="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-emerald-100 text-emerald-700 text-[9px] font-black">OD</span>
+                            </div>
+                            <div className="px-3 py-3 text-center text-sm font-bold text-stone-800 dark:text-stone-200 border-r border-stone-100 dark:border-stone-800">
+                                {order.prescription.sphereOD != null ? (order.prescription.sphereOD > 0 ? `+${order.prescription.sphereOD.toFixed(2)}` : order.prescription.sphereOD.toFixed(2)) : '—'}
+                            </div>
+                            <div className="px-3 py-3 text-center text-sm font-bold text-stone-800 dark:text-stone-200 border-r border-stone-100 dark:border-stone-800">
+                                {order.prescription.cylinderOD != null ? order.prescription.cylinderOD.toFixed(2) : '—'}
+                            </div>
+                            <div className="px-3 py-3 text-center text-sm font-bold text-stone-800 dark:text-stone-200 border-r border-stone-100 dark:border-stone-800">
+                                {order.prescription.axisOD != null ? `${order.prescription.axisOD}°` : '—'}
+                            </div>
+                            <div className="px-3 py-3 text-center text-sm font-bold text-stone-800 dark:text-stone-200 border-r border-stone-100 dark:border-stone-800">
+                                {(order.prescription.additionOD ?? order.prescription.addition) != null ? `+${(order.prescription.additionOD ?? order.prescription.addition)?.toFixed(2)}` : '—'}
+                            </div>
+                            <div className="px-3 py-3 text-center text-sm font-bold text-stone-800 dark:text-stone-200 border-r border-stone-100 dark:border-stone-800">
+                                {(order.prescription.distanceOD ?? order.prescription.pd) != null ? (order.prescription.distanceOD ?? order.prescription.pd) : '—'}
+                            </div>
+                            <div className="px-3 py-3 text-center text-sm font-bold text-stone-800 dark:text-stone-200 border-r border-stone-100 dark:border-stone-800">
+                                {order.prescription.heightOD != null ? order.prescription.heightOD : '—'}
+                            </div>
+                            <div className="px-3 py-3 text-center text-sm font-bold text-stone-400">—</div>
+                        </div>
+                        {/* OI Row */}
+                        <div className="grid grid-cols-8">
+                            <div className="px-3 py-3 text-center border-r border-stone-100 dark:border-stone-800">
+                                <span className="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-blue-100 text-blue-700 text-[9px] font-black">OI</span>
+                            </div>
+                            <div className="px-3 py-3 text-center text-sm font-bold text-stone-800 dark:text-stone-200 border-r border-stone-100 dark:border-stone-800">
+                                {order.prescription.sphereOI != null ? (order.prescription.sphereOI > 0 ? `+${order.prescription.sphereOI.toFixed(2)}` : order.prescription.sphereOI.toFixed(2)) : '—'}
+                            </div>
+                            <div className="px-3 py-3 text-center text-sm font-bold text-stone-800 dark:text-stone-200 border-r border-stone-100 dark:border-stone-800">
+                                {order.prescription.cylinderOI != null ? order.prescription.cylinderOI.toFixed(2) : '—'}
+                            </div>
+                            <div className="px-3 py-3 text-center text-sm font-bold text-stone-800 dark:text-stone-200 border-r border-stone-100 dark:border-stone-800">
+                                {order.prescription.axisOI != null ? `${order.prescription.axisOI}°` : '—'}
+                            </div>
+                            <div className="px-3 py-3 text-center text-sm font-bold text-stone-800 dark:text-stone-200 border-r border-stone-100 dark:border-stone-800">
+                                {(order.prescription.additionOI ?? order.prescription.addition) != null ? `+${(order.prescription.additionOI ?? order.prescription.addition)?.toFixed(2)}` : '—'}
+                            </div>
+                            <div className="px-3 py-3 text-center text-sm font-bold text-stone-800 dark:text-stone-200 border-r border-stone-100 dark:border-stone-800">
+                                {(order.prescription.distanceOI ?? order.prescription.pd) != null ? (order.prescription.distanceOI ?? order.prescription.pd) : '—'}
+                            </div>
+                            <div className="px-3 py-3 text-center text-sm font-bold text-stone-800 dark:text-stone-200 border-r border-stone-100 dark:border-stone-800">
+                                {order.prescription.heightOI != null ? order.prescription.heightOI : '—'}
+                            </div>
+                            <div className="px-3 py-3 text-center text-sm font-bold text-stone-400">—</div>
+                        </div>
+                    </div>
+
+                    {/* Prescription Notes */}
+                    {order.prescription.notes && (
+                        <p className="mt-2 text-[10px] font-bold text-stone-400 italic px-2">📝 {order.prescription.notes}</p>
+                    )}
+
+                    {/* Prescription Image Thumbnail */}
+                    {order.prescription.imageUrl && (
+                        <div className="mt-3 flex items-center gap-3 px-2">
+                            <img 
+                                src={order.prescription.imageUrl} 
+                                alt="Receta" 
+                                className="w-16 h-16 object-cover rounded-xl border-2 border-emerald-200 cursor-pointer hover:scale-110 transition-transform shadow-md"
+                                onClick={() => window.open(order.prescription.imageUrl, '_blank')}
+                            />
+                            <span className="text-[9px] font-black text-emerald-600 uppercase tracking-widest">✅ Imagen de receta adjunta</span>
+                        </div>
+                    )}
+                </div>
+            )}
+
             {/* Frame Info */}
             {order.frameSource && (
                 <div className="mb-8 flex items-center gap-4 p-5 bg-amber-50/50 dark:bg-amber-950/20 border-2 border-amber-200/50 dark:border-amber-900/50 rounded-[2rem] relative z-10">
