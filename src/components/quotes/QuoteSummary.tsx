@@ -311,6 +311,26 @@ ${(order.paid > 0) ? `
         window.open(waUrl, '_blank');
     };
 
+    const handleNotificarRetiro = () => {
+        const saldo = Math.round((order.total || 0) - (order.paid || 0));
+        let text = `✨ *¡TUS LENTES ESTÁN LISTOS! — ATELIER ÓPTICA* ✨\n\n`;
+        text += `Hola *${contact.name}*, te informamos que tu pedido ya se encuentra disponible para retirar por nuestro local.\n\n`;
+        text += `📍 *Dirección:* José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba\n`;
+        text += `⏰ *Horarios de retiro:* Lunes a Viernes de 10:00 a 19:00hs y Sábados de 10:00 a 13:30hs.\n\n`;
+        
+        if (saldo > 0) {
+            text += `💰 *Saldo pendiente a abonar:* $${saldo.toLocaleString()}\n\n`;
+        } else {
+            text += `✅ *Tu pedido ya se encuentra totalmente abonado.*\n\n`;
+        }
+        
+        text += `¡Te esperamos! 👓✨`;
+
+        const phone = contact.phone?.replace(/\D/g, '') || '';
+        const waUrl = phone ? `https://wa.me/${phone}?text=${encodeURIComponent(text)}` : `https://wa.me/?text=${encodeURIComponent(text)}`;
+        window.open(waUrl, '_blank');
+    };
+
     if (!isExpanded) {
         return (
             <button
@@ -659,6 +679,15 @@ ${(order.paid > 0) ? `
                     >
                         <MessageCircle className="w-4 h-4" /> WHATSAPP
                     </button>
+
+                    {order.labStatus === 'READY' && (
+                        <button
+                            onClick={handleNotificarRetiro}
+                            className="col-span-3 py-4 mb-2 bg-emerald-500 text-white rounded-2xl font-black text-[11px] uppercase tracking-[0.1em] hover:scale-[1.02] active:scale-95 transition-all shadow-lg flex items-center justify-center gap-3 animate-pulse rotate-0 hover:rotate-1"
+                        >
+                            <MessageCircle className="w-5 h-5" /> NOTIFICAR RETIRO POR WHATSAPP
+                        </button>
+                    )}
 
                     <button
                         onClick={() => onDelete?.(order.id)}

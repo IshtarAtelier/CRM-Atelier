@@ -8,6 +8,7 @@ import {
   validateSmartLabPayload,
   formatDiopter,
 } from '@/lib/smartlab-config';
+import { submitToSmartLabBot } from '@/lib/puppeteer-helper';
 
 /**
  * POST /api/smartlab-submit
@@ -89,7 +90,14 @@ export async function POST(request: Request) {
       frameB: (order as any).frameB || '',
       frameDbl: (order as any).frameDbl || '',
       frameEdc: (order as any).frameEdc || '',
-      
+
+      // High-precision fields
+      prismOD: (order as any).labPrismOD || order.prescription?.prismOD || '',
+      prismOI: (order as any).labPrismOI || order.prescription?.prismOI || '',
+      baseCurve: (order as any).labBaseCurve || '',
+      frameType: (order as any).labFrameType || '',
+      bevelPosition: (order as any).labBevelPosition || '',
+
       orderId: order.id,
       autoSubmit: false,
     };
@@ -134,8 +142,6 @@ export async function POST(request: Request) {
     }
 
     if (action === 'submit') {
-      // Future: Puppeteer automation
-      // For now, validate and prepare the data
       if (!validation.isValid) {
         return NextResponse.json({
           error: 'Faltan campos obligatorios para enviar',
@@ -151,13 +157,24 @@ export async function POST(request: Request) {
         }, { status: 500 });
       }
 
-      // TODO: When SmartLab account is active, implement Puppeteer automation here
-      // For now, return the prepared data
+      // Execute Puppeteer automation
+      console.log('Triggering SmartLab Bot for order:', orderId);
+      const result = await submitToSmartLabBot(payload);
+
+      if (!result.success) {
+        return NextResponse.json({
+          error: result.message,
+          details: result.error,
+          payload,
+          status: 'ERROR_AUTOMATION',
+        }, { status: 500 });
+      }
+
       return NextResponse.json({
-        message: 'Automatización de SmartLab pendiente — cuenta bloqueada. Datos preparados exitosamente.',
+        message: result.message,
         payload,
-        validation,
-        status: 'PENDING_AUTOMATION',
+        screenshot: result.screenshot,
+        status: 'SUCCESS_AUTOMATION',
       });
     }
 

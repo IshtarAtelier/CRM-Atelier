@@ -43,6 +43,7 @@ export async function PATCH(
             frameSource, userFrameBrand, userFrameModel, userFrameNotes, 
             labColor, labTreatment, labDiameter, labPdOd, labPdOi, 
             frameA, frameB, frameDbl, frameEdc, smartLabScreenshot,
+            labPrismOD, labPrismOI, labBaseCurve, labFrameType, labBevelPosition,
             prescriptionId, items, total, markup, 
             discountCash, discountTransfer, discountCard, subtotalWithMarkup
         } = body;
@@ -102,6 +103,13 @@ export async function PATCH(
         if (frameDbl !== undefined) data.frameDbl = frameDbl;
         if (frameEdc !== undefined) data.frameEdc = frameEdc;
         if (smartLabScreenshot !== undefined) data.smartLabScreenshot = smartLabScreenshot;
+
+        // High-precision lab fields
+        if (labPrismOD !== undefined) data.labPrismOD = labPrismOD;
+        if (labPrismOI !== undefined) data.labPrismOI = labPrismOI;
+        if (labBaseCurve !== undefined) data.labBaseCurve = labBaseCurve;
+        if (labFrameType !== undefined) data.labFrameType = labFrameType;
+        if (labBevelPosition !== undefined) data.labBevelPosition = labBevelPosition;
 
         if (orderType) {
             // Prevent reverting a SALE back to QUOTE

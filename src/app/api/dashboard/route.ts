@@ -44,8 +44,47 @@ export async function GET(request: Request) {
         });
 
         const totalSoldMonth = currentMonthOrders.reduce((acc: number, order: any) => acc + order.total, 0);
+        const totalPaidMonth = currentMonthOrders.reduce((acc: number, order: any) => acc + (order.paid || 0), 0);
+        const totalPendingMonth = Math.max(0, totalSoldMonth - totalPaidMonth);
+
         const ordersCountMonth = currentMonthOrders.length;
         const ticketPromedioMonth = ordersCountMonth > 0 ? totalSoldMonth / ordersCountMonth : 0;
+
+        // Open Quotes (Presupuestos Activos)
+        const openQuotes = await prisma.order.findMany({
+            where: {
+                createdAt: dateFilter,
+                orderType: 'QUOTE',
+                isDeleted: false,
+            },
+            select: { total: true }
+        });
+        const totalQuotesValue = openQuotes.reduce((acc, q) => acc + q.total, 0);
+
+        // Suggested Follow-ups (Multifocal quotes > 2 days old)
+        const twoDaysAgo = new Date();
+        twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
+        const fiveDaysAgo = new Date();
+        fiveDaysAgo.setDate(fiveDaysAgo.getDate() - 7); // Don't suggest very old ones
+        
+        const suggestedFollowUps = await prisma.order.findMany({
+            where: {
+                orderType: 'QUOTE',
+                isDeleted: false,
+                createdAt: { lte: twoDaysAgo, gte: fiveDaysAgo },
+                OR: [
+                    { client: { interest: { contains: 'Multifocal' } } },
+                    { items: { some: { product: { type: { contains: 'Multifocal' } } } } },
+                    { items: { some: { product: { category: 'LENS' } } } }
+                ]
+            },
+            include: {
+                client: true,
+                items: { include: { product: true } }
+            },
+            orderBy: { createdAt: 'desc' },
+            take: 5
+        });
 
         // Monthly historical
         const monthsNames = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
@@ -185,6 +224,9 @@ export async function GET(request: Request) {
             trendPct,
             funnel,
             targets,
+            totalPendingBalance: totalPendingMonth,
+            totalQuotesValue: totalQuotesValue,
+            suggestedFollowUps: suggestedFollowUps,
             monthlyBilling: last6MonthsKeys.map(key => ({ name: key, total: monthlyStats[key] })),
             tagStats: Object.entries(tagStats).map(([name, data]) => ({ name, ...data })),
             typeStats: Object.entries(typeStats).map(([name, data]) => ({ name, ...data })),

@@ -59,6 +59,8 @@ export const SMARTLAB_OPTIONS = {
   colors: ['Blanco', 'Fotocromático', 'Gris', 'Marrón', 'Verde'],
   treatments: ['Ninguno', 'Antirreflejo', 'Blue Cut', 'Antirreflejo + Blue Cut', 'Fotocromático'],
   diameters: ['55', '60', '65', '70', '75', '80'],
+  frameTypes: ['Metal', 'Plástico', 'Ranurado (Nylor)', 'Al aire (Rimless)'],
+  bevelPositions: ['Automático', 'Frontal', '1/3', '2/3', 'Posterior'],
 };
 
 // ── Validation: Required fields for SmartLab submission ──
@@ -102,6 +104,13 @@ export interface SmartLabPayload {
   frameB: string;
   frameDbl: string;
   frameEdc: string;
+  
+  // High-precision fields
+  prismOD: string;
+  prismOI: string;
+  baseCurve: string;
+  frameType: string;
+  bevelPosition: string;
   
   // Meta
   orderId: string;

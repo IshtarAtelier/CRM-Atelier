@@ -144,6 +144,10 @@ model Prescription {
   nearCylinderOI Float? // Cilindro cerca OI
   nearAxisOI     Int?   // Eje cerca OI
 
+  // Prismas
+  prismOD     String? // Ej: "1.5 BI"
+  prismOI     String? // Ej: "1.5 BD"
+  
   orders Order[] // Relación a los pedidos que usan esta receta
 }
 
@@ -220,6 +224,14 @@ model Order {
   frameB         String?  // Alto del lente (mm)
   frameDbl       String?  // Puente (mm)
   frameEdc       String?  // Diagonal efectiva (mm)
+  
+  // High-precision lab fields
+  labPrismOD     String?  // Prisma Ojo Derecho
+  labPrismOI     String?  // Prisma Ojo Izquierdo
+  labBaseCurve   String?  // Curva base
+  labFrameType   String?  // Metal, Plástico, Ranurado, al aire
+  labBevelPosition String? // Posición del bisel
+  
   // SmartLab automation
   smartLabScreenshot String? // Screenshot de confirmación del bot
 

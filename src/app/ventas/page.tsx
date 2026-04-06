@@ -5,6 +5,7 @@ import { ShoppingCart, Download, Search, Package, Clock, CheckCircle2, Truck, Ey
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import InvoiceModal from '@/components/InvoiceModal';
+import { SMARTLAB_CONFIG, SMARTLAB_OPTIONS } from '@/lib/smartlab-config';
 
 interface OrderItem {
     id: string;
@@ -275,7 +276,7 @@ export default function VentasPage() {
         setUpdatingId(null);
     };
 
-    const SMARTLAB_URL = 'http://grupooptico.dyndns.info/pedidos/web/app.php/';
+    const SMARTLAB_URL = SMARTLAB_CONFIG.loginUrl;
 
     const copyToClipboard = async (text: string, fieldId: string) => {
         try {
@@ -311,6 +312,7 @@ export default function VentasPage() {
 
         return { lensType, lensIndex, lensBrand, laboratory, odItem, oiItem, frameInfo, lensItems };
     };
+
 
     const copyAllSmartLab = (order: Order) => {
         const d = getSmartLabData(order);
@@ -413,6 +415,11 @@ export default function VentasPage() {
                 frameB: 'frameB',
                 frameDbl: 'frameDbl',
                 frameEdc: 'frameEdc',
+                prismOD: 'labPrismOD',
+                prismOI: 'labPrismOI',
+                baseCurve: 'labBaseCurve',
+                frameType: 'labFrameType',
+                bevelPosition: 'labBevelPosition',
             };
             await fetch(`/api/orders/${orderId}`, {
                 method: 'PATCH',
@@ -983,10 +990,16 @@ ${order.frameSource ? `<div style='background:#fffbeb;border:2px solid #fbbf24;b
             )}
 
             {/* ── SmartLab Modal ─────────────────────────── */}
-            {smartLabId && (() => {
-                const order = orders.find(o => o.id === smartLabId);
-                if (!order) return null;
+            {smartLabId && orders.filter(o => o.id === smartLabId).map(order => {
+                const getVal = (field: string) => labFields[`${order.id}_${field}`] ?? (order as any)[`lab${field.charAt(0).toUpperCase() + field.slice(1)}`] ?? '';
                 const d = getSmartLabData(order);
+                const LENS_TYPE_LABELS: Record<string, string> = {
+                    'MONOFOCAL': 'Monofocal',
+                    'MULTIFOCAL': 'Multifocal',
+                    'BIFOCAL': 'Bifocal',
+                    'OCUPACIONAL': 'Ocupacional',
+                    'SOLAR': 'Solar',
+                };
 
                 const CopyBtn = ({ value, field }: { value: string; field: string }) => (
                     <button
@@ -1004,16 +1017,8 @@ ${order.frameSource ? `<div style='background:#fffbeb;border:2px solid #fbbf24;b
                     </button>
                 );
 
-                const LENS_TYPE_LABELS: Record<string, string> = {
-                    'MONOFOCAL': 'Monofocal',
-                    'MULTIFOCAL': 'Multifocal',
-                    'BIFOCAL': 'Bifocal',
-                    'OCUPACIONAL': 'Ocupacional',
-                    'SOLAR': 'Solar',
-                };
-
                 return (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setSmartLabId(null)}>
+                    <div key={order.id} className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setSmartLabId(null)}>
                         {/* Backdrop */}
                         <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
 
@@ -1031,7 +1036,7 @@ ${order.frameSource ? `<div style='background:#fffbeb;border:2px solid #fbbf24;b
                                         </div>
                                         <div>
                                             <h2 className="text-lg font-black tracking-tight">Cargar en SmartLab</h2>
-                                            <p className="text-blue-200 text-xs font-medium">Copiá cada campo y pegalo en SmartLab</p>
+                                            <p className="text-blue-200 text-xs font-medium">Copiá cada campo y pegalo en SmartLab (Venta #{order.id.slice(-4).toUpperCase()})</p>
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-2">
@@ -1370,11 +1375,9 @@ ${order.frameSource ? `<div style='background:#fffbeb;border:2px solid #fbbf24;b
                                         </div>
                                     </div>
                                 )}
-
-                                {/* Observaciones */}
                                 <div className="border-2 border-stone-100 dark:border-stone-700 rounded-2xl p-4">
                                     <label className="text-[9px] font-black text-stone-400 uppercase tracking-widest block mb-2">Observaciones</label>
-                                    <div className="flex items-start justify-between gap-2">
+                                    <div className="flex items-center justify-between gap-2">
                                         <span className={`text-sm ${order.labNotes ? 'text-stone-800 dark:text-white' : 'text-stone-300 dark:text-stone-600 italic'}`}>
                                             {order.labNotes || 'Sin observaciones'}
                                         </span>
@@ -1432,52 +1435,82 @@ ${order.frameSource ? `<div style='background:#fffbeb;border:2px solid #fbbf24;b
                                                 </div>
                                             </div>
 
-                                            {/* Diámetro + DP OD/OI */}
-                                            <div className="grid grid-cols-3 gap-4">
-                                                <div className="border-2 border-stone-100 dark:border-stone-700 rounded-2xl p-4">
-                                                    <label className="text-[9px] font-black text-stone-400 uppercase tracking-widest block mb-2">Diámetro</label>
-                                                    <div className="flex items-center gap-2">
-                                                        <input
-                                                            type="text"
-                                                            value={diameterVal}
-                                                            onChange={e => setLabFields(prev => ({ ...prev, [`${order.id}_diameter`]: e.target.value }))}
-                                                            onBlur={e => saveLabField(order.id, 'diameter', e.target.value)}
-                                                            placeholder="Ej: 65"
+                                             {/* Diámetro + DP OD/OI */}
+                                             <div className="grid grid-cols-3 gap-4">
+                                                 <div className="border-2 border-stone-100 dark:border-stone-700 rounded-2xl p-4">
+                                                     <label className="text-[9px] font-black text-stone-400 uppercase tracking-widest block mb-2">Diámetro</label>
+                                                     <div className="flex items-center gap-2">
+                                                         <input
+                                                             type="text"
+                                                             value={diameterVal}
+                                                             onChange={e => setLabFields(prev => ({ ...prev, [`${order.id}_diameter`]: e.target.value }))}
+                                                             onBlur={e => saveLabField(order.id, 'diameter', e.target.value)}
+                                                             placeholder="Ej: 65"
+                                                             className="flex-1 px-3 py-2 border-2 border-stone-200 dark:border-stone-600 rounded-xl text-sm font-medium focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none bg-white dark:bg-stone-900 transition-all"
+                                                         />
+                                                         {diameterVal && <CopyBtn value={diameterVal} field="lab_diameter" />}
+                                                     </div>
+                                                 </div>
+                                                 <div className="border-2 border-stone-100 dark:border-stone-700 rounded-2xl p-4">
+                                                     <label className="text-[9px] font-black text-stone-400 uppercase tracking-widest block mb-2">DP Ojo Derecho</label>
+                                                     <div className="flex items-center gap-2">
+                                                         <input
+                                                             type="text"
+                                                             value={pdOdVal}
+                                                             onChange={e => setLabFields(prev => ({ ...prev, [`${order.id}_pdOd`]: e.target.value }))}
+                                                             onBlur={e => saveLabField(order.id, 'pdOd', e.target.value)}
+                                                             placeholder="Ej: 32"
+                                                             className="flex-1 px-3 py-2 border-2 border-stone-200 dark:border-stone-600 rounded-xl text-sm font-medium focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none bg-white dark:bg-stone-900 transition-all"
+                                                         />
+                                                         {pdOdVal && <CopyBtn value={pdOdVal} field="lab_pdOd" />}
+                                                     </div>
+                                                 </div>
+                                                 <div className="border-2 border-stone-100 dark:border-stone-700 rounded-2xl p-4">
+                                                     <label className="text-[9px] font-black text-stone-400 uppercase tracking-widest block mb-2">DP Ojo Izquierdo</label>
+                                                     <div className="flex items-center gap-2">
+                                                         <input
+                                                             type="text"
+                                                             value={pdOiVal}
+                                                             onChange={e => setLabFields(prev => ({ ...prev, [`${order.id}_pdOi`]: e.target.value }))}
+                                                             onBlur={e => saveLabField(order.id, 'pdOi', e.target.value)}
+                                                             placeholder="Ej: 31"
                                                             className="flex-1 px-3 py-2 border-2 border-stone-200 dark:border-stone-600 rounded-xl text-sm font-medium focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none bg-white dark:bg-stone-900 transition-all"
-                                                        />
-                                                        {diameterVal && <CopyBtn value={diameterVal} field="lab_diameter" />}
-                                                    </div>
-                                                </div>
-                                                <div className="border-2 border-stone-100 dark:border-stone-700 rounded-2xl p-4">
-                                                    <label className="text-[9px] font-black text-stone-400 uppercase tracking-widest block mb-2">DP Ojo Derecho</label>
-                                                    <div className="flex items-center gap-2">
-                                                        <input
-                                                            type="text"
-                                                            value={pdOdVal}
-                                                            onChange={e => setLabFields(prev => ({ ...prev, [`${order.id}_pdOd`]: e.target.value }))}
-                                                            onBlur={e => saveLabField(order.id, 'pdOd', e.target.value)}
-                                                            placeholder="Ej: 32"
-                                                            className="flex-1 px-3 py-2 border-2 border-stone-200 dark:border-stone-600 rounded-xl text-sm font-medium focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none bg-white dark:bg-stone-900 transition-all"
-                                                        />
-                                                        {pdOdVal && <CopyBtn value={pdOdVal} field="lab_pdOd" />}
-                                                    </div>
-                                                </div>
-                                                <div className="border-2 border-stone-100 dark:border-stone-700 rounded-2xl p-4">
-                                                    <label className="text-[9px] font-black text-stone-400 uppercase tracking-widest block mb-2">DP Ojo Izquierdo</label>
-                                                    <div className="flex items-center gap-2">
-                                                        <input
-                                                            type="text"
-                                                            value={pdOiVal}
-                                                            onChange={e => setLabFields(prev => ({ ...prev, [`${order.id}_pdOi`]: e.target.value }))}
-                                                            onBlur={e => saveLabField(order.id, 'pdOi', e.target.value)}
-                                                            placeholder="Ej: 31"
-                                                            className="flex-1 px-3 py-2 border-2 border-stone-200 dark:border-stone-600 rounded-xl text-sm font-medium focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none bg-white dark:bg-stone-900 transition-all"
-                                                        />
-                                                        {pdOiVal && <CopyBtn value={pdOiVal} field="lab_pdOi" />}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
+                                                         />
+                                                         {pdOiVal && <CopyBtn value={pdOiVal} field="lab_pdOi" />}
+                                                     </div>
+                                                 </div>
+                                             </div>
+
+                                             {/* Prismas */}
+                                             <div className="grid grid-cols-2 gap-4">
+                                                 <div className="border-2 border-stone-100 dark:border-stone-700 rounded-2xl p-4">
+                                                     <label className="text-[9px] font-black text-stone-400 uppercase tracking-widest block mb-2">Prisma OD</label>
+                                                     <div className="flex items-center gap-2">
+                                                         <input
+                                                             type="text"
+                                                             value={getVal('prismOD')}
+                                                             onChange={e => setLabFields(prev => ({ ...prev, [`${order.id}_prismOD`]: e.target.value }))}
+                                                             onBlur={e => saveLabField(order.id, 'prismOD', e.target.value)}
+                                                             placeholder="Ej: 2.0 BI"
+                                                             className="flex-1 px-3 py-2 border-2 border-stone-200 dark:border-stone-600 rounded-xl text-sm font-medium outline-none bg-white dark:bg-stone-900"
+                                                         />
+                                                     </div>
+                                                 </div>
+                                                 <div className="border-2 border-stone-100 dark:border-stone-700 rounded-2xl p-4">
+                                                     <label className="text-[9px] font-black text-stone-400 uppercase tracking-widest block mb-2">Prisma OI</label>
+                                                     <div className="flex items-center gap-2">
+                                                         <input
+                                                             type="text"
+                                                             value={getVal('prismOI')}
+                                                             onChange={e => setLabFields(prev => ({ ...prev, [`${order.id}_prismOI`]: e.target.value }))}
+                                                             onBlur={e => saveLabField(order.id, 'prismOI', e.target.value)}
+                                                             placeholder="Ej: 2.0 BI"
+                                                             className="flex-1 px-3 py-2 border-2 border-stone-200 dark:border-stone-600 rounded-xl text-sm font-medium outline-none bg-white dark:bg-stone-900"
+                                                         />
+                                                     </div>
+                                                 </div>
+                                             </div>
+                                         </div>
                                     );
                                 })()}
 
@@ -1508,6 +1541,53 @@ ${order.frameSource ? `<div style='background:#fffbeb;border:2px solid #fbbf24;b
                                                 </div>
                                             );
                                         })}
+                                    </div>
+                                </div>
+
+                                {/* ── Especificaciones de Laboratorio ────────── */}
+                                <div className="border-2 border-emerald-200 dark:border-emerald-800 bg-emerald-50/50 dark:bg-emerald-950/30 rounded-2xl overflow-hidden">
+                                    <div className="px-5 py-3 bg-emerald-100/60 dark:bg-emerald-900/40 border-b border-emerald-200 dark:border-emerald-800">
+                                        <h3 className="text-[10px] font-black text-emerald-700 dark:text-emerald-400 uppercase tracking-widest">🧪 Especificaciones Técnicas</h3>
+                                    </div>
+                                    <div className="p-4 space-y-4">
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div>
+                                                <label className="text-[9px] font-black text-stone-400 uppercase tracking-widest block mb-1">Tipo de Armazón</label>
+                                                <select
+                                                    value={getVal('frameType')}
+                                                    onChange={e => saveLabField(order.id, 'frameType', e.target.value)}
+                                                    className="w-full px-3 py-2 border-2 border-stone-200 dark:border-stone-700 rounded-xl text-xs font-bold bg-white dark:bg-stone-800 outline-none"
+                                                >
+                                                    <option value="">Seleccionar...</option>
+                                                    {SMARTLAB_OPTIONS.frameTypes.map(t => (
+                                                        <option key={t} value={t}>{t}</option>
+                                                    ))}
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <label className="text-[9px] font-black text-stone-400 uppercase tracking-widest block mb-1">Posición del Bisel</label>
+                                                <select
+                                                    value={getVal('bevelPosition')}
+                                                    onChange={e => saveLabField(order.id, 'bevelPosition', e.target.value)}
+                                                    className="w-full px-3 py-2 border-2 border-stone-200 dark:border-stone-700 rounded-xl text-xs font-bold bg-white dark:bg-stone-800 outline-none"
+                                                >
+                                                    {SMARTLAB_OPTIONS.bevelPositions.map(p => (
+                                                        <option key={p} value={p}>{p}</option>
+                                                    ))}
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <label className="text-[9px] font-black text-stone-400 uppercase tracking-widest block mb-1">Curva Base</label>
+                                            <input
+                                                type="text"
+                                                value={getVal('baseCurve')}
+                                                onChange={e => setLabFields(prev => ({ ...prev, [`${order.id}_baseCurve`]: e.target.value }))}
+                                                onBlur={e => saveLabField(order.id, 'baseCurve', e.target.value)}
+                                                placeholder="Ej: 6.0"
+                                                className="w-full px-3 py-2 border-2 border-stone-200 dark:border-stone-700 rounded-xl text-xs font-bold bg-white dark:bg-stone-800 outline-none"
+                                            />
+                                        </div>
                                     </div>
                                 </div>
 
@@ -1606,7 +1686,7 @@ ${order.frameSource ? `<div style='background:#fffbeb;border:2px solid #fbbf24;b
                         </div>
                     </div>
                 );
-            })()}
+            })}
 
             {/* Invoice Modal */}
             {invoiceOrder && (

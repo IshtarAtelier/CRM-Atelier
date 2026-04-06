@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { TrendingUp, Tag, Layers, ArrowUpRight, DollarSign, ShoppingCart, Percent, Calendar } from "lucide-react";
+import { TrendingUp, Tag, Layers, ArrowUpRight, DollarSign, ShoppingCart, Percent, Calendar, Clock, Calculator, User, ArrowRight } from "lucide-react";
 import DashboardActions from "@/components/dashboard/DashboardActions";
 
 interface DashboardData {
@@ -14,6 +14,9 @@ interface DashboardData {
   tagStats: { name: string; total: number; count: number }[];
   typeStats: { name: string; total: number; count: number; cost: number }[];
   targets: { target1: number; target2: number; target3: number } | null;
+  totalPendingBalance: number;
+  totalQuotesValue: number;
+  suggestedFollowUps: any[];
 }
 
 export default function Home() {
@@ -89,6 +92,9 @@ export default function Home() {
     tagStats: [],
     typeStats: [],
     targets: null,
+    totalPendingBalance: 0,
+    totalQuotesValue: 0,
+    suggestedFollowUps: [],
   };
 
   const currentTotal = d.totalSoldMonth;
@@ -109,14 +115,23 @@ export default function Home() {
 
   const toUSD = (ars: number) => dolarBlue ? (ars / dolarBlue) : null;
 
+  // Motivation / Pace logic
+  const now = new Date();
+  const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+  const currentDay = now.getDate();
+  const paceTotal = (currentTotal / currentDay) * daysInMonth;
+  const isPaceAboveT1 = paceTotal >= t1;
+  const isPaceAboveT2 = paceTotal >= t2;
+  const isPaceAboveT3 = paceTotal >= t3;
+
   return (
-    <div className="p-4 lg:p-8 max-w-7xl mx-auto space-y-10 animate-in fade-in duration-500 pb-20">
+    <div className="p-4 lg:p-8 max-w-7xl mx-auto space-y-8 animate-in fade-in duration-500 pb-20">
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-4xl font-extrabold tracking-tight text-stone-800 dark:text-stone-100 italic">
             Atelier Óptica <span className="text-primary not-italic">CRM</span>
           </h1>
-          <p className="text-foreground/50 mt-1 font-medium italic uppercase text-[10px] tracking-widest">Inteligencia de Negocio y Control Administrativo</p>
+          <p className="text-foreground/50 mt-1 font-medium italic uppercase text-[10px] tracking-widest leading-none">Inteligencia de Negocio y Control Administrativo</p>
         </div>
         <DashboardActions onPeriodChange={handlePeriodChange} />
       </header>
@@ -139,9 +154,34 @@ export default function Home() {
                 <p className="text-lg font-black text-emerald-400">${dolarBlue.toLocaleString()}</p>
               </div>
             )}
-          </div>
+            </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {/* Motivation / Proyección de fin de mes */}
+            <div className="mb-8 p-6 bg-white/5 rounded-2xl border border-white/5 backdrop-blur-md">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+                <div className="flex items-center gap-4">
+                  <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${paceTotal >= t1 ? 'bg-emerald-500/20 text-emerald-400' : 'bg-amber-500/20 text-amber-400'}`}>
+                    <TrendingUp className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-stone-400">Proyección de Cierre</p>
+                    <p className="text-2xl font-black italic tracking-tighter">
+                      Ritmo Actual: <span className={paceTotal >= t1 ? 'text-emerald-400' : 'text-amber-400'}>${Math.round(paceTotal).toLocaleString()}</span>
+                    </p>
+                  </div>
+                </div>
+                <div className="max-w-md">
+                  <p className="text-xs font-bold text-stone-300 leading-relaxed">
+                    {paceTotal >= t3 ? '🚀 ¡ESTÁN EN NIVEL ELITE! Si mantienen este ritmo, van a pulverizar todos los records este mes.' :
+                     paceTotal >= t2 ? '⭐ Excelente ritmo. Están camino a superar el Objetivo Ideal. ¡Sigan así!' :
+                     paceTotal >= t1 ? '✅ Van por buen camino para cumplir el objetivo del mes. ¡Fuerza en el tramo final!' :
+                     '💪 ¡A meterle pilas! Necesitan subir un poco el promedio diario para alcanzar la primera meta.'}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {/* Objetivo 1 */}
             <div className="space-y-4">
               <div className="flex justify-between items-end">
@@ -221,6 +261,45 @@ export default function Home() {
         </div>
       </section>
 
+      {/* FACTURACIÓN FUTURA Y PIPELINE */}
+      <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="md:col-span-1 bg-white dark:bg-stone-900 rounded-3xl p-6 shadow-xl border border-stone-100 dark:border-stone-800 relative overflow-hidden group">
+          <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/5 rounded-full -mr-12 -mt-12 blur-2xl group-hover:bg-emerald-500/10 transition-colors" />
+          <div className="flex items-center gap-3 mb-4">
+            <div className="bg-emerald-100 dark:bg-emerald-900/30 p-2 rounded-xl text-emerald-600 dark:text-emerald-400">
+              <Clock className="w-5 h-5" />
+            </div>
+            <h3 className="text-[10px] font-black uppercase tracking-widest text-stone-400">Saldo por Cobrar</h3>
+          </div>
+          <p className="text-3xl font-black tracking-tighter text-stone-800 dark:text-white">${d.totalPendingBalance.toLocaleString()}</p>
+          <p className="text-[9px] font-bold text-stone-500 mt-2 uppercase tracking-tight">Cobros pendientes de ventas confirmadas</p>
+        </div>
+
+        <div className="md:col-span-1 bg-white dark:bg-stone-900 rounded-3xl p-6 shadow-xl border border-stone-100 dark:border-stone-800 relative overflow-hidden group">
+          <div className="absolute top-0 right-0 w-24 h-24 bg-primary/5 rounded-full -mr-12 -mt-12 blur-2xl group-hover:bg-primary/10 transition-colors" />
+          <div className="flex items-center gap-3 mb-4">
+            <div className="bg-primary/10 p-2 rounded-xl text-primary">
+              <Calculator className="w-5 h-5" />
+            </div>
+            <h3 className="text-[10px] font-black uppercase tracking-widest text-stone-400">Presupuestos en Curso</h3>
+          </div>
+          <p className="text-3xl font-black tracking-tighter text-stone-800 dark:text-white">${d.totalQuotesValue.toLocaleString()}</p>
+          <p className="text-[9px] font-bold text-stone-500 mt-2 uppercase tracking-tight">Valor total de presupuestos abiertos</p>
+        </div>
+
+        <div className="md:col-span-1 bg-gradient-to-br from-primary to-primary/80 rounded-3xl p-6 shadow-xl shadow-primary/20 text-white relative overflow-hidden group">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 blur-2xl group-hover:bg-white/20 transition-colors" />
+          <div className="flex items-center gap-3 mb-4">
+            <div className="bg-white/20 p-2 rounded-xl">
+              <ArrowUpRight className="w-5 h-5" />
+            </div>
+            <h3 className="text-[10px] font-black uppercase tracking-widest text-white/70">Potencial Total</h3>
+          </div>
+          <p className="text-3xl font-black tracking-tighter">${(d.totalPendingBalance + d.totalQuotesValue).toLocaleString()}</p>
+          <p className="text-[9px] font-bold text-white/50 mt-2 uppercase tracking-tight">Saldos + Presupuestos abiertos</p>
+        </div>
+      </section>
+
       {/* 1. Reporte General de Ventas */}
       <section className="space-y-4">
         <div className="flex items-center gap-2">
@@ -253,6 +332,54 @@ export default function Home() {
           />
         </div>
       </section>
+
+      {/* TAREAS DE SEGUIMIENTO (Multifocales) */}
+      {d.suggestedFollowUps.length > 0 && (
+        <section className="space-y-4">
+          <div className="flex items-center gap-2">
+            <Clock className="text-primary w-5 h-5" />
+            <h2 className="text-xs font-black uppercase tracking-[0.2em] text-stone-400">Seguimiento Sugerido (Multifocales)</h2>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {d.suggestedFollowUps.map(o => (
+              <a 
+                key={o.id}
+                href={`/contactos?search=${encodeURIComponent(o.client.name)}`}
+                className="bg-white dark:bg-stone-900 border-2 border-primary/10 hover:border-primary/40 rounded-3xl p-5 transition-all group relative overflow-hidden"
+              >
+                <div className="absolute top-0 right-0 w-16 h-16 bg-primary/5 rounded-full -mr-8 -mt-8 blur-xl group-hover:bg-primary/10 transition-colors" />
+                <div className="flex justify-between items-start mb-3 relative z-10">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
+                      <User className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-black text-stone-400 uppercase tracking-widest">{o.client.name.split(' ')[0]}</p>
+                      <p className="text-xs font-bold text-stone-800 dark:text-white truncate max-w-[120px]">{o.client.name}</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-[10px] font-black text-stone-400 bg-stone-100 dark:bg-stone-800 px-2 py-0.5 rounded-lg border border-stone-200 dark:border-stone-700">
+                      Hace {Math.ceil((now.getTime() - new Date(o.createdAt).getTime()) / (1000 * 60 * 60 * 24))}d
+                    </span>
+                  </div>
+                </div>
+                <div className="space-y-2 relative z-10">
+                  <p className="text-[10px] font-bold text-stone-500">
+                    {o.items.map((it: any) => `${it.product?.brand || ''} ${it.product?.model || it.product?.name || ''}`).join(', ')}
+                  </p>
+                  <div className="flex items-center justify-between pt-2 border-t border-stone-50 dark:border-stone-800">
+                    <span className="text-sm font-black text-primary">${o.total.toLocaleString()}</span>
+                    <span className="text-[9px] font-black uppercase text-stone-400 flex items-center gap-1 group-hover:text-primary transition-colors">
+                      VER DETALLE <ArrowRight className="w-3 h-3" />
+                    </span>
+                  </div>
+                </div>
+              </a>
+            ))}
+          </div>
+        </section>
+      )}
 
       <div className={`grid grid-cols-1 md:grid-cols-2 gap-8 transition-opacity duration-300 ${loading ? 'opacity-50' : 'opacity-100'}`}>
         {/* Conversion Funnel */}
