@@ -25,6 +25,7 @@ export default function Home() {
   const [dateFrom, setDateFrom] = useState<string | undefined>();
   const [dateTo, setDateTo] = useState<string | undefined>();
   const [userRole, setUserRole] = useState('STAFF');
+  const [dolarBlue, setDolarBlue] = useState<number | null>(null);
 
   useEffect(() => {
     try {
@@ -40,6 +41,14 @@ export default function Home() {
 
   useEffect(() => {
     fetchDashboard();
+    // Fetch dólar blue venta from ambito.com
+    fetch('https://mercados.ambito.com//dolar/informal/variacion')
+      .then(r => r.json())
+      .then(json => {
+        const venta = parseFloat(json.venta.replace('.', '').replace(',', '.'));
+        if (!isNaN(venta)) setDolarBlue(venta);
+      })
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -89,6 +98,8 @@ export default function Home() {
   const progress1 = Math.min((currentTotal / t1) * 100, 100);
   const progress2 = Math.min((currentTotal / t2) * 100, 100);
 
+  const toUSD = (ars: number) => dolarBlue ? (ars / dolarBlue) : null;
+
   return (
     <div className="p-4 lg:p-8 max-w-7xl mx-auto space-y-10 animate-in fade-in duration-500 pb-20">
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -109,10 +120,16 @@ export default function Home() {
             <div className="bg-primary/20 p-2 rounded-xl">
               <TrendingUp className="text-primary w-5 h-5" />
             </div>
-            <div>
+            <div className="flex-1">
               <h2 className="text-xs font-black uppercase tracking-[0.2em] text-stone-400">Objetivos Mensuales</h2>
               <p className="text-lg font-bold">Progreso de Facturación {periodLabel}</p>
             </div>
+            {dolarBlue && (
+              <div className="text-right bg-white/5 px-4 py-2 rounded-xl border border-white/10">
+                <p className="text-[9px] font-black uppercase tracking-widest text-stone-500">Dólar Blue Venta</p>
+                <p className="text-lg font-black text-emerald-400">${dolarBlue.toLocaleString()}</p>
+              </div>
+            )}
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
@@ -122,6 +139,7 @@ export default function Home() {
                 <div>
                   <p className="text-[10px] font-black uppercase tracking-widest text-stone-400 mb-1">Primer Objetivo</p>
                   <h3 className="text-2xl font-black italic">${t1.toLocaleString()}</h3>
+                  {toUSD(t1) && <p className="text-[11px] font-bold text-emerald-400/70 mt-0.5">≈ USD {Math.round(toUSD(t1)!).toLocaleString()}</p>}
                 </div>
                 <div className="text-right">
                   <span className={`text-2xl font-black ${progress1 >= 100 ? 'text-emerald-400' : 'text-primary'}`}>
@@ -137,6 +155,7 @@ export default function Home() {
               </div>
               <p className="text-[9px] font-bold text-stone-500 uppercase tracking-tighter">
                 {progress1 >= 100 ? '¡Objetivo Alcanzado!' : `Faltan $${Math.max(t1 - currentTotal, 0).toLocaleString()} para la meta.`}
+                {toUSD(currentTotal) && <span className="ml-2 text-emerald-400/50">· Facturado: USD {Math.round(toUSD(currentTotal)!).toLocaleString()}</span>}
               </p>
             </div>
 
@@ -146,6 +165,7 @@ export default function Home() {
                 <div>
                   <p className="text-[10px] font-black uppercase tracking-widest text-stone-400 mb-1">Segundo Objetivo (Stretch)</p>
                   <h3 className="text-2xl font-black italic text-stone-200">${t2.toLocaleString()}</h3>
+                  {toUSD(t2) && <p className="text-[11px] font-bold text-emerald-400/70 mt-0.5">≈ USD {Math.round(toUSD(t2)!).toLocaleString()}</p>}
                 </div>
                 <div className="text-right">
                   <span className={`text-2xl font-black ${progress2 >= 100 ? 'text-emerald-400' : 'text-stone-400'}`}>
