@@ -44,7 +44,8 @@ export const ProductService = {
                 is2x1: data.is2x1 === true,
             }
         });
-    },(id: string, data: any) {
+    },
+    async update(id: string, data: any) {
         return await prisma.product.update({
             where: { id },
             data: {
