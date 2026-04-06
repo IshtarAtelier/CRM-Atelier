@@ -19,6 +19,7 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import CotizadorCart from '@/components/quotes/CotizadorCart';
 import QuoteSummary from '@/components/quotes/QuoteSummary';
+import InvoiceModal from '@/components/InvoiceModal';
 
 interface ContactDetailProps {
     contactId: string;
@@ -96,6 +97,7 @@ export default function ContactDetail({
     const [savingPayment, setSavingPayment] = useState(false);
     const [paymentWarning, setPaymentWarning] = useState<string | null>(null);
     const [validationError, setValidationError] = useState<string | null>(null);
+    const [invoiceOrder, setInvoiceOrder] = useState<any>(null);
 
     // Payment Methods
     const PAYMENT_METHODS = [
@@ -159,6 +161,7 @@ export default function ContactDetail({
     const [quoteDiscountCard, setQuoteDiscountCard] = useState(0);
     const [editingQuoteId, setEditingQuoteId] = useState<string | null>(null);
     const [savingQuote, setSavingQuote] = useState(false);
+    const [isQuoteSuccess, setIsQuoteSuccess] = useState(false);
 
     // Frame State for inline cotizador
     const [quoteFrameSource, setQuoteFrameSource] = useState<'OPTICA' | 'USUARIO' | null>(null);
@@ -347,6 +350,11 @@ export default function ContactDetail({
             const url = editingQuoteId ? `/api/orders/${editingQuoteId}` : '/api/orders';
             const method = editingQuoteId ? 'PATCH' : 'POST';
 
+            const subtotal = quoteItems.reduce((s, i) => s + i.price * i.quantity, 0);
+            const markupAmount = subtotal * (quoteMarkup / 100);
+            const subtotalWithMarkup = subtotal + markupAmount;
+            const total = subtotalWithMarkup * (1 - quoteDiscountCash / 100);
+
             await fetch(url, {
                 method,
                 headers: { 'Content-Type': 'application/json' },
@@ -357,6 +365,8 @@ export default function ContactDetail({
                     discountCash: quoteDiscountCash,
                     discountTransfer: quoteDiscountTransfer,
                     discountCard: quoteDiscountCard,
+                    subtotalWithMarkup,
+                    total,
                     frameSource: hasCrystals ? quoteFrameSource : null,
                     userFrameBrand: quoteFrameSource === 'USUARIO' ? quoteUserFrame.brand : null,
                     userFrameModel: quoteFrameSource === 'USUARIO' ? quoteUserFrame.model : null,
@@ -364,12 +374,8 @@ export default function ContactDetail({
                     prescriptionId: hasCrystals ? quotePrescriptionId : null,
                 })
             });
-            setIsQuoting(false);
-            setEditingQuoteId(null);
-            setQuoteItems([]);
-            setQuoteMarkup(0);
-            setQuotePrescriptionId(null);
-            fetchContact();
+            setIsQuoteSuccess(true);
+            // Don't reset everything yet, show success first
         } catch (e) {
             console.error('Error saving quote:', e);
         } finally {
@@ -558,6 +564,9 @@ export default function ContactDetail({
             });
 
             if (success) {
+                // Determine if we should trigger automatic invoicing (Ishtar card/gateway methods)
+                const isIshCardMethod = ['PAY_WAY_6_ISH', 'PAY_WAY_3_ISH', 'NARANJA_Z_ISH', 'GO_CUOTAS_ISH'].includes(paymentMethod);
+
                 setIsAddingPayment(null);
                 setPaymentAmount('');
                 setPaymentMethod('EFECTIVO');
@@ -565,6 +574,10 @@ export default function ContactDetail({
                 setPaymentReceiptUrl('');
                 setPaymentWarning(null);
                 fetchContact();
+
+                if (isIshCardMethod) {
+                    setInvoiceOrder(lastOrder);
+                }
             }
         } finally {
             setSavingPayment(false);
@@ -1624,32 +1637,58 @@ export default function ContactDetail({
 
                             {/* Cotizador Inline */}
                             {isQuoting && activeSection === 'budget' && (
-                                <CotizadorCart
-                                    items={quoteItems}
-                                    setItems={setQuoteItems}
-                                    markup={quoteMarkup}
-                                    setMarkup={setQuoteMarkup}
-                                    discountCash={quoteDiscountCash}
-                                    setDiscountCash={setQuoteDiscountCash}
-                                    discountTransfer={quoteDiscountTransfer}
-                                    setDiscountTransfer={setQuoteDiscountTransfer}
-                                    discountCard={quoteDiscountCard}
-                                    setDiscountCard={setQuoteDiscountCard}
-                                    frameSource={quoteFrameSource}
-                                    setFrameSource={setQuoteFrameSource}
-                                    userFrameData={quoteUserFrame}
-                                    setUserFrameData={setQuoteUserFrame}
-                                    prescriptionId={quotePrescriptionId}
-                                    setPrescriptionId={setQuotePrescriptionId}
-                                    availableProducts={availableProducts}
-                                    prescriptions={contact.prescriptions}
-                                    onSave={handleSaveQuote}
-                                    isSaving={savingQuote}
-                                    contactName={contact.name}
-                                    onClose={() => setIsQuoting(false)}
-                                    editingQuoteId={editingQuoteId}
-                                    onCancelEdit={handleCancelEditQuote}
-                                />
+                                <div className="relative">
+                                    {isQuoteSuccess ? (
+                                        <div className="bg-emerald-50/50 dark:bg-emerald-950/20 border-2 border-emerald-200 dark:border-emerald-800 rounded-[3rem] p-12 text-center animate-in fade-in zoom-in duration-500 my-8">
+                                            <div className="w-20 h-20 bg-emerald-500 text-white rounded-[2rem] flex items-center justify-center mx-auto mb-6 shadow-lg shadow-emerald-500/20">
+                                                <CheckCircle2 className="w-10 h-10" />
+                                            </div>
+                                            <h3 className="text-3xl font-black text-stone-800 dark:text-white mb-2 tracking-tighter uppercase italic">¡Presupuesto Guardado!</h3>
+                                            <p className="text-stone-500 dark:text-stone-400 font-bold mb-8">El presupuesto ha sido registrado exitosamente en el historial del contacto.</p>
+                                            <button 
+                                                onClick={() => {
+                                                    setIsQuoteSuccess(false);
+                                                    setIsQuoting(false);
+                                                    setEditingQuoteId(null);
+                                                    setQuoteItems([]);
+                                                    setQuoteMarkup(0);
+                                                    setQuotePrescriptionId(null);
+                                                    fetchContact();
+                                                }}
+                                                className="px-12 py-4 bg-stone-900 text-white dark:bg-emerald-500 rounded-2xl font-black text-xs uppercase tracking-widest hover:scale-105 active:scale-95 transition-all shadow-xl"
+                                            >
+                                                CONTINUAR
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <CotizadorCart
+                                            items={quoteItems}
+                                            setItems={setQuoteItems}
+                                            markup={quoteMarkup}
+                                            setMarkup={setQuoteMarkup}
+                                            discountCash={quoteDiscountCash}
+                                            setDiscountCash={setQuoteDiscountCash}
+                                            discountTransfer={quoteDiscountTransfer}
+                                            setDiscountTransfer={setQuoteDiscountTransfer}
+                                            discountCard={quoteDiscountCard}
+                                            setDiscountCard={setQuoteDiscountCard}
+                                            frameSource={quoteFrameSource}
+                                            setFrameSource={setQuoteFrameSource}
+                                            userFrameData={quoteUserFrame}
+                                            setUserFrameData={setQuoteUserFrame}
+                                            prescriptionId={quotePrescriptionId}
+                                            setPrescriptionId={setQuotePrescriptionId}
+                                            availableProducts={availableProducts}
+                                            prescriptions={contact.prescriptions}
+                                            onSave={handleSaveQuote}
+                                            isSaving={savingQuote}
+                                            contactName={contact.name}
+                                            onClose={() => setIsQuoting(false)}
+                                            editingQuoteId={editingQuoteId}
+                                            onCancelEdit={handleCancelEditQuote}
+                                        />
+                                    )}
+                                </div>
                             )}
 
                             {/* Orders List with Lab Status */}
@@ -2041,6 +2080,18 @@ export default function ContactDetail({
                     )
                 }
             </div >
+
+            {invoiceOrder && (
+                <InvoiceModal 
+                    order={invoiceOrder} 
+                    initialAccount="ISH" 
+                    onClose={() => setInvoiceOrder(null)} 
+                    onSuccess={() => {
+                        setInvoiceOrder(null);
+                        fetchContact();
+                    }}
+                />
+            )}
         </div >
     );
 }

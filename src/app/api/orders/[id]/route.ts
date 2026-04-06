@@ -50,12 +50,44 @@ export async function PATCH(
 
         const data: any = {};
         
-        if (total !== undefined) data.total = total;
+        // Use existing values if not provided in body (need to fetch order first if totals are missing)
+        let finalMarkup = markup;
+        let finalDiscountCash = discountCash;
+        let finalItems = items;
+
+        if (items || markup !== undefined || discountCash !== undefined || subtotalWithMarkup === undefined || total === undefined) {
+            const currentOrder = await prisma.order.findUnique({
+                where: { id },
+                include: { items: true }
+            });
+
+            if (currentOrder) {
+                finalMarkup = markup !== undefined ? markup : currentOrder.markup;
+                finalDiscountCash = discountCash !== undefined ? discountCash : currentOrder.discountCash;
+                
+                if (items && Array.isArray(items)) {
+                    const subtotal = items.reduce((sum: number, it: any) => sum + (it.price * it.quantity), 0);
+                    const markupVal = Math.max(0, finalMarkup || 0);
+                    data.subtotalWithMarkup = Math.round(subtotal * (1 + markupVal / 100));
+                    data.total = Math.round(data.subtotalWithMarkup * (1 - (finalDiscountCash || 0) / 100));
+                } else if (markup !== undefined || discountCash !== undefined) {
+                    // Items didn't change, but markup or discount did
+                    const subtotal = currentOrder.items.reduce((sum: number, it: any) => sum + (it.price * it.quantity), 0);
+                    const markupVal = Math.max(0, finalMarkup || 0);
+                    data.subtotalWithMarkup = Math.round(subtotal * (1 + markupVal / 100));
+                    data.total = Math.round(data.subtotalWithMarkup * (1 - (finalDiscountCash || 0) / 100));
+                }
+            }
+        }
+
+        // Override with explicit body values if they were provided and we want to trust them
+        if (total !== undefined) data.total = Math.round(total);
+        if (subtotalWithMarkup !== undefined) data.subtotalWithMarkup = Math.round(subtotalWithMarkup);
+        
         if (markup !== undefined) data.markup = Math.max(0, markup);
         if (discountCash !== undefined) data.discountCash = discountCash;
         if (discountTransfer !== undefined) data.discountTransfer = discountTransfer;
         if (discountCard !== undefined) data.discountCard = discountCard;
-        if (subtotalWithMarkup !== undefined) data.subtotalWithMarkup = subtotalWithMarkup;
 
         if (items && Array.isArray(items)) {
             data.items = {

@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { 
     Calculator, X, Save, Search, 
     ChevronRight, Info, Plus, Gift,
-    RotateCcw, History
+    RotateCcw, History, CheckCircle2, User
 } from 'lucide-react';
 import CotizadorCart from './quotes/CotizadorCart';
 import QuoteSummary from './quotes/QuoteSummary';
@@ -100,12 +100,20 @@ export default function CotizadorPopup({ clientName, clientId, onClose }: Cotiza
         setPrescriptionId(null);
     };
 
+    const [isSuccess, setIsSuccess] = useState(false);
+
     const handleSaveQuote = async () => {
         if (quoteItems.length === 0) return;
         setSaving(true);
         try {
             const url = editingQuoteId ? `/api/orders/${editingQuoteId}` : '/api/orders';
             const method = editingQuoteId ? 'PATCH' : 'POST';
+
+            // Calculate totals locally as backup, although API should also handle it
+            const subtotal = quoteItems.reduce((s, i) => s + i.price * i.quantity, 0);
+            const markupAmount = subtotal * (markup / 100);
+            const subtotalWithMarkup = subtotal + markupAmount;
+            const total = subtotalWithMarkup * (1 - discountCash / 100);
 
             const res = await fetch(url, {
                 method,
@@ -126,6 +134,8 @@ export default function CotizadorPopup({ clientName, clientId, onClose }: Cotiza
                     discountCash,
                     discountTransfer,
                     discountCard,
+                    subtotalWithMarkup,
+                    total,
                     frameSource: quoteItems.some(i => i.product.type === 'Cristal' || i.product.category === 'LENS') ? frameSource : null,
                     userFrameBrand: frameSource === 'USUARIO' ? userFrameData.brand : null,
                     userFrameModel: frameSource === 'USUARIO' ? userFrameData.model : null,
@@ -136,7 +146,7 @@ export default function CotizadorPopup({ clientName, clientId, onClose }: Cotiza
             });
 
             if (res.ok) {
-                onClose();
+                setIsSuccess(true);
             }
         } catch (e) {
             console.error('Error saving quote:', e);
@@ -199,8 +209,35 @@ export default function CotizadorPopup({ clientName, clientId, onClose }: Cotiza
                 </header>
 
                 {/* Main Content */}
-                <div className="flex-1 overflow-hidden flex">
-                    {loading ? (
+                <div className="flex-1 overflow-hidden flex relative">
+                    {isSuccess ? (
+                        <div className="flex-1 flex flex-col items-center justify-center p-12 bg-emerald-50/30 dark:bg-emerald-950/20 animate-in fade-in zoom-in duration-500">
+                            <div className="w-24 h-24 bg-emerald-500 text-white rounded-[2.5rem] flex items-center justify-center mb-8 shadow-huge shadow-emerald-500/20 animate-bounce">
+                                <CheckCircle2 className="w-12 h-12" strokeWidth={3} />
+                            </div>
+                            <h3 className="text-4xl font-black text-stone-800 dark:text-white mb-2 tracking-tighter uppercase italic">¡Guardado con Éxito!</h3>
+                            <p className="text-stone-500 dark:text-stone-400 font-bold text-center max-w-md mb-12">El presupuesto para <span className="text-emerald-600 font-black">{clientName}</span> ha sido registrado correctamente en su historial.</p>
+                            
+                            <div className="flex gap-4 w-full max-w-md">
+                                <button 
+                                    onClick={() => {
+                                        // On "Go to Profile", we just close the popup. 
+                                        // If the user was in the list, the list usually updates via useEffect or parent refresh.
+                                        onClose();
+                                    }}
+                                    className="flex-1 py-5 bg-stone-900 text-white dark:bg-emerald-500 rounded-[2rem] font-black text-xs uppercase tracking-widest shadow-xl hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-2"
+                                >
+                                    <User className="w-4 h-4" /> VER PERFIL DEL CLIENTE
+                                </button>
+                                <button 
+                                    onClick={onClose}
+                                    className="px-10 py-5 bg-white dark:bg-stone-800 text-stone-400 border-2 border-stone-100 dark:border-stone-700 rounded-[2rem] font-black text-xs uppercase tracking-widest hover:bg-stone-50 transition-all font-black"
+                                >
+                                    CERRAR
+                                </button>
+                            </div>
+                        </div>
+                    ) : loading ? (
                         <div className="flex items-center justify-center w-full h-full">
                             <div className="flex flex-col items-center gap-4">
                                 <div className="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />

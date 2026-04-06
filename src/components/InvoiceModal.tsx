@@ -12,6 +12,7 @@ interface InvoiceModalProps {
             dni?: string | null;
             phone?: string | null;
         };
+        items?: any[];
         payments?: { method: string }[];
     };
     initialAccount?: 'ISH' | 'YANI' | 'LUCIA';
@@ -28,7 +29,7 @@ const DOC_TYPES = [
 export default function InvoiceModal({ order, initialAccount, onClose, onSuccess }: InvoiceModalProps) {
     const [docTipo, setDocTipo] = useState(order.client.dni ? 96 : 99);
     const [docNro, setDocNro] = useState(order.client.dni || '');
-    const [account, setAccount] = useState<'ISH' | 'YANI' | 'LUCIA'>(initialAccount || 'ISH');
+    const [account, setAccount] = useState<'ISH' | 'YANI'>(initialAccount === 'YANI' ? 'YANI' : 'ISH');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState<{
@@ -38,6 +39,11 @@ export default function InvoiceModal({ order, initialAccount, onClose, onSuccess
         pointOfSale: number;
         voucherLabel: string;
     } | null>(null);
+    const [showLimitPopup, setShowLimitPopup] = useState(false);
+
+    const LIMIT = 499000;
+    const expensiveItem = order.items?.find(it => it.price > LIMIT);
+    const hasExpensiveItems = !!expensiveItem;
 
     const handleEmit = async () => {
         setLoading(true);
@@ -154,8 +160,7 @@ export default function InvoiceModal({ order, initialAccount, onClose, onSuccess
                                 <div className="flex gap-2 p-1.5 bg-stone-100 dark:bg-stone-700 rounded-2xl">
                                     {[
                                         { key: 'ISH', label: 'Cuenta ISH' },
-                                        { key: 'YANI', label: 'Cuenta YANI' },
-                                        { key: 'LUCIA', label: 'Cuenta LUCIA' }
+                                        { key: 'YANI', label: 'Cuenta YANI' }
                                     ].map(acc => (
                                         <button
                                             key={acc.key}
@@ -237,6 +242,20 @@ export default function InvoiceModal({ order, initialAccount, onClose, onSuccess
                                 </div>
                             </div>
 
+                            {/* Expensive Item Error */}
+                            {hasExpensiveItems && (
+                                <div className="mt-4 bg-orange-50 dark:bg-orange-950/30 border-2 border-orange-200 dark:border-orange-800 rounded-2xl p-4 flex items-start gap-4 animate-in fade-in slide-in-from-top-4 duration-300">
+                                    <AlertCircle className="w-6 h-6 text-orange-500 flex-shrink-0" />
+                                    <div>
+                                        <p className="text-sm font-black text-orange-700 dark:text-orange-300 uppercase tracking-tight">⚠️ Límite de Monotributo Excedido</p>
+                                        <p className="text-xs text-orange-600 dark:text-orange-400 mt-1 leading-relaxed">
+                                            No se puede facturar porque hay productos que superan los <strong>${LIMIT.toLocaleString('es-AR')}</strong>. 
+                                            Facturar este monto te excluiría del Monotributo hacia el Régimen General.
+                                        </p>
+                                    </div>
+                                </div>
+                            )}
+
                             {/* Error */}
                             {error && (
                                 <div className="mt-4 bg-red-50 dark:bg-red-950/30 border-2 border-red-200 dark:border-red-800 rounded-2xl p-3 flex items-start gap-3">
@@ -255,8 +274,8 @@ export default function InvoiceModal({ order, initialAccount, onClose, onSuccess
                                 </button>
                                 <button
                                     onClick={handleEmit}
-                                    disabled={loading}
-                                    className="flex-1 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-2xl font-black text-sm hover:shadow-lg hover:shadow-blue-600/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                                    disabled={loading || hasExpensiveItems}
+                                    className="flex-1 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-2xl font-black text-sm hover:shadow-lg hover:shadow-blue-600/30 transition-all disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                                 >
                                     {loading ? (
                                         <>

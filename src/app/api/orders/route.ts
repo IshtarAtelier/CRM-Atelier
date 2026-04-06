@@ -24,19 +24,33 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Usuario no autenticado' }, { status: 401 });
         }
 
+        // Calculate totals if missing or zero
+        let finalSubtotalWithMarkup = subtotalWithMarkup;
+        let finalTotal = total;
+
+        if (!finalSubtotalWithMarkup || !finalTotal) {
+            const calculatedSubtotal = items.reduce((sum: number, it: any) => sum + (it.price * it.quantity), 0);
+            const markupVal = Math.max(0, markup || 0);
+            finalSubtotalWithMarkup = calculatedSubtotal * (1 + markupVal / 100);
+            
+            // Default to cash discount for the "total" field (which is usually the cash price in this CRM)
+            const discCash = discountCash || 0;
+            finalTotal = finalSubtotalWithMarkup * (1 - discCash / 100);
+        }
+
         const order = await prisma.order.create({
             data: {
                 clientId,
                 userId,
                 status: 'PENDING',
-                total: total || 0,
+                total: Math.round(finalTotal),
                 paid: 0,
                 discount: discount || 0,
                 markup: Math.max(0, markup || 0),
                 discountCash: discountCash || 0,
                 discountTransfer: discountTransfer || 0,
                 discountCard: discountCard || 0,
-                subtotalWithMarkup: subtotalWithMarkup || 0,
+                subtotalWithMarkup: Math.round(finalSubtotalWithMarkup),
                 orderType: 'QUOTE',
                 labStatus: 'NONE',
                 frameSource: frameSource || null,

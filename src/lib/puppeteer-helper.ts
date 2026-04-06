@@ -1,9 +1,18 @@
-import puppeteer from 'puppeteer-extra';
-import StealthPlugin from 'puppeteer-extra-plugin-stealth';
 import { SMARTLAB_CONFIG, type SmartLabPayload } from './smartlab-config';
 
-// Add stealth plugin to puppeteer
-puppeteer.use(StealthPlugin());
+// Dynamic imports for puppeteer to avoid build environment issues
+let puppeteer: any = null;
+let StealthPlugin: any = null;
+
+async function initPuppeteer() {
+  if (!puppeteer) {
+    const { default: p } = await import('puppeteer-extra');
+    const { default: s } = await import('puppeteer-extra-plugin-stealth');
+    puppeteer = p;
+    StealthPlugin = s;
+    puppeteer.use(StealthPlugin());
+  }
+}
 
 /**
  * SmartLab Form Selectors (Placeholders - to be refined with active account)
@@ -68,8 +77,9 @@ export interface SmartLabBotResult {
  * Automates the submission of an order to SmartLab
  */
 export async function submitToSmartLabBot(payload: SmartLabPayload): Promise<SmartLabBotResult> {
-  let browser;
+  let browser: any;
   try {
+    await initPuppeteer();
     console.log('Starting SmartLab Bot for patient:', payload.patientName);
     
     browser = await puppeteer.launch({

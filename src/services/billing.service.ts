@@ -41,9 +41,18 @@ export const BillingService = {
             throw new Error(`Esta venta ya tiene una factura emitida: FC ${existingInvoice.pointOfSale.toString().padStart(4, '0')}-${existingInvoice.voucherNumber.toString().padStart(8, '0')} (CAE: ${existingInvoice.cae})`);
         }
 
-        // 2. Calcular importes
-        // Monotributista: todo va como ImpTotal, no discrimina IVA
+        // 2. Calcular importes e ítems para validación
         const totalAmount = order.total || 0;
+        
+        // El límite de Monotributo para bienes muebles es de $499.000 por ítem 
+        // para evitar la exclusión al Régimen General.
+        const UNIT_PRICE_LIMIT = 499000;
+        const expensiveItem = order.items.find(item => item.price > UNIT_PRICE_LIMIT);
+        
+        if (expensiveItem) {
+            const itemName = `${expensiveItem.product?.brand || ''} ${expensiveItem.product?.model || expensiveItem.product?.name || 'Producto'}`.trim();
+            throw new Error(`No se puede facturar: El ítem "${itemName}" tiene un precio de $${expensiveItem.price.toLocaleString('es-AR')}, lo cual supera el límite de Monotributo ($${UNIT_PRICE_LIMIT.toLocaleString('es-AR')}).`);
+        }
 
         // 3. Preparar datos para ARCA
         const accountConfig = getBillingAccountConfig(account);
