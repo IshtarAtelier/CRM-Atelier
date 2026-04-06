@@ -71,6 +71,8 @@ export default function ContactDetail({
     const [isScanning, setIsScanning] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
     const [scanProgress, setScanProgress] = useState(0);
+    const [ocrWarning, setOcrWarning] = useState<string | null>(null);
+    const [detectedDoctor, setDetectedDoctor] = useState<string | null>(null);
     const [presData, setPresData] = useState({
         sphereOD: '', cylinderOD: '', axisOD: '',
         sphereOI: '', cylinderOI: '', axisOI: '',
@@ -723,12 +725,20 @@ export default function ContactDetail({
         });
     };
 
+    // Known doctors to detect in prescriptions
+    const KNOWN_DOCTORS: { patterns: string[]; name: string }[] = [
+        { patterns: ['JEMIMA', 'DERMENDIEFF', 'DERMEN'], name: 'Jemima Dermendieff' },
+        { patterns: ['RAFAEL', 'ACOSTA'], name: 'Rafael Acosta' }
+    ];
+
     const handleScanImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
 
         setIsScanning(true);
         setScanProgress(0);
+        setOcrWarning(null);
+        setDetectedDoctor(null);
 
         try {
             const compressedBase64 = await compressImage(file);
@@ -748,20 +758,43 @@ export default function ContactDetail({
                 );
 
                 const text = result.data.text.toUpperCase();
-                console.log('Detected text:', text);
+                const confidence = result.data.confidence; // 0-100
+                console.log('OCR text:', text, '| Confidence:', confidence);
 
-                // Extracción mejorada por secciones (OD / OI)
+                // ── Doctor Detection ──
+                for (const doc of KNOWN_DOCTORS) {
+                    const matchCount = doc.patterns.filter(p => text.includes(p)).length;
+                    if (matchCount >= 1) {
+                        setDetectedDoctor(doc.name);
+                        break;
+                    }
+                }
+
+                // ── Low confidence → warn user ──
+                if (confidence < 40) {
+                    setOcrWarning('La imagen es difícil de leer. Se guardó la foto pero los datos deben cargarse manualmente.');
+                    // Still open form but don't attempt to parse numbers
+                    setIsScanning(false);
+                    setScanProgress(0);
+                    setIsAddingPrescription(true);
+                    return;
+                }
+
+                // ── Parse prescription values ──
                 const extractNumbers = (sectionText: string) => {
                     return sectionText.match(/[+-]?\d+\.\d+|[+-]?\d+/g) || [];
                 };
 
-                const odMatch = text.match(/O[DO]([\s\S]*?)(?=O[I]|ADD|$)/);
-                const oiMatch = text.match(/O[I]([\s\S]*?)(?=ADD|$)/);
+                const odMatch = text.match(/O\.?\s*D\.?([\s\S]*?)(?=O\.?\s*I|ADD|ADICI|$)/i);
+                const oiMatch = text.match(/O\.?\s*I\.?([\s\S]*?)(?=ADD|ADICI|DNP|$)/i);
+                const addMatch = text.match(/(?:ADD|ADICI[OÓ]N)[:\s]*([+-]?\d+\.?\d*)/i);
 
                 const odNums = odMatch ? extractNumbers(odMatch[0]) : extractNumbers(text).slice(0, 3);
                 const oiNums = oiMatch ? extractNumbers(oiMatch[0]) : extractNumbers(text).slice(3, 6);
 
-                if (odNums.length > 0 || oiNums.length > 0) {
+                const hasValues = odNums.length > 0 || oiNums.length > 0;
+
+                if (hasValues) {
                     setPresData(prev => ({
                         ...prev,
                         sphereOD: odNums[0] || prev.sphereOD,
@@ -769,21 +802,29 @@ export default function ContactDetail({
                         axisOD: odNums[2] || prev.axisOD,
                         sphereOI: oiNums[0] || prev.sphereOI,
                         cylinderOI: oiNums[1] || prev.cylinderOI,
-                        axisOI: oiNums[2] || prev.axisOI
+                        axisOI: oiNums[2] || prev.axisOI,
+                        ...(addMatch ? { addition: addMatch[1] } : {})
                     }));
+
+                    // Medium confidence → show a soft warning
+                    if (confidence < 65) {
+                        setOcrWarning('La lectura pudo no ser precisa. Revisá los valores antes de guardar.');
+                    }
+                } else {
+                    setOcrWarning('No se detectaron valores numéricos en la imagen. Cargalos manualmente.');
                 }
             } catch (ocrErr) {
                 console.error('OCR Processing Error:', ocrErr);
+                setOcrWarning('Error al procesar el OCR. Se guardó la imagen, cargá los datos manualmente.');
             } finally {
                 setIsScanning(false);
                 setScanProgress(0);
-                // Always open the form after scanning so the user can review/edit values
                 setIsAddingPrescription(true);
             }
         } catch (err) {
             console.error('Image Processing Error:', err);
             setIsScanning(false);
-            // Even on error, open the form if we at least have the image
+            setOcrWarning('Error al procesar la imagen.');
             setIsAddingPrescription(true);
         }
     };
@@ -1150,7 +1191,7 @@ export default function ContactDetail({
                                 </div>
                             ) : (
                                 <div className="bg-white dark:bg-stone-800 border-2 border-primary/20 rounded-[3rem] p-8 shadow-2xl animate-in zoom-in-95 duration-300">
-                                    <div className="flex justify-between items-center mb-8">
+                                    <div className="flex justify-between items-center mb-4">
                                         <h3 className="text-2xl font-black text-stone-800 dark:text-white tracking-tighter">
                                             {editingPresId ? 'Editar Receta' : 'Cargar Receta'}
                                         </h3>
@@ -1158,6 +1199,8 @@ export default function ContactDetail({
                                             onClick={() => {
                                                 setIsAddingPrescription(false);
                                                 setEditingPresId(null);
+                                                setOcrWarning(null);
+                                                setDetectedDoctor(null);
                                                 setPresData({
                                                     sphereOD: '', cylinderOD: '', axisOD: '',
                                                     sphereOI: '', cylinderOI: '', axisOI: '',
@@ -1176,6 +1219,53 @@ export default function ContactDetail({
                                             CANCELAR
                                         </button>
                                     </div>
+
+                                    {/* ═══ IMAGE PREVIEW AT TOP ═══ */}
+                                    {presData.imageUrl && (
+                                        <div className="mb-6 p-4 bg-stone-50 dark:bg-stone-900/50 rounded-2xl border border-stone-100 dark:border-stone-800">
+                                            <span className="text-[9px] font-black text-stone-400 uppercase tracking-widest block mb-3 italic">📷 Imagen de Receta</span>
+                                            <img src={presData.imageUrl} alt="Receta" className="max-h-52 rounded-xl mx-auto shadow-lg cursor-pointer hover:scale-105 transition-transform" onClick={() => window.open(presData.imageUrl, '_blank')} />
+                                        </div>
+                                    )}
+
+                                    {/* ═══ OCR WARNING ALERT ═══ */}
+                                    {ocrWarning && (
+                                        <div className="mb-6 p-4 bg-amber-50 dark:bg-amber-950/30 border-2 border-amber-200 dark:border-amber-800 rounded-2xl flex items-start gap-3">
+                                            <AlertCircle className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
+                                            <div>
+                                                <p className="text-sm font-bold text-amber-700 dark:text-amber-400">{ocrWarning}</p>
+                                                <p className="text-[10px] text-amber-500 mt-1">La imagen fue guardada correctamente.</p>
+                                            </div>
+                                            <button onClick={() => setOcrWarning(null)} className="text-amber-400 hover:text-amber-600 ml-auto flex-shrink-0">✕</button>
+                                        </div>
+                                    )}
+
+                                    {/* ═══ DOCTOR DETECTION BANNER ═══ */}
+                                    {detectedDoctor && (
+                                        <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-950/30 border-2 border-blue-200 dark:border-blue-800 rounded-2xl flex items-center gap-3">
+                                            <User className="w-5 h-5 text-blue-500 flex-shrink-0" />
+                                            <div className="flex-1">
+                                                <p className="text-sm font-bold text-blue-700 dark:text-blue-400">🩺 Se detectó al Dr/a. <strong>{detectedDoctor}</strong> en la receta</p>
+                                            </div>
+                                            <button
+                                                onClick={async () => {
+                                                    try {
+                                                        await fetch(`/api/contacts/${contactId}`, {
+                                                            method: 'PATCH',
+                                                            headers: { 'Content-Type': 'application/json' },
+                                                            body: JSON.stringify({ doctor: detectedDoctor })
+                                                        });
+                                                        fetchContact();
+                                                        setDetectedDoctor(null);
+                                                    } catch (e) { console.error(e); }
+                                                }}
+                                                className="px-4 py-2 bg-blue-500 text-white text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-blue-600 transition-all flex-shrink-0"
+                                            >
+                                                ETIQUETAR
+                                            </button>
+                                            <button onClick={() => setDetectedDoctor(null)} className="text-blue-400 hover:text-blue-600 flex-shrink-0">✕</button>
+                                        </div>
+                                    )}
 
                                     {/* ═══ SECCIÓN LEJOS ═══ */}
                                     <div className="mb-6">
@@ -1351,12 +1441,7 @@ export default function ContactDetail({
                                         <input type="text" placeholder="Ej: Multifocal, filtro azul..." value={presData.notes} onChange={e => setPresData(prev => ({ ...prev, notes: e.target.value }))} className="w-full bg-stone-50 dark:bg-stone-900 border border-stone-100 dark:border-stone-700 p-3 rounded-xl text-sm font-bold" />
                                     </div>
 
-                                    {presData.imageUrl && (
-                                        <div className="mb-6 p-4 bg-stone-50 dark:bg-stone-900/50 rounded-2xl border border-stone-100 dark:border-stone-800">
-                                            <span className="text-[9px] font-black text-stone-400 uppercase tracking-widest block mb-3 italic">Imagen de Receta Escaneada</span>
-                                            <img src={presData.imageUrl} alt="Receta" className="max-h-40 rounded-xl mx-auto shadow-lg" />
-                                        </div>
-                                    )}
+                                    {/* Image already shown at the top of the form */}
 
                                     <div className="pt-6 border-t border-stone-100 flex justify-between items-center">
                                         <p className="text-[9px] font-black text-stone-400 uppercase tracking-widest flex items-center gap-2">
