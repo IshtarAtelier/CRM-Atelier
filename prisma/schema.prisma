@@ -215,6 +215,13 @@ model Order {
   labDiameter    String?  // Diámetro del lente
   labPdOd        String?  // Distancia interpupilar Ojo Derecho
   labPdOi        String?  // Distancia interpupilar Ojo Izquierdo
+  // Medidas del armazón (para SmartLab)
+  frameA         String?  // Ancho del lente (mm)
+  frameB         String?  // Alto del lente (mm)
+  frameDbl       String?  // Puente (mm)
+  frameEdc       String?  // Diagonal efectiva (mm)
+  // SmartLab automation
+  smartLabScreenshot String? // Screenshot de confirmación del bot
 
   @@index([clientId])
   @@index([orderType, isDeleted])

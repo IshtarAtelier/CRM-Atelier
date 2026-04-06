@@ -42,6 +42,7 @@ export async function PATCH(
             labStatus, labNotes, orderType, labOrderNumber, 
             frameSource, userFrameBrand, userFrameModel, userFrameNotes, 
             labColor, labTreatment, labDiameter, labPdOd, labPdOi, 
+            frameA, frameB, frameDbl, frameEdc, smartLabScreenshot,
             prescriptionId, items, total, markup, 
             discountCash, discountTransfer, discountCard, subtotalWithMarkup
         } = body;

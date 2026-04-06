@@ -281,24 +281,25 @@ export default function CotizadorPage() {
                 method,
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    contactId,
+                    clientId: contactId,
                     items: quoteItems.map(it => ({
                         productId: it.product.id,
                         quantity: it.quantity,
                         price: it.customPrice,
                         eye: it.eye
                     })),
-                    status: 'QUOTE',
                     markup,
+                    discount: discountCash,
+                    discountCash,
+                    discountTransfer,
+                    discountCard,
+                    total: Math.round(totalCash),
+                    subtotalWithMarkup: Math.round(totalWithMarkup),
                     frameSource,
-                    userFrameData: frameSource === 'USUARIO' ? userFrameData : null,
+                    userFrameBrand: frameSource === 'USUARIO' ? userFrameData.brand : null,
+                    userFrameModel: frameSource === 'USUARIO' ? userFrameData.model : null,
+                    userFrameNotes: frameSource === 'USUARIO' ? userFrameData.notes : null,
                     prescriptionId: quotePrescriptionId,
-                    metadata: {
-                        markup,
-                        discountCash,
-                        discountTransfer,
-                        discountCard
-                    }
                 })
             });
 
@@ -308,11 +309,12 @@ export default function CotizadorPage() {
                 console.log('Presupuesto actualizado/guardado');
             } else {
                 const err = await res.json();
-                console.error('Error al guardar presupuesto');
+                alert(`❌ Error al guardar: ${err.error || 'Error desconocido'}`);
+                console.error('Error al guardar presupuesto', err);
             }
         } catch (err) {
             console.error(err);
-            console.error('Error de conexión');
+            alert('❌ Error de conexión al guardar');
         } finally {
             setSavingQuote(false);
         }

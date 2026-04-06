@@ -1934,7 +1934,7 @@ export default function ContactDetail({
 
                                             {/* Foto de la receta */}
                                             <div>
-                                                <label className="text-[9px] font-black text-stone-400 uppercase tracking-widest block mb-2">📷 Foto de la receta (opcional)</label>
+                                                <label className="text-[9px] font-black text-red-500 uppercase tracking-widest block mb-2">📷 Foto de la receta (OBLIGATORIA)</label>
                                                 {rxForm.imageUrl ? (
                                                     <div className="relative">
                                                         <img src={rxForm.imageUrl} alt="Receta" className="w-full max-h-40 object-contain rounded-xl border-2 border-emerald-200" />
@@ -1968,8 +1968,8 @@ export default function ContactDetail({
                                             </button>
                                             <button
                                                 onClick={handleRxSubmitAndConvert}
-                                                disabled={rxSaving || (!rxForm.sphereOD && !rxForm.sphereOI)}
-                                                className={`flex-1 py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${rxSaving || (!rxForm.sphereOD && !rxForm.sphereOI) ? 'bg-stone-200 text-stone-400 cursor-not-allowed' : 'bg-emerald-500 text-white hover:bg-emerald-600 shadow-lg'}`}
+                                                disabled={rxSaving || (!rxForm.sphereOD && !rxForm.sphereOI) || !rxForm.imageUrl}
+                                                className={`flex-1 py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${rxSaving || (!rxForm.sphereOD && !rxForm.sphereOI) || !rxForm.imageUrl ? 'bg-stone-200 text-stone-400 cursor-not-allowed' : 'bg-emerald-500 text-white hover:bg-emerald-600 shadow-lg'}`}
                                             >
                                                 {rxSaving ? (<><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span> GUARDANDO...</>) : (<><CheckCircle2 className="w-4 h-4" /> GUARDAR Y CONVERTIR EN VENTA</>)}
                                             </button>

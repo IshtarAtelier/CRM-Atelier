@@ -13,7 +13,7 @@ interface DashboardData {
   monthlyBilling: { name: string; total: number }[];
   tagStats: { name: string; total: number; count: number }[];
   typeStats: { name: string; total: number; count: number; cost: number }[];
-  targets: { target1: number; target2: number } | null;
+  targets: { target1: number; target2: number; target3: number } | null;
 }
 
 export default function Home() {
@@ -94,9 +94,11 @@ export default function Home() {
   const currentTotal = d.totalSoldMonth;
   const t1 = d.targets?.target1 || 18000000;
   const t2 = d.targets?.target2 || 24000000;
+  const t3 = d.targets?.target3 || 30000000;
   
   const progress1 = Math.min((currentTotal / t1) * 100, 100);
   const progress2 = Math.min((currentTotal / t2) * 100, 100);
+  const progress3 = Math.min((currentTotal / t3) * 100, 100);
 
   const toUSD = (ars: number) => dolarBlue ? (ars / dolarBlue) : null;
 
@@ -132,7 +134,7 @@ export default function Home() {
             )}
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {/* Objetivo 1 */}
             <div className="space-y-4">
               <div className="flex justify-between items-end">
@@ -181,6 +183,31 @@ export default function Home() {
               </div>
               <p className="text-[9px] font-bold text-stone-500 uppercase tracking-tighter">
                 {progress2 >= 100 ? '¡Nivel Experto Completado!' : progress1 >= 100 ? '¡A por el siguiente nivel!' : 'Próxima gran meta de facturación.'}
+              </p>
+            </div>
+
+            {/* Objetivo 3 */}
+            <div className="space-y-4">
+              <div className="flex justify-between items-end">
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-stone-400 mb-1">Tercer Objetivo (Elite)</p>
+                  <h3 className="text-2xl font-black italic text-stone-300">${t3.toLocaleString()}</h3>
+                  {toUSD(t3) && <p className="text-[11px] font-bold text-emerald-400/70 mt-0.5">≈ USD {Math.round(toUSD(t3)!).toLocaleString()}</p>}
+                </div>
+                <div className="text-right">
+                  <span className={`text-2xl font-black ${progress3 >= 100 ? 'text-emerald-400' : 'text-stone-500'}`}>
+                    {progress3.toFixed(1)}%
+                  </span>
+                </div>
+              </div>
+              <div className="h-4 bg-white/5 rounded-full overflow-hidden p-1 backdrop-blur-sm border border-white/10">
+                <div 
+                  className={`h-full rounded-full transition-all duration-1000 ease-out shadow-[0_0_15px_rgba(168,85,247,0.3)] ${progress3 >= 100 ? 'bg-emerald-500' : 'bg-purple-500/70'}`}
+                  style={{ width: `${progress3}%` }}
+                />
+              </div>
+              <p className="text-[9px] font-bold text-stone-500 uppercase tracking-tighter">
+                {progress3 >= 100 ? '¡Nivel Elite Alcanzado! 🏆' : progress2 >= 100 ? '¡Último nivel desbloqueado!' : 'Meta aspiracional máxima.'}
               </p>
             </div>
           </div>
