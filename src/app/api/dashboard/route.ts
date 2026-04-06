@@ -254,6 +254,7 @@ export async function GET(request: Request) {
         }
 
         return NextResponse.json({
+            DEBUG_FIX: true,
             totalSoldMonth,
             ordersCountMonth,
             ticketPromedioMonth,
