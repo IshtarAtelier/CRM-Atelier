@@ -41,11 +41,10 @@ export const ProductService = {
                 cylinderMax: data.cylinderMax != null ? parseFloat(data.cylinderMax) : null,
                 additionMin: data.additionMin != null ? parseFloat(data.additionMin) : null,
                 additionMax: data.additionMax != null ? parseFloat(data.additionMax) : null,
+                is2x1: data.is2x1 === true,
             }
         });
-    },
-
-    async update(id: string, data: any) {
+    },(id: string, data: any) {
         return await prisma.product.update({
             where: { id },
             data: {
@@ -66,6 +65,7 @@ export const ProductService = {
                 cylinderMax: data.cylinderMax !== undefined ? (data.cylinderMax != null ? parseFloat(data.cylinderMax) : null) : undefined,
                 additionMin: data.additionMin !== undefined ? (data.additionMin != null ? parseFloat(data.additionMin) : null) : undefined,
                 additionMax: data.additionMax !== undefined ? (data.additionMax != null ? parseFloat(data.additionMax) : null) : undefined,
+                is2x1: data.is2x1 !== undefined ? Boolean(data.is2x1) : undefined,
             }
         });
     },
@@ -90,6 +90,7 @@ export const ProductService = {
                 cylinderMax: item.cylinderMax != null ? parseFloat(item.cylinderMax) : null,
                 additionMin: item.additionMin != null ? parseFloat(item.additionMin) : null,
                 additionMax: item.additionMax != null ? parseFloat(item.additionMax) : null,
+                is2x1: item.is2x1 === true,
             }))
         });
     }

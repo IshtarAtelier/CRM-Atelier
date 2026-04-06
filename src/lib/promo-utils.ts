@@ -6,6 +6,11 @@
  */
 export const isMultifocal2x1 = (p: any): boolean => {
     if (!p) return false;
+
+    // Primary: explicit flag set by admin — authoritative source of truth
+    if (p.is2x1 === true) return true;
+
+    // Fallback: legacy name-based detection (requires BOTH multifocal AND "2x1" in name)
     const name = (p.name || '').toLowerCase();
     const brand = (p.brand || '').toLowerCase();
     const type = (p.type || '').toLowerCase();

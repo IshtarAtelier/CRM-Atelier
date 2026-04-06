@@ -130,26 +130,29 @@ export default function CotizadorPage() {
                         const quote = await quoteRes.json();
                         setEditingQuoteId(editId);
                         
-                        // Map items
-                        const mappedItems = quote.items.map((it: any) => ({
+                        // Map items — API returns `price`, CotizadorCart expects `customPrice`
+                        const mappedItems = quote.items.map((it: any, idx: number) => ({
                             product: it.product,
                             quantity: it.quantity,
                             customPrice: it.price,
-                            eye: it.eye
+                            eye: it.eye,
+                            uid: Date.now() + idx
                         }));
                         setQuoteItems(mappedItems);
                         
-                        // Set markup and discounts from metadata if available
-                        if (quote.metadata) {
-                            setMarkup(quote.metadata.markup || 0);
-                            setDiscountCash(quote.metadata.discountCash ?? 20);
-                            setDiscountTransfer(quote.metadata.discountTransfer ?? 15);
-                            setDiscountCard(quote.metadata.discountCard ?? 0);
-                        }
+                        // Restore pricing settings — fields are directly on the order object
+                        setMarkup(quote.markup || 0);
+                        setDiscountCash(quote.discountCash ?? 20);
+                        setDiscountTransfer(quote.discountTransfer ?? 15);
+                        setDiscountCard(quote.discountCard ?? 0);
                         
-                        // Set frame source
+                        // Set frame source — API returns individual fields, not an object
                         if (quote.frameSource) setFrameSource(quote.frameSource);
-                        if (quote.userFrameData) setUserFrameData(quote.userFrameData);
+                        setUserFrameData({
+                            brand: quote.userFrameBrand || '',
+                            model: quote.userFrameModel || '',
+                            notes: quote.userFrameNotes || '',
+                        });
                         
                         // Set contact
                         if (quote.contact) {

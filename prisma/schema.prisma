@@ -170,6 +170,7 @@ model Product {
   cylinderMax  Float?  // Cilindro máximo (ej: 0)
   additionMin  Float?  // Adición mínima (ej: 0.75, solo multifocales)
   additionMax  Float?  // Adición máxima (ej: 3.50, solo multifocales)
+  is2x1       Boolean  @default(false) // Promoción 2x1: par de cristales incluido sin cargo
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

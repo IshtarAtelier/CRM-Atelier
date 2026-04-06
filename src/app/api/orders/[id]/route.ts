@@ -3,6 +3,90 @@ import { headers } from 'next/headers';
 import { ContactService } from '@/services/contact.service';
 import { prisma } from '@/lib/db';
 
+export async function GET(
+    request: Request,
+    { params }: { params: Promise<{ id: string }> }
+) {
+    try {
+        const { id } = await params;
+
+        const order = await prisma.order.findUnique({
+            where: { id },
+            select: {
+                id: true,
+                clientId: true,
+                status: true,
+                orderType: true,
+                total: true,
+                paid: true,
+                markup: true,
+                discountCash: true,
+                discountTransfer: true,
+                discountCard: true,
+                subtotalWithMarkup: true,
+                frameSource: true,
+                userFrameBrand: true,
+                userFrameModel: true,
+                userFrameNotes: true,
+                prescriptionId: true,
+                labStatus: true,
+                createdAt: true,
+                items: {
+                    select: {
+                        id: true,
+                        price: true,
+                        quantity: true,
+                        eye: true,
+                        sphereVal: true,
+                        cylinderVal: true,
+                        axisVal: true,
+                        additionVal: true,
+                        product: {
+                            select: {
+                                id: true,
+                                name: true,
+                                brand: true,
+                                model: true,
+                                category: true,
+                                type: true,
+                                price: true,
+                                stock: true,
+                                lensIndex: true,
+                                laboratory: true,
+                            }
+                        }
+                    }
+                },
+                client: {
+                    select: {
+                        id: true,
+                        name: true,
+                        phone: true,
+                        prescriptions: true,
+                    }
+                },
+                prescription: true,
+                payments: true,
+            }
+        });
+
+        if (!order) {
+            return NextResponse.json({ error: 'Order not found' }, { status: 404 });
+        }
+
+        // Map client → contact shape expected by cotizador/page.tsx
+        const response = {
+            ...order,
+            contact: order.client,
+        };
+
+        return NextResponse.json(response);
+    } catch (error: any) {
+        console.error('Error fetching order:', error);
+        return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+}
+
 export async function DELETE(
     request: Request,
     { params }: { params: Promise<{ id: string }> }

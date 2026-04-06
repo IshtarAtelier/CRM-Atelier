@@ -117,7 +117,12 @@ export default function ContactDetail({
 
     // Compute the correct order total based on the selected payment method
     const getOrderTotalForMethod = (order: any, method: string): number => {
-        const listPrice = order.subtotalWithMarkup || order.total || 0;
+        // Fallback: recalculate subtotalWithMarkup from items when missing (old records)
+        const listPrice = (() => {
+            if (order.subtotalWithMarkup && order.subtotalWithMarkup > 0) return order.subtotalWithMarkup;
+            const subtotal = (order.items || []).reduce((s: number, it: any) => s + (it.price * it.quantity), 0);
+            return subtotal * (1 + (order.markup || 0) / 100);
+        })();
         // Card / installment methods → cuotas price (list price with card discount)
         if (method.startsWith('PAY_WAY') || method.startsWith('NARANJA') || method.startsWith('GO_CUOTAS')) {
             return Math.round(listPrice * (1 - (order.discountCard || 0) / 100));
@@ -154,7 +159,7 @@ export default function ContactDetail({
     const [isQuoting, setIsQuoting] = useState(false);
     const [availableProducts, setAvailableProducts] = useState<any[]>([]);
     const [quoteSearch, setQuoteSearch] = useState('');
-    const [quoteItems, setQuoteItems] = useState<{ product: any; quantity: number; price: number; eye?: 'OD' | 'OI'; uid: number }[]>([]);
+    const [quoteItems, setQuoteItems] = useState<{ product: any; quantity: number; customPrice: number; eye?: 'OD' | 'OI'; uid: number }[]>([]);
     const [quoteMarkup, setQuoteMarkup] = useState(0);
     const [quoteDiscountCash, setQuoteDiscountCash] = useState(20);
     const [quoteDiscountTransfer, setQuoteDiscountTransfer] = useState(15);
@@ -321,7 +326,7 @@ export default function ContactDetail({
         setQuoteItems((order.items || []).map((it: any, idx: number) => ({
             product: it.product,
             quantity: it.quantity,
-            price: it.price,
+            customPrice: it.price,  // API returns `price`, map to `customPrice` for CotizadorCart
             eye: it.eye,
             uid: Date.now() + idx
         })));
@@ -358,7 +363,7 @@ export default function ContactDetail({
             const url = editingQuoteId ? `/api/orders/${editingQuoteId}` : '/api/orders';
             const method = editingQuoteId ? 'PATCH' : 'POST';
 
-            const subtotal = quoteItems.reduce((s, i) => s + i.price * i.quantity, 0);
+            const subtotal = quoteItems.reduce((s, i) => s + i.customPrice * i.quantity, 0);
             const markupAmount = subtotal * (quoteMarkup / 100);
             const subtotalWithMarkup = subtotal + markupAmount;
             const total = subtotalWithMarkup * (1 - quoteDiscountCash / 100);
@@ -368,7 +373,7 @@ export default function ContactDetail({
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     clientId: contactId,
-                    items: quoteItems.map(i => ({ productId: i.product.id, quantity: i.quantity, price: i.price, eye: i.eye })),
+                    items: quoteItems.map(i => ({ productId: i.product.id, quantity: i.quantity, price: i.customPrice, eye: i.eye })),
                     markup: quoteMarkup,
                     discountCash: quoteDiscountCash,
                     discountTransfer: quoteDiscountTransfer,
