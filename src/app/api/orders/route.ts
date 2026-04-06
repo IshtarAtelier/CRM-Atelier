@@ -98,23 +98,60 @@ export async function POST(request: Request) {
     }
 }
 
-// GET /api/orders — List all orders
-export async function GET() {
+// GET /api/orders — List all orders (paginated or limited list)
+export async function GET(request: Request) {
     try {
-        const orders = await prisma.order.findMany({
-            where: { isDeleted: false },
-            include: {
-                client: true,
-                user: { select: { name: true } },
-                items: { include: { product: true } },
-                payments: true,
-                invoices: true,
-                prescription: true,
-            },
-            orderBy: { createdAt: 'desc' },
-        });
-        return NextResponse.json(orders);
+        const { searchParams } = new URL(request.url);
+        const paginate = searchParams.get('paginate') === 'true';
+        const page = parseInt(searchParams.get('page') || '1');
+        const limit = parseInt(searchParams.get('limit') || '50');
+        const skip = (page - 1) * limit;
+
+        // Base query conditions
+        const where = { isDeleted: false };
+        const include = {
+            client: true,
+            user: { select: { name: true } },
+            items: { include: { product: true } },
+            payments: true,
+            invoices: true,
+            prescription: true,
+        };
+        const orderBy: any = { createdAt: 'desc' };
+
+        if (paginate) {
+            const [orders, total] = await Promise.all([
+                prisma.order.findMany({
+                    where,
+                    include,
+                    orderBy,
+                    skip,
+                    take: limit,
+                }),
+                prisma.order.count({ where })
+            ]);
+
+            return NextResponse.json({
+                orders,
+                pagination: {
+                    total,
+                    page,
+                    limit,
+                    totalPages: Math.ceil(total / limit)
+                }
+            });
+        } else {
+            // Limited list for backwards compatibility
+            const orders = await prisma.order.findMany({
+                where,
+                include,
+                orderBy,
+                take: 100, // Safety limit to avoid 502/timeouts
+            });
+            return NextResponse.json(orders);
+        }
     } catch (error: any) {
+        console.error('Error fetching orders:', error);
         return NextResponse.json({ error: error.message }, { status: 500 });
     }
 }

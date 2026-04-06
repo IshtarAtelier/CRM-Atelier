@@ -215,7 +215,7 @@ export const BillingService = {
                 items: invoice.order.items.map((item: any) => ({
                     description: `${item.product?.brand || ''} ${item.product?.model || item.product?.name || ''} ${item.eye ? '(' + item.eye + ')' : ''}`.trim(),
                     quantity: item.quantity,
-                    unitPrice: item.price,
+                    unit_price: item.price,
                     total: item.price * item.quantity,
                 })),
             });

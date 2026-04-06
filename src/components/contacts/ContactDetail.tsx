@@ -306,6 +306,14 @@ export default function ContactDetail({
     const [currentUserRole, setCurrentUserRole] = useState<'ADMIN' | 'STAFF'>('STAFF');
 
     useEffect(() => {
+        const loadUser = async () => {
+            const res = await fetch('/api/auth/me');
+            if (res.ok) {
+                const data = await res.json();
+                setCurrentUserRole(data.role);
+            }
+        };
+        loadUser();
         fetchContact();
     }, [contactId]);
 
@@ -576,7 +584,13 @@ export default function ContactDetail({
                 fetchContact();
 
                 if (isIshCardMethod) {
-                    setInvoiceOrder(lastOrder);
+                    // Create the task for the admin
+                    onAddTask(contactId, `SOLICITUD FACTURA: ${getPaymentLabel(paymentMethod)} - $${amount.toLocaleString('es-AR')}`);
+
+                    // If Admin, also show the modal directly
+                    if (currentUserRole === 'ADMIN') {
+                        setInvoiceOrder(lastOrder);
+                    }
                 }
             }
         } finally {
@@ -741,7 +755,8 @@ export default function ContactDetail({
     // Known doctors to detect in prescriptions
     const KNOWN_DOCTORS: { patterns: string[]; name: string }[] = [
         { patterns: ['JEMIMA', 'DERMENDIEFF', 'DERMEN'], name: 'Jemima Dermendieff' },
-        { patterns: ['RAFAEL', 'ACOSTA'], name: 'Rafael Acosta' }
+        { patterns: ['RAFAEL', 'ACOSTA'], name: 'Rafael Acosta' },
+        { patterns: ['MIRETTI', 'JUAN PABLO'], name: 'Juan Pablo Miretti' }
     ];
 
     const handleScanImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -795,15 +810,62 @@ export default function ContactDetail({
 
                 // ── Parse prescription values ──
                 const extractNumbers = (sectionText: string) => {
-                    return sectionText.match(/[+-]?\d+\.\d+|[+-]?\d+/g) || [];
+                    const raw = sectionText.match(/[+-]?\d+\.\d+|[+-]?\d+/g) || [];
+                    // Normalize numbers: if it's like "150", "175", convert to "1.50", "1.75"
+                    // axis are usually 0-180, so we only normalize if it looks like a diopter (> 25 and not looking like axis)
+                    return raw.map((n, i) => {
+                        const val = parseFloat(n);
+                        // If it's the 3rd number (Axis), don't normalize
+                        if (i === 2) return n;
+                        if (Math.abs(val) >= 25) {
+                            const normalized = (val / 100).toFixed(2);
+                            return val > 0 ? `+${normalized}` : normalized;
+                        }
+                        return n;
+                    });
                 };
 
                 const odMatch = text.match(/O\.?\s*D\.?([\s\S]*?)(?=O\.?\s*I|ADD|ADICI|$)/i);
-                const oiMatch = text.match(/O\.?\s*I\.?([\s\S]*?)(?=ADD|ADICI|DNP|$)/i);
+                const oiMatch = text.match(/O\.?\s*I\.?([\s\S]*?)(?=ADD|ADICI|DNP|ALTU|$)/i);
                 const addMatch = text.match(/(?:ADD|ADICI[OÓ]N)[:\s]*([+-]?\d+\.?\d*)/i);
+                const dnpMatch = text.match(/(?:DNP|DP|DISTANCIA)[:\s]*(\d+[\/\s]?\d*)/i);
+                const heightMatch = text.match(/(?:ALTURA|ALT|H)[:\s]*(\d+[\/\s]?\d*)/i);
 
                 const odNums = odMatch ? extractNumbers(odMatch[0]) : extractNumbers(text).slice(0, 3);
                 const oiNums = oiMatch ? extractNumbers(oiMatch[0]) : extractNumbers(text).slice(3, 6);
+
+                // DNP parsing (common formats: "64", "32/32", "32 32")
+                let distanceOD = '';
+                let distanceOI = '';
+                if (dnpMatch) {
+                    const dnpParts = dnpMatch[1].split(/[\/\s]+/).filter(Boolean);
+                    if (dnpParts.length === 1) {
+                        const total = parseInt(dnpParts[0]);
+                        if (total > 40) {
+                            distanceOD = (total / 2).toString();
+                            distanceOI = (total / 2).toString();
+                        } else {
+                            distanceOD = dnpParts[0];
+                        }
+                    } else if (dnpParts.length >= 2) {
+                        distanceOD = dnpParts[0];
+                        distanceOI = dnpParts[1];
+                    }
+                }
+
+                // Height parsing
+                let heightOD = '';
+                let heightOI = '';
+                if (heightMatch) {
+                    const hParts = heightMatch[1].split(/[\/\s]+/).filter(Boolean);
+                    if (hParts.length === 1) {
+                        heightOD = hParts[0];
+                        heightOI = hParts[0];
+                    } else if (hParts.length >= 2) {
+                        heightOD = hParts[0];
+                        heightOI = hParts[1];
+                    }
+                }
 
                 const hasValues = odNums.length > 0 || oiNums.length > 0;
 
@@ -816,7 +878,11 @@ export default function ContactDetail({
                         sphereOI: oiNums[0] || prev.sphereOI,
                         cylinderOI: oiNums[1] || prev.cylinderOI,
                         axisOI: oiNums[2] || prev.axisOI,
-                        ...(addMatch ? { addition: addMatch[1] } : {})
+                        distanceOD: distanceOD || prev.distanceOD,
+                        distanceOI: distanceOI || prev.distanceOI,
+                        heightOD: heightOD || prev.heightOD,
+                        heightOI: heightOI || prev.heightOI,
+                        ...(addMatch ? { additionOD: addMatch[1], additionOI: addMatch[1] } : {})
                     }));
 
                     // Medium confidence → show a soft warning
