@@ -777,10 +777,14 @@ export default function ContactDetail({
             } finally {
                 setIsScanning(false);
                 setScanProgress(0);
+                // Always open the form after scanning so the user can review/edit values
+                setIsAddingPrescription(true);
             }
         } catch (err) {
             console.error('Image Processing Error:', err);
             setIsScanning(false);
+            // Even on error, open the form if we at least have the image
+            setIsAddingPrescription(true);
         }
     };
 

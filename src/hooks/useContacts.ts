@@ -1,29 +1,54 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Contact, ContactStatus, ContactFormData } from '@/types/contacts';
 
 export function useContacts(activeTab: ContactStatus, searchQuery: string, favoritesOnly: boolean = false, interest: string = 'ALL') {
     const [contacts, setContacts] = useState<Contact[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const abortControllerRef = useRef<AbortController | null>(null);
 
-    const fetchContacts = async () => {
+    const fetchContacts = useCallback(async () => {
+        // Cancel any in-flight request
+        if (abortControllerRef.current) {
+            abortControllerRef.current.abort();
+        }
+        const controller = new AbortController();
+        abortControllerRef.current = controller;
+
         try {
             setLoading(true);
-            const res = await fetch(`/api/contacts?status=${activeTab}&search=${searchQuery}&favorites=${favoritesOnly}&interest=${interest}`);
+            const res = await fetch(`/api/contacts?status=${activeTab}&search=${encodeURIComponent(searchQuery)}&favorites=${favoritesOnly}&interest=${interest}`, {
+                signal: controller.signal
+            });
+            if (controller.signal.aborted) return;
             if (!res.ok) {
                 const errData = await res.json().catch(() => ({}));
                 throw new Error(errData.error || 'Error al cargar contactos');
             }
             const data = await res.json();
-            setContacts(Array.isArray(data) ? data : []);
-            setError(null);
+            if (!controller.signal.aborted) {
+                setContacts(Array.isArray(data) ? data : []);
+                setError(null);
+            }
         } catch (err: any) {
+            if (err.name === 'AbortError') return; // Ignore aborted requests
             console.error('Fetch error:', err);
             setError(err.message);
         } finally {
-            setLoading(false);
+            if (!controller.signal.aborted) {
+                setLoading(false);
+            }
         }
-    };
+    }, [activeTab, searchQuery, favoritesOnly, interest]);
+
+    useEffect(() => {
+        // Debounce search queries, but instant for tab/filter changes
+        const delay = searchQuery ? 300 : 0;
+        const timer = setTimeout(() => {
+            fetchContacts();
+        }, delay);
+        return () => clearTimeout(timer);
+    }, [fetchContacts]);
 
     const createContact = async (formData: ContactFormData): Promise<Contact | null> => {
         try {
@@ -156,9 +181,7 @@ export function useContacts(activeTab: ContactStatus, searchQuery: string, favor
         }
     };
 
-    useEffect(() => {
-        fetchContacts();
-    }, [activeTab, searchQuery, favoritesOnly, interest]);
+
 
     const addPrescription = async (clientId: string, data: any) => {
         try {
