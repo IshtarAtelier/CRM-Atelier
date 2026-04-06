@@ -73,7 +73,7 @@ export default function CotizadorPopup({ clientName, clientId, onClose }: Cotiza
         setQuoteItems((order.items || []).map((it: any, idx: number) => ({
             product: it.product,
             quantity: it.quantity,
-            price: it.price,
+            customPrice: it.price,  // API returns `price`, map to `customPrice` for CotizadorCart
             eye: it.eye,
             uid: Date.now() + idx
         })));
@@ -109,8 +109,8 @@ export default function CotizadorPopup({ clientName, clientId, onClose }: Cotiza
             const url = editingQuoteId ? `/api/orders/${editingQuoteId}` : '/api/orders';
             const method = editingQuoteId ? 'PATCH' : 'POST';
 
-            // Calculate totals locally as backup, although API should also handle it
-            const subtotal = quoteItems.reduce((s, i) => s + i.price * i.quantity, 0);
+            // Calculate totals — items use customPrice consistently
+            const subtotal = quoteItems.reduce((s, i) => s + i.customPrice * i.quantity, 0);
             const markupAmount = subtotal * (markup / 100);
             const subtotalWithMarkup = subtotal + markupAmount;
             const total = subtotalWithMarkup * (1 - discountCash / 100);
@@ -123,7 +123,7 @@ export default function CotizadorPopup({ clientName, clientId, onClose }: Cotiza
                     items: quoteItems.map(i => ({
                         productId: i.product.id,
                         quantity: i.quantity,
-                        price: i.price,
+                        price: i.customPrice,  // API expects `price` in OrderItem
                         eye: i.eye || null,
                         sphereVal: i.sphereVal ?? null,
                         cylinderVal: i.cylinderVal ?? null,

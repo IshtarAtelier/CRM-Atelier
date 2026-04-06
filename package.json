@@ -7,8 +7,8 @@
   },
   "scripts": {
     "dev": "next dev",
-    "build": "npx prisma generate && next build",
-    "start": "npx prisma migrate deploy && next start -p ${PORT:-3000} -H 0.0.0.0",
+    "build": "npx prisma generate && npx prisma migrate deploy && next build",
+    "start": "next start -p ${PORT:-3000} -H 0.0.0.0",
     "lint": "eslint",
     "whatsapp": "node whatsapp-server.js",
     "db:backup": "node scripts/backup-db.js",

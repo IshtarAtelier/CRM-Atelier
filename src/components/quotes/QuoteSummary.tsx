@@ -117,6 +117,13 @@ export default function QuoteSummary({
     const progress = (order.paid / order.total) * 100;
     const minRequired = (order.total || 0) * 0.4;
 
+    // Fallback: recalculate subtotalWithMarkup from items when field is 0/null (old records)
+    const effectiveSubtotalWithMarkup = (() => {
+        if (order.subtotalWithMarkup && order.subtotalWithMarkup > 0) return order.subtotalWithMarkup;
+        const itemsSubtotal = (order.items || []).reduce((s: number, it: any) => s + (it.price * it.quantity), 0);
+        return itemsSubtotal * (1 + (order.markup || 0) / 100);
+    })();
+
     const LAB_LABELS: Record<string, { label: string; color: string; next?: string; nextLabel?: string }> = {
         'NONE': { label: 'Sin enviar', color: 'bg-stone-100 text-stone-500', next: 'SENT', nextLabel: 'Enviar a Lab' },
         'SENT': { label: 'Enviado', color: 'bg-blue-100 text-blue-600', next: 'IN_PROGRESS', nextLabel: 'En Proceso' },
@@ -563,7 +570,7 @@ ${(order.paid > 0) ? `
                         <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">Efectivo</span>
                         {order.discountCash > 0 && <span className="text-[9px] font-black bg-emerald-500 text-white px-1.5 py-0.5 rounded-lg">-{order.discountCash}%</span>}
                     </div>
-                    <p className="text-xl font-black text-emerald-600 tracking-tighter">${Math.round(order.subtotalWithMarkup * (1 - (order.discountCash || 0) / 100)).toLocaleString()}</p>
+                    <p className="text-xl font-black text-emerald-600 tracking-tighter">${Math.round(effectiveSubtotalWithMarkup * (1 - (order.discountCash || 0) / 100)).toLocaleString()}</p>
                 </div>
                 <div className="bg-violet-50/50 dark:bg-violet-950/20 p-4 rounded-3xl border-2 border-violet-100/50 dark:border-violet-900/30">
                     <div className="flex items-center gap-2 mb-2">
@@ -571,14 +578,14 @@ ${(order.paid > 0) ? `
                         <span className="text-[10px] font-black text-violet-600 uppercase tracking-widest">Transf.</span>
                         {order.discountTransfer > 0 && <span className="text-[9px] font-black bg-violet-500 text-white px-1.5 py-0.5 rounded-lg">-{order.discountTransfer}%</span>}
                     </div>
-                    <p className="text-xl font-black text-violet-600 tracking-tighter">${Math.round(order.subtotalWithMarkup * (1 - (order.discountTransfer || 0) / 100)).toLocaleString()}</p>
+                    <p className="text-xl font-black text-violet-600 tracking-tighter">${Math.round(effectiveSubtotalWithMarkup * (1 - (order.discountTransfer || 0) / 100)).toLocaleString()}</p>
                 </div>
                 <div className="bg-orange-50/50 dark:bg-orange-950/20 p-4 rounded-3xl border-2 border-orange-100/50 dark:border-orange-900/30">
                     <div className="flex items-center gap-2 mb-2">
                         <CreditCard className="w-3.5 h-3.5 text-orange-500" />
                         <span className="text-[10px] font-black text-orange-600 uppercase tracking-widest">Cuotas</span>
                     </div>
-                    <p className="text-xl font-black text-orange-600 tracking-tighter">${Math.round(order.subtotalWithMarkup).toLocaleString()}</p>
+                    <p className="text-xl font-black text-orange-600 tracking-tighter">${Math.round(effectiveSubtotalWithMarkup).toLocaleString()}</p>
                 </div>
             </div>
 

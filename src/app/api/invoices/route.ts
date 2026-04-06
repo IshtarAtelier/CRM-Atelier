@@ -22,7 +22,19 @@ export async function POST(request: Request) {
         // Check order exists
         const order = await prisma.order.findUnique({
             where: { id: orderId },
-            include: { client: true, items: { include: { product: true } } },
+            select: {
+                id: true,
+                total: true,
+                orderType: true,
+                isDeleted: true,
+                client: { select: { id: true, name: true, phone: true, dni: true } },
+                items: {
+                    select: {
+                        id: true, quantity: true, price: true,
+                        product: { select: { id: true, name: true, brand: true, model: true } }
+                    }
+                },
+            },
         });
 
         if (!order) {
@@ -109,10 +121,23 @@ export async function POST(request: Request) {
 export async function GET() {
     try {
         const invoices = await prisma.invoice.findMany({
-            include: {
+            select: {
+                id: true,
+                cae: true,
+                caeExpiration: true,
+                voucherNumber: true,
+                voucherType: true,
+                pointOfSale: true,
+                totalAmount: true,
+                status: true,
+                billingAccount: true,
+                createdAt: true,
+                orderId: true,
                 order: {
-                    include: {
-                        client: { select: { name: true } },
+                    select: {
+                        id: true,
+                        total: true,
+                        client: { select: { name: true, phone: true } },
                     },
                 },
             },

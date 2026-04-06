@@ -308,7 +308,13 @@ export async function PATCH(
                         data,
                         select: {
                             id: true,
-                            items: { include: { product: true } },
+                            items: {
+                                select: {
+                                    id: true, price: true, quantity: true, eye: true,
+                                    sphereVal: true, cylinderVal: true, axisVal: true, additionVal: true,
+                                    product: { select: { id: true, name: true, brand: true, model: true, category: true, type: true, price: true, stock: true } }
+                                }
+                            },
                             payments: true,
                             prescription: true,
                         },
@@ -354,7 +360,13 @@ export async function PATCH(
             data,
             select: {
                 id: true,
-                items: { include: { product: true } },
+                items: {
+                    select: {
+                        id: true, price: true, quantity: true, eye: true,
+                        sphereVal: true, cylinderVal: true, axisVal: true, additionVal: true,
+                        product: { select: { id: true, name: true, brand: true, model: true, category: true, type: true, price: true, stock: true } }
+                    }
+                },
                 payments: true,
             },
         });
