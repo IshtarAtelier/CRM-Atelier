@@ -25,10 +25,10 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import CotizadorCart from '@/components/quotes/CotizadorCart';
 import QuoteSummary from '@/components/quotes/QuoteSummary';
 import { 
-    isMultifocal2x1, 
     isCrystal, 
     isMiPrimerVarilux, 
-    getCategoryKey 
+    getCategoryKey,
+    safePrice
 } from '@/lib/promo-utils';
 import { 
     Glasses, 
@@ -219,15 +219,17 @@ export default function CotizadorPage() {
 
     // Cart logic
     const addToQuote = (p: Product) => {
+        const sprice = safePrice(p.price);
         if (isCrystal(p)) {
             // Split crystal into OD/OI automatically
             setQuoteItems(prev => {
                 const hasExisting = prev.some(i => i.product.id === p.id);
                 if (hasExisting) return prev;
+                const ts = Date.now();
                 return [
                     ...prev,
-                    { product: p, quantity: 1, customPrice: p.price, eye: 'OD', uid: Date.now() },
-                    { product: p, quantity: 1, customPrice: p.price, eye: 'OI', uid: Date.now() + 1 }
+                    { product: p, quantity: 1, customPrice: Math.round(sprice / 2), eye: 'OD', uid: ts },
+                    { product: p, quantity: 1, customPrice: Math.round(sprice / 2), eye: 'OI', uid: ts + 1 }
                 ];
             });
         } else {
@@ -237,12 +239,12 @@ export default function CotizadorPage() {
                     if (existing.quantity >= p.stock) return prev;
                     return prev.map(i => i.product.id === p.id ? { ...i, quantity: i.quantity + 1 } : i);
                 }
-                return [...prev, { product: p, quantity: 1, customPrice: p.price }];
+                return [...prev, { product: p, quantity: 1, customPrice: sprice }];
             });
         }
     };
 
-    const totalList = quoteItems.reduce((acc, it) => acc + (it.customPrice * it.quantity), 0);
+    const totalList = quoteItems.reduce((acc, it) => acc + (safePrice(it.customPrice) * it.quantity), 0);
     const totalWithMarkup = totalList * (1 + markup / 100);
     const totalCash = totalWithMarkup * (1 - discountCash / 100);
     const itemCount = quoteItems.reduce((acc, it) => acc + it.quantity, 0);
@@ -522,7 +524,8 @@ export default function CotizadorPage() {
                                     <tbody>
                                         {filtered.map((product, idx) => {
                                             const inQuote = quoteItems.find(i => i.product.id === product.id);
-                                            const pTotal = product.price * (1 + markup / 100);
+                                            const sprice = safePrice(product.price);
+                                            const pTotal = sprice * (1 + markup / 100);
                                             const pCash = pTotal * (1 - discountCash / 100);
                                             const pTrans = pTotal * (1 - discountTransfer / 100);
                                             return (
@@ -574,7 +577,7 @@ export default function CotizadorPage() {
                                         <p className="text-[11px] font-black leading-tight mt-0.5 line-clamp-2">{product.model || product.name}</p>
                                     </div>
                                     <div className="flex items-center justify-between mt-auto">
-                                        <p className="text-sm font-black text-primary">${product.price.toLocaleString()}</p>
+                                        <p className="text-sm font-black text-primary">${safePrice(product.price).toLocaleString()}</p>
                                         {inQuote && (
                                             <span className="w-5 h-5 bg-primary text-white rounded-full flex items-center justify-center text-[10px] font-black">
                                                 {inQuote.quantity}

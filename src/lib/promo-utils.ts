@@ -81,3 +81,10 @@ export function getCategoryKey(type: string | null): string {
     if (t.includes('joyería') || t.includes('joyeria')) return 'Joyería';
     return 'Otros';
 }
+/**
+ * Safely parses a price value to a number.
+ */
+export const safePrice = (price: any): number => {
+    if (price === null || price === undefined || isNaN(Number(price))) return 0;
+    return Number(price);
+};

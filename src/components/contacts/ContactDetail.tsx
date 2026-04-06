@@ -13,6 +13,7 @@ import {
     MessageCircle, Glasses, Layers, Check, Lock, Shield,
     TrendingUp, ArrowRightLeft
 } from 'lucide-react';
+import { safePrice } from '@/lib/promo-utils';
 import { Contact, Interaction, Prescription, Order } from '@/types/contacts';
 import FileDropZone from '@/components/FileDropZone';
 import { format } from 'date-fns';
@@ -363,7 +364,7 @@ export default function ContactDetail({
             const url = editingQuoteId ? `/api/orders/${editingQuoteId}` : '/api/orders';
             const method = editingQuoteId ? 'PATCH' : 'POST';
 
-            const subtotal = quoteItems.reduce((s, i) => s + i.customPrice * i.quantity, 0);
+            const subtotal = quoteItems.reduce((s, i) => s + (safePrice(i.customPrice) * (i.quantity || 1)), 0);
             const markupAmount = subtotal * (quoteMarkup / 100);
             const subtotalWithMarkup = subtotal + markupAmount;
             const total = subtotalWithMarkup * (1 - quoteDiscountCash / 100);
@@ -1067,7 +1068,7 @@ export default function ContactDetail({
                             <div className="flex items-center gap-1.5">
                                 <Calculator className="w-3 h-3 text-primary" />
                                 <span className="text-[11px] font-black text-stone-800 dark:text-stone-100 tracking-tighter truncate">
-                                    ${contact.expectedValue?.toLocaleString()}
+                                    ${safePrice(contact.expectedValue).toLocaleString()}
                                 </span>
                             </div>
                         </div>

@@ -10,7 +10,7 @@ import {
 } from 'lucide-react';
 import { 
     isMultifocal2x1, isAtelierFrame, isCrystal, 
-    isMiPrimerVarilux, getCategoryKey, isFrame 
+    isMiPrimerVarilux, getCategoryKey, isFrame, safePrice
 } from '@/lib/promo-utils';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -91,8 +91,8 @@ export default function CotizadorCart({
     }, [items]);
 
     const atelierAvgPrice = useMemo(() => {
-        const atelierFrames = availableProducts.filter(p => getCategoryKey(p.type) === 'Armazón' && isAtelierFrame(p) && p.price > 0);
-        return atelierFrames.length > 0 ? Math.round(atelierFrames.reduce((s, f) => s + f.price, 0) / atelierFrames.length) : 0;
+        const atelierFrames = availableProducts.filter(p => getCategoryKey(p.type) === 'Armazón' && isAtelierFrame(p) && safePrice(p.price) > 0);
+        return atelierFrames.length > 0 ? Math.round(atelierFrames.reduce((s, f) => s + safePrice(f.price), 0) / atelierFrames.length) : 0;
     }, [availableProducts]);
     
     // Check frames in quote for the promo
@@ -107,7 +107,7 @@ export default function CotizadorCart({
         return Math.min(secondFrame.customPrice, atelierAvgPrice);
     }, [hasMultifocalPromo, sortedFrames, atelierAvgPrice]);
 
-    const subtotal = Math.max(0, items.reduce((s, i) => s + i.customPrice * i.quantity, 0) - promoFrameDiscount);
+    const subtotal = Math.max(0, items.reduce((s, i) => s + (safePrice(i.customPrice) * (i.quantity || 1)), 0) - promoFrameDiscount);
 
     const markupAmount = subtotal * (markup / 100);
     const priceWithMarkup = subtotal + markupAmount;
@@ -158,14 +158,15 @@ export default function CotizadorCart({
                 const alreadyInCart = prev.some(it => it.product.id === product.id);
                 if (alreadyInCart) return prev;
                 const ts = Date.now();
+                const sprice = safePrice(product.price);
                 return [
                     ...prev,
-                    { product, quantity: 1, customPrice: Math.round(product.price / 2), eye: 'OD', uid: ts },
-                    { product, quantity: 1, customPrice: Math.round(product.price / 2), eye: 'OI', uid: ts + 1 }
+                    { product, quantity: 1, customPrice: Math.round(sprice / 2), eye: 'OD', uid: ts },
+                    { product, quantity: 1, customPrice: Math.round(sprice / 2), eye: 'OI', uid: ts + 1 }
                 ];
             });
         } else {
-            setItems(prev => [...prev, { product, quantity: 1, customPrice: product.price, uid: Date.now() }]);
+            setItems(prev => [...prev, { product, quantity: 1, customPrice: safePrice(product.price), uid: Date.now() }]);
         }
         setFullSearch('');
     };
@@ -216,7 +217,7 @@ export default function CotizadorCart({
                                     </p>
                                 </div>
                                 <div className="flex items-center gap-3">
-                                    <span className="text-[10px] font-black text-primary">${p.price.toLocaleString()}</span>
+                                    <span className="text-[10px] font-black text-primary">${safePrice(p.price).toLocaleString()}</span>
                                     <div className="w-7 h-7 bg-primary text-white rounded-lg flex items-center justify-center scale-0 group-hover/item:scale-100 transition-all">
                                         <Plus className="w-4 h-4" />
                                     </div>
