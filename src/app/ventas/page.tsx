@@ -459,15 +459,15 @@ ${order.frameSource ? `<div style='background:#fffbeb;border:2px solid #fbbf24;b
     return (
         <main className="p-4 lg:p-8 max-w-7xl mx-auto">
             {/* Header */}
-            <div className="flex items-center justify-between mb-8">
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-8">
                 <div>
-                    <h1 className="text-4xl font-black text-stone-800 dark:text-white tracking-tight flex items-center gap-3">
-                        <ShoppingCart className="w-9 h-9 text-emerald-500" /> Ventas
+                    <h1 className="text-3xl lg:text-4xl font-black text-stone-800 dark:text-white tracking-tight flex items-center gap-3">
+                        <ShoppingCart className="w-8 h-8 lg:w-9 lg:h-9 text-emerald-500" /> Ventas
                     </h1>
-                    <p className="text-stone-400 text-sm mt-1">Operaciones confirmadas y enviadas a laboratorio</p>
+                    <p className="text-stone-400 text-xs lg:text-sm mt-1">Operaciones confirmadas y enviadas a laboratorio</p>
                 </div>
-                <div className="text-right">
-                    <p className="text-3xl font-black text-emerald-500">${stats.revenue.toLocaleString()}</p>
+                <div className="text-left md:text-right w-full md:w-auto p-4 bg-emerald-50 dark:bg-emerald-950/20 rounded-2xl md:bg-transparent md:p-0">
+                    <p className="text-2xl lg:text-3xl font-black text-emerald-500">${stats.revenue.toLocaleString()}</p>
                     <p className="text-[10px] font-black text-stone-400 uppercase tracking-widest">Facturación total</p>
                 </div>
             </div>
@@ -490,7 +490,7 @@ ${order.frameSource ? `<div style='background:#fffbeb;border:2px solid #fbbf24;b
 
             {/* Filters */}
             <div className="space-y-4 mb-6">
-                <div className="flex gap-4">
+                <div className="flex flex-col lg:flex-row gap-4">
                     <div className="relative flex-1">
                         <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400" />
                         <input
@@ -501,12 +501,12 @@ ${order.frameSource ? `<div style='background:#fffbeb;border:2px solid #fbbf24;b
                             className="w-full pl-12 pr-4 py-3 bg-white dark:bg-stone-800 border-2 border-stone-100 dark:border-stone-700 rounded-2xl text-sm font-medium focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
                         />
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 overflow-x-auto pb-2 lg:pb-0 no-scrollbar">
                         {['ALL', 'SENT', 'IN_PROGRESS', 'READY', 'DELIVERED'].map(f => (
                             <button
                                 key={f}
                                 onClick={() => setFilterLab(f)}
-                                className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${filterLab === f ? 'bg-stone-900 text-white dark:bg-white dark:text-stone-900' : 'bg-stone-100 dark:bg-stone-800 text-stone-500 hover:bg-stone-200'}`}
+                                className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${filterLab === f ? 'bg-stone-900 text-white dark:bg-white dark:text-stone-900' : 'bg-stone-100 dark:bg-stone-800 text-stone-500 hover:bg-stone-200'}`}
                             >
                                 {f === 'ALL' ? 'Todas' : LAB_STATUS[f]?.label || f}
                             </button>
@@ -599,72 +599,83 @@ ${order.frameSource ? `<div style='background:#fffbeb;border:2px solid #fbbf24;b
                         const payProgress = order.total > 0 ? Math.min(100, (order.paid / order.total) * 100) : 100;
 
                         return (
-                            <div key={order.id} className={`border-2 rounded-2xl p-6 hover:shadow-lg transition-all ${payProgress < 100
+                            <div key={order.id} className={`border-2 rounded-2xl p-4 lg:p-6 hover:shadow-lg transition-all ${payProgress < 100
                                     ? 'bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-900/50'
                                     : 'bg-white dark:bg-stone-800 border-stone-100 dark:border-stone-700'
                                 }`}>
-                                <div className="flex items-center gap-6">
-                                    {/* Lab Status Icon */}
-                                    <div className={`w-14 h-14 rounded-2xl ${labInfo.color} flex items-center justify-center flex-shrink-0 ${isUpdating ? 'animate-pulse' : ''}`}>
-                                        <LabIcon className="w-6 h-6" />
+                                <div className="flex flex-col lg:flex-row lg:items-center gap-4 lg:gap-6">
+                                    {/* Lab Status Icon & Basic Info (Combined on Mobile) */}
+                                    <div className="flex items-center gap-4">
+                                        <div className={`w-12 h-12 lg:w-14 lg:h-14 rounded-2xl ${labInfo.color} flex items-center justify-center flex-shrink-0 ${isUpdating ? 'animate-pulse' : ''}`}>
+                                            <LabIcon className="w-5 h-5 lg:w-6 lg:h-6" />
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <h3 className="text-base lg:text-lg font-black text-stone-800 dark:text-white truncate">{order.client.name}</h3>
+                                            <div className="flex flex-wrap gap-2 mt-1">
+                                                <span className={`px-2 py-0.5 rounded-lg text-[8px] lg:text-[9px] font-black uppercase tracking-widest ${labInfo.color}`}>
+                                                    {labInfo.label}
+                                                </span>
+                                                {payProgress >= 100 && (
+                                                    <span className="px-2 py-0.5 rounded-lg text-[8px] lg:text-[9px] font-black uppercase tracking-widest bg-emerald-100 text-emerald-600">PAGADO</span>
+                                                )}
+                                            </div>
+                                        </div>
+                                        {/* Total on Mobile Header */}
+                                        <div className="lg:hidden text-right">
+                                            <p className="text-lg font-black text-stone-800 dark:text-white">${(order.total || 0).toLocaleString()}</p>
+                                        </div>
                                     </div>
 
-                                    {/* Main Info */}
-                                    <div className="flex-1 min-w-0">
-                                        <div className="flex items-center gap-3 mb-1">
-                                            <h3 className="text-lg font-black text-stone-800 dark:text-white truncate">{order.client.name}</h3>
-                                            <span className={`px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest ${labInfo.color}`}>
-                                                {labInfo.label}
-                                            </span>
-                                            {payProgress >= 100 ? (
-                                                <span className="px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest bg-emerald-100 text-emerald-600">PAGADO</span>
-                                            ) : (
-                                                <div className="flex flex-col gap-1.5 ml-4 border-l-2 border-stone-100 dark:border-stone-700 pl-4 py-0.5">
-                                                    <span className="text-[8px] font-black text-stone-400 uppercase tracking-widest">Saldo Pendiente</span>
-                                                    <div className="flex gap-2">
-                                                        <div className="flex flex-col rounded-lg bg-emerald-50 px-2 py-1 text-emerald-600">
-                                                            <span className="text-[8px] font-black uppercase tracking-widest flex items-center gap-1"><Banknote className="w-3 h-3" /> Efvo</span>
-                                                            <span className="text-[10px] font-black mt-0.5">${((order.total || 0) - (order.paid || 0)).toLocaleString()}</span>
-                                                        </div>
-                                                        {(order.subtotalWithMarkup || 0) > 0 && (() => {
-                                                            const transferTotal = (order.subtotalWithMarkup || 0) * (1 - (order.discountTransfer || 0) / 100);
-                                                            const transferSaldo = Math.max(0, Math.round(transferTotal) - (order.paid || 0));
-                                                            const cardTotal = (order.subtotalWithMarkup || 0) * (1 - (order.discountCard || 0) / 100);
-                                                            const cardSaldo = Math.max(0, Math.round(cardTotal) - (order.paid || 0));
-                                                            return (
-                                                                <>
-                                                                    <div className="flex flex-col rounded-lg bg-violet-50 px-2 py-1 text-violet-600">
-                                                                        <span className="text-[8px] font-black uppercase tracking-widest flex items-center gap-1"><ArrowRightLeft className="w-3 h-3" /> Transf</span>
-                                                                        <span className="text-[10px] font-black mt-0.5">${transferSaldo.toLocaleString()}</span>
-                                                                    </div>
-                                                                    <div className="flex flex-col rounded-lg bg-orange-50 px-2 py-1 text-orange-600">
-                                                                        <span className="text-[8px] font-black uppercase tracking-widest flex items-center gap-1"><CreditCard className="w-3 h-3" /> Cuotas</span>
-                                                                        <span className="text-[10px] font-black mt-0.5">${cardSaldo.toLocaleString()}</span>
-                                                                    </div>
-                                                                </>
-                                                            );
-                                                        })()}
-                                                    </div>
+                                    {/* Payment Detail (Only if pending) */}
+                                    {payProgress < 100 && (
+                                        <div className="flex flex-col gap-1.5 lg:border-l-2 lg:border-stone-100 lg:dark:border-stone-700 lg:pl-4 py-0.5">
+                                            <span className="text-[8px] font-black text-stone-400 uppercase tracking-widest">Saldo Pendiente</span>
+                                            <div className="flex flex-wrap gap-2">
+                                                <div className="flex flex-col rounded-lg bg-emerald-50 px-2 py-1 text-emerald-600">
+                                                    <span className="text-[7px] lg:text-[8px] font-black uppercase tracking-widest flex items-center gap-1"><Banknote className="w-3 h-3" /> Efvo</span>
+                                                    <span className="text-[9px] lg:text-[10px] font-black mt-0.5">${((order.total || 0) - (order.paid || 0)).toLocaleString()}</span>
                                                 </div>
-                                            )}
+                                                {(order.subtotalWithMarkup || 0) > 0 && (() => {
+                                                    const transferTotal = (order.subtotalWithMarkup || 0) * (1 - (order.discountTransfer || 0) / 100);
+                                                    const transferSaldo = Math.max(0, Math.round(transferTotal) - (order.paid || 0));
+                                                    const cardTotal = (order.subtotalWithMarkup || 0) * (1 - (order.discountCard || 0) / 100);
+                                                    const cardSaldo = Math.max(0, Math.round(cardTotal) - (order.paid || 0));
+                                                    return (
+                                                        <>
+                                                            <div className="flex flex-col rounded-lg bg-violet-50 px-2 py-1 text-violet-600">
+                                                                <span className="text-[7px] lg:text-[8px] font-black uppercase tracking-widest flex items-center gap-1"><ArrowRightLeft className="w-3 h-3" /> Transf</span>
+                                                                <span className="text-[9px] lg:text-[10px] font-black mt-0.5">${transferSaldo.toLocaleString()}</span>
+                                                            </div>
+                                                            <div className="flex flex-col rounded-lg bg-orange-50 px-2 py-1 text-orange-600">
+                                                                <span className="text-[7px] lg:text-[8px] font-black uppercase tracking-widest flex items-center gap-1"><CreditCard className="w-3 h-3" /> Cuotas</span>
+                                                                <span className="text-[9px] lg:text-[10px] font-black mt-0.5">${cardSaldo.toLocaleString()}</span>
+                                                            </div>
+                                                        </>
+                                                    );
+                                                })()}
+                                            </div>
                                         </div>
-                                        <div className="flex items-center gap-4 text-[10px] font-bold text-stone-400 uppercase tracking-widest">
-                                            <span>Venta #{order.id.slice(-4).toUpperCase()}</span>
-                                            <span>·</span>
-                                            <span>{format(new Date(order.createdAt), "d MMM yyyy", { locale: es })}</span>
-                                            <span>·</span>
-                                            <span>{order.items.length} item{order.items.length !== 1 ? 's' : ''}</span>
-                                            {order.labSentAt && (
-                                                <>
-                                                    <span>·</span>
-                                                    <span>Enviado: {format(new Date(order.labSentAt), "d/MM HH:mm", { locale: es })}</span>
-                                                </>
-                                            )}
-                                        </div>
-                                    </div>
+                                    )}
 
-                                    {/* Lab Order Number */}
-                                    <div className="flex-shrink-0 w-48">
+                                    {/* Info Badges */}
+                                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[9px] lg:text-[10px] font-bold text-stone-400 uppercase tracking-widest">
+                                        <span>Venta #{order.id.slice(-4).toUpperCase()}</span>
+                                        <span>·</span>
+                                        <span>{format(new Date(order.createdAt), "d MMM yyyy", { locale: es })}</span>
+                                        <span>·</span>
+                                        <span>{order.items.length} item{order.items.length !== 1 ? 's' : ''}</span>
+                                        {order.labSentAt && (
+                                            <>
+                                                <span className="hidden sm:inline">·</span>
+                                                <span className="w-full sm:w-auto mt-1 sm:mt-0">Enviado: {format(new Date(order.labSentAt), "d/MM HH:mm", { locale: es })}</span>
+                                            </>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* Lab Order Number & Actions */}
+                                <div className="flex flex-col lg:flex-row items-center gap-4 mt-4 pt-4 border-t border-stone-100 dark:border-stone-700">
+                                    <div className="w-full lg:w-48">
                                         {editingOrderNumber === order.id ? (
                                             <div className="flex items-center gap-2">
                                                 <input
@@ -689,21 +700,21 @@ ${order.frameSource ? `<div style='background:#fffbeb;border:2px solid #fbbf24;b
                                             >
                                                 {order.labOrderNumber ? (
                                                     <div>
-                                                        <span className="text-[9px] font-black text-stone-400 uppercase tracking-widest block">N° Op. Lab</span>
-                                                        <span className="text-sm font-black text-stone-800 dark:text-white">{order.labOrderNumber}</span>
+                                                        <span className="text-[8px] lg:text-[9px] font-black text-stone-400 uppercase tracking-widest block">N° Op. Lab</span>
+                                                        <span className="text-xs lg:text-sm font-black text-stone-800 dark:text-white">{order.labOrderNumber}</span>
                                                     </div>
                                                 ) : (
                                                     <div className="flex items-center gap-2 text-stone-400 group-hover:text-emerald-500">
                                                         <Pencil className="w-3.5 h-3.5" />
-                                                        <span className="text-[10px] font-black uppercase tracking-widest">Agregar N° Op.</span>
+                                                        <span className="text-[9px] lg:text-[10px] font-black uppercase tracking-widest">Agregar N° Op.</span>
                                                     </div>
                                                 )}
                                             </button>
                                         )}
                                     </div>
 
-                                    {/* Total */}
-                                    <div className="flex-shrink-0 text-right">
+                                    {/* Total on Desktop */}
+                                    <div className="hidden lg:block flex-shrink-0 text-right">
                                         <p className="text-xl font-black text-stone-800 dark:text-white">${(order.total || 0).toLocaleString()}</p>
                                         <div className="w-24 h-1.5 bg-stone-100 dark:bg-stone-700 rounded-full mt-2 overflow-hidden">
                                             <div className="h-full bg-emerald-500 rounded-full transition-all" style={{ width: `${payProgress}%` }} />
@@ -711,7 +722,7 @@ ${order.frameSource ? `<div style='background:#fffbeb;border:2px solid #fbbf24;b
                                     </div>
 
                                     {/* Actions */}
-                                    <div className="flex items-center gap-2 flex-shrink-0">
+                                    <div className="flex items-center gap-2 lg:flex-shrink-0 overflow-x-auto lg:overflow-visible pb-2 lg:pb-0 no-scrollbar">
                                         {/* Advance Status Button */}
                                         {nextStepInfo && (
                                             <button

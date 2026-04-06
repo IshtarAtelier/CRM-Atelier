@@ -205,7 +205,7 @@ export default function InventarioPage() {
 
             {/* Import Result Toast */}
             {importResult && (
-                <div className={`p-4 rounded-2xl flex items-center gap-3 text-sm font-bold animate-in slide-in-from-top duration-300 ${importResult.type === 'success'
+                <div className={`fixed top-4 right-4 p-4 rounded-2xl flex items-center gap-3 text-sm font-bold z-[100] animate-in slide-in-from-right duration-300 shadow-2xl ${importResult.type === 'success'
                     ? 'bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 border-2 border-emerald-200 dark:border-emerald-800'
                     : 'bg-red-50 dark:bg-red-950 text-red-600 dark:text-red-400 border-2 border-red-200 dark:border-red-800'
                     }`}>
@@ -215,69 +215,51 @@ export default function InventarioPage() {
             )}
 
             {/* Header */}
-            <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                <div>
-                    <h1 className="text-3xl font-black text-stone-800 dark:text-stone-100 tracking-tight italic">
+            <header className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+                <div className="w-full lg:w-auto">
+                    <h1 className="text-2xl lg:text-3xl font-black text-stone-800 dark:text-stone-100 tracking-tight italic">
                         Stock y <span className="text-primary not-italic border-b-4 border-primary/30">Productos</span>
                     </h1>
-                    <p className="text-stone-400 mt-1 font-medium uppercase text-[10px] tracking-[0.2em]">Control de inventario y catálogo</p>
+                    <p className="text-stone-400 mt-1 font-medium uppercase text-[8px] lg:text-[10px] tracking-[0.2em]">Control de inventario y catálogo</p>
                 </div>
-                <div className="flex items-center gap-2 flex-wrap">
+                <div className="flex items-center gap-2 flex-wrap w-full lg:w-auto overflow-x-auto lg:overflow-visible pb-2 lg:pb-0 no-scrollbar">
                     {isAdmin && (
                         <>
                             <a
                                 href="/api/products/import?type=cristales"
                                 download="plantilla_cristales_atelier.csv"
-                                className="flex items-center gap-2 px-4 py-3 bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-300 rounded-xl text-[10px] font-black hover:scale-105 active:scale-95 transition-all uppercase tracking-widest border border-stone-200 dark:border-stone-700 no-underline"
+                                className="flex items-center gap-2 px-3 lg:px-4 py-2.5 lg:py-3 bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-300 rounded-xl text-[9px] lg:text-[10px] font-black hover:scale-105 active:scale-95 transition-all uppercase tracking-widest border border-stone-200 dark:border-stone-700 no-underline whitespace-nowrap"
                                 title="Descargar plantilla CSV para cargar cristales masivamente"
                             >
-                                <Download className="w-4 h-4" />
+                                <Download className="w-3.5 h-3.5" />
                                 🔬 Cristales
                             </a>
                             <a
                                 href="/api/products/import?type=armazones"
                                 download="plantilla_armazones_atelier.csv"
-                                className="flex items-center gap-2 px-4 py-3 bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-300 rounded-xl text-[10px] font-black hover:scale-105 active:scale-95 transition-all uppercase tracking-widest border border-stone-200 dark:border-stone-700 no-underline"
+                                className="flex items-center gap-2 px-3 lg:px-4 py-2.5 lg:py-3 bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-300 rounded-xl text-[9px] lg:text-[10px] font-black hover:scale-105 active:scale-95 transition-all uppercase tracking-widest border border-stone-200 dark:border-stone-700 no-underline whitespace-nowrap"
                                 title="Descargar plantilla CSV para cargar armazones masivamente"
                             >
-                                <Download className="w-4 h-4" />
+                                <Download className="w-3.5 h-3.5" />
                                 👓 Armazones
                             </a>
-                            <a
-                                href="/api/products/import?type=sol"
-                                download="plantilla_lentes_sol_atelier.csv"
-                                className="flex items-center gap-2 px-4 py-3 bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-300 rounded-xl text-[10px] font-black hover:scale-105 active:scale-95 transition-all uppercase tracking-widest border border-stone-200 dark:border-stone-700 no-underline"
-                                title="Descargar plantilla CSV para cargar lentes de sol masivamente"
-                            >
-                                <Download className="w-4 h-4" />
-                                🕶️ Sol
-                            </a>
-                            <a
-                                href="/api/products/import?type=accesorios"
-                                download="plantilla_accesorios_atelier.csv"
-                                className="flex items-center gap-2 px-4 py-3 bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-300 rounded-xl text-[10px] font-black hover:scale-105 active:scale-95 transition-all uppercase tracking-widest border border-stone-200 dark:border-stone-700 no-underline"
-                                title="Descargar plantilla CSV para cargar accesorios masivamente"
-                            >
-                                <Download className="w-4 h-4" />
-                                ✨ Accesorios
-                            </a>
                             <label
-                                className={`flex items-center gap-2 px-4 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest cursor-pointer transition-all border hover:scale-105 active:scale-95 ${importing
+                                className={`flex items-center gap-2 px-3 lg:px-4 py-2.5 lg:py-3 rounded-xl text-[9px] lg:text-[10px] font-black uppercase tracking-widest cursor-pointer transition-all border hover:scale-105 active:scale-95 whitespace-nowrap ${importing
                                     ? 'bg-stone-200 dark:bg-stone-700 text-stone-400 border-stone-300'
                                     : 'bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100'
                                     }`}
                                 title="Importar cristales desde un archivo CSV"
                             >
-                                {importing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
-                                {importing ? 'Importando...' : 'Importar CSV'}
+                                {importing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
+                                {importing ? 'Importando' : 'Importar CSV'}
                                 <input type="file" accept=".csv,.txt" onChange={handleImportCSV} className="hidden" disabled={importing} />
                             </label>
                             <button
                                 onClick={() => setShowForm(true)}
-                                className="flex items-center gap-2 px-6 py-3 bg-stone-900 text-white dark:bg-primary dark:text-primary-foreground rounded-xl text-[10px] font-black shadow-lg hover:scale-105 active:scale-95 transition-all group uppercase tracking-widest"
+                                className="flex-1 lg:flex-none flex items-center justify-center gap-2 px-5 lg:px-6 py-2.5 lg:py-3 bg-stone-900 text-white dark:bg-primary dark:text-primary-foreground rounded-xl text-[9px] lg:text-[10px] font-black shadow-lg hover:scale-105 active:scale-95 transition-all group uppercase tracking-widest whitespace-nowrap"
                             >
                                 <Plus className="w-4 h-4 group-hover:rotate-90 transition-transform" strokeWidth={3} />
-                                Cargar Producto
+                                Cargar
                             </button>
                         </>
                     )}
@@ -330,7 +312,7 @@ export default function InventarioPage() {
             </div>
 
             {/* Category filters */}
-            <div className="flex flex-wrap gap-1.5">
+            <div className="flex flex-wrap gap-1.5 overflow-x-auto pb-2 no-scrollbar">
                 {PRODUCT_CATEGORIES.map((cat) => (
                     <button
                         key={cat.id}
@@ -340,7 +322,7 @@ export default function InventarioPage() {
                             setSelectedBrand('');
                             setShowAllBrands(false);
                         }}
-                        className={`px-3 py-1.5 rounded-lg text-[9px] font-bold uppercase tracking-wider transition-all border ${selectedCategory === cat.id && !selectedSubtype
+                        className={`px-3 py-1.5 rounded-lg text-[9px] font-bold uppercase tracking-wider transition-all border whitespace-nowrap ${selectedCategory === cat.id && !selectedSubtype
                             ? 'bg-stone-900 dark:bg-primary border-transparent text-white shadow-md'
                             : 'bg-transparent border-stone-200 dark:border-stone-700 text-stone-500 hover:border-stone-300'
                             }`}
@@ -417,38 +399,28 @@ export default function InventarioPage() {
             )}
 
             {/* Product List */}
-            <div className="bg-white dark:bg-stone-900 rounded-3xl border border-stone-100 dark:border-stone-800 overflow-hidden shadow-sm overflow-x-auto">
+            <div className="bg-white dark:bg-stone-900 rounded-3xl border border-stone-100 dark:border-stone-800 overflow-hidden shadow-sm">
 
-                {/* Table header */}
-                <div className={`grid ${isAdmin ? 'grid-cols-[auto_3fr_1fr_auto_1fr_1fr_1fr_auto]' : 'grid-cols-[auto_3fr_1fr_auto_1fr_1fr_auto]'} gap-4 px-6 py-3 bg-stone-50 dark:bg-stone-800/50 border-b border-stone-100 dark:border-stone-800 items-center`}>
-                    {/* Select all checkbox */}
-                    <button
-                        onClick={toggleSelectAll}
-                        className="text-stone-400 hover:text-primary transition-colors"
-                    >
-                        {products.length > 0 && selectedIds.size === products.length ? (
-                            <CheckSquare className="w-4 h-4 text-primary" />
-                        ) : (
-                            <Square className="w-4 h-4" />
-                        )}
-                    </button>
-                    {(isAdmin ? ['Producto', 'Tipo', 'Índice', 'Stock', 'Costo', 'Precio', ''] : ['Producto', 'Tipo', 'Índice', 'Stock', 'Precio', '']).map((h, i, arr) => (
-                        <span key={i} className={`text-[9px] font-black text-stone-400 uppercase tracking-widest ${h === 'Precio' ? 'text-right' : ''}`}>{h}</span>
-                    ))}
-                </div>
+                {/* Table view (Desktop only) */}
+                <div className="hidden lg:block overflow-x-auto">
+                    {/* Table header */}
+                    <div className={`grid ${isAdmin ? 'grid-cols-[auto_3fr_1fr_auto_1fr_1fr_1fr_auto]' : 'grid-cols-[auto_3fr_1fr_auto_1fr_1fr_auto]'} gap-4 px-6 py-3 bg-stone-50 dark:bg-stone-800/50 border-b border-stone-100 dark:border-stone-800 items-center`}>
+                        {/* Select all checkbox */}
+                        <button
+                            onClick={toggleSelectAll}
+                            className="text-stone-400 hover:text-primary transition-colors"
+                        >
+                            {products.length > 0 && selectedIds.size === products.length ? (
+                                <CheckSquare className="w-4 h-4 text-primary" />
+                            ) : (
+                                <Square className="w-4 h-4" />
+                            )}
+                        </button>
+                        {(isAdmin ? ['Producto', 'Tipo', 'Índice', 'Stock', 'Costo', 'Precio', ''] : ['Producto', 'Tipo', 'Índice', 'Stock', 'Precio', '']).map((h, i, arr) => (
+                            <span key={i} className={`text-[9px] font-black text-stone-400 uppercase tracking-widest ${h === 'Precio' ? 'text-right' : ''}`}>{h}</span>
+                        ))}
+                    </div>
 
-                {/* Rows */}
-                {loading && products.length === 0 ? (
-                    <div className="py-20 flex flex-col items-center gap-3 text-stone-300">
-                        <Loader2 className="w-8 h-8 animate-spin text-primary" />
-                        <span className="text-[10px] font-black uppercase tracking-widest">Cargando inventario...</span>
-                    </div>
-                ) : error ? (
-                    <div className="py-16 text-center">
-                        <AlertCircle className="w-8 h-8 text-red-400 mx-auto mb-3" />
-                        <p className="text-red-500 font-black text-sm uppercase tracking-widest">Error de sincronización</p>
-                    </div>
-                ) : products.length > 0 ? (
                     <div className="divide-y divide-stone-50 dark:divide-stone-800">
                         {products.map((p) => {
                             const isCristal = checkCristal(p);
@@ -458,113 +430,79 @@ export default function InventarioPage() {
                                     key={p.id}
                                     className={`grid ${isAdmin ? 'grid-cols-[auto_3fr_1fr_auto_1fr_1fr_1fr_auto]' : 'grid-cols-[auto_3fr_1fr_auto_1fr_1fr_auto]'} gap-4 px-6 py-4 items-center hover:bg-stone-50/70 dark:hover:bg-stone-800/30 transition-colors group ${isSelected ? 'bg-primary/5' : ''}`}
                                 >
-                                    {/* Checkbox */}
-                                    <button
-                                        onClick={() => toggleSelect(p.id)}
-                                        className="text-stone-300 hover:text-primary transition-colors"
-                                    >
-                                        {isSelected ? (
-                                            <CheckSquare className="w-4 h-4 text-primary" />
-                                        ) : (
-                                            <Square className="w-4 h-4" />
-                                        )}
+                                    <button onClick={() => toggleSelect(p.id)} className="text-stone-300 hover:text-primary">
+                                        {isSelected ? <CheckSquare className="w-4 h-4 text-primary" /> : <Square className="w-4 h-4" />}
                                     </button>
-
-                                    {/* Nombre + marca */}
                                     <div className="min-w-0">
-                                        <p className="font-black text-sm text-stone-800 dark:text-stone-100 truncate">
-                                            {(p.brand || p.model) ? [p.brand, p.model].filter(Boolean).join(' · ') : (p.name || p.type || 'Sin nombre')}
-                                        </p>
-                                        <div className="flex items-center gap-2 mt-0.5">
-                                            <span className={`text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-full ${isCristal ? 'bg-violet-100 dark:bg-violet-900/30 text-violet-600 dark:text-violet-400'
-                                                : p.category === 'Lentes de Sol' || p.type === 'Lentes de Sol' ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400'
-                                                    : p.category === 'Armazón de Receta' || p.type === 'Armazón' ? 'bg-sky-100 dark:bg-sky-900/30 text-sky-600 dark:text-sky-400'
-                                                        : 'bg-stone-100 dark:bg-stone-800 text-stone-400'
-                                                }`}>
-                                                {isCristal ? '🔬 Cristal' : p.category === 'Lentes de Sol' || p.type === 'Lentes de Sol' ? '🕶️ Sol' : p.category === 'Armazón de Receta' || p.type === 'Armazón' ? '👓 Armazón' : p.category || p.type || ''}
-                                            </span>
-                                            {p.unitType === 'PAR' && (
-                                                <span className="text-[8px] font-black uppercase tracking-widest bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 px-1.5 py-0.5 rounded-full">PAR</span>
-                                            )}
+                                        <p className="font-black text-sm text-stone-800 dark:text-stone-100 truncate">{(p.brand || p.model) ? [p.brand, p.model].filter(Boolean).join(' · ') : (p.name || p.type || 'Sin nombre')}</p>
+                                        <span className={`text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-full mt-0.5 inline-block ${isCristal ? 'bg-violet-100 text-violet-600' : 'bg-stone-100 text-stone-400'}`}>
+                                            {isCristal ? '🔬 Cristal' : p.category || p.type}
+                                        </span>
+                                    </div>
+                                    <div><span className="text-[9px] font-black uppercase bg-stone-100 px-2 py-1 rounded-lg">{p.type || '-'}</span></div>
+                                    <div>{p.lensIndex ? <span className="text-[9px] font-black bg-primary/10 text-primary px-2 py-1 rounded-lg">{p.lensIndex}</span> : '-'}</div>
+                                    <div>{isCristal ? <span className="text-[9px] font-black text-violet-600">{p.laboratory || 'Lab'}</span> : <span className={`text-sm font-black ${p.stock <= 2 ? 'text-red-500' : ''}`}>{p.stock}</span>}</div>
+                                    {isAdmin && <div><span className="text-sm font-bold text-stone-400">${p.cost?.toLocaleString()}</span></div>}
+                                    <div className="text-right"><span className="text-sm font-black text-stone-800 dark:text-white">${p.price?.toLocaleString()}</span></div>
+                                    {isAdmin && (
+                                        <div className="flex items-center gap-1">
+                                            <button onClick={() => startEdit(p)} className="p-2 opacity-0 group-hover:opacity-100 hover:text-primary transition-all"><Pencil className="w-4 h-4" /></button>
+                                            <button onClick={() => handleDelete(p.id, p.brand || p.name !)} className="p-2 opacity-0 group-hover:opacity-100 hover:text-red-500 transition-all"><Trash2 className="w-4 h-4" /></button>
                                         </div>
-                                    </div>
-
-                                    {/* Tipo */}
-                                    <div>
-                                        <span className="text-[9px] font-black uppercase tracking-widest bg-stone-100 dark:bg-stone-800 text-stone-500 px-2 py-1 rounded-lg">
-                                            {p.type || p.category || '-'}
-                                        </span>
-                                    </div>
-
-                                    {/* Índice */}
-                                    <div>
-                                        {p.lensIndex ? (
-                                            <span className="text-[9px] font-black uppercase tracking-widest bg-primary/10 text-primary px-2 py-1 rounded-lg">
-                                                {p.lensIndex}
-                                            </span>
-                                        ) : (
-                                            <span className="text-stone-200 text-[10px]">—</span>
-                                        )}
-                                    </div>
-
-                                    {/* Stock */}
-                                    <div>
-                                        {isCristal ? (
-                                            <span className="text-[9px] font-black uppercase tracking-widest text-violet-600 dark:text-violet-400" title={p.laboratory || 'Laboratorio'}>{p.laboratory || 'Lab'}</span>
-                                        ) : (
-                                            <span className={`text-sm font-black ${p.stock <= 2 ? 'text-red-500' : 'text-stone-700 dark:text-stone-300'}`}>
-                                                {p.stock}
-                                                {p.stock <= 2 && p.stock > 0 && <span className="text-[9px] ml-1 text-red-400">⚠ bajo</span>}
-                                            </span>
-                                        )}
-                                    </div>
-
-                                    {/* Costo — solo admin */}
-                                    {isAdmin && (
-                                    <div>
-                                        <span className="text-sm font-bold text-stone-400">
-                                            ${p.cost?.toLocaleString() ?? '0'}
-                                        </span>
-                                    </div>
-                                    )}
-
-                                    {/* Precio */}
-                                    <div className="text-right">
-                                        <span className="text-sm font-black text-stone-800 dark:text-stone-100">
-                                            ${p.price?.toLocaleString() ?? '0'}
-                                        </span>
-                                    </div>
-
-                                    {/* Acciones — solo admin */}
-                                    {isAdmin && (
-                                    <div className="flex items-center gap-1">
-                                        <button
-                                            onClick={() => startEdit(p)}
-                                            className="p-2 text-stone-300 hover:text-primary hover:bg-primary/10 rounded-xl transition-all opacity-0 group-hover:opacity-100"
-                                        >
-                                            <Pencil className="w-4 h-4" />
-                                        </button>
-                                        <button
-                                            onClick={() => handleDelete(p.id, p.name || p.type || 'este producto')}
-                                            className="p-2 text-stone-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-all opacity-0 group-hover:opacity-100"
-                                        >
-                                            <Trash2 className="w-4 h-4" />
-                                        </button>
-                                    </div>
                                     )}
                                 </div>
                             );
                         })}
                     </div>
-                ) : (
-                    <div className="py-24 text-center">
-                        <Package className="w-12 h-12 text-stone-100 dark:text-stone-800 mx-auto mb-4" />
-                        <p className="text-stone-400 font-black uppercase tracking-widest text-xs">Sin productos</p>
-                        <p className="text-stone-300 text-[10px] font-bold uppercase mt-1 tracking-widest">
-                            {selectedCategory !== 'ALL' || selectedSubtype ? 'Cambiá el filtro o cargá un nuevo artículo' : 'Cargá el primer artículo'}
-                        </p>
-                    </div>
-                )}
+                </div>
+
+                {/* Card view (Mobile only) */}
+                <div className="lg:hidden flex flex-col divide-y divide-stone-100 dark:divide-stone-800">
+                    {loading && products.length === 0 ? (
+                        <div className="py-20 flex flex-col items-center gap-3"><Loader2 className="w-8 h-8 animate-spin text-primary" /><span className="text-[10px] font-black uppercase tracking-widest">Cargando...</span></div>
+                    ) : products.length > 0 ? (
+                        products.map((p) => {
+                            const isCristal = checkCristal(p);
+                            const isSelected = selectedIds.has(p.id);
+                            return (
+                                <div key={p.id} className={`p-4 flex gap-4 items-start ${isSelected ? 'bg-primary/5' : ''}`}>
+                                    <button onClick={() => toggleSelect(p.id)} className="text-stone-300 mt-1">
+                                        {isSelected ? <CheckSquare className="w-5 h-5 text-primary" /> : <Square className="w-5 h-5" />}
+                                    </button>
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex justify-between items-start gap-2">
+                                            <p className="font-black text-sm text-stone-800 dark:text-stone-100 line-clamp-2">
+                                                {(p.brand || p.model) ? [p.brand, p.model].filter(Boolean).join(' · ') : (p.name || p.type || 'Sin nombre')}
+                                            </p>
+                                            <p className="text-sm font-black text-stone-900 dark:text-white shrink-0">${p.price?.toLocaleString()}</p>
+                                        </div>
+                                        <div className="flex flex-wrap gap-2 mt-2">
+                                            <span className={`text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-full ${isCristal ? 'bg-violet-100 text-violet-600' : 'bg-stone-100 text-stone-400'}`}>
+                                                {isCristal ? '🔬 Cristal' : p.category || p.type}
+                                            </span>
+                                            {p.lensIndex && <span className="text-[8px] font-black bg-primary/10 text-primary px-1.5 py-0.5 rounded-full">{p.lensIndex}</span>}
+                                            <span className="text-[8px] font-black bg-stone-100 dark:bg-stone-800 text-stone-500 px-1.5 py-0.5 rounded-full">STOCK: {isCristal ? (p.laboratory || 'Lab') : p.stock}</span>
+                                        </div>
+                                        {isAdmin && (
+                                            <div className="flex items-center justify-between mt-4 pt-3 border-t border-stone-50 dark:border-stone-800">
+                                                <span className="text-[9px] font-black text-stone-400 uppercase tracking-widest">Costo: ${p.cost?.toLocaleString()}</span>
+                                                <div className="flex gap-2">
+                                                    <button onClick={() => startEdit(p)} className="p-2 bg-stone-100 dark:bg-stone-800 rounded-lg text-stone-600 dark:text-stone-400"><Pencil className="w-4 h-4" /></button>
+                                                    <button onClick={() => handleDelete(p.id, p.brand || p.name !)} className="p-2 bg-red-50 dark:bg-red-950 text-red-500 rounded-lg"><Trash2 className="w-4 h-4" /></button>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            );
+                        })
+                    ) : (
+                        <div className="py-24 text-center px-4">
+                            <Package className="w-12 h-12 text-stone-100 mx-auto mb-4" />
+                            <p className="text-stone-400 font-black uppercase tracking-widest text-[10px]">Sin productos</p>
+                        </div>
+                    )}
+                </div>
             </div>
 
             {showForm && (

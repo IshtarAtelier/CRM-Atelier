@@ -128,33 +128,35 @@ export default function Home() {
     <div className="p-4 lg:p-8 max-w-7xl mx-auto space-y-8 animate-in fade-in duration-500 pb-20">
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-4xl font-extrabold tracking-tight text-stone-800 dark:text-stone-100 italic">
+          <h1 className="text-2xl lg:text-4xl font-extrabold tracking-tight text-stone-800 dark:text-stone-100 italic">
             Atelier Óptica <span className="text-primary not-italic">CRM</span>
           </h1>
-          <p className="text-foreground/50 mt-1 font-medium italic uppercase text-[10px] tracking-widest leading-none">Inteligencia de Negocio y Control Administrativo</p>
+          <p className="text-foreground/50 mt-1 font-medium italic uppercase text-[8px] lg:text-[10px] tracking-widest leading-none">Inteligencia de Negocio y Control Administrativo</p>
         </div>
         <DashboardActions onPeriodChange={handlePeriodChange} />
       </header>
 
       {/* OBJETIVOS MENSUALES */}
-      <section className="bg-gradient-to-br from-stone-900 to-stone-800 rounded-3xl p-8 shadow-2xl relative overflow-hidden text-white border border-white/5">
+      <section className="bg-gradient-to-br from-stone-900 to-stone-800 rounded-3xl p-5 lg:p-8 shadow-2xl relative overflow-hidden text-white border border-white/5">
         <div className="absolute top-0 right-0 w-64 h-64 bg-primary/10 rounded-full -mr-32 -mt-32 blur-3xl" />
         <div className="relative z-10">
-          <div className="flex items-center gap-3 mb-8">
-            <div className="bg-primary/20 p-2 rounded-xl">
-              <TrendingUp className="text-primary w-5 h-5" />
-            </div>
-            <div className="flex-1">
-              <h2 className="text-xs font-black uppercase tracking-[0.2em] text-stone-400">Objetivos Mensuales</h2>
-              <p className="text-lg font-bold">Progreso de Facturación {periodLabel}</p>
+          <div className="flex flex-col lg:flex-row lg:items-center gap-4 mb-8">
+            <div className="flex items-center gap-3">
+              <div className="bg-primary/20 p-2 rounded-xl">
+                <TrendingUp className="text-primary w-5 h-5" />
+              </div>
+              <div className="flex-1">
+                <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-stone-400">Objetivos Mensuales</h2>
+                <p className="text-base lg:text-lg font-bold">Progreso {periodLabel}</p>
+              </div>
             </div>
             {dolarBlue && (
-              <div className="text-right bg-white/5 px-4 py-2 rounded-xl border border-white/10">
+              <div className="flex items-center justify-between lg:justify-end gap-4 lg:ml-auto bg-white/5 px-4 py-2 rounded-xl border border-white/10">
                 <p className="text-[9px] font-black uppercase tracking-widest text-stone-500">Dólar Blue Venta</p>
-                <p className="text-lg font-black text-emerald-400">${dolarBlue.toLocaleString()}</p>
+                <p className="text-base lg:text-lg font-black text-emerald-400">${dolarBlue.toLocaleString()}</p>
               </div>
             )}
-            </div>
+          </div>
 
             {/* Motivation / Proyección de fin de mes */}
             <div className="mb-8 p-6 bg-white/5 rounded-2xl border border-white/5 backdrop-blur-md">
@@ -164,9 +166,9 @@ export default function Home() {
                     <TrendingUp className="w-6 h-6" />
                   </div>
                   <div>
-                    <p className="text-[10px] font-black uppercase tracking-widest text-stone-400">Proyección de Cierre</p>
-                    <p className="text-2xl font-black italic tracking-tighter">
-                      Ritmo Actual: <span className={paceTotal >= t1 ? 'text-emerald-400' : 'text-amber-400'}>${Math.round(paceTotal).toLocaleString()}</span>
+                    <p className="text-[9px] lg:text-[10px] font-black uppercase tracking-widest text-stone-400">Proyección de Cierre</p>
+                    <p className="text-lg lg:text-2xl font-black italic tracking-tighter">
+                      Ritmo: <span className={paceTotal >= t1 ? 'text-emerald-400' : 'text-amber-400'}>${Math.round(paceTotal).toLocaleString()}</span>
                     </p>
                   </div>
                 </div>

@@ -9,7 +9,7 @@ const { Client, LocalAuth } = require('whatsapp-web.js');
 const qrcode = require('qrcode-terminal');
 const express = require('express');
 const cors = require('cors');
-const { PrismaClient } = require('./prisma/generated/client');
+const { PrismaClient } = require('@prisma/client');
 const aiAgent = require('./ai-agent');
 const { generateCatalog } = require('./catalog-generator');
 

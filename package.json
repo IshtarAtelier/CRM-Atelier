@@ -2,10 +2,13 @@
   "name": "optical-crm",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": ">=20.0.0"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "npx prisma generate && next build",
-    "start": "npx prisma migrate deploy && next start -p $PORT",
+    "start": "npx prisma migrate deploy && next start -p ${PORT:-3000} -H 0.0.0.0",
     "lint": "eslint",
     "whatsapp": "node whatsapp-server.js",
     "db:backup": "node scripts/backup-db.js",
@@ -28,13 +31,13 @@
     "framer-motion": "^12.34.3",
     "jose": "^6.1.3",
     "lucide-react": "^0.575.0",
-    "next": "16.1.6",
+    "next": "15.1.6",
     "nodemailer": "^8.0.4",
     "openai": "^6.27.0",
     "prisma": "^5.22.0",
     "qrcode-terminal": "^0.12.0",
-    "react": "19.2.3",
-    "react-dom": "19.2.3",
+    "react": "19.0.0",
+    "react-dom": "19.0.0",
     "tailwind-merge": "^3.5.0",
     "tesseract.js": "^7.0.0",
     "whatsapp-web.js": "^1.34.6"

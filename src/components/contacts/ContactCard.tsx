@@ -21,7 +21,7 @@ export const ContactCard: React.FC<ContactCardProps> = ({
 }) => {
     return (
         <div
-            className="bg-white dark:bg-stone-800/40 border border-stone-200/60 dark:border-stone-700/60 rounded-3xl p-6 hover:shadow-xl hover:border-primary/20 transition-all group flex flex-col md:flex-row items-center justify-between gap-6 select-none"
+            className="bg-white dark:bg-stone-800/40 border border-stone-200/60 dark:border-stone-700/60 rounded-3xl p-4 lg:p-6 hover:shadow-xl hover:border-primary/20 transition-all group flex flex-col lg:flex-row items-center justify-between gap-4 lg:gap-6 select-none"
         >
             <div className="flex items-center gap-6 flex-1 w-full">
                 <div className="relative">
@@ -101,21 +101,22 @@ export const ContactCard: React.FC<ContactCardProps> = ({
                 </div>
             </div>
 
-            <div className="flex items-center gap-6 w-full md:w-auto px-4 py-3 md:py-0 border-t md:border-t-0 border-stone-100 dark:border-stone-700 justify-between">
-                <div className="text-right min-w-[100px]">
-                    <p className="text-[10px] font-black text-stone-400 uppercase tracking-widest mb-0.5">Ticket Promedio</p>
-                    <p className={`text-xl font-black tracking-tighter ${(contact.avgTicket || 0) > 0 ? 'text-stone-800 dark:text-stone-200' : 'text-stone-300 dark:text-stone-600'}`}>{(contact.avgTicket || 0) > 0 ? `$${contact.avgTicket?.toLocaleString()}` : '—'}</p>
+            <div className="flex flex-col sm:flex-row items-center gap-4 w-full lg:w-auto px-1 lg:px-0 pt-4 lg:pt-0 border-t lg:border-t-0 border-stone-100 dark:border-stone-700 justify-between">
+                <div className="text-left min-w-[100px] w-full sm:w-auto">
+                    <p className="text-[9px] font-black text-stone-400 uppercase tracking-widest mb-0.5">Ticket Promedio</p>
+                    <p className={`text-lg lg:text-xl font-black tracking-tighter ${(contact.avgTicket || 0) > 0 ? 'text-stone-800 dark:text-stone-200' : 'text-stone-300 dark:text-stone-600'}`}>{(contact.avgTicket || 0) > 0 ? `$${contact.avgTicket?.toLocaleString()}` : '—'}</p>
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 w-full sm:w-auto">
                     <button
                         onClick={(e) => {
                             e.stopPropagation();
                             onQuote(contact.id, contact.name);
                         }}
-                        className="px-4 py-3 bg-primary/10 text-primary rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-primary hover:text-white transition-all border border-primary/20 hover:border-primary flex items-center gap-2 shadow-sm hover:shadow-lg hover:shadow-primary/20"
+                        className="flex-1 sm:flex-none px-3 lg:px-4 py-2.5 lg:py-3 bg-primary/10 text-primary rounded-xl lg:rounded-2xl text-[9px] lg:text-[10px] font-black uppercase tracking-widest hover:bg-primary hover:text-white transition-all border border-primary/20 flex items-center justify-center gap-2"
                     >
-                        <FileText className="w-4 h-4" />
-                        Nuevo Presupuesto
+                        <FileText className="w-3.5 h-3.5 lg:w-4 lg:h-4" />
+                        <span className="hidden sm:inline">Presupuesto</span>
+                        <span className="sm:hidden">Cotizar</span>
                     </button>
                     {contact.status === 'CONTACT' && (
                         <button
@@ -123,37 +124,17 @@ export const ContactCard: React.FC<ContactCardProps> = ({
                                 e.stopPropagation();
                                 onStatusChange(contact.id, 'CONFIRMED');
                             }}
-                            className="px-4 py-3 bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-emerald-100 transition-colors border border-emerald-100 dark:border-emerald-800/50 flex items-center gap-2"
+                            className="flex-1 sm:flex-none px-3 lg:px-4 py-2.5 lg:py-3 bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400 rounded-xl lg:rounded-2xl text-[9px] lg:text-[10px] font-black uppercase tracking-widest border border-emerald-100 flex items-center justify-center gap-2"
                         >
-                            <CheckCircle2 className="w-4 h-4" />
-                            Confirmar
+                            <CheckCircle2 className="w-3.5 h-3.5 lg:w-4 lg:h-4" />
+                            OK
                         </button>
-                    )}
-                    {contact.status === 'CONFIRMED' && (
-                        <div className="flex items-center gap-2">
-                            <span className="px-4 py-3 bg-indigo-50 text-indigo-600 dark:bg-indigo-900/20 dark:text-indigo-400 rounded-2xl text-[10px] font-black uppercase tracking-widest border border-indigo-100 dark:border-indigo-800/50 flex items-center gap-2 cursor-default" title="Abrí el detalle para cerrar la venta">
-                                <UserCheck className="w-4 h-4" />
-                                En Proceso
-                            </span>
-                            <button
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    if (confirm('¿Volver este pedido a estado Contacto?')) {
-                                        onStatusChange(contact.id, 'CONTACT');
-                                    }
-                                }}
-                                className="px-3 py-3 bg-amber-50 text-amber-600 dark:bg-amber-900/20 dark:text-amber-400 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-amber-100 dark:hover:bg-amber-900/40 transition-colors border border-amber-200 dark:border-amber-800/50 flex items-center gap-1.5"
-                                title="Retroceder a Contacto"
-                            >
-                                ← Retroceder
-                            </button>
-                        </div>
                     )}
                     <button
                         onClick={() => onClick(contact.id)}
-                        className="p-3 bg-stone-50 dark:bg-stone-800 rounded-2xl hover:bg-primary hover:text-white transition-all shadow-inner border border-stone-100 dark:border-stone-700"
+                        className="p-2.5 lg:p-3 bg-stone-50 dark:bg-stone-800 rounded-xl lg:rounded-2xl hover:bg-primary hover:text-white transition-all border border-stone-100 dark:border-stone-700"
                     >
-                        <ChevronRight className="w-6 h-6" />
+                        <ChevronRight className="w-5 h-5 lg:w-6 lg:h-6" />
                     </button>
                 </div>
             </div>
