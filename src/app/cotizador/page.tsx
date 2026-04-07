@@ -28,6 +28,7 @@ import {
     isCrystal, 
     isMiPrimerVarilux, 
     getCategoryKey,
+    isMultifocal2x1,
     safePrice
 } from '@/lib/promo-utils';
 import { 
@@ -228,13 +229,21 @@ export default function CotizadorPage() {
         if (isCrystal(p)) {
             // Split crystal into OD/OI automatically
             setQuoteItems(prev => {
-                const hasExisting = prev.some(i => i.product.id === p.id);
-                if (hasExisting) return prev;
+                const is2x1 = isMultifocal2x1(p);
+                const existingPairs = prev.filter(i => i.product.id === p.id && i.eye === 'OD').length;
+
+                // Si NO es 2x1 y ya existe un par, no dejamos agregar más (evitar duplicados accidentales)
+                if (!is2x1 && existingPairs > 0) return prev;
+
+                // Lógica de precio: El primer par se cobra, el segundo es gratis ($0), el tercero se cobra, etc.
+                const isFree = is2x1 && existingPairs % 2 !== 0;
+                const currentPrice = isFree ? 0 : Math.round(sprice / 2);
+
                 const ts = Date.now();
                 return [
                     ...prev,
-                    { product: p, quantity: 1, customPrice: Math.round(sprice / 2), eye: 'OD', uid: ts },
-                    { product: p, quantity: 1, customPrice: Math.round(sprice / 2), eye: 'OI', uid: ts + 1 }
+                    { product: p, quantity: 1, customPrice: currentPrice, eye: 'OD', isPromo: isFree, uid: ts },
+                    { product: p, quantity: 1, customPrice: currentPrice, eye: 'OI', isPromo: isFree, uid: ts + 1 }
                 ];
             });
         } else {

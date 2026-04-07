@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { headers } from 'next/headers';
 import { prisma } from '@/lib/db';
 
+export const dynamic = 'force-dynamic';
+
 // POST /api/invoices — Create invoice for an order (ARCA Factura C)
 export async function POST(request: Request) {
     try {

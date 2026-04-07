@@ -205,45 +205,63 @@ export default function ContactDetail({
         setRxError(null);
     };
 
+    const applyPrescriptionToForm = (rx: any) => {
+        if (!rx) return;
+        setRxForm({
+            sphereOD: rx.sphereOD != null ? String(rx.sphereOD) : '',
+            cylinderOD: rx.cylinderOD != null ? String(rx.cylinderOD) : '',
+            axisOD: rx.axisOD != null ? String(rx.axisOD) : '',
+            sphereOI: rx.sphereOI != null ? String(rx.sphereOI) : '',
+            cylinderOI: rx.cylinderOI != null ? String(rx.cylinderOI) : '',
+            axisOI: rx.axisOI != null ? String(rx.axisOI) : '',
+            additionOD: rx.additionOD != null ? String(rx.additionOD) : (rx.addition != null ? String(rx.addition) : ''),
+            additionOI: rx.additionOI != null ? String(rx.additionOI) : (rx.addition != null ? String(rx.addition) : ''),
+            distanceOD: rx.distanceOD != null ? String(rx.distanceOD) : (rx.pd != null ? String(rx.pd) : ''),
+            distanceOI: rx.distanceOI != null ? String(rx.distanceOI) : (rx.pd != null ? String(rx.pd) : ''),
+            heightOD: rx.heightOD != null ? String(rx.heightOD) : '',
+            heightOI: rx.heightOI != null ? String(rx.heightOI) : '',
+            notes: rx.notes || '',
+            imageUrl: rx.imageUrl || '',
+        });
+    };
+
     const openRxModal = (orderId: string) => {
         resetRxForm();
-        // Pre-fill from existing prescription if order already has one
         const order: any = contact?.orders?.find((o: any) => o.id === orderId);
+        
+        let existingRx: any = null;
         if (order?.prescriptionId && contact?.prescriptions) {
-            const existingRx: any = contact.prescriptions.find((p: any) => p.id === order.prescriptionId);
-            if (existingRx) {
-                setRxForm({
-                    sphereOD: existingRx.sphereOD != null ? String(existingRx.sphereOD) : '',
-                    cylinderOD: existingRx.cylinderOD != null ? String(existingRx.cylinderOD) : '',
-                    axisOD: existingRx.axisOD != null ? String(existingRx.axisOD) : '',
-                    sphereOI: existingRx.sphereOI != null ? String(existingRx.sphereOI) : '',
-                    cylinderOI: existingRx.cylinderOI != null ? String(existingRx.cylinderOI) : '',
-                    axisOI: existingRx.axisOI != null ? String(existingRx.axisOI) : '',
-                    additionOD: existingRx.additionOD != null ? String(existingRx.additionOD) : (existingRx.addition != null ? String(existingRx.addition) : ''),
-                    additionOI: existingRx.additionOI != null ? String(existingRx.additionOI) : (existingRx.addition != null ? String(existingRx.addition) : ''),
-                    distanceOD: existingRx.distanceOD != null ? String(existingRx.distanceOD) : (existingRx.pd != null ? String(existingRx.pd) : ''),
-                    distanceOI: existingRx.distanceOI != null ? String(existingRx.distanceOI) : (existingRx.pd != null ? String(existingRx.pd) : ''),
-                    heightOD: existingRx.heightOD != null ? String(existingRx.heightOD) : '',
-                    heightOI: existingRx.heightOI != null ? String(existingRx.heightOI) : '',
-                    notes: existingRx.notes || '',
-                    imageUrl: existingRx.imageUrl || '',
-                });
-            }
+            existingRx = contact.prescriptions.find((p: any) => p.id === order.prescriptionId);
+        } else if (contact?.prescriptions && contact.prescriptions.length > 0) {
+            existingRx = [...contact.prescriptions].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
+        }
+
+        if (existingRx) {
+            applyPrescriptionToForm(existingRx);
         }
         setRxModalOrderId(orderId);
     };
 
     const handleRxSubmitAndConvert = async () => {
         if (!rxModalOrderId || !contact) return;
+        
         // Validate minimum fields
         if (!rxForm.sphereOD && !rxForm.sphereOI) {
             setRxError('Completá al menos el esférico de un ojo');
             return;
         }
+
         setRxSaving(true);
         setRxError(null);
         try {
-            // 1. Create prescription
+            // 1. Identify if we are using an existing prescription or a new/modified one
+            const order: any = contact.orders?.find((o: any) => o.id === rxModalOrderId);
+            
+            // Heuristic to check if data changed significantly (simple check)
+            // If the user didn't change the imageUrl and the spheres match, we might avoid creating a new one
+            // But for safety and clean history, if they "Save", we usually create a new one unless it's identical.
+            
+            // 2. Prepare payload
             const rxPayload: any = { clientId: contact.id };
             if (rxForm.sphereOD) rxPayload.sphereOD = parseFloat(rxForm.sphereOD);
             if (rxForm.cylinderOD) rxPayload.cylinderOD = parseFloat(rxForm.cylinderOD);
@@ -260,22 +278,41 @@ export default function ContactDetail({
             if (rxForm.notes) rxPayload.notes = rxForm.notes;
             if (rxForm.imageUrl) rxPayload.imageUrl = rxForm.imageUrl;
 
-            const rxRes = await fetch(`/api/contacts/${contact.id}/prescriptions`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(rxPayload),
-            });
-            if (!rxRes.ok) {
-                const errData = await rxRes.json();
-                throw new Error(errData.error || 'Error al guardar la receta');
-            }
-            const newRx = await rxRes.json();
+            // 3. Find if there's an EXACT match already in contact.prescriptions to avoid duplicates
+            // (Comparing only key clinical fields and image)
+            const duplicate = contact.prescriptions?.find((p: any) => 
+                p.imageUrl === rxForm.imageUrl &&
+                String(p.sphereOD || '') === String(rxForm.sphereOD || '') &&
+                String(p.sphereOI || '') === String(rxForm.sphereOI || '') &&
+                String(p.cylinderOD || '') === String(rxForm.cylinderOD || '') &&
+                String(p.cylinderOI || '') === String(rxForm.cylinderOI || '')
+            );
 
-            // 2. Convert to SALE with prescriptionId
+            let rxId = duplicate?.id;
+
+            if (!rxId) {
+                // Create new prescription
+                const rxRes = await fetch(`/api/contacts/${contact.id}/prescriptions`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(rxPayload),
+                });
+                if (!rxRes.ok) {
+                    const errData = await rxRes.json();
+                    throw new Error(errData.error || 'Error al guardar la receta');
+                }
+                const newRx = await rxRes.json();
+                rxId = newRx.id;
+            }
+
+            // 4. Convert to SALE with prescriptionId
             const saleRes = await fetch(`/api/orders/${rxModalOrderId}`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ orderType: 'SALE', prescriptionId: newRx.id }),
+                body: JSON.stringify({ 
+                    orderType: 'SALE', 
+                    prescriptionId: rxId 
+                }),
             });
             if (!saleRes.ok) {
                 const errData = await saleRes.json();
@@ -823,19 +860,45 @@ export default function ContactDetail({
 
                 // ── Parse prescription values ──
                 const extractNumbers = (sectionText: string) => {
-                    const raw = sectionText.match(/[+-]?\d+\.\d+|[+-]?\d+/g) || [];
-                    // Normalize numbers: if it's like "150", "175", convert to "1.50", "1.75"
-                    // axis are usually 0-180, so we only normalize if it looks like a diopter (> 25 and not looking like axis)
-                    return raw.map((n, i) => {
-                        const val = parseFloat(n);
-                        // If it's the 3rd number (Axis), don't normalize
-                        if (i === 2) return n;
-                        if (Math.abs(val) >= 25) {
-                            const normalized = (val / 100).toFixed(2);
-                            return val > 0 ? `+${normalized}` : normalized;
+                    const raw = sectionText.match(/[+-]?\d+\.?\d*/g) || [];
+                    const filtered = raw.filter(n => n.length > 0 && n.length < 6);
+                    
+                    let sph = '', cyl = '', axs = '';
+                    
+                    // Heuristic: Axis is usually an integer 0-180 without a sign (+/-)
+                    // Sph/Cyl usually have signs in prescriptions.
+                    filtered.forEach(n => {
+                        const num = parseFloat(n);
+                        const hasSign = n.startsWith('+') || n.startsWith('-');
+                        const isInt = !n.includes('.');
+                        
+                        if (!axs && !hasSign && isInt && num >= 0 && num <= 180) {
+                            axs = n;
+                        } else if (!sph) {
+                            sph = n;
+                        } else if (!cyl) {
+                            cyl = n;
                         }
-                        return n;
                     });
+
+                    const normalize = (v: string, isAxs = false) => {
+                        if (!v) return '';
+                        const num = parseFloat(v);
+                        if (isAxs) return (num >= 0 && num <= 180) ? v : '';
+                        
+                        if (Math.abs(num) >= 25 && Math.abs(num) < 1000) {
+                            const norm = (num / 100).toFixed(2);
+                            return num > 0 ? `+${norm}` : norm;
+                        }
+                        if (Math.abs(num) > 30) return '';
+                        return (v.startsWith('+') || num > 0) ? `+${num.toFixed(2)}` : num.toFixed(2);
+                    };
+
+                    const result = [];
+                    if (sph) result.push(normalize(sph));
+                    if (cyl) result.push(normalize(cyl));
+                    if (axs) result.push(normalize(axs, true));
+                    return result.filter(Boolean);
                 };
 
                 const odMatch = text.match(/O\.?\s*D\.?([\s\S]*?)(?=O\.?\s*I|ADD|ADICI|$)/i);
@@ -844,8 +907,8 @@ export default function ContactDetail({
                 const dnpMatch = text.match(/(?:DNP|DP|DISTANCIA)[:\s]*(\d+[\/\s]?\d*)/i);
                 const heightMatch = text.match(/(?:ALTURA|ALT|H)[:\s]*(\d+[\/\s]?\d*)/i);
 
-                const odNums = odMatch ? extractNumbers(odMatch[0]) : extractNumbers(text).slice(0, 3);
-                const oiNums = oiMatch ? extractNumbers(oiMatch[0]) : extractNumbers(text).slice(3, 6);
+                const odNums = odMatch ? extractNumbers(odMatch[0]) : [];
+                const oiNums = oiMatch ? extractNumbers(oiMatch[0]) : [];
 
                 // DNP parsing (common formats: "64", "32/32", "32 32")
                 let distanceOD = '';
@@ -1988,6 +2051,26 @@ export default function ContactDetail({
                                             📋 Cargar Receta
                                         </h3>
                                         <p className="text-[10px] font-bold text-stone-400 mb-6">Completá los datos de la receta antes de convertir el presupuesto en venta.</p>
+
+                                        {contact?.prescriptions && contact.prescriptions.length > 1 && (
+                                            <div className="mb-6 p-4 bg-emerald-50 dark:bg-emerald-900/10 rounded-2xl border border-emerald-100 dark:border-emerald-800/50">
+                                                <div className="flex items-center gap-2 mb-2">
+                                                    <History className="w-3.5 h-3.5 text-emerald-600" />
+                                                    <span className="text-[9px] font-black text-emerald-700 uppercase tracking-widest">Recetas anteriores detectadas</span>
+                                                </div>
+                                                <div className="flex flex-wrap gap-2">
+                                                    {contact.prescriptions.map((rx: any) => (
+                                                        <button 
+                                                            key={rx.id}
+                                                            onClick={() => applyPrescriptionToForm(rx)}
+                                                            className="px-3 py-2 bg-white dark:bg-stone-900 hover:bg-emerald-500 hover:text-white border border-emerald-200 dark:border-stone-700 rounded-xl text-[10px] font-bold transition-all shadow-sm"
+                                                        >
+                                                            {new Date(rx.date).toLocaleDateString('es-AR')} - {rx.sphereOD || '0'}/{rx.sphereOI || '0'}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
 
                                         <div className="space-y-4">
                                             {/* OD Row */}

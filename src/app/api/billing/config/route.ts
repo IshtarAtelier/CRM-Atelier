@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { BillingService } from '@/services/billing.service';
 import { getAllBillingAccounts, BillingAccount } from '@/lib/afip';
 
+export const dynamic = 'force-dynamic';
+
 /**
  * GET /api/billing/config — Estado de la configuración de ARCA para todas las cuentas
  */

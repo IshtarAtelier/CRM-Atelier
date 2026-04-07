@@ -95,18 +95,27 @@ export default function CotizadorCart({
         return atelierFrames.length > 0 ? Math.round(atelierFrames.reduce((s, f) => s + safePrice(f.price), 0) / atelierFrames.length) : 0;
     }, [availableProducts]);
     
-    // Check frames in quote for the promo
+    // Check frames in quote for the promo (flattened by quantity for calculation)
     const framesInQuote = items.filter(i => getCategoryKey(i.product.type) === 'Armazón');
-    const sortedFrames = [...framesInQuote].sort((a, b) => b.customPrice - a.customPrice);
-    const secondFrameUid = sortedFrames.length >= 2 ? sortedFrames[1].uid : null;
+    const flattenedFrames = items.flatMap(i => {
+        if (getCategoryKey(i.product.type) !== 'Armazón') return [];
+        return Array.from({ length: i.quantity || 1 }).map((_, idx) => ({
+            ...i,
+            virtualIdx: idx
+        }));
+    });
+    const sortedFrames = [...flattenedFrames].sort((a, b) => b.customPrice - a.customPrice);
+    
+    // We target the second frame in the sorted list (either a second item or the second unit of the first item)
+    const secondFrameVirtual = sortedFrames.length >= 2 ? sortedFrames[1] : null;
+    const secondFrameUid = secondFrameVirtual?.uid || null;
     
     const promoFrameDiscount = useMemo(() => {
-        if (!hasMultifocalPromo || sortedFrames.length < 2) return 0;
-        const secondFrame = sortedFrames[1];
-        const sPrice = safePrice(secondFrame.customPrice);
-        if (isAtelierFrame(secondFrame.product)) return sPrice;
+        if (!hasMultifocalPromo || !secondFrameVirtual) return 0;
+        const sPrice = safePrice(secondFrameVirtual.customPrice);
+        if (isAtelierFrame(secondFrameVirtual.product)) return sPrice;
         return Math.min(sPrice, safePrice(atelierAvgPrice));
-    }, [hasMultifocalPromo, sortedFrames, atelierAvgPrice]);
+    }, [hasMultifocalPromo, secondFrameVirtual, atelierAvgPrice]);
 
     const subtotal = Math.max(0, items.reduce((s, i) => s + (safePrice(i.customPrice) * (i.quantity || 1)), 0) - promoFrameDiscount);
 
@@ -155,15 +164,23 @@ export default function CotizadorCart({
     const handleAddItem = (product: any) => {
         if (isCrystal(product)) {
             setItems(prev => {
-                // Guard: if this crystal is already in the cart (OD/OI), skip to avoid 4-item bug
-                const alreadyInCart = prev.some(it => it.product.id === product.id);
-                if (alreadyInCart) return prev;
+                const is2x1 = isMultifocal2x1(product);
+                const existingPairsFiltered = prev.filter(it => it.product.id === product.id && it.eye === 'OD');
+                const existingCount = existingPairsFiltered.length;
+
+                // Si NO es 2x1, evitar duplicados
+                if (!is2x1 && existingCount > 0) return prev;
+
                 const ts = Date.now();
                 const sprice = safePrice(product.price);
+                // Si es el 2do par de un 2x1, es gratis
+                const isFree = is2x1 && existingCount % 2 !== 0;
+                const currentPrice = isFree ? 0 : Math.round(sprice / 2);
+
                 return [
                     ...prev,
-                    { product, quantity: 1, customPrice: Math.round(sprice / 2), eye: 'OD', uid: ts },
-                    { product, quantity: 1, customPrice: Math.round(sprice / 2), eye: 'OI', uid: ts + 1 }
+                    { product, quantity: 1, customPrice: currentPrice, eye: 'OD', isPromo: isFree, uid: ts },
+                    { product, quantity: 1, customPrice: currentPrice, eye: 'OI', isPromo: isFree, uid: ts + 1 }
                 ];
             });
         } else {
@@ -246,19 +263,29 @@ export default function CotizadorCart({
                                 </span>
                             )}
                             <div className="flex-1 min-w-0">
-                                <p className="text-sm font-black text-stone-800 dark:text-white truncate group-hover:text-primary transition-colors">
+                                <p className="text-sm font-black text-stone-800 dark:text-white truncate group-hover:text-primary transition-colors flex items-center gap-2">
                                     {item.product.brand} {item.product.model || item.product.name}
+                                    {safePrice(item.customPrice) === 0 && isMultifocal2x1(item.product) && (
+                                        <span className="bg-emerald-500 text-white text-[7px] px-1.5 py-0.5 rounded-lg font-black uppercase tracking-widest animate-pulse">
+                                            BONIFICADO 2x1
+                                        </span>
+                                    )}
                                 </p>
                                 <p className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">
                                     {item.product.type || item.product.category}
                                     {item.isPromo && <span className="text-emerald-500 ml-2">† SIN CARGO 2x1</span>}
                                 </p>
                             </div>
-                            {!item.isPromo && (
+                            {(!item.isPromo && !isCrystal(item.product)) && (
                                 <div className="flex items-center gap-2 bg-white dark:bg-stone-800 p-1 rounded-xl border border-stone-100 dark:border-stone-700">
                                     <button onClick={() => handleUpdateQuantity(idx, -1)} className="w-8 h-8 rounded-lg flex items-center justify-center text-stone-400 hover:bg-stone-50 hover:text-stone-800 transition-colors"><Minus className="w-4 h-4" /></button>
                                     <span className="text-xs font-black w-6 text-center">{item.quantity}</span>
                                     <button onClick={() => handleUpdateQuantity(idx, 1)} className="w-8 h-8 rounded-lg flex items-center justify-center text-stone-400 hover:bg-stone-50 hover:text-stone-800 transition-colors"><Plus className="w-4 h-4" /></button>
+                                </div>
+                            )}
+                            {isCrystal(item.product) && (
+                                <div className="flex items-center gap-2 bg-stone-100/50 dark:bg-stone-800/20 px-3 py-2 rounded-xl border border-stone-100 dark:border-stone-800 opacity-60">
+                                    <span className="text-[9px] font-black uppercase text-stone-400">Qty: {item.quantity}</span>
                                 </div>
                             )}
                             <div className="w-28 text-right pr-2">
@@ -384,7 +411,7 @@ export default function CotizadorCart({
                     
                     {frameSource === 'OPTICA' && framesInQuote.length > 0 && (
                         <div className="space-y-3 mb-6">
-                            {framesInQuote.map((fi, fidx) => {
+                            {framesInQuote.map((fi: any, fidx: number) => {
                                 const isPromoFrame = fi.uid === secondFrameUid && promoFrameDiscount > 0;
                                 return (
                                     <div key={fi.uid || fidx} className="bg-white dark:bg-stone-800 p-4 rounded-3xl border-2 border-amber-200 shadow-sm flex items-center gap-3 animate-in fade-in duration-300">

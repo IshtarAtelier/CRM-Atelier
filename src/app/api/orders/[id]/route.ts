@@ -3,6 +3,8 @@ import { headers } from 'next/headers';
 import { ContactService } from '@/services/contact.service';
 import { prisma } from '@/lib/db';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(
     request: Request,
     { params }: { params: Promise<{ id: string }> }

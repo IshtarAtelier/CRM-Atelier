@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+
+export const dynamic = 'force-dynamic';
 import bcrypt from 'bcryptjs';
 
 // GET /api/users — List all users

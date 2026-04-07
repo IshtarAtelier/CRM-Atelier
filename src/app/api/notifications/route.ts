@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { headers } from 'next/headers';
 import { prisma } from '@/lib/db';
 
+export const dynamic = 'force-dynamic';
+
 // GET /api/notifications — List notifications (ADMIN sees all, STAFF sees own)
 export async function GET() {
     try {
