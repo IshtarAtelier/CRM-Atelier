@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import { headers } from 'next/headers';
+
+export const dynamic = 'force-dynamic';
 import { prisma } from '@/lib/db';
 
 // POST /api/orders — Create order from inline cotizador

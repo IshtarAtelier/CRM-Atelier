@@ -103,17 +103,18 @@ export default function CotizadorCart({
     const promoFrameDiscount = useMemo(() => {
         if (!hasMultifocalPromo || sortedFrames.length < 2) return 0;
         const secondFrame = sortedFrames[1];
-        if (isAtelierFrame(secondFrame.product)) return secondFrame.customPrice;
-        return Math.min(secondFrame.customPrice, atelierAvgPrice);
+        const sPrice = safePrice(secondFrame.customPrice);
+        if (isAtelierFrame(secondFrame.product)) return sPrice;
+        return Math.min(sPrice, safePrice(atelierAvgPrice));
     }, [hasMultifocalPromo, sortedFrames, atelierAvgPrice]);
 
     const subtotal = Math.max(0, items.reduce((s, i) => s + (safePrice(i.customPrice) * (i.quantity || 1)), 0) - promoFrameDiscount);
 
-    const markupAmount = subtotal * (markup / 100);
+    const markupAmount = subtotal * (safePrice(markup) / 100);
     const priceWithMarkup = subtotal + markupAmount;
-    const totalCash = priceWithMarkup * (1 - discountCash / 100);
-    const totalTransfer = priceWithMarkup * (1 - discountTransfer / 100);
-    const totalCard = priceWithMarkup * (1 - discountCard / 100);
+    const totalCash = priceWithMarkup * (1 - safePrice(discountCash) / 100);
+    const totalTransfer = priceWithMarkup * (1 - safePrice(discountTransfer) / 100);
+    const totalCard = priceWithMarkup * (1 - safePrice(discountCard) / 100);
 
     const frameResults = frameSearch ? availableProducts.filter(p => {
         if (!isFrame(p)) return false;

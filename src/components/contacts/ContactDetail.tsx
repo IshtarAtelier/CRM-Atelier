@@ -418,8 +418,15 @@ export default function ContactDetail({
     const fetchContact = async () => {
         try {
             const res = await fetch(`/api/contacts/${contactId}`);
+            if (!res.ok) {
+                const err = await res.json();
+                console.error('Error fetching detail:', err.error);
+                return;
+            }
             const data = await res.json();
-            setContact(data);
+            if (data && data.id) {
+                setContact(data);
+            }
         } catch (error) {
             console.error('Error fetching detail:', error);
         } finally {
@@ -915,12 +922,24 @@ export default function ContactDetail({
     };
 
     if (loading) return (
-        <div className="fixed inset-0 bg-stone-900/60 backdrop-blur-xl z-[60] flex items-center justify-center">
-            <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+        <div className="flex-1 flex items-center justify-center bg-stone-50 dark:bg-stone-950">
+            <div className="text-center">
+                <div className="w-12 h-12 border-4 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin mx-auto mb-4" />
+                <p className="text-stone-400 font-bold text-sm">Cargando ficha...</p>
+            </div>
         </div>
     );
 
-    if (!contact) return null;
+    if (!contact) return (
+        <div className="flex-1 flex items-center justify-center bg-stone-50 dark:bg-stone-950">
+            <div className="text-center p-12 bg-white dark:bg-stone-900 rounded-[3rem] shadow-xl border border-stone-100 dark:border-stone-800">
+                <p className="text-stone-400 font-bold mb-4">No se pudo cargar la información del contacto.</p>
+                <button onClick={fetchContact} className="px-6 py-3 bg-emerald-500 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-emerald-600 transition-all">
+                    Reintentar
+                </button>
+            </div>
+        </div>
+    );
 
     return (
         <div className="fixed inset-0 bg-stone-900/40 backdrop-blur-md z-[60] flex justify-end animate-in fade-in duration-300">
