@@ -1,0 +1,100 @@
+﻿
+> optical-crm@0.1.0 build
+> npx prisma generate && next build
+
+Environment variables loaded from .env
+Prisma schema loaded from prisma\schema.prisma
+
+Ô£ö Generated Prisma Client (v5.22.0) to .\prisma\generated\client in 297ms
+
+Start by importing your Prisma Client (See: https://pris.ly/d/importing-client)
+
+Tip: Interested in query caching in just a few lines of code? Try Accelerate today! https://pris.ly/tip-3-accelerate
+
+Ôû▓ Next.js 16.1.6 (Turbopack)
+- Environments: .env
+
+  Creating an optimized production build ...
+Ô£ô Compiled successfully in 15.5s
+  Running TypeScript ...
+  Collecting page data using 15 workers ...
+  Generating static pages using 15 workers (0/51) ...
+  Generating static pages using 15 workers (12/51) 
+  Generating static pages using 15 workers (25/51) 
+  Generating static pages using 15 workers (38/51) 
+Ô£ô Generating static pages using 15 workers (51/51) in 571.0ms
+  Finalizing page optimization ...
+
+Route (app)
+Ôöî ãÆ /
+Ôö£ ãÆ /_not-found
+Ôö£ ãÆ /administracion
+Ôö£ ãÆ /api/auth/login
+Ôö£ ãÆ /api/auth/logout
+Ôö£ ãÆ /api/auth/me
+Ôö£ ãÆ /api/backup
+Ôö£ ãÆ /api/billing/config
+Ôö£ ãÆ /api/billing/invoice
+Ôö£ ãÆ /api/billing/invoice/[id]
+Ôö£ ãÆ /api/cash
+Ôö£ ãÆ /api/cash/movement
+Ôö£ ãÆ /api/contacts
+Ôö£ ãÆ /api/contacts/[id]
+Ôö£ ãÆ /api/contacts/[id]/can-close
+Ôö£ ãÆ /api/contacts/[id]/favorite
+Ôö£ ãÆ /api/contacts/[id]/interactions
+Ôö£ ãÆ /api/contacts/[id]/payments
+Ôö£ ãÆ /api/contacts/[id]/prescriptions
+Ôö£ ãÆ /api/contacts/[id]/prescriptions/[presId]
+Ôö£ ãÆ /api/contacts/[id]/priority
+Ôö£ ãÆ /api/contacts/[id]/status
+Ôö£ ãÆ /api/contacts/[id]/tasks
+Ôö£ ãÆ /api/dashboard
+Ôö£ ãÆ /api/doctors
+Ôö£ ãÆ /api/doctors/commissions
+Ôö£ ãÆ /api/doctors/payments
+Ôö£ ãÆ /api/export
+Ôö£ ãÆ /api/invoices
+Ôö£ ãÆ /api/notifications
+Ôö£ ãÆ /api/notifications/[id]
+Ôö£ ãÆ /api/orders
+Ôö£ ãÆ /api/orders/[id]
+Ôö£ ãÆ /api/orders/[id]/refresh-prices
+Ôö£ ãÆ /api/payments
+Ôö£ ãÆ /api/products
+Ôö£ ãÆ /api/products/[id]
+Ôö£ ãÆ /api/products/bulk
+Ôö£ ãÆ /api/products/delete-all
+Ôö£ ãÆ /api/products/fix-categories
+Ôö£ ãÆ /api/products/import
+Ôö£ ãÆ /api/products/recalculate-stock
+Ôö£ ãÆ /api/reports
+Ôö£ ãÆ /api/search
+Ôö£ ãÆ /api/tasks/pending
+Ôö£ ãÆ /api/tmp-import-contacts
+Ôö£ ãÆ /api/upload
+Ôö£ ãÆ /api/users
+Ôö£ ãÆ /api/users/[id]
+Ôö£ ãÆ /api/whatsapp/agent
+Ôö£ ãÆ /api/whatsapp/agent/catalog
+Ôö£ ãÆ /api/whatsapp/chats
+Ôö£ ãÆ /api/whatsapp/chats/[id]/messages
+Ôö£ ãÆ /api/whatsapp/notify
+Ôö£ ãÆ /api/whatsapp/send
+Ôö£ ãÆ /api/whatsapp/status
+Ôö£ ãÆ /configuracion
+Ôö£ ãÆ /contactos
+Ôö£ ãÆ /cotizador
+Ôö£ ãÆ /facturacion
+Ôö£ ãÆ /inventario
+Ôö£ ãÆ /login
+Ôö£ ãÆ /pedidos
+Ôö£ ãÆ /reportes
+Ôö£ ãÆ /ventas
+Ôöö ãÆ /whatsapp
+
+
+ãÆ Proxy (Middleware)
+
+ãÆ  (Dynamic)  server-rendered on demand
+

@@ -121,7 +121,12 @@ export default function CotizadorPage() {
             try {
                 const res = await fetch('/api/products');
                 const data = await res.json();
-                setProducts(data);
+                if (Array.isArray(data)) {
+                    setProducts(data);
+                } else {
+                    console.error('Error loading products:', data);
+                    setProducts([]);
+                }
                 
                 // If editing, load the quote
                 if (editId) {

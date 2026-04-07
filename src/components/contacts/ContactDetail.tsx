@@ -1698,7 +1698,17 @@ export default function ContactDetail({
                                         setQuoteDiscountCard(0);
                                         setQuoteSearch('');
                                         if (availableProducts.length === 0) {
-                                            fetch('/api/products').then(r => r.json()).then(setAvailableProducts).catch(console.error);
+                                            fetch('/api/products')
+                                                .then(r => r.json())
+                                                .then(data => {
+                                                    if (Array.isArray(data)) {
+                                                        setAvailableProducts(data);
+                                                    } else {
+                                                        console.error('Error loading products:', data);
+                                                        setAvailableProducts([]);
+                                                    }
+                                                })
+                                                .catch(console.error);
                                         }
                                     }}
                                     className="w-full py-6 bg-stone-900 text-white dark:bg-primary rounded-[2rem] font-black text-xs uppercase tracking-widest hover:scale-[1.02] active:scale-95 transition-all shadow-xl flex items-center justify-center gap-3"
