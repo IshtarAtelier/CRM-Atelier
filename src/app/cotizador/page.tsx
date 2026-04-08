@@ -232,9 +232,6 @@ export default function CotizadorPage() {
                 const is2x1 = isMultifocal2x1(p);
                 const existingPairs = prev.filter(i => i.product.id === p.id && i.eye === 'OD').length;
 
-                // Si NO es 2x1 y ya existe un par, no dejamos agregar más (evitar duplicados accidentales)
-                if (!is2x1 && existingPairs > 0) return prev;
-
                 // Lógica de precio: El primer par se cobra, el segundo es gratis ($0), el tercero se cobra, etc.
                 const isFree = is2x1 && existingPairs % 2 !== 0;
                 const currentPrice = isFree ? 0 : Math.round(sprice / 2);

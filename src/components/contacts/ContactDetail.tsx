@@ -1966,18 +1966,6 @@ export default function ContactDetail({
                                         return (
                                             <React.Fragment key={order.id}>
                                                 {sectionHeader}
-                                                {convertError && expandedOrderId === order.id && (
-                                                    <div className="mb-4 p-4 bg-red-50 dark:bg-red-900/20 border-2 border-red-200 dark:border-red-800 rounded-2xl flex items-start gap-3 animate-in slide-in-from-top duration-300">
-                                                        <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
-                                                        <div className="flex-1">
-                                                            <p className="text-[10px] font-black text-red-600 uppercase tracking-widest mb-1">Error al convertir en venta</p>
-                                                            <p className="text-xs font-bold text-red-500 whitespace-pre-line">{convertError}</p>
-                                                        </div>
-                                                        <button onClick={() => setConvertError(null)} className="p-1 hover:bg-red-100 dark:hover:bg-red-800/30 rounded-lg transition-colors">
-                                                            <X className="w-4 h-4 text-red-400" />
-                                                        </button>
-                                                    </div>
-                                                )}
                                                 <QuoteSummary
                                                     order={order}
                                                     contact={contact}
