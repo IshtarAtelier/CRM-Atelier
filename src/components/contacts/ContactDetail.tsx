@@ -222,6 +222,11 @@ export default function ContactDetail({
             heightOI: rx.heightOI != null ? String(rx.heightOI) : '',
             notes: rx.notes || '',
             imageUrl: rx.imageUrl || '',
+            // If it's a NEAR type, prioritize those spheres for the form if OD/OI sphere is empty
+            ...(rx.prescriptionType === 'NEAR' && !rx.sphereOD && !rx.sphereOI ? {
+                sphereOD: rx.nearSphereOD != null ? String(rx.nearSphereOD) : '',
+                sphereOI: rx.nearSphereOI != null ? String(rx.nearSphereOI) : '',
+            } : {})
         });
     };
 
@@ -242,11 +247,11 @@ export default function ContactDetail({
         setRxModalOrderId(orderId);
     };
 
-    const handleRxSubmitAndConvert = async () => {
+    const handleRxSubmitAndConvert = async (saveOnly: boolean = false) => {
         if (!rxModalOrderId || !contact) return;
         
-        // Validate minimum fields
-        if (!rxForm.sphereOD && !rxForm.sphereOI) {
+        // Validate minimum fields only if converting to sale
+        if (!saveOnly && !rxForm.sphereOD && !rxForm.sphereOI) {
             setRxError('Completá al menos el esférico de un ojo');
             return;
         }
@@ -254,14 +259,7 @@ export default function ContactDetail({
         setRxSaving(true);
         setRxError(null);
         try {
-            // 1. Identify if we are using an existing prescription or a new/modified one
-            const order: any = contact.orders?.find((o: any) => o.id === rxModalOrderId);
-            
-            // Heuristic to check if data changed significantly (simple check)
-            // If the user didn't change the imageUrl and the spheres match, we might avoid creating a new one
-            // But for safety and clean history, if they "Save", we usually create a new one unless it's identical.
-            
-            // 2. Prepare payload
+            // 1. Prepare payload
             const rxPayload: any = { clientId: contact.id };
             if (rxForm.sphereOD) rxPayload.sphereOD = parseFloat(rxForm.sphereOD);
             if (rxForm.cylinderOD) rxPayload.cylinderOD = parseFloat(rxForm.cylinderOD);
@@ -278,14 +276,15 @@ export default function ContactDetail({
             if (rxForm.notes) rxPayload.notes = rxForm.notes;
             if (rxForm.imageUrl) rxPayload.imageUrl = rxForm.imageUrl;
 
-            // 3. Find if there's an EXACT match already in contact.prescriptions to avoid duplicates
-            // (Comparing only key clinical fields and image)
+            // 2. Find if there's an EXACT match already to avoid duplicates
             const duplicate = contact.prescriptions?.find((p: any) => 
                 p.imageUrl === rxForm.imageUrl &&
                 String(p.sphereOD || '') === String(rxForm.sphereOD || '') &&
                 String(p.sphereOI || '') === String(rxForm.sphereOI || '') &&
                 String(p.cylinderOD || '') === String(rxForm.cylinderOD || '') &&
-                String(p.cylinderOI || '') === String(rxForm.cylinderOI || '')
+                String(p.cylinderOI || '') === String(rxForm.cylinderOI || '') &&
+                String(p.additionOD || '') === String(rxForm.additionOD || '') &&
+                String(p.additionOI || '') === String(rxForm.additionOI || '')
             );
 
             let rxId = duplicate?.id;
@@ -305,25 +304,40 @@ export default function ContactDetail({
                 rxId = newRx.id;
             }
 
-            // 4. Convert to SALE with prescriptionId
-            const saleRes = await fetch(`/api/orders/${rxModalOrderId}`, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    orderType: 'SALE', 
-                    prescriptionId: rxId 
-                }),
-            });
-            if (!saleRes.ok) {
-                const errData = await saleRes.json();
-                throw new Error(errData.error || 'Error al convertir en venta');
+            // 3. Link to Order (always, so we don't lose the selection)
+            if (rxId) {
+                await fetch(`/api/orders/${rxModalOrderId}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        prescriptionId: rxId 
+                    }),
+                });
             }
 
-            setRxModalOrderId(null);
-            resetRxForm();
+            if (!saveOnly) {
+                // 4. Convert to SALE
+                const saleRes = await fetch(`/api/orders/${rxModalOrderId}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ orderType: 'SALE' }),
+                });
+                if (!saleRes.ok) {
+                    const errData = await saleRes.json();
+                    throw new Error(errData.error || 'Error al convertir en venta');
+                }
+                setRxModalOrderId(null);
+                resetRxForm();
+            } else {
+                // Just notify success
+                setRxError('✓ Cambios guardados correctamente');
+                setTimeout(() => setRxError(null), 3000);
+            }
+
             fetchContact();
         } catch (e: any) {
             setRxError(e.message || 'Error de conexión');
+            setConvertError(e.message || 'Error de conexión');
         } finally {
             setRxSaving(false);
         }
@@ -437,18 +451,27 @@ export default function ContactDetail({
     const handleConvertQuote = async (orderId: string) => {
         const order = contact?.orders?.find((o: any) => o.id === orderId);
         if (!order) return;
+        setConvertError(null);
         const hasCrystals = order.items.some((it: any) => it.product?.type === 'Cristal' || it.product?.category === 'LENS');
         if (hasCrystals) {
             openRxModal(orderId);
         } else {
             try {
-                await fetch(`/api/orders/${orderId}`, {
+                const res = await fetch(`/api/orders/${orderId}`, {
                     method: 'PATCH',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ orderType: 'SALE' }),
                 });
+                if (!res.ok) {
+                    const errData = await res.json();
+                    setConvertError(errData.error || 'Error al convertir en venta');
+                    return;
+                }
                 fetchContact();
-            } catch (e) { console.error(e); }
+            } catch (e: any) {
+                console.error(e);
+                setConvertError(e.message || 'Error de conexión al convertir');
+            }
         }
     };
 
@@ -1855,6 +1878,20 @@ export default function ContactDetail({
                                 </div>
                             )}
 
+                            {/* Convert Error Banner */}
+                            {convertError && (
+                                <div className="mb-4 p-4 bg-red-50 dark:bg-red-900/20 border-2 border-red-200 dark:border-red-800 rounded-2xl flex items-start gap-3 animate-in slide-in-from-top duration-300">
+                                    <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+                                    <div className="flex-1">
+                                        <p className="text-[10px] font-black text-red-600 uppercase tracking-widest mb-1">No se pudo convertir en venta</p>
+                                        <p className="text-xs font-bold text-red-500 whitespace-pre-line">{convertError}</p>
+                                    </div>
+                                    <button onClick={() => setConvertError(null)} className="p-1 hover:bg-red-100 dark:hover:bg-red-800/30 rounded-lg transition-colors">
+                                        <X className="w-4 h-4 text-red-400" />
+                                    </button>
+                                </div>
+                            )}
+
                             {/* Orders List with Lab Status */}
                             {contact.orders && contact.orders.length > 0 ? (
                                 (() => {
@@ -1909,6 +1946,18 @@ export default function ContactDetail({
                                         return (
                                             <React.Fragment key={order.id}>
                                                 {sectionHeader}
+                                                {convertError && expandedOrderId === order.id && (
+                                                    <div className="mb-4 p-4 bg-red-50 dark:bg-red-900/20 border-2 border-red-200 dark:border-red-800 rounded-2xl flex items-start gap-3 animate-in slide-in-from-top duration-300">
+                                                        <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+                                                        <div className="flex-1">
+                                                            <p className="text-[10px] font-black text-red-600 uppercase tracking-widest mb-1">Error al convertir en venta</p>
+                                                            <p className="text-xs font-bold text-red-500 whitespace-pre-line">{convertError}</p>
+                                                        </div>
+                                                        <button onClick={() => setConvertError(null)} className="p-1 hover:bg-red-100 dark:hover:bg-red-800/30 rounded-lg transition-colors">
+                                                            <X className="w-4 h-4 text-red-400" />
+                                                        </button>
+                                                    </div>
+                                                )}
                                                 <QuoteSummary
                                                     order={order}
                                                     contact={contact}
@@ -2159,10 +2208,13 @@ export default function ContactDetail({
                                             <div>
                                                 <label className="text-[9px] font-black text-red-500 uppercase tracking-widest block mb-2">📷 Foto de la receta (OBLIGATORIA)</label>
                                                 {rxForm.imageUrl ? (
-                                                    <div className="relative">
-                                                        <img src={rxForm.imageUrl} alt="Receta" className="w-full max-h-40 object-contain rounded-xl border-2 border-emerald-200" />
-                                                        <button onClick={() => setRxForm(p => ({...p, imageUrl: ''}))} className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-full hover:scale-110 transition-all">
-                                                            <X className="w-3 h-3" />
+                                                    <div className="relative group">
+                                                        <img src={rxForm.imageUrl} alt="Receta" className="w-full max-h-48 object-contain rounded-xl border-2 border-emerald-500 shadow-md transition-all group-hover:brightness-90" />
+                                                        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                                                            <span className="bg-emerald-500 text-white px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg">Imagen Cargada ✓</span>
+                                                        </div>
+                                                        <button onClick={() => setRxForm(p => ({...p, imageUrl: ''}))} className="absolute top-2 right-2 p-2 bg-red-500 text-white rounded-full hover:scale-110 transition-all shadow-lg pointer-events-auto" title="Eliminar imagen">
+                                                            <X className="w-4 h-4" />
                                                         </button>
                                                     </div>
                                                 ) : (
@@ -2182,10 +2234,14 @@ export default function ContactDetail({
                                             <p className="mt-4 text-[10px] font-black text-red-500 bg-red-50 dark:bg-red-900/20 px-3 py-2 rounded-xl text-center">⚠️ {rxError}</p>
                                         )}
 
-                                        <div className="mt-6 flex gap-4">
+                                                                                                                                                                   <div className="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-3">
+
+
+
                                             <button
                                                 onClick={() => { setRxModalOrderId(null); resetRxForm(); }}
-                                                className="flex-1 py-4 bg-stone-100 dark:bg-stone-700 text-stone-500 dark:text-stone-300 rounded-2xl font-black text-xs uppercase tracking-widest"
+                                                                                                 className="py-4 bg-stone-100 dark:bg-stone-700 text-stone-500 dark:text-stone-300 rounded-2xl font-black text-xs uppercase tracking-widest"
+
                                             >
                                                 CANCELAR
                                             </button>
