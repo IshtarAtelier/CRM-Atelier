@@ -179,6 +179,7 @@ export default function ContactDetail({
     // Ventas / Tab State
     const [quoteFrameSearch, setQuoteFrameSearch] = useState('');
     const [convertError, setConvertError] = useState<string | null>(null);
+    const [convertSuccess, setConvertSuccess] = useState(false);
 
     // Expanded order cards (only one expanded at a time)
     const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null);
@@ -329,6 +330,9 @@ export default function ContactDetail({
                 }
                 setRxModalOrderId(null);
                 resetRxForm();
+                setConvertSuccess(true);
+                setActiveSection('sales');
+                setTimeout(() => setConvertSuccess(false), 5000);
             } else {
                 // Just notify success
                 setRxError('✓ Cambios guardados correctamente');
@@ -473,6 +477,9 @@ export default function ContactDetail({
                     return;
                 }
                 fetchContact();
+                setConvertSuccess(true);
+                setActiveSection('sales');
+                setTimeout(() => setConvertSuccess(false), 5000);
             } catch (e: any) {
                 console.error(e);
                 setConvertError(e.message || 'Error de conexión al convertir');
@@ -493,6 +500,9 @@ export default function ContactDetail({
                     return;
                 }
                 fetchContact();
+                setConvertSuccess(true);
+                setActiveSection('sales');
+                setTimeout(() => setConvertSuccess(false), 5000);
             } catch (e: any) {
                 console.error(e);
                 setConvertError(e.message || 'Error de conexión al convertir');
@@ -1855,8 +1865,8 @@ export default function ContactDetail({
                                             <div className="w-20 h-20 bg-emerald-500 text-white rounded-[2rem] flex items-center justify-center mx-auto mb-6 shadow-lg shadow-emerald-500/20">
                                                 <CheckCircle2 className="w-10 h-10" />
                                             </div>
-                                            <h3 className="text-3xl font-black text-stone-800 dark:text-white mb-2 tracking-tighter uppercase italic">¡Presupuesto Guardado!</h3>
-                                            <p className="text-stone-500 dark:text-stone-400 font-bold mb-8">El presupuesto ha sido registrado exitosamente en el historial del contacto.</p>
+                                            <h3 className="text-3xl font-black text-stone-800 dark:text-white mb-2 tracking-tighter uppercase italic">{editingQuoteId ? '¡Presupuesto Actualizado!' : '¡Presupuesto Guardado!'}</h3>
+                                            <p className="text-stone-500 dark:text-stone-400 font-bold mb-8">{editingQuoteId ? 'Los cambios han sido guardados exitosamente.' : 'El presupuesto ha sido registrado exitosamente en el historial del contacto.'}</p>
                                             <button 
                                                 onClick={() => {
                                                     setIsQuoteSuccess(false);
@@ -1900,6 +1910,19 @@ export default function ContactDetail({
                                             onCancelEdit={handleCancelEditQuote}
                                         />
                                     )}
+                                </div>
+                            )}
+                            {/* Convert Success Banner */}
+                            {convertSuccess && (
+                                <div className="mb-4 p-4 bg-emerald-50 dark:bg-emerald-900/20 border-2 border-emerald-200 dark:border-emerald-800 rounded-2xl flex items-start gap-3 animate-in slide-in-from-top duration-300">
+                                    <CheckCircle2 className="w-5 h-5 text-emerald-500 flex-shrink-0 mt-0.5" />
+                                    <div className="flex-1">
+                                        <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest mb-1">¡Venta Registrada!</p>
+                                        <p className="text-xs font-bold text-emerald-500">El presupuesto fue convertido en venta exitosamente. El pedido fue enviado al laboratorio.</p>
+                                    </div>
+                                    <button onClick={() => setConvertSuccess(false)} className="p-1 hover:bg-emerald-100 dark:hover:bg-emerald-800/30 rounded-lg transition-colors">
+                                        <X className="w-4 h-4 text-emerald-400" />
+                                    </button>
                                 </div>
                             )}
 
