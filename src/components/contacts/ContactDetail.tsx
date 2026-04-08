@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import {
     X, Heart, Star, Phone, MapPin, Building2,
@@ -158,6 +158,7 @@ export default function ContactDetail({
 
     // Inline Cotizador State
     const [isQuoting, setIsQuoting] = useState(false);
+    const cotizadorRef = useRef<HTMLDivElement>(null);
     const [availableProducts, setAvailableProducts] = useState<any[]>([]);
     const [quoteSearch, setQuoteSearch] = useState('');
     const [quoteItems, setQuoteItems] = useState<{ product: any; quantity: number; customPrice: number; eye?: 'OD' | 'OI'; uid: number }[]>([]);
@@ -396,6 +397,10 @@ export default function ContactDetail({
         setEditingQuoteId(order.id);
         setIsQuoting(true);
         setActiveSection('budget');
+        // Auto-scroll to the cotizador after state updates
+        setTimeout(() => {
+            cotizadorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 150);
     };
 
     const handleCancelEditQuote = () => {
@@ -1844,7 +1849,7 @@ export default function ContactDetail({
 
                             {/* Cotizador Inline */}
                             {isQuoting && activeSection === 'budget' && (
-                                <div className="relative">
+                                <div className="relative" ref={cotizadorRef}>
                                     {isQuoteSuccess ? (
                                         <div className="bg-emerald-50/50 dark:bg-emerald-950/20 border-2 border-emerald-200 dark:border-emerald-800 rounded-[3rem] p-12 text-center animate-in fade-in zoom-in duration-500 my-8">
                                             <div className="w-20 h-20 bg-emerald-500 text-white rounded-[2rem] flex items-center justify-center mx-auto mb-6 shadow-lg shadow-emerald-500/20">

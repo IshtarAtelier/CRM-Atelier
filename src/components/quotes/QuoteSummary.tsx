@@ -630,19 +630,27 @@ ${(order.paid > 0) ? `
                     {/* Main Action Component */}
                     <div className="col-span-3 pb-2">
                         {isQuote ? (
-                            <div className="grid grid-cols-5 gap-3">
+                            <div className="space-y-3">
                                 <button
                                     onClick={() => onConvert?.(order.id)}
-                                    className="col-span-3 py-5 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-[2rem] font-black text-xs uppercase tracking-[0.15em] hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-emerald-500/20 flex items-center justify-center gap-3"
+                                    className="w-full py-5 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-[2rem] font-black text-xs uppercase tracking-[0.15em] hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-emerald-500/20 flex items-center justify-center gap-3"
                                 >
                                     <CheckCircle2 className="w-5 h-5" /> CONVERTIR EN VENTA
                                 </button>
-                                <button
-                                    onClick={() => onEdit?.(order)}
-                                    className="col-span-2 py-5 bg-stone-900 dark:bg-stone-800 text-white rounded-[2rem] font-black text-xs uppercase tracking-[0.15em] hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-stone-500/20 flex items-center justify-center gap-3"
-                                >
-                                    <Pencil className="w-5 h-5" /> EDITAR
-                                </button>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <button
+                                        onClick={() => onAddPayment?.(order.id)}
+                                        className="py-4 bg-amber-500 text-white rounded-[2rem] font-black text-[10px] uppercase tracking-widest hover:scale-[1.02] active:scale-95 transition-all shadow-lg shadow-amber-500/20 flex items-center justify-center gap-2"
+                                    >
+                                        <Banknote className="w-4 h-4" /> REGISTRAR SEÑA
+                                    </button>
+                                    <button
+                                        onClick={() => onEdit?.(order)}
+                                        className="py-4 bg-stone-900 dark:bg-stone-800 text-white rounded-[2rem] font-black text-[10px] uppercase tracking-widest hover:scale-[1.02] active:scale-95 transition-all shadow-lg shadow-stone-500/20 flex items-center justify-center gap-2"
+                                    >
+                                        <Pencil className="w-4 h-4" /> EDITAR
+                                    </button>
+                                </div>
                             </div>
                         ) : isLockedSale ? (
 
