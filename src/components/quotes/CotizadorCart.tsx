@@ -168,9 +168,6 @@ export default function CotizadorCart({
                 const existingPairsFiltered = prev.filter(it => it.product.id === product.id && it.eye === 'OD');
                 const existingCount = existingPairsFiltered.length;
 
-                // Si NO es 2x1, evitar duplicados
-                if (!is2x1 && existingCount > 0) return prev;
-
                 const ts = Date.now();
                 const sprice = safePrice(product.price);
                 // Si es el 2do par de un 2x1, es gratis

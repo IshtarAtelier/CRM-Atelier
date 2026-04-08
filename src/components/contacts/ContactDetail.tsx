@@ -453,7 +453,27 @@ export default function ContactDetail({
         if (!order) return;
         setConvertError(null);
         const hasCrystals = order.items.some((it: any) => it.product?.type === 'Cristal' || it.product?.category === 'LENS');
-        if (hasCrystals) {
+        
+        // If has crystals but already has a prescription linked, convert directly
+        if (hasCrystals && order.prescriptionId) {
+            try {
+                const res = await fetch(`/api/orders/${orderId}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ orderType: 'SALE' }),
+                });
+                if (!res.ok) {
+                    const errData = await res.json();
+                    setConvertError(errData.error || 'Error al convertir en venta');
+                    return;
+                }
+                fetchContact();
+            } catch (e: any) {
+                console.error(e);
+                setConvertError(e.message || 'Error de conexión al convertir');
+            }
+        } else if (hasCrystals) {
+            // No prescription linked — open the Rx modal to add/select one
             openRxModal(orderId);
         } else {
             try {
