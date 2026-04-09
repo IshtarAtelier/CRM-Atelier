@@ -120,7 +120,7 @@ export default function QuoteSummary({
     // Fallback: recalculate subtotalWithMarkup from items when field is 0/null (old records)
     const effectiveSubtotalWithMarkup = (() => {
         if (order.subtotalWithMarkup && order.subtotalWithMarkup > 0) return order.subtotalWithMarkup;
-        const itemsSubtotal = (order.items || []).reduce((s: number, it: any) => s + (it.price * it.quantity), 0);
+        const itemsSubtotal = (order.items || []).reduce((s: number, it: any) => s + (safePrice(it.price) * it.quantity), 0);
         return itemsSubtotal * (1 + (order.markup || 0) / 100);
     })();
 
@@ -228,20 +228,20 @@ export default function QuoteSummary({
 </div>
 <table>
   <thead><tr><th>Producto</th><th>Cant.</th><th>Precio Unit.</th><th>Subtotal</th></tr></thead>
-  <tbody>${order.items.map((it: any) => {
-            const eyeLabel = it.eye ? `<span style="color: #666; font-weight: bold;">(${it.eye === 'OD' ? 'Ojo Derecho' : 'Ojo Izquierdo'})</span>` : '';
-            const productDesc = `${it.product?.brand || ''} ${it.product?.model || it.product?.name || ''}`.trim();
-            
-            return `<tr>
-                <td>
-                    <div style="font-weight: 600;">${productDesc}</div>
-                    ${eyeLabel ? `<div style="font-size: 9px; margin-top: 2px;">${eyeLabel}</div>` : ''}
-                </td>
-                <td style="text-align: center;">${it.quantity}</td>
-                <td style="text-align: right;">$${Math.round(it.price * (1 + (order.markup || 0) / 100)).toLocaleString()}</td>
-                <td style="text-align: right;">$${Math.round(it.price * it.quantity * (1 + (order.markup || 0) / 100)).toLocaleString()}</td>
-            </tr>`;
-        }).join('')}</tbody>
+  <tbody>${(order.items || []).map((it: any) => {
+    const isCrystal = it.product?.category === 'LENS' || (it.product?.type || '').toLowerCase().includes('cristal');
+    return `
+      <tr>
+        <td style="padding: 10px; border-bottom: 1px solid #eee;">
+          <div style="font-weight: bold;">${it.product?.brand || ''} ${it.product?.model || it.product?.name || 'Producto'}</div>
+          ${isCrystal ? `<div style="font-size: 10px; color: #666;">${it.eye || ''} ${it.sphereVal || ''} ${it.cylinderVal || ''} ${it.axisVal || ''}</div>` : ''}
+        </td>
+        <td style="padding: 10px; border-bottom: 1px solid #eee; text-align: center;">${it.quantity}</td>
+        <td style="padding: 10px; border-bottom: 1px solid #eee; text-align: right;">$${safePrice(it.price).toLocaleString()}</td>
+        <td style="padding: 10px; border-bottom: 1px solid #eee; text-align: right;">$${(safePrice(it.price) * it.quantity).toLocaleString()}</td>
+      </tr>
+    `;
+  }).join('')}</tbody>
 </table>
 ${order.frameSource ? `<div style='background:#fffbeb;border:1px solid #fbbf24;border-radius:12px;padding:12px 16px;margin-bottom:16px;font-size:12px'><strong style='color:#92400e'>🕶️ Armazón:</strong> ${order.frameSource === 'OPTICA' ? 'De la óptica (incluido en el presupuesto)' : `Del cliente — ${order.userFrameBrand || ''} ${order.userFrameModel || ''}${order.userFrameNotes ? ' · ' + order.userFrameNotes : ''}`}</div>` : ''}
 
@@ -279,7 +279,7 @@ ${(order.paid > 0) ? `
 
     const handleWhatsApp = () => {
         const items = order.items || [];
-        const subtotalBase = items.reduce((s: number, it: any) => s + (it.price * it.quantity), 0);
+        const subtotalBase = items.reduce((s: number, it: any) => s + (safePrice(it.price) * it.quantity), 0);
         const markupPct = order.markup || 0;
         const listPrice = subtotalBase * (1 + markupPct / 100);
         const discountCash = order.discountCash !== null ? order.discountCash : (order.discount || 20);
@@ -290,12 +290,9 @@ ${(order.paid > 0) ? `
         const cuota3 = Math.round(listPrice / 3);
         const cuota6 = Math.round(listPrice / 6);
 
-        const lines = order.items.map((it: any) => {
-            let label = `• ${it.product?.brand || ''} ${it.product?.model || it.product?.name || ''} x${it.quantity}`;
-            if (it.eye) label += ` (${it.eye === 'OD' ? 'Ojo Derecho' : 'Ojo Izquierdo'})`;
-            label += ` — $${Math.round(it.price * it.quantity * (1 + (order.markup || 0) / 100)).toLocaleString()}`;
-            return label;
-        });
+        const itemLines = (order.items || []).map((it: any) => {
+            return `• ${it.product?.brand || ''} ${it.product?.model || it.product?.name || 'Producto'} x${it.quantity}`;
+        }).join('%0A');
         
         let text = `✨ *${isSale ? 'VENTA' : 'PRESUPUESTO'} — ATELIER ÓPTICA* ✨\n`;
         text += `📍 José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba\n`;

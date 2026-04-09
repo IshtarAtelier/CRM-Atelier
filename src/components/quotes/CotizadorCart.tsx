@@ -83,28 +83,28 @@ export default function CotizadorCart({
     const [frameSearch, setFrameSearch] = useState('');
 
     const hasMultifocalPromo = useMemo(() => {
-        return items.some(it => isCrystal(it.product) && isMultifocal2x1(it.product) && !isMiPrimerVarilux(it.product));
+        return items.some(it => it.product && isCrystal(it.product) && isMultifocal2x1(it.product) && !isMiPrimerVarilux(it.product));
     }, [items]);
 
     const hasAnyMultifocal = useMemo(() => {
-        return items.some(it => isMultifocal2x1(it.product));
+        return items.some(it => it.product && isMultifocal2x1(it.product));
     }, [items]);
 
     const atelierAvgPrice = useMemo(() => {
-        const atelierFrames = availableProducts.filter(p => getCategoryKey(p.type) === 'Armazón' && isAtelierFrame(p) && safePrice(p.price) > 0);
+        const atelierFrames = availableProducts.filter(p => getCategoryKey(p.type, p.category) === 'Armazón' && isAtelierFrame(p) && safePrice(p.price) > 0);
         return atelierFrames.length > 0 ? Math.round(atelierFrames.reduce((s, f) => s + safePrice(f.price), 0) / atelierFrames.length) : 0;
     }, [availableProducts]);
     
     // Check frames in quote for the promo (flattened by quantity for calculation)
-    const framesInQuote = items.filter(i => getCategoryKey(i.product.type) === 'Armazón');
+    const framesInQuote = items.filter(i => i.product && getCategoryKey(i.product.type, i.product.category) === 'Armazón');
     const flattenedFrames = items.flatMap(i => {
-        if (getCategoryKey(i.product.type) !== 'Armazón') return [];
+        if (!i.product || getCategoryKey(i.product.type, i.product.category) !== 'Armazón') return [];
         return Array.from({ length: i.quantity || 1 }).map((_, idx) => ({
             ...i,
             virtualIdx: idx
         }));
     });
-    const sortedFrames = [...flattenedFrames].sort((a, b) => b.customPrice - a.customPrice);
+    const sortedFrames = [...flattenedFrames].sort((a, b) => safePrice(b.customPrice) - safePrice(a.customPrice));
     
     // We target the second frame in the sorted list (either a second item or the second unit of the first item)
     const secondFrameVirtual = sortedFrames.length >= 2 ? sortedFrames[1] : null;

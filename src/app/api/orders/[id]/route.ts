@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { headers } from 'next/headers';
 import { ContactService } from '@/services/contact.service';
 import { prisma } from '@/lib/db';
+import { calculateQuoteTotals } from '@/lib/promo-utils';
 
 export const dynamic = 'force-dynamic';
 
@@ -145,17 +146,8 @@ export async function PATCH(
             const currentOrder = await prisma.order.findUnique({
                 where: { id },
                 select: {
-                    id: true,
-                    total: true,
-                    markup: true,
-                    discountCash: true,
-                    orderType: true,
-                    items: {
-                        select: {
-                            price: true,
-                            quantity: true
-                        }
-                    }
+                    id: true, total: true, markup: true, discountCash: true, orderType: true,
+                    items: { select: { productId: true, price: true, quantity: true, product: { select: { id: true, is2x1: true, category: true, type: true } } } }
                 }
             });
 
@@ -163,18 +155,45 @@ export async function PATCH(
                 finalMarkup = markup !== undefined ? markup : currentOrder.markup;
                 finalDiscountCash = discountCash !== undefined ? discountCash : currentOrder.discountCash;
                 
-                if (items && Array.isArray(items)) {
-                    const subtotal = items.reduce((sum: number, it: any) => sum + (it.price * it.quantity), 0);
-                    const markupVal = Math.max(0, finalMarkup || 0);
-                    data.subtotalWithMarkup = Math.round(subtotal * (1 + markupVal / 100));
-                    data.total = Math.round(data.subtotalWithMarkup * (1 - (finalDiscountCash || 0) / 100));
-                } else if (markup !== undefined || discountCash !== undefined) {
-                    // Items didn't change, but markup or discount did
-                    const subtotal = currentOrder.items.reduce((sum: number, it: any) => sum + (it.price * it.quantity), 0);
-                    const markupVal = Math.max(0, finalMarkup || 0);
-                    data.subtotalWithMarkup = Math.round(subtotal * (1 + markupVal / 100));
-                    data.total = Math.round(data.subtotalWithMarkup * (1 - (finalDiscountCash || 0) / 100));
+                const itemsToCalculate = items || currentOrder.items;
+                
+                // Fetch full product details for items (essential for promo logic)
+                const productIds = itemsToCalculate.map((it: any) => it.productId).filter(Boolean);
+                const dbProducts = await prisma.product.findMany({
+                    where: { id: { in: productIds } }
+                });
+
+                // Map items for calculateQuoteTotals utility
+                const cartItems = itemsToCalculate.map((it: any) => ({
+                    product: dbProducts.find(p => p.id === it.productId) || it.product || { price: it.price },
+                    quantity: it.quantity,
+                    customPrice: it.price
+                }));
+
+                // Fetch Atelier average price products if promo active
+                const hasPromo = cartItems.some(it => it.product?.is2x1);
+                let allProducts: any[] = [];
+                if (hasPromo) {
+                    allProducts = await prisma.product.findMany({
+                        where: { 
+                            OR: [
+                                { brand: { contains: 'Atelier', mode: 'insensitive' } },
+                                { name: { contains: 'Atelier', mode: 'insensitive' } },
+                                { category: 'FRAME' }
+                            ]
+                        }
+                    });
                 }
+
+                const totals = calculateQuoteTotals(
+                    cartItems, 
+                    finalMarkup || 0, 
+                    finalDiscountCash || 0, 
+                    allProducts
+                );
+
+                data.subtotalWithMarkup = totals.subtotalWithMarkup;
+                data.total = totals.totalCash;
             }
         }
 

@@ -43,8 +43,8 @@ import {
     Gem 
 } from 'lucide-react';
 
-const getTypeConfig = (type: string | null) => {
-    const key = getCategoryKey(type);
+const getTypeConfig = (type: string | null, category?: string | null) => {
+    const key = getCategoryKey(type, category);
     switch (key) {
         case 'Armazón': return { icon: Glasses, label: 'Armazones', color: 'bg-amber-50 text-amber-600 border-amber-200' };
         case 'Cristal': return { icon: Eye, label: 'Cristales', color: 'bg-emerald-50 text-emerald-600 border-emerald-200' };
@@ -206,7 +206,7 @@ export default function CotizadorPage() {
 
     // Filter logic
     const availableCategories = useMemo(() => {
-        const types = new Set(products.map(p => getCategoryKey(p.type)));
+        const types = new Set(products.map(p => getCategoryKey(p.type, p.category)));
         return Array.from(types).sort() as string[];
     }, [products]);
 
@@ -219,7 +219,7 @@ export default function CotizadorPage() {
                 p.type?.toLowerCase().includes(search.toLowerCase());
             
             if (activeType === 'NONE') return matchesSearch;
-            if (activeType) return matchesSearch && getCategoryKey(p.type) === activeType;
+            if (activeType) return matchesSearch && getCategoryKey(p.type, p.category) === activeType;
             return matchesSearch;
         });
     }, [products, search, activeType]);
@@ -485,7 +485,7 @@ export default function CotizadorPage() {
                     </button>
                     {availableCategories.map(cat => {
                         const config = getTypeConfig(cat);
-                        const count = products.filter(p => getCategoryKey(p.type) === cat).length;
+                        const count = products.filter(p => getCategoryKey(p.type, p.category) === cat).length;
                         const Icon = config.icon;
                         return (
                             <button

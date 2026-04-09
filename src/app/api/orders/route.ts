@@ -3,6 +3,7 @@ import { headers } from 'next/headers';
 
 export const dynamic = 'force-dynamic';
 import { prisma } from '@/lib/db';
+import { calculateQuoteTotals, isMultifocal2x1 } from '@/lib/promo-utils';
 
 // POST /api/orders — Create order from inline cotizador
 export async function POST(request: Request) {
@@ -29,15 +30,47 @@ export async function POST(request: Request) {
         // Calculate totals if missing or zero
         let finalSubtotalWithMarkup = subtotalWithMarkup;
         let finalTotal = total;
+        let finalDiscount = discount || 0;
 
         if (!finalSubtotalWithMarkup || !finalTotal) {
-            const calculatedSubtotal = items.reduce((sum: number, it: any) => sum + (it.price * it.quantity), 0);
-            const markupVal = Math.max(0, markup || 0);
-            finalSubtotalWithMarkup = calculatedSubtotal * (1 + markupVal / 100);
-            
-            // Default to cash discount for the "total" field (which is usually the cash price in this CRM)
-            const discCash = discountCash || 0;
-            finalTotal = finalSubtotalWithMarkup * (1 - discCash / 100);
+            // To calculate totals correctly (including promos), we need the full product details
+            const productIds = items.map((it: any) => it.productId).filter(Boolean);
+            const dbProducts = await prisma.product.findMany({
+                where: { id: { in: productIds } }
+            });
+
+            // Map items for calculateQuoteTotals utility
+            const cartItems = items.map((it: any) => ({
+                product: dbProducts.find(p => p.id === it.productId) || { price: it.price },
+                quantity: it.quantity,
+                customPrice: it.price
+            }));
+
+            // Fetch all products for Atelier average price calculation (only if needed by a 2x1 promo)
+            const hasPromo = cartItems.some(it => isMultifocal2x1(it.product));
+            let allProducts: any[] = [];
+            if (hasPromo) {
+                allProducts = await prisma.product.findMany({
+                    where: { 
+                        OR: [
+                            { brand: { contains: 'Atelier', mode: 'insensitive' } },
+                            { name: { contains: 'Atelier', mode: 'insensitive' } },
+                            { category: 'FRAME' }
+                        ]
+                    }
+                });
+            }
+
+            const totals = calculateQuoteTotals(
+                cartItems, 
+                markup || 0, 
+                discountCash || 0, 
+                allProducts
+            );
+
+            finalSubtotalWithMarkup = totals.subtotalWithMarkup;
+            finalTotal = totals.totalCash;
+            finalDiscount = discountCash || 0;
         }
 
         const order = await prisma.order.create({
@@ -47,7 +80,7 @@ export async function POST(request: Request) {
                 status: 'PENDING',
                 total: Math.round(finalTotal),
                 paid: 0,
-                discount: discount || 0,
+                discount: finalDiscount || 0,
                 markup: Math.max(0, markup || 0),
                 discountCash: discountCash || 0,
                 discountTransfer: discountTransfer || 0,

@@ -404,11 +404,19 @@ export default function ContactDetail({
         fetchContact();
     }, [contactId]);
 
-    // Handle autoStartQuote from props
+    // Handle autoStartQuote
     useEffect(() => {
         if (autoStartQuote && contact) {
             setActiveSection('budget');
             setIsQuoting(true);
+            // Fetch products if we're starting a quote automatically
+            if (availableProducts.length === 0) {
+                fetch('/api/products')
+                    .then(r => r.json())
+                    .then(data => {
+                        if (Array.isArray(data)) setAvailableProducts(data);
+                    });
+            }
             // Small delay to ensure the section is rendered before scrolling
             setTimeout(() => {
                 cotizadorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });

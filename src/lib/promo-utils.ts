@@ -62,23 +62,41 @@ export const isFrame = (p: any): boolean => {
     const category = (p.category || '').toLowerCase();
     return type.includes('armazón') || type.includes('armazon') || 
            category.includes('armazón') || category.includes('armazon') ||
-           category === 'frame' || type === 'frame';
+           category === 'frame' || type === 'frame' || category === 'atelier';
 };
 
 /**
  * Determines the general category key for consistent styling and logic.
  */
-export function getCategoryKey(type: string | null): string {
+/**
+ * Determines the general category key for consistent styling and logic.
+ * Improved to check both Category (Prisma) and Type (Subcategory).
+ */
+export function getCategoryKey(type: string | null, category?: string | null): string {
+    // 1. Check explicit Category first (from Prisma)
+    const cat = (category || '').toUpperCase();
+    if (cat === 'FRAME') return 'Armazón';
+    if (cat === 'LENS') return 'Cristal';
+    if (cat === 'SUNGLASS') return 'Lente de sol';
+    if (cat === 'ACCESSORY') return 'Accesorio';
+    if (cat === 'ATELIER') return 'Armazón'; // Special brand-category
+
+    // 2. Fallback to Type string parsing
     if (!type) return 'Otros';
     const t = type.toLowerCase();
-    if (t.includes('armazón') || t.includes('armazon')) return 'Armazón';
-    if (t.includes('cristal') || t.includes('monofocal') || t.includes('multifocal') || t.includes('bifocal') || t.includes('ocupacional') || t.includes('coquil') || t.includes('progresivo')) return 'Cristal';
+    if (t.includes('armazón') || t.includes('armazon') || t.includes('marco') || t.includes('frame')) return 'Armazón';
+    if (t.includes('cristal') || t.includes('monofocal') || t.includes('multifocal') || t.includes('bifocal') || t.includes('ocupacional') || t.includes('coquil') || t.includes('progresivo') || t.includes('lente')) {
+        if (t.includes('contacto')) return 'Lente de contacto';
+        if (t.includes('sol')) return 'Lente de sol';
+        return 'Cristal';
+    }
     if (t.includes('lente de sol') || t.includes('sol')) return 'Lente de sol';
     if (t.includes('lente de contacto') || t.includes('contacto')) return 'Lente de contacto';
     if (t.includes('accesorio')) return 'Accesorio';
     if (t.includes('reloj')) return 'Reloj';
     if (t.includes('líquido') || t.includes('solución') || t.includes('liquido') || t.includes('solucion')) return 'Líquido / Solución';
     if (t.includes('joyería') || t.includes('joyeria')) return 'Joyería';
+    
     return 'Otros';
 }
 /**
@@ -111,7 +129,7 @@ export const calculatePromoFrameDiscount = (
 
     // Flatten frames by quantity to find the second cheapest frame
     const flattenedFrames = items.flatMap(i => {
-        if (getCategoryKey(i.product.type) !== 'Armazón') return [];
+        if (!isFrame(i.product)) return [];
         return Array.from({ length: i.quantity || 1 }).map((_, idx) => ({
             ...i,
             virtualIdx: idx
@@ -134,12 +152,14 @@ export const calculatePromoFrameDiscount = (
     let atelierAvgPrice = 0;
     if (availableProducts && availableProducts.length > 0) {
         const atelierFrames = availableProducts.filter(
-            p => getCategoryKey(p.type) === 'Armazón' && isAtelierFrame(p) && safePrice(p.price) > 0
+            p => getCategoryKey(p.type, p.category) === 'Armazón' && isAtelierFrame(p) && safePrice(p.price) > 0
         );
         if (atelierFrames.length > 0) {
             atelierAvgPrice = Math.round(
                 atelierFrames.reduce((s, f) => s + safePrice(f.price), 0) / atelierFrames.length
             );
+        } else {
+            atelierAvgPrice = 0; // Guard against division by zero
         }
     }
 
