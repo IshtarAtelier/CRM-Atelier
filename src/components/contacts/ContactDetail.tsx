@@ -192,6 +192,8 @@ export default function ContactDetail({
 
     // Prescription modal for sale conversion
     const [rxModalOrderId, setRxModalOrderId] = useState<string | null>(null);
+    const [rxModalStep, setRxModalStep] = useState<'form' | 'review'>('form');
+    const [savedRxId, setSavedRxId] = useState<string | null>(null);
     const [rxForm, setRxForm] = useState({
         sphereOD: '', cylinderOD: '', axisOD: '',
         sphereOI: '', cylinderOI: '', axisOI: '',
@@ -207,6 +209,8 @@ export default function ContactDetail({
     const resetRxForm = () => {
         setRxForm({ sphereOD: '', cylinderOD: '', axisOD: '', sphereOI: '', cylinderOI: '', axisOI: '', additionOD: '', additionOI: '', distanceOD: '', distanceOI: '', heightOD: '', heightOI: '', notes: '', imageUrl: '' });
         setRxError(null);
+        setRxModalStep('form');
+        setSavedRxId(null);
     };
 
     const applyPrescriptionToForm = (rx: any) => {
@@ -251,12 +255,16 @@ export default function ContactDetail({
         setRxModalOrderId(orderId);
     };
 
-    const handleRxSubmitAndConvert = async (saveOnly: boolean = false) => {
+    // Step 1: Save the prescription and go to review
+    const handleRxSaveAndReview = async () => {
         if (!rxModalOrderId || !contact) return;
         
-        // Validate minimum fields only if converting to sale
-        if (!saveOnly && !rxForm.sphereOD && !rxForm.sphereOI) {
+        if (!rxForm.sphereOD && !rxForm.sphereOI) {
             setRxError('Completá al menos el esférico de un ojo');
+            return;
+        }
+        if (!rxForm.imageUrl) {
+            setRxError('La foto de la receta es obligatoria');
             return;
         }
 
@@ -294,7 +302,6 @@ export default function ContactDetail({
             let rxId = duplicate?.id;
 
             if (!rxId) {
-                // Create new prescription
                 const rxRes = await fetch(`/api/contacts/${contact.id}/prescriptions`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -308,45 +315,61 @@ export default function ContactDetail({
                 rxId = newRx.id;
             }
 
-            // 3. Link to Order (always, so we don't lose the selection)
+            // 3. Link to Order
             if (rxId) {
                 await fetch(`/api/orders/${rxModalOrderId}`, {
                     method: 'PATCH',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                        prescriptionId: rxId 
-                    }),
+                    body: JSON.stringify({ prescriptionId: rxId }),
                 });
             }
 
-            if (!saveOnly) {
-                // 4. Convert to SALE
-                const saleRes = await fetch(`/api/orders/${rxModalOrderId}`, {
-                    method: 'PATCH',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ orderType: 'SALE' }),
-                });
-                if (!saleRes.ok) {
-                    const errData = await saleRes.json();
-                    throw new Error(errData.error || 'Error al convertir en venta');
-                }
-                setRxModalOrderId(null);
-                resetRxForm();
-                setConvertSuccess(true);
-                setActiveSection('sales');
-                setTimeout(() => setConvertSuccess(false), 5000);
-            } else {
-                // Just notify success
-                setRxError('✓ Cambios guardados correctamente');
-                setTimeout(() => setRxError(null), 3000);
-            }
+            setSavedRxId(rxId || null);
+            setRxModalStep('review');
+            fetchContact();
+        } catch (e: any) {
+            setRxError(e.message || 'Error de conexión');
+        } finally {
+            setRxSaving(false);
+        }
+    };
 
+    // Step 2: Confirm and convert to sale (send to factory)
+    const handleRxConfirmAndConvert = async () => {
+        if (!rxModalOrderId || !contact) return;
+
+        setRxSaving(true);
+        setRxError(null);
+        try {
+            const saleRes = await fetch(`/api/orders/${rxModalOrderId}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ orderType: 'SALE' }),
+            });
+            if (!saleRes.ok) {
+                const errData = await saleRes.json();
+                throw new Error(errData.error || 'Error al convertir en venta');
+            }
+            setRxModalOrderId(null);
+            resetRxForm();
+            setConvertSuccess(true);
+            setActiveSection('sales');
+            setTimeout(() => setConvertSuccess(false), 5000);
             fetchContact();
         } catch (e: any) {
             setRxError(e.message || 'Error de conexión');
             setConvertError(e.message || 'Error de conexión');
         } finally {
             setRxSaving(false);
+        }
+    };
+
+    // Legacy compat — kept for any other callers
+    const handleRxSubmitAndConvert = async (saveOnly: boolean = false) => {
+        if (saveOnly) {
+            await handleRxSaveAndReview();
+        } else {
+            await handleRxSaveAndReview();
         }
     };
 
