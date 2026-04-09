@@ -1,0 +1,4 @@
+-- AlterTable
+ALTER TABLE "OrderItem" ADD COLUMN "pdVal" DOUBLE PRECISION;
+ALTER TABLE "OrderItem" ADD COLUMN "heightVal" DOUBLE PRECISION;
+ALTER TABLE "OrderItem" ADD COLUMN "prismVal" TEXT;
