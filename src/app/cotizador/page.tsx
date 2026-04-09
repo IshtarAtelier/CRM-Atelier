@@ -29,7 +29,8 @@ import {
     isMiPrimerVarilux, 
     getCategoryKey,
     isMultifocal2x1,
-    safePrice
+    safePrice,
+    calculateQuoteTotals
 } from '@/lib/promo-utils';
 import { 
     Glasses, 
@@ -255,9 +256,11 @@ export default function CotizadorPage() {
         }
     };
 
-    const totalList = quoteItems.reduce((acc, it) => acc + (safePrice(it.customPrice) * it.quantity), 0);
-    const totalWithMarkup = totalList * (1 + markup / 100);
-    const totalCash = totalWithMarkup * (1 - discountCash / 100);
+    // Calculate totals including 2x1 promo frame discount
+    const quoteTotals = calculateQuoteTotals(quoteItems, markup, discountCash, products);
+    const totalWithMarkup = quoteTotals.subtotalWithMarkup;
+    const totalCash = quoteTotals.totalCash;
+    const totalList = quoteTotals.subtotal;
     const itemCount = quoteItems.reduce((acc, it) => acc + it.quantity, 0);
     // Use centralized isCrystal from promo-utils (handles legacy types like MULTIFOCAL, LENS, etc.)
     const hasCrystals = quoteItems.some(i => isCrystal(i.product));

@@ -13,7 +13,7 @@ import {
     MessageCircle, Glasses, Layers, Check, Lock, Shield,
     TrendingUp, ArrowRightLeft
 } from 'lucide-react';
-import { safePrice } from '@/lib/promo-utils';
+import { safePrice, calculateQuoteTotals } from '@/lib/promo-utils';
 import { Contact, Interaction, Prescription, Order } from '@/types/contacts';
 import FileDropZone from '@/components/FileDropZone';
 import { format } from 'date-fns';
@@ -461,10 +461,9 @@ export default function ContactDetail({
             const url = editingQuoteId ? `/api/orders/${editingQuoteId}` : '/api/orders';
             const method = editingQuoteId ? 'PATCH' : 'POST';
 
-            const subtotal = quoteItems.reduce((s, i) => s + (safePrice(i.customPrice) * (i.quantity || 1)), 0);
-            const markupAmount = subtotal * (quoteMarkup / 100);
-            const subtotalWithMarkup = subtotal + markupAmount;
-            const total = subtotalWithMarkup * (1 - quoteDiscountCash / 100);
+            const { subtotalWithMarkup, totalCash } = calculateQuoteTotals(
+                quoteItems, quoteMarkup, quoteDiscountCash, availableProducts
+            );
 
             await fetch(url, {
                 method,
@@ -477,7 +476,7 @@ export default function ContactDetail({
                     discountTransfer: quoteDiscountTransfer,
                     discountCard: quoteDiscountCard,
                     subtotalWithMarkup,
-                    total,
+                    total: totalCash,
                     frameSource: hasCrystals ? quoteFrameSource : null,
                     userFrameBrand: quoteFrameSource === 'USUARIO' ? quoteUserFrame.brand : null,
                     userFrameModel: quoteFrameSource === 'USUARIO' ? quoteUserFrame.model : null,
@@ -2165,167 +2164,276 @@ export default function ContactDetail({
                                 </div>
                             )}
 
-                            {/* Modal de Receta para Conversión a Venta */}
+                            {/* Modal de Receta para Conversión a Venta — Flujo 2 pasos */}
                             {rxModalOrderId && (
                                 <div className="fixed inset-0 bg-stone-900/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-in fade-in duration-300">
                                     <div className="bg-white dark:bg-stone-800 w-full max-w-xl rounded-[2.5rem] p-8 shadow-huge animate-in zoom-in-95 max-h-[90vh] overflow-y-auto">
-                                        <h3 className="text-xl font-black text-stone-800 dark:text-white mb-1 tracking-tighter flex items-center gap-2">
-                                            📋 Cargar Receta
-                                        </h3>
-                                        <p className="text-[10px] font-bold text-stone-400 mb-6">Completá los datos de la receta antes de convertir el presupuesto en venta.</p>
 
-                                        {contact?.prescriptions && contact.prescriptions.length > 1 && (
-                                            <div className="mb-6 p-4 bg-emerald-50 dark:bg-emerald-900/10 rounded-2xl border border-emerald-100 dark:border-emerald-800/50">
-                                                <div className="flex items-center gap-2 mb-2">
-                                                    <History className="w-3.5 h-3.5 text-emerald-600" />
-                                                    <span className="text-[9px] font-black text-emerald-700 uppercase tracking-widest">Recetas anteriores detectadas</span>
-                                                </div>
-                                                <div className="flex flex-wrap gap-2">
-                                                    {contact.prescriptions.map((rx: any) => (
-                                                        <button 
-                                                            key={rx.id}
-                                                            onClick={() => applyPrescriptionToForm(rx)}
-                                                            className="px-3 py-2 bg-white dark:bg-stone-900 hover:bg-emerald-500 hover:text-white border border-emerald-200 dark:border-stone-700 rounded-xl text-[10px] font-bold transition-all shadow-sm"
-                                                        >
-                                                            {new Date(rx.date).toLocaleDateString('es-AR')} - {rx.sphereOD || '0'}/{rx.sphereOI || '0'}
-                                                        </button>
-                                                    ))}
-                                                </div>
+                                        {/* ══════════ STEP INDICATOR ══════════ */}
+                                        <div className="flex items-center gap-2 mb-6">
+                                            <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest transition-all ${rxModalStep === 'form' ? 'bg-emerald-500 text-white' : 'bg-stone-100 dark:bg-stone-700 text-stone-400'}`}>
+                                                <span className="w-4 h-4 rounded-full border-2 border-current flex items-center justify-center text-[8px]">1</span> Cargar Receta
                                             </div>
-                                        )}
-
-                                        <div className="space-y-4">
-                                            {/* OD Row */}
-                                            <div>
-                                                <p className="text-[9px] font-black text-emerald-600 uppercase tracking-widest mb-2">👁️ Ojo Derecho (OD)</p>
-                                                <div className="grid grid-cols-4 gap-2">
-                                                    <div>
-                                                        <label className="text-[8px] font-black text-stone-400 uppercase block mb-0.5">Esférico</label>
-                                                        <input type="number" step="0.25" value={rxForm.sphereOD} onChange={e => setRxForm(p => ({...p, sphereOD: e.target.value}))} className="w-full bg-stone-50 dark:bg-stone-900 border border-stone-200 dark:border-stone-700 p-2.5 rounded-xl text-sm font-bold text-center outline-none focus:ring-2 focus:ring-emerald-300" placeholder="0.00" />
-                                                    </div>
-                                                    <div>
-                                                        <label className="text-[8px] font-black text-stone-400 uppercase block mb-0.5">Cilíndrico</label>
-                                                        <input type="number" step="0.25" value={rxForm.cylinderOD} onChange={e => setRxForm(p => ({...p, cylinderOD: e.target.value}))} className="w-full bg-stone-50 dark:bg-stone-900 border border-stone-200 dark:border-stone-700 p-2.5 rounded-xl text-sm font-bold text-center outline-none focus:ring-2 focus:ring-emerald-300" placeholder="0.00" />
-                                                    </div>
-                                                    <div>
-                                                        <label className="text-[8px] font-black text-stone-400 uppercase block mb-0.5">Eje</label>
-                                                        <input type="number" step="1" min="0" max="180" value={rxForm.axisOD} onChange={e => setRxForm(p => ({...p, axisOD: e.target.value}))} className="w-full bg-stone-50 dark:bg-stone-900 border border-stone-200 dark:border-stone-700 p-2.5 rounded-xl text-sm font-bold text-center outline-none focus:ring-2 focus:ring-emerald-300" placeholder="0°" />
-                                                    </div>
-                                                    <div>
-                                                        <label className="text-[8px] font-black text-stone-400 uppercase block mb-0.5">Adición</label>
-                                                        <input type="number" step="0.25" value={rxForm.additionOD} onChange={e => setRxForm(p => ({...p, additionOD: e.target.value}))} className="w-full bg-stone-50 dark:bg-stone-900 border border-stone-200 dark:border-stone-700 p-2.5 rounded-xl text-sm font-bold text-center outline-none focus:ring-2 focus:ring-emerald-300" placeholder="0.00" />
-                                                    </div>
-                                                </div>
+                                            <div className="flex-1 h-px bg-stone-200 dark:bg-stone-600" />
+                                            <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest transition-all ${rxModalStep === 'review' ? 'bg-emerald-500 text-white' : 'bg-stone-100 dark:bg-stone-700 text-stone-400'}`}>
+                                                <span className="w-4 h-4 rounded-full border-2 border-current flex items-center justify-center text-[8px]">2</span> Repaso Final
                                             </div>
+                                        </div>
 
-                                            {/* OI Row */}
-                                            <div>
-                                                <p className="text-[9px] font-black text-blue-600 uppercase tracking-widest mb-2">👁️ Ojo Izquierdo (OI)</p>
-                                                <div className="grid grid-cols-4 gap-2">
-                                                    <div>
-                                                        <label className="text-[8px] font-black text-stone-400 uppercase block mb-0.5">Esférico</label>
-                                                        <input type="number" step="0.25" value={rxForm.sphereOI} onChange={e => setRxForm(p => ({...p, sphereOI: e.target.value}))} className="w-full bg-stone-50 dark:bg-stone-900 border border-stone-200 dark:border-stone-700 p-2.5 rounded-xl text-sm font-bold text-center outline-none focus:ring-2 focus:ring-blue-300" placeholder="0.00" />
-                                                    </div>
-                                                    <div>
-                                                        <label className="text-[8px] font-black text-stone-400 uppercase block mb-0.5">Cilíndrico</label>
-                                                        <input type="number" step="0.25" value={rxForm.cylinderOI} onChange={e => setRxForm(p => ({...p, cylinderOI: e.target.value}))} className="w-full bg-stone-50 dark:bg-stone-900 border border-stone-200 dark:border-stone-700 p-2.5 rounded-xl text-sm font-bold text-center outline-none focus:ring-2 focus:ring-blue-300" placeholder="0.00" />
-                                                    </div>
-                                                    <div>
-                                                        <label className="text-[8px] font-black text-stone-400 uppercase block mb-0.5">Eje</label>
-                                                        <input type="number" step="1" min="0" max="180" value={rxForm.axisOI} onChange={e => setRxForm(p => ({...p, axisOI: e.target.value}))} className="w-full bg-stone-50 dark:bg-stone-900 border border-stone-200 dark:border-stone-700 p-2.5 rounded-xl text-sm font-bold text-center outline-none focus:ring-2 focus:ring-blue-300" placeholder="0°" />
-                                                    </div>
-                                                    <div>
-                                                        <label className="text-[8px] font-black text-stone-400 uppercase block mb-0.5">Adición</label>
-                                                        <input type="number" step="0.25" value={rxForm.additionOI} onChange={e => setRxForm(p => ({...p, additionOI: e.target.value}))} className="w-full bg-stone-50 dark:bg-stone-900 border border-stone-200 dark:border-stone-700 p-2.5 rounded-xl text-sm font-bold text-center outline-none focus:ring-2 focus:ring-blue-300" placeholder="0.00" />
-                                                    </div>
-                                                </div>
-                                            </div>
+                                        {/* ══════════ STEP 1: FORM ══════════ */}
+                                        {rxModalStep === 'form' && (
+                                            <>
+                                                <h3 className="text-xl font-black text-stone-800 dark:text-white mb-1 tracking-tighter flex items-center gap-2">
+                                                    📋 Cargar Receta
+                                                </h3>
+                                                <p className="text-[10px] font-bold text-stone-400 mb-6">Completá los datos de la receta. Luego podrás repasar antes de enviar a fábrica.</p>
 
-                                            {/* DNP + Altura */}
-                                            <div className="grid grid-cols-2 gap-4">
-                                                <div>
-                                                    <p className="text-[9px] font-black text-violet-600 uppercase tracking-widest mb-2">📏 DNP (Dist. Pupilar)</p>
-                                                    <div className="grid grid-cols-2 gap-2">
-                                                        <div>
-                                                            <label className="text-[8px] font-black text-stone-400 uppercase block mb-0.5">OD</label>
-                                                            <input type="number" step="0.5" value={rxForm.distanceOD} onChange={e => setRxForm(p => ({...p, distanceOD: e.target.value}))} className="w-full bg-stone-50 dark:bg-stone-900 border border-stone-200 dark:border-stone-700 p-2.5 rounded-xl text-sm font-bold text-center outline-none focus:ring-2 focus:ring-violet-300" placeholder="mm" />
+                                                {contact?.prescriptions && contact.prescriptions.length > 1 && (
+                                                    <div className="mb-6 p-4 bg-emerald-50 dark:bg-emerald-900/10 rounded-2xl border border-emerald-100 dark:border-emerald-800/50">
+                                                        <div className="flex items-center gap-2 mb-2">
+                                                            <History className="w-3.5 h-3.5 text-emerald-600" />
+                                                            <span className="text-[9px] font-black text-emerald-700 uppercase tracking-widest">Recetas anteriores detectadas</span>
                                                         </div>
-                                                        <div>
-                                                            <label className="text-[8px] font-black text-stone-400 uppercase block mb-0.5">OI</label>
-                                                            <input type="number" step="0.5" value={rxForm.distanceOI} onChange={e => setRxForm(p => ({...p, distanceOI: e.target.value}))} className="w-full bg-stone-50 dark:bg-stone-900 border border-stone-200 dark:border-stone-700 p-2.5 rounded-xl text-sm font-bold text-center outline-none focus:ring-2 focus:ring-violet-300" placeholder="mm" />
+                                                        <div className="flex flex-wrap gap-2">
+                                                            {contact.prescriptions.map((rx: any) => (
+                                                                <button 
+                                                                    key={rx.id}
+                                                                    onClick={() => applyPrescriptionToForm(rx)}
+                                                                    className="px-3 py-2 bg-white dark:bg-stone-900 hover:bg-emerald-500 hover:text-white border border-emerald-200 dark:border-stone-700 rounded-xl text-[10px] font-bold transition-all shadow-sm"
+                                                                >
+                                                                    {new Date(rx.date).toLocaleDateString('es-AR')} - {rx.sphereOD || '0'}/{rx.sphereOI || '0'}
+                                                                </button>
+                                                            ))}
                                                         </div>
                                                     </div>
-                                                </div>
-                                                <div>
-                                                    <p className="text-[9px] font-black text-amber-600 uppercase tracking-widest mb-2">📐 Altura</p>
-                                                    <div className="grid grid-cols-2 gap-2">
-                                                        <div>
-                                                            <label className="text-[8px] font-black text-stone-400 uppercase block mb-0.5">OD</label>
-                                                            <input type="number" step="0.5" value={rxForm.heightOD} onChange={e => setRxForm(p => ({...p, heightOD: e.target.value}))} className="w-full bg-stone-50 dark:bg-stone-900 border border-stone-200 dark:border-stone-700 p-2.5 rounded-xl text-sm font-bold text-center outline-none focus:ring-2 focus:ring-amber-300" placeholder="mm" />
-                                                        </div>
-                                                        <div>
-                                                            <label className="text-[8px] font-black text-stone-400 uppercase block mb-0.5">OI</label>
-                                                            <input type="number" step="0.5" value={rxForm.heightOI} onChange={e => setRxForm(p => ({...p, heightOI: e.target.value}))} className="w-full bg-stone-50 dark:bg-stone-900 border border-stone-200 dark:border-stone-700 p-2.5 rounded-xl text-sm font-bold text-center outline-none focus:ring-2 focus:ring-amber-300" placeholder="mm" />
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                            {/* Notas */}
-                                            <div>
-                                                <label className="text-[9px] font-black text-stone-400 uppercase tracking-widest block mb-1">Notas de la receta</label>
-                                                <textarea value={rxForm.notes} onChange={e => setRxForm(p => ({...p, notes: e.target.value}))} className="w-full bg-stone-50 dark:bg-stone-900 border border-stone-200 dark:border-stone-700 p-3 rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-stone-300" placeholder="Observaciones, indicaciones médicas..." rows={2} />
-                                            </div>
-
-                                            {/* Foto de la receta */}
-                                            <div>
-                                                <label className="text-[9px] font-black text-red-500 uppercase tracking-widest block mb-2">📷 Foto de la receta (OBLIGATORIA)</label>
-                                                {rxForm.imageUrl ? (
-                                                    <div className="relative group">
-                                                        <img src={rxForm.imageUrl} alt="Receta" className="w-full max-h-48 object-contain rounded-xl border-2 border-emerald-500 shadow-md transition-all group-hover:brightness-90" />
-                                                        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                                                            <span className="bg-emerald-500 text-white px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg">Imagen Cargada ✓</span>
-                                                        </div>
-                                                        <button onClick={() => setRxForm(p => ({...p, imageUrl: ''}))} className="absolute top-2 right-2 p-2 bg-red-500 text-white rounded-full hover:scale-110 transition-all shadow-lg pointer-events-auto" title="Eliminar imagen">
-                                                            <X className="w-4 h-4" />
-                                                        </button>
-                                                    </div>
-                                                ) : (
-                                                    <label className="flex items-center justify-center gap-2 p-4 border-2 border-dashed border-stone-200 dark:border-stone-700 rounded-xl cursor-pointer hover:border-emerald-300 transition-colors">
-                                                        <input type="file" accept="image/*" onChange={handleRxImageUpload} className="hidden" />
-                                                        {rxUploading ? (
-                                                            <span className="text-xs font-bold text-stone-400">Subiendo...</span>
-                                                        ) : (
-                                                            <span className="text-xs font-bold text-stone-400">Tocar para subir foto de la receta</span>
-                                                        )}
-                                                    </label>
                                                 )}
-                                            </div>
-                                        </div>
 
-                                        {rxError && (
-                                            <p className="mt-4 text-[10px] font-black text-red-500 bg-red-50 dark:bg-red-900/20 px-3 py-2 rounded-xl text-center">⚠️ {rxError}</p>
+                                                <div className="space-y-4">
+                                                    {/* OD Row */}
+                                                    <div>
+                                                        <p className="text-[9px] font-black text-emerald-600 uppercase tracking-widest mb-2">👁️ Ojo Derecho (OD)</p>
+                                                        <div className="grid grid-cols-4 gap-2">
+                                                            <div>
+                                                                <label className="text-[8px] font-black text-stone-400 uppercase block mb-0.5">Esférico</label>
+                                                                <input type="number" step="0.25" value={rxForm.sphereOD} onChange={e => setRxForm(p => ({...p, sphereOD: e.target.value}))} className="w-full bg-stone-50 dark:bg-stone-900 border border-stone-200 dark:border-stone-700 p-2.5 rounded-xl text-sm font-bold text-center outline-none focus:ring-2 focus:ring-emerald-300" placeholder="0.00" />
+                                                            </div>
+                                                            <div>
+                                                                <label className="text-[8px] font-black text-stone-400 uppercase block mb-0.5">Cilíndrico</label>
+                                                                <input type="number" step="0.25" value={rxForm.cylinderOD} onChange={e => setRxForm(p => ({...p, cylinderOD: e.target.value}))} className="w-full bg-stone-50 dark:bg-stone-900 border border-stone-200 dark:border-stone-700 p-2.5 rounded-xl text-sm font-bold text-center outline-none focus:ring-2 focus:ring-emerald-300" placeholder="0.00" />
+                                                            </div>
+                                                            <div>
+                                                                <label className="text-[8px] font-black text-stone-400 uppercase block mb-0.5">Eje</label>
+                                                                <input type="number" step="1" min="0" max="180" value={rxForm.axisOD} onChange={e => setRxForm(p => ({...p, axisOD: e.target.value}))} className="w-full bg-stone-50 dark:bg-stone-900 border border-stone-200 dark:border-stone-700 p-2.5 rounded-xl text-sm font-bold text-center outline-none focus:ring-2 focus:ring-emerald-300" placeholder="0°" />
+                                                            </div>
+                                                            <div>
+                                                                <label className="text-[8px] font-black text-stone-400 uppercase block mb-0.5">Adición</label>
+                                                                <input type="number" step="0.25" value={rxForm.additionOD} onChange={e => setRxForm(p => ({...p, additionOD: e.target.value}))} className="w-full bg-stone-50 dark:bg-stone-900 border border-stone-200 dark:border-stone-700 p-2.5 rounded-xl text-sm font-bold text-center outline-none focus:ring-2 focus:ring-emerald-300" placeholder="0.00" />
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* OI Row */}
+                                                    <div>
+                                                        <p className="text-[9px] font-black text-blue-600 uppercase tracking-widest mb-2">👁️ Ojo Izquierdo (OI)</p>
+                                                        <div className="grid grid-cols-4 gap-2">
+                                                            <div>
+                                                                <label className="text-[8px] font-black text-stone-400 uppercase block mb-0.5">Esférico</label>
+                                                                <input type="number" step="0.25" value={rxForm.sphereOI} onChange={e => setRxForm(p => ({...p, sphereOI: e.target.value}))} className="w-full bg-stone-50 dark:bg-stone-900 border border-stone-200 dark:border-stone-700 p-2.5 rounded-xl text-sm font-bold text-center outline-none focus:ring-2 focus:ring-blue-300" placeholder="0.00" />
+                                                            </div>
+                                                            <div>
+                                                                <label className="text-[8px] font-black text-stone-400 uppercase block mb-0.5">Cilíndrico</label>
+                                                                <input type="number" step="0.25" value={rxForm.cylinderOI} onChange={e => setRxForm(p => ({...p, cylinderOI: e.target.value}))} className="w-full bg-stone-50 dark:bg-stone-900 border border-stone-200 dark:border-stone-700 p-2.5 rounded-xl text-sm font-bold text-center outline-none focus:ring-2 focus:ring-blue-300" placeholder="0.00" />
+                                                            </div>
+                                                            <div>
+                                                                <label className="text-[8px] font-black text-stone-400 uppercase block mb-0.5">Eje</label>
+                                                                <input type="number" step="1" min="0" max="180" value={rxForm.axisOI} onChange={e => setRxForm(p => ({...p, axisOI: e.target.value}))} className="w-full bg-stone-50 dark:bg-stone-900 border border-stone-200 dark:border-stone-700 p-2.5 rounded-xl text-sm font-bold text-center outline-none focus:ring-2 focus:ring-blue-300" placeholder="0°" />
+                                                            </div>
+                                                            <div>
+                                                                <label className="text-[8px] font-black text-stone-400 uppercase block mb-0.5">Adición</label>
+                                                                <input type="number" step="0.25" value={rxForm.additionOI} onChange={e => setRxForm(p => ({...p, additionOI: e.target.value}))} className="w-full bg-stone-50 dark:bg-stone-900 border border-stone-200 dark:border-stone-700 p-2.5 rounded-xl text-sm font-bold text-center outline-none focus:ring-2 focus:ring-blue-300" placeholder="0.00" />
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* DNP + Altura */}
+                                                    <div className="grid grid-cols-2 gap-4">
+                                                        <div>
+                                                            <p className="text-[9px] font-black text-violet-600 uppercase tracking-widest mb-2">📏 DNP (Dist. Pupilar)</p>
+                                                            <div className="grid grid-cols-2 gap-2">
+                                                                <div>
+                                                                    <label className="text-[8px] font-black text-stone-400 uppercase block mb-0.5">OD</label>
+                                                                    <input type="number" step="0.5" value={rxForm.distanceOD} onChange={e => setRxForm(p => ({...p, distanceOD: e.target.value}))} className="w-full bg-stone-50 dark:bg-stone-900 border border-stone-200 dark:border-stone-700 p-2.5 rounded-xl text-sm font-bold text-center outline-none focus:ring-2 focus:ring-violet-300" placeholder="mm" />
+                                                                </div>
+                                                                <div>
+                                                                    <label className="text-[8px] font-black text-stone-400 uppercase block mb-0.5">OI</label>
+                                                                    <input type="number" step="0.5" value={rxForm.distanceOI} onChange={e => setRxForm(p => ({...p, distanceOI: e.target.value}))} className="w-full bg-stone-50 dark:bg-stone-900 border border-stone-200 dark:border-stone-700 p-2.5 rounded-xl text-sm font-bold text-center outline-none focus:ring-2 focus:ring-violet-300" placeholder="mm" />
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        <div>
+                                                            <p className="text-[9px] font-black text-amber-600 uppercase tracking-widest mb-2">📐 Altura</p>
+                                                            <div className="grid grid-cols-2 gap-2">
+                                                                <div>
+                                                                    <label className="text-[8px] font-black text-stone-400 uppercase block mb-0.5">OD</label>
+                                                                    <input type="number" step="0.5" value={rxForm.heightOD} onChange={e => setRxForm(p => ({...p, heightOD: e.target.value}))} className="w-full bg-stone-50 dark:bg-stone-900 border border-stone-200 dark:border-stone-700 p-2.5 rounded-xl text-sm font-bold text-center outline-none focus:ring-2 focus:ring-amber-300" placeholder="mm" />
+                                                                </div>
+                                                                <div>
+                                                                    <label className="text-[8px] font-black text-stone-400 uppercase block mb-0.5">OI</label>
+                                                                    <input type="number" step="0.5" value={rxForm.heightOI} onChange={e => setRxForm(p => ({...p, heightOI: e.target.value}))} className="w-full bg-stone-50 dark:bg-stone-900 border border-stone-200 dark:border-stone-700 p-2.5 rounded-xl text-sm font-bold text-center outline-none focus:ring-2 focus:ring-amber-300" placeholder="mm" />
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Notas */}
+                                                    <div>
+                                                        <label className="text-[9px] font-black text-stone-400 uppercase tracking-widest block mb-1">Notas de la receta</label>
+                                                        <textarea value={rxForm.notes} onChange={e => setRxForm(p => ({...p, notes: e.target.value}))} className="w-full bg-stone-50 dark:bg-stone-900 border border-stone-200 dark:border-stone-700 p-3 rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-stone-300" placeholder="Observaciones, indicaciones médicas..." rows={2} />
+                                                    </div>
+
+                                                    {/* Foto de la receta */}
+                                                    <div>
+                                                        <label className="text-[9px] font-black text-red-500 uppercase tracking-widest block mb-2">📷 Foto de la receta (OBLIGATORIA)</label>
+                                                        {rxForm.imageUrl ? (
+                                                            <div className="relative group">
+                                                                <img src={rxForm.imageUrl} alt="Receta" className="w-full max-h-48 object-contain rounded-xl border-2 border-emerald-500 shadow-md transition-all group-hover:brightness-90" />
+                                                                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                                                                    <span className="bg-emerald-500 text-white px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg">Imagen Cargada ✓</span>
+                                                                </div>
+                                                                <button onClick={() => setRxForm(p => ({...p, imageUrl: ''}))} className="absolute top-2 right-2 p-2 bg-red-500 text-white rounded-full hover:scale-110 transition-all shadow-lg pointer-events-auto" title="Eliminar imagen">
+                                                                    <X className="w-4 h-4" />
+                                                                </button>
+                                                            </div>
+                                                        ) : (
+                                                            <label className="flex items-center justify-center gap-2 p-4 border-2 border-dashed border-stone-200 dark:border-stone-700 rounded-xl cursor-pointer hover:border-emerald-300 transition-colors">
+                                                                <input type="file" accept="image/*" onChange={handleRxImageUpload} className="hidden" />
+                                                                {rxUploading ? (
+                                                                    <span className="text-xs font-bold text-stone-400">Subiendo...</span>
+                                                                ) : (
+                                                                    <span className="text-xs font-bold text-stone-400">Tocar para subir foto de la receta</span>
+                                                                )}
+                                                            </label>
+                                                        )}
+                                                    </div>
+                                                </div>
+
+                                                {rxError && (
+                                                    <p className="mt-4 text-[10px] font-black text-red-500 bg-red-50 dark:bg-red-900/20 px-3 py-2 rounded-xl text-center">⚠️ {rxError}</p>
+                                                )}
+
+                                                <div className="mt-6 flex gap-3">
+                                                    <button
+                                                        onClick={() => { setRxModalOrderId(null); resetRxForm(); }}
+                                                        className="px-6 py-4 bg-stone-100 dark:bg-stone-700 text-stone-500 dark:text-stone-300 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-stone-200 dark:hover:bg-stone-600 transition-all"
+                                                    >
+                                                        ← CANCELAR
+                                                    </button>
+                                                    <button
+                                                        onClick={handleRxSaveAndReview}
+                                                        disabled={rxSaving || (!rxForm.sphereOD && !rxForm.sphereOI) || !rxForm.imageUrl}
+                                                        className={`flex-1 py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${rxSaving || (!rxForm.sphereOD && !rxForm.sphereOI) || !rxForm.imageUrl ? 'bg-stone-200 text-stone-400 cursor-not-allowed' : 'bg-emerald-500 text-white hover:bg-emerald-600 shadow-lg hover:scale-[1.02] active:scale-95'}`}
+                                                    >
+                                                        {rxSaving ? (<><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span> GUARDANDO...</>) : (<><CheckCircle2 className="w-4 h-4" /> GUARDAR RECETA →</>)}
+                                                    </button>
+                                                </div>
+                                            </>
                                         )}
 
-                                                                                                                                                                   <div className="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                        {/* ══════════ STEP 2: REVIEW ══════════ */}
+                                        {rxModalStep === 'review' && (
+                                            <>
+                                                <h3 className="text-xl font-black text-stone-800 dark:text-white mb-1 tracking-tighter flex items-center gap-2">
+                                                    ✅ Repaso Final
+                                                </h3>
+                                                <p className="text-[10px] font-bold text-stone-400 mb-6">Revisá los datos antes de enviar a fábrica. Una vez confirmado, se convertirá en venta.</p>
 
+                                                {/* Receta guardada banner */}
+                                                <div className="mb-5 p-3 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-2xl flex items-center gap-2">
+                                                    <CheckCircle2 className="w-4 h-4 text-emerald-500 flex-shrink-0" />
+                                                    <span className="text-[10px] font-black text-emerald-700 uppercase tracking-widest">Receta guardada correctamente</span>
+                                                </div>
 
+                                                {/* Data Summary */}
+                                                <div className="space-y-3">
+                                                    {/* OD Summary */}
+                                                    <div className="flex items-center gap-3">
+                                                        <span className="px-3 py-1.5 bg-stone-900 text-white rounded-lg text-[9px] font-black uppercase tracking-widest italic w-[52px] text-center shrink-0">OD</span>
+                                                        <div className="flex-1 flex justify-around font-mono text-sm font-black italic bg-stone-900 text-white p-3.5 rounded-2xl">
+                                                            <div className="text-center"><span className="block text-[8px] opacity-40 not-italic mb-0.5">ESF</span>{rxForm.sphereOD ? (parseFloat(rxForm.sphereOD) > 0 ? '+' : '') + parseFloat(rxForm.sphereOD).toFixed(2) : '—'}</div>
+                                                            <div className="text-center"><span className="block text-[8px] opacity-40 not-italic mb-0.5">CIL</span>{rxForm.cylinderOD ? parseFloat(rxForm.cylinderOD).toFixed(2) : '—'}</div>
+                                                            <div className="text-center"><span className="block text-[8px] opacity-40 not-italic mb-0.5">EJE</span>{rxForm.axisOD ? rxForm.axisOD + '°' : '—'}</div>
+                                                            <div className="text-center"><span className="block text-[8px] opacity-40 not-italic mb-0.5">ADD</span>{rxForm.additionOD ? '+' + parseFloat(rxForm.additionOD).toFixed(2) : '—'}</div>
+                                                        </div>
+                                                    </div>
+                                                    {/* OI Summary */}
+                                                    <div className="flex items-center gap-3">
+                                                        <span className="px-3 py-1.5 bg-stone-900 text-white rounded-lg text-[9px] font-black uppercase tracking-widest italic w-[52px] text-center shrink-0">OI</span>
+                                                        <div className="flex-1 flex justify-around font-mono text-sm font-black italic bg-stone-900 text-white p-3.5 rounded-2xl">
+                                                            <div className="text-center"><span className="block text-[8px] opacity-40 not-italic mb-0.5">ESF</span>{rxForm.sphereOI ? (parseFloat(rxForm.sphereOI) > 0 ? '+' : '') + parseFloat(rxForm.sphereOI).toFixed(2) : '—'}</div>
+                                                            <div className="text-center"><span className="block text-[8px] opacity-40 not-italic mb-0.5">CIL</span>{rxForm.cylinderOI ? parseFloat(rxForm.cylinderOI).toFixed(2) : '—'}</div>
+                                                            <div className="text-center"><span className="block text-[8px] opacity-40 not-italic mb-0.5">EJE</span>{rxForm.axisOI ? rxForm.axisOI + '°' : '—'}</div>
+                                                            <div className="text-center"><span className="block text-[8px] opacity-40 not-italic mb-0.5">ADD</span>{rxForm.additionOI ? '+' + parseFloat(rxForm.additionOI).toFixed(2) : '—'}</div>
+                                                        </div>
+                                                    </div>
 
-                                            <button
-                                                onClick={() => { setRxModalOrderId(null); resetRxForm(); }}
-                                                                                                 className="py-4 bg-stone-100 dark:bg-stone-700 text-stone-500 dark:text-stone-300 rounded-2xl font-black text-xs uppercase tracking-widest"
+                                                    {/* DNP + Altura + Notes summary */}
+                                                    <div className="flex flex-wrap gap-3 mt-2">
+                                                        {(rxForm.distanceOD || rxForm.distanceOI) && (
+                                                            <div className="bg-stone-50 dark:bg-stone-900/50 p-3 rounded-2xl border border-stone-100 dark:border-stone-800 flex-1 min-w-[100px]">
+                                                                <span className="text-[8px] text-violet-500 font-black uppercase tracking-widest block mb-1.5">DNP</span>
+                                                                <div className="text-xs font-black text-stone-800 dark:text-stone-300 space-y-0.5">
+                                                                    <div>OD: {rxForm.distanceOD || '—'}</div>
+                                                                    <div>OI: {rxForm.distanceOI || '—'}</div>
+                                                                </div>
+                                                            </div>
+                                                        )}
+                                                        {(rxForm.heightOD || rxForm.heightOI) && (
+                                                            <div className="bg-stone-50 dark:bg-stone-900/50 p-3 rounded-2xl border border-stone-100 dark:border-stone-800 flex-1 min-w-[100px]">
+                                                                <span className="text-[8px] text-amber-500 font-black uppercase tracking-widest block mb-1.5">Altura</span>
+                                                                <div className="text-xs font-black text-stone-800 dark:text-stone-300 space-y-0.5">
+                                                                    <div>OD: {rxForm.heightOD || '—'}</div>
+                                                                    <div>OI: {rxForm.heightOI || '—'}</div>
+                                                                </div>
+                                                            </div>
+                                                        )}
+                                                        {rxForm.notes && (
+                                                            <div className="bg-stone-50 dark:bg-stone-900/50 p-3 rounded-2xl border border-stone-100 dark:border-stone-800 flex-1 min-w-[120px]">
+                                                                <span className="text-[8px] text-stone-400 font-black uppercase tracking-widest block mb-1.5">Observaciones</span>
+                                                                <p className="text-[10px] font-bold text-stone-500 italic leading-tight">"{rxForm.notes}"</p>
+                                                            </div>
+                                                        )}
+                                                    </div>
 
-                                            >
-                                                CANCELAR
-                                            </button>
-                                            <button
-                                                onClick={() => handleRxSubmitAndConvert(false)}
-                                                disabled={rxSaving || (!rxForm.sphereOD && !rxForm.sphereOI) || !rxForm.imageUrl}
-                                                className={`flex-1 py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${rxSaving || (!rxForm.sphereOD && !rxForm.sphereOI) || !rxForm.imageUrl ? 'bg-stone-200 text-stone-400 cursor-not-allowed' : 'bg-emerald-500 text-white hover:bg-emerald-600 shadow-lg'}`}
-                                            >
-                                                {rxSaving ? (<><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span> GUARDANDO...</>) : (<><CheckCircle2 className="w-4 h-4" /> GUARDAR Y CONVERTIR EN VENTA</>)}
-                                            </button>
-                                        </div>
+                                                    {/* Prescription image thumbnail */}
+                                                    {rxForm.imageUrl && (
+                                                        <div className="mt-2">
+                                                            <span className="text-[8px] text-stone-400 font-black uppercase tracking-widest block mb-1.5">Foto de la receta</span>
+                                                            <img src={rxForm.imageUrl} alt="Receta" className="w-full max-h-36 object-contain rounded-xl border-2 border-emerald-300 shadow-sm" />
+                                                        </div>
+                                                    )}
+                                                </div>
+
+                                                {rxError && (
+                                                    <p className="mt-4 text-[10px] font-black text-red-500 bg-red-50 dark:bg-red-900/20 px-3 py-2 rounded-xl text-center">⚠️ {rxError}</p>
+                                                )}
+
+                                                <div className="mt-6 flex gap-3">
+                                                    <button
+                                                        onClick={() => { setRxModalStep('form'); setRxError(null); }}
+                                                        className="px-6 py-4 bg-stone-100 dark:bg-stone-700 text-stone-500 dark:text-stone-300 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-stone-200 dark:hover:bg-stone-600 transition-all flex items-center gap-1.5"
+                                                    >
+                                                        ← VOLVER A EDITAR
+                                                    </button>
+                                                    <button
+                                                        onClick={handleRxConfirmAndConvert}
+                                                        disabled={rxSaving}
+                                                        className={`flex-1 py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${rxSaving ? 'bg-stone-200 text-stone-400 cursor-not-allowed' : 'bg-emerald-500 text-white hover:bg-emerald-600 shadow-lg shadow-emerald-500/20 hover:scale-[1.02] active:scale-95'}`}
+                                                    >
+                                                        {rxSaving ? (<><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span> PROCESANDO...</>) : (<><CheckCircle2 className="w-4 h-4" /> CONFIRMAR Y ENVIAR A FÁBRICA</>)}
+                                                    </button>
+                                                </div>
+                                            </>
+                                        )}
                                     </div>
                                 </div>
                             )}

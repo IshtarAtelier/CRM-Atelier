@@ -141,7 +141,7 @@ export async function PATCH(
         let finalDiscountCash = discountCash;
         let finalItems = items;
 
-        if (items || markup !== undefined || discountCash !== undefined || subtotalWithMarkup === undefined || total === undefined) {
+        if (items || markup !== undefined || discountCash !== undefined) {
             const currentOrder = await prisma.order.findUnique({
                 where: { id },
                 select: {

@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import CotizadorCart from './quotes/CotizadorCart';
 import QuoteSummary from './quotes/QuoteSummary';
+import { calculateQuoteTotals } from '@/lib/promo-utils';
 
 interface Product {
     id: string;
@@ -109,11 +110,10 @@ export default function CotizadorPopup({ clientName, clientId, onClose }: Cotiza
             const url = editingQuoteId ? `/api/orders/${editingQuoteId}` : '/api/orders';
             const method = editingQuoteId ? 'PATCH' : 'POST';
 
-            // Calculate totals — items use customPrice consistently
-            const subtotal = quoteItems.reduce((s, i) => s + i.customPrice * i.quantity, 0);
-            const markupAmount = subtotal * (markup / 100);
-            const subtotalWithMarkup = subtotal + markupAmount;
-            const total = subtotalWithMarkup * (1 - discountCash / 100);
+            // Calculate totals including 2x1 promo frame discount
+            const { subtotalWithMarkup, totalCash } = calculateQuoteTotals(
+                quoteItems, markup, discountCash, products
+            );
 
             const res = await fetch(url, {
                 method,
@@ -135,7 +135,7 @@ export default function CotizadorPopup({ clientName, clientId, onClose }: Cotiza
                     discountTransfer,
                     discountCard,
                     subtotalWithMarkup,
-                    total,
+                    total: totalCash,
                     frameSource: quoteItems.some(i => i.product.type === 'Cristal' || i.product.category === 'LENS') ? frameSource : null,
                     userFrameBrand: frameSource === 'USUARIO' ? userFrameData.brand : null,
                     userFrameModel: frameSource === 'USUARIO' ? userFrameData.model : null,
