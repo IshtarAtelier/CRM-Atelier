@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Plus, UserPlus, CheckCircle2, UserCheck, Users, Search, Loader2, AlertCircle, Heart, Clock } from "lucide-react";
 import ContactForm from '@/components/ContactForm';
-import CotizadorPopup from '@/components/CotizadorPopup';
 import { ContactCard } from '@/components/contacts/ContactCard';
 import ContactDetail from '@/components/contacts/ContactDetail';
 import FavoritesPanel from '@/components/contacts/FavoritesPanel';
@@ -18,9 +17,9 @@ export default function ContactosPage() {
     const [showForm, setShowForm] = useState(false);
     const [editingContactData, setEditingContactData] = useState<any | null>(null);
     const [selectedContactId, setSelectedContactId] = useState<string | null>(null);
+    const [autoStartQuote, setAutoStartQuote] = useState(false);
     const [showFavorites, setShowFavorites] = useState(false);
     const [selectedInterest, setSelectedInterest] = useState('ALL');
-    const [quoteContact, setQuoteContact] = useState<{ id: string; name: string } | null>(null);
     const [expiredRx, setExpiredRx] = useState<{ id: string; name: string; months: number }[]>([]);
     const [showRxAlert, setShowRxAlert] = useState(true);
 
@@ -232,7 +231,10 @@ export default function ContactosPage() {
                             onPriorityChange={updatePriority}
                             onToggleFavorite={toggleFavorite}
                             onClick={(id) => setSelectedContactId(id)}
-                            onQuote={(id, name) => setQuoteContact({ id, name })}
+                            onQuote={(id) => {
+                                setSelectedContactId(id);
+                                setAutoStartQuote(true);
+                            }}
                         />
                     ))
                 ) : (
@@ -266,7 +268,8 @@ export default function ContactosPage() {
                                     await addTask(newContact.id, data.followUpTask, dueDate48h);
                                 }
                                 setShowForm(false);
-                                setQuoteContact({ id: newContact.id, name: newContact.name || data.name });
+                                setSelectedContactId(newContact.id);
+                                setAutoStartQuote(true);
                             }
                         }
                     }}
@@ -276,7 +279,10 @@ export default function ContactosPage() {
             {selectedContactId && (
                 <ContactDetail
                     contactId={selectedContactId}
-                    onClose={() => setSelectedContactId(null)}
+                    onClose={() => {
+                        setSelectedContactId(null);
+                        setAutoStartQuote(false);
+                    }}
                     onEdit={(data) => {
                         setEditingContactData(data);
                         setShowForm(true);
@@ -293,6 +299,7 @@ export default function ContactosPage() {
                     onCheckCanClose={checkCanClose}
                     onStatusChange={updateStatus}
                     onDeleteOrder={deleteOrder}
+                    autoStartQuote={autoStartQuote}
                 />
             )}
 
@@ -307,13 +314,6 @@ export default function ContactosPage() {
                 />
             )}
 
-            {quoteContact && (
-                <CotizadorPopup
-                    clientName={quoteContact.name}
-                    clientId={quoteContact.id}
-                    onClose={() => setQuoteContact(null)}
-                />
-            )}
         </div>
     );
 }
