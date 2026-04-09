@@ -38,21 +38,24 @@ export const CashService = {
     /**
      * Registra un nuevo movimiento de caja (entrada o salida).
      */
-    async registerMovement(params: { type: 'IN' | 'OUT', amount: number, reason: string, userId: string, receiptUrl?: string }) {
-        const { type, amount, reason, userId, receiptUrl } = params;
+    async registerMovement(params: { type: 'IN' | 'OUT', amount: number, reason: string, userId: string, receiptUrl?: string, category?: string, laboratory?: string }) {
+        const { type, amount, reason, userId, receiptUrl, category, laboratory } = params;
 
         const movement = await (prisma as any).cashMovement.create({
-            data: { type, amount, reason, userId, receiptUrl },
+            data: { type, amount, reason, userId, receiptUrl, category: category || 'OTRO', laboratory },
             include: { user: true }
         });
 
         // Notificar por email si es una salida
         if (type === 'OUT') {
+            const labLine = laboratory ? `\nLaboratorio: ${laboratory}` : '';
+            const catLabel = category === 'PAGO_LABORATORIO' ? 'Pago Laboratorio' : category === 'GASTO_GENERAL' ? 'Gasto General' : 'Otro';
             await this.sendEmail(
                 '🚨 Salida de Efectivo Registrada',
                 `Se ha registrado una salida de efectivo:\n\n` +
                 `Monto: $${amount.toLocaleString('es-AR')}\n` +
-                `Motivo: ${reason}\n` +
+                `Categoría: ${catLabel}\n` +
+                `Motivo: ${reason}${labLine}\n` +
                 `Registrado por: ${movement.user.name}\n` +
                 `Fecha: ${movement.createdAt.toLocaleString('es-AR')}`
             );
@@ -61,7 +64,7 @@ export const CashService = {
             await prisma.notification.create({
                 data: {
                     type: 'CASH_OUTFLOW',
-                    message: `Salida de efectivo: $${amount.toLocaleString('es-AR')} por ${reason}`,
+                    message: `Salida de efectivo: $${amount.toLocaleString('es-AR')} - ${reason}${laboratory ? ` (${laboratory})` : ''}`,
                     requestedBy: movement.user.name,
                     status: 'COMPLETED'
                 }

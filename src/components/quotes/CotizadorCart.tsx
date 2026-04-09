@@ -128,12 +128,9 @@ export default function CotizadorCart({
     const frameResults = frameSearch ? availableProducts.filter(p => {
         if (!isFrame(p)) return false;
 
-        const q = frameSearch.toLowerCase();
-        return (
-            (p.brand?.toLowerCase().includes(q)) || 
-            (p.model?.toLowerCase().includes(q)) || 
-            (p.name?.toLowerCase().includes(q))
-        );
+        const words = frameSearch.toLowerCase().split(/\s+/).filter(Boolean);
+        const haystack = `${p.brand || ''} ${p.model || ''} ${p.name || ''}`.toLowerCase();
+        return words.every(w => haystack.includes(w));
     }).slice(0, 8) : [];
 
     const handleUpdateQuantity = (idx: number, delta: number) => {
@@ -152,14 +149,10 @@ export default function CotizadorCart({
 
     const [fullSearch, setFullSearch] = useState('');
     const fullSearchResults = fullSearch ? availableProducts.filter(p => {
-        const q = fullSearch.toLowerCase();
-        return (
-            (p.brand?.toLowerCase().includes(q)) || 
-            (p.model?.toLowerCase().includes(q)) || 
-            (p.name?.toLowerCase().includes(q)) ||
-            (p.type?.toLowerCase().includes(q))
-        );
-    }).slice(0, 5) : [];
+        const words = fullSearch.toLowerCase().split(/\s+/).filter(Boolean);
+        const haystack = `${p.brand || ''} ${p.model || ''} ${p.name || ''} ${p.type || ''}`.toLowerCase();
+        return words.every(w => haystack.includes(w));
+    }).slice(0, 8) : [];
 
     const handleAddItem = (product: any) => {
         if (isCrystal(product)) {

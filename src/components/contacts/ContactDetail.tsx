@@ -38,6 +38,7 @@ interface ContactDetailProps {
     onCheckCanClose: (id: string) => Promise<{ canClose: boolean; reason?: string; isLabWarning?: boolean }>;
     onStatusChange: (id: string, status: string, userRole?: string) => Promise<boolean>;
     onDeleteOrder: (orderId: string, reason: string, role?: string) => Promise<boolean>;
+    autoStartQuote?: boolean;
 }
 
 import Tesseract from 'tesseract.js';
@@ -57,7 +58,8 @@ export default function ContactDetail({
     onAddPayment,
     onCheckCanClose,
     onStatusChange,
-    onDeleteOrder
+    onDeleteOrder,
+    autoStartQuote
 }: ContactDetailProps) {
     const [contact, setContact] = useState<Contact | null>(null);
     const [loading, setLoading] = useState(true);
@@ -378,6 +380,18 @@ export default function ContactDetail({
         loadUser();
         fetchContact();
     }, [contactId]);
+
+    // Handle autoStartQuote from props
+    useEffect(() => {
+        if (autoStartQuote && contact) {
+            setActiveSection('budget');
+            setIsQuoting(true);
+            // Small delay to ensure the section is rendered before scrolling
+            setTimeout(() => {
+                cotizadorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }, 300);
+        }
+    }, [autoStartQuote, contact]);
 
     const handleEditQuote = (order: any) => {
         setQuoteItems((order.items || []).map((it: any, idx: number) => ({
@@ -2282,7 +2296,7 @@ export default function ContactDetail({
                                                 CANCELAR
                                             </button>
                                             <button
-                                                onClick={handleRxSubmitAndConvert}
+                                                onClick={() => handleRxSubmitAndConvert(false)}
                                                 disabled={rxSaving || (!rxForm.sphereOD && !rxForm.sphereOI) || !rxForm.imageUrl}
                                                 className={`flex-1 py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${rxSaving || (!rxForm.sphereOD && !rxForm.sphereOI) || !rxForm.imageUrl ? 'bg-stone-200 text-stone-400 cursor-not-allowed' : 'bg-emerald-500 text-white hover:bg-emerald-600 shadow-lg'}`}
                                             >

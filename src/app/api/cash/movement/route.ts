@@ -11,7 +11,7 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
         }
 
-        const { type, amount, reason, receiptUrl } = await request.json();
+        const { type, amount, reason, receiptUrl, category, laboratory } = await request.json();
 
         if (!type || !amount || !reason) {
             return NextResponse.json({ error: 'Faltan campos obligatorios (type, amount, reason)' }, { status: 400 });
@@ -23,6 +23,8 @@ export async function POST(request: Request) {
             reason,
             userId,
             receiptUrl,
+            category: category || 'OTRO',
+            laboratory: laboratory || undefined,
         });
 
         return NextResponse.json(movement);

@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Users, Glasses, Package, ClipboardList, LayoutDashboard, Cog, FileText, Contact, Calculator, ShoppingCart, MessageCircle, Wallet, Search, Menu, X, Receipt } from "lucide-react";
+import { Users, Glasses, Package, ClipboardList, LayoutDashboard, Cog, FileText, Contact, Calculator, ShoppingCart, MessageCircle, Wallet, Search, Menu, X, Receipt, Banknote } from "lucide-react";
 import { UserProfile } from "./UserProfile";
 import { NotificationBell } from "./NotificationBell";
 
@@ -36,12 +36,13 @@ export function Sidebar({ userName = "Usuario", userRole = "STAFF" }: SidebarPro
   const allLinks = [
     { href: "/", label: "Dashboard", icon: LayoutDashboard, adminOnly: false },
     { href: "/contactos", label: "Contactos y Clientes", icon: Contact, adminOnly: false },
-    { href: "/inventario", label: "Stock y Productos", icon: Glasses, adminOnly: false },
+    { href: "/inventario", label: "Stock y Productos", icon: Glasses, adminOnly: true },
     { href: "/cotizador", label: "Cotizador", icon: Calculator, adminOnly: false },
     { href: "/ventas", label: "Ventas / Laboratorio", icon: ShoppingCart, adminOnly: false },
     { href: "/facturacion", label: "Facturación", icon: Receipt, adminOnly: true },
     { href: "/whatsapp", label: "WhatsApp", icon: MessageCircle, adminOnly: false },
-    { href: "/administracion", label: "Caja / Pagos", icon: Wallet, adminOnly: true },
+    { href: "/caja", label: "Caja Efectivo", icon: Banknote, adminOnly: false },
+    { href: "/administracion", label: "Administración", icon: Wallet, adminOnly: true },
     { href: "/reportes", label: "Reportes", icon: FileText, adminOnly: true },
     { href: "/configuracion", label: "Configuración", icon: Cog, adminOnly: true },
   ];

@@ -30,6 +30,8 @@ interface CashMovement {
     type: 'IN' | 'OUT';
     amount: number;
     reason: string;
+    category?: string;
+    laboratory?: string | null;
     receiptUrl?: string | null;
     createdAt: string;
     user: { name: string };
@@ -576,13 +578,23 @@ export default function AdministracionPage() {
                                                     {m.type === 'IN' ? <ArrowUpRight size={20} /> : <ArrowDownRight size={20} />}
                                                 </div>
                                                 <div>
-                                                    <div className="flex items-center gap-3 mb-1">
+                                                    <div className="flex items-center gap-3 mb-1 flex-wrap">
                                                         <h4 className="text-sm font-black text-stone-800 dark:text-white">{m.reason}</h4>
                                                         <span className={`text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest ${
                                                             m.type === 'IN' ? 'bg-emerald-100 text-emerald-600' : 'bg-red-100 text-red-600'
                                                         }`}>
                                                             {m.type === 'IN' ? 'Entrada' : 'Salida'}
                                                         </span>
+                                                        {m.category && m.category !== 'OTRO' && (
+                                                            <span className="text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest bg-stone-100 dark:bg-stone-700 text-stone-500">
+                                                                {m.category === 'PAGO_LABORATORIO' ? 'Lab' : m.category === 'GASTO_GENERAL' ? 'Gasto' : m.category === 'APORTE_EFECTIVO' ? 'Aporte' : m.category}
+                                                            </span>
+                                                        )}
+                                                        {m.laboratory && (
+                                                            <span className="text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400">
+                                                                {m.laboratory}
+                                                            </span>
+                                                        )}
                                                     </div>
                                                     <div className="flex items-center gap-4 text-[10px] font-bold text-stone-400 uppercase tracking-widest">
                                                         <span>{m.createdAt ? format(new Date(m.createdAt), 'dd MMMM, HH:mm', { locale: es }) : '---'}</span>

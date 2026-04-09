@@ -55,13 +55,15 @@ model Client {
 }
 
 model CashMovement {
-  id        String   @id @default(cuid())
-  type      String   // IN (Entrada) or OUT (Salida)
-  amount    Float
-  reason    String
-  userId    String
-  receiptUrl String? // Nuevo: Imagen del comprobante
-  createdAt DateTime @default(now())
+  id         String   @id @default(cuid())
+  type       String   // IN (Entrada) or OUT (Salida)
+  amount     Float
+  reason     String
+  category   String   @default("OTRO") // GASTO_GENERAL, PAGO_LABORATORIO, APORTE_EFECTIVO, OTRO
+  laboratory String?  // Nombre del laboratorio (solo si category = PAGO_LABORATORIO)
+  userId     String
+  receiptUrl String?  // Imagen del comprobante
+  createdAt  DateTime @default(now())
 
   user User @relation(fields: [userId], references: [id])
 }
@@ -197,7 +199,7 @@ model Order {
   tags      Tag[]
   
   prescriptionId String?
-  prescription   Prescription? @relation(fields: [prescriptionId], references: [id])
+  prescription   Prescription? @relation(fields: [prescriptionId], references: [id], onDelete: SetNull)
   labStatus   String?   @default("NONE") // NONE, SENT, IN_PROGRESS, READY, DELIVERED
   labSentAt   DateTime?
   labNotes      String?
@@ -289,6 +291,9 @@ model OrderItem {
   cylinderVal Float?
   axisVal     Int?
   additionVal Float?
+  pdVal       Float?   // Snapshot de DNP al momento de la venta
+  heightVal   Float?   // Snapshot de Altura al momento de la venta
+  prismVal    String?  // Snapshot de Prisma + Base al momento de la venta
 
   order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
   product Product? @relation(fields: [productId], references: [id], onDelete: SetNull)

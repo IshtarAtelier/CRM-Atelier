@@ -209,7 +209,7 @@ export default function CotizadorPopup({ clientName, clientId, onClose }: Cotiza
                 </header>
 
                 {/* Main Content */}
-                <div className="flex-1 overflow-hidden flex relative">
+                <div className="flex-1 overflow-hidden flex relative min-h-0">
                     {isSuccess ? (
                         <div className="flex-1 flex flex-col items-center justify-center p-12 bg-emerald-50/30 dark:bg-emerald-950/20 animate-in fade-in zoom-in duration-500">
                             <div className="w-24 h-24 bg-emerald-500 text-white rounded-[2.5rem] flex items-center justify-center mb-8 shadow-huge shadow-emerald-500/20 animate-bounce">
@@ -246,7 +246,7 @@ export default function CotizadorPopup({ clientName, clientId, onClose }: Cotiza
                         </div>
                     ) : (
                         <>
-                            <div className={`flex-1 overflow-hidden transition-all duration-500 ${showHistory ? 'w-2/3' : 'w-full'}`}>
+                            <div className={`flex-1 overflow-y-auto min-h-0 p-4 sm:p-6 transition-all duration-500 ${showHistory ? 'w-2/3' : 'w-full'}`} style={{ scrollbarWidth: 'thin' }}>
                                 <CotizadorCart
                                     items={quoteItems}
                                     setItems={setQuoteItems}
