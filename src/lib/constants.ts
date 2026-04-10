@@ -24,6 +24,8 @@ export const PLATFORM_COMMISSIONS: Record<string, number> = {
     'CASH': 0,
     'DEBIT': 0,
     'TRANSFER': 0,
+    'TRANSFERENCIA_ISHTAR': 0,
+    'TRANSFERENCIA_LUCIA': 0,
     'CREDIT': 0,
 };
 

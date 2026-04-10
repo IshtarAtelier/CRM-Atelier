@@ -20,10 +20,13 @@ const PAYMENT_METHODS = [
     { id: 'EFECTIVO', label: 'Efectivo', icon: Banknote, color: 'emerald' },
     { id: 'TRANSFERENCIA_ISHTAR', label: 'Transf. Ishtar', icon: ArrowRightLeft, color: 'blue' },
     { id: 'TRANSFERENCIA_LUCIA', label: 'Transf. Lucía', icon: ArrowRightLeft, color: 'blue' },
-    { id: 'PAY_WAY_3_ISH', label: 'Pay Way 3', icon: CreditCard, color: 'orange' },
-    { id: 'PAY_WAY_6_ISH', label: 'Pay Way 6', icon: CreditCard, color: 'orange' },
-    { id: 'NARANJA_Z_ISH', label: 'Naranja Z', icon: CreditCard, color: 'orange' },
-    { id: 'GO_CUOTAS', label: 'Go Cuotas', icon: CreditCard, color: 'purple' },
+    { id: 'PAY_WAY_3_ISH', label: 'Pay Way 3 Ish', icon: CreditCard, color: 'orange' },
+    { id: 'PAY_WAY_3_YANI', label: 'Pay Way 3 Yani', icon: CreditCard, color: 'amber' },
+    { id: 'PAY_WAY_6_ISH', label: 'Pay Way 6 Ish', icon: CreditCard, color: 'orange' },
+    { id: 'PAY_WAY_6_YANI', label: 'Pay Way 6 Yani', icon: CreditCard, color: 'amber' },
+    { id: 'NARANJA_Z_ISH', label: 'Naranja Z Ish', icon: CreditCard, color: 'orange' },
+    { id: 'NARANJA_Z_YANI', label: 'Naranja Z Yani', icon: CreditCard, color: 'amber' },
+    { id: 'GO_CUOTAS_ISH', label: 'Go Cuotas Ish', icon: CreditCard, color: 'purple' },
 ];
 
 export default function AddPaymentModal({
@@ -177,28 +180,26 @@ export default function AddPaymentModal({
                     </div>
 
                     {/* Receipt Upload */}
-                    {(method !== 'EFECTIVO') && (
-                        <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                            <div className="flex items-center justify-between ml-1">
-                                <label className="text-[10px] font-black text-stone-500 uppercase tracking-widest">Comprobante (Opcional)</label>
-                                {receiptFile && (
-                                    <button 
-                                        onClick={() => { setReceiptFile(null); setReceiptPreview(null); }}
-                                        className="text-[9px] font-black text-red-400 uppercase tracking-widest hover:text-red-300"
-                                    >
-                                        Limpiar
-                                    </button>
-                                )}
-                            </div>
-                            <FileDropZone 
-                                onFile={handleFileSelect}
-                                preview={receiptPreview}
-                                label="Saca una foto o arrastra el comprobante"
-                                className="bg-white/[0.02] border-white/10"
-                                compact
-                            />
+                    <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                        <div className="flex items-center justify-between ml-1">
+                            <label className="text-[10px] font-black text-stone-500 uppercase tracking-widest">Comprobante (Opcional)</label>
+                            {receiptFile && (
+                                <button 
+                                    onClick={() => { setReceiptFile(null); setReceiptPreview(null); }}
+                                    className="text-[9px] font-black text-red-400 uppercase tracking-widest hover:text-red-300"
+                                >
+                                    Limpiar
+                                </button>
+                            )}
                         </div>
-                    )}
+                        <FileDropZone 
+                            onFile={handleFileSelect}
+                            preview={receiptPreview}
+                            label="Saca una foto o arrastra el comprobante"
+                            className="bg-white/[0.02] border-white/10"
+                            compact
+                        />
+                    </div>
 
                     {/* Notes */}
                     <div className="space-y-3">

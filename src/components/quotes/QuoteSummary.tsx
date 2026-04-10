@@ -138,8 +138,9 @@ export default function QuoteSummary({
         const labels: Record<string, string> = {
             'PAY_WAY_6_ISH': 'Pay Way 6 Ish', 'PAY_WAY_3_ISH': 'Pay Way 3 Ish', 'NARANJA_Z_ISH': 'Naranja Z Ish',
             'PAY_WAY_6_YANI': 'Pay Way 6 Yani', 'PAY_WAY_3_YANI': 'Pay Way 3 Yani', 'NARANJA_Z_YANI': 'Naranja Z Yani',
-            'GO_CUOTAS': 'Go Cuotas', 'EFECTIVO': 'Efectivo', 'TRANSFERENCIA_ISHTAR': 'Transf. Ishtar',
-            'TRANSFERENCIA_LUCIA': 'Transf. Lucía', 'TRANSFERENCIA_ALTERNATIVA': 'Transf. Alt.'
+            'GO_CUOTAS': 'Go Cuotas', 'GO_CUOTAS_ISH': 'Go Cuotas Ish', 'EFECTIVO': 'Efectivo',
+            'TRANSFERENCIA_ISHTAR': 'Transf. Ishtar', 'TRANSFERENCIA_LUCIA': 'Transf. Lucía',
+            'TRANSFERENCIA_ALTERNATIVA': 'Transf. Alt.'
         };
         return labels[method] || method;
     };
