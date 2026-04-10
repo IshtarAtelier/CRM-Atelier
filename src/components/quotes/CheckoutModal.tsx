@@ -52,7 +52,14 @@ export default function CheckoutModal({
     );
     const [selectedRxId, setSelectedRxId] = useState<string | null>(order.prescriptionId || (contact.prescriptions?.[0]?.id || null));
 
-    const canConvert = paid >= minRequired && isClientDataComplete && (!hasCrystals || selectedRxId);
+    // Effect to ensure we pick a prescription if it becomes available or if one was just added
+    useEffect(() => {
+        if (!selectedRxId && contact.prescriptions?.length > 0) {
+            setSelectedRxId(contact.prescriptions[0].id);
+        }
+    }, [contact.prescriptions, selectedRxId]);
+
+    const canConvert = Number(paid) >= Number(minRequired) && isClientDataComplete && (!hasCrystals || selectedRxId);
 
     const handleUpdateClient = async () => {
         setLoading(true);
