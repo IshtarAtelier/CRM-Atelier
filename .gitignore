@@ -51,6 +51,8 @@ next-env.d.ts
 .wwebjs_cache/
 
 # database
+dev.db
+dev.db-journal
 prisma/dev.db
 prisma/dev.db-journal
 /backups/

@@ -3,6 +3,21 @@ import { headers } from 'next/headers';
 import { ContactService } from '@/services/contact.service';
 import { prisma } from '@/lib/db';
 import { calculateQuoteTotals } from '@/lib/promo-utils';
+import { z } from 'zod';
+
+const OrderUpdateSchema = z.object({
+    orderType: z.enum(['QUOTE', 'SALE']).optional(),
+    total: z.number().optional(),
+    markup: z.number().min(0).optional(),
+    discountCash: z.number().optional(),
+    prescriptionId: z.string().nullable().optional(),
+    frameSource: z.enum(['OPTICA', 'USUARIO']).nullable().optional(),
+    items: z.array(z.object({
+        productId: z.string(),
+        quantity: z.number().min(1),
+        price: z.number(),
+    })).optional(),
+});
 
 export const dynamic = 'force-dynamic';
 
@@ -125,6 +140,16 @@ export async function PATCH(
     try {
         const { id } = await params;
         const body = await request.json();
+        
+        // Validation Layer (Bouncer)
+        const validation = OrderUpdateSchema.safeParse(body);
+        if (!validation.success) {
+            return NextResponse.json({ 
+                error: 'Datos inválidos', 
+                details: validation.error.format() 
+            }, { status: 400 });
+        }
+
         const { 
             labStatus, labNotes, orderType, labOrderNumber, 
             frameSource, userFrameBrand, userFrameModel, userFrameNotes, 

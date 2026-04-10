@@ -22,10 +22,10 @@ async function main() {
         console.log(`  Duplicate: ID: ${d.duplicate.id} | Name: ${d.duplicate.name} | Brand: ${d.duplicate.brand} | Category: ${d.duplicate.category} | Price: ${d.duplicate.price}`);
     });
 
-    // Also check for similar names for Comfort Max
-    const comfortMax = products.filter(p => p.name && p.name.toUpperCase().includes('COMFORT MAX'));
-    console.log(`\nComfort Max products found: ${comfortMax.length}`);
-    comfortMax.forEach(p => {
+    // Also check for 2x1 products
+    const promo2x1 = products.filter(p => p.name && p.name.includes('2x1'));
+    console.log(`\n2x1 products found: ${promo2x1.length}`);
+    promo2x1.forEach(p => {
         console.log(`ID: ${p.id} | Name: ${p.name} | Brand: ${p.brand} | Category: ${p.category} | Price: ${p.price}`);
     });
 }

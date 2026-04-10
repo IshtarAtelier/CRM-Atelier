@@ -176,6 +176,8 @@ export const calculatePromoFrameDiscount = (
  * @param availableProducts - Optional full product list for Atelier avg price calculation
  * @returns { subtotal, subtotalWithMarkup, totalCash }
  */
+import { PricingService, CartItem } from '@/services/PricingService';
+
 export const calculateQuoteTotals = (
     items: any[],
     markup: number,
@@ -189,19 +191,21 @@ export const calculateQuoteTotals = (
     totalCash: number;
     appliedPromoName: string | null;
 } => {
-    const rawSubtotal = items.reduce((s, i) => s + (safePrice(i.customPrice) * (i.quantity || 1)), 0);
-    const promoDiscount = calculatePromoFrameDiscount(items, availableProducts);
-    const subtotal = Math.max(0, rawSubtotal - promoDiscount);
-    const markupAmount = subtotal * (safePrice(markup) / 100);
-    const subtotalWithMarkup = subtotal + markupAmount;
-    const totalCash = subtotalWithMarkup * (1 - safePrice(discountCash) / 100);
+    const cartItems: CartItem[] = items.map(i => ({
+        productId: i.productId || null,
+        product: i.product,
+        quantity: i.quantity,
+        price: i.customPrice || i.price
+    }));
+
+    const result = PricingService.calculateTotals(cartItems, markup, discountCash, availableProducts || []);
 
     return {
-        rawSubtotal,
-        promoFrameDiscount: promoDiscount,
-        subtotal,
-        subtotalWithMarkup: Math.round(subtotalWithMarkup),
-        totalCash: Math.round(totalCash),
-        appliedPromoName: promoDiscount > 0 ? 'Promoción 2x1 Multifocal' : null
+        rawSubtotal: result.rawSubtotal,
+        promoFrameDiscount: result.promoFrameDiscount,
+        subtotal: result.subtotal,
+        subtotalWithMarkup: result.subtotalWithMarkup,
+        totalCash: result.totalCash,
+        appliedPromoName: result.appliedPromos.length > 0 ? result.appliedPromos[0] : null
     };
 };

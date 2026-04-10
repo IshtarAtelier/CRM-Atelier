@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { X, Star, Save, Loader2 } from 'lucide-react';
+import { X, Star, Save, Loader2, Calculator } from 'lucide-react';
 import { PersonalDataSection, InterestSection } from './ContactFormSections';
 
 export interface ContactFormData {
@@ -18,6 +18,7 @@ export interface ContactFormData {
     doctor: string;
     followUpTask?: string;
     followUpDate?: string;
+    startQuote?: boolean;
 }
 
 interface ContactFormProps {
@@ -68,7 +69,12 @@ export default function ContactForm({ onClose, onSubmit, initialData }: ContactF
 
         setSaving(true);
         try {
-            await onSubmit({ ...formData, ...(isHighTicket ? { followUpTask, followUpDate } : {}) });
+            const dataToSubmit: ContactFormData = {
+                ...formData,
+                ...(isHighTicket && followUpTask.trim() ? { followUpTask: followUpTask.trim(), followUpDate } : {}),
+                startQuote: (e.nativeEvent as any).submitter?.name === 'save_and_quote'
+            };
+            await onSubmit(dataToSubmit);
         } finally {
             setSaving(false);
         }
@@ -106,10 +112,34 @@ export default function ContactForm({ onClose, onSubmit, initialData }: ContactF
                     </div>
                 </form>
 
-                <footer className="p-8 bg-stone-50 dark:bg-stone-800/30 border-t">
-                    <button onClick={handleSubmit} disabled={saving} className="w-full py-5 bg-stone-900 text-white rounded-2xl text-sm font-black shadow-xl hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-3">
+                <footer className="p-8 bg-stone-50 dark:bg-stone-800/30 border-t border-stone-100 dark:border-stone-800 flex flex-col sm:flex-row gap-4">
+                    <button
+                        type="submit"
+                        name="save_only"
+                        disabled={saving}
+                        className="flex-1 py-5 bg-stone-100 text-stone-600 dark:bg-stone-800 dark:text-stone-400 rounded-2xl text-xs font-black shadow-sm hover:bg-stone-200 dark:hover:bg-stone-700 active:scale-95 transition-all flex items-center justify-center gap-3 uppercase tracking-widest disabled:opacity-50"
+                    >
                         {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
-                        {saving ? 'GUARDANDO...' : 'GUARDAR CONTACTO'}
+                        SOLO GUARDAR
+                    </button>
+                    
+                    <button
+                        type="submit"
+                        name="save_and_quote"
+                        disabled={saving}
+                        className="flex-[1.5] py-5 bg-stone-900 text-white dark:bg-primary dark:text-primary-foreground rounded-2xl text-sm font-black shadow-xl shadow-stone-400/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-3 uppercase tracking-widest disabled:opacity-50 disabled:cursor-not-allowed border-2 border-transparent hover:border-primary/50"
+                    >
+                        {saving ? (
+                            <>
+                                <Loader2 className="w-5 h-5 animate-spin" />
+                                PROCESANDO...
+                            </>
+                        ) : (
+                            <>
+                                <Calculator className="w-5 h-5" strokeWidth={3} />
+                                GUARDAR Y COTIZAR
+                            </>
+                        )}
                     </button>
                 </footer>
             </div>
