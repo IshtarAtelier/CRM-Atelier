@@ -181,7 +181,14 @@ export const calculateQuoteTotals = (
     markup: number,
     discountCash: number,
     availableProducts?: any[]
-): { rawSubtotal: number; promoFrameDiscount: number; subtotal: number; subtotalWithMarkup: number; totalCash: number } => {
+): { 
+    rawSubtotal: number; 
+    promoFrameDiscount: number; 
+    subtotal: number; 
+    subtotalWithMarkup: number; 
+    totalCash: number;
+    appliedPromoName: string | null;
+} => {
     const rawSubtotal = items.reduce((s, i) => s + (safePrice(i.customPrice) * (i.quantity || 1)), 0);
     const promoDiscount = calculatePromoFrameDiscount(items, availableProducts);
     const subtotal = Math.max(0, rawSubtotal - promoDiscount);
@@ -195,5 +202,6 @@ export const calculateQuoteTotals = (
         subtotal,
         subtotalWithMarkup: Math.round(subtotalWithMarkup),
         totalCash: Math.round(totalCash),
+        appliedPromoName: promoDiscount > 0 ? 'Promoción 2x1 Multifocal' : null
     };
 };

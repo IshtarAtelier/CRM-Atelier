@@ -194,6 +194,8 @@ export async function PATCH(
 
                 data.subtotalWithMarkup = totals.subtotalWithMarkup;
                 data.total = totals.totalCash;
+                data.appliedPromoName = totals.appliedPromoName;
+                data.appliedPromoDiscount = totals.promoFrameDiscount;
             }
         }
 
@@ -330,7 +332,11 @@ export async function PATCH(
                     }, { status: 400 });
                 }
 
-                const effectiveFrameSource = frameSource || existingOrder.frameSource;
+                const hasFramesInCart = existingOrder.items?.some((item: any) =>
+                    item.product?.category === 'FRAME' || item.product?.category === 'ATELIER'
+                );
+
+                const effectiveFrameSource = frameSource || existingOrder.frameSource || (hasFramesInCart ? 'OPTICA' : null);
                 if (hasCrystals && !effectiveFrameSource) {
                     return NextResponse.json({
                         error: 'Si el pedido incluye cristales, debe seleccionar un armazón (de la óptica o del usuario)'

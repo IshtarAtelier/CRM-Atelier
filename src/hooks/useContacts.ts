@@ -3,6 +3,7 @@ import { Contact, ContactStatus, ContactFormData } from '@/types/contacts';
 
 export function useContacts(activeTab: ContactStatus, searchQuery: string, favoritesOnly: boolean = false, interest: string = 'ALL') {
     const [contacts, setContacts] = useState<Contact[]>([]);
+    const [expiredRx, setExpiredRx] = useState<{ id: string; name: string; months: number }[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const abortControllerRef = useRef<AbortController | null>(null);
@@ -27,8 +28,26 @@ export function useContacts(activeTab: ContactStatus, searchQuery: string, favor
             }
             const data = await res.json();
             if (!controller.signal.aborted) {
-                setContacts(Array.isArray(data) ? data : []);
+                const list = Array.isArray(data) ? data : [];
+                setContacts(list);
                 setError(null);
+
+                // Calculate expired prescriptions (>12 months)
+                const expired: { id: string; name: string; months: number }[] = [];
+                const now = new Date();
+                list.forEach(c => {
+                    if (c.prescriptions?.length > 0) {
+                        const latest = [...c.prescriptions].sort((a: any, b: any) => 
+                            new Date(b.date).getTime() - new Date(a.date).getTime()
+                        )[0];
+                        const diffMs = now.getTime() - new Date(latest.date).getTime();
+                        const monthsAgo = Math.floor(diffMs / (30 * 24 * 60 * 60 * 1000));
+                        if (monthsAgo >= 12) {
+                            expired.push({ id: c.id, name: c.name, months: monthsAgo });
+                        }
+                    }
+                });
+                setExpiredRx(expired);
             }
         } catch (err: any) {
             if (err.name === 'AbortError') return; // Ignore aborted requests
@@ -309,6 +328,7 @@ export function useContacts(activeTab: ContactStatus, searchQuery: string, favor
 
     return {
         contacts,
+        expiredRx,
         loading,
         error,
         refresh: fetchContacts,

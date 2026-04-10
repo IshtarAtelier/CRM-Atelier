@@ -71,6 +71,15 @@ export async function POST(request: Request) {
             finalSubtotalWithMarkup = totals.subtotalWithMarkup;
             finalTotal = totals.totalCash;
             finalDiscount = discountCash || 0;
+            
+            // Auto-detect frame source if frames are in cart
+            const hasFramesInCart = cartItems.some(it => 
+                it.product?.category === 'FRAME' || it.product?.category === 'ATELIER'
+            );
+            
+            (body as any).effectiveFrameSource = frameSource || (hasFramesInCart ? 'OPTICA' : null);
+            (body as any).calcPromoName = totals.appliedPromoName;
+            (body as any).calcPromoDiscount = totals.promoFrameDiscount;
         }
 
         const order = await prisma.order.create({
@@ -80,6 +89,8 @@ export async function POST(request: Request) {
                 status: 'PENDING',
                 total: Math.round(finalTotal),
                 paid: 0,
+                appliedPromoName: (body as any).calcPromoName || null,
+                appliedPromoDiscount: (body as any).calcPromoDiscount || 0,
                 discount: finalDiscount || 0,
                 markup: Math.max(0, markup || 0),
                 discountCash: discountCash || 0,
@@ -88,7 +99,7 @@ export async function POST(request: Request) {
                 subtotalWithMarkup: Math.round(finalSubtotalWithMarkup),
                 orderType: 'QUOTE',
                 labStatus: 'NONE',
-                frameSource: frameSource || null,
+                frameSource: (body as any).effectiveFrameSource || null,
                 userFrameBrand: userFrameBrand || null,
                 userFrameModel: userFrameModel || null,
                 userFrameNotes: userFrameNotes || null,

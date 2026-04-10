@@ -7,8 +7,8 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider = "sqlite"
+  url      = "file:./dev.db"
 }
 
 model User {
@@ -237,6 +237,11 @@ model Order {
   // SmartLab automation
   smartLabScreenshot String? // Screenshot de confirmación del bot
 
+  // Snapshot de datos históricos para inmutabilidad
+  prescriptionSnapshot String?  // Copia completa de la receta (JSON string) al momento de la venta
+  appliedPromoName    String?  // Nombre de la promoción (ej: "2x1 Multifocal")
+  appliedPromoDiscount Float?   // Monto descontado por la promoción
+
   @@index([clientId])
   @@index([orderType, isDeleted])
   @@index([createdAt])
@@ -294,6 +299,11 @@ model OrderItem {
   pdVal       Float?   // Snapshot de DNP al momento de la venta
   heightVal   Float?   // Snapshot de Altura al momento de la venta
   prismVal    String?  // Snapshot de Prisma + Base al momento de la venta
+
+  // Identidad del producto al momento de la venta (inmutabilidad)
+  productNameSnapshot  String?
+  productBrandSnapshot String?
+  productCategorySnapshot String?
 
   order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
   product Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
