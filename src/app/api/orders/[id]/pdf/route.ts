@@ -12,7 +12,7 @@ export async function GET(
         const order = await prisma.order.findUnique({
             where: { id },
             include: {
-                contact: true,
+                client: true,
                 items: {
                     include: {
                         product: true
@@ -82,11 +82,11 @@ export async function GET(
     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-bottom: 40px;">
         <div>
             <div class="section-title">Cliente</div>
-            <div style="font-weight: 700;">${order.contact?.name || 'Cliente'}</div>
+            <div style="font-weight: 700;">${order.client?.name || 'Cliente'}</div>
             <div style="font-size: 13px; color: #78716c;">
-                ${order.contact?.dni ? `DNI: ${order.contact.dni}<br>` : ''}
-                ${order.contact?.phone ? `Tel: ${order.contact.phone}<br>` : ''}
-                ${order.contact?.address || ''}
+                ${order.client?.dni ? `DNI: ${order.client.dni}<br>` : ''}
+                ${order.client?.phone ? `Tel: ${order.client.phone}<br>` : ''}
+                ${order.client?.address || ''}
             </div>
         </div>
         <div style="text-align: right">
