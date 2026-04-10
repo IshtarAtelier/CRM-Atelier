@@ -86,36 +86,35 @@ export default function ContactDetail({
     };
 
     const handleConvertOrder = async (orderId: string) => {
-        const order = contact?.orders?.find((o: any) => o.id === orderId);
-        if (!order) return;
-
-        const hasCrystals = order.items.some((it: any) => it.product?.type === 'Cristal' || it.product?.category === 'LENS');
-        
-        if (hasCrystals && !order.prescriptionId) {
-            // Need a prescription — open the PrescriptionManager in conversion mode
-            setPendingConvertOrderId(orderId);
-            setActiveSection('prescription');
-        } else {
-            // Convert directly
-            try {
-                const res = await fetch(`/api/orders/${orderId}`, {
-                    method: 'PATCH',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ orderType: 'SALE' }),
-                });
-                if (!res.ok) {
-                    const errData = await res.json();
-                    setConvertError(errData.error || 'Error al convertir pedido');
-                    return;
-                }
-                setConvertSuccess(true);
-                setActiveSection('sales');
-                fetchContact();
-                setTimeout(() => setConvertSuccess(false), 5000);
-            } catch (e) {
-                setConvertError('Error de red al convertir');
+        // Direct conversion - the CheckoutModal in QuoteSummary already handled validation & payment
+        try {
+            const res = await fetch(`/api/orders/${orderId}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ orderType: 'SALE' }),
+            });
+            if (!res.ok) {
+                const errData = await res.json();
+                setConvertError(errData.error || 'Error al convertir pedido');
+                return;
             }
+            setConvertSuccess(true);
+            setActiveSection('sales');
+            fetchContact();
+            setTimeout(() => setConvertSuccess(false), 5000);
+        } catch (e) {
+            setConvertError('Error de red al convertir');
         }
+    };
+
+    const handleAddPayment = (orderId: string) => {
+        // Open the budget/sales view if not already there, and we could auto-expand the order
+        // For now, the button in QuoteSummary already handles opening its internal state if needed
+        // but if we want a global payment modal, we'd add it here.
+        // Since QuoteSummary now should handle its own "Abonar" trigger if we want to reuse CheckoutModal,
+        // or just a simple payment modal. 
+        // Let's implement a simple payment trigger here if needed, or just let QuoteSummary handle it.
+        setActiveSection(activeSection === 'sales' ? 'sales' : 'budget');
     };
 
     if (loading) return (
@@ -205,6 +204,7 @@ export default function ContactDetail({
                             currentUserRole={currentUserRole}
                             onRefresh={fetchContact}
                             onConvertOrder={handleConvertOrder}
+                            onAddPayment={handleAddPayment}
                         />
                     )}
                 </main>

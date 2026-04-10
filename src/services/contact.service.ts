@@ -428,6 +428,34 @@ export const ContactService = {
     async addPrescription(clientId: string, data: any) {
         const transposed = this._transposePrescription(data);
         const isNear = data.prescriptionType === 'NEAR';
+
+        // DEDUPLICATION GATE: Check if an identical prescription already exists for this client
+        const existing = await prisma.prescription.findFirst({
+            where: {
+                clientId,
+                sphereOD: transposed.sphereOD,
+                cylinderOD: transposed.cylinderOD,
+                axisOD: transposed.axisOD,
+                sphereOI: transposed.sphereOI,
+                cylinderOI: transposed.cylinderOI,
+                axisOI: transposed.axisOI,
+                addition: transposed.addition,
+                additionOD: transposed.additionOD,
+                additionOI: transposed.additionOI,
+                pd: transposed.pd,
+                distanceOD: transposed.distanceOD,
+                distanceOI: transposed.distanceOI,
+                heightOD: transposed.heightOD,
+                heightOI: transposed.heightOI,
+                imageUrl: transposed.imageUrl || null,
+            }
+        });
+
+        if (existing) {
+            console.log(`[PrescriptionManager] DUPLICATE DETECTED. Reusing prescription: ${existing.id}`);
+            return existing;
+        }
+
         return await prisma.prescription.create({
             data: {
                 clientId,

@@ -14,6 +14,7 @@ import { safePrice } from '@/lib/promo-utils';
 // Modular Components
 import QuoteLineItems from './QuoteLineItems';
 import QuotePrescription from './QuotePrescription';
+import CheckoutModal from './CheckoutModal';
 
 interface QuoteSummaryProps {
     order: any;
@@ -51,6 +52,8 @@ export default function QuoteSummary({
     compact = false,
     onEdit
 }: QuoteSummaryProps) {
+    const [showCheckout, setShowCheckout] = React.useState(false);
+
     if (compact) {
         const total = order.total || 0;
         const paid = order.paid || 0;
@@ -283,24 +286,64 @@ export default function QuoteSummary({
                 )}
 
                 {showActions && !order.isDeleted && (
-                    <div className="pt-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div className="pt-4 grid grid-cols-1 sm:grid-cols-4 gap-3">
                         {isQuote ? (
-                            <button onClick={() => onConvert?.(order.id)} className="sm:col-span-3 py-4 bg-emerald-500 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-2">
+                            <button 
+                                onClick={() => setShowCheckout(true)} 
+                                className="sm:col-span-4 py-4 bg-emerald-500 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-2"
+                            >
                                 <CheckCircle2 className="w-5 h-5" /> CONVERTIR EN VENTA
                             </button>
                         ) : isLockedSale ? (
-                            <div className="sm:col-span-3 flex items-center gap-3 p-4 bg-stone-50 dark:bg-stone-900 border-2 border-stone-200 rounded-2xl">
+                            <div className="sm:col-span-4 flex items-center gap-3 p-4 bg-stone-50 dark:bg-stone-900 border-2 border-stone-200 rounded-2xl">
                                 <Lock className="w-5 h-5 text-stone-400" />
                                 <span className="text-[10px] font-black text-stone-400 uppercase tracking-widest">Venta Bloqueada (Solo Admin)</span>
                             </div>
                         ) : null}
                         
-                        <button onClick={() => window.open(`/api/orders/${order.id}/pdf`, '_blank')} className="py-3 bg-stone-100 dark:bg-stone-800 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-stone-200 transition-all">PDF</button>
-                        <button onClick={handleWhatsApp} className="py-3 bg-emerald-50 dark:bg-emerald-900 text-emerald-600 rounded-xl font-black text-[10px] uppercase tracking-widest">WhatsApp</button>
-                        <button onClick={() => onDelete?.(order.id)} disabled={isLockedSale} className="py-3 bg-red-50 text-red-500 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-red-100 transition-all disabled:opacity-50">Eliminar</button>
+                        <button 
+                            onClick={() => window.open(`/api/orders/${order.id}/pdf`, '_blank')} 
+                            className="py-3 bg-stone-100 dark:bg-stone-800 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-stone-200 transition-all"
+                        >
+                            PDF
+                        </button>
+                        <button 
+                            onClick={handleWhatsApp} 
+                            className="py-3 bg-emerald-50 dark:bg-emerald-900 text-emerald-600 rounded-xl font-black text-[10px] uppercase tracking-widest"
+                        >
+                            WhatsApp
+                        </button>
+                        <button 
+                            onClick={() => setShowCheckout(true)}
+                            className="py-3 bg-amber-50 text-amber-600 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-amber-100 transition-all"
+                        >
+                            Abonar
+                        </button>
+                        <button 
+                            onClick={() => onDelete?.(order.id)} 
+                            disabled={isLockedSale} 
+                            className="py-3 bg-red-50 text-red-500 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-red-100 transition-all disabled:opacity-50"
+                        >
+                            Eliminar
+                        </button>
                     </div>
                 )}
             </main>
+
+            {showCheckout && (
+                <CheckoutModal 
+                    order={order}
+                    contact={contact as any}
+                    onClose={() => setShowCheckout(false)}
+                    onComplete={async (data) => {
+                        if (onConvert) {
+                            await onConvert(order.id);
+                            setShowCheckout(false);
+                        }
+                    }}
+                    onRefreshContact={onCloseSale || (async () => {})}
+                />
+            )}
         </div>
     );
 }

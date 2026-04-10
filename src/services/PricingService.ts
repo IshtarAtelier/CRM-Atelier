@@ -10,6 +10,7 @@ export interface CartItem {
 export interface PricingResult {
     rawSubtotal: number;
     promoFrameDiscount: number;
+    promoFrameName: string | null; // Added to identify the discounted item
     subtotal: number;
     subtotalWithMarkup: number;
     totalCash: number;
@@ -37,6 +38,7 @@ export class PricingService {
         const rawSubtotal = items.reduce((sum, item) => sum + (safePrice(item.price) * (item.quantity || 1)), 0);
         
         let promoFrameDiscount = 0;
+        let promoFrameName: string | null = null;
         const appliedPromos: string[] = [];
 
         // Lógica de 2x1 en multifocales (regla actual)
@@ -45,7 +47,10 @@ export class PricingService {
         );
 
         if (hasMultifocalPromo) {
-            promoFrameDiscount = this.calculate2x1FrameDiscount(items, availableProducts);
+            const promo = this.calculate2x1FrameDiscount(items, availableProducts);
+            promoFrameDiscount = promo.discount;
+            promoFrameName = promo.itemName;
+            
             if (promoFrameDiscount > 0) {
                 appliedPromos.push('2x1 Multifocal (Armazón Bonificado)');
             }
@@ -59,6 +64,7 @@ export class PricingService {
         return {
             rawSubtotal,
             promoFrameDiscount,
+            promoFrameName,
             subtotal,
             subtotalWithMarkup: Math.round(subtotalWithMarkup),
             totalCash: Math.round(totalCash),
@@ -69,27 +75,27 @@ export class PricingService {
     /**
      * Calcula específicamente el descuento de armazón por la promo 2x1.
      */
-    private static calculate2x1FrameDiscount(items: CartItem[], availableProducts: any[]): number {
+    private static calculate2x1FrameDiscount(items: CartItem[], availableProducts: any[]): { discount: number; itemName: string | null } {
         // Obtenemos todos los armazones en una lista plana
         const frameItems = items.flatMap(item => {
             if (!isFrame(item.product)) return [];
             return Array.from({ length: item.quantity || 1 }).map(() => item);
         });
 
-        if (frameItems.length < 2) return 0;
+        if (frameItems.length < 2) return { discount: 0, itemName: null };
 
-        // Ordenamos por precio descendente para bonificar el segundo más caro (o según regla de negocio)
-        // La regla actual de Atelier bonifica el segundo armazón.
+        // Ordenamos por precio descendente para bonificar el segundo más caro
         const sortedFrames = [...frameItems].sort((a, b) => safePrice(b.price) - safePrice(a.price));
         const targetFrame = sortedFrames[1]; // El segundo armazón
 
-        if (!targetFrame) return 0;
+        if (!targetFrame) return { discount: 0, itemName: null };
 
         const framePrice = safePrice(targetFrame.price);
+        const frameName = `${targetFrame.product?.brand || ''} ${targetFrame.product?.model || targetFrame.product?.name || 'Armazón'}`.trim();
 
         // Si es Atelier, 100% bonificado
         if (isAtelierFrame(targetFrame.product)) {
-            return framePrice;
+            return { discount: framePrice, itemName: frameName };
         }
 
         // Si no es Atelier, se bonifica hasta el precio promedio de los Atelier
@@ -99,9 +105,10 @@ export class PricingService {
 
         if (atelierFrames.length > 0) {
             const avgAtelier = atelierFrames.reduce((s, f) => s + safePrice(f.price), 0) / atelierFrames.length;
-            return Math.min(framePrice, Math.round(avgAtelier));
+            const discountAmount = Math.min(framePrice, Math.round(avgAtelier));
+            return { discount: discountAmount, itemName: frameName };
         }
 
-        return 0;
+        return { discount: 0, itemName: null };
     }
 }

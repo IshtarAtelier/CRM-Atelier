@@ -206,6 +206,6 @@ export const calculateQuoteTotals = (
         subtotal: result.subtotal,
         subtotalWithMarkup: result.subtotalWithMarkup,
         totalCash: result.totalCash,
-        appliedPromoName: result.appliedPromos.length > 0 ? result.appliedPromos[0] : null
+        appliedPromoName: result.promoFrameName || (result.appliedPromos.length > 0 ? result.appliedPromos[0] : null)
     };
 };
