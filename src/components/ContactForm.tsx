@@ -110,38 +110,38 @@ export default function ContactForm({ onClose, onSubmit, initialData }: ContactF
                             {[1, 2, 3, 4, 5].map(s => <button key={s} type="button" onClick={() => setFormData({ ...formData, priority: s })} className="transition-transform hover:scale-125"><Star className={`w-8 h-8 ${s <= formData.priority ? 'fill-primary text-primary' : 'text-stone-300'}`} strokeWidth={3} /></button>)}
                         </div>
                     </div>
-                </form>
 
-                <footer className="p-8 bg-stone-50 dark:bg-stone-800/30 border-t border-stone-100 dark:border-stone-800 flex flex-col sm:flex-row gap-4">
-                    <button
-                        type="submit"
-                        name="save_only"
-                        disabled={saving}
-                        className="flex-1 py-5 bg-stone-100 text-stone-600 dark:bg-stone-800 dark:text-stone-400 rounded-2xl text-xs font-black shadow-sm hover:bg-stone-200 dark:hover:bg-stone-700 active:scale-95 transition-all flex items-center justify-center gap-3 uppercase tracking-widest disabled:opacity-50"
-                    >
-                        {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
-                        SOLO GUARDAR
-                    </button>
-                    
-                    <button
-                        type="submit"
-                        name="save_and_quote"
-                        disabled={saving}
-                        className="flex-[1.5] py-5 bg-stone-900 text-white dark:bg-primary dark:text-primary-foreground rounded-2xl text-sm font-black shadow-xl shadow-stone-400/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-3 uppercase tracking-widest disabled:opacity-50 disabled:cursor-not-allowed border-2 border-transparent hover:border-primary/50"
-                    >
-                        {saving ? (
-                            <>
-                                <Loader2 className="w-5 h-5 animate-spin" />
-                                PROCESANDO...
-                            </>
-                        ) : (
-                            <>
-                                <Calculator className="w-5 h-5" strokeWidth={3} />
-                                GUARDAR Y COTIZAR
-                            </>
-                        )}
-                    </button>
-                </footer>
+                    <footer className="p-8 bg-stone-50 dark:bg-stone-800/30 border-t border-stone-100 dark:border-stone-800 flex flex-col sm:flex-row gap-4">
+                        <button
+                            type="submit"
+                            name="save_only"
+                            disabled={saving}
+                            className="flex-1 py-5 bg-stone-100 text-stone-600 dark:bg-stone-800 dark:text-stone-400 rounded-2xl text-xs font-black shadow-sm hover:bg-stone-200 dark:hover:bg-stone-700 active:scale-95 transition-all flex items-center justify-center gap-3 uppercase tracking-widest disabled:opacity-50"
+                        >
+                            {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
+                            SOLO GUARDAR
+                        </button>
+                        
+                        <button
+                            type="submit"
+                            name="save_and_quote"
+                            disabled={saving}
+                            className="flex-[1.5] py-5 bg-stone-900 text-white dark:bg-primary dark:text-primary-foreground rounded-2xl text-sm font-black shadow-xl shadow-stone-400/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-3 uppercase tracking-widest disabled:opacity-50 disabled:cursor-not-allowed border-2 border-transparent hover:border-primary/50"
+                        >
+                            {saving ? (
+                                <>
+                                    <Loader2 className="w-5 h-5 animate-spin" />
+                                    PROCESANDO...
+                                </>
+                            ) : (
+                                <>
+                                    <Calculator className="w-5 h-5" strokeWidth={3} />
+                                    GUARDAR Y COTIZAR
+                                </>
+                            )}
+                        </button>
+                    </footer>
+                </form>
             </div>
         </div>
     );
