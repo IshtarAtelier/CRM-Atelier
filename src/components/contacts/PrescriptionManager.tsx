@@ -29,6 +29,7 @@ export default function PrescriptionManager({
     const [uploading, setUploading] = useState(false);
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [savedRxId, setSavedRxId] = useState<string | null>(null);
 
     const [form, setForm] = useState({
         sphereOD: '', cylinderOD: '', axisOD: '', additionOD: '',
@@ -143,6 +144,7 @@ export default function PrescriptionManager({
             }
 
             if (onConversionComplete && rxId) {
+                setSavedRxId(rxId);
                 setStep('review');
             } else {
                 onRefresh();
@@ -168,7 +170,7 @@ export default function PrescriptionManager({
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ 
                     orderType: 'SALE',
-                    prescriptionId: duplicate.id 
+                    prescriptionId: savedRxId || duplicate?.id 
                 }),
             });
             if (!res.ok) throw new Error("Error al convertir venta");
@@ -352,6 +354,8 @@ export default function PrescriptionManager({
                     </div>
                 ))}
             </div>
+
+            {error && <p className="text-red-500 text-[10px] font-black bg-red-50 p-3 rounded-xl animate-shake">⚠️ {error}</p>}
         </div>
     );
 }
