@@ -8,7 +8,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "npx prisma generate && next build",
-    "start": "npx prisma db push && next start -p ${PORT:-3000} -H 0.0.0.0",
+    "start": "npx prisma migrate deploy && next start -p ${PORT:-3000} -H 0.0.0.0",
     "lint": "eslint",
     "verify": "node scripts/verify-build.js",
     "whatsapp": "node whatsapp-server.js",
