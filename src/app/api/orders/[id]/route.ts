@@ -392,10 +392,12 @@ export async function PATCH(
 
                 // Check: if order has crystals, frame info must be set
                 const hasCrystals = existingOrder.items?.some((item: any) =>
-                    item.product?.type === 'Cristal' || item.product?.category === 'LENS'
+                    item.product?.type === 'Cristal' || item.product?.category === 'LENS' || (item.product?.name || '').includes('Cristal')
                 );
 
-                if (hasCrystals && !existingOrder.prescriptionId) {
+                const effectiveRxId = prescriptionId || existingOrder.prescriptionId;
+
+                if (hasCrystals && !effectiveRxId) {
                     return NextResponse.json({
                         error: 'Si el pedido incluye cristales, debe tener una receta seleccionada'
                     }, { status: 400 });
