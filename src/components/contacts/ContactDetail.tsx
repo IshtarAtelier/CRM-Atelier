@@ -21,6 +21,7 @@ interface ContactDetailProps {
     onAddTask: (id: string, description: string, dueDate?: string) => Promise<boolean>;
     onUpdateTaskStatus: (id: string, taskId: string, status: string) => Promise<boolean>;
     onStatusChange: (id: string, status: string, userRole?: string) => Promise<boolean>;
+    onDeleteOrder: (orderId: string) => Promise<void>;
     autoStartQuote?: boolean;
 }
 
@@ -34,6 +35,7 @@ export default function ContactDetail({
     onAddTask,
     onUpdateTaskStatus,
     onStatusChange,
+    onDeleteOrder,
     autoStartQuote
 }: ContactDetailProps) {
     const [contact, setContact] = useState<Contact | null>(null);
@@ -118,6 +120,15 @@ export default function ContactDetail({
         // or just a simple payment modal. 
         // Let's implement a simple payment trigger here if needed, or just let QuoteSummary handle it.
         setActiveSection(activeSection === 'sales' ? 'sales' : 'budget');
+    };
+
+    const handleDeleteOrder = async (orderId: string) => {
+        try {
+            await onDeleteOrder(orderId);
+            fetchContact();
+        } catch (e) {
+            console.error('Error deleting order:', e);
+        }
     };
 
     if (loading) return (
@@ -208,6 +219,7 @@ export default function ContactDetail({
                             onRefresh={fetchContact}
                             onConvertOrder={handleConvertOrder}
                             onAddPayment={handleAddPayment}
+                            onDeleteOrder={handleDeleteOrder}
                         />
                     )}
                 </main>

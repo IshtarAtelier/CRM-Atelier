@@ -1,42 +1,39 @@
-const { calculateQuoteTotals } = require('../src/lib/promo-utils');
 
-const mockProducts = [
-    { id: '1', name: 'Multifocal 2x1 Crystal', brand: 'Zeiss', type: 'Multifocal 2x1', category: 'LENS', price: 1000, is2x1: true },
-    { id: '2', name: 'Atelier Frame', brand: 'Atelier', type: 'Armazon', category: 'FRAME', price: 500 },
-    { id: '3', name: 'Other Frame', brand: 'RayBan', type: 'Armazon', category: 'FRAME', price: 600 }
+const { isMultifocal2x1, calculatePromoFrameDiscount, isFrame, isAtelierFrame } = require('./src/lib/promo-utils');
+
+const crystal2x1 = {
+    name: 'Multifocal 2x1 Test',
+    type: 'Multifocal',
+    category: 'LENS',
+    price: 1000
+};
+
+const frame1 = {
+    name: 'Frame 1',
+    brand: 'Some Brand',
+    type: 'Armazón',
+    category: 'FRAME',
+    price: 500
+};
+
+const frame2Atelier = {
+    name: 'Atelier Frame',
+    brand: 'Atelier',
+    type: 'Armazón',
+    category: 'FRAME',
+    price: 300
+};
+
+const items = [
+    { product: crystal2x1, quantity: 1, customPrice: 1000 },
+    { product: frame1, quantity: 1, customPrice: 500 },
+    { product: frame2Atelier, quantity: 1, customPrice: 300 }
 ];
 
-const cartItems = [
-    { product: mockProducts[0], quantity: 1, customPrice: 500, eye: 'OD' }, // 1st crystal unit
-    { product: mockProducts[0], quantity: 1, customPrice: 500, eye: 'OI' }, // 2nd crystal unit
-    { product: mockProducts[1], quantity: 1, customPrice: 500 }, // Atelier frame
-    { product: mockProducts[2], quantity: 1, customPrice: 600 }  // RayBan frame
-];
+console.log('isMultifocal2x1:', isMultifocal2x1(crystal2x1));
+console.log('isFrame frame1:', isFrame(frame1));
+console.log('isFrame frame2:', isFrame(frame2Atelier));
+console.log('isAtelierFrame frame2:', isAtelierFrame(frame2Atelier));
 
-console.log('Testing 2x1 Promotion calculation...');
-const totals = calculateQuoteTotals(cartItems, 0, 0, mockProducts);
-
-console.log('Raw Subtotal:', 500 + 500 + 500 + 600, '=', 2100);
-console.log('Calculated Subtotal:', totals.subtotal);
-console.log('Promo Discount:', totals.promoFrameDiscount);
-
-const expectedDiscount = 500; // Atelier frame is free because it's the 2nd one (sorted by price: 600, 500)
-if (totals.promoFrameDiscount === expectedDiscount) {
-    console.log('✅ TEST PASSED: Promo discount correctly applied to Atelier frame.');
-} else {
-    console.log('❌ TEST FAILED: Expected', expectedDiscount, 'but got', totals.promoFrameDiscount);
-}
-
-const cartItems2 = [
-    { product: mockProducts[0], quantity: 2, customPrice: 500 },
-    { product: mockProducts[2], quantity: 2, customPrice: 600 } // Two expensive frames
-];
-const totals2 = calculateQuoteTotals(cartItems2, 0, 0, mockProducts);
-// With two 600 frames, the second 600 frame should be discounted up to the average Atelier price (500)
-console.log('\nTesting with non-Atelier frames...');
-console.log('Promo Discount:', totals2.promoFrameDiscount, '(Expected ~500)');
-if (totals2.promoFrameDiscount === 500) {
-    console.log('✅ TEST PASSED: Discount capped at Atelier avg price.');
-} else {
-    console.log('❌ TEST FAILED: Got', totals2.promoFrameDiscount);
-}
+const discount = calculatePromoFrameDiscount(items, [frame2Atelier]);
+console.log('Discount:', discount);

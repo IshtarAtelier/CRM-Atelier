@@ -128,8 +128,14 @@ export default function ContactosPage() {
                     initialData={editingContactData}
                     onSubmit={async (data) => {
                         if (editingContactData) {
-                            const success = await updateContact(editingContactData.id, data);
-                            if (success) setShowForm(false);
+                            const updated = await updateContact(editingContactData.id, data);
+                            if (updated) {
+                                setShowForm(false);
+                                if (data.startQuote) {
+                                    setSelectedContactId(updated.id);
+                                    setAutoStartQuote(true);
+                                }
+                            }
                         } else {
                             const newContact = await createContact(data);
                             if (newContact) {
@@ -138,8 +144,10 @@ export default function ContactosPage() {
                                     await addTask(newContact.id, data.followUpTask, dueDate48h);
                                 }
                                 setShowForm(false);
-                                setSelectedContactId(newContact.id);
-                                setAutoStartQuote(true);
+                                if (data.startQuote) {
+                                    setSelectedContactId(newContact.id);
+                                    setAutoStartQuote(true);
+                                }
                             }
                         }
                     }}
@@ -157,6 +165,7 @@ export default function ContactosPage() {
                     onAddTask={addTask}
                     onUpdateTaskStatus={updateTaskStatus}
                     onStatusChange={updateStatus}
+                    onDeleteOrder={deleteOrder}
                     autoStartQuote={autoStartQuote}
                 />
             )}

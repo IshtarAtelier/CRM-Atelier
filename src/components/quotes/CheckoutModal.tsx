@@ -77,7 +77,19 @@ export default function CheckoutModal({
         setLoading(true);
         setError(null);
         try {
-            // 1. Convert to Sale - Con validación estricta de stock
+            // 1. Update client data first if it was edited
+            if (isEditingClient && isClientDataComplete) {
+                const res = await fetch(`/api/contacts/${contact.id}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(clientForm)
+                });
+                if (res.ok) {
+                    await onRefreshContact();
+                }
+            }
+
+            // 2. Convert to Sale - Con validación estricta de stock
             await onComplete({
                 orderType: 'SALE',
                 prescriptionId: selectedRxId,

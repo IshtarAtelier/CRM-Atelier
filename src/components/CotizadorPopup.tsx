@@ -141,7 +141,6 @@ export default function CotizadorPopup({ clientName, clientId, onClose }: Cotiza
                     userFrameModel: frameSource === 'USUARIO' ? userFrameData.model : null,
                     userFrameNotes: frameSource === 'USUARIO' ? userFrameData.notes : null,
                     prescriptionId: prescriptionId || null,
-                    isQuote: true 
                 })
             });
 
@@ -290,6 +289,7 @@ export default function CotizadorPopup({ clientName, clientId, onClose }: Cotiza
                                                 contact={{ id: clientId, name: clientName }} 
                                                 compact={true}
                                                 onEdit={handleEditQuote}
+                                                onRefreshContact={async () => {}}
                                             />
                                         ))}
                                     </div>

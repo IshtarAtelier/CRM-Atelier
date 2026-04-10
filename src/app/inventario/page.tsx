@@ -567,6 +567,44 @@ export default function InventarioPage() {
                                     </div>
                                 )}
 
+                                {/* Índice de refracción — solo cristales */}
+                                {checkCristal(editingProduct) && (
+                                    <div className="col-span-2 space-y-2">
+                                        <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest ml-3">🔬 Índice de Refracción</label>
+                                        <input
+                                            type="text"
+                                            placeholder="Ej: 1.56, 1.67, Foto..."
+                                            value={editForm.lensIndex}
+                                            onChange={e => setEditForm({ ...editForm, lensIndex: e.target.value })}
+                                            className="w-full px-5 py-4 bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-2xl font-bold text-sm outline-none focus:border-primary transition-all"
+                                        />
+                                        <div className="flex flex-wrap gap-1.5">
+                                            {['1.49', '1.50', '1.53', '1.56', '1.59', '1.60', '1.67', '1.74', 'Foto'].map(idx => (
+                                                <button
+                                                    key={idx}
+                                                    type="button"
+                                                    onClick={() => setEditForm({ ...editForm, lensIndex: idx })}
+                                                    className={`px-3 py-1.5 rounded-lg border font-black text-[9px] uppercase tracking-tight transition-all ${editForm.lensIndex === idx
+                                                        ? 'bg-primary border-primary text-white shadow-md'
+                                                        : 'bg-white dark:bg-stone-800 border-stone-200 dark:border-stone-700 text-stone-400 hover:border-primary/40 hover:text-primary'
+                                                        }`}
+                                                >
+                                                    {idx}
+                                                </button>
+                                            ))}
+                                            {editForm.lensIndex && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setEditForm({ ...editForm, lensIndex: '' })}
+                                                    className="px-3 py-1.5 rounded-lg border border-red-200 text-red-400 font-black text-[9px] uppercase tracking-tight hover:bg-red-50 transition-all"
+                                                >
+                                                    ✕ Limpiar
+                                                </button>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+
                                 {/* Rangos de Fabricación — solo cristales */}
                                 {checkCristal(editingProduct) && (
                                     <div className="col-span-2 space-y-3 pt-3 border-t border-stone-100 dark:border-stone-800">

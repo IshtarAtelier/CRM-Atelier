@@ -18,6 +18,7 @@ interface OrderManagerProps {
     onRefresh: () => void;
     onConvertOrder: (orderId: string, data?: any) => void;
     onAddPayment: (orderId: string) => void;
+    onDeleteOrder: (orderId: string) => void;
 }
 
 export default function OrderManager({
@@ -29,7 +30,8 @@ export default function OrderManager({
     currentUserRole,
     onRefresh,
     onConvertOrder,
-    onAddPayment
+    onAddPayment,
+    onDeleteOrder
 }: OrderManagerProps) {
     const [isQuoting, setIsQuoting] = useState(false);
     const [savingQuote, setSavingQuote] = useState(false);
@@ -199,7 +201,9 @@ export default function OrderManager({
                             currentUserRole={currentUserRole as any}
                             onConvert={onConvertOrder}
                             onAddPayment={onAddPayment}
+                            onDelete={onDeleteOrder}
                             onEdit={handleEditQuote}
+                            onRefreshContact={async () => onRefresh()}
                             isExpanded={expandedOrderId === order.id}
                             onToggleExpand={() => setExpandedOrderId(expandedOrderId === order.id ? null : order.id)}
                         />

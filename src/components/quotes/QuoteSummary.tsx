@@ -36,6 +36,7 @@ interface QuoteSummaryProps {
     showActions?: boolean;
     compact?: boolean;
     onEdit?: (order: any) => void;
+    onRefreshContact?: () => Promise<void>;
 }
 
 export default function QuoteSummary({
@@ -51,7 +52,8 @@ export default function QuoteSummary({
     onToggleExpand,
     showActions = true,
     compact = false,
-    onEdit
+    onEdit,
+    onRefreshContact
 }: QuoteSummaryProps) {
     const [showCheckout, setShowCheckout] = React.useState(false);
     const [showPayment, setShowPayment] = React.useState(false);
@@ -140,7 +142,10 @@ export default function QuoteSummary({
             'PAY_WAY_6_YANI': 'Pay Way 6 Yani', 'PAY_WAY_3_YANI': 'Pay Way 3 Yani', 'NARANJA_Z_YANI': 'Naranja Z Yani',
             'GO_CUOTAS': 'Go Cuotas', 'GO_CUOTAS_ISH': 'Go Cuotas Ish', 'EFECTIVO': 'Efectivo',
             'TRANSFERENCIA_ISHTAR': 'Transf. Ishtar', 'TRANSFERENCIA_LUCIA': 'Transf. Lucía',
-            'TRANSFERENCIA_ALTERNATIVA': 'Transf. Alt.'
+            'TRANSFERENCIA_ALTERNATIVA': 'Transf. Alt.',
+            // Legacy fallbacks
+            'TRANSFER': 'Transferencia', 'DEBIT': 'Débito', 'CASH': 'Efectivo',
+            'CREDIT_3': 'Tarjeta 3 cuotas', 'CREDIT_6': 'Tarjeta 6 cuotas', 'PLAN_Z': 'Plan Z',
         };
         return labels[method] || method;
     };
@@ -306,29 +311,43 @@ export default function QuoteSummary({
                         
                         <button 
                             onClick={() => window.open(`/api/orders/${order.id}/pdf`, '_blank')} 
-                            className="py-3 bg-stone-100 dark:bg-stone-800 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-stone-200 transition-all"
+                            className="py-3 bg-stone-100 dark:bg-stone-800 text-stone-600 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-stone-200 transition-all flex items-center justify-center gap-2"
                         >
-                            PDF
+                            <Download className="w-3.5 h-3.5" /> PDF
                         </button>
                         <button 
                             onClick={handleWhatsApp} 
-                            className="py-3 bg-emerald-50 dark:bg-emerald-900 text-emerald-600 rounded-xl font-black text-[10px] uppercase tracking-widest"
+                            disabled={!contact.phone}
+                            className="py-3 bg-emerald-50 dark:bg-emerald-900 text-emerald-600 rounded-xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 disabled:opacity-30"
                         >
-                            WhatsApp
+                            <MessageCircle className="w-3.5 h-3.5" /> WhatsApp
                         </button>
                         <button 
                             onClick={() => setShowPayment(true)}
-                            className="py-3 bg-amber-50 text-amber-600 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-amber-100 transition-all"
+                            className="py-3 bg-amber-50 text-amber-600 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-amber-100 transition-all flex items-center justify-center gap-2"
                         >
-                            Abonar
+                            <Banknote className="w-3.5 h-3.5" /> Abonar
                         </button>
                         <button 
-                            onClick={() => onDelete?.(order.id)} 
+                            onClick={() => {
+                                if (window.confirm('¿Seguro que querés eliminar este presupuesto? Esta acción no se puede deshacer.')) {
+                                    onDelete?.(order.id);
+                                }
+                            }}
                             disabled={isLockedSale} 
-                            className="py-3 bg-red-50 text-red-500 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-red-100 transition-all disabled:opacity-50"
+                            className="py-3 bg-red-50 text-red-500 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-red-100 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
                         >
-                            Eliminar
+                            <X className="w-3.5 h-3.5" /> Eliminar
                         </button>
+
+                        {isQuote && onEdit && (
+                            <button 
+                                onClick={() => onEdit(order)}
+                                className="sm:col-span-4 py-4 bg-stone-900 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-3 mt-2"
+                            >
+                                <Pencil className="w-5 h-5" /> EDITAR DETALLES DEL PRESUPUESTO
+                            </button>
+                        )}
                     </div>
                 )}
             </main>
@@ -340,10 +359,10 @@ export default function QuoteSummary({
                     paidAmount={order.paid || 0}
                     onClose={() => setShowPayment(false)}
                     onSuccess={async () => {
+                        setShowPayment(false);
                         if (onRefreshContact) {
                             await onRefreshContact();
                         }
-                        setShowPayment(false);
                         setShowCheckout(true);
                     }}
                 />
@@ -360,7 +379,7 @@ export default function QuoteSummary({
                             setShowCheckout(false);
                         }
                     }}
-                    onRefreshContact={onCloseSale || (async () => {})}
+                    onRefreshContact={onRefreshContact || (async () => {})}
                 />
             )}
         </div>

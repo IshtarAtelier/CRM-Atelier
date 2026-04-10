@@ -5,19 +5,49 @@ import { prisma } from '@/lib/db';
 import { calculateQuoteTotals } from '@/lib/promo-utils';
 import { z } from 'zod';
 
+const OrderItemSchema = z.object({
+    productId: z.string(),
+    quantity: z.number().min(1),
+    price: z.number(),
+    eye: z.string().nullable().optional(),
+    sphereVal: z.number().nullable().optional(),
+    cylinderVal: z.number().nullable().optional(),
+    axisVal: z.number().nullable().optional(),
+    additionVal: z.number().nullable().optional(),
+});
+
 const OrderUpdateSchema = z.object({
     orderType: z.enum(['QUOTE', 'SALE']).optional(),
     total: z.number().optional(),
     markup: z.number().min(0).optional(),
     discountCash: z.number().optional(),
+    discountTransfer: z.number().optional(),
+    discountCard: z.number().optional(),
+    subtotalWithMarkup: z.number().optional(),
     prescriptionId: z.string().nullable().optional(),
     frameSource: z.enum(['OPTICA', 'USUARIO']).nullable().optional(),
-    items: z.array(z.object({
-        productId: z.string(),
-        quantity: z.number().min(1),
-        price: z.number(),
-    })).optional(),
-});
+    userFrameBrand: z.string().nullable().optional(),
+    userFrameModel: z.string().nullable().optional(),
+    userFrameNotes: z.string().nullable().optional(),
+    items: z.array(OrderItemSchema).optional(),
+    // Lab fields
+    labStatus: z.string().optional(),
+    labNotes: z.string().nullable().optional(),
+    labOrderNumber: z.string().nullable().optional(),
+    labColor: z.string().nullable().optional(),
+    labTreatment: z.string().nullable().optional(),
+    labDiameter: z.string().nullable().optional(),
+    labPdOd: z.string().nullable().optional(),
+    labPdOi: z.string().nullable().optional(),
+    labPrismOD: z.string().nullable().optional(),
+    labPrismOI: z.string().nullable().optional(),
+    labBaseCurve: z.string().nullable().optional(),
+    labFrameType: z.string().nullable().optional(),
+    labBevelPosition: z.string().nullable().optional(),
+    smartLabScreenshot: z.string().nullable().optional(),
+    // Promo
+    appliedPromoName: z.string().nullable().optional(),
+}).passthrough();
 
 export const dynamic = 'force-dynamic';
 
@@ -180,7 +210,6 @@ export async function PATCH(
         // Use existing values if not provided in body (need to fetch order first if totals are missing)
         let finalMarkup = markup;
         let finalDiscountCash = discountCash;
-        let finalItems = items;
 
         if (items || markup !== undefined || discountCash !== undefined) {
             const currentOrder = await prisma.order.findUnique({

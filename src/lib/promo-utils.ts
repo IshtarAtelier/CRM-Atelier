@@ -4,22 +4,33 @@
  * Detects if a product is a multifocal/progresivo eligible for the 2x1 promotion.
  * Rules: Must contain (multifocal OR progresivo) AND (2x1).
  */
+/**
+ * Helper to normalize strings for robust keyword matching (removes accents and special chars).
+ */
+const normalizeText = (text: string): string => {
+    return (text || '')
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "") // Remove accents
+        .replace(/[^a-z0-9\s]/g, " ")   // Replace special chars with spaces
+        .trim();
+};
+
 export const isMultifocal2x1 = (p: any): boolean => {
     if (!p) return false;
 
     // Primary: explicit flag set by admin — authoritative source of truth
     if (p.is2x1 === true) return true;
 
-    // Fallback: legacy name-based detection (requires BOTH multifocal AND "2x1" in name)
-    const name = (p.name || '').toLowerCase();
-    const brand = (p.brand || '').toLowerCase();
-    const type = (p.type || '').toLowerCase();
-    const model = (p.model || '').toLowerCase();
-    
-    const fullSearch = `${name} ${brand} ${type} ${model}`;
+    // Fallback: legacy name-based detection
+    const fullSearch = normalizeText(`${p.name || ''} ${p.brand || ''} ${p.type || ''} ${p.model || ''}`);
     
     const isMT = fullSearch.includes('multifocal') || fullSearch.includes('progresivo');
-    const is2x1 = fullSearch.includes('2x1');
+    
+    // Robust 2x1 detection using Regex
+    // Matches: 2x1, 2 x 1, 2por1, 2 por 1, dos por uno, dosxuno
+    const promoRegex = /\b(2\s?x\s?1|2\s?por\s?1|dos\s?por\s?uno|dos\s?x\s?uno)\b/i;
+    const is2x1 = promoRegex.test(fullSearch);
     
     return isMT && is2x1;
 };
@@ -31,9 +42,9 @@ export const isAtelierFrame = (p: any): boolean => {
     if (!p) return false;
     const brand = (p.brand || '').toLowerCase();
     const name = (p.name || '').toLowerCase();
-    const category = (p.category || '');
+    const category = (p.category || '').toLowerCase();
     
-    return brand.includes('atelier') || name.includes('atelier') || category === 'ATELIER';
+    return brand.includes('atelier') || name.includes('atelier') || category === 'atelier' || category === 'atelier de receta';
 };
 
 /**
@@ -60,9 +71,9 @@ export const isFrame = (p: any): boolean => {
     if (!p) return false;
     const type = (p.type || '').toLowerCase();
     const category = (p.category || '').toLowerCase();
-    return type.includes('armazón') || type.includes('armazon') || 
+    return type.includes('armazón') || type.includes('armazon') || type.includes('marco') ||
            category.includes('armazón') || category.includes('armazon') ||
-           category === 'frame' || type === 'frame' || category === 'atelier';
+           category === 'frame' || type === 'frame' || category.includes('atelier');
 };
 
 /**

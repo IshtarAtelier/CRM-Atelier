@@ -46,6 +46,7 @@ export default function ContactForm({ onClose, onSubmit, initialData }: ContactF
     });
 
     const [saving, setSaving] = useState(false);
+    const [submitAction, setSubmitAction] = useState<'save' | 'quote'>('save');
     const [followUpTask, setFollowUpTask] = useState('');
     const [followUpDate, setFollowUpDate] = useState('');
     const [doctors, setDoctors] = useState<any[]>([]);
@@ -72,7 +73,7 @@ export default function ContactForm({ onClose, onSubmit, initialData }: ContactF
             const dataToSubmit: ContactFormData = {
                 ...formData,
                 ...(isHighTicket && followUpTask.trim() ? { followUpTask: followUpTask.trim(), followUpDate } : {}),
-                startQuote: (e.nativeEvent as any).submitter?.name === 'save_and_quote'
+                startQuote: submitAction === 'quote'
             };
             await onSubmit(dataToSubmit);
         } finally {
@@ -116,9 +117,10 @@ export default function ContactForm({ onClose, onSubmit, initialData }: ContactF
                             type="submit"
                             name="save_only"
                             disabled={saving}
+                            onClick={() => setSubmitAction('save')}
                             className="flex-1 py-5 bg-stone-100 text-stone-600 dark:bg-stone-800 dark:text-stone-400 rounded-2xl text-xs font-black shadow-sm hover:bg-stone-200 dark:hover:bg-stone-700 active:scale-95 transition-all flex items-center justify-center gap-3 uppercase tracking-widest disabled:opacity-50"
                         >
-                            {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
+                            {saving && submitAction === 'save' ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
                             SOLO GUARDAR
                         </button>
                         
@@ -126,9 +128,10 @@ export default function ContactForm({ onClose, onSubmit, initialData }: ContactF
                             type="submit"
                             name="save_and_quote"
                             disabled={saving}
+                            onClick={() => setSubmitAction('quote')}
                             className="flex-[1.5] py-5 bg-stone-900 text-white dark:bg-primary dark:text-primary-foreground rounded-2xl text-sm font-black shadow-xl shadow-stone-400/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-3 uppercase tracking-widest disabled:opacity-50 disabled:cursor-not-allowed border-2 border-transparent hover:border-primary/50"
                         >
-                            {saving ? (
+                            {saving && submitAction === 'quote' ? (
                                 <>
                                     <Loader2 className="w-5 h-5 animate-spin" />
                                     PROCESANDO...

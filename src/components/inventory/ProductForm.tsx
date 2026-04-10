@@ -9,7 +9,7 @@ interface ProductFormProps {
     isAdmin?: boolean;
 }
 
-const LENS_INDICES = ['1.5', '1.56', '1.59', '1.67', '1.74', 'Foto'];
+const LENS_INDICES = ['1.49', '1.50', '1.53', '1.56', '1.59', '1.60', '1.67', '1.74', 'Foto'];
 
 const PRODUCT_CATEGORIES: { id: string; label: string; icon: string; noStock?: boolean; subtypes?: string[] }[] = [
     {
@@ -36,7 +36,12 @@ export default function ProductForm({ onClose, onSuccess, isAdmin = false }: Pro
     const [selectedSubtype, setSelectedSubtype] = useState('');
 
     // Step 2 — single product details
-    const [formData, setFormData] = useState({ name: '', brand: '', model: '', stock: 0, price: 0, cost: 0, lensIndex: '', laboratory: '', sphereMin: '', sphereMax: '', cylinderMin: '', cylinderMax: '', additionMin: '', additionMax: '' });
+    const [formData, setFormData] = useState({ 
+        name: '', brand: '', model: '', stock: 0, price: 0, cost: 0, 
+        lensIndex: '', laboratory: '', sphereMin: '', sphereMax: '', 
+        cylinderMin: '', cylinderMax: '', additionMin: '', additionMax: '',
+        is2x1: false 
+    });
 
     // Step 2 — bulk CSV
     const [bulkText, setBulkText] = useState('');
@@ -76,6 +81,7 @@ export default function ProductForm({ onClose, onSuccess, isAdmin = false }: Pro
                 cylinderMax: isCristal && formData.cylinderMax !== '' ? parseFloat(formData.cylinderMax) : null,
                 additionMin: isCristal && formData.additionMin !== '' ? parseFloat(formData.additionMin) : null,
                 additionMax: isCristal && formData.additionMax !== '' ? parseFloat(formData.additionMax) : null,
+                is2x1: formData.is2x1
             };
             const res = await fetch('/api/products', {
                 method: 'POST',
@@ -275,16 +281,23 @@ export default function ProductForm({ onClose, onSuccess, isAdmin = false }: Pro
 
                             {/* Índice de refracción */}
                             <div className="space-y-2 col-span-2">
-                                <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest ml-4">Índice de Refracción</label>
-                                <div className="grid grid-cols-6 gap-2">
+                                <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest ml-4">🔬 Índice de Refracción</label>
+                                <input
+                                    type="text"
+                                    placeholder="Ej: 1.56, 1.67, Foto..."
+                                    value={formData.lensIndex}
+                                    onChange={e => setFormData({ ...formData, lensIndex: e.target.value })}
+                                    className="w-full px-6 py-4 bg-stone-50/50 dark:bg-stone-800/30 border border-stone-200 dark:border-stone-700 rounded-[1.5rem] font-bold text-sm outline-none focus:border-primary transition-all"
+                                />
+                                <div className="flex flex-wrap gap-1.5">
                                     {LENS_INDICES.map(idx => (
                                         <button
                                             key={idx}
                                             type="button"
                                             onClick={() => setFormData({ ...formData, lensIndex: idx })}
-                                            className={`py-3 rounded-2xl border-2 font-black text-xs uppercase tracking-tight transition-all ${formData.lensIndex === idx
-                                                ? 'bg-primary border-primary text-white shadow-lg scale-[1.03]'
-                                                : 'bg-white dark:bg-stone-800 border-stone-100 dark:border-stone-700 text-stone-500 hover:border-stone-300'
+                                            className={`px-3 py-1.5 rounded-lg border font-black text-[9px] uppercase tracking-tight transition-all ${formData.lensIndex === idx
+                                                ? 'bg-primary border-primary text-white shadow-md'
+                                                : 'bg-white dark:bg-stone-800 border-stone-200 dark:border-stone-700 text-stone-400 hover:border-primary/40 hover:text-primary'
                                                 }`}
                                         >
                                             {idx}
@@ -444,6 +457,20 @@ export default function ProductForm({ onClose, onSuccess, isAdmin = false }: Pro
                                 </div>
                             </div>
                             )}
+
+                            {/* Promoción 2x1 (Otros) */}
+                            <div className="col-span-2">
+                                <label className="flex items-center gap-4 p-5 bg-emerald-50/50 dark:bg-emerald-900/10 border-2 border-emerald-100 dark:border-emerald-800/30 rounded-[2rem] cursor-pointer hover:border-emerald-300 transition-all select-none">
+                                    <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${formData.is2x1 ? 'bg-emerald-500 border-emerald-500' : 'bg-white border-emerald-200'}`}>
+                                        {formData.is2x1 && <CheckCircle2 className="w-4 h-4 text-white" />}
+                                    </div>
+                                    <input type="checkbox" className="hidden" checked={formData.is2x1} onChange={e => setFormData({ ...formData, is2x1: e.target.checked })} />
+                                    <div className="flex-1">
+                                        <p className="text-xs font-black text-emerald-700 dark:text-emerald-400 uppercase tracking-widest">🎁 Promoción 2x1</p>
+                                        <p className="text-[10px] font-bold text-emerald-600/70">Este producto habilita el segundo armazón sin cargo</p>
+                                    </div>
+                                </label>
+                            </div>
 
                             {/* Precio Venta */}
                             <div className="space-y-2 col-span-2">

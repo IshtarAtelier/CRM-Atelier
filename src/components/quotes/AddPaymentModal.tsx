@@ -53,40 +53,68 @@ export default function AddPaymentModal({
         setReceiptFile(file);
         setReceiptPreview(URL.createObjectURL(file));
     };
-
     const handleSubmit = async () => {
-        if (!amount || parseFloat(amount) <= 0) {
-            setError('Ingresá un monto válido');
-            return;
-        }
-
         setIsSaving(true);
         setError(null);
 
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 20000); // 20s timeout
+
         try {
+            // Advanced cleaning for currency formats (supports: 785000, 785.000, 785,000.00, 785.000,00)
+            let sAmount = amount.toString().trim().replace(/\$/g, '').replace(/\s/g, '');
+            let parsedAmount: number;
+
+            const lastComma = sAmount.lastIndexOf(',');
+            const lastDot = sAmount.lastIndexOf('.');
+
+            if (lastComma > lastDot) {
+                // Format: 1.234,56
+                parsedAmount = parseFloat(sAmount.replace(/\./g, '').replace(',', '.'));
+            } else if (lastDot > lastComma) {
+                // Format: 1,234.56 or 1234.56 (standard float)
+                const firstDot = sAmount.indexOf('.');
+                if (firstDot !== lastDot) {
+                    // It has multiple dots like 1.234.567 -> treat all as thousands
+                     parsedAmount = parseFloat(sAmount.replace(/\./g, ''));
+                } else {
+                     parsedAmount = parseFloat(sAmount.replace(/,/g, ''));
+                }
+            } else {
+                // Just numbers or just one type of separator
+                parsedAmount = parseFloat(sAmount.replace(',', '.'));
+            }
+
+            if (isNaN(parsedAmount) || parsedAmount <= 0) {
+                throw new Error('Monto no válido. Ingresa solo números.');
+            }
+
             let receiptUrl = null;
 
-            // Upload receipt if exists
             if (receiptFile) {
                 const formData = new FormData();
                 formData.append('file', receiptFile);
-                const uploadRes = await fetch('/api/upload', { method: 'POST', body: formData });
+                const uploadRes = await fetch('/api/upload', { 
+                    method: 'POST', 
+                    body: formData,
+                    signal: controller.signal 
+                });
                 if (uploadRes.ok) {
                     const uploadData = await uploadRes.json();
                     receiptUrl = uploadData.url;
                 }
             }
 
-            const res = await fetch(`/api/contacts/${orderId}/payments`, {
+            const res = await fetch(`/api/orders/${orderId}/payments`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    amount: parseFloat(amount),
+                    amount: parsedAmount,
                     method,
                     notes,
-                    orderId,
                     receiptUrl
-                })
+                }),
+                signal: controller.signal
             });
 
             if (!res.ok) {
@@ -97,7 +125,14 @@ export default function AddPaymentModal({
             const payment = await res.json();
             onSuccess(payment);
         } catch (err: any) {
-            setError(err.message);
+            console.error('Submit Error:', err);
+            if (err.name === 'AbortError') {
+                setError('La conexión tardó demasiado. Por favor, reintentá.');
+            } else {
+                setError(err.message);
+            }
+        } finally {
+            clearTimeout(timeoutId);
             setIsSaving(false);
         }
     };
@@ -133,7 +168,7 @@ export default function AddPaymentModal({
                         <div className="relative max-w-xs mx-auto group">
                             <span className="absolute left-6 top-1/2 -translate-y-1/2 text-3xl font-black text-stone-600 group-focus-within:text-primary transition-colors">$</span>
                             <input 
-                                type="number" 
+                                type="text" 
                                 value={amount}
                                 onChange={(e) => setAmount(e.target.value)}
                                 className="w-full bg-white/5 border-2 border-white/10 focus:border-primary/50 rounded-[2rem] py-6 pl-12 pr-8 text-4xl font-black outline-none transition-all text-center tracking-tighter"
