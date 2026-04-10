@@ -24,7 +24,10 @@ interface QuoteSummaryProps {
         id: string;
         name: string;
         phone?: string | null;
+        dni?: string | null;
+        address?: string | null;
         status?: string;
+        prescriptions?: any[];
     };
     currentUserRole?: 'ADMIN' | 'STAFF';
     onConvert?: (orderId: string) => Promise<void>;

@@ -211,8 +211,7 @@ export default function ContactDetail({
                     {(activeSection === 'budget' || activeSection === 'sales') && (
                         <OrderManager 
                             contactId={contactId}
-                            contactName={contact.name}
-                            orders={contact.orders || []}
+                            contact={contact}
                             prescriptions={contact.prescriptions || []}
                             activeSection={activeSection as 'budget' | 'sales'}
                             currentUserRole={currentUserRole}

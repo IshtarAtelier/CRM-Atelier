@@ -10,8 +10,7 @@ import { calculateQuoteTotals } from '@/lib/promo-utils';
 
 interface OrderManagerProps {
     contactId: string;
-    contactName: string;
-    orders: any[];
+    contact: any; // Full contact object
     prescriptions: any[];
     activeSection: 'budget' | 'sales';
     currentUserRole: string;
@@ -23,8 +22,7 @@ interface OrderManagerProps {
 
 export default function OrderManager({
     contactId,
-    contactName,
-    orders,
+    contact,
     prescriptions,
     activeSection,
     currentUserRole,
@@ -33,6 +31,8 @@ export default function OrderManager({
     onAddPayment,
     onDeleteOrder
 }: OrderManagerProps) {
+    const orders = contact.orders || [];
+    const contactName = contact.name;
     const [isQuoting, setIsQuoting] = useState(false);
     const [savingQuote, setSavingQuote] = useState(false);
     const [isQuoteSuccess, setIsQuoteSuccess] = useState(false);
@@ -197,7 +197,7 @@ export default function OrderManager({
                         <QuoteSummary
                             key={order.id}
                             order={order}
-                            contact={{ id: contactId, name: contactName }}
+                            contact={contact}
                             currentUserRole={currentUserRole as any}
                             onConvert={onConvertOrder}
                             onAddPayment={onAddPayment}
