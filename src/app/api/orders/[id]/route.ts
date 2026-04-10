@@ -150,6 +150,21 @@ export async function PATCH(
             }, { status: 400 });
         }
 
+        // ── Guard: prevent editing items/pricing on SALE orders ──
+        // Lab status, notes, and frame measurements can still be updated on sales.
+        if (body.items) {
+            const existing = await prisma.order.findUnique({
+                where: { id },
+                select: { orderType: true }
+            });
+            if (existing?.orderType === 'SALE') {
+                return NextResponse.json(
+                    { error: 'No se pueden modificar los ítems de una venta confirmada. Solicitá reapertura al administrador.' },
+                    { status: 403 }
+                );
+            }
+        }
+
         const { 
             labStatus, labNotes, orderType, labOrderNumber, 
             frameSource, userFrameBrand, userFrameModel, userFrameNotes, 

@@ -46,15 +46,20 @@ export default function OrderManager({
     const [editingQuoteId, setEditingQuoteId] = useState<string | null>(null);
     const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null);
 
-    const handleStartQuote = async () => {
-        setIsQuoting(true);
-        setQuoteItems([]);
-        setEditingQuoteId(null);
+    // ── Shared: ensure products are loaded ──
+    const ensureProductsLoaded = async () => {
         if (availableProducts.length === 0) {
             const r = await fetch('/api/products');
             const data = await r.json();
             if (Array.isArray(data)) setAvailableProducts(data);
         }
+    };
+
+    const handleStartQuote = async () => {
+        setIsQuoting(true);
+        setQuoteItems([]);
+        setEditingQuoteId(null);
+        await ensureProductsLoaded();
     };
 
     const handleSaveQuote = async () => {
@@ -104,7 +109,10 @@ export default function OrderManager({
         }
     };
 
-    const handleEditQuote = (order: any) => {
+    const handleEditQuote = async (order: any) => {
+        // Only allow editing QUOTEs, never SALEs
+        if (order.orderType === 'SALE') return;
+
         setQuoteItems((order.items || []).map((it: any, idx: number) => ({
             product: it.product,
             quantity: it.quantity,
@@ -114,11 +122,14 @@ export default function OrderManager({
         })));
         setQuoteMarkup(order.markup || 0);
         setQuoteDiscountCash(order.discountCash ?? 20);
+        setQuoteDiscountTransfer(order.discountTransfer ?? 15);
+        setQuoteDiscountCard(order.discountCard ?? 0);
         setQuoteFrameSource(order.frameSource);
         setQuoteUserFrame({ brand: order.userFrameBrand || '', model: order.userFrameModel || '', notes: order.userFrameNotes || '' });
         setQuotePrescriptionId(order.prescriptionId || null);
         setEditingQuoteId(order.id);
         setIsQuoting(true);
+        await ensureProductsLoaded();
     };
 
     const relevantOrders = orders.filter(o => activeSection === 'sales' ? o.orderType === 'SALE' : o.orderType !== 'SALE');

@@ -50,6 +50,7 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "better-sqlite3": "^12.8.0",
     "eslint": "^9",
     "eslint-config-next": "15.1.11",
     "tailwindcss": "^4",
