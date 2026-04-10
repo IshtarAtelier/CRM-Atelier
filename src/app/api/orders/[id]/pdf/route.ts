@@ -3,6 +3,8 @@ import { prisma } from '@/lib/db';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(
     request: Request,
     { params }: { params: Promise<{ id: string }> }
@@ -28,7 +30,6 @@ export async function GET(
 
         const isSale = order.orderType === 'SALE';
         
-        // Defensive date formatting
         let dateStr = '';
         try {
             dateStr = format(new Date(order.createdAt), "dd 'de' MMMM, yyyy", { locale: es });
@@ -36,16 +37,10 @@ export async function GET(
             dateStr = new Date().toLocaleDateString('es-AR');
         }
 
-        const html = `
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <title>${isSale ? 'Venta' : 'Presupuesto'} #${order.id.slice(-6).toUpperCase()}</title>
-    const logoUrl = `https://crm-atelier-production-ae72.up.railway.app/assets/logo-atelier-optica.png`;
+        const logoUrl = `https://crm-atelier-production-ae72.up.railway.app/assets/logo-atelier-optica.png`;
 
-    const html = `<!DOCTYPE html><html><head><meta charset="utf-8">
-    <title>${isSale ? 'Venta' : 'Presupuesto'} #${order.id.slice(-6).toUpperCase()}</title>
+        const html = `<!DOCTYPE html><html><head><meta charset="utf-8">
+<title>${isSale ? 'Venta' : 'Presupuesto'} #${order.id.slice(-6).toUpperCase()}</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap');
   * { margin:0; padding:0; box-sizing:border-box; font-family:'Inter','Segoe UI',sans-serif; }
@@ -249,16 +244,12 @@ ${order.prescription ? `
 
 <div class='footer'>Atelier Óptica · José Luis de Tejeda 4380, Córdoba · Generado el ${format(new Date(), "d/MM/yyyy HH:mm", { locale: es })}</div>
 </body></html>`;
-</body>
-</html>
-        `;
 
         return new Response(html, {
             headers: { 'Content-Type': 'text/html' },
         });
     } catch (error: any) {
         console.error('Error generating budget view:', error);
-        // During debugging, we return the error message to identify production issues
-        return new Response(`Error interno del servidor: ${error.message || 'Unknown error'}. Trace: ${error.stack?.slice(0, 100)}`, { status: 500 });
+        return new Response(`Error interno del servidor: ${error.message}`, { status: 500 });
     }
 }
