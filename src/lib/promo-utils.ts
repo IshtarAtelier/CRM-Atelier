@@ -69,11 +69,12 @@ export const isMiPrimerVarilux = (p: any): boolean => {
  */
 export const isFrame = (p: any): boolean => {
     if (!p) return false;
-    const type = (p.type || '').toLowerCase();
-    const category = (p.category || '').toLowerCase();
-    return type.includes('armazón') || type.includes('armazon') || type.includes('marco') ||
-           category.includes('armazón') || category.includes('armazon') ||
-           category === 'frame' || type === 'frame' || category.includes('atelier');
+    // Robust normalization for keyword matching
+    const t = normalizeText(`${p.type || ''} ${p.category || ''}`);
+    const brand = normalizeText(p.brand || '');
+    
+    return t.includes('armazon') || t.includes('marco') || t.includes('frame') || 
+           brand.includes('atelier') || t.includes('atelier');
 };
 
 /**
@@ -84,29 +85,19 @@ export const isFrame = (p: any): boolean => {
  * Improved to check both Category (Prisma) and Type (Subcategory).
  */
 export function getCategoryKey(type: string | null, category?: string | null): string {
-    // 1. Check explicit Category first (from Prisma)
-    const cat = (category || '').toUpperCase();
-    if (cat === 'FRAME') return 'Armazón';
-    if (cat === 'LENS') return 'Cristal';
-    if (cat === 'SUNGLASS') return 'Lente de sol';
-    if (cat === 'ACCESSORY') return 'Accesorio';
-    if (cat === 'ATELIER') return 'Armazón'; // Special brand-category
+    const p = { type, category };
+    
+    if (isFrame(p)) return 'Armazón';
+    if (isCrystal(p)) return 'Cristal';
 
-    // 2. Fallback to Type string parsing
-    if (!type) return 'Otros';
-    const t = type.toLowerCase();
-    if (t.includes('armazón') || t.includes('armazon') || t.includes('marco') || t.includes('frame')) return 'Armazón';
-    if (t.includes('cristal') || t.includes('monofocal') || t.includes('multifocal') || t.includes('bifocal') || t.includes('ocupacional') || t.includes('coquil') || t.includes('progresivo') || t.includes('lente')) {
-        if (t.includes('contacto')) return 'Lente de contacto';
-        if (t.includes('sol')) return 'Lente de sol';
-        return 'Cristal';
-    }
-    if (t.includes('lente de sol') || t.includes('sol')) return 'Lente de sol';
-    if (t.includes('lente de contacto') || t.includes('contacto')) return 'Lente de contacto';
+    // Fallbacks for other specific types
+    const t = normalizeText(type || '');
+    if (t.includes('sol')) return 'Lente de sol';
+    if (t.includes('contacto')) return 'Lente de contacto';
     if (t.includes('accesorio')) return 'Accesorio';
     if (t.includes('reloj')) return 'Reloj';
-    if (t.includes('líquido') || t.includes('solución') || t.includes('liquido') || t.includes('solucion')) return 'Líquido / Solución';
-    if (t.includes('joyería') || t.includes('joyeria')) return 'Joyería';
+    if (t.includes('líquido') || t.includes('solución') || t.includes('liquido')) return 'Líquido / Solución';
+    if (t.includes('joyeria')) return 'Joyería';
     
     return 'Otros';
 }

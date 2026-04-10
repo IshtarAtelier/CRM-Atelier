@@ -47,8 +47,9 @@ function backup() {
 
   // Verificar que existe la DB
   if (!fs.existsSync(DB_PATH)) {
-    console.error('❌ No se encontró la base de datos en:', DB_PATH);
-    process.exit(1);
+    console.warn('⚠️ No se encontró la base de datos SQLite en:', DB_PATH);
+    console.warn('   Saltando backup (Probablemente usando Postgres u otra DB)');
+    return null;
   }
 
   // Crear directorio de backups si no existe

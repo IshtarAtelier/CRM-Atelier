@@ -31,9 +31,15 @@ export async function POST(request: Request) {
         return NextResponse.json(contact);
     } catch (error: any) {
         console.error('Error creating contact:', error);
+        
+        let detail = error.message;
+        if (detail.includes('Unique constraint failed')) {
+            detail = 'El Email o DNI ya están registrados para otro contacto.';
+        }
+
         return NextResponse.json({
             error: 'Error al crear contacto',
-            details: error.message
+            details: detail
         }, { status: 500 });
     }
 }

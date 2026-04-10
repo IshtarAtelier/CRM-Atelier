@@ -98,7 +98,7 @@ export default function CotizadorCart({
     }, [availableProducts]);
     
     const flattenedFrames = items.flatMap(i => {
-        if (!i.product || getCategoryKey(i.product.type, i.product.category) !== 'Armazón') return [];
+        if (!i.product || !isFrame(i.product)) return [];
         return Array.from({ length: i.quantity || 1 }).map((_, idx) => ({ ...i, virtualIdx: idx }));
     });
     const sortedFrames = [...flattenedFrames].sort((a, b) => safePrice(b.customPrice) - safePrice(a.customPrice));
@@ -132,7 +132,7 @@ export default function CotizadorCart({
         return words.every(w => haystack.includes(w));
     }).slice(0, 8) : [];
 
-    const framesInQuote = items.filter(i => i.product && getCategoryKey(i.product.type, i.product.category) === 'Armazón');
+    const framesInQuote = items.filter(i => i.product && isFrame(i.product));
 
     const handleAddItem = (product: any) => {
         if (isCrystal(product)) {

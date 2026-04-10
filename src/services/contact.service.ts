@@ -560,6 +560,29 @@ export const ContactService = {
         });
     },
 
+    async deletePayment(paymentId: string) {
+        return await prisma.$transaction(async (tx) => {
+            const payment = await tx.payment.findUnique({
+                where: { id: paymentId }
+            });
+
+            if (!payment) throw new Error('Pago no encontrado');
+
+            // Decrementar lo pagado en la orden
+            await tx.order.update({
+                where: { id: payment.orderId },
+                data: {
+                    paid: { decrement: payment.amount }
+                }
+            });
+
+            // Eliminar el registro de pago
+            return await tx.payment.delete({
+                where: { id: paymentId }
+            });
+        });
+    },
+
     async canCloseSale(clientId: string) {
         const client = await prisma.client.findUnique({
             where: { id: clientId },
