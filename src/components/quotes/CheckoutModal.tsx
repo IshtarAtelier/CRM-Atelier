@@ -313,11 +313,25 @@ export default function CheckoutModal({
                                         <select 
                                             value={paymentMethod}
                                             onChange={e => setPaymentMethod(e.target.value)}
-                                            className="w-full bg-white dark:bg-stone-900 border border-stone-200 p-3 rounded-xl text-sm font-bold"
+                                            className="w-full bg-white dark:bg-stone-900 border border-stone-200 p-3 rounded-xl text-sm font-bold appearance-none bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2216%22%20height%3D%2216%22%20viewBox%3D%220%200%2024%2024%20fill%3D%22none%22%20stroke%3D%22currentColor%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22m6%209%206%206%206-6%22%2F%3E%3C%2Fsvg%3E')] bg-[length:1rem_1rem] bg-[right_1rem_center] bg-no-repeat"
                                         >
-                                            <option value="EFECTIVO">Efectivo 💵</option>
-                                            <option value="TRANSFERENCIA">Transferencia 🏦</option>
-                                            <option value="TARJETA">Tarjeta / Cuotas 💳</option>
+                                            <optgroup label="Efectivo y Transferencias">
+                                                <option value="EFECTIVO">Efectivo 💵</option>
+                                                <option value="TRANSFERENCIA_ISHTAR">Transferencia Ishtar (Empresa) 🏦</option>
+                                                <option value="TRANSFERENCIA_LUCIA">Transferencia Lucía 🏦</option>
+                                                <option value="TRANSFERENCIA_ALTERNATIVA">Transferencia Alternativa 🏦</option>
+                                            </optgroup>
+                                            <optgroup label="Cuotas y Tarjetas (Pay Way)">
+                                                <option value="PAY_WAY_6_ISH">Pay Way 6 Ish 💳</option>
+                                                <option value="PAY_WAY_3_ISH">Pay Way 3 Ish 💳</option>
+                                                <option value="PAY_WAY_6_YANI">Pay Way 6 Yani 💳</option>
+                                                <option value="PAY_WAY_3_YANI">Pay Way 3 Yani 💳</option>
+                                            </optgroup>
+                                            <optgroup label="Otras Financiaciones">
+                                                <option value="GO_CUOTAS">Go Cuotas 📱</option>
+                                                <option value="NARANJA_Z_ISH">Naranja Z Ish 🍊</option>
+                                                <option value="NARANJA_Z_YANI">Naranja Z Yani 🍊</option>
+                                            </optgroup>
                                         </select>
                                     </div>
                                 </div>
