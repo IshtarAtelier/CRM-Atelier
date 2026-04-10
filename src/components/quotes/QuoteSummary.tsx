@@ -369,7 +369,13 @@ export default function QuoteSummary({
                     <div className="pt-4 grid grid-cols-1 sm:grid-cols-4 gap-3">
                         {isQuote ? (
                             <button 
-                                onClick={() => setShowPayment(true)} 
+                                onClick={() => {
+                                    if (order.paid > 0) {
+                                        setShowCheckout(true);
+                                    } else {
+                                        setShowPayment(true);
+                                    }
+                                }} 
                                 className="sm:col-span-4 py-4 bg-emerald-500 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-2"
                             >
                                 <CheckCircle2 className="w-5 h-5" /> CONVERTIR EN VENTA

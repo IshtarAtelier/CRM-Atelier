@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { ShoppingBag, X, Minus, Plus } from 'lucide-react';
-import { isMultifocal2x1, isCrystal, safePrice } from '@/lib/promo-utils';
+import { isMultifocal2x1, isCrystal, isFrame, getCategoryKey, safePrice } from '@/lib/promo-utils';
 
 interface CartLineItemsProps {
     items: any[];
@@ -50,7 +50,7 @@ export default function CartLineItems({
                             )}
                         </p>
                         <p className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">
-                            {item.product.type || item.product.category}
+                            {getCategoryKey(item.product.type, item.product.category)}
                             {item.isPromo && <span className="text-emerald-500 ml-2">† SIN CARGO 2x1</span>}
                         </p>
                     </div>

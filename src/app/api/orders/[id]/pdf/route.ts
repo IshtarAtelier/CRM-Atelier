@@ -5,11 +5,12 @@ import { es } from 'date-fns/locale';
 
 export async function GET(
     request: Request,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
+        const { id } = await params;
         const order = await prisma.order.findUnique({
-            where: { id: params.id },
+            where: { id },
             include: {
                 contact: true,
                 items: {
@@ -37,10 +38,10 @@ export async function GET(
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
         body { font-family: 'Inter', sans-serif; color: #1c1917; line-height: 1.5; margin: 0; padding: 40px; }
-        .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 40px; border-bottom: 2px solid #f5f5f4; pb-20px; }
+        .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 40px; border-bottom: 2px solid #f5f5f4; padding-bottom: 20px; }
         .logo { font-size: 24px; font-weight: 900; letter-spacing: -1px; text-transform: uppercase; }
         .logo span { color: #f97316; }
-        .info-grid { display: grid; grid-cols: 2; gap: 40px; margin-bottom: 40px; }
+        .info-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 40px; margin-bottom: 40px; }
         .section-title { font-size: 10px; font-weight: 900; color: #a8a29e; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 8px; }
         table { width: 100%; border-collapse: collapse; margin-bottom: 40px; }
         th { text-align: left; font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: 1px; color: #a8a29e; border-bottom: 1px solid #f5f5f4; padding: 12px 0; }
@@ -74,11 +75,11 @@ export async function GET(
     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-bottom: 40px;">
         <div>
             <div class="section-title">Cliente</div>
-            <div style="font-weight: 700;">${order.contact.name}</div>
+            <div style="font-weight: 700;">${order.contact?.name || 'Cliente'}</div>
             <div style="font-size: 13px; color: #78716c;">
-                ${order.contact.dni ? `DNI: ${order.contact.dni}<br>` : ''}
-                ${order.contact.phone ? `Tel: ${order.contact.phone}<br>` : ''}
-                ${order.contact.address || ''}
+                ${order.contact?.dni ? `DNI: ${order.contact.dni}<br>` : ''}
+                ${order.contact?.phone ? `Tel: ${order.contact.phone}<br>` : ''}
+                ${order.contact?.address || ''}
             </div>
         </div>
         <div style="text-align: right">
@@ -97,15 +98,15 @@ export async function GET(
             </tr>
         </thead>
         <tbody>
-            ${order.items.map((it: any) => `
+            ${(order.items || []).map((it: any) => `
                 <tr>
                     <td>
                         <div class="item-name">${it.product?.brand || ''} ${it.product?.model || it.product?.name || ''}</div>
                         ${it.eye ? `<div class="item-details">Ojo: ${it.eye}</div>` : ''}
                     </td>
                     <td style="text-align: center">${it.quantity}</td>
-                    <td style="text-align: right">$${it.price.toLocaleString()}</td>
-                    <td style="text-align: right font-weight: 700">$${(it.price * it.quantity).toLocaleString()}</td>
+                    <td style="text-align: right">$${(Number(it.price) || 0).toLocaleString()}</td>
+                    <td style="text-align: right; font-weight: 700">$${(Number(it.price * it.quantity) || 0).toLocaleString()}</td>
                 </tr>
             `).join('')}
         </tbody>
@@ -114,26 +115,26 @@ export async function GET(
     <div class="totals">
         <div class="total-row" style="color: #78716c;">
             <span>Subtotal</span>
-            <span>$${(order.total + (order.discount || 0)).toLocaleString()}</span>
+            <span>$${(Number(order.total) + (Number(order.discount) || 0)).toLocaleString()}</span>
         </div>
         ${order.discount ? `
             <div class="total-row" style="color: #10b981; font-weight: 700;">
                 <span>Bonificaciones</span>
-                <span>-$${order.discount.toLocaleString()}</span>
+                <span>-$${(Number(order.discount) || 0).toLocaleString()}</span>
             </div>
         ` : ''}
         <div class="total-row grand">
             <span>TOTAL</span>
-            <span>$${order.total.toLocaleString()}</span>
+            <span>$${(Number(order.total) || 0).toLocaleString()}</span>
         </div>
         ${order.paid > 0 ? `
             <div class="total-row" style="color: #f97316; font-weight: 700; padding-top: 10px;">
                 <span>PAGADO</span>
-                <span>$${order.paid.toLocaleString()}</span>
+                <span>$${(Number(order.paid) || 0).toLocaleString()}</span>
             </div>
             <div class="total-row" style="font-size: 18px; font-weight: 900; margin-top: 5px;">
                 <span>SALDO</span>
-                <span>$${(order.total - order.paid).toLocaleString()}</span>
+                <span>$${(Number(order.total) - Number(order.paid)).toLocaleString()}</span>
             </div>
         ` : ''}
     </div>
