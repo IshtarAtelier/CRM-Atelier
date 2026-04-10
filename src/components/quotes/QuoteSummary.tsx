@@ -13,8 +13,9 @@ import { safePrice } from '@/lib/promo-utils';
 
 // Modular Components
 import QuoteLineItems from './QuoteLineItems';
-import QuotePrescription from './QuotePrescription';
+import PrescriptionDetails from '../prescriptions/PrescriptionDetails';
 import CheckoutModal from './CheckoutModal';
+import AddPaymentModal from './AddPaymentModal';
 
 interface QuoteSummaryProps {
     order: any;
@@ -53,6 +54,7 @@ export default function QuoteSummary({
     onEdit
 }: QuoteSummaryProps) {
     const [showCheckout, setShowCheckout] = React.useState(false);
+    const [showPayment, setShowPayment] = React.useState(false);
 
     if (compact) {
         const total = order.total || 0;
@@ -246,7 +248,7 @@ export default function QuoteSummary({
                     appliedPromoName={order.appliedPromoName}
                 />
 
-                <QuotePrescription prescription={order.prescription} />
+                <PrescriptionDetails prescription={order.prescription} />
 
                 {order.frameSource && (
                     <div className="flex items-center gap-4 p-5 bg-amber-50/50 dark:bg-amber-950/20 border-2 border-amber-200/50 dark:border-amber-900/50 rounded-[2rem]">
@@ -289,7 +291,7 @@ export default function QuoteSummary({
                     <div className="pt-4 grid grid-cols-1 sm:grid-cols-4 gap-3">
                         {isQuote ? (
                             <button 
-                                onClick={() => setShowCheckout(true)} 
+                                onClick={() => setShowPayment(true)} 
                                 className="sm:col-span-4 py-4 bg-emerald-500 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-2"
                             >
                                 <CheckCircle2 className="w-5 h-5" /> CONVERTIR EN VENTA
@@ -314,7 +316,7 @@ export default function QuoteSummary({
                             WhatsApp
                         </button>
                         <button 
-                            onClick={() => setShowCheckout(true)}
+                            onClick={() => setShowPayment(true)}
                             className="py-3 bg-amber-50 text-amber-600 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-amber-100 transition-all"
                         >
                             Abonar
@@ -330,6 +332,22 @@ export default function QuoteSummary({
                 )}
             </main>
 
+            {showPayment && (
+                <AddPaymentModal
+                    orderId={order.id}
+                    totalAmount={order.total || 0}
+                    paidAmount={order.paid || 0}
+                    onClose={() => setShowPayment(false)}
+                    onSuccess={async () => {
+                        if (onRefreshContact) {
+                            await onRefreshContact();
+                        }
+                        setShowPayment(false);
+                        setShowCheckout(true);
+                    }}
+                />
+            )}
+
             {showCheckout && (
                 <CheckoutModal 
                     order={order}
@@ -337,7 +355,7 @@ export default function QuoteSummary({
                     onClose={() => setShowCheckout(false)}
                     onComplete={async (data) => {
                         if (onConvert) {
-                            await onConvert(order.id);
+                            await onConvert(order.id, { prescriptionId: data.prescriptionId });
                             setShowCheckout(false);
                         }
                     }}

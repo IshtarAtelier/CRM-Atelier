@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import PrescriptionDetails from '../prescriptions/PrescriptionDetails';
 
 interface PrescriptionManagerProps {
     contact: any;
@@ -345,16 +346,8 @@ export default function PrescriptionManager({
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                            {/* Simplified summary boxes for Prescription History items */}
-                            <div className="bg-stone-50 p-3 rounded-2xl">
-                                <span className="text-[8px] text-stone-400 font-extrabold uppercase block mb-1">OD</span>
-                                <p className="text-xs font-black">{pres.sphereOD} / {pres.cylinderOD} x {pres.axisOD}°</p>
-                            </div>
-                            <div className="bg-stone-50 p-3 rounded-2xl">
-                                <span className="text-[8px] text-stone-400 font-extrabold uppercase block mb-1">OI</span>
-                                <p className="text-xs font-black">{pres.sphereOI} / {pres.cylinderOI} x {pres.axisOI}°</p>
-                            </div>
+                        <div className="mt-4">
+                            <PrescriptionDetails prescription={pres} />
                         </div>
                     </div>
                 ))}

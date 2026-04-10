@@ -132,7 +132,7 @@ export default function LoginPage() {
                             <button
                                 type="submit"
                                 disabled={isLoading}
-                                className="w-full flex justify-center py-3 px-4 border border-transparent rounded-xl shadow-sm text-sm font-medium text-primary-foreground bg-primary hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary focus:ring-offset-background transition-all disabled:opacity-50 disabled:cursor-not-allowed items-center gap-2"
+                                className="w-full flex justify-center py-4 px-4 border border-transparent rounded-2xl shadow-xl text-sm font-black text-primary-foreground bg-primary hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-all disabled:opacity-50 disabled:cursor-not-allowed items-center gap-2 uppercase tracking-widest italic"
                             >
                                 {isLoading ? (
                                     <div className="w-5 h-5 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
@@ -143,6 +143,28 @@ export default function LoginPage() {
                                 )}
                             </button>
                         </div>
+
+                        {process.env.NODE_ENV === 'development' && (
+                            <div className="pt-2">
+                                <button
+                                    type="button"
+                                    onClick={async () => {
+                                        setIsLoading(true);
+                                        const res = await fetch("/api/auth/login", {
+                                            method: "POST",
+                                            headers: { "Content-Type": "application/json" },
+                                            body: JSON.stringify({ email: 'ishtar', password: 'local-admin-ishtar' }),
+                                        });
+                                        if (res.ok) router.push("/");
+                                        else setError("Error bypass local");
+                                        setIsLoading(false);
+                                    }}
+                                    className="w-full flex justify-center py-3 px-4 border-2 border-primary/20 rounded-2xl shadow-sm text-[10px] font-black text-primary bg-white hover:bg-primary/5 transition-all items-center gap-2 uppercase tracking-[0.2em]"
+                                >
+                                    🚀 Ingreso Local Admin (Bypass)
+                                </button>
+                            </div>
+                        )}
                     </form>
 
                     <div className="mt-6 text-center">

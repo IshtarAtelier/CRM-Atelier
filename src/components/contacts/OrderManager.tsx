@@ -16,7 +16,7 @@ interface OrderManagerProps {
     activeSection: 'budget' | 'sales';
     currentUserRole: string;
     onRefresh: () => void;
-    onConvertOrder: (orderId: string) => void;
+    onConvertOrder: (orderId: string, data?: any) => void;
     onAddPayment: (orderId: string) => void;
 }
 

@@ -85,13 +85,16 @@ export default function ContactDetail({
         if (success) fetchContact();
     };
 
-    const handleConvertOrder = async (orderId: string) => {
+    const handleConvertOrder = async (orderId: string, conversionData?: any) => {
         // Direct conversion - the CheckoutModal in QuoteSummary already handled validation & payment
         try {
             const res = await fetch(`/api/orders/${orderId}`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ orderType: 'SALE' }),
+                body: JSON.stringify({ 
+                    orderType: 'SALE',
+                    prescriptionId: conversionData?.prescriptionId 
+                }),
             });
             if (!res.ok) {
                 const errData = await res.json();
