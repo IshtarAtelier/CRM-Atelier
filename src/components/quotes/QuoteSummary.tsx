@@ -370,7 +370,10 @@ export default function QuoteSummary({
                         {isQuote ? (
                             <button 
                                 onClick={() => {
-                                    if (order.paid > 0) {
+                                    const hasPayment = (Number(order.paid) || 0) > 0 || (order.payments && order.payments.length > 0);
+                                    console.log('QuoteSummary: Convertir - paid:', order.paid, 'hasPayment:', hasPayment);
+                                    
+                                    if (hasPayment) {
                                         setShowCheckout(true);
                                     } else {
                                         setShowPayment(true);

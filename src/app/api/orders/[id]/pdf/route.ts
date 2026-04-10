@@ -27,7 +27,14 @@ export async function GET(
         }
 
         const isSale = order.orderType === 'SALE';
-        const dateStr = format(new Date(order.createdAt), "dd 'de' MMMM, yyyy", { locale: es });
+        
+        // Defensive date formatting
+        let dateStr = '';
+        try {
+            dateStr = format(new Date(order.createdAt), "dd 'de' MMMM, yyyy", { locale: es });
+        } catch (e) {
+            dateStr = new Date().toLocaleDateString('es-AR');
+        }
 
         const html = `
 <!DOCTYPE html>
@@ -160,8 +167,9 @@ export async function GET(
         return new Response(html, {
             headers: { 'Content-Type': 'text/html' },
         });
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error generating budget view:', error);
-        return new Response('Error interno del servidor', { status: 500 });
+        // During debugging, we return the error message to identify production issues
+        return new Response(`Error interno del servidor: ${error.message || 'Unknown error'}. Trace: ${error.stack?.slice(0, 100)}`, { status: 500 });
     }
 }
