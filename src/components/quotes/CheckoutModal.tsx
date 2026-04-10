@@ -136,7 +136,7 @@ export default function CheckoutModal({
                                                 {it.eye && <span className="text-[10px] font-black text-primary uppercase">{it.eye}</span>}
                                             </div>
                                         </div>
-                                        <span className="text-sm font-black text-stone-900 dark:text-white">${(it.price * it.quantity).toLocaleString()}</span>
+                                        <span className="text-sm font-black text-stone-900 dark:text-white">${(Number(it.price || 0) * Number(it.quantity || 1)).toLocaleString()}</span>
                                     </div>
                                 ))}
                                 
@@ -154,19 +154,19 @@ export default function CheckoutModal({
                             <div className="mt-8 grid grid-cols-2 sm:grid-cols-4 gap-4 border-t border-stone-100 dark:border-stone-800 pt-6">
                                 <div>
                                     <p className="text-[10px] font-black text-stone-400 uppercase tracking-widest mb-1">Subtotal</p>
-                                    <p className="text-xl font-black text-stone-800 dark:text-white">${(order.total + (order.discount || 0)).toLocaleString()}</p>
+                                    <p className="text-xl font-black text-stone-800 dark:text-white">${(Number(order.total || 0) + Number(order.discount || 0)).toLocaleString()}</p>
                                 </div>
                                 <div>
                                     <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest mb-1">Bonif. 2x1</p>
-                                    <p className="text-xl font-black text-emerald-600">-${(order.discount || 0).toLocaleString()}</p>
+                                    <p className="text-xl font-black text-emerald-600">-${Number(order.discount || 0).toLocaleString()}</p>
                                 </div>
                                 <div>
                                     <p className="text-[10px] font-black text-primary uppercase tracking-widest mb-1">Pagado</p>
-                                    <p className="text-xl font-black text-primary">${order.paid.toLocaleString()}</p>
+                                    <p className="text-xl font-black text-primary">${Number(order.paid || 0).toLocaleString()}</p>
                                 </div>
                                 <div className="text-right">
                                     <p className="text-[10px] font-black text-amber-500 uppercase tracking-widest mb-1">A cobrar</p>
-                                    <p className="text-xl font-black text-amber-600">${balance.toLocaleString()}</p>
+                                    <p className="text-xl font-black text-amber-600">${Number(balance || 0).toLocaleString()}</p>
                                 </div>
                             </div>
                         </div>

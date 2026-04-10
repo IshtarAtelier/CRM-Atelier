@@ -439,11 +439,23 @@ export default function QuoteSummary({
                     totalAmount={order.total || 0}
                     paidAmount={order.paid || 0}
                     onClose={() => setShowPayment(false)}
-                    onSuccess={async () => {
+                    onSuccess={async (payment: any) => {
+                        // Optimistic Update: Update the local order object immediately
+                        // This ensures the CheckoutModal sees the payment even before the refresh finishes
+                        if (order) {
+                            order.paid = (Number(order.paid) || 0) + (Number(payment.amount) || 0);
+                            if (!order.payments) order.payments = [];
+                            order.payments.push(payment);
+                        }
+
                         setShowPayment(false);
+                        
+                        // Wait for the server refresh but we don't block the UI transition
                         if (onRefreshContact) {
                             await onRefreshContact();
                         }
+                        
+                        // Now show checkout with (hopefully refreshed) but definitely optimistically updated data
                         setShowCheckout(true);
                     }}
                 />
