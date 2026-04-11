@@ -40,7 +40,7 @@ export async function GET(
             dateStr = new Date().toLocaleDateString('es-AR');
         }
 
-        const logoUrl = `https://crm-atelier-production-ae72.app.railway.com/assets/logo-atelier-optica.png`;
+        const logoUrl = `https://crm-atelier-production-ae72.up.railway.app/assets/logo-atelier-optica.png`;
         
         // Brand Colors
         const brandBeige = '#D4C3B5';
