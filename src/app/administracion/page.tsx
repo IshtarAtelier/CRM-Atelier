@@ -165,6 +165,27 @@ export default function AdministracionPage() {
         setLoading(false);
     };
 
+    const handleDeletePayment = async (paymentId: string) => {
+        if (!confirm('¿Estás seguro que querés eliminar este pago? Esta acción no se puede deshacer.')) return;
+        try {
+            const res = await fetch(`/api/payments/${paymentId}`, {
+                method: 'DELETE'
+            });
+            const text = await res.text();
+            let json;
+            try { json = JSON.parse(text); } catch(e) { json = { error: 'Error del servidor al eliminar' }; }
+            
+            if (!res.ok || json.error) {
+                alert(json.error || 'Error al eliminar pago');
+            } else {
+                fetchPayments(dateFrom || undefined, dateTo || undefined, selectedMethod || undefined);
+                fetchCashData();
+            }
+        } catch (err: any) {
+            alert('Error al intentar eliminar: ' + err.message);
+        }
+    };
+
     const applyPreset = (preset: string) => {
         setActivePreset(preset);
         if (preset === 'all') {
@@ -507,17 +528,26 @@ export default function AdministracionPage() {
                                                         </p>
                                                     </td>
                                                     <td className="px-8 py-5 text-center">
-                                                        {p.receiptUrl ? (
+                                                        <div className="flex items-center justify-center gap-2">
+                                                            {p.receiptUrl ? (
+                                                                <button 
+                                                                    onClick={() => setViewingReceipt(p.receiptUrl)}
+                                                                    className="w-10 h-10 bg-primary/10 text-primary rounded-xl flex items-center justify-center hover:bg-primary hover:text-white transition-all shadow-sm"
+                                                                    title="Ver Comprobante"
+                                                                >
+                                                                    <Eye size={18} />
+                                                                </button>
+                                                            ) : (
+                                                                <span className="text-[10px] w-10 h-10 flex items-center justify-center font-bold text-stone-300 italic">N/D</span>
+                                                            )}
                                                             <button 
-                                                                onClick={() => setViewingReceipt(p.receiptUrl)}
-                                                                className="w-10 h-10 bg-primary/10 text-primary rounded-xl flex items-center justify-center hover:bg-primary hover:text-white transition-all mx-auto shadow-sm"
-                                                                title="Ver Comprobante"
+                                                                onClick={() => handleDeletePayment(p.id)}
+                                                                className="w-10 h-10 bg-red-50 text-red-500 rounded-xl flex items-center justify-center hover:bg-red-500 hover:text-white transition-all shadow-sm"
+                                                                title="Eliminar Pago manualmente"
                                                             >
-                                                                <Eye size={18} />
+                                                                <Trash2 size={18} />
                                                             </button>
-                                                        ) : (
-                                                            <span className="text-[10px] font-bold text-stone-300 italic">No disponible</span>
-                                                        )}
+                                                        </div>
                                                     </td>
                                                 </tr>
                                             );

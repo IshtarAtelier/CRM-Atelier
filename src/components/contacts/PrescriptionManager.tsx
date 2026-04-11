@@ -12,7 +12,7 @@ import { resolveStorageUrl } from '@/lib/utils/storage';
 interface PrescriptionManagerProps {
     contact: any;
     onRefresh: () => void;
-    // For Quote → Sale conversion flow
+    // For Quote -> Sale conversion flow
     conversionOrderId?: string | null;
     onConversionComplete?: (rxId: string) => void;
     onCloseConversion?: () => void;
@@ -87,7 +87,6 @@ export default function PrescriptionManager({
         });
     };
 
-    // BUG FIX 2: Robust Numerical Duplicate Check
     const findDuplicate = () => {
         if (!contact.prescriptions) return null;
 
@@ -97,10 +96,8 @@ export default function PrescriptionManager({
         };
 
         return contact.prescriptions.find((p: any) => {
-            // Check image URL (can be null/empty)
             if ((p.imageUrl || '') !== (form.imageUrl || '')) return false;
 
-            // Numeric fields comparison with tolerance
             const fields = [
                 [p.sphereOD, form.sphereOD], [p.cylinderOD, form.cylinderOD], [p.axisOD, form.axisOD],
                 [p.sphereOI, form.sphereOI], [p.cylinderOI, form.cylinderOI], [p.axisOI, form.axisOI],
@@ -165,7 +162,6 @@ export default function PrescriptionManager({
             return;
         }
         
-        // Use the ID we just saved in handleSave, or find it if we came from a different path
         const rxId = savedRxId || findDuplicate()?.id;
         
         if (!rxId) {
@@ -177,8 +173,6 @@ export default function PrescriptionManager({
         setError(null);
         
         try {
-            console.log('Iniciando conversión a venta...', { conversionOrderId, rxId });
-            
             const res = await fetch(`/api/orders/${conversionOrderId}`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
@@ -194,8 +188,6 @@ export default function PrescriptionManager({
                 throw new Error(data.error || "Error al convertir venta");
             }
             
-            console.log('Conversión exitosa:', data);
-            
             onConversionComplete?.(rxId);
             onRefresh();
             resetForm();
@@ -210,7 +202,7 @@ export default function PrescriptionManager({
     const renderForm = () => (
         <div className="space-y-6">
             <h3 className="text-xl font-black text-stone-800 dark:text-white tracking-tighter flex items-center gap-2">
-                📋 {conversionOrderId ? 'Cargar Receta para Venta' : 'Nueva Receta'}
+                {conversionOrderId ? 'Cargar Receta para Venta' : 'Nueva Receta'}
             </h3>
 
             {contact.prescriptions?.length > 0 && (
@@ -234,9 +226,8 @@ export default function PrescriptionManager({
             )}
 
             <div className="grid grid-cols-1 gap-4">
-                {/* OD */}
                 <div>
-                    <p className="text-[9px] font-black text-emerald-600 uppercase tracking-widest mb-2">👁️ Ojo Derecho (OD)</p>
+                    <p className="text-[9px] font-black text-emerald-600 uppercase tracking-widest mb-2">Ojo Derecho (OD)</p>
                     <div className="grid grid-cols-4 gap-2">
                         {['sphereOD', 'cylinderOD', 'axisOD', 'additionOD'].map(f => (
                             <div key={f}>
@@ -246,9 +237,8 @@ export default function PrescriptionManager({
                         ))}
                     </div>
                 </div>
-                {/* OI */}
                 <div>
-                    <p className="text-[9px] font-black text-blue-600 uppercase tracking-widest mb-2">👁️ Ojo Izquierdo (OI)</p>
+                    <p className="text-[9px] font-black text-blue-600 uppercase tracking-widest mb-2">Ojo Izquierdo (OI)</p>
                     <div className="grid grid-cols-4 gap-2">
                         {['sphereOI', 'cylinderOI', 'axisOI', 'additionOI'].map(f => (
                             <div key={f}>
@@ -258,17 +248,16 @@ export default function PrescriptionManager({
                         ))}
                     </div>
                 </div>
-                {/* DNP + Altura */}
                 <div className="grid grid-cols-2 gap-4">
                     <div>
-                        <p className="text-[9px] font-black text-violet-600 uppercase tracking-widest mb-2">📏 DNP</p>
+                        <p className="text-[9px] font-black text-violet-600 uppercase tracking-widest mb-2">DNP</p>
                         <div className="grid grid-cols-2 gap-2">
                             <input type="number" step="0.5" value={form.distanceOD} onChange={e => setForm(p => ({...p, distanceOD: e.target.value}))} className="w-full bg-stone-50 dark:bg-stone-900 border border-stone-200 p-2.5 rounded-xl text-sm font-bold text-center" placeholder="OD" />
                             <input type="number" step="0.5" value={form.distanceOI} onChange={e => setForm(p => ({...p, distanceOI: e.target.value}))} className="w-full bg-stone-50 dark:bg-stone-900 border border-stone-200 p-2.5 rounded-xl text-sm font-bold text-center" placeholder="OI" />
                         </div>
                     </div>
                     <div>
-                        <p className="text-[9px] font-black text-amber-600 uppercase tracking-widest mb-2">📐 Altura</p>
+                        <p className="text-[9px] font-black text-amber-600 uppercase tracking-widest mb-2">Altura</p>
                         <div className="grid grid-cols-2 gap-2">
                             <input type="number" step="0.5" value={form.heightOD} onChange={e => setForm(p => ({...p, heightOD: e.target.value}))} className="w-full bg-stone-50 dark:bg-stone-900 border border-stone-200 p-2.5 rounded-xl text-sm font-bold text-center" placeholder="OD" />
                             <input type="number" step="0.5" value={form.heightOI} onChange={e => setForm(p => ({...p, heightOI: e.target.value}))} className="w-full bg-stone-50 dark:bg-stone-900 border border-stone-200 p-2.5 rounded-xl text-sm font-bold text-center" placeholder="OI" />
@@ -277,7 +266,7 @@ export default function PrescriptionManager({
                 </div>
 
                 <div>
-                    <label className="text-[9px] font-black text-red-500 uppercase tracking-widest block mb-2">📷 Foto de la receta (OBLIGATORIA)</label>
+                    <label className="text-[9px] font-black text-red-500 uppercase tracking-widest block mb-2">Foto de la receta (OBLIGATORIA)</label>
                     {form.imageUrl ? (
                         <div className="relative">
                             <img 
@@ -305,7 +294,7 @@ export default function PrescriptionManager({
                     disabled={saving || (!form.sphereOD && !form.sphereOI) || !form.imageUrl}
                     className="flex-1 py-4 bg-emerald-500 text-white rounded-2xl font-black text-xs uppercase tracking-widest disabled:opacity-50"
                 >
-                    {saving ? 'GUARDANDO...' : 'GUARDAR RECETA →'}
+                    {saving ? 'GUARDANDO...' : 'GUARDAR RECETA'}
                 </button>
             </div>
         </div>
@@ -313,18 +302,17 @@ export default function PrescriptionManager({
 
     const renderReview = () => (
         <div className="space-y-6">
-            <h3 className="text-xl font-black text-stone-800 dark:text-white tracking-tighter flex items-center gap-2">✅ Repaso Final</h3>
+            <h3 className="text-xl font-black text-stone-800 dark:text-white tracking-tighter flex items-center gap-2">Repaso Final</h3>
             <p className="text-[10px] font-bold text-stone-400">Revisá los datos antes de enviar a fábrica. Una vez confirmado, se convertirá en venta.</p>
 
             <div className="space-y-4">
-                {/* Data Summary (simplified for brevity) */}
                 {['OD', 'OI'].map(eye => (
                     <div key={eye} className="flex items-center gap-3">
                         <span className="w-10 text-center font-black bg-stone-900 text-white rounded py-1 text-[10px]">{eye}</span>
                         <div className="flex-1 flex justify-around bg-stone-900 text-white p-3 rounded-2xl font-mono text-sm">
-                            <div>Esf: {(form as any)[`sphere${eye}`] || '—'}</div>
-                            <div>Cil: {(form as any)[`cylinder${eye}`] || '—'}</div>
-                            <div>Eje: {(form as any)[`axis${eye}`] || '—'}</div>
+                            <div>Esf: {(form as any)[`sphere${eye}`] || '0'}</div>
+                            <div>Cil: {(form as any)[`cylinder${eye}`] || '0'}</div>
+                            <div>Eje: {(form as any)[`axis${eye}`] || '0'}</div>
                         </div>
                     </div>
                 ))}
