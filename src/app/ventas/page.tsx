@@ -616,9 +616,9 @@ ${order.frameSource ? `<div style='background:#fffbeb;border:2px solid #fbbf24;b
                                                 <span className={`px-2 py-0.5 rounded-lg text-[8px] lg:text-[9px] font-black uppercase tracking-widest ${labInfo.color}`}>
                                                     {labInfo.label}
                                                 </span>
-                                                {financials.progress >= 100 && (
+                                                {financials.progress >= 100 || !financials.hasBalance ? (
                                                     <span className="px-2 py-0.5 rounded-lg text-[8px] lg:text-[9px] font-black uppercase tracking-widest bg-emerald-100 text-emerald-600">PAGADO</span>
-                                                )}
+                                                ) : null}
                                             </div>
                                         </div>
                                         {/* Total on Mobile Header */}
@@ -634,15 +634,15 @@ ${order.frameSource ? `<div style='background:#fffbeb;border:2px solid #fbbf24;b
                                             <div className="flex flex-wrap gap-2">
                                                 <div className="flex flex-col rounded-lg bg-emerald-50 px-2 py-1 text-emerald-600">
                                                     <span className="text-[7px] lg:text-[8px] font-black uppercase tracking-widest flex items-center gap-1"><Banknote className="w-3 h-3" /> Efvo</span>
-                                                    <span className="text-[9px] lg:text-[10px] font-black mt-0.5">$${financials.remainingCash.toLocaleString()}</span>
+                                                    <span className="text-[9px] lg:text-[10px] font-black mt-0.5">${financials.remainingCash.toLocaleString()}</span>
                                                 </div>
                                                 <div className="flex flex-col rounded-lg bg-violet-50 px-2 py-1 text-violet-600">
                                                     <span className="text-[7px] lg:text-[8px] font-black uppercase tracking-widest flex items-center gap-1"><ArrowRightLeft className="w-3 h-3" /> Transf</span>
-                                                    <span className="text-[9px] lg:text-[10px] font-black mt-0.5">$${financials.remainingTransfer.toLocaleString()}</span>
+                                                    <span className="text-[9px] lg:text-[10px] font-black mt-0.5">${financials.remainingTransfer.toLocaleString()}</span>
                                                 </div>
                                                 <div className="flex flex-col rounded-lg bg-orange-50 px-2 py-1 text-orange-600">
                                                     <span className="text-[7px] lg:text-[8px] font-black uppercase tracking-widest flex items-center gap-1"><CreditCard className="w-3 h-3" /> Cuotas</span>
-                                                    <span className="text-[9px] lg:text-[10px] font-black mt-0.5">$${financials.remainingCard.toLocaleString()}</span>
+                                                    <span className="text-[9px] lg:text-[10px] font-black mt-0.5">${financials.remainingCard.toLocaleString()}</span>
                                                 </div>
                                             </div>
                                         </div>

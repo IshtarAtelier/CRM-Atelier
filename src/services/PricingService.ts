@@ -105,22 +105,37 @@ export class PricingService {
         // Cálculo de "Equivalente de Lista" pagado
         const listEquivalentPaid = (order.payments || []).reduce((acc: number, p: any) => {
             const amount = p.amount || 0;
+            const method = (p.method || '').toUpperCase().trim();
+            
             // Evitar división por cero
             const factorCash = 1 - (discCash / 100);
             const factorTrans = 1 - (discTrans / 100);
 
-            if ((p.method === 'CASH' || p.method === 'EFECTIVO') && factorCash > 0)
+            // Coincidencias robustas para métodos de pago
+            const isCash = ['CASH', 'EFECTIVO', 'EFVO'].includes(method);
+            const isTrans = ['TRANSFER', 'TRANSFERENCIA', 'TRANSF', 'DEPOSITO'].some(m => method.includes(m));
+
+            if (isCash && factorCash > 0)
                 return acc + (amount / factorCash);
-            if (p.method?.includes('TRANSFER') && factorTrans > 0)
+            if (isTrans && factorTrans > 0)
                 return acc + (amount / factorTrans);
+            
+            // Si es tarjeta o desconocido, se toma valor nominal (Lista)
             return acc + amount;
         }, 0);
 
-        const remainingList = Math.max(0, listPrice - listEquivalentPaid);
-        const paidReal = (order.payments || []).reduce((acc: number, p: any) => acc + (p.amount || 0), 0);
+        const paidRealFromPayments = (order.payments || []).reduce((acc: number, p: any) => acc + (p.amount || 0), 0);
+        
+        // Failsafe: Si no hay desgloses de pagos pero el campo 'paid' tiene valor, usamos ese
+        const paidReal = Math.max(paidRealFromPayments, order.paid || 0);
+        
+        // Si usamos el failsafe de 'paid', ajustamos el listEquivalentPaid si este era 0
+        const finalListEquivalentPaid = (listEquivalentPaid === 0 && paidReal > 0) ? paidReal : listEquivalentPaid;
+
+        const remainingList = Math.max(0, listPrice - finalListEquivalentPaid);
         const hasBalance = remainingList > 1000; // Tolerancia de 1000 pesos solicitada por el usuario
         
-        const progress = listPrice > 0 ? (listEquivalentPaid / listPrice) * 100 : 0;
+        const progress = listPrice > 0 ? (finalListEquivalentPaid / listPrice) * 100 : 0;
 
         return {
             listPrice,
