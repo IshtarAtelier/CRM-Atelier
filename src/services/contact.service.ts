@@ -530,7 +530,7 @@ export const ContactService = {
             // Verificar que la orden existe y calcular si no se excede el total
             const order = await tx.order.findUnique({ 
                 where: { id: orderId },
-                select: { id: true, paid: true, total: true, subtotalWithMarkup: true }
+                select: { id: true, clientId: true, paid: true, total: true, subtotalWithMarkup: true }
             });
             if (!order) throw new Error('Orden no encontrada');
 
@@ -555,6 +555,15 @@ export const ContactService = {
                 // No esperamos a que termine para no bloquear la transacción, aunque es asíncrono afuera
                 CashService.checkBalanceAndAlert().catch(err => console.error('Error in cash alert:', err));
             }
+
+            // Registrar en la ficha del cliente
+            await tx.interaction.create({
+                data: {
+                    clientId: order.clientId,
+                    type: 'SISTEMA',
+                    content: `Se registró un pago por $${amount.toLocaleString('es-AR')} (${method}).${notes ? ` Ref: ${notes}` : ''}`
+                }
+            });
 
             return payment;
         });
