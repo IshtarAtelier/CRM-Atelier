@@ -181,6 +181,11 @@ export async function GET(
         <div class='payment-card p-efective'>
             <span class='p-title'>💵 Efectivo (-${financials.discountCash}%)</span>
             <span class='p-amount'>$${financials.totalCash.toLocaleString()}</span>
+            ${financials.hasBalance ? `
+            <div class='p-saldo'>
+                <span class='p-saldo-label'>Saldo Pendiente</span>
+                <span>$${financials.remainingCash.toLocaleString()}</span>
+            </div>
             ` : `<span class="p-saldo" style="color:#10b981; background:#f0fdf4;">PAGADO COMPLETO</span>`}
         </div>
         <div class='payment-card p-transfer'>
