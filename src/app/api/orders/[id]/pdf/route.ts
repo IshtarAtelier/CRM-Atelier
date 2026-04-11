@@ -44,30 +44,10 @@ export async function GET(
         const brandSand = '#A68B7C';
         const systemEmerald = '#10b981';
         
-        // Financial Logic
-        const total = Number(order.total) || 0;
-        const paid = Number(order.paid) || 0;
-        const discountCash = Number(order.discountCash) || 20;
-        const discountTransfer = Number(order.discountTransfer) || 15;
-        
-        // Use stored subtotalWithMarkup OR fallback to calculating it from total
-        // If discountCash is 20%, then listPrice = total / 0.8
-        const cashDiscountFactor = (1 - discountCash / 100);
-        const listPrice = Math.round(Number(order.subtotalWithMarkup) || (total / (cashDiscountFactor || 1)));
-        
-        const totalCash = total; // The 'total' field in DB is generally the cash price
-        const totalTransfer = Math.round(listPrice * (1 - discountTransfer / 100));
-        
-        const remainingCash = Math.max(0, total - paid);
-        
-        // IMPORTANT: Installments must be calculated BASED ON THE REMAINING BALANCE elevated to List Price
-        // If remaining is $100 cash (factor 0.8), the list balance is $125.
-        const remainingListBalance = Math.round(remainingCash / (cashDiscountFactor || 1));
-        
-        const total3 = Math.round(remainingListBalance * 1.10);
-        const quota3 = Math.round(total3 / 3);
-        const total6 = Math.round(remainingListBalance * 1.20);
-        const quota6 = Math.round(total6 / 6);
+        const { PricingService } = require('@/services/PricingService');
+        const financials = PricingService.calculateOrderFinancials(order);
+
+        const markupFactor = 1 + ((order.markup || 0) / 100);
 
         const html = `<!DOCTYPE html>
 <html lang="es">
@@ -118,6 +98,7 @@ export async function GET(
         .inst-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
         .inst-quota { font-size: 14px; font-weight: 900; color: #c2410c; }
         .inst-total { font-size: 8px; color: #a8a29e; font-weight: 700; text-align: right; text-transform: uppercase; display: block; }
+        .p-tag { font-size: 8px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; color:#a8a29e; margin-bottom: 4px; display: block; }
 
         .totals-summary { margin-top: 25px; padding: 25px; border-radius: 20px; background: #1c1917; color: white; display: flex; justify-content: space-between; align-items: center; border: 2px solid ${brandSand}; }
         .tot-amount { font-size: 34px; font-weight: 900; color: ${systemEmerald}; letter-spacing: -1px; }
@@ -172,64 +153,75 @@ export async function GET(
             </tr>
         </thead>
         <tbody>
-            ${(order.items || []).map((it: any) => `
+            ${(order.items || []).map((it: any) => {
+                const itemPrice = Math.round(it.price * markupFactor);
+                return `
                 <tr>
                     <td>
                         <div style="font-weight: 900;">${it.product?.brand || ''} ${it.product?.model || it.product?.name || ''}</div>
                         ${it.eye ? `<div style="font-size:10px; color:#78716c;">Lado: ${it.eye}</div>` : ''}
                     </td>
                     <td style='text-align:center; font-weight: 800;'>${it.quantity}</td>
-                    <td style='text-align:right'>$${Math.round(it.price).toLocaleString()}</td>
-                    <td style='text-align:right; font-weight: 900;'>$${Math.round(it.price * it.quantity).toLocaleString()}</td>
+                    <td style='text-align:right'>$${itemPrice.toLocaleString()}</td>
+                    <td style='text-align:right; font-weight: 900;'>$${(itemPrice * it.quantity).toLocaleString()}</td>
                 </tr>
-            `).join('')}
+            `}).join('')}
         </tbody>
     </table>
 
     <div class='payment-methods'>
         <div class='payment-card p-efective'>
-            <span class='p-title'>💵 Efectivo</span>
-            <span class='p-amount'>$${totalCash.toLocaleString()}</span>
-            <span class='p-discount'>Bonificación ${discountCash}%</span>
+            <span class='p-title'>💵 Efectivo (-${financials.discountCash}%)</span>
+            <span class='p-amount'>$${financials.totalCash.toLocaleString()}</span>
+            <span class='p-discount'>${financials.hasBalance ? `Saldo: $${financials.remainingCash.toLocaleString()}` : 'PAGADO COMPLETO'}</span>
         </div>
         <div class='payment-card p-transfer'>
-            <span class='p-title'>🏦 Transferencia</span>
-            <span class='p-amount'>$${totalTransfer.toLocaleString()}</span>
-            <span class='p-discount'>Bonificación ${discountTransfer}%</span>
+            <span class='p-title'>🏦 Transferencia (-${financials.discountTransfer}%)</span>
+            <span class='p-amount'>$${financials.totalTransfer.toLocaleString()}</span>
+            <span class='p-discount'>${financials.hasBalance ? `Saldo: $${financials.remainingTransfer.toLocaleString()}` : 'PAGADO COMPLETO'}</span>
         </div>
         <div class='payment-card p-card'>
-            <span class='p-title'>💳 Tarjetas (Saldo)</span>
-            <span class='p-amount'>$${Math.round(remainingListBalance + (listPrice - remainingListBalance)).toLocaleString()}</span>
+            <span class='p-title'>💳 Tarjetas (Lista)</span>
+            <span class='p-amount'>$${financials.totalCard.toLocaleString()}</span>
+            <span class='p-discount'>${financials.hasBalance ? `Saldo listado: $${financials.remainingCard.toLocaleString()}` : 'PAGADO COMPLETO'}</span>
             <div class='installments'>
                 <div class='inst-row'>
                     <span style="font-size:10px; font-weight:700;">3 Cuotas de</span>
-                    <span class='inst-quota'>$${quota3.toLocaleString()}</span>
+                    <span class='inst-quota'>$${Math.round(financials.totalCard * 1.10 / 3).toLocaleString()}</span>
                 </div>
-                <span class='inst-total'>Financiado: $${total3.toLocaleString()}</span>
                 <div class='inst-row' style="margin-top: 8px;">
                     <span style="font-size:10px; font-weight:700;">6 Cuotas de</span>
-                    <span class='inst-quota'>$${quota6.toLocaleString()}</span>
+                    <span class='inst-quota'>$${Math.round(financials.totalCard * 1.25 / 6).toLocaleString()}</span>
                 </div>
-                <span class='inst-total'>Financiado: $${total6.toLocaleString()}</span>
             </div>
         </div>
     </div>
 
     <div class='totals-summary'>
         <div>
-            <span style="font-size: 11px; font-weight: 900; color: #a8a29e; text-transform: uppercase;">Total Operación</span>
-            <div class='tot-amount'>$${total.toLocaleString()}</div>
+            <span style="font-size: 11px; font-weight: 900; color: #a8a29e; text-transform: uppercase; letter-spacing: 2px;">Precio de Lista</span>
+            <div class='tot-amount' style="color: white; font-size: 30px;">$${financials.totalCard.toLocaleString()}</div>
         </div>
+        <div style="display: flex; gap: 20px; align-items: center;">
+            <div style="text-align: center; padding: 0 15px; border-right: 1px solid rgba(255,255,255,0.1);">
+                <span style="font-size: 8px; font-weight: 900; color: ${systemEmerald}; text-transform: uppercase; letter-spacing: 1px; display: block; margin-bottom: 4px;">💵 Efectivo</span>
+                <span style="font-size: 18px; font-weight: 900; color: ${systemEmerald};">$${financials.totalCash.toLocaleString()}</span>
+            </div>
+            <div style="text-align: center; padding: 0 15px; border-right: 1px solid rgba(255,255,255,0.1);">
+                <span style="font-size: 8px; font-weight: 900; color: #a78bfa; text-transform: uppercase; letter-spacing: 1px; display: block; margin-bottom: 4px;">🏦 Transf</span>
+                <span style="font-size: 18px; font-weight: 900; color: #a78bfa;">$${financials.totalTransfer.toLocaleString()}</span>
+            </div>
+            <div style="text-align: center; padding: 0 15px;">
+                <span style="font-size: 8px; font-weight: 900; color: #fb923c; text-transform: uppercase; letter-spacing: 1px; display: block; margin-bottom: 4px;">💳 Tarjeta</span>
+                <span style="font-size: 18px; font-weight: 900; color: #fb923c;">$${financials.totalCard.toLocaleString()}</span>
+            </div>
+        </div>
+        ${financials.paidReal > 0 ? `
         <div class='tot-saldo'>
-            ${paid > 0 ? `
-                <span class='saldo-label'>Abonado: $${paid.toLocaleString()}</span>
-                <span class='saldo-label' style="margin-top: 5px;">Saldo Pendiente</span>
-                <span class='saldo-value'>$${remainingCash.toLocaleString()}</span>
-            ` : `
-                <span class='saldo-label'>Atelier Óptica</span>
-                <span class='saldo-value' style="color: ${brandBeige};">Confirmado</span>
-            `}
+            <span style="font-size: 9px; font-weight: 800; color: #a8a29e; text-transform: uppercase; display: block;">Abonado Real</span>
+            <span style="font-size: 16px; font-weight: 900; color: ${systemEmerald}; display: block;">$${financials.paidReal.toLocaleString()}</span>
         </div>
+        ` : ''}
     </div>
 
     ${order.prescription ? `

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { ShoppingCart, Download, Search, Package, Clock, CheckCircle2, Truck, Eye, Pencil, Save, X, AlertTriangle, MessageCircle, FileText, Banknote, ArrowRightLeft, CreditCard, ChevronRight, ExternalLink, Clipboard, CheckCheck, Copy, Loader2, ArrowRight, FlaskConical, Calendar } from 'lucide-react';
+import { PricingService } from '@/services/PricingService';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import InvoiceModal from '@/components/InvoiceModal';
@@ -579,7 +580,7 @@ ${order.frameSource ? `<div style='background:#fffbeb;border:2px solid #fbbf24;b
                         onClick={() => fetchOrders()}
                         className="mt-6 px-6 py-2 bg-stone-900 text-white rounded-xl text-xs font-black uppercase tracking-widest hover:scale-105 transition-all"
                     >
-                        Reintentar
+                        REINTENTAR
                     </button>
                 </div>
             ) : filteredOrders.length === 0 ? (
@@ -596,10 +597,10 @@ ${order.frameSource ? `<div style='background:#fffbeb;border:2px solid #fbbf24;b
                         const nextStepInfo = nextStep ? LAB_STATUS[nextStep] : null;
                         const LabIcon = labInfo.icon;
                         const isUpdating = updatingId === order.id;
-                        const payProgress = order.total > 0 ? Math.min(100, (order.paid / order.total) * 100) : 100;
+                        const financials = PricingService.calculateOrderFinancials(order);
 
                         return (
-                            <div key={order.id} className={`border-2 rounded-2xl p-4 lg:p-6 hover:shadow-lg transition-all ${payProgress < 100
+                            <div key={order.id} className={`border-2 rounded-2xl p-4 lg:p-6 hover:shadow-lg transition-all ${financials.hasBalance
                                     ? 'bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-900/50'
                                     : 'bg-white dark:bg-stone-800 border-stone-100 dark:border-stone-700'
                                 }`}>
@@ -615,7 +616,7 @@ ${order.frameSource ? `<div style='background:#fffbeb;border:2px solid #fbbf24;b
                                                 <span className={`px-2 py-0.5 rounded-lg text-[8px] lg:text-[9px] font-black uppercase tracking-widest ${labInfo.color}`}>
                                                     {labInfo.label}
                                                 </span>
-                                                {payProgress >= 100 && (
+                                                {financials.progress >= 100 && (
                                                     <span className="px-2 py-0.5 rounded-lg text-[8px] lg:text-[9px] font-black uppercase tracking-widest bg-emerald-100 text-emerald-600">PAGADO</span>
                                                 )}
                                             </div>
@@ -626,33 +627,23 @@ ${order.frameSource ? `<div style='background:#fffbeb;border:2px solid #fbbf24;b
                                         </div>
                                     </div>
 
-                                    {/* Payment Detail (Only if pending) */}
-                                    {payProgress < 100 && (
+                                    {/* Payment Detail (Triple Saldo) */}
+                                    {financials.hasBalance && (
                                         <div className="flex flex-col gap-1.5 lg:border-l-2 lg:border-stone-100 lg:dark:border-stone-700 lg:pl-4 py-0.5">
                                             <span className="text-[8px] font-black text-stone-400 uppercase tracking-widest">Saldo Pendiente</span>
                                             <div className="flex flex-wrap gap-2">
                                                 <div className="flex flex-col rounded-lg bg-emerald-50 px-2 py-1 text-emerald-600">
                                                     <span className="text-[7px] lg:text-[8px] font-black uppercase tracking-widest flex items-center gap-1"><Banknote className="w-3 h-3" /> Efvo</span>
-                                                    <span className="text-[9px] lg:text-[10px] font-black mt-0.5">${((order.total || 0) - (order.paid || 0)).toLocaleString()}</span>
+                                                    <span className="text-[9px] lg:text-[10px] font-black mt-0.5">$${financials.remainingCash.toLocaleString()}</span>
                                                 </div>
-                                                {(order.subtotalWithMarkup || 0) > 0 && (() => {
-                                                    const transferTotal = (order.subtotalWithMarkup || 0) * (1 - (order.discountTransfer || 0) / 100);
-                                                    const transferSaldo = Math.max(0, Math.round(transferTotal) - (order.paid || 0));
-                                                    const cardTotal = (order.subtotalWithMarkup || 0) * (1 - (order.discountCard || 0) / 100);
-                                                    const cardSaldo = Math.max(0, Math.round(cardTotal) - (order.paid || 0));
-                                                    return (
-                                                        <>
-                                                            <div className="flex flex-col rounded-lg bg-violet-50 px-2 py-1 text-violet-600">
-                                                                <span className="text-[7px] lg:text-[8px] font-black uppercase tracking-widest flex items-center gap-1"><ArrowRightLeft className="w-3 h-3" /> Transf</span>
-                                                                <span className="text-[9px] lg:text-[10px] font-black mt-0.5">${transferSaldo.toLocaleString()}</span>
-                                                            </div>
-                                                            <div className="flex flex-col rounded-lg bg-orange-50 px-2 py-1 text-orange-600">
-                                                                <span className="text-[7px] lg:text-[8px] font-black uppercase tracking-widest flex items-center gap-1"><CreditCard className="w-3 h-3" /> Cuotas</span>
-                                                                <span className="text-[9px] lg:text-[10px] font-black mt-0.5">${cardSaldo.toLocaleString()}</span>
-                                                            </div>
-                                                        </>
-                                                    );
-                                                })()}
+                                                <div className="flex flex-col rounded-lg bg-violet-50 px-2 py-1 text-violet-600">
+                                                    <span className="text-[7px] lg:text-[8px] font-black uppercase tracking-widest flex items-center gap-1"><ArrowRightLeft className="w-3 h-3" /> Transf</span>
+                                                    <span className="text-[9px] lg:text-[10px] font-black mt-0.5">$${financials.remainingTransfer.toLocaleString()}</span>
+                                                </div>
+                                                <div className="flex flex-col rounded-lg bg-orange-50 px-2 py-1 text-orange-600">
+                                                    <span className="text-[7px] lg:text-[8px] font-black uppercase tracking-widest flex items-center gap-1"><CreditCard className="w-3 h-3" /> Cuotas</span>
+                                                    <span className="text-[9px] lg:text-[10px] font-black mt-0.5">$${financials.remainingCard.toLocaleString()}</span>
+                                                </div>
                                             </div>
                                         </div>
                                     )}
@@ -717,7 +708,7 @@ ${order.frameSource ? `<div style='background:#fffbeb;border:2px solid #fbbf24;b
                                     <div className="hidden lg:block flex-shrink-0 text-right">
                                         <p className="text-xl font-black text-stone-800 dark:text-white">${(order.total || 0).toLocaleString()}</p>
                                         <div className="w-24 h-1.5 bg-stone-100 dark:bg-stone-700 rounded-full mt-2 overflow-hidden">
-                                            <div className="h-full bg-emerald-500 rounded-full transition-all" style={{ width: `${payProgress}%` }} />
+                                            <div className="h-full bg-emerald-500 rounded-full transition-all" style={{ width: `${financials.progress}%` }} />
                                         </div>
                                     </div>
 
@@ -770,31 +761,22 @@ ${order.frameSource ? `<div style='background:#fffbeb;border:2px solid #fbbf24;b
                                                 </button>
                                             );
                                         })()}
-                                        {/* WhatsApp notify — visible when READY or has pending balance */}
-                                        {order.client.phone && (order.labStatus === 'READY' || payProgress < 100) && (
+                                        {/* WhatsApp notify */}
+                                        {order.client.phone && (order.labStatus === 'READY' || financials.hasBalance) && (
                                             <button
                                                 onClick={() => {
-                                                    const pending = (order.total || 0) - (order.paid || 0);
                                                     const isReady = order.labStatus === 'READY';
                                                     let msg = `*Hola ${order.client.name}* 👋\n\n`;
                                                     if (isReady) {
                                                         msg += `Te avisamos que *tu pedido ya está listo para retirar* en *Atelier Óptica* 🎉\n\n`;
                                                     }
-                                                    if (pending > 0) {
+                                                    if (financials.hasBalance) {
                                                         msg += `📋 *Detalle del saldo:*\n`;
-                                                        msg += `• Total: $${(order.total || 0).toLocaleString()}\n`;
-                                                        msg += `• Abonado: $${(order.paid || 0).toLocaleString()}\n`;
-                                                        msg += `• *Saldo pendiente en efectivo: $${pending.toLocaleString()}*\n`;
-                                                        if ((order.subtotalWithMarkup || 0) > 0) {
-                                                            const transferTotal = (order.subtotalWithMarkup || 0) * (1 - (order.discountTransfer || 0) / 100);
-                                                            const transferSaldo = Math.max(0, Math.round(transferTotal) - (order.paid || 0));
-                                                            msg += `• *Saldo con transferencia: $${transferSaldo.toLocaleString()}*\n`;
-
-                                                            const cardTotal = (order.subtotalWithMarkup || 0) * (1 - (order.discountCard || 0) / 100);
-                                                            const cardSaldo = Math.max(0, Math.round(cardTotal) - (order.paid || 0));
-                                                            msg += `• *Saldo en cuotas: $${cardSaldo.toLocaleString()}*\n`;
-                                                        }
-                                                        msg += `\n💳 Podés abonar con efectivo, débito, transferencia o tarjeta de crédito.\n`;
+                                                        msg += `• Total (Lista): $${(order.total || 0).toLocaleString()}\n`;
+                                                        msg += `• *Saldo si pagás en EFECTIVO: $${financials.remainingCash.toLocaleString()}*\n`;
+                                                        msg += `• *Saldo con TRANSFERENCIA: $${financials.remainingTransfer.toLocaleString()}*\n`;
+                                                        msg += `• *Saldo con TARJETA / CUOTAS: $${financials.remainingCard.toLocaleString()}*\n`;
+                                                        msg += `\n💳 Podés abonar con cualquier medio de pago.\n`;
                                                         msg += `👉 *¿Nos podrías avisar cómo quisieras abonar el saldo?*\n\n`;
                                                     } else {
                                                         msg += `✅ Tu pedido está *completamente pago*.\n\n`;

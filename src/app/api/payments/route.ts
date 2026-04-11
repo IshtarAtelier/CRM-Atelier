@@ -27,10 +27,9 @@ export async function GET(request: Request) {
             whereClause.date = dateFilter;
         }
 
-        // Only include payments from non-deleted SALE orders
+        // Only include payments from non-deleted orders (ventas y presupuestos)
         whereClause.order = {
-            isDeleted: false,
-            orderType: 'SALE',
+            isDeleted: false
         };
 
         // Fetch payments with order + client info

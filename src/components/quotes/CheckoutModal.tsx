@@ -11,6 +11,7 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { safePrice } from '@/lib/promo-utils';
 import PrescriptionDetails from '../prescriptions/PrescriptionDetails';
+import { resolveStorageUrl } from '@/lib/utils/storage';
 
 interface CheckoutModalProps {
     order: any;
@@ -312,7 +313,7 @@ export default function CheckoutModal({
                                                 </div>
                                             </div>
                                             {p.receiptUrl && (
-                                                <a href={p.receiptUrl} target="_blank" className="p-2 hover:bg-white dark:hover:bg-stone-700 rounded-lg transition-all text-primary">
+                                                <a href={resolveStorageUrl(p.receiptUrl)} target="_blank" className="p-2 hover:bg-white dark:hover:bg-stone-700 rounded-lg transition-all text-primary">
                                                     <ImageIcon className="w-4 h-4" />
                                                 </a>
                                             )}

@@ -11,6 +11,8 @@ import {
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { safePrice } from '@/lib/promo-utils';
+import { resolveStorageUrl } from '@/lib/utils/storage';
+import { PricingService } from '@/services/PricingService';
 
 // Modular Components
 import QuoteLineItems from './QuoteLineItems';
@@ -140,6 +142,7 @@ export default function QuoteSummary({
         'READY': { label: 'Listo', color: 'bg-emerald-100 text-emerald-600' },
         'DELIVERED': { label: 'Entregado', color: 'bg-indigo-100 text-indigo-600' },
     };
+    const financials = PricingService.calculateOrderFinancials(order);
     const labInfo = LAB_LABELS[order.labStatus || 'NONE'] || LAB_LABELS['NONE'];
 
     const getPaymentLabel = (method: string) => {
@@ -158,22 +161,14 @@ export default function QuoteSummary({
 
     const handleWhatsApp = () => {
         const items = order.items || [];
-        const subtotalBase = items.reduce((s: number, it: any) => s + (safePrice(it.price) * it.quantity), 0);
-        const listPrice = subtotalBase * (1 + (order.markup || 0) / 100);
-        const discountCash = order.discountCash || 20;
-        const discountTransfer = order.discountTransfer || 15;
-
-        const amtCash = Math.round(listPrice * (1 - discountCash / 100));
-        const amtTransfer = Math.round(listPrice * (1 - discountTransfer / 100));
-        
         const itemLines = items.map((it: any) => `• ${it.product?.brand || ''} ${it.product?.model || it.product?.name || 'Producto'} x${it.quantity}`).join('%0A');
         
         let text = `✨ *${isSale ? 'VENTA' : 'PRESUPUESTO'} — ATELIER ÓPTICA* ✨%0A`;
         text += `👤 *Cliente:* ${contact.name}%0A%0A`;
         text += `${itemLines}%0A%0A`;
-        text += `*Precio Lista: $${Math.round(listPrice).toLocaleString()}*%0A`;
-        text += `🏦 *Transf. (-${discountTransfer}%): $${amtTransfer.toLocaleString()}*%0A`;
-        text += `💵 *Efectivo (-${discountCash}%): $${amtCash.toLocaleString()}*%0A`;
+        text += `*Precio Lista: $${Math.round(financials.listPrice).toLocaleString()}*%0A`;
+        text += `🏦 *Transf. (-${financials.discountTransfer}%): $${financials.totalTransfer.toLocaleString()}*%0A`;
+        text += `💵 *Efectivo (-${financials.discountCash}%): $${financials.totalCash.toLocaleString()}*%0A`;
 
         window.open(`https://wa.me/${contact.phone?.replace(/\D/g,'')}?text=${text}`, '_blank');
     };
@@ -189,20 +184,52 @@ export default function QuoteSummary({
                         {isSale ? <Receipt className="w-5 h-5" /> : <Calculator className="w-5 h-5" />}
                     </div>
                     <div>
-                        <span className="text-xs font-black text-stone-700 dark:text-stone-200 block">
-                            #{order.id.slice(-4).toUpperCase()} · ${(order.total || 0).toLocaleString()}
-                        </span>
+                        <div className="flex items-center gap-2">
+                             <span className="text-xs font-black text-stone-700 dark:text-stone-200 block">
+                                {contact.name || 'Cliente'} 
+                            </span>
+                            {isSale && (
+                                <span className={`px-2 py-0.5 rounded-lg text-[7px] font-black uppercase tracking-widest ${labInfo.color}`}>
+                                    {labInfo.label}
+                                </span>
+                            )}
+                        </div>
                         <span className="text-[9px] font-bold text-stone-400 block">
-                            {format(new Date(order.createdAt), "d MMM yy", { locale: es })}
+                            Venta #{order.id.slice(-4).toUpperCase()} · {format(new Date(order.createdAt), "d MMM yy", { locale: es })} · {order.items?.length || 0} items
                         </span>
                     </div>
                 </div>
-                <div className="flex items-center gap-2 mt-2 sm:mt-0">
-                    {isSale && (
-                        <span className={`px-2 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest ${labInfo.color}`}>
-                            {labInfo.label}
-                        </span>
-                    )}
+
+                {/* Triple Saldo Chips (Match user screenshot) */}
+                {financials.hasBalance && (
+                    <div className="hidden md:flex items-center gap-2 px-4 border-l border-stone-100 dark:border-stone-700 ml-4">
+                        <div className="flex flex-col text-left mr-2">
+                            <span className="text-[7px] font-black text-stone-400 uppercase tracking-widest">Saldo Pendiente</span>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                            <div className="bg-emerald-50 dark:bg-emerald-950/30 px-2 py-1 rounded-lg flex items-center gap-1 border border-emerald-100 dark:border-emerald-900/50">
+                                <Banknote className="w-2.5 h-2.5 text-emerald-500" />
+                                <span className="text-[9px] font-black text-emerald-600">$${financials.remainingCash.toLocaleString()}</span>
+                            </div>
+                            <div className="bg-violet-50 dark:bg-violet-950/30 px-2 py-1 rounded-lg flex items-center gap-1 border border-violet-100 dark:border-violet-900/50">
+                                <ArrowRightLeft className="w-2.5 h-2.5 text-violet-500" />
+                                <span className="text-[9px] font-black text-violet-600">$${financials.remainingTransfer.toLocaleString()}</span>
+                            </div>
+                            <div className="bg-orange-50 dark:bg-orange-950/30 px-2 py-1 rounded-lg flex items-center gap-1 border border-orange-100 dark:border-orange-900/50">
+                                <CreditCard className="w-2.5 h-2.5 text-orange-500" />
+                                <span className="text-[9px] font-black text-orange-600">$${financials.remainingCard.toLocaleString()}</span>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                <div className="flex items-center gap-4 mt-2 sm:mt-0">
+                    <div className="text-right sr-only sm:not-sr-only">
+                        <span className="text-[12px] font-black text-stone-900 dark:text-stone-100">$${financials.totalCash.toLocaleString()}</span>
+                        <div className="h-1 w-full bg-stone-100 dark:bg-stone-700 rounded-full mt-1 overflow-hidden">
+                            <div className="h-full bg-emerald-500" style={{ width: `${financials.progress}%` }}></div>
+                        </div>
+                    </div>
                     <ChevronRight className="w-4 h-4 text-stone-300 group-hover:text-primary" />
                 </div>
             </button>
@@ -226,7 +253,7 @@ export default function QuoteSummary({
                             {order.isDeleted && <span className="text-[10px] font-black bg-red-500 text-white px-2 py-0.5 rounded-lg">ELIMINADO</span>}
                         </div>
                         <h3 className="text-2xl sm:text-3xl font-black text-stone-800 dark:text-white tracking-tighter">
-                            ${(order.total || 0).toLocaleString()}
+                            $${financials.totalCash.toLocaleString()}
                         </h3>
                     </div>
                 </div>
@@ -238,14 +265,14 @@ export default function QuoteSummary({
                         </div>
                     )}
                     <div className="flex items-center gap-2">
-                         {order.paid < order.total && (
+                         {financials.hasBalance && (
                             <div className="text-right sr-only sm:not-sr-only">
-                                <span className="text-[9px] font-black text-stone-400 uppercase tracking-widest block">Saldo</span>
-                                <span className="text-lg font-black text-stone-900 dark:text-stone-100">${(order.total - order.paid).toLocaleString()}</span>
+                                <span className="text-[9px] font-black text-stone-400 uppercase tracking-widest block">Saldo Efectivo</span>
+                                <span className="text-lg font-black text-emerald-500">$${financials.remainingCash.toLocaleString()}</span>
                             </div>
                         )}
                         {onToggleExpand && (
-                            <button onClick={onToggleExpand} className="p-2 hover:bg-stone-50 dark:hover:bg-stone-900 rounded-xl transition-colors">
+                            <button onClick={onToggleExpand} className="p-2 hover:bg-stone-50 dark:hover:bg-stone-900 rounded-xl transition-colors" title="Cerrar">
                                 <ChevronUp className="w-5 h-5 text-stone-400" />
                             </button>
                         )}
@@ -274,24 +301,52 @@ export default function QuoteSummary({
                     </div>
                 )}
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    {[
-                        { label: 'Efectivo', value: 1 - (order.discountCash || 0)/100, color: 'emerald', discount: order.discountCash },
-                        { label: 'Transf.', value: 1 - (order.discountTransfer || 0)/100, color: 'violet', discount: order.discountTransfer },
-                        { label: 'Cuotas', value: 1, color: 'orange', discount: 0 }
-                    ].map(tier => (
-                        <div key={tier.label} className={`bg-${tier.color}-50/50 dark:bg-${tier.color}-950/20 p-4 rounded-3xl border-2 border-${tier.color}-100/50`}>
-                            <p className={`text-[10px] font-black text-${tier.color}-600 uppercase tracking-widest mb-1`}>{tier.label} {tier.discount > 0 && `-${tier.discount}%`}</p>
-                            <p className={`text-xl font-black text-${tier.color}-600`}>${Math.round(effectiveSubtotalWithMarkup * tier.value).toLocaleString()}</p>
-                        </div>
-                    ))}
+                <div className="space-y-4">
+                    <div className="flex items-center gap-2 ml-1">
+                        <Calculator className="w-4 h-4 text-stone-400" />
+                        <h4 className="text-[10px] font-black text-stone-400 uppercase tracking-widest">Totales por Método</h4>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        {[
+                            { label: 'Efectivo', amount: financials.totalCash, color: 'emerald', discount: financials.discountCash },
+                            { label: 'Transf.', amount: financials.totalTransfer, color: 'violet', discount: financials.discountTransfer },
+                            { label: 'Cuotas', amount: financials.totalCard, color: 'orange', discount: 0 }
+                        ].map(tier => (
+                            <div key={tier.label} className={`bg-${tier.color}-50/50 dark:bg-${tier.color}-950/20 p-4 rounded-3xl border-2 border-${tier.color}-100/50`}>
+                                <p className={`text-[10px] font-black text-${tier.color}-600 uppercase tracking-widest mb-1`}>{tier.label} {tier.discount > 0 && `-${tier.discount}%`}</p>
+                                <p className={`text-xl font-black text-${tier.color}-600`}>$${tier.amount.toLocaleString()}</p>
+                            </div>
+                        ))}
+                    </div>
                 </div>
+
+                {financials.hasBalance && (
+                    <div className="space-y-4 animate-in fade-in duration-500">
+                        <div className="flex items-center gap-2 ml-1">
+                            <Clock className="w-4 h-4 text-stone-400" />
+                            <h4 className="text-[10px] font-black text-stone-400 uppercase tracking-widest">Saldo Pendiente (Saldar en...)</h4>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                            {[
+                                { label: 'Efectivo', amount: financials.remainingCash, color: 'emerald', icon: Banknote },
+                                { label: 'Transf.', amount: financials.remainingTransfer, color: 'violet', icon: ArrowRightLeft },
+                                { label: 'Cuotas', amount: financials.remainingCard, color: 'orange', icon: CreditCard }
+                            ].map(tier => (
+                                <div key={tier.label} className={`bg-${tier.color}-400/10 dark:bg-${tier.color}-400/5 p-4 rounded-3xl border-2 border-${tier.color}-400/30 group/saldo relative overflow-hidden`}>
+                                    <tier.icon className={`absolute -right-2 -bottom-2 w-12 h-12 text-${tier.color}-400 opacity-10`} />
+                                    <p className={`text-[10px] font-black text-${tier.color}-600 uppercase tracking-widest mb-1`}>Saldo {tier.label}</p>
+                                    <p className={`text-xl font-black text-${tier.color}-600`}>$${tier.amount.toLocaleString()}</p>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
 
                 {order.paid > 0 && (
                     <div className="space-y-4">
                         <div className="flex justify-between items-center px-1">
                             <div className="flex items-center gap-2">
-                                <span className="text-[10px] font-black text-stone-400 uppercase tracking-widest">Pago: ${order.paid.toLocaleString()}</span>
+                                <span className="text-[10px] font-black text-stone-400 uppercase tracking-widest">Abonado Real: $${order.paid.toLocaleString()}</span>
                                 <button 
                                     onClick={() => setShowPaymentsList(!showPaymentsList)}
                                     className="px-2 py-0.5 bg-stone-100 dark:bg-stone-800 rounded-lg text-[8px] font-black text-stone-500 uppercase tracking-widest hover:bg-primary/10 hover:text-primary transition-all flex items-center gap-1"
@@ -300,10 +355,10 @@ export default function QuoteSummary({
                                     {showPaymentsList ? 'Ocultar' : 'Ver Detalles'}
                                 </button>
                             </div>
-                            <span className={`text-[10px] font-black uppercase ${progress >= 100 ? 'text-emerald-500' : 'text-amber-500'}`}>{Math.round(progress)}%</span>
+                            <span className={`text-[10px] font-black uppercase ${financials.progress >= 100 ? 'text-emerald-500' : 'text-amber-500'}`}>{Math.round(financials.progress)}% Completado</span>
                         </div>
                         <div className="h-2 bg-stone-100 dark:bg-stone-900 rounded-full overflow-hidden border border-stone-200 dark:border-stone-700">
-                            <div className={`h-full transition-all duration-700 ${progress >= 100 ? 'bg-emerald-500' : 'bg-amber-500'}`} style={{ width: `${Math.min(progress, 100)}%` }} />
+                            <div className={`h-full transition-all duration-700 ${financials.progress >= 100 ? 'bg-emerald-500' : 'bg-amber-500'}`} style={{ width: `${Math.min(financials.progress, 100)}%` }} />
                         </div>
 
                         {showPaymentsList && (
@@ -327,7 +382,7 @@ export default function QuoteSummary({
                                                 <div className="flex items-center gap-1">
                                                     {paymentValue.receiptUrl && (
                                                         <button 
-                                                            onClick={() => window.open(paymentValue.receiptUrl, '_blank')}
+                                                            onClick={() => window.open(resolveStorageUrl(paymentValue.receiptUrl), '_blank')}
                                                             className="p-2 hover:bg-primary/5 text-stone-400 hover:text-primary rounded-xl transition-all"
                                                             title="Ver Comprobante"
                                                         >

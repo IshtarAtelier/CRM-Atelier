@@ -7,6 +7,7 @@ import {
     Calendar, User, ShoppingBag, Loader2, Filter, MessageCircle,
     ExternalLink, Copy, CheckCheck, Clipboard
 } from 'lucide-react';
+import { PricingService } from '@/services/PricingService';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
@@ -40,6 +41,10 @@ interface Order {
     total: number;
     paid: number;
     discount?: number;
+    markup?: number;
+    discountCash?: number;
+    discountTransfer?: number;
+    subtotalWithMarkup?: number;
     orderType?: string;
     labStatus?: string;
     labSentAt?: string;
@@ -192,107 +197,151 @@ export default function PedidosPage() {
     const downloadLabSheet = (order: Order) => {
         const items = order.items || [];
         const dateStr = format(new Date(order.createdAt), "d 'de' MMMM yyyy", { locale: es });
-        const labDate = order.labSentAt ? format(new Date(order.labSentAt), "d/MM/yyyy HH:mm", { locale: es }) : 'Pendiente';
-        const saldo = (order.total || 0) - (order.paid || 0);
+        const markupFactor = 1 + ((order.markup || 0) / 100);
         const logoUrl = `${window.location.origin}/assets/logo-atelier-optica.png`;
+
+        const financials = PricingService.calculateOrderFinancials(order);
 
         const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Pedido Lab - ${order.client.name}</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap');
   * { margin:0; padding:0; box-sizing:border-box; font-family:'Inter','Segoe UI',sans-serif; }
-  body { padding: 40px 50px; color: #1c1917; font-size: 13px; line-height:1.5; }
-  .letterhead { display:flex; justify-content:space-between; align-items:center; padding-bottom:20px; margin-bottom:8px; border-bottom:3px solid #1c1917; }
-  .letterhead-left { display:flex; align-items:center; gap:16px; }
+  body { padding: 30px 40px; color: #1c1917; font-size: 13px; line-height:1.4; background: white; }
+  
+  .letterhead { display:flex; justify-content:space-between; align-items:center; padding-bottom:15px; border-bottom:2px solid #D4C3B5; margin-bottom: 8px; }
   .letterhead-logo { height:52px; }
-  .letterhead-right { text-align:right; font-size:10px; color:#78716c; line-height:1.6; }
-  .letterhead-right .address { font-weight:600; color:#57534e; }
-  .tagline { text-align:center; font-size:9px; font-weight:800; text-transform:uppercase; letter-spacing:3px; color:#a0845e; padding:10px 0 20px; }
-  .doc-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:24px; }
-  .doc-title { font-size:18px; font-weight:900; text-transform:uppercase; letter-spacing:3px; color:#c2410c; }
-  .doc-number { font-size:11px; color:#78716c; margin-top:4px; }
-  .info-grid { display:grid; grid-template-columns:1fr 1fr; gap:24px; margin-bottom:24px; }
-  .info-box { border:2px solid #e7e5e4; border-radius:12px; padding:16px; }
-  .info-box h3 { font-size:10px; font-weight:900; text-transform:uppercase; letter-spacing:2px; color:#a8a29e; margin-bottom:8px; }
-  .info-row { display:flex; justify-content:space-between; margin-bottom:4px; }
-  .info-row .label { color:#78716c; font-size:12px; }
-  .info-row .value { font-weight:700; font-size:12px; }
-  table { width:100%; border-collapse:collapse; margin:20px 0; }
-  th { background:#1c1917; color:white; padding:10px 14px; text-align:left; font-size:10px; text-transform:uppercase; letter-spacing:1px; }
-  td { padding:10px 14px; border-bottom:1px solid #e7e5e4; font-size:12px; }
+  .letterhead-right { text-align:right; font-size:10px; color:#78716c; font-weight: 500; }
+  .address-bold { font-weight:800; color:#A68B7C; text-transform: uppercase; letter-spacing: 1px; }
+  
+  .tagline { text-align:center; font-size:10px; font-weight:900; text-transform:uppercase; letter-spacing:2.5px; color:#A68B7C; padding:10px 0; border-bottom: 1px solid #f5f5f4; margin-bottom: 15px; }
+
+  /* New Finance Header (Budget Style) */
+  .finance-container { border: 1.5px solid #D4C3B5; border-radius: 24px; padding: 20px; margin-bottom: 25px; background: white; }
+  .finance-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+  
+  .fh-left { display: flex; flex-direction: column; }
+  .fh-label { font-size: 9px; font-weight: 900; color: #a8a29e; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 4px; }
+  .fh-value { font-size: 26px; font-weight: 900; color: #10b981; }
+
+  .fh-right { display: flex; gap: 15px; }
+  .s-item { display: flex; align-items: center; gap: 6px; font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; }
+  .s-dot { width: 8px; height: 8px; border-radius: 2px; }
+  .s-efvo { color: #10b981; } .s-efvo .s-dot { background: #10b981; }
+  .s-transf { color: #7c3aed; } .s-transf .s-dot { background: #7c3aed; }
+  .s-cuotas { color: #f97316; } .s-cuotas .s-dot { background: #f97316; }
+  .s-item strong { font-size: 13px; font-weight: 900; margin-left: 2px; }
+
+  .progress-bar { height: 8px; background: #f5f5f4; border-radius: 10px; overflow: hidden; position: relative; }
+  .progress-fill { height: 100%; background: #10b981; border-radius: 10px; transition: width 0.5s ease; }
+
+  /* Method Cards (Top style) */
+  .method-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 25px; }
+  .m-card { border: 1.5px solid #1c1917; border-radius: 24px; padding: 20px; position: relative; }
+  .m-label { font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+  .m-total { font-size: 24px; font-weight: 900; }
+  
+  .m-efvo { background: #f0fdf4; } .m-efvo .m-label, .m-efvo .m-total { color: #10b981; }
+  .m-transf { background: #f5f3ff; } .m-transf .m-label, .m-transf .m-total { color: #7c3aed; }
+  .m-cuotas { background: #fffaf5; } .m-cuotas .m-label, .m-cuotas .m-total { color: #f97316; }
+
+  .doc-title-row { display: flex; align-items: center; gap: 8px; font-size: 11px; font-weight: 900; color: #a8a29e; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 12px; }
+
+  table { width:100%; border-collapse:collapse; margin-bottom:15px; border-radius: 12px; overflow: hidden; }
+  th { background:#1c1917; color:white; padding:12px 14px; text-align:left; font-size:10px; text-transform:uppercase; letter-spacing:1px; }
+  td { padding:12px 14px; border-bottom:1px solid #e7e5e4; font-size:12px; color: #44403c; }
   tr:nth-child(even) { background:#fafaf9; }
-  .lab-number-box { border:3px dashed #c2410c; border-radius:16px; padding:20px; margin-top:24px; display:flex; align-items:center; gap:16px; }
-  .lab-number-box .label { font-size:12px; font-weight:900; text-transform:uppercase; letter-spacing:2px; color:#c2410c; white-space:nowrap; }
-  .lab-number-box .input-line { flex:1; border-bottom:2px solid #1c1917; min-height:24px; font-size:16px; font-weight:700; }
-  .notes-box { border:2px solid #e7e5e4; border-radius:12px; padding:16px; margin-top:16px; }
-  .notes-box h3 { font-size:10px; font-weight:900; text-transform:uppercase; letter-spacing:2px; color:#a8a29e; margin-bottom:8px; }
-  .notes-lines { min-height:60px; border-bottom:1px solid #e7e5e4; margin-bottom:8px; }
-  .time-estimate { background:#fef3c7; border:2px solid #fbbf24; border-radius:12px; padding:16px; margin-top:16px; display:flex; align-items:center; gap:12px; }
-  .time-estimate .icon { font-size:24px; }
-  .time-estimate .text { font-size:12px; font-weight:700; color:#92400e; }
-  .time-estimate .days { font-size:18px; font-weight:900; color:#78350f; }
-  .footer { margin-top:32px; padding-top:16px; border-top:1px solid #e7e5e4; font-size:9px; color:#a8a29e; text-align:center; text-transform:uppercase; letter-spacing:2px; }
-  .totals { text-align:right; margin-top:12px; }
-  .totals .row { font-size:13px; margin-bottom:4px; }
-  .totals .total { font-size:20px; font-weight:900; border-top:2px solid #1c1917; padding-top:8px; margin-top:4px; }
-  .totals .saldo { font-size:14px; font-weight:700; color:#dc2626; margin-top:4px; }
-  @media print { body { padding: 20px; } }
+
+  .grand-total-row { text-align: right; padding: 15px 0; border-top: 2px solid #1c1917; margin-top: 10px; }
+  .gt-label { font-size: 18px; font-weight: 900; color: #1c1917; }
+  .gt-value { font-size: 24px; font-weight: 900; color: #1c1917; margin-left: 10px; }
+
+  .lab-box { border: 2px dashed #c2410c; border-radius: 16px; padding: 20px; margin-top: 25px; }
+  .lab-label { font-size: 12px; font-weight: 900; text-transform: uppercase; letter-spacing: 2px; color: #c2410c; margin-bottom: 15px; display: block; }
+  .lab-line { border-bottom: 2px solid #1c1917; height: 30px; }
+
+  .frame-badge { background: white; border: 1.5px solid #fbbf24; border-radius: 12px; padding: 12px 16px; margin-bottom: 15px; font-size: 12px; display: flex; align-items: center; gap: 10px; }
+  .frame-icon { color: #7c3aed; font-size: 16px; }
+
+  .footer { margin-top: 30px; text-align: center; font-size: 9px; color: #a8a29e; text-transform: uppercase; letter-spacing: 2px; font-weight: 700; border-top: 1px solid #f5f5f4; padding-top: 15px; }
+  @media print { body { padding: 20px; } .method-cards, .finance-container { break-inside: avoid; } }
 </style></head><body>
+
 <div class='letterhead'>
-  <div class='letterhead-left'>
     <img src='${logoUrl}' class='letterhead-logo' alt='Atelier Óptica' />
-  </div>
-  <div class='letterhead-right'>
-    <div class='address'>José Luis de Tejeda 4380</div>
-    <div>Cerro de las Rosas, Córdoba</div>
-  </div>
+    <div class='letterhead-right'>
+        <div class='address-bold'>José Luis de Tejeda 4380</div>
+        <div>Cerro de las Rosas, Córdoba</div>
+    </div>
 </div>
 <div class='tagline'>La óptica mejor calificada en Google Business ⭐ 5/5</div>
-<div class='doc-header'>
-  <div>
-    <div class='doc-title'>Pedido a Laboratorio</div>
-    <div class='doc-number'>Venta #${order.id.slice(-4).toUpperCase()} · ${dateStr}</div>
-  </div>
+
+<div class='method-cards'>
+    <div class='m-card m-efvo'>
+        <div class='m-label'>EFECTIVO -${financials.discountCash}%</div>
+        <div class='m-total'>$${financials.totalCash.toLocaleString()}</div>
+    </div>
+    <div class='m-card m-transf'>
+        <div class='m-label'>TRANSF. -${financials.discountTransfer}%</div>
+        <div class='m-total'>$${financials.totalTransfer.toLocaleString()}</div>
+    </div>
+    <div class='m-card m-cuotas'>
+        <div class='m-label'>CUOTAS</div>
+        <div class='m-total'>$${financials.totalCard.toLocaleString()}</div>
+    </div>
 </div>
-<div class='info-grid'>
-  <div class='info-box'>
-    <h3>👤 Datos del Cliente</h3>
-    <div class='info-row'><span class='label'>Nombre</span><span class='value'>${order.client.name}</span></div>
-    <div class='info-row'><span class='label'>Teléfono</span><span class='value'>${order.client.phone || 'No registrado'}</span></div>
-  </div>
-  <div class='info-box'>
-    <h3>📦 Estado del Pedido</h3>
-    <div class='info-row'><span class='label'>Enviado al Lab</span><span class='value'>${labDate}</span></div>
-    <div class='info-row'><span class='label'>Estado</span><span class='value'>${getLabStep(order.labStatus || 'NONE').label}</span></div>
-    <div class='info-row'><span class='label'>Abonado</span><span class='value'>$${(order.paid || 0).toLocaleString()} / $${(order.total || 0).toLocaleString()}</span></div>
-  </div>
+
+<div class='finance-container'>
+    <div class='finance-header'>
+        <div class='fh-left'>
+            <span class='fh-label'>PAGADO</span>
+            <span class='fh-value'>$${financials.paidReal.toLocaleString()}</span>
+        </div>
+        <div class='fh-right' style="${financials.hasBalance ? '' : 'display: none'}">
+            <div class='s-item s-efvo'><span class='s-dot'></span> SALDO EFVO <strong>$${financials.remainingCash.toLocaleString()}</strong></div>
+            <div class='s-item s-transf'><span class='s-dot'></span> SALDO TRANSF <strong>$${financials.remainingTransfer.toLocaleString()}</strong></div>
+            <div class='s-item s-cuotas'><span class='s-dot'></span> SALDO CUOTAS <strong>$${financials.remainingCard.toLocaleString()}</strong></div>
+        </div>
+    </div>
+    <div class='progress-bar'>
+        <div class='progress-fill' style='width: ${Math.min(100, financials.progress)}%'></div>
+    </div>
 </div>
-<h3 style="font-size:10px; font-weight:900; text-transform:uppercase; letter-spacing:2px; color:#a8a29e; margin-bottom:8px;">🔬 Productos / Cristales</h3>
+
+<div class='doc-title-row'>
+    <span style="color: #1c1917; font-size: 14px;">👓 Productos / Cristales</span>
+</div>
+
 <table>
-  <thead><tr><th>Producto</th><th>Tipo</th><th>Cant.</th><th>Precio</th><th>Subtotal</th></tr></thead>
-  <tbody>${items.map(it => `<tr><td>${it.product?.brand || ''} ${it.product?.model || it.product?.name || ''}</td><td>${it.product?.type || it.product?.category || ''}</td><td style='text-align:center'>${it.quantity}</td><td>$${it.price?.toLocaleString()}</td><td>$${(it.price * it.quantity).toLocaleString()}</td></tr>`).join('')}</tbody>
+  <thead><tr><th style="width: 50%">PRODUCTO</th><th>TIPO</th><th style="text-align:center">CANT.</th><th style="text-align:right">PRECIO</th><th style="text-align:right">SUBTOTAL</th></tr></thead>
+  <tbody>${items.map(it => {
+            const itemPrice = Math.round(it.price * markupFactor);
+            return `<tr>
+      <td><div style="font-weight: 500">${it.product?.brand || ''} ${it.product?.model || it.product?.name || ''}</div></td>
+      <td>${it.product?.type || it.product?.category || ''}</td>
+      <td style='text-align:center'>${it.quantity}</td>
+      <td style='text-align:right'>$${itemPrice.toLocaleString()}</td>
+      <td style='text-align:right'>$${(itemPrice * it.quantity).toLocaleString()}</td>
+    </tr>`}).join('')}
+  </tbody>
 </table>
-${order.frameSource ? `<div style='background:#fffbeb;border:2px solid #fbbf24;border-radius:12px;padding:12px 16px;margin:12px 0;font-size:12px'><strong style='color:#92400e'>🕶️ Armazón:</strong> ${order.frameSource === 'OPTICA' ? 'De la óptica (incluido en el pedido)' : `Del cliente — ${order.userFrameBrand || ''} ${order.userFrameModel || ''}${order.userFrameNotes ? ' · ' + order.userFrameNotes : ''}`}</div>` : ''}
-<div class='totals'>
-  ${order.discount ? `<div class='row' style='color:#ef4444'>Descuento: ${order.discount}%</div>` : ''}
-  <div class='total'>Total: $${(order.total || 0).toLocaleString()}</div>
-  ${saldo > 0 ? `<div class='saldo'>Saldo pendiente: $${saldo.toLocaleString()}</div>` : ''}
+
+${order.frameSource ? `
+<div class='frame-badge'>
+    <span class='frame-icon'>👓</span>
+    <strong>Armazón:</strong> ${order.frameSource === 'OPTICA' ? 'De la óptica (incluido en el pedido)' : `Del cliente — ${order.userFrameBrand || ''} ${order.userFrameModel || ''}${order.userFrameNotes ? ' · ' + order.userFrameNotes : ''}`}
+</div>` : ''}
+
+<div class='grand-total-row'>
+    <span class='gt-label'>Total:</span>
+    <span class='gt-value'>$${financials.totalCash.toLocaleString()}</span>
 </div>
-<div class='time-estimate'>
-  <span class='icon'>⏱️</span>
-  <div>
-    <div class='text'>Tiempo estimado de confección</div>
-    <div class='days'>7 a 10 días hábiles</div>
-  </div>
+
+<div class='lab-box'>
+  <span class='lab-label'>N° OPERACIÓN LAB:</span>
+  <div class='lab-line'></div>
 </div>
-<div class='lab-number-box'>
-  <span class='label'>N° Operación Lab:</span>
-  <span class='input-line'>${order.labOrderNumber || ''}</span>
-</div>
-<div class='notes-box'>
-  <h3>📝 Observaciones para el Cliente</h3>
-  <div class='notes-lines'>${order.labNotes || ''}</div>
-</div>
-<div class='footer'>Atelier Óptica · José Luis de Tejeda 4380, Córdoba · Generado el ${format(new Date(), "d/MM/yyyy HH:mm", { locale: es })}</div>
+
+<div class='footer'>Atelier Óptica · Tejeda 4380 · Córdoba · ${format(new Date(), "yyyy")}</div>
 </body></html>`;
 
         const printWindow = window.open('', '_blank', 'width=800,height=1000');
@@ -302,6 +351,7 @@ ${order.frameSource ? `<div style='background:#fffbeb;border:2px solid #fbbf24;b
             setTimeout(() => printWindow.print(), 400);
         }
     };
+
 
     const sendOrderWhatsApp = (order: Order) => {
         const items = order.items || [];

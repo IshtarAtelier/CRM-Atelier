@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { writeFile, mkdir } from 'fs/promises';
 import path from 'path';
+import { uploadFile } from '@/lib/storage';
 
 const ALLOWED_EXTENSIONS = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'pdf'];
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
@@ -27,22 +28,18 @@ export async function POST(request: Request) {
             }, { status: 400 });
         }
 
-        // Ensure upload directory exists
-        const uploadDir = path.join(process.cwd(), 'public', 'uploads', 'receipts');
-        await mkdir(uploadDir, { recursive: true });
-
-        // Create unique filename (sanitized)
+        // Use unified storage service
+        const buffer = Buffer.from(await file.arrayBuffer());
         const timestamp = Date.now();
         const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
-        const filename = `receipt_${timestamp}_${safeName}`;
-        const filepath = path.join(uploadDir, filename);
+        const filename = `${timestamp}_${safeName}`;
+        
+        const urlOrKey = await uploadFile(buffer, filename, file.type || 'application/octet-stream');
 
-        // Write file
-        const buffer = Buffer.from(await file.arrayBuffer());
-        await writeFile(filepath, buffer);
-
-        const url = `/uploads/receipts/${filename}`;
-        return NextResponse.json({ url });
+        // We return the result of uploadFile. 
+        // If it's local, it will be "local://filename"
+        // If it's cloud, it will be "filename" (the key)
+        return NextResponse.json({ url: urlOrKey });
     } catch (error: any) {
         console.error('Error uploading file:', error);
         return NextResponse.json({ error: error.message || 'Error uploading' }, { status: 500 });

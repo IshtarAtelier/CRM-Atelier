@@ -6,8 +6,8 @@ import { z } from 'zod';
 const PaymentSchema = z.object({
     amount: z.number().positive(),
     method: z.string(),
-    notes: z.string().optional(),
-    receiptUrl: z.string().optional(),
+    notes: z.string().nullable().optional(),
+    receiptUrl: z.string().nullable().optional(),
 });
 
 export const dynamic = 'force-dynamic';

@@ -6,6 +6,7 @@ import {
     Save, Loader2, Upload, AlertCircle, 
     CheckCircle2, DollarSign, Image as ImageIcon
 } from 'lucide-react';
+import { PricingService } from '@/services/PricingService';
 import FileDropZone from '@/components/FileDropZone';
 
 interface AddPaymentModalProps {
@@ -139,6 +140,13 @@ export default function AddPaymentModal({
 
     const pendingAmount = Math.max(0, totalAmount - paidAmount);
 
+    const financials = PricingService.calculateOrderFinancials({ 
+        subtotalWithMarkup: totalAmount, 
+        discountCash: 20,
+        discountTransfer: 15,
+        payments: [{ amount: paidAmount, method: 'CASH' }]
+    });
+
     return (
         <div className="fixed inset-0 bg-stone-900/40 backdrop-blur-md z-[100] flex items-center justify-center p-4 sm:p-6 animate-in fade-in duration-300">
             <div className="bg-stone-900 text-white w-full max-w-2xl rounded-[3rem] shadow-2xl overflow-hidden border border-white/10 flex flex-col max-h-[90vh]">
@@ -146,8 +154,8 @@ export default function AddPaymentModal({
                 {/* Header */}
                 <div className="p-8 border-b border-white/5 flex justify-between items-center bg-white/[0.02]">
                     <div>
-                        <h2 className="text-2xl font-black tracking-tighter uppercase italic">Registrar Seña</h2>
-                        <p className="text-[10px] font-bold text-stone-500 uppercase tracking-widest mt-1">Completa los datos del pago previo a la venta</p>
+                        <h2 className="text-2xl font-black tracking-tighter uppercase italic">Registrar Pago / Seña</h2>
+                        <p className="text-[10px] font-bold text-stone-500 uppercase tracking-widest mt-1">El saldo se recalcula según el método elegido</p>
                     </div>
                     <button onClick={onClose} className="p-3 hover:bg-white/10 rounded-2xl transition-all">
                         <X className="w-6 h-6 text-stone-400" />
@@ -163,7 +171,7 @@ export default function AddPaymentModal({
                     )}
 
                     {/* Amount Input */}
-                    <div className="space-y-3 text-center">
+                    <div className="space-y-4 text-center">
                         <label className="text-[10px] font-black text-stone-500 uppercase tracking-widest">Monto a abonar</label>
                         <div className="relative max-w-xs mx-auto group">
                             <span className="absolute left-6 top-1/2 -translate-y-1/2 text-3xl font-black text-stone-600 group-focus-within:text-primary transition-colors">$</span>
@@ -175,19 +183,29 @@ export default function AddPaymentModal({
                                 placeholder="0"
                             />
                         </div>
-                        <div className="flex justify-center gap-2 pt-2">
-                            <button 
-                                onClick={() => setAmount(pendingAmount.toString())}
-                                className="px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all"
-                            >
-                                Saldo Total (${pendingAmount.toLocaleString()})
-                            </button>
-                            <button 
-                                onClick={() => setAmount((totalAmount * 0.4).toString())}
-                                className="px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all"
-                            >
-                                Mínimo 40% (${(totalAmount * 0.4).toLocaleString()})
-                            </button>
+                        
+                        <div className="space-y-2">
+                             <p className="text-[9px] font-black text-stone-600 uppercase tracking-widest">Sugerencias de Saldo Pendiente</p>
+                             <div className="flex flex-wrap justify-center gap-2">
+                                <button 
+                                    onClick={() => setAmount(financials.remainingCash.toString())}
+                                    className="px-4 py-2 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all text-emerald-500 flex items-center gap-2"
+                                >
+                                    <Banknote className="w-3 h-3" /> Saldo Efvo (${financials.remainingCash.toLocaleString()})
+                                </button>
+                                <button 
+                                    onClick={() => setAmount(financials.remainingTransfer.toString())}
+                                    className="px-4 py-2 bg-violet-500/10 hover:bg-violet-500/20 border border-violet-500/20 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all text-violet-400 flex items-center gap-2"
+                                >
+                                    <ArrowRightLeft className="w-3 h-3" /> Saldo Transf (${financials.remainingTransfer.toLocaleString()})
+                                </button>
+                                <button 
+                                    onClick={() => setAmount(financials.remainingCard.toString())}
+                                    className="px-4 py-2 bg-orange-500/10 hover:bg-orange-500/20 border border-orange-500/20 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all text-orange-400 flex items-center gap-2"
+                                >
+                                    <CreditCard className="w-3 h-3" /> Saldo Tarjeta (${financials.remainingCard.toLocaleString()})
+                                </button>
+                            </div>
                         </div>
                     </div>
 

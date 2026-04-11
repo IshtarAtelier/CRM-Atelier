@@ -41,6 +41,8 @@ interface CashData {
     total: number;
     paymentsTotal: number;
     manualBalance: number;
+    manualIn?: number;
+    manualOut?: number;
     movements: CashMovement[];
 }
 
@@ -546,11 +548,11 @@ export default function AdministracionPage() {
                             <div className="space-y-4">
                                 <div className="flex items-center justify-between">
                                     <span className="text-[10px] font-black text-stone-400 uppercase tracking-widest">Ingresos Manuales</span>
-                                    <span className="text-xs font-black text-emerald-500">$0</span>
+                                    <span className="text-xs font-black text-emerald-500">${(cashData?.manualIn ?? 0).toLocaleString('es-AR')}</span>
                                 </div>
                                 <div className="flex items-center justify-between">
                                     <span className="text-[10px] font-black text-stone-400 uppercase tracking-widest">Egresos Manuales</span>
-                                    <span className="text-xs font-black text-red-500">${(Math.abs(cashData?.manualBalance ?? 0)).toLocaleString('es-AR')}</span>
+                                    <span className="text-xs font-black text-red-500">${(cashData?.manualOut ?? 0).toLocaleString('es-AR')}</span>
                                 </div>
                             </div>
                             <button 

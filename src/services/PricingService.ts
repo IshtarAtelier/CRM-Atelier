@@ -17,6 +17,23 @@ export interface PricingResult {
     appliedPromos: string[];
 }
 
+export interface OrderFinancials {
+    listPrice: number;
+    totalCash: number;
+    totalTransfer: number;
+    totalCard: number;
+    paidReal: number;
+    listEquivalentPaid: number;
+    remainingList: number;
+    remainingCash: number;
+    remainingTransfer: number;
+    remainingCard: number;
+    hasBalance: boolean;
+    progress: number;
+    discountCash: number;
+    discountTransfer: number;
+}
+
 /**
  * PricingService unifica toda la lógica de cálculo de precios, descuentos y promociones.
  * Diseñado para ser escalable y modular.
@@ -69,6 +86,53 @@ export class PricingService {
             subtotalWithMarkup: Math.round(subtotalWithMarkup),
             totalCash: Math.round(totalCash),
             appliedPromos
+        };
+    }
+
+    /**
+     * Calcula el desglose financiero completo (Totales y Saldos) para una orden existente.
+     */
+    static calculateOrderFinancials(order: any): OrderFinancials {
+        const discCash = order.discountCash ?? 20;
+        const discTrans = order.discountTransfer ?? 15;
+        const listPrice = order.subtotalWithMarkup || 0;
+
+        // Totales base
+        const totalCash = Math.round(listPrice * (1 - discCash / 100));
+        const totalTransfer = Math.round(listPrice * (1 - discTrans / 100));
+        const totalCard = listPrice;
+
+        // Cálculo de "Equivalente de Lista" pagado
+        const listEquivalentPaid = (order.payments || []).reduce((acc: number, p: any) => {
+            const amount = p.amount || 0;
+            if (p.method === 'CASH' || p.method === 'EFECTIVO') 
+                return acc + (amount / (1 - discCash / 100));
+            if (p.method?.includes('TRANSFER')) 
+                return acc + (amount / (1 - discTrans / 100));
+            return acc + amount;
+        }, 0);
+
+        const remainingList = Math.max(0, listPrice - listEquivalentPaid);
+        const paidReal = (order.payments || []).reduce((acc: number, p: any) => acc + (p.amount || 0), 0);
+        const hasBalance = remainingList > 10; // Epsilon para evitar floating point issues
+        
+        const progress = listPrice > 0 ? (listEquivalentPaid / listPrice) * 100 : 0;
+
+        return {
+            listPrice,
+            totalCash,
+            totalTransfer,
+            totalCard,
+            paidReal,
+            listEquivalentPaid,
+            remainingList: Math.round(remainingList),
+            remainingCash: Math.round(remainingList * (1 - discCash / 100)),
+            remainingTransfer: Math.round(remainingList * (1 - discTrans / 100)),
+            remainingCard: Math.round(remainingList),
+            hasBalance,
+            progress,
+            discountCash: discCash,
+            discountTransfer: discTrans
         };
     }
 

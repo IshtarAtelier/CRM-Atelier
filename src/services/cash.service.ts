@@ -10,28 +10,62 @@ export const CashService = {
      * Saldo = (Pagos en Efectivo) + (Entradas manuales) - (Salidas manuales)
      */
     async getCashBalance() {
-        // 1. Sumar todos los pagos registrados como EFECTIVO o CASH
-        const payments = await prisma.payment.aggregate({
+        // 1. Obtener todos los pagos válidos en EFECTIVO (ventas y señas de presupuestos no borrados)
+        const cashPayments = await prisma.payment.findMany({
             where: { 
-                method: { in: ['EFECTIVO', 'CASH'] }
+                method: { in: ['EFECTIVO', 'CASH'] },
+                order: {
+                    isDeleted: false
+                }
             },
-            _sum: { amount: true },
+            include: {
+                order: {
+                    include: { client: true, user: true }
+                }
+            }
         });
 
-        // 2. Sumar entradas y restar salidas de movimientos manuales
-        const movements = await (prisma as any).cashMovement.findMany();
-        
-        const manualBalance = (movements as any[]).reduce((acc: number, mov: any) => {
-            return mov.type === 'IN' ? acc + mov.amount : acc - mov.amount;
-        }, 0);
+        const paymentsTotal = cashPayments.reduce((acc, p) => acc + (p.amount || 0), 0);
 
-        const totalCash = (payments._sum.amount || 0) + manualBalance;
+        // 2. Obtener movimientos manuales de caja con el usuario
+        const movementsList = await (prisma as any).cashMovement.findMany({
+            include: { user: true }
+        });
+        
+        let manualIn = 0;
+        let manualOut = 0;
+        movementsList.forEach((mov: any) => {
+            if (mov.type === 'IN') manualIn += mov.amount;
+            if (mov.type === 'OUT') manualOut += mov.amount;
+        });
+        const manualBalance = manualIn - manualOut;
+
+        const totalCash = paymentsTotal + manualBalance;
+
+        // 3. Convertir pagos a formato de movimiento para el historial
+        const formattedPayments = cashPayments.map((p) => ({
+            id: p.id,
+            type: 'IN',
+            amount: p.amount || 0,
+            reason: `Cobro Venta - ${p.order?.client?.name || 'Cliente'}`,
+            category: 'VENTA',
+            createdAt: p.date, 
+            user: { name: p.order?.user?.name || 'Vendedor' },
+            receiptUrl: p.receiptUrl
+        }));
+
+        // 4. Combinar, ordenar por fecha descendente y limitar a los últimos 50
+        const allMovements = [...movementsList, ...formattedPayments].sort((a: any, b: any) => {
+            return new Date(b.createdAt || new Date()).getTime() - new Date(a.createdAt || new Date()).getTime();
+        }).slice(0, 50);
 
         return {
             total: totalCash,
-            paymentsTotal: payments._sum.amount || 0,
+            paymentsTotal: paymentsTotal,
             manualBalance: manualBalance,
-            movements: (movements as any[]).sort((a: any, b: any) => b.createdAt.getTime() - a.createdAt.getTime()).slice(0, 50),
+            manualIn: manualIn,
+            manualOut: manualOut,
+            movements: allMovements,
         };
     },
 

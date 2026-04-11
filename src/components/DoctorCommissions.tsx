@@ -1,6 +1,7 @@
 'use client';
 
 import FileDropZone from '@/components/FileDropZone';
+import { resolveStorageUrl } from '@/lib/utils/storage';
 
 import { useState, useEffect, useRef } from 'react';
 import {
@@ -491,7 +492,7 @@ export default function DoctorCommissions() {
                                             <div className="flex items-center gap-2">
                                                 {p.receiptUrl && (
                                                     <a
-                                                        href={p.receiptUrl}
+                                                        href={resolveStorageUrl(p.receiptUrl)}
                                                         target="_blank"
                                                         rel="noopener noreferrer"
                                                         className="p-2 bg-blue-50 dark:bg-blue-950 text-blue-500 rounded-lg hover:scale-110 transition-all"

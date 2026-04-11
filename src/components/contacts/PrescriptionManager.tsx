@@ -7,6 +7,7 @@ import {
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import PrescriptionDetails from '../prescriptions/PrescriptionDetails';
+import { resolveStorageUrl } from '@/lib/utils/storage';
 
 interface PrescriptionManagerProps {
     contact: any;
@@ -143,7 +144,7 @@ export default function PrescriptionManager({
                 rxId = newRx.id;
             }
 
-            if (onConversionComplete && rxId) {
+            if (conversionOrderId && onConversionComplete && rxId) {
                 setSavedRxId(rxId);
                 setStep('review');
             } else {
@@ -159,7 +160,10 @@ export default function PrescriptionManager({
     };
 
     const handleFinalConfirm = async () => {
-        if (!conversionOrderId) return;
+        if (!conversionOrderId) {
+            setError("No hay una orden asociada para convertir.");
+            return;
+        }
         
         // Use the ID we just saved in handleSave, or find it if we came from a different path
         const rxId = savedRxId || findDuplicate()?.id;
@@ -276,7 +280,11 @@ export default function PrescriptionManager({
                     <label className="text-[9px] font-black text-red-500 uppercase tracking-widest block mb-2">📷 Foto de la receta (OBLIGATORIA)</label>
                     {form.imageUrl ? (
                         <div className="relative">
-                            <img src={form.imageUrl} alt="Receta" className="w-full max-h-48 object-contain rounded-xl border-2 border-emerald-500 shadow-md" />
+                            <img 
+                                src={resolveStorageUrl(form.imageUrl)} 
+                                alt="Receta" 
+                                className="w-full max-h-48 object-contain rounded-xl border-2 border-emerald-500 shadow-md" 
+                            />
                             <button onClick={() => setForm(p => ({...p, imageUrl: ''}))} className="absolute top-2 right-2 p-2 bg-red-500 text-white rounded-full"><X className="w-4 h-4" /></button>
                         </div>
                     ) : (
