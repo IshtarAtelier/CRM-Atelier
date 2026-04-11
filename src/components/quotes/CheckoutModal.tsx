@@ -12,6 +12,7 @@ import { es } from 'date-fns/locale';
 import { safePrice } from '@/lib/promo-utils';
 import PrescriptionDetails from '../prescriptions/PrescriptionDetails';
 import { resolveStorageUrl } from '@/lib/utils/storage';
+import { PricingService } from '@/services/PricingService';
 
 interface CheckoutModalProps {
     order: any;
@@ -41,10 +42,11 @@ export default function CheckoutModal({
     const isClientDataComplete = clientForm.dni && clientForm.address && clientForm.phone;
     const [isEditingClient, setIsEditingClient] = useState(!isClientDataComplete);
 
-    // Repaso Final: Los pagos ya deberían estar registrados o validados
-    const total = order.total || 0;
-    const paid = order.paid || 0;
-    const balance = Math.max(0, total - paid);
+    // Repaso Final: Usar PricingService para consistencia total
+    const financials = PricingService.calculateOrderFinancials(order);
+    const total = financials.totalCard; // El total de lista es el base
+    const paid = financials.paidReal;
+    const balance = financials.remainingCard;
     const minRequired = total * 0.4;
     
     // Prescription Selection
@@ -165,16 +167,16 @@ export default function CheckoutModal({
                                     <p className="text-xl font-black text-stone-800 dark:text-white">${(Number(order.total || 0) + Number(order.discount || 0)).toLocaleString()}</p>
                                 </div>
                                 <div>
-                                    <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest mb-1">Bonif. 2x1</p>
-                                    <p className="text-xl font-black text-emerald-600">-${Number(order.discount || 0).toLocaleString()}</p>
+                                    <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest mb-1">Bonif. {order.appliedPromoName ? '2x1' : 'Efectivo'}</p>
+                                    <p className="text-xl font-black text-emerald-600">-${(financials.totalCard - financials.totalCash).toLocaleString()}</p>
                                 </div>
                                 <div>
-                                    <p className="text-[10px] font-black text-primary uppercase tracking-widest mb-1">Pagado</p>
-                                    <p className="text-xl font-black text-primary">${Number(order.paid || 0).toLocaleString()}</p>
+                                    <p className="text-[10px] font-black text-primary uppercase tracking-widest mb-1">Pagado Real</p>
+                                    <p className="text-xl font-black text-primary">${financials.paidReal.toLocaleString()}</p>
                                 </div>
                                 <div className="text-right">
-                                    <p className="text-[10px] font-black text-amber-500 uppercase tracking-widest mb-1">A cobrar</p>
-                                    <p className="text-xl font-black text-amber-600">${Number(balance || 0).toLocaleString()}</p>
+                                    <p className="text-[10px] font-black text-amber-500 uppercase tracking-widest mb-1">Saldo Card</p>
+                                    <p className="text-xl font-black text-amber-600">${financials.remainingCard.toLocaleString()}</p>
                                 </div>
                             </div>
                         </div>

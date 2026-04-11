@@ -22,7 +22,8 @@ export async function GET(
                         product: true
                     }
                 },
-                prescription: true
+                prescription: true,
+                payments: true
             }
         });
 
@@ -39,7 +40,7 @@ export async function GET(
             dateStr = new Date().toLocaleDateString('es-AR');
         }
 
-        const logoUrl = `https://crm-atelier-production-ae72.up.railway.app/assets/logo-atelier-optica.png`;
+        const logoUrl = `https://crm-atelier-production-ae72.app.railway.com/assets/logo-atelier-optica.png`;
         
         // Brand Colors
         const brandBeige = '#D4C3B5';
@@ -93,7 +94,8 @@ export async function GET(
 
         .p-title { font-size: 9px; font-weight: 900; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 10px; display: block; }
         .p-amount { font-size: 18px; font-weight: 900; color: #1c1917; display: block; margin-bottom: 2px; }
-        .p-discount { font-size: 9px; font-weight: 800; background: #f5f5f4; display: inline-block; padding: 3px 8px; border-radius: 6px; margin-top: 5px; }
+        .p-saldo { font-size: 12px; font-weight: 900; background: #f5f5f4; display: inline-block; padding: 4px 10px; border-radius: 8px; margin-top: 8px; }
+        .p-saldo-label { color: #78716c; font-size: 8px; display: block; margin-bottom: 2px; text-transform: uppercase; }
         
         .installments { border-top: 1px solid #f5f5f4; margin-top: 12px; padding-top: 10px; }
         .inst-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
@@ -103,8 +105,13 @@ export async function GET(
 
         .totals-summary { margin-top: 25px; padding: 25px; border-radius: 20px; background: #1c1917; color: white; display: flex; justify-content: space-between; align-items: center; border: 2px solid ${brandSand}; }
         .tot-amount { font-size: 34px; font-weight: 900; color: ${systemEmerald}; letter-spacing: -1px; }
-        .tot-saldo { text-align: right; border-left: 1px solid rgba(255,255,255,0.1); padding-left: 25px; }
-        .saldo-value { font-size: 24px; font-weight: 900; color: #fbbf24; }
+        .tot-col { text-align: center; padding: 0 15px; border-right: 1px solid rgba(255,255,255,0.1); }
+        .tot-col:last-of-type { border-right: none; }
+        .tot-val { font-size: 18px; font-weight: 900; display: block; }
+        .tot-label { font-size: 8px; font-weight: 900; text-transform: uppercase; letter-spacing: 1px; color: #a8a29e; display: block; margin-bottom: 4px; }
+        
+        .tot-paid { text-align: right; border-left: 2px solid rgba(255,255,255,0.2); padding-left: 25px; margin-left: 10px; }
+        .paid-value { font-size: 24px; font-weight: 900; color: #fbbf24; }
 
         .footer { margin-top: 40px; text-align: center; border-top: 2px solid ${brandBeige}; padding-top: 20px; font-size: 9px; color: #a8a29e; text-transform: uppercase; letter-spacing: 3px; font-weight: 900; }
         .print-btn { position: fixed; top: 20px; right: 20px; padding: 14px 28px; background: ${brandSand}; color: white; border: none; border-radius: 14px; font-weight: 900; cursor: pointer; z-index: 1000; text-transform: uppercase; }
@@ -174,17 +181,32 @@ export async function GET(
         <div class='payment-card p-efective'>
             <span class='p-title'>💵 Efectivo (-${financials.discountCash}%)</span>
             <span class='p-amount'>$${financials.totalCash.toLocaleString()}</span>
-            <span class='p-discount'>${financials.hasBalance ? `Saldo: $${financials.remainingCash.toLocaleString()}` : 'PAGADO COMPLETO'}</span>
+            ${financials.hasBalance ? `
+            <div class='p-saldo'>
+                <span class='p-saldo-label'>Saldo Pendiente</span>
+                <span>$${financials.remainingCash.toLocaleString()}</span>
+            </div>
+            ` : '<span class='p-saldo' style='color:#10b981; background:#f0fdf4;'>PAGADO COMPLETO</span>'}
         </div>
         <div class='payment-card p-transfer'>
             <span class='p-title'>🏦 Transferencia (-${financials.discountTransfer}%)</span>
             <span class='p-amount'>$${financials.totalTransfer.toLocaleString()}</span>
-            <span class='p-discount'>${financials.hasBalance ? `Saldo: $${financials.remainingTransfer.toLocaleString()}` : 'PAGADO COMPLETO'}</span>
+            ${financials.hasBalance ? `
+            <div class='p-saldo'>
+                <span class='p-saldo-label'>Saldo Pendiente</span>
+                <span>$${financials.remainingTransfer.toLocaleString()}</span>
+            </div>
+            ` : '<span class='p-saldo' style='color:#10b981; background:#f0fdf4;'>PAGADO COMPLETO</span>'}
         </div>
         <div class='payment-card p-card'>
             <span class='p-title'>💳 Tarjetas (Lista)</span>
             <span class='p-amount'>$${financials.totalCard.toLocaleString()}</span>
-            <span class='p-discount'>${financials.hasBalance ? `Saldo listado: $${financials.remainingCard.toLocaleString()}` : 'PAGADO COMPLETO'}</span>
+            ${financials.hasBalance ? `
+            <div class='p-saldo'>
+                <span class='p-saldo-label'>Saldo Listado</span>
+                <span>$${financials.remainingCard.toLocaleString()}</span>
+            </div>
+            ` : '<span class='p-saldo' style='color:#10b981; background:#f0fdf4;'>PAGADO COMPLETO</span>'}
             <div class='installments'>
                 <div class='inst-row'>
                     <span style="font-size:10px; font-weight:700;">3 Cuotas de</span>
@@ -199,31 +221,50 @@ export async function GET(
     </div>
 
     <div class='totals-summary'>
-        <div>
-            <span style="font-size: 11px; font-weight: 900; color: #a8a29e; text-transform: uppercase; letter-spacing: 2px;">Precio de Lista</span>
-            <div class='tot-amount' style="color: white; font-size: 30px;">$${financials.totalCard.toLocaleString()}</div>
+        <div class='tot-col'>
+            <span class='tot-label' style="color: #10b981;">💵 Efectivo</span>
+            <span class='tot-val' style="color: #10b981;">$${financials.totalCash.toLocaleString()}</span>
         </div>
-        <div style="display: flex; gap: 20px; align-items: center;">
-            <div style="text-align: center; padding: 0 15px; border-right: 1px solid rgba(255,255,255,0.1);">
-                <span style="font-size: 8px; font-weight: 900; color: ${systemEmerald}; text-transform: uppercase; letter-spacing: 1px; display: block; margin-bottom: 4px;">💵 Efectivo</span>
-                <span style="font-size: 18px; font-weight: 900; color: ${systemEmerald};">$${financials.totalCash.toLocaleString()}</span>
-            </div>
-            <div style="text-align: center; padding: 0 15px; border-right: 1px solid rgba(255,255,255,0.1);">
-                <span style="font-size: 8px; font-weight: 900; color: #a78bfa; text-transform: uppercase; letter-spacing: 1px; display: block; margin-bottom: 4px;">🏦 Transf</span>
-                <span style="font-size: 18px; font-weight: 900; color: #a78bfa;">$${financials.totalTransfer.toLocaleString()}</span>
-            </div>
-            <div style="text-align: center; padding: 0 15px;">
-                <span style="font-size: 8px; font-weight: 900; color: #fb923c; text-transform: uppercase; letter-spacing: 1px; display: block; margin-bottom: 4px;">💳 Tarjeta</span>
-                <span style="font-size: 18px; font-weight: 900; color: #fb923c;">$${financials.totalCard.toLocaleString()}</span>
-            </div>
+        <div class='tot-col'>
+            <span class='tot-label' style="color: #a78bfa;">🏦 Transf</span>
+            <span class='tot-val' style="color: #a78bfa;">$${financials.totalTransfer.toLocaleString()}</span>
         </div>
-        ${financials.paidReal > 0 ? `
-        <div class='tot-saldo'>
-            <span style="font-size: 9px; font-weight: 800; color: #a8a29e; text-transform: uppercase; display: block;">Abonado Real</span>
-            <span style="font-size: 16px; font-weight: 900; color: ${systemEmerald}; display: block;">$${financials.paidReal.toLocaleString()}</span>
+        <div class='tot-col'>
+            <span class='tot-label' style="color: #fb923c;">💳 Tarjeta</span>
+            <span class='tot-val' style="color: #fb923c;">$${financials.totalCard.toLocaleString()}</span>
         </div>
-        ` : ''}
+        
+        <div class='tot-paid'>
+            <span class='tot-label'>Abonado Real</span>
+            <span class='paid-value'>$${financials.paidReal.toLocaleString()}</span>
+        </div>
     </div>
+
+    ${order.prescription ? `
+        <div style="margin-top: 25px; display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+            <div style="border: 1.5px solid ${brandBeige}; border-radius: 12px; padding: 12px;">
+                <div style="font-size: 8px; font-weight: 900; color: ${brandSand}; margin-bottom: 5px;">OD</div>
+                <div style="font-size: 14px; font-weight: 800;">${order.prescription.sphereOD || '0'} / ${order.prescription.cylinderOD || '0'} x ${order.prescription.axisOD || '0'}°</div>
+            </div>
+            <div style="border: 1.5px solid ${brandBeige}; border-radius: 12px; padding: 12px;">
+                <div style="font-size: 8px; font-weight: 900; color: ${brandSand}; margin-bottom: 5px;">OI</div>
+                <div style="font-size: 14px; font-weight: 800;">${order.prescription.sphereOI || '0'} / ${order.prescription.cylinderOI || '0'} x ${order.prescription.axisOI || '0'}°</div>
+            </div>
+        </div>
+    ` : ''}
+
+    <div class='footer'>Atelier Óptica · Tejeda 4380 · Profesionalismo Ética y Diseño · ${format(new Date(), "yyyy")}</div>
+</body>
+</html>`;
+
+        return new Response(html, {
+            headers: { 'Content-Type': 'text/html' },
+        });
+    } catch (error: any) {
+        console.error('Error generando PDF:', error);
+        return new Response(`Error interno: ${error.message}`, { status: 500 });
+    }
+}
 
     ${order.prescription ? `
         <div class='prescription-grid'>

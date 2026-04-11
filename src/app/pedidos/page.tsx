@@ -188,17 +188,10 @@ export default function PedidosPage() {
             setEditingId(null);
             setEditValue('');
             await fetchOrders();
-        } catch (error) {
-            console.error('Error saving lab number:', error);
-        }
-        setUpdatingId(null);
-    };
-
     const downloadLabSheet = (order: Order) => {
         const items = order.items || [];
         const dateStr = format(new Date(order.createdAt), "d 'de' MMMM yyyy", { locale: es });
         const markupFactor = 1 + ((order.markup || 0) / 100);
-        const logoUrl = `${window.location.origin}/assets/logo-atelier-optica.png`;
 
         const financials = PricingService.calculateOrderFinancials(order);
 
@@ -209,135 +202,87 @@ export default function PedidosPage() {
   body { padding: 30px 40px; color: #1c1917; font-size: 13px; line-height:1.4; background: white; }
   
   .letterhead { display:flex; justify-content:space-between; align-items:center; padding-bottom:15px; border-bottom:2px solid #D4C3B5; margin-bottom: 8px; }
-  .letterhead-logo { height:52px; }
   .letterhead-right { text-align:right; font-size:10px; color:#78716c; font-weight: 500; }
   .address-bold { font-weight:800; color:#A68B7C; text-transform: uppercase; letter-spacing: 1px; }
   
-  .tagline { text-align:center; font-size:10px; font-weight:900; text-transform:uppercase; letter-spacing:2.5px; color:#A68B7C; padding:10px 0; border-bottom: 1px solid #f5f5f4; margin-bottom: 15px; }
+  .payment-methods { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 25px; }
+  .payment-card { border-radius: 18px; padding: 18px; border: 1.5px solid #D4C3B5; position: relative; overflow: hidden; background: #fffcf9; }
+  .payment-card::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 5px; }
+  .p-efective::before { background: #10b981; }
+  .p-transfer::before { background: #7c3aed; }
+  .p-card::before { background: #f97316; }
 
-  /* New Finance Header (Budget Style) */
-  .finance-container { border: 1.5px solid #D4C3B5; border-radius: 24px; padding: 20px; margin-bottom: 25px; background: white; }
-  .finance-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
-  
-  .fh-left { display: flex; flex-direction: column; }
-  .fh-label { font-size: 9px; font-weight: 900; color: #a8a29e; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 4px; }
-  .fh-value { font-size: 26px; font-weight: 900; color: #10b981; }
+  .p-title { font-size: 8px; font-weight: 900; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; display: block; color: #78716c; }
+  .p-amount { font-size: 16px; font-weight: 900; color: #1c1917; display: block; }
+  .p-saldo { font-size: 11px; font-weight: 900; background: #f5f5f4; display: inline-block; padding: 4px 10px; border-radius: 8px; margin-top: 8px; }
+  .p-saldo-label { color: #78716c; font-size: 7px; display: block; margin-bottom: 2px; text-transform: uppercase; font-weight: 800; }
 
-  .fh-right { display: flex; gap: 15px; }
-  .s-item { display: flex; align-items: center; gap: 6px; font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; }
-  .s-dot { width: 8px; height: 8px; border-radius: 2px; }
-  .s-efvo { color: #10b981; } .s-efvo .s-dot { background: #10b981; }
-  .s-transf { color: #7c3aed; } .s-transf .s-dot { background: #7c3aed; }
-  .s-cuotas { color: #f97316; } .s-cuotas .s-dot { background: #f97316; }
-  .s-item strong { font-size: 13px; font-weight: 900; margin-left: 2px; }
+  .doc-title-row { display: flex; align-items: center; gap: 8px; font-size: 11px; font-weight: 900; color: #1c1917; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 12px; }
 
-  .progress-bar { height: 8px; background: #f5f5f4; border-radius: 10px; overflow: hidden; position: relative; }
-  .progress-fill { height: 100%; background: #10b981; border-radius: 10px; transition: width 0.5s ease; }
+  table { width:100%; border-collapse:collapse; margin-bottom:15px; border-radius: 12px; overflow: hidden; border: 1px solid #D4C3B5; }
+  th { background:#A68B7C; color:white; padding:10px 14px; text-align:left; font-size:9px; text-transform:uppercase; letter-spacing:1px; }
+  td { padding:10px 14px; border-bottom:1px solid #f5f5f4; font-size:11px; }
+  tr:nth-child(even) { background:#fffcf9; }
 
-  /* Method Cards (Top style) */
-  .method-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 25px; }
-  .m-card { border: 1.5px solid #1c1917; border-radius: 24px; padding: 20px; position: relative; }
-  .m-label { font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
-  .m-total { font-size: 24px; font-weight: 900; }
-  
-  .m-efvo { background: #f0fdf4; } .m-efvo .m-label, .m-efvo .m-total { color: #10b981; }
-  .m-transf { background: #f5f3ff; } .m-transf .m-label, .m-transf .m-total { color: #7c3aed; }
-  .m-cuotas { background: #fffaf5; } .m-cuotas .m-label, .m-cuotas .m-total { color: #f97316; }
+  .totals-summary { margin-top: 25px; padding: 25px; border-radius: 20px; background: #1c1917; color: white; display: flex; justify-content: space-between; align-items: center; border: 2px solid #A68B7C; }
+  .tot-col { text-align: center; padding: 0 15px; border-right: 1px solid rgba(255,255,255,0.1); }
+  .tot-col:last-of-type { border-right: none; }
+  .tot-val { font-size: 18px; font-weight: 900; display: block; }
+  .tot-label { font-size: 8px; font-weight: 900; text-transform: uppercase; letter-spacing: 1px; color: #a8a29e; display: block; margin-bottom: 4px; }
+  .tot-paid { text-align: right; border-left: 2px solid rgba(255,255,255,0.2); padding-left: 25px; margin-left: 10px; }
+  .paid-value { font-size: 24px; font-weight: 900; color: #fbbf24; }
 
-  .doc-title-row { display: flex; align-items: center; gap: 8px; font-size: 11px; font-weight: 900; color: #a8a29e; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 12px; }
-
-  table { width:100%; border-collapse:collapse; margin-bottom:15px; border-radius: 12px; overflow: hidden; }
-  th { background:#1c1917; color:white; padding:12px 14px; text-align:left; font-size:10px; text-transform:uppercase; letter-spacing:1px; }
-  td { padding:12px 14px; border-bottom:1px solid #e7e5e4; font-size:12px; color: #44403c; }
-  tr:nth-child(even) { background:#fafaf9; }
-
-  .grand-total-row { text-align: right; padding: 15px 0; border-top: 2px solid #1c1917; margin-top: 10px; }
-  .gt-label { font-size: 18px; font-weight: 900; color: #1c1917; }
-  .gt-value { font-size: 24px; font-weight: 900; color: #1c1917; margin-left: 10px; }
-
-  .lab-box { border: 2px dashed #c2410c; border-radius: 16px; padding: 20px; margin-top: 25px; }
-  .lab-label { font-size: 12px; font-weight: 900; text-transform: uppercase; letter-spacing: 2px; color: #c2410c; margin-bottom: 15px; display: block; }
-  .lab-line { border-bottom: 2px solid #1c1917; height: 30px; }
-
-  .frame-badge { background: white; border: 1.5px solid #fbbf24; border-radius: 12px; padding: 12px 16px; margin-bottom: 15px; font-size: 12px; display: flex; align-items: center; gap: 10px; }
-  .frame-icon { color: #7c3aed; font-size: 16px; }
-
-  .footer { margin-top: 30px; text-align: center; font-size: 9px; color: #a8a29e; text-transform: uppercase; letter-spacing: 2px; font-weight: 700; border-top: 1px solid #f5f5f4; padding-top: 15px; }
-  @media print { body { padding: 20px; } .method-cards, .finance-container { break-inside: avoid; } }
-</style></head><body>
-
-<div class='letterhead'>
-    <img src='${logoUrl}' class='letterhead-logo' alt='Atelier Óptica' />
-    <div class='letterhead-right'>
-        <div class='address-bold'>José Luis de Tejeda 4380</div>
-        <div>Cerro de las Rosas, Córdoba</div>
-    </div>
-</div>
-<div class='tagline'>La óptica mejor calificada en Google Business ⭐ 5/5</div>
-
-<div class='method-cards'>
-    <div class='m-card m-efvo'>
-        <div class='m-label'>EFECTIVO -${financials.discountCash}%</div>
-        <div class='m-total'>$${financials.totalCash.toLocaleString()}</div>
-    </div>
-    <div class='m-card m-transf'>
-        <div class='m-label'>TRANSF. -${financials.discountTransfer}%</div>
-        <div class='m-total'>$${financials.totalTransfer.toLocaleString()}</div>
-    </div>
-    <div class='m-card m-cuotas'>
-        <div class='m-label'>CUOTAS</div>
-        <div class='m-total'>$${financials.totalCard.toLocaleString()}</div>
-    </div>
-</div>
-
-<div class='finance-container'>
-    <div class='finance-header'>
-        <div class='fh-left'>
-            <span class='fh-label'>PAGADO</span>
-            <span class='fh-value'>$${financials.paidReal.toLocaleString()}</span>
-        </div>
-        <div class='fh-right' style="${financials.hasBalance ? '' : 'display: none'}">
-            <div class='s-item s-efvo'><span class='s-dot'></span> SALDO EFVO <strong>$${financials.remainingCash.toLocaleString()}</strong></div>
-            <div class='s-item s-transf'><span class='s-dot'></span> SALDO TRANSF <strong>$${financials.remainingTransfer.toLocaleString()}</strong></div>
-            <div class='s-item s-cuotas'><span class='s-dot'></span> SALDO CUOTAS <strong>$${financials.remainingCard.toLocaleString()}</strong></div>
+  .footer { margin-top: 30px; text-align: center; border-top: 1px solid #D4C3B5; padding-top: 15px; font-size: 9px; color: #a8a29e; text-transform: uppercase; letter-spacing: 3px; font-weight: 900; }
+</style>
+</head>
+<body>
+    <div class='letterhead'>
+        <div class='address-bold'>Pedido de Laboratorio <span style="color:#78716c; font-weight:500;">#${order.id.slice(-6).toUpperCase()}</span></div>
+        <div class='letterhead-right'>
+            <div>José Luis de Tejeda 4380 · Córdoba</div>
+            <div>Fecha: ${dateStr}</div>
         </div>
     </div>
-    <div class='progress-bar'>
-        <div class='progress-fill' style='width: ${Math.min(100, financials.progress)}%'></div>
+
+    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px; margin-bottom:20px;">
+        <div style="border:1px solid #D4C3B5; border-radius:12px; padding:12px;">
+            <div style="font-size:8px; font-weight:900; color:#A68B7C; text-transform:uppercase; margin-bottom:5px;">Cliente</div>
+            <div style="font-weight:700;">${order.client.name}</div>
+            <div style="font-size:10px; color:#78716c;">Tel: ${order.client.phone || '-'}</div>
+        </div>
+        <div style="border:1px solid #D4C3B5; border-radius:12px; padding:12px;">
+            <div style="font-size:8px; font-weight:900; color:#A68B7C; text-transform:uppercase; margin-bottom:5px;">Estado de Pago</div>
+            <div style="font-weight:700;">Abonado Real: $${financials.paidReal.toLocaleString()}</div>
+            <div style="font-size:10px; color:${financials.hasBalance ? '#c2410c' : '#10b981'}; font-weight:700;">
+                ${financials.hasBalance ? `PENDIENTE: $${financials.remainingCash.toLocaleString()}` : 'PAGADO COMPLETO'}
+            </div>
+        </div>
     </div>
-</div>
 
-<div class='doc-title-row'>
-    <span style="color: #1c1917; font-size: 14px;">👓 Productos / Cristales</span>
-</div>
+    <div class='payment-methods'>
+        <div class='payment-card p-efective'>
+            <span class='p-title'>💵 Total Efectivo (-${financials.discountCash}%)</span>
+            <span class='p-amount'>$${financials.totalCash.toLocaleString()}</span>
+            ${financials.hasBalance ? `<div class='p-saldo'><span class='p-saldo-label'>Saldo</span>$${financials.remainingCash.toLocaleString()}</div>` : '<span class=\'p-saldo\' style="color:#10b981;">PAGADO</span>'}
+        </div>
+        <div class='payment-card p-transfer'>
+            <span class='p-title'>🏦 Total Transferencia (-${financials.discountTransfer}%)</span>
+            <span class='p-amount'>$${financials.totalTransfer.toLocaleString()}</span>
+            ${financials.hasBalance ? `<div class='p-saldo'><span class='p-saldo-label'>Saldo</span>$${financials.remainingTransfer.toLocaleString()}</div>` : '<span class=\'p-saldo\' style="color:#10b981;">PAGADO</span>'}
+        </div>
+        <div class='payment-card p-card'>
+            <span class='p-title'>💳 Total Tarjetas (Lista)</span>
+            <span class='p-amount'>$${financials.totalCard.toLocaleString()}</span>
+            ${financials.hasBalance ? `<div class='p-saldo'><span class='p-saldo-label'>Saldo</span>$${financials.remainingCard.toLocaleString()}</div>` : '<span class=\'p-saldo\' style="color:#10b981;">PAGADO</span>'}
+        </div>
+    </div>
 
-<table>
-  <thead><tr><th style="width: 50%">PRODUCTO</th><th>TIPO</th><th style="text-align:center">CANT.</th><th style="text-align:right">PRECIO</th><th style="text-align:right">SUBTOTAL</th></tr></thead>
-  <tbody>${items.map(it => {
+    <div class='doc-title-row'><span>👓 Productos / cristales</span></div>
+    <table>
+      <thead><tr><th style="width: 50%">PRODUCTO</th><th style="text-align:center">CANT.</th><th style="text-align:right">PRECIO</th><th style="text-align:right">SUBTOTAL</th></tr></thead>
+      <tbody>${items.map(it => {
             const itemPrice = Math.round(it.price * markupFactor);
             return `<tr>
-      <td><div style="font-weight: 500">${it.product?.brand || ''} ${it.product?.model || it.product?.name || ''}</div></td>
-      <td>${it.product?.type || it.product?.category || ''}</td>
-      <td style='text-align:center'>${it.quantity}</td>
-      <td style='text-align:right'>$${itemPrice.toLocaleString()}</td>
-      <td style='text-align:right'>$${(itemPrice * it.quantity).toLocaleString()}</td>
-    </tr>`}).join('')}
-  </tbody>
-</table>
-
-${order.frameSource ? `
-<div class='frame-badge'>
-    <span class='frame-icon'>👓</span>
-    <strong>Armazón:</strong> ${order.frameSource === 'OPTICA' ? 'De la óptica (incluido en el pedido)' : `Del cliente — ${order.userFrameBrand || ''} ${order.userFrameModel || ''}${order.userFrameNotes ? ' · ' + order.userFrameNotes : ''}`}
-</div>` : ''}
-
-<div class='grand-total-row'>
-    <span class='gt-label'>Total:</span>
-    <span class='gt-value'>$${financials.totalCash.toLocaleString()}</span>
-</div>
-
-<div class='lab-box'>
-  <span class='lab-label'>N° OPERACIÓN LAB:</span>
   <div class='lab-line'></div>
 </div>
 
@@ -594,6 +539,8 @@ ${order.frameSource ? `
                         const isUpdating = updatingId === order.id;
                         const payProgress = order.total > 0 ? Math.min(100, (order.paid / order.total) * 100) : 100;
 
+                        const financials = PricingService.calculateOrderFinancials(order);
+
                         return (
                             <div
                                 key={order.id}
@@ -618,12 +565,6 @@ ${order.frameSource ? `
                                             <span className={`px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest ${step.bg} ${step.text}`}>
                                                 {step.label}
                                             </span>
-                                            <span className={`px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest ${payProgress >= 100
-                                                ? 'bg-emerald-100 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400'
-                                                : 'bg-red-100 dark:bg-red-950 text-red-600 dark:text-red-400'
-                                                }`}>
-                                                {payProgress >= 100 ? 'PAGADO' : `Saldo: $${((order.total || 0) - (order.paid || 0)).toLocaleString()}`}
-                                            </span>
                                         </div>
                                         <div className="flex items-center gap-3 text-[10px] font-bold text-stone-400 uppercase tracking-widest">
                                             <span className="flex items-center gap-1">
@@ -635,14 +576,28 @@ ${order.frameSource ? `
                                                 <Calendar className="w-3 h-3" />
                                                 {format(new Date(order.createdAt), "d MMM yyyy", { locale: es })}
                                             </span>
-                                            <span>·</span>
-                                            <span>{order.items.length} item{order.items.length !== 1 ? 's' : ''}</span>
-                                            {order.labSentAt && (
-                                                <>
-                                                    <span>·</span>
-                                                    <span>Procesado: {format(new Date(order.labSentAt), "d/MM HH:mm", { locale: es })}</span>
-                                                </>
-                                            )}
+                                        </div>
+                                    </div>
+
+                                    {/* Financial Chips (Standardized) */}
+                                    <div className="flex items-center gap-2">
+                                        <div className="px-3 py-2 bg-emerald-50 dark:bg-emerald-950/30 rounded-xl border border-emerald-100 dark:border-emerald-800 text-center min-w-[100px]">
+                                            <span className="text-[8px] font-black text-emerald-500 uppercase block tracking-tighter">Efectivo</span>
+                                            <span className="text-xs font-black text-emerald-600 dark:text-emerald-400">
+                                                ${financials.hasBalance ? financials.remainingCash.toLocaleString() : financials.totalCash.toLocaleString()}
+                                            </span>
+                                        </div>
+                                        <div className="px-3 py-2 bg-purple-50 dark:bg-purple-950/30 rounded-xl border border-purple-100 dark:border-purple-800 text-center min-w-[100px]">
+                                            <span className="text-[8px] font-black text-purple-500 uppercase block tracking-tighter">Transf</span>
+                                            <span className="text-xs font-black text-purple-600 dark:text-purple-400">
+                                                ${financials.hasBalance ? financials.remainingTransfer.toLocaleString() : financials.totalTransfer.toLocaleString()}
+                                            </span>
+                                        </div>
+                                        <div className="px-3 py-2 bg-orange-50 dark:bg-orange-950/30 rounded-xl border border-orange-100 dark:border-orange-800 text-center min-w-[100px]">
+                                            <span className="text-[8px] font-black text-orange-500 uppercase block tracking-tighter">Tarjeta</span>
+                                            <span className="text-xs font-black text-orange-600 dark:text-orange-400">
+                                                ${financials.hasBalance ? financials.remainingCard.toLocaleString() : financials.totalCard.toLocaleString()}
+                                            </span>
                                         </div>
                                     </div>
 

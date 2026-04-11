@@ -10,40 +10,51 @@ export const CashService = {
      * Saldo = (Pagos en Efectivo) + (Entradas manuales) - (Salidas manuales)
      */
     async getCashBalance() {
-        // 1. Obtener todos los pagos válidos en EFECTIVO (ventas y señas de presupuestos no borrados)
-        const cashPayments = await prisma.payment.findMany({
+        // 1. Calcular el total de pagos en efectivo directamente en la DB (O(1) Memory)
+        const paymentsAgg = await prisma.payment.aggregate({
+            _sum: { amount: true },
             where: { 
                 method: { in: ['EFECTIVO', 'CASH'] },
-                order: {
-                    isDeleted: false
-                }
-            },
-            include: {
-                order: {
-                    include: { client: true, user: true }
-                }
+                order: { isDeleted: false }
             }
         });
+        const paymentsTotal = paymentsAgg._sum.amount || 0;
 
-        const paymentsTotal = cashPayments.reduce((acc, p) => acc + (p.amount || 0), 0);
+        // 2. Calcular los totales de movimientos manuales de caja (IN / OUT)
+        const manualInAgg = await (prisma as any).cashMovement.aggregate({
+            _sum: { amount: true },
+            where: { type: 'IN' }
+        });
+        const manualIn = manualInAgg._sum.amount || 0;
 
-        // 2. Obtener movimientos manuales de caja con el usuario
-        const movementsList = await (prisma as any).cashMovement.findMany({
-            include: { user: true }
+        const manualOutAgg = await (prisma as any).cashMovement.aggregate({
+            _sum: { amount: true },
+            where: { type: 'OUT' }
         });
-        
-        let manualIn = 0;
-        let manualOut = 0;
-        movementsList.forEach((mov: any) => {
-            if (mov.type === 'IN') manualIn += mov.amount;
-            if (mov.type === 'OUT') manualOut += mov.amount;
-        });
+        const manualOut = manualOutAgg._sum.amount || 0;
+
         const manualBalance = manualIn - manualOut;
-
         const totalCash = paymentsTotal + manualBalance;
 
-        // 3. Convertir pagos a formato de movimiento para el historial
-        const formattedPayments = cashPayments.map((p) => ({
+        // 3. Cargar SÓLO los 50 movimientos más recientes para la Línea de Tiempo del Frontend
+        const recentPayments = await prisma.payment.findMany({
+            where: { 
+                method: { in: ['EFECTIVO', 'CASH'] },
+                order: { isDeleted: false }
+            },
+            include: { order: { include: { client: true, user: true } } },
+            orderBy: { date: 'desc' },
+            take: 50
+        });
+
+        const recentMovements = await (prisma as any).cashMovement.findMany({
+            include: { user: true },
+            orderBy: { createdAt: 'desc' },
+            take: 50
+        });
+
+        // Convertir pagos a formato de movimiento
+        const formattedPayments = recentPayments.map((p: any) => ({
             id: p.id,
             type: 'IN',
             amount: p.amount || 0,
@@ -54,8 +65,8 @@ export const CashService = {
             receiptUrl: p.receiptUrl
         }));
 
-        // 4. Combinar, ordenar por fecha descendente y limitar a los últimos 50
-        const allMovements = [...movementsList, ...formattedPayments].sort((a: any, b: any) => {
+        // Combinar top 50 de ambas fuentes, ordenar final y devolver
+        const allMovements = [...recentMovements, ...formattedPayments].sort((a: any, b: any) => {
             return new Date(b.createdAt || new Date()).getTime() - new Date(a.createdAt || new Date()).getTime();
         }).slice(0, 50);
 
