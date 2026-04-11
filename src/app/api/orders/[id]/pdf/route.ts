@@ -133,7 +133,7 @@ export async function GET(
 
     <div class='doc-header'>
         <div>
-            <div class='doc-title'>${isSale ? 'Orden de Venta' : 'Presupuesto'}</div>
+            <div class='doc-title'>${isSale ? 'Orden de Venta' : 'Presupuesto'} <span style="background:#1c1917; color:white; padding:2px 8px; border-radius:4px; font-size:7px; margin-left:10px; vertical-align:middle;">V2.0</span></div>
             <div class='doc-meta'>#${order.id.slice(-6).toUpperCase()} · ${dateStr}</div>
         </div>
     </div>

@@ -167,6 +167,7 @@ export default function QuoteSummary({
     };
 
     if (!isExpanded) {
+        const dateStr = format(new Date(order.createdAt), "d MMM yy", { locale: es });
         return (
             <button
                 onClick={onToggleExpand}
@@ -188,7 +189,7 @@ export default function QuoteSummary({
                             )}
                         </div>
                         <span className="text-[9px] font-bold text-stone-400 block">
-                            Venta #{order.id.slice(-4).toUpperCase()} · {format(new Date(order.createdAt), "d MMM yy", { locale: es })} · {order.items?.length || 0} items
+                            Venta #{order.id.slice(-4).toUpperCase()} · {dateStr} · {order.items?.length || 0} items
                         </span>
                     </div>
                 </div>
@@ -264,9 +265,14 @@ export default function QuoteSummary({
                         </div>
                     )}
                     <div className="flex items-center gap-2">
-                         {financials.hasBalance && (
+                         {!financials.hasBalance ? (
+                            <div className="px-4 py-2 bg-emerald-100 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 rounded-2xl border-2 border-emerald-200 dark:border-emerald-800 shadow-sm flex items-center gap-2">
+                                <CheckCircle2 className="w-4 h-4" />
+                                <span className="text-[10px] font-black uppercase tracking-widest">ORDEN PAGADA</span>
+                            </div>
+                        ) : (
                             <div className="text-right sr-only sm:not-sr-only">
-                                <span className="text-[9px] font-black text-stone-400 uppercase tracking-widest block">Saldo Efectivo</span>
+                                <span className="text-[9px] font-black text-stone-400 uppercase tracking-widest block">Saldo Efectivo Pendiente</span>
                                 <span className="text-lg font-black text-emerald-500">${financials.remainingCash.toLocaleString()}</span>
                             </div>
                         )}

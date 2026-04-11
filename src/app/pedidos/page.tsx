@@ -243,7 +243,7 @@ export default function PedidosPage() {
 </head>
 <body>
     <div class='letterhead'>
-        <div class='address-bold'>Pedido de Laboratorio <span style="color:#78716c; font-weight:500;">#${order.id.slice(-6).toUpperCase()}</span></div>
+        <div class='address-bold'>Pedido de Laboratorio <span style="color:#78716c; font-weight:500;">#${order.id.slice(-6).toUpperCase()}</span> <span style="background:#1c1917; color:white; padding:2px 8px; border-radius:4px; font-size:7px; margin-left:10px; vertical-align:middle;">V2.0</span></div>
         <div class='letterhead-right'>
             <div>José Luis de Tejeda 4380 · Córdoba</div>
             <div>Fecha: ${dateStr}</div>
@@ -844,14 +844,27 @@ export default function PedidosPage() {
                                                         </span>
                                                     )}
                                                 </div>
-                                                <div className="text-right">
-                                                    {order.discount ? (
-                                                        <p className="text-xs text-red-500 font-bold mb-1">Desc: {order.discount}%</p>
-                                                    ) : null}
-                                                    <p className="text-lg font-black text-stone-800 dark:text-white">
-                                                        Total: ${(order.total || 0).toLocaleString()}
-                                                    </p>
+                                            {/* Financial Summary (Standardized) */}
+                                            <div className="mt-5 p-6 rounded-[2rem] bg-stone-900 dark:bg-black text-white border-2 border-stone-800 flex justify-between items-center shadow-xl">
+                                                <div className="flex gap-8">
+                                                    <div className="text-center">
+                                                        <span className="text-[8px] font-black text-emerald-400 uppercase tracking-widest block mb-1">Efectivo</span>
+                                                        <span className="text-xl font-black text-emerald-400">${financials.totalCash.toLocaleString()}</span>
+                                                    </div>
+                                                    <div className="text-center">
+                                                        <span className="text-[8px] font-black text-purple-400 uppercase tracking-widest block mb-1">Transferencia</span>
+                                                        <span className="text-xl font-black text-purple-400">${financials.totalTransfer.toLocaleString()}</span>
+                                                    </div>
+                                                    <div className="text-center">
+                                                        <span className="text-[8px] font-black text-orange-400 uppercase tracking-widest block mb-1">Tarjeta</span>
+                                                        <span className="text-xl font-black text-orange-400">${financials.totalCard.toLocaleString()}</span>
+                                                    </div>
                                                 </div>
+                                                <div className="text-right border-l border-stone-800 pl-8 ml-4">
+                                                    <span className="text-[10px] font-black text-stone-400 uppercase tracking-widest block mb-1">Abonado Real</span>
+                                                    <span className="text-3xl font-black text-amber-400">${financials.paidReal.toLocaleString()}</span>
+                                                </div>
+                                            </div>
                                             </div>
                                         </div>
 
