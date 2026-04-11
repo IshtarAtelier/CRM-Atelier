@@ -13,7 +13,8 @@ export async function POST(request: Request) {
         });
         const data = await res.json();
         return NextResponse.json(data, { status: res.status });
-    } catch {
-        return NextResponse.json({ error: 'Error al enviar mensaje' }, { status: 500 });
+    } catch (error: any) {
+        console.error('[WhatsApp Send] Error:', error.message);
+        return NextResponse.json({ error: 'Servidor de WhatsApp no disponible' }, { status: 503 });
     }
 }

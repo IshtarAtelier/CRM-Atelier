@@ -67,7 +67,7 @@ export function useContacts(activeTab: ContactStatus, searchQuery: string, favor
             fetchContacts();
         }, delay);
         return () => clearTimeout(timer);
-    }, [fetchContacts]);
+    }, [fetchContacts, searchQuery]);
 
     const createContact = async (formData: ContactFormData): Promise<Contact | null> => {
         try {

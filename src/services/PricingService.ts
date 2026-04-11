@@ -105,16 +105,20 @@ export class PricingService {
         // Cálculo de "Equivalente de Lista" pagado
         const listEquivalentPaid = (order.payments || []).reduce((acc: number, p: any) => {
             const amount = p.amount || 0;
-            if (p.method === 'CASH' || p.method === 'EFECTIVO') 
-                return acc + (amount / (1 - discCash / 100));
-            if (p.method?.includes('TRANSFER')) 
-                return acc + (amount / (1 - discTrans / 100));
+            // Evitar división por cero
+            const factorCash = 1 - (discCash / 100);
+            const factorTrans = 1 - (discTrans / 100);
+
+            if ((p.method === 'CASH' || p.method === 'EFECTIVO') && factorCash > 0)
+                return acc + (amount / factorCash);
+            if (p.method?.includes('TRANSFER') && factorTrans > 0)
+                return acc + (amount / factorTrans);
             return acc + amount;
         }, 0);
 
         const remainingList = Math.max(0, listPrice - listEquivalentPaid);
         const paidReal = (order.payments || []).reduce((acc: number, p: any) => acc + (p.amount || 0), 0);
-        const hasBalance = remainingList > 10; // Epsilon para evitar floating point issues
+        const hasBalance = remainingList > 1.0; // Tolerancia de 1 peso para evitar problemas de coma flotante
         
         const progress = listPrice > 0 ? (listEquivalentPaid / listPrice) * 100 : 0;
 
@@ -124,7 +128,7 @@ export class PricingService {
             totalTransfer,
             totalCard,
             paidReal,
-            listEquivalentPaid,
+            listEquivalentPaid: Math.round(listEquivalentPaid * 100) / 100,
             remainingList: Math.round(remainingList),
             remainingCash: Math.round(remainingList * (1 - discCash / 100)),
             remainingTransfer: Math.round(remainingList * (1 - discTrans / 100)),

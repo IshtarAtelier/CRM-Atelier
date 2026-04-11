@@ -30,7 +30,7 @@ export function useProducts(searchQuery: string = '', selectedType: string = 'AL
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    const fetchProducts = async () => {
+    const fetchProducts = useCallback(async () => {
         try {
             setLoading(true);
             const res = await fetch('/api/products');
@@ -75,11 +75,11 @@ export function useProducts(searchQuery: string = '', selectedType: string = 'AL
         } finally {
             setLoading(false);
         }
-    };
+    }, [searchQuery, selectedType]);
 
     useEffect(() => {
         fetchProducts();
-    }, [searchQuery, selectedType]);
+    }, [fetchProducts]);
 
     const deleteProduct = async (id: string) => {
         try {

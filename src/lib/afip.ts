@@ -1,4 +1,3 @@
-// @ts-nocheck
 import Afip from '@afipsdk/afip.js';
 
 /**
@@ -17,12 +16,12 @@ export interface BillingAccountConfig {
 
 const BILLING_ACCOUNTS: Record<BillingAccount, BillingAccountConfig> = {
     ISH: {
-        cuit: parseInt(process.env.AFIP_CUIT_ISH || '23386152314'),
+        cuit: parseInt(process.env.AFIP_CUIT_ISH || '0'),
         label: 'Ishtar Pissano',
         puntoDeVenta: parseInt(process.env.AFIP_PUNTO_VENTA_ISH || '1'),
     },
     YANI: {
-        cuit: parseInt(process.env.AFIP_CUIT_YANI || '20409378472'),
+        cuit: parseInt(process.env.AFIP_CUIT_YANI || '0'),
         label: 'Yani Pissano',
         puntoDeVenta: parseInt(process.env.AFIP_PUNTO_VENTA_YANI || '1'),
     },

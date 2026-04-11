@@ -8,8 +8,16 @@ export async function GET() {
         const res = await fetch(`${WA_SERVER}/api/agent`, { cache: 'no-store' });
         const data = await res.json();
         return NextResponse.json(data);
-    } catch {
-        return NextResponse.json({ prompt: '', enabled: false, apiKey: '', model: 'gpt-4o-mini', configured: false });
+    } catch (error: any) {
+        console.error('[WhatsApp Agent API] Error:', error.message);
+        return NextResponse.json({ 
+            prompt: '', 
+            enabled: false, 
+            apiKey: '', 
+            model: 'gpt-4o-mini', 
+            configured: false,
+            error: 'Servidor de WhatsApp no disponible' 
+        });
     }
 }
 
@@ -24,7 +32,8 @@ export async function POST(request: Request) {
         });
         const data = await res.json();
         return NextResponse.json(data);
-    } catch {
-        return NextResponse.json({ error: 'Error al guardar agente' }, { status: 500 });
+    } catch (error: any) {
+        console.error('[WhatsApp Agent POST] Error:', error.message);
+        return NextResponse.json({ error: 'Servidor de WhatsApp no disponible' }, { status: 503 });
     }
 }

@@ -364,46 +364,44 @@ export const ContactService = {
     },
 
     _transposePrescription(data: any) {
-        // FIX: Safe parse helpers that preserve null vs 0 distinction
-        const safeFloat = (v: any): number => {
-            if (v === null || v === undefined || v === '') return 0;
-            const n = parseFloat(v);
-            return isNaN(n) ? 0 : n;
-        };
         const safeNullableFloat = (v: any): number | null => {
             if (v === null || v === undefined || v === '') return null;
             const n = parseFloat(v);
             return isNaN(n) ? null : n;
         };
-        const safeInt = (v: any): number => {
-            if (v === null || v === undefined || v === '') return 0;
+        const safeNullableInt = (v: any): number | null => {
+            if (v === null || v === undefined || v === '') return null;
             const n = parseInt(v);
-            return isNaN(n) ? 0 : n;
+            return isNaN(n) ? null : n;
         };
 
-        let sphereOD = safeFloat(data.sphereOD);
-        let cylinderOD = safeFloat(data.cylinderOD);
-        let axisOD = safeInt(data.axisOD);
-        let sphereOI = safeFloat(data.sphereOI);
-        let cylinderOI = safeFloat(data.cylinderOI);
-        let axisOI = safeInt(data.axisOI);
+        let sphereOD = safeNullableFloat(data.sphereOD);
+        let cylinderOD = safeNullableFloat(data.cylinderOD);
+        let axisOD = safeNullableInt(data.axisOD);
+        let sphereOI = safeNullableFloat(data.sphereOI);
+        let cylinderOI = safeNullableFloat(data.cylinderOI);
+        let axisOI = safeNullableInt(data.axisOI);
 
         // Lógica de Transposición Automática (OD)
-        if (cylinderOD > 0) {
-            sphereOD = sphereOD + cylinderOD;
+        if (cylinderOD !== null && cylinderOD > 0) {
+            sphereOD = (sphereOD || 0) + cylinderOD;
             cylinderOD = -cylinderOD;
-            axisOD = axisOD > 90 ? axisOD - 90 : axisOD + 90;
-            if (axisOD === 0) axisOD = 180;
-            if (axisOD > 180) axisOD -= 180;
+            if (axisOD !== null) {
+                axisOD = axisOD > 90 ? axisOD - 90 : axisOD + 90;
+                if (axisOD === 0) axisOD = 180;
+                if (axisOD > 180) axisOD -= 180;
+            }
         }
 
         // Lógica de Transposición Automática (OI)
-        if (cylinderOI > 0) {
-            sphereOI = sphereOI + cylinderOI;
+        if (cylinderOI !== null && cylinderOI > 0) {
+            sphereOI = (sphereOI || 0) + cylinderOI;
             cylinderOI = -cylinderOI;
-            axisOI = axisOI > 90 ? axisOI - 90 : axisOI + 90;
-            if (axisOI === 0) axisOI = 180;
-            if (axisOI > 180) axisOI -= 180;
+            if (axisOI !== null) {
+                axisOI = axisOI > 90 ? axisOI - 90 : axisOI + 90;
+                if (axisOI === 0) axisOI = 180;
+                if (axisOI > 180) axisOI -= 180;
+            }
         }
 
         return {
@@ -414,10 +412,10 @@ export const ContactService = {
             sphereOI,
             cylinderOI,
             axisOI,
-            addition: safeFloat(data.addition),
-            additionOD: safeFloat(data.additionOD),
-            additionOI: safeFloat(data.additionOI),
-            pd: safeFloat(data.pd),
+            addition: safeNullableFloat(data.addition),
+            additionOD: safeNullableFloat(data.additionOD),
+            additionOI: safeNullableFloat(data.additionOI),
+            pd: safeNullableFloat(data.pd),
             distanceOD: safeNullableFloat(data.distanceOD),
             distanceOI: safeNullableFloat(data.distanceOI),
             heightOD: safeNullableFloat(data.heightOD),
@@ -448,6 +446,7 @@ export const ContactService = {
                 heightOD: transposed.heightOD,
                 heightOI: transposed.heightOI,
                 imageUrl: transposed.imageUrl || null,
+                prescriptionType: data.prescriptionType || 'ADDITION',
             }
         });
 
@@ -473,8 +472,8 @@ export const ContactService = {
                 distanceOI: transposed.distanceOI,
                 heightOD: transposed.heightOD,
                 heightOI: transposed.heightOI,
-                imageUrl: transposed.imageUrl,
-                notes: transposed.notes,
+                imageUrl: transposed.imageUrl || null,
+                notes: transposed.notes || null,
                 prescriptionType: data.prescriptionType || 'ADDITION',
                 nearSphereOD: isNear ? (parseFloat(data.nearSphereOD) || 0) : null,
                 nearSphereOI: isNear ? (parseFloat(data.nearSphereOI) || 0) : null,
