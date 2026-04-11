@@ -188,6 +188,12 @@ export default function PedidosPage() {
             setEditingId(null);
             setEditValue('');
             await fetchOrders();
+        } catch (error) {
+            console.error('Error saving lab number:', error);
+        }
+        setUpdatingId(null);
+    };
+
     const downloadLabSheet = (order: Order) => {
         const items = order.items || [];
         const dateStr = format(new Date(order.createdAt), "d 'de' MMMM yyyy", { locale: es });
@@ -283,10 +289,34 @@ export default function PedidosPage() {
       <tbody>${items.map(it => {
             const itemPrice = Math.round(it.price * markupFactor);
             return `<tr>
-  <div class='lab-line'></div>
-</div>
+          <td><div style="font-weight: 700">${it.product?.brand || ''} ${it.product?.model || it.product?.name || ''}</div></td>
+          <td style='text-align:center'>${it.quantity}</td>
+          <td style='text-align:right'>$${itemPrice.toLocaleString()}</td>
+          <td style='text-align:right; font-weight:700;'>$${(itemPrice * it.quantity).toLocaleString()}</td>
+        </tr>`}).join('')}
+      </tbody>
+    </table>
 
-<div class='footer'>Atelier Óptica · Tejeda 4380 · Córdoba · ${format(new Date(), "yyyy")}</div>
+    <div class='totals-summary' style="margin-top:10px;">
+        <div class='tot-col'>
+            <span class='tot-label' style="color: #10b981;">💵 Efectivo</span>
+            <span class='tot-val' style="color: #10b981;">$${financials.totalCash.toLocaleString()}</span>
+        </div>
+        <div class='tot-col'>
+            <span class='tot-label' style="color: #a78bfa;">🏦 Transf</span>
+            <span class='tot-val' style="color: #a78bfa;">$${financials.totalTransfer.toLocaleString()}</span>
+        </div>
+        <div class='tot-col'>
+            <span class='tot-label' style="color: #fb923c;">💳 Tarjeta</span>
+            <span class='tot-val' style="color: #fb923c;">$${financials.totalCard.toLocaleString()}</span>
+        </div>
+        <div class='tot-paid'>
+            <span class='tot-label'>Abonado Real</span>
+            <span class='paid-value'>$${financials.paidReal.toLocaleString()}</span>
+        </div>
+    </div>
+
+    <div class='footer'>Atelier Óptica · Tejeda 4380 · Córdoba · ${format(new Date(), "yyyy")}</div>
 </body></html>`;
 
         const printWindow = window.open('', '_blank', 'width=800,height=1000');

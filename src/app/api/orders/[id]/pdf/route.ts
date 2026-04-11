@@ -181,12 +181,7 @@ export async function GET(
         <div class='payment-card p-efective'>
             <span class='p-title'>💵 Efectivo (-${financials.discountCash}%)</span>
             <span class='p-amount'>$${financials.totalCash.toLocaleString()}</span>
-            ${financials.hasBalance ? `
-            <div class='p-saldo'>
-                <span class='p-saldo-label'>Saldo Pendiente</span>
-                <span>$${financials.remainingCash.toLocaleString()}</span>
-            </div>
-            ` : '<span class='p-saldo' style='color:#10b981; background:#f0fdf4;'>PAGADO COMPLETO</span>'}
+            ` : `<span class="p-saldo" style="color:#10b981; background:#f0fdf4;">PAGADO COMPLETO</span>`}
         </div>
         <div class='payment-card p-transfer'>
             <span class='p-title'>🏦 Transferencia (-${financials.discountTransfer}%)</span>
@@ -196,7 +191,7 @@ export async function GET(
                 <span class='p-saldo-label'>Saldo Pendiente</span>
                 <span>$${financials.remainingTransfer.toLocaleString()}</span>
             </div>
-            ` : '<span class='p-saldo' style='color:#10b981; background:#f0fdf4;'>PAGADO COMPLETO</span>'}
+            ` : `<span class="p-saldo" style="color:#10b981; background:#f0fdf4;">PAGADO COMPLETO</span>`}
         </div>
         <div class='payment-card p-card'>
             <span class='p-title'>💳 Tarjetas (Lista)</span>
@@ -206,7 +201,7 @@ export async function GET(
                 <span class='p-saldo-label'>Saldo Listado</span>
                 <span>$${financials.remainingCard.toLocaleString()}</span>
             </div>
-            ` : '<span class='p-saldo' style='color:#10b981; background:#f0fdf4;'>PAGADO COMPLETO</span>'}
+            ` : `<span class="p-saldo" style="color:#10b981; background:#f0fdf4;">PAGADO COMPLETO</span>`}
             <div class='installments'>
                 <div class='inst-row'>
                     <span style="font-size:10px; font-weight:700;">3 Cuotas de</span>
@@ -249,32 +244,6 @@ export async function GET(
             <div style="border: 1.5px solid ${brandBeige}; border-radius: 12px; padding: 12px;">
                 <div style="font-size: 8px; font-weight: 900; color: ${brandSand}; margin-bottom: 5px;">OI</div>
                 <div style="font-size: 14px; font-weight: 800;">${order.prescription.sphereOI || '0'} / ${order.prescription.cylinderOI || '0'} x ${order.prescription.axisOI || '0'}°</div>
-            </div>
-        </div>
-    ` : ''}
-
-    <div class='footer'>Atelier Óptica · Tejeda 4380 · Profesionalismo Ética y Diseño · ${format(new Date(), "yyyy")}</div>
-</body>
-</html>`;
-
-        return new Response(html, {
-            headers: { 'Content-Type': 'text/html' },
-        });
-    } catch (error: any) {
-        console.error('Error generando PDF:', error);
-        return new Response(`Error interno: ${error.message}`, { status: 500 });
-    }
-}
-
-    ${order.prescription ? `
-        <div class='prescription-grid'>
-            <div class='eye-box'>
-                <div class='eye-title'>OD</div>
-                <div class='eye-data'>${order.prescription.sphereOD || '0'} / ${order.prescription.cylinderOD || '0'} x ${order.prescription.axisOD || '0'}°</div>
-            </div>
-            <div class='eye-box'>
-                <div class='eye-title'>OI</div>
-                <div class='eye-data'>${order.prescription.sphereOI || '0'} / ${order.prescription.cylinderOI || '0'} x ${order.prescription.axisOI || '0'}°</div>
             </div>
         </div>
     ` : ''}
