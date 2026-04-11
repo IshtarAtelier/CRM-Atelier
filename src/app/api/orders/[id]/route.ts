@@ -240,14 +240,14 @@ export async function PATCH(
                 }));
 
                 // Fetch Atelier average price products if promo active
-                const hasPromo = cartItems.some(it => it.product?.is2x1);
+                const hasPromo = cartItems.some((it: any) => it.product?.is2x1);
                 let allProducts: any[] = [];
                 if (hasPromo) {
                     allProducts = await prisma.product.findMany({
                         where: { 
                             OR: [
-                                { brand: { contains: 'Atelier', mode: 'insensitive' } },
-                                { name: { contains: 'Atelier', mode: 'insensitive' } },
+                                { brand: { contains: 'Atelier' } },
+                                { name: { contains: 'Atelier' } },
                                 { category: 'FRAME' }
                             ]
                         }

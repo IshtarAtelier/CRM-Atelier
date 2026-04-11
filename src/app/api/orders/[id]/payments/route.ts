@@ -35,8 +35,8 @@ export async function POST(
             orderId,
             amount,
             method,
-            notes,
-            receiptUrl
+            notes ?? undefined,
+            receiptUrl ?? undefined
         );
 
         return NextResponse.json(payment);

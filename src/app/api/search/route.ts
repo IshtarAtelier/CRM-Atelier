@@ -18,9 +18,9 @@ export async function GET(request: Request) {
         const contacts = await prisma.client.findMany({
             where: {
                 OR: [
-                    { name: { contains: searchTerm, mode: 'insensitive' } },
-                    { phone: { contains: searchTerm, mode: 'insensitive' } },
-                    { email: { contains: searchTerm, mode: 'insensitive' } },
+                    { name: { contains: searchTerm } },
+                    { phone: { contains: searchTerm } },
+                    { email: { contains: searchTerm } },
                 ]
             },
             select: { id: true, name: true, phone: true, status: true, doctor: true },
@@ -32,9 +32,9 @@ export async function GET(request: Request) {
         const products = await prisma.product.findMany({
             where: {
                 OR: [
-                    { name: { contains: searchTerm, mode: 'insensitive' } },
-                    { brand: { contains: searchTerm, mode: 'insensitive' } },
-                    { model: { contains: searchTerm, mode: 'insensitive' } },
+                    { name: { contains: searchTerm } },
+                    { brand: { contains: searchTerm } },
+                    { model: { contains: searchTerm } },
                 ]
             },
             select: { id: true, name: true, brand: true, type: true, price: true, stock: true },
@@ -47,7 +47,7 @@ export async function GET(request: Request) {
             where: {
                 isDeleted: false,
                 client: {
-                    name: { contains: searchTerm, mode: 'insensitive' }
+                    name: { contains: searchTerm }
                 }
             },
             select: {
@@ -78,7 +78,7 @@ export async function GET(request: Request) {
                 stock: p.stock,
                 category: 'product' as const,
             })),
-            orders: orders.map(o => ({
+            orders: orders.map((o: any) => ({
                 id: o.id,
                 clientName: o.client.name,
                 total: o.total,

@@ -47,14 +47,14 @@ export async function POST(request: Request) {
             }));
 
             // Fetch all products for Atelier average price calculation (only if needed by a 2x1 promo)
-            const hasPromo = cartItems.some(it => isMultifocal2x1(it.product));
+            const hasPromo = cartItems.some((it: any) => isMultifocal2x1(it.product));
             let allProducts: any[] = [];
             if (hasPromo) {
                 allProducts = await prisma.product.findMany({
                     where: { 
                         OR: [
-                            { brand: { contains: 'Atelier', mode: 'insensitive' } },
-                            { name: { contains: 'Atelier', mode: 'insensitive' } },
+                            { brand: { contains: 'Atelier' } },
+                            { name: { contains: 'Atelier' } },
                             { category: 'FRAME' }
                         ]
                     }
@@ -73,7 +73,7 @@ export async function POST(request: Request) {
             finalDiscount = discountCash || 0;
             
             // Auto-detect frame source if frames are in cart
-            const hasFramesInCart = cartItems.some(it => 
+            const hasFramesInCart = cartItems.some((it: any) => 
                 it.product?.category === 'FRAME' || it.product?.category === 'ATELIER'
             );
             
