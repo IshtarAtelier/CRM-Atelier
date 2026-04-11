@@ -193,6 +193,14 @@ export default function QuoteSummary({
                     </div>
                 </div>
 
+                {!financials.hasBalance && (
+                    <div className="hidden md:flex items-center gap-2 px-4 border-l border-stone-100 dark:border-stone-700 ml-4">
+                         <span className="px-3 py-1 bg-emerald-100 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 rounded-lg text-[9px] font-black uppercase tracking-widest border border-emerald-200 dark:border-emerald-800">
+                            PAGADO
+                        </span>
+                    </div>
+                )}
+
                 {financials.hasBalance && (
                     <div className="hidden md:flex items-center gap-2 px-4 border-l border-stone-100 dark:border-stone-700 ml-4">
                         <div className="flex flex-col text-left mr-2">

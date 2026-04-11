@@ -611,24 +611,32 @@ export default function PedidosPage() {
 
                                     {/* Financial Chips (Standardized) */}
                                     <div className="flex items-center gap-2">
-                                        <div className="px-3 py-2 bg-emerald-50 dark:bg-emerald-950/30 rounded-xl border border-emerald-100 dark:border-emerald-800 text-center min-w-[100px]">
-                                            <span className="text-[8px] font-black text-emerald-500 uppercase block tracking-tighter">Efectivo</span>
-                                            <span className="text-xs font-black text-emerald-600 dark:text-emerald-400">
-                                                ${financials.hasBalance ? financials.remainingCash.toLocaleString() : financials.totalCash.toLocaleString()}
-                                            </span>
-                                        </div>
-                                        <div className="px-3 py-2 bg-purple-50 dark:bg-purple-950/30 rounded-xl border border-purple-100 dark:border-purple-800 text-center min-w-[100px]">
-                                            <span className="text-[8px] font-black text-purple-500 uppercase block tracking-tighter">Transf</span>
-                                            <span className="text-xs font-black text-purple-600 dark:text-purple-400">
-                                                ${financials.hasBalance ? financials.remainingTransfer.toLocaleString() : financials.totalTransfer.toLocaleString()}
-                                            </span>
-                                        </div>
-                                        <div className="px-3 py-2 bg-orange-50 dark:bg-orange-950/30 rounded-xl border border-orange-100 dark:border-orange-800 text-center min-w-[100px]">
-                                            <span className="text-[8px] font-black text-orange-500 uppercase block tracking-tighter">Tarjeta</span>
-                                            <span className="text-xs font-black text-orange-600 dark:text-orange-400">
-                                                ${financials.hasBalance ? financials.remainingCard.toLocaleString() : financials.totalCard.toLocaleString()}
-                                            </span>
-                                        </div>
+                                        {!financials.hasBalance ? (
+                                            <div className="px-6 py-2 bg-emerald-100 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 rounded-xl border border-emerald-200 dark:border-emerald-800 text-center min-w-[320px]">
+                                                <span className="text-[10px] font-black uppercase tracking-widest">PEDIDO SALDADO / PAGADO</span>
+                                            </div>
+                                        ) : (
+                                            <>
+                                                <div className="px-3 py-2 bg-emerald-50 dark:bg-emerald-950/30 rounded-xl border border-emerald-100 dark:border-emerald-800 text-center min-w-[100px]">
+                                                    <span className="text-[8px] font-black text-emerald-500 uppercase block tracking-tighter">Efectivo</span>
+                                                    <span className="text-xs font-black text-emerald-600 dark:text-emerald-400">
+                                                        ${financials.remainingCash.toLocaleString()}
+                                                    </span>
+                                                </div>
+                                                <div className="px-3 py-2 bg-purple-50 dark:bg-purple-950/30 rounded-xl border border-purple-100 dark:border-purple-800 text-center min-w-[100px]">
+                                                    <span className="text-[8px] font-black text-purple-500 uppercase block tracking-tighter">Transf</span>
+                                                    <span className="text-xs font-black text-purple-600 dark:text-purple-400">
+                                                        ${financials.remainingTransfer.toLocaleString()}
+                                                    </span>
+                                                </div>
+                                                <div className="px-3 py-2 bg-orange-50 dark:bg-orange-950/30 rounded-xl border border-orange-100 dark:border-orange-800 text-center min-w-[100px]">
+                                                    <span className="text-[8px] font-black text-orange-500 uppercase block tracking-tighter">Tarjeta</span>
+                                                    <span className="text-xs font-black text-orange-600 dark:text-orange-400">
+                                                        ${financials.remainingCard.toLocaleString()}
+                                                    </span>
+                                                </div>
+                                            </>
+                                        )}
                                     </div>
 
                                     {/* Lab Order Number */}
