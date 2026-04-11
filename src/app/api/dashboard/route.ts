@@ -247,7 +247,6 @@ export async function GET(request: Request) {
         
         let targets = null;
         try {
-            // @ts-ignore - might not be in the generated client yet
             targets = await prisma.monthlyTarget.findUnique({
                 where: { month_year: { month: targetMonth, year: targetYear } }
             });

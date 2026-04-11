@@ -118,7 +118,7 @@ export class PricingService {
 
         const remainingList = Math.max(0, listPrice - listEquivalentPaid);
         const paidReal = (order.payments || []).reduce((acc: number, p: any) => acc + (p.amount || 0), 0);
-        const hasBalance = remainingList > 1.0; // Tolerancia de 1 peso para evitar problemas de coma flotante
+        const hasBalance = remainingList > 1000; // Tolerancia de 1000 pesos solicitada por el usuario
         
         const progress = listPrice > 0 ? (listEquivalentPaid / listPrice) * 100 : 0;
 
