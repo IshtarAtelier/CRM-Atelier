@@ -291,153 +291,118 @@ export default function VentasPage() {
         const items = order.items || [];
         const dateStr = format(new Date(order.createdAt), "d 'de' MMMM yyyy", { locale: es });
         const labDate = order.labSentAt ? format(new Date(order.labSentAt), "d/MM/yyyy HH:mm", { locale: es }) : 'Pendiente';
-        const logoUrl = `${window.location.origin}/assets/logo-atelier-optica.png`;
+        const financials = PricingService.calculateOrderFinancials(order);
+        const logoUrl = `https://crm-atelier-production-ae72.up.railway.app/assets/logo-atelier-optica.png`;
 
-        const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Pedido Lab - ${order.client.name}</title>
+        const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Pedido Lab - ${order.client.name} | Atelier</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap');
   * { margin:0; padding:0; box-sizing:border-box; font-family:'Inter','Segoe UI',sans-serif; }
-  body { padding: 40px 50px; color: #1c1917; font-size: 13px; line-height:1.5; }
-  .letterhead { display:flex; justify-content:space-between; align-items:center; padding-bottom:20px; margin-bottom:8px; border-bottom:3px solid #1c1917; }
-  .letterhead-left { display:flex; align-items:center; gap:16px; }
-  .letterhead-logo { height:52px; }
-  .letterhead-right { text-align:right; font-size:10px; color:#78716c; line-height:1.6; }
-  .letterhead-right .address { font-weight:600; color:#57534e; }
-  .tagline { text-align:center; font-size:9px; font-weight:800; text-transform:uppercase; letter-spacing:3px; color:#a0845e; padding:10px 0 20px; }
-  .doc-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:24px; }
-  .doc-title { font-size:18px; font-weight:900; text-transform:uppercase; letter-spacing:3px; color:#c2410c; }
-  .doc-number { font-size:11px; color:#78716c; margin-top:4px; }
-  .info-grid { display:grid; grid-template-columns:1fr 1fr; gap:24px; margin-bottom:24px; }
-  .info-box { border:2px solid #e7e5e4; border-radius:12px; padding:16px; }
-  .info-box h3 { font-size:10px; font-weight:900; text-transform:uppercase; letter-spacing:2px; color:#a8a29e; margin-bottom:8px; }
-  .info-row { display:flex; justify-content:space-between; margin-bottom:4px; }
-  .info-row .label { color:#78716c; font-size:12px; }
-  .info-row .value { font-weight:700; font-size:12px; }
-  table { width:100%; border-collapse:collapse; margin:20px 0; }
-  th { background:#1c1917; color:white; padding:10px 14px; text-align:left; font-size:10px; text-transform:uppercase; letter-spacing:1px; }
-  td { padding:10px 14px; border-bottom:1px solid #e7e5e4; font-size:12px; }
-  tr:nth-child(even) { background:#fafaf9; }
-  .lab-number-box { border:3px dashed #c2410c; border-radius:16px; padding:20px; margin-top:24px; display:flex; align-items:center; gap:16px; }
-  .lab-number-box .label { font-size:12px; font-weight:900; text-transform:uppercase; letter-spacing:2px; color:#c2410c; white-space:nowrap; }
-  .lab-number-box .input-line { flex:1; border-bottom:2px solid #1c1917; min-height:24px; font-size:16px; font-weight:700; }
-  .notes-box { border:2px solid #e7e5e4; border-radius:12px; padding:16px; margin-top:16px; }
-  .notes-box h3 { font-size:10px; font-weight:900; text-transform:uppercase; letter-spacing:2px; color:#a8a29e; margin-bottom:8px; }
-  .notes-lines { min-height:60px; border-bottom:1px solid #e7e5e4; margin-bottom:8px; }
-  .footer { margin-top:32px; padding-top:16px; border-top:1px solid #e7e5e4; font-size:9px; color:#a8a29e; text-align:center; text-transform:uppercase; letter-spacing:2px; }
-  .totals { text-align:right; margin-top:12px; }
-  .totals .row { font-size:13px; margin-bottom:4px; }
-  .totals .total { font-size:20px; font-weight:900; border-top:2px solid #1c1917; padding-top:8px; margin-top:4px; }
-  @media print { body { padding: 20px; } }
+  body { padding: 40px 50px; color: #1c1917; font-size: 13px; line-height:1.4; background: white; }
+  .letterhead { display:flex; justify-content:space-between; align-items:center; padding-bottom:20px; border-bottom:2px solid #1c1917; margin-bottom: 8px; }
+  .letterhead-logo { height:58px; }
+  .letterhead-right { text-align:right; font-size:10px; color:#78716c; font-weight: 500; }
+  .address-bold { font-weight:800; color:#1c1917; text-transform: uppercase; letter-spacing: 1px; }
+  .tagline { text-align:center; font-size:9px; font-weight:900; text-transform:uppercase; letter-spacing:2.5px; color:#a0845e; padding:14px 0; border-bottom: 1px solid #f5f5f4; margin-bottom: 10px; }
+  .doc-header { display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:20px; }
+  .doc-title { font-size:22px; font-weight:900; text-transform:uppercase; color:#1c1917; letter-spacing: 2px; }
+  .doc-meta { font-size:11px; color:#a8a29e; font-weight: 800; }
+  .info-grid { display:grid; grid-template-columns: 1fr 1fr; gap:20px; margin-bottom:20px; }
+  .info-box { border:1.5px solid #e7e5e4; border-radius:14px; padding:14px; background: #fffcf9; }
+  .info-box h3 { font-size:9px; font-weight:900; text-transform:uppercase; color:#a8a29e; border-bottom: 1px solid #e7e5e4; padding-bottom: 6px; margin-bottom: 8px; }
+  .info-row { display:flex; justify-content:space-between; margin-bottom:4px; font-size:12px; }
+  .info-label { color:#78716c; font-weight: 600; }
+  .info-value { font-weight:800; color:#1c1917; }
+  table { width:100%; border-collapse:collapse; margin-bottom:20px; border-radius: 12px; overflow: hidden; border: 1.5px solid #e7e5e4; }
+  th { background:#1c1917; color:white; padding:12px 14px; text-align:left; font-size:9px; text-transform:uppercase; letter-spacing:1px; }
+  td { padding:12px 14px; border-bottom:1px solid #f5f5f4; font-size:12px; }
+  tr:nth-child(even) { background:#fffcf9; }
+  .financial-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 20px; }
+  .financial-card { border-radius: 18px; padding: 18px; border: 1.5px solid #e7e5e4; text-align: center; }
+  .f-title { font-size: 8px; font-weight: 900; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 10px; display: block; color: #a8a29e; }
+  .f-amount { font-size: 18px; font-weight: 900; color: #1c1917; display: block; margin-bottom: 4px; }
+  .f-saldo { font-size: 11px; font-weight: 900; color: #10b981; background: #f0fdf4; padding: 4px 10px; border-radius: 8px; display: inline-block; }
+  .totals-summary { margin-top: 25px; padding: 25px; border-radius: 20px; background: #1c1917; color: white; display: flex; justify-content: space-between; align-items: center; }
+  .tot-col { text-align: center; padding: 0 15px; border-right: 1px solid rgba(255,255,255,0.1); }
+  .tot-col:last-of-type { border-right: none; }
+  .tot-val { font-size: 18px; font-weight: 900; display: block; }
+  .tot-label { font-size: 8px; font-weight: 900; text-transform: uppercase; letter-spacing: 1px; color: #a8a29e; display: block; margin-bottom: 4px; }
+  .tot-paid { text-align: right; border-left: 2px solid rgba(255,255,255,0.2); padding-left: 25px; margin-left: 10px; }
+  .paid-value { font-size: 24px; font-weight: 900; color: #fbbf24; }
+  .footer { margin-top: 40px; text-align: center; border-top: 2px solid #e7e5e4; padding-top: 20px; font-size: 9px; color: #a8a29e; text-transform: uppercase; letter-spacing: 3px; font-weight: 900; }
+  .print-btn { position: fixed; top: 20px; right: 20px; padding: 14px 28px; background: #1c1917; color: white; border: none; border-radius: 14px; font-weight: 900; cursor: pointer; z-index: 1000; }
 </style></head><body>
+<button class="print-btn" onclick="window.print()">IMPRIMIR PDF</button>
 <div class='letterhead'>
-  <div class='letterhead-left'>
     <img src='${logoUrl}' class='letterhead-logo' alt='Atelier Óptica' />
-  </div>
-  <div class='letterhead-right'>
-    <div class='address'>José Luis de Tejeda 4380</div>
-    <div>Cerro de las Rosas, Córdoba</div>
-  </div>
+    <div class='letterhead-right'>
+        <div class='address-bold'>José Luis de Tejeda 4380 · Córdoba</div>
+        <div>Fecha: ${dateStr}</div>
+    </div>
 </div>
-<div class='tagline'>La óptica mejor calificada en Google Business ⭐ 5/5</div>
+<div class='tagline'>La óptica mejor calificada de Córdoba ⭐ 5/5 Google Business</div>
 <div class='doc-header'>
-  <div>
-    <div class='doc-title'>Pedido a Laboratorio</div>
-    <div class='doc-number'>Venta #${order.id.slice(-4).toUpperCase()} · ${dateStr}</div>
-  </div>
+    <div>
+        <div class='doc-title'>Pedido de Laboratorio <span style="background:#1c1917; color:white; padding:2px 8px; border-radius:4px; font-size:7px; margin-left:10px; vertical-align:middle;">V2.0</span></div>
+        <div class='doc-meta'>#${order.id.slice(-6).toUpperCase()} · ${labDate}</div>
+    </div>
 </div>
-
 <div class='info-grid'>
-  <div class='info-box'>
-    <h3>👤 Datos del Cliente</h3>
-    <div class='info-row'><span class='label'>Nombre</span><span class='value'>${order.client.name}</span></div>
-    <div class='info-row'><span class='label'>Teléfono</span><span class='value'>${order.client.phone || 'No registrado'}</span></div>
-  </div>
-  <div class='info-box'>
-    <h3>📦 Estado del Pedido</h3>
-    <div class='info-row'><span class='label'>Enviado al Lab</span><span class='value'>${labDate}</span></div>
-    <div class='info-row'><span class='label'>Estado</span><span class='value'>${LAB_STATUS[order.labStatus || 'NONE']?.label || 'Sin enviar'}</span></div>
-    <div class='info-row'><span class='label'>Abonado</span><span class='value'>$${(order.paid || 0).toLocaleString()} / $${(order.total || 0).toLocaleString()}</span></div>
-  </div>
+    <div class='info-box'>
+        <h3>👤 Datos del Cliente</h3>
+        <div class='info-row'><span class='info-label'>Nombre</span><span class='info-value'>${order.client.name}</span></div>
+        <div class='info-row'><span class='info-label'>Teléfono</span><span class='info-value'>${order.client.phone || 'No registrado'}</span></div>
+    </div>
+    <div class='info-box'>
+        <h3>🔬 Info Cristales</h3>
+        <div class='info-row'><span class='info-label'>Tratamiento</span><span class='info-value'>${order.labTreatment || 'Normal'}</span></div>
+        <div class='info-row'><span class='info-label'>Color</span><span class='info-value'>${order.labColor || 'Blanco'}</span></div>
+    </div>
 </div>
 
-${(() => {
-    const paid = order.paid || 0;
-    const total = order.total || 0;
-    const pending = Math.max(0, total - paid);
-    const subMarkup = order.subtotalWithMarkup || 0;
-    const hasSubs = subMarkup > 0;
-    const saldoEfvo = pending;
-    const saldoTransf = hasSubs ? Math.max(0, Math.round(subMarkup * (1 - (order.discountTransfer || 0) / 100)) - paid) : 0;
-    const saldoCuotas = hasSubs ? Math.max(0, Math.round(subMarkup * (1 - (order.discountCard || 0) / 100)) - paid) : 0;
-    
-    if (paid >= total) {
-        return `<div style='background:#ecfdf5;border:2px solid #10b981;border-radius:14px;padding:14px 20px;margin-bottom:20px;display:flex;align-items:center;gap:12px'>
-            <span style='font-size:20px'>✅</span>
-            <div>
-                <span style='font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:2px;color:#059669;display:block'>Estado de Pago</span>
-                <span style='font-size:15px;font-weight:900;color:#047857'>PAGADO COMPLETO — $${paid.toLocaleString()}</span>
-            </div>
-        </div>`;
-    }
-    
-    let html = `<div style='border:2px solid #e7e5e4;border-radius:14px;padding:16px 20px;margin-bottom:20px'>
-        <div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:12px'>
-            <div>
-                <span style='font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:2px;color:#a8a29e;display:block'>Pagado</span>
-                <span style='font-size:20px;font-weight:900;color:#10b981'>$${paid.toLocaleString()}</span>
-            </div>
-            <div style='display:flex;gap:16px;text-align:right'>
-                <div>
-                    <span style='font-size:8px;font-weight:900;text-transform:uppercase;letter-spacing:2px;color:#10b981;display:block'>💵 Saldo Efvo</span>
-                    <span style='font-size:13px;font-weight:900;color:#10b981'>$${saldoEfvo.toLocaleString()}</span>
-                </div>`;
-    if (hasSubs && (order.discountTransfer || 0) > 0) {
-        html += `
-                <div>
-                    <span style='font-size:8px;font-weight:900;text-transform:uppercase;letter-spacing:2px;color:#8b5cf6;display:block'>🏦 Saldo Transf</span>
-                    <span style='font-size:13px;font-weight:900;color:#8b5cf6'>$${saldoTransf.toLocaleString()}</span>
-                </div>`;
-    }
-    if (hasSubs) {
-        html += `
-                <div>
-                    <span style='font-size:8px;font-weight:900;text-transform:uppercase;letter-spacing:2px;color:#f97316;display:block'>💳 Saldo Cuotas</span>
-                    <span style='font-size:13px;font-weight:900;color:#f97316'>$${saldoCuotas.toLocaleString()}</span>
-                </div>`;
-    }
-    html += `
-            </div>
-        </div>
-        <div style='height:10px;background:#f5f5f4;border-radius:5px;overflow:hidden;border:1px solid #e7e5e4'>
-            <div style='height:100%;background:#10b981;width:${Math.min(100, total > 0 ? (paid / total) * 100 : 0)}%;border-radius:5px'></div>
-        </div>
-    </div>`;
-    return html;
-})()}
-
-<h3 style="font-size:10px; font-weight:900; text-transform:uppercase; letter-spacing:2px; color:#a8a29e; margin-bottom:8px;">🔬 Productos / Cristales</h3>
 <table>
-  <thead><tr><th>Producto</th><th>Tipo</th><th>Cant.</th><th>Precio</th><th>Subtotal</th></tr></thead>
-  <tbody>${items.map(it => `<tr><td>${it.product?.brand || ''} ${it.product?.model || it.product?.name || ''}</td><td>${it.product?.type || it.product?.category || ''}</td><td style='text-align:center'>${it.quantity}</td><td>$${it.price?.toLocaleString()}</td><td>$${(it.price * it.quantity).toLocaleString()}</td></tr>`).join('')}</tbody>
+    <thead><tr><th>Producto</th><th>Tipo</th><th style='text-align:center'>Cant.</th><th style='text-align:right'>Precio</th><th style='text-align:right'>Subtotal</th></tr></thead>
+    <tbody>${items.map(it => `<tr><td>${it.product?.brand || ''} ${it.product?.model || it.product?.name || ''}</td><td>${it.product?.type || it.product?.category || ''}</td><td style='text-align:center'>${it.quantity}</td><td style='text-align:right'>$${it.price?.toLocaleString()}</td><td style='text-align:right'>$${(it.price * it.quantity).toLocaleString()}</td></tr>`).join('')}</tbody>
 </table>
-${order.frameSource ? `<div style='background:#fffbeb;border:2px solid #fbbf24;border-radius:12px;padding:12px 16px;margin:12px 0;font-size:12px'><strong style='color:#92400e'>🕶️ Armazón:</strong> ${order.frameSource === 'OPTICA' ? 'De la óptica (incluido en el pedido)' : `Del cliente — ${order.userFrameBrand || ''} ${order.userFrameModel || ''}${order.userFrameNotes ? ' · ' + order.userFrameNotes : ''}`}</div>` : ''}
 
-<div class='totals'>
-  ${order.discount ? `<div class='row' style='color:#ef4444'>Descuento: ${order.discount}%</div>` : ''}
-  <div class='total'>Total: $${(order.total || 0).toLocaleString()}</div>
+<div class='financial-grid'>
+    <div class='financial-card'>
+        <span class='f-title'>💵 Saldo Efectivo</span>
+        <span class='f-amount'>$${financials.remainingCash.toLocaleString()}</span>
+        ${!financials.hasBalance ? '<span class="f-saldo">PAGADO</span>' : ''}
+    </div>
+    <div class='financial-card'>
+        <span class='f-title'>🏦 Saldo Transferencia</span>
+        <span class='f-amount'>$${financials.remainingTransfer.toLocaleString()}</span>
+        ${!financials.hasBalance ? '<span class="f-saldo">PAGADO</span>' : ''}
+    </div>
+    <div class='financial-card'>
+        <span class='f-title'>💳 Saldo Tarjeta</span>
+        <span class='f-amount'>$${financials.remainingCard.toLocaleString()}</span>
+        ${!financials.hasBalance ? '<span class="f-saldo">PAGADO</span>' : ''}
+    </div>
 </div>
 
-<div class='lab-number-box'>
-  <span class='label'>N° Operación Lab:</span>
-  <span class='input-line'>${order.labOrderNumber || ''}</span>
+<div class='totals-summary'>
+    <div class='tot-col'>
+        <span class='tot-label'>💵 Efectivo</span>
+        <span class='tot-val'>$${financials.totalCash.toLocaleString()}</span>
+    </div>
+    <div class='tot-col'>
+        <span class='tot-label'>🏦 Transf</span>
+        <span class='tot-val'>$${financials.totalTransfer.toLocaleString()}</span>
+    </div>
+    <div class='tot-col'>
+        <span class='tot-label'>💳 Tarjeta</span>
+        <span class='tot-val'>$${financials.totalCard.toLocaleString()}</span>
+    </div>
+    <div class='tot-paid'>
+        <span class='tot-label'>Abonado Real</span>
+        <span class='paid-value'>$${financials.paidReal.toLocaleString()}</span>
+    </div>
 </div>
 
-<div class='notes-box'>
-  <h3>📝 Observaciones para el Cliente</h3>
-  <div class='notes-lines'>${order.labNotes || ''}</div>
-</div>
-
-<div class='footer'>Atelier Óptica · José Luis de Tejeda 4380, Córdoba · Generado el ${format(new Date(), "d/MM/yyyy HH:mm", { locale: es })}</div>
+<div class='footer'>Atelier Óptica · José Luis de Tejeda 4380, Córdoba · Profesionalismo y Diseño</div>
 </body></html>`;
 
         const printWindow = window.open('', '_blank', 'width=800,height=1000');
@@ -616,9 +581,9 @@ ${order.frameSource ? `<div style='background:#fffbeb;border:2px solid #fbbf24;b
                                                 <span className={`px-2 py-0.5 rounded-lg text-[8px] lg:text-[9px] font-black uppercase tracking-widest ${labInfo.color}`}>
                                                     {labInfo.label}
                                                 </span>
-                                                {financials.progress >= 100 || !financials.hasBalance ? (
+                                                {financials.progress >= 100 && (
                                                     <span className="px-2 py-0.5 rounded-lg text-[8px] lg:text-[9px] font-black uppercase tracking-widest bg-emerald-100 text-emerald-600">PAGADO</span>
-                                                ) : null}
+                                                )}
                                             </div>
                                         </div>
                                         {/* Total on Mobile Header */}
@@ -628,25 +593,31 @@ ${order.frameSource ? `<div style='background:#fffbeb;border:2px solid #fbbf24;b
                                     </div>
 
                                     {/* Payment Detail (Triple Saldo) */}
-                                    {financials.hasBalance && (
-                                        <div className="flex flex-col gap-1.5 lg:border-l-2 lg:border-stone-100 lg:dark:border-stone-700 lg:pl-4 py-0.5">
-                                            <span className="text-[8px] font-black text-stone-400 uppercase tracking-widest">Saldo Pendiente</span>
-                                            <div className="flex flex-wrap gap-2">
-                                                <div className="flex flex-col rounded-lg bg-emerald-50 px-2 py-1 text-emerald-600">
-                                                    <span className="text-[7px] lg:text-[8px] font-black uppercase tracking-widest flex items-center gap-1"><Banknote className="w-3 h-3" /> Efvo</span>
-                                                    <span className="text-[9px] lg:text-[10px] font-black mt-0.5">${financials.remainingCash.toLocaleString()}</span>
+                                    <div className="flex flex-col gap-1.5 lg:border-l-2 lg:border-stone-100 lg:dark:border-stone-700 lg:pl-4 py-0.5">
+                                        <span className="text-[8px] font-black text-stone-400 uppercase tracking-widest">Saldo Pendiente</span>
+                                        <div className="flex flex-wrap gap-2">
+                                            {!financials.hasBalance ? (
+                                                <div className="px-3 py-1 bg-emerald-100 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 rounded-lg text-[9px] font-black uppercase tracking-widest border border-emerald-200 dark:border-emerald-800">
+                                                    PAGADO
                                                 </div>
-                                                <div className="flex flex-col rounded-lg bg-violet-50 px-2 py-1 text-violet-600">
-                                                    <span className="text-[7px] lg:text-[8px] font-black uppercase tracking-widest flex items-center gap-1"><ArrowRightLeft className="w-3 h-3" /> Transf</span>
-                                                    <span className="text-[9px] lg:text-[10px] font-black mt-0.5">${financials.remainingTransfer.toLocaleString()}</span>
-                                                </div>
-                                                <div className="flex flex-col rounded-lg bg-orange-50 px-2 py-1 text-orange-600">
-                                                    <span className="text-[7px] lg:text-[8px] font-black uppercase tracking-widest flex items-center gap-1"><CreditCard className="w-3 h-3" /> Cuotas</span>
-                                                    <span className="text-[9px] lg:text-[10px] font-black mt-0.5">${financials.remainingCard.toLocaleString()}</span>
-                                                </div>
-                                            </div>
+                                            ) : (
+                                                <>
+                                                    <div className="flex flex-col rounded-lg bg-emerald-50 dark:bg-emerald-900/10 px-2 py-1 text-emerald-600 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-900/30">
+                                                        <span className="text-[7px] lg:text-[8px] font-black uppercase tracking-widest flex items-center gap-1"><Banknote className="w-3 h-3" /> Efvo</span>
+                                                        <span className="text-[9px] lg:text-[10px] font-black mt-0.5">$${financials.remainingCash.toLocaleString()}</span>
+                                                    </div>
+                                                    <div className="flex flex-col rounded-lg bg-violet-50 dark:bg-violet-900/10 px-2 py-1 text-violet-600 dark:text-violet-400 border border-violet-100 dark:border-violet-900/30">
+                                                        <span className="text-[7px] lg:text-[8px] font-black uppercase tracking-widest flex items-center gap-1"><ArrowRightLeft className="w-3 h-3" /> Transf</span>
+                                                        <span className="text-[9px] lg:text-[10px] font-black mt-0.5">$${financials.remainingTransfer.toLocaleString()}</span>
+                                                    </div>
+                                                    <div className="flex flex-col rounded-lg bg-orange-50 dark:bg-orange-900/10 px-2 py-1 text-orange-600 dark:text-orange-400 border border-orange-100 dark:border-orange-900/30">
+                                                        <span className="text-[7px] lg:text-[8px] font-black uppercase tracking-widest flex items-center gap-1"><CreditCard className="w-3 h-3" /> Cuotas</span>
+                                                        <span className="text-[9px] lg:text-[10px] font-black mt-0.5">$${financials.remainingCard.toLocaleString()}</span>
+                                                    </div>
+                                                </>
+                                            )}
                                         </div>
-                                    )}
+                                    </div>
 
                                     {/* Info Badges */}
                                     <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[9px] lg:text-[10px] font-bold text-stone-400 uppercase tracking-widest">

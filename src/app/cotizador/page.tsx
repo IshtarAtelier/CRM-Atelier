@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef, Suspense } from 'react';
 import { 
     Search, 
     Calculator, 
@@ -78,7 +78,7 @@ interface QuoteItem {
     eye?: 'OD' | 'OI';
 }
 
-export default function CotizadorPage() {
+function CotizadorPageContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const editId = searchParams.get('editId');
@@ -809,5 +809,17 @@ export default function CotizadorPage() {
                 </div>
             )}
         </div>
+    );
+}
+
+export default function CotizadorPage() {
+    return (
+        <Suspense fallback={
+            <div className="flex items-center justify-center min-h-screen">
+                <Loader2 className="w-10 h-10 text-primary animate-spin" />
+            </div>
+        }>
+            <CotizadorPageContent />
+        </Suspense>
     );
 }

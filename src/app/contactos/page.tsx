@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Users, UserPlus, CheckCircle2, UserCheck } from "lucide-react";
+import { Users, UserPlus, CheckCircle2, UserCheck, Loader2 } from "lucide-react";
 import { useContacts } from '@/hooks/useContacts';
 import { ContactStatus } from '@/types/contacts';
 
@@ -16,7 +16,7 @@ import ContactsHeader from '@/components/contacts/page/ContactsHeader';
 import ContactsFilters from '@/components/contacts/page/ContactsFilters';
 import ContactsList from '@/components/contacts/page/ContactsList';
 
-export default function ContactosPage() {
+function ContactosPageContent() {
     const searchParams = useSearchParams();
     const [activeTab, setActiveTab] = useState<ContactStatus>('ALL');
     const [searchQuery, setSearchQuery] = useState('');
@@ -179,5 +179,17 @@ export default function ContactosPage() {
             )}
 
         </div>
+    );
+}
+
+export default function ContactosPage() {
+    return (
+        <Suspense fallback={
+            <div className="flex items-center justify-center min-h-screen">
+                <Loader2 className="w-10 h-10 text-primary animate-spin" />
+            </div>
+        }>
+            <ContactosPageContent />
+        </Suspense>
     );
 }

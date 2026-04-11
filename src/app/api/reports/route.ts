@@ -99,7 +99,15 @@ export async function GET(request: Request) {
                 const product = item.product;
                 if (!product) continue; // Skip if product was deleted
 
-                const itemCost = (product.cost || 0) * item.quantity;
+                let itemCost = (product.cost || 0) * item.quantity;
+                
+                // Si el producto es por PAR (Cristales) y tiene especificado el ojo (OD/OI),
+                // el costo en el inventario suele ser del par, por lo que cada línea (ojo)
+                // debe sumar solo el 50% del costo para no duplicar el gasto total en reportes.
+                if (product.unitType === 'PAR' && item.eye && (product.cost || 0) > 0) {
+                    itemCost = ((product.cost || 0) / 2) * item.quantity;
+                }
+                
                 const itemRevenue = item.price * item.quantity;
 
                 // Categorize costs
