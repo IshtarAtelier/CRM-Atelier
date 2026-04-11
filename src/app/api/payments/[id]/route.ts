@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
+import { headers } from 'next/headers';
 import { ContactService } from '@/services/contact.service';
+import { prisma } from '@/lib/db';
 
 export const dynamic = 'force-dynamic';
 
@@ -12,6 +14,33 @@ export async function DELETE(
         
         if (!paymentId) {
             return NextResponse.json({ error: 'ID de pago requerido' }, { status: 400 });
+        }
+
+        const headersList = await headers();
+        const role = headersList.get('x-user-role') || 'STAFF';
+
+        // Security check: Find payment and its associated order
+        const payment = await prisma.payment.findUnique({
+            where: { id: paymentId },
+            include: {
+                order: {
+                    select: { labStatus: true }
+                }
+            }
+        });
+
+        if (!payment) {
+            return NextResponse.json({ error: 'Pago no encontrado' }, { status: 404 });
+        }
+
+        if (role !== 'ADMIN') {
+            const status = payment.order?.labStatus;
+            if (status && status !== 'NONE') {
+                return NextResponse.json(
+                    { error: 'Seguridad: No podés eliminar pagos de un pedido que ya fue enviado a fábrica.' },
+                    { status: 403 }
+                );
+            }
         }
 
         const deletedPayment = await ContactService.deletePayment(paymentId);
