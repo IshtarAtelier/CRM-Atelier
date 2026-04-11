@@ -24,7 +24,7 @@ export async function DELETE(
             where: { id: paymentId },
             include: {
                 order: {
-                    select: { labStatus: true }
+                    select: { labStatus: true, clientId: true }
                 }
             }
         });
@@ -44,6 +44,14 @@ export async function DELETE(
         }
 
         const deletedPayment = await ContactService.deletePayment(paymentId);
+
+        // Registrar en la ficha del cliente (Línea de Tiempo)
+        if (payment.order?.clientId) {
+            const formattedAmount = payment.amount.toLocaleString('es-AR');
+            const interactionText = `El Administrador eliminó un registro de pago por $${formattedAmount} (${payment.method}). Motivo: Eliminación manual / Corrección de caja.`;
+            await ContactService.addInteraction(payment.order.clientId, 'SISTEMA', interactionText);
+        }
+
         return NextResponse.json(deletedPayment);
     } catch (error: any) {
         console.error('Error deleting payment:', error);

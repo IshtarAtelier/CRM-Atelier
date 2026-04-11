@@ -484,7 +484,7 @@ export default function AdministracionPage() {
                                         <tr className="border-b border-stone-50 dark:border-stone-800">
                                             <th className="px-8 py-5 text-left text-[10px] font-black text-stone-400 uppercase tracking-widest">Fecha y Hora</th>
                                             <th className="px-8 py-5 text-left text-[10px] font-black text-stone-400 uppercase tracking-widest">Cliente</th>
-                                            <th className="px-8 py-5 text-left text-[10px] font-black text-stone-400 uppercase tracking-widest">Método</th>
+                                            <th className="px-8 py-5 text-left text-[10px] font-black text-stone-400 uppercase tracking-widest">Método / Ref</th>
                                             <th className="px-8 py-5 text-left text-[10px] font-black text-stone-400 uppercase tracking-widest">Estado Caja</th>
                                             <th className="px-8 py-5 text-right text-[10px] font-black text-stone-400 uppercase tracking-widest">Monto</th>
                                             <th className="px-8 py-5 text-center text-[10px] font-black text-stone-400 uppercase tracking-widest whitespace-nowrap">Comprobante</th>
@@ -508,9 +508,16 @@ export default function AdministracionPage() {
                                                         <p className="text-[10px] font-bold text-stone-400">Orden: #{p.orderId.slice(-6).toUpperCase()}</p>
                                                     </td>
                                                     <td className="px-8 py-5">
-                                                        <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-xl ${info.lightBg} ${info.textColor} text-[10px] font-black uppercase tracking-widest`}>
-                                                            <info.icon size={12} />
-                                                            {info.label}
+                                                        <div className={`inline-flex flex-col items-start gap-1`}>
+                                                            <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-xl ${info.lightBg} ${info.textColor} text-[10px] font-black uppercase tracking-widest`}>
+                                                                <info.icon size={12} />
+                                                                {info.label}
+                                                            </div>
+                                                            {p.notes && (
+                                                                <span className="text-[9px] font-bold text-stone-500 max-w-[120px] truncate" title={p.notes}>
+                                                                    Ref: {p.notes}
+                                                                </span>
+                                                            )}
                                                         </div>
                                                     </td>
                                                     <td className="px-8 py-5">

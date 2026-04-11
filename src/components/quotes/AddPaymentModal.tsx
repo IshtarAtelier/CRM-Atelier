@@ -61,6 +61,11 @@ export default function AddPaymentModal({
             return;
         }
 
+        if (method !== 'CASH' && method !== 'EFECTIVO' && !reference.trim()) {
+            setError('Es obligatorio ingresar el Nro. de Comprobante / Referencia para métodos electrónicos');
+            return;
+        }
+
         setLoading(true);
         setError(null);
 
@@ -85,7 +90,7 @@ export default function AddPaymentModal({
                 body: JSON.stringify({
                     amount: Number(amount),
                     method,
-                    reference,
+                    notes: reference.trim() || undefined,
                     date: new Date(date).toISOString(),
                     receiptUrl
                 })
@@ -211,12 +216,12 @@ export default function AddPaymentModal({
                             />
                         </div>
                         <div className="space-y-2">
-                            <label className="text-[10px] font-black uppercase text-stone-400 tracking-widest block pl-1">Referencia</label>
+                            <label className="text-[10px] font-black uppercase text-stone-400 tracking-widest block pl-1">Referencia {method !== 'CASH' && <span className="text-red-400">*</span>}</label>
                             <input
                                 type="text"
                                 value={reference}
                                 onChange={(e) => setReference(e.target.value)}
-                                placeholder="N° Comprobante, etc"
+                                placeholder={method !== 'CASH' ? "Obligatorio: N° Comprobante" : "N° Comprobante, etc"}
                                 className="w-full px-4 py-3 bg-stone-50 dark:bg-stone-900/50 border border-stone-100 dark:border-stone-700 rounded-xl text-sm font-bold text-stone-900 dark:text-white outline-none focus:ring-2 focus:ring-emerald-500/20"
                             />
                         </div>
