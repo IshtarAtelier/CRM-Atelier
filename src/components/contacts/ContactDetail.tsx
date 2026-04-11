@@ -21,7 +21,7 @@ interface ContactDetailProps {
     onAddTask: (id: string, description: string, dueDate?: string) => Promise<boolean>;
     onUpdateTaskStatus: (id: string, taskId: string, status: string) => Promise<boolean>;
     onStatusChange: (id: string, status: string, userRole?: string) => Promise<boolean>;
-    onDeleteOrder: (orderId: string) => Promise<void>;
+    onDeleteOrder: (orderId: string, reason?: string, role?: string) => Promise<any> | void;
     autoStartQuote?: boolean;
 }
 

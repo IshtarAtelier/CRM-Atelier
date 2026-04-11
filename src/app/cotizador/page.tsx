@@ -68,6 +68,7 @@ interface Product {
     stock: number;
     lensIndex?: string | null;
     description?: string | null;
+    category?: string | null;
 }
 
 interface QuoteItem {

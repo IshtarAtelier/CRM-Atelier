@@ -15,9 +15,9 @@ interface OrderManagerProps {
     activeSection: 'budget' | 'sales';
     currentUserRole: string;
     onRefresh: () => void;
-    onConvertOrder: (orderId: string, data?: any) => void;
+    onConvertOrder: (orderId: string, data?: any) => Promise<void> | void;
     onAddPayment: (orderId: string) => void;
-    onDeleteOrder: (orderId: string) => void;
+    onDeleteOrder: (orderId: string, reason?: string, role?: string) => Promise<void> | void;
 }
 
 export default function OrderManager({
@@ -126,7 +126,7 @@ export default function OrderManager({
         setQuoteDiscountCash(order.discountCash ?? 20);
         setQuoteDiscountTransfer(order.discountTransfer ?? 15);
         setQuoteDiscountCard(order.discountCard ?? 0);
-        setQuoteFrameSource(order.frameSource);
+        setQuoteFrameSource(order.frameSource as 'OPTICA' | 'USUARIO' | null);
         setQuoteUserFrame({ brand: order.userFrameBrand || '', model: order.userFrameModel || '', notes: order.userFrameNotes || '' });
         setQuotePrescriptionId(order.prescriptionId || null);
         setEditingQuoteId(order.id);
@@ -134,7 +134,7 @@ export default function OrderManager({
         await ensureProductsLoaded();
     };
 
-    const relevantOrders = orders.filter(o => activeSection === 'sales' ? o.orderType === 'SALE' : o.orderType !== 'SALE');
+    const relevantOrders = orders.filter((o: any) => activeSection === 'sales' ? o.orderType === 'SALE' : o.orderType !== 'SALE');
 
     if (isQuoting) {
         return (
@@ -157,7 +157,7 @@ export default function OrderManager({
                         discountCash={quoteDiscountCash} setDiscountCash={setQuoteDiscountCash}
                         discountTransfer={quoteDiscountTransfer} setDiscountTransfer={setQuoteDiscountTransfer}
                         discountCard={quoteDiscountCard} setDiscountCard={setQuoteDiscountCard}
-                        frameSource={quoteFrameSource} setFrameSource={setQuoteFrameSource}
+                        frameSource={quoteFrameSource as 'OPTICA' | 'USUARIO' | null} setFrameSource={setQuoteFrameSource}
                         userFrameData={quoteUserFrame} setUserFrameData={setQuoteUserFrame}
                         prescriptionId={quotePrescriptionId} setPrescriptionId={setQuotePrescriptionId}
                         availableProducts={availableProducts}
@@ -193,7 +193,7 @@ export default function OrderManager({
                 </div>
             ) : (
                 <div className="space-y-6">
-                    {relevantOrders.map(order => (
+                    {relevantOrders.map((order: any) => (
                         <QuoteSummary
                             key={order.id}
                             order={order}

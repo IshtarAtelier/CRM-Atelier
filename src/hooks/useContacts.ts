@@ -252,9 +252,10 @@ export function useContacts(activeTab: ContactStatus, searchQuery: string, favor
         }
     };
 
-    const deleteOrder = async (orderId: string, reason: string, role: string = 'STAFF') => {
+    const deleteOrder = async (orderId: string, reason?: string, role: string = 'STAFF') => {
         try {
-            const res = await fetch(`/api/orders/${orderId}?reason=${encodeURIComponent(reason)}&role=${role}`, {
+            const safeReason = reason || '';
+            const res = await fetch(`/api/orders/${orderId}?reason=${encodeURIComponent(safeReason)}&role=${role}`, {
                 method: 'DELETE'
             });
             if (res.ok) {

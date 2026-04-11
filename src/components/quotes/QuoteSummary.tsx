@@ -32,8 +32,8 @@ interface QuoteSummaryProps {
         prescriptions?: any[];
     };
     currentUserRole?: 'ADMIN' | 'STAFF';
-    onConvert?: (orderId: string) => Promise<void>;
-    onDelete?: (orderId: string) => void;
+    onConvert?: (orderId: string, data?: any) => Promise<any> | void;
+    onDelete?: (orderId: string, reason?: string, role?: string) => Promise<any> | void;
     onAddPayment?: (orderId: string) => void;
     onStatusChange?: (orderId: string, nextStatus: string) => Promise<void>;
     onCloseSale?: () => Promise<void>;
