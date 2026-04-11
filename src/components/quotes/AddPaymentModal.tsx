@@ -18,9 +18,16 @@ interface AddPaymentModalProps {
 }
 
 const PAYMENT_METHODS = [
-    { id: 'CASH', label: 'Efectivo', icon: Banknote, color: 'emerald' },
-    { id: 'TRANSFER', label: 'Transferencia', icon: ArrowRightLeft, color: 'violet' },
-    { id: 'CARD', label: 'Tarjeta / Cuotas', icon: CreditCard, color: 'orange' }
+    { id: 'EFECTIVO', label: 'Efectivo', icon: Banknote, color: 'emerald' },
+    { id: 'TRANSFERENCIA_ISHTAR', label: 'Transf. Ishtar', icon: ArrowRightLeft, color: 'violet' },
+    { id: 'TRANSFERENCIA_LUCIA', label: 'Transf. Lucía', icon: ArrowRightLeft, color: 'violet' },
+    { id: 'PAY_WAY_3_ISH', label: 'Pay Way 3 Ish', icon: CreditCard, color: 'blue' },
+    { id: 'PAY_WAY_3_YANI', label: 'Pay Way 3 Yani', icon: CreditCard, color: 'indigo' },
+    { id: 'PAY_WAY_6_ISH', label: 'Pay Way 6 Ish', icon: CreditCard, color: 'blue' },
+    { id: 'PAY_WAY_6_YANI', label: 'Pay Way 6 Yani', icon: CreditCard, color: 'indigo' },
+    { id: 'NARANJA_Z_ISH', label: 'Naranja Z Ish', icon: CreditCard, color: 'orange' },
+    { id: 'NARANJA_Z_YANI', label: 'Naranja Z Yani', icon: CreditCard, color: 'orange' },
+    { id: 'GO_CUOTAS_ISH', label: 'Go Cuotas Ish', icon: CreditCard, color: 'purple' },
 ];
 
 export default function AddPaymentModal({
@@ -31,7 +38,7 @@ export default function AddPaymentModal({
     onSuccess
 }: AddPaymentModalProps) {
     const [amount, setAmount] = useState('');
-    const [method, setMethod] = useState('CASH');
+    const [method, setMethod] = useState('EFECTIVO');
     const [reference, setReference] = useState('');
     const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
     const [loading, setLoading] = useState(false);
@@ -181,7 +188,7 @@ export default function AddPaymentModal({
                         <label className="text-[10px] font-black uppercase text-stone-400 tracking-widest block pl-1">
                             Método de Pago
                         </label>
-                        <div className="grid grid-cols-3 gap-3">
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
                             {PAYMENT_METHODS.map((m) => {
                                 const Icon = m.icon;
                                 const isSelected = method === m.id;
@@ -190,14 +197,14 @@ export default function AddPaymentModal({
                                         key={m.id}
                                         type="button"
                                         onClick={() => setMethod(m.id)}
-                                        className={`flex flex-col items-center justify-center p-4 rounded-2xl border-2 transition-all gap-2 ${
+                                        className={`flex flex-col items-center justify-center p-3 sm:p-4 rounded-xl border-2 transition-all gap-2 ${
                                             isSelected
                                                 ? `bg-${m.color}-500 border-${m.color}-500 text-white shadow-lg scale-105`
                                                 : 'bg-white dark:bg-stone-800 border-stone-100 dark:border-stone-700 text-stone-400 hover:border-stone-200'
                                         }`}
                                     >
                                         <Icon className={`w-5 h-5 ${isSelected ? 'text-white' : 'text-stone-400'}`} />
-                                        <span className="text-[9px] font-black uppercase tracking-widest">{m.label}</span>
+                                        <span className="text-[9px] font-black uppercase tracking-widest text-center">{m.label}</span>
                                     </button>
                                 );
                             })}

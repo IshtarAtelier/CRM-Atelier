@@ -3,6 +3,8 @@ import { prisma } from '@/lib/db';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
+import { PricingService } from '@/services/PricingService';
+
 export const dynamic = 'force-dynamic';
 
 export async function GET(
@@ -44,7 +46,6 @@ export async function GET(
         const brandSand = '#A68B7C';
         const systemEmerald = '#10b981';
         
-        const { PricingService } = require('@/services/PricingService');
         const financials = PricingService.calculateOrderFinancials(order);
 
         const markupFactor = 1 + ((order.markup || 0) / 100);
