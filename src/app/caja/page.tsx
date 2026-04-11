@@ -25,13 +25,14 @@ interface CashMovement {
 }
 
 const CATEGORIES = [
+    { key: 'VENTA', label: 'Venta Entrante', icon: Wallet, color: 'text-emerald-500', bg: 'bg-emerald-50 dark:bg-emerald-950' },
     { key: 'GASTO_GENERAL', label: 'Gasto General', icon: Banknote, color: 'text-red-500', bg: 'bg-red-50 dark:bg-red-950' },
     { key: 'PAGO_LABORATORIO', label: 'Pago Laboratorio', icon: Building2, color: 'text-blue-500', bg: 'bg-blue-50 dark:bg-blue-950' },
     { key: 'APORTE_EFECTIVO', label: 'Aporte de Efectivo', icon: PiggyBank, color: 'text-emerald-500', bg: 'bg-emerald-50 dark:bg-emerald-950' },
     { key: 'OTRO', label: 'Otro', icon: MoreHorizontal, color: 'text-stone-500', bg: 'bg-stone-50 dark:bg-stone-800' },
 ];
 
-const getCategoryInfo = (key: string) => CATEGORIES.find(c => c.key === key) || CATEGORIES[3];
+const getCategoryInfo = (key: string) => CATEGORIES.find(c => c.key === key) || CATEGORIES.find(c => c.key === 'OTRO') || CATEGORIES[0];
 
 // ── Page ──────────────────────────────────
 

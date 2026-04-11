@@ -71,7 +71,7 @@ export default function OrderManager({
             const hasFramesInCart = quoteItems.some(i => i.product.category === 'FRAME' || i.product.category === 'ATELIER');
             
             // BUG FIX 4: Auto-detect frameSource if frames are in cart
-            let effectiveFrameSource = quoteFrameSource;
+            let effectiveFrameSource: "OPTICA" | "USUARIO" | null = quoteFrameSource as any;
             if (hasCrystals && !effectiveFrameSource && hasFramesInCart) {
                 effectiveFrameSource = 'OPTICA';
             }

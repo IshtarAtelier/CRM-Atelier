@@ -165,7 +165,7 @@ export default function ContactosPage() {
                     onAddTask={addTask}
                     onUpdateTaskStatus={updateTaskStatus}
                     onStatusChange={updateStatus}
-                    onDeleteOrder={deleteOrder}
+                    onDeleteOrder={(id) => deleteOrder(id)}
                     autoStartQuote={autoStartQuote}
                 />
             )}
