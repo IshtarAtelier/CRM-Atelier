@@ -119,7 +119,7 @@ export default function AddPaymentModal({
 
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-stone-900/60 backdrop-blur-sm animate-in fade-in duration-300">
-            <div className="bg-white dark:bg-stone-800 w-full max-w-lg rounded-[32px] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300">
+            <div className="bg-white dark:bg-stone-800 w-full max-w-lg max-h-[95vh] flex flex-col rounded-[32px] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300">
                 <div className="flex items-center justify-between p-6 border-b border-stone-100 dark:border-stone-700">
                     <div className="flex items-center gap-3">
                         <div className="w-10 h-10 bg-emerald-500/10 rounded-xl flex items-center justify-center">
@@ -135,7 +135,7 @@ export default function AddPaymentModal({
                     </button>
                 </div>
 
-                <form onSubmit={handleSubmit} className="p-8 space-y-6">
+                <form onSubmit={handleSubmit} className="p-8 space-y-6 overflow-y-auto flex-1 custom-scrollbar">
                     {/* Monto con sugerencias */}
                     <div className="space-y-4">
                         <label className="text-[10px] font-black uppercase text-stone-400 tracking-widest block pl-1">
