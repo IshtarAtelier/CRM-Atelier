@@ -160,25 +160,43 @@ export default function PrescriptionManager({
 
     const handleFinalConfirm = async () => {
         if (!conversionOrderId) return;
-        setSaving(true);
-        try {
-            const duplicate = findDuplicate();
-            if (!duplicate) throw new Error("No se encontró la receta guardada");
+        
+        // Use the ID we just saved in handleSave, or find it if we came from a different path
+        const rxId = savedRxId || findDuplicate()?.id;
+        
+        if (!rxId) {
+            setError("No se pudo identificar la receta. Por favor, volvé a guardarla.");
+            return;
+        }
 
+        setSaving(true);
+        setError(null);
+        
+        try {
+            console.log('Iniciando conversión a venta...', { conversionOrderId, rxId });
+            
             const res = await fetch(`/api/orders/${conversionOrderId}`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ 
                     orderType: 'SALE',
-                    prescriptionId: savedRxId || duplicate?.id 
+                    prescriptionId: rxId 
                 }),
             });
-            if (!res.ok) throw new Error("Error al convertir venta");
+
+            const data = await res.json();
             
-            onConversionComplete?.(duplicate.id);
+            if (!res.ok) {
+                throw new Error(data.error || "Error al convertir venta");
+            }
+            
+            console.log('Conversión exitosa:', data);
+            
+            onConversionComplete?.(rxId);
             onRefresh();
             resetForm();
         } catch (err: any) {
+            console.error('Error en conversión:', err);
             setError(err.message);
         } finally {
             setSaving(false);
