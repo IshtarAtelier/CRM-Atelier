@@ -565,7 +565,7 @@ export const ContactService = {
             });
 
             return payment;
-        }, { isolationLevel: 'Serializable' });
+        });
     },
 
     async deletePayment(paymentId: string) {
@@ -588,7 +588,7 @@ export const ContactService = {
             return await tx.payment.delete({
                 where: { id: paymentId }
             });
-        }, { isolationLevel: 'Serializable' });
+        });
     },
 
     async canCloseSale(clientId: string) {
