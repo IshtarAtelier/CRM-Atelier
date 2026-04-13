@@ -246,16 +246,37 @@ export default function VentasPage() {
     };
 
     const handleInvoiceRequest = async (order: Order) => {
+        const financials = PricingService.calculateOrderFinancials(order);
+        const maxInvoiceable = financials.paidReal;
+
+        if (maxInvoiceable <= 0) {
+            return alert('No hay pagos registrados para esta venta. No se puede solicitar factura.');
+        }
+
         if (isAdmin) {
-            setInvoiceOrder(order);
+            setInvoiceOrder({ ...order, customAmount: maxInvoiceable } as any);
         } else {
+            const amountStr = prompt(
+                `Monto a facturar para ${order.client.name}:\n(Pago total registrado hasta hoy: $${maxInvoiceable.toLocaleString('es-AR')})`, 
+                maxInvoiceable.toString()
+            );
+            
+            if (!amountStr) return;
+            
+            const amount = parseFloat(amountStr.replace(/\./g, '').replace(',', '.'));
+            
+            if (isNaN(amount)) return alert('Monto inválido');
+            if (amount > maxInvoiceable) {
+                return alert(`Error: No podés facturar más de lo que el cliente pagó ($${maxInvoiceable.toLocaleString('es-AR')}).`);
+            }
+
             try {
                 const res = await fetch('/api/notifications', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         type: 'INVOICE_REQUEST',
-                        message: `Solicitar factura para venta #${order.id.slice(-4).toUpperCase()} de ${order.client.name} por $${(order.total || 0).toLocaleString()}`,
+                        message: `Solicitar factura de $${amount.toLocaleString('es-AR')} (Pago total del cliente: $${maxInvoiceable.toLocaleString('es-AR')}) para venta #${order.id.slice(-4).toUpperCase()} (${order.client.name})`,
                         orderId: order.id,
                     }),
                 });
@@ -807,6 +828,7 @@ export default function VentasPage() {
             {invoiceOrder && (
                 <InvoiceModal
                     order={invoiceOrder}
+                    initialAmount={(invoiceOrder as any).customAmount}
                     onClose={() => setInvoiceOrder(null)}
                     onSuccess={() => fetchOrders()}
                 />

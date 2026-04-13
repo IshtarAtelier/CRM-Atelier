@@ -564,6 +564,27 @@ export const ContactService = {
                 }
             });
 
+            // AUTOMATED BILLING REQUEST for Card Platforms
+            const cardMethods = ['PAY_WAY', 'NARANJA', 'GO_CUOTAS'];
+            const isCardPlatform = cardMethods.some(m => method.toUpperCase().includes(m));
+            
+            if (isCardPlatform) {
+                const isIsh = method.toUpperCase().endsWith('_ISH');
+                const isYani = method.toUpperCase().endsWith('_YANI');
+                const accountLabel = isIsh ? '[ISH]' : isYani ? '[YANI]' : '';
+
+                const clientName = (await tx.client.findUnique({ where: { id: order.clientId }, select: { name: true } }))?.name || 'Cliente';
+                await tx.notification.create({
+                    data: {
+                        type: 'INVOICE_REQUEST',
+                        message: `${accountLabel} Facturar pago de $${amount.toLocaleString('es-AR')} (${method}) - Venta #${orderId.slice(-4).toUpperCase()} (${clientName})`,
+                        orderId: orderId,
+                        requestedBy: 'SISTEMA (Auto)',
+                        status: 'PENDING'
+                    }
+                });
+            }
+
             return payment;
         });
     },
@@ -673,5 +694,24 @@ export const ContactService = {
             include: { client: true },
             orderBy: { dueDate: 'asc' }
         });
+    },
+
+    async getOrdersWithBalance() {
+        // Obtenemos todas las órdenes de venta no eliminadas
+        const orders = await prisma.order.findMany({
+            where: {
+                orderType: 'SALE',
+                isDeleted: false,
+            },
+            include: {
+                client: true,
+            },
+            orderBy: {
+                createdAt: 'desc'
+            }
+        });
+
+        // Filtramos por saldo > 1000
+        return orders.filter(order => (order.total - order.paid) > 1000);
     }
 };

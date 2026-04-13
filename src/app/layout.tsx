@@ -22,6 +22,7 @@ export const metadata: Metadata = {
 
 import { Sidebar } from "@/components/Sidebar";
 import { GlobalTasks } from "@/components/GlobalTasks";
+import { GlobalBalanceReminders } from "@/components/GlobalBalanceReminders";
 import CommandPalette from "@/components/CommandPalette";
 
 export default async function RootLayout({
@@ -46,6 +47,7 @@ export default async function RootLayout({
             <Sidebar userName={userName} userRole={userRole} />
             <main className="flex-1 ml-0 lg:ml-64 min-h-screen relative flex flex-col pt-16 lg:pt-0">
               <GlobalTasks />
+              <GlobalBalanceReminders />
               <CommandPalette />
               <div className="flex-1 relative">
                 <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/5 via-background to-background -z-10" />

@@ -401,3 +401,16 @@ model MonthlyTarget {
 
   @@unique([month, year])
 }
+
+model FixedCost {
+  id          String   @id @default(cuid())
+  name        String                         // "Contadora", "Alquiler", etc.
+  amount      Float
+  category    String   @default("OTRO")      // CONTADORA, SUELDOS, LIMPIEZA, ALQUILER, SERVICIOS, IMPUESTOS, OTRO
+  month       Int                            // Mes (1-12)
+  year        Int                            // Año
+  notes       String?
+  createdAt   DateTime @default(now())
+
+  @@index([month, year])
+}

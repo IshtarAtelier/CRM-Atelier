@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { PLATFORM_COMMISSIONS, getCommissionRate } from '@/lib/constants';
+import { getCommissionRate, DOCTOR_COMMISSION_RATE } from '@/lib/constants';
 
 export const dynamic = 'force-dynamic';
 
@@ -43,14 +43,48 @@ export async function GET(request: Request) {
             orderBy: { createdAt: 'desc' },
         });
 
-        // ── Aggregate Data ──────────────────────────
+        // ── Fetch Fixed Costs for the period ──────────
+        let fixedCostsWhere: any = {};
+        if (from || to) {
+            // Build month/year filter from the date range
+            const fromDate = from ? new Date(from) : null;
+            const toDate = to ? new Date(to) : null;
 
-        let totalRevenue = 0;
+            if (fromDate && toDate) {
+                // Get all months in range
+                const monthYearPairs: { month: number; year: number }[] = [];
+                const current = new Date(fromDate.getFullYear(), fromDate.getMonth(), 1);
+                const end = new Date(toDate.getFullYear(), toDate.getMonth(), 1);
+                while (current <= end) {
+                    monthYearPairs.push({ month: current.getMonth() + 1, year: current.getFullYear() });
+                    current.setMonth(current.getMonth() + 1);
+                }
+                fixedCostsWhere = {
+                    OR: monthYearPairs.map(p => ({ month: p.month, year: p.year }))
+                };
+            } else if (fromDate) {
+                fixedCostsWhere = { year: { gte: fromDate.getFullYear() } };
+            }
+        }
+
+        const fixedCosts = await prisma.fixedCost.findMany({
+            where: fixedCostsWhere,
+            orderBy: { createdAt: 'desc' },
+        });
+
+        const totalFixedCosts = fixedCosts.reduce((sum: number, fc: any) => sum + (fc.amount || 0), 0);
+
+        // ── Aggregate Data ──────────────────────────
+        // Revenue = sum of actual payments (what entered the business)
+        // Cash/Transfer: enters at discounted value → that's the revenue
+        // Card: enters at full value → revenue is full, then platform fee is deducted
+
+        let totalRevenue = 0;     // Sum of payment.amount (real money in)
         let totalCostFrames = 0;
         let totalCostLenses = 0;
         let totalCostOther = 0;
         let totalPlatformFees = 0;
-        let totalPaid = 0;
+        let totalDoctorFees = 0;
         let totalPending = 0;
         let totalMarkup = 0;
 
@@ -64,9 +98,13 @@ export async function GET(request: Request) {
         const monthNames = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
 
         for (const order of orders) {
-            totalRevenue += order.total || 0;
-            totalPaid += order.paid || 0;
-            totalPending += Math.max(0, (order.total || 0) - (order.paid || 0));
+            // ── Revenue = sum of actual payments received ──
+            const orderPaidReal = order.payments.reduce((sum: number, p: any) => sum + (p.amount || 0), 0);
+            totalRevenue += orderPaidReal;
+
+            // Pending = list price minus paid (using subtotalWithMarkup as reference for balance)
+            const listPrice = (order as any).subtotalWithMarkup || order.total || 0;
+            totalPending += Math.max(0, listPrice - orderPaidReal);
 
             // Markup profit: difference between subtotalWithMarkup and item subtotals
             if ((order as any).subtotalWithMarkup > 0) {
@@ -74,24 +112,24 @@ export async function GET(request: Request) {
                 totalMarkup += ((order as any).subtotalWithMarkup || 0) - itemSubtotal;
             }
 
-            // Client stats
+            // Client stats (based on real paid)
             const cId = order.clientId;
             if (!clientStats[cId]) clientStats[cId] = { name: order.client.name, total: 0, orders: 0 };
-            clientStats[cId].total += order.total || 0;
+            clientStats[cId].total += orderPaidReal;
             clientStats[cId].orders += 1;
 
-            // Vendor stats
+            // Vendor stats (based on real paid)
             const vId = order.userId;
             const vName = (order as any).user?.name || 'Sin asignar';
             if (!vendorStats[vId]) vendorStats[vId] = { name: vName, revenue: 0, orders: 0, avgTicket: 0 };
-            vendorStats[vId].revenue += order.total || 0;
+            vendorStats[vId].revenue += orderPaidReal;
             vendorStats[vId].orders += 1;
 
             // Monthly stats
             const date = new Date(order.createdAt);
             const monthKey = `${monthNames[date.getMonth()]} ${date.getFullYear()}`;
             if (!monthlyStats[monthKey]) monthlyStats[monthKey] = { revenue: 0, cost: 0, profit: 0, orders: 0 };
-            monthlyStats[monthKey].revenue += order.total || 0;
+            monthlyStats[monthKey].revenue += orderPaidReal;
             monthlyStats[monthKey].orders += 1;
 
             // Item costs
@@ -141,7 +179,9 @@ export async function GET(request: Request) {
                 }
             }
 
-            // Payment method stats & platform fees
+            // ── Payment method stats & platform fees ──
+            // Fees are only real for card payments; cash/transfer have 0 commission
+            let orderPlatformFee = 0;
             for (const payment of order.payments) {
                 const method = payment.method || 'CASH';
                 if (!paymentMethodStats[method]) paymentMethodStats[method] = { total: 0, count: 0, commission: 0 };
@@ -152,6 +192,15 @@ export async function GET(request: Request) {
                 const commission = payment.amount * commissionRate;
                 paymentMethodStats[method].commission += commission;
                 totalPlatformFees += commission;
+                orderPlatformFee += commission;
+            }
+
+            // ── Doctor fees (if this order's client has a referring doctor) ──
+            const doctorName = (order.client as any).doctor;
+            if (doctorName) {
+                const doctorNet = orderPaidReal - orderPlatformFee;
+                const doctorFee = Math.max(0, doctorNet * DOCTOR_COMMISSION_RATE);
+                totalDoctorFees += doctorFee;
             }
 
             // Update monthly profit
@@ -159,7 +208,8 @@ export async function GET(request: Request) {
         }
 
         const totalCosts = totalCostFrames + totalCostLenses + totalCostOther;
-        const netProfit = totalRevenue - totalCosts - totalPlatformFees;
+        // Net Profit = Real Income - Product Costs - Platform Fees - Doctor Fees - Fixed Costs
+        const netProfit = totalRevenue - totalCosts - totalPlatformFees - totalDoctorFees - totalFixedCosts;
         const profitMargin = totalRevenue > 0 ? (netProfit / totalRevenue) * 100 : 0;
 
         return NextResponse.json({
@@ -170,13 +220,16 @@ export async function GET(request: Request) {
                 totalCostLenses,
                 totalCostOther,
                 totalPlatformFees,
+                totalDoctorFees,
+                totalFixedCosts,
                 netProfit,
                 profitMargin,
-                totalPaid,
+                totalPaid: totalRevenue, // In this model, revenue IS what was paid
                 totalPending,
                 totalMarkup,
                 ordersCount: orders.length,
             },
+            fixedCosts,
             topClients: Object.values(clientStats)
                 .sort((a, b) => b.total - a.total)
                 .slice(0, 10),

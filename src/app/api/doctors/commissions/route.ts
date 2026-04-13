@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { PLATFORM_COMMISSIONS, DOCTOR_COMMISSION_RATE } from '@/lib/constants';
 
-
 export async function GET(request: Request) {
     try {
         const { searchParams } = new URL(request.url);
@@ -47,6 +46,8 @@ export async function GET(request: Request) {
         });
 
         // 3. Calculate commissions per operation
+        // Doctor commission = 15% of (Paid Real - Platform Fees)
+        // This is simple and based on actual money received
         const operations: any[] = [];
         let totalCommission = 0;
 
@@ -62,10 +63,11 @@ export async function GET(request: Request) {
                 orderPaidTotal += payment.amount;
             }
 
-            // Net amount = total - platform fee
-            const netAmount = (order.total || 0) - orderPlatformFee;
-            // Doctor commission = 15% of net
-            const commission = netAmount * DOCTOR_COMMISSION_RATE;
+            // Net amount = what actually entered minus platform takes
+            const netAmount = orderPaidTotal - orderPlatformFee;
+            
+            // Doctor commission = 15% of net income
+            const commission = Math.max(0, netAmount * DOCTOR_COMMISSION_RATE);
 
             totalCommission += commission;
 
@@ -74,6 +76,7 @@ export async function GET(request: Request) {
                 clientName: clientMap[order.clientId] || 'Desconocido',
                 clientId: order.clientId,
                 orderTotal: order.total || 0,
+                paidTotal: orderPaidTotal,
                 platformFee: orderPlatformFee,
                 netAmount,
                 commission,

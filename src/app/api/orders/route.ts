@@ -69,7 +69,7 @@ export async function POST(request: Request) {
             );
 
             finalSubtotalWithMarkup = totals.subtotalWithMarkup;
-            finalTotal = totals.totalCash;
+            finalTotal = totals.totalCash; // Reports use sum of payments, this is for balance display only
             finalDiscount = discountCash || 0;
             
             // Auto-detect frame source if frames are in cart

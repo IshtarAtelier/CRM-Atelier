@@ -433,8 +433,8 @@ export default function InventarioPage() {
                                     <button onClick={() => toggleSelect(p.id)} className="text-stone-300 hover:text-primary">
                                         {isSelected ? <CheckSquare className="w-4 h-4 text-primary" /> : <Square className="w-4 h-4" />}
                                     </button>
-                                    <div className="min-w-0">
-                                        <p className="font-black text-sm text-stone-800 dark:text-stone-100 truncate">{(p.brand || p.model) ? [p.brand, p.model].filter(Boolean).join(' · ') : (p.name || p.type || 'Sin nombre')}</p>
+                                    <div className="min-w-0 py-1">
+                                        <p className="font-black text-sm text-stone-800 dark:text-stone-100 italic tracking-tight">{(p.brand || p.model) ? [p.brand, p.model].filter(Boolean).join(' · ') : (p.name || p.type || 'Sin nombre')}</p>
                                         <span className={`text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-full mt-0.5 inline-block ${isCristal ? 'bg-violet-100 text-violet-600' : 'bg-stone-100 text-stone-400'}`}>
                                             {isCristal ? '🔬 Cristal' : p.category || p.type}
                                         </span>
@@ -471,7 +471,7 @@ export default function InventarioPage() {
                                     </button>
                                     <div className="flex-1 min-w-0">
                                         <div className="flex justify-between items-start gap-2">
-                                            <p className="font-black text-sm text-stone-800 dark:text-stone-100 line-clamp-2">
+                                            <p className="font-black text-sm text-stone-800 dark:text-stone-100 line-clamp-none">
                                                 {(p.brand || p.model) ? [p.brand, p.model].filter(Boolean).join(' · ') : (p.name || p.type || 'Sin nombre')}
                                             </p>
                                             <p className="text-sm font-black text-stone-900 dark:text-white shrink-0">${p.price?.toLocaleString()}</p>

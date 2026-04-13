@@ -54,3 +54,30 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: error.message }, { status: 500 });
     }
 }
+
+// PATCH /api/notifications — Resolve a request
+export async function PATCH(request: Request) {
+    try {
+        const headersList = await headers();
+        const userName = headersList.get('x-user-name') || 'Admin';
+        const body = await request.json();
+        const { id, status } = body;
+
+        if (!id || !status) {
+            return NextResponse.json({ error: 'id y status son requeridos' }, { status: 400 });
+        }
+
+        const updated = await prisma.notification.update({
+            where: { id },
+            data: {
+                status,
+                resolvedBy: userName,
+            },
+        });
+
+        return NextResponse.json(updated);
+    } catch (error: any) {
+        console.error('Error updating notification:', error);
+        return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+}

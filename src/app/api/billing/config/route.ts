@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { headers } from 'next/headers';
 import { BillingService } from '@/services/billing.service';
 import { getAllBillingAccounts, BillingAccount } from '@/lib/afip';
 
@@ -9,6 +10,13 @@ export const dynamic = 'force-dynamic';
  */
 export async function GET() {
     try {
+        const headersList = await headers();
+        const role = headersList.get('x-user-role') || 'STAFF';
+
+        if (role !== 'ADMIN') {
+            return NextResponse.json({ error: 'Acceso restringido' }, { status: 403 });
+        }
+
         const accounts = getAllBillingAccounts();
         const results = await Promise.all(
             Object.keys(accounts).map(async (accKey) => {

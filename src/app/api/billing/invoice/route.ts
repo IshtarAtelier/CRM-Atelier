@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { headers } from 'next/headers';
 import { BillingService } from '@/services/billing.service';
 
 /**
@@ -7,8 +8,15 @@ import { BillingService } from '@/services/billing.service';
  */
 export async function POST(request: Request) {
     try {
+        const headersList = await headers();
+        const role = headersList.get('x-user-role') || 'STAFF';
+
+        if (role !== 'ADMIN') {
+            return NextResponse.json({ error: 'Solo el administrador puede emitir facturas electrónicas.' }, { status: 403 });
+        }
+
         const body = await request.json();
-        const { orderId, account, docTipo, docNro, puntoDeVenta } = body;
+        const { orderId, account, docTipo, docNro, puntoDeVenta, items, amount } = body;
 
         if (!orderId) {
             return NextResponse.json({ error: 'orderId es requerido' }, { status: 400 });
@@ -20,6 +28,8 @@ export async function POST(request: Request) {
             docTipo: docTipo || 99,
             docNro: docNro || '0',
             puntoDeVenta,
+            items,
+            amount
         });
 
         return NextResponse.json(invoice);

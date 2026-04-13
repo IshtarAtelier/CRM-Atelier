@@ -4,13 +4,24 @@ import { useState, useEffect } from 'react';
 import {
     FileText, TrendingUp, DollarSign, ShoppingBag, Users, Package,
     Calendar, ArrowDown, ArrowUp, Minus, Loader2, CreditCard, Banknote,
-    PieChart, BarChart3, Printer, RefreshCw, ChevronDown, Award, FlaskConical
+    PieChart, BarChart3, Printer, RefreshCw, ChevronDown, Award, FlaskConical,
+    Plus, Trash2, Building2, Receipt
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import DoctorCommissions from '@/components/DoctorCommissions';
 
 // ── Types ─────────────────────────────────────
+
+interface FixedCost {
+    id: string;
+    name: string;
+    amount: number;
+    category: string;
+    month: number;
+    year: number;
+    notes?: string;
+}
 
 interface ReportData {
     summary: {
@@ -20,12 +31,15 @@ interface ReportData {
         totalCostLenses: number;
         totalCostOther: number;
         totalPlatformFees: number;
+        totalDoctorFees: number;
+        totalFixedCosts: number;
         netProfit: number;
         profitMargin: number;
         totalPaid: number;
         totalPending: number;
         ordersCount: number;
     };
+    fixedCosts: FixedCost[];
     topClients: { name: string; total: number; orders: number }[];
     topProducts: { name: string; type: string; qty: number; revenue: number; cost: number }[];
     vendorStats: { name: string; revenue: number; orders: number; avgTicket: number }[];
@@ -33,6 +47,16 @@ interface ReportData {
     paymentMethods: { method: string; total: number; count: number; commission: number }[];
     labStats: { laboratory: string; revenue: number; cost: number; profit: number; ordersCount: number }[];
 }
+
+const FIXED_COST_CATEGORIES = [
+    { id: 'CONTADORA', label: 'Contadora' },
+    { id: 'SUELDOS', label: 'Sueldos' },
+    { id: 'LIMPIEZA', label: 'Limpieza' },
+    { id: 'ALQUILER', label: 'Alquiler' },
+    { id: 'SERVICIOS', label: 'Servicios' },
+    { id: 'IMPUESTOS', label: 'Impuestos' },
+    { id: 'OTRO', label: 'Otro' },
+];
 
 const METHOD_LABELS: Record<string, string> = {
     CASH: 'Efectivo',
@@ -227,16 +251,16 @@ export default function ReportesPage() {
                 <>
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
                         <KPICard
-                            title="Facturación Total"
+                            title="Ingreso Real"
                             value={`$${(s?.totalRevenue ?? 0).toLocaleString()}`}
-                            sub={`${s.ordersCount} operaciones`}
+                            sub={`${s.ordersCount} operaciones · $${(s?.totalPending ?? 0).toLocaleString()} pendiente`}
                             icon={DollarSign}
                             color="stone"
                         />
                         <KPICard
-                            title="Costos Totales"
-                            value={`$${(s?.totalCosts ?? 0).toLocaleString()}`}
-                            sub={`+ $${(s?.totalPlatformFees ?? 0).toLocaleString()} comisiones`}
+                            title="Deducciones"
+                            value={`$${((s?.totalCosts ?? 0) + (s?.totalPlatformFees ?? 0) + (s?.totalDoctorFees ?? 0) + (s?.totalFixedCosts ?? 0)).toLocaleString()}`}
+                            sub={`CMV $${(s?.totalCosts ?? 0).toLocaleString()} · Plataforma $${(s?.totalPlatformFees ?? 0).toLocaleString()} · Médicos $${(s?.totalDoctorFees ?? 0).toLocaleString()} · Fijos $${(s?.totalFixedCosts ?? 0).toLocaleString()}`}
                             icon={ArrowDown}
                             color="red"
                         />
@@ -292,6 +316,20 @@ export default function ReportesPage() {
                                     color="bg-purple-500"
                                     tooltip="3 cuotas: 10% · 6 cuotas / Plan Z: 20%"
                                 />
+                                <CostRow
+                                    label="Comisiones Médicos"
+                                    value={s.totalDoctorFees}
+                                    total={s.totalRevenue}
+                                    color="bg-pink-500"
+                                    tooltip="15% del ingreso neto"
+                                />
+                                <CostRow
+                                    label="Gastos Fijos"
+                                    value={s.totalFixedCosts}
+                                    total={s.totalRevenue}
+                                    color="bg-orange-500"
+                                    tooltip="Alquiler, sueldos, contadora, etc."
+                                />
 
                                 <div className="border-t-2 border-stone-100 dark:border-stone-700 pt-4 mt-4">
                                     <div className="flex justify-between items-center">
@@ -316,8 +354,10 @@ export default function ReportesPage() {
                                         {[
                                             { color: 'bg-amber-500', label: 'Armazones' },
                                             { color: 'bg-blue-500', label: 'Cristales' },
-                                            { color: 'bg-stone-400', label: 'Otros' },
-                                            { color: 'bg-purple-500', label: 'Comisiones' },
+                                            { color: 'bg-stone-400', label: 'Otros CMV' },
+                                            { color: 'bg-purple-500', label: 'Plataforma' },
+                                            { color: 'bg-pink-500', label: 'Médicos' },
+                                            { color: 'bg-orange-500', label: 'G. Fijos' },
                                             { color: 'bg-emerald-500', label: 'Ganancia' },
                                         ].map(l => (
                                             <div key={l.label} className="flex items-center gap-1.5">
@@ -554,6 +594,12 @@ export default function ReportesPage() {
                         </div>
                     </div>
 
+                    {/* Fixed Costs Section */}
+                    <FixedCostsSection
+                        fixedCosts={data?.fixedCosts || []}
+                        onRefresh={() => fetchReport(dateFrom || undefined, dateTo || undefined)}
+                    />
+
                     {/* Doctor Commissions */}
                     <DoctorCommissions />
 
@@ -665,6 +711,191 @@ function EmptySection({ message }: { message: string }) {
         <div className="text-center py-10 text-stone-300 dark:text-stone-600">
             <Minus className="w-8 h-8 mx-auto mb-2" />
             <p className="text-xs font-black uppercase tracking-widest">{message}</p>
+        </div>
+    );
+}
+
+function FixedCostsSection({ fixedCosts, onRefresh }: { fixedCosts: FixedCost[]; onRefresh: () => void }) {
+    const [showForm, setShowForm] = useState(false);
+    const [loading, setLoading] = useState(false);
+    const [form, setForm] = useState({
+        name: '',
+        amount: '',
+        category: 'OTRO',
+        month: new Date().getMonth() + 1,
+        year: new Date().getFullYear(),
+        notes: '',
+    });
+
+    const handleAdd = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!form.name || !form.amount) return;
+        setLoading(true);
+        try {
+            const res = await fetch('/api/fixed-costs', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    ...form,
+                    amount: Number(form.amount),
+                }),
+            });
+            if (res.ok) {
+                setForm({ name: '', amount: '', category: 'OTRO', month: new Date().getMonth() + 1, year: new Date().getFullYear(), notes: '' });
+                setShowForm(false);
+                onRefresh();
+            }
+        } catch (err) {
+            console.error('Error adding fixed cost:', err);
+        }
+        setLoading(false);
+    };
+
+    const handleDelete = async (id: string) => {
+        if (!confirm('¿Eliminar este gasto fijo?')) return;
+        try {
+            await fetch(`/api/fixed-costs/${id}`, { method: 'DELETE' });
+            onRefresh();
+        } catch (err) {
+            console.error('Error deleting fixed cost:', err);
+        }
+    };
+
+    const total = fixedCosts.reduce((s, fc) => s + fc.amount, 0);
+    const monthNames = ["", "Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
+
+    return (
+        <div className="bg-white dark:bg-stone-800 border-2 border-stone-100 dark:border-stone-700 rounded-2xl p-6 mt-8">
+            <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-2">
+                    <Building2 className="w-5 h-5 text-orange-500" />
+                    <h2 className="text-xs font-black uppercase tracking-widest text-stone-400">Gastos Fijos del Período</h2>
+                </div>
+                <div className="flex items-center gap-3">
+                    <span className="text-sm font-black text-orange-500">Total: ${total.toLocaleString()}</span>
+                    <button
+                        onClick={() => setShowForm(!showForm)}
+                        className="p-2 bg-orange-500 text-white rounded-xl hover:bg-orange-600 transition-all hover:scale-105"
+                    >
+                        <Plus className="w-4 h-4" />
+                    </button>
+                </div>
+            </div>
+
+            {/* Add Form */}
+            {showForm && (
+                <form onSubmit={handleAdd} className="mb-6 p-5 bg-stone-50 dark:bg-stone-900 rounded-2xl border border-stone-100 dark:border-stone-700 animate-in slide-in-from-top-2 duration-300">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                        <div className="space-y-1">
+                            <label className="text-[9px] font-black text-stone-400 uppercase tracking-widest">Nombre *</label>
+                            <input
+                                type="text"
+                                value={form.name}
+                                onChange={e => setForm({ ...form, name: e.target.value })}
+                                placeholder="Ej: Alquiler"
+                                className="w-full px-3 py-2.5 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-600 rounded-xl text-sm font-bold text-stone-800 dark:text-white outline-none focus:ring-2 focus:ring-orange-500/20"
+                                required
+                            />
+                        </div>
+                        <div className="space-y-1">
+                            <label className="text-[9px] font-black text-stone-400 uppercase tracking-widest">Monto *</label>
+                            <input
+                                type="number"
+                                value={form.amount}
+                                onChange={e => setForm({ ...form, amount: e.target.value })}
+                                placeholder="0"
+                                className="w-full px-3 py-2.5 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-600 rounded-xl text-sm font-bold text-stone-800 dark:text-white outline-none focus:ring-2 focus:ring-orange-500/20"
+                                required
+                            />
+                        </div>
+                        <div className="space-y-1">
+                            <label className="text-[9px] font-black text-stone-400 uppercase tracking-widest">Categoría</label>
+                            <select
+                                value={form.category}
+                                onChange={e => setForm({ ...form, category: e.target.value })}
+                                className="w-full px-3 py-2.5 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-600 rounded-xl text-sm font-bold text-stone-800 dark:text-white outline-none focus:ring-2 focus:ring-orange-500/20"
+                            >
+                                {FIXED_COST_CATEGORIES.map(c => (
+                                    <option key={c.id} value={c.id}>{c.label}</option>
+                                ))}
+                            </select>
+                        </div>
+                        <div className="space-y-1">
+                            <label className="text-[9px] font-black text-stone-400 uppercase tracking-widest">Mes / Año</label>
+                            <div className="flex gap-2">
+                                <select
+                                    value={form.month}
+                                    onChange={e => setForm({ ...form, month: Number(e.target.value) })}
+                                    className="flex-1 px-2 py-2.5 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-600 rounded-xl text-sm font-bold text-stone-800 dark:text-white outline-none"
+                                >
+                                    {monthNames.slice(1).map((m, i) => (
+                                        <option key={i+1} value={i+1}>{m}</option>
+                                    ))}
+                                </select>
+                                <input
+                                    type="number"
+                                    value={form.year}
+                                    onChange={e => setForm({ ...form, year: Number(e.target.value) })}
+                                    className="w-20 px-2 py-2.5 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-600 rounded-xl text-sm font-bold text-stone-800 dark:text-white outline-none"
+                                />
+                            </div>
+                        </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                        <input
+                            type="text"
+                            value={form.notes}
+                            onChange={e => setForm({ ...form, notes: e.target.value })}
+                            placeholder="Notas (opcional)"
+                            className="flex-1 px-3 py-2.5 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-600 rounded-xl text-sm font-bold text-stone-800 dark:text-white outline-none"
+                        />
+                        <button
+                            type="submit"
+                            disabled={loading}
+                            className="px-5 py-2.5 bg-orange-500 text-white rounded-xl text-xs font-black uppercase tracking-widest hover:bg-orange-600 transition-all disabled:opacity-50"
+                        >
+                            {loading ? 'Guardando...' : 'Agregar'}
+                        </button>
+                    </div>
+                </form>
+            )}
+
+            {/* List */}
+            {fixedCosts.length > 0 ? (
+                <div className="space-y-2">
+                    {fixedCosts.map(fc => (
+                        <div key={fc.id} className="flex items-center justify-between p-4 bg-stone-50 dark:bg-stone-900 rounded-xl hover:bg-stone-100 dark:hover:bg-stone-800 transition-all group">
+                            <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 bg-orange-100 dark:bg-orange-950 rounded-lg flex items-center justify-center">
+                                    <Receipt className="w-4 h-4 text-orange-500" />
+                                </div>
+                                <div>
+                                    <p className="text-sm font-black text-stone-800 dark:text-white">{fc.name}</p>
+                                    <p className="text-[9px] text-stone-400 font-bold uppercase tracking-widest">
+                                        {FIXED_COST_CATEGORIES.find(c => c.id === fc.category)?.label || fc.category} · {monthNames[fc.month]} {fc.year}
+                                        {fc.notes ? ` · ${fc.notes}` : ''}
+                                    </p>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-3">
+                                <span className="text-sm font-black text-orange-500">${fc.amount.toLocaleString()}</span>
+                                <button
+                                    onClick={() => handleDelete(fc.id)}
+                                    className="p-1.5 text-stone-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"
+                                >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            ) : (
+                <div className="text-center py-8 text-stone-300 dark:text-stone-600">
+                    <Building2 className="w-8 h-8 mx-auto mb-2" />
+                    <p className="text-xs font-black uppercase tracking-widest">Sin gastos fijos cargados</p>
+                    <p className="text-[9px] text-stone-400 mt-1">Agregá contadora, alquiler, sueldos, etc.</p>
+                </div>
+            )}
         </div>
     );
 }
