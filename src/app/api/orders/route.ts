@@ -207,6 +207,22 @@ export async function GET(request: Request) {
             payments: { select: { id: true, amount: true, method: true, date: true, notes: true } },
             invoices: { select: { id: true, cae: true, voucherNumber: true, pointOfSale: true, totalAmount: true, status: true, billingAccount: true } },
             prescription: { select: { id: true, sphereOD: true, sphereOI: true, cylinderOD: true, cylinderOI: true, axisOD: true, axisOI: true, additionOD: true, additionOI: true, distanceOD: true, distanceOI: true, heightOD: true, heightOI: true, pd: true, addition: true } },
+            // Lab fields
+            labOrderNumber: true,
+            labNotes: true,
+            labStatus: true,
+            labSentAt: true,
+            labColor: true,
+            labTreatment: true,
+            labDiameter: true,
+            labPdOd: true,
+            labPdOi: true,
+            labPrismOD: true,
+            labPrismOI: true,
+            labBaseCurve: true,
+            labFrameType: true,
+            labBevelPosition: true,
+            smartLabScreenshot: true,
         };
         const orderBy: any = { createdAt: 'desc' };
 

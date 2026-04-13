@@ -115,6 +115,22 @@ export async function GET(
                 },
                 prescription: true,
                 payments: true,
+                // Lab fields
+                labOrderNumber: true,
+                labNotes: true,
+                labStatus: true,
+                labSentAt: true,
+                labColor: true,
+                labTreatment: true,
+                labDiameter: true,
+                labPdOd: true,
+                labPdOi: true,
+                labPrismOD: true,
+                labPrismOI: true,
+                labBaseCurve: true,
+                labFrameType: true,
+                labBevelPosition: true,
+                smartLabScreenshot: true,
             }
         });
 

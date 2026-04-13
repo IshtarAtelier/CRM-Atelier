@@ -637,7 +637,7 @@ export default function VentasPage() {
 
                                 {/* Lab Order Number & Actions */}
                                 <div className="flex flex-col lg:flex-row items-center gap-4 mt-4 pt-4 border-t border-stone-100 dark:border-stone-700">
-                                    <div className="w-full lg:w-48">
+                                    <div className="w-full lg:w-72">
                                         {editingOrderNumber === order.id ? (
                                             <div className="flex items-center gap-2">
                                                 <input
