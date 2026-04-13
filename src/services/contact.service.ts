@@ -356,6 +356,12 @@ export const ContactService = {
         return updatedTask;
     },
 
+    async deleteTask(taskId: string) {
+        return await prisma.clientTask.delete({
+            where: { id: taskId }
+        });
+    },
+
     async getPrescriptions(clientId: string) {
         return await prisma.prescription.findMany({
             where: { clientId },
@@ -697,21 +703,59 @@ export const ContactService = {
     },
 
     async getOrdersWithBalance() {
-        // Obtenemos todas las órdenes de venta no eliminadas
-        const orders = await prisma.order.findMany({
+        // Obtenemos clientes que tienen al menos una venta (SALE) no eliminada
+        const clients = await prisma.client.findMany({
             where: {
-                orderType: 'SALE',
-                isDeleted: false,
+                orders: {
+                    some: {
+                        orderType: 'SALE',
+                        isDeleted: false
+                    }
+                }
             },
             include: {
-                client: true,
-            },
-            orderBy: {
-                createdAt: 'desc'
+                orders: {
+                    where: { isDeleted: false },
+                    include: { payments: true }
+                }
             }
         });
 
-        // Filtramos por saldo > 1000
-        return orders.filter(order => (order.total - order.paid) > 1000);
+        // Calculamos el saldo global por cliente
+        return clients.map(client => {
+            let totalSales = 0;
+            let totalPaid = 0;
+            let lastOrderDate = new Date(0);
+
+            client.orders.forEach(order => {
+                // Sumamos los totales solo de las VENTAS
+                if (order.orderType === 'SALE') {
+                    totalSales += Number(order.total);
+                    const orderDate = new Date(order.createdAt);
+                    if (orderDate > lastOrderDate) {
+                        lastOrderDate = orderDate;
+                    }
+                }
+                
+                // Sumamos TODOS los pagos (vengan de presupuestos o ventas)
+                order.payments.forEach(p => {
+                    totalPaid += Number(p.amount);
+                });
+            });
+
+            const balance = totalSales - totalPaid;
+
+            return {
+                id: client.id, 
+                clientId: client.id,
+                client: { name: client.name },
+                total: totalSales,
+                paid: totalPaid,
+                balance,
+                createdAt: lastOrderDate.getTime() > 0 ? lastOrderDate : new Date()
+            };
+        })
+        .filter(c => c.balance > 1000)
+        .sort((a, b) => b.balance - a.balance);
     }
 };

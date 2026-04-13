@@ -201,7 +201,7 @@ export default function InventarioPage() {
     };
 
     return (
-        <div className="p-4 lg:p-6 max-w-6xl mx-auto space-y-6 animate-in fade-in duration-500 pb-20">
+        <div className="p-4 lg:p-6 max-w-[1600px] mx-auto space-y-6 animate-in fade-in duration-500 pb-20">
 
             {/* Import Result Toast */}
             {importResult && (
@@ -404,21 +404,32 @@ export default function InventarioPage() {
                 {/* Table view (Desktop only) */}
                 <div className="hidden lg:block overflow-x-auto">
                     {/* Table header */}
-                    <div className={`grid ${isAdmin ? 'grid-cols-[auto_3fr_1fr_auto_1fr_1fr_1fr_auto]' : 'grid-cols-[auto_3fr_1fr_auto_1fr_1fr_auto]'} gap-4 px-6 py-3 bg-stone-50 dark:bg-stone-800/50 border-b border-stone-100 dark:border-stone-800 items-center`}>
+                    <div className={`grid ${isAdmin ? 'grid-cols-[40px_4fr_1.5fr_1fr_1.5fr_1.2fr_1.2fr_80px]' : 'grid-cols-[40px_4fr_1.5fr_1fr_1.5fr_1.2fr_80px]'} gap-4 px-6 py-3 bg-stone-50 dark:bg-stone-800/50 border-b border-stone-100 dark:border-stone-800 items-center`}>
                         {/* Select all checkbox */}
-                        <button
-                            onClick={toggleSelectAll}
-                            className="text-stone-400 hover:text-primary transition-colors"
-                        >
-                            {products.length > 0 && selectedIds.size === products.length ? (
-                                <CheckSquare className="w-4 h-4 text-primary" />
-                            ) : (
-                                <Square className="w-4 h-4" />
-                            )}
-                        </button>
-                        {(isAdmin ? ['Producto', 'Tipo', 'Índice', 'Stock', 'Costo', 'Precio', ''] : ['Producto', 'Tipo', 'Índice', 'Stock', 'Precio', '']).map((h, i, arr) => (
-                            <span key={i} className={`text-[9px] font-black text-stone-400 uppercase tracking-widest ${h === 'Precio' ? 'text-right' : ''}`}>{h}</span>
-                        ))}
+                        <div className="flex justify-center">
+                            <button
+                                onClick={toggleSelectAll}
+                                className="text-stone-400 hover:text-primary transition-colors"
+                            >
+                                {products.length > 0 && selectedIds.size === products.length ? (
+                                    <CheckSquare className="w-4 h-4 text-primary" />
+                                ) : (
+                                    <Square className="w-4 h-4" />
+                                )}
+                            </button>
+                        </div>
+                        {(isAdmin ? ['Producto', 'Tipo', 'Índice', 'Stock', 'Costo', 'Precio', ''] : ['Producto', 'Tipo', 'Índice', 'Stock', 'Precio', '']).map((h, i) => {
+                            const isNumeric = ['Stock', 'Costo', 'Precio'].includes(h);
+                            const isCentered = ['Tipo', 'Índice'].includes(h);
+                            return (
+                                <div 
+                                    key={i} 
+                                    className={`text-[9px] font-black text-stone-400 uppercase tracking-widest ${isNumeric ? 'text-right pr-4' : isCentered ? 'text-center' : ''}`}
+                                >
+                                    {h}
+                                </div>
+                            );
+                        })}
                     </div>
 
                     <div className="divide-y divide-stone-50 dark:divide-stone-800">
@@ -428,22 +439,24 @@ export default function InventarioPage() {
                             return (
                                 <div
                                     key={p.id}
-                                    className={`grid ${isAdmin ? 'grid-cols-[auto_3fr_1fr_auto_1fr_1fr_1fr_auto]' : 'grid-cols-[auto_3fr_1fr_auto_1fr_1fr_auto]'} gap-4 px-6 py-4 items-center hover:bg-stone-50/70 dark:hover:bg-stone-800/30 transition-colors group ${isSelected ? 'bg-primary/5' : ''}`}
+                                    className={`grid ${isAdmin ? 'grid-cols-[40px_4fr_1.5fr_1fr_1.5fr_1.2fr_1.2fr_80px]' : 'grid-cols-[40px_4fr_1.5fr_1fr_1.5fr_1.2fr_80px]'} gap-4 px-6 py-4 items-center hover:bg-stone-50/70 dark:hover:bg-stone-800/30 transition-colors group ${isSelected ? 'bg-primary/5' : ''}`}
                                 >
-                                    <button onClick={() => toggleSelect(p.id)} className="text-stone-300 hover:text-primary">
-                                        {isSelected ? <CheckSquare className="w-4 h-4 text-primary" /> : <Square className="w-4 h-4" />}
-                                    </button>
+                                    <div className="flex justify-center">
+                                        <button onClick={() => toggleSelect(p.id)} className="text-stone-300 hover:text-primary">
+                                            {isSelected ? <CheckSquare className="w-4 h-4 text-primary" /> : <Square className="w-4 h-4" />}
+                                        </button>
+                                    </div>
                                     <div className="min-w-0 py-1">
                                         <p className="font-black text-sm text-stone-800 dark:text-stone-100 italic tracking-tight">{(p.brand || p.model) ? [p.brand, p.model].filter(Boolean).join(' · ') : (p.name || p.type || 'Sin nombre')}</p>
                                         <span className={`text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-full mt-0.5 inline-block ${isCristal ? 'bg-violet-100 text-violet-600' : 'bg-stone-100 text-stone-400'}`}>
                                             {isCristal ? '🔬 Cristal' : p.category || p.type}
                                         </span>
                                     </div>
-                                    <div><span className="text-[9px] font-black uppercase bg-stone-100 px-2 py-1 rounded-lg">{p.type || '-'}</span></div>
-                                    <div>{p.lensIndex ? <span className="text-[9px] font-black bg-primary/10 text-primary px-2 py-1 rounded-lg">{p.lensIndex}</span> : '-'}</div>
-                                    <div>{isCristal ? <span className="text-[9px] font-black text-violet-600">{p.laboratory || 'Lab'}</span> : <span className={`text-sm font-black ${p.stock <= 2 ? 'text-red-500' : ''}`}>{p.stock}</span>}</div>
-                                    {isAdmin && <div><span className="text-sm font-bold text-stone-400">${p.cost?.toLocaleString()}</span></div>}
-                                    <div className="text-right"><span className="text-sm font-black text-stone-800 dark:text-white">${p.price?.toLocaleString()}</span></div>
+                                    <div className="flex justify-center"><span className="text-[9px] font-black uppercase bg-stone-100 dark:bg-stone-800 px-2.5 py-1 rounded-lg text-stone-600 dark:text-stone-400 whitespace-nowrap">{p.type || '-'}</span></div>
+                                    <div className="flex justify-center">{p.lensIndex ? <span className="text-[9px] font-black bg-primary/10 text-primary px-2.5 py-1 rounded-lg">{p.lensIndex}</span> : <span className="text-stone-300">-</span>}</div>
+                                    <div className="text-right pr-4 shrink-0">{isCristal ? <span className="text-[9px] font-black text-violet-600 bg-violet-50 dark:bg-violet-950/30 px-2 py-1 rounded-lg inline-block">{p.laboratory || 'Lab'}</span> : <span className={`text-sm font-black ${p.stock <= 2 ? 'text-red-500' : 'text-stone-800 dark:text-stone-200'}`}>{p.stock}</span>}</div>
+                                    {isAdmin && <div className="text-right pr-4"><span className="text-sm font-bold text-stone-400">${p.cost?.toLocaleString()}</span></div>}
+                                    <div className="text-right pr-4"><span className="text-sm font-black text-stone-900 dark:text-white">${p.price?.toLocaleString()}</span></div>
                                     {isAdmin && (
                                         <div className="flex items-center gap-1">
                                             <button onClick={() => startEdit(p)} className="p-2 opacity-0 group-hover:opacity-100 hover:text-primary transition-all"><Pencil className="w-4 h-4" /></button>

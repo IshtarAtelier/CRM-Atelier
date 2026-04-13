@@ -28,7 +28,7 @@ export default function BalancePanel({ orders, onClose }: BalancePanelProps) {
             <div className="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar">
                 {orders.length > 0 ? (
                     orders.map(order => {
-                        const balance = order.total - order.paid;
+                        const balance = order.balance || (order.total - order.paid);
                         return (
                             <Link
                                 key={order.id}
