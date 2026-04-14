@@ -188,6 +188,7 @@ export default function ContactDetail({
                     {activeSection === 'tasks' && (
                         <TaskManager 
                             tasks={contact.tasks || []}
+                            contact={contact}
                             onAddTask={(desc, date) => onAddTask(contactId, desc, date).then(() => fetchContact())}
                             onToggleTask={(tid, status) => onUpdateTaskStatus(contactId, tid, status).then(() => fetchContact())}
                         />

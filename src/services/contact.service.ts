@@ -716,7 +716,10 @@ export const ContactService = {
             include: {
                 orders: {
                     where: { isDeleted: false },
-                    include: { payments: true }
+                    include: { 
+                        payments: true,
+                        items: { include: { product: true } }
+                    }
                 }
             }
         });
@@ -726,6 +729,7 @@ export const ContactService = {
             let totalSales = 0;
             let totalPaid = 0;
             let lastOrderDate = new Date(0);
+            let isMultifocal = false;
 
             client.orders.forEach(order => {
                 // Sumamos los totales solo de las VENTAS
@@ -735,6 +739,18 @@ export const ContactService = {
                     if (orderDate > lastOrderDate) {
                         lastOrderDate = orderDate;
                     }
+
+                    // Detección de Multifocal
+                    const hasMultifocal = order.items.some(item => {
+                        const type = item.product?.type?.toUpperCase() || '';
+                        const name = (item.product?.name || '').toUpperCase();
+                        const model = (item.product?.model || '').toUpperCase();
+                        return type === 'MULTIFOCAL' || 
+                               name.includes('MULTIFOCAL') || 
+                               name.includes('PROGRESIVO') || 
+                               model.includes('MULTIFOCAL');
+                    });
+                    if (hasMultifocal) isMultifocal = true;
                 }
                 
                 // Sumamos TODOS los pagos (vengan de presupuestos o ventas)
@@ -752,6 +768,7 @@ export const ContactService = {
                 total: totalSales,
                 paid: totalPaid,
                 balance,
+                isMultifocal,
                 createdAt: lastOrderDate.getTime() > 0 ? lastOrderDate : new Date()
             };
         })

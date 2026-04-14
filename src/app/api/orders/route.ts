@@ -210,7 +210,6 @@ export async function GET(request: Request) {
             // Lab fields
             labOrderNumber: true,
             labNotes: true,
-            labStatus: true,
             labSentAt: true,
             labColor: true,
             labTreatment: true,

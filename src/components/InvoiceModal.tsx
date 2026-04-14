@@ -142,7 +142,7 @@ export default function InvoiceModal({ order, initialAccount, initialAmount, onC
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     orderId: order.id,
-                    account: selectedAccount,
+                    account: account,
                     docTipo: docTipo,
                     docNro: docTipo === 99 ? '0' : docNro.replace(/\D/g, ''),
                     amount: targetAmount,

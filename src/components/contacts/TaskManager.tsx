@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Plus, CheckCircle2, Clock, AlertCircle, Loader2, Calendar } from 'lucide-react';
+import { Plus, CheckCircle2, Clock, AlertCircle, Loader2, Calendar, MessageCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
@@ -15,11 +15,12 @@ interface Task {
 
 interface TaskManagerProps {
     tasks: Task[];
+    contact?: any;
     onAddTask: (description: string, dueDate?: string) => Promise<void>;
     onToggleTask: (taskId: string, status: string) => Promise<void>;
 }
 
-export default function TaskManager({ tasks, onAddTask, onToggleTask }: TaskManagerProps) {
+export default function TaskManager({ tasks, contact, onAddTask, onToggleTask }: TaskManagerProps) {
     const [isAdding, setIsAdding] = useState(false);
     const [description, setDescription] = useState('');
     const [dueDate, setDueDate] = useState('');
@@ -126,18 +127,36 @@ export default function TaskManager({ tasks, onAddTask, onToggleTask }: TaskMana
                                     </div>
                                 )}
                             </div>
-                            <button
-                                onClick={() => handleToggle(task.id)}
-                                disabled={togglingId === task.id}
-                                className="ml-4 p-3 text-stone-200 dark:text-stone-700 hover:text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 rounded-2xl transition-all disabled:opacity-50 group-hover:text-emerald-500/50"
-                                title="Completar tarea"
-                            >
-                                {togglingId === task.id ? (
-                                    <Loader2 className="w-6 h-6 animate-spin" />
-                                ) : (
-                                    <CheckCircle2 className="w-6 h-6" />
+
+                            <div className="flex items-center gap-2 ml-4">
+                                {task.description.includes('Solicitar comentario') && contact?.phone && (
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            const message = `Hola ${contact.name.split(' ')[0]} Te molesto un segundito para que compartas tu experiencia de de compra en nuestro perfil de Google y sobre mi atencion:\n👉 https://g.page/r/CcVls8v7ic_NEBM/review\nNos suma muchisimo para seguir creciendo\nEspero tu comentario 🤍✨🫶`;
+                                            const phone = contact.phone.replace(/\D/g, '');
+                                            window.open(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`, '_blank');
+                                        }}
+                                        className="p-3 text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 rounded-2xl transition-all shadow-sm"
+                                        title="Enviar WhatsApp"
+                                    >
+                                        <MessageCircle className="w-6 h-6" />
+                                    </button>
                                 )}
-                            </button>
+
+                                <button
+                                    onClick={() => handleToggle(task.id)}
+                                    disabled={togglingId === task.id}
+                                    className="p-3 text-stone-200 dark:text-stone-700 hover:text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 rounded-2xl transition-all disabled:opacity-50 group-hover:text-emerald-500/50"
+                                    title="Completar tarea"
+                                >
+                                    {togglingId === task.id ? (
+                                        <Loader2 className="w-6 h-6 animate-spin" />
+                                    ) : (
+                                        <CheckCircle2 className="w-6 h-6" />
+                                    )}
+                                </button>
+                            </div>
                         </div>
                     ))
                 ) : (

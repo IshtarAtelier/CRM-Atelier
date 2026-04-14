@@ -93,6 +93,14 @@ export async function GET(request: Request) {
                 orderType: 'QUOTE',
                 isDeleted: false,
                 createdAt: { lte: twoDaysAgo, gte: fiveDaysAgo },
+                client: {
+                    orders: {
+                        none: {
+                            orderType: 'SALE',
+                            isDeleted: false
+                        }
+                    }
+                },
                 OR: [
                     { client: { interest: { contains: 'Multifocal' } } },
                     { items: { some: { product: { type: { contains: 'Multifocal' } } } } },

@@ -68,3 +68,5 @@ export async function DELETE(
         return NextResponse.json({ error: 'Error al eliminar tarea' }, { status: 500 });
     }
 }
+
+

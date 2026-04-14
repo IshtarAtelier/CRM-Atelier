@@ -118,7 +118,6 @@ export async function GET(
                 // Lab fields
                 labOrderNumber: true,
                 labNotes: true,
-                labStatus: true,
                 labSentAt: true,
                 labColor: true,
                 labTreatment: true,
@@ -558,6 +557,7 @@ export async function PATCH(
             data,
             select: {
                 id: true,
+                clientId: true,
                 items: {
                     select: {
                         id: true, price: true, quantity: true, eye: true,
@@ -566,8 +566,30 @@ export async function PATCH(
                     }
                 },
                 payments: true,
+                client: {
+                    select: { name: true }
+                }
             },
         });
+
+        // ── Auto-Task: Request Review when DELIVERED ──
+        if (labStatus === 'DELIVERED') {
+            const taskDescription = `Solicitar comentario a ${order.client.name}`;
+            
+            // Avoid duplicate pending tasks
+            const existingTask = await prisma.clientTask.findFirst({
+                where: {
+                    clientId: order.clientId,
+                    description: taskDescription,
+                    status: 'PENDING'
+                }
+            });
+
+            if (!existingTask) {
+                await ContactService.addTask(order.clientId, taskDescription);
+            }
+        }
+
         return NextResponse.json(order);
     } catch (error: any) {
         console.error('Error updating order:', error);
