@@ -60,12 +60,23 @@ const FIXED_COST_CATEGORIES = [
 
 const METHOD_LABELS: Record<string, string> = {
     CASH: 'Efectivo',
+    EFECTIVO: 'Efectivo',
     DEBIT: 'Débito',
     CREDIT: 'Crédito (1 pago)',
     CREDIT_3: '3 Cuotas S/I',
     CREDIT_6: '6 Cuotas S/I',
     PLAN_Z: 'Plan Z',
     TRANSFER: 'Transferencia',
+    TRANSFERENCIA_ISHTAR: 'Transf. Ishtar',
+    TRANSFERENCIA_LUCIA: 'Transf. Lucía',
+    PAY_WAY_3_ISH: 'PayWay 3c Ish',
+    PAY_WAY_3_YANI: 'PayWay 3c Yani',
+    PAY_WAY_6_ISH: 'PayWay 6c Ish',
+    PAY_WAY_6_YANI: 'PayWay 6c Yani',
+    NARANJA_Z_ISH: 'Naranja Z Ish',
+    NARANJA_Z_YANI: 'Naranja Z Yani',
+    GO_CUOTAS: 'Go Cuotas',
+    GO_CUOTAS_ISH: 'Go Cuotas Ish',
 };
 
 // ── Helpers ────────────────────────────────────
@@ -246,126 +257,118 @@ export default function ReportesPage() {
                 </div>
             </div>
 
-            {/* KPI Cards */}
+            {/* KPI Cards — Simple overview */}
             {s && (
                 <>
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
                         <KPICard
                             title="Ingreso Real"
                             value={`$${(s?.totalRevenue ?? 0).toLocaleString()}`}
-                            sub={`${s.ordersCount} operaciones · $${(s?.totalPending ?? 0).toLocaleString()} pendiente`}
+                            sub={`${s.ordersCount} ventas · $${(s?.totalPending ?? 0).toLocaleString()} pendiente`}
                             icon={DollarSign}
                             color="stone"
                         />
                         <KPICard
-                            title="Deducciones"
-                            value={`$${((s?.totalCosts ?? 0) + (s?.totalPlatformFees ?? 0) + (s?.totalDoctorFees ?? 0) + (s?.totalFixedCosts ?? 0)).toLocaleString()}`}
-                            sub={`CMV $${(s?.totalCosts ?? 0).toLocaleString()} · Plataforma $${(s?.totalPlatformFees ?? 0).toLocaleString()} · Médicos $${(s?.totalDoctorFees ?? 0).toLocaleString()} · Fijos $${(s?.totalFixedCosts ?? 0).toLocaleString()}`}
-                            icon={ArrowDown}
-                            color="red"
-                        />
-                        <KPICard
-                            title="Ganancia Neta"
+                            title="Resultado Neto"
                             value={`$${(s?.netProfit ?? 0).toLocaleString()}`}
-                            sub={`${s.profitMargin.toFixed(1)}% margen`}
+                            sub={`${s.profitMargin.toFixed(1)}% margen sobre ingreso`}
                             icon={TrendingUp}
                             color="emerald"
                             highlight
                         />
                         <KPICard
-                            title="Cobrado / Pendiente"
-                            value={`$${(s?.totalPaid ?? 0).toLocaleString()}`}
-                            sub={`$${(s?.totalPending ?? 0).toLocaleString()} pendiente`}
+                            title="Pendiente de Cobro"
+                            value={`$${(s?.totalPending ?? 0).toLocaleString()}`}
+                            sub={`Pagado: $${(s?.totalPaid ?? 0).toLocaleString()}`}
                             icon={CreditCard}
                             color="blue"
                         />
                     </div>
 
-                    {/* Cost Breakdown */}
+                    {/* ── Estado de Resultados ────────────────────── */}
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-                        {/* Desglose de Costos */}
                         <div className="bg-white dark:bg-stone-800 border-2 border-stone-100 dark:border-stone-700 rounded-2xl p-6">
                             <div className="flex items-center gap-2 mb-6">
-                                <PieChart className="w-5 h-5 text-red-500" />
-                                <h2 className="text-xs font-black uppercase tracking-widest text-stone-400">Desglose de Costos</h2>
+                                <Receipt className="w-5 h-5 text-primary" />
+                                <h2 className="text-xs font-black uppercase tracking-widest text-stone-400">Estado de Resultados</h2>
                             </div>
 
-                            <div className="space-y-4">
-                                <CostRow
-                                    label="Costo Armazones / Sol"
-                                    value={s.totalCostFrames}
-                                    total={s.totalRevenue}
-                                    color="bg-amber-500"
-                                />
-                                <CostRow
-                                    label="Costo Cristales / Lentes"
-                                    value={s.totalCostLenses}
-                                    total={s.totalRevenue}
-                                    color="bg-blue-500"
-                                />
-                                <CostRow
-                                    label="Otros Costos"
-                                    value={s.totalCostOther}
-                                    total={s.totalRevenue}
-                                    color="bg-stone-400"
-                                />
-                                <CostRow
-                                    label="Comisiones Plataforma"
-                                    value={s.totalPlatformFees}
-                                    total={s.totalRevenue}
-                                    color="bg-purple-500"
-                                    tooltip="3 cuotas: 10% · 6 cuotas / Plan Z: 20%"
-                                />
-                                <CostRow
-                                    label="Comisiones Médicos"
-                                    value={s.totalDoctorFees}
-                                    total={s.totalRevenue}
-                                    color="bg-pink-500"
-                                    tooltip="15% del ingreso neto"
-                                />
-                                <CostRow
-                                    label="Gastos Fijos"
-                                    value={s.totalFixedCosts}
-                                    total={s.totalRevenue}
-                                    color="bg-orange-500"
-                                    tooltip="Alquiler, sueldos, contadora, etc."
-                                />
+                            {/* ─ Ingresos ─ */}
+                            <PLRow label="Ingresos (Cobrado)" value={s.totalRevenue} bold accent="text-stone-800 dark:text-white" />
 
-                                <div className="border-t-2 border-stone-100 dark:border-stone-700 pt-4 mt-4">
-                                    <div className="flex justify-between items-center">
-                                        <span className="text-sm font-black text-stone-800 dark:text-white uppercase tracking-tight">Ganancia Neta</span>
-                                        <span className={`text-xl font-black ${(s?.netProfit ?? 0) >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
-                                            ${(s?.netProfit ?? 0).toLocaleString()}
-                                        </span>
+                            {/* ─ Costos Variables ─ */}
+                            <div className="mt-4 mb-1">
+                                <span className="text-[9px] font-black text-stone-400 uppercase tracking-widest">Costos Variables</span>
+                            </div>
+                            <PLRow label="CMV Armazones / Sol" value={-s.totalCostFrames} color="text-red-400" />
+                            <PLRow label="CMV Cristales / Lentes" value={-s.totalCostLenses} color="text-red-400" />
+                            {s.totalCostOther > 0 && <PLRow label="CMV Otros" value={-s.totalCostOther} color="text-red-400" />}
+                            <PLRow label="Comisiones Plataforma" value={-s.totalPlatformFees} color="text-purple-400" sub="PayWay / Go Cuotas" />
+                            <PLRow label="Comisiones Médicos" value={-s.totalDoctorFees} color="text-pink-400" sub="15% sobre neto" />
+
+                            {/* ─ Margen de Contribución ─ */}
+                            {(() => {
+                                const variableCosts = s.totalCosts + s.totalPlatformFees + s.totalDoctorFees;
+                                const margenContribucion = s.totalRevenue - variableCosts;
+                                const margenPct = s.totalRevenue > 0 ? (margenContribucion / s.totalRevenue * 100) : 0;
+                                return (
+                                    <div className="border-t-2 border-dashed border-stone-200 dark:border-stone-600 mt-4 pt-3">
+                                        <PLRow label={`Margen de Contribución (${margenPct.toFixed(0)}%)`} value={margenContribucion} bold accent={margenContribucion >= 0 ? 'text-blue-500' : 'text-red-500'} />
                                     </div>
-                                    {/* Visual breakdown bar */}
-                                    <div className="flex h-4 rounded-full overflow-hidden mt-3 bg-stone-100 dark:bg-stone-700">
-                                        {s.totalRevenue > 0 && (
-                                            <>
-                                                <div className="bg-amber-500 transition-all" style={{ width: `${(s.totalCostFrames / s.totalRevenue) * 100}%` }} title="Armazones" />
-                                                <div className="bg-blue-500 transition-all" style={{ width: `${(s.totalCostLenses / s.totalRevenue) * 100}%` }} title="Cristales" />
-                                                <div className="bg-stone-400 transition-all" style={{ width: `${(s.totalCostOther / s.totalRevenue) * 100}%` }} title="Otros" />
-                                                <div className="bg-purple-500 transition-all" style={{ width: `${(s.totalPlatformFees / s.totalRevenue) * 100}%` }} title="Comisiones" />
-                                                <div className="bg-emerald-500 transition-all" style={{ width: `${Math.max(0, (s.netProfit / s.totalRevenue) * 100)}%` }} title="Ganancia" />
-                                            </>
-                                        )}
+                                );
+                            })()}
+
+                            {/* ─ Gastos Fijos ─ */}
+                            <div className="mt-4 mb-1">
+                                <span className="text-[9px] font-black text-stone-400 uppercase tracking-widest">Gastos Fijos</span>
+                            </div>
+                            {(data?.fixedCosts && data.fixedCosts.length > 0) ? (
+                                <>
+                                    {/* Group by category */}
+                                    {Object.entries(
+                                        data.fixedCosts.reduce<Record<string, number>>((acc, fc) => {
+                                            const cat = FIXED_COST_CATEGORIES.find(c => c.id === fc.category)?.label || fc.category;
+                                            acc[cat] = (acc[cat] || 0) + fc.amount;
+                                            return acc;
+                                        }, {})
+                                    ).map(([cat, amount]) => (
+                                        <PLRow key={cat} label={cat} value={-amount} color="text-orange-400" />
+                                    ))}
+                                </>
+                            ) : (
+                                <p className="text-[10px] text-stone-400 font-medium py-2 pl-2">Sin gastos fijos cargados</p>
+                            )}
+
+                            {/* ─ Resultado Neto ─ */}
+                            <div className="border-t-2 border-stone-200 dark:border-stone-600 mt-4 pt-4">
+                                <div className="flex justify-between items-center">
+                                    <span className="text-sm font-black text-stone-800 dark:text-white uppercase tracking-tight">Resultado Neto</span>
+                                    <span className={`text-2xl font-black ${(s?.netProfit ?? 0) >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
+                                        ${(s?.netProfit ?? 0).toLocaleString()}
+                                    </span>
+                                </div>
+                                {s.totalRevenue > 0 && (
+                                    <div className="flex h-3 rounded-full overflow-hidden mt-3 bg-stone-100 dark:bg-stone-700">
+                                        <div className="bg-red-400 transition-all" style={{ width: `${(s.totalCosts / s.totalRevenue) * 100}%` }} title="CMV" />
+                                        <div className="bg-purple-400 transition-all" style={{ width: `${(s.totalPlatformFees / s.totalRevenue) * 100}%` }} title="Plataforma" />
+                                        <div className="bg-pink-400 transition-all" style={{ width: `${(s.totalDoctorFees / s.totalRevenue) * 100}%` }} title="Médicos" />
+                                        <div className="bg-orange-400 transition-all" style={{ width: `${(s.totalFixedCosts / s.totalRevenue) * 100}%` }} title="G. Fijos" />
+                                        <div className="bg-emerald-500 transition-all" style={{ width: `${Math.max(0, (s.netProfit / s.totalRevenue) * 100)}%` }} title="Ganancia" />
                                     </div>
-                                    <div className="flex gap-4 mt-2 flex-wrap">
-                                        {[
-                                            { color: 'bg-amber-500', label: 'Armazones' },
-                                            { color: 'bg-blue-500', label: 'Cristales' },
-                                            { color: 'bg-stone-400', label: 'Otros CMV' },
-                                            { color: 'bg-purple-500', label: 'Plataforma' },
-                                            { color: 'bg-pink-500', label: 'Médicos' },
-                                            { color: 'bg-orange-500', label: 'G. Fijos' },
-                                            { color: 'bg-emerald-500', label: 'Ganancia' },
-                                        ].map(l => (
-                                            <div key={l.label} className="flex items-center gap-1.5">
-                                                <div className={`w-2.5 h-2.5 rounded-full ${l.color}`} />
-                                                <span className="text-[9px] font-bold text-stone-400 uppercase tracking-widest">{l.label}</span>
-                                            </div>
-                                        ))}
-                                    </div>
+                                )}
+                                <div className="flex gap-4 mt-2 flex-wrap">
+                                    {[
+                                        { color: 'bg-red-400', label: 'CMV' },
+                                        { color: 'bg-purple-400', label: 'Plataforma' },
+                                        { color: 'bg-pink-400', label: 'Médicos' },
+                                        { color: 'bg-orange-400', label: 'G. Fijos' },
+                                        { color: 'bg-emerald-500', label: 'Ganancia' },
+                                    ].map(l => (
+                                        <div key={l.label} className="flex items-center gap-1.5">
+                                            <div className={`w-2 h-2 rounded-full ${l.color}`} />
+                                            <span className="text-[8px] font-bold text-stone-400 uppercase tracking-widest">{l.label}</span>
+                                        </div>
+                                    ))}
                                 </div>
                             </div>
                         </div>
@@ -896,6 +899,30 @@ function FixedCostsSection({ fixedCosts, onRefresh }: { fixedCosts: FixedCost[];
                     <p className="text-[9px] text-stone-400 mt-1">Agregá contadora, alquiler, sueldos, etc.</p>
                 </div>
             )}
+        </div>
+    );
+}
+
+function PLRow({ label, value, bold, accent, color, sub }: {
+    label: string;
+    value: number;
+    bold?: boolean;
+    accent?: string;
+    color?: string;
+    sub?: string;
+}) {
+    const textColor = accent || color || 'text-stone-600 dark:text-stone-300';
+    return (
+        <div className={`flex justify-between items-center py-1.5 ${bold ? '' : 'pl-3'}`}>
+            <div className="flex items-center gap-2">
+                <span className={`text-xs ${bold ? 'font-black' : 'font-medium'} ${bold ? (accent || 'text-stone-800 dark:text-white') : 'text-stone-500 dark:text-stone-400'}`}>
+                    {label}
+                </span>
+                {sub && <span className="text-[8px] text-stone-400 font-medium">{sub}</span>}
+            </div>
+            <span className={`text-sm ${bold ? 'font-black' : 'font-bold'} ${textColor} tabular-nums`}>
+                {value < 0 ? '-' : ''}${Math.abs(value).toLocaleString()}
+            </span>
         </div>
     );
 }

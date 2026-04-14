@@ -201,7 +201,7 @@ export default function InventarioPage() {
     };
 
     return (
-        <div className="p-4 lg:p-6 max-w-[1600px] mx-auto space-y-6 animate-in fade-in duration-500 pb-20">
+        <div className="p-4 lg:p-6 max-w-full mx-auto space-y-6 animate-in fade-in duration-500 pb-20">
 
             {/* Import Result Toast */}
             {importResult && (
@@ -404,7 +404,7 @@ export default function InventarioPage() {
                 {/* Table view (Desktop only) */}
                 <div className="hidden lg:block overflow-x-auto">
                     {/* Table header */}
-                    <div className={`grid ${isAdmin ? 'grid-cols-[40px_4fr_1.5fr_1fr_1.5fr_1.2fr_1.2fr_80px]' : 'grid-cols-[40px_4fr_1.5fr_1fr_1.5fr_1.2fr_80px]'} gap-4 px-6 py-3 bg-stone-50 dark:bg-stone-800/50 border-b border-stone-100 dark:border-stone-800 items-center`}>
+                    <div className={`grid ${isAdmin ? 'grid-cols-[40px_6fr_1.5fr_1fr_1.5fr_1.2fr_1.2fr_80px]' : 'grid-cols-[40px_6fr_1.5fr_1fr_1.5fr_1.2fr_80px]'} gap-4 px-6 py-3 bg-stone-50 dark:bg-stone-800/50 border-b border-stone-100 dark:border-stone-800 items-center`}>
                         {/* Select all checkbox */}
                         <div className="flex justify-center">
                             <button
@@ -439,7 +439,7 @@ export default function InventarioPage() {
                             return (
                                 <div
                                     key={p.id}
-                                    className={`grid ${isAdmin ? 'grid-cols-[40px_4fr_1.5fr_1fr_1.5fr_1.2fr_1.2fr_80px]' : 'grid-cols-[40px_4fr_1.5fr_1fr_1.5fr_1.2fr_80px]'} gap-4 px-6 py-4 items-center hover:bg-stone-50/70 dark:hover:bg-stone-800/30 transition-colors group ${isSelected ? 'bg-primary/5' : ''}`}
+                                    className={`grid ${isAdmin ? 'grid-cols-[40px_6fr_1.5fr_1fr_1.5fr_1.2fr_1.2fr_80px]' : 'grid-cols-[40px_6fr_1.5fr_1fr_1.5fr_1.2fr_80px]'} gap-4 px-6 py-4 items-center hover:bg-stone-50/70 dark:hover:bg-stone-800/30 transition-colors group ${isSelected ? 'bg-primary/5' : ''}`}
                                 >
                                     <div className="flex justify-center">
                                         <button onClick={() => toggleSelect(p.id)} className="text-stone-300 hover:text-primary">

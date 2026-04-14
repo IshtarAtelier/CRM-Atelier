@@ -49,3 +49,22 @@ export async function PATCH(
         return NextResponse.json({ error: 'Error al actualizar tarea' }, { status: 500 });
     }
 }
+
+export async function DELETE(
+    request: Request,
+    { params }: { params: Promise<{ id: string }> }
+) {
+    try {
+        const { searchParams } = new URL(request.url);
+        const taskId = searchParams.get('taskId');
+
+        if (!taskId) {
+            return NextResponse.json({ error: 'taskId es requerido' }, { status: 400 });
+        }
+
+        const task = await ContactService.deleteTask(taskId);
+        return NextResponse.json(task);
+    } catch (error) {
+        return NextResponse.json({ error: 'Error al eliminar tarea' }, { status: 500 });
+    }
+}
