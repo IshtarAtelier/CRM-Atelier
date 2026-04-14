@@ -374,18 +374,27 @@ function CotizadorPageContent() {
             console.error('El contacto no tiene teléfono');
             return;
         }
+        const listPrice = Math.round(totalWithMarkup);
+        const inst3 = Math.round(listPrice / 3);
+        const inst6 = Math.round(listPrice / 6);
+        
         // Build the message
         let msg = `Hola ${pendingContact.name}, te envío el presupuesto solicitado:\n\n`;
         quoteItems.forEach(it => {
             msg += `- ${it.product.brand} ${it.product.model || ''} (${it.product.name}) ${it.eye ? '['+it.eye+']' : ''}: $${it.customPrice.toLocaleString()}\n`;
         });
-        msg += `\nTotal Lista: $${Math.round(totalWithMarkup).toLocaleString()}\n`;
-        msg += `💰 Promo Efectivo (-${discountCash}%): $${Math.round(totalCash).toLocaleString()}\n`;
-        msg += `💳 Promos con Tarjeta: Consultar cuotas sin interés.\n\nAtelier Óptica`;
+        msg += `\n*Precio Lista: $${listPrice.toLocaleString()}*\n`;
+        msg += `💰 Efectivo (-${discountCash}%): $${Math.round(totalCash).toLocaleString()}\n`;
+        msg += `🏦 Transferencia (-${discountTransfer}%): $${Math.round(totalWithMarkup * (1 - discountTransfer / 100)).toLocaleString()}\n`;
+        msg += `💳 Tarjeta (Lista): $${listPrice.toLocaleString()}\n`;
+        msg += `   ↳ 3 cuotas sin interés: $${inst3.toLocaleString()} c/u\n`;
+        msg += `   ↳ 6 cuotas sin interés: $${inst6.toLocaleString()} c/u\n`;
+        msg += `\nAtelier Óptica`;
         
         const url = `https://wa.me/${pendingContact.phone}?text=${encodeURIComponent(msg)}`;
         window.open(url, '_blank');
     };
+
 
     const handleCopy = () => {
         let text = `PRESUPUESTO ATELIER\n\n`;

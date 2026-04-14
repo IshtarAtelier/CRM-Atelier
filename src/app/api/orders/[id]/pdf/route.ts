@@ -209,12 +209,12 @@ export async function GET(
             ` : `<span class="p-saldo" style="color:#10b981; background:#f0fdf4;">PAGADO COMPLETO</span>`}
             <div class='installments'>
                 <div class='inst-row'>
-                    <span style="font-size:10px; font-weight:700;">3 Cuotas de</span>
-                    <span class='inst-quota'>$${Math.round(financials.totalCard * 1.10 / 3).toLocaleString()}</span>
+                    <span style="font-size:10px; font-weight:700;">3 Cuotas sin interés de</span>
+                    <span class='inst-quota'>$${financials.installment3.toLocaleString()}</span>
                 </div>
                 <div class='inst-row' style="margin-top: 8px;">
-                    <span style="font-size:10px; font-weight:700;">6 Cuotas de</span>
-                    <span class='inst-quota'>$${Math.round(financials.totalCard * 1.25 / 6).toLocaleString()}</span>
+                    <span style="font-size:10px; font-weight:700;">6 Cuotas sin interés de</span>
+                    <span class='inst-quota'>$${financials.installment6.toLocaleString()}</span>
                 </div>
             </div>
         </div>

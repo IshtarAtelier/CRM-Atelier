@@ -6,7 +6,7 @@ import {
     CheckCircle2, X, Plus, Clock, Glasses, 
     Banknote, ArrowRightLeft, CreditCard,
     Lock, ChevronRight, ChevronUp, Pencil,
-    History, Trash2, Eye
+    History, Trash2, Eye, AlertCircle
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -63,6 +63,7 @@ export default function QuoteSummary({
 }: QuoteSummaryProps) {
     const [showCheckout, setShowCheckout] = React.useState(false);
     const [showPayment, setShowPayment] = React.useState(false);
+    const [showIshAlert, setShowIshAlert] = React.useState(false);
     const [showPaymentsList, setShowPaymentsList] = React.useState(false);
     const [isDeletingPayment, setIsDeletingPayment] = React.useState<string | null>(null);
 
@@ -162,9 +163,13 @@ export default function QuoteSummary({
         text += `*Precio Lista: $${Math.round(financials.listPrice).toLocaleString()}*%0A`;
         text += `🏦 *Transf. (-${financials.discountTransfer}%): $${financials.totalTransfer.toLocaleString()}*%0A`;
         text += `💵 *Efectivo (-${financials.discountCash}%): $${financials.totalCash.toLocaleString()}*%0A`;
+        text += `💳 *Tarjeta (Lista): $${financials.totalCard.toLocaleString()}*%0A`;
+        text += `   ↳ 3 cuotas sin interés: $${financials.installment3.toLocaleString()} c/u%0A`;
+        text += `   ↳ 6 cuotas sin interés: $${financials.installment6.toLocaleString()} c/u%0A`;
 
         window.open(`https://wa.me/${contact.phone?.replace(/\D/g,'')}?text=${text}`, '_blank');
     };
+
 
     if (!isExpanded) {
         const dateStr = format(new Date(order.createdAt), "d MMM yy", { locale: es });
@@ -320,6 +325,16 @@ export default function QuoteSummary({
                             <div key={tier.label} className={`bg-${tier.color}-50/50 dark:bg-${tier.color}-950/20 p-4 rounded-3xl border-2 border-${tier.color}-100/50`}>
                                 <p className={`text-[10px] font-black text-${tier.color}-600 uppercase tracking-widest mb-1`}>{tier.label} {tier.discount > 0 && `-${tier.discount}%`}</p>
                                 <p className={`text-xl font-black text-${tier.color}-600`}>${tier.amount.toLocaleString()}</p>
+                                {tier.label === 'Cuotas' && (
+                                    <div className="mt-2 space-y-1 border-t border-orange-100/70 pt-2">
+                                        <p className="text-[9px] font-black text-orange-500">
+                                            3 cuotas sin interés: ${financials.installment3.toLocaleString()}
+                                        </p>
+                                        <p className="text-[9px] font-black text-orange-500">
+                                            6 cuotas sin interés: ${financials.installment6.toLocaleString()}
+                                        </p>
+                                    </div>
+                                )}
                             </div>
                         ))}
                     </div>
@@ -500,12 +515,16 @@ export default function QuoteSummary({
                     totalAmount={order.total || 0}
                     paidAmount={order.paid || 0}
                     onClose={() => setShowPayment(false)}
-                    onSuccess={async (payment: any) => {
+                    onSuccess={async (paymentResult: any) => {
                         setShowPayment(false);
+                        if (paymentResult.thresholdReached) {
+                            setShowIshAlert(true);
+                        }
                         if (onRefreshContact) {
                             await onRefreshContact();
                         }
-                        setShowCheckout(true);
+                        // Only show checkout if it was a quote and we want to convert
+                        if (isQuote) setShowCheckout(true);
                     }}
                 />
             )}
@@ -523,6 +542,29 @@ export default function QuoteSummary({
                     }}
                     onRefreshContact={onRefreshContact || (async () => {})}
                 />
+            )}
+            
+            {showIshAlert && (
+                <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-red-950/80 backdrop-blur-xl animate-in fade-in duration-500">
+                    <div className="bg-white dark:bg-stone-900 w-full max-w-md rounded-[3rem] p-8 text-center border-4 border-red-500 shadow-[0_0_50px_rgba(239,68,68,0.4)] animate-in zoom-in duration-300">
+                        <div className="w-20 h-20 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mx-auto mb-6 animate-pulse">
+                            <AlertCircle className="w-12 h-12 text-red-600" />
+                        </div>
+                        <h3 className="text-2xl font-black text-stone-900 dark:text-white mb-4 uppercase italic tracking-tighter">
+                            ¡OBJETIVO ALCANZADO!
+                        </h3>
+                        <p className="text-stone-600 dark:text-stone-300 font-bold mb-8 leading-relaxed">
+                            ya completaste el objetivo en <span className="text-red-600 font-black">POSNET ISH</span><br/>
+                            <span className="text-2xl mt-2 block">AHORA PASA A <span className="text-emerald-600 font-black">posnet yani</span></span>
+                        </p>
+                        <button 
+                            onClick={() => setShowIshAlert(false)}
+                            className="w-full py-4 bg-red-600 hover:bg-red-700 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl transition-all hover:scale-105 active:scale-95"
+                        >
+                            ENTENDIDO
+                        </button>
+                    </div>
+                </div>
             )}
         </div>
     );

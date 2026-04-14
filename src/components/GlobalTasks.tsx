@@ -48,7 +48,7 @@ export function GlobalTasks() {
     return (
         <>
             {/* Botón flotante de Tareas (Bell) */}
-            <div className="fixed top-8 right-8 z-[60] flex items-center gap-4">
+            <div className="fixed bottom-8 right-8 z-[60] flex items-center gap-4">
                 <button
                     onClick={() => setIsOpen(!isOpen)}
                     className={`p-5 rounded-[2.5rem] border-2 transition-all shadow-huge flex items-center gap-3 active:scale-95 group relative ${isOpen

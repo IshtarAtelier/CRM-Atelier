@@ -36,3 +36,6 @@ export function getCommissionRate(method: string): number {
 // Doctor commission rate
 export const DOCTOR_COMMISSION_RATE = 0.15; // 15%
 
+// ISH POSNET Threshold Monitoring
+export const ISH_POSNET_THRESHOLD = 8500000;
+export const ISH_POSNET_METHODS = ['PAY_WAY_6_ISH', 'PAY_WAY_3_ISH', 'NARANJA_Z_ISH'];

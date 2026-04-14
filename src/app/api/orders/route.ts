@@ -193,6 +193,13 @@ export async function GET(request: Request) {
             discountCard: true,
             subtotalWithMarkup: true,
             frameSource: true,
+            userFrameBrand: true,
+            userFrameModel: true,
+            userFrameNotes: true,
+            frameA: true,
+            frameB: true,
+            frameDbl: true,
+            frameEdc: true,
             prescriptionId: true,
             isDeleted: true,
             client: { select: { id: true, name: true, phone: true, dni: true, email: true, status: true } },
@@ -201,12 +208,13 @@ export async function GET(request: Request) {
                 select: {
                     id: true, price: true, quantity: true, eye: true,
                     sphereVal: true, cylinderVal: true, axisVal: true, additionVal: true,
-                    product: { select: { id: true, name: true, brand: true, model: true, category: true, type: true, price: true, unitType: true } }
+                    pdVal: true, heightVal: true, prismVal: true,
+                    product: { select: { id: true, name: true, brand: true, model: true, category: true, type: true, price: true, unitType: true, laboratory: true } }
                 }
             },
             payments: { select: { id: true, amount: true, method: true, date: true, notes: true } },
             invoices: { select: { id: true, cae: true, voucherNumber: true, pointOfSale: true, totalAmount: true, status: true, billingAccount: true } },
-            prescription: { select: { id: true, sphereOD: true, sphereOI: true, cylinderOD: true, cylinderOI: true, axisOD: true, axisOI: true, additionOD: true, additionOI: true, distanceOD: true, distanceOI: true, heightOD: true, heightOI: true, pd: true, addition: true } },
+            prescription: { select: { id: true, sphereOD: true, sphereOI: true, cylinderOD: true, cylinderOI: true, axisOD: true, axisOI: true, additionOD: true, additionOI: true, distanceOD: true, distanceOI: true, heightOD: true, heightOI: true, pd: true, addition: true, prescriptionType: true, notes: true, imageUrl: true, prismOD: true, prismOI: true, nearSphereOD: true, nearSphereOI: true, nearCylinderOD: true, nearAxisOD: true, nearCylinderOI: true, nearAxisOI: true } },
             // Lab fields
             labOrderNumber: true,
             labNotes: true,

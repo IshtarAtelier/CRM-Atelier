@@ -22,6 +22,10 @@ export interface OrderFinancials {
     totalCash: number;
     totalTransfer: number;
     totalCard: number;
+    /** Cuota sin interés a 3 meses = totalCard / 3 */
+    installment3: number;
+    /** Cuota sin interés a 6 meses = totalCard / 6 */
+    installment6: number;
     paidReal: number;
     listEquivalentPaid: number;
     remainingList: number;
@@ -142,6 +146,8 @@ export class PricingService {
             totalCash,
             totalTransfer,
             totalCard,
+            installment3: Math.round(totalCard / 3),
+            installment6: Math.round(totalCard / 6),
             paidReal,
             listEquivalentPaid: Math.round(listEquivalentPaid * 100) / 100,
             remainingList: Math.round(remainingList),

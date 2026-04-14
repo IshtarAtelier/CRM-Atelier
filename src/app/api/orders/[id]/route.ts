@@ -316,7 +316,21 @@ export async function PATCH(
         }
 
         if (labNotes !== undefined) data.labNotes = labNotes;
-        if (labOrderNumber !== undefined) data.labOrderNumber = labOrderNumber;
+        if (labOrderNumber !== undefined) {
+            data.labOrderNumber = labOrderNumber;
+            // Auto-set status to SENT (Procesado) when operation number is loaded
+            if (labOrderNumber && labOrderNumber.trim() !== '' && !labStatus) {
+                const currentOrder = await prisma.order.findUnique({
+                    where: { id },
+                    select: { labStatus: true }
+                });
+                // Only auto-advance if still in NONE (Pendiente)
+                if (!currentOrder?.labStatus || currentOrder.labStatus === 'NONE') {
+                    data.labStatus = 'SENT';
+                    data.labSentAt = new Date();
+                }
+            }
+        }
         if (prescriptionId !== undefined) data.prescriptionId = prescriptionId;
 
         // Frame data updates

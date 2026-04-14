@@ -20,11 +20,16 @@ interface OrderItem {
         model: string | null;
         category: string;
         type: string | null;
+        laboratory?: string | null;
     } | null;
     sphereVal?: number | null;
     cylinderVal?: number | null;
     axisVal?: number | null;
     additionVal?: number | null;
+    eye?: string | null;
+    pdVal?: number | null;
+    heightVal?: number | null;
+    prismVal?: string | null;
 }
 
 interface Prescription {
@@ -52,6 +57,8 @@ interface Prescription {
     nearAxisOD?: number | null;
     nearCylinderOI?: number | null;
     nearAxisOI?: number | null;
+    prismOD?: string | null;
+    prismOI?: string | null;
 }
 
 interface Order {
@@ -70,6 +77,10 @@ interface Order {
     userFrameBrand?: string | null;
     userFrameModel?: string | null;
     userFrameNotes?: string | null;
+    frameA?: string | null;
+    frameB?: string | null;
+    frameDbl?: string | null;
+    frameEdc?: string | null;
     createdAt: string;
     isDeleted?: boolean;
     deletedReason?: string;
@@ -125,6 +136,7 @@ export default function VentasPage() {
     const [userRole, setUserRole] = useState('STAFF');
     const [loading, setLoading] = useState(true);
     const [invoiceOrder, setInvoiceOrder] = useState<Order | null>(null);
+    const [expandedDetail, setExpandedDetail] = useState<string | null>(null);
 
     const [updatingId, setUpdatingId] = useState<string | null>(null);
 
@@ -757,31 +769,23 @@ export default function VentasPage() {
                                         {order.client.phone && (order.labStatus === 'READY' || financials.hasBalance) && (
                                             <button
                                                 onClick={() => {
-                                                    const isReady = order.labStatus === 'READY';
-                                                    let msg = `*Hola ${order.client.name}* 👋\n\n`;
-                                                    if (isReady) {
-                                                        msg += `Te avisamos que *tu pedido ya está listo para retirar* en *Atelier Óptica* 🎉\n\n`;
-                                                    }
+                                                    let msg = `*Hola ${order.client.name}*\n\n`;
+                                                    msg += `Te avisamos que *tu pedido ya está listo para retirar* en *Atelier Óptica*\n\n`;
                                                     if (financials.hasBalance) {
-                                                        msg += `📋 *Detalle del saldo:*\n`;
-                                                        msg += `• Total (Lista): $${(order.total || 0).toLocaleString()}\n`;
-                                                        msg += `• *Saldo si pagás en EFECTIVO: $${financials.remainingCash.toLocaleString()}*\n`;
-                                                        msg += `• *Saldo con TRANSFERENCIA: $${financials.remainingTransfer.toLocaleString()}*\n`;
+                                                        msg += `*Detalle del saldo:*\n`;
                                                         msg += `• *Saldo con TARJETA / CUOTAS: $${financials.remainingCard.toLocaleString()}*\n`;
-                                                        msg += `\n💳 Podés abonar con cualquier medio de pago.\n`;
-                                                        msg += `👉 *¿Nos podrías avisar cómo quisieras abonar el saldo?*\n\n`;
+                                                        msg += `• *Saldo con TRANSFERENCIA: $${financials.remainingTransfer.toLocaleString()}*\n`;
+                                                        msg += `• *Saldo si pagás en EFECTIVO: $${financials.remainingCash.toLocaleString()}*\n`;
+                                                        msg += `\nPodés abonar con cualquier medio de pago.\n`;
+                                                        msg += `*¿Nos podrías avisar cómo quisieras abonar el saldo?*\n\n`;
                                                     } else {
-                                                        msg += `✅ Tu pedido está *completamente pago*.\n\n`;
+                                                        msg += `Tu pedido está *completamente pago*.\n\n`;
                                                     }
-                                                    if (isReady) {
-                                                        msg += `📍 *Dirección:* José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba\n`;
-                                                        msg += `🗺️ *Ubicación:* https://share.google/j2ZT7ReboDLt7onCp\n`;
-                                                        msg += `🕒 *Horarios:*\n   • Lunes a viernes de 9:00 a 13:30 y de 16:00 a 19:30\n   • Sábados de 10:00 a 14:00 hs\n\n`;
-                                                        msg += `¡Te esperamos! Muchas gracias.\n`;
-                                                    } else {
-                                                        msg += `📍 Te esperamos en la óptica. ¡Muchas gracias!\n`;
-                                                    }
-                                                    msg += `\n_La óptica mejor calificada en Google Business ⭐ 5/5_`;
+                                                    msg += `*Dirección:* José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba\n`;
+                                                    msg += `*Ubicación:* https://share.google/j2ZT7ReboDLt7onCp\n`;
+                                                    msg += `*Horarios:*\n   • Lunes a viernes de 9:00 a 13:30 y de 16:00 a 19:30\n   • Sábados de 10:00 a 14:00 hs\n\n`;
+                                                    msg += `¡Te esperamos! Muchas gracias.\n`;
+                                                    msg += `\n_La óptica mejor calificada en Google Business 5/5_`;
                                                     const phone = (order.client.phone || '').replace(/\D/g, '');
                                                     window.open(`https://wa.me/${phone.startsWith('54') ? phone : '54' + phone}?text=${encodeURIComponent(msg)}`, '_blank');
                                                 }}
@@ -791,6 +795,14 @@ export default function VentasPage() {
                                                 <MessageCircle className="w-4 h-4" />
                                             </button>
                                         )}
+                                        {/* SmartLab detail toggle */}
+                                        <button
+                                            onClick={() => setExpandedDetail(expandedDetail === order.id ? null : order.id)}
+                                            className={`p-3 rounded-xl hover:scale-110 transition-all ${expandedDetail === order.id ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-500/30' : 'bg-indigo-50 dark:bg-indigo-950/30 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100'}`}
+                                            title="Ver detalle para SmartLab"
+                                        >
+                                            <Eye className="w-4 h-4" />
+                                        </button>
                                         <button
                                             onClick={() => downloadLabSheet(order)}
                                             className="p-3 bg-blue-50 text-blue-600 rounded-xl hover:scale-110 transition-all"
@@ -817,6 +829,290 @@ export default function VentasPage() {
                                         )}
                                     </div>
                                 </div>
+
+                                {/* ====== Expandable SmartLab Detail Panel ====== */}
+                                {expandedDetail === order.id && (
+                                    <div className="mt-4 pt-4 border-t-2 border-dashed border-stone-200 dark:border-stone-600 space-y-4 animate-in slide-in-from-top-2 fade-in duration-200">
+                                        {/* Section Header */}
+                                        <div className="flex items-center gap-2 mb-2">
+                                            <FlaskConical className="w-4 h-4 text-indigo-500" />
+                                            <span className="text-[10px] font-black text-indigo-500 uppercase tracking-widest">Detalle para SmartLab</span>
+                                        </div>
+
+                                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                                            {/* ── Column 1: Receta (Prescription) ── */}
+                                            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 rounded-2xl p-4 border border-blue-100 dark:border-blue-900/40">
+                                                <h4 className="text-[9px] font-black text-blue-500 uppercase tracking-widest mb-3 flex items-center gap-1.5">
+                                                    <Eye className="w-3.5 h-3.5" /> Receta
+                                                    {order.prescription?.prescriptionType === 'NEAR' && (
+                                                        <span className="ml-1 px-1.5 py-0.5 bg-amber-100 text-amber-600 rounded text-[7px]">CERCA</span>
+                                                    )}
+                                                </h4>
+                                                {order.prescription ? (
+                                                    <div className="space-y-2">
+                                                        {/* Lejos */}
+                                                        <table className="w-full text-xs">
+                                                            <thead>
+                                                                <tr className="text-[8px] font-black text-stone-400 uppercase tracking-widest">
+                                                                    <th className="text-left py-1">Ojo</th>
+                                                                    <th className="text-center py-1">Esf</th>
+                                                                    <th className="text-center py-1">Cil</th>
+                                                                    <th className="text-center py-1">Eje</th>
+                                                                    <th className="text-center py-1">Add</th>
+                                                                </tr>
+                                                            </thead>
+                                                            <tbody>
+                                                                <tr className="border-t border-blue-100 dark:border-blue-800/30">
+                                                                    <td className="py-1.5 font-black text-blue-600">OD</td>
+                                                                    <td className="py-1.5 text-center font-bold text-stone-800 dark:text-stone-200">{order.prescription.sphereOD != null ? (order.prescription.sphereOD > 0 ? '+' : '') + order.prescription.sphereOD.toFixed(2) : '—'}</td>
+                                                                    <td className="py-1.5 text-center font-bold text-stone-800 dark:text-stone-200">{order.prescription.cylinderOD != null ? order.prescription.cylinderOD.toFixed(2) : '—'}</td>
+                                                                    <td className="py-1.5 text-center font-bold text-stone-800 dark:text-stone-200">{order.prescription.axisOD != null ? order.prescription.axisOD + '°' : '—'}</td>
+                                                                    <td className="py-1.5 text-center font-bold text-stone-800 dark:text-stone-200">{order.prescription.additionOD != null ? '+' + order.prescription.additionOD.toFixed(2) : (order.prescription.addition != null ? '+' + order.prescription.addition.toFixed(2) : '—')}</td>
+                                                                </tr>
+                                                                <tr className="border-t border-blue-100 dark:border-blue-800/30">
+                                                                    <td className="py-1.5 font-black text-blue-600">OI</td>
+                                                                    <td className="py-1.5 text-center font-bold text-stone-800 dark:text-stone-200">{order.prescription.sphereOI != null ? (order.prescription.sphereOI > 0 ? '+' : '') + order.prescription.sphereOI.toFixed(2) : '—'}</td>
+                                                                    <td className="py-1.5 text-center font-bold text-stone-800 dark:text-stone-200">{order.prescription.cylinderOI != null ? order.prescription.cylinderOI.toFixed(2) : '—'}</td>
+                                                                    <td className="py-1.5 text-center font-bold text-stone-800 dark:text-stone-200">{order.prescription.axisOI != null ? order.prescription.axisOI + '°' : '—'}</td>
+                                                                    <td className="py-1.5 text-center font-bold text-stone-800 dark:text-stone-200">{order.prescription.additionOI != null ? '+' + order.prescription.additionOI.toFixed(2) : (order.prescription.addition != null ? '+' + order.prescription.addition.toFixed(2) : '—')}</td>
+                                                                </tr>
+                                                            </tbody>
+                                                        </table>
+
+                                                        {/* Near Rx (if prescriptionType = NEAR) */}
+                                                        {order.prescription.prescriptionType === 'NEAR' && (order.prescription.nearSphereOD != null || order.prescription.nearSphereOI != null) && (
+                                                            <div className="mt-2 pt-2 border-t border-blue-100 dark:border-blue-800/30">
+                                                                <span className="text-[8px] font-black text-amber-500 uppercase tracking-widest">Rx Cerca</span>
+                                                                <table className="w-full text-xs mt-1">
+                                                                    <tbody>
+                                                                        <tr>
+                                                                            <td className="py-1 font-black text-amber-600 w-8">OD</td>
+                                                                            <td className="py-1 text-center font-bold">{order.prescription.nearSphereOD != null ? (order.prescription.nearSphereOD > 0 ? '+' : '') + order.prescription.nearSphereOD.toFixed(2) : '—'}</td>
+                                                                            <td className="py-1 text-center font-bold">{order.prescription.nearCylinderOD != null ? order.prescription.nearCylinderOD.toFixed(2) : '—'}</td>
+                                                                            <td className="py-1 text-center font-bold">{order.prescription.nearAxisOD != null ? order.prescription.nearAxisOD + '°' : '—'}</td>
+                                                                        </tr>
+                                                                        <tr className="border-t border-amber-100 dark:border-amber-800/30">
+                                                                            <td className="py-1 font-black text-amber-600 w-8">OI</td>
+                                                                            <td className="py-1 text-center font-bold">{order.prescription.nearSphereOI != null ? (order.prescription.nearSphereOI > 0 ? '+' : '') + order.prescription.nearSphereOI.toFixed(2) : '—'}</td>
+                                                                            <td className="py-1 text-center font-bold">{order.prescription.nearCylinderOI != null ? order.prescription.nearCylinderOI.toFixed(2) : '—'}</td>
+                                                                            <td className="py-1 text-center font-bold">{order.prescription.nearAxisOI != null ? order.prescription.nearAxisOI + '°' : '—'}</td>
+                                                                        </tr>
+                                                                    </tbody>
+                                                                </table>
+                                                            </div>
+                                                        )}
+
+                                                        {/* Prismas */}
+                                                        {(order.prescription.prismOD || order.prescription.prismOI) && (
+                                                            <div className="mt-2 pt-2 border-t border-blue-100 dark:border-blue-800/30 flex gap-4">
+                                                                <div>
+                                                                    <span className="text-[7px] font-black text-stone-400 uppercase">Prisma OD</span>
+                                                                    <p className="text-xs font-bold text-stone-800 dark:text-stone-200">{order.prescription.prismOD || '—'}</p>
+                                                                </div>
+                                                                <div>
+                                                                    <span className="text-[7px] font-black text-stone-400 uppercase">Prisma OI</span>
+                                                                    <p className="text-xs font-bold text-stone-800 dark:text-stone-200">{order.prescription.prismOI || '—'}</p>
+                                                                </div>
+                                                            </div>
+                                                        )}
+
+                                                        {order.prescription.notes && (
+                                                            <div className="mt-2 pt-2 border-t border-blue-100 dark:border-blue-800/30">
+                                                                <span className="text-[7px] font-black text-stone-400 uppercase">Notas Rx</span>
+                                                                <p className="text-[11px] text-stone-600 dark:text-stone-400 mt-0.5">{order.prescription.notes}</p>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                ) : (
+                                                    <p className="text-xs text-stone-400 italic">Sin receta cargada</p>
+                                                )}
+                                            </div>
+
+                                            {/* ── Column 2: Distancias y Alturas Pupilares ── */}
+                                            <div className="bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-950/30 dark:to-teal-950/30 rounded-2xl p-4 border border-emerald-100 dark:border-emerald-900/40">
+                                                <h4 className="text-[9px] font-black text-emerald-500 uppercase tracking-widest mb-3 flex items-center gap-1.5">
+                                                    <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="8" cy="12" r="3"/><circle cx="16" cy="12" r="3"/><path d="M11 12h2"/></svg>
+                                                    Distancias y Alturas
+                                                </h4>
+
+                                                {/* DNP */}
+                                                <div className="mb-3">
+                                                    <span className="text-[8px] font-black text-stone-400 uppercase tracking-widest">Dist. Pupilar (DNP)</span>
+                                                    <div className="grid grid-cols-2 gap-3 mt-1.5">
+                                                        <div className="bg-white/60 dark:bg-stone-800/40 rounded-xl px-3 py-2 text-center">
+                                                            <span className="text-[7px] font-black text-emerald-500 uppercase block">OD</span>
+                                                            <span className="text-lg font-black text-stone-800 dark:text-white">
+                                                                {order.prescription?.distanceOD != null ? order.prescription.distanceOD : (order.labPdOd || '—')}
+                                                            </span>
+                                                            <span className="text-[8px] text-stone-400 ml-0.5">mm</span>
+                                                        </div>
+                                                        <div className="bg-white/60 dark:bg-stone-800/40 rounded-xl px-3 py-2 text-center">
+                                                            <span className="text-[7px] font-black text-emerald-500 uppercase block">OI</span>
+                                                            <span className="text-lg font-black text-stone-800 dark:text-white">
+                                                                {order.prescription?.distanceOI != null ? order.prescription.distanceOI : (order.labPdOi || '—')}
+                                                            </span>
+                                                            <span className="text-[8px] text-stone-400 ml-0.5">mm</span>
+                                                        </div>
+                                                    </div>
+                                                    {order.prescription?.pd != null && (
+                                                        <div className="mt-1 text-center">
+                                                            <span className="text-[7px] font-black text-stone-400 uppercase">Total: </span>
+                                                            <span className="text-xs font-black text-stone-700 dark:text-stone-300">{order.prescription.pd} mm</span>
+                                                        </div>
+                                                    )}
+                                                </div>
+
+                                                {/* Alturas */}
+                                                <div className="pt-3 border-t border-emerald-100 dark:border-emerald-800/30">
+                                                    <span className="text-[8px] font-black text-stone-400 uppercase tracking-widest">Alturas Pupilares</span>
+                                                    <div className="grid grid-cols-2 gap-3 mt-1.5">
+                                                        <div className="bg-white/60 dark:bg-stone-800/40 rounded-xl px-3 py-2 text-center">
+                                                            <span className="text-[7px] font-black text-teal-500 uppercase block">OD</span>
+                                                            <span className="text-lg font-black text-stone-800 dark:text-white">
+                                                                {order.prescription?.heightOD != null ? order.prescription.heightOD : '—'}
+                                                            </span>
+                                                            <span className="text-[8px] text-stone-400 ml-0.5">mm</span>
+                                                        </div>
+                                                        <div className="bg-white/60 dark:bg-stone-800/40 rounded-xl px-3 py-2 text-center">
+                                                            <span className="text-[7px] font-black text-teal-500 uppercase block">OI</span>
+                                                            <span className="text-lg font-black text-stone-800 dark:text-white">
+                                                                {order.prescription?.heightOI != null ? order.prescription.heightOI : '—'}
+                                                            </span>
+                                                            <span className="text-[8px] text-stone-400 ml-0.5">mm</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {/* ── Column 3: Armazón & Cristales ── */}
+                                            <div className="bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-950/30 dark:to-orange-950/30 rounded-2xl p-4 border border-amber-100 dark:border-amber-900/40">
+                                                <h4 className="text-[9px] font-black text-amber-500 uppercase tracking-widest mb-3 flex items-center gap-1.5">
+                                                    <Package className="w-3.5 h-3.5" /> Armazón & Cristales
+                                                </h4>
+
+                                                {/* Frame Info */}
+                                                <div className="mb-3">
+                                                    <span className="text-[8px] font-black text-stone-400 uppercase tracking-widest">Armazón</span>
+                                                    {(() => {
+                                                        const frameItems = order.items.filter(i => i.product?.category === 'FRAME' || i.product?.category === 'ATELIER');
+                                                        const hasUserFrame = order.frameSource === 'USUARIO';
+                                                        return (
+                                                            <div className="mt-1 space-y-1">
+                                                                {frameItems.map(fi => (
+                                                                    <div key={fi.id} className="bg-white/60 dark:bg-stone-800/40 rounded-lg px-3 py-1.5">
+                                                                        <span className="text-xs font-bold text-stone-800 dark:text-stone-200">{fi.product?.brand} {fi.product?.model || fi.product?.name}</span>
+                                                                    </div>
+                                                                ))}
+                                                                {hasUserFrame && (
+                                                                    <div className="bg-white/60 dark:bg-stone-800/40 rounded-lg px-3 py-1.5">
+                                                                        <span className="text-[7px] font-black text-amber-500 uppercase">Armazón del cliente</span>
+                                                                        <p className="text-xs font-bold text-stone-800 dark:text-stone-200">
+                                                                            {[order.userFrameBrand, order.userFrameModel].filter(Boolean).join(' ') || 'Sin detalle'}
+                                                                        </p>
+                                                                        {order.userFrameNotes && <p className="text-[10px] text-stone-500 mt-0.5">{order.userFrameNotes}</p>}
+                                                                    </div>
+                                                                )}
+                                                                {frameItems.length === 0 && !hasUserFrame && (
+                                                                    <p className="text-xs text-stone-400 italic mt-1">Sin armazón</p>
+                                                                )}
+                                                            </div>
+                                                        );
+                                                    })()}
+
+                                                    {/* Frame Measurements */}
+                                                    {(order.frameA || order.frameB || order.frameDbl) && (
+                                                        <div className="flex gap-2 mt-2 flex-wrap">
+                                                            {order.frameA && (
+                                                                <div className="bg-white/60 dark:bg-stone-800/40 rounded-lg px-2 py-1 text-center">
+                                                                    <span className="text-[7px] font-black text-stone-400 block">A</span>
+                                                                    <span className="text-[11px] font-bold text-stone-700 dark:text-stone-300">{order.frameA}</span>
+                                                                </div>
+                                                            )}
+                                                            {order.frameB && (
+                                                                <div className="bg-white/60 dark:bg-stone-800/40 rounded-lg px-2 py-1 text-center">
+                                                                    <span className="text-[7px] font-black text-stone-400 block">B</span>
+                                                                    <span className="text-[11px] font-bold text-stone-700 dark:text-stone-300">{order.frameB}</span>
+                                                                </div>
+                                                            )}
+                                                            {order.frameDbl && (
+                                                                <div className="bg-white/60 dark:bg-stone-800/40 rounded-lg px-2 py-1 text-center">
+                                                                    <span className="text-[7px] font-black text-stone-400 block">DBL</span>
+                                                                    <span className="text-[11px] font-bold text-stone-700 dark:text-stone-300">{order.frameDbl}</span>
+                                                                </div>
+                                                            )}
+                                                            {order.frameEdc && (
+                                                                <div className="bg-white/60 dark:bg-stone-800/40 rounded-lg px-2 py-1 text-center">
+                                                                    <span className="text-[7px] font-black text-stone-400 block">EDC</span>
+                                                                    <span className="text-[11px] font-bold text-stone-700 dark:text-stone-300">{order.frameEdc}</span>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                </div>
+
+                                                {/* Cristales */}
+                                                <div className="pt-3 mt-3 border-t border-amber-100 dark:border-amber-800/30">
+                                                    <span className="text-[8px] font-black text-stone-400 uppercase tracking-widest">Cristales</span>
+                                                    {(() => {
+                                                        const lensItems = order.items.filter(i => i.product?.category === 'LENS');
+                                                        if (lensItems.length === 0) return <p className="text-xs text-stone-400 italic mt-1">Sin cristales</p>;
+                                                        return (
+                                                            <div className="mt-1 space-y-1">
+                                                                {lensItems.map(li => (
+                                                                    <div key={li.id} className="bg-white/60 dark:bg-stone-800/40 rounded-lg px-3 py-1.5">
+                                                                        <div className="flex items-center justify-between">
+                                                                            <span className="text-xs font-bold text-stone-800 dark:text-stone-200">{li.product?.brand} {li.product?.model || li.product?.name}</span>
+                                                                            {li.product?.laboratory && (
+                                                                                <span className="text-[7px] font-black uppercase tracking-wider px-1.5 py-0.5 bg-amber-100 dark:bg-amber-900/30 text-amber-600 rounded">{li.product.laboratory}</span>
+                                                                            )}
+                                                                        </div>
+                                                                        <div className="flex items-center gap-2 mt-0.5 text-[10px] text-stone-500">
+                                                                            {li.product?.type && <span>{li.product.type}</span>}
+                                                                            {li.eye && <span className="font-bold text-blue-500">({li.eye})</span>}
+                                                                            <span>x{li.quantity}</span>
+                                                                        </div>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        );
+                                                    })()}
+                                                </div>
+
+                                                {/* Lab extra info */}
+                                                {(order.labColor || order.labTreatment || order.labDiameter) && (
+                                                    <div className="pt-3 mt-3 border-t border-amber-100 dark:border-amber-800/30">
+                                                        <span className="text-[8px] font-black text-stone-400 uppercase tracking-widest">Info Lab</span>
+                                                        <div className="flex flex-wrap gap-2 mt-1">
+                                                            {order.labColor && (
+                                                                <span className="text-[10px] font-bold bg-white/60 dark:bg-stone-800/40 px-2 py-0.5 rounded-lg">Color: {order.labColor}</span>
+                                                            )}
+                                                            {order.labTreatment && (
+                                                                <span className="text-[10px] font-bold bg-white/60 dark:bg-stone-800/40 px-2 py-0.5 rounded-lg">Trat: {order.labTreatment}</span>
+                                                            )}
+                                                            {order.labDiameter && (
+                                                                <span className="text-[10px] font-bold bg-white/60 dark:bg-stone-800/40 px-2 py-0.5 rounded-lg">Ø: {order.labDiameter}</span>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        {/* Full Items List (all non-lens items like accessories) */}
+                                        {order.items.filter(i => i.product?.category !== 'LENS' && i.product?.category !== 'FRAME' && i.product?.category !== 'ATELIER').length > 0 && (
+                                            <div className="mt-2">
+                                                <span className="text-[8px] font-black text-stone-400 uppercase tracking-widest">Otros Items</span>
+                                                <div className="flex flex-wrap gap-2 mt-1">
+                                                    {order.items.filter(i => i.product?.category !== 'LENS' && i.product?.category !== 'FRAME' && i.product?.category !== 'ATELIER').map(oi => (
+                                                        <span key={oi.id} className="text-[10px] font-bold bg-stone-100 dark:bg-stone-700 px-2 py-1 rounded-lg text-stone-600 dark:text-stone-300">
+                                                            {oi.product?.brand} {oi.product?.model || oi.product?.name} x{oi.quantity}
+                                                        </span>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
                             </div>
                         );
                     })}

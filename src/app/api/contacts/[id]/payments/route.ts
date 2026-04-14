@@ -18,8 +18,8 @@ export async function POST(
             return NextResponse.json({ error: 'El monto del pago debe ser mayor a 0' }, { status: 400 });
         }
 
-        const payment = await ContactService.addPayment(orderId, amount, method, notes, receiptUrl);
-        return NextResponse.json(payment);
+        const result = await ContactService.addPayment(orderId, amount, method, notes, receiptUrl);
+        return NextResponse.json(result);
     } catch (error) {
         return NextResponse.json({ error: 'Error al registrar pago' }, { status: 500 });
     }

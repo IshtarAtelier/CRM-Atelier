@@ -133,7 +133,7 @@ export default function TaskManager({ tasks, contact, onAddTask, onToggleTask }:
                                     <button
                                         onClick={(e) => {
                                             e.stopPropagation();
-                                            const message = `Hola ${contact.name.split(' ')[0]} Te molesto un segundito para que compartas tu experiencia de de compra en nuestro perfil de Google y sobre mi atencion:\n👉 https://g.page/r/CcVls8v7ic_NEBM/review\nNos suma muchisimo para seguir creciendo\nEspero tu comentario 🤍✨🫶`;
+                                            const message = `Hola ${contact.name.split(' ')[0]} Te molesto un segundito para que compartas tu experiencia de compra en nuestro perfil de Google y sobre mi atencion:\n👉 https://g.page/r/CcVls8v7ic_NEBM/review\nNos suma muchisimo para seguir creciendo\nEspero tu comentario 🤍✨🫶`;
                                             const phone = contact.phone.replace(/\D/g, '');
                                             window.open(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`, '_blank');
                                         }}

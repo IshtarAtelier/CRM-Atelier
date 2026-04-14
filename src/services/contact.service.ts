@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/db';
 import { CashService } from './cash.service';
+import { ISH_POSNET_THRESHOLD, ISH_POSNET_METHODS } from '@/lib/constants';
 
 export interface ContactCreateData {
     name: string;
@@ -591,7 +592,46 @@ export const ContactService = {
                 });
             }
 
-            return payment;
+            // ISH POSNET THRESHOLD MONITORING
+            let thresholdReached = false;
+            if (ISH_POSNET_METHODS.includes(method)) {
+                const now = new Date();
+                const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+                
+                const ishPayments = await tx.payment.findMany({
+                    where: {
+                        method: { in: ISH_POSNET_METHODS },
+                        date: { gte: startOfMonth }
+                    },
+                    select: { amount: true }
+                });
+
+                const totalIsh = ishPayments.reduce((acc, p) => acc + p.amount, 0);
+
+                if (totalIsh >= ISH_POSNET_THRESHOLD) {
+                    // Check if notification already exists for this month
+                    const existingNote = await tx.notification.findFirst({
+                        where: {
+                            type: 'ISH_THRESHOLD_REACHED',
+                            createdAt: { gte: startOfMonth }
+                        }
+                    });
+
+                    if (!existingNote) {
+                        await tx.notification.create({
+                            data: {
+                                type: 'ISH_THRESHOLD_REACHED',
+                                message: `ya completaste el objetivo en POSNET ISH AHORA PASA A posnet yani`,
+                                requestedBy: 'SISTEMA (Auto)',
+                                status: 'PENDING'
+                            }
+                        });
+                        thresholdReached = true;
+                    }
+                }
+            }
+
+            return { ...payment, thresholdReached };
         });
     },
 

@@ -186,50 +186,37 @@ export default function Home() {
               </div>
             </div>
 
-            <div className="space-y-8">
-              {/* Objetivo 1 (Always shown but simplified for STAFF) */}
-              <div className="space-y-4 max-w-4xl mx-auto">
-                <div className="flex justify-between items-end">
-                  <div>
-                    <p className="text-[10px] font-black uppercase tracking-widest text-stone-400 mb-1">
-                      {isAdmin ? 'Primer Objetivo' : 'Meta del Mes'}
+            <div className="space-y-8 w-full">
+              {isAdmin ? (
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 pt-4 border-t border-white/5 mt-8">
+                  {/* Primer Objetivo */}
+                  <div className="space-y-4 bg-white/5 p-6 rounded-3xl border border-white/10 hover:border-white/20 transition-all">
+                    <div className="flex justify-between items-end">
+                      <div>
+                        <p className="text-[10px] font-black uppercase tracking-widest text-stone-400 mb-1">Primer Objetivo</p>
+                        <h3 className="text-2xl font-black italic">${t1.toLocaleString()}</h3>
+                        {toUSD(t1) && <p className="text-[11px] font-bold text-emerald-400/70 mt-0.5">≈ USD {Math.round(toUSD(t1)!).toLocaleString()}</p>}
+                      </div>
+                      <div className="text-right">
+                        <span className={`text-3xl font-black ${progress1 >= 100 ? 'text-emerald-400' : 'text-primary'}`}>
+                          {progress1.toFixed(0)}%
+                        </span>
+                      </div>
+                    </div>
+                    <div className="h-4 bg-white/5 rounded-full overflow-hidden p-1 backdrop-blur-sm border border-white/10">
+                      <div 
+                        className={`h-full rounded-full transition-all duration-1000 ease-out shadow-[0_0_15px_rgba(var(--primary),0.5)] ${progress1 >= 100 ? 'bg-emerald-500' : 'bg-primary'}`}
+                        style={{ width: `${progress1}%` }}
+                      />
+                    </div>
+                    <p className="text-[9px] font-bold text-stone-500 uppercase tracking-tighter">
+                      {progress1 >= 100 ? '¡Objetivo Alcanzado!' : `Faltan $${Math.max(t1 - currentTotal, 0).toLocaleString()} para la meta.`}
+                      {toUSD(currentTotal) && <span className="ml-2 text-emerald-400/50">· Facturado: USD {Math.round(toUSD(currentTotal)!).toLocaleString()}</span>}
                     </p>
-                    {isAdmin ? (
-                      <h3 className="text-2xl font-black italic">${t1.toLocaleString()}</h3>
-                    ) : (
-                      <h3 className="text-2xl font-black italic uppercase tracking-tighter text-primary">Camino al Objetivo</h3>
-                    )}
-                    {isAdmin && toUSD(t1) && <p className="text-[11px] font-bold text-emerald-400/70 mt-0.5">≈ USD {Math.round(toUSD(t1)!).toLocaleString()}</p>}
                   </div>
-                  <div className="text-right">
-                    <span className={`text-4xl font-black ${progress1 >= 100 ? 'text-emerald-400' : 'text-primary'}`}>
-                      {progress1.toFixed(0)}%
-                    </span>
-                  </div>
-                </div>
-                <div className="h-6 bg-white/5 rounded-full overflow-hidden p-1.5 backdrop-blur-sm border border-white/10">
-                  <div 
-                    className={`h-full rounded-full transition-all duration-1000 ease-out shadow-[0_0_15px_rgba(var(--primary),0.5)] ${progress1 >= 100 ? 'bg-emerald-500' : 'bg-primary'}`}
-                    style={{ width: `${progress1}%` }}
-                  />
-                </div>
-                {!isAdmin && (
-                  <p className="text-[10px] font-bold text-stone-500 uppercase tracking-widest text-center">
-                    {progress1 >= 100 ? '¡Objetivo Principal alcanzado! 🏆' : '¡Seguí sumando ventas para alcanzar la meta!'}
-                  </p>
-                )}
-                {isAdmin && (
-                  <p className="text-[9px] font-bold text-stone-500 uppercase tracking-tighter">
-                    {progress1 >= 100 ? '¡Objetivo Alcanzado!' : `Faltan $${Math.max(t1 - currentTotal, 0).toLocaleString()} para la meta.`}
-                    {toUSD(currentTotal) && <span className="ml-2 text-emerald-400/50">· Facturado: USD {Math.round(toUSD(currentTotal)!).toLocaleString()}</span>}
-                  </p>
-                )}
-              </div>
 
-              {/* Objetivos 2 & 3 only for Admin to keep Staff dashboard clean and avoid reveal */}
-              {isAdmin && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-8 border-t border-white/5">
-                  <div className="space-y-4">
+                  {/* Segundo Objetivo */}
+                  <div className="space-y-4 bg-white/5 p-6 rounded-3xl border border-white/10 hover:border-white/20 transition-all">
                     <div className="flex justify-between items-end">
                       <div>
                         <p className="text-[10px] font-black uppercase tracking-widest text-stone-400 mb-1">Segundo Objetivo (Stretch)</p>
@@ -237,7 +224,7 @@ export default function Home() {
                         {toUSD(t2) && <p className="text-[11px] font-bold text-emerald-400/70 mt-0.5">≈ USD {Math.round(toUSD(t2)!).toLocaleString()}</p>}
                       </div>
                       <div className="text-right">
-                        <span className={`text-2xl font-black ${progress2 >= 100 ? 'text-emerald-400' : 'text-stone-400'}`}>
+                        <span className={`text-3xl font-black ${progress2 >= 100 ? 'text-emerald-400' : 'text-stone-400'}`}>
                           {progress2.toFixed(1)}%
                         </span>
                       </div>
@@ -248,9 +235,13 @@ export default function Home() {
                         style={{ width: `${progress2}%` }}
                       />
                     </div>
+                    <p className="text-[9px] font-bold text-stone-500 uppercase tracking-tighter">
+                      {progress2 >= 100 ? '¡Objetivo Alcanzado!' : `Faltan $${Math.max(t2 - currentTotal, 0).toLocaleString()} para la meta.`}
+                    </p>
                   </div>
 
-                  <div className="space-y-4">
+                  {/* Tercer Objetivo */}
+                  <div className="space-y-4 bg-white/5 p-6 rounded-3xl border border-white/10 hover:border-white/20 transition-all">
                     <div className="flex justify-between items-end">
                       <div>
                         <p className="text-[10px] font-black uppercase tracking-widest text-stone-400 mb-1">Tercer Objetivo (Elite)</p>
@@ -258,7 +249,7 @@ export default function Home() {
                         {toUSD(t3) && <p className="text-[11px] font-bold text-emerald-400/70 mt-0.5">≈ USD {Math.round(toUSD(t3)!).toLocaleString()}</p>}
                       </div>
                       <div className="text-right">
-                        <span className={`text-2xl font-black ${progress3 >= 100 ? 'text-emerald-400' : 'text-stone-500'}`}>
+                        <span className={`text-3xl font-black ${progress3 >= 100 ? 'text-emerald-400' : 'text-stone-500'}`}>
                           {progress3.toFixed(1)}%
                         </span>
                       </div>
@@ -269,7 +260,33 @@ export default function Home() {
                         style={{ width: `${progress3}%` }}
                       />
                     </div>
+                    <p className="text-[9px] font-bold text-stone-500 uppercase tracking-tighter">
+                      {progress3 >= 100 ? '¡Objetivo Alcanzado!' : `Faltan $${Math.max(t3 - currentTotal, 0).toLocaleString()} para la meta.`}
+                    </p>
                   </div>
+                </div>
+              ) : (
+                <div className="space-y-4 max-w-4xl mx-auto">
+                  <div className="flex justify-between items-end">
+                    <div>
+                      <p className="text-[10px] font-black uppercase tracking-widest text-stone-400 mb-1">Meta del Mes</p>
+                      <h3 className="text-2xl font-black italic uppercase tracking-tighter text-primary">Camino al Objetivo</h3>
+                    </div>
+                    <div className="text-right">
+                      <span className={`text-4xl font-black ${progress1 >= 100 ? 'text-emerald-400' : 'text-primary'}`}>
+                        {progress1.toFixed(0)}%
+                      </span>
+                    </div>
+                  </div>
+                  <div className="h-6 bg-white/5 rounded-full overflow-hidden p-1.5 backdrop-blur-sm border border-white/10">
+                    <div 
+                      className={`h-full rounded-full transition-all duration-1000 ease-out shadow-[0_0_15px_rgba(var(--primary),0.5)] ${progress1 >= 100 ? 'bg-emerald-500' : 'bg-primary'}`}
+                      style={{ width: `${progress1}%` }}
+                    />
+                  </div>
+                  <p className="text-[10px] font-bold text-stone-500 uppercase tracking-widest text-center">
+                    {progress1 >= 100 ? '¡Objetivo Principal alcanzado! 🏆' : '¡Seguí sumando ventas para alcanzar la meta!'}
+                  </p>
                 </div>
               )}
             </div>
@@ -328,7 +345,7 @@ export default function Home() {
               Métricas — {periodLabel}
             </h2>
           </div>
-          <div className={`grid grid-cols-1 md:grid-cols-3 gap-6 transition-opacity duration-300 ${loading ? 'opacity-50' : 'opacity-100'}`}>
+          <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 transition-opacity duration-300 ${loading ? 'opacity-50' : 'opacity-100'}`}>
             <StatsCard
               title="Total Facturado"
               value={`$${d.totalSoldMonth.toLocaleString()}`}
@@ -349,6 +366,13 @@ export default function Home() {
               icon={Percent}
               trend={d.ticketPromedioMonth > 0 ? 'Activo' : '—'}
               sub="Por operación"
+            />
+            <StatsCard
+              title="Nuevos Contactos"
+              value={d.funnel.contacts}
+              icon={User}
+              trend={`${d.funnel.contacts}`}
+              sub="Ingresados en período"
             />
           </div>
         </section>
@@ -403,9 +427,9 @@ export default function Home() {
         </section>
       )}
 
-      <div className={`grid grid-cols-1 md:grid-cols-2 gap-8 transition-opacity duration-300 ${loading ? 'opacity-50' : 'opacity-100'}`}>
+      <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 transition-opacity duration-300 ${loading ? 'opacity-50' : 'opacity-100'}`}>
         {/* Conversion Funnel */}
-        <section className="bg-sidebar border border-sidebar-border rounded-2xl p-7 shadow-sm">
+        <section className="bg-sidebar border border-sidebar-border rounded-2xl p-7 shadow-sm md:col-span-1 lg:col-span-1">
           <div className="flex flex-wrap items-center gap-3 mb-6">
             <ArrowUpRight className="text-primary w-5 h-5" />
             <h2 className="text-xs font-black uppercase tracking-[0.2em] text-stone-400">Embudo de Conversión</h2>
@@ -459,7 +483,7 @@ export default function Home() {
         </section>
 
         {/* 3. Venta por Tipo de Producto — Hide values for Staff */}
-        <div className="bg-sidebar border border-sidebar-border rounded-2xl p-7 shadow-sm">
+        <div className="bg-sidebar border border-sidebar-border rounded-2xl p-7 shadow-sm md:col-span-1 lg:col-span-1">
           <div className="flex items-center gap-2 mb-8">
             <Layers className="text-stone-600 w-5 h-5" />
             <h2 className="text-sm font-black uppercase tracking-widest">Ventas por Tipo</h2>
@@ -492,6 +516,34 @@ export default function Home() {
           )}
         </div>
 
+        {/* 4. Venta por Etiquetas — Hide values for Staff */}
+        <div className="bg-sidebar border border-sidebar-border rounded-2xl p-7 shadow-sm md:col-span-2 lg:col-span-1">
+          <div className="flex items-center gap-2 mb-8">
+            <Tag className="text-stone-600 w-5 h-5" />
+            <h2 className="text-sm font-black uppercase tracking-widest">Desempeño por Etiqueta</h2>
+          </div>
+          {d.tagStats.length > 0 ? (
+            <div className="space-y-3">
+              {d.tagStats.sort((a, b) => b.total - a.total).slice(0, 5).map((tag) => {
+                return (
+                  <div key={tag.name} className="flex items-center justify-between p-4 rounded-xl bg-stone-50 dark:bg-stone-800/40 hover:bg-stone-100 dark:hover:bg-stone-800 transition-all border border-transparent hover:border-sidebar-border group">
+                    <div>
+                      <h4 className="font-black text-xs uppercase group-hover:text-primary transition-colors tracking-tight">{tag.name}</h4>
+                      <p className="text-[9px] text-foreground/40 font-bold tracking-widest">{tag.count} VENTAS</p>
+                    </div>
+                    {isAdmin && (
+                      <div className="text-right">
+                        <div className="font-black text-sm text-stone-800 dark:text-stone-200 tracking-tight">${tag.total.toLocaleString()}</div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <EmptyState message="Sin datos de etiquetas en los pedidos." />
+          )}
+        </div>
       </div>
 
       {/* REPORTE HISTÓRICO MES A MES — Only for Admin */}
