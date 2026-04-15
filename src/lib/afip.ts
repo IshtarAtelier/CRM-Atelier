@@ -51,17 +51,13 @@ export function getAfipInstance(account: BillingAccount = 'ISH'): any {
                 : (process.env.AFIP_ACCESS_TOKEN_YANI || ''),
         };
 
-        // Producción: certificados por cuenta
-        const certEnv = `AFIP_CERT_${account}`;
-        const keyEnv = `AFIP_KEY_${account}`;
-        
-        if (process.env[certEnv] && process.env[keyEnv]) {
-            config.cert = process.env[certEnv];
-            config.key = process.env[keyEnv];
-            config.production = true; // Activar producción si hay certificados
+        // Producción automática: Afip SDK >1.0 ya no requiere archivos locales cert/key
+        // Se activa con una simple variable de entorno
+        if (process.env.AFIP_PRODUCTION_MODE === 'true') {
+            config.production = true;
             console.log(`[AFIP] Instancia ${account} configurada en MODO PRODUCCIÓN`);
         } else {
-            console.log(`[AFIP] Instancia ${account} configurada en MODO SANDBOX (Faltan certificados)`);
+            console.log(`[AFIP] Instancia ${account} configurada en MODO SANDBOX (Pruebas)`);
         }
 
         afipInstances[account] = new Afip(config);
