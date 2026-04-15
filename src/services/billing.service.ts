@@ -231,6 +231,8 @@ export const BillingService = {
                 CAEFchVto: invoice.caeExpiration.replace(/-/g, ''),
                 DocTipo: invoice.docType,
                 DocNro: invoice.docNumber,
+                condicion_venta: 'Otra', // requested by user to show "Otros" on printed invoice
+                forma_de_pago: 'Otra',
                 items: invoice.order.items.map((item: any) => ({
                     description: `${item.product?.brand || ''} ${item.product?.model || item.product?.name || ''}`.trim(),
                     quantity: item.quantity,

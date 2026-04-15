@@ -162,6 +162,21 @@ export default function BillingPage() {
         );
     }
 
+    const currentMonth = new Date().getMonth();
+    const currentYear = new Date().getFullYear();
+
+    const monthlyStats = completedInvoices.reduce((acc, order) => {
+        const invoice = order.invoices?.find(inv => inv.status === 'COMPLETED');
+        if (invoice) {
+            const invDate = new Date(invoice.createdAt);
+            if (invDate.getMonth() === currentMonth && invDate.getFullYear() === currentYear) {
+                if (invoice.billingAccount === 'ISH') acc.ishCount++;
+                if (invoice.billingAccount === 'YANI') acc.yaniCount++;
+            }
+        }
+        return acc;
+    }, { ishCount: 0, yaniCount: 0 });
+
     return (
         <div className="p-6 lg:p-10 max-w-7xl mx-auto">
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10">
@@ -175,19 +190,35 @@ export default function BillingPage() {
                     </p>
                 </div>
 
-                <div className="flex bg-stone-100 dark:bg-stone-800 p-1.5 rounded-[2rem] shadow-inner">
-                    <button 
-                        onClick={() => setActiveTab('pending')}
-                        className={`px-8 py-3 rounded-[1.5rem] text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'pending' ? 'bg-white dark:bg-stone-700 text-blue-600 shadow-md scale-[1.02]' : 'text-stone-400 hover:text-stone-600'}`}
-                    >
-                        Solicitudes Pendientes ({pendingRequests.length})
-                    </button>
-                    <button 
-                        onClick={() => setActiveTab('completed')}
-                        className={`px-8 py-3 rounded-[1.5rem] text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'completed' ? 'bg-white dark:bg-stone-700 text-emerald-600 shadow-md scale-[1.02]' : 'text-stone-400 hover:text-stone-600'}`}
-                    >
-                        Facturas Emitidas
-                    </button>
+                <div className="flex flex-col items-end gap-4">
+                    <div className="flex bg-stone-100 dark:bg-stone-800 p-1.5 rounded-[2rem] shadow-inner">
+                        <button 
+                            onClick={() => setActiveTab('pending')}
+                            className={`px-8 py-3 rounded-[1.5rem] text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'pending' ? 'bg-white dark:bg-stone-700 text-blue-600 shadow-md scale-[1.02]' : 'text-stone-400 hover:text-stone-600'}`}
+                        >
+                            Solicitudes Pendientes ({pendingRequests.length})
+                        </button>
+                        <button 
+                            onClick={() => setActiveTab('completed')}
+                            className={`px-8 py-3 rounded-[1.5rem] text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'completed' ? 'bg-white dark:bg-stone-700 text-emerald-600 shadow-md scale-[1.02]' : 'text-stone-400 hover:text-stone-600'}`}
+                        >
+                            Facturas Emitidas
+                        </button>
+                    </div>
+
+                    <div className="flex items-center gap-3 bg-indigo-50 dark:bg-indigo-900/20 px-4 py-2 rounded-2xl border border-indigo-100 dark:border-indigo-900/40">
+                        <span className="text-[10px] font-black uppercase tracking-widest text-indigo-600/70 dark:text-indigo-400/70">
+                            Facturas del Mes:
+                        </span>
+                        <div className="flex items-center gap-4">
+                            <span className="text-xs font-black text-indigo-700 dark:text-indigo-300">
+                                YANI: <span className="bg-indigo-100 dark:bg-indigo-800/50 px-2 py-0.5 rounded-lg ml-1">{monthlyStats.yaniCount}</span>
+                            </span>
+                            <span className="text-xs font-black text-indigo-700 dark:text-indigo-300">
+                                ISH: <span className="bg-indigo-100 dark:bg-indigo-800/50 px-2 py-0.5 rounded-lg ml-1">{monthlyStats.ishCount}</span>
+                            </span>
+                        </div>
+                    </div>
                 </div>
             </div>
 
