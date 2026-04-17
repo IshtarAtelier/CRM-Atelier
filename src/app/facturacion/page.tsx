@@ -1,11 +1,12 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { 
     Receipt, Search, Filter, Calendar, User, 
     CreditCard, CheckCircle2, AlertCircle, 
     ChevronRight, ArrowRight, Download, Eye,
-    Plus, Loader2, X
+    Plus, Loader2, X, Image as ImageIcon
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -28,6 +29,7 @@ interface Order {
         amount: number;
         method: string;
         createdAt: string;
+        receiptUrl?: string | null;
     }[];
     invoices: {
         id: string;
@@ -41,6 +43,7 @@ interface Order {
 }
 
 export default function BillingPage() {
+    const router = useRouter();
     const [orders, setOrders] = useState<Order[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
@@ -262,7 +265,7 @@ export default function BillingPage() {
                                     </div>
                                     <div>
                                         <h3 className="font-black text-stone-800 dark:text-white flex items-center gap-2 tracking-tight">
-                                            {req.order.client.name}
+                                            <span className="cursor-pointer hover:text-blue-600 hover:underline transition-colors" onClick={(e) => { e.stopPropagation(); router.push(`/contactos?id=${req.order.client.id}`); }}>{req.order.client.name}</span>
                                             <span className="text-[9px] px-2 py-1 rounded-full bg-blue-100 text-blue-600 uppercase tracking-widest">
                                                 {req.requestedBy === 'SISTEMA (Auto)' ? 'AUTOMÁTICA' : 'MANUAL'}
                                             </span>
@@ -286,6 +289,19 @@ export default function BillingPage() {
                                     </div>
                                     <div className="text-[8px] font-black text-stone-400 uppercase tracking-widest">Monto de Comprobante</div>
                                 </div>
+
+                                {/* Receipt button */}
+                                {req.order.payments?.some((p: any) => p.receiptUrl) && (
+                                    <button
+                                        onClick={() => {
+                                            const receipt = req.order.payments.find((p: any) => p.receiptUrl);
+                                            if (receipt?.receiptUrl) window.open(receipt.receiptUrl, '_blank');
+                                        }}
+                                        className="hidden lg:flex items-center gap-1.5 text-[9px] font-black text-stone-400 hover:text-blue-600 uppercase tracking-widest bg-stone-50 dark:bg-stone-900 px-3 py-2 rounded-xl transition-all"
+                                    >
+                                        <ImageIcon size={12} /> Comprobante
+                                    </button>
+                                )}
 
                                 <button 
                                     onClick={() => setSelectedOrder({ ...req.order, customAmount: req.requestedAmount, notificationId: req.id } as any)}
@@ -313,7 +329,7 @@ export default function BillingPage() {
                                             <CheckCircle2 size={24} />
                                         </div>
                                         <div>
-                                            <h3 className="font-black text-stone-800 dark:text-white tracking-tight">{order.client.name}</h3>
+                                            <h3 className="font-black text-stone-800 dark:text-white tracking-tight cursor-pointer hover:text-blue-600 hover:underline transition-colors" onClick={() => router.push(`/contactos?id=${order.client.id}`)}>{order.client.name}</h3>
                                             <div className="text-[10px] text-emerald-600 font-bold uppercase tracking-widest mt-1">
                                                 FC {invoice?.pointOfSale.toString().padStart(4, '0')}-{invoice?.voucherNumber.toString().padStart(8, '0')}
                                             </div>
