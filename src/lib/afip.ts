@@ -44,18 +44,38 @@ const afipInstances: Partial<Record<BillingAccount, any>> = {};
 export function getAfipInstance(account: BillingAccount = 'ISH'): any {
     if (!afipInstances[account]) {
         const accountConfig = BILLING_ACCOUNTS[account];
+
+        // Access token del panel app.afipsdk.com
+        const accessToken = account === 'ISH'
+            ? (process.env.AFIP_ACCESS_TOKEN_ISH || '')
+            : (process.env.AFIP_ACCESS_TOKEN_YANI || '');
+
+        // Certificado (.crt) descargado de AFIP tras subir el CSR
+        const certRaw = account === 'ISH'
+            ? (process.env.AFIP_CERT_ISH || '')
+            : (process.env.AFIP_CERT_YANI || '');
+
+        // Clave privada (.key) generada al crear el CSR
+        const keyRaw = account === 'ISH'
+            ? (process.env.AFIP_KEY_ISH || '')
+            : (process.env.AFIP_KEY_YANI || '');
+
+        // Railway almacena multiline como \\n literal — restaurar saltos de línea reales
+        const cert = certRaw.replace(/\\n/g, '\n');
+        const key = keyRaw.replace(/\\n/g, '\n');
+
         const config: any = {
             CUIT: accountConfig.cuit,
-            access_token: account === 'ISH'
-                ? (process.env.AFIP_ACCESS_TOKEN_ISH || '')
-                : (process.env.AFIP_ACCESS_TOKEN_YANI || ''),
+            access_token: accessToken,
         };
 
-        // Producción automática: Afip SDK >1.0 ya no requiere archivos locales cert/key
-        // Se activa con una simple variable de entorno
+        // Agregar cert y key si están disponibles (necesarios para producción)
+        if (cert) config.cert = cert;
+        if (key) config.key = key;
+
         if (process.env.AFIP_PRODUCTION_MODE === 'true') {
             config.production = true;
-            console.log(`[AFIP] Instancia ${account} configurada en MODO PRODUCCIÓN`);
+            console.log(`[AFIP] Instancia ${account} configurada en MODO PRODUCCIÓN (cert: ${cert ? 'SI' : 'NO'}, key: ${key ? 'SI' : 'NO'})`);
         } else {
             console.log(`[AFIP] Instancia ${account} configurada en MODO SANDBOX (Pruebas)`);
         }

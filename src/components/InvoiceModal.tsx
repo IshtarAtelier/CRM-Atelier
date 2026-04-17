@@ -299,7 +299,37 @@ export default function InvoiceModal({ order, initialAccount, initialAmount, onC
                                     {isTotalMatching ? (
                                         <span className="flex items-center gap-2 italic"><CheckCircle2 className="w-4 h-4" /> Coincide con el total</span>
                                     ) : (
-                                        <span className="italic">Faltan ${diff.toLocaleString('es-AR')}</span>
+                                        <div className="flex items-center gap-4">
+                                            <span className="italic">Faltan ${diff.toLocaleString('es-AR')}</span>
+                                            <button 
+                                                onClick={() => {
+                                                    if (items.length === 0) return;
+                                                    
+                                                    if (diff < 0) {
+                                                        const highestIndex = items.reduce((maxIdx, it, idx) => it.price > items[maxIdx].price ? idx : maxIdx, 0);
+                                                        const it = items[highestIndex];
+                                                        const adjustment = diff / it.quantity;
+                                                        
+                                                        if (it.price + adjustment >= 0) {
+                                                            updateItem(it.id, 'price', Number((it.price + adjustment).toFixed(2)));
+                                                        } else {
+                                                            setItems([...items, { id: Date.now().toString(), description: 'Descuento / Ajuste', quantity: 1, price: Number(diff.toFixed(2)) }]);
+                                                        }
+                                                    } else {
+                                                        if (diff < 10) {
+                                                            const highestIndex = items.reduce((maxIdx, it, idx) => it.price > items[maxIdx].price ? idx : maxIdx, 0);
+                                                            const it = items[highestIndex];
+                                                            updateItem(it.id, 'price', Number((it.price + (diff / it.quantity)).toFixed(2)));
+                                                        } else {
+                                                            setItems([...items, { id: Date.now().toString(), description: 'Ajuste / Adicional', quantity: 1, price: Number(diff.toFixed(2)) }]);
+                                                        }
+                                                    }
+                                                }}
+                                                className="px-3 py-1 bg-blue-100 text-blue-700 hover:bg-blue-200 rounded-lg font-black uppercase text-[10px] transition-all shadow-sm"
+                                            >
+                                                Ajustar Autómaticamente
+                                            </button>
+                                        </div>
                                     )}
                                 </div>
                             </div>
