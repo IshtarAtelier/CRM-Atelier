@@ -104,7 +104,7 @@ export const BillingService = {
                     orderId,
                     cae: result.CAE,
                     caeExpiration: result.CAEFchVto,
-                    voucherNumber: result.voucher_number,
+                    voucherNumber: result.voucherNumber,
                     voucherType: VOUCHER_TYPE_FC,
                     pointOfSale: ptoVta,
                     concept: 1,
@@ -116,7 +116,7 @@ export const BillingService = {
                 },
             });
 
-            const voucherLabel = `FC ${ptoVta.toString().padStart(4, '0')}-${result.voucher_number.toString().padStart(8, '0')}`;
+            const voucherLabel = `FC ${ptoVta.toString().padStart(4, '0')}-${result.voucherNumber.toString().padStart(8, '0')}`;
             await tx.interaction.create({
                 data: {
                     clientId: order.clientId,
