@@ -93,16 +93,15 @@ export default function BillingPage() {
         setDownloadingId(invoiceId);
         try {
             const res = await fetch(`/api/billing/invoice?invoiceId=${invoiceId}`);
-            if (res.ok) {
-                const { pdfUrl } = await res.json();
-                if (pdfUrl) {
-                    window.open(pdfUrl, '_blank');
-                } else {
-                    alert('No se pudo generar el enlace del PDF. Intentá de nuevo.');
-                }
+            const data = await res.json();
+            if (res.ok && data.pdfUrl) {
+                window.open(data.pdfUrl, '_blank');
+            } else {
+                alert('No se pudo generar el enlace del PDF: ' + (data.error || 'Error de SDK'));
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error downloading invoice:', error);
+            alert('Error descargando la factura: ' + error.message);
         } finally {
             setDownloadingId(null);
         }
@@ -170,14 +169,14 @@ export default function BillingPage() {
     const currentYear = new Date().getFullYear();
 
     const monthlyStats = completedInvoices.reduce((acc, order) => {
-        const invoice = order.invoices?.find(inv => inv.status === 'COMPLETED');
-        if (invoice) {
+        const completedInvoicesOfOrder = (order.invoices || []).filter(inv => inv.status === 'COMPLETED');
+        completedInvoicesOfOrder.forEach(invoice => {
             const invDate = new Date(invoice.createdAt);
             if (invDate.getMonth() === currentMonth && invDate.getFullYear() === currentYear) {
                 if (invoice.billingAccount === 'ISH') acc.ishCount++;
                 if (invoice.billingAccount === 'YANI') acc.yaniCount++;
             }
-        }
+        });
         return acc;
     }, { ishCount: 0, yaniCount: 0 });
 
@@ -321,29 +320,40 @@ export default function BillingPage() {
                             <h3 className="text-xl font-black text-stone-800 dark:text-white mb-2">No hay facturas emitidas</h3>
                         </div>
                     ) : completedInvoices.map(order => {
-                        const invoice = order.invoices?.find(inv => inv.status === 'COMPLETED');
+                        const completedArray = (order.invoices || []).filter((i: any) => i.status === 'COMPLETED');
                         return (
                             <div key={order.id} className="bg-white dark:bg-stone-800 rounded-[2.5rem] p-6 shadow-sm border border-emerald-500/10 transition-all group">
-                                <div className="flex items-center justify-between gap-6">
+                                <div className="flex items-start md:items-center justify-between gap-6 flex-col md:flex-row">
                                     <div className="flex items-center gap-5">
                                         <div className="w-14 h-14 rounded-2xl bg-emerald-500 shadow-emerald-500/20 flex items-center justify-center text-white shadow-lg">
                                             <CheckCircle2 size={24} />
                                         </div>
                                         <div>
                                             <h3 className="font-black text-stone-800 dark:text-white tracking-tight cursor-pointer hover:text-blue-600 hover:underline transition-colors" onClick={() => router.push(`/contactos?id=${order.client.id}`)}>{order.client.name}</h3>
-                                            <div className="text-[10px] text-emerald-600 font-bold uppercase tracking-widest mt-1">
-                                                FC {invoice?.pointOfSale.toString().padStart(4, '0')}-{invoice?.voucherNumber.toString().padStart(8, '0')}
+                                            <div className="text-[10px] font-bold text-stone-400 mt-1 uppercase tracking-widest">
+                                                Ctd. Facturas: {completedArray.length}
                                             </div>
                                         </div>
                                     </div>
-                                    <button 
-                                        onClick={() => invoice && handleDownloadInvoice(invoice.id)}
-                                        disabled={downloadingId === invoice?.id}
-                                        className="text-[9px] font-black text-stone-400 hover:text-primary uppercase tracking-widest flex items-center gap-1 bg-stone-50 dark:bg-stone-900 px-3 py-1.5 rounded-xl transition-all disabled:opacity-50"
-                                    >
-                                        {downloadingId === invoice?.id ? <Loader2 size={12} className="animate-spin" /> : <Download size={12} />} 
-                                        Ver Factura
-                                    </button>
+                                    <div className="flex flex-col sm:flex-row items-end sm:items-center gap-2">
+                                        {completedArray.map(invoice => (
+                                            <div key={invoice.id} className="flex items-center gap-3 bg-stone-50 dark:bg-stone-900 border-2 border-stone-100 dark:border-stone-800 px-4 py-2 rounded-2xl">
+                                                <div className="text-right">
+                                                    <div className="text-[9px] text-emerald-600 font-bold uppercase tracking-widest">
+                                                        {invoice.billingAccount} — FC {invoice.pointOfSale.toString().padStart(4, '0')}-{invoice.voucherNumber.toString().padStart(8, '0')}
+                                                    </div>
+                                                </div>
+                                                <button 
+                                                    onClick={() => handleDownloadInvoice(invoice.id)}
+                                                    disabled={downloadingId === invoice.id}
+                                                    className="w-8 h-8 flex justify-center items-center rounded-xl bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 text-stone-500 hover:text-primary hover:bg-primary/5 transition-all disabled:opacity-50"
+                                                    title="Descargar PDF"
+                                                >
+                                                    {downloadingId === invoice.id ? <Loader2 size={12} className="animate-spin" /> : <Download size={12} />} 
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
                                 </div>
                             </div>
                         );

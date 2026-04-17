@@ -233,17 +233,29 @@ export const BillingService = {
 
         try {
             const afip = getAfipInstance(invoice.billingAccount as BillingAccount);
+            
+            // Consultar la data REAL autorizada en ARCA para evitar discrepancias de fechas
+            const voucherInfo = await afip.ElectronicBilling.getVoucherInfo(
+                invoice.voucherNumber, 
+                invoice.pointOfSale, 
+                invoice.voucherType
+            );
+
+            if (!voucherInfo) {
+                throw new Error("El comprobante no figura en los servidores de AFIP.");
+            }
+
             const pdfInfo = await afip.ElectronicBilling.createPDF({
                 CbteTipo: invoice.voucherType,
                 PtoVta: invoice.pointOfSale,
                 CbteNro: invoice.voucherNumber,
-                CbteFch: invoice.createdAt.toISOString().split('T')[0].replace(/-/g, ''),
+                CbteFch: voucherInfo.CbteFch, // USAR FECHA REAL DE ARCA
                 ImpTotal: invoice.totalAmount,
                 CAE: invoice.cae,
                 CAEFchVto: invoice.caeExpiration.replace(/-/g, ''),
                 DocTipo: invoice.docType,
                 DocNro: invoice.docNumber,
-                condicion_venta: 'Otra', // requested by user to show "Otros" on printed invoice
+                condicion_venta: 'Otra',
                 forma_de_pago: 'Otra',
                 items: invoice.order.items.map((item: any) => ({
                     description: `${item.product?.brand || ''} ${item.product?.model || item.product?.name || ''}`.trim(),
