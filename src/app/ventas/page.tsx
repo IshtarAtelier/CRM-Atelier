@@ -747,12 +747,33 @@ export default function VentasPage() {
                                             const inv = (order.invoices || []).find((i: any) => i.status === 'COMPLETED');
                                             if (inv) {
                                                 return (
-                                                    <div className="px-3 py-2 bg-indigo-50 dark:bg-indigo-950/30 border-2 border-indigo-200 dark:border-indigo-800 rounded-xl" title={`CAE: ${inv.cae}\nVto: ${inv.caeExpiration}`}>
-                                                        <span className="text-[9px] font-black text-indigo-400 uppercase tracking-widest block">Factura C</span>
-                                                        <span className="text-xs font-black text-indigo-600">
-                                                            {inv.pointOfSale.toString().padStart(4, '0')}-{inv.voucherNumber.toString().padStart(8, '0')}
-                                                        </span>
-                                                    </div>
+                                                    <button 
+                                                        key={inv.id}
+                                                        onClick={async () => {
+                                                            try {
+                                                                // If already has pdf url in db it returns it, else it generates it in afip sdk
+                                                                const res = await fetch(`/api/billing/invoice/${inv.id}?pdf=true`);
+                                                                const data = await res.json();
+                                                                if (data.pdfUrl) {
+                                                                    window.open(data.pdfUrl, '_blank');
+                                                                } else {
+                                                                    alert('No se pudo cargar el PDF: ' + (data.error || 'Error desconocido'));
+                                                                }
+                                                            } catch (e) {
+                                                                alert('Error abriendo el PDF');
+                                                            }
+                                                        }}
+                                                        className="px-3 py-2 bg-indigo-50 dark:bg-indigo-950/30 border-2 border-indigo-200 dark:border-indigo-800 rounded-xl hover:bg-indigo-100 dark:hover:bg-indigo-900 transition-all text-left flex items-center gap-2" 
+                                                        title={`Ver PDF de Factura\nCAE: ${inv.cae}\nVto: ${inv.caeExpiration}`}
+                                                    >
+                                                        <div>
+                                                            <span className="text-[9px] font-black text-indigo-400 uppercase tracking-widest block">Factura C</span>
+                                                            <span className="text-xs font-black text-indigo-600">
+                                                                {inv.pointOfSale.toString().padStart(4, '0')}-{inv.voucherNumber.toString().padStart(8, '0')}
+                                                            </span>
+                                                        </div>
+                                                        <ExternalLink className="w-4 h-4 text-indigo-400" />
+                                                    </button>
                                                 );
                                             }
                                             return (
