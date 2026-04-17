@@ -45,10 +45,10 @@ export function getAfipInstance(account: BillingAccount = 'ISH'): any {
     if (!afipInstances[account]) {
         const accountConfig = BILLING_ACCOUNTS[account];
 
-        // Access token del panel app.afipsdk.com
+        // Access token del panel app.afipsdk.com (eliminando espacios extra)
         const accessToken = account === 'ISH'
-            ? (process.env.AFIP_ACCESS_TOKEN_ISH || '')
-            : (process.env.AFIP_ACCESS_TOKEN_YANI || '');
+            ? (process.env.AFIP_ACCESS_TOKEN_ISH || '').trim()
+            : (process.env.AFIP_ACCESS_TOKEN_YANI || '').trim();
 
         // Certificado (.crt) descargado de AFIP tras subir el CSR
         const certRaw = account === 'ISH'
@@ -60,9 +60,14 @@ export function getAfipInstance(account: BillingAccount = 'ISH'): any {
             ? (process.env.AFIP_KEY_ISH || '')
             : (process.env.AFIP_KEY_YANI || '');
 
-        // Railway almacena multiline como \\n literal — restaurar saltos de línea reales
-        const cert = certRaw.replace(/\\n/g, '\n');
-        const key = keyRaw.replace(/\\n/g, '\n');
+        // Railway almacena multiline como \\n literal o a veces agrega comillas. Limpiamos y restauramos saltos.
+        const formatPem = (raw: string) => raw
+            .replace(/^["']|["']$/g, '') // Quitar comillas si las hay
+            .replace(/\\n/g, '\n')       // Reemplazar \n literal por salto real
+            .trim();
+
+        const cert = formatPem(certRaw);
+        const key = formatPem(keyRaw);
 
         const config: any = {
             CUIT: accountConfig.cuit,
