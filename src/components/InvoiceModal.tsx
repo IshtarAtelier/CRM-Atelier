@@ -109,15 +109,7 @@ export default function InvoiceModal({ order, initialAccount, initialAmount, onC
     };
 
     const handleEmit = async () => {
-        if (!isTotalMatching) {
-            setError(`El total de los ítems ($${totalInvoiced.toLocaleString()}) debe coincidir con el monto a facturar ($${targetAmount.toLocaleString()}). Diferencia: $${diff.toLocaleString()}`);
-            return;
-        }
-
-        if (targetAmount > paidReal) {
-            setError(`No podés facturar $${targetAmount.toLocaleString()} porque el cliente solo pagó $${paidReal.toLocaleString()} hasta ahora.`);
-            return;
-        }
+        // Only hard-block: items exceeding monotributo unit limit
 
         const expensiveItem = items.find(it => it.price > MONOTRIBUTO_LIMIT);
         if (expensiveItem) {
@@ -383,7 +375,7 @@ export default function InvoiceModal({ order, initialAccount, initialAmount, onC
 
                             <button
                                 onClick={handleEmit}
-                                disabled={!!emittingStep || !isTotalMatching || targetAmount > paidReal}
+                                disabled={!!emittingStep}
                                 className="w-full py-5 bg-gradient-to-r from-indigo-600 to-blue-700 text-white rounded-[2rem] font-black text-xs uppercase tracking-widest shadow-2xl shadow-indigo-500/20 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-30 disabled:grayscale disabled:scale-100 flex items-center justify-center gap-3"
                             >
                                 {emittingStep ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
