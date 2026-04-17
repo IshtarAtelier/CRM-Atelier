@@ -9,7 +9,7 @@ async function run() {
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
-    // Obtener pedidos (solo ventas válidas) con sus pagos, notificaciones y facturas
+    // Obtener pedidos
     const orders = await prisma.order.findMany({
         where: {
             orderType: 'SALE',
@@ -17,11 +17,7 @@ async function run() {
         },
         include: {
             client: true,
-            payments: {
-                where: {
-                    createdAt: { gte: startOfMonth }
-                }
-            },
+            payments: true,
             invoices: true,
         }
     });
@@ -35,7 +31,7 @@ async function run() {
     
     const notificationOrderIds = new Set(existingNotifications.filter(n => n.orderId).map(n => n.orderId));
 
-    const cardMethods = ['PAY_WAY', 'NARANJA', 'GO_CUOTAS'];
+    const cardMethods = ['PAY_WAY', 'NARANJA', 'GO_CUOTAS', 'TRANSFERENCIA_ISH', 'TRANSFERENCIA_YANI'];
     let createdCount = 0;
 
     for (const order of orders) {
@@ -48,17 +44,19 @@ async function run() {
         // Verificar si tiene algún pago "facturable" en este mes
         let billablePayment = null;
         for (const payment of order.payments) {
+            if (payment.createdAt < startOfMonth) continue;
+
             const method = payment.method.toUpperCase();
             if (cardMethods.some(m => method.includes(m))) {
                 billablePayment = payment;
-                break; // Solo necesitamos detectar uno para generar el pedido por el total
+                break; 
             }
         }
 
         if (billablePayment) {
             const method = billablePayment.method.toUpperCase();
             const isIsh = method.endsWith('_ISH');
-            const isYani = method.endsWith('_YANI') || method.includes('YANI');
+            const isYani = method.endsWith('_YANI') || method.includes('YANI') || method === 'TRANSFERENCIA_YANI';
             
             // Default to ISH if neither is specified
             let accountLabel = '';

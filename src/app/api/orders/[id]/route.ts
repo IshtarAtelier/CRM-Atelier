@@ -308,6 +308,101 @@ export async function PATCH(
             };
         }
 
+        // ── FACTORY GATE: Validate requirements before sending to lab ──
+        // This applies when labStatus is being set to SENT or higher (any advancement from NONE)
+        const LAB_SENT_STATUSES = ['SENT', 'IN_PROGRESS', 'READY', 'DELIVERED'];
+        if (labStatus && LAB_SENT_STATUSES.includes(labStatus)) {
+            // Fetch the full order with items, prescription, and payments
+            const orderForValidation = await prisma.order.findUnique({
+                where: { id },
+                select: {
+                    id: true,
+                    total: true,
+                    paid: true,
+                    labStatus: true,
+                    prescriptionId: true,
+                    items: {
+                        select: {
+                            product: { select: { category: true, type: true, name: true } }
+                        }
+                    },
+                    prescription: {
+                        select: {
+                            imageUrl: true,
+                            heightOD: true,
+                            heightOI: true,
+                            distanceOD: true,
+                            distanceOI: true,
+                            pd: true,
+                        }
+                    },
+                    payments: {
+                        select: { amount: true, method: true, receiptUrl: true }
+                    }
+                }
+            });
+
+            if (orderForValidation) {
+                // Only validate when advancing FROM NONE (first time sending)
+                const currentLabStatus = orderForValidation.labStatus || 'NONE';
+                const isFirstSend = currentLabStatus === 'NONE';
+
+                if (isFirstSend) {
+                    const errors: string[] = [];
+
+                    // 1. Crystal validations
+                    const hasCrystals = orderForValidation.items.some((item: any) =>
+                        item.product?.category === 'LENS' || 
+                        item.product?.type === 'Cristal' || 
+                        (item.product?.name || '').includes('Cristal')
+                    );
+
+                    if (hasCrystals) {
+                        // Must have prescription
+                        if (!orderForValidation.prescriptionId || !orderForValidation.prescription) {
+                            errors.push('El pedido incluye cristales pero no tiene receta seleccionada.');
+                        } else {
+                            const rx = orderForValidation.prescription;
+                            // Must have prescription photo
+                            if (!rx.imageUrl) {
+                                errors.push('Falta la foto de la receta adjunta.');
+                            }
+                            // Must have height (at least one eye)
+                            if (rx.heightOD == null && rx.heightOI == null) {
+                                errors.push('Falta cargar la Altura en la receta (OD y/o OI).');
+                            }
+                            // Must have DP (at least one field)
+                            const hasDP = rx.distanceOD != null || rx.distanceOI != null || rx.pd != null;
+                            if (!hasDP) {
+                                errors.push('Falta cargar la Distancia Pupilar (DP) en la receta.');
+                            }
+                        }
+                    }
+
+                    // 2. Payment validation: total paid must be >= 40% of order total
+                    const totalPaid = orderForValidation.paid || 0;
+                    const minRequired = (orderForValidation.total || 0) * 0.4;
+                    if (totalPaid < minRequired) {
+                        errors.push(`El pago ($${Math.round(totalPaid).toLocaleString()}) no cubre el 40% mínimo ($${Math.ceil(minRequired).toLocaleString()}) para enviar a fábrica.`);
+                    }
+
+                    // 3. All payments must have method specified
+                    const paymentsWithoutMethod = (orderForValidation.payments || []).filter(
+                        (p: any) => !p.method || p.method.trim() === ''
+                    );
+                    if (paymentsWithoutMethod.length > 0) {
+                        errors.push(`Hay ${paymentsWithoutMethod.length} pago(s) sin método de pago especificado.`);
+                    }
+
+                    if (errors.length > 0) {
+                        return NextResponse.json({
+                            error: `No se puede enviar a fábrica:\n${errors.join('\n')}`
+                        }, { status: 400 });
+                    }
+                }
+            }
+        }
+
         if (labStatus) {
             data.labStatus = labStatus;
             if (labStatus === 'SENT') {

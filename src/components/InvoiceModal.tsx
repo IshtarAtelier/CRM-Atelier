@@ -61,20 +61,14 @@ export default function InvoiceModal({ order, initialAccount, initialAmount, onC
     const [items, setItems] = useState<InvoiceItem[]>([]);
 
     useEffect(() => {
-        // Initialize items from order if not already set
+        // Initialize items from order — prices must include the order's markup
+        const markupFactor = 1 + ((order as any).markup || 0) / 100;
         const baseItems = (order.items || []).map((it, idx) => ({
             id: `init-${idx}`,
             description: `${it.product?.brand || ''} ${it.product?.model || it.product?.name || 'Producto'}`.trim(),
             quantity: it.quantity || 1,
-            price: it.price || 0
+            price: Math.round((it.price || 0) * markupFactor) // Apply markup to match sale price
         }));
-        
-        // If we have a custom initialAmount that differs from order total, we might need a "Rounding/Adjustment" item
-        const itemsTotal = baseItems.reduce((acc, it) => acc + (it.price * it.quantity), 0);
-        if (initialAmount && Math.abs(itemsTotal - initialAmount) > 1) {
-            // Add an adjustment item or scale items? 
-            // Better: just let the user edit them to match.
-        }
         
         setItems(baseItems);
     }, [order, initialAmount]);

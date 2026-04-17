@@ -61,6 +61,9 @@ export default function AddPaymentModal({
         fetchOrder();
     }, [orderId]);
 
+    const isCashMethod = method === 'CASH' || method === 'EFECTIVO';
+    const requiresReceipt = !isCashMethod;
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!amount || isNaN(Number(amount)) || Number(amount) <= 0) {
@@ -68,8 +71,13 @@ export default function AddPaymentModal({
             return;
         }
 
-        if (method !== 'CASH' && method !== 'EFECTIVO' && !reference.trim()) {
+        if (!isCashMethod && !reference.trim()) {
             setError('Es obligatorio ingresar el Nro. de Comprobante / Referencia para métodos electrónicos');
+            return;
+        }
+
+        if (requiresReceipt && !receiptFile) {
+            setError('Es obligatorio cargar la foto del comprobante para métodos electrónicos (transferencia, tarjeta, etc.)');
             return;
         }
 
@@ -236,7 +244,9 @@ export default function AddPaymentModal({
 
                     {/* Comprobante */}
                     <div className="space-y-2">
-                        <label className="text-[10px] font-black uppercase text-stone-400 tracking-widest block pl-1">Comprobante (Opcional)</label>
+                        <label className="text-[10px] font-black uppercase text-stone-400 tracking-widest block pl-1">
+                            Comprobante {requiresReceipt ? <span className="text-red-500">(Obligatorio)</span> : '(Opcional)'}
+                        </label>
                         <FileDropZone
                             onFile={(file) => {
                                 setReceiptFile(file);
@@ -268,7 +278,7 @@ export default function AddPaymentModal({
                         </button>
                         <button
                             type="submit"
-                            disabled={loading || !amount}
+                            disabled={loading || !amount || (requiresReceipt && !receiptFile)}
                             className="flex-[2] py-4 bg-stone-900 dark:bg-white text-white dark:text-stone-900 rounded-2xl text-xs font-black uppercase tracking-widest hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 disabled:hover:scale-100 shadow-xl flex items-center justify-center gap-3"
                         >
                             {loading ? (

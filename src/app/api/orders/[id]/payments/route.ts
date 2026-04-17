@@ -30,6 +30,14 @@ export async function POST(
 
         const { amount, method, notes, receiptUrl } = validation.data;
 
+        // Validation: Non-cash payments MUST include a receipt photo
+        const isCash = method === 'EFECTIVO' || method === 'CASH';
+        if (!isCash && !receiptUrl) {
+            return NextResponse.json({
+                error: 'Para métodos electrónicos (transferencia, tarjeta, etc.) es obligatorio cargar la foto del comprobante.'
+            }, { status: 400 });
+        }
+
         // Use the existing ContactService logic which handles transactions and stock (if applicable)
         const payment = await ContactService.addPayment(
             orderId,

@@ -576,20 +576,38 @@ export const ContactService = {
             const isCardPlatform = cardMethods.some(m => method.toUpperCase().includes(m));
             
             if (isCardPlatform) {
-                const isIsh = method.toUpperCase().endsWith('_ISH');
-                const isYani = method.toUpperCase().endsWith('_YANI');
-                const accountLabel = isIsh ? '[ISH]' : isYani ? '[YANI]' : '';
-
-                const clientName = (await tx.client.findUnique({ where: { id: order.clientId }, select: { name: true } }))?.name || 'Cliente';
-                await tx.notification.create({
-                    data: {
+                // DUPLICATE PROTECTION: Check if this exact payment already has a request
+                const amountStr = `$${amount.toLocaleString('es-AR')}`;
+                const existingRequest = await tx.notification.findFirst({
+                    where: {
                         type: 'INVOICE_REQUEST',
-                        message: `${accountLabel} Facturar pago de $${amount.toLocaleString('es-AR')} (${method}) - Venta #${orderId.slice(-4).toUpperCase()} (${clientName})`,
                         orderId: orderId,
-                        requestedBy: 'SISTEMA (Auto)',
+                        message: { contains: amountStr },
                         status: 'PENDING'
                     }
                 });
+
+                // Also check if order already has a completed invoice for this amount
+                const existingInvoice = await tx.invoice.findFirst({
+                    where: { orderId: orderId, status: 'COMPLETED' }
+                });
+
+                if (!existingRequest && !existingInvoice) {
+                    const isIsh = method.toUpperCase().endsWith('_ISH');
+                    const isYani = method.toUpperCase().endsWith('_YANI');
+                    const accountLabel = isIsh ? '[ISH]' : isYani ? '[YANI]' : '';
+
+                    const clientName = (await tx.client.findUnique({ where: { id: order.clientId }, select: { name: true } }))?.name || 'Cliente';
+                    await tx.notification.create({
+                        data: {
+                            type: 'INVOICE_REQUEST',
+                            message: `${accountLabel} Facturar pago de ${amountStr} (${method}) - Venta #${orderId.slice(-4).toUpperCase()} (${clientName})`,
+                            orderId: orderId,
+                            requestedBy: 'SISTEMA (Auto)',
+                            status: 'PENDING'
+                        }
+                    });
+                }
             }
 
             // ISH POSNET THRESHOLD MONITORING

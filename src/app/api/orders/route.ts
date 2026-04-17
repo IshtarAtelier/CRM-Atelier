@@ -212,7 +212,7 @@ export async function GET(request: Request) {
                     product: { select: { id: true, name: true, brand: true, model: true, category: true, type: true, price: true, unitType: true, laboratory: true } }
                 }
             },
-            payments: { select: { id: true, amount: true, method: true, date: true, notes: true } },
+            payments: { select: { id: true, amount: true, method: true, date: true, notes: true, receiptUrl: true } },
             invoices: { select: { id: true, cae: true, voucherNumber: true, pointOfSale: true, totalAmount: true, status: true, billingAccount: true } },
             prescription: { select: { id: true, sphereOD: true, sphereOI: true, cylinderOD: true, cylinderOI: true, axisOD: true, axisOI: true, additionOD: true, additionOI: true, distanceOD: true, distanceOI: true, heightOD: true, heightOI: true, pd: true, addition: true, prescriptionType: true, notes: true, imageUrl: true, prismOD: true, prismOI: true, nearSphereOD: true, nearSphereOI: true, nearCylinderOD: true, nearAxisOD: true, nearCylinderOI: true, nearAxisOI: true } },
             // Lab fields
