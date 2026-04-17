@@ -13,7 +13,13 @@ export async function GET(request: Request) {
         // Build where clause
         const whereClause: any = {};
         if (method) {
-            whereClause.method = method;
+            // Support comma-separated methods for group filtering
+            const methods = method.split(',').map(m => m.trim()).filter(Boolean);
+            if (methods.length === 1) {
+                whereClause.method = methods[0];
+            } else if (methods.length > 1) {
+                whereClause.method = { in: methods };
+            }
         }
 
         const dateFilter: any = {};

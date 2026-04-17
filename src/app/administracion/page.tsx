@@ -4,8 +4,8 @@ import { useState, useEffect } from 'react';
 import {
     Wallet, DollarSign, CreditCard, Banknote, Calendar,
     Loader2, RefreshCw, Filter, Hash, TrendingUp,
-    ChevronDown, Search, Receipt, Eye, Plus, X, AlertCircle,
-    ArrowUpRight, ArrowDownRight, ImageIcon, Trash2, History
+    ChevronDown, ChevronRight, Search, Receipt, Eye, Plus, X, AlertCircle,
+    ArrowUpRight, ArrowDownRight, ArrowRightLeft, ImageIcon, Trash2, History
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -56,19 +56,68 @@ interface PaymentsData {
     methodBreakdown: { method: string; total: number; count: number }[];
 }
 
-const PAYMENT_METHODS = [
-    { key: 'PAY_WAY_6_ISH', label: 'Pay Way 6 Ish', icon: CreditCard, color: 'bg-blue-500', lightBg: 'bg-blue-50 dark:bg-blue-950', textColor: 'text-blue-500' },
-    { key: 'PAY_WAY_3_ISH', label: 'Pay Way 3 Ish', icon: CreditCard, color: 'bg-blue-400', lightBg: 'bg-blue-50 dark:bg-blue-950', textColor: 'text-blue-400' },
-    { key: 'NARANJA_Z_ISH', label: 'Naranja Z Ish', icon: CreditCard, color: 'bg-orange-500', lightBg: 'bg-orange-50 dark:bg-orange-950', textColor: 'text-orange-500' },
-    { key: 'GO_CUOTAS_ISH', label: 'Go Cuotas Ish', icon: CreditCard, color: 'bg-violet-600', lightBg: 'bg-violet-50 dark:bg-violet-950', textColor: 'text-violet-600' },
-    { key: 'PAY_WAY_6_YANI', label: 'Pay Way 6 Yani', icon: CreditCard, color: 'bg-indigo-500', lightBg: 'bg-indigo-50 dark:bg-indigo-950', textColor: 'text-indigo-500' },
-    { key: 'PAY_WAY_3_YANI', label: 'Pay Way 3 Yani', icon: CreditCard, color: 'bg-indigo-400', lightBg: 'bg-indigo-50 dark:bg-indigo-950', textColor: 'text-indigo-400' },
-    { key: 'NARANJA_Z_YANI', label: 'Naranja Z Yani', icon: CreditCard, color: 'bg-orange-400', lightBg: 'bg-orange-50 dark:bg-orange-950', textColor: 'text-orange-400' },
-    { key: 'EFECTIVO', label: 'Efectivo', icon: Banknote, color: 'bg-emerald-500', lightBg: 'bg-emerald-50 dark:bg-emerald-950', textColor: 'text-emerald-500' },
+// Individual method definitions for display
+const ALL_METHODS: Record<string, { label: string; icon: any; color: string; lightBg: string; textColor: string }> = {
+    'PAY_WAY_6_ISH': { label: 'Pay Way 6 Ish', icon: CreditCard, color: 'bg-blue-500', lightBg: 'bg-blue-50 dark:bg-blue-950', textColor: 'text-blue-500' },
+    'PAY_WAY_3_ISH': { label: 'Pay Way 3 Ish', icon: CreditCard, color: 'bg-blue-400', lightBg: 'bg-blue-50 dark:bg-blue-950', textColor: 'text-blue-400' },
+    'NARANJA_Z_ISH': { label: 'Naranja Z Ish', icon: CreditCard, color: 'bg-orange-500', lightBg: 'bg-orange-50 dark:bg-orange-950', textColor: 'text-orange-500' },
+    'GO_CUOTAS_ISH': { label: 'Go Cuotas Ish', icon: CreditCard, color: 'bg-violet-600', lightBg: 'bg-violet-50 dark:bg-violet-950', textColor: 'text-violet-600' },
+    'PAY_WAY_6_YANI': { label: 'Pay Way 6 Yani', icon: CreditCard, color: 'bg-indigo-500', lightBg: 'bg-indigo-50 dark:bg-indigo-950', textColor: 'text-indigo-500' },
+    'PAY_WAY_3_YANI': { label: 'Pay Way 3 Yani', icon: CreditCard, color: 'bg-indigo-400', lightBg: 'bg-indigo-50 dark:bg-indigo-950', textColor: 'text-indigo-400' },
+    'NARANJA_Z_YANI': { label: 'Naranja Z Yani', icon: CreditCard, color: 'bg-orange-400', lightBg: 'bg-orange-50 dark:bg-orange-950', textColor: 'text-orange-400' },
+    'TRANSFERENCIA_ISHTAR': { label: 'Transf. Ishtar', icon: ArrowRightLeft, color: 'bg-violet-500', lightBg: 'bg-violet-50 dark:bg-violet-950', textColor: 'text-violet-500' },
+    'TRANSFERENCIA_LUCIA': { label: 'Transf. Lucía', icon: ArrowRightLeft, color: 'bg-violet-400', lightBg: 'bg-violet-50 dark:bg-violet-950', textColor: 'text-violet-400' },
+    'EFECTIVO': { label: 'Efectivo', icon: Banknote, color: 'bg-emerald-500', lightBg: 'bg-emerald-50 dark:bg-emerald-950', textColor: 'text-emerald-500' },
+};
+
+// Grouped filters
+const FILTER_GROUPS = [
+    {
+        id: 'ISHTAR',
+        label: 'Ishtar',
+        icon: CreditCard,
+        color: 'bg-blue-500',
+        lightBg: 'bg-blue-50 dark:bg-blue-950',
+        textColor: 'text-blue-500',
+        borderColor: 'border-blue-200 dark:border-blue-800',
+        methods: ['PAY_WAY_6_ISH', 'PAY_WAY_3_ISH', 'NARANJA_Z_ISH', 'GO_CUOTAS_ISH'],
+    },
+    {
+        id: 'YANI',
+        label: 'Yani',
+        icon: CreditCard,
+        color: 'bg-indigo-500',
+        lightBg: 'bg-indigo-50 dark:bg-indigo-950',
+        textColor: 'text-indigo-500',
+        borderColor: 'border-indigo-200 dark:border-indigo-800',
+        methods: ['PAY_WAY_6_YANI', 'PAY_WAY_3_YANI', 'NARANJA_Z_YANI'],
+    },
+    {
+        id: 'TRANSFERENCIAS',
+        label: 'Transferencias',
+        icon: ArrowRightLeft,
+        color: 'bg-violet-500',
+        lightBg: 'bg-violet-50 dark:bg-violet-950',
+        textColor: 'text-violet-500',
+        borderColor: 'border-violet-200 dark:border-violet-800',
+        methods: ['TRANSFERENCIA_ISHTAR', 'TRANSFERENCIA_LUCIA'],
+    },
+    {
+        id: 'EFECTIVO',
+        label: 'Efectivo',
+        icon: Banknote,
+        color: 'bg-emerald-500',
+        lightBg: 'bg-emerald-50 dark:bg-emerald-950',
+        textColor: 'text-emerald-500',
+        borderColor: 'border-emerald-200 dark:border-emerald-800',
+        methods: ['EFECTIVO'],
+    },
 ];
 
-const getMethodInfo = (key: string) => PAYMENT_METHODS.find(m => m.key === key) || {
-    key, label: key, icon: CreditCard, color: 'bg-stone-400', lightBg: 'bg-stone-50 dark:bg-stone-800', textColor: 'text-stone-500'
+const getMethodInfo = (key: string) => {
+    const info = ALL_METHODS[key];
+    if (info) return { key, ...info };
+    return { key, label: key, icon: CreditCard, color: 'bg-stone-400', lightBg: 'bg-stone-50 dark:bg-stone-800', textColor: 'text-stone-500' };
 };
 
 // ── Helpers ────────────────────────────────────
@@ -109,6 +158,7 @@ export default function AdministracionPage() {
     const [dateTo, setDateTo] = useState('');
     const [activePreset, setActivePreset] = useState('month');
     const [selectedMethod, setSelectedMethod] = useState<string>('');
+    const [expandedGroup, setExpandedGroup] = useState<string>('');
     const [searchQuery, setSearchQuery] = useState('');
     const [viewingReceipt, setViewingReceipt] = useState<string | null>(null);
     const [cashData, setCashData] = useState<CashData | null>(null);
@@ -211,8 +261,38 @@ export default function AdministracionPage() {
         fetchPayments(dateFrom || undefined, dateTo || undefined, newMethod || undefined);
     };
 
+    const handleGroupFilter = (group: typeof FILTER_GROUPS[0]) => {
+        const groupMethods = group.methods.join(',');
+        if (selectedMethod === groupMethods) {
+            // Deselect group
+            setSelectedMethod('');
+            setExpandedGroup('');
+            fetchPayments(dateFrom || undefined, dateTo || undefined, undefined);
+        } else {
+            setSelectedMethod(groupMethods);
+            setExpandedGroup(group.id);
+            fetchPayments(dateFrom || undefined, dateTo || undefined, groupMethods);
+        }
+    };
+
+    const handleSubMethodFilter = (methodKey: string) => {
+        if (selectedMethod === methodKey) {
+            setSelectedMethod('');
+            fetchPayments(dateFrom || undefined, dateTo || undefined, undefined);
+        } else {
+            setSelectedMethod(methodKey);
+            fetchPayments(dateFrom || undefined, dateTo || undefined, methodKey);
+        }
+    };
+
+    const toggleExpandGroup = (groupId: string, e: React.MouseEvent) => {
+        e.stopPropagation();
+        setExpandedGroup(expandedGroup === groupId ? '' : groupId);
+    };
+
     const clearFilters = () => {
         setSelectedMethod('');
+        setExpandedGroup('');
         setSearchQuery('');
         const preset = getPresetDates('month');
         setDateFrom(preset.from);
@@ -416,7 +496,7 @@ export default function AdministracionPage() {
                     {s && (
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
                             {[
-                                { label: 'Total Recaudado', val: `$${(s?.grandTotal ?? 0).toLocaleString('es-AR')}`, sub: selectedMethod ? getMethodInfo(selectedMethod).label : 'Todos los métodos', icon: DollarSign, color: 'text-emerald-500', bg: 'bg-emerald-50 dark:bg-emerald-900/20' },
+                                { label: 'Total Recaudado', val: `$${(s?.grandTotal ?? 0).toLocaleString('es-AR')}`, sub: selectedMethod ? (selectedMethod.includes(',') ? FILTER_GROUPS.find(g => g.methods.join(',') === selectedMethod)?.label || 'Grupo' : getMethodInfo(selectedMethod).label) : 'Todos los métodos', icon: DollarSign, color: 'text-emerald-500', bg: 'bg-emerald-50 dark:bg-emerald-900/20' },
                                 { label: 'Cant. Operaciones', val: s?.totalCount ?? 0, sub: 'Pagos registrados', icon: Hash, color: 'text-blue-500', bg: 'bg-blue-50 dark:bg-blue-900/20' },
                                 { label: 'Ticket Promedio', val: `$${(s?.averagePayment ?? 0).toLocaleString('es-AR', { maximumFractionDigits: 0 })}`, sub: 'por transacción', icon: TrendingUp, color: 'text-amber-500', bg: 'bg-amber-50 dark:bg-amber-900/20' },
                             ].map((kpi, idx) => (
@@ -436,24 +516,65 @@ export default function AdministracionPage() {
                         </div>
                     )}
 
-                    {/* Method Filters */}
+                    {/* Method Filters — Grouped */}
                     <div className="mb-10">
                         <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-stone-400 mb-5 pl-1">Filtrar por medio de pago</h2>
-                        <div className="flex flex-wrap gap-3">
-                            {PAYMENT_METHODS.map(pm => {
-                                const isSelected = selectedMethod === pm.key;
+                        <div className="flex flex-wrap gap-4">
+                            {FILTER_GROUPS.map(group => {
+                                const groupMethods = group.methods.join(',');
+                                const isGroupSelected = selectedMethod === groupMethods;
+                                const isSubSelected = group.methods.includes(selectedMethod);
+                                const isExpanded = expandedGroup === group.id;
+                                const isActive = isGroupSelected || isSubSelected;
+                                const isSingleMethod = group.methods.length === 1;
+
                                 return (
-                                    <button
-                                        key={pm.key}
-                                        onClick={() => handleMethodFilter(pm.key)}
-                                        className={`flex items-center gap-3 px-6 py-3.5 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all border-2 ${isSelected
-                                            ? `${pm.color} border-transparent text-white shadow-lg shadow-${pm.color.split('-')[1]}-500/20 scale-105`
-                                            : 'bg-white dark:bg-stone-800 text-stone-500 border-stone-100 dark:border-stone-700 hover:border-stone-300 dark:hover:border-stone-500'
+                                    <div key={group.id} className="flex flex-col gap-2">
+                                        {/* Group Header Button */}
+                                        <button
+                                            onClick={() => isSingleMethod ? handleMethodFilter(group.methods[0]) : handleGroupFilter(group)}
+                                            className={`flex items-center gap-3 px-6 py-3.5 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all border-2 ${
+                                                isActive
+                                                    ? `${group.color} border-transparent text-white shadow-lg scale-105`
+                                                    : 'bg-white dark:bg-stone-800 text-stone-500 border-stone-100 dark:border-stone-700 hover:border-stone-300 dark:hover:border-stone-500'
                                             }`}
-                                    >
-                                        <pm.icon className={`w-4 h-4 ${isSelected ? 'text-white' : pm.textColor}`} />
-                                        {pm.label}
-                                    </button>
+                                        >
+                                            <group.icon className={`w-4 h-4 ${isActive ? 'text-white' : group.textColor}`} />
+                                            {group.label}
+                                            {!isSingleMethod && (
+                                                <span
+                                                    onClick={(e) => toggleExpandGroup(group.id, e)}
+                                                    className={`ml-1 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}
+                                                >
+                                                    <ChevronDown className="w-3.5 h-3.5" />
+                                                </span>
+                                            )}
+                                        </button>
+
+                                        {/* Expanded Sub-methods */}
+                                        {isExpanded && !isSingleMethod && (
+                                            <div className={`flex flex-wrap gap-2 pl-2 pt-1 pb-1 border-l-2 ${group.borderColor} ml-4 animate-in slide-in-from-top-2 duration-200`}>
+                                                {group.methods.map(mk => {
+                                                    const info = getMethodInfo(mk);
+                                                    const isSubSel = selectedMethod === mk;
+                                                    return (
+                                                        <button
+                                                            key={mk}
+                                                            onClick={() => handleSubMethodFilter(mk)}
+                                                            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all border ${
+                                                                isSubSel
+                                                                    ? `${info.color} border-transparent text-white shadow-md scale-105`
+                                                                    : `bg-white dark:bg-stone-800 text-stone-500 ${group.borderColor} hover:bg-stone-50 dark:hover:bg-stone-700`
+                                                            }`}
+                                                        >
+                                                            <info.icon className={`w-3 h-3 ${isSubSel ? 'text-white' : info.textColor}`} />
+                                                            {info.label}
+                                                        </button>
+                                                    );
+                                                })}
+                                            </div>
+                                        )}
+                                    </div>
                                 );
                             })}
                         </div>
