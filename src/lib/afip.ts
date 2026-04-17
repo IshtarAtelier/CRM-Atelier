@@ -60,11 +60,26 @@ export function getAfipInstance(account: BillingAccount = 'ISH'): any {
             ? (process.env.AFIP_KEY_ISH || '')
             : (process.env.AFIP_KEY_YANI || '');
 
-        // Railway almacena multiline como \\n literal o a veces agrega comillas. Limpiamos y restauramos saltos.
-        const formatPem = (raw: string) => raw
-            .replace(/^["']|["']$/g, '') // Quitar comillas si las hay
-            .replace(/\\n/g, '\n')       // Reemplazar \n literal por salto real
-            .trim();
+        const formatPem = (raw: string) => {
+            let str = raw.replace(/^["']|["']$/g, ''); // Quitar comillas si las hay
+            str = str.replace(/\\n/g, '\n');           // Reemplazar \n literal por salto real
+            
+            // Si la key o cert se pegó en Railway como una sola línea, la reconstruimos
+            if (!str.includes('\n') && str.includes('-----BEGIN')) {
+                const headerMatch = str.match(/-----BEGIN [A-Z ]+-----/);
+                const footerMatch = str.match(/-----END [A-Z ]+-----/);
+                if (headerMatch && footerMatch) {
+                    const header = headerMatch[0];
+                    const footer = footerMatch[0];
+                    // Todo lo que está entre medio, le sacamos los espacios
+                    let body = str.replace(header, '').replace(footer, '').replace(/\s+/g, '');
+                    // Lo dividimos en líneas de 64 caracteres típicas de PEM
+                    const bodyChunks = body.match(/.{1,64}/g) || [];
+                    str = `${header}\n${bodyChunks.join('\n')}\n${footer}`;
+                }
+            }
+            return str.trim();
+        };
 
         const cert = formatPem(certRaw);
         const key = formatPem(keyRaw);
