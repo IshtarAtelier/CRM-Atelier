@@ -49,6 +49,7 @@ export default function BillingPage() {
     const [searchTerm, setSearchTerm] = useState('');
     const [activeTab, setActiveTab] = useState<'pending' | 'completed'>('pending');
     const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+    const [selectedReceipt, setSelectedReceipt] = useState<string | null>(null);
     const [userRole, setUserRole] = useState<string | null>(null);
     const [isSearchingManual, setIsSearchingManual] = useState(false);
     const [downloadingId, setDownloadingId] = useState<string | null>(null);
@@ -295,7 +296,7 @@ export default function BillingPage() {
                                     <button
                                         onClick={() => {
                                             const receipt = req.order.payments.find((p: any) => p.receiptUrl);
-                                            if (receipt?.receiptUrl) window.open(receipt.receiptUrl, '_blank');
+                                            if (receipt?.receiptUrl) setSelectedReceipt(receipt.receiptUrl);
                                         }}
                                         className="hidden lg:flex items-center gap-1.5 text-[9px] font-black text-stone-400 hover:text-blue-600 uppercase tracking-widest bg-stone-50 dark:bg-stone-900 px-3 py-2 rounded-xl transition-all"
                                     >
@@ -304,7 +305,7 @@ export default function BillingPage() {
                                 )}
 
                                 <button 
-                                    onClick={() => setSelectedOrder({ ...req.order, customAmount: req.requestedAmount, notificationId: req.id } as any)}
+                                    onClick={() => setSelectedOrder({ ...req.order, customAmount: req.requestedAmount, notificationId: req.id, detectedAccount: req.detectedAccount } as any)}
                                     className="bg-stone-900 dark:bg-stone-100 text-white dark:text-stone-900 px-6 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest italic flex items-center gap-2 hover:bg-primary hover:text-white transition-all active:scale-95 shadow-lg shadow-stone-200 dark:shadow-none"
                                 >
                                     FACTURAR <ArrowRight size={14} />
@@ -372,6 +373,22 @@ export default function BillingPage() {
                         setActiveTab('completed');
                     }}
                 />
+            )}
+
+            {/* Receipt Modal */}
+            {selectedReceipt && (
+                <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[200] flex items-center justify-center p-4" onClick={() => setSelectedReceipt(null)}>
+                    <div className="bg-white dark:bg-stone-900 rounded-[2rem] p-4 max-w-lg w-full relative shadow-2xl animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
+                        <button onClick={() => setSelectedReceipt(null)} className="absolute top-6 right-6 p-2 bg-stone-100 dark:bg-stone-800 rounded-xl hover:bg-stone-200 transition-colors">
+                            <X className="w-5 h-5 text-stone-500" />
+                        </button>
+                        <h3 className="text-sm font-black uppercase tracking-widest text-stone-400 mb-6 flex items-center gap-2 px-2"><ImageIcon className="w-4 h-4"/> Comprobante de Pago</h3>
+                        <div className="rounded-xl overflow-hidden bg-stone-50 dark:bg-stone-800 flex items-center justify-center min-h-[300px]">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src={selectedReceipt} alt="Comprobante" className="max-h-[70vh] object-contain" />
+                        </div>
+                    </div>
+                </div>
             )}
         </div>
     );
