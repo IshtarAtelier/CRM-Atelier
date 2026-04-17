@@ -744,14 +744,17 @@ export default function VentasPage() {
 
                                         {/* Invoice badge or button */}
                                         {(() => {
-                                            const inv = (order.invoices || []).find((i: any) => i.status === 'COMPLETED');
-                                            if (inv) {
-                                                return (
+                                            const completedInvoices = (order.invoices || []).filter((i: any) => i.status === 'COMPLETED');
+                                            const totalInvoiced = completedInvoices.reduce((acc: number, curr: any) => acc + curr.totalAmount, 0);
+                                            
+                                            const renderNodes: React.ReactNode[] = [];
+
+                                            completedInvoices.forEach((inv: any) => {
+                                                renderNodes.push(
                                                     <button 
-                                                        key={inv.id}
+                                                        key={`inv-${inv.id}`}
                                                         onClick={async () => {
                                                             try {
-                                                                // If already has pdf url in db it returns it, else it generates it in afip sdk
                                                                 const res = await fetch(`/api/billing/invoice/${inv.id}?pdf=true`);
                                                                 const data = await res.json();
                                                                 if (data.pdfUrl) {
@@ -769,22 +772,29 @@ export default function VentasPage() {
                                                         <div>
                                                             <span className="text-[9px] font-black text-indigo-400 uppercase tracking-widest block">Factura C</span>
                                                             <span className="text-xs font-black text-indigo-600">
-                                                                {inv.pointOfSale.toString().padStart(4, '0')}-{inv.voucherNumber.toString().padStart(8, '0')}
+                                                                {inv.pointOfSale?.toString().padStart(4, '0')}-{inv.voucherNumber?.toString().padStart(8, '0')}
                                                             </span>
                                                         </div>
                                                         <ExternalLink className="w-4 h-4 text-indigo-400" />
                                                     </button>
                                                 );
+                                            });
+
+                                            // Only render "Solicitar Factura" if there is remaining un-invoiced paid balance
+                                            if (financials.paidReal > totalInvoiced) {
+                                                renderNodes.push(
+                                                    <button
+                                                        key={`req-${order.id}`}
+                                                        onClick={() => handleInvoiceRequest(order)}
+                                                        className={`p-3 rounded-xl hover:scale-110 transition-all ${isAdmin ? 'bg-indigo-50 dark:bg-indigo-950/30 text-indigo-600 hover:bg-indigo-100' : 'bg-amber-50 dark:bg-amber-950/30 text-amber-500 hover:bg-amber-100'}`}
+                                                        title={isAdmin ? 'Emitir Factura C' : 'Solicitar Factura'}
+                                                    >
+                                                        <FileText className="w-4 h-4" />
+                                                    </button>
+                                                );
                                             }
-                                            return (
-                                                <button
-                                                    onClick={() => handleInvoiceRequest(order)}
-                                                    className={`p-3 rounded-xl hover:scale-110 transition-all ${isAdmin ? 'bg-indigo-50 dark:bg-indigo-950/30 text-indigo-600 hover:bg-indigo-100' : 'bg-amber-50 dark:bg-amber-950/30 text-amber-500 hover:bg-amber-100'}`}
-                                                    title={isAdmin ? 'Emitir Factura C' : 'Solicitar Factura'}
-                                                >
-                                                    <FileText className="w-4 h-4" />
-                                                </button>
-                                            );
+
+                                            return <>{renderNodes}</>;
                                         })()}
                                         {/* WhatsApp notify */}
                                         {order.client.phone && (order.labStatus === 'READY' || financials.hasBalance) && (

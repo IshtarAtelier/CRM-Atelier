@@ -5,6 +5,12 @@ import { getCommissionRate, DOCTOR_COMMISSION_RATE } from '@/lib/constants';
 export const dynamic = 'force-dynamic';
 
 
+export interface BillingStat {
+    account: string;
+    total: number;
+    count: number;
+}
+
 export async function GET(request: Request) {
     try {
         const { searchParams } = new URL(request.url);
@@ -212,6 +218,30 @@ export async function GET(request: Request) {
         const netProfit = totalRevenue - totalCosts - totalPlatformFees - totalDoctorFees - totalFixedCosts;
         const profitMargin = totalRevenue > 0 ? (netProfit / totalRevenue) * 100 : 0;
 
+        // ── Fetch Invoices for billing stats ──
+        const invoicesWhere: any = {
+            status: 'COMPLETED'
+        };
+        if (from || to) {
+            invoicesWhere.createdAt = dateFilter;
+        }
+
+        const invoices = await prisma.invoice.findMany({
+            where: invoicesWhere
+        });
+
+        const billingStats: Record<string, BillingStat> = {
+            'ISH': { account: 'Ishtar', total: 0, count: 0 },
+            'YANI': { account: 'Yani', total: 0, count: 0 }
+        };
+
+        for (const inv of invoices) {
+            const acc = inv.billingAccount;
+            if (!billingStats[acc]) billingStats[acc] = { account: acc, total: 0, count: 0 };
+            billingStats[acc].total += inv.totalAmount;
+            billingStats[acc].count += 1;
+        }
+
         return NextResponse.json({
             summary: {
                 totalRevenue,
@@ -229,6 +259,7 @@ export async function GET(request: Request) {
                 totalMarkup,
                 ordersCount: orders.length,
             },
+            billingStats: Object.values(billingStats),
             fixedCosts,
             topClients: Object.values(clientStats)
                 .sort((a, b) => b.total - a.total)

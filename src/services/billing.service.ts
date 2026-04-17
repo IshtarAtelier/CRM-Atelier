@@ -43,6 +43,17 @@ export const BillingService = {
         if (order.orderType !== 'SALE') throw new Error('Solo se pueden facturar ventas confirmadas.');
         if (order.isDeleted) throw new Error('La orden ha sido eliminada y no puede facturarse.');
  
+        // 1.5 Validar doble facturación
+        const totalInvoiced = order.invoices
+            .filter((i) => i.status === 'COMPLETED')
+            .reduce((acc, curr) => acc + curr.totalAmount, 0);
+            
+        const maximumInvoiceable = PricingService.calculateOrderFinancials(order as any).paidReal;
+
+        if (totalInvoiced > 0 && (totalInvoiced + (amount || 0)) > maximumInvoiceable) {
+            throw new Error(`Esta venta ya tiene un saldo facturado ($${totalInvoiced}). No podés facturar este nuevo monto porque superaría el saldo total pagado de $${maximumInvoiceable}.`);
+        }
+
         // 2. Calcular importes e ítems
         const totalAmount = amount !== undefined ? amount : (order.total || 0);
         const UNIT_PRICE_LIMIT = 499000;

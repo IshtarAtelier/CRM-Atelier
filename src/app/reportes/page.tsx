@@ -46,6 +46,7 @@ interface ReportData {
     monthlyStats: { month: string; revenue: number; cost: number; profit: number; orders: number }[];
     paymentMethods: { method: string; total: number; count: number; commission: number }[];
     labStats: { laboratory: string; revenue: number; cost: number; profit: number; ordersCount: number }[];
+    billingStats: { account: string; total: number; count: number }[];
 }
 
 const FIXED_COST_CATEGORIES = [
@@ -369,6 +370,42 @@ export default function ReportesPage() {
                                             <span className="text-[8px] font-bold text-stone-400 uppercase tracking-widest">{l.label}</span>
                                         </div>
                                     ))}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Billing Summary / Facturación AFIP */}
+                        <div className="bg-white dark:bg-stone-800 border-2 border-stone-100 dark:border-stone-700 rounded-3xl p-6 shadow-xl shadow-stone-200/20 dark:shadow-none print:shadow-none print:border-stone-200 col-span-1 border-t-4 border-t-indigo-500">
+                            <div className="flex items-center gap-3 mb-6">
+                                <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center print:border print:border-indigo-100">
+                                    <Receipt className="w-5 h-5 text-indigo-500" />
+                                </div>
+                                <div>
+                                    <h3 className="text-lg font-black text-stone-800 dark:text-white leading-tight">Facturación AFIP</h3>
+                                    <p className="text-[10px] font-black uppercase tracking-widest text-stone-400">Total comprobantes C</p>
+                                </div>
+                            </div>
+
+                            <div className="space-y-3">
+                                {data?.billingStats?.map(b => (
+                                    <div key={b.account} className="flex flex-col p-4 bg-stone-50 dark:bg-stone-900/50 rounded-2xl border-2 border-transparent hover:border-indigo-100 dark:hover:border-indigo-900/50 transition-all">
+                                        <div className="flex justify-between items-center mb-1">
+                                            <span className="text-xs font-black text-stone-600 dark:text-stone-300 uppercase tracking-widest">{b.account}</span>
+                                            <span className="text-lg font-black text-indigo-600">${b.total.toLocaleString()}</span>
+                                        </div>
+                                        <span className="text-[9px] font-bold text-stone-400 capitalize">{b.count} comprobante{b.count !== 1 ? 's' : ''} emitido{b.count !== 1 ? 's' : ''}</span>
+                                    </div>
+                                ))}
+                                {(!data?.billingStats || data.billingStats.length === 0) && (
+                                    <div className="text-center py-6 text-stone-400 text-xs font-bold bg-stone-50 dark:bg-stone-900/50 rounded-2xl">
+                                        No hay facturas emitidas en este período
+                                    </div>
+                                )}
+                                <div className="mt-4 pt-4 border-t-2 border-dashed border-stone-200 dark:border-stone-700 flex justify-between items-center">
+                                    <span className="text-[10px] font-black uppercase tracking-widest text-stone-400">Suma Total Facturada</span>
+                                    <span className="text-xl font-black text-stone-800 dark:text-white">
+                                        ${((data?.billingStats || []).reduce((acc, curr) => acc + curr.total, 0)).toLocaleString()}
+                                    </span>
                                 </div>
                             </div>
                         </div>
