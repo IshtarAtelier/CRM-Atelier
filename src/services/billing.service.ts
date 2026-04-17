@@ -86,7 +86,8 @@ export const BillingService = {
             result = await afip.ElectronicBilling.createNextVoucher(voucherData);
         } catch (error: any) {
             console.error('[ARCA ERROR]', error);
-            const msg = error.response?.data?.message || error.response?.data?.error || error.message || '';
+            const errorPayload = error.data || error.response?.data || error;
+            const msg = (errorPayload.message || errorPayload.error || (typeof errorPayload === 'string' ? errorPayload : JSON.stringify(errorPayload))) || error.message || '';
             if (msg.includes('Could not authenticate')) throw new Error('Error de Autenticación con ARCA (verificá Certificado y Key).');
             if (msg.includes('Punto de Venta')) throw new Error(`El Punto de Venta (${ptoVta}) no está habilitado o no existe para esta cuenta en ARCA.`);
             throw new Error(`Detalle de ARCA: ${typeof msg === 'string' ? msg : JSON.stringify(msg)}`);
