@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/db';
 import { BillingAccount, getAfipInstance, formatAfipDate, getBillingAccountConfig } from '@/lib/afip';
+import { PricingService } from '@/services/PricingService';
 
 // Tipos de comprobante — Monotributista siempre emite Factura C
 const VOUCHER_TYPE_FC = 11;    // Factura C
@@ -257,12 +258,19 @@ export const BillingService = {
                 DocNro: invoice.docNumber,
                 condicion_venta: 'Otra',
                 forma_de_pago: 'Otra',
-                items: invoice.order.items.map((item: any) => ({
-                    description: `${item.product?.brand || ''} ${item.product?.model || item.product?.name || ''}`.trim(),
-                    quantity: item.quantity,
-                    unit_price: item.price,
-                    total: item.price * item.quantity,
-                })),
+                items: invoice.totalAmount === invoice.order.total
+                    ? invoice.order.items.map((item: any) => ({
+                        description: `${item.product?.brand || ''} ${item.product?.model || item.product?.name || ''}`.trim(),
+                        quantity: item.quantity,
+                        unit_price: item.price,
+                        total: item.price * item.quantity,
+                    }))
+                    : [{
+                        description: `Productos Ópticos / Venta (Pago Parcial Pedido #${invoice.order.id.slice(-4).toUpperCase()})`,
+                        quantity: 1,
+                        unit_price: invoice.totalAmount,
+                        total: invoice.totalAmount,
+                    }],
             });
 
             if (pdfInfo?.url) {
