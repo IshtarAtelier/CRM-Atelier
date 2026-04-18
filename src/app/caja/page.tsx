@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { resolveStorageUrl } from '@/lib/utils/storage';
+import { resolveStorageUrl, fileToBase64 } from '@/lib/utils/storage';
 
 // ── Types ─────────────────────────────────────
 
@@ -46,7 +46,7 @@ export default function CajaPage() {
     const [reason, setReason] = useState('');
     const [category, setCategory] = useState('GASTO_GENERAL');
     const [laboratory, setLaboratory] = useState('');
-    const [receiptUrl, setReceiptUrl] = useState('');
+    const [receiptFile, setReceiptFile] = useState<File | null>(null);
     const [isSaving, setIsSaving] = useState(false);
     const [successMessage, setSuccessMessage] = useState('');
     const [viewingReceipt, setViewingReceipt] = useState<string | null>(null);
@@ -69,47 +69,18 @@ export default function CajaPage() {
         setLoading(false);
     };
 
-    const compressImage = (file: File): Promise<string> => {
-        return new Promise((resolve) => {
-            const reader = new FileReader();
-            reader.readAsDataURL(file);
-            reader.onload = (event) => {
-                const img = new Image();
-                img.src = event.target?.result as string;
-                img.onload = () => {
-                    const canvas = document.createElement('canvas');
-                    let width = img.width;
-                    let height = img.height;
-                    const MAX_SIZE = 1200;
-                    if (width > height) {
-                        if (width > MAX_SIZE) { height *= MAX_SIZE / width; width = MAX_SIZE; }
-                    } else {
-                        if (height > MAX_SIZE) { width *= MAX_SIZE / height; height = MAX_SIZE; }
-                    }
-                    canvas.width = width;
-                    canvas.height = height;
-                    const ctx = canvas.getContext('2d');
-                    ctx?.drawImage(img, 0, 0, width, height);
-                    resolve(canvas.toDataURL('image/jpeg', 0.7));
-                };
-            };
-        });
-    };
-
-    const handleReceiptUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
-        const base64 = await compressImage(file);
-        setReceiptUrl(base64);
-    };
-
     const resetForm = () => {
         setAmount('');
         setReason('');
         setCategory('GASTO_GENERAL');
         setLaboratory('');
-        setReceiptUrl('');
+        setReceiptFile(null);
         setMovementType('OUT');
+    };
+
+    const handleReceiptUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) setReceiptFile(file);
     };
 
     const handleSaveMovement = async () => {
@@ -118,6 +89,11 @@ export default function CajaPage() {
         try {
             const userRes = await fetch('/api/auth/me');
             const userData = await userRes.json();
+
+            let receiptUrlStr = '';
+            if (receiptFile) {
+                receiptUrlStr = await fileToBase64(receiptFile);
+            }
 
             const res = await fetch('/api/cash/movement', {
                 method: 'POST',
@@ -131,7 +107,7 @@ export default function CajaPage() {
                     reason,
                     category,
                     laboratory: category === 'PAGO_LABORATORIO' ? laboratory : undefined,
-                    receiptUrl: receiptUrl || undefined
+                    receiptUrl: receiptUrlStr || undefined
                 })
             });
 
@@ -453,9 +429,9 @@ export default function CajaPage() {
                                             id="caja-receipt"
                                         />
                                         <label htmlFor="caja-receipt" className={`w-full h-20 border-2 border-dashed rounded-xl flex flex-col items-center justify-center gap-1.5 cursor-pointer transition-all ${
-                                            receiptUrl ? 'border-primary bg-primary/5 text-primary' : 'border-stone-100 dark:border-stone-800 text-stone-400 hover:bg-stone-50'
+                                            receiptFile ? 'border-primary bg-primary/5 text-primary' : 'border-stone-100 dark:border-stone-800 text-stone-400 hover:bg-stone-50'
                                         }`}>
-                                            {receiptUrl ? (
+                                            {receiptFile ? (
                                                 <>
                                                     <ImageIcon size={20} />
                                                     <span className="text-[10px] font-black uppercase tracking-widest">Imagen Cargada ✓</span>
