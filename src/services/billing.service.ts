@@ -297,12 +297,36 @@ export const BillingService = {
                 pdfData.logo = logo;
             }
 
+            console.log('[PDF] Enviando datos a createPDF:', JSON.stringify({ ...pdfData, logo: pdfData.logo ? '(base64 omitido)' : 'sin logo' }));
             const pdfInfo = await afip.ElectronicBilling.createPDF(pdfData);
 
-            // El SDK retorna { file, file_name } — 'file' contiene la URL del PDF
-            const pdfUrl = pdfInfo?.file || pdfInfo?.url || null;
+            // Log detallado para diagnosticar qué retorna el SDK
+            console.log('[PDF] Respuesta del SDK createPDF:', JSON.stringify({
+                keys: pdfInfo ? Object.keys(pdfInfo) : 'null',
+                file_type: typeof pdfInfo?.file,
+                file_preview: typeof pdfInfo?.file === 'string' ? pdfInfo.file.substring(0, 200) : 'N/A',
+                file_name: pdfInfo?.file_name,
+                url: pdfInfo?.url,
+            }));
 
-            if (pdfUrl) {
+            // El SDK retorna { file, file_name }
+            // 'file' puede ser una URL de descarga o contenido base64 del PDF
+            let pdfUrl: string | null = null;
+
+            if (pdfInfo?.file) {
+                if (pdfInfo.file.startsWith('http')) {
+                    // Es una URL directa
+                    pdfUrl = pdfInfo.file;
+                } else {
+                    // Es contenido base64 — crear un data URI
+                    pdfUrl = `data:application/pdf;base64,${pdfInfo.file}`;
+                }
+            } else if (pdfInfo?.url) {
+                pdfUrl = pdfInfo.url;
+            }
+
+            if (pdfUrl && !pdfUrl.startsWith('data:')) {
+                // Solo guardamos URLs externas, no data URIs (son muy grandes)
                 await prisma.invoice.update({
                     where: { id: invoiceId },
                     data: { pdfUrl },

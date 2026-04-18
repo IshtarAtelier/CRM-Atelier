@@ -93,11 +93,24 @@ export default function BillingPage() {
         setDownloadingId(invoiceId);
         try {
             const res = await fetch(`/api/billing/invoice?invoiceId=${invoiceId}`);
-            const data = await res.json();
-            if (res.ok && data.pdfUrl) {
-                window.open(data.pdfUrl, '_blank');
+            
+            const contentType = res.headers.get('content-type') || '';
+            
+            if (contentType.includes('application/pdf')) {
+                // El servidor envi\u00f3 el PDF directamente como blob
+                const blob = await res.blob();
+                const blobUrl = URL.createObjectURL(blob);
+                window.open(blobUrl, '_blank');
+                // Limpiar el blob URL despu\u00e9s de un rato
+                setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
             } else {
-                alert('No se pudo generar el enlace del PDF: ' + (data.error || 'Error de SDK'));
+                // Respuesta JSON con URL del PDF
+                const data = await res.json();
+                if (res.ok && data.pdfUrl) {
+                    window.open(data.pdfUrl, '_blank');
+                } else {
+                    alert('No se pudo generar el enlace del PDF: ' + (data.error || 'Error de SDK'));
+                }
             }
         } catch (error: any) {
             console.error('Error downloading invoice:', error);

@@ -53,8 +53,26 @@ export async function GET(request: Request) {
         const invoiceId = searchParams.get('invoiceId');
 
         if (invoiceId) {
-            const pdfUrl = await BillingService.getInvoicePdfUrl(invoiceId);
-            return NextResponse.json({ pdfUrl });
+            const pdfResult = await BillingService.getInvoicePdfUrl(invoiceId);
+            
+            if (!pdfResult) {
+                return NextResponse.json({ error: 'No se pudo generar el PDF' }, { status: 500 });
+            }
+
+            // Si es un data URI (base64), servir directamente como PDF binario
+            if (typeof pdfResult === 'string' && pdfResult.startsWith('data:application/pdf;base64,')) {
+                const base64Data = pdfResult.replace('data:application/pdf;base64,', '');
+                const pdfBuffer = Buffer.from(base64Data, 'base64');
+                return new NextResponse(pdfBuffer, {
+                    headers: {
+                        'Content-Type': 'application/pdf',
+                        'Content-Disposition': `inline; filename="factura-${invoiceId.slice(-6)}.pdf"`,
+                    },
+                });
+            }
+
+            // Si es una URL normal
+            return NextResponse.json({ pdfUrl: pdfResult });
         }
 
         if (orderId) {
