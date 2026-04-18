@@ -1,9 +1,8 @@
 import { NextResponse } from 'next/server';
 import { headers } from 'next/headers';
-import fs from 'fs';
-import path from 'path';
+import { BackupService } from '@/lib/backup';
 
-// GET /api/backup — Download SQLite database file (ADMIN only)
+// GET /api/backup — Download full DB backup (ADMIN only)
 export async function GET() {
     try {
         const headersList = await headers();
@@ -13,21 +12,15 @@ export async function GET() {
             return NextResponse.json({ error: 'Solo administradores pueden descargar backups' }, { status: 403 });
         }
 
-        const dbPath = path.join(process.cwd(), 'prisma', 'dev.db');
-
-        if (!fs.existsSync(dbPath)) {
-            return NextResponse.json({ error: 'Database file not found' }, { status: 404 });
-        }
-
-        const fileBuffer = fs.readFileSync(dbPath);
+        const fileBuffer = await BackupService.createBackup();
         const now = new Date();
         const timestamp = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}_${String(now.getHours()).padStart(2, '0')}-${String(now.getMinutes()).padStart(2, '0')}`;
-        const filename = `atelier-crm-backup-${timestamp}.db`;
+        const filename = `atelier-crm-backup-${timestamp}.json.gz`;
 
         return new NextResponse(fileBuffer, {
             status: 200,
             headers: {
-                'Content-Type': 'application/octet-stream',
+                'Content-Type': 'application/gzip',
                 'Content-Disposition': `attachment; filename="${filename}"`,
                 'Content-Length': String(fileBuffer.length),
             },

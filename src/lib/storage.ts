@@ -1,6 +1,6 @@
-import { S3Client, PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
+import { S3Client, PutObjectCommand, GetObjectCommand, ListObjectsV2Command, DeleteObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl as s3GetSignedUrl } from "@aws-sdk/s3-request-presigner";
-import { writeFile, mkdir, readFile } from "fs/promises";
+import { writeFile, mkdir, readFile, unlink, readdir, stat } from "fs/promises";
 import path from "path";
 
 // Configuración desde variables de entorno
@@ -75,4 +75,76 @@ export async function getSignedUrl(key: string): Promise<string> {
 
     // Fallback: si no hay cloud y el key no tiene prefijo, probamos como local por si acaso
     return `/api/storage/view?key=${encodeURIComponent(key)}`;
+}
+
+/**
+ * Lista archivos con un prefijo específico
+ */
+export async function listFiles(prefix: string): Promise<{ key: string, size?: number, lastModified?: Date }[]> {
+    if (isCloudEnabled && s3Client) {
+        const command = new ListObjectsV2Command({
+            Bucket: bucketName,
+            Prefix: prefix
+        });
+        
+        try {
+            const response = await s3Client.send(command);
+            return (response.Contents || []).map(item => ({
+                key: item.Key || '',
+                size: item.Size,
+                lastModified: item.LastModified
+            }));
+        } catch (error) {
+            console.error("Error listing S3 files:", error);
+            return [];
+        }
+    } else {
+        // Fallback local
+        const storageDir = path.join(process.cwd(), 'storage', 'uploads');
+        try {
+            const files = await readdir(storageDir);
+            const result = [];
+            for (const file of files) {
+                if (file.startsWith(prefix)) {
+                    const fileStat = await stat(path.join(storageDir, file));
+                    result.push({
+                        key: `local://${file}`,
+                        size: fileStat.size,
+                        lastModified: fileStat.mtime
+                    });
+                }
+            }
+            return result;
+        } catch (error) {
+            return [];
+        }
+    }
+}
+
+/**
+ * Elimina un archivo del almacenamiento
+ */
+export async function deleteFile(key: string): Promise<void> {
+    if (key.startsWith('local://')) {
+        const pureKey = key.replace('local://', '');
+        const filepath = path.join(process.cwd(), 'storage', 'uploads', pureKey);
+        try {
+            await unlink(filepath);
+        } catch (error) {
+            console.error("Error deleting local file:", error);
+        }
+        return;
+    }
+
+    if (isCloudEnabled && s3Client) {
+        const command = new DeleteObjectCommand({
+            Bucket: bucketName,
+            Key: key,
+        });
+        try {
+            await s3Client.send(command);
+        } catch (error) {
+            console.error("Error deleting S3 file:", error);
+        }
+    }
 }

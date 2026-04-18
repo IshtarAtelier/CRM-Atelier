@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { resolveStorageUrl } from '@/lib/utils/storage';
 
 // ── Types ─────────────────────────────────────
 
@@ -659,7 +660,7 @@ export default function AdministracionPage() {
                                                         <div className="flex items-center justify-center gap-2">
                                                             {p.receiptUrl ? (
                                                                 <button 
-                                                                    onClick={() => setViewingReceipt(p.receiptUrl)}
+                                                                    onClick={() => setViewingReceipt(resolveStorageUrl(p.receiptUrl))}
                                                                     className="w-10 h-10 bg-primary/10 text-primary rounded-xl flex items-center justify-center hover:bg-primary hover:text-white transition-all shadow-sm"
                                                                     title="Ver Comprobante"
                                                                 >
@@ -765,7 +766,7 @@ export default function AdministracionPage() {
                                                 <div className="flex items-center gap-6">
                                                     {m.receiptUrl && (
                                                         <button 
-                                                            onClick={() => setViewingReceipt(m.receiptUrl || null)}
+                                                            onClick={() => setViewingReceipt(resolveStorageUrl(m.receiptUrl || null))}
                                                             className="p-3 text-stone-400 hover:text-primary transition-all rounded-xl hover:bg-stone-50"
                                                             title="Ver Comprobante"
                                                         >

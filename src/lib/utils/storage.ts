@@ -7,7 +7,7 @@ export function resolveStorageUrl(urlOrKey: string | null | undefined): string {
     if (!urlOrKey) return '';
 
     // Si ya es una URL completa (http/https) o una ruta relativa de public (/uploads/...)
-    if (urlOrKey.startsWith('http') || urlOrKey.startsWith('/')) {
+    if (urlOrKey.startsWith('http') || urlOrKey.startsWith('/') || urlOrKey.startsWith('data:')) {
         return urlOrKey;
     }
 

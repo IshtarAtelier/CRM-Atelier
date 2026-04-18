@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { resolveStorageUrl } from '@/lib/utils/storage';
 
 // ── Types ─────────────────────────────────────
 
@@ -253,10 +254,10 @@ export default function CajaPage() {
 
                                     {/* Receipt */}
                                     {m.receiptUrl && (
-                                        <button
-                                            onClick={() => setViewingReceipt(m.receiptUrl || null)}
-                                            className="p-2 text-stone-400 hover:text-primary transition-all rounded-xl hover:bg-stone-50 dark:hover:bg-stone-800 shrink-0"
-                                            title="Ver Comprobante"
+                                        <button 
+                                            onClick={() => setViewingReceipt(resolveStorageUrl(m.receiptUrl || null))}
+                                            className="p-1.5 rounded-lg bg-stone-100 dark:bg-stone-800 text-stone-400 hover:text-stone-900 dark:hover:text-white transition-colors"
+                                            title="Ver comprobante"
                                         >
                                             <ImageIcon size={16} />
                                         </button>

@@ -12,6 +12,7 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import InvoiceModal from '@/components/InvoiceModal';
 import { BillingAccount, detectBillingAccount } from '@/lib/afip';
+import { resolveStorageUrl } from '@/lib/utils/storage';
 
 interface Order {
     id: string;
@@ -408,7 +409,7 @@ export default function BillingPage() {
                         <h3 className="text-sm font-black uppercase tracking-widest text-stone-400 mb-6 flex items-center gap-2 px-2"><ImageIcon className="w-4 h-4"/> Comprobante de Pago</h3>
                         <div className="rounded-xl overflow-hidden bg-stone-50 dark:bg-stone-800 flex items-center justify-center min-h-[300px]">
                             {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img src={selectedReceipt} alt="Comprobante" className="max-h-[70vh] object-contain" />
+                            <img src={resolveStorageUrl(selectedReceipt)} alt="Comprobante" className="max-h-[70vh] object-contain" />
                         </div>
                     </div>
                 </div>

@@ -465,10 +465,12 @@ export default function VentasPage() {
                     </h1>
                     <p className="text-stone-400 text-xs lg:text-sm mt-1">Operaciones confirmadas y enviadas a laboratorio</p>
                 </div>
-                <div className="text-left md:text-right w-full md:w-auto p-4 bg-emerald-50 dark:bg-emerald-950/20 rounded-2xl md:bg-transparent md:p-0">
-                    <p className="text-2xl lg:text-3xl font-black text-emerald-500">${stats.revenue.toLocaleString()}</p>
-                    <p className="text-[10px] font-black text-stone-400 uppercase tracking-widest">Facturación total</p>
-                </div>
+                {isAdmin && (
+                    <div className="text-left md:text-right w-full md:w-auto p-4 bg-emerald-50 dark:bg-emerald-950/20 rounded-2xl md:bg-transparent md:p-0">
+                        <p className="text-2xl lg:text-3xl font-black text-emerald-500">${stats.revenue.toLocaleString()}</p>
+                        <p className="text-[10px] font-black text-stone-400 uppercase tracking-widest">Facturación total</p>
+                    </div>
+                )}
             </div>
 
             {/* Stats */}
