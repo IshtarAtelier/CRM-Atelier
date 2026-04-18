@@ -6,6 +6,11 @@
 export function resolveStorageUrl(urlOrKey: string | null | undefined): string {
     if (!urlOrKey) return '';
 
+    // Si es base64, lo retornamos directo
+    if (urlOrKey.startsWith('data:image')) {
+        return urlOrKey;
+    }
+
     // Si ya es una URL completa (http/https) o una ruta relativa de public (/uploads/...)
     if (urlOrKey.startsWith('http') || urlOrKey.startsWith('/') || urlOrKey.startsWith('data:')) {
         return urlOrKey;

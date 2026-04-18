@@ -1,41 +1,57 @@
 import { NextResponse } from 'next/server';
-import { getBillingAccountConfig } from '@/lib/afip';
+import { getAfipInstance, BILLING_ACCOUNTS } from '@/lib/afip';
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 
 export async function GET() {
     try {
-        const isProduction = process.env.AFIP_PRODUCTION_MODE === 'true';
+        const session = await getServerSession(authOptions);
+        if (!session || session.user.role !== 'ADMIN') {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
+
+        const productionMode = process.env.AFIP_PRODUCTION_MODE === 'true';
         
-        const checkCert = (cert: string | undefined) => {
-            if (!cert) return { status: 'MISSING', type: 'N/A' };
-            if (cert.includes('DESARROLLO') || cert.includes('HOMOLOGACIÓN')) {
-                return { status: 'LOADED', type: 'TESTING (Sandbox)' };
-            }
-            if (cert.includes('BEGIN CERTIFICATE')) {
-                return { status: 'LOADED', type: 'PRODUCTION (Likely)' };
-            }
-            return { status: 'INVALID FORMAT', type: 'Unknown' };
+        const results: any = {
+            environment: productionMode ? 'PRODUCTION' : 'TESTING (SANDBOX)',
+            accounts: {}
         };
 
-        const ishCert = process.env.AFIP_CERT_ISH || process.env.AFIP_CERT; // Fallback to old var
-        const yaniCert = process.env.AFIP_CERT_YANI;
+        for (const [key, config] of Object.entries(BILLING_ACCOUNTS)) {
+            const cert = key === 'ISH' ? process.env.AFIP_CERT_ISH : process.env.AFIP_CERT_YANI;
+            const keyPriv = key === 'ISH' ? process.env.AFIP_KEY_ISH : process.env.AFIP_KEY_YANI;
+            
+            let certInfo = "NOT LOADED";
+            let certType = "UNKNOWN";
 
-        const results = {
-            environment: isProduction ? 'PRODUCTION' : 'TESTING (SANDBOX)',
-            accounts: {
-                ISH: {
-                    config: getBillingAccountConfig('ISH'),
-                    certificate: checkCert(ishCert),
-                    hasKey: !!(process.env.AFIP_KEY_ISH || process.env.AFIP_KEY)
-                },
-                YANI: {
-                    config: getBillingAccountConfig('YANI'),
-                    certificate: checkCert(yaniCert),
-                    hasKey: !!process.env.AFIP_KEY_YANI
+            if (cert) {
+                certInfo = "LOADED";
+                if (cert.includes('----BEGIN CERTIFICATE----')) {
+                    // Simple check for typical production vs testing content
+                    if (cert.includes('AFIP')) {
+                        certType = "PRODUCTION (Likely - AFIP Issued)";
+                    } else if (cert.includes('Testing')) {
+                        certType = "TESTING (Sandbox)";
+                    }
                 }
-            },
-            timestamp: new Date().toISOString()
-        };
+            }
 
+            results.accounts[key] = {
+                config: {
+                    cuit: config.cuit,
+                    label: config.label,
+                    puntoDeVenta: config.puntoDeVenta
+                },
+                certificate: {
+                    status: certInfo,
+                    type: certType,
+                    length: cert?.length || 0
+                },
+                hasKey: !!keyPriv
+            };
+        }
+
+        results.timestamp = new Date().toISOString();
         return NextResponse.json(results);
     } catch (error: any) {
         return NextResponse.json({ error: error.message }, { status: 500 });
