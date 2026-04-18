@@ -5,10 +5,18 @@ import {
     Cog, Users, Plus, Pencil, Trash2, Save, X, Eye, EyeOff,
     Shield, ShieldCheck, Loader2, Lock, UserPlus, AlertTriangle,
     CheckCircle2, Stethoscope, Bot, MessageCircle, Wifi, WifiOff,
-    Sparkles, RotateCcw, Copy, Download, Database, RefreshCw
+    Sparkles, RotateCcw, Copy, Download, Database, RefreshCw, UploadCloud, Clock, HardDrive, Calendar
 } from 'lucide-react';
 
 // ── Types ─────────────────────────────────────
+
+interface BackupStatus {
+    storageConfigured: boolean;
+    totalBackups: number;
+    latestBackup: any | null;
+    cronEnabled: boolean;
+    history: any[];
+}
 
 interface User {
     id: string;
@@ -61,6 +69,11 @@ export default function ConfiguracionPage() {
     const [agentConfigured, setAgentConfigured] = useState(false);
     const [showApiKey, setShowApiKey] = useState(false);
 
+    // Backup state
+    const [backupStatus, setBackupStatus] = useState<BackupStatus | null>(null);
+    const [loadingBackup, setLoadingBackup] = useState(false);
+    const [forcingBackup, setForcingBackup] = useState(false);
+
     // Create form
     const [newName, setNewName] = useState('');
     const [newEmail, setNewEmail] = useState('');
@@ -87,6 +100,7 @@ export default function ConfiguracionPage() {
         fetchAgentConfig();
         fetchWaStatus();
         fetchBillingConfig();
+        fetchBackupStatus();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
@@ -102,6 +116,21 @@ export default function ConfiguracionPage() {
             console.error('Error fetching billing config:', error);
         } finally {
             setLoadingBilling(false);
+        }
+    };
+
+    const fetchBackupStatus = async () => {
+        setLoadingBackup(true);
+        try {
+            const res = await fetch('/api/backup/status');
+            if (res.ok) {
+                const data = await res.json();
+                setBackupStatus(data);
+            }
+        } catch (error) {
+            console.error('Error fetching backup status:', error);
+        } finally {
+            setLoadingBackup(false);
         }
     };
 
@@ -964,47 +993,120 @@ export default function ConfiguracionPage() {
                 <div className="p-6 flex items-center justify-between border-b-2 border-stone-100 dark:border-stone-700">
                     <div className="flex items-center gap-2">
                         <Database className="w-5 h-5 text-primary" />
-                        <h2 className="text-xs font-black uppercase tracking-widest text-stone-400">Respaldo de Datos</h2>
+                        <h2 className="text-xs font-black uppercase tracking-widest text-stone-400">Respaldo de Datos (Backup)</h2>
                     </div>
+                    {loadingBackup && <Loader2 className="w-4 h-4 text-stone-400 animate-spin" />}
                 </div>
-                <div className="p-6">
-                    <div className="bg-amber-50 dark:bg-amber-950/30 rounded-2xl p-4 mb-4 border border-amber-200 dark:border-amber-800">
-                        <div className="flex items-start gap-3">
-                            <AlertTriangle className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
-                            <div>
-                                <p className="text-sm font-bold text-amber-700 dark:text-amber-300 mb-1">Importante</p>
-                                <p className="text-xs text-amber-600/70 dark:text-amber-400/70">
-                                    Descargá un respaldo de la base de datos periódicamente para proteger tus datos.
-                                    Guardalo en un lugar seguro (Google Drive, USB, etc.).
-                                </p>
+                
+                <div className="p-6 grid gap-6 md:grid-cols-2">
+                    {/* Status panel */}
+                    <div className="space-y-4">
+                        <div className="p-4 rounded-xl border border-stone-100 dark:border-stone-700 bg-stone-50 dark:bg-stone-800/50">
+                            <h3 className="text-sm font-bold mb-3 flex items-center gap-2">
+                                <Database className="w-4 h-4 text-stone-500" />
+                                Estado del Sistema
+                            </h3>
+                            <div className="space-y-3">
+                                <div className="flex justify-between items-center text-sm">
+                                    <span className="text-stone-500 flex items-center gap-2"><UploadCloud className="w-4 h-4" /> Almacenamiento Externo (S3)</span>
+                                    {backupStatus?.storageConfigured ? 
+                                        <span className="text-emerald-600 bg-emerald-100 dark:bg-emerald-900/30 px-2 py-0.5 rounded text-xs font-bold">Activo</span> : 
+                                        <span className="text-amber-600 bg-amber-100 dark:bg-amber-900/30 px-2 py-0.5 rounded text-xs font-bold">Local (Sin S3)</span>
+                                    }
+                                </div>
+                                <div className="flex justify-between items-center text-sm">
+                                    <span className="text-stone-500 flex items-center gap-2"><Clock className="w-4 h-4" /> Cron Automático</span>
+                                    {backupStatus?.cronEnabled ? 
+                                        <span className="text-emerald-600 bg-emerald-100 dark:bg-emerald-900/30 px-2 py-0.5 rounded text-xs font-bold">Configurado</span> : 
+                                        <span className="text-red-500 bg-red-100 dark:bg-red-900/30 px-2 py-0.5 rounded text-xs font-bold">Sin CRON_SECRET</span>
+                                    }
+                                </div>
+                                <div className="flex justify-between items-center text-sm">
+                                    <span className="text-stone-500 flex items-center gap-2"><HardDrive className="w-4 h-4" /> Total Backups</span>
+                                    <span className="font-mono text-stone-700 dark:text-stone-300">{backupStatus?.totalBackups || 0}</span>
+                                </div>
                             </div>
                         </div>
+
+                        {backupStatus?.latestBackup && (
+                            <div className="p-4 rounded-xl border border-stone-100 dark:border-stone-700 bg-stone-50 dark:bg-stone-800/50">
+                                <h3 className="text-sm font-bold mb-3 flex items-center gap-2">
+                                    <Calendar className="w-4 h-4 text-stone-500" />
+                                    Último Backup
+                                </h3>
+                                <div className="space-y-2 text-sm">
+                                    <p className="flex justify-between"><span className="text-stone-500">Fecha:</span> <span className="font-mono">{new Date(backupStatus.latestBackup.lastModified).toLocaleString()}</span></p>
+                                    <p className="flex justify-between"><span className="text-stone-500">Tamaño:</span> <span className="font-mono">{(backupStatus.latestBackup.size / 1024 / 1024).toFixed(2)} MB</span></p>
+                                    <p className="flex justify-between"><span className="text-stone-500">Archivo:</span> <span className="font-mono text-[10px] text-stone-400 truncate ml-2 max-w-[150px]">{backupStatus.latestBackup.key.split('/').pop()}</span></p>
+                                </div>
+                            </div>
+                        )}
+                        
+                        {!backupStatus?.storageConfigured && (
+                            <div className="p-3 bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 rounded-lg text-xs flex items-start gap-2">
+                                <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                                <p>S3 no está configurado. Los backups se guardan temporalmente en el servidor local. <b>Agregá STORAGE_BUCKET_NAME y credenciales para mayor seguridad.</b></p>
+                            </div>
+                        )}
                     </div>
-                    <button
-                        onClick={async () => {
-                            try {
-                                const res = await fetch('/api/backup');
-                                if (!res.ok) throw new Error('Error al generar backup');
-                                const blob = await res.blob();
-                                const url = URL.createObjectURL(blob);
-                                const a = document.createElement('a');
-                                a.href = url;
-                                const cd = res.headers.get('Content-Disposition');
-                                const match = cd?.match(/filename="(.+)"/);
-                                a.download = match ? match[1] : `atelier-backup-${Date.now()}.db`;
-                                document.body.appendChild(a);
-                                a.click();
-                                document.body.removeChild(a);
-                                URL.revokeObjectURL(url);
-                                setMessage({ type: 'success', text: 'Backup descargado exitosamente' });
-                            } catch (e) {
-                                setMessage({ type: 'error', text: 'Error al descargar el backup' });
-                            }
-                        }}
-                        className="w-full py-4 bg-primary text-primary-foreground rounded-xl text-xs font-black uppercase tracking-widest hover:scale-[1.02] transition-all shadow-lg shadow-primary/20 flex items-center justify-center gap-2"
-                    >
-                        <Download className="w-4 h-4" /> Descargar Backup de la Base de Datos
-                    </button>
+
+                    {/* Actions panel */}
+                    <div className="flex flex-col gap-3 justify-center border-t md:border-t-0 md:border-l border-stone-100 dark:border-stone-700 pt-6 md:pt-0 md:pl-6">
+                        <button
+                            onClick={async () => {
+                                try {
+                                    const res = await fetch('/api/backup');
+                                    if (!res.ok) throw new Error('Error al generar backup');
+                                    const blob = await res.blob();
+                                    const url = URL.createObjectURL(blob);
+                                    const a = document.createElement('a');
+                                    a.href = url;
+                                    const cd = res.headers.get('Content-Disposition');
+                                    const match = cd?.match(/filename="(.+)"/);
+                                    a.download = match ? match[1] : `atelier-backup-${Date.now()}.json.gz`;
+                                    document.body.appendChild(a);
+                                    a.click();
+                                    document.body.removeChild(a);
+                                    URL.revokeObjectURL(url);
+                                    setMessage({ type: 'success', text: 'Backup descargado exitosamente' });
+                                } catch (e) {
+                                    setMessage({ type: 'error', text: 'Error al descargar el backup' });
+                                }
+                            }}
+                            className="w-full py-3 bg-primary text-primary-foreground rounded-xl text-xs font-black uppercase tracking-widest hover:scale-[1.02] transition-all shadow-lg flex items-center justify-center gap-2"
+                        >
+                            <Download className="w-4 h-4" /> Descargar Backup JSON
+                        </button>
+                        
+                        <button
+                            onClick={async () => {
+                                setForcingBackup(true);
+                                try {
+                                    const res = await fetch('/api/backup', { method: 'POST' });
+                                    const data = await res.json();
+                                    if (res.ok) {
+                                        setMessage({ type: 'success', text: 'Backup generado correctamente' });
+                                        fetchBackupStatus(); // reload status
+                                    } else {
+                                        throw new Error(data.error);
+                                    }
+                                } catch (e: any) {
+                                    setMessage({ type: 'error', text: e.message || 'Error al generar backup' });
+                                } finally {
+                                    setForcingBackup(false);
+                                }
+                            }}
+                            disabled={forcingBackup}
+                            className="w-full py-3 bg-stone-100 dark:bg-stone-800 text-stone-700 dark:text-stone-300 border border-stone-200 dark:border-stone-700 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-stone-200 dark:hover:bg-stone-700 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                        >
+                            {forcingBackup ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+                            Forzar Backup Ahora
+                        </button>
+
+                        <div className="mt-auto text-center text-[10px] text-stone-400 pt-4">
+                            La descarga genera un archivo JSON comprimido (<i>.json.gz</i>) con todas las tablas.
+                        </div>
+                    </div>
                 </div>
             </section>
 
@@ -1018,7 +1120,7 @@ export default function ConfiguracionPage() {
                     <InfoItem label="Aplicación" value="Atelier Óptica CRM" />
                     <InfoItem label="Versión" value="1.0.0" />
                     <InfoItem label="Framework" value="Next.js 16" />
-                    <InfoItem label="Base de Datos" value="SQLite (Prisma)" />
+                    <InfoItem label="Base de Datos" value="PostgreSQL (Railway)" />
                 </div>
             </section>
         </main>
