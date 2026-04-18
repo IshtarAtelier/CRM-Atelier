@@ -290,7 +290,7 @@ export const BillingService = {
             // Logo en base64
             const logo = getLogoBase64();
 
-            // Formato correcto del SDK: template con name y params
+            // Formato correcto del SDK (docs: afipsdk.com/docs/pdfs/invoice-c/nodejs)
             const pdfData: any = {
                 file_name: `FC-${invoice.pointOfSale.toString().padStart(4,'0')}-${invoice.voucherNumber.toString().padStart(8,'0')}.pdf`,
                 template: {
@@ -311,18 +311,23 @@ export const BillingService = {
                         issuer_activity_start_date: '01/01/2020',
                         // Datos del receptor
                         receiver_name: invoice.order.client?.name || 'Consumidor Final',
+                        receiver_address: '-',
                         receiver_document_type: invoice.docType,
-                        receiver_document_number: invoice.docNumber === '0' ? '' : invoice.docNumber,
+                        receiver_document_number: invoice.docNumber === '0' ? 0 : Number(invoice.docNumber) || 0,
                         receiver_iva_condition: 'Consumidor Final',
                         // Condiciones
-                        sale_condition: 'Otra',
+                        sale_condition: 'Contado',
                         currency_id: 'ARS',
                         currency_rate: 1,
                         // \u00cdtems y total
                         items: pdfItems,
+                        // Montos (Monotributista Factura C: IVA no discriminado)
+                        vat_amount: 0,
+                        tributes_amount: 0,
                         total_amount: invoice.totalAmount,
-                        // Logo
-                        ...(logo ? { logo: `data:image/png;base64,${logo}` } : {}),
+                        net_amount_taxed: 0,
+                        net_amount_untaxed: 0,
+                        exempt_amount: invoice.totalAmount,
                     }
                 }
             };
