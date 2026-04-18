@@ -8,8 +8,10 @@
 
 const { PrismaClient } = require('@prisma/client');
 
-const PROD_URL = "postgresql://postgres:JqNVkEgwNDmTidZHmZdmlxLTnlxrBsYT@crossover.proxy.rlwy.net:16284/railway";
-const DEV_URL = "postgresql://postgres:RrPSyEGtnMDeqWUAqHKGEIEHUmPcBSAL@interchange.proxy.rlwy.net:12759/railway";
+// Fallbacks are ONLY kept for backward compatibility if env vars aren't set in older environments, 
+// but env vars are heavily preferred now.
+const PROD_URL = process.env.PROD_DATABASE_URL || "postgresql://postgres:JqNVkEgwNDmTidZHmZdmlxLTnlxrBsYT@crossover.proxy.rlwy.net:16284/railway";
+const DEV_URL = process.env.DEV_DATABASE_URL || process.env.DATABASE_URL || "postgresql://postgres:RrPSyEGtnMDeqWUAqHKGEIEHUmPcBSAL@interchange.proxy.rlwy.net:12759/railway";
 
 const TABLES = [
     'User',
@@ -28,6 +30,7 @@ const TABLES = [
     'DoctorPayment',
     'Notification',
     'MonthlyTarget',
+    'FixedCost',
     'WhatsAppChat',
     'WhatsAppMessage',
     '_ClientToTag',

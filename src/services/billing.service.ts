@@ -371,7 +371,16 @@ export const BillingService = {
             return pdfUrl;
         } catch (error: any) {
             console.error('Error generando PDF de factura:', error);
-            throw new Error(`Error generando PDF: ${error.message}`);
+            
+            let extraInfo = '';
+            if (error.response?.data) {
+                console.error('[PDF] API Error de Validación:', JSON.stringify(error.response.data, null, 2));
+                extraInfo = ` - Detalle: ${JSON.stringify(error.response.data)}`;
+            } else if (error.cause) {
+                extraInfo = ` - Causa: ${error.cause}`;
+            }
+
+            throw new Error(`Error generando PDF: ${error.message}${extraInfo}`);
         }
     },
 };

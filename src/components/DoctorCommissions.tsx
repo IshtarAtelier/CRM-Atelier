@@ -1,7 +1,7 @@
 'use client';
 
 import FileDropZone from '@/components/FileDropZone';
-import { resolveStorageUrl } from '@/lib/utils/storage';
+import { resolveStorageUrl, fileToBase64 } from '@/lib/utils/storage';
 
 import { useState, useEffect, useRef } from 'react';
 import {
@@ -126,13 +126,7 @@ export default function DoctorCommissions() {
 
             // Upload receipt if exists
             if (payReceipt) {
-                const formData = new FormData();
-                formData.append('file', payReceipt);
-                const uploadRes = await fetch('/api/upload', { method: 'POST', body: formData });
-                if (uploadRes.ok) {
-                    const uploadData = await uploadRes.json();
-                    receiptUrl = uploadData.url;
-                }
+                receiptUrl = await fileToBase64(payReceipt);
             }
 
             const res = await fetch('/api/doctors/payments', {

@@ -1,10 +1,12 @@
 /**
- * Script de backup automático para la base de datos SQLite.
- * Copia prisma/dev.db a backups/dev_YYYY-MM-DD_HH-mm-ss.db
+ * ⚠️ DEPRECATED: Este script es OBSOLETO.
+ * El proyecto ahora usa PostgreSQL en producción.
+ * Para realizar un backup, utiliza el endpoint de la API:
+ *   GET /api/backup 
  * 
- * Uso:
- *   node scripts/backup-db.js
- *   npm run db:backup
+ * O usa el módulo src/lib/backup.ts para crear un snapshot completo.
+ * 
+ * Script de backup automático local (Solo para entornos legacy SQLite)
  */
 
 const fs = require('fs');

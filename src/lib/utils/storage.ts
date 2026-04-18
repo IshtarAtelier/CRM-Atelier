@@ -23,3 +23,16 @@ export function resolveStorageUrl(urlOrKey: string | null | undefined): string {
     // Por ahora, para simplificar compatibilidad local:
     return `/api/storage/view?key=${encodeURIComponent(urlOrKey)}`;
 }
+
+/**
+ * Convierte un File a un string Base64 (Data URI) nativo.
+ * Se usa para inyectar imágenes en la DB y protegerse contra el reinicio efimero de contenedores en Railway.
+ */
+export async function fileToBase64(file: File): Promise<string> {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = error => reject(error);
+    });
+}
