@@ -52,6 +52,13 @@ export async function GET(request: Request) {
         const orderId = searchParams.get('orderId');
         const invoiceId = searchParams.get('invoiceId');
 
+        const stats = searchParams.get('stats') === 'true';
+
+        if (stats) {
+            const result = await BillingService.getMonthlyStats();
+            return NextResponse.json(result);
+        }
+
         if (invoiceId) {
             const pdfResult = await BillingService.getInvoicePdfUrl(invoiceId);
             

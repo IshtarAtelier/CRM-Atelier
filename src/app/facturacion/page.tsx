@@ -58,6 +58,10 @@ export default function BillingPage() {
 
     const [notifications, setNotifications] = useState<any[]>([]);
     const [fetching, setFetching] = useState(false);
+    const [billingStats, setBillingStats] = useState({ 
+        ISH: { count: 0, total: 0 }, 
+        YANI: { count: 0, total: 0 } 
+    });
 
     useEffect(() => {
         const loadUser = async () => {
@@ -84,6 +88,13 @@ export default function BillingPage() {
             const data = await res.json();
             const sales = (data || []).filter((o: Order) => o.orderType === 'SALE' && !o.isDeleted);
             setOrders(sales);
+
+            // Fetch global monthly stats (literal from DB)
+            const statsRes = await fetch('/api/billing/invoice?stats=true');
+            if (statsRes.ok) {
+                const stats = await statsRes.json();
+                setBillingStats(stats);
+            }
         } catch (error) {
             console.error('Error fetching data:', error);
         } finally {
@@ -168,21 +179,6 @@ export default function BillingPage() {
         );
     }
 
-    const currentMonth = new Date().getMonth();
-    const currentYear = new Date().getFullYear();
-
-    const monthlyStats = completedInvoices.reduce((acc, order) => {
-        const completedInvoicesOfOrder = (order.invoices || []).filter(inv => inv.status === 'COMPLETED');
-        completedInvoicesOfOrder.forEach(invoice => {
-            const invDate = new Date(invoice.createdAt);
-            if (invDate.getMonth() === currentMonth && invDate.getFullYear() === currentYear) {
-                if (invoice.billingAccount === 'ISH') acc.ishCount++;
-                if (invoice.billingAccount === 'YANI') acc.yaniCount++;
-            }
-        });
-        return acc;
-    }, { ishCount: 0, yaniCount: 0 });
-
     return (
         <div className="p-6 lg:p-10 max-w-7xl mx-auto">
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10">
@@ -218,10 +214,10 @@ export default function BillingPage() {
                         </span>
                         <div className="flex items-center gap-4">
                             <span className="text-xs font-black text-indigo-700 dark:text-indigo-300">
-                                YANI: <span className="bg-indigo-100 dark:bg-indigo-800/50 px-2 py-0.5 rounded-lg ml-1">{monthlyStats.yaniCount}</span>
+                                YANI: <span className="bg-indigo-100 dark:bg-indigo-800/50 px-2 py-0.5 rounded-lg ml-1">${billingStats.YANI.total.toLocaleString('es-AR')} ({billingStats.YANI.count})</span>
                             </span>
                             <span className="text-xs font-black text-indigo-700 dark:text-indigo-300">
-                                ISH: <span className="bg-indigo-100 dark:bg-indigo-800/50 px-2 py-0.5 rounded-lg ml-1">{monthlyStats.ishCount}</span>
+                                ISH: <span className="bg-indigo-100 dark:bg-indigo-800/50 px-2 py-0.5 rounded-lg ml-1">${billingStats.ISH.total.toLocaleString('es-AR')} ({billingStats.ISH.count})</span>
                             </span>
                         </div>
                     </div>

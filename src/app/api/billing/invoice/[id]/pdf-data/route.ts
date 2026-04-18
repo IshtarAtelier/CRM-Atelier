@@ -34,9 +34,9 @@ export async function GET(
             issuer: {
                 name: accountConfig.label,
                 cuit: accountConfig.cuit.toString(),
-                address: 'Santiago del Estero 66 Local 12, Córdoba',
+                address: 'JOSE LUIS DE TEJEDA 4380 CERRO DE LAS ROSAS CORDOBA',
                 ivaCondition: 'Responsable Monotributo',
-                activityStart: '01/01/2020'
+                activityStart: '01/01/2020' // TODO: Confirmar fecha real
             },
             logo: logoBase64
         };

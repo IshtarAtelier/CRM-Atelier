@@ -306,7 +306,7 @@ export const BillingService = {
                         // Datos del emisor
                         issuer_cuit: accountConfig.cuit,
                         issuer_business_name: accountConfig.label,
-                        issuer_address: 'Santiago del Estero 66 Local 12, C\u00f3rdoba',
+                        issuer_address: 'JOSE LUIS DE TEJEDA 4380 CERRO DE LAS ROSAS CORDOBA',
                         issuer_iva_condition: 'Monotributista',
                         issuer_activity_start_date: '01/01/2020',
                         // Datos del receptor
@@ -316,7 +316,7 @@ export const BillingService = {
                         receiver_document_number: invoice.docNumber === '0' ? 0 : Number(invoice.docNumber) || 0,
                         receiver_iva_condition: 'Consumidor Final',
                         // Condiciones
-                        sale_condition: 'Contado',
+                        sale_condition: 'Otro',
                         currency_id: 'ARS',
                         currency_rate: 1,
                         // \u00cdtems y total
@@ -383,4 +383,41 @@ export const BillingService = {
             throw new Error(`Error generando PDF: ${error.message}${extraInfo}`);
         }
     },
+    /**
+     * Obtiene el total facturado exacto del mes actual agrupado por cuenta.
+     * Esto asegura precisión literal sin depender de límites de paginación del frontend.
+     */
+    async getMonthlyStats() {
+        const now = new Date();
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+        
+        const stats = await prisma.invoice.groupBy({
+            by: ['billingAccount'],
+            where: {
+                status: 'COMPLETED',
+                createdAt: { gte: startOfMonth }
+            },
+            _sum: {
+                totalAmount: true
+            },
+            _count: {
+                id: true
+            }
+        });
+
+        const result = {
+            ISH: { count: 0, total: 0 },
+            YANI: { count: 0, total: 0 }
+        };
+
+        stats.forEach(s => {
+            const account = s.billingAccount as 'ISH' | 'YANI';
+            if (result[account]) {
+                result[account].count = s._count.id;
+                result[account].total = s._sum.totalAmount || 0;
+            }
+        });
+
+        return result;
+    }
 };

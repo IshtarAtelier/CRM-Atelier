@@ -33,13 +33,13 @@ export async function generateInvoicePDF(data: InvoiceData) {
     doc.text('CÓD. 011', (pageWidth / 2) - 6, 25);
 
     if (logo) {
-        // Logo en 45x20 para evitar que se vea aplastado
-        doc.addImage(`data:image/png;base64,${logo}`, 'PNG', 15, 12, 45, 20);
+        // Logo en 54x16 (Aspect Ratio 3.375) para evitar distorsión
+        doc.addImage(`data:image/png;base64,${logo}`, 'PNG', 15, 12, 54, 16);
     }
     
     doc.setFontSize(10);
     doc.setFont('helvetica', 'bold');
-    doc.text(issuer.name, 15, 35);
+    doc.text(issuer.name, 15, 38);
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(9);
     doc.text(`Razón Social: ${issuer.name}`, 15, 40);
@@ -66,7 +66,7 @@ export async function generateInvoicePDF(data: InvoiceData) {
     doc.text(`${docLabel}: ${invoice.docNumber}`, 15, 67);
     doc.text(`Apellido y Nombre / Razón Social: ${invoice.order.client?.name || 'Consumidor Final'}`, 15, 74);
     doc.text(`Condición frente al IVA: Consumidor Final`, 15, 81);
-    doc.text(`Condición de venta: Otro`, (pageWidth / 2) + 10, 67);
+    doc.text(`Medio de Pago: Otro`, (pageWidth / 2) + 10, 67);
 
     // --- 3. TABLA DE ÍTEMS ---
     const tableItems = invoice.order.items.map((it: any) => [
