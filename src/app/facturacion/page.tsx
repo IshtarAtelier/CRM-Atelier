@@ -12,6 +12,7 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import InvoiceModal from '@/components/InvoiceModal';
 import { BillingAccount, detectBillingAccount } from '@/lib/afip';
+import { generateInvoicePDF } from '@/lib/invoice-generator';
 
 interface Order {
     id: string;
@@ -92,17 +93,16 @@ export default function BillingPage() {
     const handleDownloadInvoice = async (invoiceId: string) => {
         setDownloadingId(invoiceId);
         try {
-            const res = await fetch(`/api/billing/invoice?invoiceId=${invoiceId}`);
-            if (res.ok) {
-                const { pdfUrl } = await res.json();
-                if (pdfUrl) {
-                    window.open(pdfUrl, '_blank');
-                } else {
-                    alert('No se pudo generar el enlace del PDF. Intentá de nuevo.');
-                }
+            const res = await fetch(`/api/billing/invoice/${invoiceId}/pdf-data`);
+            if (!res.ok) {
+                const data = await res.json();
+                throw new Error(data.error || 'Error al obtener datos de la factura');
             }
-        } catch (error) {
+            const data = await res.json();
+            await generateInvoicePDF(data);
+        } catch (error: any) {
             console.error('Error downloading invoice:', error);
+            alert('Error descargando la factura: ' + error.message);
         } finally {
             setDownloadingId(null);
         }
