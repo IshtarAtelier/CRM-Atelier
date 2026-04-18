@@ -66,7 +66,7 @@ export async function generateInvoicePDF(data: InvoiceData) {
     doc.text(`${docLabel}: ${invoice.docNumber}`, 15, 67);
     doc.text(`Apellido y Nombre / Razón Social: ${invoice.order.client?.name || 'Consumidor Final'}`, 15, 74);
     doc.text(`Condición frente al IVA: Consumidor Final`, 15, 81);
-    doc.text(`Condición de venta: Contado`, (pageWidth / 2) + 10, 67);
+    doc.text(`Condición de venta: Otro`, (pageWidth / 2) + 10, 67);
 
     // --- 3. TABLA DE ÍTEMS ---
     const tableItems = invoice.order.items.map((it: any) => [
