@@ -14,7 +14,7 @@ export interface BillingAccountConfig {
     puntoDeVenta: number;
 }
 
-const BILLING_ACCOUNTS: Record<BillingAccount, BillingAccountConfig> = {
+export const BILLING_ACCOUNTS: Record<BillingAccount, BillingAccountConfig> = {
     ISH: {
         cuit: parseInt(process.env.AFIP_CUIT_ISH || '0'),
         label: 'Ishtar Pissano',

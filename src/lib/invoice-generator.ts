@@ -33,7 +33,8 @@ export async function generateInvoicePDF(data: InvoiceData) {
     doc.text('CÓD. 011', (pageWidth / 2) - 6, 25);
 
     if (logo) {
-        doc.addImage(`data:image/png;base64,${logo}`, 'PNG', 15, 15, 40, 15);
+        // Logo en 45x20 para evitar que se vea aplastado
+        doc.addImage(`data:image/png;base64,${logo}`, 'PNG', 15, 12, 45, 20);
     }
     
     doc.setFontSize(10);
@@ -50,7 +51,7 @@ export async function generateInvoicePDF(data: InvoiceData) {
     doc.text('FACTURA', (pageWidth / 2) + 10, 20);
     doc.setFontSize(10);
     doc.text(`Punto de Venta: ${invoice.pointOfSale.toString().padStart(4, '0')}`, (pageWidth / 2) + 10, 30);
-    doc.text(`Comp. Nro: ${invoice.voucherNumber.toString().padStart(8, '0')}`, (pageWidth / 2) + 45, 30);
+    doc.text(`Comp. Nro:  ${invoice.voucherNumber.toString().padStart(8, '0')}`, (pageWidth / 2) + 55, 30);
     
     const fecha = new Date(invoice.createdAt).toLocaleDateString('es-AR');
     doc.text(`Fecha de Emisión: ${fecha}`, (pageWidth / 2) + 10, 37);
