@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { decrypt } from '@/lib/auth';
-import { BILLING_ACCOUNTS } from '@/lib/afip';
+import { getAllBillingAccounts } from '@/lib/afip';
 
 export async function GET() {
     try {
@@ -18,13 +18,14 @@ export async function GET() {
         }
 
         const productionMode = process.env.AFIP_PRODUCTION_MODE === 'true';
+        const billingAccounts = getAllBillingAccounts();
         
         const results: any = {
             environment: productionMode ? 'PRODUCTION' : 'TESTING (SANDBOX)',
             accounts: {}
         };
 
-        for (const [key, config] of Object.entries(BILLING_ACCOUNTS)) {
+        for (const [key, config] of Object.entries(billingAccounts)) {
             const cert = key === 'ISH' ? process.env.AFIP_CERT_ISH : process.env.AFIP_CERT_YANI;
             const keyPriv = key === 'ISH' ? process.env.AFIP_KEY_ISH : process.env.AFIP_KEY_YANI;
             
