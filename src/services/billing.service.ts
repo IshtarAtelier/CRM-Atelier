@@ -1,6 +1,23 @@
 import { prisma } from '@/lib/db';
 import { BillingAccount, getAfipInstance, formatAfipDate, getBillingAccountConfig } from '@/lib/afip';
 import { PricingService } from '@/services/PricingService';
+import fs from 'fs';
+import path from 'path';
+
+// Logo en base64 para incluir en los PDFs de factura
+let logoBase64Cache: string | null = null;
+function getLogoBase64(): string | null {
+    if (logoBase64Cache) return logoBase64Cache;
+    try {
+        const logoPath = path.join(process.cwd(), 'public', 'assets', 'logo-atelier-optica.png');
+        const logoBuffer = fs.readFileSync(logoPath);
+        logoBase64Cache = logoBuffer.toString('base64');
+        return logoBase64Cache;
+    } catch (err) {
+        console.error('[LOGO] No se pudo leer el logo:', err);
+        return null;
+    }
+}
 
 // Tipos de comprobante — Monotributista siempre emite Factura C
 const VOUCHER_TYPE_FC = 11;    // Factura C
@@ -246,7 +263,8 @@ export const BillingService = {
                 throw new Error("El comprobante no figura en los servidores de AFIP.");
             }
 
-            const pdfInfo = await afip.ElectronicBilling.createPDF({
+            // Preparar datos del PDF incluyendo logo
+            const pdfData: any = {
                 CbteTipo: invoice.voucherType,
                 PtoVta: invoice.pointOfSale,
                 CbteNro: invoice.voucherNumber,
@@ -271,16 +289,27 @@ export const BillingService = {
                         unit_price: invoice.totalAmount,
                         total: invoice.totalAmount,
                     }],
-            });
+            };
 
-            if (pdfInfo?.url) {
+            // Agregar logo si está disponible
+            const logo = getLogoBase64();
+            if (logo) {
+                pdfData.logo = logo;
+            }
+
+            const pdfInfo = await afip.ElectronicBilling.createPDF(pdfData);
+
+            // El SDK retorna { file, file_name } — 'file' contiene la URL del PDF
+            const pdfUrl = pdfInfo?.file || pdfInfo?.url || null;
+
+            if (pdfUrl) {
                 await prisma.invoice.update({
                     where: { id: invoiceId },
-                    data: { pdfUrl: pdfInfo.url },
+                    data: { pdfUrl },
                 });
             }
 
-            return pdfInfo?.url || null;
+            return pdfUrl;
         } catch (error: any) {
             console.error('Error generando PDF de factura:', error);
             throw new Error(`Error generando PDF: ${error.message}`);
