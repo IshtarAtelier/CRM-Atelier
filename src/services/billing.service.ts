@@ -306,7 +306,7 @@ export const BillingService = {
                         // Datos del emisor
                         issuer_cuit: accountConfig.cuit,
                         issuer_business_name: accountConfig.label,
-                        issuer_address: 'JOSE LUIS DE TEJEDA 4380 CERRO DE LAS ROSAS CORDOBA',
+                        issuer_address: 'Jose Luis de Tejeda 4380',
                         issuer_iva_condition: 'Monotributista',
                         issuer_activity_start_date: '01/01/2020',
                         // Datos del receptor

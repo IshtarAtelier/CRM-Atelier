@@ -19,84 +19,155 @@ export async function generateInvoicePDF(data: InvoiceData) {
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.getWidth();
     
-    // --- 1. CABECERA ---
-    doc.setDrawColor(0);
-    doc.rect(10, 10, pageWidth - 20, 45);
-    doc.line(pageWidth / 2, 10, pageWidth / 2, 55);
+    // --- COLORES Y CONFIGURACIÓN ---
+    const primaryColor = [158, 127, 101]; // #9e7f65 (Bronze)
+    const textColor = [67, 56, 49];      // #433831 (Dark Stone)
+    const lightBg = [250, 248, 245];    // #faf8f5 (Sand)
     
-    doc.setFillColor(255, 255, 255);
-    doc.rect((pageWidth / 2) - 8, 10, 16, 12, 'FD');
-    doc.setFontSize(24);
+    doc.setTextColor(textColor[0], textColor[1], textColor[2]);
+    
+    // --- 1. CABECERA (Limpia, sin recuadros pesados) ---
+    // Línea divisoria superior sutil
+    doc.setDrawColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+    doc.setLineWidth(0.5);
+    doc.line(10, 10, pageWidth - 10, 10);
+    
+    // Letra C (Fiscal) - Un diseño más moderno
+    doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+    doc.rect((pageWidth / 2) - 8, 10, 16, 12, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(22);
     doc.setFont('helvetica', 'bold');
-    doc.text('C', (pageWidth / 2) - 4, 20);
-    doc.setFontSize(8);
-    doc.text('CÓD. 011', (pageWidth / 2) - 6, 25);
+    doc.text('C', (pageWidth / 2) - 4, 19);
+    doc.setFontSize(7);
+    doc.text('CÓD. 011', (pageWidth / 2) - 5.5, 21.5);
+    
+    // Línea central divisoria vertical
+    doc.setDrawColor(230, 230, 230);
+    doc.setLineWidth(0.1);
+    doc.line(pageWidth / 2, 22, pageWidth / 2, 55);
 
+    doc.setTextColor(textColor[0], textColor[1], textColor[2]);
+
+    // Logo y Emisor (Izquierda)
     if (logo) {
-        // Logo en 54x16 (Aspect Ratio 3.375) para evitar distorsión
-        doc.addImage(`data:image/png;base64,${logo}`, 'PNG', 15, 12, 54, 16);
+        // Logo horizontal sutil (45mm ancho)
+        doc.addImage(`data:image/png;base64,${logo}`, 'PNG', 12, 12, 45, 6.8);
     }
     
     doc.setFontSize(10);
     doc.setFont('helvetica', 'bold');
-    doc.text(issuer.name, 15, 38);
+    doc.text(issuer.name, 12, 35); // Bajamos un poco para dar aire al logo
+    
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(9);
-    doc.text(`Razón Social: ${issuer.name}`, 15, 40);
-    doc.text(`Domicilio Comercial: ${issuer.address}`, 15, 45);
-    doc.text(`Condición frente al IVA: ${issuer.ivaCondition}`, 15, 50);
+    doc.setFontSize(8);
+    doc.setTextColor(100, 100, 100);
+    
+    // Domicilio con wrap para evitar que cruce al otro lado
+    const addressLines = doc.splitTextToSize(`Domicilio: ${issuer.address}`, (pageWidth / 2) - 20);
+    doc.text(addressLines, 12, 40);
+    
+    // Calculamos el Y siguiente basado en las líneas del domicilio
+    const nextY = 40 + (addressLines.length * 4);
+    doc.text(`IVA: ${issuer.ivaCondition}`, 12, nextY);
+    doc.text(`Inicio Actividades: ${issuer.activityStart}`, 12, nextY + 4);
 
-    doc.setFontSize(16);
+    // Datos Factura (Derecha)
+    doc.setTextColor(textColor[0], textColor[1], textColor[2]);
+    doc.setFontSize(14);
     doc.setFont('helvetica', 'bold');
-    doc.text('FACTURA', (pageWidth / 2) + 10, 20);
-    doc.setFontSize(10);
-    doc.text(`Punto de Venta: ${invoice.pointOfSale.toString().padStart(4, '0')}`, (pageWidth / 2) + 10, 30);
-    doc.text(`Comp. Nro:  ${invoice.voucherNumber.toString().padStart(8, '0')}`, (pageWidth / 2) + 55, 30);
+    doc.text('FACTURA', (pageWidth / 2) + 15, 20);
+    
+    doc.setFontSize(9);
+    doc.text(`NRO: ${invoice.pointOfSale.toString().padStart(4, '0')}-${invoice.voucherNumber.toString().padStart(8, '0')}`, (pageWidth / 2) + 15, 28);
     
     const fecha = new Date(invoice.createdAt).toLocaleDateString('es-AR');
-    doc.text(`Fecha de Emisión: ${fecha}`, (pageWidth / 2) + 10, 37);
-    doc.text(`CUIT: ${issuer.cuit}`, (pageWidth / 2) + 10, 44);
-    doc.text(`Fecha de Inicio de Actividades: ${issuer.activityStart}`, (pageWidth / 2) + 10, 54);
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Fecha de Emisión: ${fecha}`, (pageWidth / 2) + 15, 36);
+    doc.text(`CUIT Emisor: ${issuer.cuit}`, (pageWidth / 2) + 15, 43);
 
-    // --- 2. DATOS DEL RECEPTOR ---
-    doc.rect(10, 60, pageWidth - 20, 25);
-    doc.setFontSize(9);
+    // --- 2. DATOS DEL RECEPTOR (Sección Minimalista) ---
+    doc.setDrawColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+    doc.setLineWidth(0.3);
+    doc.line(10, 60, pageWidth - 10, 60);
+
+    doc.setFontSize(8);
+    doc.setTextColor(150, 150, 150);
+    doc.text('CLIENTE / RECEPTOR', 12, 65);
+    
+    doc.setTextColor(textColor[0], textColor[1], textColor[2]);
+    doc.setFontSize(10);
     doc.setFont('helvetica', 'bold');
+    doc.text(invoice.order.client?.name || 'Consumidor Final', 12, 71);
+    
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
     const docLabel = invoice.docType === 80 ? 'CUIT' : invoice.docType === 96 ? 'DNI' : 'Doc';
-    doc.text(`${docLabel}: ${invoice.docNumber}`, 15, 67);
-    doc.text(`Apellido y Nombre / Razón Social: ${invoice.order.client?.name || 'Consumidor Final'}`, 15, 74);
-    doc.text(`Condición frente al IVA: Consumidor Final`, 15, 81);
-    doc.text(`Medio de Pago: Otro`, (pageWidth / 2) + 10, 67);
+    doc.text(`${docLabel}: ${invoice.docNumber}`, 12, 77);
+    doc.text(`IVA: Consumidor Final`, 12, 83);
+    
+    // Condición de Venta destacada a la derecha
+    doc.setFont('helvetica', 'bold');
+    doc.text(`Medio de Pago: Otro`, pageWidth - 60, 71);
 
-    // --- 3. TABLA DE ÍTEMS ---
+    // --- 3. TABLA DE ÍTEMS (Diseño Premium sin líneas verticales) ---
     const tableItems = invoice.order.items.map((it: any) => [
         it.product?.id?.slice(-4).toUpperCase() || '-',
         `${it.product?.brand || ''} ${it.product?.model || it.product?.name || 'Producto'}`.trim(),
         it.quantity,
         'unidades',
         it.price.toLocaleString('es-AR', { minimumFractionDigits: 2 }),
-        '0.00',
         (it.price * it.quantity).toLocaleString('es-AR', { minimumFractionDigits: 2 })
     ]);
 
     autoTable(doc, {
         startY: 90,
-        head: [['Código', 'Producto/Servicio', 'Cant.', 'U. Medida', 'Precio Unit.', '% Bonif.', 'Subtotal']],
+        head: [['Cód.', 'Descripción / Producto', 'Cant.', 'U.M.', 'Precio Unit.', 'Subtotal']],
         body: tableItems,
-        headStyles: { fillColor: [230, 230, 230], textColor: [0, 0, 0], fontStyle: 'bold' },
-        styles: { fontSize: 8 },
+        headStyles: { 
+            fillColor: [primaryColor[0], primaryColor[1], primaryColor[2]], 
+            textColor: [255, 255, 255], 
+            fontStyle: 'bold',
+            fontSize: 9
+        },
+        alternateRowStyles: { fillColor: [252, 251, 249] },
+        styles: { 
+            fontSize: 8.5, 
+            cellPadding: 4, 
+            textColor: textColor as any,
+            lineColor: [240, 240, 240],
+            lineWidth: 0.1
+        },
+        columnStyles: {
+            0: { cellWidth: 15 },
+            1: { cellWidth: 'auto' },
+            2: { halign: 'center' },
+            3: { halign: 'center' },
+            4: { halign: 'right' },
+            5: { halign: 'right', fontStyle: 'bold' }
+        },
+        margin: { left: 10, right: 10 }
     });
 
-    // --- 4. TOTALES ---
-    const finalY = (doc as any).lastAutoTable.finalY + 10;
+    // --- 4. TOTALES (Destacado) ---
+    const finalY = (doc as any).lastAutoTable.finalY + 12;
+    
+    doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+    doc.rect(pageWidth - 90, finalY - 6, 80, 12, 'F');
+    
+    doc.setTextColor(255, 255, 255);
     doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
-    doc.text('Importe Total: $', pageWidth - 80, finalY + 10);
-    doc.text(invoice.totalAmount.toLocaleString('es-AR', { minimumFractionDigits: 2 }), pageWidth - 20, finalY + 10, { align: 'right' });
+    doc.text('TOTAL:', pageWidth - 85, finalY + 1.5);
+    doc.text(`$ ${invoice.totalAmount.toLocaleString('es-AR', { minimumFractionDigits: 2 })}`, pageWidth - 15, finalY + 1.5, { align: 'right' });
 
-    // --- 5. QR CODE Y CAE ---
+    // --- 5. QR CODE Y CAE (Footer) ---
     const footerY = doc.internal.pageSize.getHeight() - 45;
     
+    doc.setDrawColor(230, 230, 230);
+    doc.line(10, footerY - 5, pageWidth - 10, footerY - 5);
+
     // QR - Browser compatible base64
     const qrJson = {
         ver: 1,
@@ -120,12 +191,22 @@ export async function generateInvoicePDF(data: InvoiceData) {
     
     try {
         const qrImage = await QRCode.toDataURL(qrUrl);
-        doc.addImage(qrImage, 'PNG', 10, footerY, 35, 35);
+        doc.addImage(qrImage, 'PNG', 12, footerY, 32, 32);
     } catch (err) {}
     
-    doc.setFontSize(10);
-    doc.text(`CAE: ${invoice.cae}`, pageWidth - 80, footerY + 20);
-    doc.text(`Fecha de Vto. de CAE: ${new Date(invoice.caeExpiration).toLocaleDateString('es-AR')}`, pageWidth - 80, footerY + 27);
+    doc.setTextColor(150, 150, 150);
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`CAE: ${invoice.cae}`, pageWidth - 12, footerY + 15, { align: 'right' });
+    doc.text(`Vencimiento CAE: ${new Date(invoice.caeExpiration).toLocaleDateString('es-AR')}`, pageWidth - 12, footerY + 22, { align: 'right' });
+    
+    doc.setFontSize(7);
+    doc.setTextColor(200, 200, 200);
+    doc.text('Comprobante generado automáticamente por Ishtar Atelier CRM', pageWidth / 2, doc.internal.pageSize.getHeight() - 5, { align: 'center' });
 
-    doc.save(`Factura-${invoice.pointOfSale}-${invoice.voucherNumber}.pdf`);
+    // Nombre de archivo profesional: FC-0003-00000001-Nombre-Apellido.pdf
+    const clientName = (invoice.order.client?.name || 'Consumidor-Final').replace(/[^a-z0-9]/gi, '-').replace(/-+/g, '-');
+    const fileName = `FC-${invoice.pointOfSale.toString().padStart(4, '0')}-${invoice.voucherNumber.toString().padStart(8, '0')}-${clientName}.pdf`;
+    
+    doc.save(fileName);
 }

@@ -34,7 +34,7 @@ export async function GET(
             issuer: {
                 name: accountConfig.label,
                 cuit: accountConfig.cuit.toString(),
-                address: 'JOSE LUIS DE TEJEDA 4380 CERRO DE LAS ROSAS CORDOBA',
+                address: 'Jose Luis de Tejeda 4380',
                 ivaCondition: 'Responsable Monotributo',
                 activityStart: '01/01/2020' // TODO: Confirmar fecha real
             },
