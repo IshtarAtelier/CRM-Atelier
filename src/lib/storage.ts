@@ -1,44 +1,40 @@
-import { S3Client, PutObjectCommand, GetObjectCommand, ListObjectsV2Command, DeleteObjectCommand } from "@aws-sdk/client-s3";
-import { getSignedUrl as s3GetSignedUrl } from "@aws-sdk/s3-request-presigner";
-import { writeFile, mkdir, readFile, unlink, readdir, stat } from "fs/promises";
+import * as admin from 'firebase-admin';
+import { writeFile, mkdir, unlink, readdir, stat } from "fs/promises";
 import path from "path";
 
-// Configuración desde variables de entorno
-const accessKeyId = process.env.STORAGE_ACCESS_KEY_ID;
-const secretAccessKey = process.env.STORAGE_SECRET_ACCESS_KEY;
-const region = process.env.STORAGE_REGION || "auto";
-const bucketName = process.env.STORAGE_BUCKET_NAME;
-const endpoint = process.env.STORAGE_ENDPOINT;
+// Configuración de Firebase desde variables de entorno
+const projectId = process.env.FIREBASE_PROJECT_ID;
+const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
+// Reparar saltos de línea literales en la llave privada si vienen del .env
+const privateKey = process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n');
+const storageBucket = process.env.FIREBASE_STORAGE_BUCKET;
 
-// ¿Estamos en modo S3/R2?
-const isCloudEnabled = !!(accessKeyId && secretAccessKey && bucketName && endpoint);
+// ¿Estamos en modo Nube (Firebase)?
+const isCloudEnabled = !!(projectId && clientEmail && privateKey && storageBucket);
 
-// Cliente S3 (solo si está habilitado)
-const s3Client = isCloudEnabled 
-    ? new S3Client({
-        region,
-        endpoint,
-        credentials: {
-            accessKeyId: accessKeyId!,
-            secretAccessKey: secretAccessKey!,
-        },
-        forcePathStyle: true, // Necesario para R2 y algunos otros
-      })
-    : null;
+// Inicializar Firebase Admin SDK (solo una vez)
+if (isCloudEnabled && !admin.apps.length) {
+    admin.initializeApp({
+        credential: admin.credential.cert({
+            projectId,
+            clientEmail,
+            privateKey,
+        }),
+        storageBucket
+    });
+}
 
 /**
  * Sube un archivo al almacenamiento (Cloud o Local)
  */
 export async function uploadFile(buffer: Buffer, filename: string, contentType: string): Promise<string> {
-    if (isCloudEnabled && s3Client) {
-        const command = new PutObjectCommand({
-            Bucket: bucketName,
-            Key: filename,
-            Body: buffer,
-            ContentType: contentType,
+    if (isCloudEnabled) {
+        const bucket = admin.storage().bucket();
+        const file = bucket.file(filename);
+        await file.save(buffer, {
+            metadata: { contentType }
         });
-        await s3Client.send(command);
-        return filename; // En la nube guardamos el KEY como referencia
+        return filename; // En la nube guardamos el KEY (nombre) como referencia
     } else {
         // MODO LOCAL (Simulación para desarrollo)
         const storageDir = path.join(process.cwd(), 'storage', 'uploads');
@@ -64,16 +60,23 @@ export async function getSignedUrl(key: string): Promise<string> {
         return `/api/storage/view?key=${encodeURIComponent(pureKey)}`;
     }
 
-    if (isCloudEnabled && s3Client) {
-        const command = new GetObjectCommand({
-            Bucket: bucketName,
-            Key: key,
-        });
-        // URL válida por 1 hora
-        return await s3GetSignedUrl(s3Client, command, { expiresIn: 3600 });
+    if (isCloudEnabled) {
+        const bucket = admin.storage().bucket();
+        const file = bucket.file(key);
+        try {
+            const [url] = await file.getSignedUrl({
+                action: 'read',
+                expires: Date.now() + 3600 * 1000 // Válida por 1 hora
+            });
+            return url;
+        } catch (error) {
+            console.error("Error generating Firebase signed URL:", error);
+            // Fallback a ruta raw si configuraron el bucket púbicamente, o devolvemos un placeholder
+            return `https://firebasestorage.googleapis.com/v0/b/${storageBucket}/o/${encodeURIComponent(key)}?alt=media`;
+        }
     }
 
-    // Fallback: si no hay cloud y el key no tiene prefijo, probamos como local por si acaso
+    // Fallback local por si acaso
     return `/api/storage/view?key=${encodeURIComponent(key)}`;
 }
 
@@ -81,21 +84,18 @@ export async function getSignedUrl(key: string): Promise<string> {
  * Lista archivos con un prefijo específico
  */
 export async function listFiles(prefix: string): Promise<{ key: string, size?: number, lastModified?: Date }[]> {
-    if (isCloudEnabled && s3Client) {
-        const command = new ListObjectsV2Command({
-            Bucket: bucketName,
-            Prefix: prefix
-        });
-        
+    if (isCloudEnabled) {
         try {
-            const response = await s3Client.send(command);
-            return (response.Contents || []).map(item => ({
-                key: item.Key || '',
-                size: item.Size,
-                lastModified: item.LastModified
+            const bucket = admin.storage().bucket();
+            const [files] = await bucket.getFiles({ prefix });
+            
+            return files.map(file => ({
+                key: file.name,
+                size: Number(file.metadata.size || 0),
+                lastModified: file.metadata.updated ? new Date(file.metadata.updated) : undefined
             }));
         } catch (error) {
-            console.error("Error listing S3 files:", error);
+            console.error("Error listing Firebase files:", error);
             return [];
         }
     } else {
@@ -136,15 +136,12 @@ export async function deleteFile(key: string): Promise<void> {
         return;
     }
 
-    if (isCloudEnabled && s3Client) {
-        const command = new DeleteObjectCommand({
-            Bucket: bucketName,
-            Key: key,
-        });
+    if (isCloudEnabled) {
         try {
-            await s3Client.send(command);
+            const bucket = admin.storage().bucket();
+            await bucket.file(key).delete();
         } catch (error) {
-            console.error("Error deleting S3 file:", error);
+            console.error("Error deleting Firebase file:", error);
         }
     }
 }
