@@ -1,15 +1,16 @@
 import { NextResponse } from 'next/server';
 import { BillingService } from '@/services/billing.service';
-import { getBillingAccountConfig, BillingAccount } from '@/lib/afip';
+import { getBillingAccountConfig } from '@/lib/afip';
+import type { BillingAccount } from '@/lib/afip';
 import fs from 'fs';
 import path from 'path';
 
 export async function GET(
     request: Request,
-    { params }: { params: Promise<{ id: string }> }
+    context: { params: Promise<{ id: string }> }
 ) {
     try {
-        const { id } = await params;
+        const { id } = await context.params;
         const invoice = await BillingService.getInvoice(id);
         
         if (!invoice) {
@@ -19,7 +20,7 @@ export async function GET(
         const accountConfig = getBillingAccountConfig(invoice.billingAccount as BillingAccount);
         
         // Logo
-        let logoBase64 = null;
+        let logoBase64: string | null = null;
         try {
             const logoPath = path.join(process.cwd(), 'public', 'assets', 'logo-atelier-optica.png');
             if (fs.existsSync(logoPath)) {
@@ -34,21 +35,16 @@ export async function GET(
             issuer: {
                 name: accountConfig.label,
                 cuit: accountConfig.cuit.toString(),
-<<<<<<< HEAD
-                address: 'Jose Luis de Tejeda 4380',
-                ivaCondition: 'Responsable Monotributo',
-                activityStart: '01/01/2020' // TODO: Confirmar fecha real
-=======
                 address: accountConfig.address,
                 ivaCondition: 'Responsable Monotributo',
                 activityStart: accountConfig.activityStart
->>>>>>> desarrollo
             },
             logo: logoBase64
         };
 
         return NextResponse.json(data);
     } catch (error: any) {
+        console.error('Error in PDF data API:', error);
         return NextResponse.json({ error: error.message }, { status: 500 });
     }
 }
