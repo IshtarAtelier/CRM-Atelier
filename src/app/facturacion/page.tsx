@@ -338,8 +338,8 @@ export default function BillingPage() {
                                         {completedArray.map(invoice => (
                                             <div key={invoice.id} className="flex items-center gap-3 bg-stone-50 dark:bg-stone-900 border-2 border-stone-100 dark:border-stone-800 px-4 py-2 rounded-2xl">
                                                 <div className="text-right">
-                                                    <div className="text-[9px] text-emerald-600 font-bold uppercase tracking-widest">
-                                                        {invoice.billingAccount} — FC {invoice.pointOfSale.toString().padStart(4, '0')}-{invoice.voucherNumber.toString().padStart(8, '0')}
+                                                    <div className={`text-[10px] font-black uppercase tracking-widest ${invoice.billingAccount === 'YANI' ? 'text-blue-600 dark:text-blue-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
+                                                        EMISOR: {invoice.billingAccount} <span className="opacity-40 font-normal mx-1">|</span> FC {invoice.pointOfSale.toString().padStart(4, '0')}-{invoice.voucherNumber.toString().padStart(8, '0')}
                                                     </div>
                                                 </div>
                                                 <button 

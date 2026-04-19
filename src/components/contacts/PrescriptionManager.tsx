@@ -8,6 +8,7 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import PrescriptionDetails from '../prescriptions/PrescriptionDetails';
 import { resolveStorageUrl } from '@/lib/utils/storage';
+import FileDropZone from '@/components/FileDropZone';
 
 interface PrescriptionManagerProps {
     contact: any;
@@ -27,10 +28,13 @@ export default function PrescriptionManager({
 }: PrescriptionManagerProps) {
     const [isAdding, setIsAdding] = useState(false);
     const [step, setStep] = useState<'form' | 'review'>('form');
-    const [uploading, setUploading] = useState(false);
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [savedRxId, setSavedRxId] = useState<string | null>(null);
+    
+    // File state
+    const [receiptFile, setReceiptFile] = useState<File | null>(null);
+    const [receiptPreview, setReceiptPreview] = useState<string | null>(null);
 
     const [form, setForm] = useState({
         sphereOD: '', cylinderOD: '', axisOD: '', additionOD: '',
@@ -46,25 +50,10 @@ export default function PrescriptionManager({
             distanceOD: '', distanceOI: '', heightOD: '', heightOI: '',
             notes: '', imageUrl: '', prescriptionType: 'ADDITION'
         });
+        setReceiptFile(null);
+        setReceiptPreview(null);
         setStep('form');
         setError(null);
-    };
-
-    const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
-        setUploading(true);
-        try {
-            const formData = new FormData();
-            formData.append('file', file);
-            const res = await fetch('/api/upload', { method: 'POST', body: formData });
-            const data = await res.json();
-            if (data.url) setForm(prev => ({ ...prev, imageUrl: data.url }));
-        } catch (err) {
-            console.error(err);
-        } finally {
-            setUploading(false);
-        }
     };
 
     const applyPrevious = (rx: any) => {
@@ -85,9 +74,11 @@ export default function PrescriptionManager({
             imageUrl: rx.imageUrl || '',
             prescriptionType: rx.prescriptionType || 'ADDITION'
         });
+        setReceiptFile(null);
+        setReceiptPreview(null);
     };
 
-    const findDuplicate = () => {
+    const findDuplicate = (finalImageUrl: string) => {
         if (!contact.prescriptions) return null;
 
         const parse = (v: any) => {
@@ -96,7 +87,7 @@ export default function PrescriptionManager({
         };
 
         return contact.prescriptions.find((p: any) => {
-            if ((p.imageUrl || '') !== (form.imageUrl || '')) return false;
+            if ((p.imageUrl || '') !== (finalImageUrl || '')) return false;
 
             const fields = [
                 [p.sphereOD, form.sphereOD], [p.cylinderOD, form.cylinderOD], [p.axisOD, form.axisOD],
@@ -114,7 +105,25 @@ export default function PrescriptionManager({
         setSaving(true);
         setError(null);
         try {
-            const duplicate = findDuplicate();
+            let finalImageUrl = form.imageUrl;
+
+            // 1. Subir la imagen si hay que subir una nueva
+            if (receiptFile) {
+                const formData = new FormData();
+                formData.append('file', receiptFile);
+                const uploadRes = await fetch('/api/upload', { method: 'POST', body: formData });
+                const uploadData = await uploadRes.json();
+                if (!uploadRes.ok) {
+                    throw new Error(uploadData.error || 'Error al subir la imagen de la receta. Asegúrate de intentar nuevamente.');
+                }
+                finalImageUrl = uploadData.url;
+            }
+
+            if (!finalImageUrl) {
+                throw new Error("La foto de la receta es obligatoria.");
+            }
+
+            const duplicate = findDuplicate(finalImageUrl);
             let rxId = duplicate?.id;
 
             if (!rxId) {
@@ -123,6 +132,7 @@ export default function PrescriptionManager({
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         ...form,
+                        imageUrl: finalImageUrl,
                         sphereOD: parseFloat(form.sphereOD) || 0,
                         cylinderOD: parseFloat(form.cylinderOD) || 0,
                         axisOD: parseInt(form.axisOD) || 0,
@@ -137,7 +147,13 @@ export default function PrescriptionManager({
                         heightOI: parseFloat(form.heightOI) || 0,
                     })
                 });
+                
                 const newRx = await res.json();
+                
+                if (!res.ok) {
+                    throw new Error(newRx.error || newRx.details || "Error del servidor al guardar la receta");
+                }
+                
                 rxId = newRx.id;
             }
 
@@ -149,8 +165,9 @@ export default function PrescriptionManager({
                 setIsAdding(false);
                 resetForm();
             }
-        } catch (err) {
-            setError('Error al guardar la receta');
+        } catch (err: any) {
+            console.error(err);
+            setError(err.message || 'Error al guardar la receta');
         } finally {
             setSaving(false);
         }
@@ -162,7 +179,7 @@ export default function PrescriptionManager({
             return;
         }
         
-        const rxId = savedRxId || findDuplicate()?.id;
+        const rxId = savedRxId || findDuplicate(form.imageUrl)?.id;
         
         if (!rxId) {
             setError("No se pudo identificar la receta. Por favor, volvé a guardarla.");
@@ -267,7 +284,7 @@ export default function PrescriptionManager({
 
                 <div>
                     <label className="text-[9px] font-black text-red-500 uppercase tracking-widest block mb-2">Foto de la receta (OBLIGATORIA)</label>
-                    {form.imageUrl ? (
+                    {form.imageUrl && !receiptFile ? (
                         <div className="relative">
                             <img 
                                 src={resolveStorageUrl(form.imageUrl)} 
@@ -277,21 +294,29 @@ export default function PrescriptionManager({
                             <button onClick={() => setForm(p => ({...p, imageUrl: ''}))} className="absolute top-2 right-2 p-2 bg-red-500 text-white rounded-full"><X className="w-4 h-4" /></button>
                         </div>
                     ) : (
-                        <label className="flex items-center justify-center gap-2 p-4 border-2 border-dashed border-stone-200 rounded-xl cursor-pointer hover:border-emerald-300">
-                            <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
-                            {uploading ? <span className="text-xs font-bold text-stone-400 animate-pulse">Subiendo...</span> : <span className="text-xs font-bold text-stone-400">Subir foto de la receta</span>}
-                        </label>
+                        <FileDropZone
+                            onFile={(file) => {
+                                setReceiptFile(file);
+                                setReceiptPreview(URL.createObjectURL(file));
+                            }}
+                            preview={receiptPreview}
+                            onClearPreview={() => {
+                                setReceiptFile(null);
+                                setReceiptPreview(null);
+                            }}
+                            label="Subir foto de la receta"
+                        />
                     )}
                 </div>
             </div>
 
-            {error && <p className="text-red-500 text-[10px] font-black bg-red-50 p-3 rounded-xl">⚠️ {error}</p>}
+            {error && <p className="text-red-500 text-[10px] font-black bg-red-50 p-3 rounded-xl mt-4">⚠️ {error}</p>}
 
-            <div className="flex gap-3">
+            <div className="flex gap-3 mt-6">
                 <button onClick={() => { setIsAdding(false); onCloseConversion?.(); resetForm(); }} className="px-6 py-4 bg-stone-100 rounded-2xl font-black text-xs uppercase tracking-widest">CANCELAR</button>
                 <button 
                     onClick={handleSave} 
-                    disabled={saving || (!form.sphereOD && !form.sphereOI) || !form.imageUrl}
+                    disabled={saving || (!form.sphereOD && !form.sphereOI && !form.cylinderOD && !form.cylinderOI && !form.additionOD && !form.additionOI && !receiptFile) || (!form.imageUrl && !receiptFile)}
                     className="flex-1 py-4 bg-emerald-500 text-white rounded-2xl font-black text-xs uppercase tracking-widest disabled:opacity-50"
                 >
                     {saving ? 'GUARDANDO...' : 'GUARDAR RECETA'}

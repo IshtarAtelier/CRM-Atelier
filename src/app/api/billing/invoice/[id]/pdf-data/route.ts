@@ -34,9 +34,15 @@ export async function GET(
             issuer: {
                 name: accountConfig.label,
                 cuit: accountConfig.cuit.toString(),
+<<<<<<< HEAD
                 address: 'Jose Luis de Tejeda 4380',
                 ivaCondition: 'Responsable Monotributo',
                 activityStart: '01/01/2020' // TODO: Confirmar fecha real
+=======
+                address: accountConfig.address,
+                ivaCondition: 'Responsable Monotributo',
+                activityStart: accountConfig.activityStart
+>>>>>>> desarrollo
             },
             logo: logoBase64
         };
