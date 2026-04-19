@@ -669,6 +669,17 @@ export const ContactService = {
                 }
             });
 
+            // Encontrar y eliminar la notificación de INVOICE_REQUEST asociada a este pago si existe (para des-duplicar facturación si se equivocaron de medio)
+            const amountStr = `$${payment.amount.toLocaleString('es-AR')}`;
+            await tx.notification.deleteMany({
+                where: {
+                    type: 'INVOICE_REQUEST',
+                    orderId: payment.orderId,
+                    message: { contains: amountStr },
+                    status: 'PENDING'
+                }
+            });
+
             // Eliminar el registro de pago
             return await tx.payment.delete({
                 where: { id: paymentId }

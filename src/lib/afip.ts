@@ -22,14 +22,14 @@ export const BILLING_ACCOUNTS: Record<BillingAccount, BillingAccountConfig> = {
         label: 'Ishtar Pissano',
         puntoDeVenta: parseInt(process.env.AFIP_PUNTO_VENTA_ISH || '1'),
         address: 'Santiago del Estero 66 Local 12, Córdoba',
-        activityStart: '01/01/2020'
+        activityStart: '01/01/2024'
     },
     YANI: {
         cuit: parseInt(process.env.AFIP_CUIT_YANI || '0'),
         label: 'Yani Pissano',
         puntoDeVenta: parseInt(process.env.AFIP_PUNTO_VENTA_YANI || '1'),
         address: 'Luis Jose de Tejeda 4380, Córdoba',
-        activityStart: '01/01/2021'
+        activityStart: '01/01/2025'
     },
 };
 

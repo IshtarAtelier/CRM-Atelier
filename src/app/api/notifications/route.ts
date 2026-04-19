@@ -38,6 +38,45 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Tipo de solicitud inválido' }, { status: 400 });
         }
 
+        if (type === 'INVOICE_REQUEST' && orderId) {
+            // Extract the requested amount from the new message
+            const newAmountMatch = message.match(/\$([0-9.,]+)/);
+            if (newAmountMatch) {
+                const newAmountStr = newAmountMatch[1];
+                
+                // Check if there is already a pending request for the SAME amount and order
+                const existingRequests = await prisma.notification.findMany({
+                    where: {
+                        type: 'INVOICE_REQUEST',
+                        orderId: orderId,
+                        status: 'PENDING'
+                    }
+                });
+                
+                const isDuplicate = existingRequests.some((req: any) => {
+                    const match = req.message.match(/\$([0-9.,]+)/);
+                    return match && match[1] === newAmountStr;
+                });
+
+                if (isDuplicate) {
+                    // Alert the admin that the seller tried to request it again
+                    await prisma.notification.create({
+                        data: {
+                            type: 'SYSTEM_ALERT',
+                            message: `ALERTA: El vendedor (${userName}) intentó volver a solicitar la facturación de ${newAmountStr} para la Venta #${orderId.slice(-4).toUpperCase()} que YA ESTÁ PENDIENTE.`,
+                            requestedBy: 'SISTEMA',
+                            status: 'PENDING'
+                        }
+                    });
+
+                    // Return the 400 error with the specific custom message requested by user
+                    return NextResponse.json({ 
+                        error: 'La solicitud de la factura está en curso, pero ya se solicitó realizar a la brevedad.' 
+                    }, { status: 400 });
+                }
+            }
+        }
+
         const notification = await prisma.notification.create({
             data: {
                 type,

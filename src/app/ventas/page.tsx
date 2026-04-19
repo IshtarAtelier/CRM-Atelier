@@ -6,6 +6,7 @@ import { PricingService } from '@/services/PricingService';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import InvoiceModal from '@/components/InvoiceModal';
+import { generateInvoicePDF } from '@/lib/invoice-generator';
 
 interface OrderItem {
     id: string;
@@ -757,15 +758,15 @@ export default function VentasPage() {
                                                         key={`inv-${inv.id}`}
                                                         onClick={async () => {
                                                             try {
-                                                                const res = await fetch(`/api/billing/invoice/${inv.id}?pdf=true`);
-                                                                const data = await res.json();
-                                                                if (data.pdfUrl) {
-                                                                    window.open(data.pdfUrl, '_blank');
-                                                                } else {
-                                                                    alert('No se pudo cargar el PDF: ' + (data.error || 'Error desconocido'));
+                                                                const res = await fetch(`/api/billing/invoice/${inv.id}/pdf-data`);
+                                                                if (!res.ok) {
+                                                                    const errorData = await res.json();
+                                                                    throw new Error(errorData.error || 'Error desconocido');
                                                                 }
-                                                            } catch (e) {
-                                                                alert('Error abriendo el PDF');
+                                                                const data = await res.json();
+                                                                await generateInvoicePDF(data);
+                                                            } catch (e: any) {
+                                                                alert('Error abriendo el PDF: ' + e.message);
                                                             }
                                                         }}
                                                         className="px-3 py-2 bg-indigo-50 dark:bg-indigo-950/30 border-2 border-indigo-200 dark:border-indigo-800 rounded-xl hover:bg-indigo-100 dark:hover:bg-indigo-900 transition-all text-left flex items-center gap-2" 
