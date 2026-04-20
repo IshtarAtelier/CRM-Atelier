@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { headers } from 'next/headers';
 import { ContactService } from '@/services/contact.service';
+import { BotService } from '@/services/bot.service';
 import { prisma } from '@/lib/db';
 import { calculateQuoteTotals } from '@/lib/promo-utils';
 import { z } from 'zod';
@@ -667,6 +668,7 @@ export async function PATCH(
             select: {
                 id: true,
                 clientId: true,
+                total: true,
                 items: {
                     select: {
                         id: true, price: true, quantity: true, eye: true,
@@ -676,7 +678,7 @@ export async function PATCH(
                 },
                 payments: true,
                 client: {
-                    select: { name: true }
+                    select: { name: true, phone: true }
                 }
             },
         });
@@ -701,41 +703,19 @@ export async function PATCH(
 
         // ── Auto-Notify: WhatsApp pickup when READY ──
         if (labStatus === 'READY' && order.client.phone) {
-            try {
-                const total = order.total || 0;
-                const paid = (order.payments || []).reduce((acc: number, p: any) => acc + p.amount, 0);
-                const saldo = total - paid;
-                
-                let message = `¡Hola ${order.client.name}! 👋 Tus anteojos ya están listos para retirar en Atelier Óptica (Tejeda 4380).`;
-                
-                if (saldo > 0) {
-                    message += ` El saldo pendiente es de $${Math.round(saldo).toLocaleString()}. ¡Te esperamos!`;
-                } else {
-                    message += ` ¡Te esperamos pronto para la entrega!`;
-                }
-
-                // Send via internal WA server proxy
-                const WA_SERVER = 'http://localhost:3100';
-                await fetch(`${WA_SERVER}/api/send`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                        chatId: `${order.client.phone.replace(/\D/g, '')}@c.us`, 
-                        message 
-                    }),
-                });
-
-                // Log interaction
-                await prisma.interaction.create({
-                    data: {
-                        clientId: order.clientId,
-                        type: 'NOTE',
-                        content: `🤖 Notificación automática enviada: Listo para retirar. Saldo informado: $${saldo.toLocaleString()}`
-                    }
-                });
-            } catch (e: any) {
-                console.error('[Auto-Notify READY] Error:', e.message);
-            }
+            const total = order.total || 0;
+            const paid = (order.payments || []).reduce((acc: number, p: any) => acc + p.amount, 0);
+            
+            // Delegate sending logic and DB interaction updates to the background service
+            // Note: In Next.js App Router, we avoid awaiting background non-critical tasks 
+            // if we don't want to delay the API response, but for DB consistency it's fine.
+            await BotService.notifyOrderReady(
+                order.clientId,
+                order.client.name,
+                order.client.phone,
+                total,
+                paid
+            );
         }
 
         return NextResponse.json(order);
