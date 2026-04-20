@@ -10,6 +10,7 @@ import HistoryManager from './HistoryManager';
 import TaskManager from './TaskManager';
 import PrescriptionManager from './PrescriptionManager';
 import OrderManager from './OrderManager';
+import HitosPanel from './HitosPanel';
 
 interface ContactDetailProps {
     contactId: string;
@@ -178,11 +179,21 @@ export default function ContactDetail({
                     )}
 
                     {activeSection === 'history' && (
-                        <HistoryManager 
-                            contactId={contactId}
-                            interactions={contact.interactions || []}
-                            onAddInteraction={(content) => onAddInteraction(contactId, 'NOTE', content).then(() => fetchContact())}
-                        />
+                        <div className="space-y-12">
+                            <HitosPanel 
+                                contactId={contactId}
+                                interactions={contact.interactions || []}
+                                onRefresh={fetchContact}
+                            />
+                            
+                            <hr className="border-stone-100 dark:border-stone-800" />
+
+                            <HistoryManager 
+                                contactId={contactId}
+                                interactions={contact.interactions || []}
+                                onAddInteraction={(content) => onAddInteraction(contactId, 'NOTE', content).then(() => fetchContact())}
+                            />
+                        </div>
                     )}
 
                     {activeSection === 'tasks' && (

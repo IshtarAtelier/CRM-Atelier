@@ -699,6 +699,45 @@ export async function PATCH(
             }
         }
 
+        // ── Auto-Notify: WhatsApp pickup when READY ──
+        if (labStatus === 'READY' && order.client.phone) {
+            try {
+                const total = order.total || 0;
+                const paid = (order.payments || []).reduce((acc: number, p: any) => acc + p.amount, 0);
+                const saldo = total - paid;
+                
+                let message = `¡Hola ${order.client.name}! 👋 Tus anteojos ya están listos para retirar en Atelier Óptica (Tejeda 4380).`;
+                
+                if (saldo > 0) {
+                    message += ` El saldo pendiente es de $${Math.round(saldo).toLocaleString()}. ¡Te esperamos!`;
+                } else {
+                    message += ` ¡Te esperamos pronto para la entrega!`;
+                }
+
+                // Send via internal WA server proxy
+                const WA_SERVER = 'http://localhost:3100';
+                await fetch(`${WA_SERVER}/api/send`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        chatId: `${order.client.phone.replace(/\D/g, '')}@c.us`, 
+                        message 
+                    }),
+                });
+
+                // Log interaction
+                await prisma.interaction.create({
+                    data: {
+                        clientId: order.clientId,
+                        type: 'NOTE',
+                        content: `🤖 Notificación automática enviada: Listo para retirar. Saldo informado: $${saldo.toLocaleString()}`
+                    }
+                });
+            } catch (e: any) {
+                console.error('[Auto-Notify READY] Error:', e.message);
+            }
+        }
+
         return NextResponse.json(order);
     } catch (error: any) {
         console.error('Error updating order:', error);
