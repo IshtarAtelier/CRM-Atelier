@@ -33,6 +33,7 @@ interface ReportData {
         totalPlatformFees: number;
         totalDoctorFees: number;
         totalFixedCosts: number;
+        totalSpecialDiscounts: number;
         netProfit: number;
         profitMargin: number;
         totalPaid: number;
@@ -306,10 +307,11 @@ export default function ReportesPage() {
                             {s.totalCostOther > 0 && <PLRow label="CMV Otros" value={-s.totalCostOther} color="text-red-400" />}
                             <PLRow label="Comisiones Plataforma" value={-s.totalPlatformFees} color="text-purple-400" sub="PayWay / Go Cuotas" />
                             <PLRow label="Comisiones Médicos" value={-s.totalDoctorFees} color="text-pink-400" sub="15% sobre neto" />
+                            {s.totalSpecialDiscounts > 0 && <PLRow label="Envío / Desc. Especiales" value={-s.totalSpecialDiscounts} color="text-teal-500" />}
 
                             {/* ─ Margen de Contribución ─ */}
                             {(() => {
-                                const variableCosts = s.totalCosts + s.totalPlatformFees + s.totalDoctorFees;
+                                const variableCosts = s.totalCosts + s.totalPlatformFees + s.totalDoctorFees + (s.totalSpecialDiscounts || 0);
                                 const margenContribucion = s.totalRevenue - variableCosts;
                                 const margenPct = s.totalRevenue > 0 ? (margenContribucion / s.totalRevenue * 100) : 0;
                                 return (

@@ -16,6 +16,7 @@ interface Chat {
     status: string;
     unreadCount: number;
     lastMessageAt: string;
+    botEnabled: boolean;
     client?: { id: string; name: string; phone: string; status: string } | null;
     messages?: Message[];
 }
@@ -142,6 +143,24 @@ export default function WhatsAppPage() {
             console.error('Error enviando:', e);
         }
         setSending(false);
+    };
+
+    // ── Toggle Bot per Chat ──────────────────────
+    const toggleBot = async (chatId: string, enabled: boolean) => {
+        try {
+            await fetch(`/api/whatsapp/chats/${chatId}/bot-toggle`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ enabled }),
+            });
+            // Update local state
+            if (selectedChat?.id === chatId) {
+                setSelectedChat({ ...selectedChat, botEnabled: enabled });
+            }
+            setChats(chats.map(c => c.id === chatId ? { ...c, botEnabled: enabled } : c));
+        } catch (e) {
+            console.error('Error al togglear bot:', e);
+        }
     };
 
     // ═══════════════════════════════════════════════
@@ -318,6 +337,11 @@ export default function WhatsAppPage() {
                                                 : 'bg-stone-100 dark:bg-stone-600 text-stone-500 dark:text-stone-300'
                                                 }`}>
                                                 {(chat.profileName || '?')[0].toUpperCase()}
+                                                {chat.botEnabled && agentEnabled && (
+                                                    <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-violet-500 rounded-full border-2 border-white flex items-center justify-center">
+                                                        <Bot className="w-2.5 h-2.5 text-white" />
+                                                    </div>
+                                                )}
                                             </div>
                                             <div className="flex-1 min-w-0">
                                                 <div className="flex items-center justify-between">
@@ -384,6 +408,26 @@ export default function WhatsAppPage() {
                                         )}
                                     </div>
                                 </div>
+                                
+                                {/* Bot Status & Toggle */}
+                                {agentEnabled && (
+                                    <div className="flex items-center gap-3">
+                                        {!selectedChat.botEnabled ? (
+                                            <button
+                                                onClick={() => toggleBot(selectedChat.id, true)}
+                                                className="flex items-center gap-2 px-3 py-1.5 bg-violet-100 hover:bg-violet-200 text-violet-600 rounded-xl text-xs font-black transition-all"
+                                            >
+                                                <Bot className="w-3.5 h-3.5" />
+                                                Reactivar IA
+                                            </button>
+                                        ) : (
+                                            <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-50 text-emerald-600 rounded-xl text-[10px] font-black uppercase tracking-widest border border-emerald-100">
+                                                <Bot className="w-3.5 h-3.5" />
+                                                IA Atendiendo
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
                             </div>
 
                             {/* Messages */}

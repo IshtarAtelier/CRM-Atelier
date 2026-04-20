@@ -44,7 +44,7 @@ export default function CheckoutModal({
 
     // Repaso Final: Usar PricingService para consistencia total
     const financials = PricingService.calculateOrderFinancials(order);
-    const total = financials.totalCard; // El total de lista es el base
+    const total = financials.totalCash; // Cambiado a totalCash como base para la seña del 40%
     const paid = financials.paidReal;
     const balance = financials.remainingCard;
     const minRequired = total * 0.4;

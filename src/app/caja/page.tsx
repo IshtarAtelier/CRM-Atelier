@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { resolveStorageUrl, fileToBase64 } from '@/lib/utils/storage';
+import { resolveStorageUrl } from '@/lib/utils/storage';
 
 // ── Types ─────────────────────────────────────
 
@@ -92,7 +92,15 @@ export default function CajaPage() {
 
             let receiptUrlStr = '';
             if (receiptFile) {
-                receiptUrlStr = await fileToBase64(receiptFile);
+                const formData = new FormData();
+                formData.append('file', receiptFile);
+                const uploadRes = await fetch('/api/upload', { method: 'POST', body: formData });
+                const uploadData = await uploadRes.json();
+                
+                if (!uploadRes.ok) {
+                    throw new Error(uploadData.error || 'Error al subir la foto del comprobante');
+                }
+                receiptUrlStr = uploadData.url;
             }
 
             const res = await fetch('/api/cash/movement', {

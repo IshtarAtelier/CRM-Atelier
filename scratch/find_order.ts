@@ -1,25 +1,25 @@
 import { PrismaClient } from '@prisma/client';
+
 const prisma = new PrismaClient();
 
 async function main() {
-  const order = await prisma.order.findFirst({
-    where: { 
-        isDeleted: false,
-        total: { gt: 0 }
+  const orders = await prisma.order.findMany({
+    include: {
+      client: true
     },
-    orderBy: { createdAt: 'desc' },
-    select: { id: true, total: true, paid: true }
+    where: {
+      isDeleted: false
+    }
   });
-  console.log('TEST_ORDER_ID:', order?.id);
-  console.log('TOTAL:', order?.total);
-  console.log('PAID:', order?.paid);
+
+  const matchingOrders = orders.filter(o => 
+    o.id.toLowerCase().endsWith('h4zd') || 
+    (o.client && o.client.name.includes('Julieta'))
+  );
+
+  console.log(JSON.stringify(matchingOrders, null, 2));
 }
 
 main()
-  .catch(e => {
-    console.error(e);
-    process.exit(1);
-  })
-  .finally(async () => {
-    await prisma.$disconnect();
-  });
+  .catch(e => console.error(e))
+  .finally(async () => await prisma.$disconnect());

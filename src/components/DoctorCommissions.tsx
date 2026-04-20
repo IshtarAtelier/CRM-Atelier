@@ -1,7 +1,7 @@
 'use client';
 
 import FileDropZone from '@/components/FileDropZone';
-import { resolveStorageUrl, fileToBase64 } from '@/lib/utils/storage';
+import { resolveStorageUrl } from '@/lib/utils/storage';
 
 import { useState, useEffect, useRef } from 'react';
 import {
@@ -124,9 +124,17 @@ export default function DoctorCommissions() {
         try {
             let receiptUrl = null;
 
-            // Upload receipt if exists
+            // Upload receipt if exists (to Firebase Storage)
             if (payReceipt) {
-                receiptUrl = await fileToBase64(payReceipt);
+                const formData = new FormData();
+                formData.append('file', payReceipt);
+                const uploadRes = await fetch('/api/upload', { method: 'POST', body: formData });
+                const uploadData = await uploadRes.json();
+                
+                if (!uploadRes.ok) {
+                    throw new Error(uploadData.error || 'Error al subir la foto del comprobante');
+                }
+                receiptUrl = uploadData.url;
             }
 
             const res = await fetch('/api/doctors/payments', {

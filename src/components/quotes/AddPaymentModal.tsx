@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 import { PricingService } from '@/services/PricingService';
 import FileDropZone from '@/components/FileDropZone';
-import { fileToBase64 } from '@/lib/utils/storage';
+import { resolveStorageUrl } from '@/lib/utils/storage';
 
 interface AddPaymentModalProps {
     orderId: string;
@@ -88,9 +88,17 @@ export default function AddPaymentModal({
         try {
             let receiptUrl = null;
 
-            // 1. Subir comprobante si existe (directo a Base64 para persistencia estricta en DB)
+            // 1. Subir comprobante si existe (a Firebase Storage)
             if (receiptFile) {
-                receiptUrl = await fileToBase64(receiptFile);
+                const formData = new FormData();
+                formData.append('file', receiptFile);
+                const uploadRes = await fetch('/api/upload', { method: 'POST', body: formData });
+                const uploadData = await uploadRes.json();
+                
+                if (!uploadRes.ok) {
+                    throw new Error(uploadData.error || 'Error al subir la foto del comprobante');
+                }
+                receiptUrl = uploadData.url;
             }
 
             // 2. Registrar el pago

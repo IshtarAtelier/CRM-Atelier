@@ -91,6 +91,7 @@ export async function GET(request: Request) {
         let totalCostOther = 0;
         let totalPlatformFees = 0;
         let totalDoctorFees = 0;
+        let totalSpecialDiscounts = 0;
         let totalPending = 0;
         let totalMarkup = 0;
 
@@ -107,6 +108,10 @@ export async function GET(request: Request) {
             // ── Revenue = sum of actual payments received ──
             const orderPaidReal = order.payments.reduce((sum: number, p: any) => sum + (p.amount || 0), 0);
             totalRevenue += orderPaidReal;
+
+            // Include special discounts
+            const specialDesc = order.specialDiscount || 0;
+            totalSpecialDiscounts += specialDesc;
 
             // Pending = list price minus paid (using subtotalWithMarkup as reference for balance)
             const listPrice = (order as any).subtotalWithMarkup || order.total || 0;
@@ -204,18 +209,18 @@ export async function GET(request: Request) {
             // ── Doctor fees (if this order's client has a referring doctor) ──
             const doctorName = (order.client as any).doctor;
             if (doctorName) {
-                const doctorNet = orderPaidReal - orderPlatformFee;
+                const doctorNet = orderPaidReal - orderPlatformFee - specialDesc;
                 const doctorFee = Math.max(0, doctorNet * DOCTOR_COMMISSION_RATE);
                 totalDoctorFees += doctorFee;
             }
 
             // Update monthly profit
-            monthlyStats[monthKey].profit = monthlyStats[monthKey].revenue - monthlyStats[monthKey].cost;
+            monthlyStats[monthKey].profit = monthlyStats[monthKey].revenue - monthlyStats[monthKey].cost - specialDesc;
         }
 
         const totalCosts = totalCostFrames + totalCostLenses + totalCostOther;
-        // Net Profit = Real Income - Product Costs - Platform Fees - Doctor Fees - Fixed Costs
-        const netProfit = totalRevenue - totalCosts - totalPlatformFees - totalDoctorFees - totalFixedCosts;
+        // Net Profit = Real Income - Product Costs - Platform Fees - Doctor Fees - Fixed Costs - Special Discounts
+        const netProfit = totalRevenue - totalCosts - totalPlatformFees - totalDoctorFees - totalFixedCosts - totalSpecialDiscounts;
         const profitMargin = totalRevenue > 0 ? (netProfit / totalRevenue) * 100 : 0;
 
         // ── Fetch Invoices for billing stats ──
@@ -252,6 +257,7 @@ export async function GET(request: Request) {
                 totalPlatformFees,
                 totalDoctorFees,
                 totalFixedCosts,
+                totalSpecialDiscounts,
                 netProfit,
                 profitMargin,
                 totalPaid: totalRevenue, // In this model, revenue IS what was paid

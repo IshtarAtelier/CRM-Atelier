@@ -63,8 +63,9 @@ export async function GET(request: Request) {
                 orderPaidTotal += payment.amount;
             }
 
-            // Net amount = what actually entered minus platform takes
-            const netAmount = orderPaidTotal - orderPlatformFee;
+            // Net amount = what actually entered minus platform takes AND minus any special discounts (like free shipping)
+            const specialDesc = order.specialDiscount || 0;
+            const netAmount = orderPaidTotal - orderPlatformFee - specialDesc;
             
             // Doctor commission = 15% of net income
             const commission = Math.max(0, netAmount * DOCTOR_COMMISSION_RATE);
@@ -78,6 +79,7 @@ export async function GET(request: Request) {
                 orderTotal: order.total || 0,
                 paidTotal: orderPaidTotal,
                 platformFee: orderPlatformFee,
+                specialDiscount: specialDesc,
                 netAmount,
                 commission,
                 date: order.createdAt,
