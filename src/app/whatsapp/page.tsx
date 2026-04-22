@@ -4,10 +4,26 @@ import QRCode from 'qrcode';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import {
     MessageCircle, Send, Wifi, WifiOff, QrCode, RefreshCw, User,
-    Clock, CheckCircle2, Bot, Settings, X, ChevronLeft, Phone
+    Clock, CheckCircle2, Bot, Settings, X, ChevronLeft, Phone,
+    Tag, Archive, ArchiveRestore, Filter, Plus
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+
+// Etiquetas predefinidas para chats
+const CHAT_LABEL_OPTIONS = [
+    { label: 'Cancelar Bot', color: 'bg-red-100 text-red-600 border-red-200' },
+    { label: 'VIP', color: 'bg-amber-100 text-amber-600 border-amber-200' },
+    { label: 'Proveedor', color: 'bg-slate-100 text-slate-600 border-slate-200' },
+    { label: 'Interesado', color: 'bg-emerald-100 text-emerald-600 border-emerald-200' },
+    { label: 'No interesado', color: 'bg-stone-100 text-stone-500 border-stone-200' },
+    { label: 'Seguimiento', color: 'bg-blue-100 text-blue-600 border-blue-200' },
+    { label: 'Pendiente', color: 'bg-orange-100 text-orange-600 border-orange-200' },
+];
+
+const getLabelStyle = (label: string) =>
+    CHAT_LABEL_OPTIONS.find(o => o.label === label)?.color
+    ?? 'bg-violet-100 text-violet-600 border-violet-200';
 
 // ── Types ─────────────────────────────────────────
 interface Chat {
@@ -18,6 +34,8 @@ interface Chat {
     unreadCount: number;
     lastMessageAt: string;
     botEnabled: boolean;
+    archived: boolean;
+    chatLabels: string[];
     client?: { id: string; name: string; phone: string; status: string } | null;
     messages?: Message[];
 }
@@ -46,6 +64,9 @@ export default function WhatsAppPage() {
     const [agentPrompt, setAgentPrompt] = useState('');
     const [agentEnabled, setAgentEnabled] = useState(false);
     const [loadingStatus, setLoadingStatus] = useState(true);
+    const [filterLabel, setFilterLabel] = useState<string | null>(null);
+    const [showArchived, setShowArchived] = useState(false);
+    const [showLabelPicker, setShowLabelPicker] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const pollRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -166,7 +187,6 @@ export default function WhatsAppPage() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ botEnabled: enabled }),
             });
-            // Actualizar estado local inmediatamente
             if (selectedChat?.id === chatId) {
                 setSelectedChat({ ...selectedChat, botEnabled: enabled });
             }
@@ -175,6 +195,48 @@ export default function WhatsAppPage() {
             console.error('Error al togglear bot:', e);
         }
     };
+
+    // ── Actualizar etiquetas / archivar ───────────
+    const updateChat = async (chatId: string, patch: Partial<Pick<Chat, 'chatLabels' | 'archived' | 'botEnabled'>>) => {
+        try {
+            await fetch(`/api/whatsapp/chats/${chatId}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(patch),
+            });
+            const updated = (c: Chat) => c.id === chatId ? { ...c, ...patch } : c;
+            setChats(prev => prev.map(updated));
+            if (selectedChat?.id === chatId) {
+                setSelectedChat(prev => prev ? { ...prev, ...patch } : prev);
+            }
+        } catch (e) {
+            console.error('Error actualizando chat:', e);
+        }
+    };
+
+    // ── Etiqueta: toggle en el chat seleccionado ──
+    const toggleLabel = async (label: string) => {
+        if (!selectedChat) return;
+        const current = selectedChat.chatLabels || [];
+        const next = current.includes(label)
+            ? current.filter(l => l !== label)
+            : [...current, label];
+        await updateChat(selectedChat.id, { chatLabels: next });
+        // Si se agrega "Cancelar Bot" también deshabilitar el bot
+        if (label === 'Cancelar Bot' && next.includes(label)) {
+            await updateChat(selectedChat.id, { botEnabled: false });
+        }
+    };
+
+    // ── Vista filtrada de chats ───────────────────
+    const filteredChats = chats.filter(c => {
+        if (c.archived !== showArchived) return false;
+        if (filterLabel && !(c.chatLabels || []).includes(filterLabel)) return false;
+        return true;
+    });
+
+    // Etiquetas únicas en uso (para el filtro)
+    const usedLabels = Array.from(new Set(chats.flatMap(c => c.chatLabels || [])));
 
     // ═══════════════════════════════════════════════
     // RENDER
@@ -299,20 +361,51 @@ export default function WhatsAppPage() {
                 <div className="flex flex-1 min-h-0">
                 {/* Chat List */}
                 <div className={`w-80 border-r-2 border-stone-100 dark:border-stone-700 bg-white dark:bg-stone-800 flex flex-col flex-shrink-0 ${selectedChat ? 'hidden lg:flex' : 'flex'}`}>
-                    <div className="p-4 border-b border-stone-100 dark:border-stone-700">
-                        <h2 className="text-[10px] font-black text-stone-400 uppercase tracking-widest">
-                            Conversaciones ({chats.length})
-                        </h2>
+                    {/* Sidebar Header + Filtros */}
+                    <div className="p-3 border-b border-stone-100 dark:border-stone-700 space-y-2">
+                        <div className="flex items-center justify-between">
+                            <h2 className="text-[10px] font-black text-stone-400 uppercase tracking-widest">
+                                {showArchived ? 'Archivados' : 'Conversaciones'} ({filteredChats.length})
+                            </h2>
+                            <button
+                                onClick={() => { setShowArchived(v => !v); setFilterLabel(null); }}
+                                title={showArchived ? 'Ver activos' : 'Ver archivados'}
+                                className={`p-1.5 rounded-lg transition-all ${showArchived ? 'bg-stone-200 text-stone-700' : 'text-stone-400 hover:bg-stone-100'}`}
+                            >
+                                {showArchived ? <ArchiveRestore className="w-3.5 h-3.5" /> : <Archive className="w-3.5 h-3.5" />}
+                            </button>
+                        </div>
+                        {/* Filtro por etiquetas */}
+                        {usedLabels.length > 0 && (
+                            <div className="flex flex-wrap gap-1">
+                                <button
+                                    onClick={() => setFilterLabel(null)}
+                                    className={`px-2 py-0.5 rounded-full text-[10px] font-bold border transition-all ${!filterLabel ? 'bg-stone-800 text-white border-stone-800' : 'text-stone-400 border-stone-200 hover:border-stone-400'}`}
+                                >
+                                    Todas
+                                </button>
+                                {usedLabels.map(lbl => (
+                                    <button
+                                        key={lbl}
+                                        onClick={() => setFilterLabel(filterLabel === lbl ? null : lbl)}
+                                        className={`px-2 py-0.5 rounded-full text-[10px] font-bold border transition-all ${filterLabel === lbl ? getLabelStyle(lbl) + ' opacity-100' : 'text-stone-400 border-stone-200 hover:border-stone-400'}`}
+                                    >
+                                        {lbl}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
                     </div>
                     <div className="flex-1 overflow-y-auto">
-                        {chats.length === 0 ? (
+                        {filteredChats.length === 0 ? (
                             <div className="text-center py-16 px-6">
                                 <MessageCircle className="w-12 h-12 text-stone-200 dark:text-stone-700 mx-auto mb-3" />
-                                <p className="text-xs font-bold text-stone-300 dark:text-stone-600">No hay conversaciones aún</p>
-                                <p className="text-[10px] text-stone-300 dark:text-stone-600 mt-1">Las conversaciones aparecerán cuando un cliente escriba</p>
+                                <p className="text-xs font-bold text-stone-300 dark:text-stone-600">
+                                    {showArchived ? 'No hay chats archivados' : 'No hay conversaciones aún'}
+                                </p>
                             </div>
                         ) : (
-                            chats.map(chat => {
+                            filteredChats.map(chat => {
                                 const isSelected = selectedChat?.id === chat.id;
                                 const lastMsg = chat.messages?.[0];
                                 return (
@@ -350,6 +443,16 @@ export default function WhatsAppPage() {
                                                 <p className="text-xs text-stone-400 truncate mt-0.5">
                                                     {lastMsg ? (lastMsg.direction === 'OUTBOUND' ? '✓ ' : '') + lastMsg.content.substring(0, 50) : 'Sin mensajes'}
                                                 </p>
+                                                {/* Etiquetas del chat */}
+                                                {(chat.chatLabels || []).length > 0 && (
+                                                    <div className="flex flex-wrap gap-1 mt-1">
+                                                        {chat.chatLabels.map(lbl => (
+                                                            <span key={lbl} className={`px-1.5 py-0.5 rounded-full text-[9px] font-bold border ${getLabelStyle(lbl)}`}>
+                                                                {lbl}
+                                                            </span>
+                                                        ))}
+                                                    </div>
+                                                )}
                                                 {chat.lastMessageAt && (
                                                     <p className="text-[10px] text-stone-300 mt-1">
                                                         {format(new Date(chat.lastMessageAt), "d MMM HH:mm", { locale: es })}
@@ -402,11 +505,62 @@ export default function WhatsAppPage() {
                                     </div>
                                 </div>
                                 
+                                {/* Etiquetas activas del chat */}
+                                {(selectedChat.chatLabels || []).length > 0 && (
+                                    <div className="flex flex-wrap gap-1 mr-1">
+                                        {selectedChat.chatLabels.map(lbl => (
+                                            <span key={lbl} className={`px-2 py-0.5 rounded-full text-[9px] font-bold border ${getLabelStyle(lbl)}`}>
+                                                {lbl}
+                                            </span>
+                                        ))}
+                                    </div>
+                                )}
+
+                                {/* Botón agregar etiqueta */}
+                                <div className="relative">
+                                    <button
+                                        onClick={() => setShowLabelPicker(v => !v)}
+                                        title="Agregar / quitar etiqueta"
+                                        className="flex items-center gap-1 p-1.5 text-stone-400 hover:text-stone-600 hover:bg-stone-100 rounded-lg transition-all"
+                                    >
+                                        <Tag className="w-4 h-4" />
+                                    </button>
+                                    {showLabelPicker && (
+                                        <div className="absolute right-0 top-8 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-600 rounded-xl shadow-lg z-50 min-w-[160px] p-2 space-y-1">
+                                            <p className="text-[9px] font-black text-stone-400 uppercase tracking-widest px-2 pb-1">Etiquetas</p>
+                                            {CHAT_LABEL_OPTIONS.map(opt => {
+                                                const active = (selectedChat.chatLabels || []).includes(opt.label);
+                                                return (
+                                                    <button
+                                                        key={opt.label}
+                                                        onClick={() => { toggleLabel(opt.label); }}
+                                                        className={`w-full text-left px-2 py-1.5 rounded-lg text-xs font-bold flex items-center justify-between transition-all ${active ? opt.color : 'text-stone-600 hover:bg-stone-50'}`}
+                                                    >
+                                                        {opt.label}
+                                                        {active && <X className="w-3 h-3 opacity-60" />}
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Archivar / Desarchivar */}
+                                <button
+                                    onClick={() => {
+                                        updateChat(selectedChat.id, { archived: !selectedChat.archived });
+                                        setSelectedChat(null);
+                                    }}
+                                    title={selectedChat.archived ? 'Desarchivar' : 'Archivar chat'}
+                                    className="p-1.5 text-stone-400 hover:text-stone-600 hover:bg-stone-100 rounded-lg transition-all"
+                                >
+                                    {selectedChat.archived ? <ArchiveRestore className="w-4 h-4" /> : <Archive className="w-4 h-4" />}
+                                </button>
+
                                 {/* Bot Status & Toggle por conversación */}
                                 {agentEnabled && (
                                     <div className="flex items-center gap-2">
                                         {!selectedChat.botEnabled ? (
-                                            // Bot pausado — botón para reactivar
                                             <button
                                                 onClick={() => toggleBot(selectedChat.id, true)}
                                                 title="Reactivar bot en esta conversación"
@@ -416,7 +570,6 @@ export default function WhatsAppPage() {
                                                 Reactivar IA
                                             </button>
                                         ) : (
-                                            // Bot activo — badge + botón para cancelar
                                             <>
                                                 <div className="flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 text-emerald-600 rounded-xl text-[10px] font-black uppercase tracking-widest border border-emerald-100">
                                                     <Bot className="w-3 h-3" />
@@ -424,7 +577,7 @@ export default function WhatsAppPage() {
                                                 </div>
                                                 <button
                                                     onClick={() => toggleBot(selectedChat.id, false)}
-                                                    title="Cancelar bot en esta conversación (seguirá activo en las demás)"
+                                                    title="Cancelar bot en esta conversación"
                                                     className="flex items-center gap-1.5 px-2.5 py-1 bg-red-50 hover:bg-red-100 text-red-500 rounded-xl text-[10px] font-black uppercase tracking-widest border border-red-100 transition-all"
                                                 >
                                                     <X className="w-3 h-3" />

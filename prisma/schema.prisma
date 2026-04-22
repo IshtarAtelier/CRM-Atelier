@@ -341,9 +341,11 @@ model WhatsAppChat {
   waId          String   @unique // Número de WhatsApp (ej: "5491112345678@c.us")
   profileName   String?
   lastMessageAt DateTime?
-  status        String   @default("OPEN") // OPEN, CLOSED
+  status        String   @default("OPEN")   // OPEN, CLOSED
   unreadCount   Int      @default(0)
   botEnabled    Boolean  @default(true)
+  archived      Boolean  @default(false)    // Chat archivado (oculto por defecto)
+  chatLabels    String[] @default([])       // Etiquetas del chat (ej: ["VIP", "Cancelar Bot"])
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 

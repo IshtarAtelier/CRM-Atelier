@@ -250,6 +250,23 @@ app.get('/api/chats/:id/messages', async (req, res) => {
     res.json(messages);
 });
 
+// ── Actualizar chat: etiquetas y/o archivado ───
+// PATCH /api/chats/:id  { chatLabels?, archived?, botEnabled? }
+app.patch('/api/chats/:id', async (req, res) => {
+    const { id } = req.params;
+    const { chatLabels, archived, botEnabled } = req.body;
+    try {
+        const data = {};
+        if (chatLabels !== undefined) data.chatLabels = chatLabels;
+        if (archived !== undefined) data.archived = archived;
+        if (botEnabled !== undefined) data.botEnabled = botEnabled;
+        const chat = await prisma.whatsAppChat.update({ where: { id }, data });
+        res.json(chat);
+    } catch (e) {
+        res.status(404).json({ error: 'Chat no encontrado' });
+    }
+});
+
 app.post('/api/send', async (req, res) => {
     const { chatId, message } = req.body;
     try {
