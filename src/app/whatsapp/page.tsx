@@ -142,7 +142,10 @@ export default function WhatsAppPage() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ prompt: agentPrompt, enabled: agentEnabled }),
             });
-        } catch { }
+            alert('¡Personalidad de la IA guardada con éxito en el servidor!');
+        } catch { 
+            alert('Error al intentar guardar la configuración.');
+        }
     };
 
     // ── Polling ───────────────────────────────────
@@ -330,14 +333,21 @@ export default function WhatsAppPage() {
                             </button>
                         </div>
                     </div>
-                    <textarea
-                        value={agentPrompt}
-                        onChange={e => setAgentPrompt(e.target.value)}
-                        onBlur={saveAgent}
-                        rows={3}
-                        placeholder="Escribí las instrucciones base..."
-                        className="w-full px-5 py-4 bg-white/80 dark:bg-black/40 backdrop-blur-md border border-violet-200 dark:border-violet-800/50 rounded-2xl text-sm focus:ring-4 focus:ring-violet-500/20 focus:border-violet-500 outline-none resize-none font-medium text-stone-800 dark:text-stone-200 transition-all shadow-inner"
-                    />
+                    <div className="flex flex-col gap-3">
+                        <textarea
+                            value={agentPrompt}
+                            onChange={e => setAgentPrompt(e.target.value)}
+                            rows={4}
+                            placeholder="Escribí las instrucciones base para la IA..."
+                            className="w-full px-5 py-4 bg-white/80 dark:bg-black/40 backdrop-blur-md border border-violet-200 dark:border-violet-800/50 rounded-2xl text-sm focus:ring-4 focus:ring-violet-500/20 focus:border-violet-500 outline-none resize-none font-medium text-stone-800 dark:text-stone-200 transition-all shadow-inner"
+                        />
+                        <button
+                            onClick={saveAgent}
+                            className="self-end px-6 py-2.5 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white font-black text-xs uppercase tracking-widest rounded-xl shadow-lg shadow-violet-500/30 transition-all active:scale-95"
+                        >
+                            Guardar Personalidad
+                        </button>
+                    </div>
                 </div>
             )}
 
