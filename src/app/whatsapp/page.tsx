@@ -5,37 +5,35 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import {
     MessageCircle, Send, Wifi, WifiOff, QrCode, RefreshCw, User,
     Clock, CheckCircle2, Bot, Settings, X, ChevronLeft, Phone,
-    Tag, Archive, ArchiveRestore, Filter, Plus
+    Tag, Archive, ArchiveRestore, Filter, Plus, Mic, PlaySquare, Image as ImageIcon
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
 // Etiquetas predefinidas para chats
 const CHAT_LABEL_OPTIONS = [
-    { label: 'Cancelar Bot', color: 'bg-red-100 text-red-600 border-red-200' },
-    { label: 'VIP', color: 'bg-amber-100 text-amber-600 border-amber-200' },
-    { label: 'Proveedor', color: 'bg-slate-100 text-slate-600 border-slate-200' },
-    { label: 'Interesado', color: 'bg-emerald-100 text-emerald-600 border-emerald-200' },
-    { label: 'No interesado', color: 'bg-stone-100 text-stone-500 border-stone-200' },
-    { label: 'Seguimiento', color: 'bg-blue-100 text-blue-600 border-blue-200' },
-    { label: 'Pendiente', color: 'bg-orange-100 text-orange-600 border-orange-200' },
+    { label: 'Cancelar Bot', color: 'bg-red-100/80 text-red-700 border-red-200' },
+    { label: 'VIP', color: 'bg-amber-100/80 text-amber-700 border-amber-200' },
+    { label: 'Proveedor', color: 'bg-slate-100/80 text-slate-700 border-slate-200' },
+    { label: 'Interesado', color: 'bg-emerald-100/80 text-emerald-700 border-emerald-200' },
+    { label: 'No interesado', color: 'bg-stone-100/80 text-stone-600 border-stone-200' },
+    { label: 'Seguimiento', color: 'bg-blue-100/80 text-blue-700 border-blue-200' },
+    { label: 'Pendiente', color: 'bg-orange-100/80 text-orange-700 border-orange-200' },
 ];
 
 const getLabelStyle = (label: string) =>
     CHAT_LABEL_OPTIONS.find(o => o.label === label)?.color
-    ?? 'bg-violet-100 text-violet-600 border-violet-200';
+    ?? 'bg-violet-100/80 text-violet-700 border-violet-200';
 
 // Respuestas rápidas predefinidas
 const QUICK_REPLIES = [
     { label: 'Saludo', text: '¡Hola! 👋 Bienvenido a Atelier Óptica. ¿En qué te puedo ayudar?' },
     { label: 'Receta', text: '¿Me podés compartir tu receta óptica para ayudarte mejor?' },
     { label: 'Turno', text: '¿Querés coordinar un turno para una consulta en el local? 📍' },
-    { label: 'Dirección', text: '📍 Nos encontrás en Mariano Moreno 459, El Palomar. https://maps.app.goo.gl/ejemplo' },
-    { label: 'Horario', text: 'Atendemos de lunes a viernes de 9 a 19hs y sábados de 9 a 13hs.' },
-    { label: 'En proceso', text: '¡Tu pedido está en proceso! Te avisamos cuando esté listo. ⏳' },
-    { label: 'Listo para retirar', text: '🎉 ¡Tu pedido está listo para retirar! Podes venir cuando quieras en nuestro horario de atención.' },
+    { label: 'Dirección', text: '📍 Nos encontrás en Tejeda 4380, Córdoba.' },
+    { label: 'Horario', text: 'Atendemos de lunes a viernes de 9 a 18hs.' },
+    { label: 'Listo para retirar', text: '🎉 ¡Tu pedido está listo para retirar!' },
     { label: 'Pago pendiente', text: 'Te recuerdo que quedó pendiente el saldo restante. ¿Cuándo te viene bien coordinar el pago?' },
-    { label: 'Seguimiento', text: '¡Hola! Solo queria saber si pudiste revisar el presupuesto que te enviamos. ¿Tenés alguna consulta?' },
 ];
 
 // ── Types ─────────────────────────────────────────
@@ -59,6 +57,7 @@ interface Message {
     direction: string; // INBOUND | OUTBOUND
     type: string;
     content: string;
+    mediaUrl?: string;
     status: string;
     createdAt: string;
 }
@@ -105,7 +104,6 @@ export default function WhatsAppPage() {
             const res = await fetch('/api/whatsapp/chats');
             const data = await res.json();
             if (Array.isArray(data)) {
-                // Ordenar por último mensaje (más reciente arriba)
                 const sorted = [...data].sort((a, b) => {
                     const ta = a.lastMessageAt ? new Date(a.lastMessageAt).getTime() : 0;
                     const tb = b.lastMessageAt ? new Date(b.lastMessageAt).getTime() : 0;
@@ -207,12 +205,10 @@ export default function WhatsAppPage() {
             setSelectedImage({ base64, mimetype: file.type, filename: file.name });
         };
         reader.readAsDataURL(file);
-        e.target.value = ''; // reset so same file can be picked again
+        e.target.value = ''; 
     };
 
     // ── Toggle Bot per Chat ──────────────────────
-    // Activa o cancela el bot para UNA sola conversación
-    // sin afectar el resto de los chats activos.
     const toggleBot = async (chatId: string, enabled: boolean) => {
         try {
             await fetch(`/api/whatsapp/chats/${chatId}/bot`, {
@@ -255,7 +251,6 @@ export default function WhatsAppPage() {
             ? current.filter(l => l !== label)
             : [...current, label];
         await updateChat(selectedChat.id, { chatLabels: next });
-        // Si se agrega "Cancelar Bot" también deshabilitar el bot
         if (label === 'Cancelar Bot' && next.includes(label)) {
             await updateChat(selectedChat.id, { botEnabled: false });
         }
@@ -268,71 +263,70 @@ export default function WhatsAppPage() {
         return true;
     });
 
-    // Etiquetas únicas en uso (para el filtro)
     const usedLabels = Array.from(new Set(chats.flatMap(c => c.chatLabels || [])));
 
     // ═══════════════════════════════════════════════
-    // RENDER
+    // RENDER: PREMIUM GLASSMORPHIC UI
     // ═══════════════════════════════════════════════
 
-    // ── QR / Connection Screen ────────────────────
     return (
-        <main className="h-screen flex flex-col">
-            {/* Header */}
-            <div className="flex items-center justify-between px-6 py-4 border-b-2 border-stone-100 dark:border-stone-700 bg-white dark:bg-stone-800 flex-shrink-0">
-                <div className="flex items-center gap-3">
-                    <MessageCircle className="w-7 h-7 text-emerald-500" />
-                    <h1 className="text-2xl font-black text-stone-800 dark:text-white tracking-tight">WhatsApp</h1>
-                    <div className={`flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold ${status.connected ? 'bg-emerald-100 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400' : 'bg-stone-100 dark:bg-stone-800 text-stone-400'}`}>
-                        {status.connected ? <Wifi className="w-3 h-3" /> : <WifiOff className="w-3 h-3" />}
-                        {status.connected ? (status.phone || 'Conectado') : 'Desconectado'}
+        <main className="h-screen flex flex-col bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-50/50 via-stone-100 to-stone-200 dark:from-stone-900 dark:via-stone-950 dark:to-black">
+            {/* Header Flotante / Premium */}
+            <div className="flex items-center justify-between px-8 py-5 border-b border-white/40 dark:border-white/5 bg-white/40 dark:bg-black/30 backdrop-blur-2xl flex-shrink-0 z-20 shadow-sm">
+                <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center shadow-lg shadow-emerald-500/30">
+                        <MessageCircle className="w-6 h-6 text-white" />
                     </div>
-                    {status.connected && chats.reduce((sum, c) => sum + (c.unreadCount || 0), 0) > 0 && (
-                        <span className="px-2.5 py-0.5 bg-red-500 text-white rounded-full text-xs font-black animate-pulse">
-                            {chats.reduce((sum, c) => sum + (c.unreadCount || 0), 0)} nuevos
-                        </span>
-                    )}
+                    <div>
+                        <h1 className="text-xl font-black text-stone-800 dark:text-white tracking-tight">Comunicaciones</h1>
+                        <p className="text-[11px] font-bold text-stone-500 flex items-center gap-1.5 uppercase tracking-widest mt-0.5">
+                            {status.connected ? <><span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" /> Activo ({status.phone})</> : <><span className="w-2 h-2 rounded-full bg-red-500" /> Desconectado</>}
+                        </p>
+                    </div>
                 </div>
+
                 <button
                     onClick={() => { setShowConfig(!showConfig); if (!showConfig) fetchAgent(); }}
-                    className={`p-2.5 rounded-xl transition-all ${showConfig
-                        ? 'bg-stone-900 dark:bg-white text-white dark:text-stone-900'
-                        : 'bg-stone-100 dark:bg-stone-700 text-stone-500 hover:bg-stone-200'
+                    className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl font-bold text-sm transition-all shadow-sm border ${showConfig
+                        ? 'bg-violet-600 text-white border-violet-500 shadow-violet-500/20'
+                        : 'bg-white/80 dark:bg-stone-800/80 text-stone-700 dark:text-stone-300 border-white/50 dark:border-white/10 hover:bg-white hover:scale-105'
                         }`}
-                    title="Configurar agente"
                 >
-                    <Bot className="w-5 h-5" />
+                    <Bot className="w-4 h-4" /> Configurar Cerebro IA
                 </button>
             </div>
 
-            {/* Agent Config Panel */}
+            {/* Panel de Configuración Agente Animado */}
             {showConfig && (
-                <div className="border-b-2 border-stone-100 dark:border-stone-700 bg-gradient-to-r from-violet-50 to-indigo-50 dark:from-violet-950/30 dark:to-indigo-950/30 px-6 py-5 flex-shrink-0">
-                    <div className="flex items-center justify-between mb-3">
-                        <div className="flex items-center gap-2">
-                            <Bot className="w-5 h-5 text-violet-500" />
-                            <h3 className="text-sm font-black text-stone-800 dark:text-white uppercase tracking-widest">Agente de Ventas IA</h3>
-                        </div>
+                <div className="border-b border-violet-200/50 dark:border-violet-900/30 bg-white/60 dark:bg-stone-900/60 backdrop-blur-3xl px-8 py-6 flex-shrink-0 animate-in slide-in-from-top-4 fade-in duration-300 z-10 shadow-lg">
+                    <div className="flex items-center justify-between mb-4">
                         <div className="flex items-center gap-3">
-                            <label className="flex items-center gap-2 cursor-pointer">
-                                <span className="text-xs font-bold text-stone-500">{agentEnabled ? 'Activado' : 'Desactivado'}</span>
+                            <div className="p-2 bg-violet-100 dark:bg-violet-900/50 rounded-xl">
+                                <Bot className="w-5 h-5 text-violet-600 dark:text-violet-400" />
+                            </div>
+                            <div>
+                                <h3 className="text-sm font-black text-stone-800 dark:text-white uppercase tracking-widest">Personalidad del Agente</h3>
+                                <p className="text-xs text-stone-500">Define las reglas globales de Sol, la IA.</p>
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-6">
+                            <label className="flex items-center gap-3 cursor-pointer group">
+                                <span className={`text-sm font-black ${agentEnabled ? 'text-violet-600' : 'text-stone-500'}`}>{agentEnabled ? 'Activa On-Line' : 'Suspendida'}</span>
                                 <button
                                     onClick={() => {
                                         const next = !agentEnabled;
                                         setAgentEnabled(next);
                                         fetch('/api/whatsapp/agent', {
-                                            method: 'POST',
-                                            headers: { 'Content-Type': 'application/json' },
-                                            body: JSON.stringify({ enabled: next }),
+                                            method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ enabled: next }),
                                         });
                                     }}
-                                    className={`w-12 h-6 rounded-full transition-all relative ${agentEnabled ? 'bg-violet-500' : 'bg-stone-300'}`}
+                                    className={`w-14 h-7 rounded-full transition-all relative shadow-inner ${agentEnabled ? 'bg-violet-500' : 'bg-stone-300 dark:bg-stone-700'}`}
                                 >
-                                    <div className={`w-5 h-5 rounded-full bg-white shadow-md absolute top-0.5 transition-all ${agentEnabled ? 'left-6' : 'left-0.5'}`} />
+                                    <div className={`w-6 h-6 rounded-full bg-white shadow-md absolute top-0.5 transition-all ${agentEnabled ? 'left-7.5 translate-x-full' : 'translate-x-0.5'}`} />
                                 </button>
                             </label>
-                            <button onClick={() => setShowConfig(false)} className="p-1 text-stone-400 hover:text-stone-600">
-                                <X className="w-4 h-4" />
+                            <button onClick={() => setShowConfig(false)} className="p-2 text-stone-400 hover:text-stone-800 bg-black/5 rounded-full transition-colors">
+                                <X className="w-5 h-5" />
                             </button>
                         </div>
                     </div>
@@ -340,466 +334,365 @@ export default function WhatsAppPage() {
                         value={agentPrompt}
                         onChange={e => setAgentPrompt(e.target.value)}
                         onBlur={saveAgent}
-                        rows={4}
-                        placeholder="Escribí las instrucciones para el agente de ventas... Ej: 'Eres un asistente de Atelier Óptica, responde consultas sobre lentes y marcos...'"
-                        className="w-full px-4 py-3 bg-white dark:bg-stone-800 border-2 border-violet-200 dark:border-violet-800 rounded-xl text-sm focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 outline-none resize-none font-medium"
+                        rows={3}
+                        placeholder="Escribí las instrucciones base..."
+                        className="w-full px-5 py-4 bg-white/80 dark:bg-black/40 backdrop-blur-md border border-violet-200 dark:border-violet-800/50 rounded-2xl text-sm focus:ring-4 focus:ring-violet-500/20 focus:border-violet-500 outline-none resize-none font-medium text-stone-800 dark:text-stone-200 transition-all shadow-inner"
                     />
-                    <p className="text-[10px] text-stone-400 mt-2 font-bold uppercase tracking-widest">
-                        📝 El prompt se guarda automáticamente.
-                    </p>
                 </div>
             )}
 
             {!status.connected ? (
-                <div className="flex-1 overflow-y-auto p-4 lg:p-8 bg-stone-50 dark:bg-stone-900">
-                    <div className="bg-white dark:bg-stone-800 rounded-3xl border-2 border-stone-100 dark:border-stone-700 p-8 text-center max-w-lg mx-auto shadow-sm mt-10">
+                /* ── PANTALLA DE DESCONECTADO PREMIUM ── */
+                <div className="flex-1 overflow-y-auto p-4 lg:p-12 flex items-center justify-center">
+                    <div className="bg-white/70 dark:bg-stone-900/70 backdrop-blur-2xl rounded-[2.5rem] border border-white/50 dark:border-white/10 p-12 text-center max-w-lg shadow-2xl">
                         {loadingStatus ? (
                             <div>
-                                <div className="w-12 h-12 border-4 border-stone-200 border-t-emerald-500 rounded-full animate-spin mx-auto mb-4" />
-                                <p className="text-sm font-bold text-stone-400">Conectando con servidor WhatsApp...</p>
+                                <div className="w-16 h-16 border-4 border-emerald-100 border-t-emerald-500 rounded-full animate-spin mx-auto mb-6 shadow-lg shadow-emerald-500/20" />
+                                <p className="text-base font-black tracking-tight text-stone-800 dark:text-white">Estableciendo enlace neural...</p>
                             </div>
                         ) : status.qr ? (
-                            <div>
-                                <QrCode className="w-12 h-12 text-emerald-500 mx-auto mb-2" />
-                                <h2 className="text-xl font-black text-stone-800 dark:text-white mb-1">Vinculá tu cuenta</h2>
-                                <p className="text-sm text-stone-400 mb-6">Escaneá el código con WhatsApp en tu celular</p>
+                            <div className="animate-in zoom-in-95 duration-500">
+                                <div className="w-20 h-20 bg-emerald-100 dark:bg-emerald-900/50 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-xl shadow-emerald-500/20">
+                                    <QrCode className="w-10 h-10 text-emerald-600 dark:text-emerald-400" />
+                                </div>
+                                <h2 className="text-2xl font-black text-stone-800 dark:text-white tracking-tight mb-2">Vincular Dispositivo</h2>
+                                <p className="text-sm text-stone-500 mb-8 font-medium">Escaneá este código usando WhatsApp Web en tu celular.</p>
 
-                                <div className="inline-block bg-white p-4 rounded-2xl shadow-inner border border-stone-100">
+                                <div className="inline-block bg-white p-5 rounded-3xl shadow-xl border border-stone-100 relative group overflow-hidden">
+                                    <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/10 to-teal-500/10 opacity-0 group-hover:opacity-100 transition-opacity" />
                                     <QRRenderer qr={status.qr} />
                                 </div>
 
                                 <button
                                     onClick={fetchStatus}
-                                    className="mt-6 px-6 py-3 bg-emerald-50 text-emerald-600 rounded-xl font-bold text-sm hover:bg-emerald-100 transition-all flex items-center gap-2 mx-auto"
+                                    className="mt-8 px-6 py-3 bg-stone-900 dark:bg-white text-white dark:text-stone-900 rounded-2xl font-bold text-sm hover:scale-105 active:scale-95 transition-all flex items-center gap-2 mx-auto shadow-xl"
                                 >
-                                    <RefreshCw className="w-4 h-4" /> Actualizar QR
+                                    <RefreshCw className="w-4 h-4" /> Recargar QR
                                 </button>
                             </div>
                         ) : (
                             <div>
-                                <WifiOff className="w-16 h-16 text-stone-300 mx-auto mb-4" />
-                                <h2 className="text-xl font-black text-stone-800 dark:text-white mb-2">Servidor desconectado</h2>
-                                <p className="text-sm text-stone-400 mb-4">Asegurate que el servicio wa-service esté activo en Railway.</p>
+                                <div className="w-20 h-20 bg-red-100 dark:bg-red-900/50 rounded-3xl flex items-center justify-center mx-auto mb-6">
+                                    <WifiOff className="w-10 h-10 text-red-500" />
+                                </div>
+                                <h2 className="text-2xl font-black text-stone-800 dark:text-white tracking-tight mb-2">Señal Perdida</h2>
+                                <p className="text-sm text-stone-500 mb-8 font-medium">El servicio WA-Service no se está comunicando.</p>
                                 <button
                                     onClick={fetchStatus}
-                                    className="mt-6 px-6 py-3 bg-stone-900 dark:bg-white text-white dark:text-stone-900 rounded-xl font-bold text-sm hover:scale-105 transition-all flex items-center gap-2 mx-auto"
+                                    className="px-8 py-3.5 bg-stone-900 dark:bg-white text-white dark:text-stone-900 rounded-2xl font-black transition-all hover:scale-105 shadow-xl flex items-center gap-2 mx-auto"
                                 >
-                                    <RefreshCw className="w-4 h-4" /> Reintentar
+                                    <RefreshCw className="w-4 h-4" /> Reintentar Conexión
                                 </button>
                             </div>
                         )}
                     </div>
                 </div>
             ) : (
-                <div className="flex flex-1 min-h-0">
-                {/* Chat List */}
-                <div className={`w-80 border-r-2 border-stone-100 dark:border-stone-700 bg-white dark:bg-stone-800 flex flex-col flex-shrink-0 ${selectedChat ? 'hidden lg:flex' : 'flex'}`}>
-                    {/* Sidebar Header + Filtros */}
-                    <div className="p-3 border-b border-stone-100 dark:border-stone-700 space-y-2">
-                        <div className="flex items-center justify-between">
-                            <h2 className="text-[10px] font-black text-stone-400 uppercase tracking-widest">
-                                {showArchived ? 'Archivados' : 'Conversaciones'} ({filteredChats.length})
-                            </h2>
-                            <button
-                                onClick={() => { setShowArchived(v => !v); setFilterLabel(null); }}
-                                title={showArchived ? 'Ver activos' : 'Ver archivados'}
-                                className={`p-1.5 rounded-lg transition-all ${showArchived ? 'bg-stone-200 text-stone-700' : 'text-stone-400 hover:bg-stone-100'}`}
-                            >
-                                {showArchived ? <ArchiveRestore className="w-3.5 h-3.5" /> : <Archive className="w-3.5 h-3.5" />}
-                            </button>
-                        </div>
-                        {/* Filtro por etiquetas */}
-                        {usedLabels.length > 0 && (
-                            <div className="flex flex-wrap gap-1">
+                /* ── DASHBOARD PREMIUM DE CHATS ── */
+                <div className="flex flex-1 min-h-0 overflow-hidden m-4 lg:m-6 gap-6">
+                    {/* Lista de Chats (Glassmorphism Sidebar) */}
+                    <div className={`w-[360px] bg-white/60 dark:bg-stone-900/60 backdrop-blur-2xl rounded-[2rem] border border-white/50 dark:border-white/10 flex flex-col shadow-xl ${selectedChat ? 'hidden lg:flex' : 'flex'}`}>
+                        {/* Header de Sidebar */}
+                        <div className="p-5 border-b border-stone-200/50 dark:border-white/5">
+                            <div className="flex items-center justify-between mb-4">
+                                <h2 className="text-sm font-black text-stone-800 dark:text-white tracking-tight">
+                                    {showArchived ? 'Buzón Archivado' : 'Buzón Activo'}
+                                    <span className="ml-2 text-stone-400 font-medium">({filteredChats.length})</span>
+                                </h2>
                                 <button
-                                    onClick={() => setFilterLabel(null)}
-                                    className={`px-2 py-0.5 rounded-full text-[10px] font-bold border transition-all ${!filterLabel ? 'bg-stone-800 text-white border-stone-800' : 'text-stone-400 border-stone-200 hover:border-stone-400'}`}
+                                    onClick={() => { setShowArchived(v => !v); setFilterLabel(null); }}
+                                    className={`p-2 rounded-xl transition-all ${showArchived ? 'bg-stone-800 text-white shadow-md' : 'bg-white text-stone-600 shadow-sm hover:shadow-md border border-stone-100'}`}
                                 >
-                                    Todas
+                                    {showArchived ? <ArchiveRestore className="w-4 h-4" /> : <Archive className="w-4 h-4" />}
                                 </button>
-                                {usedLabels.map(lbl => (
+                            </div>
+                            {usedLabels.length > 0 && (
+                                <div className="flex gap-2 overflow-x-auto pb-1 pb-hide-scroll">
                                     <button
-                                        key={lbl}
-                                        onClick={() => setFilterLabel(filterLabel === lbl ? null : lbl)}
-                                        className={`px-2 py-0.5 rounded-full text-[10px] font-bold border transition-all ${filterLabel === lbl ? getLabelStyle(lbl) + ' opacity-100' : 'text-stone-400 border-stone-200 hover:border-stone-400'}`}
+                                        onClick={() => setFilterLabel(null)}
+                                        className={`px-3 py-1.5 rounded-full text-[11px] font-black whitespace-nowrap transition-all flex-shrink-0 shadow-sm ${!filterLabel ? 'bg-stone-900 text-white' : 'bg-white text-stone-600 hover:bg-stone-50'}`}
                                     >
-                                        {lbl}
+                                        Todos
                                     </button>
-                                ))}
-                            </div>
-                        )}
-                    </div>
-                    <div className="flex-1 overflow-y-auto">
-                        {filteredChats.length === 0 ? (
-                            <div className="text-center py-16 px-6">
-                                <MessageCircle className="w-12 h-12 text-stone-200 dark:text-stone-700 mx-auto mb-3" />
-                                <p className="text-xs font-bold text-stone-300 dark:text-stone-600">
-                                    {showArchived ? 'No hay chats archivados' : 'No hay conversaciones aún'}
-                                </p>
-                            </div>
-                        ) : (
-                            filteredChats.map(chat => {
-                                const isSelected = selectedChat?.id === chat.id;
-                                const lastMsg = chat.messages?.[0];
-                                return (
-                                    <button
-                                        key={chat.id}
-                                        onClick={() => selectChat(chat)}
-                                        className={`w-full text-left px-4 py-3.5 border-b border-stone-50 dark:border-stone-700/50 transition-all ${isSelected
-                                            ? 'bg-emerald-50 dark:bg-emerald-950/30 border-l-4 border-l-emerald-500'
-                                            : 'hover:bg-stone-50 dark:hover:bg-stone-700/50 border-l-4 border-l-transparent'
-                                            }`}
-                                    >
-                                        <div className="flex items-center gap-3">
-                                            <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 text-sm font-black ${isSelected
-                                                ? 'bg-emerald-500 text-white'
-                                                : 'bg-stone-100 dark:bg-stone-600 text-stone-500 dark:text-stone-300'
-                                                }`}>
-                                                {(chat.profileName || '?')[0].toUpperCase()}
-                                                {chat.botEnabled && agentEnabled && (
-                                                    <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-violet-500 rounded-full border-2 border-white flex items-center justify-center">
-                                                        <Bot className="w-2.5 h-2.5 text-white" />
+                                    {usedLabels.map(lbl => (
+                                        <button
+                                            key={lbl}
+                                            onClick={() => setFilterLabel(filterLabel === lbl ? null : lbl)}
+                                            className={`px-3 py-1.5 rounded-full text-[11px] font-bold whitespace-nowrap transition-all shadow-sm border ${filterLabel === lbl ? getLabelStyle(lbl) + ' ring-2 ring-violet-500/50 scale-105' : 'bg-white text-stone-600 border-white/50 hover:bg-stone-50'}`}
+                                        >
+                                            {lbl}
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Listado */}
+                        <div className="flex-1 overflow-y-auto px-3 py-3 space-y-1 custom-scrollbar">
+                            {filteredChats.length === 0 ? (
+                                <div className="text-center py-20 px-6">
+                                    <div className="w-16 h-16 bg-white dark:bg-stone-800 rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm">
+                                        <MessageCircle className="w-6 h-6 text-stone-300" />
+                                    </div>
+                                    <p className="text-sm font-bold text-stone-400">Todo limpio.</p>
+                                </div>
+                            ) : (
+                                filteredChats.map(chat => {
+                                    const isSelected = selectedChat?.id === chat.id;
+                                    const lastMsg = chat.messages?.[0];
+                                    return (
+                                        <button
+                                            key={chat.id}
+                                            onClick={() => selectChat(chat)}
+                                            className={`w-full text-left p-3 rounded-2xl transition-all relative border ${isSelected
+                                                ? 'bg-white dark:bg-stone-800 border-transparent shadow-lg shadow-black/5 ring-1 ring-stone-900/5 dark:ring-white/10 z-10'
+                                                : 'hover:bg-white/50 dark:hover:bg-stone-800/50 border-transparent text-stone-700 dark:text-stone-300'
+                                                }`}
+                                        >
+                                            <div className="flex items-center gap-3">
+                                                <div className="relative">
+                                                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-lg font-black shrink-0 transition-transform ${isSelected ? 'scale-105' : ''} ${chat.botEnabled && isSelected ? 'bg-gradient-to-br from-violet-500 to-indigo-600 text-white shadow-md shadow-violet-500/30' : (isSelected ? 'bg-emerald-500 text-white' : 'bg-stone-200 dark:bg-stone-700 text-stone-600 dark:text-stone-300')}`}>
+                                                        {(chat.profileName || '?')[0].toUpperCase()}
                                                     </div>
-                                                )}
-                                            </div>
-                                            <div className="flex-1 min-w-0">
-                                                <div className="flex items-center justify-between">
-                                                    <span className="text-sm font-bold text-stone-800 dark:text-white truncate">
-                                                        {chat.client?.name || chat.profileName || chat.waId.replace('@c.us', '')}
-                                                    </span>
-                                                    {chat.unreadCount > 0 && (
-                                                        <span className="w-5 h-5 bg-emerald-500 text-white rounded-full text-[10px] font-black flex items-center justify-center flex-shrink-0">
-                                                            {chat.unreadCount}
-                                                        </span>
+                                                    {chat.botEnabled && agentEnabled && !isSelected && (
+                                                        <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-violet-500 rounded-full border-2 border-white flex items-center justify-center">
+                                                            <Bot className="w-3 h-3 text-white" />
+                                                        </div>
                                                     )}
                                                 </div>
-                                                <p className="text-xs text-stone-400 truncate mt-0.5">
-                                                    {lastMsg ? (lastMsg.direction === 'OUTBOUND' ? '✓ ' : '') + lastMsg.content.substring(0, 50) : 'Sin mensajes'}
-                                                </p>
-                                                {/* Etiquetas del chat */}
-                                                {(chat.chatLabels || []).length > 0 && (
-                                                    <div className="flex flex-wrap gap-1 mt-1">
-                                                        {chat.chatLabels.map(lbl => (
-                                                            <span key={lbl} className={`px-1.5 py-0.5 rounded-full text-[9px] font-bold border ${getLabelStyle(lbl)}`}>
-                                                                {lbl}
+                                                <div className="flex-1 min-w-0 pr-1">
+                                                    <div className="flex items-center justify-between">
+                                                        <span className={`text-[13px] font-black truncate ${isSelected ? 'text-stone-900 dark:text-white' : ''}`}>
+                                                            {chat.client?.name || chat.profileName || chat.waId.replace('@c.us', '')}
+                                                        </span>
+                                                        {chat.lastMessageAt && (
+                                                            <span className="text-[10px] text-stone-400 font-bold shrink-0">
+                                                                {format(new Date(chat.lastMessageAt), "HH:mm")}
                                                             </span>
-                                                        ))}
+                                                        )}
                                                     </div>
-                                                )}
-                                                {chat.lastMessageAt && (
-                                                    <p className="text-[10px] text-stone-300 mt-1">
-                                                        {format(new Date(chat.lastMessageAt), "d MMM HH:mm", { locale: es })}
-                                                    </p>
-                                                )}
+                                                    <div className="flex items-center justify-between mt-1">
+                                                        <p className={`text-[12px] truncate max-w-[80%] ${chat.unreadCount > 0 ? 'font-black text-stone-800 dark:text-white' : 'text-stone-500 dark:text-stone-400 font-medium'}`}>
+                                                            {lastMsg ? (
+                                                                <>
+                                                                    {lastMsg.direction === 'OUTBOUND' && <span className="opacity-50 mr-1">Tú:</span>}
+                                                                    {lastMsg.type === 'AUDIO' ? '🎧 Audio' : (lastMsg.type === 'IMAGE' ? '📷 Imagen' : lastMsg.content)}
+                                                                </>
+                                                            ) : '...'}
+                                                        </p>
+                                                        {chat.unreadCount > 0 && (
+                                                            <span className="w-5 h-5 bg-emerald-500 text-white rounded-full text-[10px] font-black flex items-center justify-center animate-pulse shadow-sm shadow-emerald-500/40">
+                                                                {chat.unreadCount}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                </div>
                                             </div>
-                                        </div>
-                                    </button>
-                                );
-                            })
-                        )}
+                                        </button>
+                                    );
+                                })
+                            )}
+                        </div>
                     </div>
-                </div>
 
-                {/* Message Area */}
-                <div className="flex-1 flex flex-col bg-stone-50 dark:bg-stone-900 min-h-0">
-                    {selectedChat ? (
-                        <>
-                            {/* Chat Header */}
-                            <div className="px-6 py-3.5 bg-white dark:bg-stone-800 border-b border-stone-100 dark:border-stone-700 flex items-center gap-4 flex-shrink-0">
-                                <button
-                                    onClick={() => setSelectedChat(null)}
-                                    className="lg:hidden p-1 text-stone-400 hover:text-stone-600"
-                                >
-                                    <ChevronLeft className="w-5 h-5" />
-                                </button>
-                                <div className="w-10 h-10 rounded-full bg-emerald-500 text-white flex items-center justify-center text-sm font-black flex-shrink-0">
-                                    {(selectedChat.profileName || '?')[0].toUpperCase()}
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                    <h3 className="text-sm font-black text-stone-800 dark:text-white truncate">
-                                        {selectedChat.client?.name || selectedChat.profileName}
-                                    </h3>
-                                    <div className="flex items-center gap-2 text-[10px] text-stone-400 font-bold">
-                                        <Phone className="w-3 h-3" />
-                                        {selectedChat.waId.replace('@c.us', '')}
-                                        {selectedChat.client && (
-                                            <>
-                                                <span>·</span>
-                                                <span className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-widest ${selectedChat.client.status === 'CLIENT'
-                                                    ? 'bg-emerald-100 text-emerald-600'
-                                                    : selectedChat.client.status === 'CONFIRMED'
-                                                        ? 'bg-blue-100 text-blue-600'
-                                                        : 'bg-stone-100 text-stone-500'
-                                                    }`}>
-                                                    {selectedChat.client.status === 'CLIENT' ? 'Cliente' : selectedChat.client.status === 'CONFIRMED' ? 'Confirmado' : 'Contacto'}
-                                                </span>
-                                            </>
+                    {/* Chat Abierto */}
+                    <div className="flex-1 bg-white/60 dark:bg-stone-900/60 backdrop-blur-2xl rounded-[2rem] border border-white/50 dark:border-white/10 shadow-xl overflow-hidden flex flex-col">
+                        {selectedChat ? (
+                            <>
+                                {/* Cabecera del Chat */}
+                                <div className="px-6 py-4 bg-white/80 dark:bg-black/20 backdrop-blur-md border-b border-stone-200/50 dark:border-white/5 flex items-center justify-between shrink-0 z-10 shadow-sm">
+                                    <div className="flex items-center gap-4">
+                                        <button onClick={() => setSelectedChat(null)} className="lg:hidden p-2 rounded-xl bg-white shadow-sm border border-stone-100">
+                                            <ChevronLeft className="w-5 h-5 text-stone-600" />
+                                        </button>
+                                        <div className="w-12 h-12 rounded-2xl bg-stone-900 dark:bg-white text-white dark:text-stone-900 flex items-center justify-center text-lg font-black shrink-0 shadow-lg relative">
+                                            {(selectedChat.client?.name || selectedChat.profileName || '?')[0].toUpperCase()}
+                                            <div className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-emerald-500 border-2 border-white shadow-sm" />
+                                        </div>
+                                        <div>
+                                            <h3 className="text-base font-black text-stone-900 dark:text-white flex items-center gap-2">
+                                                {selectedChat.client?.name || selectedChat.profileName}
+                                                {selectedChat.client && (
+                                                    <span className="px-2 py-0.5 rounded-md bg-stone-100 dark:bg-stone-800 text-[9px] font-black tracking-widest uppercase text-stone-500">CRM</span>
+                                                )}
+                                            </h3>
+                                            <p className="text-[11px] font-bold text-stone-500 flex items-center gap-1.5 mt-0.5">
+                                                <Phone className="w-3 h-3" /> {selectedChat.waId.replace('@c.us', '')}
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex items-center gap-2">
+                                        {(selectedChat.chatLabels || []).length > 0 && (
+                                            <div className="hidden md:flex flex-wrap gap-1 mr-4 border-r border-stone-200 pr-4">
+                                                {selectedChat.chatLabels.map(lbl => (
+                                                    <span key={lbl} className={`px-3 py-1 rounded-full text-[10px] font-bold border ${getLabelStyle(lbl)}`}>{lbl}</span>
+                                                ))}
+                                            </div>
+                                        )}
+                                        
+                                        <div className="relative">
+                                            <button onClick={() => setShowLabelPicker(v => !v)} className="p-2.5 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 hover:bg-stone-50 rounded-xl transition-all shadow-sm">
+                                                <Tag className="w-4 h-4 text-stone-600" />
+                                            </button>
+                                            {showLabelPicker && (
+                                                <div className="absolute right-0 top-12 bg-white/90 dark:bg-stone-900/90 backdrop-blur-xl border border-stone-200/50 dark:border-white/10 rounded-2xl shadow-2xl z-50 w-48 p-2">
+                                                    {CHAT_LABEL_OPTIONS.map(opt => {
+                                                        const active = (selectedChat.chatLabels || []).includes(opt.label);
+                                                        return (
+                                                            <button key={opt.label} onClick={() => toggleLabel(opt.label)} className={`w-full text-left px-3 py-2 rounded-xl text-xs font-bold transition-all mb-1 last:mb-0 ${active ? opt.color : 'text-stone-600 hover:bg-stone-100'}`}>
+                                                                {opt.label}
+                                                            </button>
+                                                        );
+                                                    })}
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        <button onClick={() => { updateChat(selectedChat.id, { archived: !selectedChat.archived }); setSelectedChat(null); }} className="p-2.5 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 hover:bg-stone-50 rounded-xl transition-all shadow-sm">
+                                            {selectedChat.archived ? <ArchiveRestore className="w-4 h-4 text-stone-600" /> : <Archive className="w-4 h-4 text-stone-600" />}
+                                        </button>
+
+                                        <div className="w-px h-8 bg-stone-200 dark:bg-stone-700 mx-1" />
+
+                                        {agentEnabled && (
+                                            <button onClick={() => toggleBot(selectedChat.id, !selectedChat.botEnabled)} className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black transition-all shadow-sm ${selectedChat.botEnabled ? 'bg-violet-100 text-violet-700 border-violet-200 hover:bg-red-50 hover:text-red-600' : 'bg-stone-100 text-stone-500 hover:bg-violet-500 hover:text-white'}`}>
+                                                {selectedChat.botEnabled ? <><Bot className="w-4 h-4" /> IA ON</> : <><Bot className="w-4 h-4 opacity-50" /> IA OFF</>}
+                                            </button>
                                         )}
                                     </div>
                                 </div>
-                                
-                                {/* Etiquetas activas del chat */}
-                                {(selectedChat.chatLabels || []).length > 0 && (
-                                    <div className="flex flex-wrap gap-1 mr-1">
-                                        {selectedChat.chatLabels.map(lbl => (
-                                            <span key={lbl} className={`px-2 py-0.5 rounded-full text-[9px] font-bold border ${getLabelStyle(lbl)}`}>
-                                                {lbl}
-                                            </span>
-                                        ))}
-                                    </div>
-                                )}
 
-                                {/* Botón agregar etiqueta */}
-                                <div className="relative">
-                                    <button
-                                        onClick={() => setShowLabelPicker(v => !v)}
-                                        title="Agregar / quitar etiqueta"
-                                        className="flex items-center gap-1 p-1.5 text-stone-400 hover:text-stone-600 hover:bg-stone-100 rounded-lg transition-all"
-                                    >
-                                        <Tag className="w-4 h-4" />
-                                    </button>
-                                    {showLabelPicker && (
-                                        <div className="absolute right-0 top-8 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-600 rounded-xl shadow-lg z-50 min-w-[160px] p-2 space-y-1">
-                                            <p className="text-[9px] font-black text-stone-400 uppercase tracking-widest px-2 pb-1">Etiquetas</p>
-                                            {CHAT_LABEL_OPTIONS.map(opt => {
-                                                const active = (selectedChat.chatLabels || []).includes(opt.label);
-                                                return (
-                                                    <button
-                                                        key={opt.label}
-                                                        onClick={() => { toggleLabel(opt.label); }}
-                                                        className={`w-full text-left px-2 py-1.5 rounded-lg text-xs font-bold flex items-center justify-between transition-all ${active ? opt.color : 'text-stone-600 hover:bg-stone-50'}`}
-                                                    >
-                                                        {opt.label}
-                                                        {active && <X className="w-3 h-3 opacity-60" />}
+                                {/* Conversación (Burbujas Premium) */}
+                                <div className="flex-1 overflow-y-auto px-6 py-8 space-y-6 bg-gradient-to-b from-transparent to-stone-50/50 dark:from-transparent dark:to-stone-950/20 custom-scrollbar-smooth">
+                                    {messages.map(msg => {
+                                        const isOut = msg.direction === 'OUTBOUND';
+                                        return (
+                                            <div key={msg.id} className={`flex ${isOut ? 'justify-end' : 'justify-start'}`}>
+                                                <div className="flex gap-2 max-w-[80%] items-end">
+                                                    {!isOut && (
+                                                        <div className="w-6 h-6 rounded-full bg-stone-200 flex-shrink-0 flex items-center justify-center text-[9px] font-black text-stone-500 self-end mb-1">
+                                                            {selectedChat.profileName?.[0]?.toUpperCase()}
+                                                        </div>
+                                                    )}
+                                                    
+                                                    <div className={`px-5 py-3.5 shadow-sm relative group ${isOut ? 'bg-red-500 text-white rounded-[24px] rounded-br-sm shadow-red-500/10' : 'bg-white/90 dark:bg-stone-800/90 backdrop-blur-xl text-stone-800 dark:text-stone-100 rounded-[24px] rounded-bl-sm border border-stone-200/50 dark:border-white/5'}`}>
+                                                        
+                                                        {/* RENDERIZADO DE MEDIOS */}
+                                                        {msg.mediaUrl && msg.type === 'AUDIO' && (
+                                                            <div className="mb-2 bg-black/5 dark:bg-white/5 p-2 rounded-2xl flex items-center border border-black/5">
+                                                                <Mic className="w-5 h-5 opacity-50 mr-2 shrink-0" />
+                                                                <audio controls src={msg.mediaUrl} className="h-10 w-48 ouline-none filter drop-shadow-sm" preload="metadata" />
+                                                            </div>
+                                                        )}
+                                                        {msg.mediaUrl && msg.type === 'IMAGE' && (
+                                                            <div className="mb-2 overflow-hidden rounded-xl border border-black/5">
+                                                                <img src={msg.mediaUrl} alt="📸" className="max-w-full max-h-64 object-contain" />
+                                                            </div>
+                                                        )}
+                                                        {msg.mediaUrl && msg.type === 'VIDEO' && (
+                                                            <div className="mb-2 overflow-hidden rounded-xl border border-black/5">
+                                                                <video controls src={msg.mediaUrl} className="max-w-full max-h-64 object-contain rounded-xl" />
+                                                            </div>
+                                                        )}
+
+                                                        <p className="text-[15px] font-medium leading-relaxed whitespace-pre-wrap break-words">{msg.content}</p>
+                                                        
+                                                        <div className={`mt-2 flex items-center gap-1.5 text-[10px] font-bold ${isOut ? 'text-red-100 justify-end' : 'text-stone-400'}`}>
+                                                            <span>{format(new Date(msg.createdAt), "HH:mm")}</span>
+                                                            {isOut && <CheckCircle2 className="w-3 h-3" />}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                    <div ref={messagesEndRef} className="h-4" />
+                                </div>
+
+                                {/* Zona de Escritura Premium */}
+                                <div className="p-4 bg-white/80 dark:bg-stone-900/80 backdrop-blur-2xl border-t border-stone-200/50 dark:border-white/10 shrink-0">
+                                    
+                                    {showQuickReplies && (
+                                        <div className="mb-4 bg-stone-50 dark:bg-stone-800 rounded-3xl p-4 border border-stone-200/50 shadow-inner max-h-48 overflow-y-auto animate-in slide-in-from-bottom-2">
+                                            <p className="text-[10px] font-black text-stone-500 uppercase tracking-widest mb-3">Escudos de Respuesta</p>
+                                            <div className="flex flex-wrap gap-2">
+                                                {QUICK_REPLIES.map(qr => (
+                                                    <button key={qr.label} onClick={() => { setNewMessage(qr.text); setShowQuickReplies(false); }} className="px-4 py-2 bg-white dark:bg-stone-700 rounded-xl shadow-sm hover:shadow-md border border-stone-200 dark:border-stone-600 transition-all text-left group">
+                                                        <span className="block text-[11px] font-black text-stone-800 dark:text-white uppercase tracking-wider">{qr.label}</span>
+                                                        <span className="block text-xs text-stone-500 truncate max-w-[200px] mt-0.5 group-hover:text-stone-700">{qr.text}</span>
                                                     </button>
-                                                );
-                                            })}
+                                                ))}
+                                            </div>
                                         </div>
                                     )}
-                                </div>
 
-                                {/* Archivar / Desarchivar */}
-                                <button
-                                    onClick={() => {
-                                        updateChat(selectedChat.id, { archived: !selectedChat.archived });
-                                        setSelectedChat(null);
-                                    }}
-                                    title={selectedChat.archived ? 'Desarchivar' : 'Archivar chat'}
-                                    className="p-1.5 text-stone-400 hover:text-stone-600 hover:bg-stone-100 rounded-lg transition-all"
-                                >
-                                    {selectedChat.archived ? <ArchiveRestore className="w-4 h-4" /> : <Archive className="w-4 h-4" />}
-                                </button>
-
-                                {/* Bot Status & Toggle por conversación */}
-                                {agentEnabled && (
-                                    <div className="flex items-center gap-2">
-                                        {!selectedChat.botEnabled ? (
-                                            <button
-                                                onClick={() => toggleBot(selectedChat.id, true)}
-                                                title="Reactivar bot en esta conversación"
-                                                className="flex items-center gap-1.5 px-3 py-1.5 bg-violet-100 hover:bg-violet-200 text-violet-600 rounded-xl text-xs font-black transition-all"
-                                            >
-                                                <Bot className="w-3.5 h-3.5" />
-                                                Reactivar IA
-                                            </button>
-                                        ) : (
-                                            <>
-                                                <div className="flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 text-emerald-600 rounded-xl text-[10px] font-black uppercase tracking-widest border border-emerald-100">
-                                                    <Bot className="w-3 h-3" />
-                                                    IA activa
-                                                </div>
-                                                <button
-                                                    onClick={() => toggleBot(selectedChat.id, false)}
-                                                    title="Cancelar bot en esta conversación"
-                                                    className="flex items-center gap-1.5 px-2.5 py-1 bg-red-50 hover:bg-red-100 text-red-500 rounded-xl text-[10px] font-black uppercase tracking-widest border border-red-100 transition-all"
-                                                >
-                                                    <X className="w-3 h-3" />
-                                                    Cancelar
-                                                </button>
-                                            </>
-                                        )}
-                                    </div>
-                                )}
-                            </div>
-
-                            {/* Messages */}
-                            <div className="flex-1 overflow-y-auto px-6 py-4 space-y-3">
-                                {messages.length === 0 ? (
-                                    <div className="text-center py-16">
-                                        <MessageCircle className="w-10 h-10 text-stone-200 dark:text-stone-700 mx-auto mb-2" />
-                                        <p className="text-xs text-stone-300 font-bold">Cargando mensajes...</p>
-                                    </div>
-                                ) : (
-                                    messages.map(msg => (
-                                        <div
-                                            key={msg.id}
-                                            className={`flex ${msg.direction === 'OUTBOUND' ? 'justify-end' : 'justify-start'}`}
-                                        >
-                                            <div
-                                                className={`max-w-[70%] px-4 py-2.5 rounded-2xl shadow-sm ${msg.direction === 'OUTBOUND'
-                                                    ? 'bg-emerald-500 text-white rounded-br-md'
-                                                    : 'bg-white dark:bg-stone-800 text-stone-800 dark:text-white border border-stone-100 dark:border-stone-700 rounded-bl-md'
-                                                    }`}
-                                            >
-                                                <p className="text-sm font-medium whitespace-pre-wrap break-words">{msg.content}</p>
-                                                <div className={`flex items-center gap-1 mt-1 ${msg.direction === 'OUTBOUND' ? 'justify-end' : ''}`}>
-                                                    <span className={`text-[10px] ${msg.direction === 'OUTBOUND' ? 'text-emerald-200' : 'text-stone-300'}`}>
-                                                        {format(new Date(msg.createdAt), "HH:mm", { locale: es })}
-                                                    </span>
-                                                    {msg.direction === 'OUTBOUND' && (
-                                                        <CheckCircle2 className="w-3 h-3 text-emerald-200" />
-                                                    )}
-                                                </div>
+                                    {selectedImage && (
+                                        <div className="mb-4 inline-flex items-center gap-3 p-2 pr-4 bg-stone-100 rounded-2xl border border-stone-200 animate-in slide-in-from-bottom-2">
+                                            <div className="relative">
+                                                <img src={`data:${selectedImage.mimetype};base64,${selectedImage.base64}`} alt="preview" className="h-14 w-14 object-cover rounded-xl" />
+                                                <button onClick={() => setSelectedImage(null)} className="absolute -top-2 -right-2 w-6 h-6 bg-stone-800 text-white rounded-full flex items-center justify-center shadow-lg"><X className="w-3 h-3" /></button>
                                             </div>
+                                            <span className="text-xs font-bold text-stone-600">Adjunto listo</span>
                                         </div>
-                                    ))
-                                )}
-                                <div ref={messagesEndRef} />
-                            </div>
+                                    )}
 
-                            {/* Input Area */}
-                            <div className="bg-white dark:bg-stone-800 border-t border-stone-100 dark:border-stone-700 flex-shrink-0">
+                                    <div className="flex items-end gap-3 max-w-[1200px] mx-auto">
+                                        <div className="flex bg-stone-100 dark:bg-stone-800 rounded-3xl p-1.5 shadow-inner">
+                                            <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleImagePick} />
+                                            <button onClick={() => fileInputRef.current?.click()} className="p-3 text-stone-500 hover:bg-white hover:text-stone-900 rounded-2xl transition-all shadow-sm">
+                                                <ImageIcon className="w-5 h-5" />
+                                            </button>
+                                            <button onClick={() => setShowQuickReplies(v => !v)} className={`p-3 rounded-2xl transition-all shadow-sm ${showQuickReplies ? 'bg-indigo-100 text-indigo-600' : 'text-stone-500 hover:bg-white hover:text-indigo-600'}`}>
+                                                <Bot className="w-5 h-5" />
+                                            </button>
+                                        </div>
 
-                                {/* Preview imagen seleccionada */}
-                                {selectedImage && (
-                                    <div className="px-6 pt-3 flex items-center gap-3">
-                                        <div className="relative">
-                                            <img
-                                                src={`data:${selectedImage.mimetype};base64,${selectedImage.base64}`}
-                                                alt="preview"
-                                                className="h-16 w-16 object-cover rounded-xl border border-stone-200"
+                                        <div className="flex-1 bg-white dark:bg-stone-800 border-[3px] border-stone-100 dark:border-stone-700 rounded-[2rem] flex items-center px-6 shadow-sm focus-within:border-emerald-200 dark:focus-within:border-emerald-900/50 transition-colors">
+                                            <input
+                                                type="text"
+                                                value={newMessage}
+                                                onChange={e => setNewMessage(e.target.value)}
+                                                onKeyDown={e => e.key === 'Enter' && !e.shiftKey && sendMessage()}
+                                                placeholder="Escribe tu mensaje a mano..."
+                                                className="w-full py-4 bg-transparent outline-none text-[15px] font-medium text-stone-800 dark:text-white placeholder:text-stone-400"
                                             />
-                                            <button
-                                                onClick={() => setSelectedImage(null)}
-                                                className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center"
-                                            >
-                                                <X className="w-3 h-3" />
-                                            </button>
                                         </div>
-                                        <span className="text-xs text-stone-400 truncate">{selectedImage.filename}</span>
+
+                                        <button
+                                            onClick={sendMessage}
+                                            disabled={(!newMessage.trim() && !selectedImage) || sending}
+                                            className="h-14 w-14 bg-red-500 hover:bg-black text-white rounded-[2rem] flex items-center justify-center shadow-xl shadow-red-500/20 transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:hover:scale-100 shrink-0"
+                                        >
+                                            <Send className="w-6 h-6 ml-1" />
+                                        </button>
                                     </div>
-                                )}
-
-                                {/* Panel de respuestas rápidas */}
-                                {showQuickReplies && (
-                                    <div className="px-4 pt-3 pb-1 grid grid-cols-2 gap-1.5 max-h-48 overflow-y-auto border-b border-stone-100 dark:border-stone-700">
-                                        <p className="col-span-2 text-[9px] font-black text-stone-400 uppercase tracking-widest mb-0.5">Respuestas rápidas</p>
-                                        {QUICK_REPLIES.map(qr => (
-                                            <button
-                                                key={qr.label}
-                                                onClick={() => {
-                                                    setNewMessage(qr.text);
-                                                    setShowQuickReplies(false);
-                                                }}
-                                                className="text-left px-3 py-2 bg-stone-50 hover:bg-emerald-50 border border-stone-100 hover:border-emerald-200 rounded-xl transition-all"
-                                            >
-                                                <p className="text-[10px] font-black text-stone-600 uppercase tracking-wide">{qr.label}</p>
-                                                <p className="text-[10px] text-stone-400 truncate mt-0.5">{qr.text}</p>
-                                            </button>
-                                        ))}
-                                    </div>
-                                )}
-
-                                {/* Row de entrada */}
-                                <div className="px-4 py-3 flex items-center gap-2">
-                                    {/* Input oculto de archivo */}
-                                    <input
-                                        ref={fileInputRef}
-                                        type="file"
-                                        accept="image/*"
-                                        className="hidden"
-                                        onChange={handleImagePick}
-                                    />
-
-                                    {/* Botón imagen */}
-                                    <button
-                                        onClick={() => fileInputRef.current?.click()}
-                                        title="Enviar imagen"
-                                        className="p-2 text-stone-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-xl transition-all flex-shrink-0"
-                                    >
-                                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-                                    </button>
-
-                                    {/* Botón respuestas rápidas */}
-                                    <button
-                                        onClick={() => setShowQuickReplies(v => !v)}
-                                        title="Respuestas rápidas"
-                                        className={`p-2 rounded-xl transition-all flex-shrink-0 ${showQuickReplies ? 'bg-emerald-100 text-emerald-600' : 'text-stone-400 hover:text-emerald-600 hover:bg-emerald-50'}`}
-                                    >
-                                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
-                                    </button>
-
-                                    {/* Input de texto */}
-                                    <input
-                                        type="text"
-                                        value={newMessage}
-                                        onChange={e => setNewMessage(e.target.value)}
-                                        onKeyDown={e => e.key === 'Enter' && !e.shiftKey && sendMessage()}
-                                        placeholder={selectedImage ? 'Agregar texto (opcional)...' : 'Escribí un mensaje...'}
-                                        className="flex-1 px-4 py-2.5 bg-stone-50 dark:bg-stone-900 border-2 border-stone-100 dark:border-stone-700 rounded-xl text-sm font-medium focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none"
-                                    />
-
-                                    {/* Botón enviar */}
-                                    <button
-                                        onClick={sendMessage}
-                                        disabled={(!newMessage.trim() && !selectedImage) || sending}
-                                        className="p-2.5 bg-emerald-500 text-white rounded-xl hover:bg-emerald-600 disabled:opacity-50 transition-all hover:scale-105 active:scale-95 flex-shrink-0"
-                                    >
-                                        <Send className="w-5 h-5" />
-                                    </button>
                                 </div>
-                            </div>
-                        </>
-                    ) : (
-                        <div className="flex-1 flex items-center justify-center">
-                            <div className="text-center">
-                                <div className="w-24 h-24 rounded-full bg-emerald-100 dark:bg-emerald-950 flex items-center justify-center mx-auto mb-4">
-                                    <MessageCircle className="w-12 h-12 text-emerald-500" />
+                            </>
+                        ) : (
+                            <div className="flex-1 flex flex-col items-center justify-center opacity-70">
+                                <div className="w-32 h-32 bg-gradient-to-br from-stone-100 to-white dark:from-stone-800 dark:to-stone-900 rounded-full flex items-center justify-center mb-6 shadow-2xl shadow-black/5 hover:scale-105 transition-transform duration-500">
+                                    <MessageCircle className="w-12 h-12 text-stone-300 dark:text-stone-600" />
                                 </div>
-                                <h2 className="text-xl font-black text-stone-800 dark:text-white mb-1">WhatsApp Inbox</h2>
-                                <p className="text-sm text-stone-400">Seleccioná una conversación para comenzar</p>
+                                <h2 className="text-2xl font-black text-stone-400 dark:text-stone-500">Buzón Atelier</h2>
                             </div>
-                        </div>
-                    )}
+                        )}
+                    </div>
                 </div>
-            </div>
             )}
         </main>
     );
 }
 
-
-// ── QR Renderer Component ─────────────────────────
+// ── QR Renderer ───────────────────────────────────
 function QRRenderer({ qr }: { qr: string }) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
-
     useEffect(() => {
         if (!qr || !canvasRef.current) return;
-
-        const renderQR = async () => {
-            try {
-                await QRCode.toCanvas(canvasRef.current, qr, {
-                    width: 256,
-                    margin: 2,
-                    color: {
-                        dark: '#1c1917',
-                        light: '#ffffff'
-                    }
-                });
-            } catch (e) {
-                console.error('QR render error:', e);
-            }
-        };
-
-        renderQR();
+        QRCode.toCanvas(canvasRef.current, qr, {
+            width: 280, margin: 2,
+            color: { dark: '#1c1917', light: '#ffffff' }
+        });
     }, [qr]);
-
-    return (
-        <div className="text-center flex flex-col items-center justify-center">
-            <canvas ref={canvasRef} className="mx-auto rounded-xl shadow-sm border border-stone-100" />
-            <p className="text-[10px] text-stone-400 mt-4 font-bold">
-                💡 Escaneá este código con tu celular
-            </p>
-        </div>
-    );
+    return <canvas ref={canvasRef} className="mx-auto rounded-[2rem] shadow-sm" />;
 }

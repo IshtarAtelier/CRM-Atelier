@@ -72,11 +72,21 @@ export function PersonalDataSection({ formData, setFormData, doctors, sources }:
                 </div>
             </div>
 
-            <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase tracking-widest text-stone-500 ml-1">Dirección / Localidad</label>
-                <div className="relative group">
-                    <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-stone-300 group-focus-within:text-primary transition-colors" />
-                    <input type="text" className="w-full pl-12 pr-4 py-4 bg-stone-50 dark:bg-stone-800 border-2 rounded-2xl font-bold text-sm outline-none focus:border-primary" placeholder="Calle, Número, Localidad" value={formData.address} onChange={(e) => setFormData({ ...formData, address: e.target.value })} />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-stone-500 ml-1">Email</label>
+                    <div className="relative group">
+                        <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-stone-300 group-focus-within:text-primary transition-colors" />
+                        <input type="email" className="w-full pl-12 pr-4 py-4 bg-stone-50 dark:bg-stone-800 border-2 rounded-2xl font-bold text-sm outline-none focus:border-primary" placeholder="correo@ejemplo.com" value={formData.email || ''} onChange={(e) => setFormData({ ...formData, email: e.target.value })} />
+                    </div>
+                </div>
+
+                <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-stone-500 ml-1">Dirección / Localidad</label>
+                    <div className="relative group">
+                        <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-stone-300 group-focus-within:text-primary transition-colors" />
+                        <input type="text" className="w-full pl-12 pr-4 py-4 bg-stone-50 dark:bg-stone-800 border-2 rounded-2xl font-bold text-sm outline-none focus:border-primary" placeholder="Calle, Número, Localidad" value={formData.address || ''} onChange={(e) => setFormData({ ...formData, address: e.target.value })} />
+                    </div>
                 </div>
             </div>
         </div>

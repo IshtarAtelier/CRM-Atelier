@@ -139,14 +139,47 @@ waClient.on('message', async (msg) => {
         }
 
         // 2. Save Inbound Message
-        const messageType = msg.hasMedia ? 'IMAGE' : 'TEXT';
+        let messageType = msg.hasMedia ? (msg.hasMedia ? 'IMAGE' : 'TEXT') : 'TEXT';
         let mediaBase64 = null;
+        let mediaMime = null;
+        let mediaUrl = null;
         
         if (msg.hasMedia) {
             try {
                 const media = await msg.downloadMedia();
-                if (media && media.mimetype.startsWith('image/')) {
-                    mediaBase64 = media.data;
+                if (media) {
+                    if (media.mimetype.startsWith('audio/')) messageType = 'AUDIO';
+                    else if (media.mimetype.startsWith('video/')) messageType = 'VIDEO';
+                    else messageType = 'IMAGE';
+
+                    if (messageType === 'IMAGE' || messageType === 'AUDIO') {
+                        mediaBase64 = media.data;
+                        mediaMime = media.mimetype;
+                    }
+
+                    // AHORA LO SUBIMOS SIEMPRE PARA QUE LA UI LO PUEDA REPRODUCIR/VER ONLINE
+                    const buffer = Buffer.from(media.data, 'base64');
+                    const blob = new Blob([buffer], { type: media.mimetype });
+                    const f = new FormData();
+                    
+                    let ext = 'bin';
+                    if (media.mimetype.includes('jpeg') || media.mimetype.includes('jpg')) ext = 'jpg';
+                    else if (media.mimetype.includes('png')) ext = 'png';
+                    else if (media.mimetype.includes('ogg') || media.mimetype.includes('audio')) ext = 'ogg';
+                    else if (media.mimetype.includes('mp4') || media.mimetype.includes('video')) ext = 'mp4';
+                    else if (media.mimetype.includes('pdf')) ext = 'pdf';
+
+                    f.append('file', blob, `wa_${Date.now()}.${ext}`);
+                    
+                    try {
+                        const uploadRes = await fetch(`${process.env.CRM_API_URL}/upload`, { 
+                            method: 'POST', body: f
+                        });
+                        const resJson = await uploadRes.json();
+                        if (resJson.url) mediaUrl = resJson.url;
+                    } catch (uploadError) {
+                        console.error('Error uploading file to CRM:', uploadError.message);
+                    }
                 }
             } catch (e) {
                 console.error('Error downloading media:', e.message);
@@ -159,6 +192,7 @@ waClient.on('message', async (msg) => {
                 direction: 'INBOUND',
                 type: messageType,
                 content: body,
+                mediaUrl: mediaUrl,
                 waMessageId: msg.id._serialized,
             }
         });
@@ -173,8 +207,8 @@ waClient.on('message', async (msg) => {
                 if (mediaBase64) {
                     messageRequest = new HumanMessage({
                         content: [
-                            { type: "text", text: body || "Analiza esta imagen." },
-                            { type: "image_url", image_url: { url: `data:image/jpeg;base64,${mediaBase64}` } },
+                            { type: "text", text: body || (messageType === 'AUDIO' ? "El cliente acaba de mandar un archivo de voz. Por favor escuchalo detenidamente y respondé a lo que ponga. No digas 'he escuchado el audio' simplemente responde." : "Analiza esta imagen.") },
+                            { type: "image_url", image_url: { url: `data:${mediaMime || 'image/jpeg'};base64,${mediaBase64}` } },
                         ],
                     });
                 } else {
