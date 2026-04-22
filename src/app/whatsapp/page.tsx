@@ -67,7 +67,17 @@ export default function WhatsAppPage() {
         try {
             const res = await fetch('/api/whatsapp/chats');
             const data = await res.json();
-            setChats(Array.isArray(data) ? data : []);
+            if (Array.isArray(data)) {
+                // Ordenar por último mensaje (más reciente arriba)
+                const sorted = [...data].sort((a, b) => {
+                    const ta = a.lastMessageAt ? new Date(a.lastMessageAt).getTime() : 0;
+                    const tb = b.lastMessageAt ? new Date(b.lastMessageAt).getTime() : 0;
+                    return tb - ta;
+                });
+                setChats(sorted);
+            } else {
+                setChats([]);
+            }
         } catch { setChats([]); }
     }, []);
 

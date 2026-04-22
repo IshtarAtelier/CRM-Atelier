@@ -88,7 +88,7 @@ waClient.on('message', async (msg) => {
         let chat = await prisma.whatsAppChat.findUnique({ where: { waId } });
         if (!chat) {
             chat = await prisma.whatsAppChat.create({
-                data: { waId, profileName, status: 'OPEN', botEnabled: true }
+                data: { waId, profileName, status: 'OPEN', botEnabled: true, lastMessageAt: new Date() }
             });
         } else {
             await prisma.whatsAppChat.update({
