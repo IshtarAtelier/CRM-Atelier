@@ -15,7 +15,7 @@ COPY prisma/ ./prisma/
 
 # Copy wa-service files
 COPY wa-service/package*.json ./
-RUN npm ci --production
+RUN npm install --omit=dev
 
 # Generate Prisma client
 RUN npx prisma generate
