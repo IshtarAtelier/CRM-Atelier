@@ -462,7 +462,7 @@ export default function Home() {
               )}
             </div>
           </div>
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 sm:gap-4">
             {[
               { label: 'Contactos', value: d.funnel.contacts, color: 'bg-blue-500', width: '100%' },
               { label: 'Presupuestos', value: d.funnel.quotes, color: 'bg-amber-500', width: d.funnel.contacts > 0 ? `${Math.max((d.funnel.quotes / d.funnel.contacts) * 100, 15)}%` : '15%', rate: d.funnel.quoteRate },

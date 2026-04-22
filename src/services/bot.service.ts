@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/db';
 import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
 import { SystemMessage, HumanMessage } from "@langchain/core/messages";
+import { WA_SERVER_URL } from '@/lib/wa-config';
 
 export class BotService {
     /**
@@ -100,8 +101,7 @@ export class BotService {
             }
 
             // Send via internal WA server proxy
-            const WA_SERVER = 'http://localhost:3100'; // Or process.env.WA_SERVER
-            const res = await fetch(`${WA_SERVER}/api/send`, {
+            const res = await fetch(`${WA_SERVER_URL}/api/send`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ 

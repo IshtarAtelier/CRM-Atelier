@@ -48,10 +48,10 @@ export function GlobalTasks() {
     return (
         <>
             {/* Botón flotante de Tareas (Bell) */}
-            <div className="fixed bottom-8 right-8 z-[60] flex items-center gap-4">
+            <div className="fixed bottom-4 right-4 md:bottom-8 md:right-8 z-[60] flex items-center gap-4">
                 <button
                     onClick={() => setIsOpen(!isOpen)}
-                    className={`p-5 rounded-[2.5rem] border-2 transition-all shadow-huge flex items-center gap-3 active:scale-95 group relative ${isOpen
+                    className={`p-3 md:p-5 rounded-full md:rounded-[2.5rem] border-2 transition-all shadow-huge flex items-center gap-0 md:gap-3 active:scale-95 group relative ${isOpen
                         ? 'bg-stone-900 border-stone-800 text-white dark:bg-primary dark:border-primary'
                         : urgentCount > 0
                             ? 'bg-white dark:bg-stone-900 border-primary text-stone-900 dark:text-white shadow-primary/20 ring-4 ring-primary/10'
@@ -64,9 +64,9 @@ export function GlobalTasks() {
                     )}
 
                     <div className="relative">
-                        <Bell className={`w-7 h-7 ${isOpen ? 'animate-none' : urgentCount > 0 ? 'animate-bounce text-primary' : 'group-hover:rotate-12'}`} />
+                        <Bell className={`w-5 h-5 md:w-7 md:h-7 ${isOpen ? 'animate-none' : urgentCount > 0 ? 'animate-bounce text-primary' : 'group-hover:rotate-12'}`} />
                         {urgentCount > 0 && (
-                            <span className="absolute -top-1 -right-1 w-6 h-6 bg-red-600 text-white text-[11px] font-black rounded-full flex items-center justify-center border-2 border-white dark:border-stone-900 shadow-xl animate-pulse">
+                            <span className="absolute -top-1.5 -right-1.5 md:-top-1 md:-right-1 w-4 h-4 md:w-6 md:h-6 bg-red-600 text-white text-[9px] md:text-[11px] font-black rounded-full flex items-center justify-center border-2 border-white dark:border-stone-900 shadow-xl animate-pulse">
                                 {urgentCount}
                             </span>
                         )}

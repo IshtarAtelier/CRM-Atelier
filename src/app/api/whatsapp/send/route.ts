@@ -1,12 +1,12 @@
 import { NextResponse } from 'next/server';
 
-const WA_SERVER = 'http://localhost:3100';
+import { WA_SERVER_URL } from '@/lib/wa-config';
 
 // POST /api/whatsapp/send — enviar mensaje
 export async function POST(request: Request) {
     try {
         const body = await request.json();
-        const res = await fetch(`${WA_SERVER}/api/send`, {
+        const res = await fetch(`${WA_SERVER_URL}/api/send`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(body),

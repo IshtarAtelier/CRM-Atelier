@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server';
 
-const WA_SERVER = 'http://localhost:3100';
+import { WA_SERVER_URL } from '@/lib/wa-config';
 
 // GET /api/whatsapp/agent/catalog — obtener catálogo de precios formateado
 export async function GET() {
     try {
-        const res = await fetch(`${WA_SERVER}/api/agent/catalog`, { cache: 'no-store' });
+        const res = await fetch(`${WA_SERVER_URL}/api/agent/catalog`, { cache: 'no-store' });
         const text = await res.text();
         return new NextResponse(text, {
             headers: { 'Content-Type': 'text/plain; charset=utf-8' },

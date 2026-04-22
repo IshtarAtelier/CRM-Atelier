@@ -1,5 +1,6 @@
 'use client';
 
+import QRCode from 'qrcode';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import {
     MessageCircle, Send, Wifi, WifiOff, QrCode, RefreshCw, User,
@@ -503,6 +504,7 @@ export default function WhatsAppPage() {
     );
 }
 
+
 // ── QR Renderer Component ─────────────────────────
 function QRRenderer({ qr }: { qr: string }) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -510,38 +512,16 @@ function QRRenderer({ qr }: { qr: string }) {
     useEffect(() => {
         if (!qr || !canvasRef.current) return;
 
-        // Dynamic import of qrcode library for client-side rendering
         const renderQR = async () => {
             try {
-                // Simple QR text rendering as blocks
-                const canvas = canvasRef.current;
-                if (!canvas) return;
-                const ctx = canvas.getContext('2d');
-                if (!ctx) return;
-
-                // Use a simple approach: render the QR string as a grid
-                // The QR from whatsapp-web.js is a data string, render it as image
-                const size = 256;
-                canvas.width = size;
-                canvas.height = size;
-
-                // Create an image from the qr data URL
-                const img = new Image();
-                img.onload = () => {
-                    ctx.fillStyle = 'white';
-                    ctx.fillRect(0, 0, size, size);
-                    ctx.drawImage(img, 0, 0, size, size);
-                };
-
-                // Try to render as a QR code image using a simple canvas approach
-                // Since we get the raw QR string, let's display it as text with instructions
-                ctx.fillStyle = 'white';
-                ctx.fillRect(0, 0, size, size);
-                ctx.fillStyle = '#1c1917';
-                ctx.font = '12px monospace';
-                ctx.textAlign = 'center';
-                ctx.fillText('Escaneá el QR desde', size / 2, size / 2 - 10);
-                ctx.fillText('la terminal del servidor', size / 2, size / 2 + 10);
+                await QRCode.toCanvas(canvasRef.current, qr, {
+                    width: 256,
+                    margin: 2,
+                    color: {
+                        dark: '#1c1917',
+                        light: '#ffffff'
+                    }
+                });
             } catch (e) {
                 console.error('QR render error:', e);
             }
@@ -551,10 +531,10 @@ function QRRenderer({ qr }: { qr: string }) {
     }, [qr]);
 
     return (
-        <div className="text-center">
-            <canvas ref={canvasRef} className="mx-auto rounded-xl" />
-            <p className="text-[10px] text-stone-400 mt-3 font-bold">
-                💡 El QR también se muestra en la terminal del servidor
+        <div className="text-center flex flex-col items-center justify-center">
+            <canvas ref={canvasRef} className="mx-auto rounded-xl shadow-sm border border-stone-100" />
+            <p className="text-[10px] text-stone-400 mt-4 font-bold">
+                💡 Escaneá este código con tu celular
             </p>
         </div>
     );

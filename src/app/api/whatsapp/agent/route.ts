@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server';
 
-const WA_SERVER = 'http://localhost:3100';
+import { WA_SERVER_URL } from '@/lib/wa-config';
 
 // GET /api/whatsapp/agent — obtener configuración del agente
 export async function GET() {
     try {
-        const res = await fetch(`${WA_SERVER}/api/agent`, { cache: 'no-store' });
+        const res = await fetch(`${WA_SERVER_URL}/api/agent`, { cache: 'no-store' });
         const data = await res.json();
         return NextResponse.json(data);
     } catch (error: any) {
@@ -25,7 +25,7 @@ export async function GET() {
 export async function POST(request: Request) {
     try {
         const body = await request.json();
-        const res = await fetch(`${WA_SERVER}/api/agent`, {
+        const res = await fetch(`${WA_SERVER_URL}/api/agent`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(body),

@@ -68,7 +68,7 @@ export default function DashboardActions({ onPeriodChange }: DashboardActionsPro
     };
 
     return (
-        <div className="flex gap-2 items-center">
+        <div className="flex flex-wrap gap-2 items-center">
             {/* Period Filter */}
             <div className="relative">
                 <button

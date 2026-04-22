@@ -720,7 +720,7 @@ export default function VentasPage() {
                                     </div>
 
                                     {/* Actions */}
-                                    <div className="flex items-center gap-2 lg:flex-shrink-0 overflow-x-auto lg:overflow-visible pb-2 lg:pb-0 no-scrollbar">
+                                    <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 lg:flex-shrink-0 overflow-x-auto lg:overflow-visible pb-2 lg:pb-0 no-scrollbar">
                                         {/* Advance Status Button */}
                                         {nextStepInfo && (
                                             <button
