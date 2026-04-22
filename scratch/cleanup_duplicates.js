@@ -1,45 +1,58 @@
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
-async function run() {
-    const all = await prisma.notification.findMany({
-        where: { type: 'INVOICE_REQUEST', status: 'PENDING' },
-        orderBy: { createdAt: 'desc' }
+async function main() {
+    const notifications = await prisma.notification.findMany({
+        where: {
+            type: 'INVOICE_REQUEST',
+            status: 'PENDING'
+        },
+        orderBy: {
+            createdAt: 'asc' // Older ones first
+        }
     });
 
-    const byOrder = {};
-    for (const n of all) {
-        if (!byOrder[n.orderId]) byOrder[n.orderId] = [];
-        byOrder[n.orderId].push(n);
-    }
+    console.log(`Found ${notifications.length} pending invoice requests...`);
 
-    let deletedCount = 0;
+    const seen = new Set();
+    const duplicates = [];
 
-    for (const [orderId, notifs] of Object.entries(byOrder)) {
-        if (notifs.length > 1) {
-            console.log(`Order ${orderId} has ${notifs.length} notifications.`);
-            const manual = notifs.filter(n => n.requestedBy !== 'SISTEMA (Auto)' && !n.requestedBy.includes('Retroactivo'));
-            const auto = notifs.filter(n => n.requestedBy === 'SISTEMA (Auto)' || n.requestedBy.includes('Retroactivo'));
+    for (const notif of notifications) {
+        if (!notif.orderId) continue;
+        
+        // Extract amount from message
+        const amountMatch = notif.message.match(/\$([0-9.,]+)/);
+        if (!amountMatch) continue;
+        
+        const amountStr = amountMatch[1];
+        
+        // Uniqueness key: orderId + amountStr
+        const key = `${notif.orderId}_${amountStr}`;
 
-            // If there's both an auto and a manual, and they are essentially duplicates, delete the manual one
-            if (manual.length > 0 && auto.length > 0) {
-                console.log(`Deleting ${manual.length} manual notification(s) in favor of the automatic one.`);
-                for (const m of manual) {
-                    await prisma.notification.delete({ where: { id: m.id } });
-                    deletedCount++;
-                }
-            } else if (auto.length > 1) {
-                // Keep the most recent auto one
-                auto.sort((a, b) => b.createdAt - a.createdAt);
-                for (let i = 1; i < auto.length; i++) {
-                     await prisma.notification.delete({ where: { id: auto[i].id } });
-                     deletedCount++;
-                }
-            }
+        if (seen.has(key)) {
+            duplicates.push(notif);
+        } else {
+            seen.add(key);
         }
     }
 
-    console.log(`Cleaned up ${deletedCount} duplicate notifications.`);
+    console.log(`Found ${duplicates.length} duplicate requests.`);
+
+    for (const dup of duplicates) {
+        console.log(`- Duplicado a eliminar: ${dup.id} | ${dup.message} | ${dup.createdAt}`);
+        await prisma.notification.delete({
+            where: { id: dup.id }
+        });
+    }
+
+    console.log("Cleanup finished.");
 }
 
-run().catch(console.error).finally(() => prisma.$disconnect());
+main()
+  .catch(e => {
+    console.error(e);
+    process.exit(1);
+  })
+  .finally(async () => {
+    await prisma.$disconnect();
+  });
