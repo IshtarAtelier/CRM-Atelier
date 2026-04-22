@@ -97,6 +97,47 @@ waClient.on('message', async (msg) => {
             });
         }
 
+        // 2. Auto-vincular cliente del CRM por número de teléfono
+        if (!chat.clientId) {
+            const phone = waId.replace('@c.us', '');
+            const client = await prisma.client.findFirst({
+                where: { phone: { contains: phone.slice(-8) } },
+                include: { tags: true }
+            });
+            if (client) {
+                chat = await prisma.whatsAppChat.update({
+                    where: { id: chat.id },
+                    data: { clientId: client.id },
+                    include: { client: { include: { tags: true } } }
+                });
+                console.log(`  🔗 Vinculado a cliente CRM: ${client.name}`);
+            }
+        } else if (!chat.client) {
+            // Recargar con relaciones si ya tenía clientId
+            chat = await prisma.whatsAppChat.findUnique({
+                where: { id: chat.id },
+                include: { client: { include: { tags: true } } }
+            });
+        }
+
+        // ── Chequeo de etiquetas de exclusión ──────────
+        // Si el cliente tiene tag "Cancelar Bot", "No Bot", "Proveedor", etc.
+        // el bot NO responde y se silencia completamente para ese chat.
+        const TAGS_SIN_BOT = ['cancelar bot', 'no bot', 'proveedor', 'no interesado', 'error'];
+        const clientTags = chat?.client?.tags || [];
+        const tieneTagSinBot = clientTags.some(tag =>
+            TAGS_SIN_BOT.some(t => tag.name.toLowerCase().includes(t))
+        );
+        if (tieneTagSinBot) {
+            if (chat.botEnabled) {
+                await prisma.whatsAppChat.update({
+                    where: { id: chat.id },
+                    data: { botEnabled: false }
+                });
+                console.log(`  🚫 Bot bloqueado para ${profileName} por etiqueta.`);
+            }
+        }
+
         // 2. Save Inbound Message
         const messageType = msg.hasMedia ? 'IMAGE' : 'TEXT';
         let mediaBase64 = null;
@@ -123,7 +164,8 @@ waClient.on('message', async (msg) => {
         });
 
         // 3. Bot Logic — Llamada DIRECTA al grafo (sin HTTP intermedio)
-        if (agentEnabled && chat.botEnabled) {
+        if (agentEnabled && chat.botEnabled && !tieneTagSinBot) {
+
             try {
                 console.log(`  🤖 Bot procesando mensaje de ${profileName}...`);
                 
@@ -241,6 +283,29 @@ app.post('/api/agent', (req, res) => {
     if (enabled !== undefined) agentEnabled = enabled;
     if (prompt !== undefined) agentPrompt = prompt;
     res.json({ enabled: agentEnabled, prompt: agentPrompt });
+});
+
+// ── Toggle bot por chat individual ─────────────
+// PATCH /api/chats/:id/bot  { "botEnabled": true/false }
+// Permite activar o cancelar el bot en una sola conversación
+// sin afectar el resto de los chats.
+app.patch('/api/chats/:id/bot', async (req, res) => {
+    const { id } = req.params;
+    const { botEnabled } = req.body;
+    if (typeof botEnabled !== 'boolean') {
+        return res.status(400).json({ error: 'botEnabled must be a boolean' });
+    }
+    try {
+        const chat = await prisma.whatsAppChat.update({
+            where: { id },
+            data: { botEnabled }
+        });
+        const estado = botEnabled ? '▶️ Activado' : '⏸️ Pausado';
+        console.log(`  🤖 Bot ${estado} para chat ${chat.waId}`);
+        res.json({ id: chat.id, waId: chat.waId, botEnabled: chat.botEnabled });
+    } catch (e) {
+        res.status(404).json({ error: 'Chat no encontrado' });
+    }
 });
 
 // ── Start ──────────────────────────────────────

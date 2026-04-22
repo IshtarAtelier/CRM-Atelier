@@ -48,17 +48,19 @@ async function updateClientData({ id, ...data }) {
 }
 
 /**
- * Tool: Search products in catalog
+ * Tool: Get price list for bot quotes
+ * Returns products marked as botRecommended from the real inventory.
+ * Optionally filtered by category (MULTIFOCAL, MONOFOCAL, CONTACTO, ARMAZON).
  */
-async function searchProducts({ query, category, type }) {
+async function getPriceList({ category }) {
     try {
-        const response = await axios.get(`${CRM_API_URL}/products`, {
-            params: { q: query, category, type }
-        });
+        const params = { botRecommended: 'true' };
+        if (category) params.category = category;
+        const response = await axios.get(`${CRM_API_URL}/bot/pricing`, { params });
         return response.data;
     } catch (error) {
-        console.error('Error in searchProducts tool:', error.message);
-        return { error: 'No se pudo consultar el catálogo.' };
+        console.error('Error in getPriceList tool:', error.message);
+        return { error: 'No se pudo obtener la lista de precios.' };
     }
 }
 
@@ -171,6 +173,6 @@ async function createQuote({ clientId, items, total, discountCash }) {
 
 module.exports = {
     checkExistingClient, convertIntoLead, updateClientData,
-    searchProducts, getOrderStatus, createTask,
+    getPriceList, getOrderStatus, createTask,
     addInteraction, savePrescription, logBotMessage, createQuote
 };

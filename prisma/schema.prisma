@@ -93,6 +93,7 @@ model ClientTask {
   description String
   status      String    @default("PENDING") // PENDING, COMPLETED, CANCELLED
   dueDate     DateTime?
+  createdBy   String?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
@@ -173,6 +174,8 @@ model Product {
   additionMin  Float?  // Adición mínima (ej: 0.75, solo multifocales)
   additionMax  Float?  // Adición máxima (ej: 3.50, solo multifocales)
   is2x1       Boolean  @default(false) // Promoción 2x1: par de cristales incluido sin cargo
+  botRecommended Boolean @default(false) // El bot lo ofrece en sus cotizaciones
+  botLabel    String?  // Nombre corto para el bot (ej: "Opcion Economica")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -415,4 +418,25 @@ model FixedCost {
   createdAt   DateTime @default(now())
 
   @@index([month, year])
+}
+
+// ── Bot Service Pricing ───────────────────────────────────────────────────────
+// Precios dinámicos usados por el agente de WhatsApp. Se administran desde
+// la pestaña "Precios del Bot" en Configuración del CRM.
+model ServicePricing {
+  id           String   @id @default(cuid())
+  name         String                        // Ej: "Varilux Liberty 3.0 AR Crizal"
+  description  String?                       // Descripción corta para el bot
+  category     String                        // MONOFOCAL | MULTIFOCAL | ARMAZON | CONTACTO | BIFOCAL
+  subcategory  String?                       // STOCK | LABORATORIO | CONTROL_MIOPIA | VARILUX | SMART_LENS
+  priceCash    Float                         // Precio contado
+  priceCredit  Float                         // Total financiado
+  creditMonths Int      @default(6)          // Cantidad de cuotas
+  active       Boolean  @default(true)
+  notes        String?                       // Notas internas (ej: "Solo add < +1.50")
+  sortOrder    Int      @default(0)          // Orden de presentación
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([category, active])
 }
