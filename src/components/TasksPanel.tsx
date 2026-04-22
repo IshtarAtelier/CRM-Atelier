@@ -58,7 +58,7 @@ export default function TasksPanel({ tasks, onClose }: TasksPanelProps) {
                                     <User className="w-6 h-6" />
                                 </div>
 
-                                <div className="flex-1 min-w-0 pr-8">
+                                <div className="flex-1 min-w-0 pr-16 lg:pr-24">
                                     <p className="font-black text-stone-800 dark:text-stone-200 text-sm truncate tracking-tight uppercase mb-1">
                                         {task.client?.name || 'Cliente'}
                                     </p>
