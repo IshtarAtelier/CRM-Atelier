@@ -1,18 +1,25 @@
 const axios = require('axios');
 const path = require('path');
+const { PrismaClient } = require('@prisma/client');
 require('dotenv').config({ path: path.join(__dirname, '.env') });
 
 const CRM_API_URL = process.env.CRM_API_URL;
+const prisma = new PrismaClient();
 
 /**
  * Tool: Search for an existing client by phone or name
  */
 async function checkExistingClient({ phone, name }) {
     try {
-        const response = await axios.get(`${CRM_API_URL}/clients`, {
-            params: { phone, name }
+        const response = await axios.get(`${CRM_API_URL}/contacts`, {
+            params: { search: phone || name }
         });
-        return response.data;
+        
+        const contacts = response.data;
+        if (contacts && contacts.length > 0) {
+            return { found: true, contact: contacts[0] };
+        }
+        return { found: false };
     } catch (error) {
         console.error('Error in checkExistingClient tool:', error.message);
         return { found: false, error: 'Error al consultar el CRM' };
@@ -24,13 +31,23 @@ async function checkExistingClient({ phone, name }) {
  */
 async function convertIntoLead({ phone, name, contactSource, interest }) {
     try {
-        const response = await axios.post(`${CRM_API_URL}/clients`, {
+        const response = await axios.post(`${CRM_API_URL}/contacts`, {
             phone, name, contactSource, interest, status: 'CONTACT'
         });
-        return response.data;
+        const newContact = response.data;
+
+        // VINCULACIÓN AUTOMÁTICA DE CHAT MIENTRAS HABLAN:
+        if (newContact && newContact.id) {
+            await prisma.whatsAppChat.updateMany({
+                where: { phone: phone },
+                data: { clientId: newContact.id }
+            });
+        }
+
+        return { success: true, contact: newContact };
     } catch (error) {
         console.error('Error in convertIntoLead tool:', error.message);
-        return { error: 'Error al registrar el lead' };
+        return { error: 'Error al registrar el lead. Probablemente faltan datos o hay un duplicado.' };
     }
 }
 
@@ -39,7 +56,7 @@ async function convertIntoLead({ phone, name, contactSource, interest }) {
  */
 async function updateClientData({ id, ...data }) {
     try {
-        const response = await axios.post(`${CRM_API_URL}/clients`, { id, ...data });
+        const response = await axios.post(`${CRM_API_URL}/contacts`, { id, ...data });
         return response.data;
     } catch (error) {
         console.error('Error in updateClientData tool:', error.message);

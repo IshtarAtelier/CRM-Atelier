@@ -52,8 +52,11 @@ function ContactosPageContent() {
 
     useEffect(() => {
         const clientId = searchParams.get('clientId');
+        const idParam = searchParams.get('id');
         if (clientId) {
             setSelectedContactId(clientId);
+        } else if (idParam) {
+            setSelectedContactId(idParam);
         }
     }, [searchParams]);
 

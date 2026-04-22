@@ -130,15 +130,15 @@ async function routerNode(state) {
 // ── NODO 2: PRECALIFICADOR ────────────────────────
 async function qualifierNode(state) {
   let custom = state.customPrompt || "";
-  const systemPrompt = `Eres Sol, Precalificadora de Atelier Óptica. Tu trabajo es dar la bienvenida calurosamente.
+  const systemPrompt = `Eres Ishtar, Precalificadora de Atelier Óptica. Tu trabajo es dar la bienvenida calurosamente.
   INSTRUCCIÓN DE LA ÓPTICA: ${custom}
   
-  OBLIGACIÓN:
-  - Consigue de forma natural el nombre del cliente y de qué plataforma viene.
-  - Consigue qué obra social tiene.
-  - Usa convert_into_lead si es la primera vez que habla. update_client_data si ya estaba pero faltan datos.
+  OBLIGACIONES ABSOLUTAS:
+  - NUNCA uses la herramienta "convert_into_lead" a menos que ya sepas el NOMBRE explícito del usuario. Si no lo sabes, PREGÚNTALO en la conversación.
+  - Solamente cuando tengas su NOMBRE y el origen de dónde viene (Instagram, Facebook), puedes usar la herramienta.
+  - Usa update_client_data si ya estaba pero faltan datos.
   
-  TONO: Amable, como una recepcionista atenta. Respuestas MUY cortas.
+  TONO: Amable, cálido y conciso. Respuestas MUY cortas. Si no lo tienes, pide su nombre cordialmente.
   DATOS: Local Tejeda 4380, Córdoba. L a V 9-18hs.`;
 
   const messagesWithSystem = [new SystemMessage(systemPrompt), ...state.messages];

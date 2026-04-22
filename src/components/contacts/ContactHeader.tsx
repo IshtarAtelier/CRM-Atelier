@@ -4,7 +4,7 @@ import React from 'react';
 import { 
     User, Heart, Pencil, Calculator, Star, X, 
     Phone, Mail, FileText, MapPin, Building2, Share2, Tag,
-    History, CheckCircle2, Receipt
+    History, CheckCircle2, Receipt, MessageCircle
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
@@ -81,6 +81,19 @@ export default function ContactHeader({
                                 >
                                     <Calculator className="w-5 h-5" />
                                 </button>
+                                
+                                {contact.phone && (
+                                    <button
+                                        onClick={() => {
+                                            onClose();
+                                            router.push(`/whatsapp?phone=${encodeURIComponent(contact.phone)}`);
+                                        }}
+                                        className="p-1.5 rounded-lg text-stone-300 hover:text-green-500 hover:bg-green-50 transition-all"
+                                        title="Hablar por WhatsApp"
+                                    >
+                                        <MessageCircle className="w-5 h-5" />
+                                    </button>
+                                )}
 
                                 <div className={`flex items-center px-3 py-1 rounded-xl border text-[10px] font-black uppercase tracking-widest ${contact.status === 'CONTACT' ? 'bg-stone-100 text-stone-500 border-stone-200' :
                                     contact.status === 'CONFIRMED' ? 'bg-emerald-100 text-emerald-600 border-emerald-200' :

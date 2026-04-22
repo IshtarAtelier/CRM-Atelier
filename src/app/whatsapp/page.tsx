@@ -528,6 +528,14 @@ export default function WhatsAppPage() {
                                             </h3>
                                             <p className="text-[11px] font-bold text-stone-500 flex items-center gap-1.5 mt-0.5">
                                                 <Phone className="w-3 h-3" /> {selectedChat.waId.replace('@c.us', '')}
+                                                {selectedChat.client && (
+                                                    <a 
+                                                        href={`/contactos?id=${selectedChat.client.id}`}
+                                                        className="ml-2 px-3 py-1 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white rounded-lg text-[9px] uppercase tracking-widest font-black transition-all shadow-sm active:scale-95"
+                                                    >
+                                                        Abrir Ficha de Cliente
+                                                    </a>
+                                                )}
                                             </p>
                                         </div>
                                     </div>
