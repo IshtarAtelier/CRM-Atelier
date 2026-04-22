@@ -268,10 +268,12 @@ app.patch('/api/chats/:id', async (req, res) => {
 });
 
 app.post('/api/send', async (req, res) => {
-    const { chatId, message } = req.body;
+    const { chatId, message, media } = req.body;
+    // media: { base64: string, mimetype: string, filename?: string }
     try {
-        // Support sending by chatId (db id) OR waId (phone@c.us)
         let waId = chatId;
+        let dbChatId = chatId.includes('@c.us') ? null : chatId;
+
         if (!chatId.includes('@c.us')) {
             const chat = await prisma.whatsAppChat.findUnique({ where: { id: chatId } });
             if (!chat) return res.status(404).json({ error: 'Chat not found' });
@@ -280,12 +282,24 @@ app.post('/api/send', async (req, res) => {
         
         if (!isReady) return res.status(400).json({ error: 'WhatsApp not connected' });
 
-        const sent = await waClient.sendMessage(waId, message);
-        
-        // Find or skip DB log for direct waId sends
-        if (!chatId.includes('@c.us')) {
+        let sent;
+        if (media?.base64) {
+            const { MessageMedia } = require('whatsapp-web.js');
+            const mediaObj = new MessageMedia(media.mimetype, media.base64, media.filename || 'image.jpg');
+            sent = await waClient.sendMessage(waId, mediaObj, { caption: message || '' });
+        } else {
+            sent = await waClient.sendMessage(waId, message);
+        }
+
+        if (dbChatId) {
             await prisma.whatsAppMessage.create({
-                data: { chatId, direction: 'OUTBOUND', type: 'TEXT', content: message, waMessageId: sent.id._serialized }
+                data: {
+                    chatId: dbChatId,
+                    direction: 'OUTBOUND',
+                    type: media?.base64 ? 'IMAGE' : 'TEXT',
+                    content: message || '[Imagen]',
+                    waMessageId: sent.id._serialized,
+                }
             });
         }
         

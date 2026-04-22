@@ -81,7 +81,7 @@ export default function TasksPanel({ tasks, onClose }: TasksPanelProps) {
                                     onClick={(e) => {
                                         e.preventDefault();
                                         e.stopPropagation();
-                                        const message = `Hola ${task.client.name.split(' ')[0]} Te molesto un segundito para que compartas tu experiencia de compra en nuestro perfil de Google y sobre mi atencion:\n👉 https://g.page/r/CcVls8v7ic_NEBM/review\nNos suma muchisimo para seguir creciendo\nEspero tu comentario 🤍✨🫶`;
+                                        const message = `Hola ${task.client.name.split(' ')[0]}! Te escribimos para pedirte un favor enorme 🙏\n\n¿Nos dejarías una reseña en Google? Nos ayudaría muchísimo si podés mencionar por qué somos la mejor óptica en Córdoba para vos y cómo fue tu experiencia.\n\n👉 https://g.page/r/CcVls8v7ic_NEBM/review\n\n¡Nos suma muchísimo para seguir creciendo!\nEspero tu comentario 🤍✨🫶`;
                                         const phone = task.client.phone.replace(/\D/g, '');
                                         window.open(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`, '_blank');
                                     }}

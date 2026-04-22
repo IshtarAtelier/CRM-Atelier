@@ -490,7 +490,17 @@ export async function PATCH(
                                 quantity: true
                             }
                         },
-                        payments: true
+                        payments: true,
+                        prescription: {
+                            select: {
+                                imageUrl: true,
+                                heightOD: true,
+                                heightOI: true,
+                                distanceOD: true,
+                                distanceOI: true,
+                                pd: true,
+                            }
+                        }
                     },
                 });
 
@@ -526,6 +536,36 @@ export async function PATCH(
                     return NextResponse.json({
                         error: 'Si el pedido incluye cristales, debe tener una receta seleccionada'
                     }, { status: 400 });
+                }
+
+                // ── Crystal prescription completeness: Height + DP + Image ──
+                if (hasCrystals && effectiveRxId) {
+                    // If prescriptionId is being changed now, fetch the new one; otherwise use existing
+                    const rx = prescriptionId && prescriptionId !== existingOrder.prescriptionId
+                        ? await prisma.prescription.findUnique({
+                            where: { id: prescriptionId },
+                            select: { imageUrl: true, heightOD: true, heightOI: true, distanceOD: true, distanceOI: true, pd: true }
+                          })
+                        : existingOrder.prescription;
+
+                    if (rx) {
+                        const saleErrors: string[] = [];
+                        if (!rx.imageUrl) {
+                            saleErrors.push('Falta la foto de la receta adjunta.');
+                        }
+                        if (rx.heightOD == null && rx.heightOI == null) {
+                            saleErrors.push('Falta cargar la Altura en la receta (OD y/o OI).');
+                        }
+                        const hasDP = rx.distanceOD != null || rx.distanceOI != null || rx.pd != null;
+                        if (!hasDP) {
+                            saleErrors.push('Falta cargar la Distancia Pupilar (DP) en la receta.');
+                        }
+                        if (saleErrors.length > 0) {
+                            return NextResponse.json({
+                                error: `No se puede convertir en venta:\n${saleErrors.join('\n')}`
+                            }, { status: 400 });
+                        }
+                    }
                 }
 
                 const hasFramesInCart = existingOrder.items?.some((item: any) =>

@@ -31,6 +31,7 @@ export default function PrescriptionManager({
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [savedRxId, setSavedRxId] = useState<string | null>(null);
+    const [editingRxId, setEditingRxId] = useState<string | null>(null);
     
     // File state
     const [receiptFile, setReceiptFile] = useState<File | null>(null);
@@ -54,6 +55,7 @@ export default function PrescriptionManager({
         setReceiptPreview(null);
         setStep('form');
         setError(null);
+        setEditingRxId(null);
     };
 
     const applyPrevious = (rx: any) => {
@@ -76,6 +78,12 @@ export default function PrescriptionManager({
         });
         setReceiptFile(null);
         setReceiptPreview(null);
+    };
+
+    const handleEdit = (rx: any) => {
+        setIsAdding(true);
+        setEditingRxId(rx.id);
+        applyPrevious(rx);
     };
 
     const findDuplicate = (finalImageUrl: string) => {
@@ -119,32 +127,64 @@ export default function PrescriptionManager({
                 finalImageUrl = uploadData.url;
             }
 
-            if (!finalImageUrl) {
-                throw new Error("La foto de la receta es obligatoria.");
-            }
+            // Remove image obligation
+            // if (!finalImageUrl && !editingRxId) {
+            //     throw new Error("La foto de la receta es obligatoria.");
+            // }
 
-            const duplicate = findDuplicate(finalImageUrl);
+            // Busco duplicado solo si no estamos editando
+            const duplicate = !editingRxId ? findDuplicate(finalImageUrl) : null;
             let rxId = duplicate?.id;
 
-            if (!rxId) {
+            if (editingRxId) {
+                // UPDATE existing
+                const res = await fetch(`/api/contacts/${contact.id}/prescriptions/${editingRxId}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        ...form,
+                        imageUrl: finalImageUrl,
+                        sphereOD: parseFloat(form.sphereOD) || null,
+                        cylinderOD: parseFloat(form.cylinderOD) || null,
+                        axisOD: parseInt(form.axisOD) || null,
+                        sphereOI: parseFloat(form.sphereOI) || null,
+                        cylinderOI: parseFloat(form.cylinderOI) || null,
+                        axisOI: parseInt(form.axisOI) || null,
+                        additionOD: parseFloat(form.additionOD) || null,
+                        additionOI: parseFloat(form.additionOI) || null,
+                        distanceOD: parseFloat(form.distanceOD) || null,
+                        distanceOI: parseFloat(form.distanceOI) || null,
+                        heightOD: parseFloat(form.heightOD) || null,
+                        heightOI: parseFloat(form.heightOI) || null,
+                    })
+                });
+                
+                const updatedRx = await res.json();
+                
+                if (!res.ok) {
+                    throw new Error(updatedRx.error || updatedRx.details || "Error del servidor al actualizar la receta");
+                }
+                rxId = updatedRx.id;
+            } else if (!rxId) {
+                // CREATE new
                 const res = await fetch(`/api/contacts/${contact.id}/prescriptions`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         ...form,
                         imageUrl: finalImageUrl,
-                        sphereOD: parseFloat(form.sphereOD) || 0,
-                        cylinderOD: parseFloat(form.cylinderOD) || 0,
-                        axisOD: parseInt(form.axisOD) || 0,
-                        sphereOI: parseFloat(form.sphereOI) || 0,
-                        cylinderOI: parseFloat(form.cylinderOI) || 0,
-                        axisOI: parseInt(form.axisOI) || 0,
-                        additionOD: parseFloat(form.additionOD) || 0,
-                        additionOI: parseFloat(form.additionOI) || 0,
-                        distanceOD: parseFloat(form.distanceOD) || 0,
-                        distanceOI: parseFloat(form.distanceOI) || 0,
-                        heightOD: parseFloat(form.heightOD) || 0,
-                        heightOI: parseFloat(form.heightOI) || 0,
+                        sphereOD: parseFloat(form.sphereOD) || null,
+                        cylinderOD: parseFloat(form.cylinderOD) || null,
+                        axisOD: parseInt(form.axisOD) || null,
+                        sphereOI: parseFloat(form.sphereOI) || null,
+                        cylinderOI: parseFloat(form.cylinderOI) || null,
+                        axisOI: parseInt(form.axisOI) || null,
+                        additionOD: parseFloat(form.additionOD) || null,
+                        additionOI: parseFloat(form.additionOI) || null,
+                        distanceOD: parseFloat(form.distanceOD) || null,
+                        distanceOI: parseFloat(form.distanceOI) || null,
+                        heightOD: parseFloat(form.heightOD) || null,
+                        heightOI: parseFloat(form.heightOI) || null,
                     })
                 });
                 
@@ -219,7 +259,7 @@ export default function PrescriptionManager({
     const renderForm = () => (
         <div className="space-y-6">
             <h3 className="text-xl font-black text-stone-800 dark:text-white tracking-tighter flex items-center gap-2">
-                {conversionOrderId ? 'Cargar Receta para Venta' : 'Nueva Receta'}
+                {editingRxId ? 'Editar Receta' : (conversionOrderId ? 'Cargar Receta para Venta' : 'Nueva Receta')}
             </h3>
 
             {contact.prescriptions?.length > 0 && (
@@ -283,7 +323,7 @@ export default function PrescriptionManager({
                 </div>
 
                 <div>
-                    <label className="text-[9px] font-black text-red-500 uppercase tracking-widest block mb-2">Foto de la receta (OBLIGATORIA)</label>
+                    <label className="text-[9px] font-black text-emerald-600 uppercase tracking-widest block mb-2">Foto de la receta (Opcional para guardar)</label>
                     {form.imageUrl && !receiptFile ? (
                         <div className="relative">
                             <img 
@@ -316,7 +356,7 @@ export default function PrescriptionManager({
                 <button onClick={() => { setIsAdding(false); onCloseConversion?.(); resetForm(); }} className="px-6 py-4 bg-stone-100 rounded-2xl font-black text-xs uppercase tracking-widest">CANCELAR</button>
                 <button 
                     onClick={handleSave} 
-                    disabled={saving || (!form.sphereOD && !form.sphereOI && !form.cylinderOD && !form.cylinderOI && !form.additionOD && !form.additionOI && !receiptFile) || (!form.imageUrl && !receiptFile)}
+                    disabled={saving || (!form.sphereOD && !form.sphereOI && !form.cylinderOD && !form.cylinderOI && !form.additionOD && !form.additionOI && !receiptFile && !form.imageUrl)}
                     className="flex-1 py-4 bg-emerald-500 text-white rounded-2xl font-black text-xs uppercase tracking-widest disabled:opacity-50"
                 >
                     {saving ? 'GUARDANDO...' : 'GUARDAR RECETA'}
@@ -385,6 +425,12 @@ export default function PrescriptionManager({
                                     <p className="text-[10px] font-bold text-stone-400 italic">#{pres.id.slice(-4).toUpperCase()}</p>
                                 </div>
                             </div>
+                            <button 
+                                onClick={() => handleEdit(pres)}
+                                className="px-3 py-1.5 bg-stone-100 text-stone-600 dark:bg-stone-700 dark:text-stone-300 rounded-lg text-[10px] font-bold tracking-wider hover:bg-stone-200 dark:hover:bg-stone-600 transition-colors"
+                            >
+                                EDITAR
+                            </button>
                         </div>
 
                         <div className="mt-4">

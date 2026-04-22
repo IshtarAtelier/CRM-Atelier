@@ -8,6 +8,8 @@ import {
     Sparkles, RotateCcw, Copy, Download, Database, RefreshCw, UploadCloud, Clock, HardDrive, Calendar
 } from 'lucide-react';
 
+import { BotPricingSection } from '@/components/config/BotPricingSection';
+
 // ── Types ─────────────────────────────────────
 
 interface BackupStatus {
@@ -872,6 +874,9 @@ export default function ConfiguracionPage() {
                     </div>
                 </div>
             </section>
+
+            {/* Configuración de Precios del Bot */}
+            <BotPricingSection />
 
             {/* ARCA Billing Section */}
             <section className="mt-8 bg-white dark:bg-stone-800 border-2 border-stone-100 dark:border-stone-700 rounded-2xl overflow-hidden">

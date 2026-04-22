@@ -4,7 +4,7 @@ const { ToolNode } = require("@langchain/langgraph/prebuilt");
 const { DynamicTool } = require("@langchain/core/tools");
 const { SystemMessage, HumanMessage, AIMessage } = require("@langchain/core/messages");
 const { 
-  searchProducts, getOrderStatus, logBotMessage, 
+  getPriceList, getOrderStatus, logBotMessage, 
   checkExistingClient, convertIntoLead, updateClientData,
   createTask, addInteraction, savePrescription, createQuote
 } = require("./tools");
@@ -18,236 +18,273 @@ const model = new ChatGoogleGenerativeAI({
   apiKey: process.env.GOOGLE_GENAI_API_KEY || process.env.GOOGLE_API_KEY,
 });
 
-// ── Tools por Agente ───────────────────────────────
-const salesTools = [
-  new DynamicTool({
-    name: "search_products",
-    description: "Busca productos en el catálogo de la óptica. Categorías: MONOFOCAL, MULTIFOCAL, BIFOCAL, OCUPACIONAL, SOLAR, ACCESORIOS, LENTES_DE_CONTACTO.",
-    func: async (input) => JSON.stringify(await searchProducts(JSON.parse(input))),
-  }),
+// ── Herramientas por Especialidad (Mini-Agentes) ───
+
+const baseTools = [
   new DynamicTool({
     name: "check_existing_client",
-    description: "Verifica si ya existe una ficha de cliente por teléfono o nombre. USAR SIEMPRE ANTES DE CREAR UN NUEVO LEAD.",
+    description: "Busca los datos actuales del cliente por teléfono. Para entender el contexto antes de actuar.",
     func: async (input) => JSON.stringify(await checkExistingClient(JSON.parse(input))),
   }),
   new DynamicTool({
+    name: "add_interaction",
+    description: "Registra reclamos, notas importantes o aclaraciones médicas en la ficha del cliente.",
+    func: async (input) => JSON.stringify(await addInteraction(JSON.parse(input))),
+  })
+];
+
+const qualifierTools = [
+  ...baseTools,
+  new DynamicTool({
     name: "convert_into_lead",
-    description: "Registra oficialmente a un contacto como lead en el CRM. SOLO si tiene interés real. Requiere phone, name, contactSource (META/ADS/REFERIDO/WEB), interest.",
+    description: "Registra un nuevo prospecto. Obligatorio llenar: phone, name, contactSource (META/ADS/REFERIDO/WEB) e interest.",
     func: async (input) => JSON.stringify(await convertIntoLead(JSON.parse(input))),
   }),
   new DynamicTool({
     name: "update_client_data",
-    description: "Actualiza campos del perfil del cliente (interest, contactSource, etc.).",
+    description: "Actualiza faltantes en la ficha del cliente (como la obra social o el origen).",
     func: async (input) => JSON.stringify(await updateClientData(JSON.parse(input))),
-  }),
+  })
+];
+
+const prescriptionTools = [
+  ...baseTools,
   new DynamicTool({
     name: "save_prescription",
-    description: "Guarda datos médicos extraídos de una receta (OCR). Requiere clientId y campos como sphereOD, cylinderOD, axisOD, etc.",
+    description: "Ejecuta OCR sobre una imagen para extraer campos médicos numéricos o anota texto libre sobre la graduación.",
     func: async (input) => JSON.stringify(await savePrescription(JSON.parse(input))),
+  })
+];
+
+const quoterTools = [
+  ...baseTools,
+  new DynamicTool({
+    name: "get_price_list",
+    description: "Extrae tarifas autorizadas del sistema. Filtrar opcionalmente por category (MONOFOCAL, MULTIFOCAL, CONTACTO, ARMAZON).",
+    func: async (input) => JSON.stringify(await getPriceList(JSON.parse(input))),
   }),
   new DynamicTool({
     name: "create_quote",
-    description: "Registra un presupuesto formal en el CRM. USAR SIEMPRE que des un precio. Requiere clientId, items [{productId, quantity, price, eye}], total.",
+    description: "Registra en CRM el presupuesto ofrecido (monto final y modelos).",
     func: async (input) => JSON.stringify(await createQuote(JSON.parse(input))),
-  }),
-  new DynamicTool({
-    name: "add_interaction",
-    description: "Registra una nota o interacción en la ficha del cliente.",
-    func: async (input) => JSON.stringify(await addInteraction(JSON.parse(input))),
-  }),
+  })
 ];
 
 const postSalesTools = [
+  ...baseTools,
   new DynamicTool({
     name: "get_order_status",
-    description: "Consulta el estado y saldo de un pedido. Devuelve status, total, pagado y saldo pendiente.",
+    description: "Consulta estado de pago y laboratorio de pedidos previos.",
     func: async (input) => JSON.stringify(await getOrderStatus(JSON.parse(input))),
   }),
   new DynamicTool({
     name: "create_task",
-    description: "Crea una tarea de seguimiento o recordatorio. Requiere clientId, description.",
+    description: "Registra una solicitud para que un administrativo se comunique.",
     func: async (input) => JSON.stringify(await createTask(JSON.parse(input))),
-  }),
-  new DynamicTool({
-    name: "add_interaction",
-    description: "Registra un reclamo, error reportado, o nota importante en la ficha del cliente.",
-    func: async (input) => JSON.stringify(await addInteraction(JSON.parse(input))),
-  }),
-  new DynamicTool({
-    name: "check_existing_client",
-    description: "Busca datos del cliente para contexto.",
-    func: async (input) => JSON.stringify(await checkExistingClient(JSON.parse(input))),
-  }),
+  })
 ];
 
-const salesToolNode = new ToolNode(salesTools);
+const qualifierToolNode = new ToolNode(qualifierTools);
+const prescriptionToolNode = new ToolNode(prescriptionTools);
+const quoterToolNode = new ToolNode(quoterTools);
 const postSalesToolNode = new ToolNode(postSalesTools);
 
-// ── NODO 1: ROUTER ─────────────────────────────────
-// Decide si derivar a Ventas o Posventa. No responde directamente.
+
+// ── NODO 1: ROUTER INTELIGENTE (El Recepcionista / Floor Manager) ──
 async function routerNode(state) {
+  // 1. Verificamos la base de datos
   const clientInfo = await checkExistingClient({ phone: state.userPhone });
   const isExisting = clientInfo.found;
   const clientData = clientInfo.client;
+  const isBuyer = clientData?.status === 'CLIENT';
 
-  // Si es CLIENT (ya compró) → Posventa. Si no → Ventas.
-  const agentType = (clientData?.status === 'CLIENT') ? 'POST_SALES' : 'SALES';
+  const lastMsg = state.messages[state.messages.length - 1].content.toLowerCase();
 
-  return { 
-    ...state,
-    agentType,
-    clientData: clientData || null,
-    isExisting
-  };
+  // 2. Evaluamos la intencion (Clasificador LLM o reglas robustas)
+  // Como es un ruteo rápido, usamos un prompt directo al LLM para alta precisión
+  const routerPrompt = `Clasifica el mensaje del usuario en UNA de las siguientes categorías EXACTAMENTE:
+  1. "PRESCRIPTION" (Si menciona graduación, hipermetropía, astigmatismo, manda una foto de receta, o menciona al oftalmólogo).
+  2. "QUOTER" (Si pregunta explícitamente por precios, cuánto cuesta, presupuestos, pide catálogo).
+  3. "POST_SALES" (Si reclama por su pedido, pregunta cuándo llega, retiro, problemas).
+  4. "QUALIFIER" (Saludos, preguntas generales, indicar de dónde viene, obra social, dudas sobre ubicación).
+  
+  MENSJE DEL USUARIO: "${lastMsg}"
+  
+  RESPONDE SÓLO CON LA PALABRA CLASIFICADA MÁS APROPIADA Y NADA MÁS.`;
+
+  let agentType = "QUALIFIER"; // Default
+  
+  try {
+    const classification = await model.invoke([new HumanMessage(routerPrompt)]);
+    const result = classification.content.toString().trim().toUpperCase();
+    if (result.includes("PRESCRIPTION")) agentType = "PRESCRIPTION";
+    else if (result.includes("QUOTER")) agentType = "QUOTER";
+    else if (result.includes("POST_SALES") || isBuyer) agentType = "POST_SALES";
+  } catch (e) {
+    console.warn("Clasificador falló, usando default", e);
+  }
+
+  return { ...state, agentType, clientData: clientData || null, isExisting };
 }
 
-// ── NODO 2: AGENTE DE VENTAS ────────────────────────
-async function salesNode(state) {
-  let customInstructions = state.customPrompt || "";
-
-  const systemPrompt = `Eres "Sol", la experta asistente virtual de Atelier Óptica.
-  ROL: AGENTE DE VENTAS.
+// ── NODO 2: PRECALIFICADOR ────────────────────────
+async function qualifierNode(state) {
+  let custom = state.customPrompt || "";
+  const systemPrompt = `Eres Sol, Precalificadora de Atelier Óptica. Tu trabajo es dar la bienvenida calurosamente.
+  INSTRUCCIÓN DE LA ÓPTICA: ${custom}
   
-  INSTRUCCIONES DEL DUEÑO: ${customInstructions}
-
-  TU MISIÓN:
-  1. CALIFICAR al prospecto: ¿De dónde viene? (META, ADS, REFERIDO, WEB). ¿Qué busca? (MONOFOCAL, MULTIFOCAL, etc.)
-  2. DEDUPLICAR: Usa 'check_existing_client' ANTES de registrar. Si ya existe, trabaja su ficha.
-  3. REGISTRAR: Si tiene interés real, usa 'convert_into_lead'. NO registrar amigos, proveedores, o errores.
-  4. PRESUPUESTAR: Cuando des un precio, SIEMPRE creá presupuesto con 'create_quote'.
-  5. OCR: Si mandan foto de receta, extraé datos y guardá con 'save_prescription'.
-  6. NOTAS: Registrá lo importante con 'add_interaction'.
-
-  TONO: Profesional pero cálido. Tuteo argentino. No uses emojis excesivos.
-  HORARIOS: Lunes a Viernes 9:00–18:00, Sábados 9:00–13:00.
-  DIRECCIÓN: Tejeda 4380, Córdoba.
-
-  CONTEXTO:
-  - Cliente existente: ${state.isExisting ? 'SÍ' : 'NO'}
-  - Datos: ${JSON.stringify(state.clientData || {})}
-  - WhatsApp: ${state.userPhone}`;
+  OBLIGACIÓN:
+  - Consigue de forma natural el nombre del cliente y de qué plataforma viene.
+  - Consigue qué obra social tiene.
+  - Usa convert_into_lead si es la primera vez que habla. update_client_data si ya estaba pero faltan datos.
+  
+  TONO: Amable, como una recepcionista atenta. Respuestas MUY cortas.
+  DATOS: Local Tejeda 4380, Córdoba. L a V 9-18hs.`;
 
   const messagesWithSystem = [new SystemMessage(systemPrompt), ...state.messages];
-  const response = await model.bindTools(salesTools).invoke(messagesWithSystem);
+  const response = await model.bindTools(qualifierTools).invoke(messagesWithSystem);
   return { messages: [response] };
 }
 
-// ── NODO 3: AGENTE DE POSVENTA ──────────────────────
+// ── NODO 3: ADMISIÓN / RECETA ─────────────────────
+async function prescriptionNode(state) {
+  let custom = state.customPrompt || "";
+  const systemPrompt = `Eres Sol, Analista Óptica de Atelier.
+  INSTRUCCIÓN DE LA ÓPTICA: ${custom}
+  
+  OBLIGACIÓN:
+  - Solo te ocupas de descifrar y registrar los datos de graduación del cliente.
+  - Usa la herramienta save_prescription.
+  - No pases precios, simplemente dile que ya tomaste nota de su receta y si necesita algo más.
+  
+  TONO: Profesional pero amigable.`;
+
+  const messagesWithSystem = [new SystemMessage(systemPrompt), ...state.messages];
+  const response = await model.bindTools(prescriptionTools).invoke(messagesWithSystem);
+  return { messages: [response] };
+}
+
+// ── NODO 4: COTIZADOR / VENTAS ────────────────────
+async function quoterNode(state) {
+  let custom = state.customPrompt || "";
+  const systemPrompt = `Eres Sol, Especialista en Precios de Atelier Óptica.
+  INSTRUCCIÓN DE LA ÓPTICA: ${custom}
+  
+  OBLIGACIÓN:
+  - Responde con los precios solicitados usando get_price_list para ver nuestro inventario dinámico.
+  - Nombra el precio al CONTADO y la opción de FINANCIADO (cuotas).
+  - SIEMPRE registra el presupuesto que le ofreces ejecutando create_quote en el CRM.
+  - Llama a la acción para que pasen por el local (Tejeda 4380, Córdoba).
+  
+  TONO: Dinámico, cerrador de ventas pero cálido.`;
+
+  const messagesWithSystem = [new SystemMessage(systemPrompt), ...state.messages];
+  const response = await model.bindTools(quoterTools).invoke(messagesWithSystem);
+  return { messages: [response] };
+}
+
+// ── NODO 5: POSVENTA ──────────────────────────────
 async function postSalesNode(state) {
-  let customInstructions = state.customPrompt || "";
-
-  const systemPrompt = `Eres "Sol", la experta asistente virtual de Atelier Óptica.
-  ROL: AGENTE DE POSVENTA / SOPORTE.
-
-  INSTRUCCIONES DEL DUEÑO: ${customInstructions}
-
-  TU MISIÓN:
-  1. INFORMAR ESTADO: Usa 'get_order_status' para consultar pedidos. Informá status Y saldo pendiente.
-  2. SALDOS: Si hay saldo, decir: "Tu pedido está [estado] y el saldo pendiente es $[monto]."
-  3. RECLAMOS: Si reportan un problema, registralo con 'add_interaction' y creá tarea con 'create_task'.
-  4. HORARIOS: Para retiros, informar Lunes a Viernes 9:00–18:00, Sábados 9:00–13:00.
-
-  TONO: Empático, resolutivo. Tuteo argentino. Sin emojis excesivos.
-  DIRECCIÓN: Tejeda 4380, Córdoba.
-
-  CONTEXTO:
-  - Cliente: ${JSON.stringify(state.clientData || {})}
-  - WhatsApp: ${state.userPhone}`;
+  let custom = state.customPrompt || "";
+  const systemPrompt = `Eres Sol, Soporte Posventa de Atelier.
+  INSTRUCCIÓN DE LA ÓPTICA: ${custom}
+  
+  OBLIGACIÓN:
+  - Usa get_order_status para informarle al cliente sobre su encargo.
+  - Recuerda informar el Saldo Pendiente.
+  - Si reclama algo, usa add_interaction y create_task para alertar a un humano.
+  
+  TONO: Tolerante, resolutivo y muy empático.`;
 
   const messagesWithSystem = [new SystemMessage(systemPrompt), ...state.messages];
   const response = await model.bindTools(postSalesTools).invoke(messagesWithSystem);
   return { messages: [response] };
 }
 
-// ── NODO 4: AUDITOR ─────────────────────────────────
-// Revisa la respuesta del agente antes de enviarla al cliente.
+// ── NODO 6: AUDITORIA ─────────────────────────────
 async function auditorNode(state) {
   const lastMessage = state.messages[state.messages.length - 1];
-  
-  // Si el agente pidió tools, no auditar (dejar que ejecute)
-  if (lastMessage.tool_calls && lastMessage.tool_calls.length > 0) {
-    return state; // Pass through
-  }
+  if (lastMessage.tool_calls && lastMessage.tool_calls.length > 0) return state;
 
   const responseText = lastMessage.content;
+  const auditPrompt = `Eres Auditor de Atelier Óptica. Corrige este mensaje antes de mandarlo a WhatsApp.
+  REGLAS:
+  1. NO prometer descuentos falsos.
+  2. NO dar diagnósticos médicos.
+  3. Tamaño máximo de mensaje corto y legible.
+  4. Mantener la personalidad.
   
-  const auditPrompt = `Eres un auditor de calidad de Atelier Óptica. 
-  Revisa este mensaje que un asistente virtual va a enviar a un cliente por WhatsApp.
-  
-  REGLAS DE AUDITORÍA:
-  1. NO debe prometer descuentos mayores al 15%
-  2. NO debe dar información médica o diagnósticos
-  3. NO debe dar precios inventados (si no consultó el catálogo, no debe inventar)
-  4. DEBE mantener un tono profesional y cálido
-  5. NO debe tener más de 300 caracteres por mensaje (WhatsApp)
-  6. NO debe revelar que es un robot/IA
-
-  MENSAJE A AUDITAR:
-  "${responseText}"
-
-  Si el mensaje está bien, respondé EXACTAMENTE con el mismo texto sin cambios.
-  Si tiene problemas, corregilo manteniendo la intención original. 
-  Respondé SOLO con el mensaje final corregido, sin explicaciones ni prefijos.`;
+  TEXTO: "${responseText}"
+  Si está bien, devuelve el texto exactamente igual.`;
 
   const auditResponse = await model.invoke([new HumanMessage(auditPrompt)]);
-  
-  // Replace the last message with the audited version
-  const auditedContent = auditResponse.content.toString().trim();
-  
-  return { 
-    messages: [new AIMessage(auditedContent)]
-  };
+  return { messages: [new AIMessage(auditResponse.content.toString().trim())] };
 }
 
-// ── Routing Functions ───────────────────────────────
+// ── FUNCIONES CONDICIONALES DE RUTEO ────────────────
+
 function routeAfterRouter(state) {
-  return state.agentType === 'POST_SALES' ? 'postSalesAgent' : 'salesAgent';
+  if (state.agentType === 'QUALIFIER') return 'qualifierAgent';
+  if (state.agentType === 'PRESCRIPTION') return 'prescriptionAgent';
+  if (state.agentType === 'QUOTER') return 'quoterAgent';
+  return 'postSalesAgent';
 }
 
-function routeAfterSales(state) {
+function processAgentReturn(state) {
   const lastMessage = state.messages[state.messages.length - 1];
   if (lastMessage.tool_calls && lastMessage.tool_calls.length > 0) {
-    return 'salesTools';
-  }
-  return 'auditor';
-}
-
-function routeAfterPostSales(state) {
-  const lastMessage = state.messages[state.messages.length - 1];
-  if (lastMessage.tool_calls && lastMessage.tool_calls.length > 0) {
+    if (state.agentType === 'QUALIFIER') return 'qualifierTools';
+    if (state.agentType === 'PRESCRIPTION') return 'prescriptionTools';
+    if (state.agentType === 'QUOTER') return 'quoterTools';
     return 'postSalesTools';
   }
   return 'auditor';
 }
 
-// ── Build the Multi-Agent Graph ─────────────────────
+// ── GRAFO DE AGENTES (LANGGRAPH) ─────────────────────
+
 const GraphAnnotation = Annotation.Root({
   ...MessagesAnnotation.spec,
   userPhone: Annotation({ reducer: (_, v) => v, default: () => "" }),
   userName: Annotation({ reducer: (_, v) => v, default: () => "" }),
-  agentType: Annotation({ reducer: (_, v) => v, default: () => "SALES" }),
+  agentType: Annotation({ reducer: (_, v) => v, default: () => "QUALIFIER" }),
   clientData: Annotation({ reducer: (_, v) => v, default: () => null }),
   isExisting: Annotation({ reducer: (_, v) => v, default: () => false }),
   customPrompt: Annotation({ reducer: (_, v) => v, default: () => "" }),
 });
 
 const workflow = new StateGraph(GraphAnnotation)
-  // Nodes
   .addNode("router", routerNode)
-  .addNode("salesAgent", salesNode)
+  
+  .addNode("qualifierAgent", qualifierNode)
+  .addNode("prescriptionAgent", prescriptionNode)
+  .addNode("quoterAgent", quoterNode)
   .addNode("postSalesAgent", postSalesNode)
-  .addNode("salesTools", salesToolNode)
+  
+  .addNode("qualifierTools", qualifierToolNode)
+  .addNode("prescriptionTools", prescriptionToolNode)
+  .addNode("quoterTools", quoterToolNode)
   .addNode("postSalesTools", postSalesToolNode)
+  
   .addNode("auditor", auditorNode)
-  // Edges
+  
+  // Ruteo Inteligente
   .addEdge("__start__", "router")
   .addConditionalEdges("router", routeAfterRouter)
-  .addConditionalEdges("salesAgent", routeAfterSales)
-  .addConditionalEdges("postSalesAgent", routeAfterPostSales)
-  .addEdge("salesTools", "salesAgent")          // After tool execution, go back to agent
-  .addEdge("postSalesTools", "postSalesAgent")  // After tool execution, go back to agent
-  .addEdge("auditor", "__end__");               // After audit, done
+  
+  // Regreso dinamico despues de pensar
+  .addConditionalEdges("qualifierAgent", processAgentReturn)
+  .addConditionalEdges("prescriptionAgent", processAgentReturn)
+  .addConditionalEdges("quoterAgent", processAgentReturn)
+  .addConditionalEdges("postSalesAgent", processAgentReturn)
+  
+  // Regreso dinamico despues de herramientas
+  .addEdge("qualifierTools", "qualifierAgent")
+  .addEdge("prescriptionTools", "prescriptionAgent")
+  .addEdge("quoterTools", "quoterAgent")
+  .addEdge("postSalesTools", "postSalesAgent")
+  
+  .addEdge("auditor", "__end__");
 
 const graph = workflow.compile();
-
 module.exports = { graph };

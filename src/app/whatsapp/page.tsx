@@ -25,6 +25,19 @@ const getLabelStyle = (label: string) =>
     CHAT_LABEL_OPTIONS.find(o => o.label === label)?.color
     ?? 'bg-violet-100 text-violet-600 border-violet-200';
 
+// Respuestas rápidas predefinidas
+const QUICK_REPLIES = [
+    { label: 'Saludo', text: '¡Hola! 👋 Bienvenido a Atelier Óptica. ¿En qué te puedo ayudar?' },
+    { label: 'Receta', text: '¿Me podés compartir tu receta óptica para ayudarte mejor?' },
+    { label: 'Turno', text: '¿Querés coordinar un turno para una consulta en el local? 📍' },
+    { label: 'Dirección', text: '📍 Nos encontrás en Mariano Moreno 459, El Palomar. https://maps.app.goo.gl/ejemplo' },
+    { label: 'Horario', text: 'Atendemos de lunes a viernes de 9 a 19hs y sábados de 9 a 13hs.' },
+    { label: 'En proceso', text: '¡Tu pedido está en proceso! Te avisamos cuando esté listo. ⏳' },
+    { label: 'Listo para retirar', text: '🎉 ¡Tu pedido está listo para retirar! Podes venir cuando quieras en nuestro horario de atención.' },
+    { label: 'Pago pendiente', text: 'Te recuerdo que quedó pendiente el saldo restante. ¿Cuándo te viene bien coordinar el pago?' },
+    { label: 'Seguimiento', text: '¡Hola! Solo queria saber si pudiste revisar el presupuesto que te enviamos. ¿Tenés alguna consulta?' },
+];
+
 // ── Types ─────────────────────────────────────────
 interface Chat {
     id: string;
@@ -67,6 +80,9 @@ export default function WhatsAppPage() {
     const [filterLabel, setFilterLabel] = useState<string | null>(null);
     const [showArchived, setShowArchived] = useState(false);
     const [showLabelPicker, setShowLabelPicker] = useState(false);
+    const [showQuickReplies, setShowQuickReplies] = useState(false);
+    const [selectedImage, setSelectedImage] = useState<{ base64: string; mimetype: string; filename: string } | null>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const pollRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -156,25 +172,42 @@ export default function WhatsAppPage() {
     // ── Select chat ───────────────────────────────
     const selectChat = async (chat: Chat) => {
         setSelectedChat(chat);
+        setShowLabelPicker(false);
         await fetchMessages(chat.id);
     };
 
-    // ── Send ──────────────────────────────────────
+    // ── Send text ─────────────────────────────────
     const sendMessage = async () => {
-        if (!newMessage.trim() || !selectedChat || sending) return;
+        if ((!newMessage.trim() && !selectedImage) || !selectedChat || sending) return;
         setSending(true);
         try {
+            const body: Record<string, unknown> = { chatId: selectedChat.id, message: newMessage };
+            if (selectedImage) body.media = selectedImage;
             await fetch('/api/whatsapp/send', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ chatId: selectedChat.id, message: newMessage }),
+                body: JSON.stringify(body),
             });
             setNewMessage('');
+            setSelectedImage(null);
             await fetchMessages(selectedChat.id);
         } catch (e) {
             console.error('Error enviando:', e);
         }
         setSending(false);
+    };
+
+    // ── Pick image from file input ────────────────
+    const handleImagePick = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = () => {
+            const base64 = (reader.result as string).split(',')[1];
+            setSelectedImage({ base64, mimetype: file.type, filename: file.name });
+        };
+        reader.readAsDataURL(file);
+        e.target.value = ''; // reset so same file can be picked again
     };
 
     // ── Toggle Bot per Chat ──────────────────────
@@ -624,21 +657,93 @@ export default function WhatsAppPage() {
                                 <div ref={messagesEndRef} />
                             </div>
 
-                            {/* Input */}
-                            <div className="px-6 py-4 bg-white dark:bg-stone-800 border-t border-stone-100 dark:border-stone-700 flex-shrink-0">
-                                <div className="flex items-center gap-3">
+                            {/* Input Area */}
+                            <div className="bg-white dark:bg-stone-800 border-t border-stone-100 dark:border-stone-700 flex-shrink-0">
+
+                                {/* Preview imagen seleccionada */}
+                                {selectedImage && (
+                                    <div className="px-6 pt-3 flex items-center gap-3">
+                                        <div className="relative">
+                                            <img
+                                                src={`data:${selectedImage.mimetype};base64,${selectedImage.base64}`}
+                                                alt="preview"
+                                                className="h-16 w-16 object-cover rounded-xl border border-stone-200"
+                                            />
+                                            <button
+                                                onClick={() => setSelectedImage(null)}
+                                                className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center"
+                                            >
+                                                <X className="w-3 h-3" />
+                                            </button>
+                                        </div>
+                                        <span className="text-xs text-stone-400 truncate">{selectedImage.filename}</span>
+                                    </div>
+                                )}
+
+                                {/* Panel de respuestas rápidas */}
+                                {showQuickReplies && (
+                                    <div className="px-4 pt-3 pb-1 grid grid-cols-2 gap-1.5 max-h-48 overflow-y-auto border-b border-stone-100 dark:border-stone-700">
+                                        <p className="col-span-2 text-[9px] font-black text-stone-400 uppercase tracking-widest mb-0.5">Respuestas rápidas</p>
+                                        {QUICK_REPLIES.map(qr => (
+                                            <button
+                                                key={qr.label}
+                                                onClick={() => {
+                                                    setNewMessage(qr.text);
+                                                    setShowQuickReplies(false);
+                                                }}
+                                                className="text-left px-3 py-2 bg-stone-50 hover:bg-emerald-50 border border-stone-100 hover:border-emerald-200 rounded-xl transition-all"
+                                            >
+                                                <p className="text-[10px] font-black text-stone-600 uppercase tracking-wide">{qr.label}</p>
+                                                <p className="text-[10px] text-stone-400 truncate mt-0.5">{qr.text}</p>
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
+
+                                {/* Row de entrada */}
+                                <div className="px-4 py-3 flex items-center gap-2">
+                                    {/* Input oculto de archivo */}
+                                    <input
+                                        ref={fileInputRef}
+                                        type="file"
+                                        accept="image/*"
+                                        className="hidden"
+                                        onChange={handleImagePick}
+                                    />
+
+                                    {/* Botón imagen */}
+                                    <button
+                                        onClick={() => fileInputRef.current?.click()}
+                                        title="Enviar imagen"
+                                        className="p-2 text-stone-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-xl transition-all flex-shrink-0"
+                                    >
+                                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                                    </button>
+
+                                    {/* Botón respuestas rápidas */}
+                                    <button
+                                        onClick={() => setShowQuickReplies(v => !v)}
+                                        title="Respuestas rápidas"
+                                        className={`p-2 rounded-xl transition-all flex-shrink-0 ${showQuickReplies ? 'bg-emerald-100 text-emerald-600' : 'text-stone-400 hover:text-emerald-600 hover:bg-emerald-50'}`}
+                                    >
+                                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                                    </button>
+
+                                    {/* Input de texto */}
                                     <input
                                         type="text"
                                         value={newMessage}
                                         onChange={e => setNewMessage(e.target.value)}
                                         onKeyDown={e => e.key === 'Enter' && !e.shiftKey && sendMessage()}
-                                        placeholder="Escribí un mensaje..."
-                                        className="flex-1 px-4 py-3 bg-stone-50 dark:bg-stone-900 border-2 border-stone-100 dark:border-stone-700 rounded-xl text-sm font-medium focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none"
+                                        placeholder={selectedImage ? 'Agregar texto (opcional)...' : 'Escribí un mensaje...'}
+                                        className="flex-1 px-4 py-2.5 bg-stone-50 dark:bg-stone-900 border-2 border-stone-100 dark:border-stone-700 rounded-xl text-sm font-medium focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none"
                                     />
+
+                                    {/* Botón enviar */}
                                     <button
                                         onClick={sendMessage}
-                                        disabled={!newMessage.trim() || sending}
-                                        className="p-3 bg-emerald-500 text-white rounded-xl hover:bg-emerald-600 disabled:opacity-50 disabled:hover:bg-emerald-500 transition-all hover:scale-105 active:scale-95"
+                                        disabled={(!newMessage.trim() && !selectedImage) || sending}
+                                        className="p-2.5 bg-emerald-500 text-white rounded-xl hover:bg-emerald-600 disabled:opacity-50 transition-all hover:scale-105 active:scale-95 flex-shrink-0"
                                     >
                                         <Send className="w-5 h-5" />
                                     </button>
@@ -658,6 +763,7 @@ export default function WhatsAppPage() {
                     )}
                 </div>
             </div>
+            )}
         </main>
     );
 }
