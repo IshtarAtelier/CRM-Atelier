@@ -63,14 +63,31 @@ waClient.on('message_create', async (msg) => {
         const waId = msg.to;
         try {
             const chat = await prisma.whatsAppChat.findUnique({ where: { waId } });
-            if (chat && chat.botEnabled) {
-                await prisma.whatsAppChat.update({
-                    where: { id: chat.id },
-                    data: { botEnabled: false }
+            if (chat) {
+                if (chat.botEnabled) {
+                    await prisma.whatsAppChat.update({
+                        where: { id: chat.id },
+                        data: { botEnabled: false }
+                    });
+                    console.log(`  ⏸️ Bot pausado para ${waId} por intervención humana.`);
+                }
+                
+                // GUARDAR EL MENSAJE EN EL CRM PARA SINCRONIZACIÓN BIFÁSICA!
+                let messageType = msg.hasMedia ? 'IMAGE' : 'TEXT';
+                
+                await prisma.whatsAppMessage.create({
+                    data: {
+                        chatId: chat.id,
+                        direction: 'OUTBOUND',
+                        type: messageType,
+                        content: msg.body || '[Media/Documento]',
+                        waMessageId: msg.id._serialized,
+                    }
                 });
-                console.log(`  ⏸️ Bot pausado para ${waId} por intervención humana.`);
             }
-        } catch (e) {}
+        } catch (e) {
+            console.error("Error on message_create sync:", e);
+        }
     }
 });
 
