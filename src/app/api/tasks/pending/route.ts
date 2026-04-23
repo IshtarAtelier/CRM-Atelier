@@ -9,6 +9,10 @@ export async function GET() {
         return NextResponse.json(tasks);
     } catch (error) {
         console.error('Error fetching pending tasks:', error);
-        return NextResponse.json({ error: 'Error al obtener tareas' }, { status: 500 });
+        return NextResponse.json({ 
+            error: 'Error al obtener tareas',
+            message: error instanceof Error ? error.message : String(error),
+            stack: error instanceof Error ? error.stack : undefined
+        }, { status: 500 });
     }
 }
