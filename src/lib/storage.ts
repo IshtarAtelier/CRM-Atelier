@@ -145,3 +145,33 @@ export async function deleteFile(key: string): Promise<void> {
         }
     }
 }
+
+/**
+ * Gets a file as Buffer (for server-side processing like AI OCR)
+ */
+export async function getFileBuffer(key: string): Promise<Buffer | null> {
+    if (key.startsWith('local://')) {
+        const pureKey = key.replace('local://', '');
+        const filepath = path.join(process.cwd(), 'storage', 'uploads', pureKey);
+        try {
+            const { readFile } = await import('fs/promises');
+            return await readFile(filepath);
+        } catch (error) {
+            console.error('Error reading local file buffer:', error);
+            return null;
+        }
+    }
+
+    if (isCloudEnabled) {
+        try {
+            const bucket = admin.storage().bucket();
+            const [buffer] = await bucket.file(key).download();
+            return buffer;
+        } catch (error) {
+            console.error('Error downloading Cloud file buffer:', error);
+            return null;
+        }
+    }
+
+    return null;
+}

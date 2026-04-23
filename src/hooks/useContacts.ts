@@ -327,6 +327,25 @@ export function useContacts(activeTab: ContactStatus, searchQuery: string, favor
         }
     };
 
+    const deleteContact = async (id: string): Promise<boolean> => {
+        try {
+            const res = await fetch(`/api/contacts/${id}`, {
+                method: 'DELETE'
+            });
+            if (res.ok) {
+                await fetchContacts();
+                return true;
+            }
+            const data = await res.json().catch(() => ({}));
+            alert(`Error al eliminar contacto: ${data.details || data.error || 'Error desconocido'}`);
+            return false;
+        } catch (err: any) {
+            console.error('Error deleting contact:', err);
+            alert(`Error de conexión: ${err.message}`);
+            return false;
+        }
+    };
+
     return {
         contacts,
         expiredRx,
@@ -335,6 +354,7 @@ export function useContacts(activeTab: ContactStatus, searchQuery: string, favor
         refresh: fetchContacts,
         createContact,
         updateContact,
+        deleteContact,
         updateStatus,
         updatePriority,
         toggleFavorite,

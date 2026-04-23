@@ -23,6 +23,7 @@ interface ContactDetailProps {
     onUpdateTaskStatus: (id: string, taskId: string, status: string) => Promise<boolean>;
     onStatusChange: (id: string, status: string, userRole?: string) => Promise<boolean>;
     onDeleteOrder: (orderId: string, reason?: string, role?: string) => Promise<any> | void;
+    onDeleteContact?: (id: string) => Promise<boolean>;
     autoStartQuote?: boolean;
 }
 
@@ -37,6 +38,7 @@ export default function ContactDetail({
     onUpdateTaskStatus,
     onStatusChange,
     onDeleteOrder,
+    onDeleteContact,
     autoStartQuote
 }: ContactDetailProps) {
     const [contact, setContact] = useState<Contact | null>(null);
@@ -168,6 +170,7 @@ export default function ContactDetail({
                     onToggleFavorite={onToggleFavorite}
                     onUpdatePriority={onUpdatePriority}
                     onRevertStatus={handleRevertStatus}
+                    onDeleteContact={onDeleteContact}
                 />
 
                 <main className="flex-1 overflow-y-auto p-6 custom-scrollbar">

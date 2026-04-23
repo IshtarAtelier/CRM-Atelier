@@ -47,7 +47,8 @@ function ContactosPageContent() {
         deletePrescription,
         addPayment,
         checkCanClose,
-        deleteOrder
+        deleteOrder,
+        deleteContact
     } = useContacts(activeTab, searchQuery, showFavorites, selectedInterest);
 
     useEffect(() => {
@@ -169,6 +170,11 @@ function ContactosPageContent() {
                     onUpdateTaskStatus={updateTaskStatus}
                     onStatusChange={updateStatus}
                     onDeleteOrder={(id) => deleteOrder(id)}
+                    onDeleteContact={async (id) => {
+                        const success = await deleteContact(id);
+                        if (success) setSelectedContactId(null);
+                        return success;
+                    }}
                     autoStartQuote={autoStartQuote}
                 />
             )}

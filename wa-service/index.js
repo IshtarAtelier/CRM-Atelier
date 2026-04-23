@@ -316,6 +316,7 @@ app.post('/api/send', async (req, res) => {
         
         if (!isReady) return res.status(400).json({ error: 'WhatsApp not connected' });
 
+        let sent;
         let mediaUrl = null;
         if (media?.base64) {
             const { MessageMedia } = require('whatsapp-web.js');

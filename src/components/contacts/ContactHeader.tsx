@@ -4,7 +4,7 @@ import React from 'react';
 import { 
     User, Heart, Pencil, Calculator, Star, X, 
     Phone, Mail, FileText, MapPin, Building2, Share2, Tag,
-    History, CheckCircle2, Receipt, MessageCircle
+    History, CheckCircle2, Receipt, MessageCircle, Trash2
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
@@ -19,6 +19,7 @@ interface ContactHeaderProps {
     onToggleFavorite: (id: string) => void;
     onUpdatePriority: (id: string, priority: number) => void;
     onRevertStatus: () => void;
+    onDeleteContact?: (id: string) => void;
 }
 
 export default function ContactHeader({
@@ -31,7 +32,8 @@ export default function ContactHeader({
     onEdit,
     onToggleFavorite,
     onUpdatePriority,
-    onRevertStatus
+    onRevertStatus,
+    onDeleteContact
 }: ContactHeaderProps) {
     const router = useRouter();
 
@@ -116,6 +118,20 @@ export default function ContactHeader({
                                         className="px-3 py-1 bg-amber-50 text-amber-600 border border-amber-200 rounded-xl text-[8px] font-black uppercase tracking-widest hover:bg-amber-100"
                                     >
                                         Retroceder
+                                    </button>
+                                )}
+                                
+                                {currentUserRole === 'ADMIN' && onDeleteContact && (
+                                    <button
+                                        onClick={() => {
+                                            if (window.confirm('¿Estás seguro que quieres eliminar este contacto?')) {
+                                                onDeleteContact(contact.id);
+                                            }
+                                        }}
+                                        className="p-1.5 ml-1 rounded-lg text-stone-300 hover:text-red-500 hover:bg-red-50 transition-all border border-transparent"
+                                        title="Eliminar contacto"
+                                    >
+                                        <Trash2 className="w-4 h-4" />
                                     </button>
                                 )}
                             </div>

@@ -37,9 +37,13 @@ export async function POST(request: Request) {
             detail = 'El Email o DNI ya están registrados para otro contacto.';
         }
 
+        // Si el error es una validación de aplicación (Posible ficha duplicada), retornamos 400 en lugar de 500
+        const isValidationError = detail.includes('Posible ficha duplicada');
+        const statusCode = isValidationError ? 400 : 500;
+
         return NextResponse.json({
             error: 'Error al crear contacto',
             details: detail
-        }, { status: 500 });
+        }, { status: statusCode });
     }
 }

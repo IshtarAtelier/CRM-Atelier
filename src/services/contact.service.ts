@@ -1,6 +1,8 @@
 import { prisma } from '@/lib/db';
 import { CashService } from './cash.service';
 import { ISH_POSNET_THRESHOLD, ISH_POSNET_METHODS } from '@/lib/constants';
+import { ReceiptAgentService } from './receipt-agent.service';
+
 
 export interface ContactCreateData {
     name: string;
@@ -76,6 +78,57 @@ export const ContactService = {
     },
 
     async create(data: ContactCreateData) {
+        const normalizedName = data.name.trim().toLowerCase();
+        
+        let normalizedIncomingPhone = "";
+        if (data.phone) {
+            normalizedIncomingPhone = data.phone.replace(/\D/g, '');
+        }
+
+        // 1. Exact Name, Email, or DNI match
+        const orConditions: any[] = [
+            { name: { equals: data.name.trim(), mode: 'insensitive' } }
+        ];
+
+        if (data.email?.trim()) {
+            orConditions.push({ email: data.email.trim() });
+        }
+        if (data.dni?.trim()) {
+            orConditions.push({ dni: data.dni.trim() });
+        }
+
+        const potentialDuplicates = await prisma.client.findMany({
+            where: { OR: orConditions }
+        });
+
+        if (potentialDuplicates.length > 0) {
+           const exactNameMatch = potentialDuplicates.find(p => p.name.trim().toLowerCase() === normalizedName);
+           if (exactNameMatch) {
+               throw new Error(`Posible ficha duplicada: Ya existe una persona con el nombre exacto "${exactNameMatch.name}". Si se trata de otra persona con el mismo nombre, agregale un distintivo (ej. "Hijo").`);
+           }
+           if (data.email) {
+               const emailMatch = potentialDuplicates.find(p => p.email?.toLowerCase() === data.email?.trim().toLowerCase());
+               if (emailMatch) throw new Error(`Posible ficha duplicada: El Email ${data.email} ya está registrado a nombre de ${emailMatch.name}.`);
+           }
+           if (data.dni) {
+               const dniMatch = potentialDuplicates.find(p => p.dni === data.dni?.trim());
+               if (dniMatch) throw new Error(`Posible ficha duplicada: El DNI ${data.dni} ya está registrado a nombre de ${dniMatch.name}.`);
+           }
+        }
+
+        // 2. Intelligent Phone Match
+        if (normalizedIncomingPhone.length >= 8) {
+            // Check if any existing phone matches the same sequence of core digits
+            const phoneDuplicates: any[] = await prisma.$queryRaw`
+                SELECT id, name, phone FROM "Client"
+                WHERE phone IS NOT NULL AND regexp_replace(phone, '\\D', '', 'g') LIKE ${'%' + normalizedIncomingPhone}
+            `;
+            if (phoneDuplicates.length > 0) {
+                const pDup = phoneDuplicates[0];
+                throw new Error(`Posible ficha duplicada: Ya existe un cliente (${pDup.name}) registrado con el teléfono ${pDup.phone}.`);
+            }
+        }
+
         // Hardening: Strictly pick only necessary fields to avoid Prisma validation errors
         // with relations or unexpected properties
         const createData: any = {
@@ -92,7 +145,6 @@ export const ContactService = {
             insurance: data.insurance,
             doctor: data.doctor
         };
-
 
         return await prisma.client.create({
             data: createData
@@ -231,6 +283,12 @@ export const ContactService = {
         return await prisma.client.update({
             where: { id },
             data: { priority }
+        });
+    },
+
+    async delete(id: string) {
+        return await prisma.client.delete({
+            where: { id }
         });
     },
 
@@ -650,6 +708,18 @@ export const ContactService = {
             }
 
             return { ...payment, thresholdReached };
+        }).then(result => {
+            // FIRE BACKGROUND AI VERIFICATION IF RECEIPT EXISTS
+            if (receiptUrl) {
+                ReceiptAgentService.analyzeReceipt(
+                    result.id,
+                    orderId,
+                    receiptUrl,
+                    amount,
+                    method
+                ).catch(err => console.error('[ReceiptAgent Background Error]', err));
+            }
+            return result;
         });
     },
 
