@@ -594,7 +594,7 @@ export default function WhatsAppPage() {
                                                         </div>
                                                     )}
                                                     
-                                                    <div className={`px-5 py-3.5 shadow-sm relative group ${isOut ? 'bg-red-500 text-white rounded-[24px] rounded-br-sm shadow-red-500/10' : 'bg-white/90 dark:bg-stone-800/90 backdrop-blur-xl text-stone-800 dark:text-stone-100 rounded-[24px] rounded-bl-sm border border-stone-200/50 dark:border-white/5'}`}>
+                                                    <div className={`px-5 py-3.5 shadow-sm relative group overflow-hidden ${isOut ? 'bg-emerald-500 text-white rounded-[24px] rounded-br-sm shadow-emerald-500/10' : 'bg-white/90 dark:bg-stone-800/90 backdrop-blur-xl text-stone-800 dark:text-stone-100 rounded-[24px] rounded-bl-sm border border-stone-200/50 dark:border-white/5'}`}>
                                                         
                                                         {/* RENDERIZADO DE MEDIOS */}
                                                         {msg.mediaUrl && msg.type === 'AUDIO' && (
@@ -614,9 +614,9 @@ export default function WhatsAppPage() {
                                                             </div>
                                                         )}
 
-                                                        <p className="text-[15px] font-medium leading-relaxed whitespace-pre-wrap break-words">{msg.content}</p>
+                                                        <p className="text-[15px] font-medium leading-relaxed whitespace-pre-wrap break-all">{msg.content}</p>
                                                         
-                                                        <div className={`mt-2 flex items-center gap-1.5 text-[10px] font-bold ${isOut ? 'text-red-100 justify-end' : 'text-stone-400'}`}>
+                                                        <div className={`mt-2 flex items-center gap-1.5 text-[10px] font-bold ${isOut ? 'text-emerald-100 justify-end' : 'text-stone-400'}`}>
                                                             <span>{format(new Date(msg.createdAt), "HH:mm")}</span>
                                                             {isOut && <CheckCircle2 className="w-3 h-3" />}
                                                         </div>
