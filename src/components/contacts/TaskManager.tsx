@@ -116,12 +116,16 @@ export default function TaskManager({ tasks, contact, onAddTask, onToggleTask }:
             {/* Lista de pendientes */}
             <div className="space-y-3">
                 {pendingTasks.length > 0 ? (
-                    pendingTasks.map((task) => (
-                        <div key={task.id} className="flex items-center justify-between p-5 bg-white dark:bg-stone-900 rounded-[2.5rem] border-2 border-stone-100 dark:border-stone-800 hover:border-emerald-500/30 dark:hover:border-emerald-500/20 transition-all group shadow-sm">
-                            <div className="flex-1 min-w-0">
-                                <p className="text-sm font-bold text-stone-800 dark:text-stone-200 truncate">{task.description}</p>
+                    pendingTasks.map((task) => {
+                        const isReview = task.description.includes('Solicitar comentario');
+                        return (
+                        <div key={task.id} className={`flex items-center justify-between p-5 bg-white dark:bg-stone-900 rounded-[2.5rem] border-2 transition-all group shadow-sm ${isReview ? 'border-pink-200 dark:border-pink-900/50 hover:border-pink-400 dark:hover:border-pink-500/50 bg-pink-50/30' : 'border-stone-100 dark:border-stone-800 hover:border-emerald-500/30 dark:hover:border-emerald-500/20'}`}>
+                            <div className="flex-1 min-w-0 pr-4">
+                                <p className={`text-sm font-bold break-words leading-relaxed ${isReview ? 'text-pink-900 dark:text-pink-100' : 'text-stone-800 dark:text-stone-200'}`}>
+                                    {task.description}
+                                </p>
                                 {task.dueDate && (
-                                    <div className={`flex items-center gap-1.5 mt-1.5 text-[10px] font-black uppercase tracking-widest ${new Date(task.dueDate) < new Date() ? 'text-red-500' : 'text-stone-400'}`}>
+                                    <div className={`flex items-center gap-1.5 mt-2 text-[10px] font-black uppercase tracking-widest ${new Date(task.dueDate) < new Date() ? 'text-red-500' : isReview ? 'text-pink-400' : 'text-stone-400'}`}>
                                         <Calendar className="w-3.5 h-3.5" />
                                         <span>vence {format(new Date(task.dueDate), "d 'de' MMM", { locale: es })}</span>
                                     </div>
