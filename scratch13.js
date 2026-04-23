@@ -2,21 +2,18 @@ const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
 async function test() {
-    const tasks = await prisma.clientTask.findMany({
-        where: { status: 'PENDING' }
-    });
-    console.log('Pending Tasks:', tasks.length);
+    const today = new Date();
+    today.setHours(0,0,0,0);
 
-    const saldos = await prisma.order.findMany({
-        where: { orderType: 'SALE' },
-        select: { id: true, total: true, paid: true, clientId: true }
+    const completedRecent = await prisma.clientTask.findMany({
+        where: { 
+            status: 'COMPLETED',
+            updatedAt: { gte: today }
+        },
+        include: { client: { select: { name: true } } }
     });
-    let c = 0;
-    for (let o of saldos) {
-        if (o.total > (o.paid || 0)) {
-            c++;
-        }
-    }
-    console.log('Sales with missing payments:', c);
+    
+    console.log(`Recent COMPLETED Tasks: ${completedRecent.length}`);
+    completedRecent.forEach(t => console.log(`- ${t.client.name}: ${t.description} (Updated: ${t.updatedAt})`));
 }
 test();

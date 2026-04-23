@@ -117,7 +117,7 @@ export default function TaskManager({ tasks, contact, onAddTask, onToggleTask }:
             <div className="space-y-3">
                 {pendingTasks.length > 0 ? (
                     pendingTasks.map((task) => {
-                        const isReview = task.description.includes('Solicitar comentario');
+                        const isReview = task.description?.includes('Solicitar comentario') || false;
                         return (
                         <div key={task.id} className={`flex items-center justify-between p-5 bg-white dark:bg-stone-900 rounded-[2.5rem] border-2 transition-all group shadow-sm ${isReview ? 'border-pink-200 dark:border-pink-900/50 hover:border-pink-400 dark:hover:border-pink-500/50 bg-pink-50/30' : 'border-stone-100 dark:border-stone-800 hover:border-emerald-500/30 dark:hover:border-emerald-500/20'}`}>
                             <div className="flex-1 min-w-0 pr-4">
@@ -133,11 +133,12 @@ export default function TaskManager({ tasks, contact, onAddTask, onToggleTask }:
                             </div>
 
                             <div className="flex items-center gap-2 ml-4">
-                                {task.description.includes('Solicitar comentario') && contact?.phone && (
+                                {isReview && contact?.phone && (
                                     <button
                                         onClick={(e) => {
                                             e.stopPropagation();
-                                            const message = `Hola ${contact.name.split(' ')[0]}! Te escribimos para pedirte un favor enorme 🙏\n\n¿Nos dejarías una reseña en Google? Nos ayudaría muchísimo si podés mencionar por qué somos la mejor óptica en Córdoba para vos y cómo fue tu experiencia.\n\n👉 https://g.page/r/CcVls8v7ic_NEBM/review\n\n¡Nos suma muchísimo para seguir creciendo!\nEspero tu comentario 🤍✨🫶`;
+                                            const clientName = contact?.name ? contact.name.split(' ')[0] : 'Cliente';
+                                            const message = `Hola ${clientName}! Te escribimos para pedirte un favor enorme 🙏\n\n¿Nos dejarías una reseña en Google? Nos ayudaría muchísimo si podés mencionar por qué somos la mejor óptica en Córdoba para vos y cómo fue tu experiencia.\n\n👉 https://g.page/r/CcVls8v7ic_NEBM/review\n\n¡Nos suma muchísimo para seguir creciendo!\nEspero tu comentario 🤍✨🫶`;
                                             const phone = contact.phone.replace(/\D/g, '');
                                             window.open(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`, '_blank');
                                         }}
@@ -162,7 +163,8 @@ export default function TaskManager({ tasks, contact, onAddTask, onToggleTask }:
                                 </button>
                             </div>
                         </div>
-                    ))
+                        );
+                    })
                 ) : (
                     <div className="text-center py-12 bg-stone-50 dark:bg-stone-800/10 rounded-[3rem] border-2 border-dashed border-stone-100 dark:border-stone-800/50">
                         <CheckCircle2 className="w-10 h-10 text-stone-200 dark:text-stone-700 mx-auto mb-3" />
