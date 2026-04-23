@@ -133,16 +133,22 @@ export default function ContactDetail({
     };
 
     if (loading) return (
-        <div className="flex-1 flex items-center justify-center bg-stone-50 dark:bg-stone-950">
-            <div className="text-center font-black text-stone-400 text-sm animate-pulse tracking-widest uppercase">Cargando ficha...</div>
+        <div className="fixed inset-0 bg-stone-900/40 backdrop-blur-md z-[60] flex items-center justify-center animate-in fade-in duration-300">
+            <div className="bg-white dark:bg-stone-900 p-8 rounded-3xl shadow-2xl flex flex-col items-center gap-4 border border-stone-200 dark:border-stone-800">
+                <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+                <div className="text-center font-black text-stone-400 text-sm tracking-widest uppercase">Cargando ficha...</div>
+            </div>
         </div>
     );
 
     if (!contact) return (
-        <div className="flex-1 flex items-center justify-center bg-stone-50 dark:bg-stone-950">
-            <div className="text-center p-12 bg-white dark:bg-stone-900 rounded-[3rem] shadow-xl border border-stone-100 dark:border-stone-800">
-                <p className="text-stone-400 font-bold mb-4 italic">No se pudo cargar la información.</p>
-                <button onClick={fetchContact} className="px-6 py-3 bg-emerald-500 text-white rounded-2xl font-black text-xs uppercase tracking-widest">Reintentar</button>
+        <div className="fixed inset-0 bg-stone-900/40 backdrop-blur-md z-[60] flex items-center justify-center animate-in fade-in duration-300">
+            <div className="bg-white dark:bg-stone-900 p-8 rounded-3xl shadow-2xl flex flex-col items-center gap-4 border border-stone-200 dark:border-stone-800">
+                <p className="text-stone-400 font-bold mb-2 italic">No se pudo cargar la información.</p>
+                <div className="flex gap-3 mt-2">
+                    <button onClick={onClose} className="px-6 py-3 bg-stone-100 text-stone-500 rounded-2xl font-black text-xs uppercase tracking-widest">Cerrar</button>
+                    <button onClick={fetchContact} className="px-6 py-3 bg-emerald-500 text-white rounded-2xl font-black text-xs uppercase tracking-widest">Reintentar</button>
+                </div>
             </div>
         </div>
     );
