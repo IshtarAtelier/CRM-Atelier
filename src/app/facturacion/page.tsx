@@ -266,7 +266,7 @@ export default function BillingPage() {
                                         <h3 className="font-black text-stone-800 dark:text-white flex items-center gap-2 tracking-tight">
                                             <span className="cursor-pointer hover:text-blue-600 hover:underline transition-colors" onClick={(e) => { e.stopPropagation(); router.push(`/contactos?id=${req.order.client.id}`); }}>{req.order.client.name}</span>
                                             <span className="text-[9px] px-2 py-1 rounded-full bg-blue-100 text-blue-600 uppercase tracking-widest">
-                                                {req.requestedBy === 'SISTEMA (Auto)' ? 'AUTOMÁTICA' : 'MANUAL'}
+                                                {req.requestedBy?.includes('SISTEMA') ? 'AUTOMÁTICA' : 'MANUAL'}
                                             </span>
                                         </h3>
                                         <div className="flex items-center gap-3 mt-1.5">

@@ -140,6 +140,7 @@ export default function VentasPage() {
     const [expandedDetail, setExpandedDetail] = useState<string | null>(null);
 
     const [updatingId, setUpdatingId] = useState<string | null>(null);
+    const [requestingInvoiceId, setRequestingInvoiceId] = useState<string | null>(null);
 
     const [error, setError] = useState<string | null>(null);
 
@@ -283,6 +284,7 @@ export default function VentasPage() {
                 return alert(`Error: No podés facturar más de lo que el cliente pagó ($${maxInvoiceable.toLocaleString('es-AR')}).`);
             }
 
+            setRequestingInvoiceId(order.id);
             try {
                 const res = await fetch('/api/notifications', {
                     method: 'POST',
@@ -293,13 +295,18 @@ export default function VentasPage() {
                         orderId: order.id,
                     }),
                 });
+                
+                const data = await res.json();
+                
                 if (res.ok) {
                     alert('✅ Solicitud de factura enviada al administrador.');
                 } else {
-                    alert('Error al enviar la solicitud.');
+                    alert(data.error || 'Error al enviar la solicitud.');
                 }
             } catch {
-                alert('Error de conexión.');
+                alert('Error de conexión al solicitar factura.');
+            } finally {
+                setRequestingInvoiceId(null);
             }
         }
     };
@@ -789,10 +796,11 @@ export default function VentasPage() {
                                                     <button
                                                         key={`req-${order.id}`}
                                                         onClick={() => handleInvoiceRequest(order)}
-                                                        className={`p-3 rounded-xl hover:scale-110 transition-all ${isAdmin ? 'bg-indigo-50 dark:bg-indigo-950/30 text-indigo-600 hover:bg-indigo-100' : 'bg-amber-50 dark:bg-amber-950/30 text-amber-500 hover:bg-amber-100'}`}
+                                                        disabled={requestingInvoiceId === order.id}
+                                                        className={`p-3 rounded-xl hover:scale-110 transition-all disabled:opacity-50 disabled:hover:scale-100 ${isAdmin ? 'bg-indigo-50 dark:bg-indigo-950/30 text-indigo-600 hover:bg-indigo-100' : 'bg-amber-50 dark:bg-amber-950/30 text-amber-500 hover:bg-amber-100'}`}
                                                         title={isAdmin ? 'Emitir Factura C' : 'Solicitar Factura'}
                                                     >
-                                                        <FileText className="w-4 h-4" />
+                                                        {requestingInvoiceId === order.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileText className="w-4 h-4" />}
                                                     </button>
                                                 );
                                             }

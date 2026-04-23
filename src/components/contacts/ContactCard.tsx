@@ -21,7 +21,8 @@ export const ContactCard: React.FC<ContactCardProps> = ({
 }) => {
     return (
         <div
-            className="bg-white dark:bg-stone-800/40 border border-stone-200/60 dark:border-stone-700/60 rounded-3xl p-4 lg:p-6 hover:shadow-xl hover:border-primary/20 transition-all group flex flex-col lg:flex-row items-center justify-between gap-4 lg:gap-6 select-none"
+            onClick={() => onClick(contact.id)}
+            className="bg-white dark:bg-stone-800/40 border border-stone-200/60 dark:border-stone-700/60 rounded-3xl p-4 lg:p-6 hover:shadow-xl hover:border-primary/20 transition-all group flex flex-col lg:flex-row items-center justify-between gap-4 lg:gap-6 select-none cursor-pointer"
         >
             <div className="flex items-center gap-6 flex-1 w-full">
                 <div className="relative">

@@ -44,12 +44,12 @@ export async function POST(request: Request) {
             if (newAmountMatch) {
                 const newAmountStr = newAmountMatch[1];
                 
-                // Check if there is already a pending request for the SAME amount and order
+                // Check if there is already a pending or approved request for the SAME amount and order
                 const existingRequests = await prisma.notification.findMany({
                     where: {
                         type: 'INVOICE_REQUEST',
                         orderId: orderId,
-                        status: 'PENDING'
+                        status: { in: ['PENDING', 'APPROVED'] }
                     }
                 });
                 
