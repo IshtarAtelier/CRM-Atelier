@@ -316,11 +316,26 @@ app.post('/api/send', async (req, res) => {
         
         if (!isReady) return res.status(400).json({ error: 'WhatsApp not connected' });
 
-        let sent;
+        let mediaUrl = null;
         if (media?.base64) {
             const { MessageMedia } = require('whatsapp-web.js');
             const mediaObj = new MessageMedia(media.mimetype, media.base64, media.filename || 'image.jpg');
             sent = await waClient.sendMessage(waId, mediaObj, { caption: message || '' });
+
+            // Subir al CRM para tener el pre-render
+            try {
+                const buffer = Buffer.from(media.base64, 'base64');
+                const blob = new Blob([buffer], { type: media.mimetype });
+                const f = new FormData();
+                f.append('file', blob, `out_${Date.now()}_${media.filename || 'media.bin'}`);
+                const uploadRes = await fetch(`${process.env.CRM_API_URL}/upload`, { 
+                    method: 'POST', body: f
+                });
+                const resJson = await uploadRes.json();
+                if (resJson.url) mediaUrl = resJson.url;
+            } catch (err) {
+                console.error("Error subiendo media saliente a CRM:", err.message);
+            }
         } else {
             sent = await waClient.sendMessage(waId, message);
         }
@@ -332,6 +347,7 @@ app.post('/api/send', async (req, res) => {
                     direction: 'OUTBOUND',
                     type: media?.base64 ? 'IMAGE' : 'TEXT',
                     content: message || '[Imagen]',
+                    mediaUrl: mediaUrl,
                     waMessageId: sent.id._serialized,
                 }
             });

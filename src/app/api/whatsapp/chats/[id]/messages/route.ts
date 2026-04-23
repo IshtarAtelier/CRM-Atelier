@@ -8,8 +8,20 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     try {
         const res = await fetch(`${WA_SERVER_URL}/api/chats/${id}/messages`, { cache: 'no-store' });
         const data = await res.json();
+        
+        if (Array.isArray(data)) {
+            const { getSignedUrl } = await import('@/lib/storage');
+            const messagesWithUrls = await Promise.all(data.map(async (msg: any) => {
+                if (msg.mediaUrl) {
+                    msg.mediaUrl = await getSignedUrl(msg.mediaUrl);
+                }
+                return msg;
+            }));
+            return NextResponse.json(messagesWithUrls);
+        }
         return NextResponse.json(data);
-    } catch {
+    } catch (e: any) {
+        console.error('Error fetching messages:', e);
         return NextResponse.json([]);
     }
 }
