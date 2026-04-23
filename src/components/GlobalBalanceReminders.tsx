@@ -17,7 +17,7 @@ export function GlobalBalanceReminders() {
 
     const fetchBalances = async () => {
         try {
-            const res = await fetch('/api/orders/with-balance');
+            const res = await fetch('/api/orders/with-balance', { cache: 'no-store' });
             if (res.ok) {
                 const data = await res.json();
                 setOrders(data);

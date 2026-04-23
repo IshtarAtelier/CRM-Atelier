@@ -17,7 +17,7 @@ export function GlobalTasks() {
 
     const fetchTasks = async () => {
         try {
-            const res = await fetch('/api/tasks/pending');
+            const res = await fetch('/api/tasks/pending', { cache: 'no-store' });
             if (res.ok) {
                 const data = await res.json();
                 setTasks(data);
