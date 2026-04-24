@@ -128,7 +128,20 @@ export const ContactCard: React.FC<ContactCardProps> = ({
                             className="flex-1 sm:flex-none px-3 lg:px-4 py-2.5 lg:py-3 bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400 rounded-xl lg:rounded-2xl text-[9px] lg:text-[10px] font-black uppercase tracking-widest border border-emerald-100 flex items-center justify-center gap-2"
                         >
                             <CheckCircle2 className="w-3.5 h-3.5 lg:w-4 lg:h-4" />
-                            OK
+                            Confirmar
+                        </button>
+                    )}
+                    {contact.status === 'CONFIRMED' && (
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onStatusChange(contact.id, 'CONTACT');
+                            }}
+                            className="flex-1 sm:flex-none px-3 lg:px-4 py-2.5 lg:py-3 bg-stone-100 text-stone-600 dark:bg-stone-800 dark:text-stone-300 rounded-xl lg:rounded-2xl text-[9px] lg:text-[10px] font-black uppercase tracking-widest border border-stone-200 dark:border-stone-700 flex items-center justify-center gap-2 hover:bg-stone-200 dark:hover:bg-stone-700 transition-all"
+                            title="Deshacer confirmación"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5 lg:w-4 lg:h-4"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/></svg>
+                            Deshacer
                         </button>
                     )}
                     <button
