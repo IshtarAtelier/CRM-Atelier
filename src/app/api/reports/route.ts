@@ -156,6 +156,18 @@ export async function GET(request: Request) {
                 if (product.unitType === 'PAR' && item.eye && (product.cost || 0) > 0) {
                     itemCost = ((product.cost || 0) / 2) * item.quantity;
                 }
+
+                // Promo 2x1: el segundo cristal multifocal bonificado tiene costo $0
+                // (el laboratorio lo regala). Se detecta porque su precio de venta es $0.
+                // Los armazones siempre cuentan ambos costos (la óptica los paga).
+                const is2x1Order = ((order as any).appliedPromoName || '').toLowerCase().includes('2x1');
+                const isCrystalItem = (product.category || '').toUpperCase().includes('LENS')
+                    || (product.type || '').includes('Cristal')
+                    || (product.type || '').includes('Multifocal')
+                    || (product.type || '').includes('Monofocal');
+                if (is2x1Order && isCrystalItem && item.price === 0) {
+                    itemCost = 0;
+                }
                 
                 const itemRevenue = item.price * item.quantity;
 
