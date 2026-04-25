@@ -5,6 +5,7 @@ import { Plus, Search, Package, Loader2, AlertCircle, ArrowUpRight, Trash2, Shop
 import { Product } from '@/hooks/useProducts';
 import ProductForm from '@/components/inventory/ProductForm';
 import { useProducts } from '@/hooks/useProducts';
+import { autoCorrectLab } from '@/utils/product-controllers';
 
 const PRODUCT_CATEGORIES = [
     { id: 'ALL', label: 'Todos' },
@@ -15,15 +16,7 @@ const PRODUCT_CATEGORIES = [
     { id: 'Lentes Especiales', label: '✨ Especiales' },
 ];
 
-const autoCorrectLab = (lab: string) => {
-    let l = lab.toUpperCase().trim();
-    if (!l) return '';
-    const norm = l.normalize("NFD").replace(/[\u0300-\u036f]/g, ""); // removes accents
-    if (/^(OPTO\s*VI[CS]ION|OPTO|OPT)$/i.test(norm)) return 'OPTOVISION';
-    if (/^(GRUPO\s*OPTICO|GRUPO|G\.*\s*OPTICO)$/i.test(norm)) return 'GRUPO OPTICO';
-    if (/^(LA\s*CAMARA|CAMARA|LA\s*CAM)$/i.test(norm)) return 'LA CAMARA';
-    return l;
-};
+
 
 export default function InventarioPage() {
     const [searchQuery, setSearchQuery] = useState('');
@@ -62,6 +55,7 @@ export default function InventarioPage() {
 
     // Extract unique brands and filter by selected brand
     const uniqueBrands = Array.from(new Set(rawProducts.map(p => p.brand).filter(Boolean) as string[])).sort();
+    const uniqueLabs = Array.from(new Set(rawProducts.map(p => p.laboratory).filter(Boolean) as string[])).sort();
     const products = selectedBrand ? rawProducts.filter(p => p.brand === selectedBrand) : rawProducts;
 
     // Helper: detecta cristales (incluye valores legacy LENS/MULTIFOCAL/etc)
@@ -510,6 +504,8 @@ export default function InventarioPage() {
                     onClose={() => setShowForm(false)}
                     onSuccess={() => refresh()}
                     isAdmin={isAdmin}
+                    uniqueBrands={uniqueBrands}
+                    uniqueLabs={uniqueLabs}
                 />
             )}
 
@@ -634,6 +630,22 @@ export default function InventarioPage() {
                                                 <input type="number" step="0.25" placeholder="Máx" value={editForm.additionMax} onChange={e => setEditForm({ ...editForm, additionMax: e.target.value })} className="px-3 py-2 bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl font-bold text-xs outline-none focus:border-primary" />
                                             </div>
                                         )}
+                                    </div>
+                                )}
+
+                                {/* Promo 2x1 (Edit) */}
+                                {checkCristal(editingProduct) && (
+                                    <div className="col-span-2 pt-4 border-t border-stone-100 dark:border-stone-800">
+                                        <label className="flex items-center gap-3 cursor-pointer group w-max">
+                                            <div className={`relative w-10 h-6 rounded-full transition-colors ${editForm.is2x1 ? 'bg-emerald-500' : 'bg-stone-300 dark:bg-stone-700'}`}>
+                                                <div className={`absolute top-1 left-1 bg-white w-4 h-4 rounded-full transition-transform ${editForm.is2x1 ? 'translate-x-4' : 'translate-x-0'}`} />
+                                            </div>
+                                            <input type="checkbox" className="hidden" checked={editForm.is2x1} onChange={e => setEditForm({ ...editForm, is2x1: e.target.checked })} />
+                                            <div>
+                                                <p className="text-xs font-black text-emerald-600 dark:text-emerald-500 uppercase tracking-widest">Activar Promo 2x1</p>
+                                                <p className="text-[9px] font-bold text-stone-400">Habilita descuentos automáticos en armazones para este cristal.</p>
+                                            </div>
+                                        </label>
                                     </div>
                                 )}
                             </div>

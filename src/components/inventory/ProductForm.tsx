@@ -3,10 +3,14 @@
 import { useState } from 'react';
 import { X, Save, Package, Layers, DollarSign, Plus, Upload, Database, ChevronDown, CheckCircle2, AlertCircle, ArrowRight, ChevronRight, Info } from 'lucide-react';
 
+import { autoCorrectLab } from '@/utils/product-controllers';
+
 interface ProductFormProps {
     onClose: () => void;
     onSuccess: () => void;
     isAdmin?: boolean;
+    uniqueBrands?: string[];
+    uniqueLabs?: string[];
 }
 
 interface BulkItem {
@@ -41,17 +45,7 @@ const PRODUCT_CATEGORIES: { id: string; label: string; icon: string; noStock?: b
     { id: 'Lentes Especiales', label: 'Lentes Especiales', icon: '✨' },
 ];
 
-const autoCorrectLab = (lab: string) => {
-    let l = lab.toUpperCase().trim();
-    if (!l) return '';
-    const norm = l.normalize("NFD").replace(/[\u0300-\u036f]/g, ""); // removes accents
-    if (/^(OPTO\s*VI[CS]ION|OPTO|OPT)$/i.test(norm)) return 'OPTOVISION';
-    if (/^(GRUPO\s*OPTICO|GRUPO|G\.*\s*OPTICO)$/i.test(norm)) return 'GRUPO OPTICO';
-    if (/^(LA\s*CAMARA|CAMARA|LA\s*CAM)$/i.test(norm)) return 'LA CAMARA';
-    return l;
-};
-
-export default function ProductForm({ onClose, onSuccess, isAdmin = false }: ProductFormProps) {
+export default function ProductForm({ onClose, onSuccess, isAdmin = false, uniqueBrands = [], uniqueLabs = [] }: ProductFormProps) {
     const [mode, setMode] = useState<'single' | 'bulk'>('single');
     // Steps: 1 = tipo, 2 = detalles (single) | 1 = tipo, 2 = CSV (bulk)
     const [step, setStep] = useState<1 | 2>(1);
@@ -315,9 +309,12 @@ export default function ProductForm({ onClose, onSuccess, isAdmin = false }: Pro
                             {/* Marca */}
                             <div className="space-y-2">
                                 <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest ml-4">Marca *</label>
-                                <input autoFocus required type="text" placeholder="Ej: Zeiss"
-                                    className="w-full px-6 py-4 bg-stone-50/50 dark:bg-stone-800/30 border border-stone-200 dark:border-stone-700 rounded-[1.5rem] font-bold text-sm outline-none focus:border-primary transition-all"
-                                    value={formData.brand} onChange={e => setFormData({ ...formData, brand: e.target.value })}
+                                <SmartInput
+                                    value={formData.brand}
+                                    onChange={(v: string) => setFormData({ ...formData, brand: v })}
+                                    options={uniqueBrands}
+                                    placeholder="Ej: Zeiss"
+                                    required
                                 />
                             </div>
 
@@ -333,11 +330,14 @@ export default function ProductForm({ onClose, onSuccess, isAdmin = false }: Pro
                             {/* Laboratorio — obligatorio */}
                             <div className="space-y-2 col-span-2">
                                 <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest ml-4">🏭 Laboratorio <span className="text-red-500">*</span></label>
-                                <input required type="text" placeholder="Ej: OPTOVISION, GRUPO OPTICO"
-                                    className={`w-full px-6 py-4 bg-stone-50/50 dark:bg-stone-800/30 border rounded-[1.5rem] font-bold text-sm outline-none focus:border-primary transition-all uppercase ${!formData.laboratory ? 'border-red-300 dark:border-red-700' : 'border-stone-200 dark:border-stone-700'}`}
-                                    value={formData.laboratory} 
-                                    onChange={e => setFormData({ ...formData, laboratory: e.target.value.toUpperCase() })}
-                                    onBlur={() => setFormData({ ...formData, laboratory: autoCorrectLab(formData.laboratory) })}
+                                <SmartInput
+                                    value={formData.laboratory}
+                                    onChange={(v: string) => setFormData({ ...formData, laboratory: v.toUpperCase() })}
+                                    onBlur={() => setFormData({ ...formData, laboratory: autoCorrectLab(formData.laboratory) || '' })}
+                                    options={uniqueLabs}
+                                    placeholder="Ej: OPTOVISION, GRUPO OPTICO"
+                                    required
+                                    hasError={!formData.laboratory}
                                 />
                                 {!formData.laboratory && <p className="text-[9px] font-bold text-red-400 ml-4">El laboratorio es obligatorio para cristales</p>}
                             </div>
@@ -457,6 +457,20 @@ export default function ProductForm({ onClose, onSuccess, isAdmin = false }: Pro
                                     </div>
                                 )}
                             </div>
+
+                            {/* Promo 2x1 */}
+                            <div className="col-span-2 pt-4 border-t border-stone-100 dark:border-stone-800">
+                                <label className="flex items-center gap-3 cursor-pointer group w-max">
+                                    <div className={`relative w-10 h-6 rounded-full transition-colors ${formData.is2x1 ? 'bg-emerald-500' : 'bg-stone-300 dark:bg-stone-700'}`}>
+                                        <div className={`absolute top-1 left-1 bg-white w-4 h-4 rounded-full transition-transform ${formData.is2x1 ? 'translate-x-4' : 'translate-x-0'}`} />
+                                    </div>
+                                    <input type="checkbox" className="hidden" checked={formData.is2x1} onChange={e => setFormData({ ...formData, is2x1: e.target.checked })} />
+                                    <div>
+                                        <p className="text-xs font-black text-emerald-600 dark:text-emerald-500 uppercase tracking-widest">Activar Promo 2x1</p>
+                                        <p className="text-[9px] font-bold text-stone-400">Habilita descuentos automáticos en armazones para este cristal.</p>
+                                    </div>
+                                </label>
+                            </div>
                         </>
                     ) : (
                         <>
@@ -479,9 +493,11 @@ export default function ProductForm({ onClose, onSuccess, isAdmin = false }: Pro
                             {/* Marca */}
                             <div className="space-y-2">
                                 <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest ml-4">Marca</label>
-                                <input type="text" placeholder="Ej: Ray-Ban"
-                                    className="w-full px-6 py-4 bg-stone-50/50 dark:bg-stone-800/30 border border-stone-200 dark:border-stone-700 rounded-[1.5rem] font-bold text-sm outline-none focus:border-primary transition-all"
-                                    value={formData.brand} onChange={e => setFormData({ ...formData, brand: e.target.value })}
+                                <SmartInput
+                                    value={formData.brand}
+                                    onChange={(v: string) => setFormData({ ...formData, brand: v })}
+                                    options={uniqueBrands}
+                                    placeholder="Ej: Ray-Ban"
                                 />
                             </div>
 
@@ -637,9 +653,9 @@ export default function ProductForm({ onClose, onSuccess, isAdmin = false }: Pro
                                 <tr key={item.id} className="hover:bg-white dark:hover:bg-stone-800/50 transition-colors group">
                                     {isCristal ? (
                                         <>
-                                            <td className="p-2"><input type="text" className="w-full min-w-[100px] px-3 py-2.5 bg-transparent border border-transparent focus:border-stone-300 dark:focus:border-stone-600 focus:bg-white dark:focus:bg-stone-800 rounded-lg text-[11px] font-bold outline-none transition-all" value={item.brand} onChange={e => updateBulkItem(item.id, 'brand', e.target.value)} placeholder="Ej: Zeiss" /></td>
+                                            <td className="p-2"><input type="text" list="brands-list" className="w-full min-w-[100px] px-3 py-2.5 bg-transparent border border-transparent focus:border-stone-300 dark:focus:border-stone-600 focus:bg-white dark:focus:bg-stone-800 rounded-lg text-[11px] font-bold outline-none transition-all" value={item.brand} onChange={e => updateBulkItem(item.id, 'brand', e.target.value)} placeholder="Ej: Zeiss" /></td>
                                             <td className="p-2"><input type="text" className="w-full min-w-[120px] px-3 py-2.5 bg-transparent border border-transparent focus:border-stone-300 dark:focus:border-stone-600 focus:bg-white dark:focus:bg-stone-800 rounded-lg text-[11px] font-bold outline-none transition-all" value={item.name} onChange={e => updateBulkItem(item.id, 'name', e.target.value)} placeholder="Ej: Antireflejo" /></td>
-                                            <td className="p-2"><input type="text" className="w-full min-w-[120px] px-3 py-2.5 bg-transparent border border-transparent focus:border-stone-300 dark:focus:border-stone-600 focus:bg-white dark:focus:bg-stone-800 rounded-lg text-[11px] font-bold outline-none uppercase transition-all" value={item.laboratory} onChange={e => updateBulkItem(item.id, 'laboratory', e.target.value.toUpperCase())} onBlur={() => updateBulkItem(item.id, 'laboratory', autoCorrectLab(item.laboratory))} placeholder="Laboratorio" /></td>
+                                            <td className="p-2"><input type="text" list="labs-list" className="w-full min-w-[120px] px-3 py-2.5 bg-transparent border border-transparent focus:border-stone-300 dark:focus:border-stone-600 focus:bg-white dark:focus:bg-stone-800 rounded-lg text-[11px] font-bold outline-none uppercase transition-all" value={item.laboratory} onChange={e => updateBulkItem(item.id, 'laboratory', e.target.value.toUpperCase())} onBlur={() => updateBulkItem(item.id, 'laboratory', autoCorrectLab(item.laboratory) || '')} placeholder="Laboratorio" /></td>
                                             <td className="p-2"><input type="text" className="w-full min-w-[70px] px-3 py-2.5 bg-transparent border border-transparent focus:border-stone-300 dark:focus:border-stone-600 focus:bg-white dark:focus:bg-stone-800 rounded-lg text-[11px] font-bold outline-none transition-all" value={item.lensIndex} onChange={e => updateBulkItem(item.id, 'lensIndex', e.target.value)} placeholder="Ej: 1.56" /></td>
                                             <td className="p-2"><input type="number" min="0" className="w-full min-w-[90px] px-3 py-2.5 bg-primary/5 border border-transparent focus:border-primary focus:bg-primary/10 rounded-lg text-[11px] font-black text-primary outline-none transition-all" value={item.price} onChange={e => updateBulkItem(item.id, 'price', e.target.value)} placeholder="0.00" /></td>
                                             {isAdmin && <td className="p-2"><input type="number" min="0" className="w-full min-w-[80px] px-3 py-2.5 bg-transparent border border-transparent focus:border-stone-300 dark:focus:border-stone-600 focus:bg-white dark:focus:bg-stone-800 rounded-lg text-[11px] font-bold outline-none transition-all" value={item.cost} onChange={e => updateBulkItem(item.id, 'cost', e.target.value)} placeholder="0.00" /></td>}
@@ -655,7 +671,7 @@ export default function ProductForm({ onClose, onSuccess, isAdmin = false }: Pro
                                     ) : (
                                         <>
                                             <td className="p-2"><input type="text" className="w-full min-w-[150px] px-3 py-2.5 bg-transparent border border-transparent focus:border-stone-300 dark:focus:border-stone-600 focus:bg-white dark:focus:bg-stone-800 rounded-lg text-[11px] font-bold outline-none transition-all" value={item.name} onChange={e => updateBulkItem(item.id, 'name', e.target.value)} placeholder="Ej: Armazón Titanio" /></td>
-                                            <td className="p-2"><input type="text" className="w-full min-w-[100px] px-3 py-2.5 bg-transparent border border-transparent focus:border-stone-300 dark:focus:border-stone-600 focus:bg-white dark:focus:bg-stone-800 rounded-lg text-[11px] font-bold outline-none transition-all" value={item.brand} onChange={e => updateBulkItem(item.id, 'brand', e.target.value)} placeholder="Marca" /></td>
+                                            <td className="p-2"><input type="text" list="brands-list" className="w-full min-w-[100px] px-3 py-2.5 bg-transparent border border-transparent focus:border-stone-300 dark:focus:border-stone-600 focus:bg-white dark:focus:bg-stone-800 rounded-lg text-[11px] font-bold outline-none transition-all" value={item.brand} onChange={e => updateBulkItem(item.id, 'brand', e.target.value)} placeholder="Marca" /></td>
                                             <td className="p-2"><input type="text" className="w-full min-w-[100px] px-3 py-2.5 bg-transparent border border-transparent focus:border-stone-300 dark:focus:border-stone-600 focus:bg-white dark:focus:bg-stone-800 rounded-lg text-[11px] font-bold outline-none transition-all" value={item.model} onChange={e => updateBulkItem(item.id, 'model', e.target.value)} placeholder="Modelo/Color" /></td>
                                             <td className="p-2"><input type="number" min="0" className="w-full min-w-[70px] px-3 py-2.5 bg-transparent border border-transparent focus:border-stone-300 dark:focus:border-stone-600 focus:bg-white dark:focus:bg-stone-800 rounded-lg text-[11px] font-bold outline-none transition-all" value={item.stock} onChange={e => updateBulkItem(item.id, 'stock', e.target.value)} placeholder="0" /></td>
                                             <td className="p-2"><input type="number" min="0" className="w-full min-w-[90px] px-3 py-2.5 bg-primary/5 border border-transparent focus:border-primary focus:bg-primary/10 rounded-lg text-[11px] font-black text-primary outline-none transition-all" value={item.price} onChange={e => updateBulkItem(item.id, 'price', e.target.value)} placeholder="0.00" /></td>
@@ -690,6 +706,14 @@ export default function ProductForm({ onClose, onSuccess, isAdmin = false }: Pro
 
     return (
         <div className="fixed inset-0 bg-stone-900/40 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-in fade-in duration-300">
+            {/* Datalists for bulk mode autocomplete */}
+            <datalist id="brands-list">
+                {uniqueBrands.map(b => <option key={b} value={b} />)}
+            </datalist>
+            <datalist id="labs-list">
+                {uniqueLabs.map(l => <option key={l} value={l} />)}
+            </datalist>
+
             <div className="bg-white dark:bg-stone-900 w-full max-w-2xl rounded-[3rem] shadow-2xl border border-stone-200 dark:border-stone-800 overflow-hidden animate-in zoom-in-95 duration-300 max-h-[90vh] flex flex-col">
 
                 {/* Header */}
@@ -739,6 +763,44 @@ export default function ProductForm({ onClose, onSuccess, isAdmin = false }: Pro
                     {step === 2 && mode === 'bulk' && renderStep2Bulk()}
                 </div>
             </div>
+        </div>
+    );
+}
+
+// Helper component for Smart Input with Autocomplete
+function SmartInput({ value, onChange, onBlur, options, placeholder, required, hasError }: any) {
+    const [isOpen, setIsOpen] = useState(false);
+    
+    const filtered = options.filter((o: string) => o.toLowerCase().includes((value || '').toLowerCase()));
+    const isExactMatch = options.some((o: string) => o.toLowerCase() === (value || '').toLowerCase());
+    const showCreate = value && !isExactMatch;
+
+    return (
+        <div className="relative group">
+            <input 
+                required={required}
+                type="text"
+                placeholder={placeholder}
+                value={value}
+                onChange={e => { onChange(e.target.value); setIsOpen(true); }}
+                onFocus={() => setIsOpen(true)}
+                onBlur={() => { setTimeout(() => setIsOpen(false), 200); if (onBlur) onBlur(); }}
+                className={`w-full px-6 py-4 bg-stone-50/50 dark:bg-stone-800/30 border rounded-[1.5rem] font-bold text-sm outline-none focus:border-primary transition-all ${hasError ? 'border-red-300 dark:border-red-700' : 'border-stone-200 dark:border-stone-700'}`}
+            />
+            {isOpen && (filtered.length > 0 || showCreate) && (
+                <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-2xl shadow-xl z-50 max-h-60 overflow-y-auto p-2">
+                    {filtered.map((opt: string) => (
+                        <button key={opt} type="button" onMouseDown={() => { onChange(opt); setIsOpen(false); }} className="w-full text-left px-4 py-3 hover:bg-stone-50 dark:hover:bg-stone-700 rounded-xl text-sm font-bold transition-colors">
+                            {opt}
+                        </button>
+                    ))}
+                    {showCreate && (
+                        <button type="button" onMouseDown={() => setIsOpen(false)} className="w-full text-left px-4 py-3 bg-primary/5 hover:bg-primary/10 text-primary rounded-xl text-sm font-black transition-colors flex items-center gap-2 mt-1">
+                            <Plus className="w-4 h-4" /> Crear nuevo: <span className="uppercase">{value}</span>
+                        </button>
+                    )}
+                </div>
+            )}
         </div>
     );
 }
