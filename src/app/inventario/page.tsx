@@ -626,12 +626,14 @@ export default function InventarioPage() {
                                             <span className="text-[9px] font-black text-stone-300">a</span>
                                             <input type="number" step="0.25" placeholder="Máx" value={editForm.cylinderMax} onChange={e => setEditForm({ ...editForm, cylinderMax: e.target.value })} className="px-3 py-2 bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl font-bold text-xs outline-none focus:border-primary" />
                                         </div>
-                                        <div className="grid grid-cols-[auto_1fr_auto_1fr] items-center gap-2">
-                                            <span className="text-[9px] font-black text-stone-400 uppercase tracking-widest">Adición</span>
-                                            <input type="number" step="0.25" placeholder="Mín" value={editForm.additionMin} onChange={e => setEditForm({ ...editForm, additionMin: e.target.value })} className="px-3 py-2 bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl font-bold text-xs outline-none focus:border-primary" />
-                                            <span className="text-[9px] font-black text-stone-300">a</span>
-                                            <input type="number" step="0.25" placeholder="Máx" value={editForm.additionMax} onChange={e => setEditForm({ ...editForm, additionMax: e.target.value })} className="px-3 py-2 bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl font-bold text-xs outline-none focus:border-primary" />
-                                        </div>
+                                        {editingProduct.type?.includes('Multifocal') && (
+                                            <div className="grid grid-cols-[auto_1fr_auto_1fr] items-center gap-2">
+                                                <span className="text-[9px] font-black text-stone-400 uppercase tracking-widest">Adición</span>
+                                                <input type="number" step="0.25" placeholder="Mín" value={editForm.additionMin} onChange={e => setEditForm({ ...editForm, additionMin: e.target.value })} className="px-3 py-2 bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl font-bold text-xs outline-none focus:border-primary" />
+                                                <span className="text-[9px] font-black text-stone-300">a</span>
+                                                <input type="number" step="0.25" placeholder="Máx" value={editForm.additionMax} onChange={e => setEditForm({ ...editForm, additionMax: e.target.value })} className="px-3 py-2 bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl font-bold text-xs outline-none focus:border-primary" />
+                                            </div>
+                                        )}
                                     </div>
                                 )}
                             </div>
