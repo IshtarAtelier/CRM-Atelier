@@ -714,7 +714,7 @@ export default function ProductForm({ onClose, onSuccess, isAdmin = false, uniqu
                 {uniqueLabs.map(l => <option key={l} value={l} />)}
             </datalist>
 
-            <div className="bg-white dark:bg-stone-900 w-full max-w-2xl rounded-[3rem] shadow-2xl border border-stone-200 dark:border-stone-800 overflow-hidden animate-in zoom-in-95 duration-300 max-h-[90vh] flex flex-col">
+            <div className={`bg-white dark:bg-stone-900 w-full ${mode === 'bulk' && step === 2 ? 'max-w-[95vw] lg:max-w-[1400px]' : 'max-w-2xl'} rounded-[3rem] shadow-2xl border border-stone-200 dark:border-stone-800 overflow-hidden animate-in zoom-in-95 duration-300 max-h-[90vh] flex flex-col transition-all`}>
 
                 {/* Header */}
                 <header className="p-8 border-b border-stone-100 dark:border-stone-800 flex justify-between items-center bg-stone-50/50 dark:bg-stone-800/20 shrink-0">
@@ -753,7 +753,7 @@ export default function ProductForm({ onClose, onSuccess, isAdmin = false, uniqu
                             <button onClick={() => setMode('bulk')}
                                 className={`flex-1 py-3 px-6 rounded-[1.8rem] text-[10px] font-black uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-2 ${mode === 'bulk' ? 'bg-white dark:bg-stone-700 text-primary shadow-lg' : 'text-stone-400'}`}
                             >
-                                <Database className="w-4 h-4" /> Carga Masiva (CSV)
+                                <Database className="w-4 h-4" /> Carga Masiva
                             </button>
                         </div>
                     )}
