@@ -482,14 +482,12 @@ export default function QuoteSummary({
                         >
                             <MessageCircle className="w-3.5 h-3.5" /> WhatsApp
                         </button>
-                        {!isLockedSale && (
                         <button 
                             onClick={() => setShowPayment(true)}
                             className="py-3 bg-amber-50 text-amber-600 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-amber-100 transition-all flex items-center justify-center gap-2"
                         >
                             <Banknote className="w-3.5 h-3.5" /> Abonar
                         </button>
-                        )}
                         {/* Ocultar botón eliminar para vendedores en ventas ya cerradas */}
                         {!isLockedSale && (
                         <button 
