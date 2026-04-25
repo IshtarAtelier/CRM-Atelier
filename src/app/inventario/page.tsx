@@ -33,6 +33,7 @@ export default function InventarioPage() {
     const [importing, setImporting] = useState(false);
     const [importResult, setImportResult] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
     const [userRole, setUserRole] = useState('STAFF');
+    const [showEditRanges, setShowEditRanges] = useState(false);
 
     useEffect(() => {
         try {
@@ -121,7 +122,9 @@ export default function InventarioPage() {
             cylinderMax: p.cylinderMax != null ? String(p.cylinderMax) : '',
             additionMin: p.additionMin != null ? String(p.additionMin) : '',
             additionMax: p.additionMax != null ? String(p.additionMax) : '',
+            is2x1: p.is2x1 === true,
         });
+        setShowEditRanges(false);
     };
 
     const handleSaveEdit = async () => {
@@ -528,14 +531,16 @@ export default function InventarioPage() {
                                     <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest ml-3">Nombre</label>
                                     <input type="text" value={editForm.name} onChange={e => setEditForm({ ...editForm, name: e.target.value })} className="w-full px-5 py-4 bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-2xl font-bold text-sm outline-none focus:border-primary" />
                                 </div>
-                                <div className="space-y-1">
+                                <div className={`space-y-1 ${checkCristal(editingProduct) ? 'col-span-2' : ''}`}>
                                     <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest ml-3">Marca</label>
                                     <input type="text" value={editForm.brand} onChange={e => setEditForm({ ...editForm, brand: e.target.value })} className="w-full px-5 py-4 bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-2xl font-bold text-sm outline-none focus:border-primary" />
                                 </div>
-                                <div className="space-y-1">
-                                    <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest ml-3">Modelo</label>
-                                    <input type="text" value={editForm.model} onChange={e => setEditForm({ ...editForm, model: e.target.value })} className="w-full px-5 py-4 bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-2xl font-bold text-sm outline-none focus:border-primary" />
-                                </div>
+                                {!checkCristal(editingProduct) && (
+                                    <div className="space-y-1">
+                                        <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest ml-3">Modelo</label>
+                                        <input type="text" value={editForm.model} onChange={e => setEditForm({ ...editForm, model: e.target.value })} className="w-full px-5 py-4 bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-2xl font-bold text-sm outline-none focus:border-primary" />
+                                    </div>
+                                )}
                                 {/* Ocultar stock para cristales — se compran bajo demanda */}
                                 {!checkCristal(editingProduct) && (
                                     <div className="space-y-1">
@@ -609,25 +614,39 @@ export default function InventarioPage() {
                                 {/* Rangos de Fabricación — solo cristales */}
                                 {checkCristal(editingProduct) && (
                                     <div className="col-span-2 space-y-3 pt-3 border-t border-stone-100 dark:border-stone-800">
-                                        <span className="text-[10px] font-black text-amber-600 uppercase tracking-widest">📐 Rangos de Fabricación</span>
-                                        <div className="grid grid-cols-[auto_1fr_auto_1fr] items-center gap-2">
-                                            <span className="text-[9px] font-black text-stone-400 uppercase tracking-widest">Esfera</span>
-                                            <input type="number" step="0.25" placeholder="Mín" value={editForm.sphereMin} onChange={e => setEditForm({ ...editForm, sphereMin: e.target.value })} className="px-3 py-2 bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl font-bold text-xs outline-none focus:border-primary" />
-                                            <span className="text-[9px] font-black text-stone-300">a</span>
-                                            <input type="number" step="0.25" placeholder="Máx" value={editForm.sphereMax} onChange={e => setEditForm({ ...editForm, sphereMax: e.target.value })} className="px-3 py-2 bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl font-bold text-xs outline-none focus:border-primary" />
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-[10px] font-black text-amber-600 uppercase tracking-widest">📐 Rangos de Fabricación</span>
+                                            <label className="flex items-center gap-2 cursor-pointer group">
+                                                <div className={`relative w-8 h-5 rounded-full transition-colors ${showEditRanges ? 'bg-amber-500' : 'bg-stone-300 dark:bg-stone-700'}`}>
+                                                    <div className={`absolute top-1 left-1 bg-white w-3 h-3 rounded-full transition-transform ${showEditRanges ? 'translate-x-3' : 'translate-x-0'}`} />
+                                                </div>
+                                                <input type="checkbox" className="hidden" checked={showEditRanges} onChange={e => setShowEditRanges(e.target.checked)} />
+                                                <span className="text-[9px] font-black text-stone-400 uppercase tracking-widest">Desplegar</span>
+                                            </label>
                                         </div>
-                                        <div className="grid grid-cols-[auto_1fr_auto_1fr] items-center gap-2">
-                                            <span className="text-[9px] font-black text-stone-400 uppercase tracking-widest">Cilindro</span>
-                                            <input type="number" step="0.25" placeholder="Mín" value={editForm.cylinderMin} onChange={e => setEditForm({ ...editForm, cylinderMin: e.target.value })} className="px-3 py-2 bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl font-bold text-xs outline-none focus:border-primary" />
-                                            <span className="text-[9px] font-black text-stone-300">a</span>
-                                            <input type="number" step="0.25" placeholder="Máx" value={editForm.cylinderMax} onChange={e => setEditForm({ ...editForm, cylinderMax: e.target.value })} className="px-3 py-2 bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl font-bold text-xs outline-none focus:border-primary" />
-                                        </div>
-                                        {editingProduct.type?.includes('Multifocal') && (
-                                            <div className="grid grid-cols-[auto_1fr_auto_1fr] items-center gap-2">
-                                                <span className="text-[9px] font-black text-stone-400 uppercase tracking-widest">Adición</span>
-                                                <input type="number" step="0.25" placeholder="Mín" value={editForm.additionMin} onChange={e => setEditForm({ ...editForm, additionMin: e.target.value })} className="px-3 py-2 bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl font-bold text-xs outline-none focus:border-primary" />
-                                                <span className="text-[9px] font-black text-stone-300">a</span>
-                                                <input type="number" step="0.25" placeholder="Máx" value={editForm.additionMax} onChange={e => setEditForm({ ...editForm, additionMax: e.target.value })} className="px-3 py-2 bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl font-bold text-xs outline-none focus:border-primary" />
+                                        
+                                        {showEditRanges && (
+                                            <div className="grid gap-3 pt-2">
+                                                <div className="grid grid-cols-[auto_1fr_auto_1fr] items-center gap-2">
+                                                    <span className="text-[9px] font-black text-stone-400 uppercase tracking-widest">Esfera</span>
+                                                    <input type="number" step="0.25" placeholder="Mín" value={editForm.sphereMin} onChange={e => setEditForm({ ...editForm, sphereMin: e.target.value })} className="px-3 py-2 bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl font-bold text-xs outline-none focus:border-primary" />
+                                                    <span className="text-[9px] font-black text-stone-300">a</span>
+                                                    <input type="number" step="0.25" placeholder="Máx" value={editForm.sphereMax} onChange={e => setEditForm({ ...editForm, sphereMax: e.target.value })} className="px-3 py-2 bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl font-bold text-xs outline-none focus:border-primary" />
+                                                </div>
+                                                <div className="grid grid-cols-[auto_1fr_auto_1fr] items-center gap-2">
+                                                    <span className="text-[9px] font-black text-stone-400 uppercase tracking-widest">Cilindro</span>
+                                                    <input type="number" step="0.25" placeholder="Mín" value={editForm.cylinderMin} onChange={e => setEditForm({ ...editForm, cylinderMin: e.target.value })} className="px-3 py-2 bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl font-bold text-xs outline-none focus:border-primary" />
+                                                    <span className="text-[9px] font-black text-stone-300">a</span>
+                                                    <input type="number" step="0.25" placeholder="Máx" value={editForm.cylinderMax} onChange={e => setEditForm({ ...editForm, cylinderMax: e.target.value })} className="px-3 py-2 bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl font-bold text-xs outline-none focus:border-primary" />
+                                                </div>
+                                                {editingProduct.type?.includes('Multifocal') && (
+                                                    <div className="grid grid-cols-[auto_1fr_auto_1fr] items-center gap-2">
+                                                        <span className="text-[9px] font-black text-stone-400 uppercase tracking-widest">Adición</span>
+                                                        <input type="number" step="0.25" placeholder="Mín" value={editForm.additionMin} onChange={e => setEditForm({ ...editForm, additionMin: e.target.value })} className="px-3 py-2 bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl font-bold text-xs outline-none focus:border-primary" />
+                                                        <span className="text-[9px] font-black text-stone-300">a</span>
+                                                        <input type="number" step="0.25" placeholder="Máx" value={editForm.additionMax} onChange={e => setEditForm({ ...editForm, additionMax: e.target.value })} className="px-3 py-2 bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl font-bold text-xs outline-none focus:border-primary" />
+                                                    </div>
+                                                )}
                                             </div>
                                         )}
                                     </div>
