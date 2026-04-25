@@ -22,6 +22,7 @@ export interface ContactCreateData {
 
 export const ContactService = {
     async getAll(status?: string | null, search?: string | null, favoritesOnly?: boolean, interest?: string | null) {
+        console.log('[ContactService] Fetching contacts:', { status, search, favoritesOnly, interest });
         const where: any = {};
         if (status && status !== 'ALL') {
             if (status === 'CLIENT') {
