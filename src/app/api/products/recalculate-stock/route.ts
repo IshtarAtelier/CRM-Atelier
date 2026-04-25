@@ -26,7 +26,7 @@ export async function POST() {
             for (const item of order.items) {
                 const p = item.product;
                 if (!p) continue;
-                const isCrystal = p.category === 'LENS' || (p.type || '').includes('Cristal');
+                const isCrystal = p.category === 'Cristal' || (p.type || '').includes('Cristal');
                 if (isCrystal) continue;
 
                 soldMap.set(p.id, (soldMap.get(p.id) || 0) + item.quantity);
@@ -37,7 +37,7 @@ export async function POST() {
         const allProducts = await prisma.product.findMany({
             where: {
                 NOT: [
-                    { category: 'LENS' },
+                    { category: 'Cristal' },
                 ],
             },
         });
@@ -45,7 +45,7 @@ export async function POST() {
         const updates: { id: string; name: string; oldStock: number; soldQty: number; newStock: number }[] = [];
 
         for (const product of allProducts) {
-            const isCrystal = product.category === 'LENS' || (product.type || '').includes('Cristal');
+            const isCrystal = product.category === 'Cristal' || (product.type || '').includes('Cristal');
             if (isCrystal) continue;
 
             const soldQty = soldMap.get(product.id) || 0;

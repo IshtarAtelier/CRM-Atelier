@@ -67,7 +67,7 @@ export default function OrderManager({
     const handleSaveQuote = async () => {
         setSavingQuote(true);
         try {
-            const hasCrystals = quoteItems.some(i => i.product.type === 'Cristal' || i.product.category === 'LENS');
+            const hasCrystals = quoteItems.some(i => i.product.type === 'Cristal' || i.product.category === 'Cristal');
             const hasFramesInCart = quoteItems.some(i => i.product.category === 'FRAME' || i.product.category === 'ATELIER');
             
             // BUG FIX 4: Auto-detect frameSource if frames are in cart

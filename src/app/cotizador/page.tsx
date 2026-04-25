@@ -788,7 +788,7 @@ function CotizadorPageContent() {
                                                             {!editingQuoteId && <button onClick={() => { setPendingContact(null); setPreviousQuotes([]); }} className="px-8 py-6 bg-white border-2 border-stone-100 text-stone-400 rounded-[2rem] font-black text-[11px] uppercase tracking-widest hover:text-stone-800 transition-all">Cambiar</button>}
                                                         </div>
                                                     </div>
-                                                ) : !showNewContact ? (
+                                                ) : (
                                                     <div className="space-y-8">
                                                         <div className="flex gap-4">
                                                             <div className="relative flex-1">
@@ -819,109 +819,6 @@ function CotizadorPageContent() {
                                                             </div>
                                                         )}
                                                     </div>
-                                                ) : (
-                                                    <div className="p-8 bg-stone-50 border-2 border-stone-100 rounded-[3rem] space-y-6 animate-in slide-in-from-top-4 duration-500 max-h-[450px] overflow-y-auto" style={{ scrollbarWidth: 'thin' }}>
-                                                        <h4 className="text-2xl font-black tracking-tighter">Nuevo Contacto</h4>
-
-                                                        {duplicateError && (
-                                                            <div className="p-4 bg-red-50 border-2 border-red-200 rounded-2xl flex items-start gap-3 animate-in shake-x duration-300">
-                                                                <div className="w-8 h-8 bg-red-500 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5">
-                                                                    <X className="w-4 h-4 text-white" />
-                                                                </div>
-                                                                <p className="text-xs font-bold text-red-700 leading-relaxed">{duplicateError}</p>
-                                                            </div>
-                                                        )}
-
-                                                        {/* Nombre + Teléfono */}
-                                                        <div className="grid grid-cols-2 gap-4">
-                                                            <div className="space-y-1.5">
-                                                                <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest ml-2 flex items-center gap-1">Nombre / Apellido <span className="text-primary">*</span></label>
-                                                                <div className="relative group">
-                                                                    <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-300 group-focus-within:text-primary transition-colors" />
-                                                                    <input type="text" placeholder="Nombre completo" value={newContactName} onChange={e => { setNewContactName(e.target.value); setDuplicateError(null); }} className="w-full pl-11 pr-4 py-4 bg-white border-2 border-stone-100 rounded-2xl text-xs font-bold outline-none focus:border-primary transition-all" />
-                                                                </div>
-                                                            </div>
-                                                            <div className="space-y-1.5">
-                                                                <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest ml-2 flex items-center gap-1">Teléfono <span className="text-primary">*</span></label>
-                                                                <div className="relative group">
-                                                                    <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-300 group-focus-within:text-primary transition-colors" />
-                                                                    <input type="tel" placeholder="351XXXXXXX" value={newContactPhone} onChange={e => { setNewContactPhone(e.target.value); setDuplicateError(null); }} className="w-full pl-11 pr-4 py-4 bg-white border-2 border-stone-100 rounded-2xl text-xs font-bold outline-none focus:border-primary transition-all" />
-                                                                </div>
-                                                            </div>
-                                                        </div>
-
-                                                        {/* DNI + Obra Social */}
-                                                        <div className="grid grid-cols-2 gap-4">
-                                                            <div className="space-y-1.5">
-                                                                <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest ml-2">DNI</label>
-                                                                <div className="relative group">
-                                                                    <FileText className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-300 group-focus-within:text-primary transition-colors" />
-                                                                    <input type="text" placeholder="Número de documento" value={newContactDni} onChange={e => setNewContactDni(e.target.value)} className="w-full pl-11 pr-4 py-4 bg-white border-2 border-stone-100 rounded-2xl text-xs font-bold outline-none focus:border-primary transition-all" />
-                                                                </div>
-                                                            </div>
-                                                            <div className="space-y-1.5">
-                                                                <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest ml-2">Obra Social</label>
-                                                                <div className="relative group">
-                                                                    <Building2 className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-300 group-focus-within:text-primary transition-colors" />
-                                                                    <input type="text" placeholder="PAMI, OSDE, etc." value={newContactInsurance} onChange={e => setNewContactInsurance(e.target.value)} className="w-full pl-11 pr-4 py-4 bg-white border-2 border-stone-100 rounded-2xl text-xs font-bold outline-none focus:border-primary transition-all" />
-                                                                </div>
-                                                            </div>
-                                                        </div>
-
-                                                        {/* Médico + Etiqueta */}
-                                                        <div className="grid grid-cols-2 gap-4">
-                                                            <div className="space-y-1.5">
-                                                                <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest ml-2">Médico</label>
-                                                                <div className="relative group">
-                                                                    <Stethoscope className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-300 group-focus-within:text-primary transition-colors z-10" />
-                                                                    <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-3 h-3 text-stone-400 pointer-events-none" />
-                                                                    <select value={newContactDoctor} onChange={e => setNewContactDoctor(e.target.value)} className="w-full pl-11 pr-9 py-4 bg-white border-2 border-stone-100 rounded-2xl text-xs font-bold appearance-none cursor-pointer outline-none focus:border-primary transition-all">
-                                                                        <option value="">— Sin médico —</option>
-                                                                        {doctors.map(doc => <option key={doc.id} value={doc.name}>{doc.name}</option>)}
-                                                                    </select>
-                                                                </div>
-                                                            </div>
-                                                            <div className="space-y-1.5">
-                                                                <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest ml-2 flex items-center gap-1">Etiqueta <span className="text-primary">*</span></label>
-                                                                <div className="relative group">
-                                                                    <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-3 h-3 text-stone-400 pointer-events-none" />
-                                                                    <select value={newContactSource} onChange={e => setNewContactSource(e.target.value)} className="w-full px-5 py-4 bg-white border-2 border-stone-100 rounded-2xl text-xs font-bold appearance-none cursor-pointer outline-none focus:border-primary transition-all">
-                                                                        <option value="">Seleccionar origen...</option>
-                                                                        {CONTACT_SOURCES.map(s => <option key={s} value={s}>{s}</option>)}
-                                                                    </select>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-
-                                                        {/* Email + Dirección */}
-                                                        <div className="grid grid-cols-2 gap-4">
-                                                            <div className="space-y-1.5">
-                                                                <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest ml-2">Email</label>
-                                                                <div className="relative group">
-                                                                    <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-300 group-focus-within:text-primary transition-colors" />
-                                                                    <input type="email" placeholder="correo@ejemplo.com" value={newContactEmail} onChange={e => setNewContactEmail(e.target.value)} className="w-full pl-11 pr-4 py-4 bg-white border-2 border-stone-100 rounded-2xl text-xs font-bold outline-none focus:border-primary transition-all" />
-                                                                </div>
-                                                            </div>
-
-                                                        </div>
-
-                                                        {/* Tipo de Producto */}
-                                                        <div className="space-y-2">
-                                                            <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest ml-2 flex items-center gap-1">Tipo de Producto <span className="text-primary">*</span></label>
-                                                            <div className="grid grid-cols-4 gap-2">
-                                                                {PRODUCT_TYPES.map(type => (
-                                                                    <button key={type} type="button" onClick={() => setNewContactInterest(type)} className={`px-2 py-2.5 rounded-xl border-2 text-[9px] font-black uppercase transition-all ${newContactInterest === type ? 'bg-primary border-primary text-white shadow-lg' : 'bg-white text-stone-400 border-stone-100 hover:border-primary/30'}`}>{type}</button>
-                                                                ))}
-                                                            </div>
-                                                        </div>
-
-
-
-                                                        <div className="flex gap-4 pt-2">
-                                                            <button onClick={handleCreateAndSave} disabled={!newContactName || !newContactPhone || !newContactSource || !newContactInterest || savingQuote} className="flex-1 py-5 bg-primary text-white rounded-[2rem] font-black text-xs uppercase tracking-[0.2em] shadow-xl disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-3 transition-all hover:scale-[1.02] active:scale-95">{savingQuote ? <><Loader2 className="w-5 h-5 animate-spin" /> Creando...</> : 'Crear y Guardar'}</button>
-                                                            <button onClick={() => { setShowNewContact(false); setDuplicateError(null); }} className="px-8 py-5 bg-white border-2 border-stone-100 text-stone-400 rounded-[2rem] font-black text-[11px] uppercase tracking-widest hover:text-stone-800 transition-all">Cancelar</button>
-                                                        </div>
-                                                    </div>
                                                 )}
                                             </div>
                                         )}
@@ -946,6 +843,115 @@ function CotizadorPageContent() {
                             )}
                         </div>
                     )}
+                </div>
+            )}
+
+            {showNewContact && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-stone-900/40 backdrop-blur-sm p-4 sm:p-8 animate-in fade-in duration-300">
+                    <div className="bg-white dark:bg-stone-900 rounded-[3rem] shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto p-8 sm:p-10 animate-in zoom-in-95 duration-300 relative" style={{ scrollbarWidth: 'thin' }}>
+                        <button onClick={() => setShowNewContact(false)} className="absolute top-8 right-8 p-3 hover:bg-stone-100 rounded-full transition-colors">
+                            <X className="w-5 h-5 text-stone-400" />
+                        </button>
+                        <h4 className="text-2xl font-black tracking-tighter mb-8">Nuevo Contacto</h4>
+
+                        {duplicateError && (
+                            <div className="p-4 mb-6 bg-red-50 border-2 border-red-200 rounded-2xl flex items-start gap-3 animate-in shake-x duration-300">
+                                <div className="w-8 h-8 bg-red-500 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5">
+                                    <X className="w-4 h-4 text-white" />
+                                </div>
+                                <p className="text-xs font-bold text-red-700 leading-relaxed">{duplicateError}</p>
+                            </div>
+                        )}
+
+                        <div className="space-y-6">
+                            {/* Nombre + Teléfono */}
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-1.5">
+                                    <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest ml-2 flex items-center gap-1">Nombre / Apellido <span className="text-primary">*</span></label>
+                                    <div className="relative group">
+                                        <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-300 group-focus-within:text-primary transition-colors" />
+                                        <input type="text" placeholder="Nombre completo" value={newContactName} onChange={e => { setNewContactName(e.target.value); setDuplicateError(null); }} className="w-full pl-11 pr-4 py-4 bg-white border-2 border-stone-100 rounded-2xl text-xs font-bold outline-none focus:border-primary transition-all" />
+                                    </div>
+                                </div>
+                                <div className="space-y-1.5">
+                                    <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest ml-2 flex items-center gap-1">Teléfono <span className="text-primary">*</span></label>
+                                    <div className="relative group">
+                                        <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-300 group-focus-within:text-primary transition-colors" />
+                                        <input type="tel" placeholder="351XXXXXXX" value={newContactPhone} onChange={e => { setNewContactPhone(e.target.value); setDuplicateError(null); }} className="w-full pl-11 pr-4 py-4 bg-white border-2 border-stone-100 rounded-2xl text-xs font-bold outline-none focus:border-primary transition-all" />
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* DNI + Obra Social */}
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-1.5">
+                                    <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest ml-2">DNI</label>
+                                    <div className="relative group">
+                                        <FileText className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-300 group-focus-within:text-primary transition-colors" />
+                                        <input type="text" placeholder="Número de documento" value={newContactDni} onChange={e => setNewContactDni(e.target.value)} className="w-full pl-11 pr-4 py-4 bg-white border-2 border-stone-100 rounded-2xl text-xs font-bold outline-none focus:border-primary transition-all" />
+                                    </div>
+                                </div>
+                                <div className="space-y-1.5">
+                                    <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest ml-2">Obra Social</label>
+                                    <div className="relative group">
+                                        <Building2 className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-300 group-focus-within:text-primary transition-colors" />
+                                        <input type="text" placeholder="PAMI, OSDE, etc." value={newContactInsurance} onChange={e => setNewContactInsurance(e.target.value)} className="w-full pl-11 pr-4 py-4 bg-white border-2 border-stone-100 rounded-2xl text-xs font-bold outline-none focus:border-primary transition-all" />
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Médico + Etiqueta */}
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-1.5">
+                                    <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest ml-2">Médico</label>
+                                    <div className="relative group">
+                                        <Stethoscope className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-300 group-focus-within:text-primary transition-colors z-10" />
+                                        <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-3 h-3 text-stone-400 pointer-events-none" />
+                                        <select value={newContactDoctor} onChange={e => setNewContactDoctor(e.target.value)} className="w-full pl-11 pr-9 py-4 bg-white border-2 border-stone-100 rounded-2xl text-xs font-bold appearance-none cursor-pointer outline-none focus:border-primary transition-all">
+                                            <option value="">— Sin médico —</option>
+                                            {doctors.map(doc => <option key={doc.id} value={doc.name}>{doc.name}</option>)}
+                                        </select>
+                                    </div>
+                                </div>
+                                <div className="space-y-1.5">
+                                    <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest ml-2 flex items-center gap-1">Etiqueta <span className="text-primary">*</span></label>
+                                    <div className="relative group">
+                                        <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-3 h-3 text-stone-400 pointer-events-none" />
+                                        <select value={newContactSource} onChange={e => setNewContactSource(e.target.value)} className="w-full px-5 py-4 bg-white border-2 border-stone-100 rounded-2xl text-xs font-bold appearance-none cursor-pointer outline-none focus:border-primary transition-all">
+                                            <option value="">Seleccionar origen...</option>
+                                            {CONTACT_SOURCES.map(s => <option key={s} value={s}>{s}</option>)}
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Email */}
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-1.5">
+                                    <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest ml-2">Email</label>
+                                    <div className="relative group">
+                                        <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-300 group-focus-within:text-primary transition-colors" />
+                                        <input type="email" placeholder="correo@ejemplo.com" value={newContactEmail} onChange={e => setNewContactEmail(e.target.value)} className="w-full pl-11 pr-4 py-4 bg-white border-2 border-stone-100 rounded-2xl text-xs font-bold outline-none focus:border-primary transition-all" />
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Tipo de Producto */}
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest ml-2 flex items-center gap-1">Tipo de Producto <span className="text-primary">*</span></label>
+                                <div className="grid grid-cols-4 gap-2">
+                                    {PRODUCT_TYPES.map(type => (
+                                        <button key={type} type="button" onClick={() => setNewContactInterest(type)} className={`px-2 py-2.5 rounded-xl border-2 text-[9px] font-black uppercase transition-all ${newContactInterest === type ? 'bg-primary border-primary text-white shadow-lg' : 'bg-white text-stone-400 border-stone-100 hover:border-primary/30'}`}>{type}</button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className="flex gap-4 pt-6">
+                                <button onClick={handleCreateAndSave} disabled={!newContactName || !newContactPhone || !newContactSource || !newContactInterest || savingQuote} className="flex-1 py-5 bg-primary text-white rounded-[2rem] font-black text-xs uppercase tracking-[0.2em] shadow-xl disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-3 transition-all hover:scale-[1.02] active:scale-95">{savingQuote ? <><Loader2 className="w-5 h-5 animate-spin" /> Creando...</> : 'Crear y Guardar'}</button>
+                                <button onClick={() => { setShowNewContact(false); setDuplicateError(null); }} className="px-8 py-5 bg-stone-100 text-stone-500 rounded-[2rem] font-black text-[11px] uppercase tracking-widest hover:bg-stone-200 transition-all">Cancelar</button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             )}
         </div>

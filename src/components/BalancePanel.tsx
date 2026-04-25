@@ -13,7 +13,7 @@ interface BalancePanelProps {
 export default function BalancePanel({ orders, onClose }: BalancePanelProps) {
     const getBusinessDays = (start: Date, end: Date) => {
         let count = 0;
-        let curDate = new Date(start.getTime());
+        const curDate = new Date(start.getTime());
         // Normalizamos a medianoche para que el cálculo sea por días calendario
         curDate.setHours(0, 0, 0, 0);
         const endDate = new Date(end.getTime());

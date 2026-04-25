@@ -288,7 +288,7 @@ export const ContactService = {
                 const stockItems = (order.items || []).filter((item: any) => {
                     const cat = item.product?.category;
                     const type = item.product?.type;
-                    return !(cat === 'LENS' || cat === 'CRISTAL' || (type || '').includes('Cristal'));
+                    return !(cat === 'Cristal' || (type || '').includes('Cristal'));
                 });
                 for (const item of stockItems) {
                     if (!item.productId) continue;
@@ -1051,7 +1051,7 @@ export const ContactService = {
 
         // 5. Graduación completa en cristales
         const crystalItems = (lastOrder.items || []).filter((item: any) =>
-            item.eye && (item.product?.type === 'Cristal' || item.product?.category === 'LENS' || item.product?.category === 'CRISTAL')
+            item.eye && (item.product?.type === 'Cristal' || item.product?.category === 'Cristal')
         );
 
         // FIX: Only require prescription if the order includes crystals

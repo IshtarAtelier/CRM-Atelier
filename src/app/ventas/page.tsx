@@ -202,7 +202,7 @@ export default function VentasPage() {
         new Set(
             orders.flatMap(o =>
                 o.items
-                    .filter(i => (i.product?.category === 'LENS' || i.product?.category === 'CRISTAL') && (i.product as any)?.laboratory)
+                    .filter(i => i.product?.category === 'Cristal' && (i.product as any)?.laboratory)
                     .map(i => (i.product as any).laboratory as string)
             )
         )
@@ -225,7 +225,7 @@ export default function VentasPage() {
             o.id.toLowerCase().includes(search.toLowerCase()) ||
             (o.labOrderNumber || '').toLowerCase().includes(search.toLowerCase());
         const matchLab = filterLab === 'ALL' || (o.labStatus || 'NONE') === filterLab;
-        const matchLaboratory = filterLaboratory === 'ALL' || o.items.some(i => (i.product?.category === 'LENS' || i.product?.category === 'CRISTAL') && (i.product as any)?.laboratory === filterLaboratory);
+        const matchLaboratory = filterLaboratory === 'ALL' || o.items.some(i => i.product?.category === 'Cristal' && (i.product as any)?.laboratory === filterLaboratory);
         const matchDate = (!dateFrom || new Date(o.createdAt) >= new Date(dateFrom)) && (!dateTo || new Date(o.createdAt) <= new Date(dateTo + 'T23:59:59'));
         const matchBalance = !filterBalance || getFinancials(o.id).hasBalance;
         return matchSearch && matchLab && matchLaboratory && matchDate && matchBalance;
@@ -1138,7 +1138,7 @@ export default function VentasPage() {
                                                 <div className="pt-3 mt-3 border-t border-amber-100 dark:border-amber-800/30">
                                                     <span className="text-[8px] font-black text-stone-400 uppercase tracking-widest">Cristales</span>
                                                     {(() => {
-                                                        const lensItems = order.items.filter(i => i.product?.category === 'LENS' || i.product?.category === 'CRISTAL');
+                                                        const lensItems = order.items.filter(i => i.product?.category === 'Cristal');
                                                         if (lensItems.length === 0) return <p className="text-xs text-stone-400 italic mt-1">Sin cristales</p>;
                                                         return (
                                                             <div className="mt-1 space-y-1">
@@ -1183,11 +1183,11 @@ export default function VentasPage() {
                                         </div>
 
                                         {/* Full Items List (all non-lens items like accessories) */}
-                                        {order.items.filter(i => i.product?.category !== 'LENS' && i.product?.category !== 'CRISTAL' && i.product?.category !== 'FRAME' && i.product?.category !== 'ATELIER').length > 0 && (
+                                        {order.items.filter(i => i.product?.category !== 'Cristal' && i.product?.category !== 'FRAME' && i.product?.category !== 'ATELIER').length > 0 && (
                                             <div className="mt-2">
                                                 <span className="text-[8px] font-black text-stone-400 uppercase tracking-widest">Otros Items</span>
                                                 <div className="flex flex-wrap gap-2 mt-1">
-                                                    {order.items.filter(i => i.product?.category !== 'LENS' && i.product?.category !== 'CRISTAL' && i.product?.category !== 'FRAME' && i.product?.category !== 'ATELIER').map(oi => (
+                                                    {order.items.filter(i => i.product?.category !== 'Cristal' && i.product?.category !== 'FRAME' && i.product?.category !== 'ATELIER').map(oi => (
                                                         <span key={oi.id} className="text-[10px] font-bold bg-stone-100 dark:bg-stone-700 px-2 py-1 rounded-lg text-stone-600 dark:text-stone-300">
                                                             {oi.product?.brand} {oi.product?.model || oi.product?.name} x{oi.quantity}
                                                         </span>

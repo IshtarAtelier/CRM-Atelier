@@ -160,8 +160,7 @@ export async function GET(request: Request) {
                 OR: [
                     { client: { interest: { contains: 'Multifocal' } } },
                     { items: { some: { product: { type: { contains: 'Multifocal' } } } } },
-                    { items: { some: { product: { category: 'LENS' } } } },
-                    { items: { some: { product: { category: 'CRISTAL' } } } }
+                    { items: { some: { product: { category: 'Cristal' } } } }
                 ]
             },
             select: {
@@ -251,8 +250,7 @@ export async function GET(request: Request) {
                 const orderPrice = Math.max(item.price * item.quantity, 0); // Using item price for type stats is usually better as it's more granular
                 typeStats[type].total += orderPrice;
 
-                const isCrystalItem = (product.category || '').toUpperCase().includes('LENS')
-                    || (product.category || '').toUpperCase().includes('CRISTAL')
+                const isCrystalItem = (product.category || '').toUpperCase().includes('CRISTAL')
                     || (product.type || '').includes('Cristal')
                     || (product.type || '').includes('Multifocal')
                     || (product.type || '').includes('Monofocal');

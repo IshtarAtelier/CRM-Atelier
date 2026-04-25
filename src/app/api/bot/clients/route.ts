@@ -14,7 +14,7 @@ export async function GET(request: Request) {
         }
 
         // Search primarily by phone
-        let where: any = {};
+        const where: any = {};
         if (phone) {
             where.OR = [
                 { phone: { contains: phone } },

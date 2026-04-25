@@ -148,7 +148,7 @@ export function BotPricingSection() {
                     <div>
                         <p className="text-sm font-bold text-indigo-700 dark:text-indigo-300 mb-1">Precios Dinámicos para IA</p>
                         <p className="text-xs text-indigo-600/70 dark:text-indigo-400/70 leading-relaxed">
-                            Aquí se definen qué precios o servicios puede ofrecer el bot al presupuestar por WhatsApp. Los productos físicos marcados como "Recomendado por Bot" en Inventario aparecen aquí con una etiqueta verde.
+                            Aquí se definen qué precios o servicios puede ofrecer el bot al presupuestar por WhatsApp. Los productos físicos marcados como &quot;Recomendado por Bot&quot; en Inventario aparecen aquí con una etiqueta verde.
                         </p>
                     </div>
                 </div>

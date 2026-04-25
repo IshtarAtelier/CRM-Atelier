@@ -56,7 +56,7 @@ export default function InventarioPage() {
 
     // Helper: detecta cristales (incluye valores legacy LENS/MULTIFOCAL/etc)
     const checkCristal = (p: { category?: string; type?: string | null }) =>
-        p.category === 'Cristal' || p.category === 'LENS'
+        p.category === 'Cristal'
         || p.type?.startsWith('Cristal')
         || ['MONOFOCAL','MULTIFOCAL','BIFOCAL','OCUPACIONAL'].includes(p.type?.toUpperCase() || '');
 
@@ -225,35 +225,6 @@ export default function InventarioPage() {
                 <div className="flex items-center gap-2 flex-wrap w-full lg:w-auto overflow-x-auto lg:overflow-visible pb-2 lg:pb-0 no-scrollbar">
                     {isAdmin && (
                         <>
-                            <a
-                                href="/api/products/import?type=cristales"
-                                download="plantilla_cristales_atelier.csv"
-                                className="flex items-center gap-2 px-3 lg:px-4 py-2.5 lg:py-3 bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-300 rounded-xl text-[9px] lg:text-[10px] font-black hover:scale-105 active:scale-95 transition-all uppercase tracking-widest border border-stone-200 dark:border-stone-700 no-underline whitespace-nowrap"
-                                title="Descargar plantilla CSV para cargar cristales masivamente"
-                            >
-                                <Download className="w-3.5 h-3.5" />
-                                🔬 Cristales
-                            </a>
-                            <a
-                                href="/api/products/import?type=armazones"
-                                download="plantilla_armazones_atelier.csv"
-                                className="flex items-center gap-2 px-3 lg:px-4 py-2.5 lg:py-3 bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-300 rounded-xl text-[9px] lg:text-[10px] font-black hover:scale-105 active:scale-95 transition-all uppercase tracking-widest border border-stone-200 dark:border-stone-700 no-underline whitespace-nowrap"
-                                title="Descargar plantilla CSV para cargar armazones masivamente"
-                            >
-                                <Download className="w-3.5 h-3.5" />
-                                👓 Armazones
-                            </a>
-                            <label
-                                className={`flex items-center gap-2 px-3 lg:px-4 py-2.5 lg:py-3 rounded-xl text-[9px] lg:text-[10px] font-black uppercase tracking-widest cursor-pointer transition-all border hover:scale-105 active:scale-95 whitespace-nowrap ${importing
-                                    ? 'bg-stone-200 dark:bg-stone-700 text-stone-400 border-stone-300'
-                                    : 'bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100'
-                                    }`}
-                                title="Importar cristales desde un archivo CSV"
-                            >
-                                {importing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
-                                {importing ? 'Importando' : 'Importar CSV'}
-                                <input type="file" accept=".csv,.txt" onChange={handleImportCSV} className="hidden" disabled={importing} />
-                            </label>
                             <button
                                 onClick={() => setShowForm(true)}
                                 className="flex-1 lg:flex-none flex items-center justify-center gap-2 px-5 lg:px-6 py-2.5 lg:py-3 bg-stone-900 text-white dark:bg-primary dark:text-primary-foreground rounded-xl text-[9px] lg:text-[10px] font-black shadow-lg hover:scale-105 active:scale-95 transition-all group uppercase tracking-widest whitespace-nowrap"

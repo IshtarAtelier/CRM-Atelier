@@ -381,7 +381,7 @@ export default function PedidosPage() {
     };
 
     const getSmartLabData = (order: Order) => {
-        const lensItems = order.items.filter(i => i.product?.category === 'LENS' || i.product?.category === 'CRISTAL');
+        const lensItems = order.items.filter(i => i.product?.category === 'Cristal');
         const odItem = lensItems.find(i => i.eye === 'OD');
         const oiItem = lensItems.find(i => i.eye === 'OI');
         const lensType = lensItems[0]?.product?.type || 'MONOFOCAL';

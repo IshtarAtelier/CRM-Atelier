@@ -353,7 +353,7 @@ export async function PATCH(
 
                     // 1. Crystal validations
                     const hasCrystals = orderForValidation.items.some((item: any) =>
-                        item.product?.category === 'LENS' || 
+                        item.product?.category === 'Cristal' || 
                         item.product?.type === 'Cristal' || 
                         (item.product?.name || '').includes('Cristal')
                     );
@@ -528,7 +528,7 @@ export async function PATCH(
 
                 // Check: if order has crystals, frame info must be set
                 const hasCrystals = existingOrder.items?.some((item: any) =>
-                    item.product?.type === 'Cristal' || item.product?.category === 'LENS' || (item.product?.name || '').includes('Cristal')
+                    item.product?.type === 'Cristal' || item.product?.category === 'Cristal' || (item.product?.name || '').includes('Cristal')
                 );
 
                 const effectiveRxId = prescriptionId || existingOrder.prescriptionId;
@@ -593,7 +593,7 @@ export async function PATCH(
                 const stockItems = (existingOrder.items || []).filter((item: any) => {
                     const cat = item.product?.category;
                     const type = item.product?.type;
-                    const isCrystal = cat === 'LENS' || (type || '').includes('Cristal');
+                    const isCrystal = cat === 'Cristal' || (type || '').includes('Cristal');
                     return !isCrystal;
                 });
                 const insufficientStock: string[] = [];
@@ -638,7 +638,7 @@ export async function PATCH(
                 const stockItems = (orderForStock?.items || []).filter((item: any) => {
                     const cat = item.product?.category;
                     const type = item.product?.type;
-                    return !(cat === 'LENS' || (type || '').includes('Cristal'));
+                    return !(cat === 'Cristal' || (type || '').includes('Cristal'));
                 });
 
                 const stockUpdates = stockItems
@@ -681,7 +681,7 @@ export async function PATCH(
                         .filter((item: any) => {
                             const cat = item.product?.category;
                             const type = item.product?.type;
-                            return cat === 'LENS' || (type || '').includes('Cristal');
+                            return cat === 'Cristal' || (type || '').includes('Cristal');
                         })
                         .map((item: any) => {
                             const isOD = item.eye === 'OD';

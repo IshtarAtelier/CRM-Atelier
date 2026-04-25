@@ -96,7 +96,7 @@ export default function HitosPanel({ contactId, interactions, onRefresh }: Hitos
 
             {hitos.length === 0 ? (
                 <div className="p-8 text-center bg-stone-50 dark:bg-stone-800/30 rounded-[2rem] border-2 border-dashed border-stone-100 dark:border-stone-800">
-                    <p className="text-xs text-stone-400 font-bold italic">No hay hitos extraídos aún. Usá el botón "Extraer" para que la IA resuma la conversación.</p>
+                    <p className="text-xs text-stone-400 font-bold italic">No hay hitos extraídos aún. Usá el botón &quot;Extraer&quot; para que la IA resuma la conversación.</p>
                 </div>
             ) : (
                 <div className="grid grid-cols-1 gap-3">

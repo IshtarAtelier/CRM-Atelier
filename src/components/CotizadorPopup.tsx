@@ -136,7 +136,7 @@ export default function CotizadorPopup({ clientName, clientId, onClose }: Cotiza
                     discountCard,
                     subtotalWithMarkup,
                     total: totalCash,
-                    frameSource: quoteItems.some(i => i.product.type === 'Cristal' || i.product.category === 'LENS') ? frameSource : null,
+                    frameSource: quoteItems.some(i => i.product.type === 'Cristal' || i.product.category === 'Cristal') ? frameSource : null,
                     userFrameBrand: frameSource === 'USUARIO' ? userFrameData.brand : null,
                     userFrameModel: frameSource === 'USUARIO' ? userFrameData.model : null,
                     userFrameNotes: frameSource === 'USUARIO' ? userFrameData.notes : null,

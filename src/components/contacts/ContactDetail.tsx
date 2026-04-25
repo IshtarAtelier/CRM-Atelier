@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Contact } from '@/types/contacts';
 
@@ -61,7 +61,7 @@ export default function ContactDetail({
         };
         loadUser();
         fetchContact();
-    }, [contactId]);
+    }, [contactId, fetchContact]);
 
     useEffect(() => {
         if (autoStartQuote && contact) {
@@ -69,7 +69,7 @@ export default function ContactDetail({
         }
     }, [autoStartQuote, contact]);
 
-    const fetchContact = async () => {
+    const fetchContact = useCallback(async () => {
         try {
             const res = await fetch(`/api/contacts/${contactId}`);
             if (res.ok) {
@@ -81,7 +81,7 @@ export default function ContactDetail({
         } finally {
             setLoading(false);
         }
-    };
+    }, [contactId]);
 
     const handleRevertStatus = async () => {
         if (!contact) return;

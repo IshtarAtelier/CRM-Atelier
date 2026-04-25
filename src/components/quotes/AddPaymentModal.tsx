@@ -18,17 +18,65 @@ interface AddPaymentModalProps {
     onSuccess: (payment: any) => void;
 }
 
-const PAYMENT_METHODS = [
-    { id: 'EFECTIVO', label: 'Efectivo', icon: Banknote, color: 'emerald' },
-    { id: 'TRANSFERENCIA_ISHTAR', label: 'Transf. Ishtar', icon: ArrowRightLeft, color: 'violet' },
-    { id: 'TRANSFERENCIA_LUCIA', label: 'Transf. Lucía', icon: ArrowRightLeft, color: 'violet' },
-    { id: 'PAY_WAY_3_ISH', label: 'Pay Way 3 Ish', icon: CreditCard, color: 'blue' },
-    { id: 'PAY_WAY_3_YANI', label: 'Pay Way 3 Yani', icon: CreditCard, color: 'indigo' },
-    { id: 'PAY_WAY_6_ISH', label: 'Pay Way 6 Ish', icon: CreditCard, color: 'blue' },
-    { id: 'PAY_WAY_6_YANI', label: 'Pay Way 6 Yani', icon: CreditCard, color: 'indigo' },
-    { id: 'NARANJA_Z_ISH', label: 'Naranja Z Ish', icon: CreditCard, color: 'orange' },
-    { id: 'NARANJA_Z_YANI', label: 'Naranja Z Yani', icon: CreditCard, color: 'orange' },
-    { id: 'GO_CUOTAS_ISH', label: 'Go Cuotas Ish', icon: CreditCard, color: 'purple' },
+const COLOR_STYLES: Record<string, { active: string; inactive: string; iconActive: string; iconInactive: string }> = {
+    emerald: {
+        active: 'bg-emerald-500 border-emerald-500 text-white shadow-lg scale-105',
+        inactive: 'bg-emerald-50 dark:bg-emerald-900/10 border-emerald-200 dark:border-emerald-900/30 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-100 hover:border-emerald-300',
+        iconActive: 'text-white',
+        iconInactive: 'text-emerald-600 dark:text-emerald-400'
+    },
+    violet: {
+        active: 'bg-violet-500 border-violet-500 text-white shadow-lg scale-105',
+        inactive: 'bg-violet-50 dark:bg-violet-900/10 border-violet-200 dark:border-violet-900/30 text-violet-700 dark:text-violet-400 hover:bg-violet-100 hover:border-violet-300',
+        iconActive: 'text-white',
+        iconInactive: 'text-violet-600 dark:text-violet-400'
+    },
+    pink: {
+        active: 'bg-pink-500 border-pink-500 text-white shadow-lg scale-105',
+        inactive: 'bg-pink-50 dark:bg-pink-900/10 border-pink-200 dark:border-pink-900/30 text-pink-700 dark:text-pink-400 hover:bg-pink-100 hover:border-pink-300',
+        iconActive: 'text-white',
+        iconInactive: 'text-pink-600 dark:text-pink-400'
+    },
+    rose: {
+        active: 'bg-rose-400 border-rose-400 text-white shadow-lg scale-105',
+        inactive: 'bg-rose-50 dark:bg-rose-900/10 border-rose-200 dark:border-rose-900/30 text-rose-700 dark:text-rose-400 hover:bg-rose-100 hover:border-rose-300',
+        iconActive: 'text-white',
+        iconInactive: 'text-rose-600 dark:text-rose-400'
+    },
+    orange: {
+        active: 'bg-orange-400 border-orange-400 text-white shadow-lg scale-105',
+        inactive: 'bg-orange-50 dark:bg-orange-900/10 border-orange-200 dark:border-orange-900/30 text-orange-700 dark:text-orange-400 hover:bg-orange-100 hover:border-orange-300',
+        iconActive: 'text-white',
+        iconInactive: 'text-orange-600 dark:text-orange-400'
+    }
+};
+
+const PAYMENT_GROUPS = [
+    {
+        id: 'principales',
+        items: [
+            { id: 'EFECTIVO', label: 'Efectivo', icon: Banknote, color: 'emerald' },
+            { id: 'TRANSFERENCIA_LUCIA', label: 'Transf. Lucía', icon: ArrowRightLeft, color: 'violet' },
+            { id: 'TRANSFERENCIA_ISHTAR', label: 'Transf. Ishtar', icon: ArrowRightLeft, color: 'pink' },
+        ]
+    },
+    {
+        id: 'ish',
+        items: [
+            { id: 'PAY_WAY_3_ISH', label: 'Pay Way 3 Ish', icon: CreditCard, color: 'rose' },
+            { id: 'PAY_WAY_6_ISH', label: 'Pay Way 6 Ish', icon: CreditCard, color: 'rose' },
+            { id: 'GO_CUOTAS_ISH', label: 'Go Cuotas Ish', icon: CreditCard, color: 'rose' },
+            { id: 'NARANJA_Z_ISH', label: 'Naranja Z Ish', icon: CreditCard, color: 'rose' },
+        ]
+    },
+    {
+        id: 'yani',
+        items: [
+            { id: 'PAY_WAY_3_YANI', label: 'Pay Way 3 Yani', icon: CreditCard, color: 'orange' },
+            { id: 'PAY_WAY_6_YANI', label: 'Pay Way 6 Yani', icon: CreditCard, color: 'orange' },
+            { id: 'NARANJA_Z_YANI', label: 'Naranja Z Yani', icon: CreditCard, color: 'orange' },
+        ]
+    }
 ];
 
 export default function AddPaymentModal({
@@ -199,26 +247,29 @@ export default function AddPaymentModal({
                         <label className="text-[10px] font-black uppercase text-stone-400 tracking-widest block pl-1">
                             Método de Pago
                         </label>
-                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-                            {PAYMENT_METHODS.map((m) => {
-                                const Icon = m.icon;
-                                const isSelected = method === m.id;
-                                return (
-                                    <button
-                                        key={m.id}
-                                        type="button"
-                                        onClick={() => setMethod(m.id)}
-                                        className={`flex flex-col items-center justify-center p-3 sm:p-4 rounded-xl border-2 transition-all gap-2 ${
-                                            isSelected
-                                                ? `bg-${m.color}-500 border-${m.color}-500 text-white shadow-lg scale-105`
-                                                : 'bg-white dark:bg-stone-800 border-stone-100 dark:border-stone-700 text-stone-400 hover:border-stone-200'
-                                        }`}
-                                    >
-                                        <Icon className={`w-5 h-5 ${isSelected ? 'text-white' : 'text-stone-400'}`} />
-                                        <span className="text-[9px] font-black uppercase tracking-widest text-center">{m.label}</span>
-                                    </button>
-                                );
-                            })}
+                        <div className="space-y-3">
+                            {PAYMENT_GROUPS.map((group) => (
+                                <div key={group.id} className={`grid gap-3 ${group.items.length === 4 ? 'grid-cols-2 sm:grid-cols-4' : 'grid-cols-3'}`}>
+                                    {group.items.map((m) => {
+                                        const Icon = m.icon;
+                                        const isSelected = method === m.id;
+                                        const style = COLOR_STYLES[m.color];
+                                        return (
+                                            <button
+                                                key={m.id}
+                                                type="button"
+                                                onClick={() => setMethod(m.id)}
+                                                className={`flex flex-col items-center justify-center p-3 sm:p-4 rounded-xl border-2 transition-all gap-2 ${
+                                                    isSelected ? style.active : style.inactive
+                                                }`}
+                                            >
+                                                <Icon className={`w-5 h-5 ${isSelected ? style.iconActive : style.iconInactive}`} />
+                                                <span className="text-[9px] font-black uppercase tracking-widest text-center">{m.label}</span>
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            ))}
                         </div>
                     </div>
 

@@ -51,7 +51,7 @@ export default function CheckoutModal({
     
     // Prescription Selection
     const hasCrystals = order.items?.some((it: any) => 
-        it.product?.type === 'Cristal' || it.product?.category === 'LENS' || it.product?.category === 'CRISTAL' || (it.product?.name || '').includes('Cristal')
+        it.product?.type === 'Cristal' || it.product?.category === 'Cristal' || (it.product?.name || '').includes('Cristal')
     );
     const [selectedRxId, setSelectedRxId] = useState<string | null>(order.prescriptionId || (contact.prescriptions?.[0]?.id || null));
 

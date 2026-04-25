@@ -56,7 +56,7 @@ export default function Home() {
 
   useEffect(() => {
     fetchDashboard(dateFrom, dateTo, funnelEtiqueta, funnelTipo);
-  }, [funnelEtiqueta, funnelTipo]);
+  }, [dateFrom, dateTo, funnelEtiqueta, funnelTipo]);
 
   const fetchDashboard = async (from?: string, to?: string, etiqueta?: string, tipo?: string) => {
     setLoading(true);
@@ -82,7 +82,6 @@ export default function Home() {
     setPeriodLabel(label);
     setDateFrom(from || undefined);
     setDateTo(to || undefined);
-    fetchDashboard(from || undefined, to || undefined, funnelEtiqueta, funnelTipo);
   };
 
   const d = data && !('error' in data) ? data : {

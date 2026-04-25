@@ -178,8 +178,7 @@ export async function GET(request: Request) {
                 // Los armazones siempre cuentan ambos costos (la óptica los paga).
                 const has2x1Tag = order.tags?.some((t: any) => t.name.toLowerCase().includes('2x1')) || false;
                 const is2x1Order = ((order as any).appliedPromoName || '').toLowerCase().includes('2x1') || has2x1Tag;
-                const isCrystalItem = (product.category || '').toUpperCase().includes('LENS')
-                    || (product.category || '').toUpperCase().includes('CRISTAL')
+                const isCrystalItem = (product.category || '').toUpperCase().includes('CRISTAL')
                     || (product.type || '').includes('Cristal')
                     || (product.type || '').includes('Multifocal')
                     || (product.type || '').includes('Monofocal');
@@ -193,7 +192,7 @@ export async function GET(request: Request) {
                 const cat = (product.category || '').toUpperCase();
                 if (cat.includes('FRAME') || cat.includes('SUNGLASS') || (product.type || '').includes('Armazón') || (product.type || '').includes('Lentes de Sol')) {
                     totalCostFrames += itemCost;
-                } else if (cat.includes('LENS') || cat.includes('CRISTAL') || (product.type || '').includes('Cristal') || (product.type || '').includes('Multifocal') || (product.type || '').includes('Monofocal')) {
+                } else if (cat.includes('CRISTAL') || (product.type || '').includes('Cristal') || (product.type || '').includes('Multifocal') || (product.type || '').includes('Monofocal')) {
                     totalCostLenses += itemCost;
                 } else {
                     totalCostOther += itemCost;
@@ -215,7 +214,7 @@ export async function GET(request: Request) {
 
                 // Lab profit stats (only for LENS/CRISTAL items with a laboratory)
                 const labName = (product as any).laboratory;
-                if ((cat.includes('LENS') || cat.includes('CRISTAL') || (product.type || '').includes('Cristal') || (product.type || '').includes('Multifocal') || (product.type || '').includes('Monofocal')) && labName) {
+                if ((cat.includes('CRISTAL') || (product.type || '').includes('Cristal') || (product.type || '').includes('Multifocal') || (product.type || '').includes('Monofocal')) && labName) {
                     if (!labProfitStats[labName]) labProfitStats[labName] = { laboratory: labName, revenue: 0, cost: 0, profit: 0, ordersCount: 0, clients: [] };
                     labProfitStats[labName].revenue += itemRevenue;
                     labProfitStats[labName].cost += itemCost;
@@ -333,7 +332,7 @@ export async function GET(request: Request) {
 
                         const cat = (product.category || '').toUpperCase();
                         const labName = (product as any).laboratory;
-                        if (labName && (cat.includes('LENS') || cat.includes('CRISTAL') || (product.type || '').includes('Cristal') || (product.type || '').includes('Multifocal') || (product.type || '').includes('Monofocal'))) {
+                        if (labName && (cat.includes('CRISTAL') || (product.type || '').includes('Cristal') || (product.type || '').includes('Multifocal') || (product.type || '').includes('Monofocal'))) {
                             if (!labOrderIds[labName]) labOrderIds[labName] = new Set();
                             labOrderIds[labName].add(order.id);
                         }

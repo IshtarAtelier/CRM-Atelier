@@ -53,7 +53,7 @@ export const isAtelierFrame = (p: any): boolean => {
 export const isCrystal = (p: any): boolean => {
     if (!p) return false;
     const type = (p.type || '').toLowerCase();
-    return p.category === 'Cristal' || p.category === 'LENS' || type.includes('cristal'); // LENS kept as fallback for legacy data/snapshots
+    return p.category === 'Cristal' || type.includes('cristal');
 };
 
 /**

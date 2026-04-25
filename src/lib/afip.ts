@@ -78,7 +78,7 @@ export function getAfipInstance(account: BillingAccount = 'ISH'): any {
                     const header = headerMatch[0];
                     const footer = footerMatch[0];
                     // Todo lo que está entre medio, le sacamos los espacios
-                    let body = str.replace(header, '').replace(footer, '').replace(/\s+/g, '');
+                    const body = str.replace(header, '').replace(footer, '').replace(/\s+/g, '');
                     // Lo dividimos en líneas de 64 caracteres típicas de PEM
                     const bodyChunks = body.match(/.{1,64}/g) || [];
                     str = `${header}\n${bodyChunks.join('\n')}\n${footer}`;
