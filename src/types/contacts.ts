@@ -75,7 +75,6 @@ export interface Contact {
     address: string | null;
     insurance: string | null;
     doctor: string | null;
-    wantsInvoice: boolean | null;
     tags: Tag[];
     interactions?: Interaction[];
     prescriptions?: Prescription[];
@@ -99,7 +98,6 @@ export interface ContactFormData {
     address?: string;
     insurance?: string;
     doctor?: string;
-    wantsInvoice?: boolean | null;
     followUpTask?: string;
     followUpDate?: string;
 }

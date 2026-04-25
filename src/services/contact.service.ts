@@ -17,7 +17,6 @@ export interface ContactCreateData {
     address?: string | null;
     insurance?: string | null;
     doctor?: string | null;
-    wantsInvoice?: boolean | null;
 }
 
 export const ContactService = {
@@ -59,7 +58,6 @@ export const ContactService = {
             const clients = await prisma.client.findMany({
                 where,
                 include: {
-                    user: { select: { name: true } },
                     tags: true,
                     prescriptions: {
                         select: { date: true },
@@ -183,8 +181,7 @@ export const ContactService = {
             priority: Number(data.priority) || 0,
             address: data.address,
             insurance: data.insurance,
-            doctor: data.doctor,
-            wantsInvoice: data.wantsInvoice ?? null
+            doctor: data.doctor
         };
 
         return await prisma.client.create({
@@ -207,8 +204,6 @@ export const ContactService = {
         if (data.address !== undefined) updateData.address = data.address;
         if (data.insurance !== undefined) updateData.insurance = data.insurance;
         if (data.doctor !== undefined) updateData.doctor = data.doctor;
-        if (data.wantsInvoice !== undefined) updateData.wantsInvoice = data.wantsInvoice;
-
 
         return await prisma.client.update({
             where: { id },

@@ -121,8 +121,6 @@ function CotizadorPageContent() {
     const [newContactInterest, setNewContactInterest] = useState('');
     const [newContactInsurance, setNewContactInsurance] = useState('');
     const [newContactDoctor, setNewContactDoctor] = useState('');
-    const [newContactAddress, setNewContactAddress] = useState('');
-    const [newContactWantsInvoice, setNewContactWantsInvoice] = useState<boolean | null>(null);
     const [duplicateError, setDuplicateError] = useState<string | null>(null);
     const [doctors, setDoctors] = useState<any[]>([]);
     const [savingQuote, setSavingQuote] = useState(false);
@@ -355,10 +353,6 @@ function CotizadorPageContent() {
             alert('Por favor completá los campos obligatorios: Nombre, Teléfono, Etiqueta y Tipo de Producto.');
             return;
         }
-        if (newContactWantsInvoice === null) {
-            alert('Por favor indicá si el cliente quiere factura.');
-            return;
-        }
         setDuplicateError(null);
         setSavingQuote(true);
         try {
@@ -373,9 +367,7 @@ function CotizadorPageContent() {
                     contactSource: newContactSource,
                     interest: newContactInterest,
                     insurance: newContactInsurance || null,
-                    doctor: newContactDoctor || null,
-                    address: newContactAddress || null,
-                    wantsInvoice: newContactWantsInvoice
+                    doctor: newContactDoctor || null
                 }),
             });
             if (res.ok) {
@@ -408,8 +400,6 @@ function CotizadorPageContent() {
         setNewContactInterest('');
         setNewContactInsurance('');
         setNewContactDoctor('');
-        setNewContactAddress('');
-        setNewContactWantsInvoice(null);
         setDuplicateError(null);
         setSavedContact(null);
         setPendingContact(null);
@@ -912,13 +902,7 @@ function CotizadorPageContent() {
                                                                     <input type="email" placeholder="correo@ejemplo.com" value={newContactEmail} onChange={e => setNewContactEmail(e.target.value)} className="w-full pl-11 pr-4 py-4 bg-white border-2 border-stone-100 rounded-2xl text-xs font-bold outline-none focus:border-primary transition-all" />
                                                                 </div>
                                                             </div>
-                                                            <div className="space-y-1.5">
-                                                                <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest ml-2">Dirección</label>
-                                                                <div className="relative group">
-                                                                    <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-300 group-focus-within:text-primary transition-colors" />
-                                                                    <input type="text" placeholder="Calle, Número, Localidad" value={newContactAddress} onChange={e => setNewContactAddress(e.target.value)} className="w-full pl-11 pr-4 py-4 bg-white border-2 border-stone-100 rounded-2xl text-xs font-bold outline-none focus:border-primary transition-all" />
-                                                                </div>
-                                                            </div>
+
                                                         </div>
 
                                                         {/* Tipo de Producto */}
@@ -931,17 +915,10 @@ function CotizadorPageContent() {
                                                             </div>
                                                         </div>
 
-                                                        {/* ¿Quiere Factura? */}
-                                                        <div className="space-y-2">
-                                                            <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest ml-2 flex items-center gap-1.5"><FileCheck className="w-3.5 h-3.5" /> ¿Quiere Factura? <span className="text-primary">*</span></label>
-                                                            <div className="flex gap-3">
-                                                                <button type="button" onClick={() => setNewContactWantsInvoice(true)} className={`flex-1 py-3 rounded-xl border-2 text-[10px] font-black uppercase tracking-widest transition-all ${newContactWantsInvoice === true ? 'bg-emerald-500 border-emerald-500 text-white shadow-lg shadow-emerald-500/20' : 'bg-white text-stone-400 border-stone-100 hover:border-emerald-300'}`}>Sí</button>
-                                                                <button type="button" onClick={() => setNewContactWantsInvoice(false)} className={`flex-1 py-3 rounded-xl border-2 text-[10px] font-black uppercase tracking-widest transition-all ${newContactWantsInvoice === false ? 'bg-red-500 border-red-500 text-white shadow-lg shadow-red-500/20' : 'bg-white text-stone-400 border-stone-100 hover:border-red-300'}`}>No</button>
-                                                            </div>
-                                                        </div>
+
 
                                                         <div className="flex gap-4 pt-2">
-                                                            <button onClick={handleCreateAndSave} disabled={!newContactName || !newContactPhone || !newContactSource || !newContactInterest || newContactWantsInvoice === null || savingQuote} className="flex-1 py-5 bg-primary text-white rounded-[2rem] font-black text-xs uppercase tracking-[0.2em] shadow-xl disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-3 transition-all hover:scale-[1.02] active:scale-95">{savingQuote ? <><Loader2 className="w-5 h-5 animate-spin" /> Creando...</> : 'Crear y Guardar'}</button>
+                                                            <button onClick={handleCreateAndSave} disabled={!newContactName || !newContactPhone || !newContactSource || !newContactInterest || savingQuote} className="flex-1 py-5 bg-primary text-white rounded-[2rem] font-black text-xs uppercase tracking-[0.2em] shadow-xl disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-3 transition-all hover:scale-[1.02] active:scale-95">{savingQuote ? <><Loader2 className="w-5 h-5 animate-spin" /> Creando...</> : 'Crear y Guardar'}</button>
                                                             <button onClick={() => { setShowNewContact(false); setDuplicateError(null); }} className="px-8 py-5 bg-white border-2 border-stone-100 text-stone-400 rounded-[2rem] font-black text-[11px] uppercase tracking-widest hover:text-stone-800 transition-all">Cancelar</button>
                                                         </div>
                                                     </div>
