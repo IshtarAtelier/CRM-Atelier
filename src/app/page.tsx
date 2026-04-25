@@ -378,7 +378,7 @@ export default function Home() {
             {d.suggestedFollowUps.map(o => (
               <a 
                 key={o.id}
-                href={`/contactos?search=${encodeURIComponent(o.client.name)}`}
+                href={`/contactos?id=${o.client?.id}`}
                 className="bg-white dark:bg-stone-900 border-2 border-primary/10 hover:border-primary/40 rounded-3xl p-5 transition-all group relative overflow-hidden"
               >
                 <div className="absolute top-0 right-0 w-16 h-16 bg-primary/5 rounded-full -mr-8 -mt-8 blur-xl group-hover:bg-primary/10 transition-colors" />
@@ -399,8 +399,8 @@ export default function Home() {
                   </div>
                 </div>
                 <div className="space-y-2 relative z-10">
-                  <p className="text-[10px] font-bold text-stone-500">
-                    {o.items.map((it: any) => `${it.product?.brand || ''} ${it.product?.model || it.product?.name || ''}`).join(', ')}
+                  <p className="text-[10px] font-bold text-stone-500 line-clamp-2">
+                    {Array.from(new Set(o.items.map((it: any) => `${it.product?.brand || ''} ${it.product?.model || it.product?.name || ''}`.trim()).filter(Boolean))).join(' + ')}
                   </p>
                   <div className="flex items-center justify-between pt-2 border-t border-stone-50 dark:border-stone-800">
                     <span className="text-sm font-black text-primary">${o.total.toLocaleString()}</span>

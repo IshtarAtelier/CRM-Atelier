@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider      = "prisma-client-js"
   binaryTargets = ["native", "debian-openssl-3.0.x", "linux-musl-openssl-3.0.x", "linux-musl-arm64-openssl-3.0.x"]
@@ -12,42 +9,41 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(cuid())
-  name      String
-  email     String   @unique
-  password  String
-  role      String   @default("STAFF") // "ADMIN" or "STAFF"
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  orders    Order[]
+  id            String         @id @default(cuid())
+  name          String
+  email         String         @unique
+  password      String
+  role          String         @default("STAFF")
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
   cashMovements CashMovement[]
+  orders        Order[]
 }
 
 model Client {
-  id            String   @id @default(cuid())
+  id            String         @id @default(cuid())
   name          String
-  email         String?  @unique
+  email         String?        @unique
   phone         String?
-  dni           String?  // Documento Nacional de Identidad
-  status        String   @default("CONTACT") // "CONTACT" (Prospecto), "CONFIRMED" (Dijo que sí, falta algo), "CLIENT" (Compró)
-  contactSource String?  // Nuevo: Google Ads, Meta, Calle, etc.
-  interest      String?  // Interés de producto (ej: "Monofocal", "Multifocal")
-  expectedValue Float?   @default(0.0) // Valor estimado del ticket
-  priority      Int      @default(0)   // Prioridad / Estrellas (0-5)
-  isFavorite    Boolean  @default(false) // Corazón / Favorito
-  address       String?  // Dirección adicional
-  insurance     String?  // Obra Social
-  doctor        String?  // Médico asignado
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-
-  tasks           ClientTask[]
-  interactions    Interaction[]
-  prescriptions   Prescription[]
-  orders          Order[]
-  tags            Tag[]
-  whatsappChats   WhatsAppChat[]
+  dni           String?
+  status        String         @default("CONTACT")
+  contactSource String?
+  interest      String?
+  expectedValue Float?         @default(0.0)
+  priority      Int            @default(0)
+  isFavorite    Boolean        @default(false)
+  address       String?
+  insurance     String?
+  doctor        String?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  wantsInvoice  Boolean?
+  tasks         ClientTask[]
+  interactions  Interaction[]
+  orders        Order[]
+  prescriptions Prescription[]
+  whatsappChats WhatsAppChat[]
+  tags          Tag[]          @relation("ClientToTag")
 
   @@index([status])
   @@index([doctor])
@@ -56,195 +52,159 @@ model Client {
 
 model CashMovement {
   id         String   @id @default(cuid())
-  type       String   // IN (Entrada) or OUT (Salida)
+  type       String
   amount     Float
   reason     String
-  category   String   @default("OTRO") // GASTO_GENERAL, PAGO_LABORATORIO, APORTE_EFECTIVO, OTRO
-  laboratory String?  // Nombre del laboratorio (solo si category = PAGO_LABORATORIO)
+  category   String   @default("OTRO")
+  laboratory String?
   userId     String
-  receiptUrl String?  // Imagen del comprobante
+  receiptUrl String?
   createdAt  DateTime @default(now())
-
-  user User @relation(fields: [userId], references: [id])
+  user       User     @relation(fields: [userId], references: [id])
 }
 
 model Interaction {
   id        String   @id @default(cuid())
   clientId  String
-  type      String   @default("NOTE") // NOTE, CALL, BUDGET_SENT, etc.
+  type      String   @default("NOTE")
   content   String
   createdAt DateTime @default(now())
-
-  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
 }
 
 model Tag {
-  id        String   @id @default(cuid())
-  name      String   @unique // Ej: "VIP", "Multifocal", "2x1", "Garantía"
-  color     String?  @default("#9e7f65")
-  
-  clients   Client[]
-  orders    Order[]
+  id      String   @id @default(cuid())
+  name    String   @unique
+  color   String?  @default("#9e7f65")
+  clients Client[] @relation("ClientToTag")
+  orders  Order[]  @relation("OrderToTag")
 }
 
 model ClientTask {
   id          String    @id @default(cuid())
   clientId    String
   description String
-  status      String    @default("PENDING") // PENDING, COMPLETED, CANCELLED
+  status      String    @default("PENDING")
   dueDate     DateTime?
-  createdBy   String?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
-
-  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  createdBy   String?
+  client      Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
 }
 
-
 model Prescription {
-  id       String @id @default(cuid())
-  clientId String
-
-  // Ojo Derecho (OD)
-  sphereOD   Float?
-  cylinderOD Float?
-  axisOD     Int?
-
-  // Ojo Izquierdo (OI)
-  sphereOI   Float?
-  cylinderOI Float?
-  axisOI     Int?
-
-  // Adición por ojo
-  addition   Float? // Legacy: adición única (backwards compat)
-  additionOD Float? // Adición OD
-  additionOI Float? // Adición OI
-
-  // Distancia Pupilar por ojo
-  pd         Float? // Legacy: DNP único (backwards compat)
-  distanceOD Float? // DNP Ojo Derecho
-  distanceOI Float? // DNP Ojo Izquierdo
-
-  // Altura por ojo
-  heightOD   Float? // Altura OD
-  heightOI   Float? // Altura OI
-
-  imageUrl String? // Para adjuntar foto de la receta
-  notes    String?  // Notas adicionales de la receta
-
-  date DateTime @default(now())
-
-  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
-
-  // Tipo de receta: ADDITION o NEAR
-  prescriptionType String? @default("ADDITION")
-  // Cerca (cuando prescriptionType = NEAR)
-  nearSphereOD   Float?
-  nearSphereOI   Float?
-  nearCylinderOD Float? // Cilindro cerca OD
-  nearAxisOD     Int?   // Eje cerca OD
-  nearCylinderOI Float? // Cilindro cerca OI
-  nearAxisOI     Int?   // Eje cerca OI
-
-  // Prismas
-  prismOD     String? // Ej: "1.5 BI"
-  prismOI     String? // Ej: "1.5 BD"
-  
-  orders Order[] // Relación a los pedidos que usan esta receta
+  id               String   @id @default(cuid())
+  clientId         String
+  sphereOD         Float?
+  cylinderOD       Float?
+  axisOD           Int?
+  sphereOI         Float?
+  cylinderOI       Float?
+  axisOI           Int?
+  addition         Float?
+  additionOD       Float?
+  additionOI       Float?
+  pd               Float?
+  distanceOD       Float?
+  distanceOI       Float?
+  heightOD         Float?
+  heightOI         Float?
+  imageUrl         String?
+  notes            String?
+  date             DateTime @default(now())
+  prescriptionType String?  @default("ADDITION")
+  nearSphereOD     Float?
+  nearSphereOI     Float?
+  nearCylinderOD   Float?
+  nearAxisOD       Int?
+  nearCylinderOI   Float?
+  nearAxisOI       Int?
+  prismOD          String?
+  prismOI          String?
+  orders           Order[]
+  client           Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
 }
 
 model Product {
-  id        String   @id @default(cuid())
-  name      String?  // Nombre descriptivo (ej: "Líquido Limpiador")
-  category  String   // FRAME, SUNGLASS, Cristal, ACCESSORY, Lentes de Sol, Armazón de Receta, Lentes de Contacto, Lentes Especiales
-  type      String?  // Cristal Monofocal, Cristal Multifocal, Cristal Bifocal, Cristal Ocupacional, etc.
-  brand     String?
-  model     String?
-  stock     Int      @default(0)
-  lensIndex   String?  // Índice de refracción: "1.5", "1.56", "1.59", "1.67", "1.74", "Foto"
-  unitType    String?  @default("UNIDAD") // PAR o UNIDAD
-  laboratory  String?  // Laboratorio proveedor (ej: "OPTOVISION", "GRUPO OPTICO")
-  price     Float    @default(0.0)
-  cost      Float    @default(0.0) // Para calcular rentabilidad
-  // Rangos de fabricación (solo cristales)
-  sphereMin    Float?  // Esfera mínima (ej: -12.00)
-  sphereMax    Float?  // Esfera máxima (ej: +8.00)
-  cylinderMin  Float?  // Cilindro mínimo (ej: -6.00)
-  cylinderMax  Float?  // Cilindro máximo (ej: 0)
-  additionMin  Float?  // Adición mínima (ej: 0.75, solo multifocales)
-  additionMax  Float?  // Adición máxima (ej: 3.50, solo multifocales)
-  is2x1       Boolean  @default(false) // Promoción 2x1: par de cristales incluido sin cargo
-  botRecommended Boolean @default(false) // El bot lo ofrece en sus cotizaciones
-  botLabel    String?  // Nombre corto para el bot (ej: "Opcion Economica")
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  orderItems OrderItem[]
+  id             String      @id @default(cuid())
+  name           String?
+  category       String
+  type           String?
+  brand          String?
+  model          String?
+  stock          Int         @default(0)
+  lensIndex      String?
+  unitType       String?     @default("UNIDAD")
+  laboratory     String?
+  price          Float       @default(0.0)
+  cost           Float       @default(0.0)
+  sphereMin      Float?
+  sphereMax      Float?
+  cylinderMin    Float?
+  cylinderMax    Float?
+  additionMin    Float?
+  additionMax    Float?
+  is2x1          Boolean     @default(false)
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+  botLabel       String?
+  botRecommended Boolean     @default(false)
+  orderItems     OrderItem[]
 }
 
 model Order {
-  id        String   @id @default(cuid())
-  clientId  String
-  userId    String   // Vendedor
-  status    String   @default("PENDING") // PENDING, CONFIRMED, PAID, COMPLETED
-  total     Float    @default(0.0)
-  paid      Float    @default(0.0)       // Nuevo: Suma de abonos cargados
-  isDeleted Boolean  @default(false)     // Nuevo: Borrado lógico
-  deletedReason String?                // Nuevo: Motivo de eliminación
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  client    Client      @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  user      User        @relation(fields: [userId], references: [id])
-  items     OrderItem[]
-  payments  Payment[]   // Relación con abonos
-  invoices  Invoice[]   // Facturas electrónicas emitidas
-  tags      Tag[]
-  
-  prescriptionId String?
-  prescription   Prescription? @relation(fields: [prescriptionId], references: [id], onDelete: SetNull)
-  labStatus   String?   @default("NONE") // NONE, SENT, IN_PROGRESS, READY, DELIVERED
-  labSentAt   DateTime?
-  labNotes      String?
-  labOrderNumber String?   // Número de operación del pedido en el laboratorio
-  discount    Float?    @default(0.0)
-  markup      Float?    @default(0.0)  // % de markup sobre subtotal (nunca negativo)
-  discountCash     Float?  @default(0.0)  // % descuento por pago en efectivo
-  discountTransfer Float?  @default(0.0)  // % descuento por pago en transferencia
-  discountCard     Float?  @default(0.0)  // % descuento por pago en cuotas/tarjeta
-  specialDiscount  Float?  @default(0.0)  // Monto fijo de descuento especial (pesos)
-  subtotalWithMarkup Float? @default(0.0) // Precio de venta base (subtotal + markup)
-  orderType   String?   @default("QUOTE") // QUOTE = presupuesto, SALE = venta confirmada
-  frameSource      String?  // "OPTICA" | "USUARIO" | null (sin cristales)
-  userFrameBrand   String?  // Marca del armazón del usuario
-  userFrameModel   String?  // Modelo del armazón del usuario
-  userFrameNotes   String?  // Observaciones del armazón del usuario
-  // SmartLab lab order fields
-  labColor       String?  // Color del cristal (ej: Blanco, Fotocromático)
-  labTreatment   String?  // Tratamientos (ej: Antirreflejo, Blue Cut)
-  labDiameter    String?  // Diámetro del lente
-  labPdOd        String?  // Distancia interpupilar Ojo Derecho
-  labPdOi        String?  // Distancia interpupilar Ojo Izquierdo
-  // Medidas del armazón (para SmartLab)
-  frameA         String?  // Ancho del lente (mm)
-  frameB         String?  // Alto del lente (mm)
-  frameDbl       String?  // Puente (mm)
-  frameEdc       String?  // Diagonal efectiva (mm)
-  
-  // High-precision lab fields
-  labPrismOD     String?  // Prisma Ojo Derecho
-  labPrismOI     String?  // Prisma Ojo Izquierdo
-  labBaseCurve   String?  // Curva base
-  labFrameType   String?  // Metal, Plástico, Ranurado, al aire
-  labBevelPosition String? // Posición del bisel
-  
-  // SmartLab automation
-  smartLabScreenshot String? // Screenshot de confirmación del bot
-
-  // Snapshot de datos históricos para inmutabilidad
-  prescriptionSnapshot String?  // Copia completa de la receta (JSON string) al momento de la venta
-  appliedPromoName    String?  // Nombre de la promoción (ej: "2x1 Multifocal")
-  appliedPromoDiscount Float?   // Monto descontado por la promoción
+  id                   String        @id @default(cuid())
+  clientId             String
+  userId               String
+  status               String        @default("PENDING")
+  total                Float         @default(0.0)
+  paid                 Float         @default(0.0)
+  isDeleted            Boolean       @default(false)
+  deletedReason        String?
+  createdAt            DateTime      @default(now())
+  updatedAt            DateTime      @updatedAt
+  prescriptionId       String?
+  labStatus            String?       @default("NONE")
+  labSentAt            DateTime?
+  labNotes             String?
+  labOrderNumber       String?
+  discount             Float?        @default(0.0)
+  markup               Float?        @default(0.0)
+  discountCash         Float?        @default(0.0)
+  discountTransfer     Float?        @default(0.0)
+  discountCard         Float?        @default(0.0)
+  subtotalWithMarkup   Float?        @default(0.0)
+  orderType            String?       @default("QUOTE")
+  frameSource          String?
+  userFrameBrand       String?
+  userFrameModel       String?
+  userFrameNotes       String?
+  labColor             String?
+  labTreatment         String?
+  labDiameter          String?
+  labPdOd              String?
+  labPdOi              String?
+  frameA               String?
+  frameB               String?
+  frameDbl             String?
+  frameEdc             String?
+  labPrismOD           String?
+  labPrismOI           String?
+  labBaseCurve         String?
+  labFrameType         String?
+  labBevelPosition     String?
+  smartLabScreenshot   String?
+  prescriptionSnapshot String?
+  appliedPromoName     String?
+  appliedPromoDiscount Float?
+  specialDiscount      Float?        @default(0.0)
+  invoices             Invoice[]
+  client               Client        @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  prescription         Prescription? @relation(fields: [prescriptionId], references: [id])
+  user                 User          @relation(fields: [userId], references: [id])
+  items                OrderItem[]
+  payments             Payment[]
+  tags                 Tag[]         @relation("OrderToTag")
 
   @@index([clientId])
   @@index([orderType, isDeleted])
@@ -252,144 +212,120 @@ model Order {
 }
 
 model Invoice {
-  id              String   @id @default(cuid())
-  orderId         String
-
-  // Datos ARCA
-  cae             String           // CAE asignado por ARCA
-  caeExpiration   String           // Fecha vencimiento CAE (yyyy-mm-dd)
-  voucherNumber   Int              // Número de comprobante
-  voucherType     Int   @default(11) // 11 = Factura C (Monotributista)
-  pointOfSale     Int              // Punto de venta
-  concept         Int   @default(1) // 1=Productos, 2=Servicios, 3=Ambos
-
-  // Importes
-  totalAmount     Float            // Importe total del comprobante
-
-  // Datos del receptor
-  docType         Int   @default(99) // 80=CUIT, 96=DNI, 99=Sin identificar
-  docNumber       String @default("0") // Número de documento del receptor
-
-  // PDF
-  pdfUrl          String?          // URL del PDF generado
-
-  // Cuenta de facturación
-  billingAccount  String @default("ISH") // ISH o YANI — qué monotributo se usó
-
-  // Estado
-  status          String @default("COMPLETED") // COMPLETED, CANCELLED
-
-  createdAt       DateTime @default(now())
-
-  order   Order  @relation(fields: [orderId], references: [id])
+  id             String   @id @default(cuid())
+  orderId        String
+  cae            String
+  caeExpiration  String
+  voucherNumber  Int
+  voucherType    Int      @default(11)
+  pointOfSale    Int
+  concept        Int      @default(1)
+  totalAmount    Float
+  docType        Int      @default(99)
+  docNumber      String   @default("0")
+  pdfUrl         String?
+  billingAccount String   @default("ISH")
+  status         String   @default("COMPLETED")
+  createdAt      DateTime @default(now())
+  order          Order    @relation(fields: [orderId], references: [id])
 
   @@index([orderId])
   @@index([cae])
 }
 
 model OrderItem {
-  id        String @id @default(cuid())
-  orderId   String
-  productId String?
-  quantity  Int    @default(1)
-  price     Float  @default(0.0) // Precio al momento de la venta
-
-  // Graduación por ojo (solo cristales)
-  eye         String?  // "OD" o "OI"
-  sphereVal   Float?
-  cylinderVal Float?
-  axisVal     Int?
-  additionVal Float?
-  pdVal       Float?   // Snapshot de DNP al momento de la venta
-  heightVal   Float?   // Snapshot de Altura al momento de la venta
-  prismVal    String?  // Snapshot de Prisma + Base al momento de la venta
-
-  // Identidad del producto al momento de la venta (inmutabilidad)
-  productNameSnapshot  String?
-  productBrandSnapshot String?
+  id                      String   @id @default(cuid())
+  orderId                 String
+  productId               String?
+  quantity                Int      @default(1)
+  price                   Float    @default(0.0)
+  eye                     String?
+  sphereVal               Float?
+  cylinderVal             Float?
+  axisVal                 Int?
+  additionVal             Float?
+  pdVal                   Float?
+  heightVal               Float?
+  prismVal                String?
+  productNameSnapshot     String?
+  productBrandSnapshot    String?
   productCategorySnapshot String?
-
-  order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  product Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+  order                   Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product                 Product? @relation(fields: [productId], references: [id])
 }
 
 model Payment {
-  id            String   @id @default(cuid())
-  orderId       String
-  amount        Float
-  method        String   // CASH, DEBIT, CREDIT, TRANSFER
-  date          DateTime @default(now())
-  notes         String?
-  receiptUrl    String?  // Imagen del comprobante en base64
-
-  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  id         String   @id @default(cuid())
+  orderId    String
+  amount     Float
+  method     String
+  date       DateTime @default(now())
+  notes      String?
+  receiptUrl String?
+  order      Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
   @@index([orderId])
 }
 
 model Doctor {
-  id        String   @id @default(cuid())
-  name      String   @unique
-  createdAt DateTime @default(now())
-
+  id        String          @id @default(cuid())
+  name      String          @unique
+  createdAt DateTime        @default(now())
   payments  DoctorPayment[]
 }
 
 model WhatsAppChat {
-  id            String   @id @default(cuid())
+  id            String            @id @default(cuid())
   clientId      String?
-  waId          String   @unique // Número de WhatsApp (ej: "5491112345678@c.us")
+  waId          String            @unique
   profileName   String?
   lastMessageAt DateTime?
-  status        String   @default("OPEN")   // OPEN, CLOSED
-  unreadCount   Int      @default(0)
-  botEnabled    Boolean  @default(true)
-  archived      Boolean  @default(false)    // Chat archivado (oculto por defecto)
-  chatLabels    String[] @default([])       // Etiquetas del chat (ej: ["VIP", "Cancelar Bot"])
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-
-  client    Client?          @relation(fields: [clientId], references: [id])
-  messages  WhatsAppMessage[]
+  status        String            @default("OPEN")
+  unreadCount   Int               @default(0)
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+  botEnabled    Boolean           @default(true)
+  archived      Boolean           @default(false)
+  chatLabels    String[]          @default([])
+  client        Client?           @relation(fields: [clientId], references: [id])
+  messages      WhatsAppMessage[]
 }
 
 model WhatsAppMessage {
-  id          String   @id @default(cuid())
+  id          String       @id @default(cuid())
   chatId      String
-  direction   String   // INBOUND o OUTBOUND
-  type        String   @default("TEXT") // TEXT, IMAGE
+  direction   String
+  type        String       @default("TEXT")
   content     String
   mediaUrl    String?
-  waMessageId String?  @unique
-  status      String   @default("SENT") // SENT, DELIVERED, READ, FAILED
-  createdAt   DateTime @default(now())
-
-  chat WhatsAppChat @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  waMessageId String?      @unique
+  status      String       @default("SENT")
+  createdAt   DateTime     @default(now())
+  chat        WhatsAppChat @relation(fields: [chatId], references: [id], onDelete: Cascade)
 }
 
 model DoctorPayment {
-  id          String   @id @default(cuid())
-  doctorId    String?
-  doctorName  String
-  amount      Float
-  method      String   // CASH or TRANSFER
-  receiptUrl  String?  // Comprobante de transferencia
-  notes       String?
-  date        DateTime @default(now())
-
-  doctor      Doctor?  @relation(fields: [doctorId], references: [id])
+  id         String   @id @default(cuid())
+  doctorId   String?
+  doctorName String
+  amount     Float
+  method     String
+  receiptUrl String?
+  notes      String?
+  date       DateTime @default(now())
+  doctor     Doctor?  @relation(fields: [doctorId], references: [id])
 
   @@index([doctorName])
 }
 
 model Notification {
   id          String   @id @default(cuid())
-  type        String   // "DELETE_REQUEST" | "INVOICE_REQUEST"
-  status      String   @default("PENDING") // PENDING, APPROVED, REJECTED
-  message     String   // Descripción de la solicitud
-  orderId     String?  // Orden relacionada
-  requestedBy String   // Nombre del solicitante
-  resolvedBy  String?  // Nombre del admin que resolvió
+  type        String
+  status      String   @default("PENDING")
+  message     String
+  orderId     String?
+  requestedBy String
+  resolvedBy  String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -398,11 +334,11 @@ model Notification {
 
 model MonthlyTarget {
   id        String   @id @default(cuid())
-  month     Int      // 1-12
+  month     Int
   year      Int
-  target1   Float    // Primer objetivo (mínimo)
-  target2   Float    // Segundo objetivo (ideal)
-  target3   Float?   // Tercer objetivo (elite / aspiracional)
+  target1   Float
+  target2   Float
+  target3   Float?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -410,34 +346,31 @@ model MonthlyTarget {
 }
 
 model FixedCost {
-  id          String   @id @default(cuid())
-  name        String                         // "Contadora", "Alquiler", etc.
-  amount      Float
-  category    String   @default("OTRO")      // CONTADORA, SUELDOS, LIMPIEZA, ALQUILER, SERVICIOS, IMPUESTOS, OTRO
-  type        String   @default("FIJO")      // FIJO, VARIABLE, MARKETING, PROVEEDOR
-  month       Int                            // Mes (1-12)
-  year        Int                            // Año
-  notes       String?
-  createdAt   DateTime @default(now())
+  id        String   @id @default(cuid())
+  name      String
+  amount    Float
+  category  String   @default("OTRO")
+  month     Int
+  year      Int
+  notes     String?
+  createdAt DateTime @default(now())
+  type      String   @default("FIJO")
 
   @@index([month, year])
 }
 
-// ── Bot Service Pricing ───────────────────────────────────────────────────────
-// Precios dinámicos usados por el agente de WhatsApp. Se administran desde
-// la pestaña "Precios del Bot" en Configuración del CRM.
 model ServicePricing {
   id           String   @id @default(cuid())
-  name         String                        // Ej: "Varilux Liberty 3.0 AR Crizal"
-  description  String?                       // Descripción corta para el bot
-  category     String                        // MONOFOCAL | MULTIFOCAL | ARMAZON | CONTACTO | BIFOCAL
-  subcategory  String?                       // STOCK | LABORATORIO | CONTROL_MIOPIA | VARILUX | SMART_LENS
-  priceCash    Float                         // Precio contado
-  priceCredit  Float                         // Total financiado
-  creditMonths Int      @default(6)          // Cantidad de cuotas
+  name         String
+  description  String?
+  category     String
+  subcategory  String?
+  priceCash    Float
+  priceCredit  Float
+  creditMonths Int      @default(6)
   active       Boolean  @default(true)
-  notes        String?                       // Notas internas (ej: "Solo add < +1.50")
-  sortOrder    Int      @default(0)          // Orden de presentación
+  notes        String?
+  sortOrder    Int      @default(0)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 

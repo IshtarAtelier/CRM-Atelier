@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Atelier Óptica",
-  description: "Sistema de gestión para Atelier Óptica",
+  title: "Atelier Óptica Córdoba | Multifocales, Anteojos y Lentes de Contacto",
+  description: "Óptica en Córdoba especializada en multifocales, anteojos recetados, de sol y lentes de contacto.",
   manifest: "/manifest.json",
   other: { "theme-color": "#c8a55c" },
 };

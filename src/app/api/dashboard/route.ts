@@ -169,6 +169,7 @@ export async function GET(request: Request) {
                 createdAt: true,
                 client: {
                     select: {
+                        id: true,
                         name: true
                     }
                 },
