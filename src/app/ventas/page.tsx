@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { ShoppingCart, Download, Search, Package, Clock, CheckCircle2, Truck, Eye, Pencil, Save, X, AlertTriangle, MessageCircle, FileText, Banknote, ArrowRightLeft, CreditCard, ChevronRight, ExternalLink, Clipboard, CheckCheck, Copy, Loader2, ArrowRight, FlaskConical, Calendar } from 'lucide-react';
 import { PricingService } from '@/services/PricingService';
 import { format } from 'date-fns';
@@ -128,7 +128,8 @@ function getNextStatus(current: string): string | null {
 export default function VentasPage() {
     const [orders, setOrders] = useState<Order[]>([]);
     const [search, setSearch] = useState('');
-    const [filterLab, setFilterLab] = useState<string>('ALL');
+    const [filterLab, setFilterLab] = useState<string>('SENT');
+    const [filterBalance, setFilterBalance] = useState(false);
     const [filterLaboratory, setFilterLaboratory] = useState<string>('ALL');
     const [dateFrom, setDateFrom] = useState('');
     const [dateTo, setDateTo] = useState('');
@@ -207,6 +208,17 @@ export default function VentasPage() {
         )
     ).sort();
 
+    // Memoize financials per order to avoid redundant recalculations in filter, stats & render
+    const financialsMap = useMemo(() => {
+        const map = new Map<string, ReturnType<typeof PricingService.calculateOrderFinancials>>();
+        for (const o of orders) {
+            map.set(o.id, PricingService.calculateOrderFinancials(o));
+        }
+        return map;
+    }, [orders]);
+
+    const getFinancials = (orderId: string) => financialsMap.get(orderId)!;
+
     const filteredOrders = orders.filter(o => {
         const matchSearch = search === '' ||
             o.client.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -215,7 +227,8 @@ export default function VentasPage() {
         const matchLab = filterLab === 'ALL' || (o.labStatus || 'NONE') === filterLab;
         const matchLaboratory = filterLaboratory === 'ALL' || o.items.some(i => (i.product?.category === 'LENS' || i.product?.category === 'CRISTAL') && (i.product as any)?.laboratory === filterLaboratory);
         const matchDate = (!dateFrom || new Date(o.createdAt) >= new Date(dateFrom)) && (!dateTo || new Date(o.createdAt) <= new Date(dateTo + 'T23:59:59'));
-        return matchSearch && matchLab && matchLaboratory && matchDate;
+        const matchBalance = !filterBalance || getFinancials(o.id).hasBalance;
+        return matchSearch && matchLab && matchLaboratory && matchDate && matchBalance;
     });
 
     const saveLabOrderNumber = async (orderId: string) => {
@@ -454,6 +467,12 @@ export default function VentasPage() {
         }
     };
 
+    const ordersWithBalance = orders.filter(o => getFinancials(o.id).hasBalance);
+    const totalPendingAmount = ordersWithBalance.reduce((sum, o) => {
+        const f = getFinancials(o.id);
+        return sum + f.remainingCash + f.remainingTransfer + f.remainingCard;
+    }, 0);
+
     const stats = {
         total: orders.length,
         sent: orders.filter(o => o.labStatus === 'SENT').length,
@@ -461,6 +480,7 @@ export default function VentasPage() {
         ready: orders.filter(o => o.labStatus === 'READY').length,
         delivered: orders.filter(o => o.labStatus === 'DELIVERED').length,
         revenue: orders.reduce((s, o) => s + (o.total || 0), 0),
+        withBalance: ordersWithBalance.length,
     };
 
     return (
@@ -514,12 +534,34 @@ export default function VentasPage() {
                         {['ALL', 'SENT', 'IN_PROGRESS', 'READY', 'DELIVERED'].map(f => (
                             <button
                                 key={f}
-                                onClick={() => setFilterLab(f)}
-                                className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${filterLab === f ? 'bg-stone-900 text-white dark:bg-white dark:text-stone-900' : 'bg-stone-100 dark:bg-stone-800 text-stone-500 hover:bg-stone-200'}`}
+                                onClick={() => { setFilterLab(f); if (f !== 'ALL') setFilterBalance(false); }}
+                                className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${filterLab === f && !filterBalance ? 'bg-stone-900 text-white dark:bg-white dark:text-stone-900' : 'bg-stone-100 dark:bg-stone-800 text-stone-500 hover:bg-stone-200'}`}
                             >
                                 {f === 'ALL' ? 'Todas' : LAB_STATUS[f]?.label || f}
                             </button>
                         ))}
+
+                        {/* Separador visual */}
+                        <div className="w-px bg-stone-200 dark:bg-stone-600 mx-1 self-stretch" />
+
+                        {/* Filtro de Saldos Pendientes */}
+                        <button
+                            onClick={() => { setFilterBalance(!filterBalance); if (!filterBalance) setFilterLab('ALL'); }}
+                            className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap flex items-center gap-2 ${filterBalance
+                                ? 'bg-red-500 text-white shadow-lg shadow-red-500/20 ring-2 ring-red-300 dark:ring-red-700'
+                                : stats.withBalance > 0
+                                    ? 'bg-red-50 dark:bg-red-950/30 text-red-500 border-2 border-red-200 dark:border-red-800 hover:bg-red-100 dark:hover:bg-red-900/40'
+                                    : 'bg-stone-100 dark:bg-stone-800 text-stone-400 hover:bg-stone-200'
+                            }`}
+                        >
+                            <Banknote className="w-3.5 h-3.5" />
+                            Con Saldo
+                            {stats.withBalance > 0 && (
+                                <span className={`ml-0.5 px-1.5 py-0.5 rounded-lg text-[9px] font-black ${filterBalance ? 'bg-white/20 text-white' : 'bg-red-500 text-white'}`}>
+                                    {stats.withBalance}
+                                </span>
+                            )}
+                        </button>
                     </div>
                 </div>
 
@@ -605,7 +647,7 @@ export default function VentasPage() {
                         const nextStepInfo = nextStep ? LAB_STATUS[nextStep] : null;
                         const LabIcon = labInfo.icon;
                         const isUpdating = updatingId === order.id;
-                        const financials = PricingService.calculateOrderFinancials(order);
+                        const financials = getFinancials(order.id);
 
                         return (
                             <div key={order.id} className={`border-2 rounded-2xl p-4 lg:p-6 hover:shadow-lg transition-all ${financials.hasBalance

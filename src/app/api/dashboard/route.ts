@@ -87,14 +87,41 @@ export async function GET(request: Request) {
         const totalPaidMonth = currentMonthOrders.reduce((acc: number, order: any) => acc + (order.paid || 0), 0);
         
         // SALDO PENDIENTE GLOBAL (Cuentas a cobrar históricas)
-        // Se calcula sobre todas las ventas no eliminadas de la historia
-        const allPendingSales = await prisma.order.findMany({
-            where: { orderType: 'SALE', isDeleted: false },
-            select: { total: true, paid: true, subtotalWithMarkup: true }
+        // Se calcula igual que getOrdersWithBalance: agrupado por cliente,
+        // sumando totales de SALEs y restando TODOS los payments reales (de cualquier orden).
+        // Esto evita discrepancias con el campo cacheado `paid`.
+        const allClientsWithOrders = await prisma.client.findMany({
+            where: {
+                orders: {
+                    some: { orderType: 'SALE', isDeleted: false }
+                }
+            },
+            select: {
+                id: true,
+                orders: {
+                    where: { isDeleted: false },
+                    select: {
+                        orderType: true,
+                        total: true,
+                        subtotalWithMarkup: true,
+                        payments: { select: { amount: true } }
+                    }
+                }
+            }
         });
-        const globalPendingBalance = allPendingSales.reduce((acc, o) => {
-            const listPrice = o.total || o.subtotalWithMarkup || 0;
-            return acc + Math.max(0, listPrice - (o.paid || 0));
+        const globalPendingBalance = allClientsWithOrders.reduce((acc, client) => {
+            let totalSales = 0;
+            let totalPaid = 0;
+            for (const order of client.orders) {
+                if (order.orderType === 'SALE') {
+                    totalSales += order.total || order.subtotalWithMarkup || 0;
+                }
+                // Sum ALL payments (from sales and quotes alike)
+                for (const p of order.payments) {
+                    totalPaid += p.amount || 0;
+                }
+            }
+            return acc + Math.max(0, totalSales - totalPaid);
         }, 0);
 
         const ordersCountMonth = currentMonthOrders.length;

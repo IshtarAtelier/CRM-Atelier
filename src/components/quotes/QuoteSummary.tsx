@@ -409,6 +409,8 @@ export default function QuoteSummary({
                                                             <Eye className="w-3.5 h-3.5" />
                                                         </button>
                                                     )}
+                                                    {/* Solo admin puede eliminar pagos de ventas */}
+                                                    {(!isSale || currentUserRole === 'ADMIN') && (
                                                     <button 
                                                         onClick={async () => {
                                                             if (window.confirm('¿Seguro que querés eliminar este pago? El saldo se actualizará automáticamente.')) {
@@ -431,6 +433,7 @@ export default function QuoteSummary({
                                                     >
                                                         <Trash2 className={`w-3.5 h-3.5 ${isDeletingPayment === paymentValue.id ? 'animate-pulse' : ''}`} />
                                                     </button>
+                                                    )}
                                                 </div>
                                             </div>
                                         ))
@@ -479,23 +482,27 @@ export default function QuoteSummary({
                         >
                             <MessageCircle className="w-3.5 h-3.5" /> WhatsApp
                         </button>
+                        {!isLockedSale && (
                         <button 
                             onClick={() => setShowPayment(true)}
                             className="py-3 bg-amber-50 text-amber-600 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-amber-100 transition-all flex items-center justify-center gap-2"
                         >
                             <Banknote className="w-3.5 h-3.5" /> Abonar
                         </button>
+                        )}
+                        {/* Ocultar botón eliminar para vendedores en ventas ya cerradas */}
+                        {!isLockedSale && (
                         <button 
                             onClick={() => {
                                 if (window.confirm('¿Seguro que querés eliminar este presupuesto? Esta acción no se puede deshacer.')) {
                                     onDelete?.(order.id);
                                 }
                             }}
-                            disabled={isLockedSale} 
-                            className="py-3 bg-red-50 text-red-500 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-red-100 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                            className="py-3 bg-red-50 text-red-500 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-red-100 transition-all flex items-center justify-center gap-2"
                         >
                             <X className="w-3.5 h-3.5" /> Eliminar
                         </button>
+                        )}
 
                         {isQuote && onEdit && (
                             <button 
