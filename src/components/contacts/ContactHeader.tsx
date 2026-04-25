@@ -112,16 +112,21 @@ export default function ContactHeader({
                                     Rol: {currentUserRole}
                                 </button>
 
-                                {contact.status === 'CONFIRMED' && (
+                                {contact.status === 'CONFIRMED' && 
+                                    (!contact.orders || !contact.orders.some((o: any) => o.orderType === 'SALE' && o.isDeleted !== true)) && (
                                     <button
                                         onClick={onRevertStatus}
-                                        className="px-3 py-1 bg-amber-50 text-amber-600 border border-amber-200 rounded-xl text-[8px] font-black uppercase tracking-widest hover:bg-amber-100"
+                                        className="px-3 py-1 bg-amber-50 text-amber-600 border border-amber-200 rounded-xl text-[8px] font-black uppercase tracking-widest hover:bg-amber-100 flex items-center gap-1.5 transition-all"
+                                        title="Volver a estado Contacto"
                                     >
+                                        <History className="w-3 h-3" />
                                         Retroceder
                                     </button>
                                 )}
                                 
-                                {currentUserRole === 'ADMIN' && onDeleteContact && (
+                                {currentUserRole === 'ADMIN' && onDeleteContact && 
+                                    contact.status !== 'CLIENT' && 
+                                    (!contact.orders || !contact.orders.some((o: any) => o.orderType === 'SALE' && o.isDeleted !== true)) && (
                                     <button
                                         onClick={() => {
                                             if (window.confirm('¿Estás seguro que quieres eliminar este contacto?')) {

@@ -1,0 +1,553 @@
+{
+  "cristalCount": 43,
+  "lensCount": 66,
+  "cristales": [
+    {
+      "brand": "VARILUX",
+      "name": " MI PRIMER VARILUX COMFORT MAX -  AIRWEAR 1.59 ",
+      "type": "Cristal Multifocal"
+    },
+    {
+      "brand": "VARILUX",
+      "name": "MI PRIMER VARILUX COMFORT MAX -  ORMA TRANSITIONS GEN S (Fotocromatico)  ",
+      "type": "Cristal Multifocal"
+    },
+    {
+      "brand": "VARILUX",
+      "name": "MI PRIMER VARILUX COMFORT MAX -  STYLIS 1.67",
+      "type": "Cristal Multifocal"
+    },
+    {
+      "brand": "Varilux",
+      "name": "MI PRIMER VARILUX COMFORT MAX - ORMA ",
+      "type": "Cristal Multifocal"
+    },
+    {
+      "brand": "Grupo optico",
+      "name": "Orgánico blanco teñido",
+      "type": "Cristal Monofocal"
+    },
+    {
+      "brand": "Grupo optico",
+      "name": "Orgánico Blue Antirreflejo ",
+      "type": "Cristal Monofocal"
+    },
+    {
+      "brand": "Opto",
+      "name": "HD MR7 Asférico SHMC UV420 Blue Policarbonato",
+      "type": "Cristal Monofocal"
+    },
+    {
+      "brand": "Opto",
+      "name": "Stylis BLUE UV",
+      "type": "Cristal Monofocal"
+    },
+    {
+      "brand": "Varilux",
+      "name": "COMFORT MAX - ORMA XPERIO  + CRIZAL  (Sol) 2x1",
+      "type": null
+    },
+    {
+      "brand": "Varilux",
+      "name": "COMFORT MAX - AIRWEAR 1.59  + CRIZAL  2x1",
+      "type": "Cristal Multifocal"
+    },
+    {
+      "brand": "Varilux",
+      "name": "COMFORT MAX - ORMA TRANSITIONS GEN S  + CRIZAL (fotocromaticos 8)  2x1",
+      "type": "Cristal Multifocal"
+    },
+    {
+      "brand": "Varilux",
+      "name": "COMFORT MAX - AIRWEAR 1.59 TRANSITIONS GEN S+CRIZAL (fotocromaticos 2)  2x1",
+      "type": "Cristal Multifocal"
+    },
+    {
+      "brand": "Varilux",
+      "name": "COMFORT MAX - STYLIS 1.67  + CRIZAL  2x1",
+      "type": "Cristal Multifocal"
+    },
+    {
+      "brand": "Varilux",
+      "name": "COMFORT MAX - STYLIS 1.67 TRANSITIONS GEN S+CRIZAL (fotocromaticos 2)  2x1",
+      "type": "Cristal Multifocal"
+    },
+    {
+      "brand": "Varilux",
+      "name": "COMFORT MAX - AIRWEAR 1.59 XPERIO  + CRIZAL  2x1",
+      "type": "Cristal Multifocal"
+    },
+    {
+      "brand": "Varilux",
+      "name": "XR DESIGN - ORMA TRANSITIONS GEN S  + CRIZAL   (fotocromaticos 8)  2x1",
+      "type": "Cristal Multifocal"
+    },
+    {
+      "brand": "Varilux",
+      "name": "XR DESIGN - AIRWEAR 1.59 TRANSITIONS GEN S  + CRIZAL  (fotocromaticos 8) 2x1",
+      "type": "Cristal Multifocal"
+    },
+    {
+      "brand": "Varilux",
+      "name": "XR DESIGN - STYLIS 1,67 TRANSITIONS GEN S  + CRIZAL  (fotocromaticos 8)  2x1",
+      "type": "Cristal Multifocal"
+    },
+    {
+      "brand": "Varilux",
+      "name": "XR DESIGN - AIRWEAR 1.59 XPERIO  + CRIZAL  2x1",
+      "type": "Cristal Multifocal"
+    },
+    {
+      "brand": "Varilux",
+      "name": "XR DESIGN -ORMA XPERIO  + CRIZAL  2x1",
+      "type": "Cristal Multifocal"
+    },
+    {
+      "brand": "Varilux",
+      "name": "PHYSIO 3.0 - ORMA  + CRIZAL  2x1",
+      "type": "Cristal Multifocal"
+    },
+    {
+      "brand": "Varilux",
+      "name": "PHYSIO 3.0 - AIRWEAR 1.59 XPERIO  + CRIZAL  2x1",
+      "type": "Cristal Multifocal"
+    },
+    {
+      "brand": "Varilux",
+      "name": "PHYSIO 3.0 - STYLIS 1.67 TRANSITIONS GEN S  + CRIZAL (fotocromaticos 2)  2x1",
+      "type": "Cristal Multifocal"
+    },
+    {
+      "brand": "Varilux",
+      "name": "XR DESIGN - STYLIS 1.67  + CRIZAL  2x1",
+      "type": "Cristal Multifocal"
+    },
+    {
+      "brand": "Varilux",
+      "name": "XR DESIGN  - AIRWEAR 1.59 + CRIZAL  2x1",
+      "type": "Cristal Multifocal"
+    },
+    {
+      "brand": "Varilux",
+      "name": "XR DESIGN -  ORMA   + CRIZAL  2x1",
+      "type": "Cristal Multifocal"
+    },
+    {
+      "brand": "Varilux",
+      "name": "PHYSIO 3.0 - ORMA XPERIO  + CRIZAL  2x1",
+      "type": "Cristal Multifocal"
+    },
+    {
+      "brand": "Varilux",
+      "name": "PHYSIO 3.0 - AIRWEAR 1.59  + CRIZAL  2x1",
+      "type": "Cristal Multifocal"
+    },
+    {
+      "brand": "Varilux",
+      "name": "PHYSIO 3.0 - ORMA TRANSITIONS GEN S  + CRIZAL (fotocromaticos 8)  2x1",
+      "type": "Cristal Multifocal"
+    },
+    {
+      "brand": "Varilux",
+      "name": "PHYSIO 3.0 - ORMA TRANSITIONS XTRACTIVE  + CRIZAL (fotocromatico Gris) 2x1",
+      "type": "Cristal Multifocal"
+    },
+    {
+      "brand": "Varilux",
+      "name": "PHYSIO 3.0 - STYLIS 1.67  + CRIZAL 2x1",
+      "type": "Cristal Multifocal"
+    },
+    {
+      "brand": "Bifocal",
+      "name": "Mineral Flap top Blanco 1,52 ( la camara )",
+      "type": "Cristal Bifocal"
+    },
+    {
+      "brand": "Bifocal",
+      "name": "Flat Top Orgánico Blanco (Bifocal  Grupo)",
+      "type": "Cristal Bifocal"
+    },
+    {
+      "brand": "Transitions Gens",
+      "name": "Transitions Gens 1.59(fotocromatico) gris y marron",
+      "type": "Cristal Monofocal"
+    },
+    {
+      "brand": "Bifocal",
+      "name": "1,56 Flat Top Orgánico fotocromatico  ( la camara )",
+      "type": "Cristal Bifocal"
+    },
+    {
+      "brand": "Transitions Gens",
+      "name": "Transitions Gens 1.67 (fotocromatico) gris y marron",
+      "type": "Cristal Monofocal"
+    },
+    {
+      "brand": "Orma Transitions GEN S ",
+      "name": "Orma Transitions GEN S ESSILOR (fotocromatico) ",
+      "type": "Cristal Monofocal"
+    },
+    {
+      "brand": "Organico fotocromatico Gris ",
+      "name": "Organico fotocromatico Gris ",
+      "type": "Cristal Monofocal"
+    },
+    {
+      "brand": "Bifocal",
+      "name": "Mineral Flap top Fotocromatico 1,52 ( la camara )",
+      "type": "Cristal Bifocal"
+    },
+    {
+      "brand": "Smart",
+      "name": "1.60 Orgánico Super Blue Asferico Antirreflejo",
+      "type": "Cristal Monofocal"
+    },
+    {
+      "brand": "Varilux",
+      "name": "COMFORT MAX - ORMA  + CRIZAL  2x1",
+      "type": "Cristal Multifocal"
+    },
+    {
+      "brand": "Varilux",
+      "name": "COMFORT MAX - ORMA TRANSITIONS XTRACTIVE  + CRIZAL(fotocromatico Gris)  2x1",
+      "type": "Cristal Multifocal"
+    },
+    {
+      "brand": "Varilux",
+      "name": "PHYSIO 3.0 - AIRWEAR 1.59 TRANSITIONS GEN S  + CRIZAL (fotocromaticos 2)  2x1",
+      "type": "Cristal Multifocal"
+    }
+  ],
+  "lenses": [
+    {
+      "brand": "Smart Lens",
+      "name": "SMART FREE - Organico Blue Ligth con Ar essential, 2x1",
+      "type": "Multifocal"
+    },
+    {
+      "brand": "Smart Lens",
+      "name": "SMART FREE - Oraganico Blue Ligth con Ar essential Fotocoromatico  Gris 2x1",
+      "type": "Multifocal"
+    },
+    {
+      "brand": "Smart Lens",
+      "name": "SMART FREE - Policarbonato Blue Ligth con Ar essential 2x1",
+      "type": "Multifocal"
+    },
+    {
+      "brand": "Smart Lens",
+      "name": "SMART FREE - Stylis BLUE LIGHT  2x1",
+      "type": "Multifocal"
+    },
+    {
+      "brand": "Smart Lens",
+      "name": "SMART FREE - Stylis Fotocromatico  2x1",
+      "type": "Multifocal"
+    },
+    {
+      "brand": "Smart Lens",
+      "name": "SMART FREE - Stylis Blanco 2x1",
+      "type": "Multifocal"
+    },
+    {
+      "brand": "Sygnus",
+      "name": "ESSILOR NEW EDITIONS - Orma 1.50 - BLUE UV + AR Numax 2x1",
+      "type": "Multifocal"
+    },
+    {
+      "brand": "Sygnus",
+      "name": "ESSILOR NEW EDITIONS - Orma Transitions GEN S 1.50 + AR Numax (fotocromatico 8 colores) 2x1",
+      "type": "Multifocal"
+    },
+    {
+      "brand": "Sygnus",
+      "name": "ESSILOR NEW EDITIONS - Airwear 1.59 + AR Numax 2x1",
+      "type": "Multifocal"
+    },
+    {
+      "brand": "Sygnus",
+      "name": "ESSILOR NEW EDITIONS - Airwear 1.59 BLUE UV  + AR Numax 2x1",
+      "type": "Multifocal"
+    },
+    {
+      "brand": "Sygnus",
+      "name": "ESSILOR NEW EDITIONS - Airwear 1.59 Xperio Café / Gris + AR Numax 2x1",
+      "type": "Multifocal"
+    },
+    {
+      "brand": "Sygnus",
+      "name": "ESSILOR NEW EDITIONS - Stylis 1.67 + AR Numax 2x1",
+      "type": "Multifocal"
+    },
+    {
+      "brand": "Sygnus",
+      "name": "ESSILOR NEW EDITIONS - Stylis 1.67 BLUE UV  + AR Numax 2x1",
+      "type": "Multifocal"
+    },
+    {
+      "brand": "Sygnus",
+      "name": "ESSILOR NEW EDITIONS - Orgánico Espejado (Azul / Plata) + AR Numax 2x1",
+      "type": "Multifocal"
+    },
+    {
+      "brand": "Sygnus",
+      "name": "ESSILOR NEW EDITIONS - Policarbonato Polarizado Espejado (Azul / Plata)  + AR Numax 2x1",
+      "type": "Multifocal"
+    },
+    {
+      "brand": "Sygnus",
+      "name": "ESSILOR NEW EDITIONS - Orgánico Fotosensible BLC+ AR Numax 2x1",
+      "type": "Multifocal"
+    },
+    {
+      "brand": "Sygnus",
+      "name": "ESSILOR NEW EDITIONS - Alto Índice 1.74 + AR Numax 2x1",
+      "type": "Multifocal"
+    },
+    {
+      "brand": "Kodak",
+      "name": "UNIQUE DRO ORMA BLUE UV",
+      "type": null
+    },
+    {
+      "brand": "Kodak",
+      "name": "UNIQUE DRO AIRWEAR 1.59",
+      "type": null
+    },
+    {
+      "brand": "Kodak",
+      "name": "UNIQUE DRO AIRWEAR 1.59 BLUE UV",
+      "type": null
+    },
+    {
+      "brand": "Kodak",
+      "name": "UNIQUE DRO STYLIS 1.67",
+      "type": null
+    },
+    {
+      "brand": "Kodak",
+      "name": "UNIQUE DRO STYLIS 1.67 BLUE UV",
+      "type": null
+    },
+    {
+      "brand": "Kodak",
+      "name": "UNIQUE DRO ORMA ACCLIMATES (Fotocromatico Gris)",
+      "type": null
+    },
+    {
+      "brand": "Kodak",
+      "name": "UNIQUE DRO ORMA TRANSITIONS GEN S  (Fotocromatico 8 Tonos)",
+      "type": null
+    },
+    {
+      "brand": "Kodak",
+      "name": "UNIQUE DRO AIRWEAR 1.59 TRANSITIONS GEN S  (Fotocromatico Gris, Sepia)",
+      "type": null
+    },
+    {
+      "brand": "Kodak",
+      "name": "UNIQUE DRO STYLIS 1.67 TRANSITIONS GEN S (Fotocromatico Gris, Sepia)",
+      "type": null
+    },
+    {
+      "brand": "Kodak",
+      "name": "UNIQUE DRO ORMA XPERIO",
+      "type": null
+    },
+    {
+      "brand": "Kodak",
+      "name": "UNIQUE DRO AIRWEAR 1.59 XPERIO",
+      "type": null
+    },
+    {
+      "brand": "Kodak",
+      "name": "PRECISE ORMA BLUE UV",
+      "type": null
+    },
+    {
+      "brand": "Kodak",
+      "name": "PRECISE AIRWEAR 1.59",
+      "type": null
+    },
+    {
+      "brand": "Kodak",
+      "name": "PRECISE AIRWEAR 1.59 BLUE UV",
+      "type": null
+    },
+    {
+      "brand": "Kodak",
+      "name": "PRECISE STYLIS 1.67",
+      "type": null
+    },
+    {
+      "brand": "Kodak",
+      "name": "PRECISE STYLIS 1.67 BLUE UV",
+      "type": null
+    },
+    {
+      "brand": "Kodak",
+      "name": "PRECISE ORMA ACCLIMATES (Fotocromatico Gris)",
+      "type": null
+    },
+    {
+      "brand": "Kodak",
+      "name": "PRECISE ORMA TRANSITIONS GEN S  (fotocromaticos 8)",
+      "type": null
+    },
+    {
+      "brand": "Kodak",
+      "name": "PRECISE AIRWEAR 1.59 TRANSITIONS GEN S  (fotocromaticos 2)",
+      "type": null
+    },
+    {
+      "brand": "Kodak",
+      "name": "PRECISE STYLIS 1.67 TRANSITIONS GEN S  (fotocromaticos 2)",
+      "type": null
+    },
+    {
+      "brand": "Kodak",
+      "name": "PRECISE ORMA XPERIO",
+      "type": null
+    },
+    {
+      "brand": "Varilux",
+      "name": "COMFORT MAX - ORMA  + CRIZAL",
+      "type": null
+    },
+    {
+      "brand": "Varilux",
+      "name": "COMFORT MAX - AIRWEAR 1.59  + CRIZAL",
+      "type": null
+    },
+    {
+      "brand": "Varilux",
+      "name": "COMFORT MAX - STYLIS 1.67  + CRIZAL",
+      "type": null
+    },
+    {
+      "brand": "Varilux",
+      "name": "COMFORT MAX - ORMA TRANSITIONS GEN S  + CRIZAL (fotocromaticos 8)",
+      "type": null
+    },
+    {
+      "brand": "Varilux",
+      "name": "COMFORT MAX - AIRWEAR 1.59 TRANSITIONS GEN S+CRIZAL (fotocromaticos 2)",
+      "type": null
+    },
+    {
+      "brand": "Varilux",
+      "name": "COMFORT MAX - STYLIS 1.67 TRANSITIONS GEN S+CRIZAL (fotocromaticos 2)",
+      "type": null
+    },
+    {
+      "brand": "Varilux",
+      "name": "COMFORT MAX - AIRWEAR 1.59 XPERIO  + CRIZAL",
+      "type": null
+    },
+    {
+      "brand": "Varilux",
+      "name": "PHYSIO 3.0 - ORMA  + CRIZAL",
+      "type": null
+    },
+    {
+      "brand": "Varilux",
+      "name": "PHYSIO 3.0 - AIRWEAR 1.59  + CRIZAL",
+      "type": null
+    },
+    {
+      "brand": "Varilux",
+      "name": "PHYSIO 3.0 - STYLIS 1.67  + CRIZAL",
+      "type": null
+    },
+    {
+      "brand": "Varilux",
+      "name": "PHYSIO 3.0 - ORMA TRANSITIONS GEN S  + CRIZAL (fotocromaticos 8)",
+      "type": null
+    },
+    {
+      "brand": "Varilux",
+      "name": "PHYSIO 3.0 - ORMA TRANSITIONS XTRACTIVE  + CRIZAL (fotocromatico Gris)",
+      "type": null
+    },
+    {
+      "brand": "Varilux",
+      "name": "PHYSIO 3.0 - AIRWEAR 1.59 TRANSITIONS GEN S  + CRIZAL (fotocromaticos 2)",
+      "type": null
+    },
+    {
+      "brand": "Varilux",
+      "name": "PHYSIO 3.0 - STYLIS 1.67 TRANSITIONS GEN S  + CRIZAL (fotocromaticos 2)",
+      "type": null
+    },
+    {
+      "brand": "Varilux",
+      "name": "PHYSIO 3.0 - ORMA XPERIO  + CRIZAL",
+      "type": null
+    },
+    {
+      "brand": "Varilux",
+      "name": "PHYSIO 3.0 - AIRWEAR 1.59 XPERIO  + CRIZAL",
+      "type": null
+    },
+    {
+      "brand": "Varilux",
+      "name": "XR DESIGN -  ORMA   + CRIZAL",
+      "type": null
+    },
+    {
+      "brand": "Varilux",
+      "name": "XR DESIGN  - AIRWEAR 1.59 + CRIZAL",
+      "type": null
+    },
+    {
+      "brand": "Varilux",
+      "name": "XR DESIGN - STYLIS 1.67  + CRIZAL",
+      "type": null
+    },
+    {
+      "brand": "Varilux",
+      "name": "XR DESIGN - ORMA TRANSITIONS GEN S  + CRIZAL   (fotocromaticos 8)",
+      "type": null
+    },
+    {
+      "brand": "Varilux",
+      "name": "XR DESIGN - AIRWEAR 1.59 TRANSITIONS GEN S  + CRIZAL  (fotocromaticos 8)",
+      "type": null
+    },
+    {
+      "brand": "Varilux",
+      "name": "XR DESIGN - STYLIS 1,67 TRANSITIONS GEN S  + CRIZAL  (fotocromaticos 8)",
+      "type": null
+    },
+    {
+      "brand": "Varilux",
+      "name": "XR DESIGN -ORMA XPERIO  + CRIZAL",
+      "type": null
+    },
+    {
+      "brand": "Varilux",
+      "name": "XR DESIGN - AIRWEAR 1.59 XPERIO  + CRIZAL",
+      "type": null
+    },
+    {
+      "brand": "Kodak",
+      "name": "PRECISE AIRWEAR 1.59 XPERIO 2x1",
+      "type": null
+    },
+    {
+      "brand": "Bifocal ",
+      "name": "1,49 Flat Top policarbonato (Grupo) conviene la camara",
+      "type": "Bifocal"
+    },
+    {
+      "brand": "Bifocal ",
+      "name": "1,56 Flat Top Orgánico Blue Light Cut ( Bifocal la camara )",
+      "type": "Bifocal"
+    },
+    {
+      "brand": "Bifocal",
+      "name": "1,49 Flat Top Policarbonato Blanco ( la camara )",
+      "type": "Bifocal"
+    }
+  ]
+}

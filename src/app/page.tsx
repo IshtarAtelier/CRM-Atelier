@@ -296,7 +296,7 @@ export default function Home() {
 
       {/* FACTURACIÓN FUTURA Y PIPELINE — Only for Admin */}
       {isAdmin && (
-        <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="md:col-span-1 bg-white dark:bg-stone-900 rounded-3xl p-6 shadow-xl border border-stone-100 dark:border-stone-800 relative overflow-hidden group">
             <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/5 rounded-full -mr-12 -mt-12 blur-2xl group-hover:bg-emerald-500/10 transition-colors" />
             <div className="flex items-center gap-3 mb-4">
@@ -313,24 +313,12 @@ export default function Home() {
             <div className="absolute top-0 right-0 w-24 h-24 bg-primary/5 rounded-full -mr-12 -mt-12 blur-2xl group-hover:bg-primary/10 transition-colors" />
             <div className="flex items-center gap-3 mb-4">
               <div className="bg-primary/10 p-2 rounded-xl text-primary">
-                <Calculator className="w-5 h-5" />
-              </div>
-              <h3 className="text-[10px] font-black uppercase tracking-widest text-stone-400">Presupuestos en Curso</h3>
-            </div>
-            <p className="text-3xl font-black tracking-tighter text-stone-800 dark:text-white">${d.totalQuotesValue.toLocaleString()}</p>
-            <p className="text-[9px] font-bold text-stone-500 mt-2 uppercase tracking-tight">Valor total de presupuestos abiertos</p>
-          </div>
-
-          <div className="md:col-span-1 bg-gradient-to-br from-primary to-primary/80 rounded-3xl p-6 shadow-xl shadow-primary/20 text-white relative overflow-hidden group">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 blur-2xl group-hover:bg-white/20 transition-colors" />
-            <div className="flex items-center gap-3 mb-4">
-              <div className="bg-white/20 p-2 rounded-xl">
                 <ArrowUpRight className="w-5 h-5" />
               </div>
-              <h3 className="text-[10px] font-black uppercase tracking-widest text-white/70">Potencial Total</h3>
+              <h3 className="text-[10px] font-black uppercase tracking-widest text-stone-400">Potencial Total</h3>
             </div>
-            <p className="text-3xl font-black tracking-tighter">${(d.totalPendingBalance + d.totalQuotesValue).toLocaleString()}</p>
-            <p className="text-[9px] font-bold text-white/50 mt-2 uppercase tracking-tight">Saldos + Presupuestos abiertos</p>
+            <p className="text-3xl font-black tracking-tighter text-stone-800 dark:text-white">${(d.totalPendingBalance + d.totalQuotesValue).toLocaleString()}</p>
+            <p className="text-[9px] font-bold text-stone-500 mt-2 uppercase tracking-tight">Saldos + Presupuestos abiertos</p>
           </div>
         </section>
       )}
@@ -352,6 +340,7 @@ export default function Home() {
               icon={DollarSign}
               trend={d.trendPct ? `${Number(d.trendPct) >= 0 ? '+' : ''}${d.trendPct}%` : '+0%'}
               sub="Vs período anterior"
+              highlight={true}
             />
             <StatsCard
               title="Cantidad de Pedidos"
@@ -589,22 +578,22 @@ export default function Home() {
   );
 }
 
-function StatsCard({ title, value, icon: Icon, trend, sub }: any) {
+function StatsCard({ title, value, icon: Icon, trend, sub, highlight }: any) {
   return (
-    <div className="bg-sidebar border border-sidebar-border rounded-2xl p-7 shadow-sm group hover:shadow-lg hover:border-primary/20 transition-all flex justify-between items-center relative overflow-hidden">
-      <div className="absolute top-0 right-0 w-24 h-24 bg-primary/5 rounded-full -mr-12 -mt-12 blur-2xl group-hover:bg-primary/10 transition-colors" />
+    <div className={`${highlight ? 'bg-gradient-to-br from-primary to-primary/80 text-white shadow-xl shadow-primary/20 border-transparent' : 'bg-sidebar border border-sidebar-border shadow-sm group hover:shadow-lg hover:border-primary/20'} rounded-2xl p-7 transition-all flex justify-between items-center relative overflow-hidden group`}>
+      <div className={`absolute top-0 right-0 w-24 h-24 rounded-full -mr-12 -mt-12 blur-2xl transition-colors ${highlight ? 'bg-white/10 group-hover:bg-white/20' : 'bg-primary/5 group-hover:bg-primary/10'}`} />
       <div className="relative z-10">
-        <p className="text-stone-400 font-black text-[10px] uppercase tracking-[0.2em] mb-2">{title}</p>
-        <h3 className="text-4xl font-black text-stone-800 dark:text-stone-100 tracking-tight">{value}</h3>
+        <p className={`${highlight ? 'text-white/70' : 'text-stone-400'} font-black text-[10px] uppercase tracking-[0.2em] mb-2`}>{title}</p>
+        <h3 className={`text-4xl font-black tracking-tight ${highlight ? '' : 'text-stone-800 dark:text-stone-100'}`}>{value}</h3>
         <div className="flex items-center gap-2 mt-3">
-          <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-stone-100 dark:bg-stone-800 text-primary border border-primary/10 uppercase tracking-tighter">
+          <span className={`text-[9px] font-black px-2 py-0.5 rounded-full border uppercase tracking-tighter ${highlight ? 'bg-white/20 text-white border-white/10' : 'bg-stone-100 dark:bg-stone-800 text-primary border-primary/10'}`}>
             {trend}
           </span>
-          <span className="text-[9px] font-bold text-stone-400 uppercase tracking-[0.1em]">{sub}</span>
+          <span className={`text-[9px] font-bold uppercase tracking-[0.1em] ${highlight ? 'text-white/50' : 'text-stone-400'}`}>{sub}</span>
         </div>
       </div>
-      <div className="relative z-10 bg-stone-50 dark:bg-stone-800 p-4 rounded-2xl group-hover:scale-110 group-hover:bg-primary group-hover:text-white transition-all shadow-inner border border-sidebar-border group-hover:border-primary">
-        <Icon className="w-6 h-6 text-primary transition-colors group-hover:text-white" strokeWidth={2.5} />
+      <div className={`relative z-10 p-4 rounded-2xl transition-all shadow-inner border ${highlight ? 'bg-white/20 border-white/10' : 'bg-stone-50 dark:bg-stone-800 group-hover:scale-110 group-hover:bg-primary group-hover:text-white border-sidebar-border group-hover:border-primary'}`}>
+        <Icon className={`w-6 h-6 stroke-[2.5] transition-colors ${highlight ? 'text-white' : 'text-primary group-hover:text-white'}`} />
       </div>
     </div>
   );

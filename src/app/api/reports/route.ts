@@ -78,7 +78,21 @@ export async function GET(request: Request) {
             orderBy: { createdAt: 'desc' },
         });
 
-        const totalFixedCosts = fixedCosts.reduce((sum: number, fc: any) => sum + (fc.amount || 0), 0);
+        // Agrupamos para el frontend
+        const totalFixedCosts = fixedCosts
+            .filter((fc: any) => !fc.type || fc.type === 'FIJO' || fc.type === 'OTRO')
+            .reduce((sum: number, fc: any) => sum + (fc.amount || 0), 0);
+        
+        const totalMarketingCosts = fixedCosts
+            .filter((fc: any) => fc.type === 'MARKETING')
+            .reduce((sum: number, fc: any) => sum + (fc.amount || 0), 0);
+
+        // Los proveedores manuales no los restamos de la ganancia neta aquí porque el sistema
+        // ya calcula el CMV (Costo de Mercadería Vendida) por cada producto. 
+        // Si los restamos, duplicaríamos el costo.
+        const totalProviderCosts = fixedCosts
+            .filter((fc: any) => fc.type === 'PROVEEDOR')
+            .reduce((sum: number, fc: any) => sum + (fc.amount || 0), 0);
 
         // ── Aggregate Data ──────────────────────────
         // Revenue = sum of actual payments (what entered the business)
@@ -100,7 +114,7 @@ export async function GET(request: Request) {
         const monthlyStats: Record<string, { revenue: number; cost: number; profit: number; orders: number }> = {};
         const paymentMethodStats: Record<string, { total: number; count: number; commission: number }> = {};
         const vendorStats: Record<string, { name: string; revenue: number; orders: number; avgTicket: number }> = {};
-        const labProfitStats: Record<string, { laboratory: string; revenue: number; cost: number; profit: number; ordersCount: number }> = {};
+        const labProfitStats: Record<string, { laboratory: string; revenue: number; cost: number; profit: number; ordersCount: number; clients: { name: string; date: string; product: string; revenue: number; cost: number }[] }> = {};
 
         const monthNames = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
 
@@ -113,8 +127,8 @@ export async function GET(request: Request) {
             const specialDesc = order.specialDiscount || 0;
             totalSpecialDiscounts += specialDesc;
 
-            // Pending = list price minus paid (using subtotalWithMarkup as reference for balance)
-            const listPrice = (order as any).subtotalWithMarkup || order.total || 0;
+            // Pending = list price minus paid (using total as primary reference)
+            const listPrice = order.total || (order as any).subtotalWithMarkup || 0;
             totalPending += Math.max(0, listPrice - orderPaidReal);
 
             // Markup profit: difference between subtotalWithMarkup and item subtotals
@@ -160,8 +174,10 @@ export async function GET(request: Request) {
                 // Promo 2x1: el segundo cristal multifocal bonificado tiene costo $0
                 // (el laboratorio lo regala). Se detecta porque su precio de venta es $0.
                 // Los armazones siempre cuentan ambos costos (la óptica los paga).
-                const is2x1Order = ((order as any).appliedPromoName || '').toLowerCase().includes('2x1');
+                const has2x1Tag = order.tags?.some((t: any) => t.name.toLowerCase().includes('2x1')) || false;
+                const is2x1Order = ((order as any).appliedPromoName || '').toLowerCase().includes('2x1') || has2x1Tag;
                 const isCrystalItem = (product.category || '').toUpperCase().includes('LENS')
+                    || (product.category || '').toUpperCase().includes('CRISTAL')
                     || (product.type || '').includes('Cristal')
                     || (product.type || '').includes('Multifocal')
                     || (product.type || '').includes('Monofocal');
@@ -175,7 +191,7 @@ export async function GET(request: Request) {
                 const cat = (product.category || '').toUpperCase();
                 if (cat.includes('FRAME') || cat.includes('SUNGLASS') || (product.type || '').includes('Armazón') || (product.type || '').includes('Lentes de Sol')) {
                     totalCostFrames += itemCost;
-                } else if (cat.includes('LENS') || (product.type || '').includes('Cristal') || (product.type || '').includes('Multifocal') || (product.type || '').includes('Monofocal')) {
+                } else if (cat.includes('LENS') || cat.includes('CRISTAL') || (product.type || '').includes('Cristal') || (product.type || '').includes('Multifocal') || (product.type || '').includes('Monofocal')) {
                     totalCostLenses += itemCost;
                 } else {
                     totalCostOther += itemCost;
@@ -185,20 +201,30 @@ export async function GET(request: Request) {
                 const pName = `${product.brand || ''} ${product.model || product.name || 'Sin nombre'}`.trim();
                 const pId = product.id;
                 if (!productStats[pId]) productStats[pId] = { name: pName, type: product.type || product.category || '', qty: 0, revenue: 0, cost: 0 };
-                productStats[pId].qty += item.quantity;
+                
+                if (!(is2x1Order && isCrystalItem && item.price === 0)) {
+                    productStats[pId].qty += item.quantity;
+                }
                 productStats[pId].revenue += itemRevenue;
                 productStats[pId].cost += itemCost;
 
                 // Add to monthly cost
                 monthlyStats[monthKey].cost += itemCost;
 
-                // Lab profit stats (only for LENS items with a laboratory)
+                // Lab profit stats (only for LENS/CRISTAL items with a laboratory)
                 const labName = (product as any).laboratory;
-                if ((cat.includes('LENS') || (product.type || '').includes('Cristal') || (product.type || '').includes('Multifocal') || (product.type || '').includes('Monofocal')) && labName) {
-                    if (!labProfitStats[labName]) labProfitStats[labName] = { laboratory: labName, revenue: 0, cost: 0, profit: 0, ordersCount: 0 };
+                if ((cat.includes('LENS') || cat.includes('CRISTAL') || (product.type || '').includes('Cristal') || (product.type || '').includes('Multifocal') || (product.type || '').includes('Monofocal')) && labName) {
+                    if (!labProfitStats[labName]) labProfitStats[labName] = { laboratory: labName, revenue: 0, cost: 0, profit: 0, ordersCount: 0, clients: [] };
                     labProfitStats[labName].revenue += itemRevenue;
                     labProfitStats[labName].cost += itemCost;
                     labProfitStats[labName].profit += itemRevenue - itemCost;
+                    labProfitStats[labName].clients.push({
+                        name: order.client?.name || 'Desconocido',
+                        date: order.createdAt,
+                        product: `${product.brand || ''} ${product.model || product.name || ''}`.trim(),
+                        revenue: itemRevenue,
+                        cost: itemCost
+                    });
                 }
             }
 
@@ -231,8 +257,8 @@ export async function GET(request: Request) {
         }
 
         const totalCosts = totalCostFrames + totalCostLenses + totalCostOther;
-        // Net Profit = Real Income - Product Costs - Platform Fees - Doctor Fees - Fixed Costs - Special Discounts
-        const netProfit = totalRevenue - totalCosts - totalPlatformFees - totalDoctorFees - totalFixedCosts - totalSpecialDiscounts;
+        // Net Profit = Real Income - Product Costs - Platform Fees - Doctor Fees - Fixed Costs - Marketing - Special Discounts
+        const netProfit = totalRevenue - totalCosts - totalPlatformFees - totalDoctorFees - totalFixedCosts - totalMarketingCosts - totalSpecialDiscounts;
         const profitMargin = totalRevenue > 0 ? (netProfit / totalRevenue) * 100 : 0;
 
         // ── Fetch Invoices for billing stats ──
@@ -269,6 +295,8 @@ export async function GET(request: Request) {
                 totalPlatformFees,
                 totalDoctorFees,
                 totalFixedCosts,
+                totalMarketingCosts,
+                totalProviderCosts,
                 totalSpecialDiscounts,
                 netProfit,
                 profitMargin,
@@ -303,7 +331,7 @@ export async function GET(request: Request) {
 
                         const cat = (product.category || '').toUpperCase();
                         const labName = (product as any).laboratory;
-                        if (labName && (cat.includes('LENS') || (product.type || '').includes('Cristal') || (product.type || '').includes('Multifocal') || (product.type || '').includes('Monofocal'))) {
+                        if (labName && (cat.includes('LENS') || cat.includes('CRISTAL') || (product.type || '').includes('Cristal') || (product.type || '').includes('Multifocal') || (product.type || '').includes('Monofocal'))) {
                             if (!labOrderIds[labName]) labOrderIds[labName] = new Set();
                             labOrderIds[labName].add(order.id);
                         }

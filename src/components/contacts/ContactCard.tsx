@@ -119,7 +119,7 @@ export const ContactCard: React.FC<ContactCardProps> = ({
                         <span className="hidden sm:inline">Presupuesto</span>
                         <span className="sm:hidden">Cotizar</span>
                     </button>
-                    {contact.status === 'CONTACT' && (
+                    {contact.status === 'CONTACT' && !contact.hasSales && (
                         <button
                             onClick={(e) => {
                                 e.stopPropagation();
@@ -131,7 +131,7 @@ export const ContactCard: React.FC<ContactCardProps> = ({
                             Confirmar
                         </button>
                     )}
-                    {contact.status === 'CONFIRMED' && (
+                    {contact.status === 'CONFIRMED' && !contact.hasSales && (
                         <button
                             onClick={(e) => {
                                 e.stopPropagation();

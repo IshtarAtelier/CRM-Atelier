@@ -666,6 +666,10 @@ export async function PATCH(
                             prescription: true,
                         },
                     }),
+                    prisma.client.update({
+                        where: { id: existingOrder.client.id },
+                        data: { status: 'CLIENT' }
+                    }),
                     ...stockUpdates,
                 ]);
 

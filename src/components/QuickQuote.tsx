@@ -117,7 +117,7 @@ export default function QuickQuote({ onClose }: QuickQuoteProps) {
                             {/* Product List */}
                             <div className="flex-1 overflow-y-auto p-8 border-r border-stone-50 dark:border-stone-800 custom-scrollbar">
                                 <div className="space-y-8">
-                                    {['FRAME', 'LENS', 'SUNGLASS', 'ACCESSORY'].map(category => {
+                                    {['FRAME', 'CRISTAL', 'SUNGLASS', 'ACCESSORY'].map(category => {
                                         const catProducts = products.filter(p => p.category === category);
                                         if (catProducts.length === 0) return null;
 
@@ -125,7 +125,7 @@ export default function QuickQuote({ onClose }: QuickQuoteProps) {
                                             <section key={category}>
                                                 <h3 className="text-xs font-black text-stone-400 uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
                                                     {category === 'FRAME' && <Glasses className="w-4 h-4" />}
-                                                    {category === 'LENS' && <Layers className="w-4 h-4" />}
+                                                    {category === 'CRISTAL' && <Layers className="w-4 h-4" />}
                                                     {category}
                                                 </h3>
                                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

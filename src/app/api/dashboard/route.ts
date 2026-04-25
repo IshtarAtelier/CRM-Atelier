@@ -6,10 +6,10 @@ export const dynamic = 'force-dynamic';
 export async function GET(request: Request) {
     try {
         const { searchParams } = new URL(request.url);
-        const from = searchParams.get('from');
-        const to = searchParams.get('to');
-        const etiqueta = searchParams.get('etiqueta');
-        const tipo = searchParams.get('tipo');
+        const fromParam = searchParams.get('from');
+        const toParam = searchParams.get('to');
+        const from = fromParam && fromParam !== '' ? fromParam : null;
+        const to = toParam && toParam !== '' ? toParam : null;
 
         const dateFilter: any = {};
         if (from) dateFilter.gte = new Date(from);
@@ -19,23 +19,26 @@ export async function GET(request: Request) {
             dateFilter.lte = toDate;
         }
 
-        // If no dates, default to current month
-        if (!from && !to) {
+        // If no dates provided (and not All Time), default to current month
+        if (!fromParam && !toParam) {
             const now = new Date();
             dateFilter.gte = new Date(now.getFullYear(), now.getMonth(), 1);
         }
 
         const whereClause: any = {
-            createdAt: dateFilter,
             orderType: 'SALE',
             isDeleted: false,
         };
+        if (Object.keys(dateFilter).length > 0) {
+            whereClause.createdAt = dateFilter;
+        }
 
         const currentMonthOrders = await prisma.order.findMany({
             where: whereClause,
             select: {
                 total: true,
                 paid: true,
+                subtotalWithMarkup: true, // ADDED
                 createdAt: true,
                 items: {
                     select: {
@@ -55,18 +58,40 @@ export async function GET(request: Request) {
                         name: true
                     }
                 },
+                client: {
+                    select: {
+                        tags: {
+                            select: {
+                                name: true
+                            }
+                        }
+                    }
+                }
             },
         });
 
         const allOrders = await prisma.order.findMany({
             where: { orderType: 'SALE', isDeleted: false },
-            select: { total: true, createdAt: true },
+            select: { total: true, subtotalWithMarkup: true, createdAt: true },
             orderBy: { createdAt: 'asc' },
         });
 
-        const totalSoldMonth = currentMonthOrders.reduce((acc: number, order: any) => acc + order.total, 0);
+        const totalSoldMonth = currentMonthOrders.reduce((acc: number, order: any) => {
+            const price = order.total || order.subtotalWithMarkup || 0;
+            return acc + price;
+        }, 0);
         const totalPaidMonth = currentMonthOrders.reduce((acc: number, order: any) => acc + (order.paid || 0), 0);
-        const totalPendingMonth = Math.max(0, totalSoldMonth - totalPaidMonth);
+        
+        // SALDO PENDIENTE GLOBAL (Cuentas a cobrar históricas)
+        // Se calcula sobre todas las ventas no eliminadas de la historia
+        const allPendingSales = await prisma.order.findMany({
+            where: { orderType: 'SALE', isDeleted: false },
+            select: { total: true, paid: true, subtotalWithMarkup: true }
+        });
+        const globalPendingBalance = allPendingSales.reduce((acc, o) => {
+            const listPrice = o.total || o.subtotalWithMarkup || 0;
+            return acc + Math.max(0, listPrice - (o.paid || 0));
+        }, 0);
 
         const ordersCountMonth = currentMonthOrders.length;
         const ticketPromedioMonth = ordersCountMonth > 0 ? totalSoldMonth / ordersCountMonth : 0;
@@ -78,9 +103,9 @@ export async function GET(request: Request) {
                 orderType: 'QUOTE',
                 isDeleted: false,
             },
-            select: { total: true }
+            select: { total: true, subtotalWithMarkup: true }
         });
-        const totalQuotesValue = openQuotes.reduce((acc, q) => acc + q.total, 0);
+        const totalQuotesValue = openQuotes.reduce((acc, q: any) => acc + (q.total || q.subtotalWithMarkup || 0), 0);
 
         // Suggested Follow-ups (Multifocal quotes > 2 days old)
         const twoDaysAgo = new Date();
@@ -88,7 +113,7 @@ export async function GET(request: Request) {
         const fiveDaysAgo = new Date();
         fiveDaysAgo.setDate(fiveDaysAgo.getDate() - 7); // Don't suggest very old ones
         
-        const suggestedFollowUps = await prisma.order.findMany({
+        const rawFollowUps = await prisma.order.findMany({
             where: {
                 orderType: 'QUOTE',
                 isDeleted: false,
@@ -104,7 +129,8 @@ export async function GET(request: Request) {
                 OR: [
                     { client: { interest: { contains: 'Multifocal' } } },
                     { items: { some: { product: { type: { contains: 'Multifocal' } } } } },
-                    { items: { some: { product: { category: 'LENS' } } } }
+                    { items: { some: { product: { category: 'LENS' } } } },
+                    { items: { some: { product: { category: 'CRISTAL' } } } }
                 ]
             },
             select: {
@@ -128,9 +154,18 @@ export async function GET(request: Request) {
                     }
                 }
             },
-            orderBy: { createdAt: 'desc' },
-            take: 5
+            orderBy: { createdAt: 'desc' }
         });
+
+        const uniqueClientNames = new Set();
+        const suggestedFollowUps = [];
+        for (const fu of rawFollowUps) {
+            if (fu.client?.name && !uniqueClientNames.has(fu.client.name)) {
+                uniqueClientNames.add(fu.client.name);
+                suggestedFollowUps.push(fu);
+                if (suggestedFollowUps.length === 6) break;
+            }
+        }
 
         // Monthly historical
         const monthsNames = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
@@ -149,30 +184,60 @@ export async function GET(request: Request) {
             const date = new Date(order.createdAt);
             const key = `${monthsNames[date.getMonth()]} ${date.getFullYear()}`;
             if (monthlyStats[key] !== undefined) {
-                monthlyStats[key] += order.total;
+                const price = order.total || order.subtotalWithMarkup || 0;
+                monthlyStats[key] += price;
             }
         });
         const tagStats: Record<string, { total: number; count: number }> = {};
         currentMonthOrders.forEach((order: any) => {
-            order.tags.forEach((t: any) => {
-                if (!tagStats[t.name]) tagStats[t.name] = { total: 0, count: 0 };
-                tagStats[t.name].total += order.total;
-                tagStats[t.name].count += 1;
+            // Combinar etiquetas de la orden y del cliente (evitando duplicados)
+            const combinedTags = [
+                ...order.tags.map((t: any) => t.name),
+                ...(order.client?.tags.map((t: any) => t.name) || [])
+            ];
+            const uniqueTags = [...new Set(combinedTags)];
+
+            uniqueTags.forEach((tagName: string) => {
+                if (!tagStats[tagName]) tagStats[tagName] = { total: 0, count: 0 };
+                const orderPrice = order.total || order.subtotalWithMarkup || 0;
+                tagStats[tagName].total += orderPrice;
+                tagStats[tagName].count += 1;
             });
         });
 
         // Type stats
         const typeStats: Record<string, { total: number; count: number; cost: number }> = {};
         currentMonthOrders.forEach((order: any) => {
+            const has2x1Tag = order.tags?.some((t: any) => t.name.toLowerCase().includes('2x1')) || false;
+            const is2x1Order = ((order as any).appliedPromoName || '').toLowerCase().includes('2x1') || has2x1Tag;
+
             order.items.forEach((item: any) => {
                 const product = item.product;
                 if (!product) return; // Skip if product was deleted
 
                 const type = product.type || "OTROS";
                 if (!typeStats[type]) typeStats[type] = { total: 0, count: 0, cost: 0 };
-                typeStats[type].total += item.price * item.quantity;
-                typeStats[type].count += item.quantity;
-                typeStats[type].cost += (product.cost || 0) * item.quantity;
+                const orderPrice = Math.max(item.price * item.quantity, 0); // Using item price for type stats is usually better as it's more granular
+                typeStats[type].total += orderPrice;
+
+                const isCrystalItem = (product.category || '').toUpperCase().includes('LENS')
+                    || (product.category || '').toUpperCase().includes('CRISTAL')
+                    || (product.type || '').includes('Cristal')
+                    || (product.type || '').includes('Multifocal')
+                    || (product.type || '').includes('Monofocal');
+
+                let itemCost = (product.cost || 0) * item.quantity;
+                if (product.unitType === 'PAR' && item.eye && (product.cost || 0) > 0) {
+                    itemCost = ((product.cost || 0) / 2) * item.quantity;
+                }
+
+                if (is2x1Order && isCrystalItem && item.price === 0) {
+                    itemCost = 0;
+                } else {
+                    typeStats[type].count += item.quantity;
+                }
+
+                typeStats[type].cost += itemCost;
             });
         });
 
@@ -269,7 +334,7 @@ export async function GET(request: Request) {
             trendPct,
             funnel,
             targets,
-            totalPendingBalance: totalPendingMonth,
+            totalPendingBalance: globalPendingBalance,
             totalQuotesValue: totalQuotesValue,
             suggestedFollowUps: suggestedFollowUps,
             monthlyBilling: last6MonthsKeys.map(key => ({ name: key, total: monthlyStats[key] })),

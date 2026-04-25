@@ -44,6 +44,17 @@ export default function PrescriptionManager({
         notes: '', imageUrl: '', prescriptionType: 'ADDITION'
     });
 
+    // Normalize input: accept comma as decimal separator (AR locale)
+    const handleFieldChange = (field: string, value: string) => {
+        // Allow digits, minus sign, period, and comma
+        // Replace comma with period for internal representation
+        const normalized = value.replace(',', '.');
+        // Allow intermediate states like "-", "0.", etc.
+        if (normalized === '' || normalized === '-' || normalized === '.' || /^-?\d*\.?\d*$/.test(normalized)) {
+            setForm(p => ({...p, [field]: normalized}));
+        }
+    };
+
     const resetForm = () => {
         setForm({
             sphereOD: '', cylinderOD: '', axisOD: '', additionOD: '',
@@ -86,27 +97,23 @@ export default function PrescriptionManager({
         applyPrevious(rx);
     };
 
-    const findDuplicate = (finalImageUrl: string) => {
-        if (!contact.prescriptions) return null;
+    // Deduplication is now handled exclusively by the backend.
+    // The frontend dedup was silently preventing saves when graduation values
+    // matched an existing prescription (even intentional re-entries).
 
-        const parse = (v: any) => {
-            const n = parseFloat(v);
-            return isNaN(n) ? 0 : n;
-        };
+    // Helper: parse functions that preserve 0 (0 || null === null, which is the bug)
+    const safeFloat = (v: any) => { 
+        if (v === undefined || v === null || v === '') return null;
+        // Ensure string and handle comma as decimal separator (standard in AR)
+        const normalized = v.toString().replace(',', '.');
+        const n = parseFloat(normalized); 
+        return isNaN(n) ? null : n; 
+    };
 
-        return contact.prescriptions.find((p: any) => {
-            if ((p.imageUrl || '') !== (finalImageUrl || '')) return false;
-
-            const fields = [
-                [p.sphereOD, form.sphereOD], [p.cylinderOD, form.cylinderOD], [p.axisOD, form.axisOD],
-                [p.sphereOI, form.sphereOI], [p.cylinderOI, form.cylinderOI], [p.axisOI, form.axisOI],
-                [p.additionOD ?? p.addition, form.additionOD], [p.additionOI ?? p.addition, form.additionOI],
-                [p.distanceOD ?? p.pd, form.distanceOD], [p.distanceOI ?? p.pd, form.distanceOI],
-                [p.heightOD, form.heightOD], [p.heightOI, form.heightOI]
-            ];
-
-            return fields.every(([valA, valB]) => Math.abs(parse(valA) - parse(valB)) < 0.001);
-        });
+    const safeInt = (v: any) => { 
+        if (v === undefined || v === null || v === '') return null;
+        const n = parseInt(v.toString()); 
+        return isNaN(n) ? null : n; 
     };
 
     const handleSave = async () => {
@@ -132,9 +139,8 @@ export default function PrescriptionManager({
             //     throw new Error("La foto de la receta es obligatoria.");
             // }
 
-            // Busco duplicado solo si no estamos editando
-            const duplicate = !editingRxId ? findDuplicate(finalImageUrl) : null;
-            let rxId = duplicate?.id;
+            // Deduplication is handled by the backend — always attempt to save
+            let rxId: string | undefined;
 
             if (editingRxId) {
                 // UPDATE existing
@@ -144,18 +150,18 @@ export default function PrescriptionManager({
                     body: JSON.stringify({
                         ...form,
                         imageUrl: finalImageUrl,
-                        sphereOD: parseFloat(form.sphereOD) || null,
-                        cylinderOD: parseFloat(form.cylinderOD) || null,
-                        axisOD: parseInt(form.axisOD) || null,
-                        sphereOI: parseFloat(form.sphereOI) || null,
-                        cylinderOI: parseFloat(form.cylinderOI) || null,
-                        axisOI: parseInt(form.axisOI) || null,
-                        additionOD: parseFloat(form.additionOD) || null,
-                        additionOI: parseFloat(form.additionOI) || null,
-                        distanceOD: parseFloat(form.distanceOD) || null,
-                        distanceOI: parseFloat(form.distanceOI) || null,
-                        heightOD: parseFloat(form.heightOD) || null,
-                        heightOI: parseFloat(form.heightOI) || null,
+                        sphereOD: safeFloat(form.sphereOD),
+                        cylinderOD: safeFloat(form.cylinderOD),
+                        axisOD: safeInt(form.axisOD),
+                        sphereOI: safeFloat(form.sphereOI),
+                        cylinderOI: safeFloat(form.cylinderOI),
+                        axisOI: safeInt(form.axisOI),
+                        additionOD: safeFloat(form.additionOD),
+                        additionOI: safeFloat(form.additionOI),
+                        distanceOD: safeFloat(form.distanceOD),
+                        distanceOI: safeFloat(form.distanceOI),
+                        heightOD: safeFloat(form.heightOD),
+                        heightOI: safeFloat(form.heightOI),
                     })
                 });
                 
@@ -173,18 +179,18 @@ export default function PrescriptionManager({
                     body: JSON.stringify({
                         ...form,
                         imageUrl: finalImageUrl,
-                        sphereOD: parseFloat(form.sphereOD) || null,
-                        cylinderOD: parseFloat(form.cylinderOD) || null,
-                        axisOD: parseInt(form.axisOD) || null,
-                        sphereOI: parseFloat(form.sphereOI) || null,
-                        cylinderOI: parseFloat(form.cylinderOI) || null,
-                        axisOI: parseInt(form.axisOI) || null,
-                        additionOD: parseFloat(form.additionOD) || null,
-                        additionOI: parseFloat(form.additionOI) || null,
-                        distanceOD: parseFloat(form.distanceOD) || null,
-                        distanceOI: parseFloat(form.distanceOI) || null,
-                        heightOD: parseFloat(form.heightOD) || null,
-                        heightOI: parseFloat(form.heightOI) || null,
+                        sphereOD: safeFloat(form.sphereOD),
+                        cylinderOD: safeFloat(form.cylinderOD),
+                        axisOD: safeInt(form.axisOD),
+                        sphereOI: safeFloat(form.sphereOI),
+                        cylinderOI: safeFloat(form.cylinderOI),
+                        axisOI: safeInt(form.axisOI),
+                        additionOD: safeFloat(form.additionOD),
+                        additionOI: safeFloat(form.additionOI),
+                        distanceOD: safeFloat(form.distanceOD),
+                        distanceOI: safeFloat(form.distanceOI),
+                        heightOD: safeFloat(form.heightOD),
+                        heightOI: safeFloat(form.heightOI),
                     })
                 });
                 
@@ -219,7 +225,7 @@ export default function PrescriptionManager({
             return;
         }
         
-        const rxId = savedRxId || findDuplicate(form.imageUrl)?.id;
+        const rxId = savedRxId;
         
         if (!rxId) {
             setError("No se pudo identificar la receta. Por favor, volvé a guardarla.");
@@ -275,7 +281,7 @@ export default function PrescriptionManager({
                                 onClick={() => applyPrevious(rx)}
                                 className="px-3 py-2 bg-white dark:bg-stone-900 hover:bg-emerald-500 hover:text-white border border-emerald-200 dark:border-stone-700 rounded-xl text-[10px] font-bold transition-all shadow-sm"
                             >
-                                {format(new Date(rx.date), 'dd/MM/yy')} - {rx.sphereOD || '0'}/{rx.sphereOI || '0'}
+                                {format(new Date(rx.date), 'dd/MM/yy')} - {rx.sphereOD ?? '0'}/{rx.sphereOI ?? '0'}
                             </button>
                         ))}
                     </div>
@@ -289,7 +295,7 @@ export default function PrescriptionManager({
                         {['sphereOD', 'cylinderOD', 'axisOD', 'additionOD'].map(f => (
                             <div key={f}>
                                 <label className="text-[8px] font-black text-stone-400 uppercase block mb-0.5">{f.replace('OD','').toUpperCase()}</label>
-                                <input type="number" step="0.25" value={(form as any)[f]} onChange={e => setForm(p => ({...p, [f]: e.target.value}))} className="w-full bg-stone-50 dark:bg-stone-900 border border-stone-200 dark:border-stone-700 p-2.5 rounded-xl text-sm font-bold text-center outline-none focus:ring-2 focus:ring-emerald-300" placeholder="0.00" />
+                                <input type="text" inputMode="decimal" value={(form as any)[f]} onChange={e => handleFieldChange(f, e.target.value)} className="w-full bg-stone-50 dark:bg-stone-900 border border-stone-200 dark:border-stone-700 p-2.5 rounded-xl text-sm font-bold text-center outline-none focus:ring-2 focus:ring-emerald-300" placeholder="0.00" />
                             </div>
                         ))}
                     </div>
@@ -300,7 +306,7 @@ export default function PrescriptionManager({
                         {['sphereOI', 'cylinderOI', 'axisOI', 'additionOI'].map(f => (
                             <div key={f}>
                                 <label className="text-[8px] font-black text-stone-400 uppercase block mb-0.5">{f.replace('OI','').toUpperCase()}</label>
-                                <input type="number" step="0.25" value={(form as any)[f]} onChange={e => setForm(p => ({...p, [f]: e.target.value}))} className="w-full bg-stone-50 dark:bg-stone-900 border border-stone-200 dark:border-stone-700 p-2.5 rounded-xl text-sm font-bold text-center outline-none focus:ring-2 focus:ring-blue-300" placeholder="0.00" />
+                                <input type="text" inputMode="decimal" value={(form as any)[f]} onChange={e => handleFieldChange(f, e.target.value)} className="w-full bg-stone-50 dark:bg-stone-900 border border-stone-200 dark:border-stone-700 p-2.5 rounded-xl text-sm font-bold text-center outline-none focus:ring-2 focus:ring-blue-300" placeholder="0.00" />
                             </div>
                         ))}
                     </div>
@@ -309,15 +315,15 @@ export default function PrescriptionManager({
                     <div>
                         <p className="text-[9px] font-black text-violet-600 uppercase tracking-widest mb-2">DNP</p>
                         <div className="grid grid-cols-2 gap-2">
-                            <input type="number" step="0.5" value={form.distanceOD} onChange={e => setForm(p => ({...p, distanceOD: e.target.value}))} className="w-full bg-stone-50 dark:bg-stone-900 border border-stone-200 p-2.5 rounded-xl text-sm font-bold text-center" placeholder="OD" />
-                            <input type="number" step="0.5" value={form.distanceOI} onChange={e => setForm(p => ({...p, distanceOI: e.target.value}))} className="w-full bg-stone-50 dark:bg-stone-900 border border-stone-200 p-2.5 rounded-xl text-sm font-bold text-center" placeholder="OI" />
+                            <input type="text" inputMode="decimal" value={form.distanceOD} onChange={e => handleFieldChange('distanceOD', e.target.value)} className="w-full bg-stone-50 dark:bg-stone-900 border border-stone-200 p-2.5 rounded-xl text-sm font-bold text-center" placeholder="OD" />
+                            <input type="text" inputMode="decimal" value={form.distanceOI} onChange={e => handleFieldChange('distanceOI', e.target.value)} className="w-full bg-stone-50 dark:bg-stone-900 border border-stone-200 p-2.5 rounded-xl text-sm font-bold text-center" placeholder="OI" />
                         </div>
                     </div>
                     <div>
                         <p className="text-[9px] font-black text-amber-600 uppercase tracking-widest mb-2">Altura</p>
                         <div className="grid grid-cols-2 gap-2">
-                            <input type="number" step="0.5" value={form.heightOD} onChange={e => setForm(p => ({...p, heightOD: e.target.value}))} className="w-full bg-stone-50 dark:bg-stone-900 border border-stone-200 p-2.5 rounded-xl text-sm font-bold text-center" placeholder="OD" />
-                            <input type="number" step="0.5" value={form.heightOI} onChange={e => setForm(p => ({...p, heightOI: e.target.value}))} className="w-full bg-stone-50 dark:bg-stone-900 border border-stone-200 p-2.5 rounded-xl text-sm font-bold text-center" placeholder="OI" />
+                            <input type="text" inputMode="decimal" value={form.heightOD} onChange={e => handleFieldChange('heightOD', e.target.value)} className="w-full bg-stone-50 dark:bg-stone-900 border border-stone-200 p-2.5 rounded-xl text-sm font-bold text-center" placeholder="OD" />
+                            <input type="text" inputMode="decimal" value={form.heightOI} onChange={e => handleFieldChange('heightOI', e.target.value)} className="w-full bg-stone-50 dark:bg-stone-900 border border-stone-200 p-2.5 rounded-xl text-sm font-bold text-center" placeholder="OI" />
                         </div>
                     </div>
                 </div>
@@ -375,9 +381,9 @@ export default function PrescriptionManager({
                     <div key={eye} className="flex items-center gap-3">
                         <span className="w-10 text-center font-black bg-stone-900 text-white rounded py-1 text-[10px]">{eye}</span>
                         <div className="flex-1 flex justify-around bg-stone-900 text-white p-3 rounded-2xl font-mono text-sm">
-                            <div>Esf: {(form as any)[`sphere${eye}`] || '0'}</div>
-                            <div>Cil: {(form as any)[`cylinder${eye}`] || '0'}</div>
-                            <div>Eje: {(form as any)[`axis${eye}`] || '0'}</div>
+                            <div>Esf: {safeFloat((form as any)[`sphere${eye}`])?.toFixed(2) ?? '0.00'}</div>
+                            <div>Cil: {safeFloat((form as any)[`cylinder${eye}`])?.toFixed(2) ?? '0.00'}</div>
+                            <div>Eje: {safeInt((form as any)[`axis${eye}`]) ?? '0'}</div>
                         </div>
                     </div>
                 ))}

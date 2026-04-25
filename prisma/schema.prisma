@@ -156,8 +156,8 @@ model Prescription {
 model Product {
   id        String   @id @default(cuid())
   name      String?  // Nombre descriptivo (ej: "Líquido Limpiador")
-  category  String   // FRAME, SUNGLASS, LENS, ACCESSORY
-  type      String?  // MONOFOCAL, MULTIFOCAL, BIFOCAL, OCUPACIONAL, SOLAR
+  category  String   // FRAME, SUNGLASS, Cristal, ACCESSORY, Lentes de Sol, Armazón de Receta, Lentes de Contacto, Lentes Especiales
+  type      String?  // Cristal Monofocal, Cristal Multifocal, Cristal Bifocal, Cristal Ocupacional, etc.
   brand     String?
   model     String?
   stock     Int      @default(0)
@@ -414,6 +414,7 @@ model FixedCost {
   name        String                         // "Contadora", "Alquiler", etc.
   amount      Float
   category    String   @default("OTRO")      // CONTADORA, SUELDOS, LIMPIEZA, ALQUILER, SERVICIOS, IMPUESTOS, OTRO
+  type        String   @default("FIJO")      // FIJO, VARIABLE, MARKETING, PROVEEDOR
   month       Int                            // Mes (1-12)
   year        Int                            // Año
   notes       String?

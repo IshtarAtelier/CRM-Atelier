@@ -69,6 +69,7 @@ export interface Contact {
     interest: string | null;
     expectedValue: number | null;
     avgTicket?: number;
+    hasSales?: boolean;
     priority: number;
     isFavorite: boolean;
     address: string | null;
@@ -89,6 +90,8 @@ export interface ContactFormData {
     dni?: string;
     interest?: string;
     expectedValue?: number;
+    avgTicket?: number;
+    hasSales?: boolean;
     priority?: number;
     status?: string;
     contactSource?: string;

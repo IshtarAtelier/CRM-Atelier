@@ -58,3 +58,54 @@ export async function DELETE(
         return NextResponse.json({ error: error.message }, { status: 500 });
     }
 }
+
+export async function PUT(
+    request: Request,
+    { params }: { params: Promise<{ id: string }> }
+) {
+    try {
+        const { id: paymentId } = await params;
+        
+        if (!paymentId) {
+            return NextResponse.json({ error: 'ID de pago requerido' }, { status: 400 });
+        }
+
+        const headersList = await headers();
+        const role = headersList.get('x-user-role') || 'STAFF';
+
+        if (role !== 'ADMIN') {
+            return NextResponse.json(
+                { error: 'Seguridad: Solo los administradores pueden editar pagos existentes.' },
+                { status: 403 }
+            );
+        }
+
+        const body = await request.json();
+
+        // Llamar al service que maneja toda la cascada
+        const updatedPayment = await ContactService.updatePayment(paymentId, {
+            method: body.method,
+            amount: body.amount ? Number(body.amount) : undefined,
+            notes: body.notes,
+            receiptUrl: body.receiptUrl
+        });
+
+        // Si se subió una nueva imagen de comprobante y no es efectivo, re-disparamos el agente de IA
+        if (body.receiptUrl && body.method && !['EFECTIVO', 'CASH'].includes(body.method)) {
+            // Importar dinámicamente para evitar dependencias circulares si las hubiera
+            const { ReceiptAgentService } = await import('@/services/receipt-agent.service');
+            ReceiptAgentService.analyzeReceipt(
+                updatedPayment.id,
+                updatedPayment.orderId,
+                body.receiptUrl,
+                updatedPayment.amount,
+                updatedPayment.method
+            ).catch(err => console.error('[ReceiptAgent Background Error from Edit]', err));
+        }
+
+        return NextResponse.json(updatedPayment);
+    } catch (error: any) {
+        console.error('Error updating payment:', error);
+        return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+}

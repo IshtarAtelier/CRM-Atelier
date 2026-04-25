@@ -33,6 +33,8 @@ interface ReportData {
         totalPlatformFees: number;
         totalDoctorFees: number;
         totalFixedCosts: number;
+        totalMarketingCosts?: number;
+        totalProviderCosts?: number;
         totalSpecialDiscounts: number;
         netProfit: number;
         profitMargin: number;
@@ -46,7 +48,7 @@ interface ReportData {
     vendorStats: { name: string; revenue: number; orders: number; avgTicket: number }[];
     monthlyStats: { month: string; revenue: number; cost: number; profit: number; orders: number }[];
     paymentMethods: { method: string; total: number; count: number; commission: number }[];
-    labStats: { laboratory: string; revenue: number; cost: number; profit: number; ordersCount: number }[];
+    labStats: { laboratory: string; revenue: number; cost: number; profit: number; ordersCount: number; clients?: { name: string; date: string; product: string; revenue: number; cost: number }[] }[];
     billingStats: { account: string; total: number; count: number }[];
 }
 
@@ -321,16 +323,18 @@ export default function ReportesPage() {
                                 );
                             })()}
 
-                            {/* ─ Gastos Fijos ─ */}
+                            {/* ─ Gastos Fijos y Marketing ─ */}
                             <div className="mt-4 mb-1">
-                                <span className="text-[9px] font-black text-stone-400 uppercase tracking-widest">Gastos Fijos</span>
+                                <span className="text-[9px] font-black text-stone-400 uppercase tracking-widest">Gastos Operativos y Marketing</span>
                             </div>
                             {(data?.fixedCosts && data.fixedCosts.length > 0) ? (
                                 <>
-                                    {/* Group by category */}
+                                    {/* Group by category for Fijos & Marketing only */}
                                     {Object.entries(
-                                        data.fixedCosts.reduce<Record<string, number>>((acc, fc) => {
-                                            const cat = FIXED_COST_CATEGORIES.find(c => c.id === fc.category)?.label || fc.category;
+                                        data.fixedCosts
+                                        .filter(fc => !fc.type || fc.type === 'FIJO' || fc.type === 'MARKETING' || fc.type === 'OTRO')
+                                        .reduce<Record<string, number>>((acc, fc) => {
+                                            const cat = fc.name || FIXED_COST_CATEGORIES.find(c => c.id === fc.category)?.label || fc.category;
                                             acc[cat] = (acc[cat] || 0) + fc.amount;
                                             return acc;
                                         }, {})
@@ -339,7 +343,7 @@ export default function ReportesPage() {
                                     ))}
                                 </>
                             ) : (
-                                <p className="text-[10px] text-stone-400 font-medium py-2 pl-2">Sin gastos fijos cargados</p>
+                                <p className="text-[10px] text-stone-400 font-medium py-2 pl-2">Sin gastos operativos cargados</p>
                             )}
 
                             {/* ─ Resultado Neto ─ */}
@@ -355,7 +359,7 @@ export default function ReportesPage() {
                                         <div className="bg-red-400 transition-all" style={{ width: `${(s.totalCosts / s.totalRevenue) * 100}%` }} title="CMV" />
                                         <div className="bg-purple-400 transition-all" style={{ width: `${(s.totalPlatformFees / s.totalRevenue) * 100}%` }} title="Plataforma" />
                                         <div className="bg-pink-400 transition-all" style={{ width: `${(s.totalDoctorFees / s.totalRevenue) * 100}%` }} title="Médicos" />
-                                        <div className="bg-orange-400 transition-all" style={{ width: `${(s.totalFixedCosts / s.totalRevenue) * 100}%` }} title="G. Fijos" />
+                                        <div className="bg-orange-400 transition-all" style={{ width: `${((s.totalFixedCosts + (s.totalMarketingCosts || 0)) / s.totalRevenue) * 100}%` }} title="G. Op." />
                                         <div className="bg-emerald-500 transition-all" style={{ width: `${Math.max(0, (s.netProfit / s.totalRevenue) * 100)}%` }} title="Ganancia" />
                                     </div>
                                 )}
@@ -364,7 +368,7 @@ export default function ReportesPage() {
                                         { color: 'bg-red-400', label: 'CMV' },
                                         { color: 'bg-purple-400', label: 'Plataforma' },
                                         { color: 'bg-pink-400', label: 'Médicos' },
-                                        { color: 'bg-orange-400', label: 'G. Fijos' },
+                                        { color: 'bg-orange-400', label: 'Operativos' },
                                         { color: 'bg-emerald-500', label: 'Ganancia' },
                                     ].map(l => (
                                         <div key={l.label} className="flex items-center gap-1.5">
@@ -563,6 +567,33 @@ export default function ReportesPage() {
                                             <div className="mt-3 w-full bg-stone-200 dark:bg-stone-700 h-2 rounded-full overflow-hidden">
                                                 <div className={`h-full rounded-full transition-all duration-700 ${margin > 30 ? 'bg-emerald-500' : margin > 0 ? 'bg-amber-500' : 'bg-red-500'}`} style={{ width: `${Math.min(Math.max(margin, 0), 100)}%` }} />
                                             </div>
+
+                                            {/* Clients Breakdown */}
+                                            {lab.clients && lab.clients.length > 0 && (
+                                                <div className="mt-4 pt-4 border-t border-stone-200 dark:border-stone-700/50 max-h-48 overflow-y-auto custom-scrollbar">
+                                                    <table className="w-full text-left">
+                                                        <thead>
+                                                            <tr>
+                                                                <th className="text-[8px] font-black text-stone-400 uppercase tracking-widest pb-2">Cliente / Producto</th>
+                                                                <th className="text-[8px] font-black text-stone-400 uppercase tracking-widest pb-2 text-right">Costo</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            {lab.clients.map((c, idx) => (
+                                                                <tr key={idx} className="border-t border-stone-100 dark:border-stone-800/50 hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors">
+                                                                    <td className="py-1.5 pr-2">
+                                                                        <div className="text-[10px] font-bold text-stone-700 dark:text-stone-300 truncate max-w-[150px]">{c.name}</div>
+                                                                        <div className="text-[8px] text-stone-400 truncate max-w-[150px]" title={c.product}>{c.product}</div>
+                                                                    </td>
+                                                                    <td className="py-1.5 text-[10px] font-black text-red-500 text-right">
+                                                                        ${c.cost.toLocaleString()}
+                                                                    </td>
+                                                                </tr>
+                                                            ))}
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                            )}
                                         </div>
                                     );
                                 })}
@@ -636,11 +667,8 @@ export default function ReportesPage() {
                         </div>
                     </div>
 
-                    {/* Fixed Costs Section */}
-                    <FixedCostsSection
-                        fixedCosts={data?.fixedCosts || []}
-                        onRefresh={() => fetchReport(dateFrom || undefined, dateTo || undefined)}
-                    />
+                    {/* Fixed Costs Section has been replaced by Gastos Page */}
+
 
                     {/* Doctor Commissions */}
                     <DoctorCommissions />

@@ -2,14 +2,12 @@
 
 import { useState, useEffect } from 'react';
 import {
-    Wallet, DollarSign, CreditCard, Banknote, Calendar,
-    Loader2, RefreshCw, Filter, Hash, TrendingUp,
-    ChevronDown, ChevronRight, Search, Receipt, Eye, Plus, X, AlertCircle,
-    ArrowUpRight, ArrowDownRight, ArrowRightLeft, ImageIcon, Trash2, History
+    ArrowUpRight, ArrowDownRight, ArrowRightLeft, ImageIcon, Trash2, History, Pencil
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { resolveStorageUrl } from '@/lib/utils/storage';
+import { resolveStorageUrl, fileToBase64 } from '@/lib/utils/storage';
+import FileDropZone from '@/components/FileDropZone';
 
 // ── Types ─────────────────────────────────────
 
@@ -170,6 +168,15 @@ export default function AdministracionPage() {
     const [isSavingMovement, setIsSavingMovement] = useState(false);
     const [activeTab, setActiveTab] = useState<'payments' | 'history'>('payments');
 
+    // Edit Payment State
+    const [editingPayment, setEditingPayment] = useState<PaymentRecord | null>(null);
+    const [editMethod, setEditMethod] = useState('');
+    const [editAmount, setEditAmount] = useState('');
+    const [editNotes, setEditNotes] = useState('');
+    const [editReceiptUrl, setEditReceiptUrl] = useState<string | null>(null);
+    const [editFile, setEditFile] = useState<File | null>(null);
+    const [isSavingEdit, setIsSavingEdit] = useState(false);
+
     useEffect(() => {
         const preset = getPresetDates('month');
         setDateFrom(preset.from);
@@ -234,6 +241,63 @@ export default function AdministracionPage() {
             }
         } catch (err: any) {
             alert('Error al intentar eliminar: ' + err.message);
+        }
+    };
+
+    const handleUpdatePayment = async () => {
+        if (!editingPayment) return;
+        if (!editMethod) {
+            alert('Por favor selecciona un método de pago');
+            return;
+        }
+        if (!editAmount || isNaN(Number(editAmount))) {
+            alert('Por favor ingresa un monto válido');
+            return;
+        }
+
+        setIsSavingEdit(true);
+        try {
+            let finalReceiptUrl = editReceiptUrl;
+
+            // If there's a new file, upload it first
+            if (editFile) {
+                const base64 = await fileToBase64(editFile);
+                const uploadRes = await fetch('/api/upload', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        file: base64,
+                        filename: editFile.name,
+                        folder: 'payments'
+                    })
+                });
+                if (uploadRes.ok) {
+                    const uploadJson = await uploadRes.json();
+                    finalReceiptUrl = uploadJson.url;
+                }
+            }
+
+            const res = await fetch(`/api/payments/${editingPayment.id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    method: editMethod,
+                    amount: Number(editAmount),
+                    notes: editNotes,
+                    receiptUrl: finalReceiptUrl
+                })
+            });
+
+            const json = await res.json();
+            if (!res.ok) throw new Error(json.error || 'Error al actualizar pago');
+
+            setEditingPayment(null);
+            fetchPayments(dateFrom || undefined, dateTo || undefined, selectedMethod || undefined);
+            fetchCashData();
+        } catch (err: any) {
+            alert('Error al actualizar: ' + err.message);
+        } finally {
+            setIsSavingEdit(false);
         }
     };
 
@@ -670,6 +734,20 @@ export default function AdministracionPage() {
                                                                 <span className="text-[10px] w-10 h-10 flex items-center justify-center font-bold text-stone-300 italic">N/D</span>
                                                             )}
                                                             <button 
+                                                                onClick={() => {
+                                                                    setEditingPayment(p);
+                                                                    setEditMethod(p.method);
+                                                                    setEditAmount(p.amount.toString());
+                                                                    setEditNotes(p.notes || '');
+                                                                    setEditReceiptUrl(p.receiptUrl);
+                                                                    setEditFile(null);
+                                                                }}
+                                                                className="w-10 h-10 bg-blue-50 text-blue-500 rounded-xl flex items-center justify-center hover:bg-blue-500 hover:text-white transition-all shadow-sm"
+                                                                title="Editar Pago"
+                                                            >
+                                                                <Pencil size={18} />
+                                                            </button>
+                                                            <button 
                                                                 onClick={() => handleDeletePayment(p.id)}
                                                                 className="w-10 h-10 bg-red-50 text-red-500 rounded-xl flex items-center justify-center hover:bg-red-500 hover:text-white transition-all shadow-sm"
                                                                 title="Eliminar Pago manualmente"
@@ -793,19 +871,123 @@ export default function AdministracionPage() {
 
             {/* Receipt Modal */}
             {viewingReceipt && (
-                <div
-                    className="fixed inset-0 bg-stone-900/90 backdrop-blur-md z-[100] flex items-center justify-center p-8 animate-in fade-in duration-300"
-                    onClick={() => setViewingReceipt(null)}
-                >
-                    <div className="bg-white dark:bg-stone-800 rounded-[3rem] shadow-2xl max-w-2xl w-full max-h-[90vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-300" onClick={e => e.stopPropagation()}>
-                        <div className="p-6 border-b border-stone-100 dark:border-stone-700 flex items-center justify-between">
-                            <span className="text-xs font-black uppercase tracking-widest text-stone-400">Vista de Comprobante</span>
-                            <button onClick={() => setViewingReceipt(null)} className="p-3 hover:bg-stone-100 dark:hover:bg-stone-700 rounded-full transition-colors">
-                                <X size={20} />
-                            </button>
+                <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[200] flex items-center justify-center p-4" onClick={() => setViewingReceipt(null)}>
+                    <div className="bg-white dark:bg-stone-900 rounded-[2rem] p-4 max-w-lg w-full relative shadow-2xl animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
+                        <button onClick={() => setViewingReceipt(null)} className="absolute top-6 right-6 p-2 bg-stone-100 dark:bg-stone-800 rounded-xl hover:bg-stone-200 transition-colors">
+                            <X className="w-5 h-5 text-stone-500" />
+                        </button>
+                        <h3 className="text-sm font-black uppercase tracking-widest text-stone-400 mb-6 flex items-center gap-2 px-2"><ImageIcon className="w-4 h-4"/> Comprobante de Pago</h3>
+                        <div className="rounded-xl overflow-hidden bg-stone-50 dark:bg-stone-800 flex items-center justify-center min-h-[300px]">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src={viewingReceipt} alt="Comprobante" className="max-h-[70vh] object-contain" />
                         </div>
-                        <div className="flex-1 overflow-auto bg-stone-50 dark:bg-stone-900/50 p-4">
-                            <img src={viewingReceipt} alt="Comprobante" className="w-full h-auto rounded-2xl shadow-lg" />
+                    </div>
+                </div>
+            )}
+
+            {/* Edit Payment Modal */}
+            {editingPayment && (
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[150] flex items-center justify-center p-4 overflow-y-auto">
+                    <div className="bg-white dark:bg-stone-900 rounded-[3rem] p-8 max-w-2xl w-full shadow-2xl relative my-8">
+                        <button 
+                            onClick={() => setEditingPayment(null)}
+                            className="absolute top-8 right-8 p-3 bg-stone-100 dark:bg-stone-800 rounded-2xl hover:rotate-90 transition-all duration-300"
+                        >
+                            <X className="w-6 h-6 text-stone-500" />
+                        </button>
+
+                        <div className="mb-8">
+                            <h2 className="text-3xl font-black text-stone-800 dark:text-white tracking-tighter">Editar Pago</h2>
+                            <p className="text-stone-400 font-bold italic text-xs uppercase tracking-widest mt-1">Corrección de registros administrativos</p>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <div className="space-y-6">
+                                <div>
+                                    <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest mb-3 block px-1">Método de Pago</label>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        {Object.entries(ALL_METHODS).map(([key, info]) => (
+                                            <button
+                                                key={key}
+                                                onClick={() => setEditMethod(key)}
+                                                className={`
+                                                    flex items-center gap-2 p-3 rounded-2xl border-2 transition-all text-[10px] font-black uppercase tracking-tighter
+                                                    ${editMethod === key 
+                                                        ? 'border-primary bg-primary/5 text-primary' 
+                                                        : 'border-stone-100 dark:border-stone-800 text-stone-400 hover:border-stone-200'}
+                                                `}
+                                            >
+                                                <info.icon size={14} />
+                                                <span className="truncate">{info.label}</span>
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest mb-3 block px-1">Monto del Pago</label>
+                                    <div className="relative group">
+                                        <DollarSign className="absolute left-5 top-1/2 -translate-y-1/2 text-stone-300 group-focus-within:text-primary transition-colors" size={20} />
+                                        <input
+                                            type="number"
+                                            value={editAmount}
+                                            onChange={(e) => setEditAmount(e.target.value)}
+                                            placeholder="0.00"
+                                            className="w-full bg-stone-50 dark:bg-stone-800 border-none rounded-2xl py-4 pl-12 pr-6 text-xl font-black focus:ring-4 focus:ring-primary/10 outline-none transition-all"
+                                        />
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest mb-3 block px-1">Referencia / Notas</label>
+                                    <input
+                                        type="text"
+                                        value={editNotes}
+                                        onChange={(e) => setEditNotes(e.target.value)}
+                                        placeholder="Ej: Nro de transferencia, cuotas, etc."
+                                        className="w-full bg-stone-50 dark:bg-stone-800 border-none rounded-2xl py-4 px-6 text-sm font-bold focus:ring-4 focus:ring-primary/10 outline-none transition-all"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="space-y-6">
+                                <div>
+                                    <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest mb-3 block px-1">Comprobante</label>
+                                    <FileDropZone 
+                                        onFile={(file) => setEditFile(file)}
+                                        preview={editFile ? URL.createObjectURL(editFile) : (editReceiptUrl ? resolveStorageUrl(editReceiptUrl) : null)}
+                                        onClearPreview={() => {
+                                            setEditFile(null);
+                                            setEditReceiptUrl(null);
+                                        }}
+                                        label="Reemplazar Comprobante"
+                                        className="h-full min-h-[200px]"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="mt-10 flex gap-4">
+                            <button
+                                onClick={() => setEditingPayment(null)}
+                                className="flex-1 py-4 px-6 rounded-2xl font-black text-[10px] uppercase tracking-widest text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-800 transition-all"
+                            >
+                                Cancelar
+                            </button>
+                            <button
+                                onClick={handleUpdatePayment}
+                                disabled={isSavingEdit}
+                                className="flex-[2] bg-primary text-white py-4 px-6 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50 disabled:scale-100 flex items-center justify-center gap-2"
+                            >
+                                {isSavingEdit ? (
+                                    <>
+                                        <Loader2 size={16} className="animate-spin" />
+                                        GUARDANDO...
+                                    </>
+                                ) : (
+                                    'GUARDAR CAMBIOS'
+                                )}
+                            </button>
                         </div>
                     </div>
                 </div>

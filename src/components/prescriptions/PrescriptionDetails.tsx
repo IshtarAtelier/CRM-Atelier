@@ -17,11 +17,20 @@ export default function PrescriptionDetails({
 
     // Helper to format values with empty state
     const fmt = (val: any, suffix = '', prefix = '') => {
-        if (val == null || val === '') return <span className="text-stone-300 dark:text-stone-700 font-bold italic text-[10px]">vacio</span>;
-        return `${prefix}${val}${suffix}`;
+        if (val === undefined || val === null || val === '') return <span className="text-stone-300 dark:text-stone-700 font-bold italic text-[10px]">vacio</span>;
+        
+        // For sphere/cylinder, ensure 2 decimal places if it's a number
+        let displayVal = val;
+        if (typeof val === 'number' && !Number.isInteger(val)) {
+            displayVal = val.toFixed(2);
+        } else if (typeof val === 'string' && !isNaN(parseFloat(val)) && (val.includes('.') || val.includes(','))) {
+            displayVal = parseFloat(val.replace(',', '.')).toFixed(2);
+        }
+
+        return `${prefix}${displayVal}${suffix}`;
     };
 
-    const hasData = (val: any) => val != null && val !== '';
+    const hasData = (val: any) => val !== undefined && val !== null && val !== '';
 
     return (
         <div className="space-y-6 animate-in fade-in duration-500">
