@@ -158,9 +158,19 @@ export async function GET(request: Request) {
                     }
                 },
                 OR: [
-                    { client: { interest: { contains: 'Multifocal' } } },
-                    { items: { some: { product: { type: { contains: 'Multifocal' } } } } },
-                    { items: { some: { product: { category: 'Cristal' } } } }
+                    { client: { interest: { contains: 'Multifocal', mode: 'insensitive' } } },
+                    { items: { some: { product: { type: { contains: 'Multifocal', mode: 'insensitive' } } } } },
+                    { items: { some: { product: { name: { contains: 'Multifocal', mode: 'insensitive' } } } } },
+                    { items: { some: { product: { name: { contains: 'Varilux', mode: 'insensitive' } } } } },
+                    { items: { some: { product: { brand: { contains: 'Varilux', mode: 'insensitive' } } } } },
+                    { items: { some: { product: { name: { contains: 'Progresivo', mode: 'insensitive' } } } } },
+                    { items: { some: { product: { name: { contains: 'Smart', mode: 'insensitive' } } } } },
+                    { items: { some: { product: { name: { contains: 'Kodak', mode: 'insensitive' } } } } },
+                    { items: { some: { product: { name: { contains: 'MR7', mode: 'insensitive' } } } } },
+                    { items: { some: { product: { name: { contains: 'Asférico', mode: 'insensitive' } } } } },
+                    { items: { some: { product: { name: { contains: 'Asferico', mode: 'insensitive' } } } } },
+                    { items: { some: { product: { name: { contains: 'Policarbonato', mode: 'insensitive' } } } } },
+                    { items: { some: { product: { name: { contains: 'Alto Indice', mode: 'insensitive' } } } } }
                 ]
             },
             select: {

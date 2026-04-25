@@ -372,7 +372,7 @@ export default function Home() {
         <section className="space-y-4">
           <div className="flex items-center gap-2">
             <Clock className="text-primary w-5 h-5" />
-            <h2 className="text-xs font-black uppercase tracking-[0.2em] text-stone-400">Seguimiento Sugerido (Multifocales)</h2>
+            <h2 className="text-xs font-black uppercase tracking-[0.2em] text-stone-400">Seguimiento Sugerido (Multifocales / Alta Gama)</h2>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {d.suggestedFollowUps.map(o => (

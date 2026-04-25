@@ -47,6 +47,70 @@ const posts = [
     date: '2026-04-22',
     category: 'Salud Visual',
     imageUrl: 'https://images.unsplash.com/photo-1582685116743-69022ee01509?q=80&w=800&auto=format&fit=crop'
+  },
+  {
+    slug: 'filtro-azul-pantallas',
+    title: 'Filtro Azul (Blue Light Cut): ¿Mito o necesidad si trabajás frente a pantallas?',
+    excerpt: 'Si sentís fatiga visual o dolores de cabeza después de tu jornada de trabajo, enterate por qué los cristales con filtro azul son fundamentales.',
+    date: '2026-04-26',
+    category: 'Tecnología',
+    imageUrl: 'https://images.unsplash.com/photo-1542626991-cbc4e32524cc?q=80&w=800&auto=format&fit=crop'
+  },
+  {
+    slug: 'cristales-fotocromaticos-transitions',
+    title: 'Cristales Fotocromáticos: Todo sobre los lentes que se oscurecen con el sol',
+    excerpt: 'Comodidad total: lentes recetados en el interior y lentes de sol en el exterior. Descubrí cómo funciona la tecnología fotocromática.',
+    date: '2026-04-27',
+    category: 'Cristales',
+    imageUrl: 'https://images.unsplash.com/photo-1572631382901-cf1a0a6087cb?q=80&w=800&auto=format&fit=crop'
+  },
+  {
+    slug: 'anteojos-para-ninos',
+    title: 'Anteojos para niños: ¿Cuándo hacer el primer control visual?',
+    excerpt: 'Señales de alerta de que tu hijo necesita lentes y qué armazones infantiles (flexibles e irrompibles) son los más recomendados.',
+    date: '2026-04-28',
+    category: 'Pediatría',
+    imageUrl: 'https://images.unsplash.com/photo-1596401057633-54a8fe8ef647?q=80&w=800&auto=format&fit=crop'
+  },
+  {
+    slug: 'como-limpiar-tus-anteojos',
+    title: 'Guía definitiva para limpiar tus anteojos sin rayar el antirreflex',
+    excerpt: 'El error más común es usar la remera o servilletas de papel. Aprendé los pasos correctos para que tus cristales duren años como nuevos.',
+    date: '2026-04-29',
+    category: 'Mantenimiento',
+    imageUrl: 'https://images.unsplash.com/photo-1510425409890-50dce4211a37?q=80&w=800&auto=format&fit=crop'
+  },
+  {
+    slug: 'multifocales-marcas-precios-varilux-novar',
+    title: 'Marcas de Multifocales en Argentina: ¿Qué diferencias hay entre Varilux, Novar y genéricos?',
+    excerpt: 'Comparativa definitiva sobre campos visuales, tecnologías de tallado digital y por qué el precio de un multifocal varía tanto.',
+    date: '2026-05-02',
+    category: 'Cristales',
+    imageUrl: 'https://images.unsplash.com/photo-1589828138980-0010996841e2?q=80&w=800&auto=format&fit=crop'
+  },
+  {
+    slug: 'mareos-con-multifocales-soluciones',
+    title: '¿Tus multifocales te marean? Causas principales y cómo solucionarlo',
+    excerpt: 'Si sentís que el piso se mueve o te duele la cabeza al usar progresivos, te contamos por qué pasa y cómo lo calibramos para solucionarlo.',
+    date: '2026-05-04',
+    category: 'Salud Visual',
+    imageUrl: 'https://images.unsplash.com/photo-1605652157522-83b1bb649c0c?q=80&w=800&auto=format&fit=crop'
+  },
+  {
+    slug: 'por-que-nuestros-multifocales-no-fallan-tecnologia-cordoba',
+    title: 'Por qué nuestros multifocales no fallan: Tecnología de medición en Córdoba',
+    excerpt: 'Hacer un lente progresivo perfecto requiere mucho más que una receta. Conocé nuestro proceso de toma de medidas de alta precisión para una adaptación garantizada.',
+    date: '2026-05-06',
+    category: 'Nuestra Óptica',
+    imageUrl: 'https://images.unsplash.com/photo-1579684453401-9cc5825bc531?q=80&w=800&auto=format&fit=crop'
+  },
+  {
+    slug: 'pasos-faciles-adaptacion-multifocales',
+    title: '3 Pasos Fáciles para Adaptarte a tus Multifocales (Sin Estrés)',
+    excerpt: 'Acostumbrarse a los lentes progresivos es mucho más natural de lo que parece. Seguí estos 3 simples pasos y empezá a disfrutar de una visión perfecta.',
+    date: '2026-05-08',
+    category: 'Salud Visual',
+    imageUrl: 'https://images.unsplash.com/photo-1544717305-2782549b5136?q=80&w=800&auto=format&fit=crop'
   }
 ];
 
