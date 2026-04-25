@@ -1,5 +1,5 @@
 import React from 'react';
-import { UserPlus, Star, Phone, Tag as TagIcon, ChevronRight, CheckCircle2, UserCheck, Building2, Heart, FileText } from "lucide-react";
+import { UserPlus, Star, Phone, Tag as TagIcon, ChevronRight, CheckCircle2, UserCheck, Building2, Heart, FileText, Trash2 } from "lucide-react";
 import { Contact } from '@/types/contacts';
 
 interface ContactCardProps {
@@ -9,6 +9,8 @@ interface ContactCardProps {
     onToggleFavorite: (id: string) => void;
     onClick: (id: string) => void;
     onQuote: (id: string, name: string) => void;
+    currentUserRole?: string;
+    onDeleteContact?: (id: string) => void;
 }
 
 export const ContactCard: React.FC<ContactCardProps> = ({
@@ -17,7 +19,9 @@ export const ContactCard: React.FC<ContactCardProps> = ({
     onPriorityChange,
     onToggleFavorite,
     onClick,
-    onQuote
+    onQuote,
+    currentUserRole,
+    onDeleteContact
 }) => {
     return (
         <div
@@ -142,6 +146,20 @@ export const ContactCard: React.FC<ContactCardProps> = ({
                         >
                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5 lg:w-4 lg:h-4"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/></svg>
                             Deshacer
+                        </button>
+                    )}
+                    {currentUserRole === 'ADMIN' && contact.status !== 'CLIENT' && !contact.hasSales && onDeleteContact && (
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                if (window.confirm('¿Estás seguro que quieres eliminar este contacto?')) {
+                                    onDeleteContact(contact.id);
+                                }
+                            }}
+                            className="p-2.5 lg:p-3 bg-red-50 text-red-500 dark:bg-red-900/20 dark:text-red-400 rounded-xl lg:rounded-2xl hover:bg-red-500 hover:text-white transition-all border border-red-100 dark:border-red-800"
+                            title="Eliminar contacto"
+                        >
+                            <Trash2 className="w-5 h-5 lg:w-6 lg:h-6" />
                         </button>
                     )}
                     <button

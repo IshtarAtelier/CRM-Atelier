@@ -21,6 +21,7 @@ function ContactosPageContent() {
     const [activeTab, setActiveTab] = useState<ContactStatus>('ALL');
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedInterest, setSelectedInterest] = useState('ALL');
+    const [currentUserRole, setCurrentUserRole] = useState('STAFF');
     
     const [showForm, setShowForm] = useState(false);
     const [editingContactData, setEditingContactData] = useState<any | null>(null);
@@ -59,6 +60,14 @@ function ContactosPageContent() {
         } else if (idParam) {
             setSelectedContactId(idParam);
         }
+
+        try {
+            const stored = localStorage.getItem('user');
+            if (stored) {
+                const u = JSON.parse(stored);
+                setCurrentUserRole(u.role || 'STAFF');
+            }
+        } catch { }
     }, [searchParams]);
 
     const favoriteContacts = contacts.filter(c => c.isFavorite);
@@ -123,6 +132,8 @@ function ContactosPageContent() {
                 onToggleFavorite={toggleFavorite}
                 onSelect={setSelectedContactId}
                 onQuote={(id) => { setSelectedContactId(id); setAutoStartQuote(true); }}
+                currentUserRole={currentUserRole}
+                onDeleteContact={deleteContact}
             />
 
             {/* Support Components */}

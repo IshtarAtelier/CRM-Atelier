@@ -15,6 +15,8 @@ interface ContactsListProps {
     onToggleFavorite: (id: string) => Promise<boolean>;
     onSelect: (id: string) => void;
     onQuote: (id: string) => void;
+    currentUserRole?: string;
+    onDeleteContact?: (id: string) => Promise<boolean>;
 }
 
 export default function ContactsList({
@@ -26,7 +28,9 @@ export default function ContactsList({
     onPriorityChange,
     onToggleFavorite,
     onSelect,
-    onQuote
+    onQuote,
+    currentUserRole,
+    onDeleteContact
 }: ContactsListProps) {
     if (loading && contacts.length === 0) {
         return (
@@ -71,6 +75,8 @@ export default function ContactsList({
                     onToggleFavorite={onToggleFavorite}
                     onClick={onSelect}
                     onQuote={onQuote}
+                    currentUserRole={currentUserRole}
+                    onDeleteContact={onDeleteContact}
                 />
             ))}
         </div>
