@@ -25,6 +25,16 @@ const PRODUCT_CATEGORIES: { id: string; label: string; icon: string; noStock?: b
     { id: 'Lentes Especiales', label: 'Lentes Especiales', icon: '✨' },
 ];
 
+const autoCorrectLab = (lab: string) => {
+    let l = lab.toUpperCase().trim();
+    if (!l) return '';
+    const norm = l.normalize("NFD").replace(/[\u0300-\u036f]/g, ""); // removes accents
+    if (/^(OPTO\s*VI[CS]ION|OPTO|OPT)$/i.test(norm)) return 'OPTOVISION';
+    if (/^(GRUPO\s*OPTICO|GRUPO|G\.*\s*OPTICO)$/i.test(norm)) return 'GRUPO OPTICO';
+    if (/^(LA\s*CAMARA|CAMARA|LA\s*CAM)$/i.test(norm)) return 'LA CAMARA';
+    return l;
+};
+
 export default function ProductForm({ onClose, onSuccess, isAdmin = false }: ProductFormProps) {
     const [mode, setMode] = useState<'single' | 'bulk'>('single');
     // Steps: 1 = tipo, 2 = detalles (single) | 1 = tipo, 2 = CSV (bulk)
@@ -56,10 +66,16 @@ export default function ProductForm({ onClose, onSuccess, isAdmin = false }: Pro
 
     const handleSingleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        // Laboratorio obligatorio para cristales
-        if (isCristal && !formData.laboratory.trim()) {
-            alert('El laboratorio es obligatorio para cristales');
-            return;
+        
+        if (isCristal) {
+            if (!formData.laboratory.trim()) {
+                alert('El laboratorio es obligatorio para cristales');
+                return;
+            }
+            if (!formData.lensIndex.trim()) {
+                alert('El índice de refracción es obligatorio para cristales');
+                return;
+            }
         }
         setSaving(true);
         try {
@@ -274,20 +290,23 @@ export default function ProductForm({ onClose, onSuccess, isAdmin = false }: Pro
                                 <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest ml-4">🏭 Laboratorio <span className="text-red-500">*</span></label>
                                 <input required type="text" placeholder="Ej: OPTOVISION, GRUPO OPTICO"
                                     className={`w-full px-6 py-4 bg-stone-50/50 dark:bg-stone-800/30 border rounded-[1.5rem] font-bold text-sm outline-none focus:border-primary transition-all uppercase ${!formData.laboratory ? 'border-red-300 dark:border-red-700' : 'border-stone-200 dark:border-stone-700'}`}
-                                    value={formData.laboratory} onChange={e => setFormData({ ...formData, laboratory: e.target.value.toUpperCase() })}
+                                    value={formData.laboratory} 
+                                    onChange={e => setFormData({ ...formData, laboratory: e.target.value.toUpperCase() })}
+                                    onBlur={() => setFormData({ ...formData, laboratory: autoCorrectLab(formData.laboratory) })}
                                 />
                                 {!formData.laboratory && <p className="text-[9px] font-bold text-red-400 ml-4">El laboratorio es obligatorio para cristales</p>}
                             </div>
 
                             {/* Índice de refracción */}
                             <div className="space-y-2 col-span-2">
-                                <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest ml-4">🔬 Índice de Refracción</label>
+                                <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest ml-4">🔬 Índice de Refracción <span className="text-red-500">*</span></label>
                                 <input
+                                    required
                                     type="text"
                                     placeholder="Ej: 1.56, 1.67, Foto..."
                                     value={formData.lensIndex}
                                     onChange={e => setFormData({ ...formData, lensIndex: e.target.value })}
-                                    className="w-full px-6 py-4 bg-stone-50/50 dark:bg-stone-800/30 border border-stone-200 dark:border-stone-700 rounded-[1.5rem] font-bold text-sm outline-none focus:border-primary transition-all"
+                                    className={`w-full px-6 py-4 bg-stone-50/50 dark:bg-stone-800/30 border rounded-[1.5rem] font-bold text-sm outline-none focus:border-primary transition-all ${!formData.lensIndex ? 'border-red-300 dark:border-red-700' : 'border-stone-200 dark:border-stone-700'}`}
                                 />
                                 <div className="flex flex-wrap gap-1.5">
                                     {LENS_INDICES.map(idx => (

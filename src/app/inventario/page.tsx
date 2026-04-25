@@ -15,6 +15,16 @@ const PRODUCT_CATEGORIES = [
     { id: 'Lentes Especiales', label: '✨ Especiales' },
 ];
 
+const autoCorrectLab = (lab: string) => {
+    let l = lab.toUpperCase().trim();
+    if (!l) return '';
+    const norm = l.normalize("NFD").replace(/[\u0300-\u036f]/g, ""); // removes accents
+    if (/^(OPTO\s*VI[CS]ION|OPTO|OPT)$/i.test(norm)) return 'OPTOVISION';
+    if (/^(GRUPO\s*OPTICO|GRUPO|G\.*\s*OPTICO)$/i.test(norm)) return 'GRUPO OPTICO';
+    if (/^(LA\s*CAMARA|CAMARA|LA\s*CAM)$/i.test(norm)) return 'LA CAMARA';
+    return l;
+};
+
 export default function InventarioPage() {
     const [searchQuery, setSearchQuery] = useState('');
     const [showForm, setShowForm] = useState(false);
@@ -123,10 +133,16 @@ export default function InventarioPage() {
     const handleSaveEdit = async () => {
         if (!editingProduct) return;
         const isEditCristal = checkCristal(editingProduct);
-        // Validar laboratorio obligatorio para cristales
-        if (isEditCristal && !editForm.laboratory.trim()) {
-            alert('El laboratorio es obligatorio para cristales');
-            return;
+        // Validar laboratorio e indice obligatorios para cristales
+        if (isEditCristal) {
+            if (!editForm.laboratory.trim()) {
+                alert('El laboratorio es obligatorio para cristales');
+                return;
+            }
+            if (!editForm.lensIndex.trim()) {
+                alert('El índice de refracción es obligatorio para cristales');
+                return;
+            }
         }
         setSavingEdit(true);
         try {
@@ -546,7 +562,11 @@ export default function InventarioPage() {
                                 {checkCristal(editingProduct) && (
                                     <div className="col-span-2 space-y-1">
                                         <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest ml-3">🏭 Laboratorio <span className="text-red-500">*</span></label>
-                                        <input type="text" required placeholder="Ej: OPTOVISION" value={editForm.laboratory} onChange={e => setEditForm({ ...editForm, laboratory: e.target.value.toUpperCase() })} className={`w-full px-5 py-4 bg-stone-50 dark:bg-stone-800 border rounded-2xl font-bold text-sm outline-none focus:border-primary uppercase ${!editForm.laboratory ? 'border-red-300 dark:border-red-700' : 'border-stone-200 dark:border-stone-700'}`} />
+                                        <input type="text" required placeholder="Ej: OPTOVISION" value={editForm.laboratory} 
+                                            onChange={e => setEditForm({ ...editForm, laboratory: e.target.value.toUpperCase() })} 
+                                            onBlur={() => setEditForm({ ...editForm, laboratory: autoCorrectLab(editForm.laboratory) })}
+                                            className={`w-full px-5 py-4 bg-stone-50 dark:bg-stone-800 border rounded-2xl font-bold text-sm outline-none focus:border-primary uppercase ${!editForm.laboratory ? 'border-red-300 dark:border-red-700' : 'border-stone-200 dark:border-stone-700'}`} 
+                                        />
                                         {!editForm.laboratory && <p className="text-[9px] font-bold text-red-400 ml-3">El laboratorio es obligatorio para cristales</p>}
                                     </div>
                                 )}
@@ -554,13 +574,14 @@ export default function InventarioPage() {
                                 {/* Índice de refracción — solo cristales */}
                                 {checkCristal(editingProduct) && (
                                     <div className="col-span-2 space-y-2">
-                                        <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest ml-3">🔬 Índice de Refracción</label>
+                                        <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest ml-3">🔬 Índice de Refracción <span className="text-red-500">*</span></label>
                                         <input
+                                            required
                                             type="text"
                                             placeholder="Ej: 1.56, 1.67, Foto..."
                                             value={editForm.lensIndex}
                                             onChange={e => setEditForm({ ...editForm, lensIndex: e.target.value })}
-                                            className="w-full px-5 py-4 bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-2xl font-bold text-sm outline-none focus:border-primary transition-all"
+                                            className={`w-full px-5 py-4 bg-stone-50 dark:bg-stone-800 border rounded-2xl font-bold text-sm outline-none focus:border-primary transition-all ${!editForm.lensIndex ? 'border-red-300 dark:border-red-700' : 'border-stone-200 dark:border-stone-700'}`}
                                         />
                                         <div className="flex flex-wrap gap-1.5">
                                             {['1.49', '1.50', '1.53', '1.56', '1.59', '1.60', '1.67', '1.74', 'Foto'].map(idx => (
