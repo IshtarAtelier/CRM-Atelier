@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/db';
+import { autoCorrectBrand, autoCorrectLab, autoCorrectIndex } from '@/utils/product-controllers';
 
 export const ProductService = {
     async getAll() {
@@ -25,16 +26,16 @@ export const ProductService = {
         return await prisma.product.create({
             data: {
                 name: data.name,
-                brand: data.brand,
+                brand: autoCorrectBrand(data.brand),
                 model: data.model,
                 type: data.type,
                 category: data.category,
                 price: parseFloat(data.price) || 0,
                 cost: parseFloat(data.cost) || 0,
                 stock: parseInt(data.stock) || 0,
-                lensIndex: data.lensIndex || null,
+                lensIndex: autoCorrectIndex(data.lensIndex),
                 unitType: data.unitType || 'UNIDAD',
-                laboratory: data.laboratory || null,
+                laboratory: autoCorrectLab(data.laboratory),
                 sphereMin: data.sphereMin != null ? parseFloat(data.sphereMin) : null,
                 sphereMax: data.sphereMax != null ? parseFloat(data.sphereMax) : null,
                 cylinderMin: data.cylinderMin != null ? parseFloat(data.cylinderMin) : null,
@@ -50,16 +51,16 @@ export const ProductService = {
             where: { id },
             data: {
                 name: data.name,
-                brand: data.brand,
+                brand: data.brand !== undefined ? autoCorrectBrand(data.brand) : undefined,
                 model: data.model,
                 type: data.type,
                 category: data.category,
                 price: parseFloat(data.price) || 0,
                 cost: parseFloat(data.cost) || 0,
                 stock: parseInt(data.stock) || 0,
-                lensIndex: data.lensIndex !== undefined ? data.lensIndex : undefined,
+                lensIndex: data.lensIndex !== undefined ? autoCorrectIndex(data.lensIndex) : undefined,
                 unitType: data.unitType !== undefined ? data.unitType : undefined,
-                laboratory: data.laboratory !== undefined ? (data.laboratory || null) : undefined,
+                laboratory: data.laboratory !== undefined ? autoCorrectLab(data.laboratory) : undefined,
                 sphereMin: data.sphereMin !== undefined ? (data.sphereMin != null ? parseFloat(data.sphereMin) : null) : undefined,
                 sphereMax: data.sphereMax !== undefined ? (data.sphereMax != null ? parseFloat(data.sphereMax) : null) : undefined,
                 cylinderMin: data.cylinderMin !== undefined ? (data.cylinderMin != null ? parseFloat(data.cylinderMin) : null) : undefined,
@@ -75,16 +76,16 @@ export const ProductService = {
         return await prisma.product.createMany({
             data: items.map(item => ({
                 name: item.name,
-                brand: item.brand,
+                brand: autoCorrectBrand(item.brand),
                 model: item.model,
                 type: item.type,
                 category: item.category,
                 price: parseFloat(item.price) || 0,
                 cost: parseFloat(item.cost) || 0,
                 stock: parseInt(item.stock) || 0,
-                lensIndex: item.lensIndex || null,
+                lensIndex: autoCorrectIndex(item.lensIndex),
                 unitType: item.unitType || 'UNIDAD',
-                laboratory: item.laboratory || null,
+                laboratory: autoCorrectLab(item.laboratory),
                 sphereMin: item.sphereMin != null ? parseFloat(item.sphereMin) : null,
                 sphereMax: item.sphereMax != null ? parseFloat(item.sphereMax) : null,
                 cylinderMin: item.cylinderMin != null ? parseFloat(item.cylinderMin) : null,
