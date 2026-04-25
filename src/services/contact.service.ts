@@ -59,6 +59,7 @@ export const ContactService = {
             const clients = await prisma.client.findMany({
                 where,
                 include: {
+                    user: { select: { name: true } },
                     tags: true,
                     prescriptions: {
                         select: { date: true },
@@ -73,14 +74,18 @@ export const ContactService = {
                 orderBy: {
                     createdAt: 'desc'
                 },
-                take: 50
+                take: 500
             });
 
-            return clients.map((c: any) => ({
-                ...c,
-                avgTicket: 0,
-                hasSales: false
-            }));
+            // Calcular avgTicket por contacto (solo SALE orders)
+            return clients.map((client: any) => {
+                const saleOrders = (client.orders || []).filter((o: any) => o.orderType === 'SALE');
+                const avgTicket = saleOrders.length > 0
+                    ? saleOrders.reduce((sum: number, o: any) => sum + o.total, 0) / saleOrders.length
+                    : 0;
+                const { orders, ...rest } = client;
+                return { ...rest, avgTicket: Math.round(avgTicket), hasSales: saleOrders.length > 0 };
+            });
         } catch (error: any) {
             console.error('[ContactService.getAll] Critical Error:', error);
             throw error; // Let the API route handle it
