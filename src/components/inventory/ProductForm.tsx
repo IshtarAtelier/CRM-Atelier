@@ -9,6 +9,22 @@ interface ProductFormProps {
     isAdmin?: boolean;
 }
 
+interface BulkItem {
+    id: string;
+    brand: string;
+    name: string;
+    laboratory: string;
+    lensIndex: string;
+    price: string | number;
+    cost: string | number;
+    stock: string | number;
+    model: string;
+    sphereMin: string | number;
+    sphereMax: string | number;
+    cylinderMin: string | number;
+    cylinderMax: string | number;
+}
+
 const LENS_INDICES = ['1.49', '1.50', '1.53', '1.56', '1.59', '1.60', '1.67', '1.74', 'Foto'];
 
 const PRODUCT_CATEGORIES: { id: string; label: string; icon: string; noStock?: boolean; subtypes?: string[] }[] = [
@@ -53,8 +69,14 @@ export default function ProductForm({ onClose, onSuccess, isAdmin = false }: Pro
         is2x1: false 
     });
 
-    // Step 2 — bulk CSV
-    const [bulkText, setBulkText] = useState('');
+    // Step 2 — bulk CSV -> Dynamic Grid
+    const [bulkItems, setBulkItems] = useState<BulkItem[]>([{
+        id: Math.random().toString(36).substring(2, 9),
+        brand: '', name: '', laboratory: '', lensIndex: '',
+        price: '', cost: '', stock: '', model: '',
+        sphereMin: '', sphereMax: '', cylinderMin: '', cylinderMax: ''
+    }]);
+    const [showRanges, setShowRanges] = useState(false);
 
     const activeCategory = PRODUCT_CATEGORIES.find(c => c.id === selectedCategory);
     const hasSubtypes = !!(activeCategory?.subtypes?.length);
@@ -114,45 +136,68 @@ export default function ProductForm({ onClose, onSuccess, isAdmin = false }: Pro
     };
 
     const handleBulkSubmit = async () => {
-        const lines = bulkText.split('\n').filter(l => l.trim() !== '');
-        const items = lines.map(line => {
-            const parts = line.split(',').map(p => p.trim());
+        // Filter out completely empty rows
+        const validItems = bulkItems.filter(item => {
+            if (isCristal) return item.brand || item.name || item.laboratory || item.lensIndex || item.price;
+            return item.name || item.brand || item.model || item.price || item.stock;
+        });
+
+        if (validItems.length === 0) {
+            alert('No hay productos para cargar en la tabla');
+            return;
+        }
+
+        // Validate mandatory fields
+        for (let i = 0; i < validItems.length; i++) {
+            const item = validItems[i];
             if (isCristal) {
-                // Formato cristales: MARCA, NOMBRE, ÍNDICE, PRECIO, COSTO, LABORATORIO, ESF_MIN, ESF_MAX, CIL_MIN, CIL_MAX, ADIC_MIN, ADIC_MAX
+                if (!item.brand || !item.name || !item.laboratory || !item.lensIndex || item.price === '') {
+                    alert(`Faltan campos obligatorios en la fila ${i + 1} (Marca, Nombre, Laboratorio, Índice, Precio)`);
+                    return;
+                }
+            } else {
+                if (!item.name || item.price === '' || item.stock === '') {
+                    alert(`Faltan campos obligatorios en la fila ${i + 1} (Nombre, Stock, Precio)`);
+                    return;
+                }
+            }
+        }
+
+        const items = validItems.map(item => {
+            if (isCristal) {
                 return {
-                    brand: parts[0] || '',
-                    name: parts[1] || finalType,
+                    brand: item.brand,
+                    name: item.name || finalType,
                     model: '',
                     type: finalType,
                     category: selectedCategory,
-                    lensIndex: parts[2] || '',
-                    price: parseFloat(parts[3]) || 0,
-                    cost: parseFloat(parts[4]) || 0,
+                    lensIndex: item.lensIndex,
+                    price: Number(item.price) || 0,
+                    cost: isAdmin ? Number(item.cost) || 0 : 0,
                     stock: 0,
                     unitType: 'PAR',
-                    laboratory: parts[5] || '',
-                    sphereMin: parts[6] ? parseFloat(parts[6]) : null,
-                    sphereMax: parts[7] ? parseFloat(parts[7]) : null,
-                    cylinderMin: parts[8] ? parseFloat(parts[8]) : null,
-                    cylinderMax: parts[9] ? parseFloat(parts[9]) : null,
-                    additionMin: parts[10] ? parseFloat(parts[10]) : null,
-                    additionMax: parts[11] ? parseFloat(parts[11]) : null,
+                    laboratory: item.laboratory,
+                    sphereMin: item.sphereMin !== '' ? Number(item.sphereMin) : null,
+                    sphereMax: item.sphereMax !== '' ? Number(item.sphereMax) : null,
+                    cylinderMin: item.cylinderMin !== '' ? Number(item.cylinderMin) : null,
+                    cylinderMax: item.cylinderMax !== '' ? Number(item.cylinderMax) : null,
+                    additionMin: null,
+                    additionMax: null,
                 };
             }
-            // Otros productos: NOMBRE, MARCA, MODELO, PRECIO, COSTO, STOCK
             return {
-                name: parts[0] || finalType,
-                brand: parts[1] || '',
-                model: parts[2] || '',
+                name: item.name || finalType,
+                brand: item.brand,
+                model: item.model,
                 type: finalType,
                 category: selectedCategory,
-                price: parseFloat(parts[3]) || 0,
-                cost: parseFloat(parts[4]) || 0,
-                stock: parseInt(parts[5]) || 0,
+                price: Number(item.price) || 0,
+                cost: isAdmin ? Number(item.cost) || 0 : 0,
+                stock: Number(item.stock) || 0,
                 unitType: 'UNIDAD',
             };
         });
-        if (items.length === 0) return;
+
         setSaving(true);
         try {
             const res = await fetch('/api/products/bulk', {
@@ -516,45 +561,132 @@ export default function ProductForm({ onClose, onSuccess, isAdmin = false }: Pro
         </form>
     );
 
-    // ── STEP 2 BULK: CSV upload ───────────────────────────────────────────────
-    const renderStep2Bulk = () => (
-        <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-500">
-            {/* Badge tipo */}
-            <div className="flex items-center gap-3 p-4 bg-primary/5 border-2 border-primary/20 rounded-2xl">
-                <CheckCircle2 className="w-5 h-5 text-primary shrink-0" />
-                <span className="text-xs font-black text-primary uppercase tracking-widest">{finalType}</span>
-            </div>
+    // ── STEP 2 BULK: Dynamic Grid ───────────────────────────────────────────────
+    const renderStep2Bulk = () => {
+        const updateBulkItem = (id: string, field: keyof BulkItem, value: string | number) => {
+            setBulkItems(prev => prev.map(item => item.id === id ? { ...item, [field]: value } : item));
+        };
+        const addBulkRow = () => {
+            setBulkItems(prev => [...prev, {
+                id: Math.random().toString(36).substring(2, 9),
+                brand: '', name: '', laboratory: '', lensIndex: '',
+                price: '', cost: '', stock: '', model: '',
+                sphereMin: '', sphereMax: '', cylinderMin: '', cylinderMax: ''
+            }]);
+        };
+        const removeBulkRow = (id: string) => {
+            if (bulkItems.length > 1) {
+                setBulkItems(prev => prev.filter(item => item.id !== id));
+            }
+        };
 
-            <div className="p-5 bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800 rounded-2xl flex gap-3">
-                <AlertCircle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
-                <div>
-                    <p className="text-[10px] font-black text-amber-800 dark:text-amber-400 uppercase tracking-widest mb-1">Formato por línea</p>
-                    <p className="text-[10px] font-bold text-amber-600/80 leading-relaxed">
-                        {isCristal
-                            ? <><span className="font-black text-amber-700 dark:text-amber-300">MARCA, NOMBRE, ÍNDICE, PRECIO{isAdmin ? ', COSTO' : ''}, LABORATORIO</span> <span className="text-[9px] bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-full font-black ml-1">PAR automático</span><br /><span className="text-[8px] text-amber-500">Opcional al final: ESF_MIN, ESF_MAX, CIL_MIN, CIL_MAX, ADIC_MIN, ADIC_MAX</span></>
-                            : <><span className="font-black text-amber-700 dark:text-amber-300">NOMBRE, MARCA, MODELO, PRECIO{isAdmin ? ', COSTO' : ''}, STOCK</span></>
-                        }
-                    </p>
+        return (
+            <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-500">
+                <div className="flex items-center justify-between p-4 bg-primary/5 border-2 border-primary/20 rounded-2xl flex-wrap gap-4">
+                    <div className="flex items-center gap-3">
+                        <CheckCircle2 className="w-5 h-5 text-primary shrink-0" />
+                        <span className="text-xs font-black text-primary uppercase tracking-widest">{finalType}</span>
+                        {isCristal && (
+                            <span className="text-[9px] font-black uppercase tracking-widest bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 px-2 py-0.5 rounded-full">PAR</span>
+                        )}
+                    </div>
+                    {isCristal && (
+                        <label className="flex items-center gap-2 cursor-pointer select-none bg-white dark:bg-stone-800 px-3 py-1.5 rounded-xl border border-stone-200 dark:border-stone-700 hover:border-primary/50 transition-colors">
+                            <input type="checkbox" checked={showRanges} onChange={e => setShowRanges(e.target.checked)} className="rounded border-stone-300 text-primary focus:ring-primary w-4 h-4" />
+                            <span className="text-[10px] font-bold text-stone-600 dark:text-stone-300 uppercase tracking-widest">Añadir Rangos</span>
+                        </label>
+                    )}
                 </div>
+
+                <div className="overflow-x-auto rounded-[1.5rem] border border-stone-200 dark:border-stone-800 bg-stone-50 dark:bg-stone-900/50 shadow-inner">
+                    <table className="w-full text-left border-collapse min-w-max">
+                        <thead>
+                            <tr className="border-b border-stone-200 dark:border-stone-800 bg-stone-100 dark:bg-stone-800/80">
+                                {isCristal ? (
+                                    <>
+                                        <th className="p-3 text-[9px] font-black uppercase tracking-widest text-stone-500">Marca *</th>
+                                        <th className="p-3 text-[9px] font-black uppercase tracking-widest text-stone-500">Nombre *</th>
+                                        <th className="p-3 text-[9px] font-black uppercase tracking-widest text-stone-500">Laboratorio *</th>
+                                        <th className="p-3 text-[9px] font-black uppercase tracking-widest text-stone-500">Índice *</th>
+                                        <th className="p-3 text-[9px] font-black uppercase tracking-widest text-primary">Venta $ *</th>
+                                        {isAdmin && <th className="p-3 text-[9px] font-black uppercase tracking-widest text-stone-500">Costo $</th>}
+                                        {showRanges && (
+                                            <>
+                                                <th className="p-3 text-[9px] font-black uppercase tracking-widest text-amber-600 dark:text-amber-500 border-l border-stone-200 dark:border-stone-700 bg-amber-50/50 dark:bg-amber-900/10">Esf Mín</th>
+                                                <th className="p-3 text-[9px] font-black uppercase tracking-widest text-amber-600 dark:text-amber-500 bg-amber-50/50 dark:bg-amber-900/10">Esf Máx</th>
+                                                <th className="p-3 text-[9px] font-black uppercase tracking-widest text-amber-600 dark:text-amber-500 bg-amber-50/50 dark:bg-amber-900/10">Cil Mín</th>
+                                                <th className="p-3 text-[9px] font-black uppercase tracking-widest text-amber-600 dark:text-amber-500 bg-amber-50/50 dark:bg-amber-900/10">Cil Máx</th>
+                                            </>
+                                        )}
+                                    </>
+                                ) : (
+                                    <>
+                                        <th className="p-3 text-[9px] font-black uppercase tracking-widest text-stone-500">Nombre *</th>
+                                        <th className="p-3 text-[9px] font-black uppercase tracking-widest text-stone-500">Marca</th>
+                                        <th className="p-3 text-[9px] font-black uppercase tracking-widest text-stone-500">Modelo</th>
+                                        <th className="p-3 text-[9px] font-black uppercase tracking-widest text-stone-500">Stock *</th>
+                                        <th className="p-3 text-[9px] font-black uppercase tracking-widest text-primary">Venta $ *</th>
+                                        {isAdmin && <th className="p-3 text-[9px] font-black uppercase tracking-widest text-stone-500">Costo $</th>}
+                                    </>
+                                )}
+                                <th className="p-3 text-center w-10"></th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-stone-100 dark:divide-stone-800">
+                            {bulkItems.map((item) => (
+                                <tr key={item.id} className="hover:bg-white dark:hover:bg-stone-800/50 transition-colors group">
+                                    {isCristal ? (
+                                        <>
+                                            <td className="p-2"><input type="text" className="w-full min-w-[100px] px-3 py-2.5 bg-transparent border border-transparent focus:border-stone-300 dark:focus:border-stone-600 focus:bg-white dark:focus:bg-stone-800 rounded-lg text-[11px] font-bold outline-none transition-all" value={item.brand} onChange={e => updateBulkItem(item.id, 'brand', e.target.value)} placeholder="Ej: Zeiss" /></td>
+                                            <td className="p-2"><input type="text" className="w-full min-w-[120px] px-3 py-2.5 bg-transparent border border-transparent focus:border-stone-300 dark:focus:border-stone-600 focus:bg-white dark:focus:bg-stone-800 rounded-lg text-[11px] font-bold outline-none transition-all" value={item.name} onChange={e => updateBulkItem(item.id, 'name', e.target.value)} placeholder="Ej: Antireflejo" /></td>
+                                            <td className="p-2"><input type="text" className="w-full min-w-[120px] px-3 py-2.5 bg-transparent border border-transparent focus:border-stone-300 dark:focus:border-stone-600 focus:bg-white dark:focus:bg-stone-800 rounded-lg text-[11px] font-bold outline-none uppercase transition-all" value={item.laboratory} onChange={e => updateBulkItem(item.id, 'laboratory', e.target.value.toUpperCase())} onBlur={() => updateBulkItem(item.id, 'laboratory', autoCorrectLab(item.laboratory))} placeholder="Laboratorio" /></td>
+                                            <td className="p-2"><input type="text" className="w-full min-w-[70px] px-3 py-2.5 bg-transparent border border-transparent focus:border-stone-300 dark:focus:border-stone-600 focus:bg-white dark:focus:bg-stone-800 rounded-lg text-[11px] font-bold outline-none transition-all" value={item.lensIndex} onChange={e => updateBulkItem(item.id, 'lensIndex', e.target.value)} placeholder="Ej: 1.56" /></td>
+                                            <td className="p-2"><input type="number" min="0" className="w-full min-w-[90px] px-3 py-2.5 bg-primary/5 border border-transparent focus:border-primary focus:bg-primary/10 rounded-lg text-[11px] font-black text-primary outline-none transition-all" value={item.price} onChange={e => updateBulkItem(item.id, 'price', e.target.value)} placeholder="0.00" /></td>
+                                            {isAdmin && <td className="p-2"><input type="number" min="0" className="w-full min-w-[80px] px-3 py-2.5 bg-transparent border border-transparent focus:border-stone-300 dark:focus:border-stone-600 focus:bg-white dark:focus:bg-stone-800 rounded-lg text-[11px] font-bold outline-none transition-all" value={item.cost} onChange={e => updateBulkItem(item.id, 'cost', e.target.value)} placeholder="0.00" /></td>}
+                                            {showRanges && (
+                                                <>
+                                                    <td className="p-2 border-l border-stone-100 dark:border-stone-800 bg-amber-50/30 dark:bg-amber-900/5"><input type="number" step="0.25" className="w-full min-w-[60px] px-2 py-2.5 bg-transparent border border-transparent focus:border-amber-300 dark:focus:border-amber-700 focus:bg-white dark:focus:bg-stone-800 rounded-lg text-[11px] font-bold outline-none transition-all" value={item.sphereMin} onChange={e => updateBulkItem(item.id, 'sphereMin', e.target.value)} placeholder="-12" /></td>
+                                                    <td className="p-2 bg-amber-50/30 dark:bg-amber-900/5"><input type="number" step="0.25" className="w-full min-w-[60px] px-2 py-2.5 bg-transparent border border-transparent focus:border-amber-300 dark:focus:border-amber-700 focus:bg-white dark:focus:bg-stone-800 rounded-lg text-[11px] font-bold outline-none transition-all" value={item.sphereMax} onChange={e => updateBulkItem(item.id, 'sphereMax', e.target.value)} placeholder="+8" /></td>
+                                                    <td className="p-2 bg-amber-50/30 dark:bg-amber-900/5"><input type="number" step="0.25" className="w-full min-w-[60px] px-2 py-2.5 bg-transparent border border-transparent focus:border-amber-300 dark:focus:border-amber-700 focus:bg-white dark:focus:bg-stone-800 rounded-lg text-[11px] font-bold outline-none transition-all" value={item.cylinderMin} onChange={e => updateBulkItem(item.id, 'cylinderMin', e.target.value)} placeholder="-6" /></td>
+                                                    <td className="p-2 bg-amber-50/30 dark:bg-amber-900/5"><input type="number" step="0.25" className="w-full min-w-[60px] px-2 py-2.5 bg-transparent border border-transparent focus:border-amber-300 dark:focus:border-amber-700 focus:bg-white dark:focus:bg-stone-800 rounded-lg text-[11px] font-bold outline-none transition-all" value={item.cylinderMax} onChange={e => updateBulkItem(item.id, 'cylinderMax', e.target.value)} placeholder="0" /></td>
+                                                </>
+                                            )}
+                                        </>
+                                    ) : (
+                                        <>
+                                            <td className="p-2"><input type="text" className="w-full min-w-[150px] px-3 py-2.5 bg-transparent border border-transparent focus:border-stone-300 dark:focus:border-stone-600 focus:bg-white dark:focus:bg-stone-800 rounded-lg text-[11px] font-bold outline-none transition-all" value={item.name} onChange={e => updateBulkItem(item.id, 'name', e.target.value)} placeholder="Ej: Armazón Titanio" /></td>
+                                            <td className="p-2"><input type="text" className="w-full min-w-[100px] px-3 py-2.5 bg-transparent border border-transparent focus:border-stone-300 dark:focus:border-stone-600 focus:bg-white dark:focus:bg-stone-800 rounded-lg text-[11px] font-bold outline-none transition-all" value={item.brand} onChange={e => updateBulkItem(item.id, 'brand', e.target.value)} placeholder="Marca" /></td>
+                                            <td className="p-2"><input type="text" className="w-full min-w-[100px] px-3 py-2.5 bg-transparent border border-transparent focus:border-stone-300 dark:focus:border-stone-600 focus:bg-white dark:focus:bg-stone-800 rounded-lg text-[11px] font-bold outline-none transition-all" value={item.model} onChange={e => updateBulkItem(item.id, 'model', e.target.value)} placeholder="Modelo/Color" /></td>
+                                            <td className="p-2"><input type="number" min="0" className="w-full min-w-[70px] px-3 py-2.5 bg-transparent border border-transparent focus:border-stone-300 dark:focus:border-stone-600 focus:bg-white dark:focus:bg-stone-800 rounded-lg text-[11px] font-bold outline-none transition-all" value={item.stock} onChange={e => updateBulkItem(item.id, 'stock', e.target.value)} placeholder="0" /></td>
+                                            <td className="p-2"><input type="number" min="0" className="w-full min-w-[90px] px-3 py-2.5 bg-primary/5 border border-transparent focus:border-primary focus:bg-primary/10 rounded-lg text-[11px] font-black text-primary outline-none transition-all" value={item.price} onChange={e => updateBulkItem(item.id, 'price', e.target.value)} placeholder="0.00" /></td>
+                                            {isAdmin && <td className="p-2"><input type="number" min="0" className="w-full min-w-[80px] px-3 py-2.5 bg-transparent border border-transparent focus:border-stone-300 dark:focus:border-stone-600 focus:bg-white dark:focus:bg-stone-800 rounded-lg text-[11px] font-bold outline-none transition-all" value={item.cost} onChange={e => updateBulkItem(item.id, 'cost', e.target.value)} placeholder="0.00" /></td>}
+                                        </>
+                                    )}
+                                    <td className="p-2 text-center">
+                                        <button type="button" onClick={() => removeBulkRow(item.id)} disabled={bulkItems.length === 1} className="p-2 text-stone-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors disabled:opacity-30 disabled:hover:bg-transparent">
+                                            <X className="w-4 h-4" />
+                                        </button>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+
+                <div className="flex justify-center">
+                    <button type="button" onClick={addBulkRow} className="px-6 py-3 bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-300 rounded-2xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 hover:bg-stone-200 dark:hover:bg-stone-700 hover:scale-105 active:scale-95 transition-all shadow-sm">
+                        <Plus className="w-4 h-4" /> Agregar Nueva Fila
+                    </button>
+                </div>
+
+                <button onClick={handleBulkSubmit} disabled={saving || bulkItems.length === 0}
+                    className="w-full py-5 bg-stone-900 text-white dark:bg-primary dark:text-primary-foreground rounded-2xl text-xs font-black uppercase tracking-widest shadow-xl flex items-center justify-center gap-3 transition-all hover:scale-[1.02] active:scale-95 disabled:opacity-50"
+                >
+                    <Upload className="w-4 h-4" /> {saving ? 'Cargando...' : `PROCESAR ${bulkItems.length} FILA${bulkItems.length !== 1 ? 'S' : ''}`}
+                </button>
             </div>
-
-            <textarea autoFocus
-                className="w-full h-52 p-6 bg-stone-50 dark:bg-stone-800/50 border border-stone-200 dark:border-stone-700 rounded-[2rem] font-mono text-[10px] outline-none focus:ring-4 focus:ring-primary/5 transition-all resize-none"
-                placeholder={isCristal
-                    ? `Zeiss, Antireflejo Total, 1.5, 25000, 12000, OPTOVISION\nHoya, Transitions Foto, Foto, 35000, 18000, GRUPO OPTICO\nEssilor, Varilux Comfort, 1.67, 45000, 22000, OPTOVISION`
-                    : `Armazón Titanio, Ray-Ban, RB3025, 15000, 7000, 5\nArmazón Acetato, Oakley, OX8046, 12000, 5500, 8`
-                }
-                value={bulkText}
-                onChange={e => setBulkText(e.target.value)}
-            />
-
-            <button onClick={handleBulkSubmit} disabled={saving || !bulkText.trim()}
-                className="w-full py-5 bg-stone-900 text-white dark:bg-primary dark:text-primary-foreground rounded-2xl text-xs font-black uppercase tracking-widest shadow-xl flex items-center justify-center gap-3 transition-all hover:scale-[1.02] active:scale-95 disabled:opacity-50"
-            >
-                <Upload className="w-4 h-4" /> {saving ? 'Cargando...' : 'PROCESAR CARGA MASIVA'}
-            </button>
-        </div>
-    );
+        );
+    };
 
     return (
         <div className="fixed inset-0 bg-stone-900/40 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-in fade-in duration-300">

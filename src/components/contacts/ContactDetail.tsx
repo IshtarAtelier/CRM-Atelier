@@ -51,6 +51,20 @@ export default function ContactDetail({
 
     const router = useRouter();
 
+    const fetchContact = useCallback(async () => {
+        try {
+            const res = await fetch(`/api/contacts/${contactId}`);
+            if (res.ok) {
+                const data = await res.json();
+                setContact(data);
+            }
+        } catch (error) {
+            console.error('Error fetching contact:', error);
+        } finally {
+            setLoading(false);
+        }
+    }, [contactId]);
+
     useEffect(() => {
         const loadUser = async () => {
             const res = await fetch('/api/auth/me');
@@ -68,20 +82,6 @@ export default function ContactDetail({
             setActiveSection('budget');
         }
     }, [autoStartQuote, contact]);
-
-    const fetchContact = useCallback(async () => {
-        try {
-            const res = await fetch(`/api/contacts/${contactId}`);
-            if (res.ok) {
-                const data = await res.json();
-                setContact(data);
-            }
-        } catch (error) {
-            console.error('Error fetching contact:', error);
-        } finally {
-            setLoading(false);
-        }
-    }, [contactId]);
 
     const handleRevertStatus = async () => {
         if (!contact) return;
