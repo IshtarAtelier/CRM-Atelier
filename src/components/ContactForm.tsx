@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { X, Star, Save, Loader2, Calculator } from 'lucide-react';
+import { X, Star, Save, Loader2, Calculator, FileCheck } from 'lucide-react';
 import { PersonalDataSection, InterestSection } from './ContactFormSections';
 
 export interface ContactFormData {
@@ -16,6 +16,7 @@ export interface ContactFormData {
     address: string;
     insurance: string;
     doctor: string;
+    wantsInvoice: boolean | null;
     followUpTask?: string;
     followUpDate?: string;
     startQuote?: boolean;
@@ -42,7 +43,8 @@ export default function ContactForm({ onClose, onSubmit, initialData }: ContactF
         priority: initialData?.priority || 0,
         address: initialData?.address || '',
         insurance: initialData?.insurance || '',
-        doctor: initialData?.doctor || ''
+        doctor: initialData?.doctor || '',
+        wantsInvoice: initialData?.wantsInvoice ?? null
     });
 
     const [saving, setSaving] = useState(false);
@@ -61,6 +63,10 @@ export default function ContactForm({ onClose, onSubmit, initialData }: ContactF
         e.preventDefault();
         if (!formData.name || !formData.phone || !formData.contactSource || !formData.interest) {
             alert('Por favor completa los campos obligatorios (*)');
+            return;
+        }
+        if (formData.wantsInvoice === null) {
+            alert('Por favor indicá si el cliente quiere factura.');
             return;
         }
         if (isHighTicket && !followUpTask.trim()) {
@@ -82,7 +88,7 @@ export default function ContactForm({ onClose, onSubmit, initialData }: ContactF
     };
 
     return (
-        <div className="fixed inset-0 bg-stone-900/40 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-in fade-in duration-300">
+        <div className="fixed inset-0 bg-stone-900/40 backdrop-blur-md z-[100] flex items-center justify-center p-4 animate-in fade-in duration-300">
             <div className="bg-white dark:bg-stone-900 w-full max-w-2xl rounded-[2.5rem] shadow-2xl border border-stone-200 dark:border-stone-800 overflow-hidden">
                 <header className="p-8 border-b flex justify-between items-center bg-stone-50/50 dark:bg-stone-800/30">
                     <div>
@@ -104,6 +110,15 @@ export default function ContactForm({ onClose, onSubmit, initialData }: ContactF
                             <input type="date" value={followUpDate} onChange={(e) => setFollowUpDate(e.target.value)} className="w-full px-4 py-3 bg-white border-2 rounded-2xl text-sm font-bold outline-none" />
                         </div>
                     )}
+
+                    {/* ¿Quiere Factura? */}
+                    <div className="p-5 bg-stone-50 dark:bg-stone-900/50 rounded-[2rem] border-2 border-stone-100 dark:border-stone-800">
+                        <label className="text-[10px] font-black uppercase tracking-widest text-stone-500 ml-1 mb-3 flex items-center gap-1.5"><FileCheck className="w-4 h-4" /> ¿Quiere Factura? <span className="text-primary">*</span></label>
+                        <div className="flex gap-3 mt-3">
+                            <button type="button" onClick={() => setFormData({ ...formData, wantsInvoice: true })} className={`flex-1 py-3.5 rounded-xl border-2 text-xs font-black uppercase tracking-widest transition-all ${formData.wantsInvoice === true ? 'bg-emerald-500 border-emerald-500 text-white shadow-lg shadow-emerald-500/20' : 'bg-white text-stone-400 border-stone-100 hover:border-emerald-300'}`}>Sí</button>
+                            <button type="button" onClick={() => setFormData({ ...formData, wantsInvoice: false })} className={`flex-1 py-3.5 rounded-xl border-2 text-xs font-black uppercase tracking-widest transition-all ${formData.wantsInvoice === false ? 'bg-red-500 border-red-500 text-white shadow-lg shadow-red-500/20' : 'bg-white text-stone-400 border-stone-100 hover:border-red-300'}`}>No</button>
+                        </div>
+                    </div>
 
                     <div className="space-y-4">
                         <label className="text-[10px] font-black uppercase tracking-widest text-stone-500 ml-1">Prioridad</label>

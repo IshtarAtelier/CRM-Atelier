@@ -18,7 +18,13 @@ import {
     ChevronRight,
     RotateCcw,
     Copy,
-    MessageCircle
+    MessageCircle,
+    Phone,
+    Building2,
+    Stethoscope,
+    Mail,
+    MapPin,
+    FileCheck
 } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 // import { toast } from 'sonner';
@@ -57,6 +63,9 @@ const getTypeConfig = (type: string | null, category?: string | null) => {
         default: return { icon: Box, label: 'Otros', color: 'bg-stone-50 text-stone-400 border-stone-200' };
     }
 };
+
+const CONTACT_SOURCES = ["Google Ads", "Meta", "Calle", "Jemima", "Ya es Cliente", "Tienda nube", "Referido", "Wave", "Salida"];
+const PRODUCT_TYPES = ["Monofocal", "Multifocal", "Bifocal", "Ocupacional", "Solar", "Accesorios", "Lentes de Contacto", "Otros"];
 
 interface Product {
     id: string;
@@ -106,6 +115,16 @@ function CotizadorPageContent() {
     const [showNewContact, setShowNewContact] = useState(false);
     const [newContactName, setNewContactName] = useState('');
     const [newContactPhone, setNewContactPhone] = useState('');
+    const [newContactDni, setNewContactDni] = useState('');
+    const [newContactEmail, setNewContactEmail] = useState('');
+    const [newContactSource, setNewContactSource] = useState('');
+    const [newContactInterest, setNewContactInterest] = useState('');
+    const [newContactInsurance, setNewContactInsurance] = useState('');
+    const [newContactDoctor, setNewContactDoctor] = useState('');
+    const [newContactAddress, setNewContactAddress] = useState('');
+    const [newContactWantsInvoice, setNewContactWantsInvoice] = useState<boolean | null>(null);
+    const [duplicateError, setDuplicateError] = useState<string | null>(null);
+    const [doctors, setDoctors] = useState<any[]>([]);
     const [savingQuote, setSavingQuote] = useState(false);
     const [savedContact, setSavedContact] = useState<{ id: string, name: string } | null>(null);
     const [quotePrescriptionId, setQuotePrescriptionId] = useState<string | null>(null);
@@ -119,6 +138,11 @@ function CotizadorPageContent() {
     const contactSearchRef = useRef<HTMLInputElement>(null);
 
     // Initial load
+    // Fetch doctors for the new contact form
+    useEffect(() => {
+        fetch('/api/doctors').then(res => res.json()).then(data => { if (Array.isArray(data)) setDoctors(data); }).catch(() => {});
+    }, []);
+
     useEffect(() => {
         async function load() {
             try {
@@ -327,7 +351,15 @@ function CotizadorPageContent() {
     };
 
     const handleCreateAndSave = async () => {
-        if (!newContactName.trim()) return;
+        if (!newContactName.trim() || !newContactPhone.trim() || !newContactSource || !newContactInterest) {
+            alert('Por favor completá los campos obligatorios: Nombre, Teléfono, Etiqueta y Tipo de Producto.');
+            return;
+        }
+        if (newContactWantsInvoice === null) {
+            alert('Por favor indicá si el cliente quiere factura.');
+            return;
+        }
+        setDuplicateError(null);
         setSavingQuote(true);
         try {
             const res = await fetch('/api/contacts', {
@@ -336,20 +368,29 @@ function CotizadorPageContent() {
                 body: JSON.stringify({ 
                     name: newContactName, 
                     phone: newContactPhone,
-                    source: 'COTIZADOR'
+                    dni: newContactDni || null,
+                    email: newContactEmail || null,
+                    contactSource: newContactSource,
+                    interest: newContactInterest,
+                    insurance: newContactInsurance || null,
+                    doctor: newContactDoctor || null,
+                    address: newContactAddress || null,
+                    wantsInvoice: newContactWantsInvoice
                 }),
             });
             if (res.ok) {
+                setDuplicateError(null);
                 const contact = await res.json();
                 await saveQuoteToContact(contact.id, contact.name);
             } else {
                 const err = await res.json();
-                console.error('Error al crear contacto');
+                const errorMsg = err.details || err.error || 'Error al crear contacto';
+                setDuplicateError(errorMsg);
                 setSavingQuote(false);
             }
         } catch (err) {
             console.error(err);
-            console.error('Error de conexión');
+            setDuplicateError('Error de conexión al crear contacto');
             setSavingQuote(false);
         }
     };
@@ -361,6 +402,15 @@ function CotizadorPageContent() {
         setShowNewContact(false);
         setNewContactName('');
         setNewContactPhone('');
+        setNewContactDni('');
+        setNewContactEmail('');
+        setNewContactSource('');
+        setNewContactInterest('');
+        setNewContactInsurance('');
+        setNewContactDoctor('');
+        setNewContactAddress('');
+        setNewContactWantsInvoice(null);
+        setDuplicateError(null);
         setSavedContact(null);
         setPendingContact(null);
         setQuotePrescriptionId(null);
@@ -780,15 +830,119 @@ function CotizadorPageContent() {
                                                         )}
                                                     </div>
                                                 ) : (
-                                                    <div className="p-10 bg-stone-50 border-2 border-stone-100 rounded-[3rem] space-y-8 animate-in slide-in-from-top-4 duration-500">
+                                                    <div className="p-8 bg-stone-50 border-2 border-stone-100 rounded-[3rem] space-y-6 animate-in slide-in-from-top-4 duration-500 max-h-[450px] overflow-y-auto" style={{ scrollbarWidth: 'thin' }}>
                                                         <h4 className="text-2xl font-black tracking-tighter">Nuevo Contacto</h4>
-                                                        <div className="grid grid-cols-2 gap-6">
-                                                            <div className="space-y-2"><label className="text-[10px] font-black text-stone-400 uppercase tracking-widest ml-4">Nombre Completo *</label><input type="text" placeholder="Ej: Juan Pérez" value={newContactName} onChange={e => setNewContactName(e.target.value)} className="w-full bg-white border-2 border-stone-100 py-5 px-8 rounded-2xl text-xs font-bold" /></div>
-                                                            <div className="space-y-2"><label className="text-[10px] font-black text-stone-400 uppercase tracking-widest ml-4">WhatsApp</label><input type="tel" placeholder="351XXXXXXX" value={newContactPhone} onChange={e => setNewContactPhone(e.target.value)} className="w-full bg-white border-2 border-stone-100 py-5 px-8 rounded-2xl text-xs font-bold" /></div>
+
+                                                        {duplicateError && (
+                                                            <div className="p-4 bg-red-50 border-2 border-red-200 rounded-2xl flex items-start gap-3 animate-in shake-x duration-300">
+                                                                <div className="w-8 h-8 bg-red-500 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5">
+                                                                    <X className="w-4 h-4 text-white" />
+                                                                </div>
+                                                                <p className="text-xs font-bold text-red-700 leading-relaxed">{duplicateError}</p>
+                                                            </div>
+                                                        )}
+
+                                                        {/* Nombre + Teléfono */}
+                                                        <div className="grid grid-cols-2 gap-4">
+                                                            <div className="space-y-1.5">
+                                                                <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest ml-2 flex items-center gap-1">Nombre / Apellido <span className="text-primary">*</span></label>
+                                                                <div className="relative group">
+                                                                    <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-300 group-focus-within:text-primary transition-colors" />
+                                                                    <input type="text" placeholder="Nombre completo" value={newContactName} onChange={e => { setNewContactName(e.target.value); setDuplicateError(null); }} className="w-full pl-11 pr-4 py-4 bg-white border-2 border-stone-100 rounded-2xl text-xs font-bold outline-none focus:border-primary transition-all" />
+                                                                </div>
+                                                            </div>
+                                                            <div className="space-y-1.5">
+                                                                <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest ml-2 flex items-center gap-1">Teléfono <span className="text-primary">*</span></label>
+                                                                <div className="relative group">
+                                                                    <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-300 group-focus-within:text-primary transition-colors" />
+                                                                    <input type="tel" placeholder="351XXXXXXX" value={newContactPhone} onChange={e => { setNewContactPhone(e.target.value); setDuplicateError(null); }} className="w-full pl-11 pr-4 py-4 bg-white border-2 border-stone-100 rounded-2xl text-xs font-bold outline-none focus:border-primary transition-all" />
+                                                                </div>
+                                                            </div>
                                                         </div>
-                                                        <div className="flex gap-4 pt-4">
-                                                            <button onClick={handleCreateAndSave} disabled={!newContactName || savingQuote} className="flex-1 py-6 bg-primary text-white rounded-[2rem] font-black text-xs uppercase tracking-[0.2em] shadow-xl">Crear y Guardar</button>
-                                                            <button onClick={() => setShowNewContact(false)} className="px-10 py-6 bg-white border-2 border-stone-100 text-stone-400 rounded-[2rem] font-black text-[11px] uppercase tracking-widest hover:text-stone-800 transition-all">Cancelar</button>
+
+                                                        {/* DNI + Obra Social */}
+                                                        <div className="grid grid-cols-2 gap-4">
+                                                            <div className="space-y-1.5">
+                                                                <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest ml-2">DNI</label>
+                                                                <div className="relative group">
+                                                                    <FileText className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-300 group-focus-within:text-primary transition-colors" />
+                                                                    <input type="text" placeholder="Número de documento" value={newContactDni} onChange={e => setNewContactDni(e.target.value)} className="w-full pl-11 pr-4 py-4 bg-white border-2 border-stone-100 rounded-2xl text-xs font-bold outline-none focus:border-primary transition-all" />
+                                                                </div>
+                                                            </div>
+                                                            <div className="space-y-1.5">
+                                                                <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest ml-2">Obra Social</label>
+                                                                <div className="relative group">
+                                                                    <Building2 className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-300 group-focus-within:text-primary transition-colors" />
+                                                                    <input type="text" placeholder="PAMI, OSDE, etc." value={newContactInsurance} onChange={e => setNewContactInsurance(e.target.value)} className="w-full pl-11 pr-4 py-4 bg-white border-2 border-stone-100 rounded-2xl text-xs font-bold outline-none focus:border-primary transition-all" />
+                                                                </div>
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Médico + Etiqueta */}
+                                                        <div className="grid grid-cols-2 gap-4">
+                                                            <div className="space-y-1.5">
+                                                                <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest ml-2">Médico</label>
+                                                                <div className="relative group">
+                                                                    <Stethoscope className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-300 group-focus-within:text-primary transition-colors z-10" />
+                                                                    <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-3 h-3 text-stone-400 pointer-events-none" />
+                                                                    <select value={newContactDoctor} onChange={e => setNewContactDoctor(e.target.value)} className="w-full pl-11 pr-9 py-4 bg-white border-2 border-stone-100 rounded-2xl text-xs font-bold appearance-none cursor-pointer outline-none focus:border-primary transition-all">
+                                                                        <option value="">— Sin médico —</option>
+                                                                        {doctors.map(doc => <option key={doc.id} value={doc.name}>{doc.name}</option>)}
+                                                                    </select>
+                                                                </div>
+                                                            </div>
+                                                            <div className="space-y-1.5">
+                                                                <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest ml-2 flex items-center gap-1">Etiqueta <span className="text-primary">*</span></label>
+                                                                <div className="relative group">
+                                                                    <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-3 h-3 text-stone-400 pointer-events-none" />
+                                                                    <select value={newContactSource} onChange={e => setNewContactSource(e.target.value)} className="w-full px-5 py-4 bg-white border-2 border-stone-100 rounded-2xl text-xs font-bold appearance-none cursor-pointer outline-none focus:border-primary transition-all">
+                                                                        <option value="">Seleccionar origen...</option>
+                                                                        {CONTACT_SOURCES.map(s => <option key={s} value={s}>{s}</option>)}
+                                                                    </select>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Email + Dirección */}
+                                                        <div className="grid grid-cols-2 gap-4">
+                                                            <div className="space-y-1.5">
+                                                                <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest ml-2">Email</label>
+                                                                <div className="relative group">
+                                                                    <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-300 group-focus-within:text-primary transition-colors" />
+                                                                    <input type="email" placeholder="correo@ejemplo.com" value={newContactEmail} onChange={e => setNewContactEmail(e.target.value)} className="w-full pl-11 pr-4 py-4 bg-white border-2 border-stone-100 rounded-2xl text-xs font-bold outline-none focus:border-primary transition-all" />
+                                                                </div>
+                                                            </div>
+                                                            <div className="space-y-1.5">
+                                                                <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest ml-2">Dirección</label>
+                                                                <div className="relative group">
+                                                                    <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-300 group-focus-within:text-primary transition-colors" />
+                                                                    <input type="text" placeholder="Calle, Número, Localidad" value={newContactAddress} onChange={e => setNewContactAddress(e.target.value)} className="w-full pl-11 pr-4 py-4 bg-white border-2 border-stone-100 rounded-2xl text-xs font-bold outline-none focus:border-primary transition-all" />
+                                                                </div>
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Tipo de Producto */}
+                                                        <div className="space-y-2">
+                                                            <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest ml-2 flex items-center gap-1">Tipo de Producto <span className="text-primary">*</span></label>
+                                                            <div className="grid grid-cols-4 gap-2">
+                                                                {PRODUCT_TYPES.map(type => (
+                                                                    <button key={type} type="button" onClick={() => setNewContactInterest(type)} className={`px-2 py-2.5 rounded-xl border-2 text-[9px] font-black uppercase transition-all ${newContactInterest === type ? 'bg-primary border-primary text-white shadow-lg' : 'bg-white text-stone-400 border-stone-100 hover:border-primary/30'}`}>{type}</button>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+
+                                                        {/* ¿Quiere Factura? */}
+                                                        <div className="space-y-2">
+                                                            <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest ml-2 flex items-center gap-1.5"><FileCheck className="w-3.5 h-3.5" /> ¿Quiere Factura? <span className="text-primary">*</span></label>
+                                                            <div className="flex gap-3">
+                                                                <button type="button" onClick={() => setNewContactWantsInvoice(true)} className={`flex-1 py-3 rounded-xl border-2 text-[10px] font-black uppercase tracking-widest transition-all ${newContactWantsInvoice === true ? 'bg-emerald-500 border-emerald-500 text-white shadow-lg shadow-emerald-500/20' : 'bg-white text-stone-400 border-stone-100 hover:border-emerald-300'}`}>Sí</button>
+                                                                <button type="button" onClick={() => setNewContactWantsInvoice(false)} className={`flex-1 py-3 rounded-xl border-2 text-[10px] font-black uppercase tracking-widest transition-all ${newContactWantsInvoice === false ? 'bg-red-500 border-red-500 text-white shadow-lg shadow-red-500/20' : 'bg-white text-stone-400 border-stone-100 hover:border-red-300'}`}>No</button>
+                                                            </div>
+                                                        </div>
+
+                                                        <div className="flex gap-4 pt-2">
+                                                            <button onClick={handleCreateAndSave} disabled={!newContactName || !newContactPhone || !newContactSource || !newContactInterest || newContactWantsInvoice === null || savingQuote} className="flex-1 py-5 bg-primary text-white rounded-[2rem] font-black text-xs uppercase tracking-[0.2em] shadow-xl disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-3 transition-all hover:scale-[1.02] active:scale-95">{savingQuote ? <><Loader2 className="w-5 h-5 animate-spin" /> Creando...</> : 'Crear y Guardar'}</button>
+                                                            <button onClick={() => { setShowNewContact(false); setDuplicateError(null); }} className="px-8 py-5 bg-white border-2 border-stone-100 text-stone-400 rounded-[2rem] font-black text-[11px] uppercase tracking-widest hover:text-stone-800 transition-all">Cancelar</button>
                                                         </div>
                                                     </div>
                                                 )}

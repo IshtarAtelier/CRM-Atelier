@@ -39,6 +39,7 @@ model Client {
   address       String?  // Dirección adicional
   insurance     String?  // Obra Social
   doctor        String?  // Médico asignado
+  wantsInvoice  Boolean? // ¿Quiere factura? (info general)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
