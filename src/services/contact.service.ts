@@ -59,8 +59,16 @@ export const ContactService = {
             const clients = await prisma.client.findMany({
                 where,
                 include: {
-                    user: { select: { name: true } },
                     tags: true,
+                    prescriptions: {
+                        select: { date: true },
+                        orderBy: { date: 'desc' },
+                        take: 1,
+                    },
+                    orders: {
+                        where: { isDeleted: false },
+                        select: { total: true, orderType: true }
+                    }
                 },
                 orderBy: {
                     createdAt: 'desc'
