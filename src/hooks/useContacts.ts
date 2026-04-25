@@ -24,7 +24,8 @@ export function useContacts(activeTab: ContactStatus, searchQuery: string, favor
             if (controller.signal.aborted) return;
             if (!res.ok) {
                 const errData = await res.json().catch(() => ({}));
-                throw new Error(errData.error || 'Error al cargar contactos');
+                const msg = errData.details ? `${errData.error}: ${errData.details}` : (errData.error || 'Error al cargar contactos');
+                throw new Error(msg);
             }
             const data = await res.json();
             if (!controller.signal.aborted) {
