@@ -21,6 +21,7 @@ interface FixedCost {
     month: number;
     year: number;
     notes?: string;
+    type?: string;
 }
 
 interface ReportData {

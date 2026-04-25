@@ -222,7 +222,7 @@ export async function GET(request: Request) {
                     labProfitStats[labName].profit += itemRevenue - itemCost;
                     labProfitStats[labName].clients.push({
                         name: order.client?.name || 'Desconocido',
-                        date: order.createdAt,
+                        date: order.createdAt.toISOString(),
                         product: `${product.brand || ''} ${product.model || product.name || ''}`.trim(),
                         revenue: itemRevenue,
                         cost: itemCost

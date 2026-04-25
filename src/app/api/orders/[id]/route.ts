@@ -456,6 +456,7 @@ export async function PATCH(
         if (labFrameType !== undefined) data.labFrameType = labFrameType;
         if (labBevelPosition !== undefined) data.labBevelPosition = labBevelPosition;
 
+        let existingOrder: any = null;
         if (orderType) {
             // Prevent reverting a SALE back to QUOTE
             if (orderType === 'QUOTE') {
@@ -472,7 +473,7 @@ export async function PATCH(
             }
             // Validation: when converting QUOTE → SALE
             if (orderType === 'SALE') {
-                const existingOrder = await prisma.order.findUnique({
+                existingOrder = await prisma.order.findUnique({
                     where: { id },
                     select: {
                         id: true,

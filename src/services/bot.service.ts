@@ -60,7 +60,7 @@ export class BotService {
         try {
             // Basic extraction of JSON from Gemini response
             const text = response.content.toString();
-            const jsonMatch = text.match(/\[.*\]/s);
+            const jsonMatch = text.match(/\[[\s\S]*\]/);
             if (jsonMatch) {
                 hitos = JSON.parse(jsonMatch[0]);
             }

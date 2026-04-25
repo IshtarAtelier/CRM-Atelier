@@ -106,13 +106,24 @@ export const ContactService = {
         }
 
         const potentialDuplicates = await prisma.client.findMany({
-            where: { OR: orConditions }
+            where: { OR: orConditions },
+            include: {
+                orders: {
+                    where: { orderType: 'SALE', isDeleted: false },
+                    orderBy: { createdAt: 'desc' },
+                    take: 1,
+                    select: { createdAt: true }
+                }
+            }
         });
 
         if (potentialDuplicates.length > 0) {
            const exactNameMatch = potentialDuplicates.find(p => p.name.trim().toLowerCase() === normalizedName);
            if (exactNameMatch) {
-               throw new Error(`Posible ficha duplicada: Ya existe una persona con el nombre exacto "${exactNameMatch.name}". Si se trata de otra persona con el mismo nombre, agregale un distintivo (ej. "Hijo").`);
+               const lastOrder = exactNameMatch.orders[0];
+               const lastDate = lastOrder ? ` (Última compra: ${new Date(lastOrder.createdAt).toLocaleDateString('es-AR')})` : "";
+               const phoneInfo = exactNameMatch.phone ? ` - Tel: ${exactNameMatch.phone}` : "";
+               throw new Error(`Posible ficha duplicada: Ya existe una persona con el nombre exacto "${exactNameMatch.name}"${phoneInfo}${lastDate}.`);
            }
            if (data.email) {
                const emailMatch = potentialDuplicates.find(p => p.email?.toLowerCase() === data.email?.trim().toLowerCase());
@@ -127,13 +138,27 @@ export const ContactService = {
         // 2. Intelligent Phone Match
         if (normalizedIncomingPhone.length >= 8) {
             // Check if any existing phone matches the same sequence of core digits
-            const phoneDuplicates: any[] = await prisma.$queryRaw`
-                SELECT id, name, phone FROM "Client"
-                WHERE phone IS NOT NULL AND regexp_replace(phone, '\\D', '', 'g') LIKE ${'%' + normalizedIncomingPhone}
-            `;
-            if (phoneDuplicates.length > 0) {
-                const pDup = phoneDuplicates[0];
-                throw new Error(`Posible ficha duplicada: Ya existe un cliente (${pDup.name}) registrado con el teléfono ${pDup.phone}.`);
+            const phoneDuplicates = await prisma.client.findMany({
+                where: {
+                    phone: { contains: normalizedIncomingPhone } // Simple check first for the query
+                },
+                include: {
+                    orders: {
+                        where: { orderType: 'SALE', isDeleted: false },
+                        orderBy: { createdAt: 'desc' },
+                        take: 1,
+                        select: { createdAt: true }
+                    }
+                }
+            });
+
+            // Filter manually for exact digits match to be precise
+            const realPhoneMatch = phoneDuplicates.find(p => (p.phone || "").replace(/\D/g, '').endsWith(normalizedIncomingPhone));
+
+            if (realPhoneMatch) {
+                const lastOrder = realPhoneMatch.orders[0];
+                const lastDate = lastOrder ? ` (Última compra: ${new Date(lastOrder.createdAt).toLocaleDateString('es-AR')})` : "";
+                throw new Error(`Posible ficha duplicada: Ya existe el cliente "${realPhoneMatch.name}" registrado con el teléfono ${realPhoneMatch.phone}${lastDate}.`);
             }
         }
 
@@ -764,209 +789,6 @@ export const ContactService = {
             return await tx.payment.delete({
                 where: { id: paymentId }
             });
-        });
-    },
-
-    /**
-     * Edita un pago existente de forma quirúrgica.
-     * Nunca elimina/recrea — actualiza in-place y recalcula dependencias.
-     * 
-     * Zonas impactadas:
-     * 1. Payment record (campos directos)
-     * 2. Order.paid (recalculado con SUM atómico)
-     * 3. INVOICE_REQUEST notifications (si el método cambia)
-     * 4. Invoice warnings (si ya existe factura emitida con cuenta distinta)
-     * 5. Client Timeline (registro de auditoría)
-     * 
-     * Zonas NO impactadas:
-     * - CashService: se auto-recalcula con aggregate en vivo (no almacena estado)
-     * - Reports: leen payments en vivo
-     * - PricingService.calculateOrderFinancials: lee payments en vivo
-     * - Facturas ya emitidas: NUNCA se tocan
-     */
-    async updatePayment(paymentId: string, updates: {
-        method?: string;
-        amount?: number;
-        notes?: string | null;
-        receiptUrl?: string | null;
-    }) {
-        const CARD_METHODS = ['PAY_WAY', 'NARANJA', 'GO_CUOTAS'];
-        const isCardMethod = (m: string) => CARD_METHODS.some(cm => m.toUpperCase().includes(cm));
-
-        return await prisma.$transaction(async (tx) => {
-            // 1. Obtener estado previo completo
-            const oldPayment = await tx.payment.findUnique({
-                where: { id: paymentId },
-                include: {
-                    order: {
-                        select: {
-                            id: true,
-                            clientId: true,
-                            total: true,
-                            subtotalWithMarkup: true,
-                            invoices: {
-                                where: { status: 'COMPLETED' },
-                                select: { id: true, billingAccount: true }
-                            }
-                        }
-                    }
-                }
-            });
-
-            if (!oldPayment) throw new Error('Pago no encontrado');
-            if (!oldPayment.order) throw new Error('Orden asociada no encontrada');
-
-            const orderId = oldPayment.orderId;
-            const clientId = oldPayment.order.clientId;
-
-            // 2. Construir diff para auditoría
-            const changes: string[] = [];
-            const updateData: any = {};
-
-            if (updates.method !== undefined && updates.method !== oldPayment.method) {
-                changes.push(`Método: ${oldPayment.method} → ${updates.method}`);
-                updateData.method = updates.method;
-            }
-
-            if (updates.amount !== undefined && updates.amount !== oldPayment.amount) {
-                changes.push(`Monto: $${oldPayment.amount.toLocaleString('es-AR')} → $${updates.amount.toLocaleString('es-AR')}`);
-                updateData.amount = updates.amount;
-
-                // Validar que el nuevo monto no exceda con creces el total
-                const maxAllowed = Math.max(oldPayment.order.total || 0, oldPayment.order.subtotalWithMarkup || 0);
-                // Recalcular paid sin este pago + nuevo monto
-                const otherPaymentsAgg = await tx.payment.aggregate({
-                    _sum: { amount: true },
-                    where: { orderId, id: { not: paymentId } }
-                });
-                const otherPaid = otherPaymentsAgg._sum.amount || 0;
-                const newTotalPaid = otherPaid + updates.amount;
-                if (newTotalPaid > maxAllowed * 2.0) {
-                    throw new Error(`El monto editado excede con creces el total máximo de la orden ($${maxAllowed.toLocaleString('es-AR')}). Revisá el monto ingresado.`);
-                }
-            }
-
-            if (updates.notes !== undefined && updates.notes !== oldPayment.notes) {
-                changes.push(`Referencia actualizada`);
-                updateData.notes = updates.notes;
-            }
-
-            if (updates.receiptUrl !== undefined && updates.receiptUrl !== oldPayment.receiptUrl) {
-                changes.push(`Comprobante reemplazado`);
-                updateData.receiptUrl = updates.receiptUrl;
-            }
-
-            // Si no hay cambios reales, retornar el pago sin tocar nada
-            if (changes.length === 0) return oldPayment;
-
-            // 3. Actualizar el Payment in-place
-            const updatedPayment = await tx.payment.update({
-                where: { id: paymentId },
-                data: updateData
-            });
-
-            // 4. Recalcular Order.paid con SUM atómico (nunca increment/decrement para evitar drift)
-            if (updateData.amount !== undefined) {
-                const totalPaidAgg = await tx.payment.aggregate({
-                    _sum: { amount: true },
-                    where: { orderId }
-                });
-                await tx.order.update({
-                    where: { id: orderId },
-                    data: { paid: totalPaidAgg._sum.amount || 0 }
-                });
-            }
-
-            // 5. Gestionar INVOICE_REQUEST si el método cambió
-            if (updateData.method !== undefined) {
-                const oldIsCard = isCardMethod(oldPayment.method);
-                const newIsCard = isCardMethod(updateData.method);
-                const amount = updateData.amount ?? oldPayment.amount;
-                const amountStr = `$${amount.toLocaleString('es-AR')}`;
-
-                // Si el viejo método era tarjeta → eliminar su INVOICE_REQUEST pendiente
-                if (oldIsCard) {
-                    const oldAmountStr = `$${oldPayment.amount.toLocaleString('es-AR')}`;
-                    await tx.notification.deleteMany({
-                        where: {
-                            type: 'INVOICE_REQUEST',
-                            orderId,
-                            message: { contains: oldAmountStr },
-                            status: 'PENDING'
-                        }
-                    });
-                }
-
-                // Si el nuevo método es tarjeta → crear nueva INVOICE_REQUEST
-                if (newIsCard) {
-                    const isIsh = updateData.method.toUpperCase().endsWith('_ISH');
-                    const isYani = updateData.method.toUpperCase().endsWith('_YANI');
-                    const accountLabel = isIsh ? '[ISH]' : isYani ? '[YANI]' : '';
-
-                    const clientName = (await tx.client.findUnique({ where: { id: clientId }, select: { name: true } }))?.name || 'Cliente';
-
-                    // Verificar que no exista ya una request idéntica
-                    const existingRequest = await tx.notification.findFirst({
-                        where: {
-                            type: 'INVOICE_REQUEST',
-                            orderId,
-                            message: { contains: amountStr },
-                            status: 'PENDING'
-                        }
-                    });
-
-                    // Verificar que no haya factura ya emitida para esta orden
-                    const existingInvoice = await tx.invoice.findFirst({
-                        where: { orderId, status: 'COMPLETED' }
-                    });
-
-                    if (!existingRequest && !existingInvoice) {
-                        await tx.notification.create({
-                            data: {
-                                type: 'INVOICE_REQUEST',
-                                message: `${accountLabel} Facturar pago editado de ${amountStr} (${updateData.method}) - Venta #${orderId.slice(-4).toUpperCase()} (${clientName})`,
-                                orderId,
-                                requestedBy: 'SISTEMA (Edición)',
-                                status: 'PENDING'
-                            }
-                        });
-                    }
-                }
-
-                // 6. Warning si hay factura emitida y la cuenta cambió
-                const existingInvoices = oldPayment.order.invoices || [];
-                if (existingInvoices.length > 0) {
-                    const oldIsIsh = oldPayment.method.toUpperCase().endsWith('_ISH');
-                    const oldIsYani = oldPayment.method.toUpperCase().endsWith('_YANI');
-                    const newIsIsh = updateData.method.toUpperCase().endsWith('_ISH');
-                    const newIsYani = updateData.method.toUpperCase().endsWith('_YANI');
-                    const oldAccount = oldIsIsh ? 'ISH' : oldIsYani ? 'YANI' : null;
-                    const newAccount = newIsIsh ? 'ISH' : newIsYani ? 'YANI' : null;
-
-                    if (oldAccount && newAccount && oldAccount !== newAccount) {
-                        await tx.notification.create({
-                            data: {
-                                type: 'RECEIPT_ERROR',
-                                message: `⚠️ ATENCIÓN: Se editó un pago de la orden #${orderId.slice(-4).toUpperCase()} cambiando de ${oldAccount} a ${newAccount}, pero YA EXISTE una factura emitida. Revisar manualmente.`,
-                                orderId,
-                                requestedBy: 'SISTEMA (Auditoría)',
-                                status: 'PENDING'
-                            }
-                        });
-                    }
-                }
-            }
-
-            // 7. Registrar en la línea de tiempo del cliente
-            await tx.interaction.create({
-                data: {
-                    clientId,
-                    type: 'SISTEMA',
-                    content: `✏️ Pago editado por Administrador: ${changes.join(' | ')}`
-                }
-            });
-
-            return updatedPayment;
         });
     },
 

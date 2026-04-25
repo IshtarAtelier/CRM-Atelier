@@ -13,8 +13,8 @@ export async function GET(request: Request) {
 
         const contacts = await ContactService.getAll(status, search, favorites, interest);
         return NextResponse.json(contacts);
-    } catch (error) {
-        console.error('[API Contacts] Full error:', error);
+    } catch (error: any) {
+        console.error('[API Contacts] Full error object:', JSON.stringify(error, Object.getOwnPropertyNames(error)));
         return NextResponse.json({ error: 'Error al obtener contactos' }, { status: 500 });
     }
 }

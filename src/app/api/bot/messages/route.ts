@@ -13,12 +13,12 @@ export async function POST(request: Request) {
         }
 
         // Find or create chat
-        let chat = await prisma.whatsappChat.findUnique({
+        let chat = await prisma.whatsAppChat.findUnique({
             where: { waId }
         });
 
         if (!chat) {
-            chat = await prisma.whatsappChat.create({
+            chat = await prisma.whatsAppChat.create({
                 data: {
                     waId,
                     status: 'OPEN'
@@ -27,7 +27,7 @@ export async function POST(request: Request) {
         }
 
         // Create message
-        const message = await prisma.whatsappMessage.create({
+        const message = await prisma.whatsAppMessage.create({
             data: {
                 chatId: chat.id,
                 content,
@@ -39,7 +39,7 @@ export async function POST(request: Request) {
         });
 
         // Update chat
-        await prisma.whatsappChat.update({
+        await prisma.whatsAppChat.update({
             where: { id: chat.id },
             data: {
                 lastMessageAt: new Date(),
