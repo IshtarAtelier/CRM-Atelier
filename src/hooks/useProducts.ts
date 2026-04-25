@@ -33,7 +33,7 @@ export function useProducts(searchQuery: string = '', selectedType: string = 'AL
     const fetchProducts = useCallback(async () => {
         try {
             setLoading(true);
-            const res = await fetch('/api/products');
+            const res = await fetch(`/api/products?_cb=${Date.now()}`);
             if (res.ok) {
                 let data: Product[] = await res.json();
 
