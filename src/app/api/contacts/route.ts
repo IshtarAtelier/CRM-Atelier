@@ -15,7 +15,11 @@ export async function GET(request: Request) {
         return NextResponse.json(contacts);
     } catch (error: any) {
         console.error('[API Contacts] Full error object:', JSON.stringify(error, Object.getOwnPropertyNames(error)));
-        return NextResponse.json({ error: 'Error al obtener contactos' }, { status: 500 });
+        return NextResponse.json({ 
+            error: 'Error al obtener contactos', 
+            details: error.message,
+            prismaCode: error.code
+        }, { status: 500 });
     }
 }
 
