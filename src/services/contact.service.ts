@@ -22,67 +22,74 @@ export interface ContactCreateData {
 
 export const ContactService = {
     async getAll(status?: string | null, search?: string | null, favoritesOnly?: boolean, interest?: string | null) {
-        console.log('[ContactService] Fetching contacts:', { status, search, favoritesOnly, interest });
-        const where: any = {};
-        if (status && status !== 'ALL') {
-            if (status === 'CLIENT') {
-                // VENTAS tab: show contacts that have at least one SALE order
-                where.orders = {
-                    some: { orderType: 'SALE', isDeleted: false }
-                };
-            } else if (status === 'CONFIRMED') {
-                // CONFIRMED tab: show contacts with status CONFIRMED but NO sales
-                where.status = 'CONFIRMED';
-                where.orders = {
-                    none: { orderType: 'SALE', isDeleted: false }
-                };
-            } else {
-                where.status = status;
-            }
-        }
-        if (favoritesOnly) {
-            where.isFavorite = true;
-        }
-        if (interest && interest !== 'ALL') {
-            where.interest = interest;
-        }
-        if (search) {
-            where.OR = [
-                { name: { contains: search, mode: 'insensitive' } },
-                { phone: { contains: search, mode: 'insensitive' } },
-                { interest: { contains: search, mode: 'insensitive' } },
-                { insurance: { contains: search, mode: 'insensitive' } }
-            ];
-        }
-
-        const clients = await prisma.client.findMany({
-            where,
-            include: {
-                tags: true,
-                prescriptions: {
-                    select: { date: true },
-                    orderBy: { date: 'desc' },
-                    take: 1,
-                },
-                orders: {
-                    where: { isDeleted: false },
-                    select: { total: true, orderType: true }
+        try {
+            console.log('[ContactService] Fetching contacts:', { status, search, favoritesOnly, interest });
+            const where: any = {};
+            if (status && status !== 'ALL') {
+                if (status === 'CLIENT') {
+                    // VENTAS tab: show contacts that have at least one SALE order
+                    where.orders = {
+                        some: { orderType: 'SALE', isDeleted: false }
+                    };
+                } else if (status === 'CONFIRMED') {
+                    // CONFIRMED tab: show contacts with status CONFIRMED but NO sales
+                    where.status = 'CONFIRMED';
+                    where.orders = {
+                        none: { orderType: 'SALE', isDeleted: false }
+                    };
+                } else {
+                    where.status = status;
                 }
-            },
-            orderBy: {
-                createdAt: 'desc'
             }
-        });
+            if (favoritesOnly) {
+                where.isFavorite = true;
+            }
+            if (interest && interest !== 'ALL') {
+                where.interest = interest;
+            }
+            if (search) {
+                where.OR = [
+                    { name: { contains: search, mode: 'insensitive' } },
+                    { phone: { contains: search, mode: 'insensitive' } },
+                    { interest: { contains: search, mode: 'insensitive' } },
+                    { insurance: { contains: search, mode: 'insensitive' } }
+                ];
+            }
 
-        // Calcular avgTicket por contacto (solo SALE orders)
-        return clients.map((client: any) => {
-            const saleOrders = (client.orders || []).filter((o: any) => o.orderType === 'SALE');
-            const avgTicket = saleOrders.length > 0
-                ? saleOrders.reduce((sum: number, o: any) => sum + o.total, 0) / saleOrders.length
-                : 0;
-            const { orders, ...rest } = client;
-            return { ...rest, avgTicket: Math.round(avgTicket), hasSales: saleOrders.length > 0 };
-        });
+            const clients = await prisma.client.findMany({
+                where,
+                include: {
+                    user: { select: { name: true } },
+                    tags: true,
+                    prescriptions: {
+                        select: { date: true },
+                        orderBy: { date: 'desc' },
+                        take: 1,
+                    },
+                    orders: {
+                        where: { isDeleted: false },
+                        select: { total: true, orderType: true }
+                    }
+                },
+                orderBy: {
+                    createdAt: 'desc'
+                },
+                take: 200 // Safety limit
+            });
+
+            // Calcular avgTicket por contacto (solo SALE orders)
+            return clients.map((client: any) => {
+                const saleOrders = (client.orders || []).filter((o: any) => o.orderType === 'SALE');
+                const avgTicket = saleOrders.length > 0
+                    ? saleOrders.reduce((sum: number, o: any) => sum + o.total, 0) / saleOrders.length
+                    : 0;
+                const { orders, ...rest } = client;
+                return { ...rest, avgTicket: Math.round(avgTicket), hasSales: saleOrders.length > 0 };
+            });
+        } catch (error: any) {
+            console.error('[ContactService.getAll] Critical Error:', error);
+            throw error; // Let the API route handle it
+        }
     },
 
     async create(data: ContactCreateData) {
