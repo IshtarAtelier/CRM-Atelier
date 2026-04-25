@@ -65,9 +65,11 @@ export async function GET(request: Request) {
                     monthYearPairs.push({ month: current.getMonth() + 1, year: current.getFullYear() });
                     current.setMonth(current.getMonth() + 1);
                 }
-                fixedCostsWhere = {
-                    OR: monthYearPairs.map(p => ({ month: p.month, year: p.year }))
-                };
+                if (monthYearPairs.length > 0) {
+                    fixedCostsWhere = {
+                        OR: monthYearPairs.map(p => ({ month: p.month, year: p.year }))
+                    };
+                }
             } else if (fromDate) {
                 fixedCostsWhere = { year: { gte: fromDate.getFullYear() } };
             }

@@ -2,7 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import {
-    ArrowUpRight, ArrowDownRight, ArrowRightLeft, ImageIcon, Trash2, History, Pencil
+    ArrowUpRight, ArrowDownRight, ArrowRightLeft, ImageIcon, Trash2, History, Pencil,
+    CreditCard, Banknote, Wallet, Plus, RefreshCw, ChevronDown, Search, DollarSign,
+    Hash, TrendingUp, Eye, Loader2, X, AlertCircle
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';

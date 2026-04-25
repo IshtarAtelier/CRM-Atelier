@@ -10,6 +10,10 @@ export async function GET(request: Request) {
         const toParam = searchParams.get('to');
         const from = fromParam && fromParam !== '' ? fromParam : null;
         const to = toParam && toParam !== '' ? toParam : null;
+        const etiquetaParam = searchParams.get('etiqueta');
+        const tipoParam = searchParams.get('tipo');
+        const etiqueta = etiquetaParam && etiquetaParam !== '' ? etiquetaParam : null;
+        const tipo = tipoParam && tipoParam !== '' ? tipoParam : null;
 
         const dateFilter: any = {};
         if (from) dateFilter.gte = new Date(from);
