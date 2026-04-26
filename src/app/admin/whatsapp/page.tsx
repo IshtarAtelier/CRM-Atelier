@@ -646,7 +646,7 @@ export default function WhatsAppPage() {
                                                 <Phone className="w-3 h-3" /> {selectedChat.waId.replace('@c.us', '').replace('@lid', '').replace('@s.whatsapp.net', '')}
                                                 {selectedChat.client && (
                                                     <a 
-                                                        href={`/contactos?id=${selectedChat.client.id}`}
+                                                        href={`/admin/contactos?id=${selectedChat.client.id}`}
                                                         className="ml-2 px-3 py-1 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white rounded-lg text-[9px] uppercase tracking-widest font-black transition-all shadow-sm active:scale-95"
                                                     >
                                                         Abrir Ficha de Cliente

@@ -48,7 +48,7 @@ export default function TasksPanel({ tasks, onClose }: TasksPanelProps) {
                     displayedTasks.map(task => (
                         <div key={task.id} className="relative group">
                             <Link
-                                href={`/contactos?clientId=${task.clientId}`}
+                                href={`/admin/contactos?clientId=${task.clientId}`}
                                 onClick={onClose}
                                 className="w-full flex items-center gap-4 p-4 md:p-5 bg-white dark:bg-stone-800 rounded-[2rem] md:rounded-[2.5rem] border border-stone-100 dark:border-stone-700 hover:border-primary/30 dark:hover:border-primary/20 hover:shadow-xl transition-all text-left relative overflow-hidden"
                             >

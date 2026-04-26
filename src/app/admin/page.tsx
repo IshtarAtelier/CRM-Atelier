@@ -378,7 +378,7 @@ export default function Home() {
             {d.suggestedFollowUps.map(o => (
               <a 
                 key={o.id}
-                href={`/contactos?id=${o.client?.id}`}
+                href={`/admin/contactos?id=${o.client?.id}`}
                 className="bg-white dark:bg-stone-900 border-2 border-primary/10 hover:border-primary/40 rounded-3xl p-5 transition-all group relative overflow-hidden"
               >
                 <div className="absolute top-0 right-0 w-16 h-16 bg-primary/5 rounded-full -mr-8 -mt-8 blur-xl group-hover:bg-primary/10 transition-colors" />

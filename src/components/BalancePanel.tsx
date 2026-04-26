@@ -56,7 +56,7 @@ export default function BalancePanel({ orders, onClose }: BalancePanelProps) {
                         return (
                             <Link
                                 key={order.id}
-                                href={`/contactos?clientId=${order.clientId}`}
+                                href={`/admin/contactos?clientId=${order.clientId}`}
                                 onClick={onClose}
                                 className="w-full flex items-center gap-4 p-5 bg-white dark:bg-stone-800 rounded-[2.5rem] border border-stone-100 dark:border-stone-700 hover:border-emerald-500/30 dark:hover:border-emerald-400/20 hover:shadow-xl transition-all text-left group relative overflow-hidden"
                             >
