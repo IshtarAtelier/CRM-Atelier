@@ -26,6 +26,38 @@ const EDITORIAL_MODELS = [
   }
 ];
 
+// Placeholder para los armazones flotantes (Bodegón)
+const FLOATING_FRAMES = [
+  {
+    id: 1,
+    name: "Atelier 9030 (Nylon)",
+    price: "$ 55,000.00",
+    image: "https://images.unsplash.com/photo-1577803645773-f96470509666?auto=format&fit=crop&q=80&w=800&bg=transparent", // Anteojo fondo transparente
+    link: "/producto/atelier-carey-vintage"
+  },
+  {
+    id: 2,
+    name: "CIMA Dreamy",
+    price: "$ 48,000.00",
+    image: "https://images.unsplash.com/photo-1511499767150-a48a237f0083?auto=format&fit=crop&q=80&w=800&bg=transparent",
+    link: "/producto/atelier-carey-vintage"
+  },
+  {
+    id: 3,
+    name: "Mistral Manglares",
+    price: "$ 52,000.00",
+    image: "https://images.unsplash.com/photo-1591076482161-42ce6da69f67?auto=format&fit=crop&q=80&w=800&bg=transparent",
+    link: "/producto/atelier-carey-vintage"
+  },
+  {
+    id: 4,
+    name: "Atelier Carey Vintage",
+    price: "$ 65,000.00",
+    image: "https://images.unsplash.com/photo-1582142407894-ec85a1260a46?auto=format&fit=crop&q=80&w=800&bg=transparent",
+    link: "/producto/atelier-carey-vintage"
+  }
+];
+
 export default function Home() {
   return (
     <div className="min-h-screen bg-[#f8f8f8] dark:bg-[#0a0a0a] text-black dark:text-white selection:bg-black selection:text-white">
@@ -99,6 +131,46 @@ export default function Home() {
               </div>
             </Link>
           ))}
+        </div>
+      </section>
+
+      {/* FLOATING FRAMES GRID (Bodegón Minimalista) */}
+      <section className="bg-[#f4f4f4] dark:bg-[#111] py-20 px-8 md:px-12">
+        <h3 className="text-xs font-bold uppercase tracking-widest text-stone-500 mb-16">
+          Catálogo Curado
+        </h3>
+        
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-8 md:gap-12">
+          {FLOATING_FRAMES.map((frame) => (
+            <div key={frame.id} className="group flex flex-col items-center">
+              <Link href={frame.link} className="w-full flex-1 flex flex-col items-center justify-center mb-8 relative">
+                {/* Contenedor cuadrado perfecto para que respire */}
+                <div className="w-full aspect-square flex items-center justify-center p-8 transition-transform duration-700 group-hover:scale-110">
+                  <img 
+                    src={frame.image} 
+                    alt={frame.name}
+                    className="w-full object-contain drop-shadow-xl mix-blend-multiply dark:mix-blend-normal dark:brightness-150"
+                  />
+                </div>
+              </Link>
+              
+              <div className="w-full flex justify-between items-start text-left px-2">
+                <div>
+                  <h4 className="text-[10px] font-bold tracking-wide uppercase text-stone-900 dark:text-stone-300 mb-1">{frame.name}</h4>
+                  <p className="text-[10px] text-stone-500 font-medium">{frame.price}</p>
+                </div>
+                <button className="text-stone-400 hover:text-stone-900 dark:hover:text-white transition-colors">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"></path></svg>
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+        
+        <div className="flex justify-center mt-20">
+          <button className="text-xs font-bold uppercase tracking-widest border-b border-stone-300 dark:border-stone-700 pb-1 hover:border-stone-900 dark:hover:border-white transition-colors">
+            Cargar más modelos
+          </button>
         </div>
       </section>
 
