@@ -202,6 +202,10 @@ app.post('/api/send', async (req, res) => {
     } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+app.get('/api/agent', (req, res) => {
+    res.json({ enabled: agentEnabled, prompt: agentPrompt, dailyContext });
+});
+
 app.post('/api/agent', (req, res) => {
     const { enabled, prompt, dailyContext: newDailyContext } = req.body;
     if (enabled !== undefined) agentEnabled = enabled;
