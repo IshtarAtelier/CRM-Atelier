@@ -65,6 +65,9 @@ export function useProducts(searchQuery: string = '', selectedType: string = 'AL
                     });
                 }
 
+                // Always sort by price ascending (cheapest first)
+                data.sort((a, b) => (a.price || 0) - (b.price || 0));
+
                 setProducts(data);
                 setError(null);
             } else {

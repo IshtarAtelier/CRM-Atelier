@@ -238,13 +238,12 @@ function CotizadorPageContent() {
             const matchesSearch = !search || 
                 p.name?.toLowerCase().includes(search.toLowerCase()) ||
                 p.brand?.toLowerCase().includes(search.toLowerCase()) ||
-                p.model?.toLowerCase().includes(search.toLowerCase()) ||
                 p.type?.toLowerCase().includes(search.toLowerCase());
             
             if (activeType === 'NONE') return matchesSearch;
             if (activeType) return matchesSearch && getCategoryKey(p.type, p.category) === activeType;
             return matchesSearch;
-        });
+        }).sort((a, b) => (a.price || 0) - (b.price || 0));
     }, [products, search, activeType]);
 
     // Cart logic
