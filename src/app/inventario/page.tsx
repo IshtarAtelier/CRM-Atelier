@@ -67,6 +67,19 @@ export default function InventarioPage() {
 
     // Excluir cristales del cálculo de stock (se compran bajo demanda)
     const nonCrystalProducts = products.filter(p => !checkCristal(p));
+    
+    // Helper para armar el nombre completo (Marca + Nombre + Modelo) evitando duplicados
+    const getDisplayName = (p: Product) => {
+        let namePart = p.name || '';
+        if (p.brand && namePart.toUpperCase().startsWith(p.brand.toUpperCase())) {
+            namePart = namePart.substring(p.brand.length).replace(/^[\s\-·]+/, '').trim();
+        }
+        const parts = [];
+        if (p.brand) parts.push(p.brand);
+        if (namePart) parts.push(namePart);
+        if (p.model) parts.push(p.model);
+        return parts.length > 0 ? parts.join(' · ') : (p.type || 'Sin nombre');
+    };
     const stats = {
         totalProducts: products.length,
         totalStock: nonCrystalProducts.reduce((acc, p) => acc + p.stock, 0),
@@ -434,7 +447,9 @@ export default function InventarioPage() {
                                         </button>
                                     </div>
                                     <div className="min-w-0 py-1">
-                                        <p className="font-black text-sm text-stone-800 dark:text-stone-100 italic tracking-tight">{(p.brand || p.model) ? [p.brand, p.model].filter(Boolean).join(' · ') : (p.name || p.type || 'Sin nombre')}</p>
+                                        <p className="font-black text-sm text-stone-800 dark:text-stone-100 italic tracking-tight">
+                                            {getDisplayName(p as Product)}
+                                        </p>
                                         <span className={`text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-full mt-0.5 inline-block ${isCristal ? 'bg-violet-100 text-violet-600' : 'bg-stone-100 text-stone-400'}`}>
                                             {isCristal ? '🔬 Cristal' : p.category || p.type}
                                         </span>
@@ -475,7 +490,7 @@ export default function InventarioPage() {
                                     <div className="flex-1 min-w-0">
                                         <div className="flex justify-between items-start gap-2">
                                             <p className="font-black text-sm text-stone-800 dark:text-stone-100 line-clamp-none">
-                                                {(p.brand || p.model) ? [p.brand, p.model].filter(Boolean).join(' · ') : (p.name || p.type || 'Sin nombre')}
+                                                {getDisplayName(p as Product)}
                                             </p>
                                             <p className="text-sm font-black text-stone-900 dark:text-white shrink-0">${p.price?.toLocaleString()}</p>
                                         </div>
