@@ -26,7 +26,7 @@ export default function InventarioPage() {
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
     const [isDeleting, setIsDeleting] = useState(false);
     const [editingProduct, setEditingProduct] = useState<Product | null>(null);
-    const [editForm, setEditForm] = useState({ name: '', brand: '', model: '', stock: 0, cost: 0, price: 0, lensIndex: '', laboratory: '', sphereMin: '' as string, sphereMax: '' as string, cylinderMin: '' as string, cylinderMax: '' as string, additionMin: '' as string, additionMax: '' as string });
+    const [editForm, setEditForm] = useState({ name: '', brand: '', model: '', type: '', stock: 0, cost: 0, price: 0, lensIndex: '', laboratory: '', sphereMin: '' as string, sphereMax: '' as string, cylinderMin: '' as string, cylinderMax: '' as string, additionMin: '' as string, additionMax: '' as string, is2x1: false });
     const [savingEdit, setSavingEdit] = useState(false);
     const [selectedBrand, setSelectedBrand] = useState('');
     const [showAllBrands, setShowAllBrands] = useState(false);
@@ -111,6 +111,7 @@ export default function InventarioPage() {
             name: p.name || '',
             brand: p.brand || '',
             model: p.model || '',
+            type: p.type || '',
             stock: p.stock,
             cost: p.cost,
             price: p.price,
@@ -147,7 +148,9 @@ export default function InventarioPage() {
             const normalizedFields: Record<string, string> = {};
             if (isEditCristal) {
                 if (editingProduct.category !== 'Cristal') normalizedFields.category = 'Cristal';
-                if (editingProduct.type && !editingProduct.type.startsWith('Cristal')) {
+                if (editForm.type) {
+                    normalizedFields.type = editForm.type;
+                } else if (editingProduct.type && !editingProduct.type.startsWith('Cristal')) {
                     const sub = editingProduct.type.charAt(0).toUpperCase() + editingProduct.type.slice(1).toLowerCase();
                     normalizedFields.type = `Cristal ${sub}`;
                 }
@@ -535,10 +538,23 @@ export default function InventarioPage() {
                                     <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest ml-3">Nombre</label>
                                     <input type="text" value={editForm.name} onChange={e => setEditForm({ ...editForm, name: e.target.value })} className="w-full px-5 py-4 bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-2xl font-bold text-sm outline-none focus:border-primary" />
                                 </div>
-                                <div className={`space-y-1 ${checkCristal(editingProduct) ? 'col-span-2' : ''}`}>
+                                <div className="space-y-1">
                                     <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest ml-3">Marca</label>
                                     <input type="text" value={editForm.brand} onChange={e => setEditForm({ ...editForm, brand: e.target.value })} className="w-full px-5 py-4 bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-2xl font-bold text-sm outline-none focus:border-primary" />
                                 </div>
+                                {checkCristal(editingProduct) && (
+                                    <div className="space-y-1">
+                                        <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest ml-3">Tipo de Cristal</label>
+                                        <select value={editForm.type} onChange={e => setEditForm({ ...editForm, type: e.target.value })} className="w-full px-5 py-4 bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-2xl font-bold text-sm outline-none focus:border-primary cursor-pointer">
+                                            <option value="">Seleccionar tipo...</option>
+                                            <option value="Cristal Monofocal">Cristal Monofocal</option>
+                                            <option value="Cristal Multifocal">Cristal Multifocal</option>
+                                            <option value="Cristal Bifocal">Cristal Bifocal</option>
+                                            <option value="Cristal Ocupacional">Cristal Ocupacional</option>
+                                            <option value="Cristal Coquil">Cristal Coquil</option>
+                                        </select>
+                                    </div>
+                                )}
                                 {!checkCristal(editingProduct) && (
                                     <div className="space-y-1">
                                         <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest ml-3">Modelo</label>
