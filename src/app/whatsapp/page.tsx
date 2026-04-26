@@ -5,7 +5,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import {
     MessageCircle, Send, Wifi, WifiOff, QrCode, RefreshCw, User,
     Clock, CheckCircle2, Bot, Settings, X, ChevronLeft, Phone,
-    Tag, Archive, ArchiveRestore, Filter, Plus, Mic, PlaySquare, Image as ImageIcon
+    Tag, Archive, ArchiveRestore, Filter, Plus, Mic, PlaySquare, Image as ImageIcon, Calendar
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
