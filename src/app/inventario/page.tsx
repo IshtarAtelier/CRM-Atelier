@@ -438,7 +438,10 @@ export default function InventarioPage() {
                                     </div>
                                     <div className="flex justify-center"><span className="text-[9px] font-black uppercase bg-stone-100 dark:bg-stone-800 px-2.5 py-1 rounded-lg text-stone-600 dark:text-stone-400 whitespace-nowrap">{p.type || '-'}</span></div>
                                     <div className="flex justify-center">{p.lensIndex ? <span className="text-[9px] font-black bg-primary/10 text-primary px-2.5 py-1 rounded-lg">{p.lensIndex}</span> : <span className="text-stone-300">-</span>}</div>
-                                    <div className="text-right pr-4 shrink-0">{isCristal ? <span className="text-[9px] font-black text-violet-600 bg-violet-50 dark:bg-violet-950/30 px-2 py-1 rounded-lg inline-block">{p.laboratory || 'Lab'}</span> : <span className={`text-sm font-black ${p.stock <= 2 ? 'text-red-500' : 'text-stone-800 dark:text-stone-200'}`}>{p.stock}</span>}</div>
+                                    <div className="text-right pr-4 shrink-0 flex items-center justify-end gap-2">
+                                        {p.is2x1 && <span className="text-[9px] font-black text-emerald-600 bg-emerald-100 dark:bg-emerald-900/30 px-1.5 py-0.5 rounded-md">2x1</span>}
+                                        {isCristal ? <span className="text-[9px] font-black text-violet-600 bg-violet-50 dark:bg-violet-950/30 px-2 py-1 rounded-lg inline-block">{p.laboratory || 'Lab'}</span> : <span className={`text-sm font-black ${p.stock <= 2 ? 'text-red-500' : 'text-stone-800 dark:text-stone-200'}`}>{p.stock}</span>}
+                                    </div>
                                     {isAdmin && <div className="text-right pr-4"><span className="text-sm font-bold text-stone-400">${p.cost?.toLocaleString()}</span></div>}
                                     <div className="text-right pr-4"><span className="text-sm font-black text-stone-900 dark:text-white">${p.price?.toLocaleString()}</span></div>
                                     {isAdmin && (
@@ -478,6 +481,7 @@ export default function InventarioPage() {
                                                 {isCristal ? '🔬 Cristal' : p.category || p.type}
                                             </span>
                                             {p.lensIndex && <span className="text-[8px] font-black bg-primary/10 text-primary px-1.5 py-0.5 rounded-full">{p.lensIndex}</span>}
+                                            {p.is2x1 && <span className="text-[8px] font-black bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 px-1.5 py-0.5 rounded-full">2x1</span>}
                                             <span className="text-[8px] font-black bg-stone-100 dark:bg-stone-800 text-stone-500 px-1.5 py-0.5 rounded-full">STOCK: {isCristal ? (p.laboratory || 'Lab') : p.stock}</span>
                                         </div>
                                         {isAdmin && (
