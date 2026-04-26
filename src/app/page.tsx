@@ -164,13 +164,13 @@ export default function Home() {
             <div className="mb-8 p-6 bg-white/5 rounded-2xl border border-white/5 backdrop-blur-md">
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div className="flex items-center gap-4">
-                  <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${paceTotal >= t1 ? 'bg-emerald-500/20 text-emerald-400' : 'bg-amber-500/20 text-amber-400'}`}>
+                  <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${paceTotal >= t1 ? 'bg-emerald-500/20 text-emerald-400' : 'bg-blue-500/20 text-blue-400'}`}>
                     <TrendingUp className="w-6 h-6" />
                   </div>
                   <div>
                     <p className="text-[9px] lg:text-[10px] font-black uppercase tracking-widest text-stone-400">Proyección de Cierre</p>
                     <p className="text-lg lg:text-2xl font-black italic tracking-tighter">
-                      Estado: <span className={paceTotal >= t1 ? 'text-emerald-400' : 'text-amber-400'}>{paceTotal >= t1 ? 'RITMO EXCELENTE' : 'A SUBIR EL PROMEDIO'}</span>
+                      Estado: <span className={paceTotal >= t1 ? 'text-emerald-400' : 'text-blue-400'}>{paceTotal >= t1 ? 'RITMO EXCELENTE' : 'CONSTRUYENDO EL MES'}</span>
                     </p>
                   </div>
                 </div>
@@ -179,7 +179,7 @@ export default function Home() {
                     {paceTotal >= t3 ? '🚀 ¡ESTÁN EN NIVEL ELITE! Si mantienen este ritmo, van a pulverizar todos los records este mes.' :
                      paceTotal >= t2 ? '⭐ Excelente ritmo. Están camino a superar el Objetivo Ideal. ¡Sigan así!' :
                      paceTotal >= t1 ? '✅ Van por buen camino para cumplir el objetivo del mes. ¡Fuerza en el tramo final!' :
-                     '💪 ¡A meterle pilas! Necesitan subir un poco el promedio diario para alcanzar la primera meta.'}
+                     '💪 ¡Cada venta suma! Estamos construyendo el camino hacia la meta paso a paso. ¡A mantener el enfoque y la energía!'}
                   </p>
                 </div>
               </div>

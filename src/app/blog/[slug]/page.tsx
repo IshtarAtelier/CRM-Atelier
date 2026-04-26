@@ -422,6 +422,154 @@ const posts: Record<string, Post> = {
         <p>La regla de oro es usarlos todos los días un poquito más. Tratá de no intercalarlos con tus anteojos viejos, así no confundís a tus ojos. La gran mayoría de las personas se adaptan entre el día 3 y el día 7. Si después de dos semanas sentís que la cosa no mejora, vení a Atelier Óptica y nosotros te los ajustamos, ¡porque queremos verte feliz y viendo perfecto a todas las distancias!</p>
       </>
     )
+  },
+  'bifocales-vs-multifocales-diferencias': {
+    slug: 'bifocales-vs-multifocales-diferencias',
+    title: 'Bifocales vs Multifocales: Por qué es momento de decirle adiós a la "rayita"',
+    excerpt: '¿Seguís usando lentes divididos en dos? Te explicamos por qué la tecnología progresiva es estéticamente superior y mucho más cómoda para tu vista.',
+    metaTitle: 'Diferencia entre Bifocales y Multifocales | Atelier Óptica Córdoba',
+    metaDescription: '¿Qué es mejor, bifocal o multifocal? Explicamos por qué los lentes progresivos reemplazaron al bifocal: mejor estética, visión intermedia y adaptación.',
+    date: '2026-05-10',
+    category: 'Cristales',
+    imageUrl: 'https://images.unsplash.com/photo-1574258495973-f010dfbb5371?q=80&w=1470&auto=format&fit=crop',
+    content: (
+      <>
+        <p className="lead">Durante décadas, cuando a alguien le costaba leer de cerca, la única solución era usar lentes <strong>bifocales</strong>. Seguramente los recuerdes: esos anteojos con una "ventanita" o rayita visible en la parte de abajo. Hoy, la tecnología ha avanzado tanto que los lentes <strong>multifocales (progresivos)</strong> los han reemplazado casi por completo. ¿Por qué deberías hacer el cambio?</p>
+
+        <h2>El gran problema del Bifocal: El "Salto de Imagen"</h2>
+        <p>El lente bifocal tiene solo dos distancias: Lejos y Cerca. El problema es que no hay una transición suave entre ambas. Cuando bajás la vista, la imagen "salta" bruscamente. Además, ¿qué pasa con todo lo que está a una distancia media, como el tablero del auto, la computadora o los productos en la góndola del súper? Con un bifocal, todo eso se ve borroso.</p>
+
+        <h2>La magia del Multifocal: Visión Intermedia</h2>
+        <p>Acá es donde el lente multifocal o progresivo gana por goleada. A diferencia del bifocal, el multifocal no tiene un corte abrupto, sino un "corredor" invisible que cambia la graduación de a poco. Esto te permite tener:</p>
+        <ul>
+          <li><strong>Visión de Lejos:</strong> Para manejar o ver la televisión.</li>
+          <li><strong>Visión Intermedia:</strong> ¡La gran diferencia! Ideal para la pantalla de la PC, cocinar o mirar el tablero del auto.</li>
+          <li><strong>Visión de Cerca:</strong> Para leer el celular o enhebrar una aguja.</li>
+        </ul>
+
+        <h2>El factor estético</h2>
+        <p>Seamos sinceros: la rayita del bifocal "delata" la edad. Los lentes multifocales son estéticamente perfectos. A simple vista, parecen cristales simples. Nadie va a notar que estás usando un lente para presbicia, y podés montarlos en armazones modernos, grandes o metálicos sin arruinar el diseño.</p>
+
+        <h2>"Me dijeron que los multifocales marean"</h2>
+        <p>Ese es el mito más grande. Es cierto que los bifocales son más fáciles de asimilar al principio, pero la tecnología actual de tallado digital que usamos en <strong>Atelier Óptica</strong> hace que la adaptación al multifocal sea rapidísima. Si estás listo para ver bien a todas las distancias y verte mucho más joven, te esperamos en nuestro local en Córdoba para armarte tus primeros progresivos.</p>
+      </>
+    )
+  },
+  'multifocales-ocupacionales-para-computadora': {
+    slug: 'multifocales-ocupacionales-para-computadora',
+    title: 'Multifocales Ocupacionales: El secreto para trabajar en la computadora sin dolor de cuello',
+    excerpt: 'Si tu multifocal clásico te molesta para mirar el monitor, los lentes ocupacionales son la solución definitiva para oficinistas y profesionales.',
+    metaTitle: 'Multifocales Ocupacionales para Computadora | Atelier Óptica',
+    metaDescription: 'Descubrí los lentes ocupacionales (Intermedio/Cerca). La mejor solución para oficinistas, arquitectos y dentistas en Córdoba. Adiós al dolor cervical.',
+    date: '2026-05-12',
+    category: 'Tecnología',
+    imageUrl: 'https://images.unsplash.com/photo-1517048676732-d65bc937f952?q=80&w=1470&auto=format&fit=crop',
+    content: (
+      <>
+        <p className="lead">Si sos usuario de lentes multifocales y trabajás 8 horas frente a una computadora de escritorio, es probable que termines el día con un dolor de cuello terrible. Levantás el mentón constantemente para tratar de "encontrar" el foco del monitor. La solución a este problema tiene nombre: <strong>Multifocal Ocupacional</strong>.</p>
+
+        <h2>¿Por qué el multifocal clásico falla en la oficina?</h2>
+        <p>Un lente multifocal tradicional está diseñado para la vida diaria: caminar, manejar (visión de lejos), y leer el celular (visión de cerca). La zona "intermedia" (la que usamos para la compu) es el pasillo más estrecho del cristal. Por eso, para ver el monitor nítidamente, tenés que adoptar posturas antinaturales que te destrozan las cervicales.</p>
+
+        <h2>¿Qué es un lente ocupacional?</h2>
+        <p>También conocido como lente "de oficina" o "progresivo de interiores", el ocupacional es un cristal diseñado <strong>exclusivamente</strong> para distancias de trabajo. Elimina por completo la graduación de lejos, y utiliza todo el cristal para brindarte un campo de visión inmenso para la <strong>distancia intermedia (monitor a 80cm)</strong> y la <strong>distancia de lectura (teclado/papeles a 40cm)</strong>.</p>
+
+        <h2>¿Para quién están recomendados?</h2>
+        <ul>
+          <li><strong>Oficinistas y Programadores:</strong> Permiten abarcar 2 o 3 monitores simultáneos con solo mover los ojos, sin mover la cabeza y con la postura del cuello completamente recta.</li>
+          <li><strong>Odontólogos y Médicos:</strong> Necesitan ver el instrumental de cerca y al paciente a una distancia intermedia con precisión absoluta.</li>
+          <li><strong>Arquitectos y Artistas:</strong> Para mirar el tablero de dibujo y la pantalla a la vez.</li>
+        </ul>
+
+        <h2>El combo perfecto</h2>
+        <p>Ojo: el lente ocupacional <strong>no sirve para manejar ni para ver la tele</strong> (todo lo que esté a más de 2 metros se verá borroso). Son tu herramienta de trabajo. La mayoría de los profesionales exitosos dejan su anteojo ocupacional en el escritorio de la oficina, y usan su multifocal tradicional para la vida exterior.</p>
+
+        <p>Si querés invertir en tu salud postural y tu comodidad visual, vení a <strong>Atelier Óptica en Cerro de las Rosas</strong>. Hacemos lentes ocupacionales a medida con filtro azul integrado para que tus ojos descansen como nunca antes.</p>
+      </>
+    )
+  },
+  'experiencia-boutique-atelier-optica': {
+    slug: 'experiencia-boutique-atelier-optica',
+    title: 'Más que una óptica: La experiencia Boutique en el corazón del Cerro',
+    excerpt: 'Lejos de los fríos mostradores clínicos. Conocé cómo fusionamos la precisión visual con el arte, el diseño y un servicio cálido y personalizado.',
+    metaTitle: 'Óptica Boutique en Córdoba | Diseño, Arte y Anteojos | Atelier Óptica',
+    metaDescription: 'Descubrí Atelier Óptica, la óptica boutique del Cerro de las Rosas. Armazones de diseño exclusivo en un ambiente cálido que respira arte y estilo.',
+    date: '2026-05-15',
+    category: 'Nuestra Óptica',
+    imageUrl: '/images/blog/vidriera-atelier.jpg',
+    content: (
+      <>
+        <p className="lead">Ir a la óptica siempre fue un trámite clínico, aburrido y rodeado de mostradores fríos. Cuando fundamos <strong>Atelier Óptica</strong> en el Cerro de las Rosas, decidimos romper con esa tradición. Queríamos crear un espacio donde elegir tus anteojos se sienta como visitar una galería de arte o un café boutique.</p>
+
+        <div className="my-10 rounded-3xl overflow-hidden shadow-xl border border-stone-100 dark:border-stone-800">
+          <img src="/images/blog/fachada-ladrillo.jpg" alt="Fachada de ladrillo de Atelier Óptica en Córdoba con farol y plantas" className="w-full h-auto object-cover" />
+        </div>
+
+        <h2>Un espacio pensado para inspirar</h2>
+        <p>Desde el momento en que cruzás nuestra fachada de ladrillo visto, rodeada de plantas y luz cálida, te das cuenta de que no estás en una óptica tradicional. En nuestro salón, los típicos exhibidores blancos fueron reemplazados por cálidas estanterías de madera, luces indirectas y detalles de interiorismo que invitan a relajarse.</p>
+
+        <div className="my-10 rounded-3xl overflow-hidden shadow-xl border border-stone-100 dark:border-stone-800">
+          <img src="/images/blog/mostrador-marmol.jpg" alt="Mostrador de mármol y estanterías iluminadas con anteojos" className="w-full h-auto object-cover" />
+        </div>
+
+        <p>Nuestro gran mostrador de mármol y el hermoso espejo circular dorado (uno de los favoritos de nuestros clientes) son el escenario perfecto para que te pruebes colecciones enteras sin ningún apuro. Creemos que un anteojo no es solo una prótesis médica; es el accesorio de diseño más importante que vas a llevar en tu rostro todos los días.</p>
+
+        <h2>El arte de ver y ser visto</h2>
+        <p>En las paredes de Atelier Óptica, los armazones conviven con intervenciones artísticas que reflejan nuestra filosofía. Cuadros de la Mona Lisa o de <em>El Nacimiento de Venus</em> de Botticelli, luciendo irreverentes anteojos de sol, te recuerdan que la visión no tiene por qué ser aburrida ni rígida.</p>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 my-10">
+          <div className="rounded-3xl overflow-hidden shadow-lg border border-stone-100 dark:border-stone-800">
+            <img src="/images/blog/arte-monalisa.jpg" alt="Cuadro de la Mona Lisa con lentes de sol y armazones Mistral" className="w-full h-full object-cover" />
+          </div>
+          <div className="rounded-3xl overflow-hidden shadow-lg border border-stone-100 dark:border-stone-800">
+            <img src="/images/blog/arte-venus.jpg" alt="Cuadro del Nacimiento de Venus con lentes rojos y armazones Hanover" className="w-full h-full object-cover" />
+          </div>
+        </div>
+
+        <h2>Atención uno a uno, como debe ser</h2>
+        <p>El concepto "Boutique" no solo habla de la estética del lugar, sino de la forma en que te recibimos. Nos tomamos el tiempo para invitarte un café, charlar sobre tu estilo de vida, entender qué colores te favorecen y probar juntos qué tipo de montura (marcas como Vulk, Rusty, Hanover o Mistral) resalta mejor tus facciones.</p>
+
+        <p>A esto le sumamos nuestra maquinaria de medición de alta precisión en consultorio, logrando el equilibrio perfecto entre moda y salud visual. Vení a visitarnos a nuestra esquina en el Cerro y descubrí por qué <strong>Atelier Óptica</strong> es la elegida por quienes buscan verse y sentirse bien.</p>
+      </>
+    )
+  },
+  'diseno-y-marcas-armazones-cordoba': {
+    slug: 'diseno-y-marcas-armazones-cordoba',
+    title: 'Colecciones de Autor: Cómo curamos los armazones que marcan tendencia',
+    excerpt: 'No vendemos cualquier marco. Cada anteojo en nuestras estanterías fue elegido por su diseño, calidad y capacidad para resaltar tus facciones.',
+    metaTitle: 'Armazones de Diseño en Córdoba | Vulk, Rusty, Hanover | Atelier Óptica',
+    metaDescription: 'Encontrá armazones de diseño exclusivo en Atelier Óptica Córdoba. Colecciones de autor, lentes de sol de moda y tecnología Smart Lens.',
+    date: '2026-05-18',
+    category: 'Tendencias',
+    imageUrl: '/images/blog/anteojos-rosa-pastel.jpg',
+    content: (
+      <>
+        <p className="lead">Cuando decimos que somos una óptica boutique, lo decimos en serio. En Atelier Óptica no vas a encontrar paredes interminables de armazones genéricos. Nuestro equipo realiza una <strong>curaduría de diseño</strong>, seleccionando cuidadosamente cada marco que ingresa a nuestro local.</p>
+
+        <div className="my-10 rounded-3xl overflow-hidden shadow-xl border border-stone-100 dark:border-stone-800">
+          <img src="/images/blog/local-varilux.jpg" alt="Fachada exterior de Atelier Óptica mostrando el neón y el gran banner de Varilux" className="w-full h-auto object-cover" />
+        </div>
+
+        <h2>Más que un anteojo, una declaración de estilo</h2>
+        <p>Entendemos que tus anteojos son lo primero que la gente mira cuando te habla. Por eso, trabajamos con marcas que entienden de moda tanto como nosotros. Desde los clásicos metálicos geométricos (como los de la línea <strong>Hanover</strong> o <strong>Mistral</strong>) hasta los atrevidos acetatos de colores vibrantes y formas envolventes de <strong>Vulk</strong> o <strong>Rusty</strong>.</p>
+
+        <div className="my-10 rounded-3xl overflow-hidden shadow-xl border border-stone-100 dark:border-stone-800">
+          <img src="/images/blog/anteojos-rosa-pastel.jpg" alt="Detalle de armazones color rosa pastel sobre estantería de madera clara" className="w-full h-auto object-cover" />
+        </div>
+
+        <h2>Color y Tecnología: La revolución Smart Lens</h2>
+        <p>Pero el armazón es solo la mitad de la estética. Los cristales también juegan un papel visual fundamental. En nuestro mostrador vas a encontrar muestrarios reales de colores y tonalidades de cristales, como la línea <strong>Smart Lens</strong> y tecnología de <strong>Varilux</strong>. ¿Querés unos lentes de descanso con un tinte ámbar o lila súper sutil? Nosotros te lo armamos a medida.</p>
+
+        <div className="my-10 rounded-3xl overflow-hidden shadow-xl border border-stone-100 dark:border-stone-800">
+          <img src="/images/blog/muestrario-smart-lens.jpg" alt="Muestrario de cristales de colores Smart Lens sobre el mostrador de mármol" className="w-full h-auto object-cover" />
+        </div>
+
+        <h2>Asesoramiento Estético Personalizado</h2>
+        <p>Elegir el marco ideal puede ser abrumador. ¿Me queda bien un marco cuadrado o redondo? ¿Un color translúcido o carey oscuro? En Atelier Óptica, te ayudamos a encontrar ese modelo único que contrasta perfectamente con la forma de tu rostro y hace que tus rasgos destaquen.</p>
+
+        <p>Renovar tu mirada nunca fue tan inspirador. Acercate a Atelier y descubrí nuestra última colección.</p>
+      </>
+    )
   }
 };
 

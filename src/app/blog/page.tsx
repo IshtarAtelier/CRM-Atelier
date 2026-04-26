@@ -111,6 +111,38 @@ const posts = [
     date: '2026-05-08',
     category: 'Salud Visual',
     imageUrl: 'https://images.unsplash.com/photo-1544717305-2782549b5136?q=80&w=800&auto=format&fit=crop'
+  },
+  {
+    slug: 'bifocales-vs-multifocales-diferencias',
+    title: 'Bifocales vs Multifocales: Por qué es momento de decirle adiós a la "rayita"',
+    excerpt: '¿Seguís usando lentes divididos en dos? Te explicamos por qué la tecnología progresiva es estéticamente superior y mucho más cómoda para tu vista.',
+    date: '2026-05-10',
+    category: 'Cristales',
+    imageUrl: 'https://images.unsplash.com/photo-1574258495973-f010dfbb5371?q=80&w=800&auto=format&fit=crop'
+  },
+  {
+    slug: 'multifocales-ocupacionales-para-computadora',
+    title: 'Multifocales Ocupacionales: El secreto para trabajar en la computadora sin dolor de cuello',
+    excerpt: 'Si tu multifocal clásico te molesta para mirar el monitor, los lentes ocupacionales son la solución definitiva para oficinistas y profesionales.',
+    date: '2026-05-12',
+    category: 'Tecnología',
+    imageUrl: 'https://images.unsplash.com/photo-1517048676732-d65bc937f952?q=80&w=800&auto=format&fit=crop'
+  },
+  {
+    slug: 'experiencia-boutique-atelier-optica',
+    title: 'Más que una óptica: La experiencia Boutique en el corazón del Cerro',
+    excerpt: 'Lejos de los fríos mostradores clínicos. Conocé cómo fusionamos la precisión visual con el arte, el diseño y un servicio cálido y personalizado.',
+    date: '2026-05-15',
+    category: 'Nuestra Óptica',
+    imageUrl: '/images/blog/local-vidriera.jpg'
+  },
+  {
+    slug: 'diseno-y-marcas-armazones-cordoba',
+    title: 'Colecciones de Autor: Cómo curamos los armazones que marcan tendencia',
+    excerpt: 'No vendemos cualquier marco. Cada anteojo en nuestras estanterías fue elegido por su diseño, calidad y capacidad para resaltar tus facciones.',
+    date: '2026-05-18',
+    category: 'Tendencias',
+    imageUrl: '/images/blog/anteojos-rosa-pastel.jpg'
   }
 ];
 
