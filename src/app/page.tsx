@@ -179,7 +179,7 @@ export default function Home() {
                     {paceTotal >= t3 ? '🚀 ¡ESTÁN EN NIVEL ELITE! Si mantienen este ritmo, van a pulverizar todos los records este mes.' :
                      paceTotal >= t2 ? '⭐ Excelente ritmo. Están camino a superar el Objetivo Ideal. ¡Sigan así!' :
                      paceTotal >= t1 ? '✅ Van por buen camino para cumplir el objetivo del mes. ¡Fuerza en el tramo final!' :
-                     '💪 ¡Cada venta suma! Estamos construyendo el camino hacia la meta paso a paso. ¡A mantener el enfoque y la energía!'}
+                     '💪 "Dejarse dominar por los pequeños anhelos que resultan fuertes y apremiantes". ¡Cada venta suma! Estamos construyendo el camino hacia la meta paso a paso. ¡A mantener el enfoque!'}
                   </p>
                 </div>
               </div>
