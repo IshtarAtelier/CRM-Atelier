@@ -68,7 +68,7 @@ export default function InventarioPage() {
     // Excluir cristales del cálculo de stock (se compran bajo demanda)
     const nonCrystalProducts = products.filter(p => !checkCristal(p));
     
-    // Helper para armar el nombre completo (Marca + Nombre + Modelo) evitando duplicados
+    // Helper para armar el nombre completo (Marca + Nombre) evitando duplicados
     const getDisplayName = (p: Product) => {
         let namePart = p.name || '';
         if (p.brand && namePart.toUpperCase().startsWith(p.brand.toUpperCase())) {
@@ -77,7 +77,6 @@ export default function InventarioPage() {
         const parts = [];
         if (p.brand) parts.push(p.brand);
         if (namePart) parts.push(namePart);
-        if (p.model) parts.push(p.model);
         return parts.length > 0 ? parts.join(' · ') : (p.type || 'Sin nombre');
     };
     const stats = {
