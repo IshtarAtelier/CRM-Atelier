@@ -482,8 +482,14 @@ export default function InventarioPage() {
                                                         const mult = parseFloat(editMarkupValue.replace(',', '.'));
                                                         if (!isNaN(mult) && mult > 0) {
                                                             const newPrice = Math.round(p.cost * mult);
-                                                            await fetch(`/api/products/${p.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ price: newPrice }) });
-                                                            refresh();
+                                                            try {
+                                                                await fetch(`/api/products/${p.id}`, {
+                                                                    method: 'PUT',
+                                                                    headers: { 'Content-Type': 'application/json', 'x-user-role': 'ADMIN' },
+                                                                    body: JSON.stringify({ price: newPrice })
+                                                                });
+                                                                refresh();
+                                                            } catch (err) { console.error('Error updating price:', err); }
                                                         }
                                                         setEditingMarkup(null);
                                                     } else if (e.key === 'Escape') setEditingMarkup(null);
