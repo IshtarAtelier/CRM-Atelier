@@ -16,6 +16,7 @@ const {
 const { DynamicTool } = require("@langchain/core/tools");
 const { SystemMessage, HumanMessage, AIMessage } = require("@langchain/core/messages");
 const path = require('path');
+const axios = require('axios');
 require('dotenv').config({ path: path.join(__dirname, '.env') });
 
 // Initialize the model

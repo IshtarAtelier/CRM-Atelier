@@ -647,7 +647,7 @@ export default function InventarioPage() {
                                         <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest ml-3">🏭 Laboratorio <span className="text-red-500">*</span></label>
                                         <input type="text" required placeholder="Ej: OPTOVISION" value={editForm.laboratory} 
                                             onChange={e => setEditForm({ ...editForm, laboratory: e.target.value.toUpperCase() })} 
-                                            onBlur={() => setEditForm({ ...editForm, laboratory: autoCorrectLab(editForm.laboratory) })}
+                                            onBlur={() => setEditForm({ ...editForm, laboratory: autoCorrectLab(editForm.laboratory) || "" })}
                                             className={`w-full px-5 py-4 bg-stone-50 dark:bg-stone-800 border rounded-2xl font-bold text-sm outline-none focus:border-primary uppercase ${!editForm.laboratory ? 'border-red-300 dark:border-red-700' : 'border-stone-200 dark:border-stone-700'}`} 
                                         />
                                         {!editForm.laboratory && <p className="text-[9px] font-bold text-red-400 ml-3">El laboratorio es obligatorio para cristales</p>}
