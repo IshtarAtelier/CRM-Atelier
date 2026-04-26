@@ -34,8 +34,12 @@ export default function Home() {
           <Link href="/blog" className="hover:opacity-50 transition-opacity duration-300">Editorial</Link>
         </div>
         
-        <Link href="/" className="absolute left-1/2 -translate-x-1/2 text-[15px] font-bold tracking-[0.15em]">
-          ATELIER
+        <Link href="/" className="absolute left-1/2 -translate-x-1/2">
+          <img 
+            src="/images/logo-negro.png" 
+            alt="Atelier Óptica" 
+            className="h-8 w-auto invert"
+          />
         </Link>
 
         <div className="flex gap-6 text-[11px] font-medium tracking-[0.05em] uppercase">
@@ -212,7 +216,7 @@ export default function Home() {
         </div>
         
         <div className="w-full mt-auto border-t border-white/10 pt-8 flex flex-col md:flex-row justify-between items-end gap-8">
-          <h1 className="text-6xl md:text-[10rem] font-bold tracking-tighter leading-none select-none">ATELIER</h1>
+          <img src="/images/logo-blanco.png" alt="Atelier Óptica" className="h-20 md:h-32 w-auto" />
           <p className="text-[10px] uppercase tracking-widest text-gray-600 pb-2">© 2026 Atelier Óptica · Córdoba, Argentina</p>
         </div>
       </footer>
