@@ -24,6 +24,45 @@ let agentEnabled = false;
 let agentPrompt = '';
 let dailyContext = '';
 
+// ── Persistencia Zero-Migration ────────────────
+async function loadBotConfig() {
+    try {
+        const enabledTag = await prisma.tag.findUnique({ where: { name: '_BOT_ENABLED' } });
+        if (enabledTag) agentEnabled = enabledTag.color === 'true';
+        
+        const promptTag = await prisma.tag.findUnique({ where: { name: '_BOT_PROMPT' } });
+        if (promptTag && promptTag.color) agentPrompt = promptTag.color;
+        
+        const contextTag = await prisma.tag.findUnique({ where: { name: '_BOT_CONTEXT' } });
+        if (contextTag && contextTag.color) dailyContext = contextTag.color;
+        console.log(`🔌 Estado guardado cargado: Bot=${agentEnabled ? 'ON' : 'OFF'}`);
+    } catch (e) {
+        console.error('Error cargando config:', e);
+    }
+}
+
+async function saveBotConfig() {
+    try {
+        await prisma.tag.upsert({
+            where: { name: '_BOT_ENABLED' },
+            update: { color: agentEnabled ? 'true' : 'false' },
+            create: { name: '_BOT_ENABLED', color: agentEnabled ? 'true' : 'false' }
+        });
+        await prisma.tag.upsert({
+            where: { name: '_BOT_PROMPT' },
+            update: { color: agentPrompt || ' ' },
+            create: { name: '_BOT_PROMPT', color: agentPrompt || ' ' }
+        });
+        await prisma.tag.upsert({
+            where: { name: '_BOT_CONTEXT' },
+            update: { color: dailyContext || ' ' },
+            create: { name: '_BOT_CONTEXT', color: dailyContext || ' ' }
+        });
+    } catch (e) {
+        console.error('Error guardando config:', e);
+    }
+}
+
 // Temporal set of message IDs sent by the bot to avoid self-disabling
 const botMessageIds = new Set();
 const botIsSendingTo = new Set();
@@ -206,16 +245,20 @@ app.get('/api/agent', (req, res) => {
     res.json({ enabled: agentEnabled, prompt: agentPrompt, dailyContext });
 });
 
-app.post('/api/agent', (req, res) => {
+app.post('/api/agent', async (req, res) => {
     const { enabled, prompt, dailyContext: newDailyContext } = req.body;
     if (enabled !== undefined) agentEnabled = enabled;
     if (prompt !== undefined) agentPrompt = prompt;
     if (newDailyContext !== undefined) dailyContext = newDailyContext;
+    
+    await saveBotConfig();
+    
     res.json({ enabled: agentEnabled, prompt: agentPrompt, dailyContext });
 });
 
 const PORT = 3100;
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
     console.log(`WhatsApp Server on http://localhost:${PORT}`);
+    await loadBotConfig();
     waClient.initialize();
 });
