@@ -25,6 +25,7 @@ let agentPrompt = '';
 
 // Temporal set of message IDs sent by the bot to avoid self-disabling
 const botMessageIds = new Set();
+const botIsSendingTo = new Set();
 
 // ── Cliente WhatsApp ───────────────────────────
 const waClient = new Client({
@@ -53,6 +54,10 @@ waClient.on('message_create', async (msg) => {
     if (msg.fromMe && !botMessageIds.has(msg.id._serialized)) {
         // This is an outbound message sent by a human (phone or web)
         const waId = msg.to;
+        if (botIsSendingTo.has(waId)) {
+            // Ignore if bot is actively sending to this chat right now
+            return;
+        }
         try {
             const chat = await prisma.whatsAppChat.findUnique({ where: { waId } });
             if (chat && chat.botEnabled) {
@@ -124,25 +129,31 @@ waClient.on('message', async (msg) => {
 
                 if (botRes.data && botRes.data.response) {
                     const reply = botRes.data.response;
-                    const sent = await waClient.sendMessage(waId, reply);
-                    
-                    // Mark as bot message
-                    botMessageIds.add(sent.id._serialized);
-                    setTimeout(() => botMessageIds.delete(sent.id._serialized), 10000);
+                    botIsSendingTo.add(waId);
+                    try {
+                        const sent = await waClient.sendMessage(waId, reply);
+                        
+                        // Mark as bot message
+                        botMessageIds.add(sent.id._serialized);
+                        setTimeout(() => botMessageIds.delete(sent.id._serialized), 10000);
 
-                    // Save to DB (Outbound)
-                    await prisma.whatsAppMessage.create({
-                        data: {
-                            chatId: chat.id,
-                            direction: 'OUTBOUND',
-                            type: 'TEXT',
-                            content: reply,
-                            waMessageId: sent.id._serialized,
-                        }
-                    });
+                        // Save to DB (Outbound)
+                        await prisma.whatsAppMessage.create({
+                            data: {
+                                chatId: chat.id,
+                                direction: 'OUTBOUND',
+                                type: 'TEXT',
+                                content: reply,
+                                waMessageId: sent.id._serialized,
+                            }
+                        });
+                    } finally {
+                        setTimeout(() => botIsSendingTo.delete(waId), 2000);
+                    }
                 }
             } catch (err) {
                 console.error('  ❌ Error bot-service:', err.message);
+                botIsSendingTo.delete(waId);
             }
         }
 

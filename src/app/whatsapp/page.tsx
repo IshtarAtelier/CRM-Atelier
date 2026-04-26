@@ -75,6 +75,7 @@ export default function WhatsAppPage() {
     const [showConfig, setShowConfig] = useState(false);
     const [agentPrompt, setAgentPrompt] = useState('');
     const [agentEnabled, setAgentEnabled] = useState(false);
+    const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'success'>('idle');
     const [loadingStatus, setLoadingStatus] = useState(true);
     const [filterLabel, setFilterLabel] = useState<string | null>(null);
     const [showArchived, setShowArchived] = useState(false);
@@ -136,15 +137,21 @@ export default function WhatsAppPage() {
     };
 
     const saveAgent = async () => {
+        setSaveStatus('saving');
         try {
             await fetch('/api/whatsapp/agent', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ prompt: agentPrompt, enabled: agentEnabled }),
             });
-            alert('¡Personalidad de la IA guardada con éxito en el servidor!');
+            setSaveStatus('success');
+            setTimeout(() => {
+                setSaveStatus('idle');
+                setShowConfig(false);
+            }, 1000);
         } catch { 
             alert('Error al intentar guardar la configuración.');
+            setSaveStatus('idle');
         }
     };
 
@@ -288,15 +295,33 @@ export default function WhatsAppPage() {
                     </div>
                 </div>
 
-                <button
-                    onClick={() => { setShowConfig(!showConfig); if (!showConfig) fetchAgent(); }}
-                    className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl font-bold text-sm transition-all shadow-sm border ${showConfig
-                        ? 'bg-violet-600 text-white border-violet-500 shadow-violet-500/20'
-                        : 'bg-white/80 dark:bg-stone-800/80 text-stone-700 dark:text-stone-300 border-white/50 dark:border-white/10 hover:bg-white hover:scale-105'
-                        }`}
-                >
-                    <Bot className="w-4 h-4" /> Configurar Cerebro IA
-                </button>
+                <div className="flex items-center gap-6">
+                    <label className="flex items-center gap-3 cursor-pointer group bg-white/60 dark:bg-black/20 px-4 py-2 rounded-2xl border border-stone-200 dark:border-white/5 shadow-sm">
+                        <span className={`text-[13px] font-black uppercase tracking-wider ${agentEnabled ? 'text-violet-600' : 'text-stone-500'}`}>{agentEnabled ? 'Bot General: ON' : 'Bot General: OFF'}</span>
+                        <button
+                            onClick={() => {
+                                const next = !agentEnabled;
+                                setAgentEnabled(next);
+                                fetch('/api/whatsapp/agent', {
+                                    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ enabled: next }),
+                                });
+                            }}
+                            className={`w-14 h-7 rounded-full transition-all relative shadow-inner ${agentEnabled ? 'bg-violet-500' : 'bg-stone-300 dark:bg-stone-700'}`}
+                        >
+                            <div className={`w-6 h-6 rounded-full bg-white shadow-md absolute top-0.5 transition-all ${agentEnabled ? 'left-7.5 translate-x-full' : 'translate-x-0.5'}`} />
+                        </button>
+                    </label>
+
+                    <button
+                        onClick={() => { setShowConfig(!showConfig); if (!showConfig) fetchAgent(); }}
+                        className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl font-bold text-sm transition-all shadow-sm border ${showConfig
+                            ? 'bg-violet-600 text-white border-violet-500 shadow-violet-500/20'
+                            : 'bg-white/80 dark:bg-stone-800/80 text-stone-700 dark:text-stone-300 border-white/50 dark:border-white/10 hover:bg-white hover:scale-105'
+                            }`}
+                    >
+                        <Settings className="w-4 h-4" /> Personalidad
+                    </button>
+                </div>
             </div>
 
             {/* Panel de Configuración Agente Animado */}
@@ -313,21 +338,6 @@ export default function WhatsAppPage() {
                             </div>
                         </div>
                         <div className="flex items-center gap-6">
-                            <label className="flex items-center gap-3 cursor-pointer group">
-                                <span className={`text-sm font-black ${agentEnabled ? 'text-violet-600' : 'text-stone-500'}`}>{agentEnabled ? 'Activa On-Line' : 'Suspendida'}</span>
-                                <button
-                                    onClick={() => {
-                                        const next = !agentEnabled;
-                                        setAgentEnabled(next);
-                                        fetch('/api/whatsapp/agent', {
-                                            method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ enabled: next }),
-                                        });
-                                    }}
-                                    className={`w-14 h-7 rounded-full transition-all relative shadow-inner ${agentEnabled ? 'bg-violet-500' : 'bg-stone-300 dark:bg-stone-700'}`}
-                                >
-                                    <div className={`w-6 h-6 rounded-full bg-white shadow-md absolute top-0.5 transition-all ${agentEnabled ? 'left-7.5 translate-x-full' : 'translate-x-0.5'}`} />
-                                </button>
-                            </label>
                             <button onClick={() => setShowConfig(false)} className="p-2 text-stone-400 hover:text-stone-800 bg-black/5 rounded-full transition-colors">
                                 <X className="w-5 h-5" />
                             </button>
@@ -343,9 +353,10 @@ export default function WhatsAppPage() {
                         />
                         <button
                             onClick={saveAgent}
-                            className="self-end px-6 py-2.5 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white font-black text-xs uppercase tracking-widest rounded-xl shadow-lg shadow-violet-500/30 transition-all active:scale-95"
+                            disabled={saveStatus !== 'idle'}
+                            className={`self-end px-6 py-2.5 bg-gradient-to-r ${saveStatus === 'success' ? 'from-emerald-500 to-emerald-600 shadow-emerald-500/30' : 'from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 shadow-violet-500/30'} text-white font-black text-xs uppercase tracking-widest rounded-xl shadow-lg transition-all active:scale-95 ${saveStatus === 'saving' ? 'opacity-70 cursor-wait' : ''}`}
                         >
-                            Guardar Personalidad
+                            {saveStatus === 'saving' ? 'Guardando...' : saveStatus === 'success' ? '✓ ¡Guardado!' : 'Guardar Personalidad'}
                         </button>
                     </div>
                 </div>
@@ -573,11 +584,9 @@ export default function WhatsAppPage() {
 
                                         <div className="w-px h-8 bg-stone-200 dark:bg-stone-700 mx-1" />
 
-                                        {agentEnabled && (
-                                            <button onClick={() => toggleBot(selectedChat.id, !selectedChat.botEnabled)} className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black transition-all shadow-sm ${selectedChat.botEnabled ? 'bg-violet-100 text-violet-700 border-violet-200 hover:bg-red-50 hover:text-red-600' : 'bg-stone-100 text-stone-500 hover:bg-violet-500 hover:text-white'}`}>
-                                                {selectedChat.botEnabled ? <><Bot className="w-4 h-4" /> IA ON</> : <><Bot className="w-4 h-4 opacity-50" /> IA OFF</>}
-                                            </button>
-                                        )}
+                                        <button onClick={() => toggleBot(selectedChat.id, !selectedChat.botEnabled)} className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black transition-all shadow-sm ${selectedChat.botEnabled ? 'bg-violet-100 text-violet-700 border-violet-200 hover:bg-red-50 hover:text-red-600' : 'bg-stone-100 text-stone-500 hover:bg-violet-500 hover:text-white'}`}>
+                                            {selectedChat.botEnabled ? <><Bot className="w-4 h-4" /> IA ON</> : <><Bot className="w-4 h-4 opacity-50" /> IA OFF</>}
+                                        </button>
                                     </div>
                                 </div>
 
