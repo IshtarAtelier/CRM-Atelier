@@ -36,6 +36,8 @@ export default function InventarioPage() {
     const [userRole, setUserRole] = useState('STAFF');
     const [showEditRanges, setShowEditRanges] = useState(false);
     const [showLabImporter, setShowLabImporter] = useState(false);
+    const [editingMarkup, setEditingMarkup] = useState<string | null>(null);
+    const [editMarkupValue, setEditMarkupValue] = useState('');
 
     useEffect(() => {
         try {
@@ -469,7 +471,37 @@ export default function InventarioPage() {
                                         {isCristal ? <span className="text-[9px] font-black text-violet-600 bg-violet-50 dark:bg-violet-950/30 px-2 py-1 rounded-lg inline-block">{p.laboratory || 'Lab'}</span> : <span className={`text-sm font-black ${p.stock <= 2 ? 'text-red-500' : 'text-stone-800 dark:text-stone-200'}`}>{p.stock}</span>}
                                     </div>
                                     {isAdmin && <div className="text-right pr-4"><span className="text-sm font-bold text-stone-400">${p.cost?.toLocaleString()}</span></div>}
-                                    {isAdmin && <div className="text-right pr-4">{p.cost > 0 ? <span className={`text-[11px] font-black px-2 py-0.5 rounded-lg ${(p.price / p.cost) >= 2.4 ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/30 dark:text-emerald-400' : (p.price / p.cost) >= 1.5 ? 'bg-amber-50 text-amber-600 dark:bg-amber-950/30 dark:text-amber-400' : 'bg-red-50 text-red-600 dark:bg-red-950/30 dark:text-red-400'}`}>×{(p.price / p.cost).toFixed(2)}</span> : <span className="text-stone-300">—</span>}</div>}
+                                    {isAdmin && <div className="text-right pr-4">{p.cost > 0 ? (
+                                        editingMarkup === p.id ? (
+                                            <input
+                                                type="text"
+                                                value={editMarkupValue}
+                                                onChange={e => setEditMarkupValue(e.target.value)}
+                                                onKeyDown={async e => {
+                                                    if (e.key === 'Enter') {
+                                                        const mult = parseFloat(editMarkupValue.replace(',', '.'));
+                                                        if (!isNaN(mult) && mult > 0) {
+                                                            const newPrice = Math.round(p.cost * mult);
+                                                            await fetch(`/api/products/${p.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ price: newPrice }) });
+                                                            refresh();
+                                                        }
+                                                        setEditingMarkup(null);
+                                                    } else if (e.key === 'Escape') setEditingMarkup(null);
+                                                }}
+                                                onBlur={() => setEditingMarkup(null)}
+                                                autoFocus
+                                                className="w-16 px-1.5 py-0.5 text-[11px] font-black text-center border-2 border-primary rounded-lg outline-none bg-white dark:bg-stone-900"
+                                            />
+                                        ) : (
+                                            <button
+                                                onClick={() => { setEditingMarkup(p.id); setEditMarkupValue((p.price / p.cost).toFixed(2)); }}
+                                                className={`text-[11px] font-black px-2 py-0.5 rounded-lg cursor-pointer hover:ring-2 hover:ring-primary/30 transition-all ${(p.price / p.cost) >= 2.4 ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/30 dark:text-emerald-400' : (p.price / p.cost) >= 1.5 ? 'bg-amber-50 text-amber-600 dark:bg-amber-950/30 dark:text-amber-400' : 'bg-red-50 text-red-600 dark:bg-red-950/30 dark:text-red-400'}`}
+                                                title="Click para editar markup"
+                                            >
+                                                ×{(p.price / p.cost).toFixed(2)}
+                                            </button>
+                                        )
+                                    ) : <span className="text-stone-300">—</span>}</div>}
                                     <div className="text-right pr-4"><span className="text-sm font-black text-stone-900 dark:text-white">${p.price?.toLocaleString()}</span></div>
                                     {isAdmin && (
                                         <div className="flex items-center gap-1">
