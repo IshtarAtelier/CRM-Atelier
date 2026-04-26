@@ -43,7 +43,7 @@ export function ProductCard({ product, onDelete, isAdmin = false }: ProductCardP
                         )}
                     </div>
                     <h3 className="text-lg font-black text-stone-900 dark:text-white uppercase tracking-tight truncate leading-tight flex items-center gap-2">
-                        {product.name || `${product.brand} ${product.model}`}
+                        {product.name || product.brand || 'Sin nombre'}
                         {product.is2x1 && (
                             <span className="shrink-0 px-2 py-0.5 bg-emerald-100 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400 text-[9px] font-black rounded-full border border-emerald-200 dark:border-emerald-800">
                                 2x1
@@ -51,7 +51,7 @@ export function ProductCard({ product, onDelete, isAdmin = false }: ProductCardP
                         )}
                     </h3>
                     <p className="text-[10px] font-bold text-stone-400 uppercase tracking-[0.2em] mt-1 italic">
-                        {product.name ? `${product.brand} ${product.model || ''}` : 'Sin modelo especificado'}
+                        {product.brand || ''}
                     </p>
                     {product.laboratory && (
                         <span className="inline-flex items-center gap-1 mt-1.5 text-[9px] font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950 px-2 py-0.5 rounded-full uppercase tracking-widest">

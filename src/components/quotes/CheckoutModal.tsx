@@ -141,7 +141,7 @@ export default function CheckoutModal({
                                             <span className="w-6 h-6 bg-stone-200 dark:bg-stone-700 rounded-lg flex items-center justify-center text-[10px] font-black">{it.quantity}</span>
                                             <div>
                                                 <p className="text-sm font-bold text-stone-700 dark:text-stone-200">
-                                                    {it.product?.brand || ''} {it.product?.model || it.product?.name || 'Producto'}
+                                                    {it.product?.brand || ''} · {it.product?.name || 'Producto'}
                                                 </p>
                                                 {it.eye && <span className="text-[10px] font-black text-primary uppercase">{it.eye}</span>}
                                             </div>

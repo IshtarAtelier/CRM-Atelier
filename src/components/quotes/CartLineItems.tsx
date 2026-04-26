@@ -42,7 +42,7 @@ export default function CartLineItems({
                     )}
                     <div className="flex-1 min-w-0">
                         <p className="text-sm font-black text-stone-800 dark:text-white truncate group-hover:text-primary transition-colors flex items-center gap-2">
-                            {item.product.brand} {item.product.model || item.product.name}
+                            {item.product.brand} · {item.product.name}
                             {safePrice(item.customPrice) === 0 && isMultifocal2x1(item.product) && (
                                 <span className="bg-emerald-500 text-white text-[7px] px-1.5 py-0.5 rounded-lg font-black uppercase tracking-widest animate-pulse">
                                     BONIFICADO 2x1

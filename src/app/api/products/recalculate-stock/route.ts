@@ -52,7 +52,7 @@ export async function POST() {
             if (soldQty === 0) continue;
 
             const newStock = Math.max(0, product.stock - soldQty);
-            const name = `${product.brand || ''} ${product.model || product.name || ''}`.trim();
+            const name = `${product.brand || ''} ${product.name || ''}`.trim();
 
             updates.push({
                 id: product.id,

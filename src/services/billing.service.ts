@@ -77,7 +77,7 @@ export const BillingService = {
         const UNIT_PRICE_LIMIT = 499000;
         
         const itemsToValidate = items || order.items.map(it => ({
-            description: `${it.product?.brand || ''} ${it.product?.model || it.product?.name || 'Producto'}`.trim(),
+            description: `${it.product?.brand || ''} ${it.product?.name || 'Producto'}`.trim(),
             price: it.price
         }));
 
@@ -275,7 +275,7 @@ export const BillingService = {
             // Preparar ítems para el PDF
             const pdfItems = invoice.totalAmount === invoice.order.total
                 ? invoice.order.items.map((item: any) => ({
-                    description: `${item.product?.brand || ''} ${item.product?.model || item.product?.name || ''}`.trim(),
+                    description: `${item.product?.brand || ''} ${item.product?.name || ''}`.trim(),
                     quantity: item.quantity,
                     unit_price: item.price,
                     subtotal: item.price * item.quantity,

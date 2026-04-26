@@ -50,7 +50,7 @@ export async function GET(req: NextRequest) {
     const productsMapped = products.map(p => ({
         id: p.id,
         source: 'PRODUCT' as const,
-        name: p.botLabel || `${p.brand ?? ''} ${p.model ?? p.name ?? ''}`.trim(),
+        name: p.botLabel || `${p.brand ?? ''} ${p.name ?? ''}`.trim(),
         category: p.type || p.category,
         priceCash: p.price,
         priceCredit: null, // Se calcula en el bot si no está

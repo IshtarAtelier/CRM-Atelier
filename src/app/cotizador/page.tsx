@@ -421,7 +421,7 @@ function CotizadorPageContent() {
         // Build the message
         let msg = `Hola ${pendingContact.name}, te envío el presupuesto solicitado:\n\n`;
         quoteItems.forEach(it => {
-            msg += `- ${it.product.brand} ${it.product.model || ''} (${it.product.name}) ${it.eye ? '['+it.eye+']' : ''}: $${it.customPrice.toLocaleString()}\n`;
+            msg += `- ${it.product.brand} · ${it.product.name || ''} ${it.eye ? '['+it.eye+']' : ''}: $${it.customPrice.toLocaleString()}\n`;
         });
         msg += `\n*Precio Lista: $${listPrice.toLocaleString()}*\n`;
         msg += `💰 Efectivo (-${discountCash}%): $${Math.round(totalCash).toLocaleString()}\n`;
@@ -439,7 +439,7 @@ function CotizadorPageContent() {
     const handleCopy = () => {
         let text = `PRESUPUESTO ATELIER\n\n`;
         quoteItems.forEach(it => {
-            text += `• ${it.product.brand} ${it.product.model || ''} (${it.product.name}) ${it.eye ? '['+it.eye+']' : ''}: $${it.customPrice.toLocaleString()}\n`;
+            text += `• ${it.product.brand} · ${it.product.name || ''} ${it.eye ? '['+it.eye+']' : ''}: $${it.customPrice.toLocaleString()}\n`;
         });
         text += `\nTotal Lista: $${Math.round(totalWithMarkup).toLocaleString()}\n`;
         text += `Promo Efectivo: $${Math.round(totalCash).toLocaleString()}\n`;
@@ -608,7 +608,7 @@ function CotizadorPageContent() {
                                                         <span className="text-[10px] font-bold">{product.lensIndex || '—'}</span>
                                                     </td>
                                                     <td className="px-3 py-2 border-r border-stone-100 dark:border-stone-800">
-                                                        <p className="text-[11px] font-bold truncate max-w-sm">{product.name || product.model || '—'}</p>
+                                                        <p className="text-[11px] font-bold truncate max-w-sm">{product.name || '—'}</p>
                                                     </td>
                                                     <td className="px-3 py-2 text-right font-black text-xs">${Math.round(pTotal).toLocaleString()}</td>
                                                     <td className="px-3 py-2 text-right font-black text-xs text-emerald-600">${Math.round(pCash).toLocaleString()}</td>
@@ -638,7 +638,7 @@ function CotizadorPageContent() {
                                 >
                                     <div>
                                         <p className="text-[9px] font-black uppercase text-stone-400 truncate">{product.brand}</p>
-                                        <p className="text-[11px] font-black leading-tight mt-0.5 line-clamp-2">{product.model || product.name}</p>
+                                        <p className="text-[11px] font-black leading-tight mt-0.5 line-clamp-2">{product.name}</p>
                                     </div>
                                     <div className="flex items-center justify-between mt-auto">
                                         <p className="text-sm font-black text-primary">${safePrice(product.price).toLocaleString()}</p>

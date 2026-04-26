@@ -204,7 +204,7 @@ export default function CotizadorCart({
                         <div className="relative mb-3">
                             <Search className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-stone-300" />
                             <input type="text" placeholder="Buscar armazón..." value={frameSearch} onChange={e => setFrameSearch(e.target.value)} className="w-full bg-white border-2 py-3 pl-11 pr-4 rounded-2xl text-xs font-bold" />
-                            {frameResults.length > 0 && <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2">{frameResults.map(fr => <button key={fr.id} onClick={() => { setItems(prev => [...prev, { product: fr, quantity: 1, customPrice: fr.price, uid: Date.now() }]); setFrameSearch(''); }} className="p-3 bg-white border-2 rounded-xl text-left text-[11px] font-black hover:border-amber-400">{fr.brand} {fr.model}</button>)}</div>}
+                            {frameResults.length > 0 && <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2">{frameResults.map(fr => <button key={fr.id} onClick={() => { setItems(prev => [...prev, { product: fr, quantity: 1, customPrice: fr.price, uid: Date.now() }]); setFrameSearch(''); }} className="p-3 bg-white border-2 rounded-xl text-left text-[11px] font-black hover:border-amber-400">{fr.brand} · {fr.name}</button>)}</div>}
                         </div>
                     )}
                     {frameSource === 'USUARIO' && (

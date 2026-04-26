@@ -97,7 +97,7 @@ export default function QuoteSummary({
                     {order.items?.map((item: any) => (
                         <div key={item.id} className="flex items-center justify-between text-[10px] font-medium text-stone-600 dark:text-stone-400">
                             <span className="truncate max-w-[120px]">
-                                {item.product?.brand || ''} {item.product?.model || item.product?.name || ''}
+                                {item.product?.brand || ''} · {item.product?.name || ''}
                             </span>
                             <span>x{item.quantity}</span>
                         </div>
@@ -155,7 +155,7 @@ export default function QuoteSummary({
 
     const handleWhatsApp = () => {
         const items = order.items || [];
-        const itemLines = items.map((it: any) => `• ${it.product?.brand || ''} ${it.product?.model || it.product?.name || 'Producto'} x${it.quantity}`).join('%0A');
+        const itemLines = items.map((it: any) => `• ${it.product?.brand || ''} · ${it.product?.name || 'Producto'} x${it.quantity}`).join('%0A');
         
         let text = `✨ *${isSale ? 'VENTA' : 'PRESUPUESTO'} — ATELIER ÓPTICA* ✨%0A`;
         text += `👤 *Cliente:* ${contact.name}%0A%0A`;

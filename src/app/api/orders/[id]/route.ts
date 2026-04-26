@@ -600,7 +600,7 @@ export async function PATCH(
                 for (const item of stockItems) {
                     const product = item.product;
                     if (product && product.stock < item.quantity) {
-                        const name = `${product.brand || ''} ${product.model || product.name || ''}`.trim();
+                        const name = `${product.brand || ''} ${product.name || ''}`.trim();
                         insufficientStock.push(`${name}: stock ${product.stock}, necesitás ${item.quantity}`);
                     } else if (!product) {
                         // If product is missing, we treat it as an error or just skip? 

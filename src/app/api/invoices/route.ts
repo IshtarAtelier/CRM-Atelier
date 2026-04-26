@@ -70,7 +70,7 @@ export async function POST(request: Request) {
                     docNumber: docNumber || '0',
                     total: order.total,
                     items: order.items.map((i: any) => ({
-                        description: `${i.product?.brand || ''} ${i.product?.model || i.product?.name || 'Producto'}`.trim(),
+                        description: `${i.product?.brand || ''} ${i.product?.name || 'Producto'}`.trim(),
                         quantity: i.quantity,
                         unitPrice: i.price,
                         total: i.quantity * i.price,

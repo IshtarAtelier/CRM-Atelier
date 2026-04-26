@@ -114,7 +114,7 @@ export async function generateInvoicePDF(data: InvoiceData) {
     // --- 3. TABLA DE ÍTEMS (Diseño Premium sin líneas verticales) ---
     const tableItems = invoice.order.items.map((it: any) => [
         it.product?.id?.slice(-4).toUpperCase() || '-',
-        `${it.product?.brand || ''} ${it.product?.model || it.product?.name || 'Producto'}`.trim(),
+        `${it.product?.brand || ''} ${it.product?.name || 'Producto'}`.trim(),
         it.quantity,
         'unidades',
         it.price.toLocaleString('es-AR', { minimumFractionDigits: 2 }),

@@ -166,7 +166,7 @@ export async function GET(
                 return `
                 <tr>
                     <td>
-                        <div style="font-weight: 900;">${it.product?.brand || ''} ${it.product?.model || it.product?.name || ''}</div>
+                        <div style="font-weight: 900;">${it.product?.brand || ''} ${it.product?.name || ''}</div>
                         ${it.eye ? `<div style="font-size:10px; color:#78716c;">Lado: ${it.eye}</div>` : ''}
                     </td>
                     <td style='text-align:center; font-weight: 800;'>${it.quantity}</td>

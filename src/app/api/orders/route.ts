@@ -147,7 +147,7 @@ export async function POST(request: Request) {
 
         // Register quote in client history
         const itemSummaries = order.items.map((i: any) =>
-            `${i.product?.brand || ''} ${i.product?.model || i.product?.name || ''} x${i.quantity}`.trim()
+            `${i.product?.brand || ''} ${i.product?.name || ''} x${i.quantity}`.trim()
         );
         const historyContent = `📋 Presupuesto #${order.id.slice(-4).toUpperCase()} creado por $${(total || 0).toLocaleString('es-AR')}${discount ? ` (${discount}% desc. efvo)` : ''}${markup ? ` (+${markup}% markup)` : ''} — ${itemSummaries.join(', ')}`;
         await prisma.interaction.create({

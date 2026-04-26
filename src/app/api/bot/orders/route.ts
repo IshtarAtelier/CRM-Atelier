@@ -79,7 +79,7 @@ export async function POST(request: Request) {
         });
 
         // Register interaction
-        const itemNames = order.items.map(i => `${i.product?.brand || ''} ${i.product?.model || i.product?.name || ''}`).join(', ');
+        const itemNames = order.items.map(i => `${i.product?.brand || ''} ${i.product?.name || ''}`).join(', ');
         await prisma.interaction.create({
             data: {
                 clientId,

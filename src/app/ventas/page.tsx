@@ -416,7 +416,7 @@ export default function VentasPage() {
 
 <table>
     <thead><tr><th>Producto</th><th>Tipo</th><th style='text-align:center'>Cant.</th><th style='text-align:right'>Precio</th><th style='text-align:right'>Subtotal</th></tr></thead>
-    <tbody>${items.map(it => `<tr><td>${it.product?.brand || ''} ${it.product?.model || it.product?.name || ''}</td><td>${it.product?.type || it.product?.category || ''}</td><td style='text-align:center'>${it.quantity}</td><td style='text-align:right'>$${it.price?.toLocaleString()}</td><td style='text-align:right'>$${(it.price * it.quantity).toLocaleString()}</td></tr>`).join('')}</tbody>
+    <tbody>${items.map(it => `<tr><td>${it.product?.brand || ''} ${it.product?.name || ''}</td><td>${it.product?.type || it.product?.category || ''}</td><td style='text-align:center'>${it.quantity}</td><td style='text-align:right'>$${it.price?.toLocaleString()}</td><td style='text-align:right'>$${(it.price * it.quantity).toLocaleString()}</td></tr>`).join('')}</tbody>
 </table>
 
 <div class='financial-grid'>
@@ -1084,7 +1084,7 @@ export default function VentasPage() {
                                                             <div className="mt-1 space-y-1">
                                                                 {frameItems.map(fi => (
                                                                     <div key={fi.id} className="bg-white/60 dark:bg-stone-800/40 rounded-lg px-3 py-1.5">
-                                                                        <span className="text-xs font-bold text-stone-800 dark:text-stone-200">{fi.product?.brand} {fi.product?.model || fi.product?.name}</span>
+                                                                        <span className="text-xs font-bold text-stone-800 dark:text-stone-200">{fi.product?.brand} · {fi.product?.name}</span>
                                                                     </div>
                                                                 ))}
                                                                 {hasUserFrame && (
@@ -1145,7 +1145,7 @@ export default function VentasPage() {
                                                                 {lensItems.map(li => (
                                                                     <div key={li.id} className="bg-white/60 dark:bg-stone-800/40 rounded-lg px-3 py-1.5">
                                                                         <div className="flex items-center justify-between">
-                                                                            <span className="text-xs font-bold text-stone-800 dark:text-stone-200">{li.product?.brand} {li.product?.model || li.product?.name}</span>
+                                                                            <span className="text-xs font-bold text-stone-800 dark:text-stone-200">{li.product?.brand} · {li.product?.name}</span>
                                                                             {li.product?.laboratory && (
                                                                                 <span className="text-[7px] font-black uppercase tracking-wider px-1.5 py-0.5 bg-amber-100 dark:bg-amber-900/30 text-amber-600 rounded">{li.product.laboratory}</span>
                                                                             )}
@@ -1189,7 +1189,7 @@ export default function VentasPage() {
                                                 <div className="flex flex-wrap gap-2 mt-1">
                                                     {order.items.filter(i => i.product?.category !== 'Cristal' && i.product?.category !== 'FRAME' && i.product?.category !== 'ATELIER').map(oi => (
                                                         <span key={oi.id} className="text-[10px] font-bold bg-stone-100 dark:bg-stone-700 px-2 py-1 rounded-lg text-stone-600 dark:text-stone-300">
-                                                            {oi.product?.brand} {oi.product?.model || oi.product?.name} x{oi.quantity}
+                                                            {oi.product?.brand} · {oi.product?.name} x{oi.quantity}
                                                         </span>
                                                     ))}
                                                 </div>

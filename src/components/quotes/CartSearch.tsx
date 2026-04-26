@@ -39,7 +39,7 @@ export default function CartSearch({
                         >
                             <div className="flex-1">
                                 <p className="text-xs font-black text-stone-800 dark:text-white uppercase">
-                                    {p.brand} {p.model || p.name}
+                                    {p.brand} · {p.name}
                                 </p>
                                 <p className="text-[9px] font-bold text-stone-400 uppercase tracking-widest">
                                     {p.type || p.category} {p.lensIndex ? `· ${p.lensIndex}` : ''}

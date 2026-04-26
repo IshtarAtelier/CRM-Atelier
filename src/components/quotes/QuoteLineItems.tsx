@@ -58,7 +58,7 @@ export default function QuoteLineItems({
                             <div>
                                 <div className="flex items-center gap-2">
                                     <span className="text-sm font-black text-stone-800 dark:text-stone-200 block group-hover/item:text-primary transition-colors">
-                                        {(item.product?.brand || '').toUpperCase()} {item.product?.model || item.product?.name}
+                                        {(item.product?.brand || '').toUpperCase()} · {item.product?.name}
                                     </span>
                                     {isBonified && (
                                         <span className="bg-emerald-500 text-white text-[7px] px-1.5 py-0.5 rounded-lg font-black uppercase tracking-widest animate-pulse">

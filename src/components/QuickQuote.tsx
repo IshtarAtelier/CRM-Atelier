@@ -76,7 +76,7 @@ export default function QuickQuote({ onClose }: QuickQuoteProps) {
 
             if (newContact) {
                 // 2. Registrar la interacción del presupuesto
-                const itemsList = quoteItems.map(i => `${i.brand} ${i.model || ''} ($${i.price})`).join(', ');
+                const itemsList = quoteItems.map(i => `${i.brand} ${i.name || ''} ($${i.price})`).join(', ');
                 await addInteraction(newContact.id, 'BUDGET_SENT', `Presupuesto enviado: ${itemsList}. Total: $${total}`);
 
                 alert('Venta y contacto registrados correctamente.');
@@ -137,7 +137,7 @@ export default function QuickQuote({ onClose }: QuickQuoteProps) {
                                                         >
                                                             <div className="text-left">
                                                                 <p className="font-black text-stone-800 dark:text-white uppercase tracking-tight text-sm">{product.brand}</p>
-                                                                <p className="text-[10px] font-bold text-stone-400 uppercase tracking-widest italic">{product.model || (product.type || 'Standard')}</p>
+                                                                <p className="text-[10px] font-bold text-stone-400 uppercase tracking-widest italic">{product.name || (product.type || 'Standard')}</p>
                                                             </div>
                                                             <div className="flex items-center gap-4">
                                                                 <span className="font-black text-primary text-sm">${product.price.toLocaleString()}</span>
@@ -165,7 +165,7 @@ export default function QuickQuote({ onClose }: QuickQuoteProps) {
                                         quoteItems.map(item => (
                                             <div key={item.idOnQuote} className="p-4 bg-white dark:bg-stone-800 rounded-3xl border border-stone-100 dark:border-stone-700 shadow-sm flex items-center justify-between group animate-in slide-in-from-right-4 duration-300">
                                                 <div className="min-w-0">
-                                                    <p className="font-black text-[10px] uppercase truncate">{item.brand} {item.model || ''}</p>
+                                                    <p className="font-black text-[10px] uppercase truncate">{item.brand} · {item.name || ''}</p>
                                                     <p className="text-[9px] font-bold text-stone-400 tracking-widest uppercase">${item.price.toLocaleString()}</p>
                                                 </div>
                                                 <button

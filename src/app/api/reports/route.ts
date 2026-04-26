@@ -199,7 +199,7 @@ export async function GET(request: Request) {
                 }
 
                 // Product stats
-                const pName = `${product.brand || ''} ${product.model || product.name || 'Sin nombre'}`.trim();
+                const pName = `${product.brand || ''} ${product.name || 'Sin nombre'}`.trim();
                 const pId = product.id;
                 if (!productStats[pId]) productStats[pId] = { name: pName, type: product.type || product.category || '', qty: 0, revenue: 0, cost: 0 };
                 
@@ -222,7 +222,7 @@ export async function GET(request: Request) {
                     labProfitStats[labName].clients.push({
                         name: order.client?.name || 'Desconocido',
                         date: order.createdAt.toISOString(),
-                        product: `${product.brand || ''} ${product.model || product.name || ''}`.trim(),
+                        product: `${product.brand || ''} ${product.name || ''}`.trim(),
                         revenue: itemRevenue,
                         cost: itemCost
                     });

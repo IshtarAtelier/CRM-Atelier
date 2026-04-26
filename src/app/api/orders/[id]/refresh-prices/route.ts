@@ -42,7 +42,7 @@ export async function POST(
             if (item.price !== currentPrice) {
                 changes.push({
                     itemId: item.id,
-                    productName: `${product.brand || ''} ${product.model || product.name || ''}`.trim(),
+                    productName: `${product.brand || ''} ${product.name || ''}`.trim(),
                     oldPrice: item.price,
                     newPrice: currentPrice,
                 });

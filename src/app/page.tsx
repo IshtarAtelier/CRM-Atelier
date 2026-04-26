@@ -400,7 +400,7 @@ export default function Home() {
                 </div>
                 <div className="space-y-2 relative z-10">
                   <p className="text-[10px] font-bold text-stone-500 line-clamp-2">
-                    {Array.from(new Set(o.items.map((it: any) => `${it.product?.brand || ''} ${it.product?.model || it.product?.name || ''}`.trim()).filter(Boolean))).join(' + ')}
+                    {Array.from(new Set(o.items.map((it: any) => `${it.product?.brand || ''} ${it.product?.name || ''}`.trim()).filter(Boolean))).join(' + ')}
                   </p>
                   <div className="flex items-center justify-between pt-2 border-t border-stone-50 dark:border-stone-800">
                     <span className="text-sm font-black text-primary">${o.total.toLocaleString()}</span>

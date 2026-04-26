@@ -180,7 +180,7 @@ export class PricingService {
         if (!targetFrame) return { discount: 0, itemName: null };
 
         const framePrice = safePrice(targetFrame.price);
-        const frameName = `${targetFrame.product?.brand || ''} ${targetFrame.product?.model || targetFrame.product?.name || 'Armazón'}`.trim();
+        const frameName = `${targetFrame.product?.brand || ''} ${targetFrame.product?.name || 'Armazón'}`.trim();
 
         // Si es Atelier, 100% bonificado
         if (isAtelierFrame(targetFrame.product)) {
