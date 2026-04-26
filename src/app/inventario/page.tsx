@@ -1,9 +1,10 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Plus, Search, Package, Loader2, AlertCircle, ArrowUpRight, Trash2, ShoppingBag, CheckSquare, Square, X, Pencil, Save, Download, Upload, CheckCircle2 } from "lucide-react";
+import { Plus, Search, Package, Loader2, AlertCircle, ArrowUpRight, Trash2, ShoppingBag, CheckSquare, Square, X, Pencil, Save, Download, Upload, CheckCircle2, Zap } from "lucide-react";
 import { Product } from '@/hooks/useProducts';
 import ProductForm from '@/components/inventory/ProductForm';
+import LabPriceImporter from '@/components/inventory/LabPriceImporter';
 import { useProducts } from '@/hooks/useProducts';
 import { autoCorrectLab } from '@/utils/product-controllers';
 
@@ -34,6 +35,7 @@ export default function InventarioPage() {
     const [importResult, setImportResult] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
     const [userRole, setUserRole] = useState('STAFF');
     const [showEditRanges, setShowEditRanges] = useState(false);
+    const [showLabImporter, setShowLabImporter] = useState(false);
 
     useEffect(() => {
         try {
@@ -254,6 +256,13 @@ export default function InventarioPage() {
                     {isAdmin && (
                         <>
                             <button
+                                onClick={() => setShowLabImporter(true)}
+                                className="flex-1 lg:flex-none flex items-center justify-center gap-2 px-5 lg:px-6 py-2.5 lg:py-3 bg-amber-600 text-white rounded-xl text-[9px] lg:text-[10px] font-black shadow-lg hover:scale-105 active:scale-95 transition-all group uppercase tracking-widest whitespace-nowrap"
+                            >
+                                <Zap className="w-4 h-4 group-hover:rotate-12 transition-transform" strokeWidth={3} />
+                                OCR Lab
+                            </button>
+                            <button
                                 onClick={() => setShowForm(true)}
                                 className="flex-1 lg:flex-none flex items-center justify-center gap-2 px-5 lg:px-6 py-2.5 lg:py-3 bg-stone-900 text-white dark:bg-primary dark:text-primary-foreground rounded-xl text-[9px] lg:text-[10px] font-black shadow-lg hover:scale-105 active:scale-95 transition-all group uppercase tracking-widest whitespace-nowrap"
                             >
@@ -403,7 +412,7 @@ export default function InventarioPage() {
                 {/* Table view (Desktop only) */}
                 <div className="hidden lg:block overflow-x-auto">
                     {/* Table header */}
-                    <div className={`grid ${isAdmin ? 'grid-cols-[40px_6fr_1.5fr_1fr_1.5fr_1.2fr_1.2fr_80px]' : 'grid-cols-[40px_6fr_1.5fr_1fr_1.5fr_1.2fr_80px]'} gap-4 px-6 py-3 bg-stone-50 dark:bg-stone-800/50 border-b border-stone-100 dark:border-stone-800 items-center`}>
+                    <div className={`grid ${isAdmin ? 'grid-cols-[40px_6fr_1.5fr_1fr_1.5fr_1.2fr_0.8fr_1.2fr_80px]' : 'grid-cols-[40px_6fr_1.5fr_1fr_1.5fr_1.2fr_80px]'} gap-4 px-6 py-3 bg-stone-50 dark:bg-stone-800/50 border-b border-stone-100 dark:border-stone-800 items-center`}>
                         {/* Select all checkbox */}
                         <div className="flex justify-center">
                             <button
@@ -417,8 +426,8 @@ export default function InventarioPage() {
                                 )}
                             </button>
                         </div>
-                        {(isAdmin ? ['Producto', 'Tipo', 'Índice', 'Stock', 'Costo', 'Precio', ''] : ['Producto', 'Tipo', 'Índice', 'Stock', 'Precio', '']).map((h, i) => {
-                            const isNumeric = ['Stock', 'Costo', 'Precio'].includes(h);
+                        {(isAdmin ? ['Producto', 'Tipo', 'Índice', 'Stock', 'Costo', 'Markup', 'Precio', ''] : ['Producto', 'Tipo', 'Índice', 'Stock', 'Precio', '']).map((h, i) => {
+                            const isNumeric = ['Stock', 'Costo', 'Markup', 'Precio'].includes(h);
                             const isCentered = ['Tipo', 'Índice'].includes(h);
                             return (
                                 <div 
@@ -438,7 +447,7 @@ export default function InventarioPage() {
                             return (
                                 <div
                                     key={p.id}
-                                    className={`grid ${isAdmin ? 'grid-cols-[40px_6fr_1.5fr_1fr_1.5fr_1.2fr_1.2fr_80px]' : 'grid-cols-[40px_6fr_1.5fr_1fr_1.5fr_1.2fr_80px]'} gap-4 px-6 py-4 items-center hover:bg-stone-50/70 dark:hover:bg-stone-800/30 transition-colors group ${isSelected ? 'bg-primary/5' : ''}`}
+                                    className={`grid ${isAdmin ? 'grid-cols-[40px_6fr_1.5fr_1fr_1.5fr_1.2fr_0.8fr_1.2fr_80px]' : 'grid-cols-[40px_6fr_1.5fr_1fr_1.5fr_1.2fr_80px]'} gap-4 px-6 py-4 items-center hover:bg-stone-50/70 dark:hover:bg-stone-800/30 transition-colors group ${isSelected ? 'bg-primary/5' : ''}`}
                                 >
                                     <div className="flex justify-center">
                                         <button onClick={() => toggleSelect(p.id)} className="text-stone-300 hover:text-primary">
@@ -460,6 +469,7 @@ export default function InventarioPage() {
                                         {isCristal ? <span className="text-[9px] font-black text-violet-600 bg-violet-50 dark:bg-violet-950/30 px-2 py-1 rounded-lg inline-block">{p.laboratory || 'Lab'}</span> : <span className={`text-sm font-black ${p.stock <= 2 ? 'text-red-500' : 'text-stone-800 dark:text-stone-200'}`}>{p.stock}</span>}
                                     </div>
                                     {isAdmin && <div className="text-right pr-4"><span className="text-sm font-bold text-stone-400">${p.cost?.toLocaleString()}</span></div>}
+                                    {isAdmin && <div className="text-right pr-4">{p.cost > 0 ? <span className={`text-[11px] font-black px-2 py-0.5 rounded-lg ${(p.price / p.cost) >= 2.4 ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/30 dark:text-emerald-400' : (p.price / p.cost) >= 1.5 ? 'bg-amber-50 text-amber-600 dark:bg-amber-950/30 dark:text-amber-400' : 'bg-red-50 text-red-600 dark:bg-red-950/30 dark:text-red-400'}`}>×{(p.price / p.cost).toFixed(2)}</span> : <span className="text-stone-300">—</span>}</div>}
                                     <div className="text-right pr-4"><span className="text-sm font-black text-stone-900 dark:text-white">${p.price?.toLocaleString()}</span></div>
                                     {isAdmin && (
                                         <div className="flex items-center gap-1">
@@ -711,6 +721,15 @@ export default function InventarioPage() {
                         </div>
                     </div>
                 </div>
+            )}
+
+            {/* Lab Price Importer Modal */}
+            {showLabImporter && (
+                <LabPriceImporter
+                    onClose={() => setShowLabImporter(false)}
+                    onSuccess={() => refresh()}
+                    laboratories={uniqueLabs}
+                />
             )}
         </div>
     );
