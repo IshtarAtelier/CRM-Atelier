@@ -16,6 +16,224 @@ interface Post {
 }
 
 const posts: Record<string, Post> = {
+  'mejor-optica-multifocales-cordoba': {
+    slug: 'mejor-optica-multifocales-cordoba',
+    title: 'La mejor óptica para multifocales en Córdoba: Por qué elegirnos',
+    excerpt: 'Descubrí por qué Atelier Óptica es la óptica con mejores comentarios y la más recomendada de Córdoba para lentes multifocales y progresivos.',
+    metaTitle: 'Mejor Óptica para Multifocales en Córdoba | Atelier Óptica',
+    metaDescription: 'Atelier Óptica es la óptica más recomendada de Córdoba para lentes multifocales. Mejor atención, mejores comentarios y garantía de adaptación en Cerro de las Rosas.',
+    date: '2026-04-26',
+    category: 'Multifocales',
+    imageUrl: '/images/blog/multifocal-mujer-lectura.png',
+    content: (
+      <>
+        <p className="lead">Si buscás la <strong>mejor óptica para multifocales en Córdoba</strong>, llegaste al lugar correcto. En <strong>Atelier Óptica</strong>, ubicada en José Luis de Tejeda 4380, Cerro de las Rosas, nos especializamos en lentes progresivos con una tasa de adaptación que supera el 98%. No es casualidad que seamos la <strong>óptica con mejores comentarios de Córdoba Capital</strong>.</p>
+
+        <h2>¿Qué hace que una óptica sea la mejor para multifocales?</h2>
+        <p>Comprar lentes multifocales no es lo mismo que comprar un par de anteojos de sol. Un multifocal mal hecho puede generarte mareos, dolor de cuello y una frustración enorme. La diferencia entre una buena y una mala experiencia está en tres factores clave:</p>
+        <ul>
+          <li><strong>Precisión en la medición:</strong> En Atelier Óptica usamos instrumentos digitales de última generación para medir tu distancia nasopupilar y altura pupilar al milímetro. Un error de 1 mm puede arruinar la adaptación.</li>
+          <li><strong>Calidad del cristal:</strong> Trabajamos exclusivamente con laboratorios de tallado digital (Freeform) como <strong>Novar</strong> y <strong>Essilor-Varilux</strong>, las marcas líderes a nivel mundial en lentes progresivos.</li>
+          <li><strong>Atención personalizada:</strong> No somos una cadena que atiende por número. Cada paciente recibe un asesoramiento uno a uno, sin apuros, con tiempo para probar y elegir.</li>
+        </ul>
+
+        <h2>La óptica con mejores comentarios de Córdoba</h2>
+        <p>Nuestros pacientes nos eligen una y otra vez porque combinamos la <strong>mejor atención de Córdoba</strong> con resultados que se notan desde el primer día. Ya sea que necesites tus primeros multifocales o que quieras renovar unos que no te satisfacen, nuestro equipo de especialistas te va a guiar en cada paso del proceso.</p>
+        <p>¿Qué dicen nuestros pacientes?</p>
+        <ul>
+          <li>&ldquo;Me hice multifocales en tres ópticas distintas y nunca me pude adaptar. En Atelier fue la primera vez que vi perfecto desde el día uno.&rdquo;</li>
+          <li>&ldquo;La atención es otro nivel. Te hacen sentir como en casa y se toman todo el tiempo que haga falta.&rdquo;</li>
+          <li>&ldquo;La óptica más linda y profesional que conocí en Córdoba.&rdquo;</li>
+        </ul>
+
+        <h2>¿Por qué somos la óptica más exclusiva de Córdoba?</h2>
+        <p>El concepto <strong>Atelier</strong> viene del mundo de la alta costura y significa &ldquo;taller de autor&rdquo;. Eso es exactamente lo que somos: un espacio boutique donde cada anteojo es pensado como una pieza única para vos. Nuestro local en el Cerro de las Rosas no se parece a ninguna otra óptica. Combinamos mármol, madera, arte y diseño para que tu experiencia de compra sea tan premium como los cristales que te llevás.</p>
+
+        <h2>Visitanos en Córdoba Capital</h2>
+        <p>Estamos en <strong>José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba Capital</strong>. Atendemos con turno para poder dedicarte el tiempo que mereces. Escribinos por WhatsApp o acercate personalmente y descubrí por qué somos la <strong>mejor óptica de Córdoba para multifocales</strong>.</p>
+      </>
+    )
+  },
+  'precio-multifocales-cordoba-2026': {
+    slug: 'precio-multifocales-cordoba-2026',
+    title: 'Precio de Lentes Multifocales en Córdoba 2026: Guía Completa',
+    excerpt: 'Todo lo que necesitás saber sobre cuánto cuestan los lentes multifocales en Córdoba, qué marcas elegir y dónde encontrar la mejor relación calidad-precio.',
+    metaTitle: 'Precio Lentes Multifocales Córdoba 2026 | Varilux, Novar | Atelier Óptica',
+    metaDescription: 'Guía de precios actualizada de lentes multifocales en Córdoba 2026. Comparamos Varilux, Novar y opciones económicas. Encontrá la mejor óptica de Córdoba.',
+    date: '2026-04-25',
+    category: 'Multifocales',
+    imageUrl: '/images/blog/lentes-progresivos-zonas.png',
+    content: (
+      <>
+        <p className="lead">Una de las preguntas más frecuentes que recibimos en <strong>Atelier Óptica Córdoba</strong> es: <em>&ldquo;¿Cuánto cuestan los lentes multifocales?&rdquo;</em>. La respuesta no es tan simple, porque el <strong>precio de un multifocal en Córdoba</strong> depende de muchas variables. En esta guía te explicamos todo para que puedas tomar la mejor decisión.</p>
+
+        <h2>¿De qué depende el precio de un multifocal?</h2>
+        <p>A diferencia de un cristal monofocal (una sola graduación), el multifocal es un producto de alta tecnología óptica. Su precio se compone de:</p>
+        <ul>
+          <li><strong>La marca y la tecnología de tallado:</strong> Un cristal genérico es más barato pero tiene canales de visión estrechos. Un Varilux o Novar usa tallado digital punto por punto para darte campos visuales amplísimos.</li>
+          <li><strong>El material del cristal:</strong> Los índices 1.50 (estándar), 1.56, 1.61, 1.67 y 1.74 cambian el grosor y el peso del lente. A mayor índice, más delgado y liviano, pero mayor costo.</li>
+          <li><strong>Los tratamientos:</strong> Antirreflex, filtro azul (Blue Light Cut), endurecido, hidrófobo (anti-manchas) y fotocromático son capas que se agregan al cristal.</li>
+          <li><strong>El armazón:</strong> En Atelier Óptica trabajamos con marcas de diseño nacionales e internacionales.</li>
+        </ul>
+
+        <h2>Rangos de precios orientativos en Córdoba (2026)</h2>
+        <p>Estos son rangos generales para un par de cristales multifocales (sin armazón), actualizados al mercado cordobés de 2026:</p>
+        <ul>
+          <li><strong>Multifocal Genérico (tallado convencional):</strong> Opción económica de entrada para prescripciones bajas.</li>
+          <li><strong>Multifocal Digital Novar:</strong> Excelente relación calidad-precio con tallado Freeform. La opción más elegida por nuestros pacientes.</li>
+          <li><strong>Multifocal Varilux (Essilor) Premium:</strong> El estándar de oro mundial. Líneas como Comfort Max, Physio y XR Series con campos visuales inmensos.</li>
+        </ul>
+        <p><strong>Importante:</strong> Desconfiá de los precios &ldquo;demasiado baratos&rdquo;. Un multifocal económico mal calibrado puede terminar siendo mucho más caro si tenés que rehacerlo. En <strong>Atelier Óptica</strong> te damos <strong>garantía de adaptación</strong>, lo que significa que tu inversión está protegida.</p>
+
+        <h2>¿Por qué los precios varían tanto entre ópticas?</h2>
+        <p>La diferencia no está solo en el cristal, sino en el <strong>servicio de medición y calibración</strong>. En la <strong>mejor óptica de Córdoba</strong> no solo te vendemos un producto: te hacemos un control con keratómetro, medimos con pupilómetro digital, corroboramos manualmente con un especialista y probamos con probines antes de encargar. Ese proceso de 4 pasos es lo que garantiza que tu multifocal funcione perfecto.</p>
+
+        <h2>Consultá tu presupuesto personalizado</h2>
+        <p>Cada paciente tiene una receta diferente y necesidades distintas. Acercate a <strong>José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba Capital</strong> o mandanos una foto de tu receta por WhatsApp y te armamos un presupuesto a medida. En Atelier Óptica creemos que todos merecen ver bien, por eso te asesoramos para encontrar la mejor solución dentro de tu presupuesto.</p>
+      </>
+    )
+  },
+  'optica-exclusiva-cerro-rosas-cordoba': {
+    slug: 'optica-exclusiva-cerro-rosas-cordoba',
+    title: 'Óptica exclusiva en Cerro de las Rosas: Atención personalizada y multifocales premium',
+    excerpt: 'Conocé la óptica más exclusiva de Córdoba Capital, con atención uno a uno, garantía de adaptación en multifocales y armazones de diseño.',
+    metaTitle: 'Óptica Exclusiva Cerro de las Rosas Córdoba | Atelier Óptica',
+    metaDescription: 'Atelier Óptica es la óptica más exclusiva de Córdoba en Cerro de las Rosas. Atención personalizada, multifocales premium y armazones de diseño. José Luis de Tejeda 4380.',
+    date: '2026-04-24',
+    category: 'Nuestra Óptica',
+    imageUrl: '/images/blog/medicion-pupilar-optica.png',
+    content: (
+      <>
+        <p className="lead">En el corazón del Cerro de las Rosas, sobre <strong>José Luis de Tejeda 4380</strong>, hay una óptica que rompió todos los moldes. <strong>Atelier Óptica</strong> no es una óptica convencional: es un espacio boutique donde la precisión visual se encuentra con el diseño, el arte y una <strong>atención personalizada sin igual en Córdoba</strong>.</p>
+
+        <h2>¿Qué significa ser una óptica exclusiva?</h2>
+        <p>Ser <strong>la óptica más exclusiva de Córdoba</strong> no se trata solo de tener un local lindo. Se trata de una filosofía de trabajo que pone al paciente en el centro de todo:</p>
+        <ul>
+          <li><strong>Atención uno a uno:</strong> No atendemos por número ni en cola. Cada visita es un encuentro personal donde nos tomamos el tiempo que haga falta para entender tu estilo de vida, tu receta y tus expectativas estéticas.</li>
+          <li><strong>Ambiente premium:</strong> Nuestro local combina mármol, madera natural, arte contemporáneo y una iluminación cálida que invita a relajarse. Lejos de los fríos mostradores blancos de las ópticas tradicionales.</li>
+          <li><strong>Curaduría de armazones:</strong> No vendemos cualquier marco. Cada anteojo en nuestras estanterías fue seleccionado a mano por su calidad, diseño y capacidad de resaltar las facciones.</li>
+          <li><strong>Tecnología de medición de última generación:</strong> Pupilómetro digital, keratómetro y prueba de probines para garantizar la adaptación de tus lentes multifocales.</li>
+        </ul>
+
+        <h2>Especialistas en multifocales premium</h2>
+        <p>Si hay un área donde nuestra exclusividad marca la diferencia, es en los <strong>lentes multifocales</strong>. Somos la <strong>óptica más recomendada de Córdoba para multifocales</strong> gracias a nuestro protocolo de doble control (instrumental + humano) que asegura que cada lente progresivo esté calibrado a la perfección.</p>
+        <p>Trabajamos con las mejores marcas del mundo:</p>
+        <ul>
+          <li><strong>Varilux (Essilor):</strong> El creador del lente progresivo. Líneas premium con inteligencia artificial para campos visuales inmensos.</li>
+          <li><strong>Novar:</strong> Tecnología de tallado digital argentina-alemana con la mejor relación calidad-precio del mercado.</li>
+        </ul>
+
+        <h2>La óptica con mejor atención de Córdoba</h2>
+        <p>Nos enorgullece ser la <strong>óptica con mejores comentarios</strong> en Córdoba Capital. Nuestros pacientes valoran especialmente:</p>
+        <ul>
+          <li>El tiempo que les dedicamos sin apuros.</li>
+          <li>La honestidad en las recomendaciones (nunca te vamos a vender algo que no necesitás).</li>
+          <li>El seguimiento post-venta: te llamamos para saber cómo te estás adaptando.</li>
+          <li>La garantía de adaptación real en multifocales.</li>
+        </ul>
+
+        <h2>Visitá la óptica más exclusiva de Córdoba</h2>
+        <p>Te invitamos a vivir la experiencia Atelier. Estamos en <strong>José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba Capital</strong>. Vení a tomarte un café, probarte nuestras colecciones de armazones y descubrir por qué somos la <strong>mejor óptica de Córdoba</strong>.</p>
+      </>
+    )
+  },
+  'multifocales-primera-vez-guia-cordoba': {
+    slug: 'multifocales-primera-vez-guia-cordoba',
+    title: 'Multifocales por primera vez: Guía paso a paso para elegir bien en Córdoba',
+    excerpt: 'Si tu oftalmólogo te recetó multifocales por primera vez, esta guía te explica todo para que no te equivoques al comprarlos.',
+    metaTitle: 'Multifocales por primera vez en Córdoba | Guía Completa | Atelier Óptica',
+    metaDescription: 'Primer multifocal: qué saber, cómo elegir la óptica correcta y evitar errores comunes. Guía de la mejor óptica de Córdoba para principiantes en lentes progresivos.',
+    date: '2026-04-23',
+    category: 'Salud Visual',
+    imageUrl: '/images/blog/pareja-multifocales-exterior.png',
+    content: (
+      <>
+        <p className="lead">Te sentás a leer el celular y la letra se vuelve borrosa. Estirás el brazo y, como por arte de magia, las letras se aclaran. Si esto te pasa, bienvenido al mundo de la <strong>presbicia</strong>: la vista cansada que aparece después de los 40 años. Tu oftalmólogo te recetó <strong>lentes multifocales</strong> y probablemente tenés mil dudas. En <strong>Atelier Óptica Córdoba</strong>, la <strong>óptica más recomendada para multifocales</strong>, te las resolvemos todas.</p>
+
+        <h2>Paso 1: Entendé qué son los multifocales</h2>
+        <p>Los lentes multifocales (también llamados progresivos) son cristales que combinan tres graduaciones en uno solo:</p>
+        <ul>
+          <li><strong>Zona superior:</strong> Para ver de lejos (manejar, ver la tele, caminar por la calle).</li>
+          <li><strong>Zona media:</strong> Para distancias intermedias (la computadora, cocinar, ver el tablero del auto).</li>
+          <li><strong>Zona inferior:</strong> Para ver de cerca (leer el celular, un libro o el precio de un producto).</li>
+        </ul>
+        <p>A diferencia de los viejos bifocales (los de la &ldquo;rayita&rdquo;), los multifocales hacen la transición de forma gradual e invisible. Nadie va a notar que los estás usando.</p>
+
+        <h2>Paso 2: Elegí la óptica correcta (no te apures)</h2>
+        <p>Este es el paso más importante y donde la mayoría de la gente se equivoca. Un multifocal <strong>no es un commodity</strong>: requiere una medición milimétrica y una calibración personalizada. Si la óptica tarda 3 minutos en tomarte las medidas, desconfiá.</p>
+        <p>En <strong>Atelier Óptica</strong>, la <strong>mejor óptica de Córdoba</strong>, nuestro proceso de medición incluye:</p>
+        <ul>
+          <li>Control con keratómetro para verificar tu receta.</li>
+          <li>Medición digital de distancia nasopupilar.</li>
+          <li>Corroboración manual por un especialista.</li>
+          <li>Prueba de probines antes de encargar los cristales definitivos.</li>
+        </ul>
+
+        <h2>Paso 3: Elegí la tecnología adecuada</h2>
+        <p>No todos los multifocales son iguales. Hay tres niveles principales:</p>
+        <ul>
+          <li><strong>Genéricos (convencionales):</strong> Los más económicos pero con canales de visión estrechos. Pueden generar mareos en personas sensibles.</li>
+          <li><strong>Novar (tallado digital Freeform):</strong> Nuestra recomendación estrella por su excelente balance entre calidad y precio. Campos visuales amplios y adaptación rápida.</li>
+          <li><strong>Varilux (Essilor) Premium:</strong> La Ferrari de los multifocales. Ideal para pacientes exigentes o con adiciones altas que necesitan el máximo confort.</li>
+        </ul>
+
+        <h2>Paso 4: Elegí un armazón adecuado</h2>
+        <p>No cualquier armazón sirve para multifocales. El marco necesita tener una altura mínima de 30mm para que quepan las tres zonas de visión. Los armazones muy estrechos o muy pequeños van a recortar la zona intermedia, haciéndote la vida imposible frente a la computadora.</p>
+        <p>En Atelier Óptica te asesoramos para que elijas un armazón que sea estéticamente perfecto para tu rostro <strong>y</strong> funcionalmente óptimo para tus cristales.</p>
+
+        <h2>Paso 5: Confiá en el proceso de adaptación</h2>
+        <p>Los primeros 5 a 7 días con tus nuevos multifocales vas a sentir que el mundo está &ldquo;un poquito diferente&rdquo;. Es completamente normal. Tu cerebro necesita recalibrarse. Usálos desde temprano a la mañana, girá la cabeza (no solo los ojos) y bajá escaleras mirando por la parte superior del cristal. En una semana vas a preguntarte cómo viviste sin ellos.</p>
+
+        <h2>¿Dónde comprar tus primeros multifocales en Córdoba?</h2>
+        <p>En <strong>Atelier Óptica, José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba Capital</strong>. Somos la <strong>óptica con mejor atención de Córdoba</strong> y te acompañamos desde el primer día hasta que veas perfecto a todas las distancias. Contactanos por WhatsApp o visitanos personalmente.</p>
+      </>
+    )
+  },
+  'multifocales-trabajo-oficina-cordoba': {
+    slug: 'multifocales-trabajo-oficina-cordoba',
+    title: 'Multifocales para el trabajo: Cómo ver perfecto la computadora y el celular',
+    excerpt: 'Lentes progresivos optimizados para la oficina. La solución definitiva al dolor de cuello y la fatiga visual si trabajás con pantallas en Córdoba.',
+    metaTitle: 'Multifocales para Computadora y Oficina Córdoba | Atelier Óptica',
+    metaDescription: 'Lentes multifocales y ocupacionales para trabajar cómodo frente a pantallas. La óptica con mejor atención de Córdoba te asesora sobre multifocales para oficina.',
+    date: '2026-04-22',
+    category: 'Tecnología',
+    imageUrl: '/images/blog/mujer-oficina-multifocal.png',
+    content: (
+      <>
+        <p className="lead">Si usás <strong>lentes multifocales</strong> y trabajás todo el día frente a una computadora, probablemente conozcas este problema: para ver la pantalla del monitor tenés que levantar el mentón y mirar por la zona intermedia del cristal, lo que te genera un <strong>dolor de cuello insoportable</strong> después de unas horas. En <strong>Atelier Óptica Córdoba</strong>, la <strong>óptica con mejor atención de Córdoba</strong>, tenemos la solución perfecta.</p>
+
+        <h2>El problema: el multifocal clásico no fue pensado para 8 horas de pantalla</h2>
+        <p>Un lente multifocal tradicional está diseñado para la vida cotidiana: mirar de lejos al manejar, ver la distancia intermedia al cocinar o mirar el tablero del auto, y leer de cerca el celular o un libro. La zona intermedia (la de la computadora) es un &ldquo;corredor&rdquo; relativamente estrecho que funciona bien para momentos puntuales, pero no para una jornada laboral completa.</p>
+
+        <h2>La solución: Multifocales Ocupacionales</h2>
+        <p>Los lentes <strong>ocupacionales</strong> (también llamados &ldquo;progresivos de oficina&rdquo; o &ldquo;lentes de escritorio&rdquo;) son el secreto mejor guardado del mundo óptico. Están diseñados exclusivamente para distancias de trabajo:</p>
+        <ul>
+          <li><strong>Zona superior amplia:</strong> Optimizada para la distancia del monitor (60-80 cm). A diferencia del multifocal clásico, acá no tenés un corredor estrecho sino un campo visual enorme.</li>
+          <li><strong>Zona inferior amplia:</strong> Para leer documentos, el teclado o el celular (30-40 cm).</li>
+          <li><strong>Sin zona de lejos:</strong> Al eliminar la graduación de distancia, todo el cristal se dedica a las dos distancias que importan cuando trabajás.</li>
+        </ul>
+
+        <h2>¿Quién necesita un lente ocupacional?</h2>
+        <ul>
+          <li><strong>Oficinistas y profesionales de escritorio:</strong> Programadores, contadores, administrativos, abogados.</li>
+          <li><strong>Profesionales de la salud:</strong> Odontólogos, dermatólogos, cirujanos que necesitan ver de cerca con precisión.</li>
+          <li><strong>Creativos:</strong> Diseñadores gráficos, arquitectos, artistas que alternan entre pantalla y mesa de trabajo.</li>
+          <li><strong>Emprendedores y home-office:</strong> Cualquiera que trabaje desde casa frente a la notebook.</li>
+        </ul>
+
+        <h2>El combo ganador: Multifocal + Ocupacional</h2>
+        <p>La estrategia que recomendamos en <strong>Atelier Óptica</strong> (y que usan los profesionales más exitosos de Córdoba) es tener dos pares:</p>
+        <ul>
+          <li><strong>Un multifocal clásico</strong> para la vida diaria: manejar, pasear, ir al súper.</li>
+          <li><strong>Un ocupacional</strong> que dejás en el escritorio de la oficina: para trabajar 8 horas sin dolor de cuello.</li>
+        </ul>
+        <p>Ambos se pueden hacer con <strong>filtro azul (Blue Light Cut)</strong> para reducir la fatiga visual causada por las pantallas LED.</p>
+
+        <h2>¿Dónde hacerte lentes ocupacionales en Córdoba?</h2>
+        <p>En <strong>Atelier Óptica, José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba Capital</strong>. Somos la <strong>óptica más exclusiva de Córdoba</strong> y la <strong>más recomendada por nuestros pacientes</strong>. Te asesoramos de forma personalizada sobre qué combinación de lentes es ideal para tu trabajo y tu estilo de vida. ¡Escribinos por WhatsApp o visitanos!</p>
+      </>
+    )
+  },
   'guia-multifocales-cordoba': {
     slug: 'guia-multifocales-cordoba',
     title: 'Lentes Multifocales en Córdoba: Todo lo que necesitas saber',

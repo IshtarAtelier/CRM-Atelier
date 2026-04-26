@@ -9,6 +9,46 @@ export const metadata: Metadata = {
 
 const posts = [
   {
+    slug: 'mejor-optica-multifocales-cordoba',
+    title: 'La mejor óptica para multifocales en Córdoba: Por qué elegirnos',
+    excerpt: 'Descubrí por qué Atelier Óptica es la óptica con mejores comentarios y la más recomendada de Córdoba para lentes multifocales y progresivos.',
+    date: '2026-04-26',
+    category: 'Multifocales',
+    imageUrl: '/images/blog/multifocal-mujer-lectura.png'
+  },
+  {
+    slug: 'precio-multifocales-cordoba-2026',
+    title: 'Precio de Lentes Multifocales en Córdoba 2026: Guía Completa',
+    excerpt: 'Todo lo que necesitás saber sobre cuánto cuestan los lentes multifocales en Córdoba, qué marcas elegir y dónde encontrar la mejor relación calidad-precio.',
+    date: '2026-04-25',
+    category: 'Multifocales',
+    imageUrl: '/images/blog/lentes-progresivos-zonas.png'
+  },
+  {
+    slug: 'optica-exclusiva-cerro-rosas-cordoba',
+    title: 'Óptica exclusiva en Cerro de las Rosas: Atención personalizada y multifocales premium',
+    excerpt: 'Conocé la óptica más exclusiva de Córdoba Capital, con atención uno a uno, garantía de adaptación en multifocales y armazones de diseño.',
+    date: '2026-04-24',
+    category: 'Nuestra Óptica',
+    imageUrl: '/images/blog/medicion-pupilar-optica.png'
+  },
+  {
+    slug: 'multifocales-primera-vez-guia-cordoba',
+    title: 'Multifocales por primera vez: Guía paso a paso para elegir bien en Córdoba',
+    excerpt: 'Si tu oftalmólogo te recetó multifocales por primera vez, esta guía te explica todo para que no te equivoques al comprarlos.',
+    date: '2026-04-23',
+    category: 'Salud Visual',
+    imageUrl: '/images/blog/pareja-multifocales-exterior.png'
+  },
+  {
+    slug: 'multifocales-trabajo-oficina-cordoba',
+    title: 'Multifocales para el trabajo: Cómo ver perfecto la computadora y el celular',
+    excerpt: 'Lentes progresivos optimizados para la oficina. La solución definitiva al dolor de cuello y la fatiga visual si trabajás con pantallas en Córdoba.',
+    date: '2026-04-22',
+    category: 'Tecnología',
+    imageUrl: '/images/blog/mujer-oficina-multifocal.png'
+  },
+  {
     slug: 'guia-multifocales-cordoba',
     title: 'Lentes Multifocales en Córdoba: Todo lo que necesitas saber',
     excerpt: '¿Qué son los cristales multifocales y cómo elegir los mejores para tu visión? Consejos para una adaptación rápida y sin mareos.',
