@@ -4,30 +4,23 @@ import Link from "next/link";
 import { motion, useScroll, useTransform } from "framer-motion";
 import { useRef } from "react";
 
-// ==========================================
-// ATELIER ÓPTICA — GENTLE MONSTER STYLE
-// Blanco puro. Anteojos gigantes. Sin ruido.
-// ==========================================
-
 const PRODUCTS = [
-  { id: 1, name: "ATELIER 9030", subtitle: "Nylon · Cat Eye · Gold", price: "$ 55.000", img: "/images/products/atelier-9030-gold.jpg", slug: "atelier-9030" },
-  { id: 2, name: "ROSÉ CAT EYE", subtitle: "Acetato · Cat Eye · Rosa", price: "$ 48.000", img: "/images/products/cateye-rose.jpg", slug: "rose-cateye" },
-  { id: 3, name: "PANTOS BLUSH", subtitle: "Acetato · Redondo · Rosa", price: "$ 45.000", img: "/images/products/pantos-pink.jpg", slug: "pantos-blush" },
-  { id: 4, name: "MISTRAL MANGLARES", subtitle: "Acetato · Cuadrado · Bordó", price: "$ 52.000", img: "/images/products/mistral-manglares.jpg", slug: "mistral-manglares" },
-  { id: 5, name: "CIMA DREAMY", subtitle: "Acetato · Hexagonal · Coral", price: "$ 58.000", img: "/images/products/cima-dreamy.jpg", slug: "cima-dreamy" },
+  { id: 1, name: "ATELIER 9030", subtitle: "Nylon · Cat Eye · Gold", price: "$ 55.000", img: "/images/products/atelier-9030-gold.jpg", slug: "atelier-carey-vintage" },
+  { id: 2, name: "ROSÉ CAT EYE", subtitle: "Acetato · Cat Eye · Rosa", price: "$ 48.000", img: "/images/products/cateye-rose.jpg", slug: "atelier-carey-vintage" },
+  { id: 3, name: "PANTOS BLUSH", subtitle: "Acetato · Redondo · Rosa", price: "$ 45.000", img: "/images/products/pantos-pink.jpg", slug: "atelier-carey-vintage" },
+  { id: 4, name: "MISTRAL MANGLARES", subtitle: "Acetato · Cuadrado · Bordó", price: "$ 52.000", img: "/images/products/mistral-manglares.jpg", slug: "atelier-carey-vintage" },
+  { id: 5, name: "CIMA DREAMY", subtitle: "Acetato · Hexagonal · Coral", price: "$ 58.000", img: "/images/products/cima-dreamy.jpg", slug: "atelier-carey-vintage" },
 ];
 
 export default function Home() {
   const containerRef = useRef(null);
   const { scrollYProgress } = useScroll();
-  const heroY = useTransform(scrollYProgress, [0, 0.3], ["0%", "20%"]);
+  const heroScale = useTransform(scrollYProgress, [0, 0.3], [1.1, 1]);
 
   return (
     <div ref={containerRef} className="bg-white text-black font-sans selection:bg-black selection:text-white overflow-x-hidden">
       
-      {/* ═══════════════════════════════════════ */}
-      {/* HEADER                                  */}
-      {/* ═══════════════════════════════════════ */}
+      {/* HEADER */}
       <header className="fixed top-0 w-full z-50 px-6 py-5 flex justify-between items-center mix-blend-difference text-white">
         <div className="flex gap-6 text-[11px] font-medium tracking-[0.05em] uppercase">
           <Link href="/tienda" className="hover:opacity-50 transition-opacity duration-300">Tienda</Link>
@@ -49,90 +42,68 @@ export default function Home() {
       </header>
 
       {/* ═══════════════════════════════════════ */}
-      {/* HERO — Blanco puro, primer armazón ENORME */}
+      {/* HERO — MONA LISA FULL SCREEN            */}
+      {/* Apaisado, zoom lento, impacto total     */}
       {/* ═══════════════════════════════════════ */}
-      <section className="relative w-full h-screen flex items-center justify-center bg-white overflow-hidden">
+      <section className="relative w-full h-screen overflow-hidden bg-black cursor-pointer group">
         <motion.div 
-          style={{ y: heroY }}
-          className="relative w-[85vw] max-w-[950px] flex items-center justify-center"
+          className="absolute inset-0 w-full h-full"
+          style={{ scale: heroScale }}
         >
-          <motion.img 
-            src="/images/products/atelier-9030-gold.jpg"
-            alt="Atelier 9030 — Colección 2026"
-            className="w-full object-contain drop-shadow-[0_25px_80px_rgba(0,0,0,0.08)]"
-            initial={{ scale: 0.9, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ duration: 1.8, ease: [0.16, 1, 0.3, 1] }}
-          />
-        </motion.div>
-        
-        <motion.div 
-          className="absolute bottom-14 left-0 w-full text-center"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 1, duration: 1 }}
-        >
-          <p className="text-[11px] font-medium tracking-[0.35em] uppercase text-black/30">
-            Colección Óptica 2026
-          </p>
-        </motion.div>
-      </section>
-
-      {/* ═══════════════════════════════════════ */}
-      {/* EDITORIAL — Mona Lisa con anteojos      */}
-      {/* Encuadre APAISADO y Zoom Moderno        */}
-      {/* ═══════════════════════════════════════ */}
-      <section className="relative w-full h-[60vh] md:h-[75vh] bg-white overflow-hidden flex items-center justify-center">
-        <div className="relative w-full h-full overflow-hidden">
-          <motion.img
+          <img
             src="/images/editorial/monalisa.png"
             alt="Mona Lisa — Atelier Editorial"
             className="h-full w-full object-cover"
-            style={{ transformOrigin: "center 30%" }}
-            initial={{ scale: 1.15 }}
-            whileInView={{ scale: 1 }}
-            transition={{ duration: 10, ease: "linear" }}
-            viewport={{ once: true }}
           />
-          {/* Capa de limpieza moderna (overlay sutil) */}
-          <div className="absolute inset-0 bg-black/5" />
-          
-          {/* Texto Moderno y Limpio centrado */}
-          <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-            <motion.p
-              className="text-white text-[10px] md:text-[12px] uppercase tracking-[0.6em] font-bold mb-4 drop-shadow-lg"
-              initial={{ opacity: 0, letterSpacing: "0.2em" }}
-              whileInView={{ opacity: 1, letterSpacing: "0.6em" }}
-              transition={{ delay: 0.5, duration: 1.5 }}
-              viewport={{ once: true }}
+        </motion.div>
+        
+        {/* Overlay gradiente sutil */}
+        <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-black/50" />
+        
+        {/* Texto central moderno */}
+        <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
+          <motion.p
+            className="text-white/60 text-[10px] md:text-[12px] uppercase tracking-[0.6em] font-medium mb-5"
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.5, duration: 1.2 }}
+          >
+            Colección 2026
+          </motion.p>
+          <motion.h1 
+            className="text-white text-5xl md:text-8xl font-extralight tracking-tight"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.8, duration: 1.5 }}
+          >
+            EL ARTE DE VER
+          </motion.h1>
+          <motion.div
+            className="mt-10"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 1.5, duration: 1 }}
+          >
+            <Link 
+              href="#catalogo" 
+              className="text-white/70 text-[10px] uppercase tracking-[0.3em] border-b border-white/30 pb-1 hover:text-white hover:border-white transition-all duration-300"
             >
-              Editorial
-            </motion.p>
-            <motion.h2 
-              className="text-white text-4xl md:text-7xl font-light tracking-tighter drop-shadow-2xl"
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.8, duration: 1.2 }}
-              viewport={{ once: true }}
-            >
-              EL ARTE DE VER
-            </motion.h2>
-          </div>
+              Descubrir
+            </Link>
+          </motion.div>
         </div>
       </section>
 
       {/* ═══════════════════════════════════════ */}
-      {/* CATÁLOGO — Tus 5 armazones reales       */}
-      {/* Fondo blanco puro, fotos flotantes      */}
+      {/* CATÁLOGO — 5 armazones reales           */}
       {/* ═══════════════════════════════════════ */}
-      <section className="w-full bg-white">
-        <div className="px-8 pt-24 pb-6 text-center md:text-left">
+      <section id="catalogo" className="w-full bg-white">
+        <div className="px-8 pt-24 pb-6">
           <h3 className="text-[11px] font-medium tracking-[0.25em] uppercase text-black/30">
             Nuevos Ingresos
           </h3>
         </div>
 
-        {/* Grilla de productos — Blanca, limpia, borde fino */}
         <div className="grid grid-cols-2 lg:grid-cols-5 w-full border-t border-[#f0f0f0]">
           {PRODUCTS.map((item) => (
             <Link 
@@ -140,12 +111,12 @@ export default function Home() {
               key={item.id} 
               className="group relative block border-b border-r border-[#f0f0f0] overflow-hidden"
             >
-              <div className="bg-white aspect-square flex items-center justify-center p-6 md:p-10">
+              <div className="bg-[#f5f5f5] aspect-square flex items-center justify-center p-4 md:p-8 overflow-hidden">
                 <motion.img 
                   src={item.img}
                   alt={item.name}
-                  className="w-full h-full object-contain drop-shadow-[0_8px_24px_rgba(0,0,0,0.04)]"
-                  whileHover={{ scale: 1.08 }}
+                  className="w-full h-full object-cover rounded-sm"
+                  whileHover={{ scale: 1.05 }}
                   transition={{ duration: 0.5, ease: "easeOut" }}
                 />
               </div>
@@ -170,27 +141,39 @@ export default function Home() {
       </section>
 
       {/* ═══════════════════════════════════════ */}
-      {/* BANNER — Segundo anteojo protagonista   */}
+      {/* CONFIGURADOR CTA                        */}
       {/* ═══════════════════════════════════════ */}
-      <section className="w-full h-[80vh] bg-white flex items-center justify-center relative overflow-hidden">
-        <motion.img
-          src="/images/products/cima-dreamy.jpg"
-          alt="CIMA Dreamy — Colección Coral"
-          className="w-[65vw] max-w-[750px] object-contain drop-shadow-[0_30px_80px_rgba(0,0,0,0.06)]"
-          initial={{ x: 80, opacity: 0 }}
-          whileInView={{ x: 0, opacity: 1 }}
-          transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1] }}
-          viewport={{ once: true, margin: "-100px" }}
-        />
-        <motion.div 
-          className="absolute bottom-12 right-8 text-right"
+      <section className="w-full bg-[#fafafa] py-24 flex flex-col items-center justify-center text-center px-8">
+        <motion.h2 
+          className="text-2xl md:text-4xl font-extralight tracking-tight mb-4"
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          transition={{ duration: 1 }}
+          viewport={{ once: true }}
+        >
+          Armá tus lentes a medida
+        </motion.h2>
+        <motion.p 
+          className="text-[12px] text-black/40 max-w-md mb-10 leading-relaxed"
           initial={{ opacity: 0 }}
           whileInView={{ opacity: 1 }}
+          transition={{ delay: 0.3 }}
+          viewport={{ once: true }}
+        >
+          Elegí tu armazón, configurá tus cristales y recibí todo en tu casa. Envío gratis a todo el país.
+        </motion.p>
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          whileInView={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.5 }}
           viewport={{ once: true }}
         >
-          <p className="text-[10px] uppercase tracking-[0.3em] text-black/25 font-medium">CIMA Dreamy</p>
-          <p className="text-[10px] uppercase tracking-[0.15em] text-black/15 mt-1">Hexagonal · Coral</p>
+          <Link 
+            href="/producto/atelier-carey-vintage" 
+            className="bg-black text-white text-[11px] uppercase tracking-[0.2em] font-medium px-10 py-4 hover:bg-black/80 transition-colors duration-300"
+          >
+            Configurar ahora
+          </Link>
         </motion.div>
       </section>
 
