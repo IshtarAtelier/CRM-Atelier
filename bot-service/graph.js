@@ -87,17 +87,17 @@ async function routerNode(state) {
 
   // 2. Fetch Dynamic Prompt from WhatsApp Server
   let customInstructions = "";
+  let dailyContext = "";
   try {
     const statusRes = await axios.get(`${process.env.CRM_API_URL.replace('/api/bot', '/api/whatsapp')}/status`);
     customInstructions = statusRes.data.prompt || "";
+    dailyContext = statusRes.data.dailyContext || "";
   } catch (e) {
     console.error("Could not fetch custom prompt:", e.message);
   }
 
-  let systemPrompt = `Eres "Sol", la experta asistente virtual de Atelier Óptica. 
-  
-  INSTRUCCIONES PERSONALIZADAS DEL USUARIO:
-  ${customInstructions}
+  // Base behavior if not customized
+  const defaultBasePrompt = `Eres "Sol", la experta asistente virtual de Atelier Óptica. 
   
   TU OBJETIVO CORE: Actuar como un portero inteligente y asesor experto. 
   
@@ -109,9 +109,18 @@ async function routerNode(state) {
   - FILTRO: Si el contacto no es un interés real (proveedor, amigo), no uses 'convert_into_lead'.
   - SALDOS: Si el cliente tiene un saldo pendiente al preguntar por su pedido, infórmalo amablemente: "Tu pedido está [estado] y el saldo pendiente es $[monto]".
   - PRESUPUESTOS: Cuando des un precio, SIEMPRE guarda el presupuesto con 'create_quote'.
-  - OCR: Extrae datos de recetas enviadas y guárdalos con 'save_prescription'.
+  - OCR: Extrae datos de recetas enviadas y guárdalos con 'save_prescription'.`;
+
+  const basePrompt = customInstructions.trim() !== "" ? customInstructions : defaultBasePrompt;
+
+  let systemPrompt = `${basePrompt}
   
-  CONTEXTO ACTUAL:
+  =========================
+  CONTEXTO DIARIO Y NOVEDADES:
+  ${dailyContext.trim() !== "" ? dailyContext : "(Sin novedades particulares hoy)"}
+  =========================
+
+  CONTEXTO ACTUAL DEL CLIENTE:
   - Usuario existente: ${isExisting ? 'SI' : 'NO'}
   - Status en CRM: ${clientData?.status || 'NUEVO'}
   - Datos cliente: ${JSON.stringify(clientData || {})}

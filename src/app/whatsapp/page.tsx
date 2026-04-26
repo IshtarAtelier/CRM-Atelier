@@ -74,6 +74,7 @@ export default function WhatsAppPage() {
     const [sending, setSending] = useState(false);
     const [showConfig, setShowConfig] = useState(false);
     const [agentPrompt, setAgentPrompt] = useState('');
+    const [dailyContext, setDailyContext] = useState('');
     const [agentEnabled, setAgentEnabled] = useState(false);
     const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'success'>('idle');
     const [loadingStatus, setLoadingStatus] = useState(true);
@@ -131,7 +132,12 @@ export default function WhatsAppPage() {
         try {
             const res = await fetch('/api/whatsapp/agent');
             const data = await res.json();
-            setAgentPrompt(data.prompt || '');
+            
+            // Si no hay prompt guardado, proveemos el template base por defecto
+            const defaultBasePrompt = `Eres "Sol", la experta asistente virtual de Atelier Óptica. \n\nTU OBJETIVO CORE: Actuar como un portero inteligente y asesor experto. \n\nDIFERENCIACIÓN DE ROLES:\n1. SI EL CLIENTE ES 'CONTACT' (PROSPECTO/LEAD): Eres un AGENTE DE VENTAS. Tu meta es calificarlo, entender su necesidad (multifocales, monofocales), darle precios del catálogo y armar presupuestos con 'create_quote'.\n2. SI EL CLIENTE ES 'CLIENT' (YA ES CLIENTE): Eres un AGENTE DE POSVENTA. Tu meta es dar soporte sobre sus pedidos. Usa 'get_order_status' para informar estados y saldos (balances) pendientes. Recordale los horarios si es necesario.\n\nREGLAS DE ORO:\n- FILTRO: Si el contacto no es un interés real (proveedor, amigo), no uses 'convert_into_lead'.\n- SALDOS: Si el cliente tiene un saldo pendiente al preguntar por su pedido, infórmalo amablemente: "Tu pedido está [estado] y el saldo pendiente es $[monto]".\n- PRESUPUESTOS: Cuando des un precio, SIEMPRE guarda el presupuesto con 'create_quote'.\n- OCR: Extrae datos de recetas enviadas y guárdalos con 'save_prescription'.`;
+            
+            setAgentPrompt(data.prompt || defaultBasePrompt);
+            setDailyContext(data.dailyContext || '');
             setAgentEnabled(data.enabled || false);
         } catch { }
     };
@@ -142,7 +148,7 @@ export default function WhatsAppPage() {
             await fetch('/api/whatsapp/agent', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ prompt: agentPrompt, enabled: agentEnabled }),
+                body: JSON.stringify({ prompt: agentPrompt, enabled: agentEnabled, dailyContext }),
             });
             setSaveStatus('success');
             setTimeout(() => {
@@ -343,14 +349,36 @@ export default function WhatsAppPage() {
                             </button>
                         </div>
                     </div>
-                    <div className="flex flex-col gap-3">
-                        <textarea
-                            value={agentPrompt}
-                            onChange={e => setAgentPrompt(e.target.value)}
-                            rows={4}
-                            placeholder="Escribí las instrucciones base para la IA..."
-                            className="w-full px-5 py-4 bg-white/80 dark:bg-black/40 backdrop-blur-md border border-violet-200 dark:border-violet-800/50 rounded-2xl text-sm focus:ring-4 focus:ring-violet-500/20 focus:border-violet-500 outline-none resize-none font-medium text-stone-800 dark:text-stone-200 transition-all shadow-inner"
-                        />
+                    <div className="flex flex-col gap-4">
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            <div className="space-y-2">
+                                <label className="text-[11px] font-black text-stone-500 uppercase tracking-widest flex items-center gap-2">
+                                    <Bot className="w-4 h-4 text-violet-500" /> Reglas Base (Motor IA)
+                                </label>
+                                <textarea
+                                    value={agentPrompt}
+                                    onChange={(e) => setAgentPrompt(e.target.value)}
+                                    rows={10}
+                                    placeholder="Aquí van las reglas fijas de ventas y soporte..."
+                                    className="w-full px-5 py-4 bg-white/80 dark:bg-black/40 backdrop-blur-md border border-violet-200 dark:border-violet-800/50 rounded-2xl text-[13px] focus:ring-4 focus:ring-violet-500/20 focus:border-violet-500 outline-none resize-none font-medium text-stone-800 dark:text-stone-200 transition-all shadow-inner leading-relaxed"
+                                />
+                                <p className="text-[10px] font-bold text-stone-400">Este es el corazón de la IA. Si borras esto, se usará el código predeterminado.</p>
+                            </div>
+                            
+                            <div className="space-y-2">
+                                <label className="text-[11px] font-black text-stone-500 uppercase tracking-widest flex items-center gap-2">
+                                    <Calendar className="w-4 h-4 text-emerald-500" /> Contexto del Día (Novedades)
+                                </label>
+                                <textarea
+                                    value={dailyContext}
+                                    onChange={(e) => setDailyContext(e.target.value)}
+                                    rows={10}
+                                    placeholder="Ej: Hoy lunes 25 estamos cerrados por feriado. / Hoy tenemos 20% OFF en cristales..."
+                                    className="w-full px-5 py-4 bg-white/80 dark:bg-black/40 backdrop-blur-md border border-emerald-200 dark:border-emerald-800/50 rounded-2xl text-[13px] focus:ring-4 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none resize-none font-medium text-stone-800 dark:text-stone-200 transition-all shadow-inner leading-relaxed"
+                                />
+                                <p className="text-[10px] font-bold text-stone-400">Usa esto para avisos temporales urgentes, feriados o promociones de hoy.</p>
+                            </div>
+                        </div>
                         <button
                             onClick={saveAgent}
                             disabled={saveStatus !== 'idle'}

@@ -22,6 +22,7 @@ let isReady = false;
 let connectedPhone = null;
 let agentEnabled = false;
 let agentPrompt = '';
+let dailyContext = '';
 
 // Temporal set of message IDs sent by the bot to avoid self-disabling
 const botMessageIds = new Set();
@@ -165,7 +166,7 @@ waClient.on('message', async (msg) => {
 // ── API REST ───────────────────────────────────
 
 app.get('/api/status', (req, res) => {
-    res.json({ connected: isReady, phone: connectedPhone, qr: qrCode, agentEnabled, prompt: agentPrompt });
+    res.json({ connected: isReady, phone: connectedPhone, qr: qrCode, agentEnabled, prompt: agentPrompt, dailyContext });
 });
 
 app.get('/api/chats', async (req, res) => {
@@ -202,10 +203,11 @@ app.post('/api/send', async (req, res) => {
 });
 
 app.post('/api/agent', (req, res) => {
-    const { enabled, prompt } = req.body;
+    const { enabled, prompt, dailyContext: newDailyContext } = req.body;
     if (enabled !== undefined) agentEnabled = enabled;
     if (prompt !== undefined) agentPrompt = prompt;
-    res.json({ enabled: agentEnabled, prompt: agentPrompt });
+    if (newDailyContext !== undefined) dailyContext = newDailyContext;
+    res.json({ enabled: agentEnabled, prompt: agentPrompt, dailyContext });
 });
 
 const PORT = 3100;
