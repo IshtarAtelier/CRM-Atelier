@@ -100,12 +100,41 @@ export default function WhatsAppPage() {
         }
     }, []);
 
+    useEffect(() => {
+        if ("Notification" in window && Notification.permission !== "granted" && Notification.permission !== "denied") {
+            Notification.requestPermission();
+        }
+    }, []);
+
+    const knownClientIds = useRef<Set<string>>(new Set());
+    const initialLoadRef = useRef(true);
+
     // ── Fetch chats ───────────────────────────────
     const fetchChats = useCallback(async () => {
         try {
             const res = await fetch('/api/whatsapp/chats');
             const data = await res.json();
             if (Array.isArray(data)) {
+                
+                // --- Notification Logic ---
+                if (initialLoadRef.current) {
+                    data.forEach(c => { if (c.client?.id) knownClientIds.current.add(c.client.id); });
+                    initialLoadRef.current = false;
+                } else {
+                    data.forEach(c => {
+                        if (c.client?.id && !knownClientIds.current.has(c.client.id)) {
+                            knownClientIds.current.add(c.client.id);
+                            if ("Notification" in window && Notification.permission === "granted") {
+                                new Notification("🌟 Nuevo Lead Calificado", {
+                                    body: `La IA acaba de ingresar la receta y clasificar a ${c.client.name}.`,
+                                    icon: "https://cdn-icons-png.flaticon.com/512/4712/4712139.png"
+                                });
+                            }
+                        }
+                    });
+                }
+                // --------------------------
+
                 const sorted = [...data].sort((a, b) => {
                     const ta = a.lastMessageAt ? new Date(a.lastMessageAt).getTime() : 0;
                     const tb = b.lastMessageAt ? new Date(b.lastMessageAt).getTime() : 0;
@@ -136,7 +165,17 @@ export default function WhatsAppPage() {
             // Si no hay prompt guardado, proveemos el template base por defecto
             const defaultBasePrompt = `Eres "Sol", la experta asistente virtual de Atelier Óptica. \n\nTU OBJETIVO CORE: Actuar como un portero inteligente y asesor experto. \n\nDIFERENCIACIÓN DE ROLES:\n1. SI EL CLIENTE ES 'CONTACT' (PROSPECTO/LEAD): Eres un AGENTE DE VENTAS. Tu meta es calificarlo, entender su necesidad (multifocales, monofocales), darle precios del catálogo y armar presupuestos con 'create_quote'.\n2. SI EL CLIENTE ES 'CLIENT' (YA ES CLIENTE): Eres un AGENTE DE POSVENTA. Tu meta es dar soporte sobre sus pedidos. Usa 'get_order_status' para informar estados y saldos (balances) pendientes. Recordale los horarios si es necesario.\n\nREGLAS DE ORO:\n- FILTRO: Si el contacto no es un interés real (proveedor, amigo), no uses 'convert_into_lead'.\n- SALDOS: Si el cliente tiene un saldo pendiente al preguntar por su pedido, infórmalo amablemente: "Tu pedido está [estado] y el saldo pendiente es $[monto]".\n- PRESUPUESTOS: Cuando des un precio, SIEMPRE guarda el presupuesto con 'create_quote'.\n- OCR: Extrae datos de recetas enviadas y guárdalos con 'save_prescription'.`;
             
-            setAgentPrompt(data.prompt || defaultBasePrompt);
+            let systemPrompt = `${data.prompt || defaultBasePrompt}
+  
+  =========================
+  REGLA ESTRICTA DE CALIFICACIÓN (INQUEBRANTABLE):
+  SOLO PUEDES CREAR UN LEAD (usar 'convert_into_lead') SI Y SOLO SI el cliente ya proporcionó una receta médica (foto, texto o datos clínicos). Si NO TIENE RECETA aún, trátalo muy amablemente, resuélvele sus dudas iniciales, pero PÍDELE LA RECETA y NO LO CONVIERTAS EN LEAD HASTA TENERLA.
+  =========================
+
+  =========================
+  CONTEXTO DIARIO Y NOVEDADES:`;
+            
+            setAgentPrompt(systemPrompt);
             setDailyContext(data.dailyContext || '');
             setAgentEnabled(data.enabled || false);
         } catch { }
