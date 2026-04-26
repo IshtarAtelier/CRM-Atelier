@@ -260,5 +260,15 @@ const PORT = 3100;
 app.listen(PORT, async () => {
     console.log(`WhatsApp Server on http://localhost:${PORT}`);
     await loadBotConfig();
-    waClient.initialize();
+    try {
+        waClient.initialize();
+    } catch (e) {
+        console.error('⚠️ WhatsApp client failed to initialize (Puppeteer/Chromium issue):', e.message);
+        console.error('  The WhatsApp bot will not be available, but the API server remains running.');
+    }
+});
+
+// Catch unhandled rejections from Puppeteer so they don't crash the process
+process.on('unhandledRejection', (reason) => {
+    console.error('⚠️ Unhandled Rejection in WhatsApp server:', reason);
 });

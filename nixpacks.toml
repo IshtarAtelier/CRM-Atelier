@@ -1,4 +1,8 @@
 providers = ["node"]
 
 [phases.setup]
-nixPkgs = ["...", "chromium", "nss", "freetype", "harfbuzz", "ca-certificates", "ttf-liberation"]
+nixPkgs = ["glib", "nss", "nspr", "at-spi2-atk", "cups", "dbus", "libdrm", "gtk3", "pango", "cairo", "xorg.libX11", "xorg.libXcomposite", "xorg.libXdamage", "xorg.libXext", "xorg.libXfixes", "xorg.libXrandr", "xorg.libxcb", "mesa", "alsa-lib", "chromium"]
+
+[variables]
+PUPPETEER_SKIP_CHROMIUM_DOWNLOAD = "true"
+PUPPETEER_EXECUTABLE_PATH = "/usr/bin/chromium"

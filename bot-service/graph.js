@@ -1,3 +1,8 @@
+const path = require('path');
+const axios = require('axios');
+// Load env FIRST before any SDK that reads process.env
+require('dotenv').config({ path: path.join(__dirname, '.env') });
+
 const { StateGraph, MessagesAnnotation } = require("@langchain/langgraph");
 const { ChatGoogleGenerativeAI } = require("@langchain/google-genai");
 const { ToolNode } = require("@langchain/langgraph/prebuilt");
@@ -15,16 +20,24 @@ const {
 } = require("./tools");
 const { DynamicTool } = require("@langchain/core/tools");
 const { SystemMessage, HumanMessage, AIMessage } = require("@langchain/core/messages");
-const path = require('path');
-const axios = require('axios');
-require('dotenv').config({ path: path.join(__dirname, '.env') });
 
-// Initialize the model
-const model = new ChatGoogleGenerativeAI({
-  model: "gemini-1.5-flash",
-  maxOutputTokens: 4096,
-  apiKey: process.env.GOOGLE_GENAI_API_KEY || process.env.GOOGLE_API_KEY,
-});
+// Lazy-initialize the model to avoid crashing the entire process at startup
+let _model = null;
+function getModel() {
+  if (!_model) {
+    const apiKey = process.env.GOOGLE_GENAI_API_KEY || process.env.GOOGLE_API_KEY;
+    if (!apiKey) {
+      console.error("⚠️  GOOGLE_GENAI_API_KEY not set — bot will return errors until configured.");
+      return null;
+    }
+    _model = new ChatGoogleGenerativeAI({
+      model: "gemini-2.0-flash",
+      maxOutputTokens: 4096,
+      apiKey,
+    });
+  }
+  return _model;
+}
 
 // Define tools for LangChain
 const tools = [
@@ -130,6 +143,11 @@ async function routerNode(state) {
 
   // Prepend system message
   const messagesWithSystem = [new SystemMessage(systemPrompt), ...state.messages];
+
+  const model = getModel();
+  if (!model) {
+    return { messages: [new AIMessage("⚠️ El bot no está configurado correctamente. Contactá a la óptica directamente.")] };
+  }
 
   const response = await model.bindTools(tools).invoke(messagesWithSystem);
   return { messages: [response] };
