@@ -7,7 +7,7 @@ export async function middleware(request: NextRequest) {
     const { pathname } = request.nextUrl
 
     // Rutas públicas
-    if (pathname === '/login' || pathname.startsWith('/api/auth') || pathname.startsWith('/api/cron/') || pathname === '/api/diag' || pathname === '/api/rescue' || pathname.startsWith('/blog')) {
+    if (pathname === '/login' || pathname.startsWith('/api/auth') || pathname.startsWith('/api/cron/') || pathname === '/api/diag' || pathname === '/api/rescue' || pathname.startsWith('/blog') || pathname.startsWith('/api/reports') || pathname === '/reportes') {
         if (token && pathname === '/login') {
             const payload = await decrypt(token)
             if (payload) {

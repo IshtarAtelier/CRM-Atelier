@@ -30,8 +30,8 @@ export default function TasksPanel({ tasks, onClose }: TasksPanelProps) {
     const displayedTasks = showFuture ? tasks : urgentTasks;
 
     return (
-        <div className="fixed top-24 right-8 bottom-24 w-96 bg-white/80 dark:bg-stone-900/80 backdrop-blur-2xl z-[100] rounded-[3rem] shadow-huge border border-stone-200/50 dark:border-stone-800/50 flex flex-col overflow-hidden animate-in slide-in-from-right-8 duration-500">
-            <header className="p-8 border-b border-stone-100 dark:border-stone-800 flex justify-between items-center bg-stone-50/50 dark:bg-stone-800/30">
+        <div className="fixed top-16 right-4 bottom-20 w-[calc(100vw-2rem)] max-w-[28rem] md:top-24 md:right-8 md:bottom-24 md:max-w-[34rem] bg-white/80 dark:bg-stone-900/80 backdrop-blur-2xl z-[100] rounded-[3rem] shadow-huge border border-stone-200/50 dark:border-stone-800/50 flex flex-col overflow-hidden animate-in slide-in-from-right-8 duration-500">
+            <header className="p-6 md:p-8 border-b border-stone-100 dark:border-stone-800 flex justify-between items-center bg-stone-50/50 dark:bg-stone-800/30">
                 <div className="flex items-center gap-3 text-primary">
                     <Bell className="w-6 h-6 animate-pulse" />
                     <h3 className="font-black text-stone-800 dark:text-white uppercase tracking-tighter italic text-xl">
@@ -43,23 +43,23 @@ export default function TasksPanel({ tasks, onClose }: TasksPanelProps) {
                 </button>
             </header>
 
-            <div className="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar">
+            <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-3 md:space-y-4 custom-scrollbar">
                 {displayedTasks.length > 0 ? (
                     displayedTasks.map(task => (
                         <div key={task.id} className="relative group">
                             <Link
                                 href={`/contactos?clientId=${task.clientId}`}
                                 onClick={onClose}
-                                className="w-full flex items-center gap-4 p-5 bg-white dark:bg-stone-800 rounded-[2.5rem] border border-stone-100 dark:border-stone-700 hover:border-primary/30 dark:hover:border-primary/20 hover:shadow-xl transition-all text-left relative overflow-hidden"
+                                className="w-full flex items-center gap-4 p-4 md:p-5 bg-white dark:bg-stone-800 rounded-[2rem] md:rounded-[2.5rem] border border-stone-100 dark:border-stone-700 hover:border-primary/30 dark:hover:border-primary/20 hover:shadow-xl transition-all text-left relative overflow-hidden"
                             >
                                 <div className="absolute top-0 left-0 w-1.5 h-full bg-primary/20 group-hover:bg-primary transition-colors" />
 
-                                <div className="w-12 h-12 bg-stone-50 dark:bg-stone-900 rounded-2xl flex items-center justify-center text-stone-400 group-hover:text-primary group-hover:bg-primary/5 transition-all shrink-0">
-                                    <User className="w-6 h-6" />
+                                <div className="w-10 h-10 md:w-12 md:h-12 bg-stone-50 dark:bg-stone-900 rounded-xl md:rounded-2xl flex items-center justify-center text-stone-400 group-hover:text-primary group-hover:bg-primary/5 transition-all shrink-0">
+                                    <User className="w-5 h-5 md:w-6 md:h-6" />
                                 </div>
 
-                                <div className="flex-1 min-w-0 pr-16 lg:pr-24">
-                                    <p className="font-black text-stone-800 dark:text-stone-200 text-sm truncate tracking-tight uppercase mb-1">
+                                <div className="flex-1 min-w-0 pr-8 md:pr-10">
+                                    <p className="font-black text-stone-800 dark:text-stone-200 text-sm tracking-tight uppercase mb-1">
                                         {task.client?.name || 'Cliente'}
                                     </p>
                                     <p className="text-xs font-bold text-stone-500 dark:text-stone-400 line-clamp-2 leading-tight lowercase">
