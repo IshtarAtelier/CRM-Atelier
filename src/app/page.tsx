@@ -16,7 +16,10 @@ export default function StorefrontHome() {
         El CRM ha sido trasladado exitosamente a una ruta privada. Este espacio ahora está liberado y listo para que diseñemos tu catálogo público, tienda online y embudo de ventas.
       </p>
       
-      <div className="flex flex-col sm:flex-row gap-4">
+      <div className="flex flex-col sm:flex-row gap-4 mt-8">
+        <Link href="/producto/atelier-carey-vintage" className="px-8 py-4 bg-stone-900 dark:bg-white text-white dark:text-black font-black uppercase tracking-widest text-sm rounded-2xl hover:scale-105 transition-all shadow-xl">
+          🔍 Ver Configurador en Acción
+        </Link>
         <Link href="/admin" className="px-8 py-4 bg-primary text-primary-foreground font-black uppercase tracking-widest text-sm rounded-2xl hover:bg-primary/90 hover:scale-105 transition-all shadow-xl shadow-primary/20">
           Ir al Panel de Control (CRM)
         </Link>

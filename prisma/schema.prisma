@@ -150,6 +150,7 @@ model Product {
   botLabel       String?
   botRecommended Boolean     @default(false)
   orderItems     OrderItem[]
+  webProducts    WebProduct[]
 }
 
 model Order {
@@ -375,4 +376,24 @@ model ServicePricing {
   updatedAt    DateTime @updatedAt
 
   @@index([category, active])
+}
+
+model WebProduct {
+  id          String   @id @default(cuid())
+  productId   String   // ID del producto genérico en el CRM
+  name        String
+  slug        String   @unique
+  description String?  // Texto comercial (puede ser generado por IA)
+  imageUrl    String?  // Foto principal
+  images      String[] @default([]) // Galería de fotos
+  isActive    Boolean  @default(true)
+  isFeatured  Boolean  @default(false)
+  category    String   // Ej: "Receta Mujer", "Sol Hombre"
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  product     Product  @relation(fields: [productId], references: [id])
+  
+  @@index([productId])
+  @@index([category])
 }
