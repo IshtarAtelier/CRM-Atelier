@@ -30,7 +30,7 @@ export default function LoginPage() {
                 if (data.user) {
                     localStorage.setItem('user', JSON.stringify(data.user));
                 }
-                router.push("/");
+                router.push("/admin");
                 router.refresh(); // Force a full reload to apply middleware redirects properly
             } else {
                 const data = await res.json();
@@ -155,7 +155,7 @@ export default function LoginPage() {
                                             headers: { "Content-Type": "application/json" },
                                             body: JSON.stringify({ email: 'ishtar', password: 'local-admin-ishtar' }),
                                         });
-                                        if (res.ok) router.push("/");
+                                        if (res.ok) router.push("/admin");
                                         else setError("Error bypass local");
                                         setIsLoading(false);
                                     }}

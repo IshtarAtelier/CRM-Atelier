@@ -58,7 +58,7 @@ export default function TasksPanel({ tasks, onClose }: TasksPanelProps) {
                                     <User className="w-5 h-5 md:w-6 md:h-6" />
                                 </div>
 
-                                <div className="flex-1 min-w-0 pr-8 md:pr-10">
+                                <div className="flex-1 min-w-0 pr-16 md:pr-20">
                                     <p className="font-black text-stone-800 dark:text-stone-200 text-sm tracking-tight uppercase mb-1">
                                         {task.client?.name || 'Cliente'}
                                     </p>
@@ -76,19 +76,23 @@ export default function TasksPanel({ tasks, onClose }: TasksPanelProps) {
                             </Link>
 
                             {/* WhatsApp Action */}
-                            {task.description.includes('Solicitar comentario') && task.client?.phone && (
+                            {task.client?.phone && (
                                 <button
                                     onClick={(e) => {
                                         e.preventDefault();
                                         e.stopPropagation();
-                                        const message = `Hola ${task.client.name.split(' ')[0]}! Te escribimos para pedirte un favor enorme 🙏\n\n¿Nos dejarías una reseña en Google? Nos ayudaría muchísimo si podés mencionar por qué somos la mejor óptica en Córdoba para vos y cómo fue tu experiencia.\n\n👉 https://g.page/r/CcVls8v7ic_NEBM/review\n\n¡Nos suma muchísimo para seguir creciendo!\nEspero tu comentario 🤍✨🫶`;
-                                        const phone = task.client.phone.replace(/\D/g, '');
+                                        const isReview = task.description.includes('Solicitar comentario');
+                                        const message = isReview 
+                                            ? `Hola ${task.client.name.split(' ')[0]}! Te escribimos para pedirte un favor enorme 🙏\n\n¿Nos dejarías una reseña en Google? Nos ayudaría muchísimo si podés mencionar por qué somos la mejor óptica en Córdoba para vos y cómo fue tu experiencia.\n\n👉 https://g.page/r/CcVls8v7ic_NEBM/review\n\n¡Nos suma muchísimo para seguir creciendo!\nEspero tu comentario 🤍✨🫶`
+                                            : `Hola ${task.client.name.split(' ')[0]}! Te escribimos de Atelier Óptica.`;
+                                        let phone = task.client.phone.replace(/\D/g, '');
+                                        if (phone.length === 10) phone = '549' + phone; // Asume formato de Argentina si son 10 dígitos sin prefijo
                                         window.open(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`, '_blank');
                                     }}
-                                    className="absolute right-12 top-1/2 -translate-y-1/2 p-3 bg-emerald-500 text-white rounded-2xl shadow-lg hover:scale-110 active:scale-95 transition-all z-10"
+                                    className="absolute right-12 md:right-16 top-1/2 -translate-y-1/2 p-2.5 md:p-3 bg-emerald-500 text-white rounded-xl md:rounded-2xl shadow-lg hover:scale-110 active:scale-95 transition-all z-10"
                                     title="Enviar WhatsApp"
                                 >
-                                    <MessageCircle className="w-5 h-5" />
+                                    <MessageCircle className="w-4 h-4 md:w-5 md:h-5" />
                                 </button>
                             )}
                         </div>

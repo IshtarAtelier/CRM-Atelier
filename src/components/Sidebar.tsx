@@ -34,18 +34,18 @@ export function Sidebar({ userName = "Usuario", userRole = "STAFF" }: SidebarPro
   }, [mobileOpen]);
 
   const allLinks = [
-    { href: "/", label: "Dashboard", icon: LayoutDashboard, adminOnly: false },
-    { href: "/contactos", label: "Contactos y Clientes", icon: Contact, adminOnly: false },
-    { href: "/inventario", label: "Stock y Productos", icon: Glasses, adminOnly: true },
-    { href: "/cotizador", label: "Cotizador", icon: Calculator, adminOnly: false },
-    { href: "/ventas", label: "Ventas / Laboratorio", icon: ShoppingCart, adminOnly: false },
-    { href: "/facturacion", label: "Facturación", icon: Receipt, adminOnly: true },
-    { href: "/whatsapp", label: "WhatsApp", icon: MessageCircle, adminOnly: false },
-    { href: "/caja", label: "Caja Efectivo", icon: Banknote, adminOnly: false },
-    { href: "/gastos", label: "Gastos", icon: TrendingDown, adminOnly: true },
-    { href: "/administracion", label: "Administración", icon: Wallet, adminOnly: true },
-    { href: "/reportes", label: "Reportes", icon: FileText, adminOnly: true },
-    { href: "/configuracion", label: "Configuración", icon: Cog, adminOnly: true },
+    { href: "/admin", label: "Dashboard", icon: LayoutDashboard, adminOnly: false },
+    { href: "/admin/contactos", label: "Contactos y Clientes", icon: Contact, adminOnly: false },
+    { href: "/admin/inventario", label: "Stock y Productos", icon: Glasses, adminOnly: true },
+    { href: "/admin/cotizador", label: "Cotizador", icon: Calculator, adminOnly: false },
+    { href: "/admin/ventas", label: "Ventas / Laboratorio", icon: ShoppingCart, adminOnly: false },
+    { href: "/admin/facturacion", label: "Facturación", icon: Receipt, adminOnly: true },
+    { href: "/admin/whatsapp", label: "WhatsApp", icon: MessageCircle, adminOnly: false },
+    { href: "/admin/caja", label: "Caja Efectivo", icon: Banknote, adminOnly: false },
+    { href: "/admin/gastos", label: "Gastos", icon: TrendingDown, adminOnly: true },
+    { href: "/admin/administracion", label: "Administración", icon: Wallet, adminOnly: true },
+    { href: "/admin/reportes", label: "Reportes", icon: FileText, adminOnly: true },
+    { href: "/admin/configuracion", label: "Configuración", icon: Cog, adminOnly: true },
   ];
 
   const links = allLinks.filter(link => !link.adminOnly || isAdmin);
@@ -66,7 +66,7 @@ export function Sidebar({ userName = "Usuario", userRole = "STAFF" }: SidebarPro
       <nav className="flex-1 px-4 space-y-1.5 overflow-y-auto">
         {links.map((link) => {
           const Icon = link.icon;
-          const isActive = pathname === link.href || (link.href !== "/" && pathname.startsWith(link.href));
+          const isActive = pathname === link.href || (link.href !== "/admin" && pathname.startsWith(link.href));
 
           return (
             <Link

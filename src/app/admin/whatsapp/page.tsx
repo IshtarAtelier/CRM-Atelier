@@ -5,7 +5,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import {
     MessageCircle, Send, Wifi, WifiOff, QrCode, RefreshCw, User,
     Clock, CheckCircle2, Bot, Settings, X, ChevronLeft, Phone,
-    Tag, Archive, ArchiveRestore, Filter, Plus, Mic, PlaySquare, Image as ImageIcon, Calendar
+    Tag, Archive, ArchiveRestore, Filter, Plus, Mic, PlaySquare, Image as ImageIcon, Calendar, Search
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -79,6 +79,7 @@ export default function WhatsAppPage() {
     const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'success'>('idle');
     const [loadingStatus, setLoadingStatus] = useState(true);
     const [filterLabel, setFilterLabel] = useState<string | null>(null);
+    const [searchQuery, setSearchQuery] = useState('');
     const [showArchived, setShowArchived] = useState(false);
     const [showLabelPicker, setShowLabelPicker] = useState(false);
     const [showQuickReplies, setShowQuickReplies] = useState(false);
@@ -311,10 +312,35 @@ export default function WhatsAppPage() {
         }
     };
 
+    const getDisplayName = useCallback((chat: Chat) => {
+        if (chat.client?.name) return chat.client.name;
+        if (chat.profileName && chat.profileName.trim() !== '') return chat.profileName;
+        const id = chat.waId || '';
+        if (id.includes('@lid')) return 'Usuario IG/FB';
+        if (id.includes('@c.us') || id.includes('@s.whatsapp.net')) {
+            const num = id.split('@')[0];
+            return `+${num}`;
+        }
+        return id.split('@')[0] || 'Desconocido';
+    }, []);
+
     // ── Vista filtrada de chats ───────────────────
     const filteredChats = chats.filter(c => {
         if (c.archived !== showArchived) return false;
         if (filterLabel && !(c.chatLabels || []).includes(filterLabel)) return false;
+        
+        if (searchQuery.trim()) {
+            const query = searchQuery.toLowerCase();
+            const name = getDisplayName(c).toLowerCase();
+            const num = c.waId.toLowerCase();
+            if (!name.includes(query) && !num.includes(query)) return false;
+        } else {
+            if (!showArchived && !filterLabel && c.unreadCount === 0) {
+                const daysOld = c.lastMessageAt ? (new Date().getTime() - new Date(c.lastMessageAt).getTime()) / (1000 * 3600 * 24) : 0;
+                if (daysOld > 2) return false;
+            }
+        }
+
         return true;
     });
 
@@ -494,6 +520,18 @@ export default function WhatsAppPage() {
                                     {showArchived ? <ArchiveRestore className="w-4 h-4" /> : <Archive className="w-4 h-4" />}
                                 </button>
                             </div>
+
+                            <div className="mb-4 relative">
+                                <Search className="w-4 h-4 text-stone-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                                <input
+                                    type="text"
+                                    placeholder="Buscar cliente o número..."
+                                    value={searchQuery}
+                                    onChange={e => setSearchQuery(e.target.value)}
+                                    className="w-full bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl py-2 pl-9 pr-3 text-xs outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-400/20 transition-all text-stone-800 dark:text-white placeholder:text-stone-400"
+                                />
+                            </div>
+
                             {usedLabels.length > 0 && (
                                 <div className="flex gap-2 overflow-x-auto pb-1 pb-hide-scroll">
                                     <button
@@ -540,7 +578,7 @@ export default function WhatsAppPage() {
                                             <div className="flex items-center gap-3">
                                                 <div className="relative">
                                                     <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-lg font-black shrink-0 transition-transform ${isSelected ? 'scale-105' : ''} ${chat.botEnabled && isSelected ? 'bg-gradient-to-br from-violet-500 to-indigo-600 text-white shadow-md shadow-violet-500/30' : (isSelected ? 'bg-emerald-500 text-white' : 'bg-stone-200 dark:bg-stone-700 text-stone-600 dark:text-stone-300')}`}>
-                                                        {(chat.profileName || '?')[0].toUpperCase()}
+                                                        {getDisplayName(chat)[0].toUpperCase()}
                                                     </div>
                                                     {chat.botEnabled && agentEnabled && !isSelected && (
                                                         <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-violet-500 rounded-full border-2 border-white flex items-center justify-center">
@@ -551,7 +589,7 @@ export default function WhatsAppPage() {
                                                 <div className="flex-1 min-w-0 pr-1">
                                                     <div className="flex items-center justify-between">
                                                         <span className={`text-[13px] font-black truncate ${isSelected ? 'text-stone-900 dark:text-white' : ''}`}>
-                                                            {chat.client?.name || chat.profileName || chat.waId.replace('@c.us', '')}
+                                                            {getDisplayName(chat)}
                                                         </span>
                                                         {chat.lastMessageAt && (
                                                             <span className="text-[10px] text-stone-400 font-bold shrink-0">
@@ -594,18 +632,18 @@ export default function WhatsAppPage() {
                                             <ChevronLeft className="w-5 h-5 text-stone-600" />
                                         </button>
                                         <div className="w-12 h-12 rounded-2xl bg-stone-900 dark:bg-white text-white dark:text-stone-900 flex items-center justify-center text-lg font-black shrink-0 shadow-lg relative">
-                                            {(selectedChat.client?.name || selectedChat.profileName || '?')[0].toUpperCase()}
+                                            {getDisplayName(selectedChat)[0].toUpperCase()}
                                             <div className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-emerald-500 border-2 border-white shadow-sm" />
                                         </div>
                                         <div>
                                             <h3 className="text-base font-black text-stone-900 dark:text-white flex items-center gap-2">
-                                                {selectedChat.client?.name || selectedChat.profileName}
+                                                {getDisplayName(selectedChat)}
                                                 {selectedChat.client && (
                                                     <span className="px-2 py-0.5 rounded-md bg-stone-100 dark:bg-stone-800 text-[9px] font-black tracking-widest uppercase text-stone-500">CRM</span>
                                                 )}
                                             </h3>
                                             <p className="text-[11px] font-bold text-stone-500 flex items-center gap-1.5 mt-0.5">
-                                                <Phone className="w-3 h-3" /> {selectedChat.waId.replace('@c.us', '')}
+                                                <Phone className="w-3 h-3" /> {selectedChat.waId.replace('@c.us', '').replace('@lid', '').replace('@s.whatsapp.net', '')}
                                                 {selectedChat.client && (
                                                     <a 
                                                         href={`/contactos?id=${selectedChat.client.id}`}
@@ -666,7 +704,7 @@ export default function WhatsAppPage() {
                                                 <div className="flex gap-2 max-w-[80%] items-end">
                                                     {!isOut && (
                                                         <div className="w-6 h-6 rounded-full bg-stone-200 flex-shrink-0 flex items-center justify-center text-[9px] font-black text-stone-500 self-end mb-1">
-                                                            {selectedChat.profileName?.[0]?.toUpperCase()}
+                                                            {getDisplayName(selectedChat)[0].toUpperCase()}
                                                         </div>
                                                     )}
                                                     
