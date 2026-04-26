@@ -13,7 +13,7 @@ async function main() {
     const req = new Request('http://localhost/api/reports?from=2026-04-01&to=2026-04-30');
     const res = await GET(req);
     const json = await res.json();
-    console.log(JSON.stringify(json, null, 2).substring(0, 1000));
+    console.log(JSON.stringify(json.labStats, null, 2));
   } catch (err) {
     console.error('FAILED', err);
   }

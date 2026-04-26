@@ -56,18 +56,47 @@ export default function GastosPage() {
         fetchExpenses(selectedMonth, selectedYear);
     }, [selectedMonth, selectedYear]);
 
-    const fetchExpenses = async (m: number, y: number) => {
+    const fetchExpenses = async (m: number, y: number, autoGenerate = true) => {
         setLoading(true);
         try {
             const res = await fetch(`/api/expenses?month=${m}&year=${y}`);
             const data = await res.json();
             if (!data.error) {
+                if (Array.isArray(data) && data.length === 0 && autoGenerate) {
+                    // Auto-generar plantilla cuando el mes está vacío
+                    await autoGenerateTemplate(m, y);
+                    return; // autoGenerateTemplate ya hace el re-fetch
+                }
                 setExpenses(data);
             }
         } catch (error) {
             console.error("Error fetching expenses", error);
         }
         setLoading(false);
+    };
+
+    const autoGenerateTemplate = async (m: number, y: number) => {
+        try {
+            const creates = DEFAULT_TEMPLATES.map(t => fetch('/api/expenses', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    name: t.name,
+                    amount: 0,
+                    category: t.category,
+                    type: t.type,
+                    month: m,
+                    year: y,
+                    notes: ''
+                })
+            }));
+            await Promise.all(creates);
+            // Re-fetch sin auto-generar para evitar loop infinito
+            await fetchExpenses(m, y, false);
+        } catch (error) {
+            console.error("Error auto-generating template:", error);
+            setLoading(false);
+        }
     };
 
     const handlePrevMonth = () => {
@@ -152,6 +181,7 @@ export default function GastosPage() {
             await fetchExpenses(selectedMonth, selectedYear);
         } catch (error) {
             console.error(error);
+            setLoading(false);
         }
     };
 
@@ -190,6 +220,7 @@ export default function GastosPage() {
             await fetchExpenses(selectedMonth, selectedYear);
         } catch (error) {
             console.error(error);
+            setLoading(false);
         }
     };
 
@@ -291,6 +322,16 @@ export default function GastosPage() {
                             >
                                 <Plus size={16} /> Usar Plantilla Base
                             </button>
+                            <button 
+                                onClick={() => {
+                                    setEditingExpense({ name: '', amount: 0, category: 'OTRO', type: 'OTRO', month: selectedMonth, year: selectedYear });
+                                    setEditAmount('');
+                                    setShowNewModal(true);
+                                }}
+                                className="w-full py-3 bg-stone-100 dark:bg-stone-700 text-stone-600 dark:text-stone-300 text-xs font-black uppercase tracking-widest rounded-xl hover:scale-105 transition-transform flex items-center justify-center gap-2 mt-2 border border-stone-200 dark:border-stone-600"
+                            >
+                                <Plus size={16} /> Añadir Gasto Único
+                            </button>
                         </div>
                     </div>
                 ) : (
@@ -353,14 +394,15 @@ export default function GastosPage() {
                 )}
             </div>
 
-            {/* Quick Add Button Mobile */}
+            {/* Quick Add Button - visible always */}
             <button 
                 onClick={() => {
                     setEditingExpense({ name: '', amount: 0, category: 'OTRO', type: 'OTRO', month: selectedMonth, year: selectedYear });
                     setEditAmount('');
                     setShowNewModal(true);
                 }}
-                className="fixed bottom-6 right-4 w-14 h-14 bg-primary text-white rounded-full shadow-xl shadow-primary/30 flex items-center justify-center hover:scale-105 active:scale-95 transition-all z-20 lg:hidden"
+                className="fixed bottom-6 right-6 w-14 h-14 bg-primary text-white rounded-full shadow-xl shadow-primary/30 flex items-center justify-center hover:scale-105 active:scale-95 transition-all z-20"
+                title="Agregar nuevo gasto"
             >
                 <Plus size={24} />
             </button>
@@ -425,7 +467,7 @@ export default function GastosPage() {
                         <div className="flex items-center justify-between mb-6">
                             <h3 className="text-lg font-black text-stone-800 dark:text-white">Nuevo Gasto Especial</h3>
                             <button 
-                                onClick={() => setShowNewModal(false)}
+                                onClick={() => { setShowNewModal(false); setEditingExpense(null); }}
                                 className="w-8 h-8 bg-stone-100 dark:bg-stone-700 rounded-full flex items-center justify-center text-stone-500"
                             >
                                 <X size={16} />

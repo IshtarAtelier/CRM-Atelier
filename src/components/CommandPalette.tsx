@@ -94,9 +94,9 @@ export default function CommandPalette() {
 
     // Build flat list for keyboard navigation
     const allItems: Array<{ type: string; id: string; navigate: () => void }> = [
-        ...contacts.map(c => ({ type: 'contact', id: c.id, navigate: () => { router.push(`/contactos?id=${c.id}`); setOpen(false); } })),
-        ...products.map(p => ({ type: 'product', id: p.id, navigate: () => { router.push('/inventario'); setOpen(false); } })),
-        ...orders.map(o => ({ type: 'order', id: o.id, navigate: () => { router.push('/ventas'); setOpen(false); } })),
+        ...contacts.map(c => ({ type: 'contact', id: c.id, navigate: () => { router.push(`/admin/contactos?id=${c.id}`); setOpen(false); } })),
+        ...products.map(p => ({ type: 'product', id: p.id, navigate: () => { router.push('/admin/inventario'); setOpen(false); } })),
+        ...orders.map(o => ({ type: 'order', id: o.id, navigate: () => { router.push('/admin/ventas'); setOpen(false); } })),
     ];
 
     const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -184,7 +184,7 @@ export default function CommandPalette() {
                                         return (
                                             <button
                                                 key={c.id}
-                                                onClick={() => { router.push(`/contactos?id=${c.id}`); setOpen(false); }}
+                                                onClick={() => { router.push(`/admin/contactos?id=${c.id}`); setOpen(false); }}
                                                 className={`w-full flex items-center gap-3 px-5 py-3 text-left transition-all ${idx === selectedIndex
                                                     ? 'bg-primary/10 text-primary'
                                                     : 'hover:bg-stone-50 dark:hover:bg-stone-800'
@@ -222,7 +222,7 @@ export default function CommandPalette() {
                                         return (
                                             <button
                                                 key={p.id}
-                                                onClick={() => { router.push('/inventario'); setOpen(false); }}
+                                                onClick={() => { router.push('/admin/inventario'); setOpen(false); }}
                                                 className={`w-full flex items-center gap-3 px-5 py-3 text-left transition-all ${idx === selectedIndex
                                                     ? 'bg-primary/10 text-primary'
                                                     : 'hover:bg-stone-50 dark:hover:bg-stone-800'
@@ -260,7 +260,7 @@ export default function CommandPalette() {
                                         return (
                                             <button
                                                 key={o.id}
-                                                onClick={() => { router.push('/ventas'); setOpen(false); }}
+                                                onClick={() => { router.push('/admin/ventas'); setOpen(false); }}
                                                 className={`w-full flex items-center gap-3 px-5 py-3 text-left transition-all ${idx === selectedIndex
                                                     ? 'bg-primary/10 text-primary'
                                                     : 'hover:bg-stone-50 dark:hover:bg-stone-800'

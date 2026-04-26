@@ -14,7 +14,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-const BOT_SERVICE_URL = 'http://localhost:3001/chat';
+const BOT_SERVICE_URL = process.env.BOT_SERVICE_URL || 'http://localhost:3001/chat';
 
 // ── Estado global ──────────────────────────────
 let qrCode = null;

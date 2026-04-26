@@ -405,7 +405,7 @@ function CotizadorPageContent() {
         setQuotePrescriptionId(null);
         setEditingQuoteId(null);
         // Clear URL search params
-        router.replace('/cotizador');
+        router.replace('/admin/cotizador');
     };
 
     const handleWhatsApp = () => {
@@ -478,7 +478,7 @@ function CotizadorPageContent() {
         setEditingQuoteId(null);
         setQuoteItems([]);
         setPendingContact(null);
-        router.replace('/cotizador');
+        router.replace('/admin/cotizador');
     };
 
     const clientName = pendingContact?.name;
@@ -498,7 +498,7 @@ function CotizadorPageContent() {
                 </h1>
                 {quoteItems.length > 0 && (
                     <button
-                        onClick={() => { setQuoteItems([]); setMarkup(0); setFrameSource(null); setEditingQuoteId(null); router.replace('/cotizador'); }}
+                        onClick={() => { setQuoteItems([]); setMarkup(0); setFrameSource(null); setEditingQuoteId(null); router.replace('/admin/cotizador'); }}
                         className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-bold text-stone-400 hover:text-red-500 bg-stone-50 dark:bg-stone-800 rounded-lg border border-stone-100 dark:border-stone-700 transition-all hover:border-red-200 uppercase tracking-wider"
                     >
                         <RotateCcw className="w-3 h-3" /> Limpiar
@@ -737,7 +737,7 @@ function CotizadorPageContent() {
                                                     <p className="text-stone-500 font-bold mt-2">Registrado en la ficha de {savedContact.name}</p>
                                                 </div>
                                                 <div className="flex gap-4 justify-center pt-8">
-                                                    <button onClick={() => router.push(`/contactos?clientId=${savedContact.id}`)} className="px-8 py-4 bg-emerald-500 text-white rounded-2xl font-black text-xs uppercase tracking-[0.2em] hover:scale-105 transition-all shadow-lg">Ver Ficha</button>
+                                                    <button onClick={() => router.push(`/admin/contactos?clientId=${savedContact.id}`)} className="px-8 py-4 bg-emerald-500 text-white rounded-2xl font-black text-xs uppercase tracking-[0.2em] hover:scale-105 transition-all shadow-lg">Ver Ficha</button>
                                                     <button onClick={resetRegister} className="px-8 py-4 bg-stone-100 text-stone-600 rounded-2xl font-black text-xs uppercase tracking-[0.2em] hover:scale-105 transition-all">Nuevo Presupuesto</button>
                                                 </div>
                                             </div>

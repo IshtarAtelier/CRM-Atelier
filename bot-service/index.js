@@ -68,7 +68,8 @@ app.post('/chat', async (req, res) => {
     }
 });
 
-const PORT = process.env.PORT || 3001;
+// Use BOT_PORT (not PORT — Railway injects PORT for the main web service)
+const PORT = process.env.BOT_PORT || 3001;
 app.listen(PORT, () => {
     console.log(`Bot Service running on port ${PORT}`);
 });

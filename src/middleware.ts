@@ -22,7 +22,7 @@ export async function middleware(request: NextRequest) {
     }
 
     // Proteger rutas API (excepto auth y cron/rescue)
-    if (isApiRoute && !isAuthRoute && !pathname.startsWith('/api/cron/') && pathname !== '/api/diag' && pathname !== '/api/rescue') {
+    if (isApiRoute && !isAuthRoute && !pathname.startsWith('/api/cron/') && pathname !== '/api/diag' && pathname !== '/api/rescue' && !pathname.startsWith('/api/reports')) {
         if (!token) {
             return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
         }

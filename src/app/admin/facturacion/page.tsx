@@ -264,7 +264,7 @@ export default function BillingPage() {
                                     </div>
                                     <div>
                                         <h3 className="font-black text-stone-800 dark:text-white flex items-center gap-2 tracking-tight">
-                                            <span className="cursor-pointer hover:text-blue-600 hover:underline transition-colors" onClick={(e) => { e.stopPropagation(); router.push(`/contactos?id=${req.order.client.id}`); }}>{req.order.client.name}</span>
+                                            <span className="cursor-pointer hover:text-blue-600 hover:underline transition-colors" onClick={(e) => { e.stopPropagation(); router.push(`/admin/contactos?id=${req.order.client.id}`); }}>{req.order.client.name}</span>
                                             <span className="text-[9px] px-2 py-1 rounded-full bg-blue-100 text-blue-600 uppercase tracking-widest">
                                                 {req.requestedBy?.includes('SISTEMA') ? 'AUTOMÁTICA' : 'MANUAL'}
                                             </span>
@@ -328,7 +328,7 @@ export default function BillingPage() {
                                             <CheckCircle2 size={24} />
                                         </div>
                                         <div>
-                                            <h3 className="font-black text-stone-800 dark:text-white tracking-tight cursor-pointer hover:text-blue-600 hover:underline transition-colors" onClick={() => router.push(`/contactos?id=${order.client.id}`)}>{order.client.name}</h3>
+                                            <h3 className="font-black text-stone-800 dark:text-white tracking-tight cursor-pointer hover:text-blue-600 hover:underline transition-colors" onClick={() => router.push(`/admin/contactos?id=${order.client.id}`)}>{order.client.name}</h3>
                                             <div className="text-[10px] font-bold text-stone-400 mt-1 uppercase tracking-widest">
                                                 Ctd. Facturas: {completedArray.length}
                                             </div>

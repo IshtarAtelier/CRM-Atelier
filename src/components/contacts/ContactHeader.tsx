@@ -76,7 +76,7 @@ export default function ContactHeader({
                                 <button
                                     onClick={() => {
                                         onClose();
-                                        router.push(`/cotizador?clientName=${encodeURIComponent(contact.name)}`);
+                                        router.push(`/admin/cotizador?clientName=${encodeURIComponent(contact.name)}`);
                                     }}
                                     className="p-1.5 rounded-lg text-stone-300 hover:text-emerald-500 hover:bg-emerald-50 transition-all"
                                     title="Crear cotización"
@@ -88,7 +88,7 @@ export default function ContactHeader({
                                     <button
                                         onClick={() => {
                                             onClose();
-                                            router.push(`/whatsapp?phone=${encodeURIComponent(contact.phone)}`);
+                                            router.push(`/admin/whatsapp?phone=${encodeURIComponent(contact.phone)}`);
                                         }}
                                         className="p-1.5 rounded-lg text-stone-300 hover:text-green-500 hover:bg-green-50 transition-all"
                                         title="Hablar por WhatsApp"

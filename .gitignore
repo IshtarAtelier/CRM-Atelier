@@ -35,6 +35,8 @@ yarn-error.log*
 .env.local
 .env.*.local
 !.env.example
+bot-service/.env
+wa-service/.env
 
 # vercel
 .vercel
