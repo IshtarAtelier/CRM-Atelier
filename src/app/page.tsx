@@ -61,36 +61,43 @@ export default function Home() {
         </div>
       </header>
 
+      {/* CSS Animations para el hero */}
+      <style jsx global>{`
+        @keyframes heroZoom {
+          0% { transform: scale(1); }
+          100% { transform: scale(1.2); }
+        }
+        @keyframes fadeInText {
+          0% { opacity: 0; transform: scale(0.95); }
+          100% { opacity: 0.85; transform: scale(1); }
+        }
+        @keyframes marquee {
+          0% { transform: translateX(0); }
+          100% { transform: translateX(-50%); }
+        }
+      `}</style>
+
       {/* ═══════════════════════════════════════════════ */}
       {/* HERO — Zoom cinemático hacia los anteojos        */}
       {/* ═══════════════════════════════════════════════ */}
-      <section className="relative w-full h-screen overflow-hidden bg-black">
-        {/* Imagen con zoom cinematográfico lento hacia los ojos/anteojos */}
-        <motion.div 
-          className="absolute inset-0"
-          style={{ transformOrigin: "center 40%" }}
-          initial={{ scale: 1 }}
-          animate={{ scale: 1.15 }}
-          transition={{ duration: 12, ease: "easeOut" }}
-        >
+      <section className="relative w-full h-[80vh] overflow-hidden bg-black">
+        {/* Imagen con zoom CSS puro — 15 segundos hacia los ojos */}
+        <div className="absolute inset-0" style={{ transformOrigin: "center 40%", animation: "heroZoom 15s ease-out forwards" }}>
           <img
             src="/images/editorial/monalisa.png"
             alt="Atelier — Tu visión, nuestra obra maestra"
             className="h-full w-full object-cover"
           />
-        </motion.div>
+        </div>
         
         {/* Texto transparente centrado con mix-blend-overlay */}
         <div className="absolute inset-0 flex items-center justify-center">
-          <motion.h1 
+          <h1 
             className="text-white text-4xl md:text-7xl lg:text-8xl font-extralight tracking-tight text-center mix-blend-overlay select-none px-4"
-            style={{ fontFamily: "'Georgia', 'Times New Roman', serif" }}
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 0.85, scale: 1 }}
-            transition={{ delay: 1, duration: 2.5 }}
+            style={{ fontFamily: "'Georgia', 'Times New Roman', serif", animation: "fadeInText 2.5s ease-out 1s forwards", opacity: 0 }}
           >
             Tu visión, nuestra<br />obra maestra
-          </motion.h1>
+          </h1>
         </div>
 
         {/* Gradiente sutil en la base */}
@@ -126,16 +133,20 @@ export default function Home() {
       {/* Fondo blanco, productos con MUCHO aire           */}
       {/* Nombre y precio debajo, tipografía pequeña       */}
       {/* ═══════════════════════════════════════════════ */}
-      <section className="w-full bg-white pb-20">
-        <div className="flex overflow-x-auto gap-0 scrollbar-hide">
-          {PRODUCTS.map((item) => (
+      <section className="w-full bg-white pb-20 overflow-hidden">
+        {/* Contenedor infinito: renderizamos 4 veces la lista para que -50% sea un loop perfecto */}
+        <div 
+          className="flex w-max"
+          style={{ animation: "marquee 40s linear infinite" }}
+        >
+          {[...PRODUCTS, ...PRODUCTS, ...PRODUCTS, ...PRODUCTS].map((item, i) => (
             <Link 
               href={`/producto/${item.slug}`} 
-              key={item.id} 
+              key={`${item.id}-${i}`} 
               className="group flex-shrink-0 w-[45vw] md:w-[33vw] lg:w-[25vw] block"
             >
               {/* Contenedor de imagen — fondo gris muy claro, mucho padding */}
-              <div className="bg-[#f2f2f2] aspect-square flex items-center justify-center p-10 md:p-16 overflow-hidden">
+              <div className="bg-[#f2f2f2] aspect-square flex items-center justify-center p-10 md:p-16 overflow-hidden border-r border-[#e5e5e5]">
                 <motion.img 
                   src={item.img}
                   alt={item.name}
@@ -146,7 +157,7 @@ export default function Home() {
               </div>
               
               {/* Nombre y precio — tipografía GM exacta */}
-              <div className="px-2 pt-6 pb-4">
+              <div className="px-3 pt-6 pb-4 border-r border-[#e5e5e5] h-full">
                 <h3 className="text-[13px] font-medium">{item.name}</h3>
                 <p className="text-[13px] text-[#999] mt-0.5">{item.price}</p>
               </div>
