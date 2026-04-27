@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { motion, useScroll, useTransform } from "framer-motion";
 import { useRef } from "react";
 
@@ -81,12 +82,13 @@ export default function Home() {
       {/* HERO — Zoom cinemático hacia los anteojos        */}
       {/* ═══════════════════════════════════════════════ */}
       <section className="relative w-full h-[80vh] overflow-hidden bg-black">
-        {/* Imagen con zoom CSS puro — 15 segundos hacia los ojos */}
         <div className="absolute inset-0" style={{ transformOrigin: "center 40%", animation: "heroZoom 15s ease-out forwards" }}>
-          <img
+          <Image
             src="/images/editorial/monalisa.png"
             alt="Atelier — Tu visión, nuestra obra maestra"
-            className="h-full w-full object-cover"
+            fill
+            priority
+            className="object-cover"
           />
         </div>
         
@@ -147,12 +149,12 @@ export default function Home() {
             >
               {/* Contenedor de imagen — fondo gris muy claro, mucho padding */}
               <div className="bg-[#f2f2f2] aspect-square flex items-center justify-center p-10 md:p-16 overflow-hidden border-r border-[#e5e5e5]">
-                <motion.img 
+                <Image 
                   src={item.img}
                   alt={item.name}
-                  className="w-full h-full object-contain mix-blend-multiply"
-                  whileHover={{ scale: 1.06 }}
-                  transition={{ duration: 0.4, ease: "easeOut" }}
+                  width={500}
+                  height={500}
+                  className="w-full h-full object-contain mix-blend-multiply group-hover:scale-110 transition-transform duration-500 ease-out"
                 />
               </div>
               
