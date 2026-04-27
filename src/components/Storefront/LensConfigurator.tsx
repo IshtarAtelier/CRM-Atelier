@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 
 type LensType = "MONOFOCAL" | "BIFOCAL" | "MULTIFOCAL" | "NONE" | null;
-type Treatment = "BLANCO" | "AR" | "BLUE" | "SMART_FREE" | "VARILUX" | "UNICO" | null;
+type Treatment = "BLANCO" | "AR" | "BLUE" | "SMART_FREE" | "VARILUX" | "UNICO" | "FOTOCROMATICO" | null;
 
 interface ConfiguratorProps {
   basePrice: number;
@@ -15,15 +15,15 @@ export function LensConfigurator({ basePrice }: ConfiguratorProps) {
   const [step, setStep] = useState<number>(1);
   const [lensType, setLensType] = useState<LensType>(null);
   const [treatment, setTreatment] = useState<Treatment>(null);
-  const [hasTint, setHasTint] = useState<boolean>(false);
+  const [tintColor, setTintColor] = useState<string | null>(null);
   const [showCheckout, setShowCheckout] = useState<boolean>(false);
   const [checkoutStep, setCheckoutStep] = useState<"FORM" | "PAYMENT" | "SUCCESS">("FORM");
   const [customerData, setCustomerData] = useState({ name: "", whatsapp: "" });
 
   const PRICING = {
-    MONOFOCAL: { BLANCO: 20000, AR: 45000, BLUE: 65000 },
+    MONOFOCAL: { BLANCO: 20000, AR: 45000, BLUE: 65000, FOTOCROMATICO: 85000 },
     BIFOCAL: { UNICO: 85000 },
-    MULTIFOCAL: { SMART_FREE: 120000, VARILUX: 350000 },
+    MULTIFOCAL: { SMART_FREE: 120000, VARILUX: 350000, FOTOCROMATICO: 180000 },
     EXTRAS: { TINT: 15000 },
   };
 
@@ -38,7 +38,7 @@ export function LensConfigurator({ basePrice }: ConfiguratorProps) {
     if (lensType === "MULTIFOCAL" && treatment) {
       total += PRICING.MULTIFOCAL[treatment as keyof typeof PRICING.MULTIFOCAL] || 0;
     }
-    if (hasTint) {
+    if (tintColor) {
       total += PRICING.EXTRAS.TINT;
     }
     return total;
@@ -86,7 +86,7 @@ export function LensConfigurator({ basePrice }: ConfiguratorProps) {
           />
           <OptionCard 
             selected={lensType === "NONE"} 
-            onClick={() => { setLensType("NONE"); setTreatment(null); setHasTint(false); setStep(5); }}
+            onClick={() => { setLensType("NONE"); setTreatment(null); setTintColor(null); setStep(5); }}
             title="Solo Armazón" 
             desc="Sin cristales." 
           />
@@ -111,6 +111,7 @@ export function LensConfigurator({ basePrice }: ConfiguratorProps) {
                   <OptionCard selected={treatment === "BLANCO"} onClick={() => { setTreatment("BLANCO"); setStep(3); }} title="Blanco Estándar" desc="Cristal básico." price={`+$${PRICING.MONOFOCAL.BLANCO.toLocaleString()}`} />
                   <OptionCard selected={treatment === "AR"} onClick={() => { setTreatment("AR"); setStep(3); }} title="Antirreflex (AR)" desc="Elimina reflejos." price={`+$${PRICING.MONOFOCAL.AR.toLocaleString()}`} />
                   <OptionCard selected={treatment === "BLUE"} onClick={() => { setTreatment("BLUE"); setStep(3); }} title="Filtro Azul" desc="Para pantallas." price={`+$${PRICING.MONOFOCAL.BLUE.toLocaleString()}`} />
+                  <OptionCard selected={treatment === "FOTOCROMATICO"} onClick={() => { setTreatment("FOTOCROMATICO"); setStep(4); }} title="Fotocromático" desc="Se oscurece al sol." price={`+$${PRICING.MONOFOCAL.FOTOCROMATICO.toLocaleString()}`} />
                 </>
               )}
               
@@ -122,6 +123,7 @@ export function LensConfigurator({ basePrice }: ConfiguratorProps) {
                 <>
                   <OptionCard selected={treatment === "SMART_FREE"} onClick={() => { setTreatment("SMART_FREE"); setStep(3); }} title="Smart Free" desc="Multifocal digital." price={`+$${PRICING.MULTIFOCAL.SMART_FREE.toLocaleString()}`} />
                   <OptionCard selected={treatment === "VARILUX"} onClick={() => { setTreatment("VARILUX"); setStep(3); }} title="Varilux Premium" desc="Visión panorámica." price={`+$${PRICING.MULTIFOCAL.VARILUX.toLocaleString()}`} />
+                  <OptionCard selected={treatment === "FOTOCROMATICO"} onClick={() => { setTreatment("FOTOCROMATICO"); setStep(4); }} title="Multi Fotocromático" desc="Se oscurece al sol." price={`+$${PRICING.MULTIFOCAL.FOTOCROMATICO.toLocaleString()}`} />
                 </>
               )}
             </div>
@@ -139,25 +141,26 @@ export function LensConfigurator({ basePrice }: ConfiguratorProps) {
             className="overflow-hidden mb-8"
           >
             <div className="flex items-center gap-3 mb-4 mt-2">
-              <p className="text-[11px] font-bold uppercase tracking-widest text-[#666]">3. Toque Final</p>
+              <p className="text-[11px] font-bold uppercase tracking-widest text-[#666]">3. Toque Final (Opcional)</p>
             </div>
-            <label className={`flex items-center gap-4 p-4 border cursor-pointer transition-colors ${hasTint ? 'border-black bg-black text-white' : 'border-[#e5e5e5] hover:border-black bg-white text-black'}`}>
-              <input 
-                type="checkbox" 
-                checked={hasTint} 
-                onChange={(e) => { setHasTint(e.target.checked); setStep(4); }}
-                className="hidden"
-              />
-              <div className="flex-1">
-                <h4 className="font-bold text-[13px]">Teñido de Color</h4>
-                <p className={`text-[12px] ${hasTint ? 'text-white/70' : 'text-[#666]'}`}>Transformá en lentes para el sol.</p>
-              </div>
-              <div className="font-bold text-[13px]">
-                +${PRICING.EXTRAS.TINT.toLocaleString()}
-              </div>
-            </label>
-            {!hasTint && (
-               <button onClick={() => setStep(4)} className="mt-3 text-[10px] font-bold text-[#999] uppercase tracking-widest hover:text-black transition-colors underline underline-offset-4 decoration-1">Saltar este paso</button>
+            
+            {treatment === "FOTOCROMATICO" ? (
+               <div className="p-6 border border-[#e5e5e5] bg-[#f9f9f9]">
+                 <p className="text-[12px] text-[#666] leading-relaxed">Los cristales fotocromáticos ya incluyen adaptación automática a la luz solar. No es posible ni necesario añadirles teñido permanente.</p>
+                 <button onClick={() => setStep(4)} className="mt-6 px-6 py-3 bg-black text-white text-[10px] font-bold uppercase tracking-widest hover:opacity-80 transition-opacity">Continuar</button>
+               </div>
+            ) : (
+               <>
+                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-3">
+                    <ColorOption color="Gris" hex="#555555" price={PRICING.EXTRAS.TINT} selected={tintColor === "Gris"} onClick={() => {setTintColor(tintColor === "Gris" ? null : "Gris"); setStep(4);}} />
+                    <ColorOption color="Marrón" hex="#6b4c3a" price={PRICING.EXTRAS.TINT} selected={tintColor === "Marrón"} onClick={() => {setTintColor(tintColor === "Marrón" ? null : "Marrón"); setStep(4);}} />
+                    <ColorOption color="Verde G15" hex="#2c4c3b" price={PRICING.EXTRAS.TINT} selected={tintColor === "Verde G15"} onClick={() => {setTintColor(tintColor === "Verde G15" ? null : "Verde G15"); setStep(4);}} />
+                    <ColorOption color="Rosa" hex="#d4a3a3" price={PRICING.EXTRAS.TINT} selected={tintColor === "Rosa"} onClick={() => {setTintColor(tintColor === "Rosa" ? null : "Rosa"); setStep(4);}} />
+                 </div>
+                 {!tintColor && (
+                   <button onClick={() => setStep(4)} className="mt-3 text-[10px] font-bold text-[#999] uppercase tracking-widest hover:text-black transition-colors underline underline-offset-4 decoration-1">Saltar este paso</button>
+                 )}
+               </>
             )}
           </motion.div>
         )}
@@ -300,7 +303,7 @@ export function LensConfigurator({ basePrice }: ConfiguratorProps) {
                   <p className="text-[#666] mb-8 text-[13px] leading-relaxed">Recibimos tu orden y receta. Un asesor te escribirá a la brevedad a tu WhatsApp ({customerData.whatsapp}).</p>
                   
                   <button 
-                    onClick={() => { setShowCheckout(false); setStep(1); setTreatment(null); setLensType(null); setCheckoutStep("FORM"); }}
+                    onClick={() => { setShowCheckout(false); setStep(1); setTreatment(null); setLensType(null); setTintColor(null); setCheckoutStep("FORM"); }}
                     className="w-full py-4 bg-black text-white font-bold uppercase tracking-widest text-[11px] hover:opacity-80 transition-opacity"
                   >
                     Volver a la tienda
@@ -331,5 +334,27 @@ function OptionCard({ selected, onClick, title, desc, price }: any) {
       <p className={`text-[11px] leading-relaxed mb-2 ${selected ? 'text-white/70' : 'text-[#666]'}`}>{desc}</p>
       {price && <p className={`text-[12px] font-bold ${selected ? 'text-white' : 'text-black'}`}>{price}</p>}
     </motion.div>
+  );
+}
+
+function ColorOption({ color, hex, price, selected, onClick }: any) {
+  return (
+    <div 
+      onClick={onClick}
+      className={`p-4 border cursor-pointer flex flex-col items-center justify-center gap-3 transition-colors duration-200 ${
+        selected 
+          ? 'border-black bg-[#f9f9f9]' 
+          : 'border-[#e5e5e5] hover:border-black bg-white'
+      }`}
+    >
+      <div 
+        className={`w-10 h-10 rounded-full shadow-inner ${selected ? 'scale-110' : ''} transition-transform`} 
+        style={{ backgroundColor: hex, opacity: 0.85 }} 
+      />
+      <div className="text-center">
+        <span className="block text-[11px] font-bold uppercase tracking-widest mb-1">{color}</span>
+        <span className="block text-[10px] text-[#666]">+$15.000</span>
+      </div>
+    </div>
   );
 }
