@@ -64,6 +64,7 @@ export async function GET(request: Request) {
                 },
                 client: {
                     select: {
+                        contactSource: true,
                         tags: {
                             select: {
                                 name: true
@@ -251,19 +252,12 @@ export async function GET(request: Request) {
         });
         const tagStats: Record<string, { total: number; count: number }> = {};
         currentMonthOrders.forEach((order: any) => {
-            // Combinar etiquetas de la orden y del cliente (evitando duplicados)
-            const combinedTags = [
-                ...order.tags.map((t: any) => t.name),
-                ...(order.client?.tags.map((t: any) => t.name) || [])
-            ];
-            const uniqueTags = [...new Set(combinedTags)];
-
-            uniqueTags.forEach((tagName: string) => {
-                if (!tagStats[tagName]) tagStats[tagName] = { total: 0, count: 0 };
-                const orderPrice = order.total || order.subtotalWithMarkup || 0;
-                tagStats[tagName].total += orderPrice;
-                tagStats[tagName].count += 1;
-            });
+            // Usar contactSource del cliente como "etiqueta" principal
+            const source = order.client?.contactSource || 'Sin etiqueta';
+            if (!tagStats[source]) tagStats[source] = { total: 0, count: 0 };
+            const orderPrice = order.total || order.subtotalWithMarkup || 0;
+            tagStats[source].total += orderPrice;
+            tagStats[source].count += 1;
         });
 
         // Type stats

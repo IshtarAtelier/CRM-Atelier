@@ -12,10 +12,11 @@ export default async function AdminLayout({
   const headersList = await headers();
   const userName = headersList.get("x-user-name") || "Usuario";
   const userRole = headersList.get("x-user-role") || "STAFF";
+  const userId = headersList.get("x-user-id") || "";
 
   return (
     <div className="flex min-h-screen bg-background text-foreground">
-      <Sidebar userName={userName} userRole={userRole} />
+      <Sidebar userName={userName} userRole={userRole} userId={userId} />
       <main className="flex-1 ml-0 lg:ml-64 min-h-screen relative flex flex-col pt-16 lg:pt-0">
         <GlobalTasks />
         <GlobalBalanceReminders />

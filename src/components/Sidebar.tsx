@@ -10,9 +10,10 @@ import { NotificationBell } from "./NotificationBell";
 interface SidebarProps {
   userName?: string;
   userRole?: string;
+  userId?: string;
 }
 
-export function Sidebar({ userName = "Usuario", userRole = "STAFF" }: SidebarProps) {
+export function Sidebar({ userName = "Usuario", userRole = "STAFF", userId = "" }: SidebarProps) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -96,7 +97,7 @@ export function Sidebar({ userName = "Usuario", userRole = "STAFF" }: SidebarPro
         <div className="flex items-center gap-1 px-2">
           {isAdmin && <NotificationBell />}
           <div className="flex-1">
-            <UserProfile name={userName} role={userRole} />
+            <UserProfile name={userName} role={userRole} userId={userId} />
           </div>
         </div>
       </div>
