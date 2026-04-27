@@ -53,7 +53,10 @@ export function LensConfigurator({ basePrice }: ConfiguratorProps) {
            ¿No sabés qué cristales elegir? Un óptico en línea te asesora →
          </a>
          <Link href="/blog/guia-cristales" className="text-[11px] text-[#666] hover:text-black transition-colors underline underline-offset-4 decoration-1 w-max">
-           Ver Guía interactiva de Cristales
+           Guía interactiva: Tratamientos
+         </Link>
+         <Link href="/blog/colores-cristales" className="text-[11px] text-[#666] hover:text-black transition-colors underline underline-offset-4 decoration-1 w-max">
+           Guía interactiva: Colores de Teñido
          </Link>
       </div>
 
@@ -151,11 +154,14 @@ export function LensConfigurator({ basePrice }: ConfiguratorProps) {
                </div>
             ) : (
                <>
-                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-3">
+                 <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-4 gap-3 mb-3">
                     <ColorOption color="Gris" hex="#555555" price={PRICING.EXTRAS.TINT} selected={tintColor === "Gris"} onClick={() => {setTintColor(tintColor === "Gris" ? null : "Gris"); setStep(4);}} />
                     <ColorOption color="Marrón" hex="#6b4c3a" price={PRICING.EXTRAS.TINT} selected={tintColor === "Marrón"} onClick={() => {setTintColor(tintColor === "Marrón" ? null : "Marrón"); setStep(4);}} />
                     <ColorOption color="Verde G15" hex="#2c4c3b" price={PRICING.EXTRAS.TINT} selected={tintColor === "Verde G15"} onClick={() => {setTintColor(tintColor === "Verde G15" ? null : "Verde G15"); setStep(4);}} />
                     <ColorOption color="Rosa" hex="#d4a3a3" price={PRICING.EXTRAS.TINT} selected={tintColor === "Rosa"} onClick={() => {setTintColor(tintColor === "Rosa" ? null : "Rosa"); setStep(4);}} />
+                    <ColorOption color="Amarillo" hex="#e1b854" price={PRICING.EXTRAS.TINT} selected={tintColor === "Amarillo"} onClick={() => {setTintColor(tintColor === "Amarillo" ? null : "Amarillo"); setStep(4);}} />
+                    <ColorOption color="Naranja" hex="#d6804a" price={PRICING.EXTRAS.TINT} selected={tintColor === "Naranja"} onClick={() => {setTintColor(tintColor === "Naranja" ? null : "Naranja"); setStep(4);}} />
+                    <ColorOption color="Rojo" hex="#ab4040" price={PRICING.EXTRAS.TINT} selected={tintColor === "Rojo"} onClick={() => {setTintColor(tintColor === "Rojo" ? null : "Rojo"); setStep(4);}} />
                  </div>
                  {!tintColor && (
                    <button onClick={() => setStep(4)} className="mt-3 text-[10px] font-bold text-[#999] uppercase tracking-widest hover:text-black transition-colors underline underline-offset-4 decoration-1">Saltar este paso</button>
