@@ -138,6 +138,26 @@ export async function GET(request: Request) {
         });
         const totalQuotesValue = openQuotes.reduce((acc, q: any) => acc + (q.total || q.subtotalWithMarkup || 0), 0);
 
+        // CONFIRMADOS: Clients with status CONFIRMED, sum only their latest QUOTE
+        const confirmedClients = await prisma.client.findMany({
+            where: { status: 'CONFIRMED' },
+            select: {
+                id: true,
+                orders: {
+                    where: { orderType: 'QUOTE', isDeleted: false },
+                    orderBy: { createdAt: 'desc' },
+                    take: 1,
+                    select: { total: true, subtotalWithMarkup: true }
+                }
+            }
+        });
+        const confirmedCount = confirmedClients.length;
+        const confirmedTotal = confirmedClients.reduce((acc, c) => {
+            const lastQuote = c.orders[0];
+            if (!lastQuote) return acc;
+            return acc + (lastQuote.total || lastQuote.subtotalWithMarkup || 0);
+        }, 0);
+
         // Suggested Follow-ups (Multifocal quotes > 2 days old)
         const twoDaysAgo = new Date();
         twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
@@ -376,6 +396,8 @@ export async function GET(request: Request) {
             targets,
             totalPendingBalance: globalPendingBalance,
             totalQuotesValue: totalQuotesValue,
+            confirmedCount,
+            confirmedTotal,
             suggestedFollowUps: suggestedFollowUps,
             monthlyBilling: last6MonthsKeys.map(key => ({ name: key, total: monthlyStats[key] })),
             tagStats: Object.entries(tagStats).map(([name, data]) => ({ name, ...data })),
