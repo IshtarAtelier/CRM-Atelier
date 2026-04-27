@@ -309,15 +309,15 @@ export default function Home() {
           </div>
 
           <div className="md:col-span-1 bg-white dark:bg-stone-900 rounded-3xl p-6 shadow-xl border border-stone-100 dark:border-stone-800 relative overflow-hidden group">
-            <div className="absolute top-0 right-0 w-24 h-24 bg-primary/5 rounded-full -mr-12 -mt-12 blur-2xl group-hover:bg-primary/10 transition-colors" />
+            <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/5 rounded-full -mr-12 -mt-12 blur-2xl group-hover:bg-emerald-500/10 transition-colors" />
             <div className="flex items-center gap-3 mb-4">
-              <div className="bg-primary/10 p-2 rounded-xl text-primary">
-                <ArrowUpRight className="w-5 h-5" />
+              <div className="bg-emerald-100 dark:bg-emerald-900/30 p-2 rounded-xl text-emerald-600 dark:text-emerald-400">
+                <DollarSign className="w-5 h-5" />
               </div>
-              <h3 className="text-[10px] font-black uppercase tracking-widest text-stone-400">Potencial Total</h3>
+              <h3 className="text-[10px] font-black uppercase tracking-widest text-stone-400">Confirmados</h3>
             </div>
-            <p className="text-3xl font-black tracking-tighter text-stone-800 dark:text-white">${(d.totalPendingBalance + d.totalQuotesValue).toLocaleString()}</p>
-            <p className="text-[9px] font-bold text-stone-500 mt-2 uppercase tracking-tight">Saldos + Presupuestos abiertos</p>
+            <p className="text-3xl font-black tracking-tighter text-stone-800 dark:text-white">${d.totalSoldMonth.toLocaleString()}</p>
+            <p className="text-[9px] font-bold text-stone-500 mt-2 uppercase tracking-tight">{d.ordersCountMonth} ventas facturadas en el período</p>
           </div>
         </section>
       )}
@@ -362,6 +362,23 @@ export default function Home() {
               trend={`${d.funnel.contacts}`}
               sub="Ingresados en período"
             />
+          </div>
+        </section>
+      )}
+
+      {/* POTENCIAL TOTAL — Only for Admin */}
+      {isAdmin && (
+        <section className="grid grid-cols-1 gap-6">
+          <div className="bg-white dark:bg-stone-900 rounded-3xl p-6 shadow-xl border border-stone-100 dark:border-stone-800 relative overflow-hidden group">
+            <div className="absolute top-0 right-0 w-24 h-24 bg-primary/5 rounded-full -mr-12 -mt-12 blur-2xl group-hover:bg-primary/10 transition-colors" />
+            <div className="flex items-center gap-3 mb-4">
+              <div className="bg-primary/10 p-2 rounded-xl text-primary">
+                <ArrowUpRight className="w-5 h-5" />
+              </div>
+              <h3 className="text-[10px] font-black uppercase tracking-widest text-stone-400">Potencial Total</h3>
+            </div>
+            <p className="text-3xl font-black tracking-tighter text-stone-800 dark:text-white">${(d.totalPendingBalance + d.totalQuotesValue).toLocaleString()}</p>
+            <p className="text-[9px] font-bold text-stone-500 mt-2 uppercase tracking-tight">Saldos + Presupuestos abiertos</p>
           </div>
         </section>
       )}
