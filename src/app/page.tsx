@@ -41,13 +41,9 @@ export default function Home() {
           </Link>
         </nav>
         
-        {/* Centro: Logo */}
-        <Link href="/" className="absolute left-1/2 -translate-x-1/2">
-          <img 
-            src="/images/logo-blanco.png" 
-            alt="Atelier Óptica" 
-            className="h-7 w-auto drop-shadow-md"
-          />
+        {/* Centro: Texto logo */}
+        <Link href="/" className="absolute left-1/2 -translate-x-1/2 text-[16px] font-bold tracking-[0.15em] text-white drop-shadow-md" style={{ fontFamily: "'Georgia', 'Times New Roman', serif" }}>
+          ATELIER ÓPTICA
         </Link>
 
         {/* Derecha: Iconos */}
@@ -66,58 +62,39 @@ export default function Home() {
       </header>
 
       {/* ═══════════════════════════════════════════════ */}
-      {/* HERO — Video/Imagen de campaña full-screen      */}
-      {/* Exactamente como Gentle Monster: imagen masiva  */}
-      {/* con título de colección centrado abajo           */}
+      {/* HERO — Zoom cinemático hacia los anteojos        */}
       {/* ═══════════════════════════════════════════════ */}
       <section className="relative w-full h-screen overflow-hidden bg-black">
+        {/* Imagen con zoom cinematográfico lento hacia los ojos/anteojos */}
         <motion.div 
           className="absolute inset-0"
-          style={{ scale: heroScale }}
+          style={{ transformOrigin: "center 40%" }}
+          initial={{ scale: 1 }}
+          animate={{ scale: 1.15 }}
+          transition={{ duration: 12, ease: "easeOut" }}
         >
           <img
             src="/images/editorial/monalisa.png"
-            alt="Atelier — El Arte de Ver"
+            alt="Atelier — Tu visión, nuestra obra maestra"
             className="h-full w-full object-cover"
           />
         </motion.div>
         
-        {/* Gradiente sutil en la base */}
-        <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-black/60 to-transparent" />
-        
-        {/* Título de campaña — centrado abajo como GM */}
-        <div className="absolute inset-x-0 bottom-0 flex flex-col items-center pb-16">
+        {/* Texto transparente centrado con mix-blend-overlay */}
+        <div className="absolute inset-0 flex items-center justify-center">
           <motion.h1 
-            className="text-white text-center text-lg md:text-2xl font-normal tracking-[0.08em] mb-6"
+            className="text-white text-4xl md:text-7xl lg:text-8xl font-extralight tracking-tight text-center mix-blend-overlay select-none px-4"
             style={{ fontFamily: "'Georgia', 'Times New Roman', serif" }}
-            initial={{ opacity: 0, y: 15 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.5, duration: 1.2 }}
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 0.85, scale: 1 }}
+            transition={{ delay: 1, duration: 2.5 }}
           >
-            EL ARTE DE VER
+            Tu visión, nuestra<br />obra maestra
           </motion.h1>
-          
-          {/* Botones como GM: "Shop Now" y "View Campaign" */}
-          <motion.div 
-            className="flex gap-4"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 1, duration: 1 }}
-          >
-            <Link 
-              href="/tienda" 
-              className="px-6 py-2.5 text-[12px] font-medium tracking-wide text-white border border-white/60 rounded-full hover:bg-white hover:text-black transition-all duration-300"
-            >
-              Shop Now
-            </Link>
-            <Link 
-              href="/blog" 
-              className="px-6 py-2.5 text-[12px] font-medium tracking-wide text-white border border-white/60 rounded-full hover:bg-white hover:text-black transition-all duration-300"
-            >
-              View Campaign
-            </Link>
-          </motion.div>
         </div>
+
+        {/* Gradiente sutil en la base */}
+        <div className="absolute inset-x-0 bottom-0 h-1/4 bg-gradient-to-t from-black/40 to-transparent" />
 
         {/* Indicador de slides (barras como GM) */}
         <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
