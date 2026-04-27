@@ -16,6 +16,8 @@ interface DashboardData {
   targets: { target1: number; target2: number; target3: number } | null;
   totalPendingBalance: number;
   totalQuotesValue: number;
+  confirmedCount: number;
+  confirmedTotal: number;
   suggestedFollowUps: any[];
 }
 
@@ -96,6 +98,8 @@ export default function Home() {
     targets: null,
     totalPendingBalance: 0,
     totalQuotesValue: 0,
+    confirmedCount: 0,
+    confirmedTotal: 0,
     suggestedFollowUps: [],
   };
 
@@ -316,8 +320,8 @@ export default function Home() {
               </div>
               <h3 className="text-[10px] font-black uppercase tracking-widest text-stone-400">Confirmados</h3>
             </div>
-            <p className="text-3xl font-black tracking-tighter text-stone-800 dark:text-white">${d.totalSoldMonth.toLocaleString()}</p>
-            <p className="text-[9px] font-bold text-stone-500 mt-2 uppercase tracking-tight">{d.ordersCountMonth} ventas facturadas en el período</p>
+            <p className="text-3xl font-black tracking-tighter text-stone-800 dark:text-white">${d.confirmedTotal.toLocaleString()}</p>
+            <p className="text-[9px] font-bold text-stone-500 mt-2 uppercase tracking-tight">{d.confirmedCount} clientes confirmados — próximos a venta</p>
           </div>
         </section>
       )}

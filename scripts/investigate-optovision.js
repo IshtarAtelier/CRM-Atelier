@@ -1,69 +1,51 @@
-// Check if "Optovision" exists as both a brand AND a laboratory 
-// and if there are products where brand="Optovision" AND laboratory="OPTOVISION"
+// Deep-check for invisible character differences in brand names
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
 async function main() {
-    // Check products where Optovision is brand
-    const asBrand = await prisma.product.findMany({
-        where: { brand: { contains: 'optovision', mode: 'insensitive' } },
-        select: { id: true, brand: true, name: true, laboratory: true, category: true, type: true }
-    });
-    console.log(`Products with brand "Optovision": ${asBrand.length}`);
-    asBrand.forEach(p => console.log(`  brand="${p.brand}" lab="${p.laboratory}" name="${p.name}" cat="${p.category}" type="${p.type}"`));
-    
-    // Check products where Optovision is laboratory
-    const asLab = await prisma.product.findMany({
-        where: { laboratory: { contains: 'optovision', mode: 'insensitive' } },
-        select: { id: true, brand: true, name: true, laboratory: true, category: true, type: true }
-    });
-    console.log(`\nProducts with laboratory "Optovision": ${asLab.length}`);
-    
-    // Get unique brands from those lab-optovision products
-    const brandsFromLabOptovision = [...new Set(asLab.map(p => p.brand))];
-    console.log(`Brands of products from Lab OPTOVISION: ${brandsFromLabOptovision.join(', ')}`);
-    
-    // Now simulate what the frontend does - get ALL products, extract unique brands
     const allProducts = await prisma.product.findMany({
         select: { brand: true },
-        orderBy: { brand: 'asc' }
+        where: { brand: { not: null } }
     });
-    
-    const allBrands = allProducts.map(p => p.brand).filter(Boolean);
-    const uniqueBrands = Array.from(new Set(allBrands)).sort();
-    
-    console.log('\n\nAll unique brands (as frontend sees them):');
-    uniqueBrands.forEach(b => console.log(`  "${b}"`));
-    
-    // Check for near-duplicates
-    const lowerMap = {};
-    uniqueBrands.forEach(b => {
-        const key = b.toLowerCase().trim();
-        if (!lowerMap[key]) lowerMap[key] = [];
-        lowerMap[key].push(b);
+
+    // Simulate frontend logic exactly
+    const brands = allProducts.map(p => p.brand).filter(Boolean);
+    const uniqueBrands = Array.from(new Set(brands)).sort();
+
+    console.log('Unique brands (simulating frontend):');
+    uniqueBrands.forEach((b, i) => {
+        const bytes = Buffer.from(b, 'utf-8');
+        console.log(`  [${i}] "${b}" len=${b.length} bytes=[${[...bytes].map(x => x.toString(16).padStart(2,'0')).join(' ')}]`);
     });
-    
-    console.log('\n\nPotential duplicates (different casing):');
-    Object.entries(lowerMap).forEach(([key, variants]) => {
-        if (variants.length > 1) {
-            console.log(`  "${key}" → ${variants.map(v => `"${v}"`).join(', ')}`);
+
+    // Check for any brand that appears close to "Optovision" in the sorted list
+    const optoIdx = uniqueBrands.findIndex(b => b.toLowerCase().includes('opto'));
+    if (optoIdx >= 0) {
+        console.log(`\nOptovision found at index ${optoIdx}`);
+        // Show surrounding entries
+        for (let i = Math.max(0, optoIdx - 2); i <= Math.min(uniqueBrands.length - 1, optoIdx + 2); i++) {
+            console.log(`  [${i}] "${uniqueBrands[i]}"`);
         }
-    });
+    }
     
-    // Check what happens when filtering by category "Cristal" — since the page loads filtered products
-    const cristalProducts = await prisma.product.findMany({
-        where: { 
-            OR: [
-                { category: 'Cristal' },
-                { category: 'CRISTAL' },
-                { type: { startsWith: 'Cristal' } }
-            ]
-        },
-        select: { brand: true }
+    // Now check: does the ProductService.getAll() add any extra brands?
+    const productCount = await prisma.product.count();
+    console.log(`\nTotal products: ${productCount}`);
+    
+    // Check if there's a brand that's OPTOVISION (uppercase) vs Optovision (title case)
+    const optoBrands = allProducts.filter(p => p.brand && p.brand.toLowerCase() === 'optovision');
+    console.log(`\nProducts with brand "optovision" (case-insensitive): ${optoBrands.length}`);
+    const optoVariants = [...new Set(optoBrands.map(p => p.brand))];
+    console.log(`Variants: ${optoVariants.map(v => `"${v}" (${v.length} chars)`).join(', ')}`);
+    
+    // Maybe the "laboratory" is leaking into the brand field?
+    const labOptovision = await prisma.product.findMany({
+        where: { laboratory: 'OPTOVISION' },
+        select: { brand: true, laboratory: true },
+        distinct: ['brand']
     });
-    const cristalBrands = Array.from(new Set(cristalProducts.map(p => p.brand).filter(Boolean))).sort();
-    console.log('\n\nBrands for Cristal products:');
-    cristalBrands.forEach(b => console.log(`  "${b}"`));
+    console.log('\nDistinct brands for products with lab=OPTOVISION:');
+    labOptovision.forEach(p => console.log(`  brand="${p.brand}" lab="${p.laboratory}"`));
 }
 
 main().catch(console.error).finally(() => prisma.$disconnect());
