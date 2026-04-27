@@ -9,9 +9,10 @@ type Treatment = "BLANCO" | "AR" | "BLUE" | "SMART_FREE" | "VARILUX" | "UNICO" |
 
 interface ConfiguratorProps {
   basePrice: number;
+  onColorChange?: (hex: string | null) => void;
 }
 
-export function LensConfigurator({ basePrice }: ConfiguratorProps) {
+export function LensConfigurator({ basePrice, onColorChange }: ConfiguratorProps) {
   const [step, setStep] = useState<number>(1);
   const [lensType, setLensType] = useState<LensType>(null);
   const [treatment, setTreatment] = useState<Treatment>(null);
@@ -46,18 +47,29 @@ export function LensConfigurator({ basePrice }: ConfiguratorProps) {
 
   return (
     <div className="w-full text-black">
-      <h3 className="text-[13px] font-bold uppercase tracking-widest mb-2">Configurar Cristales</h3>
+      <div className="flex justify-between items-end mb-4">
+        <h3 className="text-[13px] font-bold uppercase tracking-widest">Configurar Cristales</h3>
+      </div>
 
-      <div className="mb-8 flex flex-col gap-1">
-         <a href="https://wa.me/5493541215971?text=Hola,%20necesito%20asesoramiento%20para%20elegir%20mis%20cristales." target="_blank" rel="noopener noreferrer" className="text-[11px] text-[#666] hover:text-black transition-colors underline underline-offset-4 decoration-1 w-max">
-           ¿No sabés qué cristales elegir? Un óptico en línea te asesora →
-         </a>
-         <Link href="/blog/guia-cristales" className="text-[11px] text-[#666] hover:text-black transition-colors underline underline-offset-4 decoration-1 w-max">
-           Guía interactiva: Tratamientos
-         </Link>
-         <Link href="/blog/colores-cristales" className="text-[11px] text-[#666] hover:text-black transition-colors underline underline-offset-4 decoration-1 w-max">
-           Guía interactiva: Colores de Teñido
-         </Link>
+      {/* BLOQUE DE ASESORAMIENTO */}
+      <div className="mb-10 bg-[#f9f9f9] border border-[#e5e5e5] p-5 flex flex-col gap-4">
+        <div className="flex items-center justify-between border-b border-[#e5e5e5] pb-3">
+          <span className="text-[10px] font-bold uppercase tracking-widest text-[#666]">Asistencia en línea</span>
+          <a href="https://wa.me/5493541215971?text=Hola,%20necesito%20asesoramiento%20para%20elegir%20mis%20cristales." target="_blank" rel="noopener noreferrer" className="text-[11px] font-bold text-black hover:opacity-70 transition-opacity flex items-center gap-2">
+            <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
+            Hablá con un Óptico <span className="text-[14px] font-normal leading-none ml-1">→</span>
+          </a>
+        </div>
+        <div className="flex flex-col sm:flex-row gap-4 sm:gap-8 pt-1">
+          <Link href="/blog/guia-cristales" className="text-[11px] text-[#666] hover:text-black transition-colors flex items-center gap-2 group">
+            <svg className="w-3 h-3 text-[#999] group-hover:text-black transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
+            Guía de Tratamientos
+          </Link>
+          <Link href="/blog/colores-cristales" className="text-[11px] text-[#666] hover:text-black transition-colors flex items-center gap-2 group">
+            <svg className="w-3 h-3 text-[#999] group-hover:text-black transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"></path></svg>
+            Guía de Colores
+          </Link>
+        </div>
       </div>
 
       {/* PASO 1: TIPO DE CRISTAL */}
@@ -155,13 +167,48 @@ export function LensConfigurator({ basePrice }: ConfiguratorProps) {
             ) : (
                <>
                  <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-4 gap-3 mb-3">
-                    <ColorOption color="Gris" hex="#555555" price={PRICING.EXTRAS.TINT} selected={tintColor === "Gris"} onClick={() => {setTintColor(tintColor === "Gris" ? null : "Gris"); setStep(4);}} />
-                    <ColorOption color="Marrón" hex="#6b4c3a" price={PRICING.EXTRAS.TINT} selected={tintColor === "Marrón"} onClick={() => {setTintColor(tintColor === "Marrón" ? null : "Marrón"); setStep(4);}} />
-                    <ColorOption color="Verde G15" hex="#2c4c3b" price={PRICING.EXTRAS.TINT} selected={tintColor === "Verde G15"} onClick={() => {setTintColor(tintColor === "Verde G15" ? null : "Verde G15"); setStep(4);}} />
-                    <ColorOption color="Rosa" hex="#d4a3a3" price={PRICING.EXTRAS.TINT} selected={tintColor === "Rosa"} onClick={() => {setTintColor(tintColor === "Rosa" ? null : "Rosa"); setStep(4);}} />
-                    <ColorOption color="Amarillo" hex="#e1b854" price={PRICING.EXTRAS.TINT} selected={tintColor === "Amarillo"} onClick={() => {setTintColor(tintColor === "Amarillo" ? null : "Amarillo"); setStep(4);}} />
-                    <ColorOption color="Naranja" hex="#d6804a" price={PRICING.EXTRAS.TINT} selected={tintColor === "Naranja"} onClick={() => {setTintColor(tintColor === "Naranja" ? null : "Naranja"); setStep(4);}} />
-                    <ColorOption color="Rojo" hex="#ab4040" price={PRICING.EXTRAS.TINT} selected={tintColor === "Rojo"} onClick={() => {setTintColor(tintColor === "Rojo" ? null : "Rojo"); setStep(4);}} />
+                    <ColorOption color="Gris" hex="#555555" price={PRICING.EXTRAS.TINT} selected={tintColor === "Gris"} onClick={() => {
+                        const newColor = tintColor === "Gris" ? null : "Gris";
+                        setTintColor(newColor);
+                        if (onColorChange) onColorChange(newColor ? "#555555" : null);
+                        setStep(4);
+                    }} />
+                    <ColorOption color="Marrón" hex="#6b4c3a" price={PRICING.EXTRAS.TINT} selected={tintColor === "Marrón"} onClick={() => {
+                        const newColor = tintColor === "Marrón" ? null : "Marrón";
+                        setTintColor(newColor);
+                        if (onColorChange) onColorChange(newColor ? "#6b4c3a" : null);
+                        setStep(4);
+                    }} />
+                    <ColorOption color="Verde G15" hex="#2c4c3b" price={PRICING.EXTRAS.TINT} selected={tintColor === "Verde G15"} onClick={() => {
+                        const newColor = tintColor === "Verde G15" ? null : "Verde G15";
+                        setTintColor(newColor);
+                        if (onColorChange) onColorChange(newColor ? "#2c4c3b" : null);
+                        setStep(4);
+                    }} />
+                    <ColorOption color="Rosa" hex="#d4a3a3" price={PRICING.EXTRAS.TINT} selected={tintColor === "Rosa"} onClick={() => {
+                        const newColor = tintColor === "Rosa" ? null : "Rosa";
+                        setTintColor(newColor);
+                        if (onColorChange) onColorChange(newColor ? "#d4a3a3" : null);
+                        setStep(4);
+                    }} />
+                    <ColorOption color="Amarillo" hex="#e1b854" price={PRICING.EXTRAS.TINT} selected={tintColor === "Amarillo"} onClick={() => {
+                        const newColor = tintColor === "Amarillo" ? null : "Amarillo";
+                        setTintColor(newColor);
+                        if (onColorChange) onColorChange(newColor ? "#e1b854" : null);
+                        setStep(4);
+                    }} />
+                    <ColorOption color="Naranja" hex="#d6804a" price={PRICING.EXTRAS.TINT} selected={tintColor === "Naranja"} onClick={() => {
+                        const newColor = tintColor === "Naranja" ? null : "Naranja";
+                        setTintColor(newColor);
+                        if (onColorChange) onColorChange(newColor ? "#d6804a" : null);
+                        setStep(4);
+                    }} />
+                    <ColorOption color="Rojo" hex="#ab4040" price={PRICING.EXTRAS.TINT} selected={tintColor === "Rojo"} onClick={() => {
+                        const newColor = tintColor === "Rojo" ? null : "Rojo";
+                        setTintColor(newColor);
+                        if (onColorChange) onColorChange(newColor ? "#ab4040" : null);
+                        setStep(4);
+                    }} />
                  </div>
                  {!tintColor && (
                    <button onClick={() => setStep(4)} className="mt-3 text-[10px] font-bold text-[#999] uppercase tracking-widest hover:text-black transition-colors underline underline-offset-4 decoration-1">Saltar este paso</button>
@@ -309,7 +356,7 @@ export function LensConfigurator({ basePrice }: ConfiguratorProps) {
                   <p className="text-[#666] mb-8 text-[13px] leading-relaxed">Recibimos tu orden y receta. Un asesor te escribirá a la brevedad a tu WhatsApp ({customerData.whatsapp}).</p>
                   
                   <button 
-                    onClick={() => { setShowCheckout(false); setStep(1); setTreatment(null); setLensType(null); setTintColor(null); setCheckoutStep("FORM"); }}
+                    onClick={() => { setShowCheckout(false); setStep(1); setTreatment(null); setLensType(null); setTintColor(null); if (onColorChange) onColorChange(null); setCheckoutStep("FORM"); }}
                     className="w-full py-4 bg-black text-white font-bold uppercase tracking-widest text-[11px] hover:opacity-80 transition-opacity"
                   >
                     Volver a la tienda
