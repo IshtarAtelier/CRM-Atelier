@@ -33,8 +33,8 @@ export default function ProductPage({ params }: { params: { slug: string } }) {
       <div className="flex flex-col lg:flex-row min-h-screen pt-16 lg:pt-0">
         
         {/* LADO IZQUIERDO: VISUAL (Fondo gris claro, imagen inmensa flotando) */}
-        <div className="w-full lg:w-[55%] bg-[#f2f2f2] relative flex items-center justify-center p-12 lg:h-screen lg:sticky lg:top-0 border-r border-[#e5e5e5]">
-          <div className="w-full max-w-2xl aspect-square relative">
+        <div className="w-full lg:w-[55%] bg-[#f2f2f2] relative flex items-center justify-center p-6 lg:p-12 min-h-[50vh] lg:h-screen lg:sticky lg:top-0 lg:border-r border-[#e5e5e5]">
+          <div className="w-full max-w-2xl aspect-[4/3] lg:aspect-square relative">
             <Image 
               src={MOCK_PRODUCT.imageUrl} 
               alt={MOCK_PRODUCT.name}
@@ -46,8 +46,8 @@ export default function ProductPage({ params }: { params: { slug: string } }) {
         </div>
 
         {/* LADO DERECHO: INFO Y CONFIGURADOR */}
-        <div className="w-full lg:w-[45%] p-8 lg:p-16 flex flex-col bg-white">
-          <div className="mb-12">
+        <div className="w-full lg:w-[45%] p-6 lg:p-16 flex flex-col bg-white">
+          <div className="mb-10 lg:mb-12">
             <h1 className="text-2xl font-normal mb-2">{MOCK_PRODUCT.name}</h1>
             <p className="text-[15px] text-[#999] mb-1">${MOCK_PRODUCT.price.toLocaleString()}</p>
             <p className="text-[10px] font-bold uppercase tracking-widest mb-8">6 Cuotas sin interés • Envío sin cargo a todo el país</p>
