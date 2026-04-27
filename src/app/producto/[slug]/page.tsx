@@ -48,20 +48,39 @@ export default function ProductPage({ params }: { params: { slug: string } }) {
             {/* LENS OVERLAY SIMULATION (MAGIC TRICK) */}
             {lensColor && (
               <motion.div 
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 0.7, scale: 1 }}
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
                 transition={{ duration: 1.2, ease: "easeOut" }}
-                className="absolute inset-0 z-20 mix-blend-multiply flex items-center justify-center pointer-events-none"
+                className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none"
               >
-                {/* Lente Izquierdo */}
+                {/* Lente Izquierdo - Base de Color */}
                 <div 
-                  className="absolute rounded-[40%] blur-[20px]"
-                  style={{ backgroundColor: lensColor, width: '26%', height: '32%', left: '17%', top: '34%' }}
+                  className="absolute rounded-[40%] blur-[12px] mix-blend-multiply"
+                  style={{ backgroundColor: lensColor, width: '27%', height: '30%', left: '17%', top: '35%', transform: 'rotate(-6deg)', opacity: 0.85 }}
                 />
-                {/* Lente Derecho */}
+                {/* Lente Izquierdo - Brillo (Glare Pro) */}
                 <div 
-                  className="absolute rounded-[40%] blur-[20px]"
-                  style={{ backgroundColor: lensColor, width: '26%', height: '32%', right: '17%', top: '34%' }}
+                  className="absolute rounded-[40%] mix-blend-screen"
+                  style={{ 
+                    width: '27%', height: '30%', left: '17%', top: '35%', transform: 'rotate(-6deg)',
+                    background: 'linear-gradient(105deg, transparent 20%, rgba(255,255,255,0.6) 25%, rgba(255,255,255,0.15) 30%, transparent 35%, transparent 60%, rgba(255,255,255,0.15) 62%, transparent 64%)',
+                    boxShadow: 'inset 2px 4px 10px rgba(255,255,255,0.2)'
+                  }}
+                />
+
+                {/* Lente Derecho - Base de Color */}
+                <div 
+                  className="absolute rounded-[40%] blur-[12px] mix-blend-multiply"
+                  style={{ backgroundColor: lensColor, width: '27%', height: '30%', right: '16.5%', top: '35%', transform: 'rotate(6deg)', opacity: 0.85 }}
+                />
+                {/* Lente Derecho - Brillo (Glare Pro) */}
+                <div 
+                  className="absolute rounded-[40%] mix-blend-screen"
+                  style={{ 
+                    width: '27%', height: '30%', right: '16.5%', top: '35%', transform: 'rotate(6deg)',
+                    background: 'linear-gradient(105deg, transparent 20%, rgba(255,255,255,0.6) 25%, rgba(255,255,255,0.15) 30%, transparent 35%, transparent 60%, rgba(255,255,255,0.15) 62%, transparent 64%)',
+                    boxShadow: 'inset 2px 4px 10px rgba(255,255,255,0.2)'
+                  }}
                 />
               </motion.div>
             )}
