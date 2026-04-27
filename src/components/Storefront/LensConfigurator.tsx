@@ -2,8 +2,9 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import Link from "next/link";
 
-type LensType = "MONOFOCAL" | "BIFOCAL" | "MULTIFOCAL" | null;
+type LensType = "MONOFOCAL" | "BIFOCAL" | "MULTIFOCAL" | "NONE" | null;
 type Treatment = "BLANCO" | "AR" | "BLUE" | "SMART_FREE" | "VARILUX" | "UNICO" | null;
 
 interface ConfiguratorProps {
@@ -45,7 +46,16 @@ export function LensConfigurator({ basePrice }: ConfiguratorProps) {
 
   return (
     <div className="w-full text-black">
-      <h3 className="text-[13px] font-bold uppercase tracking-widest mb-6">Configurar Cristales</h3>
+      <h3 className="text-[13px] font-bold uppercase tracking-widest mb-2">Configurar Cristales</h3>
+
+      <div className="mb-8 flex flex-col gap-1">
+         <a href="https://wa.me/5493541215971?text=Hola,%20necesito%20asesoramiento%20para%20elegir%20mis%20cristales." target="_blank" rel="noopener noreferrer" className="text-[11px] text-[#666] hover:text-black transition-colors underline underline-offset-4 decoration-1 w-max">
+           ¿No sabés qué cristales elegir? Un óptico en línea te asesora →
+         </a>
+         <Link href="/blog/guia-cristales" className="text-[11px] text-[#666] hover:text-black transition-colors underline underline-offset-4 decoration-1 w-max">
+           Ver Guía interactiva de Cristales
+         </Link>
+      </div>
 
       {/* PASO 1: TIPO DE CRISTAL */}
       <motion.div 
@@ -55,24 +65,30 @@ export function LensConfigurator({ basePrice }: ConfiguratorProps) {
         <div className="flex items-center gap-3 mb-4">
           <p className="text-[11px] font-bold uppercase tracking-widest text-[#666]">1. Tipo de Visión</p>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-2 gap-3">
           <OptionCard 
             selected={lensType === "MONOFOCAL"} 
             onClick={() => { setLensType("MONOFOCAL"); setTreatment(null); setStep(2); }}
             title="Monofocal" 
-            desc="Para ver de lejos o cerca." 
+            desc="Lejos o cerca." 
           />
           <OptionCard 
             selected={lensType === "BIFOCAL"} 
             onClick={() => { setLensType("BIFOCAL"); setTreatment("UNICO"); setStep(2); }}
             title="Bifocal" 
-            desc="Lejos y cerca con línea." 
+            desc="Lejos y cerca." 
           />
           <OptionCard 
             selected={lensType === "MULTIFOCAL"} 
             onClick={() => { setLensType("MULTIFOCAL"); setTreatment(null); setStep(2); }}
             title="Multifocal" 
-            desc="Lejos, intermedia y cerca." 
+            desc="Lejos, int y cerca." 
+          />
+          <OptionCard 
+            selected={lensType === "NONE"} 
+            onClick={() => { setLensType("NONE"); setTreatment(null); setHasTint(false); setStep(5); }}
+            title="Solo Armazón" 
+            desc="Sin cristales." 
           />
         </div>
       </motion.div>
@@ -184,7 +200,7 @@ export function LensConfigurator({ basePrice }: ConfiguratorProps) {
         </div>
         
         <button 
-          disabled={step < 4}
+          disabled={lensType !== "NONE" && step < 4}
           onClick={() => setShowCheckout(true)}
           className="w-full py-4 bg-black text-white font-medium uppercase tracking-widest text-[11px] hover:opacity-80 transition-opacity disabled:opacity-30 disabled:cursor-not-allowed flex justify-center items-center gap-2"
         >
