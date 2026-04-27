@@ -1,6 +1,10 @@
+"use client";
+
 import { LensConfigurator } from "@/components/Storefront/LensConfigurator";
 import Link from "next/link";
 import Image from "next/image";
+import { useState } from "react";
+import { motion } from "framer-motion";
 
 // Mock data
 const MOCK_PRODUCT = {
@@ -14,6 +18,8 @@ const MOCK_PRODUCT = {
 };
 
 export default function ProductPage({ params }: { params: { slug: string } }) {
+  const [lensColor, setLensColor] = useState<string | null>(null);
+
   return (
     <div className="min-h-screen bg-white text-black selection:bg-black selection:text-white" style={{ fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif" }}>
       
@@ -33,16 +39,42 @@ export default function ProductPage({ params }: { params: { slug: string } }) {
       <div className="flex flex-col lg:flex-row min-h-screen pt-16 lg:pt-0">
         
         {/* LADO IZQUIERDO: VISUAL (Fondo gris claro, imagen inmensa flotando) */}
-        <div className="w-full lg:w-[55%] bg-[#f2f2f2] relative flex items-center justify-center p-6 lg:p-12 min-h-[50vh] lg:h-screen lg:sticky lg:top-0 lg:border-r border-[#e5e5e5]">
-          <div className="w-full max-w-2xl aspect-[4/3] lg:aspect-square relative">
+        <div className="w-full lg:w-[55%] bg-[#f2f2f2] relative flex items-center justify-center p-6 lg:p-12 min-h-[50vh] lg:h-screen lg:sticky lg:top-0 lg:border-r border-[#e5e5e5] overflow-hidden">
+          <motion.div 
+            animate={{ y: [0, -15, 0] }}
+            transition={{ repeat: Infinity, duration: 6, ease: "easeInOut" }}
+            className="w-full max-w-2xl aspect-[4/3] lg:aspect-square relative"
+          >
+            {/* LENS OVERLAY SIMULATION (MAGIC TRICK) */}
+            {lensColor && (
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 0.7, scale: 1 }}
+                transition={{ duration: 1.2, ease: "easeOut" }}
+                className="absolute inset-0 z-20 mix-blend-multiply flex items-center justify-center pointer-events-none"
+              >
+                {/* Lente Izquierdo */}
+                <div 
+                  className="absolute rounded-[40%] blur-[20px]"
+                  style={{ backgroundColor: lensColor, width: '26%', height: '32%', left: '17%', top: '34%' }}
+                />
+                {/* Lente Derecho */}
+                <div 
+                  className="absolute rounded-[40%] blur-[20px]"
+                  style={{ backgroundColor: lensColor, width: '26%', height: '32%', right: '17%', top: '34%' }}
+                />
+              </motion.div>
+            )}
+
             <Image 
               src={MOCK_PRODUCT.imageUrl} 
               alt={MOCK_PRODUCT.name}
               fill
               priority
-              className="object-contain mix-blend-multiply"
+              className="object-contain mix-blend-multiply relative z-10"
+              style={{ filter: "drop-shadow(0 20px 30px rgba(0,0,0,0.15))" }}
             />
-          </div>
+          </motion.div>
         </div>
 
         {/* LADO DERECHO: INFO Y CONFIGURADOR */}
@@ -83,7 +115,7 @@ export default function ProductPage({ params }: { params: { slug: string } }) {
           <div className="w-full h-[1px] bg-[#e5e5e5] mb-8" />
 
           {/* El Configurador Interactivo */}
-          <LensConfigurator basePrice={MOCK_PRODUCT.price} />
+          <LensConfigurator basePrice={MOCK_PRODUCT.price} onColorChange={setLensColor} />
         </div>
       </div>
 
