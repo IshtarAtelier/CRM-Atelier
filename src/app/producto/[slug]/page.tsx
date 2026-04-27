@@ -49,8 +49,19 @@ export default function ProductPage({ params }: { params: { slug: string } }) {
         <div className="w-full lg:w-[45%] p-6 lg:p-16 flex flex-col bg-white">
           <div className="mb-10 lg:mb-12">
             <h1 className="text-2xl font-normal mb-2">{MOCK_PRODUCT.name}</h1>
-            <p className="text-[15px] text-[#999] mb-1">${MOCK_PRODUCT.price.toLocaleString()}</p>
-            <p className="text-[10px] font-bold uppercase tracking-widest mb-8">6 Cuotas sin interés • Envío sin cargo a todo el país</p>
+            <p className="text-[16px] text-black mb-3">${MOCK_PRODUCT.price.toLocaleString()}</p>
+            
+            <div className="flex flex-wrap gap-2 mb-8">
+              <span className="bg-black text-white px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest">
+                20% OFF Transferencia
+              </span>
+              <span className="border border-[#e5e5e5] text-black px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest">
+                6 Cuotas Sin Interés
+              </span>
+              <span className="border border-[#e5e5e5] text-black px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest">
+                Envío Gratis
+              </span>
+            </div>
             
             <div className="w-full h-[1px] bg-[#e5e5e5] mb-8" />
             
