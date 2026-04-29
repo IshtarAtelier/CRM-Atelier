@@ -12,6 +12,9 @@ interface CartPricingControlsProps {
     setDiscountTransfer: (val: number) => void;
     discountCard: number;
     setDiscountCard: (val: number) => void;
+    specialDiscount?: number;
+    setSpecialDiscount?: (val: number) => void;
+    currentUserRole?: string;
 }
 
 export default function CartPricingControls({
@@ -22,10 +25,15 @@ export default function CartPricingControls({
     discountTransfer,
     setDiscountTransfer,
     discountCard,
-    setDiscountCard
+    setDiscountCard,
+    specialDiscount = 0,
+    setSpecialDiscount,
+    currentUserRole
 }: CartPricingControlsProps) {
+    const isAdmin = currentUserRole === 'ADMIN';
+
     return (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        <div className={`grid grid-cols-2 gap-4 mb-8 ${isAdmin ? 'md:grid-cols-5' : 'md:grid-cols-4'}`}>
             <div className="p-4 bg-blue-50/50 dark:bg-blue-950/20 rounded-3xl border-2 border-blue-100 dark:border-blue-900/30 group/markup">
                  <div className="flex items-center gap-2 mb-2">
                      <TrendingUp className="w-3.5 h-3.5 text-blue-500" />
@@ -81,6 +89,26 @@ export default function CartPricingControls({
                     {[0, 5, 10].map(v => <option key={v} value={v}>{v === 0 ? '0%' : `+${v}%`}</option>)}
                 </select>
             </div>
+            
+            {isAdmin && setSpecialDiscount && (
+                <div className="p-4 bg-rose-50/50 dark:bg-rose-950/20 rounded-3xl border-2 border-rose-100 dark:border-rose-900/30 group/special">
+                     <div className="flex items-center gap-2 mb-2">
+                         <Banknote className="w-3.5 h-3.5 text-rose-500" />
+                         <span className="text-[9px] font-black text-rose-600 uppercase tracking-widest">Dto. Especial</span>
+                     </div>
+                     <div className="flex items-center gap-2">
+                         <span className="text-xs font-black text-rose-600">$</span>
+                         <input
+                            type="number"
+                            min={0}
+                            value={specialDiscount || ''}
+                            onChange={e => setSpecialDiscount(Math.abs(Number(e.target.value)))}
+                            className="w-full bg-white dark:bg-stone-800 border-2 border-rose-100 dark:border-rose-900/50 rounded-xl px-3 py-2 text-sm font-black outline-none focus:ring-2 focus:ring-rose-400 transition-all font-bold"
+                            placeholder="Monto"
+                        />
+                     </div>
+                </div>
+            )}
         </div>
     );
 }

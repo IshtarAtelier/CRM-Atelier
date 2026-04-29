@@ -15,6 +15,7 @@ export interface PricingResult {
     subtotalWithMarkup: number;
     totalCash: number;
     appliedPromos: string[];
+    specialDiscountAmount: number;
 }
 
 export interface OrderFinancials {
@@ -54,7 +55,8 @@ export class PricingService {
         items: CartItem[],
         markup: number = 0,
         discountCash: number = 0,
-        availableProducts: any[] = []
+        availableProducts: any[] = [],
+        specialDiscount: number = 0
     ): PricingResult {
         const rawSubtotal = items.reduce((sum, item) => sum + (safePrice(item.price) * (item.quantity || 1)), 0);
         
@@ -79,7 +81,12 @@ export class PricingService {
 
         const subtotal = Math.max(0, rawSubtotal - promoFrameDiscount);
         const markupAmount = subtotal * (safePrice(markup) / 100);
-        const subtotalWithMarkup = subtotal + markupAmount;
+        let subtotalWithMarkup = subtotal + markupAmount;
+        
+        // Aplicar el descuento especial como valor exacto
+        const validSpecialDiscount = Math.min(subtotalWithMarkup, safePrice(specialDiscount));
+        subtotalWithMarkup = subtotalWithMarkup - validSpecialDiscount;
+
         const totalCash = subtotalWithMarkup * (1 - safePrice(discountCash) / 100);
 
         return {
@@ -89,7 +96,8 @@ export class PricingService {
             subtotal,
             subtotalWithMarkup: Math.round(subtotalWithMarkup),
             totalCash: Math.round(totalCash),
-            appliedPromos
+            appliedPromos,
+            specialDiscountAmount: validSpecialDiscount
         };
     }
 

@@ -24,6 +24,7 @@ const OrderUpdateSchema = z.object({
     discountCash: z.number().optional(),
     discountTransfer: z.number().optional(),
     discountCard: z.number().optional(),
+    specialDiscount: z.number().min(0).optional(),
     subtotalWithMarkup: z.number().optional(),
     prescriptionId: z.string().nullable().optional(),
     frameSource: z.enum(['OPTICA', 'USUARIO']).nullable().optional(),
@@ -72,6 +73,7 @@ export async function GET(
                 discountCash: true,
                 discountTransfer: true,
                 discountCard: true,
+                specialDiscount: true,
                 subtotalWithMarkup: true,
                 frameSource: true,
                 userFrameBrand: true,
@@ -218,7 +220,7 @@ export async function PATCH(
             frameA, frameB, frameDbl, frameEdc, smartLabScreenshot,
             labPrismOD, labPrismOI, labBaseCurve, labFrameType, labBevelPosition,
             prescriptionId, items, total, markup, 
-            discountCash, discountTransfer, discountCard, subtotalWithMarkup
+            discountCash, discountTransfer, discountCard, specialDiscount, subtotalWithMarkup
         } = body;
 
         const data: any = {};
@@ -231,7 +233,7 @@ export async function PATCH(
             const currentOrder = await prisma.order.findUnique({
                 where: { id },
                 select: {
-                    id: true, total: true, markup: true, discountCash: true, orderType: true,
+                    id: true, total: true, markup: true, discountCash: true, specialDiscount: true, orderType: true,
                     items: { select: { productId: true, price: true, quantity: true, product: { select: { id: true, is2x1: true, category: true, type: true } } } }
                 }
             });
@@ -274,10 +276,12 @@ export async function PATCH(
                     cartItems, 
                     finalMarkup || 0, 
                     finalDiscountCash || 0, 
-                    allProducts
+                    allProducts,
+                    specialDiscount !== undefined ? specialDiscount : (currentOrder.specialDiscount || 0)
                 );
 
                 data.subtotalWithMarkup = totals.subtotalWithMarkup;
+                data.specialDiscount = totals.specialDiscountAmount;
                 data.total = totals.totalCash;
                 data.appliedPromoName = totals.appliedPromoName;
                 data.appliedPromoDiscount = totals.promoFrameDiscount;
@@ -292,6 +296,7 @@ export async function PATCH(
         if (discountCash !== undefined) data.discountCash = discountCash;
         if (discountTransfer !== undefined) data.discountTransfer = discountTransfer;
         if (discountCard !== undefined) data.discountCard = discountCard;
+        if (specialDiscount !== undefined) data.specialDiscount = specialDiscount;
 
         if (items && Array.isArray(items)) {
             data.items = {

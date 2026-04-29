@@ -11,7 +11,6 @@
     "start": "npx prisma migrate deploy && next start -p ${PORT:-3000} -H 0.0.0.0",
     "lint": "eslint",
     "verify": "node scripts/verify-build.js",
-    "whatsapp": "node scripts/whatsapp-server.js",
     "db:backup": "node scripts/backup-db.js",
     "db:migrate": "node scripts/backup-db.js && npx prisma migrate dev",
     "db:deploy": "node scripts/backup-db.js && npx prisma migrate deploy",
@@ -56,6 +55,7 @@
     "tailwind-merge": "^3.5.0",
     "tesseract.js": "^7.0.0",
     "whatsapp-web.js": "^1.34.6",
+    "xlsx": "^0.18.5",
     "zod": "^4.3.6"
   },
   "devDependencies": {

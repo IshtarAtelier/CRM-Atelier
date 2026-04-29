@@ -29,6 +29,9 @@ interface CotizadorCartProps {
     setDiscountTransfer: (val: number) => void;
     discountCard: number;
     setDiscountCard: (val: number) => void;
+    specialDiscount?: number;
+    setSpecialDiscount?: (val: number) => void;
+    currentUserRole?: string;
     frameSource: 'OPTICA' | 'USUARIO' | null;
     setFrameSource: (val: 'OPTICA' | 'USUARIO' | null) => void;
     userFrameData: { brand: string; model: string; notes: string };
@@ -61,6 +64,9 @@ export default function CotizadorCart({
     setDiscountTransfer,
     discountCard,
     setDiscountCard,
+    specialDiscount = 0,
+    setSpecialDiscount,
+    currentUserRole,
     frameSource,
     setFrameSource,
     userFrameData,
@@ -112,10 +118,10 @@ export default function CotizadorCart({
         return Math.min(sPrice, safePrice(atelierAvgPrice));
     }, [hasMultifocalPromo, secondFrameVirtual, atelierAvgPrice]);
 
-    const subtotal = Math.max(0, items.reduce((s, i) => s + (safePrice(i.customPrice) * (i.quantity || 1)), 0) - promoFrameDiscount);
-    const markupAmount = subtotal * (safePrice(markup) / 100);
-    const priceWithMarkup = subtotal + markupAmount;
-    const totalCash = priceWithMarkup * (1 - safePrice(discountCash) / 100);
+    const { subtotal, subtotalWithMarkup: priceWithMarkup, totalCash } = useMemo(() => {
+        return calculateQuoteTotals(items, markup, discountCash, availableProducts, specialDiscount);
+    }, [items, markup, discountCash, availableProducts, specialDiscount]);
+
     const totalTransfer = priceWithMarkup * (1 - safePrice(discountTransfer) / 100);
 
     // Filter results
@@ -218,10 +224,13 @@ export default function CotizadorCart({
                 discountCash={discountCash} setDiscountCash={setDiscountCash}
                 discountTransfer={discountTransfer} setDiscountTransfer={setDiscountTransfer}
                 discountCard={discountCard} setDiscountCard={setDiscountCard}
+                specialDiscount={specialDiscount} setSpecialDiscount={setSpecialDiscount}
+                currentUserRole={currentUserRole}
             />
 
             <CartTotals 
-                subtotal={subtotal} markup={markup} markupAmount={markupAmount}
+                subtotal={subtotal} markup={markup} markupAmount={subtotal * (safePrice(markup) / 100)}
+                specialDiscount={specialDiscount}
                 priceWithMarkup={priceWithMarkup} totalCash={totalCash} totalTransfer={totalTransfer}
             />
 

@@ -9,7 +9,7 @@ import { calculateQuoteTotals, isMultifocal2x1 } from '@/lib/promo-utils';
 export async function POST(request: Request) {
     try {
         const body = await request.json();
-        const { clientId, items, discount, total, frameSource, userFrameBrand, userFrameModel, userFrameNotes, markup, discountCash, discountTransfer, discountCard, subtotalWithMarkup, prescriptionId } = body;
+        const { clientId, items, discount, total, frameSource, userFrameBrand, userFrameModel, userFrameNotes, markup, discountCash, discountTransfer, discountCard, subtotalWithMarkup, prescriptionId, specialDiscount } = body;
 
         if (!clientId || !items || items.length === 0) {
             return NextResponse.json({ error: 'clientId and items are required' }, { status: 400 });
@@ -65,7 +65,8 @@ export async function POST(request: Request) {
                 cartItems, 
                 markup || 0, 
                 discountCash || 0, 
-                allProducts
+                allProducts,
+                specialDiscount || 0
             );
 
             finalSubtotalWithMarkup = totals.subtotalWithMarkup;
@@ -96,6 +97,7 @@ export async function POST(request: Request) {
                 discountCash: discountCash || 0,
                 discountTransfer: discountTransfer || 0,
                 discountCard: discountCard || 0,
+                specialDiscount: specialDiscount || 0,
                 subtotalWithMarkup: Math.round(finalSubtotalWithMarkup),
                 orderType: 'QUOTE',
                 labStatus: 'NONE',
@@ -132,6 +134,7 @@ export async function POST(request: Request) {
                 discountCash: true,
                 discountTransfer: true,
                 discountCard: true,
+                specialDiscount: true,
                 subtotalWithMarkup: true,
                 frameSource: true,
                 prescriptionId: true,
@@ -191,6 +194,7 @@ export async function GET(request: Request) {
             discountCash: true,
             discountTransfer: true,
             discountCard: true,
+            specialDiscount: true,
             subtotalWithMarkup: true,
             frameSource: true,
             userFrameBrand: true,

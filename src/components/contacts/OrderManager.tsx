@@ -41,6 +41,7 @@ export default function OrderManager({
     const [quoteDiscountCash, setQuoteDiscountCash] = useState(20);
     const [quoteDiscountTransfer, setQuoteDiscountTransfer] = useState(15);
     const [quoteDiscountCard, setQuoteDiscountCard] = useState(0);
+    const [quoteSpecialDiscount, setQuoteSpecialDiscount] = useState(0);
     const [quoteFrameSource, setQuoteFrameSource] = useState<string | null>(null);
     const [quoteUserFrame, setQuoteUserFrame] = useState({ brand: '', model: '', notes: '' });
     const [quotePrescriptionId, setQuotePrescriptionId] = useState<string | null>(null);
@@ -76,8 +77,8 @@ export default function OrderManager({
                 effectiveFrameSource = 'OPTICA';
             }
 
-            const { subtotalWithMarkup, totalCash, appliedPromoName } = calculateQuoteTotals(
-                quoteItems, quoteMarkup, quoteDiscountCash, availableProducts
+            const { subtotalWithMarkup, totalCash, appliedPromoName, specialDiscountAmount } = calculateQuoteTotals(
+                quoteItems, quoteMarkup, quoteDiscountCash, availableProducts, quoteSpecialDiscount
             );
 
             const url = editingQuoteId ? `/api/orders/${editingQuoteId}` : '/api/orders';
@@ -101,6 +102,7 @@ export default function OrderManager({
                     userFrameModel: effectiveFrameSource === 'USUARIO' ? quoteUserFrame.model : null,
                     userFrameNotes: effectiveFrameSource === 'USUARIO' ? quoteUserFrame.notes : null,
                     prescriptionId: hasCrystals ? quotePrescriptionId : null,
+                    specialDiscount: specialDiscountAmount,
                 })
             });
             setIsQuoteSuccess(true);
@@ -126,6 +128,7 @@ export default function OrderManager({
         setQuoteDiscountCash(order.discountCash ?? 20);
         setQuoteDiscountTransfer(order.discountTransfer ?? 15);
         setQuoteDiscountCard(order.discountCard ?? 0);
+        setQuoteSpecialDiscount(order.specialDiscount ?? 0);
         setQuoteFrameSource(order.frameSource as 'OPTICA' | 'USUARIO' | null);
         setQuoteUserFrame({ brand: order.userFrameBrand || '', model: order.userFrameModel || '', notes: order.userFrameNotes || '' });
         setQuotePrescriptionId(order.prescriptionId || null);
@@ -157,6 +160,8 @@ export default function OrderManager({
                         discountCash={quoteDiscountCash} setDiscountCash={setQuoteDiscountCash}
                         discountTransfer={quoteDiscountTransfer} setDiscountTransfer={setQuoteDiscountTransfer}
                         discountCard={quoteDiscountCard} setDiscountCard={setQuoteDiscountCard}
+                        specialDiscount={quoteSpecialDiscount} setSpecialDiscount={setQuoteSpecialDiscount}
+                        currentUserRole={currentUserRole}
                         frameSource={quoteFrameSource as 'OPTICA' | 'USUARIO' | null} setFrameSource={setQuoteFrameSource}
                         userFrameData={quoteUserFrame} setUserFrameData={setQuoteUserFrame}
                         prescriptionId={quotePrescriptionId} setPrescriptionId={setQuotePrescriptionId}

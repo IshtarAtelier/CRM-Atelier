@@ -637,7 +637,8 @@ export const ContactService = {
 
             const newPaid = (order.paid || 0) + amount;
             // Permitir un margen del 100% para cubrir recargos por financiación en cuotas (Argentina)
-            const maxAllowed = Math.max(order.total || 0, order.subtotalWithMarkup || 0);
+            const currentTotal = order.total || 0;
+            const maxAllowed = Math.max(currentTotal, order.subtotalWithMarkup || 0);
             if (newPaid > maxAllowed * 2.0) {
                 throw new Error(`El pago excede con creces el total máximo de la orden ($${maxAllowed}). Revisá el monto ingresado.`);
             }
@@ -646,9 +647,18 @@ export const ContactService = {
                 data: { orderId, amount, method, notes, receiptUrl }
             });
 
+            const orderUpdateData: any = { paid: { increment: amount } };
+            
+            // Regla automática: Si el cliente paga en cuotas y excede el total original (efectivo),
+            // actualizamos el total de la venta para que la contabilidad y el dashboard reflejen el recargo.
+            if (newPaid > currentTotal) {
+                orderUpdateData.total = newPaid;
+                orderUpdateData.subtotalWithMarkup = newPaid;
+            }
+
             await tx.order.update({
                 where: { id: orderId },
-                data: { paid: { increment: amount } }
+                data: orderUpdateData
             });
 
             // Si es efectivo, verificar alerta de saldo
@@ -898,9 +908,20 @@ export const ContactService = {
                     _sum: { amount: true },
                     where: { orderId }
                 });
+                
+                const recalculatedPaid = totalPaidAgg._sum.amount || 0;
+                const orderUpdateData: any = { paid: recalculatedPaid };
+                const currentTotal = oldPayment.order.total || 0;
+                
+                // Regla automática: Si el pago total editado supera el total original de la venta, actualizamos el total.
+                if (recalculatedPaid > currentTotal) {
+                    orderUpdateData.total = recalculatedPaid;
+                    orderUpdateData.subtotalWithMarkup = recalculatedPaid;
+                }
+
                 await tx.order.update({
                     where: { id: orderId },
-                    data: { paid: totalPaidAgg._sum.amount || 0 }
+                    data: orderUpdateData
                 });
             }
 

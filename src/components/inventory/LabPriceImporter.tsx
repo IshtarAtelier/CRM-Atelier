@@ -188,7 +188,9 @@ export default function LabPriceImporter({ onClose, onSuccess, laboratories }: P
                                     <label className="text-[9px] font-black text-stone-400 uppercase tracking-widest ml-2">Laboratorio</label>
                                     <select value={laboratory} onChange={e => setLaboratory(e.target.value)}
                                         className="w-full px-3 py-3 bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl font-bold text-xs outline-none focus:border-primary uppercase">
-                                        {Array.from(new Set([...laboratories, 'OPTOVISION', 'DAC', 'IOL'])).map(l => <option key={l} value={l}>{l}</option>)}
+                                        {Array.from(new Map([...laboratories, 'OPTOVISION', 'DAC', 'IOL'].map(l => [l.toUpperCase(), l])).values()).map(l => (
+                                            <option key={l} value={l}>{l}</option>
+                                        ))}
                                     </select>
                                 </div>
                                 <div className="space-y-1">

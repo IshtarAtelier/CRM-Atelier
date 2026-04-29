@@ -4,61 +4,42 @@
  * Se despliega como un servicio separado en Railway.
  */
 
-const { Client, LocalAuth } = require('whatsapp-web.js');
-const qrcode = require('qrcode-terminal');
 const express = require('express');
 const cors = require('cors');
-const { PrismaClient } = require('@prisma/client');
+const { prisma } = require('./db');
 const { graph } = require('./graph');
 const { logBotMessage } = require('./tools');
 const { HumanMessage } = require("@langchain/core/messages");
 const path = require('path');
+const fs = require('fs');
 require('dotenv').config({ path: path.join(__dirname, '.env') });
 
-const prisma = new PrismaClient();
+const { initWhatsApp, getStatus, sendMessage } = require('./whatsapp-client');
+
+const configPath = path.join(__dirname, 'agent_config.json');
+
 const app = express();
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 
 // ── Estado global ──────────────────────────────
-let qrCode = null;
-let isReady = false;
-let connectedPhone = null;
 let agentEnabled = false;
 let agentPrompt = '';
+
+if (fs.existsSync(configPath)) {
+    try {
+        const conf = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+        agentEnabled = conf.enabled || false;
+        agentPrompt = conf.prompt || '';
+    } catch (e) {
+        console.error("Error reading agent config:", e);
+    }
+}
+
 const botMessageIds = new Set();
 
-// ── Cliente WhatsApp ───────────────────────────
-const waClient = new Client({
-    authStrategy: new LocalAuth({ dataPath: './.wwebjs_auth' }),
-    puppeteer: {
-        headless: true,
-        executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
-        args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
-    }
-});
-
-waClient.on('qr', (qr) => {
-    qrCode = qr;
-    isReady = false;
-    qrcode.generate(qr, { small: true });
-    console.log('📱 QR generado, esperando escaneo...');
-});
-
-waClient.on('ready', () => {
-    isReady = true;
-    qrCode = null;
-    connectedPhone = waClient.info?.wid?.user || 'desconocido';
-    console.log(`\n✅ WhatsApp conectado: ${connectedPhone}`);
-});
-
-waClient.on('disconnected', (reason) => {
-    isReady = false;
-    console.log('❌ WhatsApp desconectado:', reason);
-});
-
 // ── Detección de Intervención Humana ───────────
-waClient.on('message_create', async (msg) => {
+const handleMessageCreate = async (msg) => {
     if (msg.fromMe && !botMessageIds.has(msg.id._serialized)) {
         const waId = msg.to;
         try {
@@ -89,10 +70,10 @@ waClient.on('message_create', async (msg) => {
             console.error("Error on message_create sync:", e);
         }
     }
-});
+};
 
 // ── Recepción de mensajes ──────────────────────
-waClient.on('message', async (msg) => {
+const handleMessage = async (msg) => {
     if (msg.from.includes('@g.us') || msg.from === 'status@broadcast') return;
 
     const waId = msg.from;
@@ -189,7 +170,8 @@ waClient.on('message', async (msg) => {
                     f.append('file', blob, `wa_${Date.now()}.${ext}`);
                     
                     try {
-                        const uploadRes = await fetch(`${process.env.CRM_API_URL}/upload`, { 
+                        const uploadUrl = process.env.CRM_API_URL.replace('/api/bot', '/api/upload');
+                        const uploadRes = await fetch(uploadUrl, { 
                             method: 'POST', body: f
                         });
                         const resJson = await uploadRes.json();
@@ -246,7 +228,7 @@ waClient.on('message', async (msg) => {
                 const responseText = lastMessage.content;
 
                 if (responseText) {
-                    const sent = await waClient.sendMessage(waId, responseText);
+                    const sent = await sendMessage(waId, responseText);
                     
                     // Mark as bot message to avoid human intervention detection
                     botMessageIds.add(sent.id._serialized);
@@ -276,12 +258,13 @@ waClient.on('message', async (msg) => {
     } catch (error) {
         console.error('Error general:', error);
     }
-});
+};
 
 // ── API REST ───────────────────────────────────
 
 app.get('/api/status', (req, res) => {
-    res.json({ connected: isReady, phone: connectedPhone, qr: qrCode, agentEnabled, prompt: agentPrompt });
+    const status = getStatus();
+    res.json({ ...status, connected: status.isReady, phone: status.connectedPhone, qr: status.qrCode, agentEnabled, prompt: agentPrompt });
 });
 
 app.get('/api/chats', async (req, res) => {
@@ -331,14 +314,13 @@ app.post('/api/send', async (req, res) => {
             waId = chat.waId;
         }
         
-        if (!isReady) return res.status(400).json({ error: 'WhatsApp not connected' });
+        const status = getStatus();
+        if (!status.isReady) return res.status(400).json({ error: 'WhatsApp not connected' });
 
         let sent;
         let mediaUrl = null;
         if (media?.base64) {
-            const { MessageMedia } = require('whatsapp-web.js');
-            const mediaObj = new MessageMedia(media.mimetype, media.base64, media.filename || 'image.jpg');
-            sent = await waClient.sendMessage(waId, mediaObj, { caption: message || '' });
+            sent = await sendMessage(waId, message, media);
 
             // Subir al CRM para tener el pre-render
             try {
@@ -346,7 +328,8 @@ app.post('/api/send', async (req, res) => {
                 const blob = new Blob([buffer], { type: media.mimetype });
                 const f = new FormData();
                 f.append('file', blob, `out_${Date.now()}_${media.filename || 'media.bin'}`);
-                const uploadRes = await fetch(`${process.env.CRM_API_URL}/upload`, { 
+                const uploadUrl = process.env.CRM_API_URL.replace('/api/bot', '/api/upload');
+                const uploadRes = await fetch(uploadUrl, { 
                     method: 'POST', body: f
                 });
                 const resJson = await uploadRes.json();
@@ -355,7 +338,7 @@ app.post('/api/send', async (req, res) => {
                 console.error("Error subiendo media saliente a CRM:", err.message);
             }
         } else {
-            sent = await waClient.sendMessage(waId, message);
+            sent = await sendMessage(waId, message);
         }
 
         if (dbChatId) {
@@ -369,6 +352,13 @@ app.post('/api/send', async (req, res) => {
                     waMessageId: sent.id._serialized,
                 }
             });
+
+            // Apagar bot por intervención humana desde el CRM
+            await prisma.whatsAppChat.update({
+                where: { id: dbChatId },
+                data: { botEnabled: false }
+            });
+            console.log(`  ⏸️ Bot pausado para ${waId} por intervención humana (desde CRM).`);
         }
         
         res.json({ success: true });
@@ -381,6 +371,9 @@ app.post('/api/agent', (req, res) => {
     const { enabled, prompt } = req.body;
     if (enabled !== undefined) agentEnabled = enabled;
     if (prompt !== undefined) agentPrompt = prompt;
+    
+    fs.writeFileSync(configPath, JSON.stringify({ enabled: agentEnabled, prompt: agentPrompt }, null, 2));
+    
     res.json({ enabled: agentEnabled, prompt: agentPrompt });
 });
 
@@ -411,5 +404,5 @@ app.patch('/api/chats/:id/bot', async (req, res) => {
 const PORT = process.env.PORT || 3100;
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`🚀 WA-Service (WhatsApp + Bot Multi-Agente) on port ${PORT}`);
-    waClient.initialize();
+    initWhatsApp({ onMessage: handleMessage, onMessageCreate: handleMessageCreate });
 });

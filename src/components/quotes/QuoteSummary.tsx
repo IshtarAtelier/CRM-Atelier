@@ -295,6 +295,7 @@ export default function QuoteSummary({
                     items={order.items || []}
                     markup={order.markup || 0}
                     appliedPromoName={order.appliedPromoName}
+                    specialDiscount={order.specialDiscount}
                 />
 
                 <PrescriptionDetails prescription={order.prescription} />

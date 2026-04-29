@@ -142,6 +142,13 @@ export default function WhatsAppPage() {
                     return tb - ta;
                 });
                 setChats(sorted);
+
+                // Update selectedChat to reflect fresh botEnabled/labels
+                setSelectedChat(prev => {
+                    if (!prev) return null;
+                    const updatedChat = sorted.find(c => c.id === prev.id);
+                    return updatedChat || prev;
+                });
             } else {
                 setChats([]);
             }
@@ -244,6 +251,9 @@ export default function WhatsAppPage() {
             });
             setNewMessage('');
             setSelectedImage(null);
+            // Si el humano envía un mensaje desde la interfaz, apagamos el bot instantáneamente
+            setSelectedChat(prev => prev ? { ...prev, botEnabled: false } : prev);
+            setChats(prev => prev.map(c => c.id === selectedChat.id ? { ...c, botEnabled: false } : c));
             await fetchMessages(selectedChat.id);
         } catch (e) {
             console.error('Error enviando:', e);

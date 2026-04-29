@@ -16,7 +16,7 @@ export function autoCorrectBrand(brand: string | null | undefined): string | nul
     if (lower === 'atelier kids') return 'Atelier Kids';
     
     // Title Case default
-    return b.charAt(0).toUpperCase() + b.slice(1);
+    return b.charAt(0).toUpperCase() + b.slice(1).toLowerCase();
 }
 
 export function autoCorrectLab(lab: string | null | undefined): string | null {

@@ -11,12 +11,21 @@ const {
 const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '.env') });
 
-// ── Model ──────────────────────────────────────────
-const model = new ChatGoogleGenerativeAI({
-  model: "gemini-1.5-flash",
-  maxOutputTokens: 4096,
-  apiKey: process.env.GOOGLE_GENAI_API_KEY || process.env.GOOGLE_API_KEY,
-});
+let modelInstance = null;
+
+function getModel() {
+  if (!modelInstance) {
+    if (!process.env.GOOGLE_GENAI_API_KEY && !process.env.GOOGLE_API_KEY) {
+      console.warn('WARNING: GOOGLE_GENAI_API_KEY is not set. Bot will crash if invoked.');
+    }
+    modelInstance = new ChatGoogleGenerativeAI({
+      model: "gemini-3-flash-preview",
+      maxOutputTokens: 4096,
+      apiKey: process.env.GOOGLE_GENAI_API_KEY || process.env.GOOGLE_API_KEY,
+    });
+  }
+  return modelInstance;
+}
 
 // ── Herramientas por Especialidad (Mini-Agentes) ───
 
@@ -115,7 +124,7 @@ async function routerNode(state) {
   let agentType = "QUALIFIER"; // Default
   
   try {
-    const classification = await model.invoke([new HumanMessage(routerPrompt)]);
+    const classification = await getModel().invoke([new HumanMessage(routerPrompt)]);
     const result = classification.content.toString().trim().toUpperCase();
     if (result.includes("PRESCRIPTION")) agentType = "PRESCRIPTION";
     else if (result.includes("QUOTER")) agentType = "QUOTER";
@@ -130,74 +139,87 @@ async function routerNode(state) {
 // ── NODO 2: PRECALIFICADOR ────────────────────────
 async function qualifierNode(state) {
   let custom = state.customPrompt || "";
+  const clientInfoText = state.clientData ? `\n\nDATOS DEL CLIENTE EN SISTEMA:\nID (clientId): ${state.clientData.id}\nNombre: ${state.clientData.name}\nTeléfono: ${state.userPhone}` : `\n\nDATOS DEL CLIENTE EN SISTEMA:\nNo registrado aún.\nTeléfono (userPhone): ${state.userPhone}\nNombre de Perfil WA: ${state.userName}`;
+  
   const systemPrompt = `Eres Ishtar, Precalificadora de Atelier Óptica. Tu trabajo es dar la bienvenida calurosamente.
   INSTRUCCIÓN DE LA ÓPTICA: ${custom}
+  ${clientInfoText}
   
   OBLIGACIONES ABSOLUTAS:
   - NUNCA uses la herramienta "convert_into_lead" a menos que ya sepas el NOMBRE explícito del usuario. Si no lo sabes, PREGÚNTALO en la conversación.
+  - Usa el 'Teléfono (userPhone)' provisto arriba para crear el lead.
   - Solamente cuando tengas su NOMBRE y el origen de dónde viene (Instagram, Facebook), puedes usar la herramienta.
-  - Usa update_client_data si ya estaba pero faltan datos.
+  - Usa update_client_data si ya estaba pero faltan datos. (Necesitarás el ID del cliente provisto arriba).
   
   TONO: Amable, cálido y conciso. Respuestas MUY cortas. Si no lo tienes, pide su nombre cordialmente.
   DATOS: Local Tejeda 4380, Córdoba. L a V 9-18hs.`;
 
   const messagesWithSystem = [new SystemMessage(systemPrompt), ...state.messages];
-  const response = await model.bindTools(qualifierTools).invoke(messagesWithSystem);
+  const response = await getModel().bindTools(qualifierTools).invoke(messagesWithSystem);
   return { messages: [response] };
 }
 
 // ── NODO 3: ADMISIÓN / RECETA ─────────────────────
 async function prescriptionNode(state) {
   let custom = state.customPrompt || "";
+  const clientInfoText = state.clientData ? `\n\nDATOS DEL CLIENTE EN SISTEMA:\nID (clientId): ${state.clientData.id}\nNombre: ${state.clientData.name}\nTeléfono: ${state.userPhone}` : `\n\nDATOS DEL CLIENTE EN SISTEMA:\nNo registrado aún.\nTeléfono (userPhone): ${state.userPhone}\nNombre de Perfil WA: ${state.userName}`;
+  
   const systemPrompt = `Eres Sol, Analista Óptica de Atelier.
   INSTRUCCIÓN DE LA ÓPTICA: ${custom}
+  ${clientInfoText}
   
   OBLIGACIÓN:
   - Solo te ocupas de descifrar y registrar los datos de graduación del cliente.
-  - Usa la herramienta save_prescription.
+  - Usa la herramienta save_prescription usando el 'ID (clientId)' provisto arriba. Si no tiene ID, dile amablemente que necesitamos sus datos primero (deriva a que te pase nombre).
   - No pases precios, simplemente dile que ya tomaste nota de su receta y si necesita algo más.
   
   TONO: Profesional pero amigable.`;
 
   const messagesWithSystem = [new SystemMessage(systemPrompt), ...state.messages];
-  const response = await model.bindTools(prescriptionTools).invoke(messagesWithSystem);
+  const response = await getModel().bindTools(prescriptionTools).invoke(messagesWithSystem);
   return { messages: [response] };
 }
 
 // ── NODO 4: COTIZADOR / VENTAS ────────────────────
 async function quoterNode(state) {
   let custom = state.customPrompt || "";
+  const clientInfoText = state.clientData ? `\n\nDATOS DEL CLIENTE EN SISTEMA:\nID (clientId): ${state.clientData.id}\nNombre: ${state.clientData.name}\nTeléfono: ${state.userPhone}` : `\n\nDATOS DEL CLIENTE EN SISTEMA:\nNo registrado aún.\nTeléfono (userPhone): ${state.userPhone}\nNombre de Perfil WA: ${state.userName}`;
+
   const systemPrompt = `Eres Sol, Especialista en Precios de Atelier Óptica.
   INSTRUCCIÓN DE LA ÓPTICA: ${custom}
+  ${clientInfoText}
   
   OBLIGACIÓN:
   - Responde con los precios solicitados usando get_price_list para ver nuestro inventario dinámico.
   - Nombra el precio al CONTADO y la opción de FINANCIADO (cuotas).
-  - SIEMPRE registra el presupuesto que le ofreces ejecutando create_quote en el CRM.
+  - SIEMPRE registra el presupuesto que le ofreces ejecutando create_quote en el CRM, usando el 'ID (clientId)' provisto arriba.
   - Llama a la acción para que pasen por el local (Tejeda 4380, Córdoba).
   
   TONO: Dinámico, cerrador de ventas pero cálido.`;
 
   const messagesWithSystem = [new SystemMessage(systemPrompt), ...state.messages];
-  const response = await model.bindTools(quoterTools).invoke(messagesWithSystem);
+  const response = await getModel().bindTools(quoterTools).invoke(messagesWithSystem);
   return { messages: [response] };
 }
 
 // ── NODO 5: POSVENTA ──────────────────────────────
 async function postSalesNode(state) {
   let custom = state.customPrompt || "";
+  const clientInfoText = state.clientData ? `\n\nDATOS DEL CLIENTE EN SISTEMA:\nID (clientId): ${state.clientData.id}\nNombre: ${state.clientData.name}\nTeléfono: ${state.userPhone}` : `\n\nDATOS DEL CLIENTE EN SISTEMA:\nNo registrado aún.\nTeléfono (userPhone): ${state.userPhone}\nNombre de Perfil WA: ${state.userName}`;
+
   const systemPrompt = `Eres Sol, Soporte Posventa de Atelier.
   INSTRUCCIÓN DE LA ÓPTICA: ${custom}
+  ${clientInfoText}
   
   OBLIGACIÓN:
   - Usa get_order_status para informarle al cliente sobre su encargo.
   - Recuerda informar el Saldo Pendiente.
-  - Si reclama algo, usa add_interaction y create_task para alertar a un humano.
+  - Si reclama algo, usa add_interaction y create_task para alertar a un humano, usando el 'ID (clientId)' provisto arriba.
   
   TONO: Tolerante, resolutivo y muy empático.`;
 
   const messagesWithSystem = [new SystemMessage(systemPrompt), ...state.messages];
-  const response = await model.bindTools(postSalesTools).invoke(messagesWithSystem);
+  const response = await getModel().bindTools(postSalesTools).invoke(messagesWithSystem);
   return { messages: [response] };
 }
 
@@ -217,7 +239,7 @@ async function auditorNode(state) {
   TEXTO: "${responseText}"
   Si está bien, devuelve el texto exactamente igual.`;
 
-  const auditResponse = await model.invoke([new HumanMessage(auditPrompt)]);
+  const auditResponse = await getModel().invoke([new HumanMessage(auditPrompt)]);
   return { messages: [new AIMessage(auditResponse.content.toString().trim())] };
 }
 

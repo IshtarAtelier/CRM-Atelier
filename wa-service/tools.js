@@ -4,20 +4,20 @@ const { PrismaClient } = require('@prisma/client');
 require('dotenv').config({ path: path.join(__dirname, '.env') });
 
 const CRM_API_URL = process.env.CRM_API_URL;
-const prisma = new PrismaClient();
-
+const { prisma } = require('./db');
+const CRM_API_URL = process.env.CRM_API_URL;
 /**
  * Tool: Search for an existing client by phone or name
  */
 async function checkExistingClient({ phone, name }) {
     try {
-        const response = await axios.get(`${CRM_API_URL}/contacts`, {
-            params: { search: phone || name }
+        const response = await axios.get(`${CRM_API_URL}/clients`, {
+            params: { phone, name }
         });
         
-        const contacts = response.data;
-        if (contacts && contacts.length > 0) {
-            return { found: true, contact: contacts[0] };
+        const contact = response.data;
+        if (contact && contact.found) {
+            return { found: true, contact: contact.client };
         }
         return { found: false };
     } catch (error) {
@@ -31,15 +31,15 @@ async function checkExistingClient({ phone, name }) {
  */
 async function convertIntoLead({ phone, name, contactSource, interest }) {
     try {
-        const response = await axios.post(`${CRM_API_URL}/contacts`, {
+        const response = await axios.post(`${CRM_API_URL}/clients`, {
             phone, name, contactSource, interest, status: 'CONTACT'
         });
-        const newContact = response.data;
+        const newContact = response.data.client || response.data;
 
         // VINCULACIÓN AUTOMÁTICA DE CHAT MIENTRAS HABLAN:
         if (newContact && newContact.id) {
             await prisma.whatsAppChat.updateMany({
-                where: { phone: phone },
+                where: { waId: { contains: phone } },
                 data: { clientId: newContact.id }
             });
         }
@@ -56,7 +56,7 @@ async function convertIntoLead({ phone, name, contactSource, interest }) {
  */
 async function updateClientData({ id, ...data }) {
     try {
-        const response = await axios.post(`${CRM_API_URL}/contacts`, { id, ...data });
+        const response = await axios.post(`${CRM_API_URL}/clients`, { id, ...data });
         return response.data;
     } catch (error) {
         console.error('Error in updateClientData tool:', error.message);
@@ -87,7 +87,7 @@ async function getPriceList({ category }) {
 async function getOrderStatus({ orderId, clientId }) {
     try {
         const response = await axios.get(`${CRM_API_URL}/orders`, {
-            params: { orderId, clientId }
+            params: { orderId }
         });
         const order = response.data;
         

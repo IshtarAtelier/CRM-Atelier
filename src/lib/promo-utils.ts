@@ -184,7 +184,8 @@ export const calculateQuoteTotals = (
     items: any[],
     markup: number,
     discountCash: number,
-    availableProducts?: any[]
+    availableProducts?: any[],
+    specialDiscount: number = 0
 ): { 
     rawSubtotal: number; 
     promoFrameDiscount: number; 
@@ -192,6 +193,7 @@ export const calculateQuoteTotals = (
     subtotalWithMarkup: number; 
     totalCash: number;
     appliedPromoName: string | null;
+    specialDiscountAmount: number;
 } => {
     const cartItems: CartItem[] = items.map(i => ({
         productId: i.productId || null,
@@ -200,7 +202,7 @@ export const calculateQuoteTotals = (
         price: i.customPrice || i.price
     }));
 
-    const result = PricingService.calculateTotals(cartItems, markup, discountCash, availableProducts || []);
+    const result = PricingService.calculateTotals(cartItems, markup, discountCash, availableProducts || [], specialDiscount);
 
     return {
         rawSubtotal: result.rawSubtotal,
@@ -208,6 +210,7 @@ export const calculateQuoteTotals = (
         subtotal: result.subtotal,
         subtotalWithMarkup: result.subtotalWithMarkup,
         totalCash: result.totalCash,
-        appliedPromoName: result.promoFrameName || (result.appliedPromos.length > 0 ? result.appliedPromos[0] : null)
+        appliedPromoName: result.promoFrameName || (result.appliedPromos.length > 0 ? result.appliedPromos[0] : null),
+        specialDiscountAmount: result.specialDiscountAmount
     };
 };

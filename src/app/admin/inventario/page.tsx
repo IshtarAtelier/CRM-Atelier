@@ -58,10 +58,16 @@ export default function InventarioPage() {
 
     const { products: rawProducts, loading, error, refresh, deleteProduct, bulkDelete } = useProducts(searchQuery, activeFilter);
 
-    // Extract unique brands and filter by selected brand
-    const uniqueBrands = Array.from(new Set(rawProducts.map(p => p.brand).filter(Boolean) as string[])).sort();
-    const uniqueLabs = Array.from(new Set(rawProducts.map(p => p.laboratory).filter(Boolean) as string[])).sort();
-    const products = selectedBrand ? rawProducts.filter(p => p.brand === selectedBrand) : rawProducts;
+    // Extract unique brands and labs, deduplicating case-insensitively for the UI
+    const uniqueBrands = Array.from(new Map(
+        rawProducts.map(p => p.brand).filter(Boolean).map(b => [b!.toLowerCase().trim(), b])
+    ).values() as string[]).sort();
+
+    const uniqueLabs = Array.from(new Map(
+        rawProducts.map(p => p.laboratory).filter(Boolean).map(l => [l!.toLowerCase().trim(), l])
+    ).values() as string[]).sort();
+
+    const products = selectedBrand ? rawProducts.filter(p => p.brand?.toLowerCase() === selectedBrand.toLowerCase()) : rawProducts;
 
     // Helper: detecta cristales (incluye valores legacy LENS/MULTIFOCAL/etc)
     const checkCristal = (p: { category?: string; type?: string | null }) =>

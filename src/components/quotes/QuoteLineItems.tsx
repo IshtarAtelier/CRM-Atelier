@@ -7,12 +7,14 @@ interface QuoteLineItemsProps {
     items: any[];
     markup: number;
     appliedPromoName?: string;
+    specialDiscount?: number;
 }
 
 export default function QuoteLineItems({
     items,
     markup,
-    appliedPromoName
+    appliedPromoName,
+    specialDiscount = 0
 }: QuoteLineItemsProps) {
     // Detect if this order has a 2x1 promo applied (either multifocal or generic)
     const hasPromo = appliedPromoName && (appliedPromoName.includes('2x1') || appliedPromoName.includes('Bonificado'));
@@ -102,6 +104,23 @@ export default function QuoteLineItems({
                     </div>
                     <div className="text-right">
                         <span className="text-sm font-black text-emerald-600 dark:text-emerald-400 italic font-serif">DESCONTADO</span>
+                    </div>
+                </div>
+            )}
+
+            {specialDiscount > 0 && (
+                <div className="flex justify-between items-center bg-rose-500/5 dark:bg-rose-500/10 px-5 py-4 rounded-2xl border-2 border-dashed border-rose-500/20 mt-2">
+                    <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 bg-rose-500 text-white rounded-lg flex items-center justify-center">
+                            <Plus className="w-4 h-4 rotate-45" />
+                        </div>
+                        <div>
+                            <span className="text-[10px] font-black text-rose-600 dark:text-rose-400 uppercase tracking-widest block">Descuento Especial</span>
+                            <span className="text-[10px] font-bold text-rose-700 dark:text-rose-300">Aplicado por administración</span>
+                        </div>
+                    </div>
+                    <div className="text-right">
+                        <span className="text-sm font-black text-rose-600 dark:text-rose-400 italic font-serif">-${Math.round(specialDiscount).toLocaleString()}</span>
                     </div>
                 </div>
             )}

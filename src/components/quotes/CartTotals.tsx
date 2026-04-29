@@ -6,6 +6,7 @@ interface CartTotalsProps {
     subtotal: number;
     markup: number;
     markupAmount: number;
+    specialDiscount?: number;
     priceWithMarkup: number;
     totalCash: number;
     totalTransfer: number;
@@ -15,6 +16,7 @@ export default function CartTotals({
     subtotal,
     markup,
     markupAmount,
+    specialDiscount = 0,
     priceWithMarkup,
     totalCash,
     totalTransfer
@@ -25,6 +27,7 @@ export default function CartTotals({
                 <div className="flex items-center gap-4 mb-1">
                     <span className="text-[10px] font-black text-stone-400 uppercase tracking-widest">Subtotal: ${subtotal.toLocaleString()}</span>
                     {markup > 0 && <span className="text-[10px] font-black text-blue-500 uppercase tracking-widest">Markup: +${Math.round(markupAmount).toLocaleString()}</span>}
+                    {specialDiscount > 0 && <span className="text-[10px] font-black text-rose-500 uppercase tracking-widest">Dto: -${Math.round(specialDiscount).toLocaleString()}</span>}
                 </div>
                 <div className="flex flex-col">
                     <span className="text-[10px] font-black text-stone-400 uppercase tracking-[0.2em] mb-1">Precio de Lista (Cuotas)</span>

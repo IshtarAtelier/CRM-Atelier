@@ -60,16 +60,12 @@ export default function ConfiguracionPage() {
     const [addingDoctor, setAddingDoctor] = useState(false);
     const [deletingDoctorId, setDeletingDoctorId] = useState<string | null>(null);
 
-    // Agent state
     const [agentPrompt, setAgentPrompt] = useState('');
     const [agentEnabled, setAgentEnabled] = useState(false);
     const [agentSaving, setAgentSaving] = useState(false);
     const [agentSaved, setAgentSaved] = useState(false);
     const [waConnected, setWaConnected] = useState(false);
-    const [agentApiKey, setAgentApiKey] = useState('');
-    const [agentModel, setAgentModel] = useState('gpt-4o-mini');
     const [agentConfigured, setAgentConfigured] = useState(false);
-    const [showApiKey, setShowApiKey] = useState(false);
 
     // Backup state
     const [backupStatus, setBackupStatus] = useState<BackupStatus | null>(null);
@@ -142,8 +138,6 @@ export default function ConfiguracionPage() {
             const data = await res.json();
             setAgentPrompt(data.prompt || '');
             setAgentEnabled(data.enabled || false);
-            setAgentApiKey(data.apiKey || '');
-            setAgentModel(data.model || 'gpt-4o-mini');
             setAgentConfigured(data.configured || false);
         } catch { }
     };
@@ -157,7 +151,6 @@ export default function ConfiguracionPage() {
             });
             const data = await res.json();
             if (data.configured !== undefined) setAgentConfigured(data.configured);
-            if (data.apiKey !== undefined) setAgentApiKey(data.apiKey);
         } catch { }
     };
 
@@ -722,52 +715,6 @@ export default function ConfiguracionPage() {
                         </div>
                     </div>
 
-                    {/* API Key & Model */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                        <div>
-                            <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest block mb-1.5">
-                                🔑 API Key OpenAI
-                            </label>
-                            <div className="relative">
-                                <input
-                                    type={showApiKey ? 'text' : 'password'}
-                                    value={agentApiKey}
-                                    onChange={e => setAgentApiKey(e.target.value)}
-                                    onBlur={() => {
-                                        if (agentApiKey && !agentApiKey.startsWith('••••')) {
-                                            saveAgentConfig({ apiKey: agentApiKey });
-                                        }
-                                    }}
-                                    placeholder="sk-..."
-                                    className="w-full px-4 py-3 bg-stone-50 dark:bg-stone-900 border-2 border-stone-200 dark:border-stone-600 rounded-xl text-sm font-mono outline-none focus:border-violet-500 transition-all pr-12"
-                                />
-                                <button
-                                    onClick={() => setShowApiKey(!showApiKey)}
-                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600"
-                                >
-                                    {showApiKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                                </button>
-                            </div>
-                        </div>
-                        <div>
-                            <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest block mb-1.5">
-                                🧠 Modelo de IA
-                            </label>
-                            <select
-                                value={agentModel}
-                                onChange={e => {
-                                    setAgentModel(e.target.value);
-                                    saveAgentConfig({ model: e.target.value });
-                                }}
-                                className="w-full px-4 py-3 bg-stone-50 dark:bg-stone-900 border-2 border-stone-200 dark:border-stone-600 rounded-xl text-sm font-bold outline-none focus:border-violet-500 transition-all"
-                            >
-                                <option value="gpt-4o-mini">GPT-4o Mini (rápido y económico)</option>
-                                <option value="gpt-4o">GPT-4o (más inteligente, más caro)</option>
-                                <option value="gpt-4.1-mini">GPT-4.1 Mini (último modelo)</option>
-                                <option value="gpt-4.1">GPT-4.1 (premium)</option>
-                            </select>
-                        </div>
-                    </div>
 
                     {/* Prompt Editor */}
                     <div className="mb-4">
