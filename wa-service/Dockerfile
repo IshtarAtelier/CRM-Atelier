@@ -10,16 +10,17 @@ ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 
 WORKDIR /app
 
-# Copy Prisma schema from parent (needed for prisma generate)
+# Copy Prisma schema from parent project root (context = .)
 COPY prisma/ ./prisma/
 
-# Copy wa-service files
+# Copy wa-service package files and install dependencies
 COPY wa-service/package*.json ./
-RUN npm install --omit=dev
+RUN npm install
 
 # Generate Prisma client
 RUN npx prisma generate
 
+# Copy wa-service source code
 COPY wa-service/ ./
 
 EXPOSE 3100

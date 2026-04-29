@@ -3,7 +3,7 @@ echo ======================================================
 echo    STARTING ATELIER CRM BOT SYSTEM
 echo ======================================================
 
-echo [1/2] Starting Main CRM (Frontend & API)...
+echo [1/2] Starting Main CRM (Frontend and API)...
 start cmd /k "npm run dev"
 
 timeout /t 5

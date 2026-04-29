@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { io as SocketIOClient } from 'socket.io-client';
 
 // Etiquetas predefinidas para chats
 const CHAT_LABEL_OPTIONS = [
@@ -208,22 +209,48 @@ export default function WhatsAppPage() {
         }
     };
 
-    // ── Polling ───────────────────────────────────
+    // ── Agent config: cargar solo una vez al montar ─
+    useEffect(() => {
+        fetchAgent();
+    }, []);
+
+    const selectedChatRef = useRef(selectedChat);
+    useEffect(() => {
+        selectedChatRef.current = selectedChat;
+    }, [selectedChat]);
+
+    // ── WebSockets & Polling (Fallback) ───────────
     useEffect(() => {
         fetchStatus();
         fetchChats();
-        fetchAgent();
+
+        const socket = SocketIOClient(process.env.NEXT_PUBLIC_WA_URL || 'http://localhost:3100');
+
+        socket.on('bot_status', (data) => {
+            setStatus({ connected: data.connected, phone: data.phone, qr: data.qr, agentEnabled: data.agentEnabled });
+            if (data.agentEnabled !== undefined) setAgentEnabled(data.agentEnabled);
+            if (data.prompt !== undefined) setAgentPrompt(data.prompt);
+            setLoadingStatus(false);
+        });
+
+        socket.on('chat_updated', ({ chatId }) => {
+            fetchChats();
+            if (selectedChatRef.current?.id === chatId) {
+                fetchMessages(chatId);
+            }
+        });
 
         pollRef.current = setInterval(() => {
             fetchStatus();
             fetchChats();
-            if (selectedChat) fetchMessages(selectedChat.id);
-        }, 3000);
+            if (selectedChatRef.current) fetchMessages(selectedChatRef.current.id);
+        }, 15000);
 
         return () => {
+            socket.disconnect();
             if (pollRef.current) clearInterval(pollRef.current);
         };
-    }, [fetchStatus, fetchChats, fetchMessages, selectedChat]);
+    }, [fetchStatus, fetchChats, fetchMessages]);
 
     // ── Auto-scroll ───────────────────────────────
     useEffect(() => {
@@ -377,7 +404,7 @@ export default function WhatsAppPage() {
                 </div>
 
                 <div className="flex items-center gap-6">
-                    <label className="flex items-center gap-3 cursor-pointer group bg-white/60 dark:bg-black/20 px-4 py-2 rounded-2xl border border-stone-200 dark:border-white/5 shadow-sm">
+                    <div className="flex items-center gap-3 cursor-pointer group bg-white/60 dark:bg-black/20 px-4 py-2 rounded-2xl border border-stone-200 dark:border-white/5 shadow-sm">
                         <span className={`text-[13px] font-black uppercase tracking-wider ${agentEnabled ? 'text-violet-600' : 'text-stone-500'}`}>{agentEnabled ? 'Bot General: ON' : 'Bot General: OFF'}</span>
                         <button
                             onClick={() => {
@@ -391,7 +418,7 @@ export default function WhatsAppPage() {
                         >
                             <div className={`w-6 h-6 rounded-full bg-white shadow-md absolute top-0.5 transition-all ${agentEnabled ? 'left-7.5 translate-x-full' : 'translate-x-0.5'}`} />
                         </button>
-                    </label>
+                    </div>
 
                     <button
                         onClick={() => { setShowConfig(!showConfig); if (!showConfig) fetchAgent(); }}

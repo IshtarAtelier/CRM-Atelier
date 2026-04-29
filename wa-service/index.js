@@ -5,6 +5,8 @@
  */
 
 const express = require('express');
+const http = require('http');
+const { Server } = require('socket.io');
 const cors = require('cors');
 const { prisma } = require('./db');
 const { graph } = require('./graph');
@@ -12,6 +14,8 @@ const { logBotMessage } = require('./tools');
 const { HumanMessage } = require("@langchain/core/messages");
 const path = require('path');
 const fs = require('fs');
+const os = require('os');
+const { GoogleGenAI } = require('@google/genai');
 require('dotenv').config({ path: path.join(__dirname, '.env') });
 
 const { initWhatsApp, getStatus, sendMessage } = require('./whatsapp-client');
@@ -19,8 +23,24 @@ const { initWhatsApp, getStatus, sendMessage } = require('./whatsapp-client');
 const configPath = path.join(__dirname, 'agent_config.json');
 
 const app = express();
+const server = http.createServer(app);
+const io = new Server(server, {
+    cors: { origin: '*' } // Permitir conexiones del frontend
+});
+
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
+
+io.on('connection', (socket) => {
+    console.log('🔌 Nuevo cliente WebSocket conectado:', socket.id);
+    const status = getStatus();
+    socket.emit('bot_status', { ...status, connected: status.isReady, phone: status.connectedPhone, qr: status.qrCode, agentEnabled, prompt: agentPrompt });
+});
+
+// Función auxiliar para emitir eventos de chat actualizados
+function broadcastChatUpdate(chatId) {
+    io.emit('chat_updated', { chatId });
+}
 
 // ── Estado global ──────────────────────────────
 let agentEnabled = false;
@@ -39,13 +59,19 @@ if (fs.existsSync(configPath)) {
 const botMessageIds = new Set();
 
 // ── Detección de Intervención Humana ───────────
+const botReplyingTo = new Set(); // Trackear cuando el bot está enviando para evitar race conditions
+
 const handleMessageCreate = async (msg) => {
     if (msg.fromMe && !botMessageIds.has(msg.id._serialized)) {
         const waId = msg.to;
+        
+        // Si el bot está activamente enviando un mensaje a este número, ignoramos la "intervención humana"
+        const isBotReplying = botReplyingTo.has(waId);
+
         try {
             const chat = await prisma.whatsAppChat.findUnique({ where: { waId } });
             if (chat) {
-                if (chat.botEnabled) {
+                if (chat.botEnabled && !isBotReplying) {
                     await prisma.whatsAppChat.update({
                         where: { id: chat.id },
                         data: { botEnabled: false }
@@ -53,7 +79,7 @@ const handleMessageCreate = async (msg) => {
                     console.log(`  ⏸️ Bot pausado para ${waId} por intervención humana.`);
                 }
                 
-                // GUARDAR EL MENSAJE EN EL CRM PARA SINCRONIZACIÓN BIFÁSICA!
+                // GUARDAR EL MENSAJE EN EL CRM
                 let messageType = msg.hasMedia ? 'IMAGE' : 'TEXT';
                 
                 await prisma.whatsAppMessage.create({
@@ -65,6 +91,7 @@ const handleMessageCreate = async (msg) => {
                         waMessageId: msg.id._serialized,
                     }
                 });
+                broadcastChatUpdate(chat.id);
             }
         } catch (e) {
             console.error("Error on message_create sync:", e);
@@ -141,6 +168,8 @@ const handleMessage = async (msg) => {
         let mediaBase64 = null;
         let mediaMime = null;
         let mediaUrl = null;
+        let geminiFileUri = null;
+        let geminiMimeType = null;
         
         if (msg.hasMedia) {
             try {
@@ -150,16 +179,7 @@ const handleMessage = async (msg) => {
                     else if (media.mimetype.startsWith('video/')) messageType = 'VIDEO';
                     else messageType = 'IMAGE';
 
-                    if (messageType === 'IMAGE' || messageType === 'AUDIO') {
-                        mediaBase64 = media.data;
-                        mediaMime = media.mimetype;
-                    }
-
-                    // AHORA LO SUBIMOS SIEMPRE PARA QUE LA UI LO PUEDA REPRODUCIR/VER ONLINE
                     const buffer = Buffer.from(media.data, 'base64');
-                    const blob = new Blob([buffer], { type: media.mimetype });
-                    const f = new FormData();
-                    
                     let ext = 'bin';
                     if (media.mimetype.includes('jpeg') || media.mimetype.includes('jpg')) ext = 'jpg';
                     else if (media.mimetype.includes('png')) ext = 'png';
@@ -167,6 +187,33 @@ const handleMessage = async (msg) => {
                     else if (media.mimetype.includes('mp4') || media.mimetype.includes('video')) ext = 'mp4';
                     else if (media.mimetype.includes('pdf')) ext = 'pdf';
 
+                    if (messageType === 'IMAGE' || messageType === 'AUDIO') {
+                        mediaMime = media.mimetype;
+                        // Subir a Gemini File API para procesar con tokens baratos
+                        try {
+                            const tmpPath = path.join(os.tmpdir(), `wa_${Date.now()}_${Math.random().toString(36).substring(7)}.${ext}`);
+                            fs.writeFileSync(tmpPath, buffer);
+                            
+                            const ai = new GoogleGenAI({ apiKey: process.env.GOOGLE_GENAI_API_KEY || process.env.GOOGLE_API_KEY });
+                            const uploadResponse = await ai.files.upload({
+                                file: tmpPath,
+                                config: { mimeType: media.mimetype }
+                            });
+                            
+                            geminiFileUri = uploadResponse.uri;
+                            geminiMimeType = uploadResponse.mimeType;
+                            
+                            // Limpiar temporal
+                            try { fs.unlinkSync(tmpPath); } catch(e){}
+                            console.log('☁️ Archivo subido a Gemini File API:', geminiFileUri);
+                        } catch(genaiError) {
+                            console.error('Error subiendo a Gemini File API:', genaiError.message);
+                        }
+                    }
+
+                    // AHORA LO SUBIMOS SIEMPRE PARA QUE LA UI LO PUEDA REPRODUCIR/VER ONLINE
+                    const blob = new Blob([buffer], { type: media.mimetype });
+                    const f = new FormData();
                     f.append('file', blob, `wa_${Date.now()}.${ext}`);
                     
                     try {
@@ -196,6 +243,8 @@ const handleMessage = async (msg) => {
             }
         });
 
+        broadcastChatUpdate(chat.id);
+
         // 3. Bot Logic — Llamada DIRECTA al grafo (sin HTTP intermedio)
         if (agentEnabled && chat.botEnabled && !tieneTagSinBot) {
 
@@ -203,20 +252,40 @@ const handleMessage = async (msg) => {
                 console.log(`  🤖 Bot procesando mensaje de ${profileName}...`);
                 
                 let messageRequest;
-                if (mediaBase64) {
-                    messageRequest = new HumanMessage({
-                        content: [
-                            { type: "text", text: body || (messageType === 'AUDIO' ? "El cliente acaba de mandar un archivo de voz. Por favor escuchalo detenidamente y respondé a lo que ponga. No digas 'he escuchado el audio' simplemente responde." : "Analiza esta imagen.") },
-                            { type: "image_url", image_url: { url: `data:${mediaMime || 'image/jpeg'};base64,${mediaBase64}` } },
-                        ],
-                    });
+                if (geminiFileUri) {
+                    const promptMedia = `[El cliente acaba de enviar un archivo adjunto. Gemini File URI: ${geminiFileUri}, MimeType: ${geminiMimeType}. Si es una foto de una receta, UTILIZA INMEDIATAMENTE la herramienta 'process_prescription_subagent' pasándole esta URI para que la extraiga. Si es audio, el sistema ya lo transcribió o procesó. Mensaje adicional del cliente: ${body}]`;
+                    messageRequest = new HumanMessage(promptMedia);
                 } else {
-                    messageRequest = new HumanMessage(body);
+                    messageRequest = new HumanMessage(body || '[Mensaje vacío o multimedia no soportada]');
                 }
+
+                // Cargar el historial reciente de la conversación para que el bot tenga memoria
+                const recentMessages = await prisma.whatsAppMessage.findMany({
+                    where: { 
+                        chatId: chat.id,
+                        waMessageId: { not: msg.id._serialized } // Excluir el mensaje actual
+                    },
+                    orderBy: { createdAt: 'desc' },
+                    take: 10
+                });
+
+                const { AIMessage } = require("@langchain/core/messages");
+                
+                // Reconstruir el historial (el take 10 los trae de más nuevo a más viejo, hay que revertirlo)
+                const history = recentMessages.reverse().map(msg => {
+                    if (msg.direction === 'OUTBOUND') {
+                        return new AIMessage(msg.content || '');
+                    } else {
+                        return new HumanMessage(msg.content || (msg.type === 'IMAGE' ? '[Imagen enviada]' : '[Audio enviado]'));
+                    }
+                });
+
+                // Añadir el mensaje actual al final del historial
+                const allMessages = [...history, messageRequest];
 
                 const config = { configurable: { thread_id: waId } };
                 const state = { 
-                    messages: [messageRequest],
+                    messages: allMessages,
                     userPhone: waId.replace('@c.us', ''),
                     userName: profileName,
                     customPrompt: agentPrompt
@@ -224,26 +293,34 @@ const handleMessage = async (msg) => {
                 
                 const result = await graph.invoke(state, config);
                 
+                // Re-verificar si el bot sigue encendido luego de pensar (podría haberse apagado a sí mismo con cancelBotTool)
+                const checkChat = await prisma.whatsAppChat.findUnique({ where: { id: chat.id } });
+                if (!checkChat || !checkChat.botEnabled) {
+                    console.log(`  ⏹️ Respuesta cancelada: el bot se desactivó a sí mismo por temas personales.`);
+                    broadcastChatUpdate(chat.id);
+                    return;
+                }
+
                 const lastMessage = result.messages[result.messages.length - 1];
                 const responseText = lastMessage.content;
 
                 if (responseText) {
+                    // Prevenir race conditions con message_create
+                    botReplyingTo.add(waId);
+                    
                     const sent = await sendMessage(waId, responseText);
                     
                     // Mark as bot message to avoid human intervention detection
-                    botMessageIds.add(sent.id._serialized);
-                    setTimeout(() => botMessageIds.delete(sent.id._serialized), 10000);
+                    if (sent && sent.id && sent.id._serialized) {
+                        botMessageIds.add(sent.id._serialized);
+                        setTimeout(() => botMessageIds.delete(sent.id._serialized), 10000);
+                    }
 
-                    // Save outbound message
-                    await prisma.whatsAppMessage.create({
-                        data: {
-                            chatId: chat.id,
-                            direction: 'OUTBOUND',
-                            type: 'TEXT',
-                            content: responseText,
-                            waMessageId: sent.id._serialized,
-                        }
-                    });
+                    // Ya no guardamos el mensaje aquí manualmente. 
+                    // Al haber llamado a sendMessage, whatsapp-web.js disparará el evento 'message_create'
+                    // y la función handleMessageCreate se encargará de guardarlo en la DB de forma segura sin duplicar.
+
+                    setTimeout(() => botReplyingTo.delete(waId), 2000); // Limpiar flag después de 2s
 
                     // Log in CRM
                     await logBotMessage({ waId, content: responseText });
@@ -319,6 +396,10 @@ app.post('/api/send', async (req, res) => {
 
         let sent;
         let mediaUrl = null;
+        
+        // Trackear que el CRM está enviando para que no haya race condition
+        botReplyingTo.add(waId);
+
         if (media?.base64) {
             sent = await sendMessage(waId, message, media);
 
@@ -341,30 +422,31 @@ app.post('/api/send', async (req, res) => {
             sent = await sendMessage(waId, message);
         }
 
-        if (dbChatId) {
-            await prisma.whatsAppMessage.create({
-                data: {
-                    chatId: dbChatId,
-                    direction: 'OUTBOUND',
-                    type: media?.base64 ? 'IMAGE' : 'TEXT',
-                    content: message || '[Imagen]',
-                    mediaUrl: mediaUrl,
-                    waMessageId: sent.id._serialized,
-                }
-            });
-
-            // Apagar bot por intervención humana desde el CRM
-            await prisma.whatsAppChat.update({
-                where: { id: dbChatId },
-                data: { botEnabled: false }
-            });
-            console.log(`  ⏸️ Bot pausado para ${waId} por intervención humana (desde CRM).`);
+        // MARCAR COMO YA PROCESADO PARA QUE message_create NO CREA QUE ES DEL BOT
+        // y aplique correctamente la pausa
+        if (sent && sent.id && sent.id._serialized) {
+            // A diferencia del bot, NO lo agregamos a botMessageIds porque SÍ QUEREMOS que message_create lo intercepte 
+            // y asuma que hubo intervención humana para pausar el bot. 
+            // handleMessageCreate se encargará de guardarlo en la DB y pausar el bot (gracias a botReplyingTo = false).
+            // Entonces, borramos botReplyingTo ANTES para asegurar que se pause.
+            botReplyingTo.delete(waId);
+        } else {
+            botReplyingTo.delete(waId);
         }
+
+        // Ya no guardamos el mensaje manualmente aquí para evitar duplicados.
+        // Solo enviamos una respuesta exitosa, y handleMessageCreate se ocupará del DB y broadcast.
+        
+        if (dbChatId) broadcastChatUpdate(dbChatId);
         
         res.json({ success: true });
     } catch (e) { 
         res.status(500).json({ error: e.message }); 
     }
+});
+
+app.get('/api/agent', (req, res) => {
+    res.json({ enabled: agentEnabled, prompt: agentPrompt });
 });
 
 app.post('/api/agent', (req, res) => {
@@ -373,6 +455,8 @@ app.post('/api/agent', (req, res) => {
     if (prompt !== undefined) agentPrompt = prompt;
     
     fs.writeFileSync(configPath, JSON.stringify({ enabled: agentEnabled, prompt: agentPrompt }, null, 2));
+    
+    io.emit('bot_status', { agentEnabled, prompt: agentPrompt });
     
     res.json({ enabled: agentEnabled, prompt: agentPrompt });
 });
@@ -394,6 +478,7 @@ app.patch('/api/chats/:id/bot', async (req, res) => {
         });
         const estado = botEnabled ? '▶️ Activado' : '⏸️ Pausado';
         console.log(`  🤖 Bot ${estado} para chat ${chat.waId}`);
+        broadcastChatUpdate(chat.id);
         res.json({ id: chat.id, waId: chat.waId, botEnabled: chat.botEnabled });
     } catch (e) {
         res.status(404).json({ error: 'Chat no encontrado' });
@@ -402,7 +487,22 @@ app.patch('/api/chats/:id/bot', async (req, res) => {
 
 // ── Start ──────────────────────────────────────
 const PORT = process.env.PORT || 3100;
-app.listen(PORT, '0.0.0.0', () => {
+server.listen(PORT, '0.0.0.0', async () => {
     console.log(`🚀 WA-Service (WhatsApp + Bot Multi-Agente) on port ${PORT}`);
-    initWhatsApp({ onMessage: handleMessage, onMessageCreate: handleMessageCreate });
+    try {
+        await initWhatsApp({ 
+            onMessage: handleMessage, 
+            onMessageCreate: handleMessageCreate,
+            onStatusChange: (status) => {
+                io.emit('bot_status', { ...status, connected: status.isReady, phone: status.connectedPhone, qr: status.qrCode, agentEnabled, prompt: agentPrompt });
+            }
+        });
+    } catch (err) {
+        console.error('⚠️ WhatsApp no pudo inicializarse, pero el servidor sigue vivo:', err.message);
+    }
+});
+
+// Evitar que errores no capturados maten el proceso
+process.on('unhandledRejection', (reason) => {
+    console.error('⚠️ Unhandled Rejection:', reason?.message || reason);
 });

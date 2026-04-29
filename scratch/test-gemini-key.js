@@ -1,29 +1,30 @@
+require('dotenv').config();
 const fetch = require('node-fetch');
 
 async function testGemini() {
-    const apiKey = 'AIzaSyA-LRFReaI74cw_5l7W5ZsBcR93u-DW3Sk'; // From .env
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+    const apiKey = process.env.GOOGLE_GENAI_API_KEY;
+    if (!apiKey) {
+        console.error('❌ GOOGLE_GENAI_API_KEY no encontrada en el .env');
+        return;
+    }
+    
+    // Probamos el modelo exacto que usa el agente
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
 
-    console.log('Testing Gemini API key...');
+    console.log('Probando clave nueva con gemini-3-flash-preview...');
     try {
         const response = await fetch(url, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                contents: [{
-                    parts: [{
-                        text: "Hola, responde solo con la palabra 'Funciona'"
-                    }]
-                }]
+                contents: [{ parts: [{ text: "Responde únicamente con la palabra: ACTIVO" }] }]
             })
         });
-
+        
         if (response.ok) {
             const data = await response.json();
             console.log('✅ API Key is working!');
-            console.log('Response:', data.candidates[0].content.parts[0].text);
+            console.log('Respuesta del bot:', data.candidates[0].content.parts[0].text);
         } else {
             console.error('❌ API Key test failed.');
             console.error('Status:', response.status);
@@ -34,5 +35,7 @@ async function testGemini() {
         console.error('Request failed:', err);
     }
 }
+
+testGemini();
 
 testGemini();

@@ -1,0 +1,40 @@
+# ─────────────────────────────────────────────────────────
+# Docker Compose – Entorno Local de Desarrollo
+# Levanta wa-service (WhatsApp + Bot Multi-Agente) en un
+# contenedor Linux con Chromium, igual que en Railway.
+# ─────────────────────────────────────────────────────────
+
+services:
+  wa-service:
+    build:
+      context: .
+      dockerfile: wa-service/Dockerfile
+    container_name: wa-service-local
+    ports:
+      - "3100:3100"
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - GOOGLE_GENAI_API_KEY=${GOOGLE_GENAI_API_KEY}
+      - CRM_API_URL=http://host.docker.internal:3000/api/bot
+      - PORT=3100
+      - PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
+      - PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
+    volumes:
+      # Persistir sesión de WhatsApp entre reinicios
+      - wa_auth_data:/app/.wwebjs_auth
+      # Hot-reload: montar código fuente (excepto node_modules)
+      - ./wa-service/index.js:/app/index.js
+      - ./wa-service/graph.js:/app/graph.js
+      - ./wa-service/tools.js:/app/tools.js
+      - ./wa-service/db.js:/app/db.js
+      - ./wa-service/whatsapp-client.js:/app/whatsapp-client.js
+      - ./wa-service/.env:/app/.env
+    restart: unless-stopped
+    # Necesario para Chromium en Docker
+    shm_size: '512mb'
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+volumes:
+  wa_auth_data:
+    driver: local

@@ -8,7 +8,8 @@ import {
 } from 'lucide-react';
 import { 
     isMultifocal2x1, isAtelierFrame, isCrystal, 
-    isMiPrimerVarilux, getCategoryKey, isFrame, safePrice
+    isMiPrimerVarilux, getCategoryKey, isFrame, safePrice,
+    calculateQuoteTotals
 } from '@/lib/promo-utils';
 import { format } from 'date-fns';
 

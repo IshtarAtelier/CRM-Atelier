@@ -1,0 +1,12 @@
+node_modules
+.next
+wa-service/node_modules
+wa-service/.wwebjs_auth
+.git
+*.log
+tmp
+storage
+backups
+scratch
+artifacts
+crm-v2
