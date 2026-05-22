@@ -13,7 +13,7 @@ services:
     ports:
       - "3100:3100"
     environment:
-      - DATABASE_URL=${DATABASE_URL}
+      - DATABASE_URL=postgresql://postgres:localpassword@db:5432/atelier?schema=public
       - GOOGLE_GENAI_API_KEY=${GOOGLE_GENAI_API_KEY}
       - CRM_API_URL=http://host.docker.internal:3000/api/bot
       - PORT=3100
@@ -26,6 +26,9 @@ services:
       - ./wa-service/index.js:/app/index.js
       - ./wa-service/graph.js:/app/graph.js
       - ./wa-service/tools.js:/app/tools.js
+      - ./wa-service/agent-tools.js:/app/agent-tools.js
+      - ./wa-service/passive-extractor.js:/app/passive-extractor.js
+      - ./wa-service/transcriber.js:/app/transcriber.js
       - ./wa-service/db.js:/app/db.js
       - ./wa-service/whatsapp-client.js:/app/whatsapp-client.js
       - ./wa-service/.env:/app/.env
@@ -35,6 +38,21 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
 
+  db:
+    image: postgres:15-alpine
+    container_name: atelier-postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: localpassword
+      POSTGRES_DB: atelier
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
 volumes:
   wa_auth_data:
+    driver: local
+  postgres_data:
     driver: local

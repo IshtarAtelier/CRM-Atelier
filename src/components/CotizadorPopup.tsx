@@ -1,10 +1,11 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
 import { 
     Calculator, X, Save, Search, 
     ChevronRight, Info, Plus, Gift,
-    RotateCcw, History, CheckCircle2, User
+    RotateCcw, History, CheckCircle2, User, Loader2
 } from 'lucide-react';
 import CotizadorCart from './quotes/CotizadorCart';
 import QuoteSummary from './quotes/QuoteSummary';
@@ -46,6 +47,7 @@ export default function CotizadorPopup({ clientName, clientId, onClose }: Cotiza
     const [previousQuotes, setPreviousQuotes] = useState<any[]>([]);
     const [showHistory, setShowHistory] = useState(false);
     const [editingQuoteId, setEditingQuoteId] = useState<string | null>(null);
+    const [registeringVisit, setRegisteringVisit] = useState(false);
 
 
     useEffect(() => {
@@ -155,8 +157,21 @@ export default function CotizadorPopup({ clientName, clientId, onClose }: Cotiza
     };
 
     return (
-        <div className="fixed inset-0 bg-stone-900/50 backdrop-blur-lg z-[200] flex items-center justify-center p-4 animate-in fade-in duration-300">
-            <div className="bg-white dark:bg-stone-900 w-full max-w-6xl h-[90vh] rounded-[2.5rem] shadow-2xl border border-stone-200 dark:border-stone-800 flex flex-col overflow-hidden animate-in zoom-in-95 duration-400">
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+            <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.3 }}
+                className="absolute inset-0 bg-black/40 backdrop-blur-md"
+                onClick={onClose}
+            />
+            <motion.div 
+                initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                transition={{ type: "spring", damping: 25, stiffness: 300 }}
+                className="relative bg-white dark:bg-stone-900 w-full max-w-6xl h-[90vh] rounded-[2.5rem] shadow-[0_20px_60px_-15px_rgba(0,0,0,0.3)] border border-stone-200 dark:border-stone-800 flex flex-col overflow-hidden"
+            >
 
                 {/* Header */}
                 <header className="px-8 py-5 border-b border-stone-100 dark:border-stone-800 flex items-center gap-4 flex-shrink-0 bg-stone-50/50 dark:bg-stone-800/20">
@@ -172,6 +187,27 @@ export default function CotizadorPopup({ clientName, clientId, onClose }: Cotiza
                     </div>
                     
                     <div className="flex items-center gap-2">
+                        <button
+                            onClick={async () => {
+                                setRegisteringVisit(true);
+                                try {
+                                    const res = await fetch(`/api/contacts/${clientId}/interactions`, {
+                                        method: 'POST',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({ type: 'STORE_VISIT', content: '📍 Cliente visitó el local (marcado desde el cotizador)' })
+                                    });
+                                    if(res.ok) alert('✅ Visita registrada con éxito en la ficha del cliente.');
+                                } catch (e) {
+                                    console.error(e);
+                                } finally {
+                                    setRegisteringVisit(false);
+                                }
+                            }}
+                            disabled={registeringVisit}
+                            className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-900/30 rounded-lg border border-emerald-100 dark:border-emerald-800 transition-all hover:bg-emerald-100 dark:hover:bg-emerald-900/50 uppercase tracking-wider shadow-sm"
+                        >
+                            {registeringVisit ? <Loader2 className="w-3 h-3 animate-spin" /> : '📍 Registrar Visita'}
+                        </button>
                         {previousQuotes.length > 0 && (
                             <button
                                 onClick={() => setShowHistory(!showHistory)}
@@ -298,7 +334,7 @@ export default function CotizadorPopup({ clientName, clientId, onClose }: Cotiza
                         </>
                     )}
                 </div>
-            </div>
+            </motion.div>
         </div>
     );
 }

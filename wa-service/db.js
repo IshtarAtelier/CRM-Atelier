@@ -2,13 +2,14 @@
 const path = require('path');
 
 let PrismaClient;
+let prisma;
+
 try {
-    // Docker: @prisma/client está en /app/node_modules
     PrismaClient = require('@prisma/client').PrismaClient;
-} catch {
-    // Host/dev: @prisma/client vive en el node_modules del proyecto raíz
+    prisma = new PrismaClient();
+} catch (error) {
     PrismaClient = require(path.join(__dirname, '..', 'node_modules', '@prisma', 'client')).PrismaClient;
+    prisma = new PrismaClient();
 }
 
-const prisma = new PrismaClient();
 module.exports = { prisma };

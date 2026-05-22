@@ -17,12 +17,14 @@ export interface ContactCreateData {
     address?: string | null;
     insurance?: string | null;
     doctor?: string | null;
+    metaLid?: string | null;
+    forceCreate?: boolean;
 }
 
 export const ContactService = {
-    async getAll(status?: string | null, search?: string | null, favoritesOnly?: boolean, interest?: string | null) {
+    async getAll(status?: string | null, search?: string | null, favoritesOnly?: boolean, interest?: string | null, location?: string | null) {
         try {
-            console.log('[ContactService] Fetching contacts:', { status, search, favoritesOnly, interest });
+            console.log('[ContactService] Fetching contacts:', { status, search, favoritesOnly, interest, location });
             const where: any = {};
             if (status && status !== 'ALL') {
                 if (status === 'CLIENT') {
@@ -45,6 +47,17 @@ export const ContactService = {
             }
             if (interest && interest !== 'ALL') {
                 where.interest = interest;
+            }
+            if (location && location !== 'ALL') {
+                if (location === 'LOCAL') {
+                    where.interactions = {
+                        some: { type: 'STORE_VISIT' }
+                    };
+                } else if (location === 'ONLINE') {
+                    where.interactions = {
+                        none: { type: 'STORE_VISIT' }
+                    };
+                }
             }
             if (search) {
                 where.OR = [
@@ -75,15 +88,21 @@ export const ContactService = {
                 take: 500
             });
 
-            // Calcular avgTicket por contacto (solo SALE orders)
-            return clients.map((client: any) => {
-                const saleOrders = (client.orders || []).filter((o: any) => o.orderType === 'SALE');
+            // Unificar formato para UI
+            return clients.map((item: any) => {
+                const saleOrders = (item.orders || []).filter((o: any) => o.orderType === 'SALE');
                 const avgTicket = saleOrders.length > 0
                     ? saleOrders.reduce((sum: number, o: any) => sum + o.total, 0) / saleOrders.length
                     : 0;
-                const { orders, ...rest } = client;
-                return { ...rest, avgTicket: Math.round(avgTicket), hasSales: saleOrders.length > 0 };
-            });
+                
+                const { orders, ...rest } = item;
+                return { 
+                    ...rest, 
+                    status: item.status === 'NEW' ? 'CONTACT' : item.status,
+                    avgTicket: Math.round(avgTicket), 
+                    hasSales: saleOrders.length > 0 
+                };
+            }).sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
         } catch (error: any) {
             console.error('[ContactService.getAll] Critical Error:', error);
             throw error; // Let the API route handle it
@@ -95,23 +114,31 @@ export const ContactService = {
         
         let normalizedIncomingPhone = "";
         if (data.phone) {
+            const hasLetters = /[a-zA-Z]/.test(data.phone);
+            const hasAt = data.phone.includes('@');
             normalizedIncomingPhone = data.phone.replace(/\D/g, '');
+            
+            if (hasLetters || hasAt || normalizedIncomingPhone.length < 8) {
+                throw new Error(JSON.stringify({ isBlocked: true, message: `Bloqueo de seguridad: El dato ingresado ("${data.phone}") no es un celular válido. Única y exclusivamente se permiten números de celular reales para crear una ficha.` }));
+            }
+        } else {
+            throw new Error(JSON.stringify({ isBlocked: true, message: `Bloqueo de seguridad: Es obligatorio ingresar un número de celular para crear la ficha.` }));
         }
 
         // 1. Exact Name, Email, or DNI match
-        const orConditions: any[] = [
+        const orConditionsClient: any[] = [
             { name: { equals: data.name.trim(), mode: 'insensitive' } }
         ];
 
         if (data.email?.trim()) {
-            orConditions.push({ email: data.email.trim() });
+            orConditionsClient.push({ email: data.email.trim() });
         }
         if (data.dni?.trim()) {
-            orConditions.push({ dni: data.dni.trim() });
+            orConditionsClient.push({ dni: data.dni.trim() });
         }
 
-        const potentialDuplicates = await prisma.client.findMany({
-            where: { OR: orConditions },
+        const potentialDuplicatesClient = await prisma.client.findMany({
+            where: { OR: orConditionsClient },
             include: {
                 orders: {
                     where: { orderType: 'SALE', isDeleted: false },
@@ -122,31 +149,28 @@ export const ContactService = {
             }
         });
 
-        if (potentialDuplicates.length > 0) {
-           const exactNameMatch = potentialDuplicates.find(p => p.name.trim().toLowerCase() === normalizedName);
+        if (!data.forceCreate && potentialDuplicatesClient.length > 0) {
+           const exactNameMatch = potentialDuplicatesClient.find(p => p.name.trim().toLowerCase() === normalizedName);
            if (exactNameMatch) {
                const lastOrder = exactNameMatch.orders[0];
                const lastDate = lastOrder ? ` (Última compra: ${new Date(lastOrder.createdAt).toLocaleDateString('es-AR')})` : "";
                const phoneInfo = exactNameMatch.phone ? ` - Tel: ${exactNameMatch.phone}` : "";
-               throw new Error(`Posible ficha duplicada: Ya existe una persona con el nombre exacto "${exactNameMatch.name}"${phoneInfo}${lastDate}.`);
+               throw new Error(JSON.stringify({ isDuplicate: true, existingClient: { id: exactNameMatch.id, name: exactNameMatch.name, phone: exactNameMatch.phone, type: 'CLIENT' }, message: `Posible ficha duplicada: Ya existe un cliente con el nombre exacto "${exactNameMatch.name}"${phoneInfo}${lastDate}.` }));
            }
            if (data.email) {
-               const emailMatch = potentialDuplicates.find(p => p.email?.toLowerCase() === data.email?.trim().toLowerCase());
-               if (emailMatch) throw new Error(`Posible ficha duplicada: El Email ${data.email} ya está registrado a nombre de ${emailMatch.name}.`);
+               const emailMatch = potentialDuplicatesClient.find(p => p.email?.toLowerCase() === data.email?.trim().toLowerCase());
+               if (emailMatch) throw new Error(JSON.stringify({ isDuplicate: true, existingClient: { id: emailMatch.id, name: emailMatch.name, phone: emailMatch.phone, type: 'CLIENT' }, message: `Posible ficha duplicada: El Email ${data.email} ya está registrado a nombre de ${emailMatch.name}.` }));
            }
            if (data.dni) {
-               const dniMatch = potentialDuplicates.find(p => p.dni === data.dni?.trim());
-               if (dniMatch) throw new Error(`Posible ficha duplicada: El DNI ${data.dni} ya está registrado a nombre de ${dniMatch.name}.`);
+               const dniMatch = potentialDuplicatesClient.find(p => p.dni === data.dni?.trim());
+               if (dniMatch) throw new Error(JSON.stringify({ isDuplicate: true, existingClient: { id: dniMatch.id, name: dniMatch.name, phone: dniMatch.phone, type: 'CLIENT' }, message: `Posible ficha duplicada: El DNI ${data.dni} ya está registrado a nombre de ${dniMatch.name}.` }));
            }
         }
 
         // 2. Intelligent Phone Match
-        if (normalizedIncomingPhone.length >= 8) {
-            // Check if any existing phone matches the same sequence of core digits
-            const phoneDuplicates = await prisma.client.findMany({
-                where: {
-                    phone: { contains: normalizedIncomingPhone } // Simple check first for the query
-                },
+        if (!data.forceCreate && normalizedIncomingPhone.length >= 8) {
+            const phoneDuplicatesClient = await prisma.client.findMany({
+                where: { phone: { contains: normalizedIncomingPhone } },
                 include: {
                     orders: {
                         where: { orderType: 'SALE', isDeleted: false },
@@ -157,13 +181,11 @@ export const ContactService = {
                 }
             });
 
-            // Filter manually for exact digits match to be precise
-            const realPhoneMatch = phoneDuplicates.find(p => (p.phone || "").replace(/\D/g, '').endsWith(normalizedIncomingPhone));
-
-            if (realPhoneMatch) {
-                const lastOrder = realPhoneMatch.orders[0];
+            const realPhoneMatchClient = phoneDuplicatesClient.find(p => (p.phone || "").replace(/\D/g, '').endsWith(normalizedIncomingPhone));
+            if (realPhoneMatchClient) {
+                const lastOrder = realPhoneMatchClient.orders[0];
                 const lastDate = lastOrder ? ` (Última compra: ${new Date(lastOrder.createdAt).toLocaleDateString('es-AR')})` : "";
-                throw new Error(`Posible ficha duplicada: Ya existe el cliente "${realPhoneMatch.name}" registrado con el teléfono ${realPhoneMatch.phone}${lastDate}.`);
+                throw new Error(JSON.stringify({ isDuplicate: true, existingClient: { id: realPhoneMatchClient.id, name: realPhoneMatchClient.name, phone: realPhoneMatchClient.phone, type: 'CLIENT' }, message: `Posible ficha duplicada: Ya existe el cliente "${realPhoneMatchClient.name}" registrado con el teléfono ${realPhoneMatchClient.phone}${lastDate}.` }));
             }
         }
 
@@ -181,7 +203,8 @@ export const ContactService = {
             priority: Number(data.priority) || 0,
             address: data.address,
             insurance: data.insurance,
-            doctor: data.doctor
+            doctor: data.doctor,
+            metaLid: data.metaLid
         };
 
         return await prisma.client.create({
@@ -204,6 +227,7 @@ export const ContactService = {
         if (data.address !== undefined) updateData.address = data.address;
         if (data.insurance !== undefined) updateData.insurance = data.insurance;
         if (data.doctor !== undefined) updateData.doctor = data.doctor;
+        if (data.metaLid !== undefined) updateData.metaLid = data.metaLid;
 
         return await prisma.client.update({
             where: { id },
@@ -703,15 +727,25 @@ export const ContactService = {
                     const accountLabel = isIsh ? '[ISH]' : isYani ? '[YANI]' : '';
 
                     const clientName = (await tx.client.findUnique({ where: { id: order.clientId }, select: { name: true } }))?.name || 'Cliente';
+                    const msg = `${accountLabel} Facturar pago de ${amountStr} (${method}) - Venta #${orderId.slice(-4).toUpperCase()} (${clientName})`;
                     await tx.notification.create({
                         data: {
                             type: 'INVOICE_REQUEST',
-                            message: `${accountLabel} Facturar pago de ${amountStr} (${method}) - Venta #${orderId.slice(-4).toUpperCase()} (${clientName})`,
+                            message: msg,
                             orderId: orderId,
                             requestedBy: 'SISTEMA (Auto)',
                             status: 'PENDING'
                         }
                     });
+                    
+                    // Notificar al administrador por email (fire-and-forget para no bloquear tx)
+                    import('@/lib/email').then(({ sendEmail }) => {
+                        sendEmail({
+                            to: 'pisano.ishtar@gmail.com',
+                            subject: '🧾 Solicitud de Factura (Automática)',
+                            text: `El sistema ha generado una nueva solicitud de factura:\n\n${msg}`
+                        });
+                    }).catch(console.error);
                 }
             }
 
@@ -969,15 +1003,24 @@ export const ContactService = {
                     });
 
                     if (!existingRequest && !existingInvoice) {
+                        const msg = `${accountLabel} Facturar pago editado de ${amountStr} (${updateData.method}) - Venta #${orderId.slice(-4).toUpperCase()} (${clientName})`;
                         await tx.notification.create({
                             data: {
                                 type: 'INVOICE_REQUEST',
-                                message: `${accountLabel} Facturar pago editado de ${amountStr} (${updateData.method}) - Venta #${orderId.slice(-4).toUpperCase()} (${clientName})`,
+                                message: msg,
                                 orderId,
                                 requestedBy: 'SISTEMA (Edición)',
                                 status: 'PENDING'
                             }
                         });
+
+                        import('@/lib/email').then(({ sendEmail }) => {
+                            sendEmail({
+                                to: 'pisano.ishtar@gmail.com',
+                                subject: '🧾 Solicitud de Factura (Edición de Pago)',
+                                text: `El sistema ha generado una nueva solicitud de factura por modificación de pago:\n\n${msg}`
+                            });
+                        }).catch(console.error);
                     }
                 }
 
@@ -1051,7 +1094,9 @@ export const ContactService = {
         if (!client) return { canClose: false, reason: 'Cliente no encontrado' };
 
         // 1. Datos completos
-        if (!client.name || !client.phone) return { canClose: false, reason: 'Faltan datos básicos del cliente' };
+        if (!client.name || !client.phone) return { canClose: false, reason: 'Faltan datos básicos del cliente (Nombre o Teléfono)' };
+        if (!client.contactSource) return { canClose: false, reason: 'Falta especificar el Canal de Contacto del cliente' };
+        if (!client.interest) return { canClose: false, reason: 'Falta especificar el Interés del cliente' };
 
         // 2. Receta — solo exigir si el pedido incluye cristales
         // (se valida más abajo si hay cristales, no para ventas de armazones/accesorios)
@@ -1075,9 +1120,11 @@ export const ContactService = {
             item.eye && (item.product?.type === 'Cristal' || item.product?.category === 'Cristal')
         );
 
-        // FIX: Only require prescription if the order includes crystals
-        if (crystalItems.length > 0 && client.prescriptions.length === 0) {
-            return { canClose: false, reason: 'Falta cargar la receta (el pedido incluye cristales)' };
+        // FIX: Require prescription to be strictly linked to the order if it includes crystals
+        if (crystalItems.length > 0) {
+            if (!lastOrder.prescriptionId) {
+                return { canClose: false, reason: 'Falta vincular la receta al pedido (el pedido incluye cristales)' };
+            }
         }
         for (const item of crystalItems) {
             if (item.sphereVal == null) {
@@ -1174,5 +1221,104 @@ export const ContactService = {
         })
         .filter(c => c.balance > 1000)
         .sort((a, b) => b.balance - a.balance);
+    },
+
+    async mergeClients(targetId: string, sourceId: string) {
+        if (targetId === sourceId) throw new Error("No puedes fusionar un cliente consigo mismo");
+
+        const targetClient = await prisma.client.findUnique({ where: { id: targetId } });
+        const sourceClient = await prisma.client.findUnique({ where: { id: sourceId } });
+
+        if (!targetClient || !sourceClient) {
+            throw new Error("Uno o ambos clientes no existen.");
+        }
+
+        console.log(`[Merge] Fusionando cliente ${sourceId} (${sourceClient.name}) hacia ${targetId} (${targetClient.name})`);
+
+        return await prisma.$transaction(async (tx) => {
+            // 1. Transferir Interacciones
+            await tx.interaction.updateMany({
+                where: { clientId: sourceId },
+                data: { clientId: targetId }
+            });
+
+            // 2. Transferir Tareas
+            await tx.clientTask.updateMany({
+                where: { clientId: sourceId },
+                data: { clientId: targetId }
+            });
+
+            // 3. Transferir Órdenes
+            await tx.order.updateMany({
+                where: { clientId: sourceId },
+                data: { clientId: targetId }
+            });
+
+            // 4. Transferir Recetas
+            await tx.prescription.updateMany({
+                where: { clientId: sourceId },
+                data: { clientId: targetId }
+            });
+
+            // 5. Transferir WhatsApp Chats
+            await tx.whatsAppChat.updateMany({
+                where: { clientId: sourceId },
+                data: { clientId: targetId }
+            });
+
+            // 6. Transferir Etiquetas (Tags)
+            const sourceWithTags = await tx.client.findUnique({
+                where: { id: sourceId },
+                include: { tags: true }
+            });
+            if (sourceWithTags && sourceWithTags.tags.length > 0) {
+                await tx.client.update({
+                    where: { id: targetId },
+                    data: {
+                        tags: {
+                            connect: sourceWithTags.tags.map((t: any) => ({ id: t.id }))
+                        }
+                    }
+                });
+            }
+
+            // 7. Liberar campos únicos (email, dni) del cliente origen para evitar conflictos
+            await tx.client.update({
+                where: { id: sourceId },
+                data: { email: null, dni: null }
+            });
+
+            // 8. Consolidar datos de contacto si el Target no los tiene
+            const updateData: any = {};
+            if (!targetClient.email && sourceClient.email) updateData.email = sourceClient.email;
+            if (!targetClient.phone && sourceClient.phone) updateData.phone = sourceClient.phone;
+            if (!targetClient.dni && sourceClient.dni) updateData.dni = sourceClient.dni;
+            if (!targetClient.address && sourceClient.address) updateData.address = sourceClient.address;
+            if (!targetClient.insurance && sourceClient.insurance) updateData.insurance = sourceClient.insurance;
+            if (!targetClient.doctor && sourceClient.doctor) updateData.doctor = sourceClient.doctor;
+
+            if (Object.keys(updateData).length > 0) {
+                await tx.client.update({
+                    where: { id: targetId },
+                    data: updateData
+                });
+            }
+
+            // 9. Dejar una nota en el historial del Target sobre la fusión
+            await tx.interaction.create({
+                data: {
+                    clientId: targetId,
+                    type: "NOTE",
+                    content: `[SISTEMA] Ficha fusionada automáticamente con el duplicado ID: ${sourceId} (${sourceClient.name}).`
+                }
+            });
+
+            // 10. Eliminar el cliente origen (Source)
+            await tx.client.delete({
+                where: { id: sourceId }
+            });
+
+            return { success: true, message: `Clientes fusionados con éxito.` };
+        });
     }
 };

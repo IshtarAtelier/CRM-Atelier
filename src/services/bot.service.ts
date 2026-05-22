@@ -1,7 +1,8 @@
 import { prisma } from '@/lib/db';
-import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
+import { ChatVertexAI } from "@langchain/google-vertexai-web";
 import { SystemMessage, HumanMessage } from "@langchain/core/messages";
 import { WA_SERVER_URL } from '@/lib/wa-config';
+import { PricingService } from './PricingService';
 
 export class BotService {
     /**
@@ -10,11 +11,23 @@ export class BotService {
     static async extractHitos(clientId: string) {
         if (!clientId) throw new Error('clientId is required');
 
-        const model = new ChatGoogleGenerativeAI({
-            model: "gemini-1.5-flash",
-            maxOutputTokens: 2048,
-            apiKey: process.env.GOOGLE_GENAI_API_KEY || process.env.GOOGLE_API_KEY,
-        });
+        let model;
+        try {
+            model = new ChatVertexAI({
+                model: "gemini-2.5-flash",
+                location: "global",
+                maxOutputTokens: 2048,
+            });
+        } catch (initErr: any) {
+            console.error('[Hitos] Error initializing ChatVertexAI, falling back:', initErr.message);
+            // Fallback: try with API key-based model
+            const { ChatGoogleGenerativeAI } = await import("@langchain/google-genai");
+            model = new ChatGoogleGenerativeAI({
+                model: "gemini-2.5-flash",
+                maxOutputTokens: 2048,
+                apiKey: process.env.GOOGLE_GENAI_API_KEY || process.env.GOOGLE_API_KEY,
+            });
+        }
 
         // 1. Fetch last 50 messages for this client
         const messages = await prisma.whatsAppMessage.findMany({
@@ -28,7 +41,7 @@ export class BotService {
         });
 
         if (messages.length === 0) {
-            throw new Error('No messages found for this client');
+            throw new Error('No hay mensajes de WhatsApp para este cliente. Asegurate de que el chat esté vinculado.');
         }
 
         const chatContext = messages
@@ -48,12 +61,22 @@ export class BotService {
 
         IMPORTANTE: Devuelve un formato JSON estrictamente como este:
         [{ "type": "TIPO", "content": "Descripción breve y profesional" }]
+        
+        SOLO devuelve el JSON, sin texto adicional, sin bloques de código markdown.
         `;
 
-        const response = await model.invoke([
-            new SystemMessage(systemPrompt),
-            new HumanMessage(`Conversación:\n${chatContext}`)
-        ]);
+        let response;
+        try {
+            response = await model.invoke([
+                new SystemMessage(systemPrompt),
+                new HumanMessage(`Conversación:\n${chatContext}`)
+            ]);
+        } catch (aiErr: any) {
+            console.error('[Hitos] AI model invocation failed:', aiErr.message);
+            const { handleAIError } = await import('@/lib/ai-error-handler');
+            await handleAIError(aiErr, 'Extracción de Hitos de Conversación (WhatsApp)');
+            throw aiErr; // handleAIError rethrows if not quota error
+        }
 
         // 3. Parse and Save Milestones as Interactions
         let hitos = [];
@@ -62,14 +85,22 @@ export class BotService {
             const text = response.content.toString();
             const jsonMatch = text.match(/\[[\s\S]*\]/);
             if (jsonMatch) {
-                hitos = JSON.parse(jsonMatch[0]);
+                const cleaned = jsonMatch[0].replace(/```json/g, '').replace(/```/g, '').trim();
+                hitos = JSON.parse(cleaned);
+            } else {
+                console.error('[Hitos] No JSON array found in response:', text.substring(0, 200));
+                throw new Error('La IA no devolvió un formato JSON válido');
             }
-        } catch (e) {
-            console.error('Failed to parse Hitos JSON:', e);
-            throw new Error('Error procesando hitos con la IA');
+        } catch (e: any) {
+            console.error('[Hitos] Failed to parse JSON:', e.message);
+            throw new Error('Error procesando hitos con la IA: ' + e.message);
         }
 
-        // Save each hito as a Milestone interaction
+        if (!hitos || hitos.length === 0) {
+            throw new Error('No se pudieron extraer hitos de la conversación');
+        }
+
+        // Save each hito as a Milestone interaction with the 📍 [HITO] prefix
         const savedHitos = await Promise.all(
             hitos.map((h: any) => 
                 prisma.interaction.create({
@@ -86,19 +117,35 @@ export class BotService {
     }
 
     /**
-     * Notifica al cliente por WhatsApp que su pedido está listo y le informa su saldo.
+     * Notifica al cliente por WhatsApp que su pedido está listo y le informa su saldo usando el desglose financiero exacto.
      */
-    static async notifyOrderReady(clientId: string, clientName: string, clientPhone: string, total: number, paid: number) {
+    static async notifyOrderReady(order: any) {
         try {
-            const saldo = total - paid;
+            const clientName = order.client?.name || 'Cliente';
+            const clientPhone = order.client?.phone;
             
-            let message = `¡Hola ${clientName}! 👋 Tus anteojos ya están listos para retirar en Atelier Óptica (Tejeda 4380).`;
+            if (!clientPhone) return false;
+
+            const financials = PricingService.calculateOrderFinancials(order);
             
-            if (saldo > 0) {
-                message += ` El saldo pendiente es de $${Math.round(saldo).toLocaleString()}. ¡Te esperamos!`;
+            let message = `*Hola ${clientName}*\n\n`;
+            message += `Te avisamos que *tu pedido ya está listo para retirar* en *Atelier Óptica*\n\n`;
+            
+            if (financials.hasBalance) {
+                message += `*Detalle del saldo:*\n`;
+                message += `• *Saldo con TARJETA / CUOTAS: $${financials.remainingCard.toLocaleString('es-AR')}*\n`;
+                message += `• *Saldo con TRANSFERENCIA: $${financials.remainingTransfer.toLocaleString('es-AR')}*\n`;
+                message += `• *Saldo si pagás en EFECTIVO: $${financials.remainingCash.toLocaleString('es-AR')}*\n`;
+                message += `\nPodés abonar con cualquier medio de pago.\n`;
+                message += `*¿Nos podrías avisar cómo quisieras abonar el saldo?*\n\n`;
             } else {
-                message += ` ¡Te esperamos pronto para la entrega!`;
+                message += `Tu pedido está *completamente pago*.\n\n`;
             }
+            message += `*Dirección:* José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba\n`;
+            message += `*Ubicación:* https://share.google/j2ZT7ReboDLt7onCp\n`;
+            message += `*Horarios:*\n   • Lunes a viernes de 9:00 a 13:30 y de 16:00 a 19:30\n   • Sábados de 10:00 a 14:00 hs\n\n`;
+            message += `¡Te esperamos! Muchas gracias.\n`;
+            message += `\n_La óptica mejor calificada en Google Business 5/5_`;
 
             // Send via internal WA server proxy
             const res = await fetch(`${WA_SERVER_URL}/api/send`, {
@@ -117,9 +164,9 @@ export class BotService {
             // Log interaction
             await prisma.interaction.create({
                 data: {
-                    clientId,
+                    clientId: order.clientId,
                     type: 'NOTE',
-                    content: `🤖 Notificación automática enviada: Listo para retirar. Saldo informado: $${saldo.toLocaleString()}`
+                    content: `🤖 Notificación automática enviada: Listo para retirar. Saldo restante: Efectivo $${financials.remainingCash.toLocaleString('es-AR')}, Tarjeta $${financials.remainingCard.toLocaleString('es-AR')}, Transferencia $${financials.remainingTransfer.toLocaleString('es-AR')}.`
                 }
             });
             return true;

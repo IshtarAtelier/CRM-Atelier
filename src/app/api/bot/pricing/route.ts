@@ -15,7 +15,9 @@ export async function GET(req: NextRequest) {
     // ── Fuente 1: Productos del inventario ──────────────────────────────────
     const productWhere: Record<string, unknown> = {};
     if (onlyBotRecommended) productWhere.botRecommended = true;
-    if (category) productWhere.type = category; // Product usa "type" para MULTIFOCAL etc.
+    if (category) {
+        productWhere.type = { contains: category, mode: 'insensitive' };
+    }
 
     const products = await prisma.product.findMany({
         where: productWhere,
@@ -32,6 +34,10 @@ export async function GET(req: NextRequest) {
             botRecommended: true,
             botLabel: true,
             laboratory: true,
+            rawImageUrls: true,
+            webProducts: {
+                select: { slug: true, imageUrl: true }
+            }
         },
         orderBy: { name: 'asc' },
     });
@@ -47,19 +53,26 @@ export async function GET(req: NextRequest) {
     });
 
     // Normalizar formato para el bot
-    const productsMapped = products.map(p => ({
-        id: p.id,
-        source: 'PRODUCT' as const,
-        name: p.botLabel || `${p.brand ?? ''} ${p.name ?? ''}`.trim(),
-        category: p.type || p.category,
-        priceCash: p.price,
-        priceCredit: null, // Se calcula en el bot si no está
-        creditMonths: 6,
-        is2x1: p.is2x1,
-        lensIndex: p.lensIndex,
-        laboratory: p.laboratory,
-        botRecommended: p.botRecommended,
-    }));
+    const productsMapped = products.map(p => {
+        const webProd = p.webProducts && p.webProducts.length > 0 ? p.webProducts[0] : null;
+        const finalImageUrl = webProd?.imageUrl || (p.rawImageUrls && p.rawImageUrls.length > 0 ? p.rawImageUrls[0] : null);
+        
+        return {
+            id: p.id,
+            source: 'PRODUCT' as const,
+            name: p.botLabel || `${p.brand ?? ''} ${p.name ?? ''}`.trim(),
+            category: p.type || p.category,
+            priceCash: p.price,
+            priceCredit: null, // Se calcula en el bot si no está
+            creditMonths: 6,
+            is2x1: p.is2x1,
+            lensIndex: p.lensIndex,
+            laboratory: p.laboratory,
+            botRecommended: p.botRecommended,
+            imageUrl: finalImageUrl,
+            link: webProd?.slug ? `https://atelieroptica.com.ar/producto/${webProd.slug}` : null,
+        };
+    });
 
     const servicesMapped = services.map(s => ({
         id: s.id,

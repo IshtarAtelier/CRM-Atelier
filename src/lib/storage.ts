@@ -38,8 +38,8 @@ export async function uploadFile(buffer: Buffer, filename: string, contentType: 
     } else {
         // MODO LOCAL (Simulación para desarrollo)
         const storageDir = path.join(process.cwd(), 'storage', 'uploads');
-        await mkdir(storageDir, { recursive: true });
         const filepath = path.join(storageDir, filename);
+        await mkdir(path.dirname(filepath), { recursive: true });
         await writeFile(filepath, buffer);
         return `local://${filename}`; // Prefijo para saber que es local
     }
@@ -78,6 +78,32 @@ export async function getSignedUrl(key: string): Promise<string> {
 
     // Fallback local por si acaso
     return `/api/storage/view?key=${encodeURIComponent(key)}`;
+}
+
+/**
+ * Genera una URL segura para SUBIR un archivo directo a la nube (Presigned Upload URL)
+ */
+export async function getUploadSignedUrl(key: string, contentType: string): Promise<{ uploadUrl: string, key: string }> {
+    if (isCloudEnabled) {
+        const bucket = admin.storage().bucket();
+        const file = bucket.file(key);
+        try {
+            const [url] = await file.getSignedUrl({
+                action: 'write',
+                version: 'v4',
+                expires: Date.now() + 15 * 60 * 1000, // Válida por 15 minutos
+                contentType
+            });
+            return { uploadUrl: url, key };
+        } catch (error) {
+            console.error("Error generating Firebase upload signed URL:", error);
+            throw new Error('No se pudo generar la URL de subida');
+        }
+    }
+
+    // Modo local: el cliente debe hacer POST normal a nuestro servidor porque no hay S3 real
+    // Devolvemos una URL de nuestra propia API local simulando un Presigned URL
+    return { uploadUrl: `/api/storage/local-upload?key=${encodeURIComponent(key)}`, key };
 }
 
 /**
@@ -143,6 +169,14 @@ export async function deleteFile(key: string): Promise<void> {
         } catch (error) {
             console.error("Error deleting Firebase file:", error);
         }
+    } else {
+        // Fallback local if cloud is disabled
+        const filepath = path.join(process.cwd(), 'storage', 'uploads', key);
+        try {
+            await unlink(filepath);
+        } catch (error) {
+            console.error("Error deleting local fallback file:", error);
+        }
     }
 }
 
@@ -162,6 +196,17 @@ export async function getFileBuffer(key: string): Promise<Buffer | null> {
         }
     }
 
+    if (key.startsWith('/uploads/')) {
+        const filepath = path.join(process.cwd(), 'public', key);
+        try {
+            const { readFile } = await import('fs/promises');
+            return await readFile(filepath);
+        } catch (error) {
+            console.error(`Error reading local public file buffer for ${key}:`, error);
+            return null;
+        }
+    }
+
     if (isCloudEnabled) {
         try {
             const bucket = admin.storage().bucket();
@@ -171,7 +216,15 @@ export async function getFileBuffer(key: string): Promise<Buffer | null> {
             console.error('Error downloading Cloud file buffer:', error);
             return null;
         }
+    } else {
+        // Fallback local si no hay cloud activado y la key no tiene prefijo
+        const filepath = path.join(process.cwd(), 'storage', 'uploads', key);
+        try {
+            const { readFile } = await import('fs/promises');
+            return await readFile(filepath);
+        } catch (error) {
+            console.error(`Error reading local fallback file buffer for ${key}:`, error);
+            return null;
+        }
     }
-
-    return null;
 }

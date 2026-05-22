@@ -10,6 +10,7 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { resolveStorageUrl, fileToBase64 } from '@/lib/utils/storage';
 import FileDropZone from '@/components/FileDropZone';
+import type { CashMovement } from '@/types/orders';
 
 // ── Types ─────────────────────────────────────
 
@@ -24,18 +25,6 @@ interface PaymentRecord {
     clientPhone: string;
     orderId: string;
     orderTotal: number;
-}
-
-interface CashMovement {
-    id: string;
-    type: 'IN' | 'OUT';
-    amount: number;
-    reason: string;
-    category?: string;
-    laboratory?: string | null;
-    receiptUrl?: string | null;
-    createdAt: string;
-    user: { name: string };
 }
 
 interface CashData {

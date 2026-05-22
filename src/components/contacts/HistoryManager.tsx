@@ -56,7 +56,7 @@ export default function HistoryManager({
                     <div className="text-center py-12 text-stone-300 italic text-sm">No hay actividad registrada.</div>
                 ) : (
                     interactions.map((interaction, idx) => (
-                        <div key={interaction.id} className="relative pl-8">
+                        <div key={interaction.id || `int-${idx}`} className="relative pl-8">
                             {idx !== interactions.length - 1 && (
                                 <div className="absolute left-[11px] top-6 bottom-0 w-0.5 bg-stone-100 dark:bg-stone-800" />
                             )}

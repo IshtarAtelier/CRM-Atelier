@@ -110,13 +110,13 @@ export default function DashboardActions({ onPeriodChange }: DashboardActionsPro
                                         type="date"
                                         value={customFrom}
                                         onChange={e => setCustomFrom(e.target.value)}
-                                        className="flex-1 px-2 py-1.5 border border-stone-200 dark:border-stone-600 rounded-lg text-[11px] font-bold bg-white dark:bg-stone-900 outline-none focus:border-primary"
+                                        className="flex-1 px-2 py-1.5 border border-stone-200 dark:border-stone-600 rounded-lg text-[11px] font-bold bg-white dark:bg-stone-900 text-stone-800 dark:text-stone-200 outline-none focus:border-primary"
                                     />
                                     <input
                                         type="date"
                                         value={customTo}
                                         onChange={e => setCustomTo(e.target.value)}
-                                        className="flex-1 px-2 py-1.5 border border-stone-200 dark:border-stone-600 rounded-lg text-[11px] font-bold bg-white dark:bg-stone-900 outline-none focus:border-primary"
+                                        className="flex-1 px-2 py-1.5 border border-stone-200 dark:border-stone-600 rounded-lg text-[11px] font-bold bg-white dark:bg-stone-900 text-stone-800 dark:text-stone-200 outline-none focus:border-primary"
                                     />
                                 </div>
                                 <button

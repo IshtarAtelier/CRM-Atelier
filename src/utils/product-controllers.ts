@@ -1,6 +1,6 @@
 export function autoCorrectBrand(brand: string | null | undefined): string | null {
     if (!brand) return null;
-    let b = brand.trim();
+    const b = brand.trim();
     if (!b) return null;
     
     // Normalize string to remove accents if needed (though for brands we might keep exact casing)
@@ -21,7 +21,7 @@ export function autoCorrectBrand(brand: string | null | undefined): string | nul
 
 export function autoCorrectLab(lab: string | null | undefined): string | null {
     if (!lab) return null;
-    let l = lab.toUpperCase().trim();
+    const l = lab.toUpperCase().trim();
     if (!l) return null;
     
     const norm = l.normalize("NFD").replace(/[\u0300-\u036f]/g, ""); // removes accents
@@ -35,7 +35,7 @@ export function autoCorrectLab(lab: string | null | undefined): string | null {
 
 export function autoCorrectIndex(index: string | null | undefined): string | null {
     if (!index) return null;
-    let i = index.trim();
+    const i = index.trim();
     if (!i) return null;
     
     // Correct common misspellings or barcode errors

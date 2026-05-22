@@ -10,76 +10,13 @@ import {
 import { PricingService } from '@/services/PricingService';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-
-// ── Types ─────────────────────────────────────────────
-
-interface OrderItem {
-    id: string;
-    productId: string;
-    quantity: number;
-    price: number;
-    eye?: string;
-    sphereVal?: number;
-    cylinderVal?: number;
-    axisVal?: number;
-    additionVal?: number;
-    product: {
-        name?: string;
-        brand?: string;
-        model?: string;
-        category?: string;
-        type?: string;
-        lensIndex?: string;
-        laboratory?: string;
-    };
-}
-
-interface Order {
-    id: string;
-    clientId: string;
-    status: string;
-    total: number;
-    paid: number;
-    discount?: number;
-    markup?: number;
-    discountCash?: number;
-    discountTransfer?: number;
-    subtotalWithMarkup?: number;
-    orderType?: string;
-    labStatus?: string;
-    labSentAt?: string;
-    labNotes?: string;
-    labOrderNumber?: string;
-    frameSource?: string | null;
-    userFrameBrand?: string | null;
-    userFrameModel?: string | null;
-    userFrameNotes?: string | null;
-    labColor?: string | null;
-    labTreatment?: string | null;
-    labDiameter?: string | null;
-    labPdOd?: string | null;
-    labPdOi?: string | null;
-    createdAt: string;
-    isDeleted?: boolean;
-    client: {
-        id: string;
-        name: string;
-        phone?: string;
-        email?: string;
-    };
-    user?: {
-        name: string;
-    };
-    items: OrderItem[];
-    payments: any[];
-}
+import type { Order } from '@/types/orders';
 
 // ── Lab Status Config ─────────────────────────────
 
 const LAB_STEPS = [
     { key: 'NONE', label: 'Pendiente', icon: Clock, color: 'stone', bg: 'bg-stone-100 dark:bg-stone-800', text: 'text-stone-500 dark:text-stone-400', ring: 'ring-stone-200 dark:ring-stone-700' },
     { key: 'SENT', label: 'Procesado', icon: Package, color: 'blue', bg: 'bg-blue-50 dark:bg-blue-950', text: 'text-blue-600 dark:text-blue-400', ring: 'ring-blue-200 dark:ring-blue-800' },
-    { key: 'IN_PROGRESS', label: 'En Fábrica', icon: Clock, color: 'amber', bg: 'bg-amber-50 dark:bg-amber-950', text: 'text-amber-600 dark:text-amber-400', ring: 'ring-amber-200 dark:ring-amber-800' },
     { key: 'READY', label: 'Listo p/ Retirar', icon: CheckCircle2, color: 'emerald', bg: 'bg-emerald-50 dark:bg-emerald-950', text: 'text-emerald-600 dark:text-emerald-400', ring: 'ring-emerald-200 dark:ring-emerald-800' },
     { key: 'DELIVERED', label: 'Entregado', icon: Truck, color: 'indigo', bg: 'bg-indigo-50 dark:bg-indigo-950', text: 'text-indigo-600 dark:text-indigo-400', ring: 'ring-indigo-200 dark:ring-indigo-800' },
 ];
@@ -147,6 +84,22 @@ export default function PedidosPage() {
                 alert(`⚠️ ${data.error || 'Error al avanzar el estado'}`);
             } else {
                 await fetchOrders();
+                
+                // Disparo automático de WhatsApp si el estado es Listo p/ Retirar
+                if (next === 'READY') {
+                    try {
+                        const notifyRes = await fetch(`/api/orders/${orderId}/notify-ready`, {
+                            method: 'POST'
+                        });
+                        if (notifyRes.ok) {
+                            console.log('Notificación automática de Listo para Retirar enviada al cliente.');
+                        } else {
+                            console.error('No se pudo enviar la notificación automática');
+                        }
+                    } catch (e) {
+                        console.error('Error llamando a notify-ready', e);
+                    }
+                }
             }
         } catch (error) {
             console.error('Error advancing status:', error);
@@ -182,13 +135,23 @@ export default function PedidosPage() {
         }
     };
 
-    const saveLabOrderNumber = async (orderId: string) => {
-        setUpdatingId(orderId);
+    const saveLabOrderNumber = async (order: Order) => {
+        setUpdatingId(order.id);
         try {
-            await fetch(`/api/orders/${orderId}`, {
+            const updateData: any = { labOrderNumber: editValue };
+            
+            // Offer to advance to SENT if it's currently NONE
+            if ((order.labStatus || 'NONE') === 'NONE') {
+                const wantToAdvance = window.confirm('¿Deseás pasar este pedido automáticamente a estado PROCESADO?');
+                if (wantToAdvance) {
+                    updateData.labStatus = 'SENT';
+                }
+            }
+
+            await fetch(`/api/orders/${order.id}`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ labOrderNumber: editValue }),
+                body: JSON.stringify(updateData),
             });
             setEditingId(null);
             setEditValue('');
@@ -333,7 +296,7 @@ export default function PedidosPage() {
     };
 
 
-    const sendOrderWhatsApp = (order: Order) => {
+    const sendOrderWhatsApp = async (order: Order) => {
         const items = order.items || [];
         const saldo = (order.total || 0) - (order.paid || 0);
         const labStepLabel = getLabStep(order.labStatus || 'NONE').label;
@@ -354,8 +317,29 @@ export default function PedidosPage() {
         if (order.labNotes) text += `\n\n📝 *Observaciones:* ${order.labNotes}`;
 
         const phone = order.client.phone?.replace(/\D/g, '') || '';
-        const waUrl = phone ? `https://wa.me/${phone}?text=${encodeURIComponent(text)}` : `https://wa.me/?text=${encodeURIComponent(text)}`;
-        window.open(waUrl, '_blank');
+        if (!phone) {
+            alert('⚠️ El cliente no tiene teléfono registrado.');
+            return;
+        }
+
+        try {
+            const res = await fetch('/api/whatsapp/send', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    to: phone,
+                    text: text
+                })
+            });
+            if (res.ok) {
+                alert('✅ Resumen enviado por WhatsApp al cliente a través del Bot.');
+            } else {
+                alert('❌ Error al enviar el WhatsApp.');
+            }
+        } catch (error) {
+            console.error('Error sending whatsapp:', error);
+            alert('❌ Error al conectar con el servidor de WhatsApp.');
+        }
     };
 
     // ── SmartLab Helpers ──────────────────────────
@@ -434,6 +418,46 @@ export default function PedidosPage() {
 
         copyToClipboard(lines.join('\n'), 'all');
     };
+
+    const autoSubmitSmartLab = async (order: any) => {
+        setIsAutoSubmitting(true);
+        try {
+            const lensItems = order.items.filter((i: any) => i.product?.category === 'Cristal');
+            const odItem = lensItems.find((i: any) => i.eye === 'OD');
+            const oiItem = lensItems.find((i: any) => i.eye === 'OI');
+
+            const payload = {
+                codigoInterno: order.client.name, // Requested by user: en codigo interno va el nombre del cliente
+                paciente: order.client.name,
+                od_esfera: odItem?.sphereVal || '',
+                od_cilindro: odItem?.cylinderVal || '',
+                od_eje: odItem?.axisVal || '',
+                od_adicion: odItem?.additionVal || '',
+                oi_esfera: oiItem?.sphereVal || '',
+                oi_cilindro: oiItem?.cylinderVal || '',
+                oi_eje: oiItem?.axisVal || '',
+                oi_adicion: oiItem?.additionVal || '',
+                od_dp: order.labPdOd || '',
+                oi_dp: order.labPdOi || '',
+                diametro: order.labDiameter || '',
+                observaciones: order.labNotes || ''
+            };
+
+            const dataString = `ATELIER_SMARTLAB_DATA:${JSON.stringify(payload)}`;
+            
+            await navigator.clipboard.writeText(dataString);
+
+            alert('✅ ¡Datos copiados al portapapeles!\n\n1. Se abrirá SmartLab.\n2. Hacé clic en "Nuevo Pedido".\n3. Presioná el botón de Favoritos "🤖 Atelier SmartLab" para autocompletar.\n4. Revisá y dale a Guardar.');
+            window.open(SMARTLAB_URL + '/laboratory/new', '_blank');
+
+        } catch (error) {
+            console.error('Error auto-submitting:', error);
+            alert('❌ Ocurrió un error al copiar los datos.');
+        } finally {
+            setIsAutoSubmitting(false);
+        }
+    };
+
 
     const saveLabField = async (orderId: string, field: string, value: string) => {
         const key = `${orderId}_${field}`;
@@ -655,10 +679,10 @@ export default function PedidosPage() {
                                                     placeholder="N° operación"
                                                     className="w-full px-3 py-2 border-2 border-blue-300 dark:border-blue-700 rounded-xl text-sm font-bold focus:ring-2 focus:ring-blue-500/20 outline-none bg-white dark:bg-stone-900"
                                                     autoFocus
-                                                    onKeyDown={e => e.key === 'Enter' && saveLabOrderNumber(order.id)}
+                                                    onKeyDown={e => e.key === 'Enter' && saveLabOrderNumber(order)}
                                                 />
                                                 <button
-                                                    onClick={() => saveLabOrderNumber(order.id)}
+                                                    onClick={() => saveLabOrderNumber(order)}
                                                     className="p-2 bg-blue-500 text-white rounded-xl hover:scale-105 transition-all"
                                                 >
                                                     <Save className="w-4 h-4" />
@@ -673,6 +697,10 @@ export default function PedidosPage() {
                                         ) : (
                                             <button
                                                 onClick={() => {
+                                                    if (order.labOrderNumber) {
+                                                        const confirmEdit = window.confirm('Este pedido ya tiene un Número de Operación asignado. ¿Deseás editarlo realmente?');
+                                                        if (!confirmEdit) return;
+                                                    }
                                                     setEditingId(order.id);
                                                     setEditValue(order.labOrderNumber || '');
                                                 }}
@@ -949,6 +977,14 @@ export default function PedidosPage() {
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-2">
+                                        <button
+                                            onClick={() => autoSubmitSmartLab(order)}
+                                            disabled={isAutoSubmitting}
+                                            className="px-4 py-2 bg-amber-400 text-amber-950 rounded-xl text-xs font-black flex items-center gap-2 hover:scale-105 transition-all shadow-lg disabled:opacity-50"
+                                        >
+                                            {isAutoSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Package className="w-4 h-4" />}
+                                            {isAutoSubmitting ? 'Copiando...' : 'Autocompletar (Bookmarklet)'}
+                                        </button>
                                         <button
                                             onClick={() => copyAllSmartLab(order)}
                                             className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all hover:scale-105 ${copiedField === 'all'

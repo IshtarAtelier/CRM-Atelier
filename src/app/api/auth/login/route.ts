@@ -14,11 +14,13 @@ export async function POST(request: Request) {
             );
         }
 
+
+
         const user = await prisma.user.findUnique({
             where: { email },
         });
 
-        if (!user) {
+        if (!user || !user.password) {
             return NextResponse.json(
                 { error: 'Credenciales inválidas.' },
                 { status: 401 }
@@ -26,18 +28,14 @@ export async function POST(request: Request) {
         }
 
         const isPasswordValid = await bcrypt.compare(password, user.password);
-        
-        // Local dev bypass for convenience during testing
-        const isLocalDevBypass = process.env.NODE_ENV === 'development' && email === 'ishtar' && password === 'local-admin-ishtar';
 
-        if (!isPasswordValid && !isLocalDevBypass) {
+        if (!isPasswordValid) {
             return NextResponse.json(
                 { error: 'Credenciales inválidas.' },
                 { status: 401 }
             );
         }
 
-        // Create session token
         const token = await encrypt({
             id: user.id,
             email: user.email,

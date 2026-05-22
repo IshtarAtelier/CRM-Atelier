@@ -252,7 +252,7 @@ export default function DoctorCommissions() {
                                     <DollarSign className="w-4 h-4 text-teal-500" />
                                     <span className="text-[9px] font-black text-teal-600 dark:text-teal-400 uppercase tracking-widest">Comisiones Generadas</span>
                                 </div>
-                                <p className="text-2xl font-black text-teal-700 dark:text-teal-300">${data.totalCommission.toLocaleString()}</p>
+                                <p className="text-xl md:text-2xl font-black text-teal-700 dark:text-teal-300 truncate">${data.totalCommission.toLocaleString()}</p>
                                 <p className="text-[10px] font-bold text-teal-500 mt-0.5">{data.operations.length} operación{data.operations.length !== 1 ? 'es' : ''}</p>
                             </div>
 
@@ -261,7 +261,7 @@ export default function DoctorCommissions() {
                                     <Wallet className="w-4 h-4 text-blue-500" />
                                     <span className="text-[9px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest">Pagado al Médico</span>
                                 </div>
-                                <p className="text-2xl font-black text-blue-700 dark:text-blue-300">${data.totalPaidToDoctor.toLocaleString()}</p>
+                                <p className="text-xl md:text-2xl font-black text-blue-700 dark:text-blue-300 truncate">${data.totalPaidToDoctor.toLocaleString()}</p>
                                 <p className="text-[10px] font-bold text-blue-500 mt-0.5">{data.doctorPayments.length} pago{data.doctorPayments.length !== 1 ? 's' : ''}</p>
                             </div>
 
@@ -275,7 +275,7 @@ export default function DoctorCommissions() {
                                         Balance Pendiente
                                     </span>
                                 </div>
-                                <p className={`text-2xl font-black ${data.balance > 0 ? 'text-amber-700 dark:text-amber-300' : 'text-emerald-700 dark:text-emerald-300'}`}>
+                                <p className={`text-xl md:text-2xl font-black truncate ${data.balance > 0 ? 'text-amber-700 dark:text-amber-300' : 'text-emerald-700 dark:text-emerald-300'}`}>
                                     ${data.balance.toLocaleString()}
                                 </p>
                                 <p className={`text-[10px] font-bold mt-0.5 ${data.balance > 0 ? 'text-amber-500' : 'text-emerald-500'}`}>

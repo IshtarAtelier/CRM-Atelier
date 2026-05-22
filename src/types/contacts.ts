@@ -100,4 +100,7 @@ export interface ContactFormData {
     doctor?: string;
     followUpTask?: string;
     followUpDate?: string;
+    forceCreate?: boolean;
+    visitedStore?: boolean;
+    startQuote?: boolean;
 }

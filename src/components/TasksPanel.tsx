@@ -78,7 +78,7 @@ export default function TasksPanel({ tasks, onClose }: TasksPanelProps) {
                             {/* WhatsApp Action */}
                             {task.client?.phone && (
                                 <button
-                                    onClick={(e) => {
+                                    onClick={async (e) => {
                                         e.preventDefault();
                                         e.stopPropagation();
                                         const isReview = task.description.includes('Solicitar comentario');
@@ -86,8 +86,22 @@ export default function TasksPanel({ tasks, onClose }: TasksPanelProps) {
                                             ? `Hola ${task.client.name.split(' ')[0]}! Te escribimos para pedirte un favor enorme 🙏\n\n¿Nos dejarías una reseña en Google? Nos ayudaría muchísimo si podés mencionar por qué somos la mejor óptica en Córdoba para vos y cómo fue tu experiencia.\n\n👉 https://g.page/r/CcVls8v7ic_NEBM/review\n\n¡Nos suma muchísimo para seguir creciendo!\nEspero tu comentario 🤍✨🫶`
                                             : `Hola ${task.client.name.split(' ')[0]}! Te escribimos de Atelier Óptica.`;
                                         let phone = task.client.phone.replace(/\D/g, '');
-                                        if (phone.length === 10) phone = '549' + phone; // Asume formato de Argentina si son 10 dígitos sin prefijo
-                                        window.open(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`, '_blank');
+                                        if (phone.length === 10) phone = '549' + phone;
+
+                                        try {
+                                            const res = await fetch('/api/whatsapp/send', {
+                                                method: 'POST',
+                                                headers: { 'Content-Type': 'application/json' },
+                                                body: JSON.stringify({ to: phone, text: message })
+                                            });
+                                            if (res.ok) {
+                                                alert('✅ Mensaje enviado a través del Bot');
+                                            } else {
+                                                alert('❌ Error al enviar el mensaje');
+                                            }
+                                        } catch (err) {
+                                            alert('❌ Error de conexión');
+                                        }
                                     }}
                                     className="absolute right-12 md:right-16 top-1/2 -translate-y-1/2 p-2.5 md:p-3 bg-emerald-500 text-white rounded-xl md:rounded-2xl shadow-lg hover:scale-110 active:scale-95 transition-all z-10"
                                     title="Enviar WhatsApp"

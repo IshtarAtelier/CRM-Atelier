@@ -171,6 +171,10 @@ export default function ContactDetail({
                     onUpdatePriority={onUpdatePriority}
                     onRevertStatus={handleRevertStatus}
                     onDeleteContact={onDeleteContact}
+                    onRegisterVisit={async () => {
+                        await onAddInteraction(contactId, 'STORE_VISIT', '📍 Cliente visitó el local (marcado desde el perfil)');
+                        fetchContact();
+                    }}
                 />
 
                 <main className="flex-1 overflow-y-auto p-6 custom-scrollbar">

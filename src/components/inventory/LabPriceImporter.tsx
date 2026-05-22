@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useRef, useCallback } from 'react';
-import { X, Upload, Image as ImageIcon, Loader2, Check, AlertCircle, Zap, ClipboardPaste, ArrowRight, Save, ChevronDown, ChevronUp } from 'lucide-react';
+import { useState, useRef, useCallback, useEffect } from 'react';
+import { X, Upload, Image as ImageIcon, Loader2, Check, AlertCircle, Zap, ClipboardPaste, ArrowRight, Save, ChevronDown, ChevronUp, Edit2 } from 'lucide-react';
 
 interface ExtractedItem {
     linea: string;
@@ -13,14 +13,17 @@ interface ExtractedItem {
     calibrado: number;
     iva: number;
     costoFinal: number;
+    cantCristales: number;
 }
 
 interface MatchResult {
     extracted: ExtractedItem;
-    match: { id: string; name: string | null; brand: string | null; type: string | null; lensIndex: string | null; cost: number; price: number; laboratory: string | null } | null;
+    match: { id: string; name: string | null; brand: string | null; type: string | null; lensIndex: string | null; cost: number; price: number; laboratory: string | null; is2x1: boolean } | null;
     score: number;
     costoAnterior: number | null;
     precioAnterior: number | null;
+    markupActual: number;
+    precioSugerido: number;
 }
 
 interface Props {
@@ -44,8 +47,31 @@ export default function LabPriceImporter({ onClose, onSuccess, laboratories }: P
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
     const [savedCount, setSavedCount] = useState(0);
     const [showFormula, setShowFormula] = useState(false);
+    const [labConfigs, setLabConfigs] = useState<any[]>([]);
+    const [summary, setSummary] = useState<any>(null);
+    
+    // Markup states
+    const [customMarkups, setCustomMarkups] = useState<Record<string, number>>({});
+    const [globalMarkup, setGlobalMarkup] = useState<string>('');
+
     const fileInputRef = useRef<HTMLInputElement>(null);
     const dropRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        fetch('/api/laboratories')
+            .then(res => res.json())
+            .then(data => {
+                if (Array.isArray(data.laboratories)) {
+                    setLabConfigs(data.laboratories);
+                    const initialLab = data.laboratories.find((l: any) => l.name.toUpperCase() === (laboratories[0] || 'OPTOVISION').toUpperCase());
+                    if (initialLab) {
+                        setCalibrado(initialLab.calibrado);
+                        setIva(initialLab.iva);
+                    }
+                }
+            })
+            .catch(err => console.error('Error fetching labs:', err));
+    }, [laboratories]);
 
     const handleImage = useCallback((file: File) => {
         if (!file.type.startsWith('image/')) {
@@ -62,7 +88,6 @@ export default function LabPriceImporter({ onClose, onSuccess, laboratories }: P
         reader.readAsDataURL(file);
     }, []);
 
-    // Handle paste from clipboard
     const handlePaste = useCallback((e: React.ClipboardEvent | ClipboardEvent) => {
         const items = (e as ClipboardEvent).clipboardData?.items || (e as React.ClipboardEvent).clipboardData?.items;
         if (!items) return;
@@ -76,7 +101,6 @@ export default function LabPriceImporter({ onClose, onSuccess, laboratories }: P
         }
     }, [handleImage]);
 
-    // Handle drag & drop
     const handleDrop = useCallback((e: React.DragEvent) => {
         e.preventDefault();
         e.stopPropagation();
@@ -89,7 +113,6 @@ export default function LabPriceImporter({ onClose, onSuccess, laboratories }: P
         e.stopPropagation();
     };
 
-    // Process image through OCR API
     const processImage = async () => {
         if (!imageBase64) return;
         setStep('processing');
@@ -107,12 +130,20 @@ export default function LabPriceImporter({ onClose, onSuccess, laboratories }: P
                 return;
             }
             setMatches(data.matches || []);
-            // Auto-select all matched items
+            setSummary(data.summary || null);
+            
             const matched = new Set<string>();
+            const initialMarkups: Record<string, number> = {};
+            
             (data.matches || []).forEach((m: MatchResult) => {
-                if (m.match) matched.add(m.match.id);
+                if (m.match) {
+                    matched.add(m.match.id);
+                    initialMarkups[m.match.id] = m.markupActual;
+                }
             });
+            
             setSelectedIds(matched);
+            setCustomMarkups(initialMarkups);
             setStep('review');
         } catch (err: any) {
             setError(err.message || 'Error de conexión');
@@ -120,23 +151,43 @@ export default function LabPriceImporter({ onClose, onSuccess, laboratories }: P
         }
     };
 
-    // Apply selected cost updates
+    const applyGlobalMarkup = () => {
+        const val = parseFloat(globalMarkup);
+        if (isNaN(val) || val <= 0) return;
+        
+        const newMarkups = { ...customMarkups };
+        selectedIds.forEach(id => {
+            newMarkups[id] = val;
+        });
+        setCustomMarkups(newMarkups);
+        setGlobalMarkup('');
+    };
+
     const applyUpdates = async () => {
         const toUpdate = matches.filter(m => m.match && selectedIds.has(m.match.id));
         if (toUpdate.length === 0) return;
         setSaving(true);
         let count = 0;
+        
         for (const item of toUpdate) {
             if (!item.match) continue;
+            
+            const finalMarkup = customMarkups[item.match.id] || item.markupActual;
+            const finalPrice = Math.ceil((item.extracted.costoFinal * finalMarkup) / 1000) * 1000;
+            
             try {
                 const res = await fetch(`/api/products/${item.match.id}`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json', 'x-user-role': 'ADMIN' },
-                    body: JSON.stringify({ cost: item.extracted.costoFinal }),
+                    body: JSON.stringify({ 
+                        cost: item.extracted.costoFinal,
+                        price: finalPrice
+                    }),
                 });
                 if (res.ok) count++;
             } catch { /* skip */ }
         }
+        
         setSavedCount(count);
         setSaving(false);
         if (count > 0) {
@@ -156,9 +207,8 @@ export default function LabPriceImporter({ onClose, onSuccess, laboratories }: P
 
     return (
         <div className="fixed inset-0 bg-stone-900/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-300" onPaste={handlePaste}>
-            <div className="bg-white dark:bg-stone-900 w-full max-w-2xl max-h-[90vh] rounded-[2rem] shadow-2xl border border-stone-200 dark:border-stone-800 overflow-hidden animate-in zoom-in-95 duration-300 flex flex-col">
+            <div className="bg-white dark:bg-stone-900 w-full max-w-4xl max-h-[90vh] rounded-[2rem] shadow-2xl border border-stone-200 dark:border-stone-800 overflow-hidden animate-in zoom-in-95 duration-300 flex flex-col">
 
-                {/* Header */}
                 <header className="p-6 pb-4 border-b border-stone-100 dark:border-stone-800 flex justify-between items-center shrink-0">
                     <div>
                         <h2 className="text-lg font-black text-stone-800 dark:text-white tracking-tight flex items-center gap-2">
@@ -176,59 +226,63 @@ export default function LabPriceImporter({ onClose, onSuccess, laboratories }: P
                     </button>
                 </header>
 
-                {/* Body */}
-                <div className="overflow-y-auto flex-1 p-6 space-y-4">
+                <div className="overflow-y-auto flex-1 p-6 space-y-4 bg-stone-50/30 dark:bg-stone-900/50">
 
-                    {/* STEP 1: Config + Image Upload */}
                     {step === 'config' && (
                         <>
-                            {/* Lab + Formula Config */}
                             <div className="grid grid-cols-3 gap-3">
                                 <div className="space-y-1">
                                     <label className="text-[9px] font-black text-stone-400 uppercase tracking-widest ml-2">Laboratorio</label>
-                                    <select value={laboratory} onChange={e => setLaboratory(e.target.value)}
-                                        className="w-full px-3 py-3 bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl font-bold text-xs outline-none focus:border-primary uppercase">
-                                        {Array.from(new Map([...laboratories, 'OPTOVISION', 'DAC', 'IOL'].map(l => [l.toUpperCase(), l])).values()).map(l => (
+                                    <select value={laboratory} onChange={e => {
+                                        const newLab = e.target.value;
+                                        setLaboratory(newLab);
+                                        const config = labConfigs.find(l => l.name.toUpperCase() === newLab.toUpperCase());
+                                        if (config) {
+                                            setCalibrado(config.calibrado);
+                                            setIva(config.iva);
+                                        }
+                                    }}
+                                        className="w-full px-3 py-3 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl font-bold text-xs outline-none focus:border-primary uppercase">
+                                        {Array.from(new Map([...laboratories, 'OPTOVISION', 'GRUPO OPTICO'].map(l => [l.toUpperCase(), l])).values()).map(l => (
                                             <option key={l} value={l}>{l}</option>
                                         ))}
                                     </select>
                                 </div>
                                 <div className="space-y-1">
-                                    <label className="text-[9px] font-black text-stone-400 uppercase tracking-widest ml-2">Calibrado ($)</label>
+                                    <label className="text-[9px] font-black text-stone-400 uppercase tracking-widest ml-2">Calibrado base ($)</label>
                                     <input type="number" value={calibrado} onChange={e => setCalibrado(Number(e.target.value) || 0)}
-                                        className="w-full px-3 py-3 bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl font-bold text-xs outline-none focus:border-primary" />
+                                        className="w-full px-3 py-3 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl font-bold text-xs outline-none focus:border-primary text-violet-600 dark:text-violet-400" />
                                 </div>
                                 <div className="space-y-1">
                                     <label className="text-[9px] font-black text-stone-400 uppercase tracking-widest ml-2">IVA (%)</label>
                                     <input type="number" value={iva} onChange={e => setIva(Number(e.target.value) || 0)}
-                                        className="w-full px-3 py-3 bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl font-bold text-xs outline-none focus:border-primary" />
+                                        className="w-full px-3 py-3 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl font-bold text-xs outline-none focus:border-primary text-blue-600 dark:text-blue-400" />
                                 </div>
                             </div>
 
-                            {/* Formula preview */}
                             <button onClick={() => setShowFormula(!showFormula)}
                                 className="flex items-center gap-2 text-[9px] font-black text-amber-600 uppercase tracking-widest hover:text-amber-500 transition-colors">
                                 {showFormula ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
-                                Fórmula: (Precio Lista + ${calibrado.toLocaleString()}) × {(1 + iva / 100).toFixed(2)}
+                                Mostrar reglas de cálculo automáticas
                             </button>
                             {showFormula && (
                                 <div className="bg-amber-50 dark:bg-amber-950/30 p-4 rounded-xl border border-amber-200 dark:border-amber-800 animate-in fade-in duration-200">
                                     <p className="text-xs font-bold text-amber-800 dark:text-amber-300">
-                                        <strong>Costo Final</strong> = (Precio Lista + Calibrado) × (1 + IVA/100)
+                                        <strong>Costo Final</strong> = [ Precio OCR + (Calibrado × Cristales) ] × (1 + IVA/100)
                                     </p>
-                                    <p className="text-[10px] text-amber-600 dark:text-amber-400 mt-1">
-                                        Ejemplo: ($515.260 + $40.000) × 1.21 = <strong>${Math.round((515260 + calibrado) * (1 + iva / 100)).toLocaleString()}</strong>
-                                    </p>
+                                    <ul className="text-[10px] text-amber-600 dark:text-amber-400 mt-2 list-disc pl-4 space-y-1">
+                                        <li>Si el producto es <strong>2x1</strong>, se multiplica el calibrado por 2.</li>
+                                        <li>El precio sugerido de venta utilizará el <strong>markup actual</strong> de tu producto para mantener tu rentabilidad.</li>
+                                    </ul>
                                 </div>
                             )}
 
-                            {/* Image Drop Zone */}
                             <div
                                 ref={dropRef}
                                 onDrop={handleDrop}
                                 onDragOver={handleDragOver}
                                 onClick={() => fileInputRef.current?.click()}
-                                className={`relative border-2 border-dashed rounded-2xl p-8 text-center cursor-pointer transition-all group
+                                className={`relative border-2 border-dashed rounded-2xl p-8 text-center cursor-pointer transition-all group bg-white dark:bg-stone-900
                                     ${imagePreview
                                         ? 'border-primary/40 bg-primary/5'
                                         : 'border-stone-300 dark:border-stone-600 hover:border-primary/40 hover:bg-primary/5'}`}
@@ -239,20 +293,17 @@ export default function LabPriceImporter({ onClose, onSuccess, laboratories }: P
                                         <p className="text-[9px] font-black text-primary uppercase tracking-widest">✓ Imagen cargada — click para cambiar</p>
                                     </div>
                                 ) : (
-                                    <div className="space-y-3">
+                                    <div className="space-y-3 py-8">
                                         <div className="flex justify-center gap-4">
-                                            <div className="w-14 h-14 bg-stone-100 dark:bg-stone-800 rounded-2xl flex items-center justify-center group-hover:bg-primary/10 transition-colors">
+                                            <div className="w-14 h-14 bg-stone-50 dark:bg-stone-800 rounded-2xl flex items-center justify-center group-hover:bg-primary/10 transition-colors">
                                                 <ClipboardPaste className="w-6 h-6 text-stone-400 group-hover:text-primary transition-colors" />
                                             </div>
-                                            <div className="w-14 h-14 bg-stone-100 dark:bg-stone-800 rounded-2xl flex items-center justify-center group-hover:bg-primary/10 transition-colors">
-                                                <Upload className="w-6 h-6 text-stone-400 group-hover:text-primary transition-colors" />
-                                            </div>
-                                            <div className="w-14 h-14 bg-stone-100 dark:bg-stone-800 rounded-2xl flex items-center justify-center group-hover:bg-primary/10 transition-colors">
+                                            <div className="w-14 h-14 bg-stone-50 dark:bg-stone-800 rounded-2xl flex items-center justify-center group-hover:bg-primary/10 transition-colors">
                                                 <ImageIcon className="w-6 h-6 text-stone-400 group-hover:text-primary transition-colors" />
                                             </div>
                                         </div>
                                         <div>
-                                            <p className="text-sm font-black text-stone-600 dark:text-stone-300">Pegá la captura aquí</p>
+                                            <p className="text-sm font-black text-stone-600 dark:text-stone-300">Pegá la captura del PDF aquí</p>
                                             <p className="text-[10px] font-bold text-stone-400 mt-1">Ctrl+V para pegar · Arrastrá · O hacé click para subir</p>
                                         </div>
                                     </div>
@@ -269,31 +320,29 @@ export default function LabPriceImporter({ onClose, onSuccess, laboratories }: P
                         </>
                     )}
 
-                    {/* STEP 2: Processing */}
                     {step === 'processing' && (
-                        <div className="py-16 flex flex-col items-center gap-4">
+                        <div className="py-24 flex flex-col items-center gap-6">
                             <div className="relative">
-                                <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center">
-                                    <Loader2 className="w-10 h-10 text-primary animate-spin" />
+                                <div className="w-24 h-24 bg-primary/10 rounded-[2rem] flex items-center justify-center shadow-inner">
+                                    <Loader2 className="w-12 h-12 text-primary animate-spin" />
                                 </div>
-                                <div className="absolute -top-1 -right-1 w-6 h-6 bg-amber-500 rounded-full flex items-center justify-center animate-pulse">
-                                    <Zap className="w-3 h-3 text-white" />
+                                <div className="absolute -top-2 -right-2 w-8 h-8 bg-amber-500 rounded-xl flex items-center justify-center animate-bounce shadow-lg">
+                                    <Zap className="w-4 h-4 text-white" />
                                 </div>
                             </div>
-                            <div className="text-center">
-                                <p className="text-sm font-black text-stone-700 dark:text-stone-200">Gemini IA analizando imagen...</p>
-                                <p className="text-[10px] font-bold text-stone-400 mt-1">Extrayendo productos, materiales y precios</p>
+                            <div className="text-center space-y-2">
+                                <h3 className="text-lg font-black text-stone-800 dark:text-white tracking-tight">Gemini IA Analizando PDF...</h3>
+                                <p className="text-xs font-bold text-stone-400">Extrayendo productos, materiales y precios base</p>
                             </div>
                         </div>
                     )}
 
-                    {/* STEP 3: Review matches */}
                     {step === 'review' && (
                         <>
                             {savedCount > 0 && (
                                 <div className="flex items-center gap-3 p-4 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 rounded-xl animate-in slide-in-from-top duration-300">
                                     <Check className="w-5 h-5 text-emerald-500" />
-                                    <span className="text-sm font-black text-emerald-700 dark:text-emerald-400">✓ {savedCount} costos actualizados correctamente</span>
+                                    <span className="text-sm font-black text-emerald-700 dark:text-emerald-400">✓ {savedCount} productos actualizados correctamente en la base de datos.</span>
                                 </div>
                             )}
 
@@ -303,72 +352,140 @@ export default function LabPriceImporter({ onClose, onSuccess, laboratories }: P
                                 </div>
                             )}
 
-                            {/* Matched Products */}
-                            {matchedItems.length > 0 && (
-                                <div className="space-y-2">
-                                    <h3 className="text-[10px] font-black text-emerald-600 uppercase tracking-widest flex items-center gap-2">
-                                        <Check className="w-3 h-3" /> Productos Encontrados ({matchedItems.length})
-                                    </h3>
-                                    <div className="space-y-1.5">
-                                        {matchedItems.map((m, i) => {
-                                            const isSelected = m.match ? selectedIds.has(m.match.id) : false;
-                                            const costDiff = m.costoAnterior ? m.extracted.costoFinal - m.costoAnterior : null;
-                                            return (
-                                                <div key={i} onClick={() => m.match && toggleSelect(m.match.id)}
-                                                    className={`p-3 rounded-xl border cursor-pointer transition-all ${isSelected
-                                                        ? 'bg-primary/5 border-primary/30'
-                                                        : 'bg-stone-50 dark:bg-stone-800 border-stone-100 dark:border-stone-700 opacity-50'}`}>
-                                                    <div className="flex items-center justify-between gap-3">
-                                                        <div className="flex items-center gap-3 min-w-0 flex-1">
-                                                            <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 transition-colors ${isSelected ? 'bg-primary border-primary' : 'border-stone-300'}`}>
-                                                                {isSelected && <Check className="w-3 h-3 text-white" />}
-                                                            </div>
-                                                            <div className="min-w-0">
-                                                                <p className="text-xs font-black text-stone-800 dark:text-stone-100 truncate">
-                                                                    {m.match?.brand} · {m.match?.name}
-                                                                </p>
-                                                                <p className="text-[9px] text-stone-400 truncate">
-                                                                    {m.extracted.linea} — {m.extracted.material} — {m.extracted.tratamiento}
-                                                                </p>
-                                                            </div>
-                                                        </div>
-                                                        <div className="text-right shrink-0">
-                                                            <div className="flex items-center gap-2">
-                                                                {m.costoAnterior != null && (
-                                                                    <span className="text-[10px] font-bold text-stone-400 line-through">${m.costoAnterior.toLocaleString()}</span>
-                                                                )}
-                                                                <ArrowRight className="w-3 h-3 text-stone-300" />
-                                                                <span className="text-xs font-black text-primary">${m.extracted.costoFinal.toLocaleString()}</span>
-                                                            </div>
-                                                            {costDiff != null && (
-                                                                <span className={`text-[9px] font-black ${costDiff > 0 ? 'text-red-500' : 'text-emerald-500'}`}>
-                                                                    {costDiff > 0 ? '+' : ''}{costDiff.toLocaleString()}
-                                                                </span>
-                                                            )}
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            );
-                                        })}
+                            {/* Summary Banner */}
+                            {summary && (
+                                <div className="flex flex-wrap gap-4 p-4 bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-2xl shadow-sm">
+                                    <div className="flex-1 min-w-[150px]">
+                                        <p className="text-[9px] font-black text-stone-400 uppercase tracking-widest">Coincidencias</p>
+                                        <p className="text-xl font-black text-emerald-600 dark:text-emerald-400">{summary.totalProducts}</p>
+                                    </div>
+                                    <div className="flex-1 min-w-[150px]">
+                                        <p className="text-[9px] font-black text-stone-400 uppercase tracking-widest">Aumentan costo</p>
+                                        <p className="text-xl font-black text-amber-600 dark:text-amber-500">{summary.withCostIncrease}</p>
+                                    </div>
+                                    <div className="flex-1 min-w-[150px]">
+                                        <p className="text-[9px] font-black text-stone-400 uppercase tracking-widest">Suba promedio</p>
+                                        <p className="text-xl font-black text-red-500">+{summary.avgCostIncreasePercent}%</p>
+                                    </div>
+                                    
+                                    <div className="w-full h-px bg-stone-100 dark:bg-stone-800 my-1"></div>
+                                    
+                                    <div className="flex items-center gap-3 w-full">
+                                        <label className="text-xs font-bold text-stone-500">Aplicar Markup masivo:</label>
+                                        <div className="flex bg-stone-100 dark:bg-stone-800 rounded-xl p-1">
+                                            <span className="pl-3 pr-1 py-1.5 text-stone-400 font-black text-sm">x</span>
+                                            <input 
+                                                type="number" 
+                                                step="0.01"
+                                                value={globalMarkup}
+                                                onChange={e => setGlobalMarkup(e.target.value)}
+                                                placeholder="2.55"
+                                                className="w-20 bg-transparent text-sm font-black text-stone-800 dark:text-white outline-none"
+                                            />
+                                        </div>
+                                        <button 
+                                            onClick={applyGlobalMarkup}
+                                            className="px-4 py-2 bg-stone-900 dark:bg-stone-700 text-white text-[10px] font-black uppercase tracking-widest rounded-lg hover:bg-primary transition-colors"
+                                        >
+                                            Aplicar a seleccionados
+                                        </button>
                                     </div>
                                 </div>
                             )}
 
-                            {/* Unmatched Products */}
+                            {matchedItems.length > 0 && (
+                                <div className="bg-white dark:bg-stone-900 rounded-2xl border border-stone-200 dark:border-stone-800 shadow-sm overflow-hidden">
+                                    <div className="overflow-x-auto">
+                                        <table className="w-full text-left border-collapse">
+                                            <thead>
+                                                <tr className="bg-stone-50/50 dark:bg-stone-800/50 border-b border-stone-200 dark:border-stone-800 text-[9px] font-black text-stone-400 uppercase tracking-widest">
+                                                    <th className="p-4 w-8"><Check className="w-3 h-3" /></th>
+                                                    <th className="p-4 min-w-[200px]">Producto Identificado</th>
+                                                    <th className="p-4">Costo (PDF + Calib + IVA)</th>
+                                                    <th className="p-4">Markup (x)</th>
+                                                    <th className="p-4">Precio Venta Público</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="text-xs">
+                                                {matchedItems.map((m, i) => {
+                                                    const isSelected = m.match ? selectedIds.has(m.match.id) : false;
+                                                    const costDiff = m.costoAnterior ? m.extracted.costoFinal - m.costoAnterior : null;
+                                                    const currentMarkup = customMarkups[m.match!.id] || m.markupActual;
+                                                    const finalPrice = Math.ceil((m.extracted.costoFinal * currentMarkup) / 1000) * 1000;
+                                                    
+                                                    return (
+                                                        <tr key={i} 
+                                                            className={`border-b border-stone-100 dark:border-stone-800/50 transition-colors hover:bg-stone-50/50 dark:hover:bg-stone-800/30 ${isSelected ? '' : 'opacity-50 bg-stone-50 dark:bg-stone-900/50'}`}>
+                                                            <td className="p-4" onClick={() => m.match && toggleSelect(m.match.id)}>
+                                                                <div className={`w-4 h-4 rounded border-2 flex items-center justify-center cursor-pointer transition-colors ${isSelected ? 'bg-primary border-primary' : 'border-stone-300 dark:border-stone-600'}`}>
+                                                                    {isSelected && <Check className="w-3 h-3 text-white" />}
+                                                                </div>
+                                                            </td>
+                                                            <td className="p-4">
+                                                                <p className="font-black text-stone-800 dark:text-stone-100">{m.match?.brand} · {m.match?.name}</p>
+                                                                <p className="text-[10px] text-stone-400 mt-0.5">{m.extracted.linea} — {m.extracted.material}</p>
+                                                            </td>
+                                                            <td className="p-4">
+                                                                <div className="flex items-center gap-2">
+                                                                    {m.costoAnterior != null && (
+                                                                        <span className="text-[10px] font-bold text-stone-400 line-through">${m.costoAnterior.toLocaleString()}</span>
+                                                                    )}
+                                                                    <ArrowRight className="w-3 h-3 text-stone-300" />
+                                                                    <span className="font-black text-stone-800 dark:text-white">${m.extracted.costoFinal.toLocaleString()}</span>
+                                                                </div>
+                                                                {costDiff != null && costDiff !== 0 && (
+                                                                    <span className={`text-[9px] font-black ${costDiff > 0 ? 'text-red-500' : 'text-emerald-500'}`}>
+                                                                        {costDiff > 0 ? '↑ Sube $' : '↓ Baja $'}{Math.abs(costDiff).toLocaleString()}
+                                                                    </span>
+                                                                )}
+                                                            </td>
+                                                            <td className="p-4">
+                                                                <div className="flex items-center gap-1 bg-stone-100 dark:bg-stone-800 rounded-lg p-1.5 border border-transparent focus-within:border-primary/50 transition-colors w-20">
+                                                                    <span className="text-stone-400 font-black text-xs pl-1">x</span>
+                                                                    <input 
+                                                                        type="number" 
+                                                                        step="0.01"
+                                                                        value={currentMarkup}
+                                                                        onChange={e => {
+                                                                            const val = parseFloat(e.target.value);
+                                                                            if (!isNaN(val) && m.match) {
+                                                                                setCustomMarkups(prev => ({...prev, [m.match!.id]: val}));
+                                                                            }
+                                                                        }}
+                                                                        className="w-full bg-transparent font-black text-primary outline-none"
+                                                                    />
+                                                                </div>
+                                                            </td>
+                                                            <td className="p-4">
+                                                                <div className="flex items-center gap-2">
+                                                                    {m.precioAnterior != null && (
+                                                                        <span className="text-[10px] font-bold text-stone-400 line-through">${m.precioAnterior.toLocaleString()}</span>
+                                                                    )}
+                                                                    <ArrowRight className="w-3 h-3 text-stone-300" />
+                                                                    <span className="font-black text-emerald-600 dark:text-emerald-400 text-sm">${finalPrice.toLocaleString()}</span>
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                    );
+                                                })}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            )}
+
                             {unmatchedItems.length > 0 && (
-                                <div className="space-y-2">
+                                <div className="space-y-2 pt-4">
                                     <h3 className="text-[10px] font-black text-stone-400 uppercase tracking-widest flex items-center gap-2">
-                                        <AlertCircle className="w-3 h-3" /> Sin Coincidencia ({unmatchedItems.length})
+                                        <AlertCircle className="w-3 h-3" /> Productos descartados / sin coincidencia ({unmatchedItems.length})
                                     </h3>
-                                    <div className="space-y-1">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                                         {unmatchedItems.map((m, i) => (
-                                            <div key={i} className="p-3 rounded-xl bg-stone-50 dark:bg-stone-800/50 border border-stone-100 dark:border-stone-700 opacity-60">
-                                                <div className="flex justify-between items-center">
-                                                    <p className="text-[10px] font-bold text-stone-500">
-                                                        {m.extracted.linea} — {m.extracted.material} — {m.extracted.tratamiento}
-                                                    </p>
-                                                    <span className="text-[10px] font-black text-stone-400">${m.extracted.costoFinal.toLocaleString()}</span>
-                                                </div>
+                                            <div key={i} className="p-3 rounded-xl bg-stone-50 dark:bg-stone-800/30 border border-stone-100 dark:border-stone-800/50 flex justify-between items-center opacity-60">
+                                                <p className="text-[10px] font-bold text-stone-500">
+                                                    {m.extracted.linea} — {m.extracted.material}
+                                                </p>
+                                                <span className="text-[10px] font-black text-stone-400">${m.extracted.costoFinal.toLocaleString()}</span>
                                             </div>
                                         ))}
                                     </div>
@@ -378,29 +495,28 @@ export default function LabPriceImporter({ onClose, onSuccess, laboratories }: P
                     )}
                 </div>
 
-                {/* Footer */}
-                <div className="p-6 pt-4 border-t border-stone-100 dark:border-stone-800 shrink-0">
+                <div className="p-6 pt-4 border-t border-stone-100 dark:border-stone-800 shrink-0 bg-white dark:bg-stone-900">
                     {step === 'config' && (
                         <div className="flex gap-3">
-                            <button onClick={onClose} className="flex-1 py-3.5 bg-stone-100 dark:bg-stone-800 text-stone-500 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-stone-200 transition-colors">
+                            <button onClick={onClose} className="flex-1 py-4 bg-stone-100 dark:bg-stone-800 text-stone-500 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-stone-200 transition-colors">
                                 Cancelar
                             </button>
                             <button onClick={processImage} disabled={!imageBase64}
-                                className="flex-1 py-3.5 bg-stone-900 dark:bg-primary text-white rounded-xl font-black text-[10px] uppercase tracking-widest hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-30 disabled:cursor-not-allowed">
-                                <Zap className="w-4 h-4" /> Analizar con IA
+                                className="flex-1 py-4 bg-stone-900 dark:bg-primary text-white rounded-xl font-black text-[10px] uppercase tracking-widest hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-30 disabled:cursor-not-allowed shadow-lg">
+                                <Zap className="w-4 h-4" /> Iniciar Escaneo IA
                             </button>
                         </div>
                     )}
                     {step === 'review' && savedCount === 0 && (
                         <div className="flex gap-3">
                             <button onClick={() => { setStep('config'); setMatches([]); }}
-                                className="flex-1 py-3.5 bg-stone-100 dark:bg-stone-800 text-stone-500 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-stone-200 transition-colors">
+                                className="w-1/3 py-4 bg-stone-100 dark:bg-stone-800 text-stone-500 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-stone-200 transition-colors">
                                 ← Volver
                             </button>
                             <button onClick={applyUpdates} disabled={saving || selectedIds.size === 0}
-                                className="flex-1 py-3.5 bg-emerald-600 text-white rounded-xl font-black text-[10px] uppercase tracking-widest hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-30">
+                                className="flex-1 py-4 bg-emerald-600 text-white rounded-xl font-black text-[10px] uppercase tracking-widest hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-30 shadow-lg shadow-emerald-500/20">
                                 <Save className="w-4 h-4" />
-                                {saving ? 'Guardando...' : `Actualizar Costos (${selectedIds.size})`}
+                                {saving ? 'Guardando...' : `Confirmar Actualización de Costos y Precios (${selectedIds.size})`}
                             </button>
                         </div>
                     )}

@@ -21,6 +21,7 @@ function ContactosPageContent() {
     const [activeTab, setActiveTab] = useState<ContactStatus>('ALL');
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedInterest, setSelectedInterest] = useState('ALL');
+    const [locationFilter, setLocationFilter] = useState('ALL');
     const [currentUserRole, setCurrentUserRole] = useState('STAFF');
     
     const [showForm, setShowForm] = useState(false);
@@ -50,7 +51,7 @@ function ContactosPageContent() {
         checkCanClose,
         deleteOrder,
         deleteContact
-    } = useContacts(activeTab, searchQuery, showFavorites, selectedInterest);
+    } = useContacts(activeTab, searchQuery, showFavorites, selectedInterest, locationFilter);
 
     useEffect(() => {
         const clientId = searchParams.get('clientId');
@@ -120,6 +121,8 @@ function ContactosPageContent() {
                 setSearchQuery={setSearchQuery}
                 selectedInterest={selectedInterest}
                 setSelectedInterest={setSelectedInterest}
+                locationFilter={locationFilter}
+                setLocationFilter={setLocationFilter}
             />
 
             <ContactsList 
@@ -134,17 +137,29 @@ function ContactosPageContent() {
                 onQuote={(id) => { setSelectedContactId(id); setAutoStartQuote(true); }}
                 currentUserRole={currentUserRole}
                 onDeleteContact={deleteContact}
+                onRegisterVisit={(id) => addInteraction(id, 'STORE_VISIT', '📍 Cliente visitó el local (marcado desde lista)')}
             />
 
             {/* Support Components */}
             {showForm && (
                 <ContactForm
                     onClose={() => { setShowForm(false); setEditingContactData(null); }}
+                    onGoToOriginal={(id) => {
+                        setShowForm(false);
+                        setSelectedContactId(id);
+                    }}
                     initialData={editingContactData}
                     onSubmit={async (data) => {
                         if (editingContactData) {
                             const updated = await updateContact(editingContactData.id, data);
                             if (updated) {
+                                if (data.followUpTask) {
+                                    const taskDate = data.followUpDate || new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString().split('T')[0];
+                                    await addTask(updated.id, data.followUpTask, taskDate);
+                                }
+                                if (data.visitedStore) {
+                                    await addInteraction(updated.id, 'STORE_VISIT', '📍 Cliente visitó el local (marcado al editar)');
+                                }
                                 setShowForm(false);
                                 if (data.startQuote) {
                                     setSelectedContactId(updated.id);
@@ -152,17 +167,24 @@ function ContactosPageContent() {
                                 }
                             }
                         } else {
-                            const newContact = await createContact(data);
-                            if (newContact) {
-                                if (data.followUpTask) {
-                                    const dueDate48h = new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString().split('T')[0];
-                                    await addTask(newContact.id, data.followUpTask, dueDate48h);
+                            try {
+                                const newContact = await createContact(data);
+                                if (newContact) {
+                                    if (data.followUpTask) {
+                                        const taskDate = data.followUpDate || new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString().split('T')[0];
+                                        await addTask(newContact.id, data.followUpTask, taskDate);
+                                    }
+                                    if (data.visitedStore) {
+                                        await addInteraction(newContact.id, 'STORE_VISIT', '📍 Cliente visitó el local al registrarse');
+                                    }
+                                    setShowForm(false);
+                                    if (data.startQuote) {
+                                        setSelectedContactId(newContact.id);
+                                        setAutoStartQuote(true);
+                                    }
                                 }
-                                setShowForm(false);
-                                if (data.startQuote) {
-                                    setSelectedContactId(newContact.id);
-                                    setAutoStartQuote(true);
-                                }
+                            } catch (err: any) {
+                                if (err.isDuplicate) throw err;
                             }
                         }
                     }}

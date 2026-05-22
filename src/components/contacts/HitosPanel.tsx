@@ -22,10 +22,10 @@ export default function HitosPanel({ contactId, interactions, onRefresh }: Hitos
     const [isExtracting, setIsExtracting] = useState(false);
 
     // Filter interactions that are milestones
-    // We detect hitos by the "📍 [HITO]" prefix or the type if we start using types properly
-    const hitos = interactions.filter(i => i.content.startsWith('📍 [HITO]'))
+    // We detect hitos by the "📍 [HITO]" or "[HITO]" prefix
+    const hitos = interactions.filter(i => i.content.includes('[HITO]'))
         .map(i => {
-            const content = i.content.replace('📍 [HITO] ', '');
+            const content = i.content.replace(/^📍\s*/, '').replace('[HITO] ', '').replace('[HITO]', '').trim();
             return { ...i, content };
         })
         .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
@@ -100,9 +100,9 @@ export default function HitosPanel({ contactId, interactions, onRefresh }: Hitos
                 </div>
             ) : (
                 <div className="grid grid-cols-1 gap-3">
-                    {hitos.slice(0, 4).map((hito) => (
+                    {hitos.slice(0, 4).map((hito, hitoIdx) => (
                         <div 
-                            key={hito.id} 
+                            key={hito.id || `hito-${hitoIdx}`} 
                             className={`p-4 rounded-2xl border-2 transition-all hover:shadow-md ${getHitoColor(hito.type)}`}
                         >
                             <div className="flex items-center justify-between mb-2">

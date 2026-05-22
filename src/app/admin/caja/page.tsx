@@ -10,20 +10,7 @@ import {
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { resolveStorageUrl } from '@/lib/utils/storage';
-
-// ── Types ─────────────────────────────────────
-
-interface CashMovement {
-    id: string;
-    type: 'IN' | 'OUT';
-    amount: number;
-    reason: string;
-    category: string;
-    laboratory?: string | null;
-    receiptUrl?: string | null;
-    createdAt: string;
-    user: { name: string };
-}
+import type { CashMovement } from '@/types/orders';
 
 const CATEGORIES = [
     { key: 'VENTA', label: 'Venta Entrante', icon: Wallet, color: 'text-emerald-500', bg: 'bg-emerald-50 dark:bg-emerald-950' },
@@ -50,10 +37,20 @@ export default function CajaPage() {
     const [isSaving, setIsSaving] = useState(false);
     const [successMessage, setSuccessMessage] = useState('');
     const [viewingReceipt, setViewingReceipt] = useState<string | null>(null);
+    const [labsConfig, setLabsConfig] = useState<{name: string}[]>([]);
 
     useEffect(() => {
         fetchMovements();
+        fetchLabs();
     }, []);
+
+    const fetchLabs = async () => {
+        try {
+            const res = await fetch('/api/laboratories');
+            const data = await res.json();
+            if(data.laboratories) setLabsConfig(data.laboratories);
+        } catch(e) {}
+    };
 
     const fetchMovements = async () => {
         setLoading(true);
@@ -394,14 +391,12 @@ export default function CajaPage() {
                                         <select
                                             value={laboratory}
                                             onChange={e => setLaboratory(e.target.value)}
-                                            className="w-full bg-stone-50 dark:bg-stone-900 border-none rounded-xl py-3.5 px-4 text-sm font-bold outline-none focus:ring-4 focus:ring-blue-500/10 transition-all"
+                                            className="w-full bg-stone-50 dark:bg-stone-900 border-none rounded-xl py-3.5 px-4 text-sm font-bold outline-none focus:ring-4 focus:ring-blue-500/10 transition-all cursor-pointer"
                                         >
                                             <option value="">Seleccionar laboratorio...</option>
-                                            <option value="GRUPO OPTICO">Grupo Óptico</option>
-                                            <option value="OPTOVISION">Optovision</option>
-                                            <option value="NEXO">Nexo</option>
-                                            <option value="DAAS">Daas</option>
-                                            <option value="IOL">IOL</option>
+                                            {labsConfig.map(l => (
+                                                <option key={l.name} value={l.name}>{l.name}</option>
+                                            ))}
                                             <option value="OTRO">Otro</option>
                                         </select>
                                     </div>

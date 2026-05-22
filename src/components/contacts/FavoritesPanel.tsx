@@ -24,9 +24,9 @@ export default function FavoritesPanel({ favorites, onClose, onSelect }: Favorit
 
             <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar">
                 {favorites.length > 0 ? (
-                    favorites.map(contact => (
+                    favorites.map((contact, idx) => (
                         <button
-                            key={contact.id}
+                            key={contact.id || `fav-${idx}`}
                             onClick={() => onSelect(contact.id)}
                             className="w-full flex items-center gap-4 p-4 bg-white dark:bg-stone-800 rounded-[2rem] border border-stone-100 dark:border-stone-700 hover:border-red-200 dark:hover:border-red-900/30 hover:shadow-lg transition-all text-left group"
                         >

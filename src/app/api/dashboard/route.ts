@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { ContactService } from '@/services/contact.service';
 
 export const dynamic = 'force-dynamic';
 
@@ -250,14 +251,40 @@ export async function GET(request: Request) {
                 monthlyStats[key] += price;
             }
         });
+
         const tagStats: Record<string, { total: number; count: number }> = {};
+        const locationStats: Record<string, { total: number; count: number }> = {
+            'En Local': { total: 0, count: 0 },
+            'Online': { total: 0, count: 0 }
+        };
+
+        // First, fetch the clients in the current month orders who have a STORE_VISIT
+        const clientIdsInOrders = [...new Set(currentMonthOrders.map((o: any) => o.client?.id).filter(Boolean))];
+        let localClientIds = new Set();
+        if (clientIdsInOrders.length > 0) {
+            const localInteractions = await prisma.interaction.findMany({
+                where: {
+                    clientId: { in: clientIdsInOrders },
+                    type: 'STORE_VISIT'
+                },
+                select: { clientId: true }
+            });
+            localClientIds = new Set(localInteractions.map(i => i.clientId));
+        }
+
         currentMonthOrders.forEach((order: any) => {
-            // Usar contactSource del cliente como "etiqueta" principal
+            // Tag stats
             const source = order.client?.contactSource || 'Sin etiqueta';
             if (!tagStats[source]) tagStats[source] = { total: 0, count: 0 };
             const orderPrice = order.total || order.subtotalWithMarkup || 0;
             tagStats[source].total += orderPrice;
             tagStats[source].count += 1;
+
+            // Location stats
+            const isLocal = order.client && localClientIds.has(order.client.id);
+            const locKey = isLocal ? 'En Local' : 'Online';
+            locationStats[locKey].total += orderPrice;
+            locationStats[locKey].count += 1;
         });
 
         // Type stats
@@ -381,20 +408,25 @@ export async function GET(request: Request) {
             console.warn('Could not fetch targets, model might not be in client yet:', e);
         }
 
+        const pendingBalancesList = await ContactService.getOrdersWithBalance();
+
         return NextResponse.json({
             totalSoldMonth,
+            totalPaidMonth,
             ordersCountMonth,
             ticketPromedioMonth,
             trendPct,
             funnel,
             targets,
             totalPendingBalance: globalPendingBalance,
+            pendingBalances: pendingBalancesList,
             totalQuotesValue: totalQuotesValue,
             confirmedCount,
             confirmedTotal,
             suggestedFollowUps: suggestedFollowUps,
             monthlyBilling: last6MonthsKeys.map(key => ({ name: key, total: monthlyStats[key] })),
             tagStats: Object.entries(tagStats).map(([name, data]) => ({ name, ...data })),
+            locationStats: Object.entries(locationStats).map(([name, data]) => ({ name, ...data })),
             typeStats: Object.entries(typeStats).map(([name, data]) => ({ name, ...data })),
         });
     } catch (error: any) {

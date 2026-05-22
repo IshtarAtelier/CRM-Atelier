@@ -1,29 +1,50 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
+import { useCart } from "@/store/useCart";
 
 type LensType = "MONOFOCAL" | "BIFOCAL" | "MULTIFOCAL" | "NONE" | null;
-type Treatment = "BLANCO" | "AR" | "BLUE" | "SMART_FREE" | "VARILUX" | "UNICO" | "FOTOCROMATICO" | null;
+type Treatment = "ORGANICO_BLANCO" | "ORGANICO_AR" | "ORGANICO_BLUE" | "POLI_BLUE" | "ORGANICO_FOTOCROMATICO" | "ORGANICO_BLANCO_TENIDO" | "SMART_FREE" | "VARILUX" | "FOTOCROMATICO" | "UNICO" | null;
 
 interface ConfiguratorProps {
   basePrice: number;
+  productId?: string;
+  category?: string;
   onColorChange?: (hex: string | null) => void;
+  productInfo?: { brand: string; model: string; image: string };
+  cartItemId?: string;
+  onSuccess?: () => void;
 }
 
-export function LensConfigurator({ basePrice, onColorChange }: ConfiguratorProps) {
+export function LensConfigurator({ basePrice, productId, category, onColorChange, productInfo, cartItemId, onSuccess }: ConfiguratorProps) {
   const [step, setStep] = useState<number>(1);
   const [lensType, setLensType] = useState<LensType>(null);
   const [treatment, setTreatment] = useState<Treatment>(null);
   const [tintColor, setTintColor] = useState<string | null>(null);
-  const [showCheckout, setShowCheckout] = useState<boolean>(false);
-  const [checkoutStep, setCheckoutStep] = useState<"FORM" | "PAYMENT" | "SUCCESS">("FORM");
-  const [customerData, setCustomerData] = useState({ name: "", whatsapp: "" });
+  const [prescriptionFile, setPrescriptionFile] = useState<File | null>(null);
+  const [dynamicPricing, setDynamicPricing] = useState<any>(null);
+  const { addItem, updateItemLensConfig } = useCart();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const PRICING = {
-    MONOFOCAL: { BLANCO: 20000, AR: 45000, BLUE: 65000, FOTOCROMATICO: 85000 },
-    BIFOCAL: { UNICO: 85000 },
+  const [flowType, setFlowType] = useState<"SUN" | "CLEAR">(category === "Anteojos de Sol" ? "SUN" : "CLEAR");
+
+  // Load pricing on mount
+  useEffect(() => {
+    fetch('/api/web/pricing')
+      .then(res => res.json())
+      .then(data => {
+        if (!data.error && data.MONOFOCAL) {
+          setDynamicPricing(data);
+        }
+      })
+      .catch(console.error);
+  }, []);
+
+  const PRICING = dynamicPricing || {
+    MONOFOCAL: { ORGANICO_BLANCO: 20000, ORGANICO_AR: 45000, ORGANICO_BLUE: 68000, POLI_BLUE: 120000, ORGANICO_FOTOCROMATICO: 105000, ORGANICO_BLANCO_TENIDO: 68000 },
+    BIFOCAL: { ORGANICO_BLANCO: 45000 },
     MULTIFOCAL: { SMART_FREE: 120000, VARILUX: 350000, FOTOCROMATICO: 180000 },
     EXTRAS: { TINT: 15000 },
   };
@@ -34,12 +55,15 @@ export function LensConfigurator({ basePrice, onColorChange }: ConfiguratorProps
       total += PRICING.MONOFOCAL[treatment as keyof typeof PRICING.MONOFOCAL] || 0;
     }
     if (lensType === "BIFOCAL" && treatment) {
-      total += PRICING.BIFOCAL.UNICO;
+      total += PRICING.BIFOCAL.ORGANICO_BLANCO;
     }
     if (lensType === "MULTIFOCAL" && treatment) {
       total += PRICING.MULTIFOCAL[treatment as keyof typeof PRICING.MULTIFOCAL] || 0;
     }
-    if (tintColor) {
+    if (lensType === "NONE" && treatment === "ORGANICO_BLANCO_TENIDO") {
+      total += PRICING.MONOFOCAL.ORGANICO_BLANCO_TENIDO || 0;
+    }
+    if (tintColor && treatment !== "ORGANICO_BLANCO_TENIDO") {
       total += PRICING.EXTRAS.TINT;
     }
     return total;
@@ -47,177 +71,164 @@ export function LensConfigurator({ basePrice, onColorChange }: ConfiguratorProps
 
   return (
     <div className="w-full text-black">
-      <div className="flex justify-between items-end mb-4">
-        <h3 className="text-[13px] font-bold uppercase tracking-widest">Configurar Cristales</h3>
+      <div className="flex justify-between items-end mb-12">
+        <h3 className="text-2xl font-serif uppercase tracking-tight">Armá tus lentes</h3>
       </div>
 
       {/* BLOQUE DE ASESORAMIENTO */}
-      <div className="mb-10 bg-[#f9f9f9] border border-[#e5e5e5] p-5 flex flex-col gap-4">
-        <div className="flex items-center justify-between border-b border-[#e5e5e5] pb-3">
-          <span className="text-[10px] font-bold uppercase tracking-widest text-[#666]">Asistencia en línea</span>
-          <a href="https://wa.me/5493541215971?text=Hola,%20necesito%20asesoramiento%20para%20elegir%20mis%20cristales." target="_blank" rel="noopener noreferrer" className="text-[11px] font-bold text-black hover:opacity-70 transition-opacity flex items-center gap-2">
-            <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
-            Hablá con un Óptico <span className="text-[14px] font-normal leading-none ml-1">→</span>
+      <div className="mb-12 border-b border-black/10 pb-6 flex flex-col gap-5">
+        <div className="flex items-center justify-between">
+          <span className="text-[9px] font-bold uppercase tracking-[0.3em] text-[#999]">Asistencia Personalizada</span>
+          <a href="https://wa.me/5493541215971?text=Hola,%20necesito%20asesoramiento%20para%20elegir%20mis%20cristales." target="_blank" rel="noopener noreferrer" className="text-[10px] font-bold uppercase tracking-[0.15em] text-black hover:text-[#666] transition-colors flex items-center gap-3">
+            <div className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+            </div>
+            Concierge Óptico <span className="text-[12px] font-normal leading-none ml-1">→</span>
           </a>
-        </div>
-        <div className="flex flex-col sm:flex-row gap-4 sm:gap-8 pt-1">
-          <Link href="/blog/guia-cristales" className="text-[11px] text-[#666] hover:text-black transition-colors flex items-center gap-2 group">
-            <svg className="w-3 h-3 text-[#999] group-hover:text-black transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
-            Guía de Tratamientos
-          </Link>
-          <Link href="/blog/colores-cristales" className="text-[11px] text-[#666] hover:text-black transition-colors flex items-center gap-2 group">
-            <svg className="w-3 h-3 text-[#999] group-hover:text-black transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"></path></svg>
-            Guía de Colores
-          </Link>
         </div>
       </div>
 
-      {/* PASO 1: TIPO DE CRISTAL */}
-      <motion.div 
-        animate={{ opacity: step < 1 ? 0.5 : 1 }}
-        className="mb-8"
-      >
-        <div className="flex items-center gap-3 mb-4">
-          <p className="text-[11px] font-bold uppercase tracking-widest text-[#666]">1. Tipo de Visión</p>
+      {flowType === "CLEAR" && category !== "Anteojos de Sol" && (
+        <div className="relative overflow-hidden mb-8 p-6 bg-stone-900 text-white rounded-[1rem] flex flex-col sm:flex-row items-center justify-between gap-4 cursor-pointer hover:bg-black transition-colors shadow-xl shadow-stone-900/10 group" onClick={() => { setFlowType("SUN"); setStep(1); setLensType(null); setTreatment(null); setTintColor(null); }}>
+          {/* Brillo móvil infinito (Shimmer) */}
+          <div className="absolute inset-0 pointer-events-none bg-gradient-to-r from-transparent via-white/15 to-transparent animate-shimmer" />
+          
+          <div className="relative z-10 w-full flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div>
+              <h4 className="text-[12px] uppercase tracking-[0.2em] font-bold mb-1 flex items-center gap-2">☀️ Hacelos de Sol</h4>
+              <p className="text-[11px] font-serif italic text-white/80">Elegí el color del cristal y encargá tus anteojos de sol con tu graduación.</p>
+            </div>
+            <span className="text-[10px] font-bold uppercase tracking-widest bg-white text-black px-4 py-2 rounded-full whitespace-nowrap hover:scale-105 transition-transform shadow-lg shadow-white/20">Ver Colores →</span>
+          </div>
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-2 gap-3">
-          <OptionCard 
-            selected={lensType === "MONOFOCAL"} 
-            onClick={() => { setLensType("MONOFOCAL"); setTreatment(null); setStep(2); }}
-            title="Monofocal" 
-            desc="Lejos o cerca." 
-          />
-          <OptionCard 
-            selected={lensType === "BIFOCAL"} 
-            onClick={() => { setLensType("BIFOCAL"); setTreatment("UNICO"); setStep(2); }}
-            title="Bifocal" 
-            desc="Lejos y cerca." 
-          />
-          <OptionCard 
-            selected={lensType === "MULTIFOCAL"} 
-            onClick={() => { setLensType("MULTIFOCAL"); setTreatment(null); setStep(2); }}
-            title="Multifocal" 
-            desc="Lejos, int y cerca." 
-          />
-          <OptionCard 
-            selected={lensType === "NONE"} 
-            onClick={() => { setLensType("NONE"); setTreatment(null); setTintColor(null); setStep(5); }}
-            title="Solo Armazón" 
-            desc="Sin cristales." 
-          />
+      )}
+
+      {flowType === "SUN" && category !== "Anteojos de Sol" && (
+        <div className="mb-8 p-4 border border-black/10 rounded-[1rem] flex flex-col sm:flex-row items-center justify-between cursor-pointer hover:bg-black/5 transition-colors" onClick={() => { setFlowType("CLEAR"); setStep(1); setLensType(null); setTreatment(null); setTintColor(null); }}>
+          <p className="text-[11px] font-bold uppercase tracking-widest text-black flex items-center gap-3"><span className="text-xl">👓</span> Volver a cristales transparentes</p>
+          <span className="text-[10px] uppercase tracking-widest underline underline-offset-4 mt-2 sm:mt-0 font-bold">Cambiar</span>
         </div>
-      </motion.div>
+      )}
 
-      {/* PASO 2: TRATAMIENTO */}
-      <AnimatePresence>
-        {step >= 2 && lensType && (
-          <motion.div 
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            className="mb-8 overflow-hidden"
-          >
-            <div className="flex items-center gap-3 mb-4 mt-2">
-              <p className="text-[11px] font-bold uppercase tracking-widest text-[#666]">2. Calidad del Cristal</p>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {lensType === "MONOFOCAL" && (
-                <>
-                  <OptionCard selected={treatment === "BLANCO"} onClick={() => { setTreatment("BLANCO"); setStep(3); }} title="Blanco Estándar" desc="Cristal básico." price={`+$${PRICING.MONOFOCAL.BLANCO.toLocaleString()}`} />
-                  <OptionCard selected={treatment === "AR"} onClick={() => { setTreatment("AR"); setStep(3); }} title="Antirreflex (AR)" desc="Elimina reflejos." price={`+$${PRICING.MONOFOCAL.AR.toLocaleString()}`} />
-                  <OptionCard selected={treatment === "BLUE"} onClick={() => { setTreatment("BLUE"); setStep(3); }} title="Filtro Azul" desc="Para pantallas." price={`+$${PRICING.MONOFOCAL.BLUE.toLocaleString()}`} />
-                  <OptionCard selected={treatment === "FOTOCROMATICO"} onClick={() => { setTreatment("FOTOCROMATICO"); setStep(4); }} title="Fotocromático" desc="Se oscurece al sol." price={`+$${PRICING.MONOFOCAL.FOTOCROMATICO.toLocaleString()}`} />
-                </>
-              )}
-              
-              {lensType === "BIFOCAL" && (
-                <OptionCard selected={true} onClick={() => setStep(3)} title="Bifocal Estándar" desc="Cristal tradicional." price={`+$${PRICING.BIFOCAL.UNICO.toLocaleString()}`} />
-              )}
-
-              {lensType === "MULTIFOCAL" && (
-                <>
-                  <OptionCard selected={treatment === "SMART_FREE"} onClick={() => { setTreatment("SMART_FREE"); setStep(3); }} title="Smart Free" desc="Multifocal digital." price={`+$${PRICING.MULTIFOCAL.SMART_FREE.toLocaleString()}`} />
-                  <OptionCard selected={treatment === "VARILUX"} onClick={() => { setTreatment("VARILUX"); setStep(3); }} title="Varilux Premium" desc="Visión panorámica." price={`+$${PRICING.MULTIFOCAL.VARILUX.toLocaleString()}`} />
-                  <OptionCard selected={treatment === "FOTOCROMATICO"} onClick={() => { setTreatment("FOTOCROMATICO"); setStep(4); }} title="Multi Fotocromático" desc="Se oscurece al sol." price={`+$${PRICING.MULTIFOCAL.FOTOCROMATICO.toLocaleString()}`} />
-                </>
-              )}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* PASO 3: EXTRAS */}
-      <AnimatePresence>
-        {step >= 3 && treatment && (
-          <motion.div 
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            className="overflow-hidden mb-8"
-          >
-            <div className="flex items-center gap-3 mb-4 mt-2">
-              <p className="text-[11px] font-bold uppercase tracking-widest text-[#666]">3. Toque Final (Opcional)</p>
-            </div>
-            
-            {treatment === "FOTOCROMATICO" ? (
-               <div className="p-6 border border-[#e5e5e5] bg-[#f9f9f9]">
-                 <p className="text-[12px] text-[#666] leading-relaxed">Los cristales fotocromáticos ya incluyen adaptación automática a la luz solar. No es posible ni necesario añadirles teñido permanente.</p>
-                 <button onClick={() => setStep(4)} className="mt-6 px-6 py-3 bg-black text-white text-[10px] font-bold uppercase tracking-widest hover:opacity-80 transition-opacity">Continuar</button>
-               </div>
+      {flowType === "SUN" ? (
+        <>
+          {/* ====== FLUJO DE SOL ====== */}
+          
+          {/* PASO 1: COLOR DEL CRISTAL */}
+          <motion.div animate={{ opacity: step < 1 ? 0.5 : 1 }} className="mb-8">
+            {step > 1 ? (
+              <CompletedStep num="01" subtitle="Color" title={tintColor || "Elegir"} onClick={() => setStep(1)} />
             ) : (
-               <>
-                 <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-4 gap-3 mb-3">
-                    <ColorOption color="Gris" hex="#555555" price={PRICING.EXTRAS.TINT} selected={tintColor === "Gris"} onClick={() => {
-                        const newColor = tintColor === "Gris" ? null : "Gris";
-                        setTintColor(newColor);
-                        if (onColorChange) onColorChange(newColor ? "#555555" : null);
-                        setStep(4);
-                    }} />
-                    <ColorOption color="Marrón" hex="#6b4c3a" price={PRICING.EXTRAS.TINT} selected={tintColor === "Marrón"} onClick={() => {
-                        const newColor = tintColor === "Marrón" ? null : "Marrón";
-                        setTintColor(newColor);
-                        if (onColorChange) onColorChange(newColor ? "#6b4c3a" : null);
-                        setStep(4);
-                    }} />
-                    <ColorOption color="Verde G15" hex="#2c4c3b" price={PRICING.EXTRAS.TINT} selected={tintColor === "Verde G15"} onClick={() => {
-                        const newColor = tintColor === "Verde G15" ? null : "Verde G15";
-                        setTintColor(newColor);
-                        if (onColorChange) onColorChange(newColor ? "#2c4c3b" : null);
-                        setStep(4);
-                    }} />
-                    <ColorOption color="Rosa" hex="#d4a3a3" price={PRICING.EXTRAS.TINT} selected={tintColor === "Rosa"} onClick={() => {
-                        const newColor = tintColor === "Rosa" ? null : "Rosa";
-                        setTintColor(newColor);
-                        if (onColorChange) onColorChange(newColor ? "#d4a3a3" : null);
-                        setStep(4);
-                    }} />
-                    <ColorOption color="Amarillo" hex="#e1b854" price={PRICING.EXTRAS.TINT} selected={tintColor === "Amarillo"} onClick={() => {
-                        const newColor = tintColor === "Amarillo" ? null : "Amarillo";
-                        setTintColor(newColor);
-                        if (onColorChange) onColorChange(newColor ? "#e1b854" : null);
-                        setStep(4);
-                    }} />
-                    <ColorOption color="Naranja" hex="#d6804a" price={PRICING.EXTRAS.TINT} selected={tintColor === "Naranja"} onClick={() => {
-                        const newColor = tintColor === "Naranja" ? null : "Naranja";
-                        setTintColor(newColor);
-                        if (onColorChange) onColorChange(newColor ? "#d6804a" : null);
-                        setStep(4);
-                    }} />
-                    <ColorOption color="Rojo" hex="#ab4040" price={PRICING.EXTRAS.TINT} selected={tintColor === "Rojo"} onClick={() => {
-                        const newColor = tintColor === "Rojo" ? null : "Rojo";
-                        setTintColor(newColor);
-                        if (onColorChange) onColorChange(newColor ? "#ab4040" : null);
-                        setStep(4);
-                    }} />
-                 </div>
-                 {!tintColor && (
-                   <button onClick={() => setStep(4)} className="mt-3 text-[10px] font-bold text-[#999] uppercase tracking-widest hover:text-black transition-colors underline underline-offset-4 decoration-1">Saltar este paso</button>
-                 )}
-               </>
+              <>
+                <div className="mb-6">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-[#999] mb-2">01 / Color del Cristal</p>
+                  <p className="text-sm font-serif italic text-black">Seleccioná el tinte para proteger tu vista con estilo.</p>
+                </div>
+                <div className="flex flex-wrap gap-4 mt-6">
+                  <ColorOption color="Gris" hex="#555555" price={PRICING.EXTRAS.TINT} selected={tintColor === "Gris"} onClick={() => { setTintColor("Gris"); if (onColorChange) onColorChange("#555555"); setStep(2); }} />
+                  <ColorOption color="Marrón" hex="#6b4c3a" price={PRICING.EXTRAS.TINT} selected={tintColor === "Marrón"} onClick={() => { setTintColor("Marrón"); if (onColorChange) onColorChange("#6b4c3a"); setStep(2); }} />
+                  <ColorOption color="Verde G15" hex="#2c4c3b" price={PRICING.EXTRAS.TINT} selected={tintColor === "Verde G15"} onClick={() => { setTintColor("Verde G15"); if (onColorChange) onColorChange("#2c4c3b"); setStep(2); }} />
+                  <ColorOption color="Rosa" hex="#d4a3a3" price={PRICING.EXTRAS.TINT} selected={tintColor === "Rosa"} onClick={() => { setTintColor("Rosa"); if (onColorChange) onColorChange("#d4a3a3"); setStep(2); }} />
+                  <ColorOption color="Amarillo" hex="#e1b854" price={PRICING.EXTRAS.TINT} selected={tintColor === "Amarillo"} onClick={() => { setTintColor("Amarillo"); if (onColorChange) onColorChange("#e1b854"); setStep(2); }} />
+                  <ColorOption color="Naranja" hex="#d6804a" price={PRICING.EXTRAS.TINT} selected={tintColor === "Naranja"} onClick={() => { setTintColor("Naranja"); if (onColorChange) onColorChange("#d6804a"); setStep(2); }} />
+                  <ColorOption color="Rojo" hex="#ab4040" price={PRICING.EXTRAS.TINT} selected={tintColor === "Rojo"} onClick={() => { setTintColor("Rojo"); if (onColorChange) onColorChange("#ab4040"); setStep(2); }} />
+                </div>
+              </>
             )}
           </motion.div>
-        )}
-      </AnimatePresence>
+
+          {/* PASO 2: AUMENTO (OPCIONAL) */}
+          <AnimatePresence>
+            {step >= 2 && tintColor && (
+              <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="mb-8 overflow-hidden">
+                {step > 2 ? (
+                  <CompletedStep num="02" subtitle="Visión" title={lensType === "NONE" ? "Sin Aumento" : lensType || ""} onClick={() => setStep(2)} />
+                ) : (
+                  <>
+                    <div className="mb-6 mt-4">
+                      <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-[#999] mb-2">02 / Agregá Aumento</p>
+                      <p className="text-sm font-serif italic text-black">Podés hacer que tus anteojos de sol tengan tu receta.</p>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-6">
+                      <OptionCard selected={lensType === "NONE"} onClick={() => { setLensType("NONE"); setTreatment("ORGANICO_BLANCO_TENIDO"); setStep(4); }} title="Sin Aumento" desc="Cristales de sol estándar sin graduación." price={`+$${(PRICING.MONOFOCAL.ORGANICO_BLANCO_TENIDO || 0).toLocaleString()}`} />
+                      <OptionCard selected={lensType === "MONOFOCAL"} onClick={() => { setLensType("MONOFOCAL"); setTreatment("ORGANICO_BLANCO_TENIDO"); setStep(4); }} title="Monofocal Teñido" desc="Graduación de lejos." price={`+$${(PRICING.MONOFOCAL.ORGANICO_BLANCO_TENIDO || 0).toLocaleString()}`} />
+                      <OptionCard selected={lensType === "MULTIFOCAL"} onClick={() => { setLensType("MULTIFOCAL"); setTreatment("SMART_FREE"); setStep(4); }} title="Multifocal Teñido" desc="Multifocal Digital (Smart Free)." price={`+$${(PRICING.MULTIFOCAL.SMART_FREE || 0).toLocaleString()}`} />
+                    </div>
+                  </>
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </>
+      ) : (
+        <>
+          {/* ====== FLUJO DE RECETA (DEFAULT) ====== */}
+          
+          {/* PASO 1: TIPO DE CRISTAL */}
+          <motion.div animate={{ opacity: step < 1 ? 0.5 : 1 }} className="mb-8">
+            {step > 1 ? (
+              <CompletedStep num="01" subtitle="Tipo de Visión" title={lensType || ""} onClick={() => setStep(1)} />
+            ) : (
+              <>
+                <div className="mb-6">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-[#999] mb-2">01 / Tipo de Visión</p>
+                  <p className="text-sm font-serif italic text-black">Definí cómo vas a usar tus anteojos en el día a día.</p>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-6">
+                  <OptionCard selected={lensType === "MONOFOCAL"} onClick={() => { setLensType("MONOFOCAL"); setTreatment(null); setStep(2); }} title="Monofocal" desc="Diseñado para ver a una sola distancia (Lejos o Cerca)." />
+                  <OptionCard selected={lensType === "MULTIFOCAL"} onClick={() => { setLensType("MULTIFOCAL"); setTreatment(null); setStep(2); }} title="Multifocal" desc="Para ver a todas las distancias sin cambiar de anteojos." />
+                  <OptionCard selected={lensType === "BIFOCAL"} onClick={() => { setLensType("BIFOCAL"); setTreatment("UNICO"); setStep(2); }} title="Bifocal" desc="Visión dividida para lejos y cerca de forma tradicional." />
+                  {!cartItemId && (
+                    <OptionCard selected={lensType === "NONE"} onClick={() => { setLensType("NONE"); setTreatment(null); setTintColor(null); setStep(4); }} title="Solo Armazón" desc="Llevar el armazón sin cristales con aumento." />
+                  )}
+                </div>
+              </>
+            )}
+          </motion.div>
+
+          {/* PASO 2: TRATAMIENTO */}
+          <AnimatePresence>
+            {step >= 2 && lensType && lensType !== "NONE" && (
+              <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="mb-8 overflow-hidden">
+                {step > 2 ? (
+                  <CompletedStep num="02" subtitle="Tratamiento" title={treatment || ""} onClick={() => setStep(2)} />
+                ) : (
+                  <>
+                    <div className="mb-6 mt-4">
+                      <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-[#999] mb-2">02 / Calidad del Cristal</p>
+                      <p className="text-sm font-serif italic text-black">Elegí el tratamiento ideal para cuidar tu vista.</p>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-6">
+                      {lensType === "MONOFOCAL" && (
+                        <>
+                          <OptionCard selected={treatment === "ORGANICO_BLANCO"} onClick={() => { setTreatment("ORGANICO_BLANCO"); setStep(4); }} title="Orgánico Estándar (1.50)" desc="Cristal transparente básico de alta calidad." price={`+$${PRICING.MONOFOCAL.ORGANICO_BLANCO?.toLocaleString() || '0'}`} />
+                          <OptionCard selected={treatment === "ORGANICO_AR"} onClick={() => { setTreatment("ORGANICO_AR"); setStep(4); }} title="Antirreflex (1.50)" desc="Elimina los reflejos para una visión más nítida." price={`+$${PRICING.MONOFOCAL.ORGANICO_AR?.toLocaleString() || '0'}`} />
+                          <OptionCard selected={treatment === "ORGANICO_BLUE"} onClick={() => { setTreatment("ORGANICO_BLUE"); setStep(4); }} title="Filtro Azul (1.50)" desc="Protege tus ojos de las pantallas digitales." price={`+$${PRICING.MONOFOCAL.ORGANICO_BLUE?.toLocaleString() || '0'}`} />
+                          <OptionCard selected={treatment === "POLI_BLUE"} onClick={() => { setTreatment("POLI_BLUE"); setStep(4); }} title="Poli Antirreflejo (1.59)" desc="Cristal ultra resistente a impactos con antirreflex." price={`+$${PRICING.MONOFOCAL.POLI_BLUE?.toLocaleString() || '0'}`} />
+                          <OptionCard selected={treatment === "ORGANICO_FOTOCROMATICO"} onClick={() => { setTreatment("ORGANICO_FOTOCROMATICO"); setStep(4); }} title="Fotocromático (1.50)" desc="Se oscurecen automáticamente con el sol." price={`+$${PRICING.MONOFOCAL.ORGANICO_FOTOCROMATICO?.toLocaleString() || '0'}`} />
+                        </>
+                      )}
+                      
+                      {lensType === "BIFOCAL" && (
+                        <OptionCard selected={true} onClick={() => { setTreatment("ORGANICO_BLANCO"); setStep(4); }} title="Bifocal Estándar" desc="Cristal tradicional con línea divisoria." price={`+$${PRICING.BIFOCAL.ORGANICO_BLANCO?.toLocaleString() || '0'}`} />
+                      )}
+
+                      {lensType === "MULTIFOCAL" && (
+                        <>
+                          <OptionCard selected={treatment === "SMART_FREE"} onClick={() => { setTreatment("SMART_FREE"); setStep(4); }} title="Diseño Digital ONE" desc="Campo visual amplio y transición natural." price={`+$${PRICING.MULTIFOCAL.SMART_FREE.toLocaleString()}`} />
+                          <OptionCard selected={treatment === "VARILUX"} onClick={() => { setTreatment("VARILUX"); setStep(4); }} title="Varilux Premium" desc="La experiencia visual definitiva sin esfuerzo." price={`+$${PRICING.MULTIFOCAL.VARILUX.toLocaleString()}`} />
+                          <OptionCard selected={treatment === "FOTOCROMATICO"} onClick={() => { setTreatment("FOTOCROMATICO"); setStep(4); }} title="Multi Fotocromático" desc="Tecnología digital que se oscurece al sol." price={`+$${PRICING.MULTIFOCAL.FOTOCROMATICO.toLocaleString()}`} />
+                        </>
+                      )}
+                    </div>
+                  </>
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </>
+      )}
 
       {/* PASO 4: RECETA E IA */}
       <AnimatePresence>
@@ -226,30 +237,63 @@ export function LensConfigurator({ basePrice, onColorChange }: ConfiguratorProps
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
-            className="overflow-hidden mb-8"
+            className="overflow-hidden mb-12 mt-4"
           >
-            <div className="flex items-center gap-3 mb-4 mt-2">
-              <p className="text-[11px] font-bold uppercase tracking-widest text-[#666]">4. Receta Oftalmológica</p>
+            <div className="mb-6">
+              <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-[#999] mb-2">
+                {flowType === "SUN" ? "03" : "04"} / Tu Receta
+              </p>
+              <p className="text-sm font-serif italic text-black">Adjuntá la receta de tu oftalmólogo para fabricarlos exactos.</p>
             </div>
             
-            <div className="border border-[#e5e5e5] p-6 text-center hover:border-black transition-colors cursor-pointer group bg-[#f9f9f9]">
-               <p className="font-bold text-[13px] mb-1">Subí una foto de tu receta</p>
-               <p className="text-[11px] text-[#666] mb-4 max-w-xs mx-auto leading-relaxed">Nuestra IA verificará que los cristales coincidan perfectamente con tu diagnóstico médico.</p>
-               <button className="px-6 py-3 bg-black text-white text-[10px] font-bold uppercase tracking-widest hover:opacity-80 transition-opacity">Cargar Foto</button>
+            <div 
+              className={`relative border p-12 text-center transition-colors group overflow-hidden ${prescriptionFile ? 'border-green-500 bg-green-50 shadow-md' : 'border-dashed border-black/30 hover:border-black bg-white shadow-sm'} rounded-[1rem] cursor-pointer`}
+            >
+              <input 
+                type="file" 
+                accept="image/*,application/pdf"
+                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" 
+                onChange={(e) => {
+                  if (e.target.files && e.target.files.length > 0) {
+                    setPrescriptionFile(e.target.files[0]);
+                  }
+                }}
+              />
+              
+              {!prescriptionFile ? (
+                <div className="flex flex-col items-center justify-center">
+                  <div className="w-16 h-16 bg-[#fafafa] border border-black/10 rounded-full flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-500">
+                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-6 h-6 text-black/50"><path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" /></svg>
+                  </div>
+                  <h4 className="font-bold text-[14px] uppercase tracking-widest mb-2">Subir Receta</h4>
+                  <p className="text-[11px] text-[#666] max-w-xs mx-auto leading-relaxed">Tomale una foto clara con el celular o subí el archivo PDF.</p>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center">
+                  <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center text-green-600 mb-4 shadow-inner scale-110">
+                    <svg viewBox="0 0 24 24" fill="none" className="w-8 h-8"><path d="M5 13l4 4L19 7" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                  </div>
+                  <h4 className="font-bold text-[14px] uppercase tracking-widest text-green-800 mb-1">¡Receta Cargada!</h4>
+                  <p className="text-[11px] text-green-700/80 mb-4 max-w-[250px] truncate">{prescriptionFile.name}</p>
+                  <span className="text-[10px] font-bold text-black/50 group-hover:text-black uppercase tracking-[0.2em] underline underline-offset-4 transition-colors relative z-20">
+                    Cambiar archivo
+                  </span>
+                </div>
+              )}
             </div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      <div className="w-full h-[1px] bg-[#e5e5e5] my-8" />
+      <div className="w-full h-[1px] bg-black/10 my-10" />
 
       {/* TOTAL Y ACCIÓN */}
-      <motion.div layout className="flex flex-col gap-4">
-        <div className="w-full flex justify-between items-center mb-2">
-          <p className="text-[11px] uppercase tracking-widest font-bold">Total</p>
+      <motion.div layout className="flex flex-col gap-6">
+        <div className="w-full flex flex-col items-center mb-2">
+          <p className="text-[10px] uppercase tracking-[0.3em] font-bold text-[#999] mb-2">Inversión Final</p>
           <motion.p 
             key={calculateTotal()}
-            className="text-[20px] font-medium"
+            className="text-4xl font-serif tracking-tight"
           >
             ${calculateTotal().toLocaleString()}
           </motion.p>
@@ -257,157 +301,131 @@ export function LensConfigurator({ basePrice, onColorChange }: ConfiguratorProps
         
         <button 
           disabled={lensType !== "NONE" && step < 4}
-          onClick={() => setShowCheckout(true)}
-          className="w-full py-4 bg-black text-white font-medium uppercase tracking-widest text-[11px] hover:opacity-80 transition-opacity disabled:opacity-30 disabled:cursor-not-allowed flex justify-center items-center gap-2"
+          onClick={() => {
+            if (cartItemId) {
+              const additionalPrice = calculateTotal() - basePrice;
+              const lensColorName = tintColor === "Gris" ? "#555555" :
+                         tintColor === "Marrón / Sepia" ? "#6b4c3a" :
+                         tintColor === "Marrón" ? "#6b4c3a" :
+                         tintColor === "Verde G15" ? "#2c4c3b" :
+                         tintColor === "Rosa" ? "#d4a3a3" :
+                         tintColor === "Amarillo" ? "#e1b854" :
+                         tintColor === "Naranja" ? "#d6804a" :
+                         tintColor === "Rojo" ? "#ab4040" : null;
+
+              updateItemLensConfig(cartItemId, {
+                lensType,
+                treatment,
+                color: tintColor,
+                prescriptionFile: prescriptionFile ? prescriptionFile.name : null
+              }, additionalPrice);
+              
+              if (onSuccess) onSuccess();
+            } else {
+              if (!productInfo) return;
+              addItem({
+                productId: productId || "unknown",
+                brand: productInfo.brand,
+                model: productInfo.model,
+                price: calculateTotal(),
+                image: productInfo.image,
+                lensColor: tintColor === "Gris" ? "#555555" :
+                           tintColor === "Marrón / Sepia" ? "#6b4c3a" :
+                           tintColor === "Marrón" ? "#6b4c3a" :
+                           tintColor === "Verde G15" ? "#2c4c3b" :
+                           tintColor === "Rosa" ? "#d4a3a3" :
+                           tintColor === "Amarillo" ? "#e1b854" :
+                           tintColor === "Naranja" ? "#d6804a" :
+                           tintColor === "Rojo" ? "#ab4040" : null,
+                lensConfig: {
+                  lensType,
+                  treatment,
+                  color: tintColor,
+                  prescriptionFile: prescriptionFile ? prescriptionFile.name : null
+                },
+                quantity: 1
+              });
+            }
+          }}
+          className="w-full py-5 bg-black text-white font-bold uppercase tracking-[0.2em] text-[12px] hover:bg-black/80 transition-colors disabled:opacity-30 disabled:cursor-not-allowed flex justify-center items-center gap-2 rounded-full shadow-lg"
         >
-          <span>Ir a Pagar</span>
+          <span>{cartItemId ? "Confirmar Cristales" : "Agregar al Carrito"}</span>
         </button>
 
-        <p className="text-[10px] uppercase font-bold tracking-widest text-[#999] mt-2 text-center">Envío sin cargo a todo el país</p>
+        <p className="text-[9px] uppercase font-bold tracking-[0.2em] text-[#999] text-center">Envío Asegurado sin cargo a todo el país</p>
       </motion.div>
-
-      {/* MODAL DE CHECKOUT SIN FRICCIÓN */}
-      <AnimatePresence>
-        {showCheckout && (
-          <>
-            <motion.div 
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50"
-              onClick={() => setShowCheckout(false)}
-            />
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[90%] max-w-md bg-white p-10 z-50 max-h-[90vh] overflow-y-auto"
-            >
-              <button 
-                onClick={() => setShowCheckout(false)}
-                className="absolute top-6 right-6 text-black font-medium text-[20px]"
-              >
-                ✕
-              </button>
-
-              <h3 className="text-xl font-medium mb-6">Confirmar Pedido</h3>
-              
-              {checkoutStep === "FORM" && (
-                <div className="animate-in fade-in slide-in-from-right-4 duration-300">
-                  <p className="text-[#666] mb-8 text-[13px] leading-relaxed">Por favor, dejanos tu WhatsApp. Nos comunicaremos al instante tras el pago para coordinar el envío gratuito.</p>
-                  
-                  <div className="space-y-4 mb-8">
-                    <div>
-                      <label className="block text-[10px] font-bold uppercase tracking-widest text-[#999] mb-2">Nombre y Apellido</label>
-                      <input 
-                        type="text" 
-                        value={customerData.name}
-                        onChange={(e) => setCustomerData({ ...customerData, name: e.target.value })}
-                        className="w-full bg-[#f2f2f2] border-none p-4 text-[13px] focus:ring-1 focus:ring-black outline-none"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[10px] font-bold uppercase tracking-widest text-[#999] mb-2">WhatsApp</label>
-                      <input 
-                        type="tel" 
-                        value={customerData.whatsapp}
-                        onChange={(e) => setCustomerData({ ...customerData, whatsapp: e.target.value })}
-                        className="w-full bg-[#f2f2f2] border-none p-4 text-[13px] focus:ring-1 focus:ring-black outline-none"
-                      />
-                    </div>
-                  </div>
-
-                  <button 
-                    disabled={!customerData.name || !customerData.whatsapp}
-                    onClick={() => setCheckoutStep("PAYMENT")}
-                    className="w-full py-4 bg-black text-white font-bold uppercase tracking-widest text-[11px] hover:opacity-80 transition-opacity disabled:opacity-30"
-                  >
-                    Continuar al Pago
-                  </button>
-                </div>
-              )}
-
-              {checkoutStep === "PAYMENT" && (
-                <div className="animate-in fade-in slide-in-from-right-4 duration-300">
-                  <p className="text-[#666] mb-8 text-[13px]">Monto final a abonar: <strong className="text-black">${calculateTotal().toLocaleString()}</strong></p>
-                  
-                  <div className="space-y-3 mb-8">
-                    <button onClick={() => setCheckoutStep("SUCCESS")} className="w-full p-4 border border-[#e5e5e5] hover:border-black transition-colors text-left flex justify-between items-center">
-                      <span className="text-[13px] font-bold">MercadoPago</span>
-                      <span className="text-[11px] text-[#999]">Tarjetas o dinero</span>
-                    </button>
-
-                    <button onClick={() => setCheckoutStep("SUCCESS")} className="w-full p-4 border border-[#e5e5e5] hover:border-black transition-colors text-left flex justify-between items-center">
-                      <span className="text-[13px] font-bold">Transferencia</span>
-                      <span className="text-[11px] text-[#999]">Banco</span>
-                    </button>
-                  </div>
-                  
-                  <button onClick={() => setCheckoutStep("FORM")} className="text-[10px] font-bold text-[#999] uppercase tracking-widest w-full text-center hover:text-black underline underline-offset-4 decoration-1">
-                    Volver
-                  </button>
-                </div>
-              )}
-
-              {checkoutStep === "SUCCESS" && (
-                <div className="animate-in zoom-in-95 duration-500 text-center py-6">
-                  <div className="w-16 h-16 bg-black text-white flex items-center justify-center mx-auto mb-6">
-                    <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
-                  </div>
-                  <h3 className="text-xl font-medium mb-4">Pedido Confirmado</h3>
-                  <p className="text-[#666] mb-8 text-[13px] leading-relaxed">Recibimos tu orden y receta. Un asesor te escribirá a la brevedad a tu WhatsApp ({customerData.whatsapp}).</p>
-                  
-                  <button 
-                    onClick={() => { setShowCheckout(false); setStep(1); setTreatment(null); setLensType(null); setTintColor(null); if (onColorChange) onColorChange(null); setCheckoutStep("FORM"); }}
-                    className="w-full py-4 bg-black text-white font-bold uppercase tracking-widest text-[11px] hover:opacity-80 transition-opacity"
-                  >
-                    Volver a la tienda
-                  </button>
-                </div>
-              )}
-
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
     </div>
   );
 }
 
+
+
 function OptionCard({ selected, onClick, title, desc, price }: any) {
   return (
     <motion.div 
-      whileHover={{ scale: selected ? 1 : 1.02 }}
+      whileTap={{ scale: 0.98 }}
       onClick={onClick}
-      className={`p-4 border cursor-pointer transition-colors duration-200 ${
+      className={`cursor-pointer border p-6 flex flex-col justify-between transition-all duration-500 min-h-[140px] rounded-[1rem] ${
         selected 
-          ? 'border-black bg-black text-white' 
-          : 'border-[#e5e5e5] hover:border-black bg-white text-black'
+          ? 'bg-black border-black text-white shadow-2xl scale-[1.02] z-10 relative' 
+          : 'bg-white border-black/10 text-black hover:border-black/30 shadow-sm'
       }`}
     >
-      <h4 className={`font-bold mb-1 text-[13px] ${selected ? 'text-white' : 'text-black'}`}>{title}</h4>
-      <p className={`text-[11px] leading-relaxed mb-2 ${selected ? 'text-white/70' : 'text-[#666]'}`}>{desc}</p>
-      {price && <p className={`text-[12px] font-bold ${selected ? 'text-white' : 'text-black'}`}>{price}</p>}
+      <div className="flex flex-col gap-2">
+        <h4 className={`text-[12px] uppercase tracking-[0.15em] font-bold ${selected ? 'text-white' : 'text-black'}`}>
+          {title}
+        </h4>
+        <p className={`text-[11px] font-serif italic leading-relaxed ${selected ? 'text-white/80' : 'text-[#888]'}`}>
+          {desc}
+        </p>
+      </div>
+      {price && (
+        <p className={`text-[12px] font-bold tracking-widest mt-6 ${selected ? 'text-white' : 'text-black'}`}>
+          {price}
+        </p>
+      )}
     </motion.div>
   );
 }
 
 function ColorOption({ color, hex, price, selected, onClick }: any) {
   return (
-    <div 
+    <motion.div 
+      whileTap={{ scale: 0.95 }}
       onClick={onClick}
-      className={`p-4 border cursor-pointer flex flex-col items-center justify-center gap-3 transition-colors duration-200 ${
-        selected 
-          ? 'border-black bg-[#f9f9f9]' 
-          : 'border-[#e5e5e5] hover:border-black bg-white'
+      className={`cursor-pointer group flex flex-col items-center gap-3 transition-all duration-300 p-4 rounded-[1rem] w-[90px] ${
+        selected ? 'bg-black/5' : 'hover:bg-black/5 bg-white shadow-sm border border-black/5'
       }`}
     >
       <div 
-        className={`w-10 h-10 rounded-full shadow-inner ${selected ? 'scale-110' : ''} transition-transform`} 
-        style={{ backgroundColor: hex, opacity: 0.85 }} 
-      />
-      <div className="text-center">
-        <span className="block text-[11px] font-bold uppercase tracking-widest mb-1">{color}</span>
-        <span className="block text-[10px] text-[#666]">+$15.000</span>
+        className={`w-12 h-12 rounded-full shadow-inner transition-transform duration-500 flex items-center justify-center ${selected ? 'scale-110 ring-4 ring-black/10' : 'scale-100 group-hover:scale-110'}`} 
+        style={{ backgroundColor: hex }} 
+      >
+        {selected && (
+          <svg viewBox="0 0 24 24" fill="none" className="w-5 h-5 text-white drop-shadow-md"><path d="M5 13l4 4L19 7" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+        )}
       </div>
+      <div className="text-center">
+        <h4 className={`text-[9px] uppercase tracking-[0.15em] font-bold transition-colors ${selected ? 'text-black' : 'text-[#666]'}`}>
+          {color}
+        </h4>
+        {price > 0 && <p className="text-[9px] text-[#999] mt-1">+${price.toLocaleString()}</p>}
+      </div>
+    </motion.div>
+  );
+}
+
+function CompletedStep({ num, subtitle, title, onClick }: { num: string, subtitle: string, title: string, onClick: () => void }) {
+  return (
+    <div className="flex flex-col sm:flex-row sm:items-center justify-between py-6 border-b border-black/10 cursor-pointer group hover:bg-black/5 px-6 -mx-6 transition-colors rounded-xl" onClick={onClick}>
+      <div className="flex items-center gap-6">
+        <span className="text-[12px] font-bold uppercase tracking-[0.3em] text-[#999] opacity-40">{num}</span>
+        <div>
+          <span className="text-[9px] text-[#999] uppercase tracking-[0.3em] block mb-1">{subtitle}</span>
+          <span className="text-[12px] font-bold uppercase tracking-widest text-black">{title}</span>
+        </div>
+      </div>
+      <span className="text-[9px] uppercase tracking-[0.2em] text-black underline underline-offset-4 opacity-0 group-hover:opacity-100 transition-opacity mt-4 sm:mt-0 font-bold">Modificar</span>
     </div>
   );
 }

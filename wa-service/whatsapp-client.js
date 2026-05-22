@@ -120,14 +120,44 @@ async function sendMessage(waId, content, media = null) {
 
     if (media && media.base64) {
         const mediaObj = new MessageMedia(media.mimetype, media.base64, media.filename || 'image.jpg');
-        return await waClient.sendMessage(waId, mediaObj, { caption: content || '' });
+        const options = { caption: content || '' };
+        if (media.mimetype.includes('audio/')) {
+            options.sendAudioAsVoice = true;
+        }
+        return await waClient.sendMessage(waId, mediaObj, options);
+    } else if (media && media.url) {
+        try {
+            const mediaObj = await MessageMedia.fromUrl(media.url, { unsafeMime: true });
+            const options = { caption: content || '' };
+            return await waClient.sendMessage(waId, mediaObj, options);
+        } catch (e) {
+            console.error('Error enviando media desde URL:', e.message);
+            // Fallback: enviar solo texto si falla la descarga de la imagen
+            return await waClient.sendMessage(waId, content);
+        }
     } else {
         return await waClient.sendMessage(waId, content);
     }
 }
 
+async function sendTypingState(waId) {
+    if (!waClient || !isReady) return;
+    try {
+        const chat = await waClient.getChatById(waId);
+        await chat.sendStateTyping();
+    } catch (e) {
+        console.error('Error enviando estado typing:', e.message);
+    }
+}
+
+function getClient() {
+    return waClient;
+}
+
 module.exports = {
     initWhatsApp,
     getStatus,
-    sendMessage
+    getClient,
+    sendMessage,
+    sendTypingState
 };

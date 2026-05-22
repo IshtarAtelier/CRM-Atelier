@@ -1,17 +1,34 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { TrendingUp, Tag, Layers, ArrowUpRight, DollarSign, ShoppingCart, Percent, Calendar, Clock, Calculator, User, ArrowRight } from "lucide-react";
+import { TrendingUp, Tag, Layers, ArrowUpRight, DollarSign, ShoppingCart, Percent, Calendar, Clock, Calculator, User, ArrowRight, Megaphone, MessageCircle, ExternalLink, Mail, Loader2, CheckCircle2 } from "lucide-react";
 import DashboardActions from "@/components/dashboard/DashboardActions";
+import DashboardObjectives from "@/components/dashboard/DashboardObjectives";
+import { formatDistanceToNow } from "date-fns";
+import { es } from "date-fns/locale";
+
+interface AbandonedCart {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+  cartData: any[];
+  total: number;
+  status: string;
+  updatedAt: string;
+}
 
 interface DashboardData {
   totalSoldMonth: number;
+  totalPaidMonth: number;
   ordersCountMonth: number;
   ticketPromedioMonth: number;
   trendPct: string | null;
   funnel: { contacts: number; quotes: number; sales: number; quoteRate: string; saleRate: string; etiquetas: string[]; tipos: string[] };
   monthlyBilling: { name: string; total: number }[];
   tagStats: { name: string; total: number; count: number }[];
+  locationStats: { name: string; total: number; count: number }[];
   typeStats: { name: string; total: number; count: number; cost: number }[];
   targets: { target1: number; target2: number; target3: number } | null;
   totalPendingBalance: number;
@@ -31,6 +48,10 @@ export default function Home() {
   const [dateTo, setDateTo] = useState<string | undefined>();
   const [userRole, setUserRole] = useState('STAFF');
   const [dolarBlue, setDolarBlue] = useState<number | null>(null);
+  const [abandonedCarts, setAbandonedCarts] = useState<AbandonedCart[]>([]);
+  const [emailSending, setEmailSending] = useState<string | null>(null);
+  const [emailSent, setEmailSent] = useState<Set<string>>(new Set());
+  const now = new Date();
 
   useEffect(() => {
     try {
@@ -45,14 +66,19 @@ export default function Home() {
   const isAdmin = userRole === 'ADMIN';
 
   useEffect(() => {
-    fetchDashboard();
-    // Fetch dólar blue venta from ambito.com
+    // Fetch dólar blue venta from ambito.com (only on mount)
     fetch('https://mercados.ambito.com//dolar/informal/variacion')
       .then(r => r.json())
       .then(json => {
         const venta = parseFloat(json.venta.replace('.', '').replace(',', '.'));
         if (!isNaN(venta)) setDolarBlue(venta);
       })
+      .catch(() => {});
+
+    // Fetch abandoned carts
+    fetch('/api/checkout/session')
+      .then(r => r.json())
+      .then(data => { if (Array.isArray(data)) setAbandonedCarts(data); })
       .catch(() => {});
   }, []);
 
@@ -88,12 +114,14 @@ export default function Home() {
 
   const d = data && !('error' in data) ? data : {
     totalSoldMonth: 0,
+    totalPaidMonth: 0,
     ordersCountMonth: 0,
     ticketPromedioMonth: 0,
     trendPct: null,
     funnel: { contacts: 0, quotes: 0, sales: 0, quoteRate: '0', saleRate: '0', etiquetas: [], tipos: [] },
     monthlyBilling: [],
     tagStats: [],
+    locationStats: [],
     typeStats: [],
     targets: null,
     totalPendingBalance: 0,
@@ -104,31 +132,6 @@ export default function Home() {
   };
 
   const currentTotal = d.totalSoldMonth || 0;
-  
-  // Base USD equivalents: $18M ≈ 12k, $24M ≈ 16k, $30M ≈ 20k (using 1500 as initial ref)
-  const refUSD1 = 12000;
-  const refUSD2 = 16000;
-  const refUSD3 = 20000;
-
-  // Actual targets are the MAX between the base pesos and the current USD equivalent
-  const t1 = Math.max(d.targets?.target1 || 18000000, refUSD1 * (dolarBlue || 0));
-  const t2 = Math.max(d.targets?.target2 || 24000000, refUSD2 * (dolarBlue || 0));
-  const t3 = Math.max(d.targets?.target3 || 30000000, refUSD3 * (dolarBlue || 0));
-  
-  const progress1 = t1 > 0 ? Math.min((currentTotal / t1) * 100, 100) : 0;
-  const progress2 = t2 > 0 ? Math.min((currentTotal / t2) * 100, 100) : 0;
-  const progress3 = t3 > 0 ? Math.min((currentTotal / t3) * 100, 100) : 0;
-
-  const toUSD = (ars: number) => (dolarBlue && ars) ? (ars / dolarBlue) : null;
-
-  // Motivation / Pace logic
-  const now = new Date();
-  const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-  const currentDay = Math.max(now.getDate(), 1);
-  const paceTotal = (currentTotal / currentDay) * daysInMonth;
-  const isPaceAboveT1 = paceTotal >= t1;
-  const isPaceAboveT2 = paceTotal >= t2;
-  const isPaceAboveT3 = paceTotal >= t3;
 
   return (
     <div className="p-4 lg:p-8 max-w-7xl mx-auto space-y-8 animate-in fade-in duration-500 pb-20">
@@ -142,191 +145,6 @@ export default function Home() {
         <DashboardActions onPeriodChange={handlePeriodChange} />
       </header>
 
-      {/* OBJETIVOS MENSUALES / META DEL MES */}
-      <section className="bg-gradient-to-br from-stone-900 to-stone-800 rounded-3xl p-5 lg:p-8 shadow-2xl relative overflow-hidden text-white border border-white/5">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-primary/10 rounded-full -mr-32 -mt-32 blur-3xl" />
-        <div className="relative z-10">
-          <div className="flex flex-col lg:flex-row lg:items-center gap-4 mb-8">
-            <div className="flex items-center gap-3">
-              <div className="bg-primary/20 p-2 rounded-xl">
-                <TrendingUp className="text-primary w-5 h-5" />
-              </div>
-              <div className="flex-1">
-                <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-stone-400">Objetivos Mensuales</h2>
-                <p className="text-base lg:text-lg font-bold">Progreso {periodLabel}</p>
-              </div>
-            </div>
-            {isAdmin && dolarBlue && (
-              <div className="flex items-center justify-between lg:justify-end gap-4 lg:ml-auto bg-white/5 px-4 py-2 rounded-xl border border-white/10">
-                <p className="text-[9px] font-black uppercase tracking-widest text-stone-500">Dólar Blue Venta</p>
-                <p className="text-base lg:text-lg font-black text-emerald-400">${dolarBlue.toLocaleString()}</p>
-              </div>
-            )}
-          </div>
-
-            {/* Motivation / Proyección de fin de mes */}
-            <div className="mb-8 p-6 bg-white/5 rounded-2xl border border-white/5 backdrop-blur-md">
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-                <div className="flex items-center gap-4">
-                  <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${paceTotal >= t1 ? 'bg-emerald-500/20 text-emerald-400' : 'bg-blue-500/20 text-blue-400'}`}>
-                    <TrendingUp className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <p className="text-[9px] lg:text-[10px] font-black uppercase tracking-widest text-stone-400">Proyección de Cierre</p>
-                    <p className="text-lg lg:text-2xl font-black italic tracking-tighter">
-                      Estado: <span className={paceTotal >= t1 ? 'text-emerald-400' : 'text-blue-400'}>{paceTotal >= t1 ? 'RITMO EXCELENTE' : 'CONSTRUYENDO EL MES'}</span>
-                    </p>
-                  </div>
-                </div>
-                <div className="max-w-md">
-                  <p className="text-xs font-bold text-stone-300 leading-relaxed">
-                    {paceTotal >= t3 ? '🚀 ¡ESTÁN EN NIVEL ELITE! Si mantienen este ritmo, van a pulverizar todos los records este mes.' :
-                     paceTotal >= t2 ? '⭐ Excelente ritmo. Están camino a superar el Objetivo Ideal. ¡Sigan así!' :
-                     paceTotal >= t1 ? '✅ Van por buen camino para cumplir el objetivo del mes. ¡Fuerza en el tramo final!' :
-                     '💪 "Dejarse dominar por los pequeños anhelos que resultan fuertes y apremiantes". ¡Cada venta suma! Estamos construyendo el camino hacia la meta paso a paso. ¡A mantener el enfoque!'}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="space-y-8 w-full">
-              {isAdmin ? (
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 pt-4 border-t border-white/5 mt-8">
-                  {/* Primer Objetivo */}
-                  <div className="space-y-4 bg-white/5 p-6 rounded-3xl border border-white/10 hover:border-white/20 transition-all">
-                    <div className="flex justify-between items-end">
-                      <div>
-                        <p className="text-[10px] font-black uppercase tracking-widest text-stone-400 mb-1">Primer Objetivo</p>
-                        <h3 className="text-2xl font-black italic">${t1.toLocaleString()}</h3>
-                        {toUSD(t1) && <p className="text-[11px] font-bold text-emerald-400/70 mt-0.5">≈ USD {Math.round(toUSD(t1)!).toLocaleString()}</p>}
-                      </div>
-                      <div className="text-right">
-                        <span className={`text-3xl font-black ${progress1 >= 100 ? 'text-emerald-400' : 'text-primary'}`}>
-                          {progress1.toFixed(0)}%
-                        </span>
-                      </div>
-                    </div>
-                    <div className="h-4 bg-white/5 rounded-full overflow-hidden p-1 backdrop-blur-sm border border-white/10">
-                      <div 
-                        className={`h-full rounded-full transition-all duration-1000 ease-out shadow-[0_0_15px_rgba(var(--primary),0.5)] ${progress1 >= 100 ? 'bg-emerald-500' : 'bg-primary'}`}
-                        style={{ width: `${progress1}%` }}
-                      />
-                    </div>
-                    <p className="text-[9px] font-bold text-stone-500 uppercase tracking-tighter">
-                      {progress1 >= 100 ? '¡Objetivo Alcanzado!' : `Faltan $${Math.max(t1 - currentTotal, 0).toLocaleString()} para la meta.`}
-                      {toUSD(currentTotal) && <span className="ml-2 text-emerald-400/50">· Facturado: USD {Math.round(toUSD(currentTotal)!).toLocaleString()}</span>}
-                    </p>
-                  </div>
-
-                  {/* Segundo Objetivo */}
-                  <div className="space-y-4 bg-white/5 p-6 rounded-3xl border border-white/10 hover:border-white/20 transition-all">
-                    <div className="flex justify-between items-end">
-                      <div>
-                        <p className="text-[10px] font-black uppercase tracking-widest text-stone-400 mb-1">Segundo Objetivo (Stretch)</p>
-                        <h3 className="text-2xl font-black italic text-stone-200">${t2.toLocaleString()}</h3>
-                        {toUSD(t2) && <p className="text-[11px] font-bold text-emerald-400/70 mt-0.5">≈ USD {Math.round(toUSD(t2)!).toLocaleString()}</p>}
-                      </div>
-                      <div className="text-right">
-                        <span className={`text-3xl font-black ${progress2 >= 100 ? 'text-emerald-400' : 'text-stone-400'}`}>
-                          {progress2.toFixed(1)}%
-                        </span>
-                      </div>
-                    </div>
-                    <div className="h-4 bg-white/5 rounded-full overflow-hidden p-1 backdrop-blur-sm border border-white/10">
-                      <div 
-                        className={`h-full rounded-full transition-all duration-1000 ease-out shadow-[0_0_15px_rgba(34,197,94,0.3)] ${progress2 >= 100 ? 'bg-emerald-500' : 'bg-stone-600'}`}
-                        style={{ width: `${progress2}%` }}
-                      />
-                    </div>
-                    <p className="text-[9px] font-bold text-stone-500 uppercase tracking-tighter">
-                      {progress2 >= 100 ? '¡Objetivo Alcanzado!' : `Faltan $${Math.max(t2 - currentTotal, 0).toLocaleString()} para la meta.`}
-                    </p>
-                  </div>
-
-                  {/* Tercer Objetivo */}
-                  <div className="space-y-4 bg-white/5 p-6 rounded-3xl border border-white/10 hover:border-white/20 transition-all">
-                    <div className="flex justify-between items-end">
-                      <div>
-                        <p className="text-[10px] font-black uppercase tracking-widest text-stone-400 mb-1">Tercer Objetivo (Elite)</p>
-                        <h3 className="text-2xl font-black italic text-stone-300">${t3.toLocaleString()}</h3>
-                        {toUSD(t3) && <p className="text-[11px] font-bold text-emerald-400/70 mt-0.5">≈ USD {Math.round(toUSD(t3)!).toLocaleString()}</p>}
-                      </div>
-                      <div className="text-right">
-                        <span className={`text-3xl font-black ${progress3 >= 100 ? 'text-emerald-400' : 'text-stone-500'}`}>
-                          {progress3.toFixed(1)}%
-                        </span>
-                      </div>
-                    </div>
-                    <div className="h-4 bg-white/5 rounded-full overflow-hidden p-1 backdrop-blur-sm border border-white/10">
-                      <div 
-                        className={`h-full rounded-full transition-all duration-1000 ease-out shadow-[0_0_15px_rgba(168,85,247,0.3)] ${progress3 >= 100 ? 'bg-emerald-500' : 'bg-purple-500/70'}`}
-                        style={{ width: `${progress3}%` }}
-                      />
-                    </div>
-                    <p className="text-[9px] font-bold text-stone-500 uppercase tracking-tighter">
-                      {progress3 >= 100 ? '¡Objetivo Alcanzado!' : `Faltan $${Math.max(t3 - currentTotal, 0).toLocaleString()} para la meta.`}
-                    </p>
-                  </div>
-                </div>
-              ) : (
-                <div className="space-y-4 max-w-4xl mx-auto">
-                  <div className="flex justify-between items-end">
-                    <div>
-                      <p className="text-[10px] font-black uppercase tracking-widest text-stone-400 mb-1">Meta del Mes</p>
-                      <h3 className="text-2xl font-black italic uppercase tracking-tighter text-primary">Camino al Objetivo</h3>
-                    </div>
-                    <div className="text-right">
-                      <span className={`text-4xl font-black ${progress1 >= 100 ? 'text-emerald-400' : 'text-primary'}`}>
-                        {progress1.toFixed(0)}%
-                      </span>
-                    </div>
-                  </div>
-                  <div className="h-6 bg-white/5 rounded-full overflow-hidden p-1.5 backdrop-blur-sm border border-white/10">
-                    <div 
-                      className={`h-full rounded-full transition-all duration-1000 ease-out shadow-[0_0_15px_rgba(var(--primary),0.5)] ${progress1 >= 100 ? 'bg-emerald-500' : 'bg-primary'}`}
-                      style={{ width: `${progress1}%` }}
-                    />
-                  </div>
-                  <p className="text-[10px] font-bold text-stone-500 uppercase tracking-widest text-center">
-                    {progress1 >= 100 ? '¡Objetivo Principal alcanzado! 🏆' : '¡Seguí sumando ventas para alcanzar la meta!'}
-                  </p>
-                </div>
-              )}
-            </div>
-        </div>
-      </section>
-
-
-      {/* FACTURACIÓN FUTURA Y PIPELINE — Only for Admin */}
-      {isAdmin && (
-        <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="md:col-span-1 bg-white dark:bg-stone-900 rounded-3xl p-6 shadow-xl border border-stone-100 dark:border-stone-800 relative overflow-hidden group">
-            <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/5 rounded-full -mr-12 -mt-12 blur-2xl group-hover:bg-emerald-500/10 transition-colors" />
-            <div className="flex items-center gap-3 mb-4">
-              <div className="bg-emerald-100 dark:bg-emerald-900/30 p-2 rounded-xl text-emerald-600 dark:text-emerald-400">
-                <Clock className="w-5 h-5" />
-              </div>
-              <h3 className="text-[10px] font-black uppercase tracking-widest text-stone-400">Saldo por Cobrar</h3>
-            </div>
-            <p className="text-3xl font-black tracking-tighter text-stone-800 dark:text-white">${d.totalPendingBalance.toLocaleString()}</p>
-            <p className="text-[9px] font-bold text-stone-500 mt-2 uppercase tracking-tight">Cobros pendientes de ventas confirmadas</p>
-          </div>
-
-          <div className="md:col-span-1 bg-white dark:bg-stone-900 rounded-3xl p-6 shadow-xl border border-stone-100 dark:border-stone-800 relative overflow-hidden group">
-            <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/5 rounded-full -mr-12 -mt-12 blur-2xl group-hover:bg-emerald-500/10 transition-colors" />
-            <div className="flex items-center gap-3 mb-4">
-              <div className="bg-emerald-100 dark:bg-emerald-900/30 p-2 rounded-xl text-emerald-600 dark:text-emerald-400">
-                <DollarSign className="w-5 h-5" />
-              </div>
-              <h3 className="text-[10px] font-black uppercase tracking-widest text-stone-400">Confirmados</h3>
-            </div>
-            <p className="text-3xl font-black tracking-tighter text-stone-800 dark:text-white">${d.confirmedTotal.toLocaleString()}</p>
-            <p className="text-[9px] font-bold text-stone-500 mt-2 uppercase tracking-tight">{d.confirmedCount} clientes confirmados — próximos a venta</p>
-          </div>
-        </section>
-      )}
-
-
       {/* 1. Reporte General de Ventas / Métricas — Only for Admin */}
       {isAdmin && (
         <section className="space-y-4">
@@ -336,53 +154,109 @@ export default function Home() {
               Métricas — {periodLabel}
             </h2>
           </div>
-          <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 transition-opacity duration-300 ${loading ? 'opacity-50' : 'opacity-100'}`}>
-            <StatsCard
-              title="Total Facturado"
-              value={`$${d.totalSoldMonth.toLocaleString()}`}
-              icon={DollarSign}
-              trend={d.trendPct ? `${Number(d.trendPct) >= 0 ? '+' : ''}${d.trendPct}%` : '+0%'}
-              sub="Vs período anterior"
-              highlight={true}
-            />
-            <StatsCard
-              title="Cantidad de Pedidos"
-              value={d.ordersCountMonth}
-              icon={ShoppingCart}
-              trend={`${d.ordersCountMonth}`}
-              sub="Operaciones"
-            />
-            <StatsCard
-              title="Ticket Promedio"
-              value={`$${Math.round(d.ticketPromedioMonth).toLocaleString()}`}
-              icon={Percent}
-              trend={d.ticketPromedioMonth > 0 ? 'Activo' : '—'}
-              sub="Por operación"
-            />
-            <StatsCard
-              title="Nuevos Contactos"
-              value={d.funnel.contacts}
-              icon={User}
-              trend={`${d.funnel.contacts}`}
-              sub="Ingresados en período"
-            />
+          <div className={`flex gap-6 overflow-x-auto pb-4 no-scrollbar transition-opacity duration-300 ${loading ? 'opacity-50' : 'opacity-100'}`}>
+            <div className="min-w-[260px] flex-1">
+              <StatsCard
+                title="Total Facturado"
+                value={`$${d.totalSoldMonth.toLocaleString()}`}
+                icon={DollarSign}
+                trend={d.trendPct ? `${Number(d.trendPct) >= 0 ? '+' : ''}${d.trendPct}%` : '+0%'}
+                sub="Monto total pactado"
+                highlight={true}
+              />
+            </div>
+            <div className="min-w-[260px] flex-1">
+              <StatsCard
+                title="Total Cobrado"
+                value={`$${(d.totalPaidMonth || 0).toLocaleString()}`}
+                icon={DollarSign}
+                trend={`${Math.round(((d.totalPaidMonth || 0) / (d.totalSoldMonth || 1)) * 100)}%`}
+                sub="Efectivo en caja"
+                highlight={false}
+              />
+            </div>
+            <div className="min-w-[260px] flex-1">
+              <StatsCard
+                title="Cantidad de Pedidos"
+                value={d.ordersCountMonth}
+                icon={ShoppingCart}
+                trend={`${d.ordersCountMonth}`}
+                sub="Operaciones"
+              />
+            </div>
+            <div className="min-w-[260px] flex-1">
+              <StatsCard
+                title="Ticket Promedio"
+                value={`$${Math.round(d.ticketPromedioMonth).toLocaleString()}`}
+                icon={Percent}
+                trend={d.ticketPromedioMonth > 0 ? 'Activo' : '—'}
+                sub="Por operación"
+              />
+            </div>
+            <div className="min-w-[260px] flex-1">
+              <StatsCard
+                title="Nuevos Contactos"
+                value={d.funnel.contacts}
+                icon={User}
+                trend={`${d.funnel.contacts}`}
+                sub="Ingresados en período"
+              />
+            </div>
           </div>
         </section>
       )}
 
-      {/* POTENCIAL TOTAL — Only for Admin */}
+      {/* OBJETIVOS MENSUALES / META DEL MES */}
+      <DashboardObjectives 
+        currentTotal={currentTotal}
+        targets={d.targets}
+        dolarBlue={dolarBlue}
+        isAdmin={isAdmin}
+        periodLabel={periodLabel}
+      />
+
+
+
+      {/* FINANZAS Y PROYECCIONES — Only for Admin */}
       {isAdmin && (
-        <section className="grid grid-cols-1 gap-6">
+        <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {/* Saldos por Cobrar */}
           <div className="bg-white dark:bg-stone-900 rounded-3xl p-6 shadow-xl border border-stone-100 dark:border-stone-800 relative overflow-hidden group">
-            <div className="absolute top-0 right-0 w-24 h-24 bg-primary/5 rounded-full -mr-12 -mt-12 blur-2xl group-hover:bg-primary/10 transition-colors" />
+            <div className="absolute top-0 right-0 w-24 h-24 bg-red-500/5 rounded-full -mr-12 -mt-12 blur-2xl group-hover:bg-red-500/10 transition-colors" />
             <div className="flex items-center gap-3 mb-4">
-              <div className="bg-primary/10 p-2 rounded-xl text-primary">
+              <div className="bg-red-500/10 p-2 rounded-xl text-red-500">
+                <DollarSign className="w-5 h-5" />
+              </div>
+              <h3 className="text-[10px] font-black uppercase tracking-widest text-stone-400">Saldos por Cobrar</h3>
+            </div>
+            <p className="text-xl md:text-2xl font-black tracking-tighter text-stone-800 dark:text-white truncate">${d.totalPendingBalance.toLocaleString()}</p>
+            <p className="text-[9px] font-bold text-stone-500 mt-2 uppercase tracking-tight">Deuda pendiente global</p>
+          </div>
+
+          {/* Confirmados */}
+          <div className="bg-white dark:bg-stone-900 rounded-3xl p-6 shadow-xl border border-stone-100 dark:border-stone-800 relative overflow-hidden group">
+            <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/5 rounded-full -mr-12 -mt-12 blur-2xl group-hover:bg-emerald-500/10 transition-colors" />
+            <div className="flex items-center gap-3 mb-4">
+              <div className="bg-emerald-500/10 p-2 rounded-xl text-emerald-500">
                 <ArrowUpRight className="w-5 h-5" />
               </div>
-              <h3 className="text-[10px] font-black uppercase tracking-widest text-stone-400">Potencial Total</h3>
+              <h3 className="text-[10px] font-black uppercase tracking-widest text-stone-400">Confirmados</h3>
             </div>
-            <p className="text-3xl font-black tracking-tighter text-stone-800 dark:text-white">${(d.totalPendingBalance + d.totalQuotesValue).toLocaleString()}</p>
-            <p className="text-[9px] font-bold text-stone-500 mt-2 uppercase tracking-tight">Saldos + Presupuestos abiertos</p>
+            <p className="text-xl md:text-2xl font-black tracking-tighter text-stone-800 dark:text-white truncate">${d.confirmedTotal.toLocaleString()}</p>
+            <p className="text-[9px] font-bold text-stone-500 mt-2 uppercase tracking-tight">{d.confirmedCount} Presupuestos aprobados</p>
+          </div>
+
+          {/* Presupuestos Abiertos */}
+          <div className="bg-white dark:bg-stone-900 rounded-3xl p-6 shadow-xl border border-stone-100 dark:border-stone-800 relative overflow-hidden group">
+            <div className="absolute top-0 right-0 w-24 h-24 bg-amber-500/5 rounded-full -mr-12 -mt-12 blur-2xl group-hover:bg-amber-500/10 transition-colors" />
+            <div className="flex items-center gap-3 mb-4">
+              <div className="bg-amber-500/10 p-2 rounded-xl text-amber-500">
+                <Layers className="w-5 h-5" />
+              </div>
+              <h3 className="text-[10px] font-black uppercase tracking-widest text-stone-400">Presupuestos Abiertos</h3>
+            </div>
+            <p className="text-xl md:text-2xl font-black tracking-tighter text-stone-800 dark:text-white truncate">${d.totalQuotesValue.toLocaleString()}</p>
+            <p className="text-[9px] font-bold text-stone-500 mt-2 uppercase tracking-tight">Potencial de ventas del mes</p>
           </div>
         </section>
       )}
@@ -447,7 +321,7 @@ export default function Home() {
                 <select
                   value={funnelEtiqueta}
                   onChange={(e) => setFunnelEtiqueta(e.target.value)}
-                  className="px-3 py-1.5 rounded-xl text-[10px] font-bold bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 outline-none focus:border-primary cursor-pointer appearance-none pr-7"
+                  className="px-3 py-1.5 rounded-xl text-[10px] font-bold bg-white dark:bg-stone-800 text-stone-800 dark:text-stone-200 border border-stone-200 dark:border-stone-700 outline-none focus:border-primary cursor-pointer appearance-none pr-7"
                   style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%23999' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 8px center' }}
                 >
                   <option value="ALL">Todas las etiquetas</option>
@@ -460,7 +334,7 @@ export default function Home() {
                 <select
                   value={funnelTipo}
                   onChange={(e) => setFunnelTipo(e.target.value)}
-                  className="px-3 py-1.5 rounded-xl text-[10px] font-bold bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 outline-none focus:border-primary cursor-pointer appearance-none pr-7"
+                  className="px-3 py-1.5 rounded-xl text-[10px] font-bold bg-white dark:bg-stone-800 text-stone-800 dark:text-stone-200 border border-stone-200 dark:border-stone-700 outline-none focus:border-primary cursor-pointer appearance-none pr-7"
                   style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%23999' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 8px center' }}
                 >
                   <option value="ALL">Todos los tipos</option>
@@ -478,7 +352,7 @@ export default function Home() {
               { label: 'Ventas', value: d.funnel.sales, color: 'bg-emerald-500', width: d.funnel.contacts > 0 ? `${Math.max((d.funnel.sales / d.funnel.contacts) * 100, 10)}%` : '10%', rate: d.funnel.saleRate },
             ].map((step) => (
               <div key={step.label} className="flex flex-col items-center gap-2">
-                <span className="text-3xl font-black text-stone-800 dark:text-stone-100">{step.value}</span>
+                <span className="text-xl md:text-2xl font-black text-stone-800 dark:text-stone-100">{step.value}</span>
                 <div className="w-full h-3 rounded-full bg-stone-100 dark:bg-stone-800 overflow-hidden">
                   <div className={`h-full rounded-full ${step.color} transition-all duration-1000`} style={{ width: step.width }} />
                 </div>
@@ -503,7 +377,7 @@ export default function Home() {
                 const rentabilidad = type.total - type.cost;
                 const margin = type.total > 0 ? (rentabilidad / type.total) * 100 : 0;
                 return (
-                  <div key={type.name} className="flex items-center justify-between p-4 rounded-xl bg-stone-50 dark:bg-stone-800/40 hover:bg-stone-100 dark:hover:bg-stone-800 transition-all border border-transparent hover:border-sidebar-border group">
+                  <div key={type.name} className="flex flex-wrap items-center justify-between gap-2 p-4 rounded-xl bg-stone-50 dark:bg-stone-800/40 hover:bg-stone-100 dark:hover:bg-stone-800 transition-all border border-transparent hover:border-sidebar-border group">
                     <div>
                       <h4 className="font-black text-xs uppercase group-hover:text-primary transition-colors tracking-tight">{type.name}</h4>
                       <p className="text-[9px] text-foreground/40 font-bold tracking-widest">{type.count} UNIDADES</p>
@@ -525,6 +399,35 @@ export default function Home() {
           )}
         </div>
 
+        {/* 3.5 Venta por Origen (Local vs Online) */}
+        <div className="bg-sidebar border border-sidebar-border rounded-2xl p-7 shadow-sm md:col-span-1 lg:col-span-1">
+          <div className="flex items-center gap-2 mb-8">
+            <ShoppingCart className="text-stone-600 w-5 h-5" />
+            <h2 className="text-sm font-black uppercase tracking-widest">Tráfico por Canal</h2>
+          </div>
+          {d.locationStats && d.locationStats.length > 0 ? (
+            <div className="space-y-3">
+              {d.locationStats.sort((a, b) => b.total - a.total).map((loc) => {
+                return (
+                  <div key={loc.name} className="flex flex-wrap items-center justify-between gap-2 p-4 rounded-xl bg-stone-50 dark:bg-stone-800/40 hover:bg-stone-100 dark:hover:bg-stone-800 transition-all border border-transparent hover:border-sidebar-border group">
+                    <div>
+                      <h4 className="font-black text-xs uppercase group-hover:text-primary transition-colors tracking-tight">{loc.name}</h4>
+                      <p className="text-[9px] text-foreground/40 font-bold tracking-widest">{loc.count} VENTAS</p>
+                    </div>
+                    {isAdmin && (
+                      <div className="text-right">
+                        <div className="font-black text-sm text-stone-800 dark:text-stone-200 tracking-tight">${loc.total.toLocaleString()}</div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <EmptyState message="Sin datos de canales." />
+          )}
+        </div>
+
         {/* 4. Venta por Etiquetas — Hide values for Staff */}
         <div className="bg-sidebar border border-sidebar-border rounded-2xl p-7 shadow-sm md:col-span-2 lg:col-span-1">
           <div className="flex items-center gap-2 mb-8">
@@ -535,7 +438,7 @@ export default function Home() {
             <div className="space-y-3">
               {d.tagStats.sort((a, b) => b.total - a.total).slice(0, 5).map((tag) => {
                 return (
-                  <div key={tag.name} className="flex items-center justify-between p-4 rounded-xl bg-stone-50 dark:bg-stone-800/40 hover:bg-stone-100 dark:hover:bg-stone-800 transition-all border border-transparent hover:border-sidebar-border group">
+                  <div key={tag.name} className="flex flex-wrap items-center justify-between gap-2 p-4 rounded-xl bg-stone-50 dark:bg-stone-800/40 hover:bg-stone-100 dark:hover:bg-stone-800 transition-all border border-transparent hover:border-sidebar-border group">
                     <div>
                       <h4 className="font-black text-xs uppercase group-hover:text-primary transition-colors tracking-tight">{tag.name}</h4>
                       <p className="text-[9px] text-foreground/40 font-bold tracking-widest">{tag.count} VENTAS</p>
@@ -594,17 +497,180 @@ export default function Home() {
         </section>
       )}
 
+      {/* CARRITOS ABANDONADOS + SOCIAL MEDIA */}
+      <section className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {/* Carritos Abandonados */}
+        <div className="bg-white dark:bg-stone-900 rounded-3xl p-6 shadow-xl border border-stone-100 dark:border-stone-800 relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/5 rounded-full -mr-16 -mt-16 blur-3xl" />
+          <div className="flex items-center justify-between mb-5">
+            <div className="flex items-center gap-3">
+              <div className="bg-amber-500/10 p-2.5 rounded-xl text-amber-500">
+                <ShoppingCart className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-[10px] font-black uppercase tracking-widest text-stone-400">Carritos Abandonados</h3>
+                <p className="text-[9px] text-stone-400 font-bold mt-0.5">Ventas pendientes de recuperación</p>
+              </div>
+            </div>
+            <a href="/admin/carritos" className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest bg-amber-500/10 text-amber-600 hover:bg-amber-500/20 transition-all">
+              Ver todos <ExternalLink className="w-3 h-3" />
+            </a>
+          </div>
+
+          {abandonedCarts.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-10 border-2 border-dashed border-stone-100 dark:border-stone-800 rounded-2xl bg-stone-50/30 dark:bg-stone-900/10">
+              <ShoppingCart className="w-8 h-8 text-stone-200 dark:text-stone-700 mb-3" />
+              <p className="text-stone-300 dark:text-stone-600 text-[10px] font-black uppercase tracking-widest">Sin carritos abandonados</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {/* Summary counters */}
+              <div className="flex items-center gap-3 mb-4">
+                <div className="flex-1 bg-amber-50 dark:bg-amber-950/20 rounded-xl p-3 text-center border border-amber-100 dark:border-amber-900/30">
+                  <p className="text-lg font-black text-amber-600 dark:text-amber-400">{abandonedCarts.length}</p>
+                  <p className="text-[9px] font-black text-amber-500/70 uppercase tracking-widest">Pendientes</p>
+                </div>
+                <div className="flex-1 bg-red-50 dark:bg-red-950/20 rounded-xl p-3 text-center border border-red-100 dark:border-red-900/30">
+                  <p className="text-lg font-black text-red-600 dark:text-red-400">${abandonedCarts.reduce((sum, c) => sum + (c.total || 0), 0).toLocaleString()}</p>
+                  <p className="text-[9px] font-black text-red-500/70 uppercase tracking-widest">Valor Total</p>
+                </div>
+              </div>
+
+              {/* Last 3 carts */}
+              {abandonedCarts.slice(0, 3).map((cart) => (
+                <div key={cart.id} className="flex items-center justify-between p-3 rounded-xl bg-stone-50 dark:bg-stone-800/40 hover:bg-stone-100 dark:hover:bg-stone-800 transition-all border border-transparent hover:border-stone-200 dark:hover:border-stone-700 group">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-8 h-8 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center flex-shrink-0">
+                      <User className="w-4 h-4" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-xs font-black text-stone-800 dark:text-stone-100 truncate">{cart.firstName} {cart.lastName}</p>
+                      <p className="text-[9px] text-stone-400 font-bold truncate">
+                        {cart.cartData && Array.isArray(cart.cartData) ? cart.cartData.map((item: any) => item.model).join(', ') : 'Sin items'}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3 flex-shrink-0">
+                    <div className="text-right">
+                      <p className="text-xs font-black text-stone-800 dark:text-white">${(cart.total || 0).toLocaleString()}</p>
+                      <p className="text-[9px] text-stone-400 font-bold">{formatDistanceToNow(new Date(cart.updatedAt), { addSuffix: true, locale: es })}</p>
+                    </div>
+                    {cart.phone && (
+                      <button
+                        onClick={() => {
+                          const phone = cart.phone.replace(/\D/g, '');
+                          const name = cart.firstName || 'Hola';
+                          const items = cart.cartData ? cart.cartData.map((item: any) => item.model).join(', ') : 'los anteojos';
+                          const message = `¡Hola ${name}! Somos de Atelier Óptica. Vimos que dejaste en tu carrito ${items}. ¿Tuviste algún problema con el pago o necesitás ayuda con algo? ¡Avisanos y te damos una mano!`;
+                          window.open(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`, '_blank');
+                        }}
+                        className="p-2 bg-[#25D366]/10 text-[#25D366] rounded-xl hover:bg-[#25D366] hover:text-white transition-all hover:scale-110"
+                        title="Retomar por WhatsApp"
+                      >
+                        <MessageCircle className="w-4 h-4" />
+                      </button>
+                    )}
+                    {cart.email && (
+                      <button
+                        onClick={async () => {
+                          setEmailSending(cart.id);
+                          try {
+                            const res = await fetch('/api/checkout/recovery-email', {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ sessionId: cart.id })
+                            });
+                            const data = await res.json();
+                            if (data.success) {
+                              setEmailSent(prev => new Set(prev).add(cart.id));
+                            }
+                          } catch (e) { console.error(e); }
+                          setEmailSending(null);
+                        }}
+                        disabled={emailSending === cart.id || emailSent.has(cart.id)}
+                        className={`p-2 rounded-xl transition-all hover:scale-110 ${
+                          emailSent.has(cart.id)
+                            ? 'bg-emerald-500/10 text-emerald-500'
+                            : 'bg-blue-500/10 text-blue-500 hover:bg-blue-500 hover:text-white'
+                        } disabled:cursor-not-allowed`}
+                        title="Enviar email de recuperación"
+                      >
+                        {emailSending === cart.id ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : emailSent.has(cart.id) ? (
+                          <CheckCircle2 className="w-4 h-4" />
+                        ) : (
+                          <Mail className="w-4 h-4" />
+                        )}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+
+              {abandonedCarts.length > 3 && (
+                <a href="/admin/carritos" className="block text-center py-2 text-[10px] font-black text-amber-600 uppercase tracking-widest hover:text-amber-500 transition-colors">
+                  + {abandonedCarts.length - 3} más →
+                </a>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Social Media Studio Quick Access */}
+        <a href="/admin/social" className="bg-white dark:bg-stone-900 rounded-3xl p-6 shadow-xl border border-stone-100 dark:border-stone-800 relative overflow-hidden group hover:border-primary/30 transition-all block">
+          <div className="absolute top-0 right-0 w-40 h-40 bg-gradient-to-br from-pink-500/5 via-purple-500/5 to-indigo-500/5 rounded-full -mr-20 -mt-20 blur-3xl group-hover:from-pink-500/10 group-hover:via-purple-500/10 group-hover:to-indigo-500/10 transition-colors" />
+          <div className="flex items-center justify-between mb-5">
+            <div className="flex items-center gap-3">
+              <div className="bg-gradient-to-br from-pink-500/10 to-purple-500/10 p-2.5 rounded-xl text-pink-500">
+                <Megaphone className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-[10px] font-black uppercase tracking-widest text-stone-400">Social Media Studio</h3>
+                <p className="text-[9px] text-stone-400 font-bold mt-0.5">Generá campañas con IA</p>
+              </div>
+            </div>
+            <div className="p-2 rounded-xl bg-stone-100 dark:bg-stone-800 text-stone-400 group-hover:bg-primary group-hover:text-white transition-all group-hover:scale-110">
+              <ExternalLink className="w-4 h-4" />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="bg-gradient-to-br from-pink-50 to-pink-100 dark:from-pink-950/20 dark:to-pink-900/10 rounded-xl p-4 text-center border border-pink-100 dark:border-pink-900/20 group-hover:shadow-md transition-all">
+              <div className="text-2xl mb-1">📱</div>
+              <p className="text-[9px] font-black text-pink-600 dark:text-pink-400 uppercase tracking-widest">Stories</p>
+            </div>
+            <div className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950/20 dark:to-purple-900/10 rounded-xl p-4 text-center border border-purple-100 dark:border-purple-900/20 group-hover:shadow-md transition-all">
+              <div className="text-2xl mb-1">🎬</div>
+              <p className="text-[9px] font-black text-purple-600 dark:text-purple-400 uppercase tracking-widest">Reels</p>
+            </div>
+            <div className="bg-gradient-to-br from-indigo-50 to-indigo-100 dark:from-indigo-950/20 dark:to-indigo-900/10 rounded-xl p-4 text-center border border-indigo-100 dark:border-indigo-900/20 group-hover:shadow-md transition-all">
+              <div className="text-2xl mb-1">📑</div>
+              <p className="text-[9px] font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-widest">Carruseles</p>
+            </div>
+            <div className="bg-gradient-to-br from-amber-50 to-amber-100 dark:from-amber-950/20 dark:to-amber-900/10 rounded-xl p-4 text-center border border-amber-100 dark:border-amber-900/20 group-hover:shadow-md transition-all">
+              <div className="text-2xl mb-1">🖼️</div>
+              <p className="text-[9px] font-black text-amber-600 dark:text-amber-400 uppercase tracking-widest">Posts</p>
+            </div>
+          </div>
+
+          <div className="mt-5 flex items-center justify-center gap-2 text-[10px] font-black text-primary uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-all translate-y-1 group-hover:translate-y-0">
+            Abrir Studio <ArrowRight className="w-3 h-3" />
+          </div>
+        </a>
+      </section>
+
     </div>
   );
 }
 
 function StatsCard({ title, value, icon: Icon, trend, sub, highlight }: any) {
   return (
-    <div className={`${highlight ? 'bg-gradient-to-br from-primary to-primary/80 text-white shadow-xl shadow-primary/20 border-transparent' : 'bg-sidebar border border-sidebar-border shadow-sm group hover:shadow-lg hover:border-primary/20'} rounded-2xl p-7 transition-all flex justify-between items-center relative overflow-hidden group`}>
+    <div className={`${highlight ? 'bg-gradient-to-br from-primary to-primary/80 text-white shadow-xl shadow-primary/20 border-transparent' : 'bg-sidebar border border-sidebar-border shadow-sm group hover:shadow-lg hover:border-primary/20'} rounded-2xl p-7 transition-all flex flex-wrap justify-between items-center gap-4 relative overflow-hidden group`}>
       <div className={`absolute top-0 right-0 w-24 h-24 rounded-full -mr-12 -mt-12 blur-2xl transition-colors ${highlight ? 'bg-white/10 group-hover:bg-white/20' : 'bg-primary/5 group-hover:bg-primary/10'}`} />
       <div className="relative z-10">
         <p className={`${highlight ? 'text-white/70' : 'text-stone-400'} font-black text-[10px] uppercase tracking-[0.2em] mb-2`}>{title}</p>
-        <h3 className={`text-4xl font-black tracking-tight ${highlight ? '' : 'text-stone-800 dark:text-stone-100'}`}>{value}</h3>
+        <h3 className={`text-xl md:text-2xl lg:text-3xl font-black tracking-tight truncate min-w-0 ${highlight ? '' : 'text-stone-800 dark:text-stone-100'}`}>{value}</h3>
         <div className="flex items-center gap-2 mt-3">
           <span className={`text-[9px] font-black px-2 py-0.5 rounded-full border uppercase tracking-tighter ${highlight ? 'bg-white/20 text-white border-white/10' : 'bg-stone-100 dark:bg-stone-800 text-primary border-primary/10'}`}>
             {trend}

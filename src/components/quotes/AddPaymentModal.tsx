@@ -94,6 +94,7 @@ export default function AddPaymentModal({
     const [error, setError] = useState<string | null>(null);
     const [receiptFile, setReceiptFile] = useState<File | null>(null);
     const [receiptPreview, setReceiptPreview] = useState<string | null>(null);
+    const [isAnalyzing, setIsAnalyzing] = useState(false);
 
     // Obtener los financieros para las sugerencias de saldo
     const [financials, setFinancials] = useState<any>(null);
@@ -302,9 +303,30 @@ export default function AddPaymentModal({
                             Comprobante {requiresReceipt ? <span className="text-red-500">(Obligatorio)</span> : '(Opcional)'}
                         </label>
                         <FileDropZone
-                            onFile={(file) => {
+                            loading={isAnalyzing}
+                            loadingLabel="🤖 Analizando comprobante..."
+                            onFile={async (file) => {
                                 setReceiptFile(file);
                                 setReceiptPreview(URL.createObjectURL(file));
+                                setIsAnalyzing(true);
+                                try {
+                                    const formData = new FormData();
+                                    formData.append('file', file);
+                                    formData.append('type', 'receipt');
+                                    const res = await fetch('/api/ocr', { method: 'POST', body: formData });
+                                    if (res.ok) {
+                                        const data = await res.json();
+                                        if (data.amount !== null) setAmount(data.amount.toString());
+                                        if (data.reference !== null) setReference(data.reference);
+                                        if (data.date !== null) setDate(data.date);
+                                    } else {
+                                        console.warn('OCR falló');
+                                    }
+                                } catch (e) {
+                                    console.error('Error OCR', e);
+                                } finally {
+                                    setIsAnalyzing(false);
+                                }
                             }}
                             preview={receiptPreview}
                             onClearPreview={() => {

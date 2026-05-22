@@ -19,18 +19,22 @@ export interface ContactFormData {
     followUpTask?: string;
     followUpDate?: string;
     startQuote?: boolean;
+    forceCreate?: boolean;
+    visitedStore?: boolean;
 }
 
 interface ContactFormProps {
     onClose: () => void;
     onSubmit: (data: ContactFormData) => Promise<void>;
+    onUnify?: (existingId: string, data: ContactFormData) => Promise<void>;
+    onGoToOriginal?: (existingId: string) => void;
     initialData?: Partial<ContactFormData>;
 }
 
 const PRODUCT_TYPES = ["Monofocal", "Multifocal", "Bifocal", "Ocupacional", "Solar", "Accesorios", "Lentes de Contacto", "Otros"];
 const CONTACT_SOURCES = ["Google Ads", "Meta", "Calle", "Jemima", "Ya es Cliente", "Tienda nube", "Referido", "Wave", "Salida"];
 
-export default function ContactForm({ onClose, onSubmit, initialData }: ContactFormProps) {
+export default function ContactForm({ onClose, onSubmit, onUnify, onGoToOriginal, initialData }: ContactFormProps) {
     const [formData, setFormData] = useState<ContactFormData>({
         name: initialData?.name || '',
         email: initialData?.email || '',
@@ -46,9 +50,11 @@ export default function ContactForm({ onClose, onSubmit, initialData }: ContactF
     });
 
     const [saving, setSaving] = useState(false);
+    const [duplicateWarning, setDuplicateWarning] = useState<any>(null);
     const [submitAction, setSubmitAction] = useState<'save' | 'quote'>('save');
     const [followUpTask, setFollowUpTask] = useState('');
     const [followUpDate, setFollowUpDate] = useState('');
+    const [visitedStore, setVisitedStore] = useState(false);
     const [doctors, setDoctors] = useState<any[]>([]);
 
     useEffect(() => {
@@ -73,9 +79,19 @@ export default function ContactForm({ onClose, onSubmit, initialData }: ContactF
             const dataToSubmit: ContactFormData = {
                 ...formData,
                 ...(isHighTicket && followUpTask.trim() ? { followUpTask: followUpTask.trim(), followUpDate } : {}),
-                startQuote: submitAction === 'quote'
+                startQuote: submitAction === 'quote',
+                visitedStore,
+                forceCreate: duplicateWarning ? true : undefined
             };
             await onSubmit(dataToSubmit);
+        } catch (error: any) {
+            if (error.isDuplicate) {
+                setDuplicateWarning(error);
+            } else if (error.isBlocked) {
+                alert(error.details || error.error || 'Error: Número de celular inválido.');
+            } else {
+                alert('Ocurrió un error al guardar: ' + (error.message || 'Desconocido'));
+            }
         } finally {
             setSaving(false);
         }
@@ -100,10 +116,20 @@ export default function ContactForm({ onClose, onSubmit, initialData }: ContactF
                     {isHighTicket && (
                         <div className="p-6 bg-amber-50 dark:bg-amber-900/10 rounded-[2rem] border-2 border-amber-200 dark:border-amber-800 space-y-4">
                             <label className="text-[10px] font-black uppercase tracking-widest text-amber-700">⚡ Seguimiento Obligatorio (Multifocal)</label>
-                            <input type="text" placeholder="Ej: Llamar en 48hs" value={followUpTask} onChange={(e) => setFollowUpTask(e.target.value)} className="w-full px-4 py-4 bg-white border-2 rounded-2xl font-bold text-sm outline-none focus:border-amber-500" />
-                            <input type="date" value={followUpDate} onChange={(e) => setFollowUpDate(e.target.value)} className="w-full px-4 py-3 bg-white border-2 rounded-2xl text-sm font-bold outline-none" />
+                            <input type="text" placeholder="Ej: Llamar en 48hs" value={followUpTask} onChange={(e) => setFollowUpTask(e.target.value)} className="w-full px-4 py-4 bg-white dark:bg-stone-800 border-2 dark:border-stone-700 dark:text-stone-100 rounded-2xl font-bold text-sm outline-none focus:border-amber-500" />
+                            <input type="date" value={followUpDate} onChange={(e) => setFollowUpDate(e.target.value)} className="w-full px-4 py-3 bg-white dark:bg-stone-800 border-2 dark:border-stone-700 dark:text-stone-100 rounded-2xl text-sm font-bold outline-none" />
                         </div>
                     )}
+
+                    <div className="p-5 bg-stone-50 dark:bg-stone-800/30 rounded-[2rem] border border-stone-100 dark:border-stone-800 flex items-center justify-between cursor-pointer transition-all hover:bg-stone-100 dark:hover:bg-stone-800/50" onClick={() => setVisitedStore(!visitedStore)}>
+                        <div>
+                            <p className="text-sm font-black text-stone-800 dark:text-stone-100 uppercase tracking-widest">📍 Visita al Local</p>
+                            <p className="text-xs text-stone-500 font-bold mt-1">El cliente está o estuvo presencialmente en el local hoy.</p>
+                        </div>
+                        <div className={`w-14 h-8 rounded-full p-1 transition-colors duration-300 ${visitedStore ? 'bg-emerald-500' : 'bg-stone-300 dark:bg-stone-700'}`}>
+                            <div className={`w-6 h-6 bg-white rounded-full shadow-sm transition-transform duration-300 ${visitedStore ? 'translate-x-6' : 'translate-x-0'}`} />
+                        </div>
+                    </div>
 
                     <div className="space-y-4">
                         <label className="text-[10px] font-black uppercase tracking-widest text-stone-500 ml-1">Prioridad</label>
@@ -145,6 +171,44 @@ export default function ContactForm({ onClose, onSubmit, initialData }: ContactF
                         </button>
                     </footer>
                 </form>
+
+                {/* Duplicate Warning Overlay */}
+                {duplicateWarning && (
+                    <div className="absolute inset-0 bg-white/95 dark:bg-stone-900/95 backdrop-blur-sm z-50 flex flex-col items-center justify-center p-8 text-center animate-in zoom-in-95 duration-300">
+                        <div className="w-16 h-16 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center mb-6">
+                            <Star className="w-8 h-8 fill-current" />
+                        </div>
+                        <h3 className="text-2xl font-black text-stone-900 dark:text-white mb-2">
+                            Cliente Existente Detectado
+                        </h3>
+                        <p className="text-stone-500 mb-6 max-w-md">
+                            {duplicateWarning.details}
+                        </p>
+                        <div className="flex flex-col sm:flex-row gap-4 w-full max-w-md">
+                            {onGoToOriginal && (
+                                <button
+                                    autoFocus
+                                    onClick={() => onGoToOriginal(duplicateWarning.existingClient.id)}
+                                    className="flex-1 py-4 bg-primary text-primary-foreground rounded-xl font-bold shadow-lg hover:scale-105 active:scale-95 transition-all outline-none focus:ring-4 focus:ring-primary/50"
+                                >
+                                    IR A LA FICHA ORIGINAL
+                                </button>
+                            )}
+                            <button
+                                onClick={handleSubmit}
+                                className="flex-1 py-4 bg-stone-100 text-stone-600 dark:bg-stone-800 dark:text-stone-300 rounded-xl font-bold hover:bg-stone-200 dark:hover:bg-stone-700 active:scale-95 transition-all"
+                            >
+                                CREAR DUPLICADO IGUAL
+                            </button>
+                        </div>
+                        <button 
+                            onClick={() => setDuplicateWarning(null)}
+                            className="mt-6 text-sm text-stone-400 hover:text-stone-600 font-bold underline decoration-stone-300 underline-offset-4"
+                        >
+                            Cancelar y volver a editar
+                        </button>
+                    </div>
+                )}
             </div>
         </div>
     );

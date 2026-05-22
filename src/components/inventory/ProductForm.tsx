@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { X, Save, Package, Layers, DollarSign, Plus, Upload, Database, ChevronDown, CheckCircle2, AlertCircle, ArrowRight, ChevronRight, Info } from 'lucide-react';
 
 import { autoCorrectLab } from '@/utils/product-controllers';
@@ -60,7 +60,9 @@ export default function ProductForm({ onClose, onSuccess, isAdmin = false, uniqu
         name: '', brand: '', model: '', stock: 0, price: 0, cost: 0, 
         lensIndex: '', laboratory: '', sphereMin: '', sphereMax: '', 
         cylinderMin: '', cylinderMax: '', additionMin: '', additionMax: '',
-        is2x1: false 
+        is2x1: false, publishToWeb: true,
+        seoTitle: '', seoDescription: '', seoTags: '', customSlug: '',
+        mpn: '', gender: '', ageGroup: ''
     });
 
     // Step 2 — bulk CSV -> Dynamic Grid
@@ -71,6 +73,24 @@ export default function ProductForm({ onClose, onSuccess, isAdmin = false, uniqu
         sphereMin: '', sphereMax: '', cylinderMin: '', cylinderMax: ''
     }]);
     const [showRanges, setShowRanges] = useState(false);
+    const [labConfigs, setLabConfigs] = useState<any[]>([]);
+
+    useEffect(() => {
+        fetch('/api/laboratories')
+            .then(res => res.json())
+            .then(data => {
+                if (Array.isArray(data.laboratories)) setLabConfigs(data.laboratories);
+            })
+            .catch(err => console.error('Error fetching labs:', err));
+    }, []);
+
+    const getFinalCost = (listCost: number, labName: string) => {
+        const config = labConfigs.find(l => l.name.toUpperCase() === (labName || '').toUpperCase());
+        if (config) {
+            return Math.round((listCost + config.calibrado) * (1 + config.iva / 100));
+        }
+        return listCost;
+    };
 
     const activeCategory = PRODUCT_CATEGORIES.find(c => c.id === selectedCategory);
     const hasSubtypes = !!(activeCategory?.subtypes?.length);
@@ -102,7 +122,7 @@ export default function ProductForm({ onClose, onSuccess, isAdmin = false, uniqu
                 type: finalType,
                 category: selectedCategory,
                 price: formData.price,
-                cost: formData.cost,
+                cost: isCristal ? getFinalCost(formData.cost, formData.laboratory) : formData.cost,
                 stock: isCristal ? 0 : formData.stock,
                 lensIndex: isCristal ? formData.lensIndex : null,
                 unitType: isCristal ? 'PAR' : 'UNIDAD',
@@ -113,7 +133,17 @@ export default function ProductForm({ onClose, onSuccess, isAdmin = false, uniqu
                 cylinderMax: isCristal && formData.cylinderMax !== '' ? parseFloat(formData.cylinderMax) : null,
                 additionMin: isCristal && formData.additionMin !== '' ? parseFloat(formData.additionMin) : null,
                 additionMax: isCristal && formData.additionMax !== '' ? parseFloat(formData.additionMax) : null,
-                is2x1: formData.is2x1
+                is2x1: formData.is2x1,
+                publishToWeb: formData.publishToWeb,
+                ...(formData.publishToWeb ? {
+                    seoTitle: formData.seoTitle || null,
+                    seoDescription: formData.seoDescription || null,
+                    seoTags: formData.seoTags || null,
+                    customSlug: formData.customSlug || null,
+                    mpn: formData.mpn || null,
+                    gender: formData.gender || null,
+                    ageGroup: formData.ageGroup || null,
+                } : {})
             };
             const res = await fetch('/api/products', {
                 method: 'POST',
@@ -127,6 +157,45 @@ export default function ProductForm({ onClose, onSuccess, isAdmin = false, uniqu
             }
         } catch { alert('Error al conectar con el servidor'); }
         finally { setSaving(false); }
+    };
+    
+    const [generatingSEO, setGeneratingSEO] = useState(false);
+
+    const handleGenerateSEO = async () => {
+        if (!formData.name && !finalType) {
+            alert('Por favor ingresá un nombre o seleccioná un tipo de producto primero.');
+            return;
+        }
+        setGeneratingSEO(true);
+        try {
+            const res = await fetch('/api/seo/generate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    name: formData.name,
+                    brand: formData.brand,
+                    model: formData.model,
+                    category: selectedCategory,
+                    type: finalType
+                })
+            });
+            if (res.ok) {
+                const data = await res.json();
+                setFormData(prev => ({
+                    ...prev,
+                    seoTitle: data.seoTitle || prev.seoTitle,
+                    seoDescription: data.seoDescription || prev.seoDescription,
+                    seoTags: data.seoTags || prev.seoTags,
+                    customSlug: data.customSlug || prev.customSlug,
+                }));
+            } else {
+                alert('Error al generar SEO.');
+            }
+        } catch (e) {
+            alert('Error de conexión al generar SEO.');
+        } finally {
+            setGeneratingSEO(false);
+        }
     };
 
     const handleBulkSubmit = async () => {
@@ -167,7 +236,7 @@ export default function ProductForm({ onClose, onSuccess, isAdmin = false, uniqu
                     category: selectedCategory,
                     lensIndex: item.lensIndex,
                     price: Number(item.price) || 0,
-                    cost: isAdmin ? Number(item.cost) || 0 : 0,
+                    cost: isAdmin ? (isCristal ? getFinalCost(Number(item.cost) || 0, item.laboratory) : Number(item.cost) || 0) : 0,
                     stock: 0,
                     unitType: 'PAR',
                     laboratory: item.laboratory,
@@ -386,15 +455,22 @@ export default function ProductForm({ onClose, onSuccess, isAdmin = false, uniqu
                             {/* Costo — solo admin */}
                             {isAdmin && (
                             <div className="space-y-2">
-                                <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest ml-4">Costo ($) *</label>
+                                <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest ml-4">
+                                    {isCristal ? 'Costo de Lista ($) *' : 'Costo ($) *'}
+                                </label>
                                 <div className="relative group">
                                     <DollarSign className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-300 group-focus-within:text-primary transition-colors" />
-                                    <input required type="number" min={1} placeholder="0.00"
+                                    <input required type="number" min={0} placeholder="0.00"
                                         className="w-full pl-12 pr-6 py-4 bg-stone-50/50 dark:bg-stone-800/30 border border-stone-200 dark:border-stone-700 rounded-[1.5rem] font-bold text-sm outline-none focus:border-primary transition-all"
                                         value={formData.cost || ''}
                                         onChange={e => setFormData({ ...formData, cost: parseFloat(e.target.value) || 0 })}
                                     />
                                 </div>
+                                {isCristal && formData.cost > 0 && formData.laboratory && labConfigs.some(l => l.name.toUpperCase() === formData.laboratory.toUpperCase()) && (
+                                    <p className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 ml-4 animate-in fade-in">
+                                        Costo Final: ${getFinalCost(formData.cost, formData.laboratory).toLocaleString()} (incluye calibrado e IVA)
+                                    </p>
+                                )}
                             </div>
                             )}
 
@@ -552,6 +628,22 @@ export default function ProductForm({ onClose, onSuccess, isAdmin = false, uniqu
                                 </label>
                             </div>
 
+                            {/* Publicar en la Web (Otros) */}
+                            <div className="col-span-2 pt-2">
+                                <label className="flex items-center gap-3 cursor-pointer group w-max">
+                                    <div className={`relative w-10 h-6 rounded-full transition-colors ${formData.publishToWeb ? 'bg-primary' : 'bg-stone-300 dark:bg-stone-700'}`}>
+                                        <div className={`absolute top-1 left-1 bg-white w-4 h-4 rounded-full transition-transform ${formData.publishToWeb ? 'translate-x-4' : 'translate-x-0'}`} />
+                                    </div>
+                                    <input type="checkbox" className="hidden" checked={formData.publishToWeb} onChange={e => setFormData({ ...formData, publishToWeb: e.target.checked })} />
+                                    <div>
+                                        <p className={`text-xs font-black uppercase tracking-widest ${formData.publishToWeb ? 'text-primary' : 'text-stone-500'}`}>
+                                            🌐 Publicar en Tienda Online
+                                        </p>
+                                        <p className="text-[9px] font-bold text-stone-400">El producto aparecerá visible en la web pública.</p>
+                                    </div>
+                                </label>
+                            </div>
+
                             {/* Precio Venta */}
                             <div className="space-y-2 col-span-2">
                                 <label className="text-[10px] font-black text-primary uppercase tracking-widest ml-4">Precio Venta ($) *</label>
@@ -567,6 +659,90 @@ export default function ProductForm({ onClose, onSuccess, isAdmin = false, uniqu
                         </>
                     )}
                 </div>
+
+                {/* --- SEO & Google Shopping Form --- */}
+                {formData.publishToWeb && (
+                    <div className="mt-6 mb-6 p-6 bg-stone-50 dark:bg-stone-800/40 border border-stone-200 dark:border-stone-700 rounded-3xl space-y-5 animate-in fade-in slide-in-from-bottom-4">
+                        <div className="flex items-center justify-between flex-wrap gap-4">
+                            <div>
+                                <h3 className="text-[12px] font-black text-stone-800 dark:text-stone-200 uppercase tracking-widest flex items-center gap-2">
+                                    <svg className="w-4 h-4 text-primary" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+                                    Instagram y Google Shopping
+                                </h3>
+                                <p className="text-[10px] text-stone-500 mt-1">Metadatos para destacar tu producto en vidrieras virtuales.</p>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={handleGenerateSEO}
+                                disabled={generatingSEO}
+                                className="px-4 py-2 bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:opacity-90 transition-opacity flex items-center gap-2 disabled:opacity-50"
+                            >
+                                {generatingSEO ? 'Generando...' : '✨ Generar con IA'}
+                            </button>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <label className="text-[9px] font-black text-stone-400 uppercase tracking-widest ml-2">Título SEO (Max 70 char)</label>
+                                <input type="text" placeholder="Ej: Anteojos de Sol Ray-Ban Aviator"
+                                    maxLength={70}
+                                    className="w-full px-4 py-3 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl text-xs outline-none focus:border-primary transition-all"
+                                    value={formData.seoTitle || ''} onChange={e => setFormData({ ...formData, seoTitle: e.target.value })}
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-[9px] font-black text-stone-400 uppercase tracking-widest ml-2">URL del producto (Slug)</label>
+                                <input type="text" placeholder="Ej: ray-ban-aviator-negro"
+                                    className="w-full px-4 py-3 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl text-xs outline-none focus:border-primary transition-all font-mono"
+                                    value={formData.customSlug || ''} onChange={e => setFormData({ ...formData, customSlug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-') })}
+                                />
+                            </div>
+                            <div className="space-y-2 col-span-2">
+                                <label className="text-[9px] font-black text-stone-400 uppercase tracking-widest ml-2">Descripción SEO (Max 160 char)</label>
+                                <textarea placeholder="Persuasiva, resalta beneficios e inmediatez..."
+                                    maxLength={160} rows={2}
+                                    className="w-full px-4 py-3 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl text-xs outline-none focus:border-primary transition-all resize-none"
+                                    value={formData.seoDescription || ''} onChange={e => setFormData({ ...formData, seoDescription: e.target.value })}
+                                />
+                            </div>
+                            <div className="space-y-2 col-span-2">
+                                <label className="text-[9px] font-black text-stone-400 uppercase tracking-widest ml-2">Tags (Palabras Clave)</label>
+                                <input type="text" placeholder="Ej: polarizadas, filtro UV, anteojos de sol, vintage"
+                                    className="w-full px-4 py-3 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl text-xs outline-none focus:border-primary transition-all"
+                                    value={formData.seoTags || ''} onChange={e => setFormData({ ...formData, seoTags: e.target.value })}
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-[9px] font-black text-stone-400 uppercase tracking-widest ml-2">MPN (Código Fab.)</label>
+                                <input type="text" placeholder="Ej: RB3025"
+                                    className="w-full px-4 py-3 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl text-xs outline-none focus:border-primary transition-all"
+                                    value={formData.mpn || ''} onChange={e => setFormData({ ...formData, mpn: e.target.value })}
+                                />
+                            </div>
+                            <div className="space-y-2 flex gap-2">
+                                <div className="flex-1">
+                                    <label className="text-[9px] font-black text-stone-400 uppercase tracking-widest ml-2">Rango Edad</label>
+                                    <select className="w-full px-3 py-3 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl text-xs outline-none focus:border-primary transition-all"
+                                        value={formData.ageGroup || ''} onChange={e => setFormData({ ...formData, ageGroup: e.target.value })}>
+                                        <option value="">Seleccionar</option>
+                                        <option value="Adulto">Adulto</option>
+                                        <option value="Niños">Niños</option>
+                                    </select>
+                                </div>
+                                <div className="flex-1">
+                                    <label className="text-[9px] font-black text-stone-400 uppercase tracking-widest ml-2">Género</label>
+                                    <select className="w-full px-3 py-3 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl text-xs outline-none focus:border-primary transition-all"
+                                        value={formData.gender || ''} onChange={e => setFormData({ ...formData, gender: e.target.value })}>
+                                        <option value="">Seleccionar</option>
+                                        <option value="Femenino">Femenino</option>
+                                        <option value="Masculino">Masculino</option>
+                                        <option value="Unisex">Unisex</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
 
                 <button type="submit" disabled={saving}
                     className="w-full py-6 bg-stone-900 text-white dark:bg-primary dark:text-primary-foreground rounded-[2rem] text-sm font-black uppercase tracking-[0.2em] shadow-2xl flex items-center justify-center gap-3 transition-all hover:scale-[1.02] active:scale-95 disabled:opacity-50"
@@ -625,7 +801,7 @@ export default function ProductForm({ onClose, onSuccess, isAdmin = false, uniqu
                                         <th className="p-3 text-[9px] font-black uppercase tracking-widest text-stone-500">Laboratorio *</th>
                                         <th className="p-3 text-[9px] font-black uppercase tracking-widest text-stone-500">Índice *</th>
                                         <th className="p-3 text-[9px] font-black uppercase tracking-widest text-primary">Venta $ *</th>
-                                        {isAdmin && <th className="p-3 text-[9px] font-black uppercase tracking-widest text-stone-500">Costo $</th>}
+                                        {isAdmin && <th className="p-3 text-[9px] font-black uppercase tracking-widest text-stone-500">{isCristal ? 'Lista $' : 'Costo $'}</th>}
                                         {showRanges && (
                                             <>
                                                 <th className="p-3 text-[9px] font-black uppercase tracking-widest text-amber-600 dark:text-amber-500 border-l border-stone-200 dark:border-stone-700 bg-amber-50/50 dark:bg-amber-900/10">Esf Mín</th>
@@ -642,7 +818,7 @@ export default function ProductForm({ onClose, onSuccess, isAdmin = false, uniqu
                                         <th className="p-3 text-[9px] font-black uppercase tracking-widest text-stone-500">Modelo</th>
                                         <th className="p-3 text-[9px] font-black uppercase tracking-widest text-stone-500">Stock *</th>
                                         <th className="p-3 text-[9px] font-black uppercase tracking-widest text-primary">Venta $ *</th>
-                                        {isAdmin && <th className="p-3 text-[9px] font-black uppercase tracking-widest text-stone-500">Costo $</th>}
+                                        {isAdmin && <th className="p-3 text-[9px] font-black uppercase tracking-widest text-stone-500">{isCristal ? 'Lista $' : 'Costo $'}</th>}
                                     </>
                                 )}
                                 <th className="p-3 text-center w-10"></th>

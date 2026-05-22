@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/db';
-import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
+import { ChatVertexAI } from "@langchain/google-vertexai-web";
 import { SystemMessage, HumanMessage } from "@langchain/core/messages";
 import { getFileBuffer } from '@/lib/storage';
 import { detectBillingAccount, getBillingAccountConfig } from '@/lib/afip';
@@ -41,12 +41,12 @@ export class ReceiptAgentService {
                 expectedCuit = getBillingAccountConfig(account).cuit;
             }
 
-            // 3. Prompt Gemini
-            const model = new ChatGoogleGenerativeAI({
-                model: "gemini-1.5-flash",
+            // 3. Prompt Gemini (Vertex AI)
+            const model = new ChatVertexAI({
+                model: "gemini-2.5-flash",
+                location: "global",
                 maxOutputTokens: 2048,
                 temperature: 0,
-                apiKey: process.env.GOOGLE_GENAI_API_KEY || process.env.GOOGLE_API_KEY,
             });
 
             const systemPrompt = `Eres un experto auditor de pagos. Analiza el comprobante adjunto.
@@ -66,7 +66,7 @@ Solo devuelve el JSON, sin texto antes ni después.`;
                         { type: "text", text: "Por favor, analiza este comprobante según las instrucciones." },
                         { 
                             type: "image_url", 
-                            image_url: `data:${mimeType};base64,${base64Data}`
+                            image_url: { url: `data:${mimeType};base64,${base64Data}` }
                         }
                     ]
                  })
@@ -103,38 +103,56 @@ Solo devuelve el JSON, sin texto antes ni después.`;
                 }
             }
 
-            // C) Check Duplicate Transaction
+            // C) Auto-correct Transaction ID + Check Duplicates
             let isDuplicate = false;
-            // Append TX ID to the current payment notes right away so we can search it, or just update it
             if (extracted.transaction_id) {
-                const txString = `[TX: ${extracted.transaction_id.trim()}]`;
-                
-                // Do a search to see if another payment has this same TX
+                const extractedTx = extracted.transaction_id.trim();
+                const txString = `[TX: ${extractedTx}]`;
+
+                // Fetch current payment to compare the user-typed notes vs. AI-extracted TX
+                const currentPayment = await prisma.payment.findUnique({ where: { id: paymentId } });
+                const userTypedNotes = (currentPayment?.notes || '').trim();
+
+                // Strip any previous [TX: ...] tag from notes for clean comparison
+                const userReference = userTypedNotes.replace(/\s*\[TX:.*?\]\s*/g, '').trim();
+
+                // AUTO-CORRECT: If the user typed a different reference than what the image shows, overwrite it
+                const referenceMatchesExtracted = userReference === extractedTx 
+                    || userReference.includes(extractedTx) 
+                    || extractedTx.includes(userReference);
+
+                if (userReference && !referenceMatchesExtracted) {
+                    // The user typed something wrong — correct it with the AI-extracted value
+                    errors.push(`Referencia corregida: El usuario cargó "${userReference}" pero el comprobante dice "${extractedTx}". Se actualizó automáticamente.`);
+                    
+                    await prisma.payment.update({
+                        where: { id: paymentId },
+                        data: { notes: `${extractedTx} ${txString}` }
+                    });
+                } else {
+                    // Notes match or were empty — just append the [TX: ...] tag for dedup tracking
+                    const newNotes = userReference
+                        ? `${userReference} ${txString}`
+                        : txString;
+
+                    await prisma.payment.update({
+                        where: { id: paymentId },
+                        data: { notes: newNotes }
+                    });
+                }
+
+                // Check for duplicate transactions across other payments
                 const duplicates = await prisma.payment.findMany({
                     where: {
                         notes: { contains: txString },
-                        id: { not: paymentId } // Exclude the current current
+                        id: { not: paymentId }
                     }
                 });
 
                 if (duplicates.length > 0) {
                     isDuplicate = true;
-                    errors.push(`¡Posible Duplicado! El comprobante tiene la Operación ${extracted.transaction_id}, igual a la/s en pago/s: ${duplicates.map(d => d.id).join(', ')}.`);
+                    errors.push(`¡Posible Duplicado! El comprobante tiene la Operación ${extractedTx}, igual a la/s en pago/s: ${duplicates.map(d => d.id).join(', ')}.`);
                 }
-
-                // Update the current payment notes to include this TX so it prevents future ones
-                await prisma.payment.update({
-                    where: { id: paymentId },
-                    data: {
-                        notes: {
-                            // Concat to existing or set
-                            // Using a raw query or fetching current
-                            set: (await prisma.payment.findUnique({ where: { id: paymentId } }))?.notes 
-                                ? `${(await prisma.payment.findUnique({ where: { id: paymentId } }))!.notes} \n${txString}`
-                                : txString
-                        }
-                    }
-                });
             }
 
             // D) Check Date (Must be very recent)
@@ -170,7 +188,12 @@ Solo devuelve el JSON, sin texto antes ni después.`;
             }
 
         } catch (err: any) {
-             console.error(`[ReceiptAgent] Agent failed for ${paymentId}:`, err.message);
+             const { handleAIError } = await import('@/lib/ai-error-handler');
+             try {
+                 await handleAIError(err, 'Agente Auditor de Comprobantes (OCR)');
+             } catch (handledError: any) {
+                 console.error(`[ReceiptAgent] Agent failed for ${paymentId}:`, handledError.message);
+             }
         }
     }
 }

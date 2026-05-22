@@ -52,6 +52,7 @@ interface CotizadorCartProps {
     extraActions?: React.ReactNode;
     editingQuoteId?: string | null;
     onCancelEdit?: () => void;
+    crystalColors?: any[];
 }
 
 export default function CotizadorCart({
@@ -85,6 +86,7 @@ export default function CotizadorCart({
     extraActions,
     editingQuoteId,
     onCancelEdit,
+    crystalColors = [],
 }: CotizadorCartProps) {
 
     const [fullSearch, setFullSearch] = useState('');
@@ -184,9 +186,11 @@ export default function CotizadorCart({
                 items={items} 
                 onUpdateQuantity={(idx, delta) => setItems(prev => prev.map((item, i) => i === idx ? { ...item, quantity: Math.max(1, item.quantity + delta) } : item))}
                 onRemoveItem={(idx) => setItems(prev => prev.filter((_, i) => i !== idx))}
+                onUpdateItemColor={(idx, color, colorType) => setItems(prev => prev.map((item, i) => i === idx ? { ...item, crystalColor: color, crystalColorType: colorType } : item))}
                 markup={markup}
                 secondFrameUid={secondFrameUid}
                 promoFrameDiscount={promoFrameDiscount}
+                crystalColors={crystalColors}
             />
 
             {hasAnyMultifocal && (
@@ -204,18 +208,18 @@ export default function CotizadorCart({
             {items.some(i => isCrystal(i.product)) && (
                 <div className="p-6 bg-amber-50/50 dark:bg-amber-950/20 rounded-[2.5rem] border-2 border-amber-200/50 mb-8">
                     <div className="flex gap-3 mb-6">
-                        <button onClick={() => setFrameSource('OPTICA')} className={`flex-1 py-4 rounded-2xl text-[10px] font-black uppercase ${frameSource === 'OPTICA' ? 'bg-amber-500 text-white shadow-xl shadow-amber-500/20' : 'bg-white text-stone-400 border-2'}`}>DE LA ÓPTICA</button>
-                        <button onClick={() => setFrameSource('USUARIO')} className={`flex-1 py-4 rounded-2xl text-[10px] font-black uppercase ${frameSource === 'USUARIO' ? 'bg-amber-500 text-white shadow-xl shadow-amber-500/20' : 'bg-white text-stone-400 border-2'}`}>DEL USUARIO</button>
+                        <button onClick={() => setFrameSource('OPTICA')} className={`flex-1 py-4 rounded-2xl text-[10px] font-black uppercase ${frameSource === 'OPTICA' ? 'bg-amber-500 text-white shadow-xl shadow-amber-500/20' : 'bg-white dark:bg-stone-800 text-stone-400 border-2 dark:border-stone-700'}`}>DE LA ÓPTICA</button>
+                        <button onClick={() => setFrameSource('USUARIO')} className={`flex-1 py-4 rounded-2xl text-[10px] font-black uppercase ${frameSource === 'USUARIO' ? 'bg-amber-500 text-white shadow-xl shadow-amber-500/20' : 'bg-white dark:bg-stone-800 text-stone-400 border-2 dark:border-stone-700'}`}>DEL USUARIO</button>
                     </div>
                     {frameSource === 'OPTICA' && framesInQuote.length < 2 && (
                         <div className="relative mb-3">
-                            <Search className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-stone-300" />
-                            <input type="text" placeholder="Buscar armazón..." value={frameSearch} onChange={e => setFrameSearch(e.target.value)} className="w-full bg-white border-2 py-3 pl-11 pr-4 rounded-2xl text-xs font-bold" />
-                            {frameResults.length > 0 && <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2">{frameResults.map(fr => <button key={fr.id} onClick={() => { setItems(prev => [...prev, { product: fr, quantity: 1, customPrice: fr.price, uid: Date.now() }]); setFrameSearch(''); }} className="p-3 bg-white border-2 rounded-xl text-left text-[11px] font-black hover:border-amber-400">{fr.brand} · {fr.name}</button>)}</div>}
+                            <Search className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-stone-300 dark:text-stone-500" />
+                            <input type="text" placeholder="Buscar armazón..." value={frameSearch} onChange={e => setFrameSearch(e.target.value)} className="w-full bg-white dark:bg-stone-800 border-2 dark:border-stone-700 dark:text-stone-100 py-3 pl-11 pr-4 rounded-2xl text-xs font-bold" />
+                            {frameResults.length > 0 && <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2">{frameResults.map(fr => <button key={fr.id} onClick={() => { setItems(prev => [...prev, { product: fr, quantity: 1, customPrice: fr.price, uid: Date.now() }]); setFrameSearch(''); }} className="p-3 bg-white dark:bg-stone-800 border-2 dark:border-stone-700 dark:text-stone-100 rounded-xl text-left text-[11px] font-black hover:border-amber-400 dark:hover:border-amber-500">{fr.brand} · {fr.name}</button>)}</div>}
                         </div>
                     )}
                     {frameSource === 'USUARIO' && (
-                        <div className="grid grid-cols-2 gap-3"><input type="text" placeholder="Marca" value={userFrameData.brand} onChange={e => setUserFrameData(prev => ({ ...prev, brand: e.target.value }))} className="bg-white border-2 py-3 px-5 rounded-2xl text-xs font-bold" /><input type="text" placeholder="Modelo" value={userFrameData.model} onChange={e => setUserFrameData(prev => ({ ...prev, model: e.target.value }))} className="bg-white border-2 py-3 px-5 rounded-2xl text-xs font-bold" /></div>
+                        <div className="grid grid-cols-2 gap-3"><input type="text" placeholder="Marca" value={userFrameData.brand} onChange={e => setUserFrameData(prev => ({ ...prev, brand: e.target.value }))} className="bg-white dark:bg-stone-800 border-2 dark:border-stone-700 dark:text-stone-100 py-3 px-5 rounded-2xl text-xs font-bold" /><input type="text" placeholder="Modelo" value={userFrameData.model} onChange={e => setUserFrameData(prev => ({ ...prev, model: e.target.value }))} className="bg-white dark:bg-stone-800 border-2 dark:border-stone-700 dark:text-stone-100 py-3 px-5 rounded-2xl text-xs font-bold" /></div>
                     )}
                 </div>
             )}

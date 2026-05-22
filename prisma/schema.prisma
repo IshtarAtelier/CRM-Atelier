@@ -9,15 +9,16 @@ datasource db {
 }
 
 model User {
-  id            String         @id @default(cuid())
-  name          String
-  email         String         @unique
-  password      String
-  role          String         @default("STAFF")
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
-  cashMovements CashMovement[]
-  orders        Order[]
+  id               String         @id @default(cuid())
+  name             String
+  email            String         @unique
+  password         String
+  role             String         @default("STAFF")
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  cashMovements    CashMovement[]
+  orders           Order[]
+  notificationsReq Notification[] @relation("RequestedBy")
 }
 
 model Client {
@@ -35,6 +36,7 @@ model Client {
   address       String?
   insurance     String?
   doctor        String?
+  metaLid       String?
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
   wantsInvoice  Boolean?
@@ -73,11 +75,13 @@ model Interaction {
 }
 
 model Tag {
-  id      String   @id @default(cuid())
-  name    String   @unique
-  color   String?  @default("#9e7f65")
-  clients Client[] @relation("ClientToTag")
-  orders  Order[]  @relation("OrderToTag")
+  id          String   @id @default(cuid())
+  name        String   @unique
+  color       String?  @default("#9e7f65")
+  botAction   String?  @default("NONE") // NONE, TURN_OFF, TURN_ON
+  notifyPhone String?
+  clients     Client[] @relation("ClientToTag")
+  orders      Order[]  @relation("OrderToTag")
 }
 
 model ClientTask {
@@ -126,56 +130,75 @@ model Prescription {
 }
 
 model Product {
-  id             String      @id @default(cuid())
-  name           String?
-  category       String
-  type           String?
-  brand          String?
-  model          String?
-  stock          Int         @default(0)
-  lensIndex      String?
-  unitType       String?     @default("UNIDAD")
-  laboratory     String?
-  price          Float       @default(0.0)
-  cost           Float       @default(0.0)
-  sphereMin      Float?
-  sphereMax      Float?
-  cylinderMin    Float?
-  cylinderMax    Float?
-  additionMin    Float?
-  additionMax    Float?
-  is2x1          Boolean     @default(false)
-  createdAt      DateTime    @default(now())
-  updatedAt      DateTime    @updatedAt
-  botLabel       String?
-  botRecommended Boolean     @default(false)
-  orderItems     OrderItem[]
-  webProducts    WebProduct[]
+  id                    String       @id @default(cuid())
+  name                  String?
+  category              String
+  type                  String?
+  brand                 String?
+  model                 String?
+  stock                 Int          @default(0)
+  lensIndex             String?
+  unitType              String?      @default("UNIDAD")
+  laboratory            String?
+  price                 Float        @default(0.0)
+  cost                  Float        @default(0.0)
+  sphereMin             Float?
+  sphereMax             Float?
+  cylinderMin           Float?
+  cylinderMax           Float?
+  additionMin           Float?
+  additionMax           Float?
+  is2x1                 Boolean      @default(false)
+  createdAt             DateTime     @default(now())
+  updatedAt             DateTime     @updatedAt
+  botLabel              String?
+  botRecommended        Boolean      @default(false)
+  imageProcessingStatus String?      @default("IDLE")
+  rawImageUrls          String[]     @default([])
+  imagenesCatalogo      String[]     @default([])
+  publishToWeb          Boolean      @default(false)
+  // Medidas del armazón (en mm)
+  lensWidth             Int?
+  bridgeWidth           Int?
+  templeLength          Int?
+  frameHeight           Int?
+  
+  // SEO & E-Commerce (TiendaNube Style)
+  seoTitle              String?
+  seoDescription        String?
+  seoTags               String?
+  customSlug            String?
+  mpn                   String?
+  gender                String?
+  ageGroup              String?
+
+  orderItems            OrderItem[]
+  webProducts           WebProduct[]
 }
 
 model Order {
-  id                   String        @id @default(cuid())
+  id                   String         @id @default(cuid())
   clientId             String
   userId               String
-  status               String        @default("PENDING")
-  total                Float         @default(0.0)
-  paid                 Float         @default(0.0)
-  isDeleted            Boolean       @default(false)
+  status               String         @default("PENDING")
+  total                Float          @default(0.0)
+  paid                 Float          @default(0.0)
+  isDeleted            Boolean        @default(false)
   deletedReason        String?
-  createdAt            DateTime      @default(now())
-  updatedAt            DateTime      @updatedAt
+  createdAt            DateTime       @default(now())
+  updatedAt            DateTime       @updatedAt
   prescriptionId       String?
-  labStatus            String?       @default("NONE")
+  labStatus            String?        @default("NONE")
   labSentAt            DateTime?
   labNotes             String?
   labOrderNumber       String?
-  discount             Float?        @default(0.0)
-  markup               Float?        @default(0.0)
-  discountCash         Float?        @default(0.0)
-  discountTransfer     Float?        @default(0.0)
-  discountCard         Float?        @default(0.0)
-  subtotalWithMarkup   Float?        @default(0.0)
-  orderType            String?       @default("QUOTE")
+  discount             Float?         @default(0.0)
+  markup               Float?         @default(0.0)
+  discountCash         Float?         @default(0.0)
+  discountTransfer     Float?         @default(0.0)
+  discountCard         Float?         @default(0.0)
+  subtotalWithMarkup   Float?         @default(0.0)
+  orderType            String?        @default("QUOTE")
   frameSource          String?
   userFrameBrand       String?
   userFrameModel       String?
@@ -198,14 +221,15 @@ model Order {
   prescriptionSnapshot String?
   appliedPromoName     String?
   appliedPromoDiscount Float?
-  specialDiscount      Float?        @default(0.0)
+  specialDiscount      Float?         @default(0.0)
   invoices             Invoice[]
-  client               Client        @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  prescription         Prescription? @relation(fields: [prescriptionId], references: [id])
-  user                 User          @relation(fields: [userId], references: [id])
+  client               Client         @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  prescription         Prescription?  @relation(fields: [prescriptionId], references: [id])
+  user                 User           @relation(fields: [userId], references: [id])
   items                OrderItem[]
   payments             Payment[]
-  tags                 Tag[]         @relation("OrderToTag")
+  tags                 Tag[]          @relation("OrderToTag")
+  notifications        Notification[]
 
   @@index([clientId])
   @@index([orderType, isDeleted])
@@ -228,7 +252,7 @@ model Invoice {
   billingAccount String   @default("ISH")
   status         String   @default("COMPLETED")
   createdAt      DateTime @default(now())
-  order          Order    @relation(fields: [orderId], references: [id])
+  order          Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
   @@index([orderId])
   @@index([cae])
@@ -251,6 +275,8 @@ model OrderItem {
   productNameSnapshot     String?
   productBrandSnapshot    String?
   productCategorySnapshot String?
+  crystalColor            String?
+  crystalColorType        String?
   order                   Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
   product                 Product? @relation(fields: [productId], references: [id])
 }
@@ -279,6 +305,7 @@ model WhatsAppChat {
   id            String            @id @default(cuid())
   clientId      String?
   waId          String            @unique
+  realPhone     String?
   profileName   String?
   lastMessageAt DateTime?
   status        String            @default("OPEN")
@@ -288,7 +315,7 @@ model WhatsAppChat {
   botEnabled    Boolean           @default(true)
   archived      Boolean           @default(false)
   chatLabels    String[]          @default([])
-  client        Client?           @relation(fields: [clientId], references: [id])
+  client        Client?           @relation(fields: [clientId], references: [id], onDelete: SetNull)
   messages      WhatsAppMessage[]
 }
 
@@ -301,6 +328,7 @@ model WhatsAppMessage {
   mediaUrl    String?
   waMessageId String?      @unique
   status      String       @default("SENT")
+  senderName  String?
   createdAt   DateTime     @default(now())
   chat        WhatsAppChat @relation(fields: [chatId], references: [id], onDelete: Cascade)
 }
@@ -314,7 +342,7 @@ model DoctorPayment {
   receiptUrl String?
   notes      String?
   date       DateTime @default(now())
-  doctor     Doctor?  @relation(fields: [doctorId], references: [id])
+  doctor     Doctor?  @relation(fields: [doctorId], references: [id], onDelete: SetNull)
 
   @@index([doctorName])
 }
@@ -327,6 +355,8 @@ model Notification {
   orderId     String?
   requestedBy String
   resolvedBy  String?
+  order       Order?   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  userReq     User     @relation("RequestedBy", fields: [requestedBy], references: [id])
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -380,20 +410,101 @@ model ServicePricing {
 
 model WebProduct {
   id          String   @id @default(cuid())
-  productId   String   // ID del producto genérico en el CRM
+  productId   String // ID del producto genérico en el CRM
   name        String
   slug        String   @unique
-  description String?  // Texto comercial (puede ser generado por IA)
-  imageUrl    String?  // Foto principal
+  description String? // Texto comercial (puede ser generado por IA)
+  imageUrl    String? // Foto principal
   images      String[] @default([]) // Galería de fotos
   isActive    Boolean  @default(true)
   isFeatured  Boolean  @default(false)
-  category    String   // Ej: "Receta Mujer", "Sol Hombre"
+  category    String // Ej: "Receta Mujer", "Sol Hombre"
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-  
-  product     Product  @relation(fields: [productId], references: [id])
-  
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
   @@index([productId])
   @@index([category])
+}
+
+model LaboratoryConfig {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  calibrado Float    @default(0.0)
+  iva       Float    @default(0.0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model SystemSetting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+}
+
+model CheckoutSession {
+  id          String   @id @default(cuid())
+  email       String?
+  firstName   String?
+  lastName    String?
+  phone       String?
+  cartData    Json     // Store items, quantities, prices
+  shippingData Json?   // Store selected shipping method
+  status      String   @default("PENDING") // PENDING, RECOVERED, COMPLETED, ABANDONED
+  total       Float    @default(0.0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model BlogPost {
+  id              String   @id @default(cuid())
+  slug            String   @unique
+  title           String
+  excerpt         String
+  metaTitle       String?
+  metaDescription String?
+  content         String
+  date            DateTime @default(now())
+  category        String
+  imageUrl        String?
+  status          String   @default("DRAFT") // DRAFT, PUBLISHED
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model SocialContent {
+  id          String   @id @default(cuid())
+  platform    String   // INSTAGRAM, FACEBOOK, WHATSAPP
+  format      String   // POST, STORY, REEL, CAROUSEL
+  sourceType  String   // PRODUCT, BLOG, PROMO, FREE
+  sourceId    String?  // ID del producto o blog post
+  sourceName  String?  // Nombre del producto o blog para referencia rápida
+  copy        String   // Texto principal generado
+  hashtags    String?  // Hashtags separados por espacio
+  cta         String?  // Call to action
+  imageUrl    String?  // URL de la imagen generada (S3/storage)
+  imagePrompt String?  // Prompt usado para generar la imagen
+  publishTips String?  // Indicaciones de publicación en JSON
+  status      String   @default("DRAFT") // DRAFT, PUBLISHED, ARCHIVED
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([platform])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model CrystalColor {
+  id        String   @id @default(cuid())
+  name      String
+  category  String   @default("COMPACTO")
+  hexColor  String?
+  sortOrder Int      @default(0)
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([name, category])
+  @@index([category, active])
 }

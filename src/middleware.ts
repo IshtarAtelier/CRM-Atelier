@@ -23,7 +23,7 @@ export async function middleware(request: NextRequest) {
 
     // Proteger rutas API (excepto auth, cron, rescue, upload y whatsapp proxy)
     // Las rutas de bot (/api/bot/) tienen su propia validación de API KEY abajo
-    if (isApiRoute && !isAuthRoute && !pathname.startsWith('/api/cron/') && pathname !== '/api/diag' && pathname !== '/api/rescue' && !pathname.startsWith('/api/reports') && !pathname.startsWith('/api/bot/') && !pathname.startsWith('/api/whatsapp/') && !pathname.startsWith('/api/upload')) {
+    if (isApiRoute && !isAuthRoute && !pathname.startsWith('/api/cron/') && pathname !== '/api/diag' && pathname !== '/api/rescue' && !pathname.startsWith('/api/reports') && !pathname.startsWith('/api/bot/') && !pathname.startsWith('/api/whatsapp/') && !pathname.startsWith('/api/upload') && !pathname.startsWith('/api/store/') && !pathname.startsWith('/api/web/') && !pathname.startsWith('/api/storage/view') && !pathname.startsWith('/api/checkout/')) {
         if (!token) {
             return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
         }

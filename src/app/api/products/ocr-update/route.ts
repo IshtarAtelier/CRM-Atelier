@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server';
 import { headers } from 'next/headers';
-import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
+import { ChatVertexAI } from '@langchain/google-vertexai-web';
 import { SystemMessage, HumanMessage } from '@langchain/core/messages';
 import { prisma } from '@/lib/db';
+import { checkRateLimit } from '@/lib/rate-limiter';
 
 export const dynamic = 'force-dynamic';
 
@@ -22,8 +23,19 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Solo el administrador puede actualizar precios' }, { status: 403 });
         }
 
+        // Rate Limiting (5 peticiones por minuto por IP)
+        const ip = request.headers.get('x-forwarded-for') || 'unknown-ip';
+        const rateLimitResult = checkRateLimit(`ocr_update_${ip}`, { limit: 5, windowMs: 60000 });
+        
+        if (!rateLimitResult.success) {
+            return NextResponse.json(
+                { error: 'Demasiadas peticiones. Por favor, intenta de nuevo en un minuto.' },
+                { status: 429 }
+            );
+        }
+
         const body = await request.json();
-        const { imageBase64, laboratory, calibrado = 40000, iva = 21 } = body;
+        const { imageBase64, laboratory, calibrado = 15000, iva = 21 } = body;
 
         if (!imageBase64) {
             return NextResponse.json({ error: 'No se recibió imagen' }, { status: 400 });
@@ -32,17 +44,12 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Se requiere el nombre del laboratorio' }, { status: 400 });
         }
 
-        const apiKey = process.env.GOOGLE_GENAI_API_KEY || process.env.GOOGLE_API_KEY;
-        if (!apiKey) {
-            return NextResponse.json({ error: 'API Key de Gemini no configurada. Agregar GOOGLE_GENAI_API_KEY en .env' }, { status: 500 });
-        }
-
-        // 1. Use Gemini Vision to extract price data from image
-        const model = new ChatGoogleGenerativeAI({
-            model: 'gemini-2.0-flash',
+        // 1. Use Gemini Vision (Vertex AI) to extract price data from image
+        const model = new ChatVertexAI({
+            model: 'gemini-2.5-flash',
+            location: 'global',
             maxOutputTokens: 4096,
             temperature: 0,
-            apiKey,
         });
 
         const systemPrompt = `Eres un experto en óptica que extrae datos de listas de precios de laboratorios de lentes oftálmicos.
@@ -58,7 +65,8 @@ Para cada producto encontrado, devuelve:
 REGLAS IMPORTANTES:
 - Cada fila de la tabla es un producto independiente
 - El precio siempre es la última columna numérica de cada fila
-- Si hay varias columnas de precio (diferentes tratamientos), crea una entrada por cada combinación material+tratamiento
+- Si el laboratorio es "OPTOVISION" y se trata de lentes progresivas/multifocales (ej. Varilux), extrae el precio de la columna correspondiente a "Crizal Forte UV" o "Forte UV" como el precio base.
+- Si hay varias columnas de precio y no aplica la regla anterior, crea una entrada por cada combinación material+tratamiento
 - Los precios con punto son separadores de miles (ej: 515.260 = 515260)
 - No inventes datos que no estén en la imagen
 - Incluye ABSOLUTAMENTE TODOS los productos visibles
@@ -88,7 +96,7 @@ Devuelve SOLO un JSON válido con esta estructura:
                     { type: 'text', text: 'Extrae todos los productos y precios de esta lista de precios de laboratorio óptico.' },
                     {
                         type: 'image_url',
-                        image_url: `data:${mimeType};base64,${cleanBase64}`
+                        image_url: { url: `data:${mimeType};base64,${cleanBase64}` }
                     }
                 ]
             })
@@ -112,20 +120,7 @@ Devuelve SOLO un JSON válido con esta estructura:
             return NextResponse.json({ error: 'No se encontraron productos en la imagen' }, { status: 422 });
         }
 
-        // 3. Calculate costs: (precio + calibrado) * (1 + iva/100)
-        const ivaMultiplier = 1 + (iva / 100);
-        const processedItems = extracted.map(item => {
-            const costoFinal = Math.round((item.precio + calibrado) * ivaMultiplier);
-            return {
-                ...item,
-                precioLista: item.precio,
-                calibrado,
-                iva,
-                costoFinal,
-            };
-        });
-
-        // 4. Fetch existing products for this laboratory
+        // 3. Fetch existing products for this laboratory
         const existingProducts = await prisma.product.findMany({
             where: {
                 laboratory: {
@@ -143,11 +138,14 @@ Devuelve SOLO un JSON válido con esta estructura:
                 cost: true,
                 price: true,
                 laboratory: true,
+                is2x1: true,
             }
         });
 
-        // 5. Try to match extracted items with existing products
-        const matches = processedItems.map(item => {
+        // 4. Try to match extracted items with existing products
+        const ivaMultiplier = 1 + (iva / 100);
+
+        const matches = extracted.map(item => {
             // Build search terms from the extracted item
             const searchTerms = [
                 item.linea?.toLowerCase() || '',
@@ -194,25 +192,66 @@ Devuelve SOLO un JSON válido con esta estructura:
                 }
             }
 
+            // Calculate cost based on matched product's 2x1 status
+            const cantCristales = (bestMatch && bestScore >= 3 && bestMatch.is2x1) ? 2 : 1;
+            const calibradoTotal = calibrado * cantCristales;
+            const costoFinal = Math.round((item.precio + calibradoTotal) * ivaMultiplier);
+
+            // Calculate current markup and suggested new price
+            const matched = bestScore >= 3 ? bestMatch : null;
+            const currentMarkup = (matched && matched.cost > 0) ? parseFloat((matched.price / matched.cost).toFixed(2)) : 2.40;
+            const precioSugerido = Math.ceil((costoFinal * currentMarkup) / 1000) * 1000;
+
             return {
-                extracted: item,
-                match: bestScore >= 3 ? bestMatch : null,
+                extracted: {
+                    ...item,
+                    precioLista: item.precio,
+                    calibrado: calibradoTotal,
+                    iva,
+                    costoFinal,
+                    cantCristales,
+                },
+                match: matched ? {
+                    ...matched,
+                    is2x1: matched.is2x1,
+                } : null,
                 score: bestScore,
-                costoAnterior: bestMatch && bestScore >= 3 ? bestMatch.cost : null,
-                precioAnterior: bestMatch && bestScore >= 3 ? bestMatch.price : null,
+                costoAnterior: matched ? matched.cost : null,
+                precioAnterior: matched ? matched.price : null,
+                markupActual: currentMarkup,
+                precioSugerido,
             };
         });
 
+        // 5. Calculate summary stats
+        const matchedItems = matches.filter(m => m.match);
+        const costIncreases = matchedItems.filter(m => m.costoAnterior && m.extracted.costoFinal > m.costoAnterior);
+        const avgIncrease = costIncreases.length > 0
+            ? costIncreases.reduce((sum, m) => sum + ((m.extracted.costoFinal - (m.costoAnterior || 0)) / (m.costoAnterior || 1) * 100), 0) / costIncreases.length
+            : 0;
+
         return NextResponse.json({
-            extracted: processedItems,
             matches,
             laboratory,
-            totalExtracted: processedItems.length,
-            totalMatched: matches.filter(m => m.match).length,
+            totalExtracted: matches.length,
+            totalMatched: matchedItems.length,
+            summary: {
+                totalProducts: matchedItems.length,
+                withCostIncrease: costIncreases.length,
+                avgCostIncreasePercent: Math.round(avgIncrease * 100) / 100,
+            },
         });
 
     } catch (error: any) {
-        console.error('[OCR-Update] Error:', error);
+        const { handleAIError } = await import('@/lib/ai-error-handler');
+        try {
+            await handleAIError(error, 'OCR de Precios de Laboratorio');
+        } catch (handledError: any) {
+            return NextResponse.json({
+                error: 'Error al procesar la imagen',
+                details: handledError.message
+            }, { status: 500 });
+        }
         return NextResponse.json({
             error: 'Error al procesar la imagen',
             details: error.message

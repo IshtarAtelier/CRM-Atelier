@@ -4,8 +4,8 @@ import { useState, useEffect } from 'react';
 import {
     FileText, TrendingUp, DollarSign, ShoppingBag, Users, Package,
     Calendar, ArrowDown, ArrowUp, Minus, Loader2, CreditCard, Banknote,
-    PieChart, BarChart3, Printer, RefreshCw, ChevronDown, Award, FlaskConical,
-    Plus, Trash2, Building2, Receipt
+    PieChart, BarChart3, Printer, RefreshCw, ChevronDown, ChevronRight, Award, FlaskConical,
+    Plus, Trash2, Building2, Receipt, List
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -22,6 +22,40 @@ interface FixedCost {
     year: number;
     notes?: string;
     type?: string;
+}
+
+interface SaleDetailItem {
+    name: string;
+    type: string;
+    eye: string | null;
+    price: number;
+    cost: number;
+    lab: string | null;
+    is2x1Free: boolean;
+}
+
+interface SaleDetail {
+    id: string;
+    fullId: string;
+    date: string;
+    month: string;
+    clientName: string;
+    vendorName: string;
+    orderType: string;
+    totalPaid: number;
+    totalList: number;
+    cmv: number;
+    platformFee: number;
+    doctorFee: number;
+    specialDiscount: number;
+    appliedPromo: string | null;
+    discounts: { cash: number; transfer: number; card: number; general: number };
+    markup: number;
+    netProfit: number;
+    profitMargin: number;
+    hasInvoice: boolean;
+    paymentMethods: string[];
+    items: SaleDetailItem[];
 }
 
 interface ReportData {
@@ -51,6 +85,7 @@ interface ReportData {
     paymentMethods: { method: string; total: number; count: number; commission: number }[];
     labStats: { laboratory: string; revenue: number; cost: number; profit: number; ordersCount: number; clients?: { name: string; date: string; product: string; revenue: number; cost: number }[] }[];
     billingStats: { account: string; total: number; count: number }[];
+    salesDetail: SaleDetail[];
 }
 
 const FIXED_COST_CATEGORIES = [
@@ -185,11 +220,11 @@ export default function ReportesPage() {
     const s = data?.summary;
 
     return (
-        <main className="p-8 max-w-7xl mx-auto animate-in fade-in duration-500 pb-20 print:p-4">
+        <main className="p-4 lg:p-8 max-w-7xl mx-auto animate-in fade-in duration-500 pb-20 print:p-4">
             {/* Header */}
-            <div className="flex items-center justify-between mb-8">
+            <div className="flex items-center justify-between mb-6 flex-wrap gap-4">
                 <div>
-                    <h1 className="text-4xl font-black text-stone-800 dark:text-white tracking-tight flex items-center gap-3">
+                    <h1 className="text-2xl lg:text-4xl font-black text-stone-800 dark:text-white tracking-tight flex items-center gap-3">
                         <FileText className="w-9 h-9 text-primary" /> Reportes
                     </h1>
                     <p className="text-stone-400 text-sm mt-1 font-medium">
@@ -265,33 +300,39 @@ export default function ReportesPage() {
             {/* KPI Cards — Simple overview */}
             {s && (
                 <>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-                        <KPICard
-                            title="Ingreso Real"
-                            value={`$${(s?.totalRevenue ?? 0).toLocaleString()}`}
-                            sub={`${s.ordersCount} ventas · $${(s?.totalPending ?? 0).toLocaleString()} pendiente`}
-                            icon={DollarSign}
-                            color="stone"
-                        />
-                        <KPICard
-                            title="Resultado Neto"
-                            value={`$${(s?.netProfit ?? 0).toLocaleString()}`}
-                            sub={`${s.profitMargin.toFixed(1)}% margen sobre ingreso`}
-                            icon={TrendingUp}
-                            color="emerald"
-                            highlight
-                        />
-                        <KPICard
-                            title="Pendiente de Cobro"
-                            value={`$${(s?.totalPending ?? 0).toLocaleString()}`}
-                            sub={`Pagado: $${(s?.totalPaid ?? 0).toLocaleString()}`}
-                            icon={CreditCard}
-                            color="blue"
-                        />
+                    <div className="flex gap-4 overflow-x-auto pb-4 no-scrollbar">
+                        <div className="min-w-[280px] flex-1">
+                            <KPICard
+                                title="Ingreso Real"
+                                value={`$${(s?.totalRevenue ?? 0).toLocaleString()}`}
+                                sub={`${s.ordersCount} ventas · $${(s?.totalPending ?? 0).toLocaleString()} pdte`}
+                                icon={DollarSign}
+                                color="stone"
+                            />
+                        </div>
+                        <div className="min-w-[280px] flex-1">
+                            <KPICard
+                                title="Resultado Neto"
+                                value={`$${(s?.netProfit ?? 0).toLocaleString()}`}
+                                sub={`${s.profitMargin.toFixed(1)}% margen sobre ingreso`}
+                                icon={TrendingUp}
+                                color="emerald"
+                                highlight
+                            />
+                        </div>
+                        <div className="min-w-[280px] flex-1">
+                            <KPICard
+                                title="Pendiente de Cobro"
+                                value={`$${(s?.totalPending ?? 0).toLocaleString()}`}
+                                sub={`Pagado: $${(s?.totalPaid ?? 0).toLocaleString()}`}
+                                icon={CreditCard}
+                                color="blue"
+                            />
+                        </div>
                     </div>
 
                     {/* ── Estado de Resultados ────────────────────── */}
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                    <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 mb-6">
                         <div className="bg-white dark:bg-stone-800 border-2 border-stone-100 dark:border-stone-700 rounded-2xl p-6">
                             <div className="flex items-center gap-2 mb-6">
                                 <Receipt className="w-5 h-5 text-primary" />
@@ -305,9 +346,9 @@ export default function ReportesPage() {
                             <div className="mt-4 mb-1">
                                 <span className="text-[9px] font-black text-stone-400 uppercase tracking-widest">Costos Variables</span>
                             </div>
-                            <PLRow label="CMV Armazones / Sol" value={-s.totalCostFrames} color="text-red-400" />
-                            <PLRow label="CMV Cristales / Lentes" value={-s.totalCostLenses} color="text-red-400" />
-                            {s.totalCostOther > 0 && <PLRow label="CMV Otros" value={-s.totalCostOther} color="text-red-400" />}
+                            <PLRow label="Costo Armazones / Sol" value={-s.totalCostFrames} color="text-red-400" />
+                            <PLRow label="Costo Cristales / Lentes" value={-s.totalCostLenses} color="text-red-400" />
+                            {s.totalCostOther > 0 && <PLRow label="Costo Otros" value={-s.totalCostOther} color="text-red-400" />}
                             <PLRow label="Comisiones Plataforma" value={-s.totalPlatformFees} color="text-purple-400" sub="PayWay / Go Cuotas" />
                             <PLRow label="Comisiones Médicos" value={-s.totalDoctorFees} color="text-pink-400" sub="15% sobre neto" />
                             {s.totalSpecialDiscounts > 0 && <PLRow label="Envío / Desc. Especiales" value={-s.totalSpecialDiscounts} color="text-teal-500" />}
@@ -349,15 +390,15 @@ export default function ReportesPage() {
 
                             {/* ─ Resultado Neto ─ */}
                             <div className="border-t-2 border-stone-200 dark:border-stone-600 mt-4 pt-4">
-                                <div className="flex justify-between items-center">
+                                <div className="flex flex-wrap justify-between items-center gap-2">
                                     <span className="text-sm font-black text-stone-800 dark:text-white uppercase tracking-tight">Resultado Neto</span>
-                                    <span className={`text-2xl font-black ${(s?.netProfit ?? 0) >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
+                                    <span className={`text-xl md:text-2xl font-black truncate ${(s?.netProfit ?? 0) >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
                                         ${(s?.netProfit ?? 0).toLocaleString()}
                                     </span>
                                 </div>
                                 {s.totalRevenue > 0 && (
                                     <div className="flex h-3 rounded-full overflow-hidden mt-3 bg-stone-100 dark:bg-stone-700">
-                                        <div className="bg-red-400 transition-all" style={{ width: `${(s.totalCosts / s.totalRevenue) * 100}%` }} title="CMV" />
+                                        <div className="bg-red-400 transition-all" style={{ width: `${(s.totalCosts / s.totalRevenue) * 100}%` }} title="Costo" />
                                         <div className="bg-purple-400 transition-all" style={{ width: `${(s.totalPlatformFees / s.totalRevenue) * 100}%` }} title="Plataforma" />
                                         <div className="bg-pink-400 transition-all" style={{ width: `${(s.totalDoctorFees / s.totalRevenue) * 100}%` }} title="Médicos" />
                                         <div className="bg-orange-400 transition-all" style={{ width: `${((s.totalFixedCosts + (s.totalMarketingCosts || 0)) / s.totalRevenue) * 100}%` }} title="G. Op." />
@@ -366,7 +407,7 @@ export default function ReportesPage() {
                                 )}
                                 <div className="flex gap-4 mt-2 flex-wrap">
                                     {[
-                                        { color: 'bg-red-400', label: 'CMV' },
+                                        { color: 'bg-red-400', label: 'Costo' },
                                         { color: 'bg-purple-400', label: 'Plataforma' },
                                         { color: 'bg-pink-400', label: 'Médicos' },
                                         { color: 'bg-orange-400', label: 'Operativos' },
@@ -408,9 +449,9 @@ export default function ReportesPage() {
                                         No hay facturas emitidas en este período
                                     </div>
                                 )}
-                                <div className="mt-4 pt-4 border-t-2 border-dashed border-stone-200 dark:border-stone-700 flex justify-between items-center">
+                                <div className="mt-4 pt-4 border-t-2 border-dashed border-stone-200 dark:border-stone-700 flex flex-wrap justify-between items-center gap-2">
                                     <span className="text-[10px] font-black uppercase tracking-widest text-stone-400">Suma Total Facturada</span>
-                                    <span className="text-xl font-black text-stone-800 dark:text-white">
+                                    <span className="text-lg lg:text-xl font-black text-stone-800 dark:text-white truncate">
                                         ${((data?.billingStats || []).reduce((acc, curr) => acc + curr.total, 0)).toLocaleString()}
                                     </span>
                                 </div>
@@ -436,8 +477,8 @@ export default function ReportesPage() {
                                                 ) : (
                                                     <CreditCard className="w-5 h-5 text-blue-500" />
                                                 )}
-                                                <div>
-                                                    <span className="text-sm font-black text-stone-800 dark:text-white">
+                                                <div className="min-w-0">
+                                                    <span className="text-sm font-black text-stone-800 dark:text-white block truncate">
                                                         {METHOD_LABELS[pm.method] || pm.method}
                                                     </span>
                                                     <span className="text-[9px] text-stone-400 font-bold block tracking-widest uppercase">
@@ -445,8 +486,8 @@ export default function ReportesPage() {
                                                     </span>
                                                 </div>
                                             </div>
-                                            <div className="text-right">
-                                                <p className="text-sm font-black text-stone-800 dark:text-white">${pm.total.toLocaleString()}</p>
+                                            <div className="text-right flex-shrink-0 ml-2 min-w-0">
+                                                <p className="text-sm font-black text-stone-800 dark:text-white truncate">${pm.total.toLocaleString()}</p>
                                                 {pm.commission > 0 && (
                                                     <p className="text-[9px] font-bold text-purple-500 tracking-widest uppercase">
                                                         -{' '}${pm.commission.toLocaleString()} comisión
@@ -467,12 +508,12 @@ export default function ReportesPage() {
 
                     {/* Monthly Chart */}
                     {data?.monthlyStats && data.monthlyStats.length > 0 && (
-                        <div className="bg-white dark:bg-stone-800 border-2 border-stone-100 dark:border-stone-700 rounded-2xl p-6 mb-8">
+                        <div className="bg-white dark:bg-stone-800 border-2 border-stone-100 dark:border-stone-700 rounded-2xl p-4 lg:p-6 mb-6">
                             <div className="flex items-center gap-2 mb-8">
                                 <BarChart3 className="w-5 h-5 text-primary" />
                                 <h2 className="text-xs font-black uppercase tracking-widest text-stone-400">Facturación vs Costos (Mensual)</h2>
                             </div>
-                            <div className="flex items-end gap-4 h-56 px-2">
+                            <div className="flex items-end gap-2 lg:gap-4 h-44 lg:h-56 px-1 lg:px-2">
                                 {data.monthlyStats.map(m => {
                                     const maxVal = Math.max(...data.monthlyStats.map(x => x.revenue));
                                     const revenueH = maxVal > 0 ? (m.revenue / maxVal) * 100 : 0;
@@ -516,15 +557,20 @@ export default function ReportesPage() {
                         </div>
                     )}
 
+                    {/* Sales Detail by Month */}
+                    {data?.salesDetail && data.salesDetail.length > 0 && (
+                        <SalesDetailSection salesDetail={data.salesDetail} />
+                    )}
+
                     {/* Lab Profit Report */}
                     {data?.labStats && data.labStats.length > 0 && (
-                        <div className="bg-white dark:bg-stone-800 border-2 border-stone-100 dark:border-stone-700 rounded-2xl p-6 mb-8">
+                        <div className="bg-white dark:bg-stone-800 border-2 border-stone-100 dark:border-stone-700 rounded-2xl p-4 lg:p-6 mb-6">
                             <div className="flex items-center gap-2 mb-6">
                                 <FlaskConical className="w-5 h-5 text-cyan-500" />
                                 <h2 className="text-xs font-black uppercase tracking-widest text-stone-400">Rentabilidad por Laboratorio</h2>
                             </div>
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
                                 {data.labStats.map((lab, i) => {
                                     const margin = lab.revenue > 0 ? ((lab.revenue - lab.cost) / lab.revenue) * 100 : 0;
                                     const maxRevenue = Math.max(...data.labStats.map(l => l.revenue));
@@ -681,7 +727,7 @@ export default function ReportesPage() {
                                 <Award className="w-5 h-5 text-violet-500" />
                                 <h2 className="text-xs font-black uppercase tracking-widest text-stone-400">Rendimiento por Vendedor</h2>
                             </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
                                 {data.vendorStats.map((v, i) => {
                                     const maxRev = Math.max(...data.vendorStats.map(x => x.revenue));
                                     const pct = maxRev > 0 ? (v.revenue / maxRev) * 100 : 0;
@@ -745,7 +791,7 @@ function KPICard({ title, value, sub, icon: Icon, color, highlight }: any) {
                 </div>
                 <span className="text-[9px] font-black text-stone-400 uppercase tracking-widest">{title}</span>
             </div>
-            <p className={`text-2xl font-black tracking-tight ${highlight ? 'text-emerald-600 dark:text-emerald-400' : 'text-stone-800 dark:text-white'}`}>
+            <p className={`text-xl lg:text-2xl font-black tracking-tight truncate ${highlight ? 'text-emerald-600 dark:text-emerald-400' : 'text-stone-800 dark:text-white'}`}>
                 {value}
             </p>
             <p className="text-[10px] font-bold text-stone-400 mt-1">{sub}</p>
@@ -774,6 +820,328 @@ function CostRow({ label, value, total, color, tooltip }: { label: string; value
                 <div className={`h-full rounded-full ${color} transition-all duration-700`} style={{ width: `${Math.min(pct, 100)}%` }} />
             </div>
         </div>
+    );
+}
+
+// ── Sales Detail by Month ─────────────────────
+
+const ORDER_TYPE_COLORS: Record<string, string> = {
+    'ARM+CRIS': 'bg-indigo-100 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400',
+    'CRISTAL': 'bg-cyan-100 dark:bg-cyan-950 text-cyan-600 dark:text-cyan-400',
+    'ARMAZÓN': 'bg-amber-100 dark:bg-amber-950 text-amber-600 dark:text-amber-400',
+    'OTRO': 'bg-stone-100 dark:bg-stone-700 text-stone-500',
+};
+
+const ORDER_TYPE_SORT: Record<string, number> = {
+    'ARM+CRIS': 0,
+    'CRISTAL': 1,
+    'ARMAZÓN': 2,
+    'OTRO': 3,
+};
+
+function SalesDetailSection({ salesDetail }: { salesDetail: SaleDetail[] }) {
+    const [expandedMonths, setExpandedMonths] = useState<Record<string, boolean>>({});
+    const [expandedRows, setExpandedRows] = useState<Record<string, boolean>>({});
+    const [sortBy, setSortBy] = useState<'type' | 'date' | 'profit'>('type');
+
+    // Group by month
+    const months = salesDetail.reduce<Record<string, SaleDetail[]>>((acc, sale) => {
+        if (!acc[sale.month]) acc[sale.month] = [];
+        acc[sale.month].push(sale);
+        return acc;
+    }, {});
+
+    // Initialize first month as expanded
+    useEffect(() => {
+        const keys = Object.keys(months);
+        if (keys.length > 0 && Object.keys(expandedMonths).length === 0) {
+            setExpandedMonths({ [keys[0]]: true });
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [salesDetail]);
+
+    const toggleMonth = (month: string) => {
+        setExpandedMonths(prev => ({ ...prev, [month]: !prev[month] }));
+    };
+
+    const toggleRow = (id: string) => {
+        setExpandedRows(prev => ({ ...prev, [id]: !prev[id] }));
+    };
+
+    const sortSales = (sales: SaleDetail[]) => {
+        return [...sales].sort((a, b) => {
+            if (sortBy === 'type') return (ORDER_TYPE_SORT[a.orderType] ?? 9) - (ORDER_TYPE_SORT[b.orderType] ?? 9);
+            if (sortBy === 'profit') return b.netProfit - a.netProfit;
+            return new Date(b.date).getTime() - new Date(a.date).getTime();
+        });
+    };
+
+    const formatDate = (d: string) => {
+        try { return new Date(d).toLocaleDateString('es-AR', { day: '2-digit', month: 'short' }); }
+        catch { return d; }
+    };
+
+    const getDiscountLabel = (sale: SaleDetail): string => {
+        const parts: string[] = [];
+        if (sale.discounts.cash > 0) parts.push(`${sale.discounts.cash}% ef.`);
+        if (sale.discounts.transfer > 0) parts.push(`${sale.discounts.transfer}% tr.`);
+        if (sale.discounts.card > 0) parts.push(`${sale.discounts.card}% tarj.`);
+        if (sale.discounts.general > 0) parts.push(`${sale.discounts.general}% gral.`);
+        if (sale.appliedPromo) parts.push(sale.appliedPromo);
+        if (sale.markup > 0) parts.push(`+${sale.markup}% rec.`);
+        if (sale.specialDiscount > 0) parts.push(`-$${sale.specialDiscount.toLocaleString()} esp.`);
+        return parts.join(' · ') || '—';
+    };
+
+    return (
+        <div className="bg-white dark:bg-stone-800 border-2 border-stone-100 dark:border-stone-700 rounded-2xl p-4 lg:p-6 mb-6 print:break-before-page">
+            <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
+                <div className="flex items-center gap-2">
+                    <List className="w-5 h-5 text-primary" />
+                    <h2 className="text-xs font-black uppercase tracking-widest text-stone-400">Detalle de Ventas por Mes</h2>
+                </div>
+                <div className="flex items-center gap-2 print:hidden">
+                    <span className="text-[9px] font-black text-stone-400 uppercase tracking-widest">Ordenar:</span>
+                    {([
+                        { key: 'type' as const, label: 'Tipo' },
+                        { key: 'date' as const, label: 'Fecha' },
+                        { key: 'profit' as const, label: 'Ganancia' },
+                    ]).map(opt => (
+                        <button
+                            key={opt.key}
+                            onClick={() => setSortBy(opt.key)}
+                            className={`px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${
+                                sortBy === opt.key
+                                    ? 'bg-stone-900 dark:bg-white text-white dark:text-stone-900'
+                                    : 'bg-stone-50 dark:bg-stone-700 text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-600'
+                            }`}
+                        >
+                            {opt.label}
+                        </button>
+                    ))}
+                </div>
+            </div>
+
+            <div className="space-y-4">
+                {Object.entries(months).map(([month, sales]) => {
+                    const isOpen = expandedMonths[month];
+                    const sorted = sortSales(sales);
+                    const monthRevenue = sales.reduce((s, sale) => s + sale.totalPaid, 0);
+                    const monthProfit = sales.reduce((s, sale) => s + sale.netProfit, 0);
+                    const monthCMV = sales.reduce((s, sale) => s + sale.cmv, 0);
+
+                    return (
+                        <div key={month} className="border border-stone-100 dark:border-stone-700 rounded-2xl overflow-hidden">
+                            {/* Month Header */}
+                            <button
+                                onClick={() => toggleMonth(month)}
+                                className="w-full flex items-center justify-between p-4 bg-stone-50 dark:bg-stone-900 hover:bg-stone-100 dark:hover:bg-stone-800 transition-all text-left"
+                            >
+                                <div className="flex items-center gap-3">
+                                    <ChevronRight className={`w-4 h-4 text-stone-400 transition-transform ${isOpen ? 'rotate-90' : ''}`} />
+                                    <span className="text-sm font-black text-stone-800 dark:text-white">{month}</span>
+                                    <span className="text-[9px] font-bold text-stone-400 uppercase tracking-widest">{sales.length} venta{sales.length !== 1 ? 's' : ''}</span>
+                                </div>
+                                <div className="flex items-center gap-4 text-right">
+                                    <div>
+                                        <p className="text-[8px] font-black text-stone-400 uppercase tracking-widest">Ingreso</p>
+                                        <p className="text-sm font-black text-stone-800 dark:text-white">${monthRevenue.toLocaleString()}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-[8px] font-black text-stone-400 uppercase tracking-widest">Costo</p>
+                                        <p className="text-sm font-black text-red-500">${monthCMV.toLocaleString()}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-[8px] font-black text-stone-400 uppercase tracking-widest">Ganancia</p>
+                                        <p className={`text-sm font-black ${monthProfit >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>${monthProfit.toLocaleString()}</p>
+                                    </div>
+                                </div>
+                            </button>
+
+                            {/* Sales Table */}
+                            {isOpen && (
+                                <div className="overflow-x-auto">
+                                    <table className="w-full text-left min-w-[780px]">
+                                        <thead>
+                                            <tr className="border-b border-stone-100 dark:border-stone-700">
+                                                <th className="pl-3 pr-1 py-2.5 text-[8px] font-black text-stone-400 uppercase tracking-widest w-6"></th>
+                                                <th className="px-2 py-2.5 text-[8px] font-black text-stone-400 uppercase tracking-widest">Fecha</th>
+                                                <th className="px-2 py-2.5 text-[8px] font-black text-stone-400 uppercase tracking-widest"># Op</th>
+                                                <th className="px-2 py-2.5 text-[8px] font-black text-stone-400 uppercase tracking-widest">Cliente</th>
+                                                <th className="px-2 py-2.5 text-[8px] font-black text-stone-400 uppercase tracking-widest">Tipo</th>
+                                                <th className="px-2 py-2.5 text-[8px] font-black text-stone-400 uppercase tracking-widest text-right">Pagado</th>
+                                                <th className="px-2 py-2.5 text-[8px] font-black text-stone-400 uppercase tracking-widest text-right">Costo</th>
+                                                <th className="px-2 py-2.5 text-[8px] font-black text-stone-400 uppercase tracking-widest text-right">Com.Plat</th>
+                                                <th className="px-2 py-2.5 text-[8px] font-black text-stone-400 uppercase tracking-widest text-right">Com.Méd</th>
+                                                <th className="px-2 py-2.5 text-[8px] font-black text-stone-400 uppercase tracking-widest">Desc.</th>
+                                                <th className="px-2 py-2.5 text-[8px] font-black text-stone-400 uppercase tracking-widest text-right">Ganancia</th>
+                                                <th className="px-2 py-2.5 text-[8px] font-black text-stone-400 uppercase tracking-widest text-right">%</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {sorted.map(sale => {
+                                                const isExpanded = expandedRows[sale.fullId];
+                                                return (
+                                                    <SaleRow
+                                                        key={sale.fullId}
+                                                        sale={sale}
+                                                        isExpanded={isExpanded}
+                                                        onToggle={() => toggleRow(sale.fullId)}
+                                                        formatDate={formatDate}
+                                                        getDiscountLabel={getDiscountLabel}
+                                                    />
+                                                );
+                                            })}
+                                        </tbody>
+                                        {/* Month Totals */}
+                                        <tfoot>
+                                            <tr className="border-t-2 border-stone-200 dark:border-stone-600 bg-stone-50 dark:bg-stone-900">
+                                                <td colSpan={5} className="px-3 py-2.5 text-[11px] font-black text-stone-800 dark:text-white uppercase tracking-widest">
+                                                    Total {month}
+                                                </td>
+                                                <td className="px-2 py-2.5 text-[11px] font-black text-stone-800 dark:text-white text-right">${monthRevenue.toLocaleString()}</td>
+                                                <td className="px-2 py-2.5 text-[11px] font-black text-red-500 text-right">${monthCMV.toLocaleString()}</td>
+                                                <td className="px-2 py-2.5 text-[11px] font-black text-purple-500 text-right">
+                                                    ${sales.reduce((s, sale) => s + sale.platformFee, 0).toLocaleString()}
+                                                </td>
+                                                <td className="px-2 py-2.5 text-[11px] font-black text-pink-500 text-right">
+                                                    ${sales.reduce((s, sale) => s + sale.doctorFee, 0).toLocaleString()}
+                                                </td>
+                                                <td className="px-2 py-2.5"></td>
+                                                <td className="px-2 py-2.5 text-[11px] font-black text-right">
+                                                    <span className={monthProfit >= 0 ? 'text-emerald-500' : 'text-red-500'}>
+                                                        ${monthProfit.toLocaleString()}
+                                                    </span>
+                                                </td>
+                                                <td className="px-2 py-2.5 text-[11px] font-black text-right">
+                                                    <span className={monthProfit >= 0 ? 'text-emerald-500' : 'text-red-500'}>
+                                                        {monthRevenue > 0 ? ((monthProfit / monthRevenue) * 100).toFixed(1) : 0}%
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        </tfoot>
+                                    </table>
+                                </div>
+                            )}
+                        </div>
+                    );
+                })}
+            </div>
+        </div>
+    );
+}
+
+function SaleRow({ sale, isExpanded, onToggle, formatDate, getDiscountLabel }: {
+    sale: SaleDetail;
+    isExpanded: boolean;
+    onToggle: () => void;
+    formatDate: (d: string) => string;
+    getDiscountLabel: (s: SaleDetail) => string;
+}) {
+    return (
+        <>
+            <tr
+                onClick={onToggle}
+                className="border-b border-stone-50 dark:border-stone-800 hover:bg-stone-50 dark:hover:bg-stone-900/50 cursor-pointer transition-colors group"
+            >
+                <td className="pl-3 pr-1 py-2.5">
+                    <ChevronRight className={`w-3 h-3 text-stone-300 group-hover:text-stone-500 transition-all ${isExpanded ? 'rotate-90 text-primary' : ''}`} />
+                </td>
+                <td className="px-2 py-2.5 text-[10px] font-bold text-stone-500 whitespace-nowrap">{formatDate(sale.date)}</td>
+                <td className="px-2 py-2.5 text-[10px] font-mono font-bold text-stone-400">#{sale.id}</td>
+                <td className="px-2 py-2.5">
+                    <div className="text-[11px] font-bold text-stone-800 dark:text-white truncate max-w-[120px]">{sale.clientName}</div>
+                    <div className="text-[9px] font-medium text-stone-400 truncate max-w-[120px]">{sale.vendorName}</div>
+                </td>
+                <td className="px-2 py-2.5">
+                    <span className={`px-1.5 py-0.5 rounded-md text-[7px] font-black uppercase tracking-widest whitespace-nowrap ${ORDER_TYPE_COLORS[sale.orderType] || ORDER_TYPE_COLORS['OTRO']}`}>
+                        {sale.orderType}
+                    </span>
+                </td>
+                <td className="px-2 py-2.5 text-[11px] font-black text-stone-800 dark:text-white text-right tabular-nums">
+                    ${sale.totalPaid.toLocaleString()}
+                </td>
+                <td className="px-2 py-2.5 text-[11px] font-bold text-red-500 text-right tabular-nums">
+                    ${sale.cmv.toLocaleString()}
+                </td>
+                <td className="px-2 py-2.5 text-[11px] font-bold text-purple-500 text-right tabular-nums">
+                    {sale.platformFee > 0 ? `$${sale.platformFee.toLocaleString()}` : '—'}
+                </td>
+                <td className="px-2 py-2.5 text-[11px] font-bold text-pink-500 text-right tabular-nums">
+                    {sale.doctorFee > 0 ? `$${sale.doctorFee.toLocaleString()}` : '—'}
+                </td>
+                <td className="px-2 py-2.5 text-[8px] font-medium text-stone-400 max-w-[90px] truncate" title={getDiscountLabel(sale)}>
+                    {getDiscountLabel(sale)}
+                </td>
+                <td className={`px-2 py-2.5 text-[11px] font-black text-right tabular-nums ${sale.netProfit >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
+                    ${sale.netProfit.toLocaleString()}
+                </td>
+                <td className="px-2 py-2.5 text-right">
+                    <span className={`text-[9px] font-black px-1.5 py-0.5 rounded ${
+                        sale.profitMargin > 50 ? 'bg-emerald-100 dark:bg-emerald-950 text-emerald-600' :
+                        sale.profitMargin > 30 ? 'bg-blue-100 dark:bg-blue-950 text-blue-600' :
+                        sale.profitMargin > 0 ? 'bg-amber-100 dark:bg-amber-950 text-amber-600' :
+                        'bg-red-100 dark:bg-red-950 text-red-600'
+                    }`}>
+                        {sale.profitMargin.toFixed(0)}%
+                    </span>
+                </td>
+            </tr>
+            {/* Expanded item detail */}
+            {isExpanded && (
+                <tr>
+                    <td colSpan={12} className="px-0 py-0">
+                        <div className="mx-4 mb-3 bg-stone-50 dark:bg-stone-900/70 rounded-xl border border-stone-100 dark:border-stone-700 overflow-hidden animate-in slide-in-from-top-1 duration-200">
+                            <table className="w-full text-left">
+                                <thead>
+                                    <tr className="border-b border-stone-100 dark:border-stone-700">
+                                        <th className="px-4 py-2 text-[8px] font-black text-stone-400 uppercase tracking-widest">Producto</th>
+                                        <th className="px-3 py-2 text-[8px] font-black text-stone-400 uppercase tracking-widest">Tipo</th>
+                                        <th className="px-3 py-2 text-[8px] font-black text-stone-400 uppercase tracking-widest">Ojo</th>
+                                        <th className="px-3 py-2 text-[8px] font-black text-stone-400 uppercase tracking-widest">Lab</th>
+                                        <th className="px-3 py-2 text-[8px] font-black text-stone-400 uppercase tracking-widest text-right">Precio</th>
+                                        <th className="px-3 py-2 text-[8px] font-black text-stone-400 uppercase tracking-widest text-right">Costo</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {sale.items.map((item, idx) => (
+                                        <tr key={idx} className="border-b border-stone-100/50 dark:border-stone-800/50 last:border-0">
+                                            <td className="px-4 py-2 text-[10px] font-bold text-stone-700 dark:text-stone-300 max-w-[200px] truncate">
+                                                {item.name}
+                                                {item.is2x1Free && <span className="ml-1.5 px-1.5 py-0.5 bg-teal-100 dark:bg-teal-950 text-teal-600 dark:text-teal-400 rounded text-[7px] font-black uppercase">2x1 bonif.</span>}
+                                            </td>
+                                            <td className="px-3 py-2 text-[9px] font-medium text-stone-400">{item.type}</td>
+                                            <td className="px-3 py-2 text-[9px] font-bold text-stone-500">{item.eye || '—'}</td>
+                                            <td className="px-3 py-2 text-[9px] font-medium text-stone-400">{item.lab || '—'}</td>
+                                            <td className="px-3 py-2 text-[10px] font-bold text-stone-700 dark:text-stone-300 text-right tabular-nums">
+                                                {item.price > 0 ? `$${item.price.toLocaleString()}` : <span className="text-teal-500">$0</span>}
+                                            </td>
+                                            <td className="px-3 py-2 text-[10px] font-bold text-red-500 text-right tabular-nums">
+                                                ${item.cost.toLocaleString()}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                            {/* Payment methods */}
+                            <div className="px-4 py-2 border-t border-stone-100 dark:border-stone-700 flex items-center gap-2 flex-wrap">
+                                <span className="text-[8px] font-black text-stone-400 uppercase tracking-widest">Pagos:</span>
+                                {[...new Set(sale.paymentMethods)].map((m, i) => (
+                                    <span key={i} className="px-2 py-0.5 bg-stone-200 dark:bg-stone-700 rounded text-[8px] font-bold text-stone-500 dark:text-stone-400 uppercase tracking-wider">
+                                        {METHOD_LABELS[m] || m}
+                                    </span>
+                                ))}
+                                {sale.hasInvoice && (
+                                    <span className="px-2 py-0.5 bg-indigo-100 dark:bg-indigo-950 rounded text-[8px] font-bold text-indigo-500 uppercase tracking-wider">
+                                        Facturada ✓
+                                    </span>
+                                )}
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+            )}
+        </>
     );
 }
 
@@ -988,7 +1356,7 @@ function PLRow({ label, value, bold, accent, color, sub }: {
                 </span>
                 {sub && <span className="text-[8px] text-stone-400 font-medium">{sub}</span>}
             </div>
-            <span className={`text-sm ${bold ? 'font-black' : 'font-bold'} ${textColor} tabular-nums`}>
+            <span className={`text-sm ${bold ? 'font-black' : 'font-bold'} ${textColor} tabular-nums truncate max-w-[120px] text-right`}>
                 {value < 0 ? '-' : ''}${Math.abs(value).toLocaleString()}
             </span>
         </div>

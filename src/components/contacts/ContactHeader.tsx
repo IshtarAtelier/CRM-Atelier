@@ -20,6 +20,7 @@ interface ContactHeaderProps {
     onUpdatePriority: (id: string, priority: number) => void;
     onRevertStatus: () => void;
     onDeleteContact?: (id: string) => void;
+    onRegisterVisit?: () => void;
 }
 
 export default function ContactHeader({
@@ -33,7 +34,8 @@ export default function ContactHeader({
     onToggleFavorite,
     onUpdatePriority,
     onRevertStatus,
-    onDeleteContact
+    onDeleteContact,
+    onRegisterVisit
 }: ContactHeaderProps) {
     const router = useRouter();
 
@@ -94,6 +96,20 @@ export default function ContactHeader({
                                         title="Hablar por WhatsApp"
                                     >
                                         <MessageCircle className="w-5 h-5" />
+                                    </button>
+                                )}
+
+                                {onRegisterVisit && (
+                                    <button
+                                        onClick={() => {
+                                            if (window.confirm('¿Registrar visita al local de este cliente?')) {
+                                                onRegisterVisit();
+                                            }
+                                        }}
+                                        className="p-1.5 rounded-lg text-stone-300 hover:text-emerald-600 hover:bg-emerald-50 transition-all border border-transparent"
+                                        title="Registrar Visita al Local"
+                                    >
+                                        <MapPin className="w-5 h-5" />
                                     </button>
                                 )}
 

@@ -107,7 +107,7 @@ export async function POST(request: Request) {
                 userFrameNotes: userFrameNotes || null,
                 prescriptionId: prescriptionId || null,
                 items: {
-                    create: items.map((item: { productId: string; quantity: number; price: number; eye?: string; sphereVal?: number; cylinderVal?: number; axisVal?: number; additionVal?: number }) => ({
+                    create: items.map((item: { productId: string; quantity: number; price: number; eye?: string; sphereVal?: number; cylinderVal?: number; axisVal?: number; additionVal?: number; crystalColor?: string; crystalColorType?: string }) => ({
                         productId: item.productId,
                         quantity: item.quantity,
                         price: item.price,
@@ -116,6 +116,8 @@ export async function POST(request: Request) {
                         cylinderVal: item.cylinderVal ?? null,
                         axisVal: item.axisVal ?? null,
                         additionVal: item.additionVal ?? null,
+                        crystalColor: item.crystalColor || null,
+                        crystalColorType: item.crystalColorType || null,
                     })),
                 },
             },
@@ -142,6 +144,8 @@ export async function POST(request: Request) {
                     select: {
                         id: true, price: true, quantity: true, eye: true,
                         sphereVal: true, cylinderVal: true, axisVal: true, additionVal: true,
+                        crystalColor: true, crystalColorType: true,
+                        productNameSnapshot: true, productBrandSnapshot: true, productCategorySnapshot: true,
                         product: { select: { id: true, name: true, brand: true, model: true, category: true, type: true, price: true, unitType: true } }
                     }
                 },
@@ -177,8 +181,13 @@ export async function GET(request: Request) {
         const limit = parseInt(searchParams.get('limit') || '50');
         const skip = (page - 1) * limit;
 
+        const typeFilter = searchParams.get('type');
+
         // Base query conditions
-        const where = { isDeleted: false };
+        const where: any = { isDeleted: false };
+        if (typeFilter) {
+            where.orderType = typeFilter;
+        }
         const select = {
             id: true,
             total: true,
@@ -213,6 +222,8 @@ export async function GET(request: Request) {
                     id: true, price: true, quantity: true, eye: true,
                     sphereVal: true, cylinderVal: true, axisVal: true, additionVal: true,
                     pdVal: true, heightVal: true, prismVal: true,
+                    crystalColor: true, crystalColorType: true,
+                    productNameSnapshot: true, productBrandSnapshot: true, productCategorySnapshot: true,
                     product: { select: { id: true, name: true, brand: true, model: true, category: true, type: true, price: true, unitType: true, laboratory: true } }
                 }
             },

@@ -14,42 +14,14 @@ import InvoiceModal from '@/components/InvoiceModal';
 import { BillingAccount, detectBillingAccount } from '@/lib/afip';
 import { resolveStorageUrl } from '@/lib/utils/storage';
 import { generateInvoicePDF } from '@/lib/invoice-generator';
-
-interface Order {
-    id: string;
-    total: number;
-    createdAt: string;
-    orderType: string;
-    isDeleted: boolean;
-    client: {
-        id: string;
-        name: string;
-        dni?: string | null;
-    };
-    payments: {
-        id: string;
-        amount: number;
-        method: string;
-        createdAt: string;
-        receiptUrl?: string | null;
-    }[];
-    invoices: {
-        id: string;
-        status: string;
-        cae: string;
-        voucherNumber: number;
-        pointOfSale: number;
-        billingAccount: string;
-        createdAt: string;
-    }[];
-}
+import type { Order } from '@/types/orders';
 
 export default function BillingPage() {
     const router = useRouter();
     const [orders, setOrders] = useState<Order[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
-    const [activeTab, setActiveTab] = useState<'pending' | 'completed'>('pending');
+    const [activeTab, setActiveTab] = useState<'pending' | 'completed' | 'unbilled'>('pending');
     const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
     const [selectedReceipt, setSelectedReceipt] = useState<string | null>(null);
     const [userRole, setUserRole] = useState<string | null>(null);
@@ -84,9 +56,10 @@ export default function BillingPage() {
             setNotifications(Array.isArray(notifs) ? notifs.filter((n: any) => n.type === 'INVOICE_REQUEST') : []);
 
             // Fetch orders for context and completed tab
-            const res = await fetch('/api/orders');
+            const res = await fetch('/api/orders?paginate=true&limit=250&type=SALE');
             const data = await res.json();
-            const sales = (data || []).filter((o: Order) => o.orderType === 'SALE' && !o.isDeleted);
+            const salesData = data.orders || (Array.isArray(data) ? data : []);
+            const sales = salesData.filter((o: Order) => o.orderType === 'SALE' && !o.isDeleted);
             setOrders(sales);
 
             // Fetch global monthly stats (literal from DB)
@@ -167,6 +140,18 @@ export default function BillingPage() {
         return matchesSearch;
     });
 
+    const unbilledOrders = orders.filter(order => {
+        const hasCompletedInvoice = order.invoices?.some(inv => inv.status === 'COMPLETED');
+        if (hasCompletedInvoice) return false;
+        
+        // Also don't show here if it's already in pendingRequests
+        if (pendingRequests.some(req => req.order.id === order.id)) return false;
+
+        const matchesSearch = order.client.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                             order.id.toLowerCase().includes(searchTerm.toLowerCase());
+        return matchesSearch;
+    });
+
     if (userRole && !isAdmin) {
         return (
             <div className="p-10 flex flex-col items-center justify-center min-h-[60vh] text-center">
@@ -205,6 +190,12 @@ export default function BillingPage() {
                             className={`px-8 py-3 rounded-[1.5rem] text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'completed' ? 'bg-white dark:bg-stone-700 text-emerald-600 shadow-md scale-[1.02]' : 'text-stone-400 hover:text-stone-600'}`}
                         >
                             Facturas Emitidas
+                        </button>
+                        <button 
+                            onClick={() => setActiveTab('unbilled')}
+                            className={`px-8 py-3 rounded-[1.5rem] text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'unbilled' ? 'bg-white dark:bg-stone-700 text-orange-600 shadow-md scale-[1.02]' : 'text-stone-400 hover:text-stone-600'}`}
+                        >
+                            Sin Facturar ({unbilledOrders.length})
                         </button>
                     </div>
 
@@ -307,6 +298,65 @@ export default function BillingPage() {
                                     className="bg-stone-900 dark:bg-stone-100 text-white dark:text-stone-900 px-6 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest italic flex items-center gap-2 hover:bg-primary hover:text-white transition-all active:scale-95 shadow-lg shadow-stone-200 dark:shadow-none"
                                 >
                                     FACTURAR <ArrowRight size={14} />
+                                </button>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            ) : activeTab === 'unbilled' ? (
+                <div className="grid grid-cols-1 gap-4">
+                    {unbilledOrders.length === 0 ? (
+                         <div className="bg-white dark:bg-stone-800 rounded-[3rem] p-20 text-center shadow-sm border-2 border-dashed border-stone-100 dark:border-stone-700">
+                            <h3 className="text-xl font-black text-stone-800 dark:text-white mb-2">No hay ventas sin facturar</h3>
+                        </div>
+                    ) : unbilledOrders.map(order => (
+                        <div key={order.id} className="bg-white dark:bg-stone-800 rounded-[2.5rem] p-6 shadow-sm hover:shadow-xl hover:translate-x-1 transition-all group border border-transparent hover:border-orange-500/30">
+                            <div className="flex items-center justify-between gap-6">
+                                <div className="flex items-center gap-5">
+                                    <div className="w-14 h-14 rounded-2xl bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center text-orange-600 dark:text-orange-400 shadow-sm">
+                                        <Receipt size={24} />
+                                    </div>
+                                    <div>
+                                        <h3 className="font-black text-stone-800 dark:text-white flex items-center gap-2 tracking-tight">
+                                            <span className="cursor-pointer hover:text-blue-600 hover:underline transition-colors" onClick={(e) => { e.stopPropagation(); router.push(`/admin/contactos?id=${order.client.id}`); }}>{order.client.name}</span>
+                                        </h3>
+                                        <div className="flex items-center gap-3 mt-1.5">
+                                            <span className="text-[10px] font-black text-stone-400 uppercase tracking-widest flex items-center gap-1">
+                                                <Calendar size={12} /> {format(new Date(order.createdAt), 'dd MMM yyyy', { locale: es })}
+                                            </span>
+                                            <span className="text-[10px] font-black text-stone-300">•</span>
+                                            <span className="text-[10px] font-black text-stone-400 uppercase tracking-widest">
+                                                Venta #{order.id.slice(-4).toUpperCase()}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="hidden lg:flex flex-col items-end">
+                                    <div className="text-2xl font-black text-orange-600 dark:text-orange-400 tracking-tighter">
+                                        ${Math.round(order.total).toLocaleString('es-AR')}
+                                    </div>
+                                    <div className="text-[8px] font-black text-stone-400 uppercase tracking-widest">Total Venta</div>
+                                </div>
+
+                                {/* Receipt button */}
+                                {order.payments?.some((p: any) => p.receiptUrl) && (
+                                    <button
+                                        onClick={() => {
+                                            const receipt = order.payments.find((p: any) => p.receiptUrl);
+                                            if (receipt?.receiptUrl) setSelectedReceipt(receipt.receiptUrl);
+                                        }}
+                                        className="hidden lg:flex items-center gap-1.5 text-[9px] font-black text-stone-400 hover:text-orange-600 uppercase tracking-widest bg-stone-50 dark:bg-stone-900 px-3 py-2 rounded-xl transition-all"
+                                    >
+                                        <ImageIcon size={12} /> Comprobante
+                                    </button>
+                                )}
+
+                                <button 
+                                    onClick={() => setSelectedOrder({ ...order, customAmount: order.total, detectedAccount: detectBillingAccount(order.payments) || 'ISH' } as any)}
+                                    className="bg-stone-100 dark:bg-stone-700 text-stone-600 dark:text-stone-300 px-6 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest italic flex items-center gap-2 hover:bg-orange-500 hover:text-white transition-all active:scale-95 shadow-sm"
+                                >
+                                    FACTURAR MANUAL <ArrowRight size={14} />
                                 </button>
                             </div>
                         </div>

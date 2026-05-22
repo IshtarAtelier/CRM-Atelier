@@ -17,6 +17,7 @@ interface ContactsListProps {
     onQuote: (id: string) => void;
     currentUserRole?: string;
     onDeleteContact?: (id: string) => Promise<boolean>;
+    onRegisterVisit?: (id: string) => void;
 }
 
 export default function ContactsList({
@@ -30,7 +31,8 @@ export default function ContactsList({
     onSelect,
     onQuote,
     currentUserRole,
-    onDeleteContact
+    onDeleteContact,
+    onRegisterVisit
 }: ContactsListProps) {
     if (loading && contacts.length === 0) {
         return (
@@ -77,6 +79,7 @@ export default function ContactsList({
                     onQuote={onQuote}
                     currentUserRole={currentUserRole}
                     onDeleteContact={onDeleteContact}
+                    onRegisterVisit={onRegisterVisit}
                 />
             ))}
         </div>

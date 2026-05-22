@@ -650,7 +650,7 @@ export async function PATCH(
                     .filter((item: any) => item.productId)
                     .map((item: any) =>
                     prisma.product.update({
-                        where: { id: item.productId },
+                        where: { id: item.productId, stock: { gte: item.quantity } },
                         data: { stock: { decrement: item.quantity } },
                     })
                 );
@@ -719,6 +719,12 @@ export async function PATCH(
                 id: true,
                 clientId: true,
                 total: true,
+                paid: true,
+                subtotalWithMarkup: true,
+                discountCash: true,
+                discountTransfer: true,
+                discountCard: true,
+                markup: true,
                 items: {
                     select: {
                         id: true, price: true, quantity: true, eye: true,
@@ -728,7 +734,7 @@ export async function PATCH(
                 },
                 payments: true,
                 client: {
-                    select: { name: true, phone: true }
+                    select: { id: true, name: true, phone: true }
                 }
             },
         });
@@ -753,24 +759,24 @@ export async function PATCH(
 
         // ── Auto-Notify: WhatsApp pickup when READY ──
         if (labStatus === 'READY' && order.client.phone) {
-            const total = order.total || 0;
-            const paid = (order.payments || []).reduce((acc: number, p: any) => acc + p.amount, 0);
-            
             // Delegate sending logic and DB interaction updates to the background service
             // Note: In Next.js App Router, we avoid awaiting background non-critical tasks 
             // if we don't want to delay the API response, but for DB consistency it's fine.
-            await BotService.notifyOrderReady(
-                order.clientId,
-                order.client.name,
-                order.client.phone,
-                total,
-                paid
-            );
+            await BotService.notifyOrderReady(order);
         }
 
         return NextResponse.json(order);
     } catch (error: any) {
         console.error('Error updating order:', error);
+        
+        // Handle Prisma's "Record to update not found" specifically for stock constraint
+        if (error.code === 'P2025') {
+            return NextResponse.json(
+                { error: 'No hay suficiente stock disponible para uno de los productos seleccionados.' }, 
+                { status: 409 }
+            );
+        }
+
         return NextResponse.json({ error: error.message }, { status: 500 });
     }
 }

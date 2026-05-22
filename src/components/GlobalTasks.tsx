@@ -48,14 +48,14 @@ export function GlobalTasks() {
     return (
         <>
             {/* Botón flotante de Tareas (Bell) */}
-            <div className="fixed bottom-4 right-4 md:bottom-8 md:right-8 z-[60] flex items-center gap-4">
+            <div className="fixed bottom-6 right-20 md:bottom-8 md:right-[104px] z-[60] flex items-center gap-4">
                 <button
                     onClick={() => setIsOpen(!isOpen)}
-                    className={`p-3 md:p-5 rounded-full md:rounded-[2.5rem] border-2 transition-all shadow-huge flex items-center gap-0 md:gap-3 active:scale-95 group relative ${isOpen
-                        ? 'bg-stone-900 border-stone-800 text-white dark:bg-primary dark:border-primary'
+                    className={`p-3 md:p-4 rounded-full md:rounded-2xl border transition-all shadow-lg flex items-center gap-0 md:gap-3 active:scale-95 group relative ${isOpen
+                        ? 'bg-stone-900 border-stone-800 text-white dark:bg-stone-800 dark:border-stone-700'
                         : urgentCount > 0
-                            ? 'bg-white dark:bg-stone-900 border-primary text-stone-900 dark:text-white shadow-primary/20 ring-4 ring-primary/10'
-                            : 'bg-white/80 dark:bg-stone-900/80 backdrop-blur-xl border-stone-100 dark:border-stone-800 text-stone-900 dark:text-white hover:border-primary/50'
+                            ? 'bg-white/95 dark:bg-stone-900/95 backdrop-blur-xl border-red-500/30 text-stone-900 dark:text-white shadow-red-500/10 hover:border-red-500/50 hover:bg-red-50 dark:hover:bg-red-950/20'
+                            : 'bg-white/80 dark:bg-stone-900/80 backdrop-blur-xl border-stone-200 dark:border-stone-800 text-stone-900 dark:text-white hover:border-stone-300 dark:hover:border-stone-700 hover:bg-stone-50 dark:hover:bg-stone-800/50'
                         }`}
                 >
                     {/* Pulsing glow effect when tasks exist and panel is closed */}
@@ -64,15 +64,15 @@ export function GlobalTasks() {
                     )}
 
                     <div className="relative">
-                        <Bell className={`w-5 h-5 md:w-7 md:h-7 ${isOpen ? 'animate-none' : urgentCount > 0 ? 'animate-bounce text-primary' : 'group-hover:rotate-12'}`} />
+                        <Bell className={`w-5 h-5 md:w-6 md:h-6 ${isOpen ? 'animate-none' : urgentCount > 0 ? 'text-red-600 dark:text-red-500' : 'text-stone-400 group-hover:text-stone-600 dark:text-stone-500 dark:group-hover:text-stone-300 transition-colors'}`} />
                         {urgentCount > 0 && (
-                            <span className="absolute -top-1.5 -right-1.5 md:-top-1 md:-right-1 w-4 h-4 md:w-6 md:h-6 bg-red-600 text-white text-[9px] md:text-[11px] font-black rounded-full flex items-center justify-center border-2 border-white dark:border-stone-900 shadow-xl animate-pulse">
+                            <span className="absolute -top-1.5 -right-1.5 w-4 h-4 md:w-5 md:h-5 bg-red-500 text-white text-[9px] md:text-[10px] font-black rounded-full flex items-center justify-center border-2 border-white dark:border-stone-900 shadow-md">
                                 {urgentCount}
                             </span>
                         )}
                     </div>
-                    <span className="text-[10px] font-black uppercase tracking-[0.2em] hidden md:block">
-                        {urgentCount > 0 ? '¡Tareas!' : 'Tareas'}
+                    <span className={`text-[10px] font-bold uppercase tracking-widest hidden md:block transition-colors ${urgentCount > 0 ? 'text-red-700 dark:text-red-400' : 'text-stone-500 dark:text-stone-400'}`}>
+                        Tareas
                     </span>
                 </button>
             </div>

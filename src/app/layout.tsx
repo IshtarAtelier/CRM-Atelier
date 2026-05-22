@@ -14,11 +14,34 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Atelier Óptica Córdoba | Multifocales, Anteojos y Lentes de Contacto",
-  description: "Óptica en Córdoba especializada en multifocales, anteojos recetados, de sol y lentes de contacto.",
+  metadataBase: new URL('https://www.atelieroptica.com.ar'),
+  title: {
+    default: "Atelier Óptica Córdoba | Multifocales, Anteojos y Lentes de Contacto",
+    template: "%s | Atelier Óptica Córdoba"
+  },
+  description: "Óptica en Córdoba especializada en multifocales, anteojos recetados, de sol y lentes de contacto. Atención personalizada y armazones de diseño.",
+  keywords: ["optica cordoba", "multifocales", "anteojos de sol", "lentes de contacto", "anteojos recetados", "armazones", "salud visual", "optica cerro de las rosas"],
+  openGraph: {
+    type: "website",
+    locale: "es_AR",
+    url: "https://www.atelieroptica.com.ar",
+    siteName: "Atelier Óptica",
+    title: "Atelier Óptica Córdoba | Cuidado Visual Personalizado",
+    description: "Somos ópticos creativos con una sola pasión: Cuidar tu salud visual ofreciendo los mejores diseños de anteojos.",
+    images: [
+      {
+        url: "/images/og-image.jpg",
+        width: 1200,
+        height: 630,
+        alt: "Atelier Óptica Córdoba",
+      },
+    ],
+  },
   manifest: "/manifest.json",
   other: { "theme-color": "#c8a55c" },
 };
+
+import { TrackingScripts } from "@/components/Storefront/TrackingScripts";
 
 export default function RootLayout({
   children,
@@ -33,6 +56,7 @@ export default function RootLayout({
         <div className="min-h-screen bg-background text-foreground">
           {children}
         </div>
+        <TrackingScripts />
         <script dangerouslySetInnerHTML={{
           __html: `
           if ('serviceWorker' in navigator) {

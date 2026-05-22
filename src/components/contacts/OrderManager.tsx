@@ -198,9 +198,9 @@ export default function OrderManager({
                 </div>
             ) : (
                 <div className="space-y-6">
-                    {relevantOrders.map((order: any) => (
+                    {relevantOrders.map((order: any, idx: number) => (
                         <QuoteSummary
-                            key={order.id}
+                            key={order.id || `order-${idx}`}
                             order={order}
                             contact={contact}
                             currentUserRole={currentUserRole as any}

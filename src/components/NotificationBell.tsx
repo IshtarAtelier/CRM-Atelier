@@ -85,7 +85,7 @@ export function NotificationBell() {
         <div className="relative" ref={panelRef}>
             <button
                 onClick={() => { setIsOpen(!isOpen); if (!isOpen) fetchNotifications(); }}
-                className="relative p-2.5 rounded-xl hover:bg-foreground/5 transition-all group"
+                className="relative p-2 rounded-xl text-foreground/50 hover:bg-foreground/5 hover:text-foreground transition-all group"
             >
                 <Bell className={`w-5 h-5 transition-colors ${pendingCount > 0 ? 'text-amber-500' : 'text-foreground/40 group-hover:text-foreground/70'}`} />
                 {pendingCount > 0 && (

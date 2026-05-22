@@ -23,6 +23,10 @@ export interface Product {
     cylinderMax: number | null;
     additionMin: number | null;
     additionMax: number | null;
+    imageProcessingStatus?: string | null;
+    rawImageUrls?: string[];
+    imagenesCatalogo?: string[];
+    publishToWeb?: boolean;
 }
 
 export function useProducts(searchQuery: string = '', selectedType: string = 'ALL') {

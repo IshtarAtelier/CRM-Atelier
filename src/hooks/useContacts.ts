@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Contact, ContactStatus, ContactFormData } from '@/types/contacts';
 
-export function useContacts(activeTab: ContactStatus, searchQuery: string, favoritesOnly: boolean = false, interest: string = 'ALL') {
+export function useContacts(activeTab: ContactStatus, searchQuery: string, favoritesOnly: boolean = false, interest: string = 'ALL', locationFilter: string = 'ALL') {
     const [contacts, setContacts] = useState<Contact[]>([]);
     const [expiredRx, setExpiredRx] = useState<{ id: string; name: string; months: number }[]>([]);
     const [loading, setLoading] = useState(true);
@@ -18,7 +18,7 @@ export function useContacts(activeTab: ContactStatus, searchQuery: string, favor
 
         try {
             setLoading(true);
-            const res = await fetch(`/api/contacts?status=${activeTab}&search=${encodeURIComponent(searchQuery)}&favorites=${favoritesOnly}&interest=${interest}`, {
+            const res = await fetch(`/api/contacts?status=${activeTab}&search=${encodeURIComponent(searchQuery)}&favorites=${favoritesOnly}&interest=${interest}&location=${locationFilter}`, {
                 signal: controller.signal
             });
             if (controller.signal.aborted) return;
@@ -59,7 +59,7 @@ export function useContacts(activeTab: ContactStatus, searchQuery: string, favor
                 setLoading(false);
             }
         }
-    }, [activeTab, searchQuery, favoritesOnly, interest]);
+    }, [activeTab, searchQuery, favoritesOnly, interest, locationFilter]);
 
     useEffect(() => {
         // Debounce search queries, but instant for tab/filter changes
@@ -85,6 +85,11 @@ export function useContacts(activeTab: ContactStatus, searchQuery: string, favor
                 return data;
             }
 
+            // Return duplicate payload back to the component so it can handle the UI modal
+            if (res.status === 409 && data.isDuplicate) {
+                throw { isDuplicate: true, existingClient: data.existingClient, details: data.details };
+            }
+
             // Error handling improvements
             let errorMsg = 'Error al crear contacto';
             if (data.details?.includes('Unique constraint failed on the fields: (`email`)')) {
@@ -98,6 +103,9 @@ export function useContacts(activeTab: ContactStatus, searchQuery: string, favor
             alert(errorMsg);
             return null;
         } catch (err: any) {
+            if (err.isDuplicate) {
+                throw err; // Let the UI component handle it
+            }
             console.error('Error creating contact:', err);
             alert(`Error de conexión: ${err.message}`);
             return null;

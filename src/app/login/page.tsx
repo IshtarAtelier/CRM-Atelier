@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { Glasses } from "lucide-react";
 
 export default function LoginPage() {
@@ -54,7 +55,7 @@ export default function LoginPage() {
             <div className="sm:mx-auto sm:w-full sm:max-w-md animate-in slide-in-from-bottom-4 fade-in duration-700">
                 <div className="flex justify-center">
                     <div className="w-16 h-16 rounded-full bg-stone-100 flex items-center justify-center shadow-inner overflow-hidden border-2 border-primary/20 p-1">
-                        <img src="/assets/ATELIEROptica Icono full color PNG.png" alt="Logo Atelier Óptica" className="w-full h-full object-contain" />
+                        <Image src="/assets/ATELIEROptica Icono full color PNG.png" alt="Logo Atelier Óptica" width={64} height={64} className="w-full h-full object-contain" />
                     </div>
                 </div>
                 <h2 className="mt-6 text-center text-3xl font-extrabold text-foreground tracking-tight">

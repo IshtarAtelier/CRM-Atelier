@@ -3,6 +3,8 @@ import { Sidebar } from "@/components/Sidebar";
 import { GlobalTasks } from "@/components/GlobalTasks";
 import { GlobalBalanceReminders } from "@/components/GlobalBalanceReminders";
 import CommandPalette from "@/components/CommandPalette";
+import { LeadToastNotifications } from "@/components/LeadToastNotifications";
+import { CopilotChat } from "@/components/CopilotChat";
 
 export default async function AdminLayout({
   children,
@@ -17,10 +19,12 @@ export default async function AdminLayout({
   return (
     <div className="flex min-h-screen bg-background text-foreground">
       <Sidebar userName={userName} userRole={userRole} userId={userId} />
-      <main className="flex-1 ml-0 lg:ml-64 min-h-screen relative flex flex-col pt-16 lg:pt-0">
+      <main className="flex-1 min-w-0 ml-0 lg:ml-[var(--sidebar-width,16rem)] min-h-screen relative flex flex-col pt-16 lg:pt-0 transition-[margin] duration-300 ease-in-out">
         <GlobalTasks />
         <GlobalBalanceReminders />
         <CommandPalette />
+        <LeadToastNotifications />
+        <CopilotChat userName={userName} userRole={userRole} />
         <div className="flex-1 relative">
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/5 via-background to-background -z-10" />
           {children}

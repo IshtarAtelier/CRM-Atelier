@@ -1,0 +1,329 @@
+"use client";
+
+import { useCart } from "@/store/useCart";
+import { StorefrontNavbar } from "@/components/Storefront/StorefrontNavbar";
+import { StorefrontFooter } from "@/components/Storefront/StorefrontFooter";
+import { useEffect, useState, useRef } from "react";
+import Link from "next/link";
+import { ShieldCheck } from "lucide-react";
+import { CheckoutContactForm } from "@/components/checkout/CheckoutContactForm";
+import { CheckoutShippingForm } from "@/components/checkout/CheckoutShippingForm";
+import { CheckoutPaymentOptions } from "@/components/checkout/CheckoutPaymentOptions";
+import { CheckoutSummarySidebar } from "@/components/checkout/CheckoutSummarySidebar";
+
+export default function CheckoutPage() {
+  const { items, getCartTotal, clearCart } = useCart();
+  const [mounted, setMounted] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
+
+  const hasCrystals = items.some(item => item.lensConfig?.lensType && item.lensConfig.lensType !== "NONE");
+
+  const [formData, setFormData] = useState({
+    email: "",
+    firstName: "",
+    lastName: "",
+    dni: "",
+    phone: "",
+    address: "",
+    city: "",
+    state: "",
+    zip: "",
+    shippingMethod: "FREE",
+    paymentMethod: "PAYWAY",
+    cardNumber: "",
+    cardExp: "",
+    cardCvc: "",
+    cardName: "",
+    installments: "1"
+  });
+
+  const [paywayConfig, setPaywayConfig] = useState<{publicKey: string, environment: string} | null>(null);
+
+  useEffect(() => {
+    fetch('/api/checkout/config').then(r => r.json()).then(data => {
+      setPaywayConfig(data);
+      // Load Decidir SDK
+      const script = document.createElement('script');
+      script.src = 'https://live.decidir.com/static/v2/decidir.js';
+      script.async = true;
+      document.body.appendChild(script);
+    });
+  }, []);
+
+  useEffect(() => {
+    const saved = localStorage.getItem("atelier-checkout-form");
+    if (saved) {
+      try {
+        setFormData(JSON.parse(saved));
+      } catch (e) {}
+    }
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (mounted) {
+      localStorage.setItem("atelier-checkout-form", JSON.stringify(formData));
+      
+      // Debounce session tracking to avoid spamming the API
+      const timeoutId = setTimeout(async () => {
+        if (formData.email || formData.phone) {
+          const sessionId = localStorage.getItem("atelier-checkout-session-id");
+          const payload = {
+            sessionId,
+            email: formData.email,
+            firstName: formData.firstName,
+            lastName: formData.lastName,
+            phone: formData.phone,
+            cartData: items,
+            shippingData: {
+              address: formData.address,
+              city: formData.city,
+              state: formData.state,
+              zip: formData.zip,
+              shippingMethod: formData.shippingMethod
+            },
+            total: getCartTotal()
+          };
+
+          try {
+            const res = await fetch('/api/checkout/session', {
+              method: sessionId ? 'PUT' : 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload)
+            });
+            const data = await res.json();
+            if (data.sessionId && !sessionId) {
+              localStorage.setItem("atelier-checkout-session-id", data.sessionId);
+            }
+          } catch (e) {
+            console.error("Failed to sync checkout session", e);
+          }
+        }
+      }, 2000); // 2 second debounce
+      
+      return () => clearTimeout(timeoutId);
+    }
+  }, [formData, mounted, items]);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const isLocalCity = (() => {
+    const city = formData.city.toLowerCase().trim();
+    return city === "cordoba" || 
+           city === "córdoba" || 
+           city === "cordoba capital" || 
+           city === "córdoba capital" || 
+           city === "carlos paz" || 
+           city === "villa carlos paz";
+  })();
+
+  const handlePaywaySubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsProcessing(true);
+    
+    try {
+      if (formData.paymentMethod === 'TRANSFER') {
+        const res = await fetch("/api/checkout/payway", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            customer: {
+              ...formData,
+              shippingMethod: isLocalCity ? 'CADETERIA' : 'ANDREANI'
+            },
+            items: items,
+            total: getCartTotal(),
+            paymentToken: null
+          })
+        });
+
+        if (res.ok) {
+          const sessionId = localStorage.getItem("atelier-checkout-session-id");
+          if (sessionId) {
+            fetch('/api/checkout/session', {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ sessionId, status: 'COMPLETED' })
+            }).catch(console.error);
+            localStorage.removeItem("atelier-checkout-session-id");
+          }
+          clearCart();
+          setIsSuccess(true);
+        } else {
+          alert("Error generando orden de transferencia.");
+        }
+        return;
+      }
+
+      // PAYWAY LOGIC
+      if (!paywayConfig || !(window as any).Decidir) {
+        alert("La pasarela de pagos aún se está cargando. Por favor intentá en unos segundos.");
+        setIsProcessing(false);
+        return;
+      }
+
+      const decidirUrl = paywayConfig.environment === 'production' 
+        ? 'https://live.decidir.com/api/v2'
+        : 'https://developers.decidir.com/api/v2';
+        
+      const decidir = new (window as any).Decidir(decidirUrl);
+      decidir.setPublishableKey(paywayConfig.publicKey);
+      decidir.setTimeout(10000);
+
+      // Limpiar datos
+      const cleanedCardNumber = formData.cardNumber.replace(/\D/g, '');
+      const [expMonth, expYear] = formData.cardExp.split('/').map(s => s.trim());
+      
+      if (!cleanedCardNumber || !expMonth || !expYear || !formData.cardCvc || !formData.cardName) {
+         alert("Por favor completá todos los datos de la tarjeta.");
+         setIsProcessing(false);
+         return;
+      }
+
+      const decidirData = {
+        card_number: cleanedCardNumber,
+        card_expiration_month: expMonth,
+        card_expiration_year: expYear.length === 2 ? `20${expYear}` : expYear,
+        security_code: formData.cardCvc,
+        card_holder_name: formData.cardName,
+        card_holder_identification: {
+            type: "dni",
+            number: formData.dni.replace(/\D/g, '')
+        }
+      };
+
+      decidir.createToken(decidirData, async (status: number, response: any) => {
+        if (status !== 200 && status !== 201) {
+          console.error("Error Token:", response);
+          alert("Los datos de la tarjeta son inválidos o fueron rechazados. Por favor verificá.");
+          setIsProcessing(false);
+          return;
+        }
+
+        const token = response.id;
+        const bin = response.bin; // Decidir returns bin in response
+
+        // Ahora enviamos el token al backend
+        const res = await fetch("/api/checkout/payway", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            customer: {
+              ...formData,
+              shippingMethod: isLocalCity ? 'CADETERIA' : 'ANDREANI'
+            },
+            items: items,
+            total: getCartTotal(),
+            paymentToken: token,
+            bin: bin
+          })
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success) {
+            const sessionId = localStorage.getItem("atelier-checkout-session-id");
+            if (sessionId) {
+              fetch('/api/checkout/session', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ sessionId, status: 'COMPLETED' })
+              }).catch(console.error);
+              localStorage.removeItem("atelier-checkout-session-id");
+            }
+            clearCart();
+            setIsSuccess(true);
+          } else {
+            alert(data.error || "El pago fue rechazado por la tarjeta.");
+          }
+        } else {
+          const errorData = await res.json();
+          alert(errorData.error || "Error procesando el pago. Revisá los fondos e intentá de nuevo.");
+        }
+        setIsProcessing(false);
+      });
+
+    } catch (error: any) {
+      console.error(error);
+      alert("Error de sistema: " + (error.message || JSON.stringify(error)));
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  if (!mounted) return null;
+
+  if (isSuccess) {
+    return (
+      <div className="min-h-screen bg-stone-50 flex flex-col items-center justify-between font-sans text-black">
+        <StorefrontNavbar theme="light" />
+        <div className="text-center mt-32 max-w-md mx-auto px-5 mb-32">
+          <ShieldCheck className="w-16 h-16 mx-auto mb-6 text-emerald-500" />
+          <h2 className="text-3xl font-light mb-4" style={{ fontFamily: "'Georgia', 'Times New Roman', serif" }}>¡Gracias por tu compra!</h2>
+          <p className="text-stone-500 mb-8 leading-relaxed">
+            {formData.paymentMethod === 'TRANSFER' 
+              ? "Hemos registrado tu pedido. Te enviamos un correo con los datos bancarios para realizar la transferencia del monto total con descuento."
+              : "Hemos registrado tu pedido de forma exitosa. Te enviamos un correo con la confirmación."}
+            <br/><br/>
+            <strong>Tiempo de entrega estimado:</strong> {hasCrystals ? '7 a 10 días hábiles por trabajo de laboratorio.' : 'Despacho rápido dentro de las 24/48hs.'}
+          </p>
+          <Link href="/tienda" className="inline-block bg-black text-white px-8 py-4 text-[11px] font-bold uppercase tracking-widest hover:bg-stone-800 transition-colors">
+            Volver a la Tienda
+          </Link>
+        </div>
+        <StorefrontFooter />
+      </div>
+    );
+  }
+
+  if (items.length === 0) {
+    return (
+      <div className="min-h-screen bg-stone-50 flex flex-col items-center justify-center font-sans text-black">
+        <StorefrontNavbar theme="light" />
+        <div className="text-center mt-32">
+          <h2 className="text-2xl font-light mb-4">Tu carrito está vacío</h2>
+          <Link href="/tienda" className="inline-block border border-black px-6 py-3 text-[11px] font-bold uppercase tracking-widest hover:bg-black hover:text-white transition-colors">
+            Volver a la Tienda
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-white text-black font-sans selection:bg-black selection:text-white">
+      <StorefrontNavbar theme="light" />
+      
+      <main className="max-w-[1200px] mx-auto px-5 pt-32 pb-24 grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-24 items-start">
+        
+        {/* IZQUIERDA: Formulario de Checkout */}
+        <div className="lg:col-span-7 flex flex-col gap-10">
+          <div>
+            <h1 className="text-3xl font-light tracking-tight mb-2" style={{ fontFamily: "'Georgia', 'Times New Roman', serif" }}>
+              Checkout
+            </h1>
+            <p className="text-stone-500 text-sm">Completá tus datos para finalizar la compra de forma segura.</p>
+          </div>
+
+          <form onSubmit={handlePaywaySubmit} className="flex flex-col gap-10">
+            
+            <CheckoutContactForm formData={formData} handleChange={handleChange} />
+            
+            <CheckoutShippingForm formData={formData} handleChange={handleChange} isLocalCity={isLocalCity} hasCrystals={hasCrystals} />
+            
+            <CheckoutPaymentOptions formData={formData} handleChange={handleChange} isProcessing={isProcessing} />
+
+          </form>
+        </div>
+
+        {/* DERECHA: Resumen de Compra */}
+        <CheckoutSummarySidebar items={items} getCartTotal={getCartTotal} formData={formData} />
+      </main>
+      
+      <StorefrontFooter />
+    </div>
+  );
+}

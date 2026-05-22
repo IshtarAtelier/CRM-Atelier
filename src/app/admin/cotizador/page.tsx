@@ -48,6 +48,7 @@ import {
     Droplets, 
     Gem 
 } from 'lucide-react';
+import type { Product } from '@/types/orders';
 
 const getTypeConfig = (type: string | null, category?: string | null) => {
     const key = getCategoryKey(type, category);
@@ -67,24 +68,13 @@ const getTypeConfig = (type: string | null, category?: string | null) => {
 const CONTACT_SOURCES = ["Google Ads", "Meta", "Calle", "Jemima", "Ya es Cliente", "Tienda nube", "Referido", "Wave", "Salida"];
 const PRODUCT_TYPES = ["Monofocal", "Multifocal", "Bifocal", "Ocupacional", "Solar", "Accesorios", "Lentes de Contacto", "Otros"];
 
-interface Product {
-    id: string;
-    name: string | null;
-    brand: string | null;
-    model: string | null;
-    type: string | null;
-    price: number;
-    stock: number;
-    lensIndex?: string | null;
-    description?: string | null;
-    category?: string | null;
-}
-
 interface QuoteItem {
     product: Product;
     quantity: number;
     customPrice: number;
     eye?: 'OD' | 'OI';
+    crystalColor?: string;
+    crystalColorType?: string;
 }
 
 function CotizadorPageContent() {
@@ -132,6 +122,9 @@ function CotizadorPageContent() {
     // Editing states
     const [editingQuoteId, setEditingQuoteId] = useState<string | null>(editId);
 
+    // Crystal colors for teñido addon
+    const [crystalColors, setCrystalColors] = useState<any[]>([]);
+
     const searchRef = useRef<HTMLInputElement>(null);
     const contactSearchRef = useRef<HTMLInputElement>(null);
 
@@ -139,6 +132,7 @@ function CotizadorPageContent() {
     // Fetch doctors for the new contact form
     useEffect(() => {
         fetch('/api/doctors').then(res => res.json()).then(data => { if (Array.isArray(data)) setDoctors(data); }).catch(() => {});
+        fetch('/api/crystal-colors').then(res => res.json()).then(data => { if (Array.isArray(data)) setCrystalColors(data); }).catch(() => {});
     }, []);
 
     useEffect(() => {
@@ -249,6 +243,25 @@ function CotizadorPageContent() {
     // Cart logic
     const addToQuote = (p: Product) => {
         const sprice = safePrice(p.price);
+        
+        // Teñido addon validation: warn if no orgánico blanco in cart
+        const isTeñidoAddon = (p.name || '').toLowerCase() === 'teñido' && p.type === 'ADDON';
+        if (isTeñidoAddon) {
+            const hasOrganicoBlanco = quoteItems.some(item => {
+                const name = (item.product.name || '').toLowerCase();
+                return isCrystal(item.product) && (name.includes('orgánico blanco') || name.includes('organico blanco'));
+            });
+            if (!hasOrganicoBlanco) {
+                const proceed = window.confirm(
+                    '⚠️ ADVERTENCIA\n\nEl Teñido solo se puede aplicar sobre cristales de tipo "Orgánico Blanco".\n\nNo se detectó un cristal orgánico blanco en el presupuesto.\n\n¿Deseas agregarlo de todas formas?'
+                );
+                if (!proceed) return;
+            }
+            // Teñido is not a crystal to split OD/OI — it's a flat service addon
+            setQuoteItems(prev => [...prev, { product: p, quantity: 1, customPrice: sprice, uid: Date.now() } as any]);
+            return;
+        }
+        
         if (isCrystal(p)) {
             // Split crystal into OD/OI automatically
             setQuoteItems(prev => {
@@ -313,7 +326,9 @@ function CotizadorPageContent() {
                         productId: it.product.id,
                         quantity: it.quantity,
                         price: it.customPrice,
-                        eye: it.eye
+                        eye: it.eye,
+                        crystalColor: it.crystalColor || null,
+                        crystalColorType: it.crystalColorType || null,
                     })),
                     markup,
                     discount: discountCash,
@@ -484,9 +499,9 @@ function CotizadorPageContent() {
     const clientName = pendingContact?.name;
 
     return (
-        <div className="h-screen flex flex-col bg-background overflow-hidden relative">
+        <div className="absolute inset-0 flex flex-col bg-background overflow-hidden">
             {/* Header */}
-            <header className="px-6 py-3 border-b border-sidebar-border bg-sidebar flex items-center gap-4 flex-shrink-0">
+            <header className="px-4 lg:px-8 py-3 border-b border-sidebar-border bg-sidebar flex items-center gap-4 flex-shrink-0">
                 <div className="w-9 h-9 bg-primary/10 rounded-xl flex items-center justify-center">
                     <Calculator className="w-4 h-4 text-primary" />
                 </div>
@@ -507,8 +522,8 @@ function CotizadorPageContent() {
             </header>
 
             {/* Search + Categories */}
-            <div className="px-6 py-3 border-b border-sidebar-border bg-sidebar/60 flex items-center gap-3 flex-shrink-0">
-                <div className="relative w-64 flex-shrink-0">
+            <div className="px-4 lg:px-8 py-3 border-b border-sidebar-border bg-sidebar/60 flex flex-col md:flex-row md:items-center gap-3 flex-shrink-0">
+                <div className="relative w-full md:w-64 flex-shrink-0">
                     <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-stone-300" />
                     <input
                         ref={searchRef}
@@ -522,10 +537,10 @@ function CotizadorPageContent() {
                         <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-300 hover:text-stone-500 text-xs">✕</button>
                     )}
                 </div>
-                <div className="flex-1 flex items-center gap-1.5 flex-wrap">
+                <div className="flex-1 flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1">
                     <button
                         onClick={() => setActiveType(null)}
-                        className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider whitespace-nowrap transition-all border ${activeType === null
+                        className={`h-[30px] px-3 rounded-lg text-[10px] font-black uppercase tracking-wider whitespace-nowrap transition-all border flex items-center justify-center ${activeType === null
                             ? 'bg-primary text-primary-foreground border-primary shadow-md'
                             : 'bg-white dark:bg-stone-800 text-stone-400 border-stone-100 dark:border-stone-700 hover:border-primary/30'
                             }`}
@@ -540,7 +555,7 @@ function CotizadorPageContent() {
                             <button
                                 key={cat}
                                 onClick={() => setActiveType(cat)}
-                                className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider whitespace-nowrap transition-all border flex items-center gap-1.5 ${activeType === cat
+                                className={`h-[30px] px-3 rounded-lg text-[10px] font-black uppercase tracking-wider whitespace-nowrap transition-all border flex items-center gap-1.5 ${activeType === cat
                                     ? 'bg-primary text-primary-foreground border-primary shadow-md'
                                     : `${config.color} hover:shadow-sm`
                                     }`}
@@ -555,7 +570,7 @@ function CotizadorPageContent() {
 
             {/* Main Content Area */}
             <div
-                className="flex-1 overflow-y-auto px-6 py-4"
+                className="flex-1 overflow-y-auto px-4 lg:px-8 py-4"
                 style={{ scrollbarWidth: 'thin', paddingBottom: quoteItems.length > 0 ? (cartExpanded ? '460px' : '100px') : '16px' }}
             >
                 {loading ? (
@@ -656,7 +671,7 @@ function CotizadorPageContent() {
 
             {/* Bottom Sticky Cart */}
             {quoteItems.length > 0 && (
-                <div className={`fixed bottom-0 left-64 right-0 z-50 bg-white dark:bg-stone-900 border-t border-sidebar-border shadow-2xl transition-all duration-500 ${cartExpanded ? 'h-[600px]' : 'h-16'}`}>
+                <div className={`fixed bottom-0 left-0 lg:left-64 right-0 z-[40] bg-white dark:bg-stone-900 border-t border-sidebar-border shadow-[0_-10px_40px_rgba(0,0,0,0.1)] transition-all duration-500 ${cartExpanded ? 'h-[600px]' : 'h-16'}`}>
                     {/* Collapsed Bar */}
                     <button 
                         onClick={() => setCartExpanded(!cartExpanded)}
@@ -722,6 +737,7 @@ function CotizadorPageContent() {
                                                 </button>
                                             )
                                         }
+                                        crystalColors={crystalColors}
                                     />
                                 ) : (
                                     <div className="bg-white dark:bg-stone-800 border-2 border-primary/20 rounded-[2.5rem] p-12 shadow-2xl relative max-w-4xl mx-auto animate-in zoom-in-95 duration-500">

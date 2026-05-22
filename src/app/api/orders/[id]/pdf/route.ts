@@ -55,7 +55,7 @@ export async function GET(
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>${isSale ? 'Venta' : 'Presupuesto'} #${order.id.slice(-6).toUpperCase()}</title>
+    <title>${isSale ? 'Venta' : 'Presupuesto'} - ${order.client?.name || 'Cliente'} - Atelier Óptica</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap');
         * { margin:0; padding:0; box-sizing:border-box; font-family:'Inter','Segoe UI',sans-serif; }
@@ -129,7 +129,7 @@ export async function GET(
             <div>WhatsApp: 351 1234567</div>
         </div>
     </div>
-    <div class='tagline'>La óptica mejor calificada de Córdoba ⭐ 5/5 Google Business</div>
+    <div class='tagline'>ATELIER ÓPTICA — LA ÓPTICA MEJOR CALIFICADA EN CÓRDOBA ⭐⭐⭐⭐⭐</div>
 
     <div class='doc-header'>
         <div>
@@ -156,12 +156,13 @@ export async function GET(
             <tr>
                 <th style="width: 60%">Descripción</th>
                 <th style="text-align: center">Cant.</th>
-                <th style="text-align: right">Precio</th>
+                <th style="text-align: right">Precio Unit.</th>
                 <th style="text-align: right">Subtotal</th>
             </tr>
         </thead>
         <tbody>
             ${(order.items || []).map((it: any) => {
+                const markupFactor = 1 + ((order.markup || 0) / 100);
                 const itemPrice = Math.round(it.price * markupFactor);
                 return `
                 <tr>
@@ -177,36 +178,78 @@ export async function GET(
         </tbody>
     </table>
 
+    ${(() => {
+        const markupFactor = 1 + ((order.markup || 0) / 100);
+        // El subtotal de los items suma los precios unitarios ya inflados
+        const rawSubtotalInflated = (order.items || []).reduce((sum: number, it: any) => sum + (Math.round(it.price * markupFactor) * (it.quantity || 1)), 0);
+        
+        // La promo también debe figurar inflada para que la resta tenga sentido matemáticamente
+        const promoFrameDiscount = order.appliedPromoDiscount || 0;
+        const promoFrameInflated = Math.round(promoFrameDiscount * markupFactor);
+        
+        const specialDiscount = order.specialDiscount || 0;
+
+        // Solo mostramos este recuadro si hubo descuentos que explicar
+        if (promoFrameInflated === 0 && specialDiscount === 0) return '';
+
+        return `
+        <div style="display: flex; justify-content: flex-end; margin-bottom: 25px;">
+            <div style="width: 320px; background: #fffcf9; border: 1.5px solid ${brandBeige}; border-radius: 14px; padding: 16px;">
+                <div style="display: flex; justify-content: space-between; padding: 4px 0; font-size: 11px;">
+                    <span style="color: #78716c; font-weight: 600;">Subtotal Items:</span>
+                    <span style="font-weight: 800;">$${rawSubtotalInflated.toLocaleString()}</span>
+                </div>
+                ${promoFrameInflated > 0 ? `
+                <div style="display: flex; justify-content: space-between; padding: 4px 0; font-size: 11px; color: #10b981;">
+                    <span style="font-weight: 600;">🎁 ${order.appliedPromoName || 'Bonificación Armazón'}:</span>
+                    <span style="font-weight: 800;">-$${promoFrameInflated.toLocaleString()}</span>
+                </div>
+                ` : ''}
+                ${specialDiscount > 0 ? `
+                <div style="display: flex; justify-content: space-between; padding: 4px 0; font-size: 11px; color: #10b981;">
+                    <span style="font-weight: 600;">✨ Descuento Especial:</span>
+                    <span style="font-weight: 800;">-$${specialDiscount.toLocaleString()}</span>
+                </div>
+                ` : ''}
+                <div style="display: flex; justify-content: space-between; padding-top: 10px; margin-top: 8px; border-top: 1.5px solid ${brandBeige}; font-size: 14px; font-weight: 900; color: ${brandSand};">
+                    <span>PRECIO DE LISTA FINAL:</span>
+                    <span>$${financials.listPrice.toLocaleString()}</span>
+                </div>
+            </div>
+        </div>
+        `;
+    })()}
+
+    ${!financials.hasBalance ? `
+    <div style="margin-top: 30px; padding: 35px; border-radius: 20px; background: #f0fdf4; border: 2px solid #10b981; text-align: center; color: #065f46;">
+        <h2 style="font-size: 26px; font-weight: 900; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px;">✅ Orden Pagada en su Totalidad</h2>
+        <p style="font-size: 15px; font-weight: 700;">El saldo ha sido cancelado. Total abonado: <span style="font-weight: 900; font-size: 22px;">$${financials.paidReal.toLocaleString()}</span></p>
+    </div>
+    ` : `
     <div class='payment-methods'>
         <div class='payment-card p-efective'>
             <span class='p-title'>💵 Efectivo (-${financials.discountCash}%)</span>
             <span class='p-amount'>$${financials.totalCash.toLocaleString()}</span>
-            ${financials.hasBalance ? `
             <div class='p-saldo'>
                 <span class='p-saldo-label'>Saldo Pendiente</span>
                 <span>$${financials.remainingCash.toLocaleString()}</span>
             </div>
-            ` : `<span class="p-saldo" style="color:#10b981; background:#f0fdf4;">PAGADO COMPLETO</span>`}
         </div>
         <div class='payment-card p-transfer'>
             <span class='p-title'>🏦 Transferencia (-${financials.discountTransfer}%)</span>
             <span class='p-amount'>$${financials.totalTransfer.toLocaleString()}</span>
-            ${financials.hasBalance ? `
             <div class='p-saldo'>
                 <span class='p-saldo-label'>Saldo Pendiente</span>
                 <span>$${financials.remainingTransfer.toLocaleString()}</span>
             </div>
-            ` : `<span class="p-saldo" style="color:#10b981; background:#f0fdf4;">PAGADO COMPLETO</span>`}
         </div>
         <div class='payment-card p-card'>
             <span class='p-title'>💳 Tarjetas (Lista)</span>
             <span class='p-amount'>$${financials.totalCard.toLocaleString()}</span>
-            ${financials.hasBalance ? `
             <div class='p-saldo'>
                 <span class='p-saldo-label'>Saldo Listado</span>
                 <span>$${financials.remainingCard.toLocaleString()}</span>
             </div>
-            ` : `<span class="p-saldo" style="color:#10b981; background:#f0fdf4;">PAGADO COMPLETO</span>`}
             <div class='installments'>
                 <div class='inst-row'>
                     <span style="font-size:10px; font-weight:700;">3 Cuotas sin interés de</span>
@@ -239,6 +282,7 @@ export async function GET(
             <span class='paid-value'>$${financials.paidReal.toLocaleString()}</span>
         </div>
     </div>
+    `}
 
     ${order.prescription ? `
         <div style="margin-top: 25px; display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">

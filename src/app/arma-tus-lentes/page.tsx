@@ -1,0 +1,57 @@
+import { Metadata } from 'next';
+import { StorefrontNavbar } from "@/components/Storefront/StorefrontNavbar";
+import { prisma } from '@/lib/db';
+import { CustomGlassesBuilder } from "@/components/Storefront/CustomGlassesBuilder";
+
+export const metadata: Metadata = {
+  title: "Armá tus Lentes a Medida | Atelier Óptica",
+  description: "Elegí tu armazón favorito y configurá tus cristales con receta en un solo lugar.",
+};
+
+export const dynamic = 'force-dynamic';
+
+export default async function ArmaTusLentesPage() {
+  const dbProducts = await prisma.webProduct.findMany({
+    where: { 
+      category: { contains: "Receta", mode: "insensitive" },
+      isActive: true,
+      product: { stock: { gt: 0 } }
+    },
+    include: { product: true },
+    orderBy: [{ isFeatured: 'desc' }, { createdAt: 'desc' }]
+  });
+
+  const products = dbProducts.map(wp => ({
+    id: wp.product.id,
+    brand: wp.product.brand || 'Atelier',
+    model: wp.product.model || wp.name,
+    price: wp.product.price,
+    stock: wp.product.stock,
+    imagenesCatalogo: wp.imageUrl ? [wp.imageUrl, ...wp.images] : (wp.images.length > 0 ? wp.images : wp.product.imagenesCatalogo),
+    category: wp.category,
+    slug: wp.slug
+  }));
+
+  // Demo fallback si no hay productos
+  if (products.length === 0) {
+    products.push({
+      id: "atelier-carey-vintage",
+      brand: "ATELIER",
+      model: "9030 (GLD)",
+      price: 55000,
+      stock: 5,
+      imagenesCatalogo: [],
+      category: "Receta",
+      slug: "atelier-carey-vintage"
+    } as any);
+  }
+
+  return (
+    <div className="min-h-[100dvh] bg-stone-50 dark:bg-stone-950 flex flex-col overflow-hidden">
+      <StorefrontNavbar theme="light" />
+      <main className="flex-1 flex flex-col pt-[72px] h-[100dvh]">
+        <CustomGlassesBuilder products={products} />
+      </main>
+    </div>
+  );
+}

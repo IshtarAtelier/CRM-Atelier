@@ -5,11 +5,16 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import {
     MessageCircle, Send, Wifi, WifiOff, QrCode, RefreshCw, User,
     Clock, CheckCircle2, Bot, Settings, X, ChevronLeft, Phone,
-    Tag, Archive, ArchiveRestore, Filter, Plus, Mic, PlaySquare, Image as ImageIcon, Calendar, Search
+    Tag, Archive, ArchiveRestore, Filter, Plus, Mic, PlaySquare, Image as ImageIcon, Calendar, Search, Play, Paperclip, Smile, Square, Trash2,
+    UserPlus, Loader2, Sparkles
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { io as SocketIOClient } from 'socket.io-client';
+import { TestChatModal } from '@/components/TestChatModal';
+import dynamic from 'next/dynamic';
+import { useSearchParams } from 'next/navigation';
+const EmojiPicker = dynamic(() => import('emoji-picker-react'), { ssr: false });
 
 // Etiquetas predefinidas para chats
 const CHAT_LABEL_OPTIONS = [
@@ -26,6 +31,17 @@ const getLabelStyle = (label: string) =>
     CHAT_LABEL_OPTIONS.find(o => o.label === label)?.color
     ?? 'bg-violet-100/80 text-violet-700 border-violet-200';
 
+const resolveMediaUrl = (url?: string) => {
+    if (!url) return '';
+    if (url.startsWith('local://')) {
+        return `/api/storage/view?key=${encodeURIComponent(url.replace('local://', ''))}`;
+    }
+    if (url.startsWith('/') || url.startsWith('http')) {
+        return url;
+    }
+    return `/api/storage/view?key=${encodeURIComponent(url)}`;
+};
+
 // Respuestas rápidas predefinidas
 const QUICK_REPLIES = [
     { label: 'Saludo', text: '¡Hola! 👋 Bienvenido a Atelier Óptica. ¿En qué te puedo ayudar?' },
@@ -41,6 +57,7 @@ const QUICK_REPLIES = [
 interface Chat {
     id: string;
     waId: string;
+    realPhone?: string | null;
     profileName: string;
     status: string;
     unreadCount: number;
@@ -60,6 +77,7 @@ interface Message {
     content: string;
     mediaUrl?: string;
     status: string;
+    senderName?: string | null;
     createdAt: string;
 }
 
@@ -77,6 +95,7 @@ export default function WhatsAppPage() {
     const [agentPrompt, setAgentPrompt] = useState('');
     const [dailyContext, setDailyContext] = useState('');
     const [agentEnabled, setAgentEnabled] = useState(false);
+    const [showTestChat, setShowTestChat] = useState(false);
     const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'success'>('idle');
     const [loadingStatus, setLoadingStatus] = useState(true);
     const [filterLabel, setFilterLabel] = useState<string | null>(null);
@@ -84,10 +103,109 @@ export default function WhatsAppPage() {
     const [showArchived, setShowArchived] = useState(false);
     const [showLabelPicker, setShowLabelPicker] = useState(false);
     const [showQuickReplies, setShowQuickReplies] = useState(false);
+    const [showEmojiPicker, setShowEmojiPicker] = useState(false);
     const [selectedImage, setSelectedImage] = useState<{ base64: string; mimetype: string; filename: string } | null>(null);
+    const [isRecording, setIsRecording] = useState(false);
+    const [recordingTime, setRecordingTime] = useState(0);
+    const [showCreateClientModal, setShowCreateClientModal] = useState(false);
+    const [extracting, setExtracting] = useState(false);
+    const [extractedClient, setExtractedClient] = useState<{ name: string; phone: string | null; interest: string | null; insurance: string | null; contactSource: string; notes: string | null } | null>(null);
+    const [creatingClient, setCreatingClient] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const pollRef = useRef<NodeJS.Timeout | null>(null);
+    const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+    const audioChunksRef = useRef<Blob[]>([]);
+    const timerIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+    // ── Audio Recording ───────────────────────────
+    const formatTime = (seconds: number) => {
+        const mins = Math.floor(seconds / 60);
+        const secs = seconds % 60;
+        return `${mins}:${secs.toString().padStart(2, '0')}`;
+    };
+
+    const startRecording = async () => {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            const mediaRecorder = new MediaRecorder(stream);
+            mediaRecorderRef.current = mediaRecorder;
+            audioChunksRef.current = [];
+            
+            mediaRecorder.ondataavailable = (e) => {
+                if (e.data.size > 0) audioChunksRef.current.push(e.data);
+            };
+
+            mediaRecorder.onstop = () => {
+                const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+                stream.getTracks().forEach(track => track.stop());
+                
+                // Convert to Base64
+                const reader = new FileReader();
+                reader.readAsDataURL(audioBlob);
+                reader.onloadend = () => {
+                    const base64data = (reader.result as string).split(',')[1];
+                    sendAudio(base64data, 'audio/webm');
+                };
+            };
+
+            mediaRecorder.start();
+            setIsRecording(true);
+            setRecordingTime(0);
+            timerIntervalRef.current = setInterval(() => {
+                setRecordingTime(prev => prev + 1);
+            }, 1000);
+        } catch (err) {
+            console.error('Error al acceder al micrófono:', err);
+            alert('No se pudo acceder al micrófono. Por favor, revisa los permisos del navegador.');
+        }
+    };
+
+    const stopRecording = () => {
+        if (mediaRecorderRef.current && isRecording) {
+            mediaRecorderRef.current.stop();
+            setIsRecording(false);
+            if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+        }
+    };
+
+    const cancelRecording = () => {
+        if (mediaRecorderRef.current && isRecording) {
+            mediaRecorderRef.current.onstop = null; // Evitar que se envíe
+            mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
+            mediaRecorderRef.current.stop();
+            setIsRecording(false);
+            if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+        }
+    };
+
+    const sendAudio = async (base64: string, mimetype: string) => {
+        if (!selectedChat || sending) return;
+        setSending(true);
+        try {
+            let userName = 'CRM';
+            try {
+                const stored = localStorage.getItem('user');
+                if (stored) userName = JSON.parse(stored).name || 'CRM';
+            } catch { }
+
+            const body = { 
+                chatId: selectedChat.id, 
+                message: '', 
+                media: { base64, mimetype, filename: `audio_${Date.now()}.webm` },
+                senderName: userName
+            };
+            await fetch('/api/whatsapp/send', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
+            });
+            setSelectedChat(prev => prev ? { ...prev, botEnabled: false } : prev);
+            setChats(prev => prev.map(c => c.id === selectedChat.id ? { ...c, botEnabled: false } : c));
+            await fetchMessages(selectedChat.id);
+        } catch (e) {
+            console.error('Error enviando audio:', e);
+        }
+        setSending(false);
+    };
 
     // ── Fetch status ──────────────────────────────
     const fetchStatus = useCallback(async () => {
@@ -110,6 +228,10 @@ export default function WhatsAppPage() {
 
     const knownClientIds = useRef<Set<string>>(new Set());
     const initialLoadRef = useRef(true);
+
+    const searchParams = useSearchParams();
+    const urlPhone = searchParams.get('phone');
+    const handledUrlPhoneRef = useRef(false);
 
     // ── Fetch chats ───────────────────────────────
     const fetchChats = useCallback(async () => {
@@ -144,6 +266,22 @@ export default function WhatsAppPage() {
                 });
                 setChats(sorted);
 
+                // Auto-select chat from URL parameter if present
+                if (urlPhone && !handledUrlPhoneRef.current) {
+                    const normalizedPhone = urlPhone.replace(/\D/g, '');
+                    const targetChat = sorted.find(c => 
+                        c.waId.includes(normalizedPhone) || 
+                        (c.client?.phone && c.client.phone.replace(/\D/g, '').includes(normalizedPhone))
+                    );
+                    if (targetChat) {
+                        setSelectedChat(targetChat);
+                    } else {
+                        // Si no existe el chat todavía, mostramos un aviso
+                        alert(`No hay conversación de WhatsApp iniciada con el número ${urlPhone}. Podés mandarle el primer mensaje desde tu celular para abrir el chat.`);
+                    }
+                    handledUrlPhoneRef.current = true;
+                }
+
                 // Update selectedChat to reflect fresh botEnabled/labels
                 setSelectedChat(prev => {
                     if (!prev) return null;
@@ -172,13 +310,14 @@ export default function WhatsAppPage() {
             const data = await res.json();
             
             // Si no hay prompt guardado, proveemos el template base por defecto
-            const defaultBasePrompt = `Eres "Sol", la experta asistente virtual de Atelier Óptica. \n\nTU OBJETIVO CORE: Actuar como un portero inteligente y asesor experto. \n\nDIFERENCIACIÓN DE ROLES:\n1. SI EL CLIENTE ES 'CONTACT' (PROSPECTO/LEAD): Eres un AGENTE DE VENTAS. Tu meta es calificarlo, entender su necesidad (multifocales, monofocales), darle precios del catálogo y armar presupuestos con 'create_quote'.\n2. SI EL CLIENTE ES 'CLIENT' (YA ES CLIENTE): Eres un AGENTE DE POSVENTA. Tu meta es dar soporte sobre sus pedidos. Usa 'get_order_status' para informar estados y saldos (balances) pendientes. Recordale los horarios si es necesario.\n\nREGLAS DE ORO:\n- FILTRO: Si el contacto no es un interés real (proveedor, amigo), no uses 'convert_into_lead'.\n- SALDOS: Si el cliente tiene un saldo pendiente al preguntar por su pedido, infórmalo amablemente: "Tu pedido está [estado] y el saldo pendiente es $[monto]".\n- PRESUPUESTOS: Cuando des un precio, SIEMPRE guarda el presupuesto con 'create_quote'.\n- OCR: Extrae datos de recetas enviadas y guárdalos con 'save_prescription'.`;
+            const defaultBasePrompt = `Eres "Ishtar", la experta asistente virtual de Atelier Óptica. \n\nTU OBJETIVO CORE: Actuar como un portero inteligente y asesor experto. \n\nDIFERENCIACIÓN DE ROLES:\n1. SI EL CLIENTE ES 'CONTACT' (PROSPECTO/LEAD): Eres un AGENTE DE VENTAS. Tu meta es calificarlo, entender su necesidad (multifocales, monofocales), darle precios del catálogo.\n2. SI EL CLIENTE ES 'CLIENT' (YA ES CLIENTE): Eres un AGENTE DE POSVENTA. Tu meta es dar soporte sobre sus pedidos. Usa 'get_order_status' para informar estados y saldos (balances) pendientes. Recordale los horarios si es necesario.\n\nREGLAS DE ORO:\n- SALDOS: Si el cliente tiene un saldo pendiente al preguntar por su pedido, infórmalo amablemente: "Tu pedido está [estado] y el saldo pendiente es $[monto]".\n- PRESUPUESTOS: Si te piden precios orientativos y no tienen receta, DALES EL PRECIO COMO TEXTO en el chat. Usa 'create_quote' ÚNICA Y EXCLUSIVAMENTE si el cliente ya está registrado en el CRM (es decir, ya usaste convert_into_lead tras pedirle la receta).\n- OCR: Extrae datos de recetas enviadas y guárdalos con 'save_prescription'.`;
             
-            let systemPrompt = `${data.prompt || defaultBasePrompt}
+            const systemPrompt = `${data.prompt || defaultBasePrompt}
   
   =========================
-  REGLA ESTRICTA DE CALIFICACIÓN (INQUEBRANTABLE):
-  SOLO PUEDES CREAR UN LEAD (usar 'convert_into_lead') SI Y SOLO SI el cliente ya proporcionó una receta médica (foto, texto o datos clínicos). Si NO TIENE RECETA aún, trátalo muy amablemente, resuélvele sus dudas iniciales, pero PÍDELE LA RECETA y NO LO CONVIERTAS EN LEAD HASTA TENERLA.
+  REGLAS DE SEGURIDAD ESTRICTAS (INQUEBRANTABLES):
+  1. KILL-SWITCH PARA CHATS PERSONALES O DE PROVEEDORES: Si detectas que el cliente te habla de temas personales, familiares, informales que no tienen que ver con anteojos, o si es un proveedor/laboratorio B2B vendiendo insumos, DEBES ejecutar INMEDIATAMENTE la herramienta 'disable_bot_for_personal_chat' pasando el chatId, y luego finalizar tu turno sin dar otra respuesta.
+  2. REGLA DE CALIFICACIÓN: SOLO PUEDES CREAR UN LEAD (usar 'convert_into_lead') SI Y SOLO SI el cliente ya proporcionó una receta médica (foto, texto o datos clínicos). Si NO TIENE RECETA aún, trátalo amablemente, resuélvele dudas, pero PÍDELE LA RECETA y NO LO CONVIERTAS EN LEAD HASTA TENERLA.
   =========================
 
   =========================
@@ -269,7 +408,13 @@ export default function WhatsAppPage() {
         if ((!newMessage.trim() && !selectedImage) || !selectedChat || sending) return;
         setSending(true);
         try {
-            const body: Record<string, unknown> = { chatId: selectedChat.id, message: newMessage };
+            let userName = 'CRM';
+            try {
+                const stored = localStorage.getItem('user');
+                if (stored) userName = JSON.parse(stored).name || 'CRM';
+            } catch { }
+            
+            const body: Record<string, unknown> = { chatId: selectedChat.id, message: newMessage, senderName: userName };
             if (selectedImage) body.media = selectedImage;
             await fetch('/api/whatsapp/send', {
                 method: 'POST',
@@ -349,15 +494,115 @@ export default function WhatsAppPage() {
         }
     };
 
+    // ── Crear Ficha desde Chat (IA) ───────────────
+    const extractClientFromChat = async () => {
+        if (!selectedChat) return;
+        setExtracting(true);
+        setExtractedClient(null);
+        try {
+            const res = await fetch(`/api/whatsapp/chats/${selectedChat.id}/extract-client`, { method: 'POST' });
+            const data = await res.json();
+            if (res.ok && data.extracted) {
+                setExtractedClient(data.extracted);
+                setShowCreateClientModal(true);
+            } else {
+                alert(data.error || 'No se pudieron extraer datos');
+            }
+        } catch (e) {
+            console.error('Error extrayendo datos:', e);
+            alert('Error al analizar la conversación');
+        }
+        setExtracting(false);
+    };
+
+    const confirmCreateClient = async () => {
+        if (!extractedClient || !selectedChat) return;
+        setCreatingClient(true);
+        try {
+            // 1. Crear cliente en el CRM
+            const res = await fetch('/api/contacts', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    name: extractedClient.name,
+                    phone: extractedClient.phone || null,
+                    interest: extractedClient.interest || null,
+                    insurance: extractedClient.insurance || null,
+                    contactSource: extractedClient.contactSource || 'WhatsApp',
+                    status: 'CONTACT',
+                }),
+            });
+            const newClient = await res.json();
+            if (!res.ok) {
+                if (newClient.isDuplicate && newClient.existingClient) {
+                    if (window.confirm(`${newClient.details}\n\n¿Querés vincular este chat a la ficha existente de ${newClient.existingClient.name}?`)) {
+                        // Vincular al cliente existente
+                        await fetch(`/api/whatsapp/chats/${selectedChat.id}`, {
+                            method: 'PATCH',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ clientId: newClient.existingClient.id }),
+                        });
+                        
+                        // Actualizar UI
+                        const updatedClient = { 
+                            id: newClient.existingClient.id, 
+                            name: newClient.existingClient.name, 
+                            phone: newClient.existingClient.phone, 
+                            status: newClient.existingClient.status || 'CONTACT' 
+                        };
+                        setSelectedChat(prev => prev ? { ...prev, client: updatedClient } : prev);
+                        setChats(prev => prev.map(c => c.id === selectedChat.id ? { ...c, client: updatedClient } : c));
+                        setShowCreateClientModal(false);
+                        setExtractedClient(null);
+                    }
+                } else {
+                    alert(newClient.error || newClient.details || 'Error al crear contacto');
+                }
+                setCreatingClient(false);
+                return;
+            }
+
+            // 2. Vincular chat al nuevo cliente
+            await fetch(`/api/whatsapp/chats/${selectedChat.id}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ clientId: newClient.id }),
+            });
+
+            // 3. Guardar nota si hay
+            if (extractedClient.notes) {
+                await fetch(`/api/contacts/${newClient.id}/interactions`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ type: 'NOTE', content: `[HITO] ${extractedClient.notes}` }),
+                });
+            }
+
+            // 4. Actualizar UI
+            const updatedClient = { id: newClient.id, name: newClient.name, phone: newClient.phone, status: newClient.status };
+            setSelectedChat(prev => prev ? { ...prev, client: updatedClient } : prev);
+            setChats(prev => prev.map(c => c.id === selectedChat.id ? { ...c, client: updatedClient } : c));
+            setShowCreateClientModal(false);
+            setExtractedClient(null);
+        } catch (e) {
+            console.error('Error creando cliente:', e);
+            alert('Error al crear la ficha');
+        }
+        setCreatingClient(false);
+    };
+
     const getDisplayName = useCallback((chat: Chat) => {
         if (chat.client?.name) return chat.client.name;
         if (chat.profileName && chat.profileName.trim() !== '') return chat.profileName;
+        // If we have a resolved real phone, use it
+        if (chat.realPhone && chat.realPhone.length >= 8) return `+${chat.realPhone}`;
         const id = chat.waId || '';
-        if (id.includes('@lid')) return 'Usuario IG/FB';
         if (id.includes('@c.us') || id.includes('@s.whatsapp.net')) {
             const num = id.split('@')[0];
             return `+${num}`;
         }
+        // @lid without resolved phone — just show "Contacto" 
+        if (id.includes('@lid')) return 'Contacto WhatsApp';
         return id.split('@')[0] || 'Desconocido';
     }, []);
 
@@ -381,14 +626,14 @@ export default function WhatsAppPage() {
         return true;
     });
 
-    const usedLabels = Array.from(new Set(chats.flatMap(c => c.chatLabels || [])));
+    const usedLabels = Array.from(new Set(chats.flatMap(c => c.chatLabels || []))).filter(Boolean);
 
     // ═══════════════════════════════════════════════
     // RENDER: PREMIUM GLASSMORPHIC UI
     // ═══════════════════════════════════════════════
 
     return (
-        <main className="h-screen flex flex-col bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-50/50 via-stone-100 to-stone-200 dark:from-stone-900 dark:via-stone-950 dark:to-black">
+        <main className="absolute inset-0 flex flex-col bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-50/50 via-stone-100 to-stone-200 dark:from-stone-900 dark:via-stone-950 dark:to-black">
             {/* Header Flotante / Premium */}
             <div className="flex items-center justify-between px-8 py-5 border-b border-white/40 dark:border-white/5 bg-white/40 dark:bg-black/30 backdrop-blur-2xl flex-shrink-0 z-20 shadow-sm">
                 <div className="flex items-center gap-4">
@@ -404,8 +649,13 @@ export default function WhatsAppPage() {
                 </div>
 
                 <div className="flex items-center gap-6">
-                    <div className="flex items-center gap-3 cursor-pointer group bg-white/60 dark:bg-black/20 px-4 py-2 rounded-2xl border border-stone-200 dark:border-white/5 shadow-sm">
-                        <span className={`text-[13px] font-black uppercase tracking-wider ${agentEnabled ? 'text-violet-600' : 'text-stone-500'}`}>{agentEnabled ? 'Bot General: ON' : 'Bot General: OFF'}</span>
+                    <div className="flex items-center gap-3 bg-white/60 dark:bg-stone-900/60 backdrop-blur-md px-4 py-2 rounded-full border border-stone-200/50 dark:border-stone-800 shadow-sm transition-all">
+                        <div className="flex flex-col items-end">
+                            <span className="text-[9px] font-black uppercase tracking-widest text-stone-400 dark:text-stone-500 leading-none mb-0.5">Asistente IA</span>
+                            <span className={`text-[11px] font-bold leading-none transition-colors ${agentEnabled ? 'text-emerald-600 dark:text-emerald-400' : 'text-stone-500 dark:text-stone-400'}`}>
+                                {agentEnabled ? 'Activa' : 'Inactiva'}
+                            </span>
+                        </div>
                         <button
                             onClick={() => {
                                 const next = !agentEnabled;
@@ -414,11 +664,18 @@ export default function WhatsAppPage() {
                                     method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ enabled: next }),
                                 });
                             }}
-                            className={`w-14 h-7 rounded-full transition-all relative shadow-inner ${agentEnabled ? 'bg-violet-500' : 'bg-stone-300 dark:bg-stone-700'}`}
+                            className={`w-11 h-6 rounded-full transition-colors relative shadow-inner focus:outline-none ${agentEnabled ? 'bg-emerald-500' : 'bg-stone-300 dark:bg-stone-700'}`}
                         >
-                            <div className={`w-6 h-6 rounded-full bg-white shadow-md absolute top-0.5 transition-all ${agentEnabled ? 'left-7.5 translate-x-full' : 'translate-x-0.5'}`} />
+                            <div className={`w-5 h-5 rounded-full bg-white shadow-sm absolute top-0.5 transition-transform ${agentEnabled ? 'translate-x-[22px]' : 'translate-x-[2px]'}`} />
                         </button>
                     </div>
+
+                    <button
+                        onClick={() => setShowTestChat(true)}
+                        className="flex items-center gap-2 px-4 py-2.5 rounded-2xl font-bold text-sm transition-all shadow-sm border bg-emerald-500 text-white border-emerald-400 hover:bg-emerald-600 hover:scale-105"
+                    >
+                        <Play className="w-4 h-4" /> Probar Chat
+                    </button>
 
                     <button
                         onClick={() => { setShowConfig(!showConfig); if (!showConfig) fetchAgent(); }}
@@ -442,7 +699,7 @@ export default function WhatsAppPage() {
                             </div>
                             <div>
                                 <h3 className="text-sm font-black text-stone-800 dark:text-white uppercase tracking-widest">Personalidad del Agente</h3>
-                                <p className="text-xs text-stone-500">Define las reglas globales de Sol, la IA.</p>
+                                <p className="text-xs text-stone-500">Define las reglas globales de Ishtar, la IA.</p>
                             </div>
                         </div>
                         <div className="flex items-center gap-6">
@@ -663,51 +920,63 @@ export default function WhatsAppPage() {
                         {selectedChat ? (
                             <>
                                 {/* Cabecera del Chat */}
-                                <div className="px-6 py-4 bg-white/80 dark:bg-black/20 backdrop-blur-md border-b border-stone-200/50 dark:border-white/5 flex items-center justify-between shrink-0 z-10 shadow-sm">
-                                    <div className="flex items-center gap-4">
-                                        <button onClick={() => setSelectedChat(null)} className="lg:hidden p-2 rounded-xl bg-white shadow-sm border border-stone-100">
-                                            <ChevronLeft className="w-5 h-5 text-stone-600" />
+                                <div className="px-5 py-3 bg-white/80 dark:bg-black/20 backdrop-blur-md border-b border-stone-200/50 dark:border-white/5 flex items-center justify-between shrink-0 z-10 shadow-sm">
+                                    <div className="flex items-center gap-3 min-w-0">
+                                        <button onClick={() => setSelectedChat(null)} className="lg:hidden p-1.5 rounded-xl bg-white shadow-sm border border-stone-100">
+                                            <ChevronLeft className="w-4 h-4 text-stone-600" />
                                         </button>
-                                        <div className="w-12 h-12 rounded-2xl bg-stone-900 dark:bg-white text-white dark:text-stone-900 flex items-center justify-center text-lg font-black shrink-0 shadow-lg relative">
+                                        <div className="w-10 h-10 rounded-xl bg-stone-900 dark:bg-white text-white dark:text-stone-900 flex items-center justify-center text-sm font-black shrink-0 shadow-md relative">
                                             {getDisplayName(selectedChat)[0].toUpperCase()}
-                                            <div className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-emerald-500 border-2 border-white shadow-sm" />
+                                            <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-emerald-500 border-2 border-white shadow-sm" />
                                         </div>
-                                        <div>
-                                            <h3 className="text-base font-black text-stone-900 dark:text-white flex items-center gap-2">
+                                        <div className="min-w-0">
+                                            <h3 className="text-sm font-black text-stone-900 dark:text-white truncate flex items-center gap-1.5">
                                                 {getDisplayName(selectedChat)}
                                                 {selectedChat.client && (
-                                                    <span className="px-2 py-0.5 rounded-md bg-stone-100 dark:bg-stone-800 text-[9px] font-black tracking-widest uppercase text-stone-500">CRM</span>
+                                                    <span className="px-1.5 py-0.5 rounded-md bg-stone-100 dark:bg-stone-800 text-[8px] font-black tracking-widest uppercase text-stone-400 shrink-0">CRM</span>
                                                 )}
                                             </h3>
-                                            <p className="text-[11px] font-bold text-stone-500 flex items-center gap-1.5 mt-0.5">
-                                                <Phone className="w-3 h-3" /> {selectedChat.waId.replace('@c.us', '').replace('@lid', '').replace('@s.whatsapp.net', '')}
-                                                {selectedChat.client && (
+                                            <p className="text-[10px] font-bold text-stone-400 flex items-center gap-1 mt-0.5">
+                                                <Phone className="w-2.5 h-2.5" /> {(() => { const ph = selectedChat.realPhone || selectedChat.client?.phone || ''; const waClean = selectedChat.waId.replace('@c.us', '').replace('@s.whatsapp.net', ''); return (ph && ph.length >= 8) ? ph : (selectedChat.waId.includes('@lid') ? 'Número pendiente' : waClean || 'Sin número'); })()}
+                                                {selectedChat.client ? (
                                                     <a 
                                                         href={`/admin/contactos?id=${selectedChat.client.id}`}
-                                                        className="ml-2 px-3 py-1 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white rounded-lg text-[9px] uppercase tracking-widest font-black transition-all shadow-sm active:scale-95"
+                                                        className="ml-1.5 px-2 py-0.5 bg-stone-100 dark:bg-stone-800 hover:bg-stone-200 dark:hover:bg-stone-700 text-stone-500 dark:text-stone-400 rounded-md text-[9px] uppercase tracking-wider font-black transition-colors"
                                                     >
-                                                        Abrir Ficha de Cliente
+                                                        Ver ficha
                                                     </a>
+                                                ) : (
+                                                    <button
+                                                        onClick={extractClientFromChat}
+                                                        disabled={extracting}
+                                                        className="ml-1.5 px-2.5 py-1 bg-gradient-to-r from-violet-500 to-indigo-500 hover:from-violet-600 hover:to-indigo-600 text-white rounded-lg text-[9px] uppercase tracking-wider font-black transition-all shadow-md hover:shadow-lg hover:scale-105 disabled:opacity-60 disabled:hover:scale-100 flex items-center gap-1"
+                                                    >
+                                                        {extracting ? (
+                                                            <><Loader2 className="w-2.5 h-2.5 animate-spin" /> Analizando...</>
+                                                        ) : (
+                                                            <><Sparkles className="w-2.5 h-2.5" /> Crear Ficha</>
+                                                        )}
+                                                    </button>
                                                 )}
                                             </p>
                                         </div>
                                     </div>
 
-                                    <div className="flex items-center gap-2">
+                                    <div className="flex items-center gap-1.5 shrink-0">
                                         {(selectedChat.chatLabels || []).length > 0 && (
-                                            <div className="hidden md:flex flex-wrap gap-1 mr-4 border-r border-stone-200 pr-4">
+                                            <div className="hidden lg:flex flex-wrap gap-1 mr-2 border-r border-stone-200/50 dark:border-stone-700 pr-2">
                                                 {selectedChat.chatLabels.map(lbl => (
-                                                    <span key={lbl} className={`px-3 py-1 rounded-full text-[10px] font-bold border ${getLabelStyle(lbl)}`}>{lbl}</span>
+                                                    <span key={lbl} className={`px-2 py-0.5 rounded-full text-[9px] font-bold border ${getLabelStyle(lbl)}`}>{lbl}</span>
                                                 ))}
                                             </div>
                                         )}
                                         
                                         <div className="relative">
-                                            <button onClick={() => setShowLabelPicker(v => !v)} className="p-2.5 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 hover:bg-stone-50 rounded-xl transition-all shadow-sm">
-                                                <Tag className="w-4 h-4 text-stone-600" />
+                                            <button onClick={() => setShowLabelPicker(v => !v)} className="p-2 bg-white dark:bg-stone-800 border border-stone-200/50 dark:border-stone-700 hover:bg-stone-50 rounded-xl transition-all shadow-sm">
+                                                <Tag className="w-3.5 h-3.5 text-stone-500" />
                                             </button>
                                             {showLabelPicker && (
-                                                <div className="absolute right-0 top-12 bg-white/90 dark:bg-stone-900/90 backdrop-blur-xl border border-stone-200/50 dark:border-white/10 rounded-2xl shadow-2xl z-50 w-48 p-2">
+                                                <div className="absolute right-0 top-11 bg-white/90 dark:bg-stone-900/90 backdrop-blur-xl border border-stone-200/50 dark:border-white/10 rounded-2xl shadow-2xl z-50 w-44 p-2">
                                                     {CHAT_LABEL_OPTIONS.map(opt => {
                                                         const active = (selectedChat.chatLabels || []).includes(opt.label);
                                                         return (
@@ -720,24 +989,36 @@ export default function WhatsAppPage() {
                                             )}
                                         </div>
 
-                                        <button onClick={() => { updateChat(selectedChat.id, { archived: !selectedChat.archived }); setSelectedChat(null); }} className="p-2.5 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 hover:bg-stone-50 rounded-xl transition-all shadow-sm">
-                                            {selectedChat.archived ? <ArchiveRestore className="w-4 h-4 text-stone-600" /> : <Archive className="w-4 h-4 text-stone-600" />}
+                                        <button onClick={() => { updateChat(selectedChat.id, { archived: !selectedChat.archived }); setSelectedChat(null); }} className="p-2 bg-white dark:bg-stone-800 border border-stone-200/50 dark:border-stone-700 hover:bg-stone-50 rounded-xl transition-all shadow-sm">
+                                            {selectedChat.archived ? <ArchiveRestore className="w-3.5 h-3.5 text-stone-500" /> : <Archive className="w-3.5 h-3.5 text-stone-500" />}
                                         </button>
 
-                                        <div className="w-px h-8 bg-stone-200 dark:bg-stone-700 mx-1" />
+                                        <div className="w-px h-6 bg-stone-200/50 dark:bg-stone-700 mx-0.5" />
 
-                                        <button onClick={() => toggleBot(selectedChat.id, !selectedChat.botEnabled)} className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black transition-all shadow-sm ${selectedChat.botEnabled ? 'bg-violet-100 text-violet-700 border-violet-200 hover:bg-red-50 hover:text-red-600' : 'bg-stone-100 text-stone-500 hover:bg-violet-500 hover:text-white'}`}>
-                                            {selectedChat.botEnabled ? <><Bot className="w-4 h-4" /> IA ON</> : <><Bot className="w-4 h-4 opacity-50" /> IA OFF</>}
-                                        </button>
+                                        {/* Botón IA estilo pill (igual que el header) */}
+                                        <div className="flex items-center gap-2 bg-white/60 dark:bg-stone-800/60 backdrop-blur-md px-3 py-1.5 rounded-full border border-stone-200/50 dark:border-stone-700 shadow-sm">
+                                            <div className="flex flex-col items-end">
+                                                <span className="text-[8px] font-black uppercase tracking-widest text-stone-400 leading-none mb-0.5">Asistente</span>
+                                                <span className={`text-[10px] font-bold leading-none transition-colors ${selectedChat.botEnabled ? 'text-violet-600 dark:text-violet-400' : 'text-stone-400'}`}>
+                                                    {selectedChat.botEnabled ? 'Activa' : 'Inactiva'}
+                                                </span>
+                                            </div>
+                                            <button
+                                                onClick={() => toggleBot(selectedChat.id, !selectedChat.botEnabled)}
+                                                className={`w-9 h-5 rounded-full transition-colors relative shadow-inner focus:outline-none ${selectedChat.botEnabled ? 'bg-violet-500' : 'bg-stone-300 dark:bg-stone-600'}`}
+                                            >
+                                                <div className={`w-4 h-4 rounded-full bg-white shadow-sm absolute top-0.5 transition-transform ${selectedChat.botEnabled ? 'translate-x-[18px]' : 'translate-x-[2px]'}`} />
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
 
                                 {/* Conversación (Burbujas Premium) */}
                                 <div className="flex-1 overflow-y-auto px-6 py-8 space-y-6 bg-gradient-to-b from-transparent to-stone-50/50 dark:from-transparent dark:to-stone-950/20 custom-scrollbar-smooth">
-                                    {messages.map(msg => {
+                                    {messages.map((msg, idx) => {
                                         const isOut = msg.direction === 'OUTBOUND';
                                         return (
-                                            <div key={msg.id} className={`flex ${isOut ? 'justify-end' : 'justify-start'}`}>
+                                            <div key={msg.id || `msg-${idx}`} className={`flex ${isOut ? 'justify-end' : 'justify-start'}`}>
                                                 <div className="flex gap-2 max-w-[80%] items-end">
                                                     {!isOut && (
                                                         <div className="w-6 h-6 rounded-full bg-stone-200 flex-shrink-0 flex items-center justify-center text-[9px] font-black text-stone-500 self-end mb-1">
@@ -751,23 +1032,42 @@ export default function WhatsAppPage() {
                                                         {msg.mediaUrl && msg.type === 'AUDIO' && (
                                                             <div className="mb-2 bg-black/5 dark:bg-white/5 p-2 rounded-2xl flex items-center border border-black/5">
                                                                 <Mic className="w-5 h-5 opacity-50 mr-2 shrink-0" />
-                                                                <audio controls src={msg.mediaUrl} className="h-10 w-48 ouline-none filter drop-shadow-sm" preload="metadata" />
+                                                                <audio controls src={resolveMediaUrl(msg.mediaUrl)} className="h-10 w-48 ouline-none filter drop-shadow-sm" preload="metadata" />
                                                             </div>
                                                         )}
                                                         {msg.mediaUrl && msg.type === 'IMAGE' && (
                                                             <div className="mb-2 overflow-hidden rounded-xl border border-black/5">
-                                                                <img src={msg.mediaUrl} alt="📸" className="max-w-full max-h-64 object-contain" />
+                                                                <img src={resolveMediaUrl(msg.mediaUrl)} alt="📸" className="max-w-full max-h-64 object-contain" />
                                                             </div>
                                                         )}
                                                         {msg.mediaUrl && msg.type === 'VIDEO' && (
                                                             <div className="mb-2 overflow-hidden rounded-xl border border-black/5">
-                                                                <video controls src={msg.mediaUrl} className="max-w-full max-h-64 object-contain rounded-xl" />
+                                                                <video controls src={resolveMediaUrl(msg.mediaUrl)} className="max-w-full max-h-64 object-contain rounded-xl" />
                                                             </div>
                                                         )}
 
-                                                        <p className="text-[15px] font-medium leading-relaxed whitespace-pre-wrap break-all">{msg.content}</p>
+                                                        {/* FALLBACKS PARA MEDIOS SIN URL */}
+                                                        {!msg.mediaUrl && msg.type === 'AUDIO' && (
+                                                            <div className="mb-1 flex items-center gap-2 opacity-70 italic text-sm"><Mic className="w-4 h-4"/> Audio de WhatsApp</div>
+                                                        )}
+                                                        {!msg.mediaUrl && msg.type === 'IMAGE' && (
+                                                            <div className="mb-1 flex items-center gap-2 opacity-70 italic text-sm"><ImageIcon className="w-4 h-4"/> Imagen de WhatsApp</div>
+                                                        )}
+                                                        {!msg.mediaUrl && msg.type === 'VIDEO' && (
+                                                            <div className="mb-1 flex items-center gap-2 opacity-70 italic text-sm"><PlaySquare className="w-4 h-4"/> Video de WhatsApp</div>
+                                                        )}
+                                                        {!msg.mediaUrl && msg.type === 'DOCUMENT' && (
+                                                            <div className="mb-1 flex items-center gap-2 opacity-70 italic text-sm"><Archive className="w-4 h-4"/> Documento de WhatsApp</div>
+                                                        )}
+
+                                                        {msg.content ? (
+                                                            <p className="text-[15px] font-medium leading-relaxed whitespace-pre-wrap break-words">{msg.content}</p>
+                                                        ) : null}
                                                         
                                                         <div className={`mt-2 flex items-center gap-1.5 text-[10px] font-bold ${isOut ? 'text-emerald-100 justify-end' : 'text-stone-400'}`}>
+                                                            {isOut && (
+                                                                <span className="mr-1 opacity-80 uppercase tracking-widest">{msg.senderName ? msg.senderName : 'Teléfono'}</span>
+                                                            )}
                                                             <span>{format(new Date(msg.createdAt), "HH:mm")}</span>
                                                             {isOut && <CheckCircle2 className="w-3 h-3" />}
                                                         </div>
@@ -806,35 +1106,75 @@ export default function WhatsAppPage() {
                                         </div>
                                     )}
 
-                                    <div className="flex items-end gap-3 max-w-[1200px] mx-auto">
+                                    <div className="flex items-end gap-3 max-w-[1200px] mx-auto relative">
+                                        {showEmojiPicker && (
+                                            <div className="absolute bottom-[80px] left-0 z-50 animate-in slide-in-from-bottom-2 drop-shadow-2xl">
+                                                <EmojiPicker 
+                                                    onEmojiClick={(emojiData) => setNewMessage(prev => prev + emojiData.emoji)} 
+                                                    autoFocusSearch={false}
+                                                />
+                                            </div>
+                                        )}
+
                                         <div className="flex bg-stone-100 dark:bg-stone-800 rounded-3xl p-1.5 shadow-inner">
-                                            <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleImagePick} />
-                                            <button onClick={() => fileInputRef.current?.click()} className="p-3 text-stone-500 hover:bg-white hover:text-stone-900 rounded-2xl transition-all shadow-sm">
-                                                <ImageIcon className="w-5 h-5" />
+                                            <input ref={fileInputRef} type="file" accept="image/*,video/*,application/pdf" className="hidden" onChange={handleImagePick} />
+                                            <button onClick={() => setShowEmojiPicker(v => !v)} className={`p-3 rounded-2xl transition-all shadow-sm ${showEmojiPicker ? 'bg-white text-emerald-500' : 'text-stone-500 hover:bg-white hover:text-stone-900'}`}>
+                                                <Smile className="w-5 h-5" />
+                                            </button>
+                                            <button onClick={() => fileInputRef.current?.click()} className="p-3 text-stone-500 hover:bg-white hover:text-stone-900 rounded-2xl transition-all shadow-sm transform -rotate-45">
+                                                <Paperclip className="w-5 h-5" />
                                             </button>
                                             <button onClick={() => setShowQuickReplies(v => !v)} className={`p-3 rounded-2xl transition-all shadow-sm ${showQuickReplies ? 'bg-indigo-100 text-indigo-600' : 'text-stone-500 hover:bg-white hover:text-indigo-600'}`}>
                                                 <Bot className="w-5 h-5" />
                                             </button>
                                         </div>
 
-                                        <div className="flex-1 bg-white dark:bg-stone-800 border-[3px] border-stone-100 dark:border-stone-700 rounded-[2rem] flex items-center px-6 shadow-sm focus-within:border-emerald-200 dark:focus-within:border-emerald-900/50 transition-colors">
-                                            <input
-                                                type="text"
-                                                value={newMessage}
-                                                onChange={e => setNewMessage(e.target.value)}
-                                                onKeyDown={e => e.key === 'Enter' && !e.shiftKey && sendMessage()}
-                                                placeholder="Escribe tu mensaje a mano..."
-                                                className="w-full py-4 bg-transparent outline-none text-[15px] font-medium text-stone-800 dark:text-white placeholder:text-stone-400"
-                                            />
-                                        </div>
+                                        {isRecording ? (
+                                            <div className="flex-1 flex items-center gap-4 bg-red-50 dark:bg-red-900/20 px-6 py-[14px] rounded-[2rem] border-[3px] border-red-100 dark:border-red-900/30 animate-pulse shadow-sm">
+                                                <div className="w-2.5 h-2.5 rounded-full bg-red-500 shadow-sm" />
+                                                <span className="text-red-500 font-black tracking-widest tabular-nums">{formatTime(recordingTime)}</span>
+                                                <span className="text-red-400 text-[13px] font-bold flex-1">Grabando audio...</span>
+                                                <button onClick={cancelRecording} className="p-2 text-stone-400 hover:text-red-500 hover:bg-red-100 dark:hover:bg-red-900/50 rounded-full transition-all">
+                                                    <Trash2 className="w-5 h-5" />
+                                                </button>
+                                            </div>
+                                        ) : (
+                                            <div className="flex-1 bg-white dark:bg-stone-800 border-[3px] border-stone-100 dark:border-stone-700 rounded-[2rem] flex items-center px-6 shadow-sm focus-within:border-emerald-200 dark:focus-within:border-emerald-900/50 transition-colors">
+                                                <input
+                                                    type="text"
+                                                    value={newMessage}
+                                                    onChange={e => setNewMessage(e.target.value)}
+                                                    onKeyDown={e => e.key === 'Enter' && !e.shiftKey && sendMessage()}
+                                                    onFocus={() => setShowEmojiPicker(false)}
+                                                    placeholder="Escribe un mensaje..."
+                                                    className="w-full py-4 bg-transparent outline-none text-[15px] font-medium text-stone-800 dark:text-white placeholder:text-stone-400"
+                                                />
+                                            </div>
+                                        )}
 
-                                        <button
-                                            onClick={sendMessage}
-                                            disabled={(!newMessage.trim() && !selectedImage) || sending}
-                                            className="h-14 w-14 bg-red-500 hover:bg-black text-white rounded-[2rem] flex items-center justify-center shadow-xl shadow-red-500/20 transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:hover:scale-100 shrink-0"
-                                        >
-                                            <Send className="w-6 h-6 ml-1" />
-                                        </button>
+                                        {(!newMessage.trim() && !selectedImage && !isRecording) ? (
+                                            <button
+                                                onClick={startRecording}
+                                                className="h-14 w-14 bg-emerald-500 hover:bg-emerald-600 text-white rounded-[2rem] flex items-center justify-center shadow-xl shadow-emerald-500/20 transition-all hover:scale-105 active:scale-95 shrink-0"
+                                            >
+                                                <Mic className="w-6 h-6" />
+                                            </button>
+                                        ) : isRecording ? (
+                                            <button
+                                                onClick={stopRecording}
+                                                className="h-14 w-14 bg-emerald-500 hover:bg-emerald-600 text-white rounded-[2rem] flex items-center justify-center shadow-xl shadow-emerald-500/20 transition-all hover:scale-105 active:scale-95 shrink-0 animate-in zoom-in"
+                                            >
+                                                <Send className="w-6 h-6 ml-1" />
+                                            </button>
+                                        ) : (
+                                            <button
+                                                onClick={sendMessage}
+                                                disabled={sending}
+                                                className="h-14 w-14 bg-emerald-500 hover:bg-emerald-600 text-white rounded-[2rem] flex items-center justify-center shadow-xl shadow-emerald-500/20 transition-all hover:scale-105 active:scale-95 shrink-0 animate-in zoom-in"
+                                            >
+                                                <Send className="w-6 h-6 ml-1" />
+                                            </button>
+                                        )}
                                     </div>
                                 </div>
                             </>
@@ -846,6 +1186,106 @@ export default function WhatsAppPage() {
                                 <h2 className="text-2xl font-black text-stone-400 dark:text-stone-500">Buzón Atelier</h2>
                             </div>
                         )}
+                    </div>
+                </div>
+            )}
+            <TestChatModal isOpen={showTestChat} onClose={() => setShowTestChat(false)} />
+
+            {/* Modal: Crear Ficha desde Chat */}
+            {showCreateClientModal && extractedClient && (
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-[60] flex items-center justify-center p-4" onClick={() => setShowCreateClientModal(false)}>
+                    <div className="bg-white dark:bg-stone-900 rounded-3xl shadow-2xl w-full max-w-md border border-stone-200/50 dark:border-white/10 overflow-hidden" onClick={e => e.stopPropagation()}>
+                        {/* Header */}
+                        <div className="px-6 py-4 bg-gradient-to-r from-violet-500 to-indigo-500 flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                                <Sparkles className="w-5 h-5 text-white" />
+                                <h3 className="text-base font-black text-white">Crear Ficha</h3>
+                            </div>
+                            <button onClick={() => setShowCreateClientModal(false)} className="p-1 rounded-lg hover:bg-white/20 transition-colors">
+                                <X className="w-4 h-4 text-white" />
+                            </button>
+                        </div>
+                        <p className="px-6 pt-3 text-[11px] text-stone-400 font-medium">Datos extraídos automáticamente de la conversación. Editá lo que necesites antes de confirmar.</p>
+
+                        {/* Form */}
+                        <div className="p-6 space-y-3">
+                            <div>
+                                <label className="text-[10px] font-black uppercase tracking-widest text-stone-400 mb-1 block">Nombre *</label>
+                                <input
+                                    value={extractedClient.name}
+                                    onChange={e => setExtractedClient({ ...extractedClient, name: e.target.value })}
+                                    className="w-full px-3 py-2 bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl text-sm font-semibold text-stone-900 dark:text-white focus:ring-2 focus:ring-violet-500 focus:border-transparent transition-all"
+                                />
+                            </div>
+                            <div>
+                                <label className="text-[10px] font-black uppercase tracking-widest text-stone-400 mb-1 block">Teléfono</label>
+                                <input
+                                    value={extractedClient.phone || ''}
+                                    onChange={e => setExtractedClient({ ...extractedClient, phone: e.target.value || null })}
+                                    placeholder="Ej: 3515551234"
+                                    className="w-full px-3 py-2 bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl text-sm font-semibold text-stone-900 dark:text-white focus:ring-2 focus:ring-violet-500 focus:border-transparent transition-all"
+                                />
+                            </div>
+                            <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label className="text-[10px] font-black uppercase tracking-widest text-stone-400 mb-1 block">Interés</label>
+                                    <input
+                                        value={extractedClient.interest || ''}
+                                        onChange={e => setExtractedClient({ ...extractedClient, interest: e.target.value || null })}
+                                        placeholder="Ej: Multifocal"
+                                        className="w-full px-3 py-2 bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl text-sm font-semibold text-stone-900 dark:text-white focus:ring-2 focus:ring-violet-500 focus:border-transparent transition-all"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="text-[10px] font-black uppercase tracking-widest text-stone-400 mb-1 block">Obra Social</label>
+                                    <input
+                                        value={extractedClient.insurance || ''}
+                                        onChange={e => setExtractedClient({ ...extractedClient, insurance: e.target.value || null })}
+                                        placeholder="Ej: OSDE"
+                                        className="w-full px-3 py-2 bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl text-sm font-semibold text-stone-900 dark:text-white focus:ring-2 focus:ring-violet-500 focus:border-transparent transition-all"
+                                    />
+                                </div>
+                            </div>
+                            <div>
+                                <label className="text-[10px] font-black uppercase tracking-widest text-stone-400 mb-1 block">Origen</label>
+                                <input
+                                    value={extractedClient.contactSource || ''}
+                                    onChange={e => setExtractedClient({ ...extractedClient, contactSource: e.target.value })}
+                                    className="w-full px-3 py-2 bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl text-sm font-semibold text-stone-900 dark:text-white focus:ring-2 focus:ring-violet-500 focus:border-transparent transition-all"
+                                />
+                            </div>
+                            <div>
+                                <label className="text-[10px] font-black uppercase tracking-widest text-stone-400 mb-1 block">Notas</label>
+                                <textarea
+                                    value={extractedClient.notes || ''}
+                                    onChange={e => setExtractedClient({ ...extractedClient, notes: e.target.value || null })}
+                                    rows={2}
+                                    placeholder="Detalles importantes de la conversación..."
+                                    className="w-full px-3 py-2 bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl text-sm font-semibold text-stone-900 dark:text-white focus:ring-2 focus:ring-violet-500 focus:border-transparent transition-all resize-none"
+                                />
+                            </div>
+                        </div>
+
+                        {/* Actions */}
+                        <div className="px-6 pb-5 flex gap-2">
+                            <button
+                                onClick={() => setShowCreateClientModal(false)}
+                                className="flex-1 px-4 py-2.5 bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-300 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-stone-200 dark:hover:bg-stone-700 transition-all"
+                            >
+                                Cancelar
+                            </button>
+                            <button
+                                onClick={confirmCreateClient}
+                                disabled={creatingClient || !extractedClient.name.trim()}
+                                className="flex-1 px-4 py-2.5 bg-gradient-to-r from-violet-500 to-indigo-500 hover:from-violet-600 hover:to-indigo-600 text-white rounded-xl text-xs font-black uppercase tracking-widest transition-all shadow-lg hover:shadow-xl disabled:opacity-50 flex items-center justify-center gap-1.5"
+                            >
+                                {creatingClient ? (
+                                    <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Creando...</>
+                                ) : (
+                                    <><UserPlus className="w-3.5 h-3.5" /> Crear Ficha</>
+                                )}
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}

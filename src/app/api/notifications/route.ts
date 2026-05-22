@@ -87,6 +87,16 @@ export async function POST(request: Request) {
             },
         });
 
+        if (type === 'INVOICE_REQUEST') {
+            import('@/lib/email').then(({ sendEmail }) => {
+                sendEmail({
+                    to: 'pisano.ishtar@gmail.com',
+                    subject: '🧾 Solicitud de Factura (Manual)',
+                    text: `El usuario ${userName} ha generado una solicitud de factura manualmente:\n\n${message}`
+                });
+            }).catch(console.error);
+        }
+
         return NextResponse.json(notification);
     } catch (error: any) {
         console.error('Error creating notification:', error);

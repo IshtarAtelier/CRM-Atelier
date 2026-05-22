@@ -7,107 +7,7 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import InvoiceModal from '@/components/InvoiceModal';
 import { generateInvoicePDF } from '@/lib/invoice-generator';
-
-interface OrderItem {
-    id: string;
-    productId: string;
-    quantity: number;
-    price: number;
-    product: {
-        id: string;
-        name: string;
-        price: number;
-        brand: string | null;
-        model: string | null;
-        category: string;
-        type: string | null;
-        laboratory?: string | null;
-    } | null;
-    sphereVal?: number | null;
-    cylinderVal?: number | null;
-    axisVal?: number | null;
-    additionVal?: number | null;
-    eye?: string | null;
-    pdVal?: number | null;
-    heightVal?: number | null;
-    prismVal?: string | null;
-}
-
-interface Prescription {
-    id: string;
-    sphereOD?: number | null;
-    cylinderOD?: number | null;
-    axisOD?: number | null;
-    sphereOI?: number | null;
-    cylinderOI?: number | null;
-    axisOI?: number | null;
-    addition?: number | null;
-    additionOD?: number | null;
-    additionOI?: number | null;
-    pd?: number | null;
-    distanceOD?: number | null;
-    distanceOI?: number | null;
-    heightOD?: number | null;
-    heightOI?: number | null;
-    notes?: string | null;
-    imageUrl?: string | null;
-    prescriptionType?: string | null;
-    nearSphereOD?: number | null;
-    nearSphereOI?: number | null;
-    nearCylinderOD?: number | null;
-    nearAxisOD?: number | null;
-    nearCylinderOI?: number | null;
-    nearAxisOI?: number | null;
-    prismOD?: string | null;
-    prismOI?: string | null;
-}
-
-interface Order {
-    id: string;
-    clientId: string;
-    status: string;
-    total: number;
-    paid: number;
-    discount?: number;
-    orderType?: string;
-    labStatus?: string;
-    labSentAt?: string;
-    labNotes?: string;
-    labOrderNumber?: string;
-    frameSource?: string | null;
-    userFrameBrand?: string | null;
-    userFrameModel?: string | null;
-    userFrameNotes?: string | null;
-    frameA?: string | null;
-    frameB?: string | null;
-    frameDbl?: string | null;
-    frameEdc?: string | null;
-    createdAt: string;
-    isDeleted?: boolean;
-    deletedReason?: string;
-    markup?: number;
-    discountCash?: number;
-    discountTransfer?: number;
-    discountCard?: number;
-    subtotalWithMarkup?: number;
-    labColor?: string | null;
-    labTreatment?: string | null;
-    labDiameter?: string | null;
-    labPdOd?: string | null;
-    labPdOi?: string | null;
-    prescriptionId?: string | null;
-    prescription?: Prescription | null;
-    client: {
-        id: string;
-        name: string;
-        phone?: string;
-        email?: string;
-        dni?: string | null;
-    };
-    items: OrderItem[];
-    payments: any[];
-    invoices?: { id: string; cae: string; caeExpiration: string; voucherNumber: number; pointOfSale: number; status: string }[];
-}
+import type { Order } from '@/types/orders';
 
 const LAB_STATUS: Record<string, { key: string, label: string; color: string; icon: any; bg: string; text: string; ring: string }> = {
     'NONE': { key: 'NONE', label: 'Sin enviar', color: 'bg-stone-100 text-stone-500', bg: 'bg-stone-100 dark:bg-stone-800', text: 'text-stone-500 dark:text-stone-400', ring: 'ring-stone-200 dark:ring-stone-700', icon: Clock },
@@ -144,6 +44,66 @@ export default function VentasPage() {
     const [requestingInvoiceId, setRequestingInvoiceId] = useState<string | null>(null);
 
     const [error, setError] = useState<string | null>(null);
+
+    const [isAutoSubmitting, setIsAutoSubmitting] = useState(false);
+
+    const autoSubmitSmartLab = async (order: any) => {
+        setIsAutoSubmitting(true);
+        try {
+            const rx = order.prescription || {};
+
+            const fmt = (v: number | null | undefined, plus?: boolean) => {
+                if (v == null) return '';
+                const s = v.toFixed(2);
+                return plus && v > 0 ? '+' + s : s;
+            };
+
+            const clientName = order.client?.name || '';
+            const nameParts = clientName.trim().split(/\s+/);
+            const apellido = nameParts.pop() || '';
+            const nombre = nameParts.join(' ') || apellido;
+
+            const payload = {
+                codigoInterno: clientName,
+                paciente_nombre: nombre,
+                paciente_apellido: apellido,
+                paciente_telefono: order.client?.phone || '',
+                paciente_email: order.client?.email || '',
+                od_esfera: fmt(rx.sphereOD, true),
+                od_cilindro: fmt(rx.cylinderOD),
+                od_eje: rx.axisOD != null ? String(rx.axisOD) : '',
+                od_adicion: fmt(rx.additionOD ?? rx.addition, true),
+                oi_esfera: fmt(rx.sphereOI, true),
+                oi_cilindro: fmt(rx.cylinderOI),
+                oi_eje: rx.axisOI != null ? String(rx.axisOI) : '',
+                oi_adicion: fmt(rx.additionOI ?? rx.addition, true),
+                od_esfera_cerca: fmt(rx.nearSphereOD, true),
+                od_cilindro_cerca: fmt(rx.nearCylinderOD),
+                od_eje_cerca: rx.nearAxisOD != null ? String(rx.nearAxisOD) : '',
+                oi_esfera_cerca: fmt(rx.nearSphereOI, true),
+                oi_cilindro_cerca: fmt(rx.nearCylinderOI),
+                oi_eje_cerca: rx.nearAxisOI != null ? String(rx.nearAxisOI) : '',
+                od_dp: rx.distanceOD != null ? String(rx.distanceOD) : '',
+                oi_dp: rx.distanceOI != null ? String(rx.distanceOI) : '',
+                od_altura: rx.heightOD != null ? String(rx.heightOD) : '',
+                oi_altura: rx.heightOI != null ? String(rx.heightOI) : '',
+                observaciones: rx.notes || ''
+            };
+
+            const encodedData = encodeURIComponent(JSON.stringify(payload));
+            const smartLabUrl = `https://grupooptico.dyndns.info/smartlab/laboratory/new#ATELIER_DATA=${encodedData}`;
+            
+            alert('✅ ¡Listo!\\n\\n1. Se abrirá SmartLab.\\n2. Seleccioná el tipo de lente (ej: Multifocal).\\n3. Hacé clic en ⭐ "🤖 Atelier → Smart..." en favoritos.\\n4. ¡Los campos se llenan solos!\\n5. Revisá y dale a Guardar.');
+            
+            window.open(smartLabUrl, '_blank');
+
+        } catch (error) {
+            console.error('Error auto-submitting:', error);
+            alert('❌ Ocurrió un error al procesar los datos del pedido.');
+        } finally {
+            setIsAutoSubmitting(false);
+        }
+    };
 
     useEffect(() => {
         fetchOrders();
@@ -518,42 +478,54 @@ export default function VentasPage() {
             </div>
 
             {/* Filters */}
-            <div className="space-y-4 mb-6">
-                <div className="flex flex-col lg:flex-row gap-4">
-                    <div className="relative flex-1">
-                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400" />
+            <div className="space-y-6 mb-8">
+                <div className="flex flex-col lg:flex-row gap-5">
+                    <div className="relative flex-1 group">
+                        <Search className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-stone-400 group-focus-within:text-emerald-500 transition-colors duration-300" />
                         <input
                             type="text"
                             placeholder="Buscar por cliente, N° venta o N° operación lab..."
                             value={search}
                             onChange={e => setSearch(e.target.value)}
-                            className="w-full pl-12 pr-4 py-3 bg-white dark:bg-stone-800 border-2 border-stone-100 dark:border-stone-700 rounded-2xl text-sm font-medium focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
+                            className="w-full pl-14 pr-6 py-5 bg-stone-50/50 dark:bg-stone-800/30 backdrop-blur-md border border-stone-200/50 dark:border-stone-700/50 rounded-full shadow-[0_2px_10px_-3px_rgba(16,185,129,0.05)] focus:bg-white dark:focus:bg-stone-900 focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 outline-none transition-all font-medium text-stone-800 dark:text-stone-100 placeholder-stone-400"
                         />
                     </div>
-                    <div className="flex gap-2 overflow-x-auto pb-2 lg:pb-0 no-scrollbar">
-                        {['ALL', 'SENT', 'IN_PROGRESS', 'READY', 'DELIVERED'].map(f => (
-                            <button
-                                key={f}
-                                onClick={() => { setFilterLab(f); if (f !== 'ALL') setFilterBalance(false); }}
-                                className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${filterLab === f && !filterBalance ? 'bg-stone-900 text-white dark:bg-white dark:text-stone-900' : 'bg-stone-100 dark:bg-stone-800 text-stone-500 hover:bg-stone-200'}`}
-                            >
-                                {f === 'ALL' ? 'Todas' : LAB_STATUS[f]?.label || f}
-                            </button>
-                        ))}
+                    
+                    {/* Status Toggles - Pill style */}
+                    <div className="flex gap-2 overflow-x-auto pb-2 lg:pb-0 no-scrollbar inline-flex items-center bg-stone-100/50 dark:bg-stone-800/50 backdrop-blur-md p-1.5 rounded-full border border-stone-200/50 dark:border-stone-700/50 w-max">
+                        {['ALL', 'SENT', 'IN_PROGRESS', 'READY', 'DELIVERED'].map(f => {
+                            const isActive = filterLab === f && !filterBalance;
+                            return (
+                                <button
+                                    key={f}
+                                    onClick={() => { setFilterLab(f); if (f !== 'ALL') setFilterBalance(false); }}
+                                    className={`relative px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all duration-300 whitespace-nowrap ${
+                                        isActive 
+                                        ? 'text-stone-900 dark:text-white' 
+                                        : 'text-stone-500 hover:text-stone-700 dark:hover:text-stone-300'
+                                    }`}
+                                >
+                                    {isActive && <div className="absolute inset-0 bg-white dark:bg-stone-600 rounded-full shadow-[0_2px_8px_-2px_rgba(0,0,0,0.1)] dark:shadow-none -z-10 animate-in zoom-in-95 duration-200" />}
+                                    {f === 'ALL' ? 'Todas' : LAB_STATUS[f]?.label || f}
+                                </button>
+                            );
+                        })}
 
                         {/* Separador visual */}
-                        <div className="w-px bg-stone-200 dark:bg-stone-600 mx-1 self-stretch" />
+                        <div className="w-px h-6 bg-stone-300/50 dark:bg-stone-600/50 mx-2" />
 
                         {/* Filtro de Saldos Pendientes */}
                         <button
                             onClick={() => { setFilterBalance(!filterBalance); if (!filterBalance) setFilterLab('ALL'); }}
-                            className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap flex items-center gap-2 ${filterBalance
-                                ? 'bg-red-500 text-white shadow-lg shadow-red-500/20 ring-2 ring-red-300 dark:ring-red-700'
+                            className={`relative px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all duration-300 whitespace-nowrap flex items-center gap-2 ${
+                                filterBalance
+                                ? 'text-white'
                                 : stats.withBalance > 0
-                                    ? 'bg-red-50 dark:bg-red-950/30 text-red-500 border-2 border-red-200 dark:border-red-800 hover:bg-red-100 dark:hover:bg-red-900/40'
-                                    : 'bg-stone-100 dark:bg-stone-800 text-stone-400 hover:bg-stone-200'
+                                    ? 'text-red-500 hover:text-red-600'
+                                    : 'text-stone-400 hover:text-stone-600'
                             }`}
                         >
+                            {filterBalance && <div className="absolute inset-0 bg-red-500 rounded-full shadow-[0_2px_8px_-2px_rgba(239,68,68,0.4)] -z-10 animate-in zoom-in-95 duration-200" />}
                             <Banknote className="w-3.5 h-3.5" />
                             Con Saldo
                             {stats.withBalance > 0 && (
@@ -568,13 +540,13 @@ export default function VentasPage() {
                 {/* Laboratory & Date Filters */}
                 <div className="flex items-center gap-4 flex-wrap">
                     {/* Lab filter dropdown */}
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-3 bg-white/50 dark:bg-stone-900/50 backdrop-blur-sm px-4 py-2 rounded-full border border-stone-200/50 dark:border-stone-700/50">
                         <FlaskConical className="w-4 h-4 text-stone-400" />
                         <span className="text-[10px] font-black text-stone-400 uppercase tracking-widest">Lab:</span>
                         <select
                             value={filterLaboratory}
                             onChange={e => setFilterLaboratory(e.target.value)}
-                            className="px-3 py-2 bg-white dark:bg-stone-800 border-2 border-stone-100 dark:border-stone-700 rounded-xl text-xs font-bold text-stone-700 dark:text-stone-300 outline-none focus:border-emerald-500 transition-all cursor-pointer"
+                            className="bg-transparent text-xs font-bold text-stone-700 dark:text-stone-300 outline-none cursor-pointer"
                         >
                             <option value="ALL">Todos los laboratorios</option>
                             {uniqueLaboratories.map(lab => (
@@ -583,29 +555,27 @@ export default function VentasPage() {
                         </select>
                     </div>
 
-                    <div className="h-6 w-px bg-stone-200 dark:bg-stone-600" />
-
                     {/* Date filters */}
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-3 bg-white/50 dark:bg-stone-900/50 backdrop-blur-sm px-4 py-2.5 rounded-full border border-stone-200/50 dark:border-stone-700/50">
                         <Calendar className="w-4 h-4 text-stone-400" />
                         <span className="text-[10px] font-black text-stone-400 uppercase tracking-widest">Desde:</span>
                         <input
                             type="date"
                             value={dateFrom}
                             onChange={e => setDateFrom(e.target.value)}
-                            className="px-3 py-2 border-2 border-stone-100 dark:border-stone-600 rounded-xl text-xs font-bold bg-white dark:bg-stone-900 text-stone-700 dark:text-stone-300 outline-none focus:border-emerald-500"
+                            className="bg-transparent text-xs font-bold text-stone-700 dark:text-stone-300 outline-none cursor-pointer"
                         />
-                        <span className="text-stone-400 text-xs font-bold">a</span>
+                        <span className="text-stone-400 text-xs font-black px-2">a</span>
                         <input
                             type="date"
                             value={dateTo}
                             onChange={e => setDateTo(e.target.value)}
-                            className="px-3 py-2 border-2 border-stone-100 dark:border-stone-600 rounded-xl text-xs font-bold bg-white dark:bg-stone-900 text-stone-700 dark:text-stone-300 outline-none focus:border-emerald-500"
+                            className="bg-transparent text-xs font-bold text-stone-700 dark:text-stone-300 outline-none cursor-pointer"
                         />
                         {(dateFrom || dateTo) && (
                             <button
                                 onClick={() => { setDateFrom(''); setDateTo(''); }}
-                                className="p-2 bg-stone-100 dark:bg-stone-800 text-stone-400 rounded-xl hover:bg-stone-200 dark:hover:bg-stone-700 transition-all hover:scale-105"
+                                className="ml-2 p-1.5 bg-stone-200/50 dark:bg-stone-700/50 text-stone-500 hover:text-stone-800 dark:hover:text-stone-200 rounded-full transition-all"
                                 title="Limpiar fechas"
                             >
                                 <X className="w-3.5 h-3.5" />
@@ -879,6 +849,16 @@ export default function VentasPage() {
                                                 <MessageCircle className="w-4 h-4" />
                                             </button>
                                         )}
+                                        {/* === ENVIAR A SMARTLAB — BOTÓN PRINCIPAL === */}
+                                        <button
+                                            onClick={() => autoSubmitSmartLab(order)}
+                                            disabled={isAutoSubmitting}
+                                            className="px-4 py-2.5 bg-gradient-to-r from-amber-400 to-orange-400 text-amber-950 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 hover:scale-105 active:scale-95 transition-all shadow-lg shadow-amber-400/30 disabled:opacity-50"
+                                            title="Copiar datos y abrir SmartLab"
+                                        >
+                                            {isAutoSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <FlaskConical className="w-4 h-4" />}
+                                            {isAutoSubmitting ? 'Copiando...' : '🧪 SmartLab'}
+                                        </button>
                                         {/* SmartLab detail toggle */}
                                         <button
                                             onClick={() => setExpandedDetail(expandedDetail === order.id ? null : order.id)}
@@ -918,9 +898,19 @@ export default function VentasPage() {
                                 {expandedDetail === order.id && (
                                     <div className="mt-4 pt-4 border-t-2 border-dashed border-stone-200 dark:border-stone-600 space-y-4 animate-in slide-in-from-top-2 fade-in duration-200">
                                         {/* Section Header */}
-                                        <div className="flex items-center gap-2 mb-2">
-                                            <FlaskConical className="w-4 h-4 text-indigo-500" />
-                                            <span className="text-[10px] font-black text-indigo-500 uppercase tracking-widest">Detalle para SmartLab</span>
+                                        <div className="flex items-center justify-between mb-2">
+                                            <div className="flex items-center gap-2">
+                                                <FlaskConical className="w-4 h-4 text-indigo-500" />
+                                                <span className="text-[10px] font-black text-indigo-500 uppercase tracking-widest">Detalle para SmartLab</span>
+                                            </div>
+                                            <button
+                                                onClick={() => autoSubmitSmartLab(order)}
+                                                disabled={isAutoSubmitting}
+                                                className="px-4 py-2 bg-amber-400 text-amber-950 rounded-xl text-[10px] font-black flex items-center gap-2 hover:scale-105 transition-all shadow-lg disabled:opacity-50"
+                                            >
+                                                {isAutoSubmitting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Package className="w-3.5 h-3.5" />}
+                                                {isAutoSubmitting ? 'Copiando...' : 'Autocompletar (Bookmarklet)'}
+                                            </button>
                                         </div>
 
                                         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
@@ -1078,7 +1068,10 @@ export default function VentasPage() {
                                                 <div className="mb-3">
                                                     <span className="text-[8px] font-black text-stone-400 uppercase tracking-widest">Armazón</span>
                                                     {(() => {
-                                                        const frameItems = order.items.filter(i => i.product?.category === 'FRAME' || i.product?.category === 'ATELIER');
+                                                        const frameItems = order.items.filter(i => {
+                                                            const cat = (i.product?.category || '').toLowerCase();
+                                                            return cat === 'frame' || cat === 'atelier' || cat === 'armazón de receta' || cat.includes('armazon') || cat.includes('armazón');
+                                                        });
                                                         const hasUserFrame = order.frameSource === 'USUARIO';
                                                         return (
                                                             <div className="mt-1 space-y-1">
@@ -1146,14 +1139,24 @@ export default function VentasPage() {
                                                                     <div key={li.id} className="bg-white/60 dark:bg-stone-800/40 rounded-lg px-3 py-1.5">
                                                                         <div className="flex items-center justify-between">
                                                                             <span className="text-xs font-bold text-stone-800 dark:text-stone-200">{li.product?.brand} · {li.product?.name}</span>
-                                                                            {li.product?.laboratory && (
-                                                                                <span className="text-[7px] font-black uppercase tracking-wider px-1.5 py-0.5 bg-amber-100 dark:bg-amber-900/30 text-amber-600 rounded">{li.product.laboratory}</span>
-                                                                            )}
+                                                                            <div className="flex items-center gap-1">
+                                                                                {li.product?.lensIndex && (
+                                                                                    <span className="text-[7px] font-black uppercase tracking-wider px-1.5 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-600 rounded">Índ: {li.product.lensIndex}</span>
+                                                                                )}
+                                                                                {li.product?.laboratory && (
+                                                                                    <span className="text-[7px] font-black uppercase tracking-wider px-1.5 py-0.5 bg-amber-100 dark:bg-amber-900/30 text-amber-600 rounded">{li.product.laboratory}</span>
+                                                                                )}
+                                                                            </div>
                                                                         </div>
                                                                         <div className="flex items-center gap-2 mt-0.5 text-[10px] text-stone-500">
                                                                             {li.product?.type && <span>{li.product.type}</span>}
                                                                             {li.eye && <span className="font-bold text-blue-500">({li.eye})</span>}
                                                                             <span>x{li.quantity}</span>
+                                                                            {(li as any).crystalColor && (
+                                                                                <span className="font-black text-violet-600 dark:text-violet-400 bg-violet-100 dark:bg-violet-900/30 px-1.5 py-0.5 rounded">
+                                                                                    🎨 {(li as any).crystalColorType === 'DEGRADE' ? 'Degradé' : (li as any).crystalColorType === 'MUESTRA' ? 'Muestra' : 'Compacto'} · {(li as any).crystalColor}
+                                                                                </span>
+                                                                            )}
                                                                         </div>
                                                                     </div>
                                                                 ))}
@@ -1183,11 +1186,17 @@ export default function VentasPage() {
                                         </div>
 
                                         {/* Full Items List (all non-lens items like accessories) */}
-                                        {order.items.filter(i => i.product?.category !== 'Cristal' && i.product?.category !== 'FRAME' && i.product?.category !== 'ATELIER').length > 0 && (
+                                        {order.items.filter(i => {
+                                            const cat = (i.product?.category || '').toLowerCase();
+                                            return cat !== 'cristal' && cat !== 'frame' && cat !== 'atelier' && cat !== 'armazón de receta' && !cat.includes('armazon') && !cat.includes('armazón');
+                                        }).length > 0 && (
                                             <div className="mt-2">
                                                 <span className="text-[8px] font-black text-stone-400 uppercase tracking-widest">Otros Items</span>
                                                 <div className="flex flex-wrap gap-2 mt-1">
-                                                    {order.items.filter(i => i.product?.category !== 'Cristal' && i.product?.category !== 'FRAME' && i.product?.category !== 'ATELIER').map(oi => (
+                                                    {order.items.filter(i => {
+                                                        const cat = (i.product?.category || '').toLowerCase();
+                                                        return cat !== 'cristal' && cat !== 'frame' && cat !== 'atelier' && cat !== 'armazón de receta' && !cat.includes('armazon') && !cat.includes('armazón');
+                                                    }).map(oi => (
                                                         <span key={oi.id} className="text-[10px] font-bold bg-stone-100 dark:bg-stone-700 px-2 py-1 rounded-lg text-stone-600 dark:text-stone-300">
                                                             {oi.product?.brand} · {oi.product?.name} x{oi.quantity}
                                                         </span>

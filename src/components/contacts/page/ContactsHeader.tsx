@@ -37,30 +37,34 @@ export default function ContactsHeader({
                         {activeTab === 'ALL' ? 'Todos los registros' : activeTab === 'CONTACT' ? 'Prospectos' : activeTab === 'CONFIRMED' ? 'Pedidos Confirmados' : 'Ventas Cerradas'}
                     </p>
                 </div>
-                <div className="flex items-center gap-4">
-                    <button
-                        onClick={() => setShowFavorites(!showFavorites)}
-                        className={`p-5 rounded-2xl border transition-all relative ${showFavorites
-                            ? 'bg-red-50 text-red-500 border-red-200'
-                            : 'bg-white dark:bg-stone-800 text-stone-400 border-stone-200 dark:border-stone-700'
-                            }`}
-                    >
-                        <Heart className={`w-6 h-6 ${showFavorites ? 'fill-current' : ''}`} />
-                        {favoriteCount > 0 && (
-                            <span className="absolute -top-1 -right-1 w-5 h-5 bg-stone-900 text-white text-[10px] font-black rounded-full flex items-center justify-center">
-                                {favoriteCount}
-                            </span>
-                        )}
-                    </button>
+                <div className="flex items-center gap-4 w-full md:w-auto justify-end mt-4 md:mt-0">
                     <button
                         onClick={onNewContact}
-                        className="flex items-center gap-3 px-8 py-5 bg-stone-900 text-white dark:bg-primary dark:text-primary-foreground rounded-2xl text-sm font-black shadow-2xl shadow-stone-400/20 hover:scale-105 active:scale-95 transition-all group"
+                        className="flex items-center justify-center gap-3 w-full md:w-auto px-8 py-5 bg-stone-900 text-white dark:bg-primary dark:text-primary-foreground rounded-2xl text-sm font-black shadow-2xl shadow-stone-400/20 hover:scale-105 active:scale-95 transition-all group"
                     >
                         <Plus className="w-6 h-6 group-hover:rotate-90 transition-transform" strokeWidth={3} />
                         NUEVO CONTACTO
                     </button>
                 </div>
             </header>
+
+            {/* Fixed Top-Right Favorites Button */}
+            <div className="fixed top-20 right-4 md:top-8 md:right-8 z-50">
+                <button
+                    onClick={() => setShowFavorites(!showFavorites)}
+                    className={`p-3 md:p-5 rounded-2xl border transition-all relative shadow-xl hover:scale-105 active:scale-95 flex items-center justify-center ${showFavorites
+                        ? 'bg-red-50 dark:bg-red-950/30 text-red-500 border-red-200 dark:border-red-900 shadow-red-500/20'
+                        : 'bg-white/80 dark:bg-stone-900/80 backdrop-blur-xl text-stone-400 border-stone-200 dark:border-stone-800 shadow-stone-400/10'
+                        }`}
+                >
+                    <Heart className={`w-5 h-5 md:w-6 md:h-6 ${showFavorites ? 'fill-current' : ''}`} />
+                    {favoriteCount > 0 && (
+                        <span className="absolute -top-1.5 -right-1.5 md:-top-2 md:-right-2 w-5 h-5 md:w-6 md:h-6 bg-stone-900 dark:bg-stone-100 text-white dark:text-stone-900 text-[10px] md:text-xs font-black rounded-full flex items-center justify-center border-2 border-white dark:border-stone-900">
+                            {favoriteCount}
+                        </span>
+                    )}
+                </button>
+            </div>
 
             {/* Prescription Renewal Alert */}
             {showRxAlert && expiredRx.length > 0 && (

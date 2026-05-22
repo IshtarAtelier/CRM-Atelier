@@ -10,6 +10,8 @@ const apiClient = axios.create({
     headers: { 'x-api-key': BOT_API_KEY }
 });
 
+const { sendMessage } = require('./whatsapp-client');
+
 /**
  * Tool: Search for an existing client by phone or name
  */
@@ -33,19 +35,41 @@ async function checkExistingClient({ phone, name }) {
 /**
  * Tool: Convert a chat into a Lead in the CRM
  */
-async function convertIntoLead({ phone, name, contactSource, interest }) {
+async function convertIntoLead({ phone, name, contactSource, interest, chatId, insurance }) {
     try {
+        // Sanitizar teléfono: números @lid falsos suelen tener 15+ dígitos puros
+        let cleanPhone = phone ? phone.replace(/\D/g, '') : '';
+        if (cleanPhone.length > 15 || cleanPhone.length < 8) {
+            console.log(`  ⚠️ Teléfono sospechoso descartado: "${phone}" (${cleanPhone.length} dígitos)`);
+            cleanPhone = null;
+        } else {
+            cleanPhone = phone; // Mantener formato original si es válido
+        }
+
+        if (!cleanPhone) {
+            return { error: 'No se pudo registrar el lead: el tel\u00e9fono no es v\u00e1lido o no se pudo resolver.' };
+        }
+
         const response = await apiClient.post(`${CRM_API_URL}/clients`, {
-            phone, name, contactSource, interest, status: 'CONTACT'
+            phone: cleanPhone, name, contactSource, interest, status: 'CONTACT', insurance
         });
         const newContact = response.data.client || response.data;
 
-        // VINCULACIÓN AUTOMÁTICA DE CHAT MIENTRAS HABLAN:
         if (newContact && newContact.id) {
-            await prisma.whatsAppChat.updateMany({
-                where: { waId: { contains: phone } },
-                data: { clientId: newContact.id }
-            });
+            // Fix: Usar chatId estricto si se provee, o un phone válido. Si phone es vacío y no hay chatId, evitar desastre.
+            if (chatId) {
+                await prisma.whatsAppChat.update({
+                    where: { id: chatId },
+                    data: { clientId: newContact.id }
+                }).catch(() => {});
+            } else if (cleanPhone && cleanPhone.length > 5) {
+                await prisma.whatsAppChat.updateMany({
+                    where: { waId: { startsWith: cleanPhone } },
+                    data: { clientId: newContact.id }
+                });
+            }
+            // Auto-etiquetar como Bot Lead
+            await addTagToClient({ clientId: newContact.id, tagName: 'Bot Lead' });
         }
 
         return { success: true, contact: newContact };
@@ -197,6 +221,12 @@ async function createQuote({ clientId, items, total, discountCash }) {
  */
 async function cancelBot({ clientId, waId }) {
     try {
+        // If no waId provided, try to find it from clientId
+        if (!waId && clientId && clientId !== 'none') {
+            const chatFromClient = await prisma.whatsAppChat.findFirst({ where: { clientId } });
+            if (chatFromClient) waId = chatFromClient.waId;
+        }
+
         let tag = await prisma.tag.findFirst({
             where: { name: { equals: 'Cancelar Bot', mode: 'insensitive' } }
         });
@@ -244,9 +274,123 @@ async function cancelBot({ clientId, waId }) {
     }
 }
 
+/**
+ * Tool: Add a tag dynamically to a client
+ */
+async function addTagToClient({ clientId, tagName }) {
+    if (!clientId || clientId === 'none') return { error: "No client ID provided. No se puede etiquetar a un prospecto no guardado." };
+    try {
+        let tag = await prisma.tag.findFirst({
+            where: { name: { equals: tagName, mode: 'insensitive' } }
+        });
+        
+        if (!tag) {
+            tag = await prisma.tag.create({
+                data: { name: tagName, color: '#1677ff' } // azul por defecto
+            });
+        }
+
+        const client = await prisma.client.update({
+            where: { id: clientId },
+            data: {
+                tags: {
+                    connect: { id: tag.id }
+                }
+            }
+        });
+
+        // 1. Bot Action Automation
+        if (tag.botAction === 'TURN_OFF' || tag.botAction === 'TURN_ON') {
+            await prisma.whatsAppChat.updateMany({
+                where: { clientId: clientId },
+                data: { botEnabled: tag.botAction === 'TURN_ON' }
+            });
+            console.log(`[Etiqueta Automation] Bot ${tag.botAction === 'TURN_ON' ? 'activado' : 'pausado'} para cliente ${client.name}`);
+        }
+
+        // 2. Notification Automation
+        if (tag.notifyPhone) {
+            try {
+                const message = `🔔 *NOTIFICACIÓN DEL CRM*\nSe ha aplicado la etiqueta *${tag.name}* al cliente *${client.name || 'Sin nombre'}* (ID: ${client.id}).`;
+                const notifyWaId = tag.notifyPhone.includes('@') ? tag.notifyPhone : `${tag.notifyPhone.replace(/[^0-9]/g, '')}@c.us`;
+                await sendMessage(notifyWaId, message);
+                console.log(`[Etiqueta Automation] Notificación enviada a ${notifyWaId}`);
+            } catch (err) {
+                console.error("[Etiqueta Automation] Error enviando notificación:", err.message);
+            }
+        }
+
+        return { success: true, message: `Etiqueta '${tagName}' agregada correctamente al cliente.` };
+    } catch (error) {
+        console.error('Error in addTagToClient tool:', error.message);
+        return { error: `No se pudo agregar la etiqueta '${tagName}'.` };
+    }
+}
+
+/**
+ * Tool: Disable Bot explicitly for a Chat
+ */
+async function disableBotForChat({ chatId }) {
+    if (!chatId || chatId === 'none') return { error: "No chatId provided." };
+    try {
+        await prisma.whatsAppChat.update({
+            where: { id: chatId },
+            data: { botEnabled: false }
+        });
+        return { success: true, message: `Bot apagado para el chat.` };
+    } catch (error) {
+        console.error('Error in disableBotForChat tool:', error.message);
+        return { error: `No se pudo apagar el bot para el chat.` };
+    }
+}
+
+
+/**
+ * Tool: Report a complaint via email
+ */
+async function reportComplaint({ clientId, details }) {
+    if (!clientId) return { error: "No client ID provided." };
+    if (!details) return { error: "No details provided." };
+    try {
+        const complaintsUrl = CRM_API_URL.replace('/api/bot', '/api');
+        const response = await apiClient.post(`${complaintsUrl}/complaints`, {
+            clientId,
+            details
+        });
+
+        // Add the NOTE to the client's profile automatically
+        await addInteraction({
+            clientId,
+            type: 'NOTE',
+            content: `[RECLAMO POST-VENTA] ${details}`
+        });
+
+        // Enviar notificación por WhatsApp a la administración
+        const adminPhone = process.env.ADMIN_PHONE || '5493512222222'; // A configurar
+        if (adminPhone) {
+            try {
+                // Obtenemos los datos del cliente para el msj
+                const client = await prisma.client.findUnique({ where: { id: clientId } });
+                const clientName = client ? client.name : clientId;
+                
+                const waMsg = `🚨 *NUEVO RECLAMO POST-VENTA* 🚨\n\n*Cliente:* ${clientName}\n\n*Detalles:*\n${details}\n\nRevisa el correo para más información.`;
+                await sendMessage(adminPhone + '@c.us', waMsg);
+                console.log(`WhatsApp notification sent to admin (${adminPhone})`);
+            } catch (waError) {
+                console.error('Error sending WA notification:', waError);
+            }
+        }
+
+        return { success: true, message: `Reclamo reportado exitosamente.` };
+    } catch (error) {
+        console.error('Error in reportComplaint tool:', error.message);
+        return { error: `No se pudo enviar el reporte del reclamo.` };
+    }
+}
+
 module.exports = {
     checkExistingClient, convertIntoLead, updateClientData,
     getPriceList, getOrderStatus, createTask,
     addInteraction, savePrescription, logBotMessage, createQuote,
-    cancelBot
+    cancelBot, addTagToClient, disableBotForChat, reportComplaint
 };

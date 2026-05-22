@@ -1,5 +1,5 @@
 import React from 'react';
-import { UserPlus, Star, Phone, Tag as TagIcon, ChevronRight, CheckCircle2, UserCheck, Building2, Heart, FileText, Trash2 } from "lucide-react";
+import { UserPlus, Star, Phone, Tag as TagIcon, ChevronRight, CheckCircle2, UserCheck, Building2, Heart, FileText, Trash2, MapPin } from "lucide-react";
 import { Contact } from '@/types/contacts';
 
 interface ContactCardProps {
@@ -11,6 +11,7 @@ interface ContactCardProps {
     onQuote: (id: string, name: string) => void;
     currentUserRole?: string;
     onDeleteContact?: (id: string) => void;
+    onRegisterVisit?: (id: string) => void;
 }
 
 export const ContactCard: React.FC<ContactCardProps> = ({
@@ -21,7 +22,8 @@ export const ContactCard: React.FC<ContactCardProps> = ({
     onClick,
     onQuote,
     currentUserRole,
-    onDeleteContact
+    onDeleteContact,
+    onRegisterVisit
 }) => {
     return (
         <div
@@ -111,7 +113,22 @@ export const ContactCard: React.FC<ContactCardProps> = ({
                     <p className="text-[9px] font-black text-stone-400 uppercase tracking-widest mb-0.5">Ticket Promedio</p>
                     <p className={`text-lg lg:text-xl font-black tracking-tighter ${(contact.avgTicket || 0) > 0 ? 'text-stone-800 dark:text-stone-200' : 'text-stone-300 dark:text-stone-600'}`}>{(contact.avgTicket || 0) > 0 ? `$${contact.avgTicket?.toLocaleString()}` : '—'}</p>
                 </div>
-                <div className="flex items-center gap-2 w-full sm:w-auto">
+                <div className="flex flex-wrap items-center justify-end gap-2 w-full sm:w-auto">
+                    {onRegisterVisit && (
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                if (window.confirm('¿Registrar visita al local de este cliente?')) {
+                                    onRegisterVisit(contact.id);
+                                }
+                            }}
+                            className="flex-1 sm:flex-none px-3 lg:px-4 py-2.5 lg:py-3 bg-stone-100 text-stone-600 dark:bg-stone-800 dark:text-stone-300 rounded-xl lg:rounded-2xl text-[9px] lg:text-[10px] font-black uppercase tracking-widest border border-stone-200 dark:border-stone-700 flex items-center justify-center gap-2 hover:bg-emerald-50 hover:text-emerald-600 hover:border-emerald-200 dark:hover:bg-emerald-900/20 dark:hover:text-emerald-400 dark:hover:border-emerald-800/30 transition-all"
+                            title="Registrar Visita al Local"
+                        >
+                            <MapPin className="w-3.5 h-3.5 lg:w-4 lg:h-4" />
+                            <span className="hidden sm:inline">Visita</span>
+                        </button>
+                    )}
                     <button
                         onClick={(e) => {
                             e.stopPropagation();

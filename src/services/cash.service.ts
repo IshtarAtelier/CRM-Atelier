@@ -1,8 +1,7 @@
 import { prisma } from '@/lib/db';
-import nodemailer from 'nodemailer';
+import { sendEmail } from '@/lib/email';
 
 const ADMIN_EMAIL = 'pisano.ishtar@gmail.com';
-const CASH_ALERT_THRESHOLD = 300000;
 
 export const CashService = {
     /**
@@ -21,13 +20,13 @@ export const CashService = {
         const paymentsTotal = paymentsAgg._sum.amount || 0;
 
         // 2. Calcular los totales de movimientos manuales de caja (IN / OUT)
-        const manualInAgg = await (prisma as any).cashMovement.aggregate({
+        const manualInAgg = await prisma.cashMovement.aggregate({
             _sum: { amount: true },
             where: { type: 'IN' }
         });
         const manualIn = manualInAgg._sum.amount || 0;
 
-        const manualOutAgg = await (prisma as any).cashMovement.aggregate({
+        const manualOutAgg = await prisma.cashMovement.aggregate({
             _sum: { amount: true },
             where: { type: 'OUT' }
         });
@@ -47,7 +46,7 @@ export const CashService = {
             take: 50
         });
 
-        const recentMovements = await (prisma as any).cashMovement.findMany({
+        const recentMovements = await prisma.cashMovement.findMany({
             include: { user: true },
             orderBy: { createdAt: 'desc' },
             take: 50
@@ -86,7 +85,7 @@ export const CashService = {
     async registerMovement(params: { type: 'IN' | 'OUT', amount: number, reason: string, userId: string, receiptUrl?: string, category?: string, laboratory?: string }) {
         const { type, amount, reason, userId, receiptUrl, category, laboratory } = params;
 
-        const movement = await (prisma as any).cashMovement.create({
+        const movement = await prisma.cashMovement.create({
             data: { type, amount, reason, userId, receiptUrl, category: category || 'OTRO', laboratory },
             include: { user: true }
         });
@@ -95,15 +94,16 @@ export const CashService = {
         if (type === 'OUT') {
             const labLine = laboratory ? `\nLaboratorio: ${laboratory}` : '';
             const catLabel = category === 'PAGO_LABORATORIO' ? 'Pago Laboratorio' : category === 'GASTO_GENERAL' ? 'Gasto General' : 'Otro';
-            await this.sendEmail(
-                '🚨 Salida de Efectivo Registrada',
-                `Se ha registrado una salida de efectivo:\n\n` +
+            await sendEmail({
+                to: ADMIN_EMAIL,
+                subject: '🚨 Salida de Efectivo Registrada',
+                text: `Se ha registrado una salida de efectivo:\n\n` +
                 `Monto: $${amount.toLocaleString('es-AR')}\n` +
                 `Categoría: ${catLabel}\n` +
                 `Motivo: ${reason}${labLine}\n` +
                 `Registrado por: ${movement.user.name}\n` +
                 `Fecha: ${movement.createdAt.toLocaleString('es-AR')}`
-            );
+            });
 
             // También registrar en notificaciones de la DB
             await prisma.notification.create({
@@ -123,57 +123,53 @@ export const CashService = {
     },
 
     /**
-     * Verifica el saldo actual y envía una alerta si supera el umbral.
+     * Verifica el saldo actual y envía una alerta si supera los umbrales de 1M o 2M.
      */
     async checkBalanceAndAlert() {
         const balance = await this.getCashBalance();
-        if (balance.total > CASH_ALERT_THRESHOLD) {
-            await this.sendEmail(
-                '⚠️ Alerta: Saldo de Caja Elevado',
-                `El saldo de efectivo en caja ha superado los $${CASH_ALERT_THRESHOLD.toLocaleString('es-AR')}.\n\n` +
-                `Saldo actual: $${balance.total.toLocaleString('es-AR')}\n\n` +
-                `Se recomienda realizar un retiro parcial.`
-            );
+        let thresholdName = null;
+        let urgency = '';
+        
+        if (balance.total >= 2000000) {
+            thresholdName = '2MILLION';
+            urgency = '🚨 ALERTA DE RETIRO URGENTE (Más de 2 Millones)';
+        } else if (balance.total >= 1000000) {
+            thresholdName = '1MILLION';
+            urgency = '⚠️ Alerta: Saldo de Caja Elevado (Más de 1 Millón)';
+        }
 
-            // También registrar en notificaciones de la DB
-            await prisma.notification.create({
-                data: {
+        if (thresholdName) {
+            // Check if we already alerted today for this threshold to avoid spam
+            const today = new Date();
+            today.setHours(0,0,0,0);
+            
+            const existingAlert = await prisma.notification.findFirst({
+                where: {
                     type: 'HIGH_CASH_BALANCE',
-                    message: `Alerta: Saldo de caja elevado ($${balance.total.toLocaleString('es-AR')})`,
-                    requestedBy: 'SYSTEM',
-                    status: 'PENDING'
+                    message: { contains: thresholdName },
+                    createdAt: { gte: today }
                 }
             });
-        }
-    },
 
-    /**
-     * Envía un email usando nodemailer.
-     */
-    async sendEmail(subject: string, text: string) {
-        try {
-            // Configuración de transporte (usar variables de entorno)
-            const transporter = nodemailer.createTransport({
-                host: process.env.SMTP_HOST || 'smtp.gmail.com',
-                port: parseInt(process.env.SMTP_PORT || '587'),
-                secure: process.env.SMTP_SECURE === 'true',
-                auth: {
-                    user: process.env.SMTP_USER,
-                    pass: process.env.SMTP_PASS,
-                },
-            });
+            if (!existingAlert) {
+                await sendEmail({
+                    to: ADMIN_EMAIL,
+                    subject: urgency,
+                    text: `El saldo de efectivo en caja ha superado los límites establecidos.\n\n` +
+                    `Saldo actual: $${balance.total.toLocaleString('es-AR')}\n\n` +
+                    `Por motivos de seguridad, se requiere realizar un retiro a la brevedad.`
+                });
 
-            await transporter.sendMail({
-                from: `"Atelier Óptica" <${process.env.SMTP_USER || 'no-reply@atelieroptica.com'}>`,
-                to: ADMIN_EMAIL,
-                subject: subject,
-                text: text,
-            });
-
-            console.log(`Email enviado con éxito: ${subject}`);
-        } catch (error) {
-            console.error('Error enviando email:', error);
-            // No lanzamos error para no bloquear el flujo principal si falla el email
+                // También registrar en notificaciones de la DB
+                await prisma.notification.create({
+                    data: {
+                        type: 'HIGH_CASH_BALANCE',
+                        message: `${urgency} - ${thresholdName} - Saldo actual: $${balance.total.toLocaleString('es-AR')}`,
+                        requestedBy: 'SYSTEM',
+                        status: 'PENDING'
+                    }
+                });
+            }
         }
     }
 };

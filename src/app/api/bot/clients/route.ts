@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { ContactService } from '@/services/contact.service';
 
 export const dynamic = 'force-dynamic';
 
@@ -48,36 +49,33 @@ export async function POST(request: Request) {
         const body = await request.json();
         const { id, ...data } = body;
 
-        // Dedup: if no ID, check if phone already exists
-        if (!id && data.phone) {
-            const existing = await prisma.client.findFirst({
-                where: { phone: data.phone }
-            });
-            if (existing) {
-                const updated = await prisma.client.update({
-                    where: { id: existing.id },
-                    data
-                });
-                return NextResponse.json({ action: 'UPDATED', client: updated });
-            }
-        }
-
         if (id) {
             // Update existing
-            const updated = await prisma.client.update({
-                where: { id },
-                data
-            });
+            const updated = await ContactService.update(id, data);
             return NextResponse.json({ action: 'UPDATED', client: updated });
         } else {
-            // Create new (Lead)
-            const created = await prisma.client.create({
-                data: {
+            // Create new (Lead) with Deduplication Logic
+            try {
+                const created = await ContactService.create({
                     ...data,
                     status: data.status || 'CONTACT'
+                });
+                return NextResponse.json({ action: 'CREATED', client: created });
+            } catch (error: any) {
+                // Intercept ContactService deduplication error
+                try {
+                    const parsedError = JSON.parse(error.message);
+                    if (parsedError.isDuplicate && parsedError.existingClient) {
+                        console.log(`[Bot Bridge] Duplicate intercepted. Linking to existing client: ${parsedError.existingClient.id}`);
+                        // Optionally update some data on the existing client
+                        const updated = await ContactService.update(parsedError.existingClient.id, data);
+                        return NextResponse.json({ action: 'UPDATED', client: updated });
+                    }
+                } catch (parseError) {
+                    // Not a JSON duplicate error
                 }
-            });
-            return NextResponse.json({ action: 'CREATED', client: created });
+                throw error;
+            }
         }
     } catch (error: any) {
         console.error('[Bot Bridge Clients POST] Error:', error);

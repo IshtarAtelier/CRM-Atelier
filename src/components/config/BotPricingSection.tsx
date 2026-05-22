@@ -47,7 +47,7 @@ export function BotPricingSection() {
         try {
             const res = await fetch('/api/bot/pricing?all=1');
             const data = await res.json();
-            setItems(data);
+            setItems(Array.isArray(data) ? data : (data?.items ?? []));
         } catch (error) {
             console.error('Error fetching pricing:', error);
             setMessage({ type: 'error', text: 'Error al cargar los precios.' });

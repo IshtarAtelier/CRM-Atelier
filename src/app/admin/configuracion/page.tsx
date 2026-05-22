@@ -34,6 +34,13 @@ interface Doctor {
     createdAt: string;
 }
 
+interface LaboratoryConfig {
+    id: string;
+    name: string;
+    calibrado: number;
+    iva: number;
+}
+
 interface BillingConfig {
     account: string;
     label: string;
@@ -42,6 +49,19 @@ interface BillingConfig {
     connected?: boolean;
     error?: string;
     lastVoucherNumber?: number | null;
+}
+
+interface ServicePricing {
+    id: string;
+    name: string;
+    description?: string | null;
+    category: string;
+    subcategory?: string | null;
+    priceCash: number;
+    priceCredit: number;
+    creditMonths: number;
+    active: boolean;
+    notes?: string | null;
 }
 
 // ── Page ──────────────────────────────────
@@ -54,11 +74,41 @@ export default function ConfiguracionPage() {
     const [changingPasswordId, setChangingPasswordId] = useState<string | null>(null);
     const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
-    // Doctors state
     const [doctors, setDoctors] = useState<Doctor[]>([]);
     const [newDoctorName, setNewDoctorName] = useState('');
     const [addingDoctor, setAddingDoctor] = useState(false);
     const [deletingDoctorId, setDeletingDoctorId] = useState<string | null>(null);
+
+
+    // Tags state
+    interface TagConfig {
+        id: string; name: string; color: string; botAction: string; notifyPhone: string | null;
+    }
+    const [tags, setTags] = useState<TagConfig[]>([]);
+    const [newTagName, setNewTagName] = useState('');
+    const [newTagColor, setNewTagColor] = useState('#9e7f65');
+    const [newTagBotAction, setNewTagBotAction] = useState('NONE');
+    const [newTagNotifyPhone, setNewTagNotifyPhone] = useState('');
+    const [addingTag, setAddingTag] = useState(false);
+    const [editingTagId, setEditingTagId] = useState<string | null>(null);
+    const [editTagData, setEditTagData] = useState<Partial<TagConfig>>({});
+
+    // Labs state
+    const [labs, setLabs] = useState<LaboratoryConfig[]>([]);
+    const [newLabName, setNewLabName] = useState('');
+    const [addingLab, setAddingLab] = useState(false);
+    const [editingLabId, setEditingLabId] = useState<string | null>(null);
+    const [editLabCalibrado, setEditLabCalibrado] = useState(0);
+    const [editLabIva, setEditLabIva] = useState(0);
+
+    // Service Pricing state
+    const [services, setServices] = useState<ServicePricing[]>([]);
+    const [addingService, setAddingService] = useState(false);
+    const [newServiceName, setNewServiceName] = useState('');
+    const [newServiceCategory, setNewServiceCategory] = useState('CRISTALES');
+    const [newServicePriceCash, setNewServicePriceCash] = useState<number | ''>('');
+    const [newServicePriceCredit, setNewServicePriceCredit] = useState<number | ''>('');
+    const [editingServiceId, setEditingServiceId] = useState<string | null>(null);
 
     const [agentPrompt, setAgentPrompt] = useState('');
     const [agentEnabled, setAgentEnabled] = useState(false);
@@ -95,12 +145,203 @@ export default function ConfiguracionPage() {
     useEffect(() => {
         fetchUsers();
         fetchDoctors();
+        fetchLabs();
+        fetchServices();
+        fetchTags();
         fetchAgentConfig();
         fetchWaStatus();
         fetchBillingConfig();
         fetchBackupStatus();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
+         
     }, []);
+
+    const fetchLabs = async () => {
+        try {
+            const res = await fetch('/api/laboratories');
+            if (res.ok) {
+                const data = await res.json();
+                setLabs(data.laboratories || []);
+            }
+        } catch (error) {
+            console.error('Error fetching labs:', error);
+        }
+    };
+
+
+    const fetchTags = async () => {
+        try {
+            const res = await fetch('/api/tags');
+            if (res.ok) {
+                const data = await res.json();
+                setTags(data || []);
+            }
+        } catch (error) {
+            console.error('Error fetching tags:', error);
+        }
+    };
+    
+    const handleAddTag = async () => {
+        if (!newTagName.trim()) return;
+        setAddingTag(true);
+        try {
+            const res = await fetch('/api/tags', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: newTagName.trim(), color: newTagColor, botAction: newTagBotAction, notifyPhone: newTagNotifyPhone || null })
+            });
+            if (res.ok) {
+                setMessage({ type: 'success', text: `Etiqueta agregada` });
+                setNewTagName(''); setNewTagBotAction('NONE'); setNewTagNotifyPhone('');
+                await fetchTags();
+            } else {
+                setMessage({ type: 'error', text: 'Error al agregar etiqueta' });
+            }
+        } catch {
+            setMessage({ type: 'error', text: 'Error de conexión' });
+        }
+        setAddingTag(false);
+    };
+
+    const handleSaveTag = async (id: string) => {
+        try {
+            const res = await fetch(`/api/tags/${id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(editTagData)
+            });
+            if (res.ok) {
+                setMessage({ type: 'success', text: 'Etiqueta actualizada' });
+                setEditingTagId(null);
+                await fetchTags();
+            } else {
+                setMessage({ type: 'error', text: 'Error al actualizar' });
+            }
+        } catch {
+            setMessage({ type: 'error', text: 'Error de conexión' });
+        }
+    };
+
+    const handleDeleteTag = async (id: string) => {
+        if (!confirm('¿Eliminar etiqueta?')) return;
+        try {
+            const res = await fetch(`/api/tags/${id}`, { method: 'DELETE' });
+            if (res.ok) {
+                setMessage({ type: 'success', text: 'Etiqueta eliminada' });
+                await fetchTags();
+            }
+        } catch {
+            setMessage({ type: 'error', text: 'Error' });
+        }
+    };
+
+    const fetchServices = async () => {
+        try {
+            const res = await fetch('/api/service-pricing');
+            if (res.ok) {
+                const data = await res.json();
+                setServices(data || []);
+            }
+        } catch (error) {
+            console.error('Error fetching services:', error);
+        }
+    };
+
+    const handleAddLab = async () => {
+        if (!newLabName.trim()) return;
+        setAddingLab(true);
+        try {
+            const res = await fetch('/api/laboratories', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: newLabName.trim(), calibrado: 0, iva: 0 })
+            });
+            if (!res.ok) {
+                const data = await res.json();
+                setMessage({ type: 'error', text: data.error || 'Error al agregar laboratorio' });
+            } else {
+                setMessage({ type: 'success', text: `Laboratorio "${newLabName.trim()}" agregado` });
+                setNewLabName('');
+                await fetchLabs();
+            }
+        } catch {
+            setMessage({ type: 'error', text: 'Error de conexión' });
+        }
+        setAddingLab(false);
+    };
+
+    const handleSaveLab = async (id: string) => {
+        try {
+            const res = await fetch(`/api/laboratories/${id}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ calibrado: editLabCalibrado, iva: editLabIva })
+            });
+            if (res.ok) {
+                setMessage({ type: 'success', text: 'Laboratorio actualizado' });
+                setEditingLabId(null);
+                await fetchLabs();
+            } else {
+                setMessage({ type: 'error', text: 'Error al actualizar laboratorio' });
+            }
+        } catch {
+            setMessage({ type: 'error', text: 'Error de conexión' });
+        }
+    };
+
+    const handleDeleteLab = async (id: string, name: string) => {
+        if (!confirm(`¿Eliminar el laboratorio "${name}"?`)) return;
+        try {
+            const res = await fetch(`/api/laboratories/${id}`, { method: 'DELETE' });
+            if (res.ok) {
+                setMessage({ type: 'success', text: 'Laboratorio eliminado' });
+                await fetchLabs();
+            } else {
+                setMessage({ type: 'error', text: 'Error al eliminar laboratorio' });
+            }
+        } catch {
+            setMessage({ type: 'error', text: 'Error de conexión' });
+        }
+    };
+
+    const handleAddService = async () => {
+        if (!newServiceName.trim()) return;
+        setAddingService(true);
+        try {
+            const res = await fetch('/api/service-pricing', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: newServiceName.trim(), category: newServiceCategory, priceCash: newServicePriceCash || 0, priceCredit: newServicePriceCredit || 0, creditMonths: 6, active: true })
+            });
+            if (!res.ok) {
+                const data = await res.json();
+                setMessage({ type: 'error', text: data.error || 'Error al agregar servicio' });
+            } else {
+                setMessage({ type: 'success', text: `Servicio "${newServiceName.trim()}" agregado` });
+                setNewServiceName(''); setNewServicePriceCash(''); setNewServicePriceCredit('');
+                await fetchServices();
+        fetchTags();
+            }
+        } catch {
+            setMessage({ type: 'error', text: 'Error de conexión' });
+        }
+        setAddingService(false);
+    };
+
+    const handleDeleteService = async (id: string, name: string) => {
+        if (!confirm(`¿Eliminar el servicio "${name}"?`)) return;
+        try {
+            const res = await fetch(`/api/service-pricing/${id}`, { method: 'DELETE' });
+            if (res.ok) {
+                setMessage({ type: 'success', text: 'Servicio eliminado' });
+                await fetchServices();
+        fetchTags();
+            } else {
+                setMessage({ type: 'error', text: 'Error al eliminar servicio' });
+            }
+        } catch {
+            setMessage({ type: 'error', text: 'Error de conexión' });
+        }
+    };
 
     const fetchBillingConfig = async () => {
         setLoadingBilling(true);
@@ -665,6 +906,199 @@ export default function ConfiguracionPage() {
                 )}
             </section>
 
+            {/* Laboratories Section */}
+            <section className="mt-8 bg-white dark:bg-stone-800 border-2 border-stone-100 dark:border-stone-700 rounded-2xl overflow-hidden">
+                <div className="p-6 flex items-center justify-between border-b-2 border-stone-100 dark:border-stone-700">
+                    <div className="flex items-center gap-2">
+                        <Database className="w-5 h-5 text-primary" />
+                        <h2 className="text-xs font-black uppercase tracking-widest text-stone-400">Configuración de Laboratorios</h2>
+                        <span className="ml-2 px-2.5 py-0.5 bg-stone-100 dark:bg-stone-700 rounded-full text-[10px] font-black text-stone-500">
+                            {labs.length}
+                        </span>
+                    </div>
+                </div>
+
+                {/* Add Lab */}
+                <div className="p-6 bg-stone-50 dark:bg-stone-900 border-b-2 border-stone-100 dark:border-stone-700">
+                    <div className="flex gap-3">
+                        <div className="relative flex-1 group">
+                            <Database className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-stone-300 group-focus-within:text-primary transition-colors" />
+                            <input
+                                type="text"
+                                className="w-full pl-12 pr-4 py-3 bg-white dark:bg-stone-800 border-2 border-stone-200 dark:border-stone-600 rounded-xl text-sm font-bold outline-none focus:border-primary transition-all uppercase"
+                                placeholder="Nombre del laboratorio..."
+                                value={newLabName}
+                                onChange={(e) => setNewLabName(e.target.value.toUpperCase())}
+                                onKeyDown={(e) => e.key === 'Enter' && handleAddLab()}
+                            />
+                        </div>
+                        <button
+                            onClick={handleAddLab}
+                            disabled={addingLab || !newLabName.trim()}
+                            className="px-5 py-2.5 bg-primary text-primary-foreground rounded-xl text-xs font-black uppercase tracking-widest hover:scale-105 transition-all shadow-lg shadow-primary/20 flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
+                        >
+                            {addingLab ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" strokeWidth={3} />}
+                            Agregar
+                        </button>
+                    </div>
+                    <p className="text-[10px] text-stone-400 mt-2 ml-1">Configura el valor del Calibrado e IVA (para sumar automáticamente al Costo de Lista).</p>
+                </div>
+
+                {/* Labs List */}
+                {labs.length === 0 ? (
+                    <div className="p-12 text-center">
+                        <Database className="w-12 h-12 text-stone-200 dark:text-stone-700 mx-auto mb-3" />
+                        <p className="text-xs font-black text-stone-300 dark:text-stone-600 uppercase tracking-widest">No hay laboratorios</p>
+                    </div>
+                ) : (
+                    <div className="divide-y-2 divide-stone-50 dark:divide-stone-700/50">
+                        {labs.map(lab => {
+                            const isEditing = editingLabId === lab.id;
+                            return (
+                                <div key={lab.id} className="p-5 hover:bg-stone-50/50 dark:hover:bg-stone-900/50 transition-all group">
+                                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                        <div className="flex items-center gap-4">
+                                            <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
+                                                <Database className="w-5 h-5 text-primary" />
+                                            </div>
+                                            <span className="font-bold text-sm text-stone-700 dark:text-stone-200 uppercase">{lab.name}</span>
+                                        </div>
+                                        
+                                        <div className="flex items-center gap-4 flex-wrap">
+                                            {isEditing ? (
+                                                <>
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="text-[10px] font-black uppercase text-stone-400">Calibrado $</span>
+                                                        <input 
+                                                            type="number" 
+                                                            value={editLabCalibrado} 
+                                                            onChange={e => setEditLabCalibrado(Number(e.target.value))}
+                                                            className="w-24 px-3 py-1.5 border-2 border-primary rounded-lg text-sm font-bold outline-none bg-white dark:bg-stone-900"
+                                                        />
+                                                    </div>
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="text-[10px] font-black uppercase text-stone-400">IVA %</span>
+                                                        <input 
+                                                            type="number" 
+                                                            value={editLabIva} 
+                                                            onChange={e => setEditLabIva(Number(e.target.value))}
+                                                            className="w-20 px-3 py-1.5 border-2 border-primary rounded-lg text-sm font-bold outline-none bg-white dark:bg-stone-900"
+                                                        />
+                                                    </div>
+                                                    <div className="flex gap-2">
+                                                        <button onClick={() => handleSaveLab(lab.id)} className="p-2 bg-emerald-500 text-white rounded-lg hover:scale-105 transition-all">
+                                                            <Save className="w-4 h-4" />
+                                                        </button>
+                                                        <button onClick={() => setEditingLabId(null)} className="p-2 bg-stone-200 dark:bg-stone-600 text-stone-500 dark:text-stone-300 rounded-lg hover:scale-105 transition-all">
+                                                            <X className="w-4 h-4" />
+                                                        </button>
+                                                    </div>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <div className="flex gap-6 mr-4">
+                                                        <div className="text-right">
+                                                            <p className="text-[9px] font-black uppercase tracking-widest text-stone-400">Calibrado</p>
+                                                            <p className="text-sm font-black text-stone-800 dark:text-stone-200">${lab.calibrado.toLocaleString()}</p>
+                                                        </div>
+                                                        <div className="text-right">
+                                                            <p className="text-[9px] font-black uppercase tracking-widest text-stone-400">IVA</p>
+                                                            <p className="text-sm font-black text-stone-800 dark:text-stone-200">{lab.iva}%</p>
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex gap-2">
+                                                        <button
+                                                            onClick={() => {
+                                                                setEditingLabId(lab.id);
+                                                                setEditLabCalibrado(lab.calibrado);
+                                                                setEditLabIva(lab.iva);
+                                                            }}
+                                                            className="p-2.5 bg-stone-50 dark:bg-stone-700 text-stone-400 rounded-xl hover:bg-blue-50 hover:text-blue-500 transition-all opacity-0 group-hover:opacity-100"
+                                                        >
+                                                            <Pencil className="w-4 h-4" />
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handleDeleteLab(lab.id, lab.name)}
+                                                            className="p-2.5 bg-stone-50 dark:bg-stone-700 text-stone-400 rounded-xl hover:bg-red-50 hover:text-red-500 transition-all opacity-0 group-hover:opacity-100"
+                                                        >
+                                                            <Trash2 className="w-4 h-4" />
+                                                        </button>
+                                                    </div>
+                                                </>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                )}
+            </section>
+
+            
+            {/* Tags Section */}
+            <section className="mt-8 bg-white dark:bg-stone-800 border-2 border-stone-100 dark:border-stone-700 rounded-2xl overflow-hidden">
+                <div className="p-6 flex items-center justify-between border-b-2 border-stone-100 dark:border-stone-700">
+                    <div className="flex items-center gap-2">
+                        <Database className="w-5 h-5 text-primary" />
+                        <h2 className="text-xs font-black uppercase tracking-widest text-stone-400">Etiquetas y Automatizaciones</h2>
+                        <span className="ml-2 px-2.5 py-0.5 bg-stone-100 dark:bg-stone-700 rounded-full text-[10px] font-black text-stone-500">
+                            {tags.length}
+                        </span>
+                    </div>
+                </div>
+                <div className="p-6 bg-stone-50 dark:bg-stone-900 border-b-2 border-stone-100 dark:border-stone-700">
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                        <input type="text" placeholder="Nombre" value={newTagName} onChange={e => setNewTagName(e.target.value)} className="px-3 py-2 border-2 border-stone-200 dark:border-stone-600 rounded-lg text-sm bg-white dark:bg-stone-800 outline-none focus:border-primary" />
+                        <input type="color" value={newTagColor} onChange={e => setNewTagColor(e.target.value)} className="h-10 w-full border-2 border-stone-200 dark:border-stone-600 rounded-lg cursor-pointer" />
+                        <select value={newTagBotAction} onChange={e => setNewTagBotAction(e.target.value)} className="px-3 py-2 border-2 border-stone-200 dark:border-stone-600 rounded-lg text-sm bg-white dark:bg-stone-800 outline-none focus:border-primary">
+                            <option value="NONE">Sin Acción de Bot</option>
+                            <option value="TURN_OFF">Apagar Bot</option>
+                            <option value="TURN_ON">Encender Bot</option>
+                        </select>
+                        <input type="text" placeholder="WhatsApp Notificación (ej: 549351...)" value={newTagNotifyPhone} onChange={e => setNewTagNotifyPhone(e.target.value)} className="px-3 py-2 border-2 border-stone-200 dark:border-stone-600 rounded-lg text-sm bg-white dark:bg-stone-800 outline-none focus:border-primary" />
+                    </div>
+                    <button onClick={handleAddTag} disabled={addingTag} className="mt-3 px-4 py-2 bg-primary text-primary-foreground rounded-lg text-xs font-bold shadow-lg shadow-primary/20">Agregar Etiqueta</button>
+                </div>
+                <div className="divide-y-2 divide-stone-50 dark:divide-stone-700/50">
+                    {tags.map(tag => (
+                        <div key={tag.id} className="p-4 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:bg-stone-50/50 dark:hover:bg-stone-900/50 transition-all">
+                            {editingTagId === tag.id ? (
+                                <>
+                                    <div className="flex gap-2 flex-wrap flex-1 items-center">
+                                        <input type="text" value={editTagData.name || ''} onChange={e => setEditTagData({...editTagData, name: e.target.value})} className="px-2 py-1.5 border-2 border-primary rounded-lg text-sm bg-white dark:bg-stone-900 w-32 outline-none" />
+                                        <input type="color" value={editTagData.color || '#000'} onChange={e => setEditTagData({...editTagData, color: e.target.value})} className="h-8 rounded cursor-pointer" />
+                                        <select value={editTagData.botAction || 'NONE'} onChange={e => setEditTagData({...editTagData, botAction: e.target.value})} className="px-2 py-1.5 border-2 border-primary rounded-lg text-sm bg-white dark:bg-stone-900 outline-none">
+                                            <option value="NONE">Ninguna</option>
+                                            <option value="TURN_OFF">Apagar Bot</option>
+                                            <option value="TURN_ON">Encender Bot</option>
+                                        </select>
+                                        <input type="text" value={editTagData.notifyPhone || ''} onChange={e => setEditTagData({...editTagData, notifyPhone: e.target.value})} placeholder="WhatsApp" className="px-2 py-1.5 border-2 border-primary rounded-lg text-sm bg-white dark:bg-stone-900 w-40 outline-none" />
+                                    </div>
+                                    <div className="flex gap-2">
+                                        <button onClick={() => handleSaveTag(tag.id)} className="p-2 bg-emerald-500 text-white rounded-lg hover:scale-105"><Save className="w-4 h-4"/></button>
+                                        <button onClick={() => setEditingTagId(null)} className="p-2 bg-stone-200 dark:bg-stone-600 text-stone-500 dark:text-stone-300 rounded-lg hover:scale-105"><X className="w-4 h-4"/></button>
+                                    </div>
+                                </>
+                            ) : (
+                                <>
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-4 h-4 rounded-full shadow-sm" style={{backgroundColor: tag.color || '#ccc'}}></div>
+                                        <span className="font-bold text-sm text-stone-700 dark:text-stone-200">{tag.name}</span>
+                                        {tag.botAction !== 'NONE' && <span className="text-[10px] bg-stone-200 dark:bg-stone-700 px-2 py-0.5 rounded-md font-bold uppercase">{tag.botAction === 'TURN_OFF' ? 'Apagar Bot' : 'Encender Bot'}</span>}
+                                        {tag.notifyPhone && <span className="text-[10px] bg-stone-200 dark:bg-stone-700 px-2 py-0.5 rounded-md font-bold">📞 {tag.notifyPhone}</span>}
+                                    </div>
+                                    <div className="flex gap-2">
+                                        <button onClick={() => { setEditingTagId(tag.id); setEditTagData(tag); }} className="p-2.5 bg-stone-50 dark:bg-stone-700 text-stone-400 rounded-xl hover:bg-blue-50 hover:text-blue-500"><Pencil className="w-4 h-4"/></button>
+                                        <button onClick={() => handleDeleteTag(tag.id)} className="p-2.5 bg-stone-50 dark:bg-stone-700 text-stone-400 rounded-xl hover:bg-red-50 hover:text-red-500"><Trash2 className="w-4 h-4"/></button>
+                                    </div>
+                                </>
+                            )}
+                        </div>
+                    ))}
+                </div>
+            </section>
+
             {/* WhatsApp Agent Section */}
             <section className="mt-8 bg-white dark:bg-stone-800 border-2 border-stone-100 dark:border-stone-700 rounded-2xl overflow-hidden">
                 <div className="p-6 flex items-center justify-between border-b-2 border-stone-100 dark:border-stone-700">
@@ -823,6 +1257,161 @@ export default function ConfiguracionPage() {
             </section>
 
             {/* Configuración de Precios del Bot */}
+            {/* Services Pricing Section */}
+            <section className="mt-8 bg-white dark:bg-stone-800 border-2 border-stone-100 dark:border-stone-700 rounded-2xl overflow-hidden">
+                <div className="p-6 flex items-center justify-between border-b-2 border-stone-100 dark:border-stone-700">
+                    <div className="flex items-center gap-2">
+                        <Cog className="w-5 h-5 text-primary" />
+                        <h2 className="text-xs font-black uppercase tracking-widest text-stone-400">Precios de Servicios</h2>
+                        <span className="ml-2 px-2.5 py-0.5 bg-stone-100 dark:bg-stone-700 rounded-full text-[10px] font-black text-stone-500">
+                            {services.length}
+                        </span>
+                    </div>
+                </div>
+
+                <div className="p-6 bg-stone-50 dark:bg-stone-900 border-b-2 border-stone-100 dark:border-stone-700">
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                        <div className="relative md:col-span-1">
+                            <input
+                                type="text"
+                                className="w-full px-4 py-3 bg-white dark:bg-stone-800 border-2 border-stone-200 dark:border-stone-600 rounded-xl text-sm font-bold outline-none focus:border-primary transition-all uppercase"
+                                placeholder="Nombre del servicio..."
+                                value={newServiceName}
+                                onChange={(e) => setNewServiceName(e.target.value.toUpperCase())}
+                            />
+                        </div>
+                        <div className="relative md:col-span-1">
+                            <select
+                                className="w-full px-4 py-3 bg-white dark:bg-stone-800 border-2 border-stone-200 dark:border-stone-600 rounded-xl text-sm font-bold outline-none focus:border-primary transition-all"
+                                value={newServiceCategory}
+                                onChange={(e) => setNewServiceCategory(e.target.value)}
+                            >
+                                <option value="CRISTALES">CRISTALES</option>
+                                <option value="ARMAZON">ARMAZÓN</option>
+                                <option value="CONTACTOLOGIA">CONTACTOLOGÍA</option>
+                                <option value="ACCESORIO">ACCESORIO</option>
+                                <option value="OTRO">OTRO</option>
+                            </select>
+                        </div>
+                        <div className="relative md:col-span-1 flex gap-2">
+                            <input
+                                type="number"
+                                className="w-1/2 px-4 py-3 bg-white dark:bg-stone-800 border-2 border-stone-200 dark:border-stone-600 rounded-xl text-sm font-bold outline-none focus:border-primary transition-all"
+                                placeholder="Cash $"
+                                value={newServicePriceCash}
+                                onChange={(e) => setNewServicePriceCash(e.target.value ? Number(e.target.value) : '')}
+                            />
+                            <input
+                                type="number"
+                                className="w-1/2 px-4 py-3 bg-white dark:bg-stone-800 border-2 border-stone-200 dark:border-stone-600 rounded-xl text-sm font-bold outline-none focus:border-primary transition-all"
+                                placeholder="Tarjeta $"
+                                value={newServicePriceCredit}
+                                onChange={(e) => setNewServicePriceCredit(e.target.value ? Number(e.target.value) : '')}
+                            />
+                        </div>
+                        <div className="relative md:col-span-1">
+                            <button
+                                onClick={handleAddService}
+                                disabled={addingService || !newServiceName.trim() || newServicePriceCash === ''}
+                                className="w-full px-5 py-3 bg-primary text-primary-foreground rounded-xl text-xs font-black uppercase tracking-widest hover:scale-105 transition-all shadow-lg shadow-primary/20 flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
+                            >
+                                {addingService ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" strokeWidth={3} />}
+                                Agregar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                {services.length === 0 ? (
+                    <div className="p-12 text-center">
+                        <Cog className="w-12 h-12 text-stone-200 dark:text-stone-700 mx-auto mb-3" />
+                        <p className="text-xs font-black text-stone-300 dark:text-stone-600 uppercase tracking-widest">No hay servicios configurados</p>
+                    </div>
+                ) : (
+                    <div className="divide-y-2 divide-stone-50 dark:divide-stone-700/50">
+                        {services.map(svc => (
+                            <div key={svc.id} className="p-5 hover:bg-stone-50/50 dark:hover:bg-stone-900/50 transition-all flex items-center justify-between group">
+                                <div className="flex flex-col">
+                                    <div className="flex items-center gap-2">
+                                        <span className="font-bold text-sm text-stone-800 dark:text-stone-200">{svc.name}</span>
+                                        <span className="px-2 py-0.5 bg-stone-100 dark:bg-stone-700 rounded-md text-[10px] font-black text-stone-500 uppercase">{svc.category}</span>
+                                    </div>
+                                    <div className="text-xs font-medium text-stone-400 mt-1">
+                                        Efectivo: ${svc.priceCash.toLocaleString('es-AR')} | Tarjeta: ${svc.priceCredit.toLocaleString('es-AR')}
+                                    </div>
+                                </div>
+                                <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <button
+                                        onClick={() => handleDeleteService(svc.id, svc.name)}
+                                        className="p-2.5 bg-stone-50 dark:bg-stone-700 text-stone-400 rounded-xl hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-950 dark:hover:text-red-400 transition-all hover:scale-110"
+                                        title="Eliminar servicio"
+                                    >
+                                        <Trash2 className="w-4 h-4" />
+                                    </button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </section>
+
+            {/* AI Blog Agent Section */}
+            <section className="mt-8 bg-white dark:bg-stone-800 border-2 border-stone-100 dark:border-stone-700 rounded-2xl overflow-hidden">
+                <div className="p-6 flex items-center justify-between border-b-2 border-stone-100 dark:border-stone-700">
+                    <div className="flex items-center gap-2">
+                        <Sparkles className="w-5 h-5 text-fuchsia-500" />
+                        <h2 className="text-xs font-black uppercase tracking-widest text-stone-400">Agente IA de Blog (Escritor)</h2>
+                    </div>
+                </div>
+
+                <div className="p-6">
+                    <div className="bg-fuchsia-50 dark:bg-fuchsia-950/30 rounded-2xl p-4 mb-6 border border-fuchsia-200 dark:border-fuchsia-800">
+                        <div className="flex items-start gap-3">
+                            <Bot className="w-5 h-5 text-fuchsia-500 flex-shrink-0 mt-0.5" />
+                            <div className="flex-1">
+                                <p className="text-sm font-bold text-fuchsia-700 dark:text-fuchsia-300 mb-1">Generador Autónomo de Artículos</p>
+                                <p className="text-xs text-fuchsia-600/70 dark:text-fuchsia-400/70">
+                                    Esta herramienta lee noticias sobre óptica a nivel mundial y usa OpenAI para redactar un artículo SEO premium. Lo guarda como Borrador en la Base de Datos y te avisa por WhatsApp.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="flex flex-col gap-4">
+                        <div className="flex items-center gap-4">
+                            <button
+                                onClick={async () => {
+                                    if(!confirm('¿Estás seguro que querés consumir un crédito de OpenAI para buscar noticias y generar un artículo ahora?')) return;
+                                    setAgentSaving(true);
+                                    try {
+                                        const res = await fetch('/api/blog/generate', {
+                                            method: 'POST',
+                                            headers: { 'Content-Type': 'application/json' },
+                                            body: JSON.stringify({ adminPhone: '5493512222222' }) // Puedes cambiar por tu número
+                                        });
+                                        const data = await res.json();
+                                        if(data.success) {
+                                            setMessage({ type: 'success', text: '¡Artículo generado exitosamente! Se guardó como borrador.' });
+                                        } else {
+                                            setMessage({ type: 'error', text: data.error || 'Error generando artículo' });
+                                        }
+                                    } catch (e: any) {
+                                        setMessage({ type: 'error', text: 'Error de conexión' });
+                                    }
+                                    setAgentSaving(false);
+                                }}
+                                disabled={agentSaving}
+                                className="px-6 py-3 bg-fuchsia-500 text-white rounded-xl text-xs font-black uppercase tracking-widest hover:scale-105 transition-all shadow-lg shadow-fuchsia-500/20 flex items-center gap-2 disabled:opacity-50"
+                            >
+                                {agentSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+                                Investigar y Escribir Artículo Ahora
+                            </button>
+                            <span className="text-[10px] text-stone-400">Demora aproximadamente 15-30 segundos.</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
             <BotPricingSection />
 
             {/* ARCA Billing Section */}

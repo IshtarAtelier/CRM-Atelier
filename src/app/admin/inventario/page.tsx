@@ -1,10 +1,13 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Plus, Search, Package, Loader2, AlertCircle, ArrowUpRight, Trash2, ShoppingBag, CheckSquare, Square, X, Pencil, Save, Download, Upload, CheckCircle2, Zap } from "lucide-react";
+import { Plus, Search, Package, Loader2, AlertCircle, ArrowUpRight, Trash2, ShoppingBag, CheckSquare, Square, X, Pencil, Save, Download, Upload, CheckCircle2, Zap, Camera, Clock } from "lucide-react";
 import { Product } from '@/hooks/useProducts';
 import ProductForm from '@/components/inventory/ProductForm';
 import LabPriceImporter from '@/components/inventory/LabPriceImporter';
+import AIImageUploader from '@/components/inventory/AIImageUploader';
+import PhotoStudio from '@/components/inventory/PhotoStudio';
+import SettingsModal from '@/components/inventory/SettingsModal';
 import { useProducts } from '@/hooks/useProducts';
 import { autoCorrectLab } from '@/utils/product-controllers';
 
@@ -27,7 +30,7 @@ export default function InventarioPage() {
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
     const [isDeleting, setIsDeleting] = useState(false);
     const [editingProduct, setEditingProduct] = useState<Product | null>(null);
-    const [editForm, setEditForm] = useState({ name: '', brand: '', model: '', type: '', stock: 0, cost: 0, price: 0, lensIndex: '', laboratory: '', sphereMin: '' as string, sphereMax: '' as string, cylinderMin: '' as string, cylinderMax: '' as string, additionMin: '' as string, additionMax: '' as string, is2x1: false });
+    const [editForm, setEditForm] = useState({ name: '', brand: '', model: '', type: '', stock: 0, cost: 0, price: 0, lensIndex: '', laboratory: '', sphereMin: '' as string, sphereMax: '' as string, cylinderMin: '' as string, cylinderMax: '' as string, additionMin: '' as string, additionMax: '' as string, is2x1: false, publishToWeb: false, lensWidth: '' as string, bridgeWidth: '' as string, templeLength: '' as string, frameHeight: '' as string, seoTitle: '', seoDescription: '', seoTags: '', customSlug: '', mpn: '', gender: '', ageGroup: '' });
     const [savingEdit, setSavingEdit] = useState(false);
     const [selectedBrand, setSelectedBrand] = useState('');
     const [showAllBrands, setShowAllBrands] = useState(false);
@@ -36,8 +39,11 @@ export default function InventarioPage() {
     const [userRole, setUserRole] = useState('STAFF');
     const [showEditRanges, setShowEditRanges] = useState(false);
     const [showLabImporter, setShowLabImporter] = useState(false);
+    const [showPhotoStudio, setShowPhotoStudio] = useState(false);
+    const [showSettings, setShowSettings] = useState(false);
     const [editingMarkup, setEditingMarkup] = useState<string | null>(null);
     const [editMarkupValue, setEditMarkupValue] = useState('');
+    const [labsConfig, setLabsConfig] = useState<{name: string, calibrado?: number, iva?: number}[]>([]);
 
     useEffect(() => {
         try {
@@ -47,6 +53,10 @@ export default function InventarioPage() {
                 setUserRole(u.role || 'STAFF');
             }
         } catch { }
+        
+        fetch('/api/laboratories').then(r => r.json()).then(d => {
+            if(d.laboratories) setLabsConfig(d.laboratories);
+        }).catch(console.error);
     }, []);
 
     const isAdmin = userRole === 'ADMIN';
@@ -58,14 +68,18 @@ export default function InventarioPage() {
 
     const { products: rawProducts, loading, error, refresh, deleteProduct, bulkDelete } = useProducts(searchQuery, activeFilter);
 
-    // Extract unique brands and labs, deduplicating case-insensitively for the UI
+    // Extract unique brands and labs, deduplicating case-insensitively and ignoring accents for the UI
+    const normalizeStr = (str: string) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+
     const uniqueBrands = Array.from(new Map(
-        rawProducts.map(p => p.brand).filter(Boolean).map(b => [b!.toLowerCase().trim(), b])
-    ).values() as string[]).sort();
+        rawProducts.map(p => p.brand).filter(Boolean).map(b => [normalizeStr(b!), b])
+    ).values()) as string[];
+    uniqueBrands.sort();
 
     const uniqueLabs = Array.from(new Map(
-        rawProducts.map(p => p.laboratory).filter(Boolean).map(l => [l!.toLowerCase().trim(), l])
-    ).values() as string[]).sort();
+        rawProducts.map(p => p.laboratory).filter(Boolean).map(l => [normalizeStr(l!), l])
+    ).values()) as string[];
+    uniqueLabs.sort();
 
     const products = selectedBrand ? rawProducts.filter(p => p.brand?.toLowerCase() === selectedBrand.toLowerCase()) : rawProducts;
 
@@ -146,6 +160,18 @@ export default function InventarioPage() {
             additionMin: p.additionMin != null ? String(p.additionMin) : '',
             additionMax: p.additionMax != null ? String(p.additionMax) : '',
             is2x1: p.is2x1 === true,
+            publishToWeb: p.publishToWeb === true,
+            lensWidth: (p as any).lensWidth != null ? String((p as any).lensWidth) : '',
+            bridgeWidth: (p as any).bridgeWidth != null ? String((p as any).bridgeWidth) : '',
+            templeLength: (p as any).templeLength != null ? String((p as any).templeLength) : '',
+            frameHeight: (p as any).frameHeight != null ? String((p as any).frameHeight) : '',
+            seoTitle: (p as any).seoTitle || '',
+            seoDescription: (p as any).seoDescription || '',
+            seoTags: (p as any).seoTags || '',
+            customSlug: (p as any).customSlug || '',
+            mpn: (p as any).mpn || '',
+            gender: (p as any).gender || '',
+            ageGroup: (p as any).ageGroup || '',
         });
         setShowEditRanges(false);
     };
@@ -203,6 +229,42 @@ export default function InventarioPage() {
         finally { setSavingEdit(false); }
     };
 
+    const [generatingSEOEdit, setGeneratingSEOEdit] = useState(false);
+
+    const handleGenerateSEOEdit = async () => {
+        if (!editForm.name && !editingProduct?.type) return;
+        setGeneratingSEOEdit(true);
+        try {
+            const res = await fetch('/api/seo/generate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    name: editForm.name,
+                    brand: editForm.brand,
+                    model: editForm.model,
+                    category: editingProduct?.category,
+                    type: editForm.type || editingProduct?.type
+                })
+            });
+            if (res.ok) {
+                const data = await res.json();
+                setEditForm(prev => ({
+                    ...prev,
+                    seoTitle: data.seoTitle || prev.seoTitle,
+                    seoDescription: data.seoDescription || prev.seoDescription,
+                    seoTags: data.seoTags || prev.seoTags,
+                    customSlug: data.customSlug || prev.customSlug,
+                }));
+            } else {
+                alert('Error al generar SEO.');
+            }
+        } catch (e) {
+            alert('Error de conexión al generar SEO.');
+        } finally {
+            setGeneratingSEOEdit(false);
+        }
+    };
+
     const toggleSelectAll = () => {
         if (selectedIds.size === products.length) {
             setSelectedIds(new Set());
@@ -239,7 +301,7 @@ export default function InventarioPage() {
     };
 
     return (
-        <div className="p-4 lg:p-6 max-w-full mx-auto space-y-6 animate-in fade-in duration-500 pb-20">
+        <div className="p-4 lg:p-8 max-w-[1600px] mx-auto space-y-6 animate-in fade-in duration-500 pb-20">
 
             {/* Import Result Toast */}
             {importResult && (
@@ -261,8 +323,22 @@ export default function InventarioPage() {
                     <p className="text-stone-400 mt-1 font-medium uppercase text-[8px] lg:text-[10px] tracking-[0.2em]">Control de inventario y catálogo</p>
                 </div>
                 <div className="flex items-center gap-2 flex-wrap w-full lg:w-auto overflow-x-auto lg:overflow-visible pb-2 lg:pb-0 no-scrollbar">
+                    <button
+                        onClick={() => setShowPhotoStudio(true)}
+                        className="flex-1 lg:flex-none flex items-center justify-center gap-2 px-5 lg:px-6 py-2.5 lg:py-3 bg-gradient-to-r from-violet-600 to-indigo-600 text-white rounded-xl text-[9px] lg:text-[10px] font-black shadow-lg hover:scale-105 active:scale-95 transition-all group uppercase tracking-widest whitespace-nowrap"
+                    >
+                        <Camera className="w-4 h-4 group-hover:scale-110 transition-transform" strokeWidth={3} />
+                        Photo Studio
+                    </button>
                     {isAdmin && (
                         <>
+                            <button
+                                onClick={() => setShowSettings(true)}
+                                className="flex-1 lg:flex-none flex items-center justify-center gap-2 px-5 lg:px-6 py-2.5 lg:py-3 bg-stone-100 text-stone-700 dark:bg-stone-800 dark:text-stone-300 rounded-xl text-[9px] lg:text-[10px] font-black shadow-sm hover:scale-105 active:scale-95 transition-all group uppercase tracking-widest whitespace-nowrap border border-stone-200 dark:border-stone-700"
+                            >
+                                <Clock className="w-4 h-4 group-hover:-rotate-12 transition-transform" strokeWidth={3} />
+                                Tiempos
+                            </button>
                             <button
                                 onClick={() => setShowLabImporter(true)}
                                 className="flex-1 lg:flex-none flex items-center justify-center gap-2 px-5 lg:px-6 py-2.5 lg:py-3 bg-amber-600 text-white rounded-xl text-[9px] lg:text-[10px] font-black shadow-lg hover:scale-105 active:scale-95 transition-all group uppercase tracking-widest whitespace-nowrap"
@@ -301,13 +377,13 @@ export default function InventarioPage() {
             </div>
 
             {/* Search + Mass Delete Bar */}
-            <div className="flex gap-3">
+            <div className="flex gap-4 mb-6">
                 <div className="relative group flex-1">
-                    <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-stone-300 group-focus-within:text-primary transition-colors" />
+                    <Search className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-stone-400 group-focus-within:text-primary transition-colors duration-300" />
                     <input
                         type="text"
                         placeholder="Buscar por nombre, marca o modelo..."
-                        className="w-full pl-14 pr-6 py-4 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-2xl shadow-sm focus:ring-4 focus:ring-primary/5 focus:border-primary outline-none transition-all font-bold text-sm"
+                        className="w-full pl-14 pr-6 py-5 bg-stone-50/50 dark:bg-stone-800/30 backdrop-blur-md border border-stone-200/50 dark:border-stone-700/50 rounded-full shadow-[0_2px_10px_-3px_rgba(6,81,237,0.05)] focus:bg-white dark:focus:bg-stone-900 focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all font-medium text-stone-800 dark:text-stone-100 placeholder-stone-400"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                     />
@@ -316,65 +392,75 @@ export default function InventarioPage() {
                     <button
                         onClick={handleBulkDelete}
                         disabled={isDeleting}
-                        className="flex items-center gap-2 px-6 py-4 bg-red-500 text-white rounded-2xl text-xs font-black shadow-lg hover:bg-red-600 active:scale-95 transition-all uppercase tracking-widest animate-in slide-in-from-right-3"
+                        className="flex items-center justify-center gap-2 px-8 bg-red-500 text-white rounded-full text-[11px] font-black shadow-lg hover:bg-red-600 hover:scale-105 active:scale-95 transition-all uppercase tracking-widest animate-in slide-in-from-right-3"
                     >
                         {isDeleting ? (
                             <><Loader2 className="w-4 h-4 animate-spin" /> Eliminando...</>
                         ) : (
-                            <><Trash2 className="w-4 h-4" /> Eliminar ({selectedIds.size})</>
+                            <><Trash2 className="w-4 h-4" /> ({selectedIds.size})</>
                         )}
                     </button>
                 )}
             </div>
 
-            {/* Category filters */}
-            <div className="flex flex-wrap gap-1.5 overflow-x-auto pb-2 no-scrollbar">
-                {PRODUCT_CATEGORIES.map((cat) => (
-                    <button
-                        key={cat.id}
-                        onClick={() => {
-                            setSelectedCategory(cat.id);
-                            setSelectedSubtype('');
-                            setSelectedBrand('');
-                            setShowAllBrands(false);
-                        }}
-                        className={`px-3 py-1.5 rounded-lg text-[9px] font-bold uppercase tracking-wider transition-all border whitespace-nowrap ${selectedCategory === cat.id && !selectedSubtype
-                            ? 'bg-stone-900 dark:bg-primary border-transparent text-white shadow-md'
-                            : 'bg-transparent border-stone-200 dark:border-stone-700 text-stone-500 hover:border-stone-300'
-                            }`}
-                    >
-                        {cat.label}
-                    </button>
-                ))}
-            </div>
+            {/* Filters Area */}
+            <div className="flex flex-col gap-4 mb-8">
+                {/* Category filters */}
+                <div className="flex flex-wrap gap-2 overflow-x-auto pb-2 no-scrollbar">
+                    {PRODUCT_CATEGORIES.map((cat) => {
+                        const isActive = selectedCategory === cat.id && !selectedSubtype;
+                        return (
+                            <button
+                                key={cat.id}
+                                onClick={() => {
+                                    setSelectedCategory(cat.id);
+                                    setSelectedSubtype('');
+                                    setSelectedBrand('');
+                                    setShowAllBrands(false);
+                                }}
+                                className={`px-5 py-2.5 rounded-full text-[11px] font-black uppercase tracking-[0.15em] transition-all duration-300 ${
+                                    isActive
+                                    ? 'bg-stone-900 text-white dark:bg-stone-100 dark:text-stone-900 shadow-md scale-105'
+                                    : 'bg-transparent border border-stone-200 dark:border-stone-800 text-stone-500 hover:border-stone-300 dark:hover:border-stone-600 hover:bg-stone-50 dark:hover:bg-stone-800/50'
+                                }`}
+                            >
+                                {cat.label}
+                            </button>
+                        );
+                    })}
+                </div>
 
-            {/* Subtype filters — only when Cristal is selected */}
-            {selectedCategory === 'Cristal' && activeCategory?.subtypes && (
-                <div className="flex flex-wrap gap-1.5 items-center animate-in fade-in slide-in-from-top-2 duration-300">
-                    <span className="text-[9px] font-black text-stone-300 uppercase tracking-widest mr-1">Tipo:</span>
-                    <button
-                        onClick={() => setSelectedSubtype('')}
-                        className={`px-3 py-1.5 rounded-lg text-[9px] font-bold uppercase tracking-wider transition-all border ${!selectedSubtype
-                            ? 'bg-primary/10 border-primary text-primary'
-                            : 'bg-transparent border-stone-200 dark:border-stone-700 text-stone-400 hover:border-stone-300'
-                            }`}
-                    >
-                        Todos
-                    </button>
-                    {activeCategory.subtypes.map(sub => (
+                {/* Subtype filters — only when Cristal is selected */}
+                {selectedCategory === 'Cristal' && activeCategory?.subtypes && (
+                    <div className="inline-flex flex-wrap items-center gap-2 bg-stone-100/50 dark:bg-stone-800/50 backdrop-blur-md p-1.5 rounded-full border border-stone-200/50 dark:border-stone-700/50 w-max animate-in fade-in slide-in-from-top-2 duration-300">
                         <button
-                            key={sub}
-                            onClick={() => setSelectedSubtype(sub)}
-                            className={`px-3 py-1.5 rounded-lg text-[9px] font-bold uppercase tracking-wider transition-all border ${selectedSubtype === sub
-                                ? 'bg-primary border-transparent text-white shadow-md'
-                                : 'bg-transparent border-stone-200 dark:border-stone-700 text-stone-400 hover:border-stone-300'
+                            onClick={() => setSelectedSubtype('')}
+                            className={`relative px-6 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all duration-300 ${!selectedSubtype
+                                ? 'text-primary'
+                                : 'text-stone-500 hover:text-stone-700 dark:hover:text-stone-300'
                                 }`}
                         >
-                            {sub}
+                            {!selectedSubtype && <div className="absolute inset-0 bg-white dark:bg-stone-600 rounded-full shadow-sm -z-10" />}
+                            Todos
                         </button>
-                    ))}
-                </div>
-            )}
+                        {activeCategory.subtypes.map(sub => {
+                            const isActive = selectedSubtype === sub;
+                            return (
+                                <button
+                                    key={sub}
+                                    onClick={() => setSelectedSubtype(sub)}
+                                    className={`relative px-6 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all duration-300 ${isActive
+                                        ? 'text-stone-900 dark:text-white'
+                                        : 'text-stone-500 hover:text-stone-700 dark:hover:text-stone-300'
+                                        }`}
+                                >
+                                    {isActive && <div className="absolute inset-0 bg-white dark:bg-stone-600 rounded-full shadow-sm -z-10" />}
+                                    {sub}
+                                </button>
+                            );
+                        })}
+                    </div>
+                )}
 
             {/* Brand filters — compact collapsible */}
             {uniqueBrands.length > 1 && (
@@ -413,6 +499,8 @@ export default function InventarioPage() {
                     </div>
                 </div>
             )}
+
+            </div>
 
             {/* Product List */}
             <div className="bg-white dark:bg-stone-900 rounded-3xl border border-stone-100 dark:border-stone-800 overflow-hidden shadow-sm">
@@ -590,8 +678,8 @@ export default function InventarioPage() {
             {/* Edit Modal */}
             {editingProduct && (
                 <div className="fixed inset-0 bg-stone-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-300">
-                    <div className="bg-white dark:bg-stone-900 w-full max-w-lg rounded-[3rem] shadow-2xl border border-stone-200 dark:border-stone-800 overflow-hidden animate-in zoom-in-95 duration-300">
-                        <header className="p-8 border-b border-stone-100 dark:border-stone-800 flex justify-between items-center">
+                    <div className="bg-white dark:bg-stone-900 w-full max-w-lg max-h-[90vh] flex flex-col rounded-[3rem] shadow-2xl border border-stone-200 dark:border-stone-800 overflow-hidden animate-in zoom-in-95 duration-300">
+                        <header className="p-6 md:p-8 border-b border-stone-100 dark:border-stone-800 flex justify-between items-center shrink-0">
                             <div>
                                 <h2 className="text-xl font-black text-stone-800 dark:text-white tracking-tighter italic">Editar <span className="text-primary not-italic">{editingProduct.name || editingProduct.type}</span></h2>
                                 <p className="text-[9px] font-black text-stone-400 uppercase tracking-widest mt-1">{editingProduct.type || editingProduct.category}</p>
@@ -600,7 +688,7 @@ export default function InventarioPage() {
                                 <X className="w-5 h-5 text-stone-400" />
                             </button>
                         </header>
-                        <div className="p-8 space-y-5">
+                        <div className="p-6 md:p-8 space-y-5 overflow-y-auto flex-1 no-scrollbar">
                             <div className="grid grid-cols-2 gap-5">
                                 <div className="col-span-2 space-y-1">
                                     <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest ml-3">Nombre</label>
@@ -637,8 +725,28 @@ export default function InventarioPage() {
                                     </div>
                                 )}
                                 {isAdmin && (
-                                <div className="space-y-1">
-                                    <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest ml-3">Costo ($)</label>
+                                <div className="space-y-1 relative">
+                                    <div className="flex items-center justify-between mr-2">
+                                        <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest ml-3">Costo ($)</label>
+                                        {checkCristal(editingProduct) && editForm.laboratory && (
+                                            <button 
+                                                type="button"
+                                                onClick={() => {
+                                                    const lab = labsConfig.find(l => l.name === editForm.laboratory);
+                                                    const calibrado = lab?.calibrado || 0;
+                                                    const iva = lab?.iva || 0;
+                                                    const is2x1 = editForm.is2x1 || editForm.name.toLowerCase().includes('2x1');
+                                                    const calibradoTotal = is2x1 ? (calibrado * 2) : calibrado;
+                                                    const finalCost = Math.round(((parseFloat(String(editForm.cost)) || 0) + calibradoTotal) * (1 + iva / 100));
+                                                    setEditForm({ ...editForm, cost: finalCost });
+                                                }}
+                                                className="text-[9px] font-bold text-amber-600 hover:text-amber-700 bg-amber-50 hover:bg-amber-100 px-2 py-1 rounded-md transition-colors flex items-center gap-1"
+                                                title="Ingresa el Costo Base pelado y presiona aquí para aplicar la fórmula del Laboratorio (Suma Calibrados + IVA)"
+                                            >
+                                                <Zap className="w-3 h-3" /> Calcular Final
+                                            </button>
+                                        )}
+                                    </div>
                                     <input type="number" min={0} value={editForm.cost} onChange={e => setEditForm({ ...editForm, cost: parseFloat(e.target.value) || 0 })} className="w-full px-5 py-4 bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-2xl font-bold text-sm outline-none focus:border-primary" />
                                 </div>
                                 )}
@@ -651,11 +759,26 @@ export default function InventarioPage() {
                                 {checkCristal(editingProduct) && (
                                     <div className="col-span-2 space-y-1">
                                         <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest ml-3">🏭 Laboratorio <span className="text-red-500">*</span></label>
-                                        <input type="text" required placeholder="Ej: OPTOVISION" value={editForm.laboratory} 
-                                            onChange={e => setEditForm({ ...editForm, laboratory: e.target.value.toUpperCase() })} 
-                                            onBlur={() => setEditForm({ ...editForm, laboratory: autoCorrectLab(editForm.laboratory) || "" })}
-                                            className={`w-full px-5 py-4 bg-stone-50 dark:bg-stone-800 border rounded-2xl font-bold text-sm outline-none focus:border-primary uppercase ${!editForm.laboratory ? 'border-red-300 dark:border-red-700' : 'border-stone-200 dark:border-stone-700'}`} 
-                                        />
+                                        
+                                        {labsConfig.length > 0 ? (
+                                            <select 
+                                                value={editForm.laboratory}
+                                                onChange={e => setEditForm({ ...editForm, laboratory: e.target.value })}
+                                                className={`w-full px-5 py-4 bg-stone-50 dark:bg-stone-800 border rounded-2xl font-bold text-sm outline-none focus:border-primary uppercase cursor-pointer ${!editForm.laboratory ? 'border-red-300 dark:border-red-700' : 'border-stone-200 dark:border-stone-700'}`}
+                                            >
+                                                <option value="">Seleccionar laboratorio...</option>
+                                                {labsConfig.map(l => (
+                                                    <option key={l.name} value={l.name}>{l.name}</option>
+                                                ))}
+                                                <option value="OTRO">OTRO</option>
+                                            </select>
+                                        ) : (
+                                            <input type="text" required placeholder="Ej: OPTOVISION" value={editForm.laboratory} 
+                                                onChange={e => setEditForm({ ...editForm, laboratory: e.target.value.toUpperCase() })} 
+                                                onBlur={() => setEditForm({ ...editForm, laboratory: autoCorrectLab(editForm.laboratory) || "" })}
+                                                className={`w-full px-5 py-4 bg-stone-50 dark:bg-stone-800 border rounded-2xl font-bold text-sm outline-none focus:border-primary uppercase ${!editForm.laboratory ? 'border-red-300 dark:border-red-700' : 'border-stone-200 dark:border-stone-700'}`} 
+                                            />
+                                        )}
                                         {!editForm.laboratory && <p className="text-[9px] font-bold text-red-400 ml-3">El laboratorio es obligatorio para cristales</p>}
                                     </div>
                                 )}
@@ -755,8 +878,150 @@ export default function InventarioPage() {
                                         </label>
                                     </div>
                                 )}
+                                
+                                {/* AI Image Uploader para Armazones/Sol/Especiales */}
+                                {!checkCristal(editingProduct) && (
+                                    <div className="col-span-2 space-y-4">
+                                        <AIImageUploader 
+                                            productId={editingProduct.id}
+                                            initialStatus={editingProduct.imageProcessingStatus || 'IDLE'}
+                                            initialImages={editingProduct.imagenesCatalogo || []}
+                                            onSuccess={() => refresh()}
+                                        />
+                                        
+                                        <div className="pt-4 border-t border-stone-100 dark:border-stone-800">
+                                            <label className="flex items-center gap-3 cursor-pointer group w-max">
+                                                <div className={`relative w-10 h-6 rounded-full transition-colors ${editForm.publishToWeb ? 'bg-violet-500' : 'bg-stone-300 dark:bg-stone-700'}`}>
+                                                    <div className={`absolute top-1 left-1 bg-white w-4 h-4 rounded-full transition-transform ${editForm.publishToWeb ? 'translate-x-4' : 'translate-x-0'}`} />
+                                                </div>
+                                                <input type="checkbox" className="hidden" checked={editForm.publishToWeb} onChange={e => setEditForm({ ...editForm, publishToWeb: e.target.checked })} />
+                                                <div>
+                                                    <p className="text-xs font-black text-stone-800 dark:text-stone-200 uppercase tracking-widest">Publicar en Tienda Web</p>
+                                                    <p className="text-[9px] font-bold text-stone-400">Si está activo, el producto aparecerá en el catálogo público online.</p>
+                                                </div>
+                                            </label>
+                                        </div>
+
+                                        {/* Medidas del Armazón */}
+                                        <div className="border border-stone-100 dark:border-stone-800 rounded-2xl p-4 space-y-3">
+                                            <p className="text-[10px] font-black text-stone-400 uppercase tracking-widest">Medidas del Armazón (mm)</p>
+                                            {/* Mini SVG estático */}
+                                            <svg viewBox="0 0 200 60" width="100%" className="opacity-40">
+                                                <rect x="10" y="10" width="70" height="40" rx="8" fill="none" stroke="currentColor" strokeWidth="2"/>
+                                                <rect x="120" y="10" width="70" height="40" rx="8" fill="none" stroke="currentColor" strokeWidth="2"/>
+                                                <path d="M 80 20 C 90 8, 110 8, 120 20" fill="none" stroke="currentColor" strokeWidth="2"/>
+                                                <line x1="10" y1="30" x2="0" y2="35" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                                                <line x1="190" y1="30" x2="200" y2="35" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                                                <text x="45" y="7" textAnchor="middle" fontSize="7" fill="currentColor">{editForm.lensWidth || '□'}mm</text>
+                                                <text x="100" y="9" textAnchor="middle" fontSize="6" fill="currentColor">{editForm.bridgeWidth || '□'}</text>
+                                                <text x="155" y="7" textAnchor="middle" fontSize="7" fill="currentColor">{editForm.frameHeight || '□'}mm</text>
+                                            </svg>
+                                            <div className="grid grid-cols-4 gap-2">
+                                                {[{field: 'lensWidth', label: 'Lente'},{field: 'bridgeWidth', label: 'Puente'},{field: 'templeLength', label: 'Varilla'},{field: 'frameHeight', label: 'Alto'}].map(({field, label}) => (
+                                                    <div key={field} className="space-y-1">
+                                                        <label className="text-[9px] font-black text-stone-400 uppercase tracking-widest ml-1">{label}</label>
+                                                        <div className="relative">
+                                                            <input
+                                                                type="number"
+                                                                value={(editForm as any)[field]}
+                                                                onChange={e => setEditForm({...editForm, [field]: e.target.value})}
+                                                                placeholder="—"
+                                                                className="w-full bg-stone-100 dark:bg-stone-800 rounded-xl px-3 py-2 text-sm font-bold text-stone-800 dark:text-white outline-none focus:ring-2 focus:ring-primary/40"
+                                                            />
+                                                            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[9px] text-stone-400 font-bold">mm</span>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
-                            <div className="flex gap-3 pt-4">
+
+                            {/* --- SEO & Google Shopping Form (Edit) --- */}
+                            {editForm.publishToWeb && (
+                                <div className="mt-6 p-6 bg-stone-50 dark:bg-stone-800/40 border border-stone-200 dark:border-stone-700 rounded-3xl space-y-5">
+                                    <div className="flex items-center justify-between flex-wrap gap-4">
+                                        <div>
+                                            <h3 className="text-[12px] font-black text-stone-800 dark:text-stone-200 uppercase tracking-widest flex items-center gap-2">
+                                                <svg className="w-4 h-4 text-primary" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+                                                Instagram y Google Shopping
+                                            </h3>
+                                            <p className="text-[10px] text-stone-500 mt-1">Metadatos para destacar tu producto en vidrieras virtuales.</p>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={handleGenerateSEOEdit}
+                                            disabled={generatingSEOEdit}
+                                            className="px-4 py-2 bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:opacity-90 transition-opacity flex items-center gap-2 disabled:opacity-50"
+                                        >
+                                            {generatingSEOEdit ? 'Generando...' : '✨ Generar con IA'}
+                                        </button>
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="space-y-2">
+                                            <label className="text-[9px] font-black text-stone-400 uppercase tracking-widest ml-2">Título SEO</label>
+                                            <input type="text" placeholder="Ej: Anteojos de Sol Ray-Ban Aviator"
+                                                maxLength={70}
+                                                className="w-full px-4 py-3 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl text-xs outline-none focus:border-primary transition-all"
+                                                value={editForm.seoTitle || ''} onChange={e => setEditForm({ ...editForm, seoTitle: e.target.value })}
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="text-[9px] font-black text-stone-400 uppercase tracking-widest ml-2">Slug</label>
+                                            <input type="text" placeholder="Ej: ray-ban-aviator-negro"
+                                                className="w-full px-4 py-3 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl text-xs outline-none focus:border-primary transition-all font-mono"
+                                                value={editForm.customSlug || ''} onChange={e => setEditForm({ ...editForm, customSlug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-') })}
+                                            />
+                                        </div>
+                                        <div className="space-y-2 col-span-2">
+                                            <label className="text-[9px] font-black text-stone-400 uppercase tracking-widest ml-2">Descripción SEO (Max 160 char)</label>
+                                            <textarea placeholder="Persuasiva, resalta beneficios e inmediatez..."
+                                                maxLength={160} rows={2}
+                                                className="w-full px-4 py-3 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl text-xs outline-none focus:border-primary transition-all resize-none"
+                                                value={editForm.seoDescription || ''} onChange={e => setEditForm({ ...editForm, seoDescription: e.target.value })}
+                                            />
+                                        </div>
+                                        <div className="space-y-2 col-span-2">
+                                            <label className="text-[9px] font-black text-stone-400 uppercase tracking-widest ml-2">Tags</label>
+                                            <input type="text" placeholder="Ej: polarizadas, filtro UV, anteojos de sol, vintage"
+                                                className="w-full px-4 py-3 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl text-xs outline-none focus:border-primary transition-all"
+                                                value={editForm.seoTags || ''} onChange={e => setEditForm({ ...editForm, seoTags: e.target.value })}
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="text-[9px] font-black text-stone-400 uppercase tracking-widest ml-2">MPN</label>
+                                            <input type="text" placeholder="Ej: RB3025"
+                                                className="w-full px-4 py-3 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl text-xs outline-none focus:border-primary transition-all"
+                                                value={editForm.mpn || ''} onChange={e => setEditForm({ ...editForm, mpn: e.target.value })}
+                                            />
+                                        </div>
+                                        <div className="space-y-2 flex gap-2">
+                                            <div className="flex-1">
+                                                <label className="text-[9px] font-black text-stone-400 uppercase tracking-widest ml-2">Edad</label>
+                                                <select className="w-full px-3 py-3 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl text-xs outline-none focus:border-primary transition-all"
+                                                    value={editForm.ageGroup || ''} onChange={e => setEditForm({ ...editForm, ageGroup: e.target.value })}>
+                                                    <option value="">Sel...</option>
+                                                    <option value="Adulto">Adulto</option>
+                                                    <option value="Niños">Niños</option>
+                                                </select>
+                                            </div>
+                                            <div className="flex-1">
+                                                <label className="text-[9px] font-black text-stone-400 uppercase tracking-widest ml-2">Género</label>
+                                                <select className="w-full px-3 py-3 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl text-xs outline-none focus:border-primary transition-all"
+                                                    value={editForm.gender || ''} onChange={e => setEditForm({ ...editForm, gender: e.target.value })}>
+                                                    <option value="">Sel...</option>
+                                                    <option value="Femenino">Femenino</option>
+                                                    <option value="Masculino">Masculino</option>
+                                                    <option value="Unisex">Unisex</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                            <div className="flex gap-3 pt-4 shrink-0 mt-4">
                                 <button onClick={() => setEditingProduct(null)} className="flex-1 py-4 bg-stone-100 dark:bg-stone-800 text-stone-500 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-stone-200 transition-colors">CANCELAR</button>
                                 <button onClick={handleSaveEdit} disabled={savingEdit} className="flex-1 py-4 bg-stone-900 dark:bg-primary text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2">
                                     <Save className="w-4 h-4" /> {savingEdit ? 'GUARDANDO...' : 'GUARDAR CAMBIOS'}
@@ -773,6 +1038,23 @@ export default function InventarioPage() {
                     onClose={() => setShowLabImporter(false)}
                     onSuccess={() => refresh()}
                     laboratories={uniqueLabs}
+                />
+            )}
+
+            {/* Photo Studio Modal */}
+            {showPhotoStudio && (
+                <PhotoStudio
+                    onClose={() => setShowPhotoStudio(false)}
+                    onSuccess={() => { refresh(); setShowPhotoStudio(false); }}
+                    products={rawProducts}
+                    isAdmin={isAdmin}
+                    uniqueBrands={uniqueBrands}
+                />
+            )}
+            {/* Settings Modal */}
+            {showSettings && (
+                <SettingsModal
+                    onClose={() => setShowSettings(false)}
                 />
             )}
         </div>

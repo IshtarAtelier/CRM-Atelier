@@ -116,10 +116,10 @@ export default function TaskManager({ tasks, contact, onAddTask, onToggleTask }:
             {/* Lista de pendientes */}
             <div className="space-y-3">
                 {pendingTasks.length > 0 ? (
-                    pendingTasks.map((task) => {
+                    pendingTasks.map((task, idx) => {
                         const isReview = task.description?.includes('Solicitar comentario') || false;
                         return (
-                        <div key={task.id} className={`flex items-center justify-between p-5 bg-white dark:bg-stone-900 rounded-[2.5rem] border-2 transition-all group shadow-sm ${isReview ? 'border-pink-200 dark:border-pink-900/50 hover:border-pink-400 dark:hover:border-pink-500/50 bg-pink-50/30' : 'border-stone-100 dark:border-stone-800 hover:border-emerald-500/30 dark:hover:border-emerald-500/20'}`}>
+                        <div key={task.id || `task-${idx}`} className={`flex items-center justify-between p-5 bg-white dark:bg-stone-900 rounded-[2.5rem] border-2 transition-all group shadow-sm ${isReview ? 'border-pink-200 dark:border-pink-900/50 hover:border-pink-400 dark:hover:border-pink-500/50 bg-pink-50/30' : 'border-stone-100 dark:border-stone-800 hover:border-emerald-500/30 dark:hover:border-emerald-500/20'}`}>
                             <div className="flex-1 min-w-0 pr-4">
                                 <p className={`text-sm font-bold break-words leading-relaxed ${isReview ? 'text-pink-900 dark:text-pink-100' : 'text-stone-800 dark:text-stone-200'}`}>
                                     {task.description}
@@ -180,7 +180,7 @@ export default function TaskManager({ tasks, contact, onAddTask, onToggleTask }:
                          <CheckCircle2 className="w-3.5 h-3.5" /> Completadas recentemente
                     </h4>
                     <div className="space-y-3">
-                        {completedTasks.slice(0, 5).map((task) => (
+                        {completedTasks.slice(0, 5).map((task, idx) => (
                             <div key={task.id} className="flex items-center justify-between p-4 bg-stone-50/50 dark:bg-stone-800/30 rounded-2xl border border-stone-100 dark:border-stone-800 group transition-all opacity-60 hover:opacity-100">
                                 <div className="flex-1 min-w-0">
                                     <p className="text-xs font-bold text-stone-500 dark:text-stone-400 line-through truncate">{task.description}</p>

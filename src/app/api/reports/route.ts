@@ -45,6 +45,7 @@ export async function GET(request: Request) {
                 },
                 payments: true,
                 tags: true,
+                invoices: { select: { id: true } }
             },
             orderBy: { createdAt: 'desc' },
         });
@@ -113,10 +114,11 @@ export async function GET(request: Request) {
 
         const clientStats: Record<string, { name: string; total: number; orders: number }> = {};
         const productStats: Record<string, { name: string; type: string; qty: number; revenue: number; cost: number }> = {};
-        const monthlyStats: Record<string, { revenue: number; cost: number; profit: number; orders: number }> = {};
+        const monthlyStats: Record<string, { revenue: number; cost: number; profit: number; orders: number; specialDescSum?: number; platformFeeSum?: number; doctorFeeSum?: number; }> = {};
         const paymentMethodStats: Record<string, { total: number; count: number; commission: number }> = {};
         const vendorStats: Record<string, { name: string; revenue: number; orders: number; avgTicket: number }> = {};
         const labProfitStats: Record<string, { laboratory: string; revenue: number; cost: number; profit: number; ordersCount: number; clients: { name: string; date: string; product: string; revenue: number; cost: number }[] }> = {};
+        const salesDetail: any[] = [];
 
         const monthNames = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
 
@@ -130,13 +132,13 @@ export async function GET(request: Request) {
             totalSpecialDiscounts += specialDesc;
 
             // Pending = list price minus paid (using total as primary reference)
-            const listPrice = order.total || (order as any).subtotalWithMarkup || 0;
+            const listPrice = order.total || order.subtotalWithMarkup || 0;
             totalPending += Math.max(0, listPrice - orderPaidReal);
 
             // Markup profit: difference between subtotalWithMarkup and item subtotals
-            if ((order as any).subtotalWithMarkup > 0) {
+            if (order.subtotalWithMarkup && order.subtotalWithMarkup > 0) {
                 const itemSubtotal = order.items.reduce((sum: number, item: any) => sum + item.price * item.quantity, 0);
-                totalMarkup += ((order as any).subtotalWithMarkup || 0) - itemSubtotal;
+                totalMarkup += (order.subtotalWithMarkup || 0) - itemSubtotal;
             }
 
             // Client stats (based on real paid)
@@ -147,7 +149,7 @@ export async function GET(request: Request) {
 
             // Vendor stats (based on real paid)
             const vId = order.userId;
-            const vName = (order as any).user?.name || 'Sin asignar';
+            const vName = order.user?.name || 'Sin asignar';
             if (!vendorStats[vId]) vendorStats[vId] = { name: vName, revenue: 0, orders: 0, avgTicket: 0 };
             vendorStats[vId].revenue += orderPaidReal;
             vendorStats[vId].orders += 1;
@@ -159,17 +161,21 @@ export async function GET(request: Request) {
             monthlyStats[monthKey].revenue += orderPaidReal;
             monthlyStats[monthKey].orders += 1;
 
-            // Item costs
+            // Item costs + per-order detail items
+            let orderCMV = 0;
+            const orderItems: any[] = [];
+            const orderProductTypes = new Set<string>();
+
             for (const item of order.items) {
                 const product = item.product;
                 if (!product) continue; // Skip if product was deleted
 
                 let itemCost = (product.cost || 0) * item.quantity;
                 
-                // Si el producto es por PAR (Cristales) y tiene especificado el ojo (OD/OI),
+                // Si el producto es por PAR (Cristales) y tiene especificado el ojo (OD/OI pero no AMBOS),
                 // el costo en el inventario suele ser del par, por lo que cada línea (ojo)
                 // debe sumar solo el 50% del costo para no duplicar el gasto total en reportes.
-                if (product.unitType === 'PAR' && item.eye && (product.cost || 0) > 0) {
+                if (product.unitType === 'PAR' && (item.eye === 'OD' || item.eye === 'OI') && (product.cost || 0) > 0) {
                     itemCost = ((product.cost || 0) / 2) * item.quantity;
                 }
 
@@ -177,7 +183,7 @@ export async function GET(request: Request) {
                 // (el laboratorio lo regala). Se detecta porque su precio de venta es $0.
                 // Los armazones siempre cuentan ambos costos (la óptica los paga).
                 const has2x1Tag = order.tags?.some((t: any) => t.name.toLowerCase().includes('2x1')) || false;
-                const is2x1Order = ((order as any).appliedPromoName || '').toLowerCase().includes('2x1') || has2x1Tag;
+                const is2x1Order = (order.appliedPromoName || '').toLowerCase().includes('2x1') || has2x1Tag;
                 const isCrystalItem = (product.category || '').toUpperCase().includes('CRISTAL')
                     || (product.type || '').includes('Cristal')
                     || (product.type || '').includes('Multifocal')
@@ -192,11 +198,27 @@ export async function GET(request: Request) {
                 const cat = (product.category || '').toUpperCase();
                 if (cat.includes('FRAME') || cat.includes('SUNGLASS') || (product.type || '').includes('Armazón') || (product.type || '').includes('Lentes de Sol')) {
                     totalCostFrames += itemCost;
+                    orderProductTypes.add('ARMAZÓN');
                 } else if (cat.includes('CRISTAL') || (product.type || '').includes('Cristal') || (product.type || '').includes('Multifocal') || (product.type || '').includes('Monofocal')) {
                     totalCostLenses += itemCost;
+                    orderProductTypes.add('CRISTAL');
                 } else {
                     totalCostOther += itemCost;
+                    orderProductTypes.add('OTRO');
                 }
+
+                orderCMV += itemCost;
+
+                // Collect item detail for salesDetail
+                orderItems.push({
+                    name: `${product.brand || ''} ${product.name || 'Sin nombre'}`.trim(),
+                    type: product.type || product.category || '',
+                    eye: item.eye || null,
+                    price: itemRevenue,
+                    cost: itemCost,
+                    lab: product.laboratory || null,
+                    is2x1Free: !!(is2x1Order && isCrystalItem && item.price === 0),
+                });
 
                 // Product stats
                 const pName = `${product.brand || ''} ${product.name || 'Sin nombre'}`.trim();
@@ -213,7 +235,7 @@ export async function GET(request: Request) {
                 monthlyStats[monthKey].cost += itemCost;
 
                 // Lab profit stats (only for LENS/CRISTAL items with a laboratory)
-                const labName = (product as any).laboratory;
+                const labName = product.laboratory;
                 if ((cat.includes('CRISTAL') || (product.type || '').includes('Cristal') || (product.type || '').includes('Multifocal') || (product.type || '').includes('Monofocal')) && labName) {
                     if (!labProfitStats[labName]) labProfitStats[labName] = { laboratory: labName, revenue: 0, cost: 0, profit: 0, ordersCount: 0, clients: [] };
                     labProfitStats[labName].revenue += itemRevenue;
@@ -246,15 +268,66 @@ export async function GET(request: Request) {
             }
 
             // ── Doctor fees (if this order's client has a referring doctor) ──
-            const doctorName = (order.client as any).doctor;
+            const doctorName = order.client?.doctor;
+            let doctorFee = 0;
             if (doctorName) {
                 const doctorNet = orderPaidReal - orderPlatformFee - specialDesc;
-                const doctorFee = Math.max(0, doctorNet * DOCTOR_COMMISSION_RATE);
+                doctorFee = Math.max(0, doctorNet * DOCTOR_COMMISSION_RATE);
                 totalDoctorFees += doctorFee;
             }
 
-            // Update monthly profit
-            monthlyStats[monthKey].profit = monthlyStats[monthKey].revenue - monthlyStats[monthKey].cost - specialDesc;
+            // Update monthly stats with accumulated variable costs
+            if (!monthlyStats[monthKey].specialDescSum) monthlyStats[monthKey].specialDescSum = 0;
+            if (!monthlyStats[monthKey].platformFeeSum) monthlyStats[monthKey].platformFeeSum = 0;
+            if (!monthlyStats[monthKey].doctorFeeSum) monthlyStats[monthKey].doctorFeeSum = 0;
+
+            monthlyStats[monthKey].specialDescSum! += specialDesc;
+            monthlyStats[monthKey].platformFeeSum! += orderPlatformFee;
+            monthlyStats[monthKey].doctorFeeSum! += doctorFee;
+
+            // Update monthly profit properly
+            monthlyStats[monthKey].profit = monthlyStats[monthKey].revenue 
+                - monthlyStats[monthKey].cost 
+                - monthlyStats[monthKey].specialDescSum! 
+                - monthlyStats[monthKey].platformFeeSum! 
+                - monthlyStats[monthKey].doctorFeeSum!;
+
+            // ── Collect per-sale detail ──
+            const types = Array.from(orderProductTypes);
+            let orderTypeLabel = 'OTRO';
+            if (types.includes('ARMAZÓN') && types.includes('CRISTAL')) orderTypeLabel = 'ARM+CRIS';
+            else if (types.includes('CRISTAL')) orderTypeLabel = 'CRISTAL';
+            else if (types.includes('ARMAZÓN')) orderTypeLabel = 'ARMAZÓN';
+
+            const saleNetProfit = orderPaidReal - orderCMV - orderPlatformFee - doctorFee - specialDesc;
+            salesDetail.push({
+                id: order.id.slice(-6),
+                fullId: order.id,
+                date: order.createdAt.toISOString(),
+                month: monthKey,
+                clientName: order.client?.name || 'Desconocido',
+                vendorName: order.user?.name || 'Sin asignar',
+                orderType: orderTypeLabel,
+                totalPaid: orderPaidReal,
+                totalList: listPrice,
+                cmv: orderCMV,
+                platformFee: Math.round(orderPlatformFee * 100) / 100,
+                doctorFee: Math.round(doctorFee * 100) / 100,
+                specialDiscount: specialDesc,
+                appliedPromo: order.appliedPromoName || null,
+                discounts: {
+                    cash: order.discountCash || 0,
+                    transfer: order.discountTransfer || 0,
+                    card: order.discountCard || 0,
+                    general: order.discount || 0,
+                },
+                markup: order.markup || 0,
+                netProfit: Math.round(saleNetProfit * 100) / 100,
+                profitMargin: orderPaidReal > 0 ? Math.round((saleNetProfit / orderPaidReal) * 10000) / 100 : 0,
+                hasInvoice: !!order.invoices?.length,
+                paymentMethods: order.payments.map((p: any) => p.method),
+                items: orderItems,
+            });
         }
 
         const totalCosts = totalCostFrames + totalCostLenses + totalCostOther;
@@ -331,7 +404,7 @@ export async function GET(request: Request) {
                         if (!product) continue;
 
                         const cat = (product.category || '').toUpperCase();
-                        const labName = (product as any).laboratory;
+                        const labName = product.laboratory;
                         if (labName && (cat.includes('CRISTAL') || (product.type || '').includes('Cristal') || (product.type || '').includes('Multifocal') || (product.type || '').includes('Monofocal'))) {
                             if (!labOrderIds[labName]) labOrderIds[labName] = new Set();
                             labOrderIds[labName].add(order.id);
@@ -342,6 +415,7 @@ export async function GET(request: Request) {
                     .map(ls => ({ ...ls, ordersCount: labOrderIds[ls.laboratory]?.size || 0 }))
                     .sort((a, b) => b.revenue - a.revenue);
             })(),
+            salesDetail,
         });
     } catch (error: any) {
         console.error('Error generating report:', error);

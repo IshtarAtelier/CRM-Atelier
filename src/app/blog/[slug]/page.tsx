@@ -1,7 +1,11 @@
+/* eslint-disable react/no-unescaped-entities */
 import { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { ArrowLeft, Calendar, Tag } from 'lucide-react';
+import { ArrowLeft, Calendar, Tag, ArrowRight, ShoppingBag } from 'lucide-react';
+import { StorefrontNavbar } from '@/components/Storefront/StorefrontNavbar';
+import { StorefrontFooter } from '@/components/Storefront/StorefrontFooter';
+import { FloatingWhatsApp } from '@/components/Storefront/FloatingWhatsApp';
 
 interface Post {
   slug: string;
@@ -16,6 +20,317 @@ interface Post {
 }
 
 const posts: Record<string, Post> = {
+  'ray-ban-meta-smart-glasses-cordoba': {
+    slug: 'ray-ban-meta-smart-glasses-cordoba',
+    title: 'Ray-Ban Meta: Los anteojos inteligentes que graban tu vida ya están en Córdoba',
+    excerpt: 'No tienen pantallas molestas. Graban videos en alta definición, sacan fotos, reproducen música y tienen Inteligencia Artificial integrada. Conseguilos en Atelier.',
+    metaTitle: 'Ray-Ban Meta Smart Glasses en Córdoba | Atelier Óptica',
+    metaDescription: 'Comprá los anteojos inteligentes Ray-Ban Meta en Córdoba. Lentes con cámara integrada, parlantes invisibles y Meta AI. Disponibles en Atelier Óptica.',
+    date: '2026-05-20',
+    category: 'Smart Glasses',
+    imageUrl: '/images/blog/blog1_marcos.png',
+    content: (
+      <>
+        <p className="lead">El futuro de los "wearables" (tecnología vestible) por fin llegó a la óptica, y no, no se ven como los viejos anteojos de ciencia ficción con pantallas gigantes. Los nuevos <strong>Ray-Ban Meta</strong> son estéticamente idénticos a los clásicos Wayfarer, pero esconden una computadora completa en su interior. Y sí, <strong>ya podés encontrarlos en Atelier Óptica Córdoba</strong>.</p>
+
+        <h2>¿Qué hace que los Ray-Ban Meta sean tan revolucionarios?</h2>
+        <p>A diferencia de intentos anteriores (como las Google Glass), la colaboración entre la legendaria marca Ray-Ban y Meta (la empresa de Mark Zuckerberg detrás de WhatsApp e Instagram) se centró en dos cosas: <strong>diseño y funcionalidad invisible</strong>.</p>
+
+        <h3>1. Cámara Ultra Wide de 12 MP</h3>
+        <p>En las esquinas del armazón, escondidas de forma casi imperceptible, se encuentran cámaras de altísima definición. Podés sacar fotos y grabar videos de hasta 60 segundos en 1080p simplemente apretando un botoncito en la patilla o usando el comando de voz "Hey Meta, take a video". Es la forma más natural e inmersiva de grabar un concierto, un paseo en bicicleta o jugar con tus hijos, sin tener que sostener el celular con las manos.</p>
+
+        <h3>2. Audio Direccional In-Ear Invisible</h3>
+        <p>Olvidate de los auriculares. Las patillas de los Ray-Ban Meta tienen parlantes abiertos (open-ear audio) direccionales. Podés ir caminando por la calle escuchando tu lista de Spotify o respondiendo una llamada telefónica, y la persona que va caminando al lado tuyo no va a escuchar nada. Además, como no tapan tu canal auditivo, seguís escuchando el tráfico y tu entorno de forma segura.</p>
+
+        <h3>3. Inteligencia Artificial Integrada</h3>
+        <p>Tienen a <strong>Meta AI</strong> viviendo adentro del anteojo. Podés preguntarle cosas en voz alta mientras caminás ("Hey Meta, ¿qué clima va a hacer hoy?" o "Hey Meta, ¿cuánto es 45 dólares en pesos?"). Si estás de viaje, podés mirar un cartel en otro idioma y pedirle a los anteojos que te lo traduzcan hablándote al oído.</p>
+
+        <h2>La privacidad ante todo</h2>
+        <p>Para tranquilidad de todos, cuando estás grabando o sacando una foto, se enciende un LED frontal muy brillante. Si alguien intenta tapar ese LED con cinta para grabar en secreto, el anteojo detecta la obstrucción y bloquea el uso de la cámara.</p>
+
+        <h2>¿Se pueden hacer con graduación?</h2>
+        <p><strong>¡Por supuesto!</strong> Esa es la gran ventaja de adquirirlos en <strong>Atelier Óptica</strong>. A diferencia de comprarlos en una tienda de electrónica, nosotros te los entregamos con tus cristales recetados (miopía, astigmatismo o presbicia), con filtros antirreflex premium, lentes de sol polarizados, o incluso lentes fotocromáticos (Transitions) que se oscurecen al sol.</p>
+
+        <p>Acercate a nuestro local en Cerro de las Rosas y probá en vivo la tecnología que está cambiando la forma en la que documentamos nuestras vidas.</p>
+      </>
+    )
+  },
+  'lentes-wicue-oscurecen-con-boton': {
+    slug: 'lentes-wicue-oscurecen-con-boton',
+    title: 'Lentes Wicue: La tecnología electrocrómica que oscurece tus anteojos con un botón',
+    excerpt: 'Olvidate de esperar a que el sol oscurezca tus lentes fotocromáticos. Con Wicue, controlás la oscuridad de tus cristales en una fracción de segundo.',
+    metaTitle: 'Lentes Wicue Electrocrómicos en Córdoba | Atelier Óptica',
+    metaDescription: 'Lentes que se oscurecen al presionar un botón. Tecnología Wicue electrocrómica disponible en Atelier Óptica Córdoba. Cristales líquidos LCD.',
+    date: '2026-05-20',
+    category: 'Tecnología',
+    imageUrl: '/images/blog/blog3_eligiendo.png',
+    content: (
+      <>
+        <p className="lead">¿Qué pasaría si pudieras controlar qué tan oscuros son tus lentes de sol con solo presionar un botón, como si estuvieras subiendo o bajando el volumen de tu celular? Lo que parece sacado de una película de espías es hoy una realidad gracias a los <strong>lentes electrocrómicos Wicue</strong>, disponibles en Atelier Óptica.</p>
+
+        <h2>El problema de los lentes fotocromáticos tradicionales</h2>
+        <p>Los cristales fotocromáticos (que se oscurecen con el sol) son excelentes, pero tienen limitaciones. Dependen de los rayos UV para activarse. Eso significa que no se oscurecen dentro del auto (porque el parabrisas bloquea los rayos UV) y, lo más molesto, tardan varios minutos en volver a aclararse cuando entrás a un lugar cerrado. Entrás a un supermercado y no ves nada durante un rato.</p>
+
+        <h2>La magia de Wicue: Pantallas LCD en tus ojos</h2>
+        <p>Los anteojos <strong>Wicue</strong> no dependen del sol ni de reacciones químicas. El cristal es en realidad un panel de cristal líquido (LCD) súper delgado y flexible. En la patilla del armazón hay un microchip y un sensor táctil o un botón.</p>
+        
+        <p>Al deslizar el dedo por la patilla, le enviás un micro-voltaje al cristal líquido. Las moléculas del cristal cambian de alineación casi a la velocidad de la luz (0.1 segundos), oscureciendo o aclarando el lente a tu gusto.</p>
+
+        <h2>Beneficios de la tecnología Electrocrómica</h2>
+        <ul>
+          <li><strong>Control Total:</strong> Si estás manejando y te molesta el resplandor, oscurecés el lente al nivel máximo (hasta un nivel categoría 3 de sol). Si entrás a un túnel, pasás el dedo por la patilla e instantáneamente vuelven a ser claros. Cero demoras.</li>
+          <li><strong>Sensibilidad Automática:</strong> Los modelos más avanzados incluyen fotosensores diminutos que miden el brillo del entorno y ajustan el oscurecimiento del cristal automáticamente en tiempo real.</li>
+          <li><strong>Batería de Ultra Larga Duración:</strong> Gastan tan poca energía que una sola carga puede durar días o incluso semanas de uso normal, y se recargan por contacto magnético en minutos.</li>
+        </ul>
+
+        <h2>El avance definitivo en óptica deportiva y manejo</h2>
+        <p>Esta tecnología es especialmente apreciada por ciclistas, conductores y deportistas de alto rendimiento, donde esperar 2 minutos a que un lente se aclare puede resultar peligroso.</p>
+
+        <p>En <strong>Atelier Óptica</strong> en Córdoba, nos enorgullece estar a la vanguardia de las soluciones visuales del mundo. Vení a probar los lentes Wicue y experimentá el control absoluto de la luz con la punta de tus dedos.</p>
+      </>
+    )
+  },
+  'control-miopia': {
+    slug: 'control-miopia',
+    title: 'Control de Miopía: La revolución del desenfoque periférico',
+    excerpt: 'La miopía ya no es solo un problema de corrección visual; es un desafío global. Descubrí cómo la tecnología Essilor Stellest frena su avance.',
+    metaTitle: 'Control de Miopía Infantil en Córdoba | Lentes Stellest | Atelier Óptica',
+    metaDescription: 'La miopía infantil avanza rápidamente. Conocé la tecnología de desenfoque periférico y los lentes Stellest para frenar el avance de la miopía en Córdoba.',
+    date: '2026-05-19',
+    category: 'Pediatría',
+    imageUrl: '/images/blog/vidriera-atelier.jpg',
+    content: (
+      <>
+        <p className="lead">Hasta hace poco tiempo, cuando a un niño se le diagnosticaba miopía, la única solución era recetar anteojos convencionales. El problema de esta solución clásica es que solo corrige el síntoma (la visión borrosa), pero no ataca la causa: el crecimiento desmedido del globo ocular.</p>
+
+        <h2>La epidemia de miopía infantil</h2>
+        <p>A nivel mundial, la cantidad de niños con miopía se ha disparado. Factores como la reducción del tiempo al aire libre, la falta de exposición a la luz solar natural y el uso prolongado de pantallas desde edades muy tempranas han creado lo que la Organización Mundial de la Salud llama una "epidemia global".</p>
+        <p>Una miopía alta en la niñez se traduce en un riesgo significativamente mayor de desarrollar patologías oculares graves en la adultez, como desprendimiento de retina, glaucoma o cataratas tempranas.</p>
+
+        <h2>¿Qué es el desenfoque periférico?</h2>
+        <p>La revolución en el control de la miopía viene de la mano de la biomecánica ocular. Los lentes tradicionales enfocan la luz perfectamente en el centro de la retina, pero en la periferia, la luz se enfoca <em>detrás</em> de la retina. El ojo, en su intento por alcanzar ese enfoque periférico, se alarga. Ese alargamiento del globo ocular es exactamente lo que hace que la miopía aumente.</p>
+        <p>Las nuevas tecnologías utilizan un concepto llamado <strong>desenfoque periférico miópico</strong>. Estos cristales enfocan la luz central perfectamente, pero envían la luz periférica <em>por delante</em> de la retina. Esto le envía una señal química y mecánica al ojo que le dice: "detené tu crecimiento".</p>
+
+        <h2>Tecnología Essilor Stellest</h2>
+        <p>El estándar de oro actual en lentes oftálmicas para control de miopía es el lente <strong>Essilor Stellest</strong>. A simple vista parece un cristal común y corriente, lo cual es excelente para la autoestima del niño, pero en su interior esconde una constelación de 1021 microlentes invisibles distribuidos en 11 anillos concéntricos.</p>
+        <ul>
+          <li><strong>Eficacia comprobada:</strong> Estudios clínicos han demostrado que los lentes Stellest ralentizan la progresión de la miopía en un 67% en promedio, comparado con lentes monofocales estándar.</li>
+          <li><strong>Adaptación rápida:</strong> Al ser estéticamente idénticos a los lentes comunes, los niños se adaptan casi instantáneamente y disfrutan de una visión nítida en todas las distancias.</li>
+        </ul>
+
+        <h2>El rol de la óptica especializada</h2>
+        <p>Estos tratamientos requieren precisión milimétrica. En <strong>Atelier Óptica</strong> en Córdoba, contamos con el instrumental digital necesario para centrar estos lentes con exactitud. Además, asesoramos a los padres en la elección de armazones pediátricos adecuados (de acetato o silicona, con buen puente nasal) para asegurar que el lente Stellest funcione correctamente durante todo el día.</p>
+        <p>Frenar el avance de la miopía a tiempo es proteger la visión de tu hijo para toda la vida. Consultá con tu oftalmólogo pediatra y visitanos en Cerro de las Rosas para recibir asesoramiento experto.</p>
+      </>
+    )
+  },
+  'tratamiento-antirreflex-crizal-sapphire': {
+    slug: 'tratamiento-antirreflex-crizal-sapphire',
+    title: 'Tratamientos Crizal: Por qué un buen antirreflex cambia tu forma de ver el mundo',
+    excerpt: 'No todos los antirreflejos son iguales. Descubrí cómo la tecnología Crizal Sapphire y Prevencia protegen tus ojos y hacen que tus lentes duren años.',
+    metaTitle: 'Tratamientos Crizal Sapphire y Prevencia | Atelier Óptica Córdoba',
+    metaDescription: 'Conocé los tratamientos Crizal de Essilor. Antirreflex premium que repele polvo, agua y rayaduras. Encontralos en Atelier Óptica Córdoba.',
+    date: '2026-05-20',
+    category: 'Cristales',
+    imageUrl: '/images/blog/mostrador-marmol.jpg',
+    content: (
+      <>
+        <p className="lead">Cuando te comprás un par de anteojos nuevos, el oftalmólogo o el óptico siempre te pregunta: <em>"¿Los querés con antirreflex?"</em>. La respuesta corta es siempre <strong>SÍ</strong>. Pero la respuesta larga es que no todos los antirreflejos son iguales. Hoy te contamos por qué la tecnología <strong>Crizal de Essilor</strong> es el estándar de oro en protección visual.</p>
+
+        <h2>¿Qué es exactamente un tratamiento antirreflex?</h2>
+        <p>A pesar de lo que mucha gente cree, un antirreflex no es "un cristal para ver mejor la computadora". Es una serie de capas microscópicas aplicadas sobre el lente que <strong>eliminan los reflejos de la luz</strong>. Al no haber reflejos en el cristal, pasa más luz hacia tus ojos, lo que hace que veas más nítido, con mejor contraste y, estéticamente, permite que los demás vean tus ojos y no el reflejo de la ventana en tus anteojos.</p>
+
+        <h2>El problema de los antirreflex "baratos"</h2>
+        <p>Los tratamientos genéricos se rayan fácilmente, se ensucian con solo mirarlos y, peor aún, se "descascaran" o pierden efectividad a los pocos meses. Lo barato, en óptica, siempre sale caro.</p>
+
+        <h2>La familia Crizal: Ingeniería Francesa</h2>
+        <p><strong>Crizal</strong> es la marca de tratamientos de Essilor. No es solo un antirreflex, es un escudo completo de 5 beneficios para tu lente. En Atelier Óptica trabajamos con las dos líneas principales:</p>
+
+        <h3>1. Crizal Sapphire HR (High Resistance)</h3>
+        <p>Es el antirreflex más transparente del mercado mundial. Su tecnología de alta resistencia lo hace excepcionalmente duradero contra rayaduras accidentales. Además, tiene propiedades hidrofóbicas (el agua resbala) y oleofóbicas (repele la grasa de los dedos). Si buscás estética perfecta y que el lente parezca "invisible", esta es tu opción.</p>
+
+        <h3>2. Crizal Prevencia</h3>
+        <p>Si trabajás todo el día frente a pantallas, este es tu escudo. Además de tener todos los beneficios del Sapphire (anti-rayas, polvo, agua), el Prevencia bloquea selectivamente la <strong>luz azul-violeta dañina</strong> que emiten las pantallas LED, permitiendo el paso de la luz azul turquesa esencial para tu reloj biológico. Vas a notar un leve reflejo color púrpura en el lente: es la luz nociva rebotando lejos de tu ojo.</p>
+
+        <h2>Garantía de Calidad en Atelier Óptica</h2>
+        <p>Todos los lentes con tecnología Crizal vienen con su certificado de autenticidad. En nuestro local en Cerro de las Rosas, Córdoba, podés ver la diferencia vos mismo a través de nuestros demostradores físicos. Vení a visitarnos y protegé tu inversión visual.</p>
+      </>
+    )
+  },
+  'lentes-eyezen-descanso-pantallas-essilor': {
+    slug: 'lentes-eyezen-descanso-pantallas-essilor',
+    title: 'Lentes Eyezen de Essilor: El descanso definitivo si usás pantallas todo el día',
+    excerpt: 'No son simples lentes de descanso. Eyezen es un cristal de visión sencilla con un "boost" de potencia diseñado para relajar tus ojos frente al celular.',
+    metaTitle: 'Lentes Eyezen Essilor en Córdoba | Descanso Visual | Atelier Óptica',
+    metaDescription: 'Cansancio visual, ojos secos o dolor de cabeza por usar pantallas. Conocé los lentes Essilor Eyezen con boost de lectura. Atelier Óptica Córdoba.',
+    date: '2026-05-19',
+    category: 'Tecnología Essilor',
+    imageUrl: '/images/blog/muestrario-smart-lens.jpg',
+    content: (
+      <>
+        <p className="lead">Si tenés entre 20 y 45 años, es muy probable que pases más de 8 horas al día mirando la pantalla del celular, la notebook o el televisor. Todo este esfuerzo de enfoque cercano genera fatiga visual, ojos secos y dolor de cabeza. Muchos buscan "lentes de descanso", pero <strong>Essilor Eyezen</strong> redefine por completo este concepto.</p>
+
+        <h2>¿Qué pasa en tu ojo cuando mirás el celular?</h2>
+        <p>Tus ojos no fueron diseñados por la naturaleza para mirar un objeto luminoso a 30 centímetros de distancia durante horas. Para mantener la imagen nítida de cerca, un músculo dentro de tu ojo (el músculo ciliar) se contrae. Cuando este músculo permanece contraído todo el día, se produce lo que llamamos <strong>estrés o fatiga visual</strong>.</p>
+
+        <h2>¿Qué hace que Eyezen sea diferente?</h2>
+        <p>A diferencia de un lente de "descanso" común (que es simplemente un cristal neutro con antirreflex), <strong>Eyezen</strong> es un lente de visión sencilla optimizado para la vida digital. Su secreto radica en la tecnología <strong>Eyezen Focus</strong>.</p>
+
+        <p>En la parte inferior del cristal (justo la zona por donde mirás para leer la pantalla del celular), los ingenieros de Essilor incorporaron un sutil <strong>"boost" de potencia</strong> (un leve aumento adicional). Este mínimo aumento hace el esfuerzo de enfoque por vos, relajando instantáneamente tu músculo ciliar. Es como si tus ojos estuvieran en un spa, incluso después de horas de estar frente a TikTok o contestando correos.</p>
+
+        <h2>Filtro de Luz Azul integrado</h2>
+        <p>Todos los lentes Eyezen vienen con la tecnología <strong>Blue UV Capture</strong> de fábrica. A diferencia de los cristales antiguos que eran muy amarillos, Eyezen filtra la luz azul dañina a través del propio material del lente, manteniendo el cristal prácticamente transparente para que los colores en tu pantalla se vean perfectos.</p>
+
+        <h2>Disponibles con y sin graduación</h2>
+        <p>Podés hacer tus lentes Eyezen incluso si no tenés miopía ni astigmatismo. Si ya usás lentes recetados para ver de lejos, Eyezen reemplaza tu cristal monofocal tradicional brindándote esta tecnología extra para el mundo digital.</p>
+        <p>Visitá <strong>Atelier Óptica</strong> en Cerro de las Rosas y enterate de cuál de las 4 variaciones de potencia de Eyezen (Start, Plus, Pro o Max) es la ideal para tu estilo de vida.</p>
+      </>
+    )
+  },
+  'lentes-stellest-control-miopia-infantil': {
+    slug: 'lentes-stellest-control-miopia-infantil',
+    title: 'Lentes Stellest: Cómo frenar el avance de la miopía en los niños',
+    excerpt: 'La miopía infantil avanza rápido. Conocé la tecnología de Essilor que no solo corrige la visión de tu hijo, sino que ralentiza su empeoramiento.',
+    metaTitle: 'Lentes Stellest Control de Miopía Infantil Córdoba | Atelier Óptica',
+    metaDescription: 'Evitá que la miopía de tus hijos avance. Lentes Stellest de Essilor en Córdoba. Tecnología comprobada clínicamente para frenar la miopía infantil.',
+    date: '2026-05-18',
+    category: 'Pediatría',
+    imageUrl: '/images/blog/vidriera-atelier.jpg',
+    content: (
+      <>
+        <p className="lead">La miopía infantil es hoy en día una epidemia mundial. Debido al uso excesivo de pantallas y la falta de luz solar natural, los niños desarrollan miopía cada vez más temprano, y sus graduaciones empeoran año tras año. Afortunadamente, Essilor desarrolló una solución médica revolucionaria: los lentes <strong>Stellest</strong>.</p>
+
+        <h2>El problema de los lentes tradicionales</h2>
+        <p>Hasta hace poco, cuando a un niño se le diagnosticaba miopía, el oftalmólogo le recetaba lentes monofocales tradicionales. El niño volvía a ver bien, pero al año siguiente, su graduación invariablemente había subido. El lente tradicional <strong>corrige el síntoma, pero no frena el avance de la miopía</strong>.</p>
+        <p>Una alta miopía en la edad adulta aumenta significativamente el riesgo de patologías severas como desprendimiento de retina, glaucoma o cataratas tempranas. Controlarla a tiempo es vital.</p>
+
+        <h2>¿Cómo funciona la tecnología Stellest?</h2>
+        <p>Los lentes <strong>Essilor Stellest</strong> son una maravilla de la bioingeniería óptica. Mirándolos a simple vista parecen cristales comunes, pero en su interior esconden la tecnología <strong>H.A.L.T.</strong> (Highly Aspherical Lenslet Target).</p>
+        
+        <p>Consiste en una constelación de 1021 micro-lentes invisibles distribuidos en 11 anillos concéntricos alrededor del centro del cristal. Mientras que el centro del lente permite que el niño vea nítido de lejos, estos anillos periféricos crean un "volumen de señal" que le indica al globo ocular que frene su crecimiento desmedido (que es la causa principal del avance de la miopía).</p>
+
+        <h2>Resultados Clínicos Comprobados</h2>
+        <ul>
+          <li><strong>Ralentización del avance:</strong> En promedio, los lentes Stellest ralentizan la progresión de la miopía en un <strong>67%</strong> comparado con los lentes tradicionales.</li>
+          <li><strong>Freno en el crecimiento ocular:</strong> Evitan el elongamiento del globo ocular en la mayoría de los casos.</li>
+          <li><strong>Visión Nítida y Confort:</strong> A nivel estético son idénticos a los lentes comunes y los niños se adaptan en cuestión de horas.</li>
+        </ul>
+
+        <h2>El compromiso de Atelier Óptica</h2>
+        <p>Estos lentes se realizan bajo estricta indicación de oftalmólogos pediatras especializados. En <strong>Atelier Óptica</strong> en Córdoba Capital, contamos con las certificaciones y el instrumental necesario para centrar y calibrar estos cristales a la perfección en el rostro de tu hijo.</p>
+        <p>No dejes que la miopía de tu hijo avance sin control. Acercate a asesorarte con nuestro equipo y cambiemos juntos el futuro de su salud visual.</p>
+      </>
+    )
+  },
+  'varilux-xr-series-inteligencia-artificial': {
+    slug: 'varilux-xr-series-inteligencia-artificial',
+    title: 'Varilux XR Series: El primer multifocal con Inteligencia Artificial que predice tu mirada',
+    excerpt: 'Descubrí la revolución de Essilor. Lentes progresivos que entienden cómo movés tus ojos y garantizan un campo visual inmenso sin mareos.',
+    metaTitle: 'Varilux XR Series en Córdoba | Lentes con IA | Atelier Óptica',
+    metaDescription: 'Conocé el Varilux XR Series en Atelier Óptica Córdoba. El primer lente multifocal con inteligencia artificial que predice el comportamiento visual.',
+    date: '2026-05-20',
+    category: 'Tecnología Varilux',
+    imageUrl: '/images/blog/local-varilux.jpg',
+    content: (
+      <>
+        <p className="lead">El mundo de la óptica acaba de dar el salto tecnológico más grande de la última década. Essilor, el creador del lente multifocal, acaba de lanzar su obra maestra: <strong>Varilux XR Series</strong>. En <strong>Atelier Óptica Córdoba</strong> ya somos Centro Experto y te contamos por qué este cristal va a cambiar tu vida.</p>
+
+        <h2>¿Qué hace que el Varilux XR sea diferente a todo?</h2>
+        <p>Hasta ahora, incluso los mejores multifocales se diseñaban asumiendo que el ojo se mueve de manera lineal. Pero en el mundo actual (donde miramos el celular, la calle, un smartwatch y a otra persona en cuestión de segundos), nuestros ojos hacen más de 100.000 movimientos diarios en múltiples direcciones.</p>
+        <p>El <strong>Varilux XR Series</strong> es el primer lente del mundo diseñado con <strong>Inteligencia Artificial (IA) conductual</strong>.</p>
+
+        <h2>Inteligencia Artificial aplicada a tu visión</h2>
+        <p>Los ingenieros de Essilor recopilaron datos de más de un millón de pacientes en todo el mundo. Utilizando IA, lograron crear un cristal que literalmente <strong>predice cómo vas a mover los ojos</strong> antes de que lo hagas. Esto significa que ya no tenés que mover la cabeza incómodamente para buscar el "punto de enfoque" en el lente: el lente ya sabe dónde vas a mirar.</p>
+
+        <h2>Beneficios inmediatos del XR Series</h2>
+        <ul>
+          <li><strong>Visión fluida en movimiento:</strong> Podés bajar escaleras, usar el celular y mirar el tráfico mientras caminás, sin sentir ese molesto efecto "péndulo" o mareo.</li>
+          <li><strong>Campo visual ampliado:</strong> Ofrece hasta un 49% más de volumen de visión en comparación con generaciones premium anteriores. Las zonas borrosas a los costados prácticamente desaparecen.</li>
+          <li><strong>Adaptación instantánea:</strong> 9 de cada 10 pacientes se adaptan el mismo día que se los ponen, sin el clásico período de acostumbramiento.</li>
+        </ul>
+
+        <h2>¿Para quién es ideal?</h2>
+        <p>Es la inversión definitiva para personas hiperconectadas que usan múltiples pantallas a la vez, pacientes con graduaciones muy altas (donde las aberraciones laterales suelen ser un problema) y usuarios que en el pasado no lograron adaptarse a otros multifocales.</p>
+
+        <h2>Certificación Essilor Expert en Córdoba</h2>
+        <p>Para que la Inteligencia Artificial del cristal funcione, las medidas de tu rostro deben ser tomadas con precisión milimétrica. En <strong>Atelier Óptica</strong>, nuestro especialista <strong>Matías Turchi</strong> cuenta con la certificación <strong>Essilor Expert</strong>. Utilizamos tecnología de medición digital para asegurar que tu Varilux XR rinda al 100%.</p>
+        <p>Acercate a nuestro local en Cerro de las Rosas y experimentá el futuro de la visión.</p>
+      </>
+    )
+  },
+  'varilux-comfort-max-dolor-de-cuello': {
+    slug: 'varilux-comfort-max-dolor-de-cuello',
+    title: '¿Dolor de cuello frente a la compu? Por qué el Varilux Comfort Max es la solución',
+    excerpt: 'Si trabajás 8 horas frente a una pantalla, tu postura sufre. Conocé cómo el diseño ergonómico de Varilux te permite ver bien sin levantar la barbilla.',
+    metaTitle: 'Varilux Comfort Max en Córdoba | Lentes para Postura | Atelier Óptica',
+    metaDescription: 'Eliminá el dolor de cuello en la oficina con los multifocales Varilux Comfort Max. Ergonomía visual comprobada. Conseguilos en Atelier Óptica.',
+    date: '2026-05-19',
+    category: 'Salud Visual',
+    imageUrl: '/images/blog/mostrador-marmol.jpg',
+    content: (
+      <>
+        <p className="lead">Terminás tu jornada de trabajo en la oficina y el dolor en las cervicales es insoportable. Vas al kinesiólogo, cambiás la silla, pero el problema persiste. Si usás lentes multifocales, la causa de tu dolor de cuello podría estar, literalmente, frente a tus ojos.</p>
+
+        <h2>El problema del "Mentón Levantado"</h2>
+        <p>Los multifocales tradicionales exigen que busques la zona intermedia (la graduación de la computadora) en una parte muy específica del cristal. Si sos de las personas que se mueven mucho en la silla, te recostás o te acercás al monitor, terminás levantando o bajando el mentón constantemente para no perder el foco. Esa postura antinatural repetida 8 horas al día destruye tus cervicales.</p>
+
+        <h2>La innovación del Varilux Comfort Max</h2>
+        <p>Essilor creó el <strong>Varilux Comfort Max</strong> pensando específicamente en la ergonomía. Su diseño se llama "Flex Optim", y hace exactamente lo que su nombre indica: te da flexibilidad postural.</p>
+        <p>En lugar de obligarte a mantener la cabeza rígida en un solo ángulo para ver la compu, este cristal <strong>amplía el corredor de visión útil hasta un 46%</strong>. Esto significa que podés estirarte en la silla, mirar de reojo o cambiar tu postura, y el monitor se va a seguir viendo nítido.</p>
+
+        <h2>Beneficios de la línea Comfort Max</h2>
+        <ul>
+          <li><strong>Flexibilidad postural:</strong> 227 posturas diferentes evaluadas durante su diseño garantizan que veas bien sin forzar el cuello.</li>
+          <li><strong>Transición suave:</strong> El paso de la visión de lejos (mirar por la ventana) a la visión intermedia (el monitor) y a cerca (el celular) es el más natural de su segmento.</li>
+          <li><strong>Ideal para usuarios nuevos:</strong> Si es tu primer multifocal y le tenés miedo a no adaptarte, esta es la línea más amigable y de más rápida adaptación en el mercado de gama media-alta.</li>
+        </ul>
+
+        <h2>El Combo Perfecto en Atelier Óptica</h2>
+        <p>En nuestra óptica en Cerro de las Rosas (Córdoba), te recomendamos pedir tus Varilux Comfort Max con tratamiento <strong>Crizal Sapphire</strong> (el mejor antirreflex) y <strong>Filtro Azul (Blue UV Capture)</strong> para que, además de cuidar tu cuello, protejas tu retina de la luz dañina de las pantallas.</p>
+        <p>Dejá de sufrir en el trabajo. Vení a asesorarte con nosotros y llevate la garantía de adaptación de los expertos de Atelier.</p>
+      </>
+    )
+  },
+  'varilux-vs-genericos-diferencias': {
+    slug: 'varilux-vs-genericos-diferencias',
+    title: 'Varilux vs Multifocales Genéricos: ¿Vale la pena la diferencia de precio?',
+    excerpt: 'Derribamos mitos. Te mostramos exactamente qué cambia entre un lente progresivo de alta gama y uno económico (con esquemas de campo visual reales).',
+    metaTitle: 'Diferencia Varilux y Lentes Genéricos | Precios Córdoba | Atelier Óptica',
+    metaDescription: 'Comparativa real entre lentes multifocales genéricos económicos y la línea Varilux de Essilor. Por qué el campo visual lo cambia todo.',
+    date: '2026-05-18',
+    category: 'Cristales',
+    imageUrl: '/images/blog/muestrario-smart-lens.jpg',
+    content: (
+      <>
+        <p className="lead">Llegás a la óptica con tu receta de presbicia y te pasan dos presupuestos. Uno por un multifocal genérico "promoción" y otro por un <strong>Varilux original</strong>. La diferencia de precio es notable. La primera pregunta que se te viene a la mente es: <em>¿No son todos vidrios con aumento? ¿Vale la pena pagar más?</em></p>
+
+        <h2>La anatomía de un lente multifocal</h2>
+        <p>Para entender la diferencia de precio, hay que entender un poco de física óptica. Ningún multifocal es perfecto de borde a borde. Todos, absolutamente todos los lentes progresivos del mundo, tienen <strong>zonas de aberración</strong> (zonas borrosas) en los laterales inferiores. La tecnología que pagás en un lente de alta gama es la capacidad de "achicar" y "empujar" esas zonas borrosas hacia los extremos, liberando tu campo de visión.</p>
+
+        <h2>1. El Multifocal Genérico (Gama de entrada)</h2>
+        <p>Los lentes económicos utilizan diseños estandarizados o "de molde".</p>
+        <ul>
+          <li><strong>El problema:</strong> Su "corredor visual" (el pasillo por donde mirás nítido) es como un túnel angosto. Si mirás un poco hacia los costados (por ejemplo, los espejos retrovisores del auto), vas a ver borroso.</li>
+          <li><strong>Consecuencia:</strong> Te obliga a mover la cabeza como un robot de un lado a otro. Genera mareos y la adaptación puede demorar semanas.</li>
+        </ul>
+
+        <h2>2. La familia Varilux (Tecnología Freeform Digital)</h2>
+        <p><strong>Varilux (de la firma francesa Essilor)</strong> no usa moldes estándar. Utiliza tornos guiados por computadora que tallan el cristal punto por punto en la cara interna, acercando el diseño a tu ojo al igual que mirar a través del ojo de una cerradura: mientras más cerca estés, más amplio se ve del otro lado.</p>
+        <ul>
+          <li><strong>El resultado:</strong> El "túnel angosto" del lente económico se transforma en una autopista de tres carriles. Los campos de lectura e intermedios son inmensamente más amplios.</li>
+          <li><strong>Personalización:</strong> Varilux toma en cuenta factores como la forma del armazón que elegiste, la distancia entre tus pupilas e incluso tu ojo dominante para calcular el cristal.</li>
+        </ul>
+
+        <h2>¿Entonces el genérico no sirve?</h2>
+        <p>No necesariamente. Si sos un "présbita incipiente" (es decir, tu graduación para leer es muy bajita, como +1.00), el lente genérico no va a tener tanta distorsión lateral y podés llegar a tolerarlo bien si tenés paciencia.</p>
+        <p>Sin embargo, si tu graduación es alta (por ejemplo, +2.50), ponerte un lente genérico es comprar un boleto seguro a los mareos y la frustración. Ahí es donde <strong>Varilux es una obligación, no un lujo</strong>.</p>
+
+        <h2>La Garantía Varilux en Atelier Óptica</h2>
+        <p>En Córdoba, <strong>Atelier Óptica</strong> es centro certificado Essilor. Cuando comprás un Varilux con nosotros, te entregamos la tarjeta de autenticidad y contás con <strong>Garantía de Adaptación real</strong>. Si por algún motivo no lográs asimilar el diseño premium, Essilor y nosotros nos hacemos cargo de recambiar los cristales.</p>
+        <p>Invertir en Varilux es invertir en calidad de vida. No permitas que un cristal económico te arruine la comodidad de tus ojos todos los días.</p>
+      </>
+    )
+  },
   'mejor-optica-multifocales-cordoba': {
     slug: 'mejor-optica-multifocales-cordoba',
     title: 'La mejor óptica para multifocales en Córdoba: Por qué elegirnos',
@@ -24,7 +339,7 @@ const posts: Record<string, Post> = {
     metaDescription: 'Atelier Óptica es la óptica más recomendada de Córdoba para lentes multifocales. Mejor atención, mejores comentarios y garantía de adaptación en Cerro de las Rosas.',
     date: '2026-04-26',
     category: 'Multifocales',
-    imageUrl: '/images/blog/multifocal-mujer-lectura.png',
+    imageUrl: '/images/blog/blog1_header.png',
     content: (
       <>
         <p className="lead">Si buscás la <strong>mejor óptica para multifocales en Córdoba</strong>, llegaste al lugar correcto. En <strong>Atelier Óptica</strong>, ubicada en José Luis de Tejeda 4380, Cerro de las Rosas, nos especializamos en lentes progresivos con una tasa de adaptación que supera el 98%. No es casualidad que seamos la <strong>óptica con mejores comentarios de Córdoba Capital</strong>.</p>
@@ -62,7 +377,7 @@ const posts: Record<string, Post> = {
     metaDescription: 'Guía de precios actualizada de lentes multifocales en Córdoba 2026. Comparamos Varilux, Novar y opciones económicas. Encontrá la mejor óptica de Córdoba.',
     date: '2026-04-25',
     category: 'Multifocales',
-    imageUrl: '/images/blog/lentes-progresivos-zonas.png',
+    imageUrl: '/images/blog/blog2_header.png',
     content: (
       <>
         <p className="lead">Una de las preguntas más frecuentes que recibimos en <strong>Atelier Óptica Córdoba</strong> es: <em>&ldquo;¿Cuánto cuestan los lentes multifocales?&rdquo;</em>. La respuesta no es tan simple, porque el <strong>precio de un multifocal en Córdoba</strong> depende de muchas variables. En esta guía te explicamos todo para que puedas tomar la mejor decisión.</p>
@@ -101,7 +416,7 @@ const posts: Record<string, Post> = {
     metaDescription: 'Atelier Óptica es la óptica más exclusiva de Córdoba en Cerro de las Rosas. Atención personalizada, multifocales premium y armazones de diseño. José Luis de Tejeda 4380.',
     date: '2026-04-24',
     category: 'Nuestra Óptica',
-    imageUrl: '/images/blog/medicion-pupilar-optica.png',
+    imageUrl: '/images/blog/blog3_header.png',
     content: (
       <>
         <p className="lead">En el corazón del Cerro de las Rosas, sobre <strong>José Luis de Tejeda 4380</strong>, hay una óptica que rompió todos los moldes. <strong>Atelier Óptica</strong> no es una óptica convencional: es un espacio boutique donde la precisión visual se encuentra con el diseño, el arte y una <strong>atención personalizada sin igual en Córdoba</strong>.</p>
@@ -145,7 +460,7 @@ const posts: Record<string, Post> = {
     metaDescription: 'Primer multifocal: qué saber, cómo elegir la óptica correcta y evitar errores comunes. Guía de la mejor óptica de Córdoba para principiantes en lentes progresivos.',
     date: '2026-04-23',
     category: 'Salud Visual',
-    imageUrl: '/images/blog/pareja-multifocales-exterior.png',
+    imageUrl: '/images/blog/blog4_header.png',
     content: (
       <>
         <p className="lead">Te sentás a leer el celular y la letra se vuelve borrosa. Estirás el brazo y, como por arte de magia, las letras se aclaran. Si esto te pasa, bienvenido al mundo de la <strong>presbicia</strong>: la vista cansada que aparece después de los 40 años. Tu oftalmólogo te recetó <strong>lentes multifocales</strong> y probablemente tenés mil dudas. En <strong>Atelier Óptica Córdoba</strong>, la <strong>óptica más recomendada para multifocales</strong>, te las resolvemos todas.</p>
@@ -197,7 +512,7 @@ const posts: Record<string, Post> = {
     metaDescription: 'Lentes multifocales y ocupacionales para trabajar cómodo frente a pantallas. La óptica con mejor atención de Córdoba te asesora sobre multifocales para oficina.',
     date: '2026-04-22',
     category: 'Tecnología',
-    imageUrl: '/images/blog/mujer-oficina-multifocal.png',
+    imageUrl: '/images/blog/blog5_header.png',
     content: (
       <>
         <p className="lead">Si usás <strong>lentes multifocales</strong> y trabajás todo el día frente a una computadora, probablemente conozcas este problema: para ver la pantalla del monitor tenés que levantar el mentón y mirar por la zona intermedia del cristal, lo que te genera un <strong>dolor de cuello insoportable</strong> después de unas horas. En <strong>Atelier Óptica Córdoba</strong>, la <strong>óptica con mejor atención de Córdoba</strong>, tenemos la solución perfecta.</p>
@@ -242,7 +557,7 @@ const posts: Record<string, Post> = {
     metaDescription: 'Especialistas en lentes multifocales en Córdoba. Consejos de adaptación, tecnologías (Varilux, Novar) y precios para anteojos multifocales.',
     date: '2026-04-20',
     category: 'Salud Visual',
-    imageUrl: 'https://images.unsplash.com/photo-1577803645773-f96470509666?q=80&w=1470&auto=format&fit=crop',
+    imageUrl: '/images/blog/blog6_header.png',
     content: (
       <>
         <p className="lead">La tecnología óptica ha avanzado muchísimo, y hoy en día los <strong>lentes multifocales</strong> son la solución definitiva para quienes padecen presbicia y necesitan ver bien de cerca, de lejos y en distancias intermedias sin tener que cambiar de anteojos constantemente.</p>
@@ -273,7 +588,7 @@ const posts: Record<string, Post> = {
     metaDescription: 'Encontrá los mejores anteojos recetados en Córdoba. Asesoramiento estético y técnico para elegir marcos y cristales a medida.',
     date: '2026-04-15',
     category: 'Tendencias',
-    imageUrl: 'https://images.unsplash.com/photo-1509695507497-903c140c43b0?q=80&w=1473&auto=format&fit=crop',
+    imageUrl: '/images/blog/arte-venus.jpg',
     content: (
       <>
         <p className="lead">Los <strong>anteojos recetados</strong> ya no son solo una necesidad médica; son un accesorio clave en tu estilo diario. Encontrar el armazón ideal puede resaltar tus facciones y darte una apariencia renovada.</p>
@@ -305,7 +620,7 @@ const posts: Record<string, Post> = {
     metaDescription: 'Tu óptica de confianza en Cerro de las Rosas, Córdoba. Anteojos de sol, multifocales, lentes de contacto y reparación de armazones.',
     date: '2026-04-10',
     category: 'Nuestra Óptica',
-    imageUrl: 'https://images.unsplash.com/photo-1555505019-8c3f1c4aba5f?q=80&w=1470&auto=format&fit=crop',
+    imageUrl: '/images/blog/fachada-ladrillo.jpg',
     content: (
       <>
         <p className="lead">Ubicados en el corazón de Cerro de las Rosas, <strong>Atelier Óptica Córdoba</strong> nació con la misión de transformar la experiencia de ir a la óptica. Creemos que cada paciente merece tiempo, escucha y soluciones a medida.</p>
@@ -334,7 +649,7 @@ const posts: Record<string, Post> = {
     metaDescription: 'Encontrá los lentes de sol más buscados del 2026 en Córdoba. Te contamos qué armazones son tendencia y por qué elegir cristales con protección UV400.',
     date: '2026-04-25',
     category: 'Tendencias',
-    imageUrl: 'https://images.unsplash.com/photo-1511499767150-a48a237f0083?q=80&w=1480&auto=format&fit=crop',
+    imageUrl: '/images/blog/local-varilux.jpg',
     content: (
       <>
         <p className="lead">Llegó el momento de renovar tus <strong>lentes de sol</strong>, pero la moda no lo es todo. En esta nota te contamos qué se usa en 2026 y por qué la salud de tus ojos debe ser siempre la prioridad.</p>
@@ -365,7 +680,7 @@ const posts: Record<string, Post> = {
     metaDescription: 'Aprendé a leer tu receta oftalmológica. Explicación fácil de qué es la esfera (miopía/hipermetropía), el cilindro (astigmatismo) y la adición.',
     date: '2026-04-22',
     category: 'Salud Visual',
-    imageUrl: 'https://images.unsplash.com/photo-1582685116743-69022ee01509?q=80&w=1470&auto=format&fit=crop',
+    imageUrl: '/images/blog/muestrario-smart-lens.jpg',
     content: (
       <>
         <p className="lead">Salís del consultorio del oftalmólogo, mirás el papel y parece que está escrito en otro idioma: <em>OD, OI, Esf -1.25, Cil -0.50, Eje 180°</em>. No te preocupes, en Atelier Óptica te enseñamos a <strong>leer tu receta oftalmológica</strong> en simples pasos.</p>
@@ -399,7 +714,7 @@ const posts: Record<string, Post> = {
     metaDescription: 'Evitá el cansancio visual, ojos secos y dolores de cabeza con cristales Blue Light Cut. Anteojos de descanso para la computadora en Córdoba.',
     date: '2026-04-26',
     category: 'Tecnología',
-    imageUrl: 'https://images.unsplash.com/photo-1542626991-cbc4e32524cc?q=80&w=1469&auto=format&fit=crop',
+    imageUrl: '/images/blog/mostrador-marmol.jpg',
     content: (
       <>
         <p className="lead">Si pasás más de 6 horas al día frente a la computadora, el celular o la tablet, es probable que hayas experimentado dolores de cabeza, ardor en los ojos o problemas para dormir. ¿La solución? Los lentes con <strong>Filtro Azul (Blue Light Cut)</strong>.</p>
@@ -427,7 +742,7 @@ const posts: Record<string, Post> = {
     metaDescription: 'Lentes que se oscurecen al sol. Especialistas en cristales Transitions en Córdoba. 2 en 1: anteojos recetados y de sol al mismo tiempo.',
     date: '2026-04-27',
     category: 'Cristales',
-    imageUrl: 'https://images.unsplash.com/photo-1572631382901-cf1a0a6087cb?q=80&w=1476&auto=format&fit=crop',
+    imageUrl: '/images/blog/muestrario-smart-lens.jpg',
     content: (
       <>
         <p className="lead">¿Estás cansado de tener que cambiarte de anteojos cada vez que salís a la calle y vuelve a salir el sol? Los cristales <strong>Fotocromáticos (Transitions)</strong> son la respuesta definitiva a este problema.</p>
@@ -455,7 +770,7 @@ const posts: Record<string, Post> = {
     metaDescription: 'Óptica infantil en Córdoba. Armazones flexibles, irrompibles y livianos para niños. Consejos sobre el primer control oftalmológico pediátrico.',
     date: '2026-04-28',
     category: 'Pediatría',
-    imageUrl: 'https://images.unsplash.com/photo-1596401057633-54a8fe8ef647?q=80&w=1470&auto=format&fit=crop',
+    imageUrl: '/images/blog/vidriera-atelier.jpg',
     content: (
       <>
         <p className="lead">Cuidar la visión de los más chicos es vital para su desarrollo, su rendimiento escolar y su autoestima. En Atelier Óptica te contamos cuáles son las señales de alerta y cómo elegir sus primeros lentes.</p>
@@ -489,7 +804,7 @@ const posts: Record<string, Post> = {
     metaDescription: 'Paso a paso para limpiar tus lentes sin dañar el antirreflex. No uses servilletas de papel ni alcohol. Consejos de óptica.',
     date: '2026-04-29',
     category: 'Mantenimiento',
-    imageUrl: 'https://images.unsplash.com/photo-1510425409890-50dce4211a37?q=80&w=1470&auto=format&fit=crop',
+    imageUrl: '/images/blog/mostrador-marmol.jpg',
     content: (
       <>
         <p className="lead">Hiciste una gran inversión en tus anteojos y en cristales con antirreflex de alta calidad. Sin embargo, limpiarlos con la punta de la remera o con papel higiénico es el camino más rápido para arruinarlos. Te enseñamos a cuidarlos.</p>
@@ -522,7 +837,7 @@ const posts: Record<string, Post> = {
     metaDescription: '¿Qué multifocal comprar? Diferencias entre lentes progresivos Varilux, Novar y opciones genéricas. Campos visuales y tecnología de tallado explicada.',
     date: '2026-05-02',
     category: 'Cristales',
-    imageUrl: 'https://images.unsplash.com/photo-1589828138980-0010996841e2?q=80&w=1470&auto=format&fit=crop',
+    imageUrl: '/images/blog/local-varilux.jpg',
     content: (
       <>
         <p className="lead">Si fuiste a una óptica a averiguar por lentes multifocales (progresivos), seguramente te topaste con presupuestos que van desde opciones muy económicas hasta valores premium. La pregunta del millón es: <strong>¿Vale la pena pagar más por una marca reconocida?</strong></p>
@@ -552,7 +867,7 @@ const posts: Record<string, Post> = {
     metaDescription: '¿Te marean tus lentes progresivos? Explicamos las causas comunes (altura mal tomada, error de adaptación) y cómo re-calibrarlos para ver perfecto.',
     date: '2026-05-04',
     category: 'Salud Visual',
-    imageUrl: 'https://images.unsplash.com/photo-1605652157522-83b1bb649c0c?q=80&w=1470&auto=format&fit=crop',
+    imageUrl: '/images/blog/fachada-ladrillo.jpg',
     content: (
       <>
         <p className="lead">Hacerse lentes multifocales es un gran paso, pero muchas personas los abandonan en un cajón tras la primera semana porque sienten que "el piso se mueve", los escalones parecen más altos de lo normal o sienten mareos al mirar de reojo.</p>
@@ -585,7 +900,7 @@ const posts: Record<string, Post> = {
     metaDescription: 'En Atelier Óptica garantizamos la adaptación de tus multifocales gracias a nuestra toma de medidas profesional, keratometría y prueba de probines en Cerro de las Rosas.',
     date: '2026-05-06',
     category: 'Nuestra Óptica',
-    imageUrl: 'https://images.unsplash.com/photo-1579684453401-9cc5825bc531?q=80&w=1470&auto=format&fit=crop',
+    imageUrl: '/images/blog/arte-monalisa.jpg',
     content: (
       <>
         <p className="lead">Uno de los mayores miedos al invertir en lentes multifocales es que no sirvan o terminen guardados en un estuche. En <strong>Atelier Óptica</strong> sabemos que el secreto del éxito no está solo en la marca del cristal, sino en un proceso de calibración clínica exhaustiva. Te contamos por qué nuestra tasa de adaptación es increíblemente superior.</p>
@@ -620,7 +935,7 @@ const posts: Record<string, Post> = {
     metaDescription: 'Perdele el miedo a los lentes multifocales. Te damos 3 consejos prácticos y relajados para acostumbrar tus ojos al lente progresivo en tiempo récord.',
     date: '2026-05-08',
     category: 'Salud Visual',
-    imageUrl: 'https://images.unsplash.com/photo-1544717305-2782549b5136?q=80&w=1470&auto=format&fit=crop',
+    imageUrl: '/images/blog/anteojos-rosa-pastel.jpg',
     content: (
       <>
         <p className="lead">Es súper común que el primer día que te ponés unos lentes multifocales sientas que todo está un poco "raro". ¡Tranquilo! Tu cerebro es increíblemente inteligente y solo necesita un par de días para descifrar el nuevo mapa. No hace falta que te estreses, la adaptación es un proceso súper natural.</p>
@@ -649,7 +964,7 @@ const posts: Record<string, Post> = {
     metaDescription: '¿Qué es mejor, bifocal o multifocal? Explicamos por qué los lentes progresivos reemplazaron al bifocal: mejor estética, visión intermedia y adaptación.',
     date: '2026-05-10',
     category: 'Cristales',
-    imageUrl: 'https://images.unsplash.com/photo-1574258495973-f010dfbb5371?q=80&w=1470&auto=format&fit=crop',
+    imageUrl: '/images/blog/arte-monalisa.jpg',
     content: (
       <>
         <p className="lead">Durante décadas, cuando a alguien le costaba leer de cerca, la única solución era usar lentes <strong>bifocales</strong>. Seguramente los recuerdes: esos anteojos con una "ventanita" o rayita visible en la parte de abajo. Hoy, la tecnología ha avanzado tanto que los lentes <strong>multifocales (progresivos)</strong> los han reemplazado casi por completo. ¿Por qué deberías hacer el cambio?</p>
@@ -681,7 +996,7 @@ const posts: Record<string, Post> = {
     metaDescription: 'Descubrí los lentes ocupacionales (Intermedio/Cerca). La mejor solución para oficinistas, arquitectos y dentistas en Córdoba. Adiós al dolor cervical.',
     date: '2026-05-12',
     category: 'Tecnología',
-    imageUrl: 'https://images.unsplash.com/photo-1517048676732-d65bc937f952?q=80&w=1470&auto=format&fit=crop',
+    imageUrl: '/images/blog/lentes-progresivos-zonas.png',
     content: (
       <>
         <p className="lead">Si sos usuario de lentes multifocales y trabajás 8 horas frente a una computadora de escritorio, es probable que termines el día con un dolor de cuello terrible. Levantás el mentón constantemente para tratar de "encontrar" el foco del monitor. La solución a este problema tiene nombre: <strong>Multifocal Ocupacional</strong>.</p>
@@ -822,9 +1137,16 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
     notFound();
   }
 
+  // Get 3 other posts to suggest
+  const otherPosts = Object.values(posts)
+    .filter(p => p.slug !== post.slug)
+    .slice(0, 3);
+
   return (
     <div className="min-h-screen bg-stone-50 dark:bg-stone-950 pb-20">
-      <div className="bg-white dark:bg-stone-900 border-b border-stone-200 dark:border-stone-800">
+      <StorefrontNavbar theme="light" />
+
+      <div className="bg-white dark:bg-stone-900 border-b border-stone-200 dark:border-stone-800 pt-16">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-12">
           <Link href="/blog" className="inline-flex items-center text-sm font-bold text-stone-500 hover:text-primary transition-colors mb-8 group">
             <ArrowLeft className="w-4 h-4 mr-2 group-hover:-translate-x-1 transition-transform" />
@@ -857,6 +1179,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
           {post.content}
         </article>
         
+        {/* CTA WhatsApp */}
         <div className="mt-16 pt-8 border-t border-stone-200 dark:border-stone-800 text-center">
           <h3 className="text-2xl font-black mb-4 dark:text-white">¿Necesitás asesoramiento personalizado?</h3>
           <p className="text-stone-600 dark:text-stone-400 mb-8">Te esperamos en Atelier Óptica para encontrar tus anteojos ideales.</p>
@@ -864,7 +1187,56 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
             Contactanos por WhatsApp
           </a>
         </div>
+
+        {/* ═══ SEGUIR EXPLORANDO ═══ */}
+        <div className="mt-20">
+          <div className="flex items-center justify-between mb-8">
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-stone-400 mb-1">Seguir leyendo</p>
+              <h2 className="text-2xl font-black text-stone-900 dark:text-white">Más artículos</h2>
+            </div>
+            <Link href="/blog" className="flex items-center gap-2 text-sm font-bold text-primary hover:gap-3 transition-all">
+              Ver todos <ArrowRight className="w-4 h-4" />
+            </Link>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {otherPosts.map(related => (
+              <Link key={related.slug} href={`/blog/${related.slug}`} className="group bg-white dark:bg-stone-900 rounded-2xl border border-stone-200 dark:border-stone-800 overflow-hidden hover:shadow-lg hover:border-primary/30 transition-all duration-300">
+                <div className="h-40 overflow-hidden bg-stone-100">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={related.imageUrl} alt={related.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
+                </div>
+                <div className="p-5">
+                  <span className="text-[9px] font-black uppercase tracking-widest text-primary">{related.category}</span>
+                  <h3 className="mt-1 text-sm font-black text-stone-800 dark:text-stone-100 line-clamp-2 group-hover:text-primary transition-colors">{related.title}</h3>
+                  <span className="mt-3 inline-flex items-center text-xs font-bold text-primary gap-1 group-hover:gap-2 transition-all">Leer <ArrowRight className="w-3 h-3" /></span>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </div>
+
+        {/* ═══ BARRA EXPLORAR TIENDA ═══ */}
+        <div className="mt-12 bg-stone-900 dark:bg-stone-800 rounded-3xl p-8 flex flex-col sm:flex-row items-center justify-between gap-6">
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-stone-400 mb-1">Atelier Óptica</p>
+            <h3 className="text-xl font-black text-white">Explorá nuestra colección de armazones</h3>
+            <p className="text-stone-400 text-sm mt-1">Diseños exclusivos con tu graduación incluida</p>
+          </div>
+          <div className="flex gap-3 shrink-0">
+            <Link href="/" className="inline-flex items-center gap-2 px-6 py-3 bg-white text-stone-900 rounded-full text-sm font-black hover:bg-stone-100 transition-colors">
+              <ShoppingBag className="w-4 h-4" /> Ver tienda
+            </Link>
+            <Link href="/blog" className="inline-flex items-center gap-2 px-6 py-3 border border-stone-600 text-white rounded-full text-sm font-bold hover:border-white transition-colors">
+              Más artículos
+            </Link>
+          </div>
+        </div>
       </div>
+
+      <StorefrontFooter />
+      <FloatingWhatsApp />
     </div>
   );
 }

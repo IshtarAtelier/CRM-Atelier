@@ -39,7 +39,7 @@ export async function GET(request: Request) {
         };
 
         // Fetch payments with order + client info
-        const payments = await (prisma.payment as any).findMany({
+        const payments = await prisma.payment.findMany({
             where: whereClause,
             include: {
                 order: {
@@ -66,7 +66,7 @@ export async function GET(request: Request) {
         }
 
         // Format payments for response
-        const formattedPayments = payments.map((p: any) => ({
+        const formattedPayments = payments.map(p => ({
             id: p.id,
             date: p.date,
             amount: p.amount,

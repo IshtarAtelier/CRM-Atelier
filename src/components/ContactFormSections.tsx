@@ -55,7 +55,7 @@ export function PersonalDataSection({ formData, setFormData, doctors, sources }:
                         <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400 pointer-events-none" />
                         <select className="w-full pl-12 pr-10 py-4 bg-stone-50 dark:bg-stone-800 border-2 rounded-2xl font-bold text-sm appearance-none cursor-pointer outline-none focus:border-primary" value={formData.doctor} onChange={(e) => setFormData({ ...formData, doctor: e.target.value })}>
                             <option value="">— Sin médico —</option>
-                            {doctors.map(doc => <option key={doc.id} value={doc.name}>{doc.name}</option>)}
+                            {doctors.map((doc, idx) => <option key={doc.id || `doc-${idx}`} value={doc.name}>{doc.name}</option>)}
                         </select>
                     </div>
                 </div>
@@ -66,7 +66,7 @@ export function PersonalDataSection({ formData, setFormData, doctors, sources }:
                         <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400 pointer-events-none" />
                         <select className="w-full px-5 py-4 bg-stone-50 dark:bg-stone-800 border-2 rounded-2xl font-bold text-sm appearance-none cursor-pointer outline-none focus:border-primary" value={formData.contactSource} onChange={(e) => setFormData({ ...formData, contactSource: e.target.value })}>
                             <option value="">Seleccionar origen...</option>
-                            {sources.map(s => <option key={s} value={s}>{s}</option>)}
+                            {sources.map((s, idx) => <option key={s || `source-${idx}`} value={s}>{s}</option>)}
                         </select>
                     </div>
                 </div>
@@ -100,7 +100,7 @@ export function InterestSection({ formData, setFormData, productTypes }: { formD
                 <label className="text-[10px] font-black uppercase tracking-widest text-stone-500 ml-1 flex items-center gap-1">Tipo de Producto <span className="text-primary">*</span></label>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                     {productTypes.map(type => (
-                        <button key={type} type="button" onClick={() => setFormData({ ...formData, interest: type })} className={`px-3 py-3 rounded-xl border-2 text-[10px] font-black uppercase transition-all ${formData.interest === type ? 'bg-primary border-primary text-white shadow-lg' : 'bg-white text-stone-400 border-stone-100 hover:border-primary/30'}`}>{type}</button>
+                        <button key={type} type="button" onClick={() => setFormData({ ...formData, interest: type })} className={`px-3 py-3 rounded-xl border-2 text-[10px] font-black uppercase transition-all ${formData.interest === type ? 'bg-primary border-primary text-white shadow-lg' : 'bg-white dark:bg-stone-800 text-stone-400 dark:text-stone-300 border-stone-100 dark:border-stone-700 hover:border-primary/30'}`}>{type}</button>
                     ))}
                 </div>
             </div>

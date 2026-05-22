@@ -9,15 +9,16 @@
     "dev": "node index.js"
   },
   "dependencies": {
-    "@google/genai": "^1.50.1",
     "@langchain/core": "^1.1.40",
     "@langchain/google-genai": "^2.1.27",
+    "@langchain/google-vertexai-web": "^2.1.30",
     "@langchain/langgraph": "^1.2.9",
     "@prisma/client": "^5.22.0",
-    "axios": "^1.15.1",
+    "axios": "^1.16.1",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
+    "form-data": "^4.0.5",
     "prisma": "^5.22.0",
     "qrcode-terminal": "^0.12.0",
     "socket.io": "^4.8.3",

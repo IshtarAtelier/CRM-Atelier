@@ -1,0 +1,27 @@
+
+> wa-service@1.0.0 dev
+> node index.js
+
+◇ injected env (2) from .env // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+◇ injected env (0) from .env // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+◇ injected env (0) from .env // tip: ⌁ auth for agents [www.vestauth.com]
+◇ injected env (0) from .env // tip: ⌘ suppress logs { quiet: true }
+◇ injected env (0) from .env // tip: ◈ secrets for agents [www.dotenvx.com]
+🚀 WA-Service (WhatsApp + Bot Multi-Agente) on port 3100
+📱 Iniciando WhatsApp client (intento 1/3)...
+🗑️ Intentado eliminar lock de Chromium (SingletonLock).
+❌ Error inicializando WhatsApp (intento 1): The browser is already running for /Users/ishtarpissano/proyectos/atelier/wa-service/.wwebjs_auth/session. Use a different `userDataDir` or stop the running browser first.
+⏳ Reintentando en 5s...
+📱 Iniciando WhatsApp client (intento 2/3)...
+🗑️ Intentado eliminar lock de Chromium (SingletonLock).
+❌ Error inicializando WhatsApp (intento 2): The browser is already running for /Users/ishtarpissano/proyectos/atelier/wa-service/.wwebjs_auth/session. Use a different `userDataDir` or stop the running browser first.
+⏳ Reintentando en 5s...
+🔌 Nuevo cliente WebSocket conectado: diG27DL3277gtHECAAAC
+📱 Iniciando WhatsApp client (intento 3/3)...
+🗑️ Intentado eliminar lock de Chromium (SingletonLock).
+❌ Error inicializando WhatsApp (intento 3): The browser is already running for /Users/ishtarpissano/proyectos/atelier/wa-service/.wwebjs_auth/session. Use a different `userDataDir` or stop the running browser first.
+🛑 Se agotaron los reintentos. El servicio seguirá corriendo pero WhatsApp no está conectado.
+   Reinicie el servicio manualmente si el problema persiste.
+🔌 Nuevo cliente WebSocket conectado: FhxsPiVmG-u2NrlfAAAE
+🔌 Nuevo cliente WebSocket conectado: BjO3qCTO7MLmTdGwAAAH
+🔌 Nuevo cliente WebSocket conectado: GOtLwuf9QVukqMfDAAAI

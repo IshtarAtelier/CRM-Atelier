@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { X, FileText, CheckCircle2, AlertCircle, Loader2, Plus, Trash2, Split, Save, Info } from 'lucide-react';
 import { PricingService } from '@/services/PricingService';
+import { Modal } from '@/components/ui/Modal';
 
 interface InvoiceItem {
 // ... (rest of interface remains same)
@@ -159,197 +160,192 @@ export default function InvoiceModal({ order, initialAccount, initialAmount, onC
     };
 
     return (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-md z-[100] flex items-center justify-center p-4 overflow-y-auto" onClick={onClose}>
-            <div
-                className="bg-white dark:bg-stone-900 rounded-[2.5rem] shadow-2xl w-full max-w-2xl overflow-hidden animate-in zoom-in-95 duration-200"
-                onClick={e => e.stopPropagation()}
-            >
-                {/* Header */}
-                <div className="bg-gradient-to-br from-indigo-600 to-blue-700 p-8 text-white relative">
-                    <div className="flex items-center justify-between relative z-10">
-                        <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-md">
-                                <FileText className="w-6 h-6" />
-                            </div>
-                            <div>
-                                <h2 className="text-xl font-black tracking-tight">Emitir Factura Electrónica</h2>
-                                <p className="text-[10px] font-black uppercase tracking-[0.2em] opacity-70">Monotributo - Factura C</p>
-                            </div>
+        <Modal isOpen={true} onClose={onClose} maxWidth="2xl">
+            {/* Header */}
+            <div className="bg-gradient-to-br from-indigo-600 to-blue-700 p-6 sm:p-8 text-white relative">
+                <div className="flex items-center justify-between relative z-10">
+                    <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-md">
+                            <FileText className="w-6 h-6" />
                         </div>
-                        <button onClick={onClose} className="p-3 hover:bg-white/10 rounded-2xl transition-all"><X className="w-6 h-6" /></button>
+                        <div>
+                            <h2 className="text-xl font-black tracking-tight">Emitir Factura Electrónica</h2>
+                            <p className="text-[10px] font-black uppercase tracking-[0.2em] opacity-70">Monotributo - Factura C</p>
+                        </div>
                     </div>
-                </div>
-
-                <div className="p-8 max-h-[75vh] overflow-y-auto custom-scrollbar">
-                    {success ? (
-                        <div className="text-center py-10 animate-in fade-in slide-in-from-bottom-4">
-                            <div className="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                                <CheckCircle2 className="w-10 h-10 text-emerald-500" />
-                            </div>
-                            <h3 className="text-2xl font-black text-stone-800 dark:text-white mb-2">¡Comprobante Generado!</h3>
-                            <div className="bg-stone-50 dark:bg-stone-800 rounded-3xl p-6 space-y-4 text-left mt-8 border-2 border-dashed border-emerald-500/20">
-                                <div className="flex justify-between items-center"><span className="text-[10px] font-black text-stone-400 uppercase tracking-widest">N° Comprobante</span><span className="text-base font-black text-stone-900 dark:text-white">{success.voucherLabel}</span></div>
-                                <div className="flex justify-between items-center"><span className="text-[10px] font-black text-stone-400 uppercase tracking-widest">CAE</span><span className="text-base font-mono font-bold text-blue-600">{success.cae}</span></div>
-                                <div className="flex justify-between items-center"><span className="text-[10px] font-black text-stone-400 uppercase tracking-widest">Monto</span><span className="text-base font-black text-emerald-600">${targetAmount.toLocaleString('es-AR')}</span></div>
-                            </div>
-                            <button onClick={onClose} className="mt-10 w-full py-4 bg-stone-900 text-white rounded-2xl font-black text-sm hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-stone-900/10">FINALIZAR Y CERRAR</button>
-                        </div>
-                    ) : (
-                        <div className="space-y-8">
-                            {/* Target Amount Header */}
-                            <div className={`p-6 rounded-[2rem] shadow-xl transition-all duration-300 ${targetAmount > paidReal ? 'bg-red-600 text-white' : 'bg-stone-900 dark:bg-stone-100 text-white dark:text-stone-900'}`}>
-                                <div className="flex items-center justify-between">
-                                    <div>
-                                        <p className="text-[10px] font-black uppercase tracking-widest opacity-60">Monto del Comprobante</p>
-                                        <div className="flex items-center gap-2 mt-1">
-                                            <span className="text-3xl font-black tracking-tighter">$</span>
-                                            <input 
-                                                type="number" 
-                                                value={targetAmount}
-                                                onChange={(e) => setTargetAmount(Number(e.target.value))}
-                                                className="bg-transparent text-3xl font-black tracking-tighter w-48 outline-none border-b-2 border-white/20 focus:border-white transition-all"
-                                            />
-                                        </div>
-                                    </div>
-                                    <div className="text-right">
-                                        <p className="text-[10px] font-black uppercase tracking-widest opacity-60">Tope según pago</p>
-                                        <p className="text-lg font-black mt-1">${paidReal.toLocaleString('es-AR')}</p>
-                                    </div>
-                                </div>
-                                {targetAmount > paidReal && (
-                                    <div className="mt-3 flex items-center gap-2 text-[10px] font-bold bg-white/20 p-2 rounded-xl animate-pulse">
-                                        <AlertCircle size={14} /> NO PODÉS FACTURAR MÁS DE LO PAGADO
-                                    </div>
-                                )}
-                            </div>
-
-                            {/* Item Editor */}
-                            <div>
-                                <div className="flex items-center justify-between mb-4">
-                                    <h4 className="text-xs font-black text-stone-400 uppercase tracking-widest flex items-center gap-2">
-                                        <Info className="w-3.5 h-3.5" /> Detalle de los ítems
-                                    </h4>
-                                    <button onClick={addItem} className="flex items-center gap-2 text-[10px] font-black text-blue-600 hover:text-blue-700 transition-colors uppercase tracking-widest">
-                                        <Plus className="w-3.5 h-3.5" /> Agregar ítem
-                                    </button>
-                                </div>
-                                <div className="space-y-3">
-                                    {items.map((it) => (
-                                        <div key={it.id} className={`group bg-stone-50 dark:bg-stone-800/50 p-4 rounded-2xl border-2 transition-all ${it.price > MONOTRIBUTO_LIMIT ? 'border-orange-500/30' : 'border-transparent hover:border-stone-200 dark:hover:border-stone-701'}`}>
-                                            <div className="flex gap-4 items-start">
-                                                <div className="flex-1 space-y-3">
-                                                    <input 
-                                                        type="text" 
-                                                        value={it.description}
-                                                        onChange={(e) => updateItem(it.id, 'description', e.target.value)}
-                                                        className="w-full bg-transparent font-bold text-sm text-stone-800 dark:text-white outline-none placeholder:text-stone-300"
-                                                        placeholder="Descripción del concepto..."
-                                                    />
-                                                    <div className="flex items-center gap-4">
-                                                        <div className="flex items-center gap-2 bg-white dark:bg-stone-800 px-3 py-1.5 rounded-xl text-xs shadow-sm">
-                                                            <span className="text-stone-400 font-bold">Cant:</span>
-                                                            <input 
-                                                                type="number" 
-                                                                value={it.quantity}
-                                                                onChange={(e) => updateItem(it.id, 'quantity', Number(e.target.value))}
-                                                                className="w-8 bg-transparent font-black outline-none"
-                                                            />
-                                                        </div>
-                                                        <div className="flex items-center gap-2 bg-white dark:bg-stone-800 px-3 py-1.5 rounded-xl text-xs shadow-sm">
-                                                            <span className="text-stone-400 font-bold">Precio: $</span>
-                                                            <input 
-                                                                type="number" 
-                                                                value={it.price}
-                                                                onChange={(e) => updateItem(it.id, 'price', Number(e.target.value))}
-                                                                className="w-24 bg-transparent font-black outline-none"
-                                                            />
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <div className="flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                    {it.price > MONOTRIBUTO_LIMIT && (
-                                                        <button onClick={() => splitItem(it.id)} className="p-2 bg-orange-100 text-orange-600 rounded-lg hover:bg-orange-200 transition-colors shadow-sm" title="Dividir por límite de Monotributo">
-                                                            <Split className="w-4 h-4" />
-                                                        </button>
-                                                    )}
-                                                    <button onClick={() => removeItem(it.id)} className="p-2 bg-red-50 text-red-500 rounded-lg hover:bg-red-100 transition-colors shadow-sm">
-                                                        <Trash2 className="w-4 h-4" />
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                                <div className="mt-4 p-4 rounded-2xl flex items-center justify-between text-xs font-black transition-all bg-emerald-50 text-emerald-600">
-                                    <span className="uppercase tracking-widest">Suma de ítems: ${totalInvoiced.toLocaleString('es-AR')}</span>
-                                </div>
-                            </div>
-
-                            {/* Config Panels */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                <div className="space-y-4">
-                                    <label className="block text-[10px] font-black text-stone-400 uppercase tracking-widest">Cuenta Emisora</label>
-                                    <div className="flex gap-2 p-1.5 bg-stone-100 dark:bg-stone-800 rounded-2xl">
-                                        {['ISH', 'YANI'].map(acc => (
-                                            <button 
-                                                key={acc}
-                                                onClick={() => setAccount(acc as any)}
-                                                className={`flex-1 py-3 rounded-xl text-[10px] font-black transition-all ${account === acc ? 'bg-white dark:bg-stone-700 text-blue-600 shadow-md' : 'text-stone-400'}`}
-                                            >
-                                                {acc === 'ISH' ? 'ISH' : 'YANI'}
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
-
-                                <div className="space-y-4">
-                                    <label className="block text-[10px] font-black text-stone-400 uppercase tracking-widest">Receptor (Comprobante)</label>
-                                    <div className="grid grid-cols-3 gap-2">
-                                        {DOC_TYPES.map(dt => (
-                                            <button 
-                                                key={dt.value}
-                                                onClick={() => {
-                                                    setDocTipo(dt.value);
-                                                    if (dt.value === 99) setDocNro('0');
-                                                    else if (dt.value === 96 && order.client.dni) setDocNro(order.client.dni);
-                                                }}
-                                                className={`py-3 rounded-xl text-[10px] font-black transition-all ${docTipo === dt.value ? 'bg-indigo-600 text-white shadow-lg' : 'bg-stone-100 dark:bg-stone-800 text-stone-400'}`}
-                                            >
-                                                {dt.label}
-                                            </button>
-                                        ))}
-                                    </div>
-                                    {docTipo !== 99 && (
-                                        <input 
-                                            type="text" 
-                                            value={docNro}
-                                            onChange={e => setDocNro(e.target.value)}
-                                            className="w-full px-5 py-3 bg-stone-50 dark:bg-stone-800 border-2 border-transparent focus:border-indigo-500 rounded-2xl text-xs font-black tracking-widest outline-none transition-all"
-                                            placeholder="Nro de Documento..."
-                                        />
-                                    )}
-                                </div>
-                            </div>
-
-                            {/* Error & Action */}
-                            {error && (
-                                <div className="bg-red-50 text-red-600 p-4 rounded-2xl text-[10px] font-black uppercase tracking-widest flex items-center gap-3 animate-pulse">
-                                    <AlertCircle className="w-5 h-5" /> {error}
-                                </div>
-                            )}
-
-                            <button
-                                onClick={handleEmit}
-                                disabled={!!emittingStep}
-                                className="w-full py-5 bg-gradient-to-r from-indigo-600 to-blue-700 text-white rounded-[2rem] font-black text-xs uppercase tracking-widest shadow-2xl shadow-indigo-500/20 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-30 disabled:grayscale disabled:scale-100 flex items-center justify-center gap-3"
-                            >
-                                {emittingStep ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
-                                {emittingStep ? emittingStep.toUpperCase() : 'GENERAR COMPROBANTE ELECTRÓNICO'}
-                            </button>
-                        </div>
-                    )}
+                    <button onClick={onClose} className="p-3 hover:bg-white/10 rounded-2xl transition-all"><X className="w-6 h-6" /></button>
                 </div>
             </div>
-        </div>
+
+            <div className="p-4 sm:p-8 max-h-[75vh] overflow-y-auto custom-scrollbar">
+                {success ? (
+                    <div className="text-center py-10 animate-in fade-in slide-in-from-bottom-4">
+                        <div className="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                            <CheckCircle2 className="w-10 h-10 text-emerald-500" />
+                        </div>
+                        <h3 className="text-2xl font-black text-stone-800 dark:text-white mb-2">¡Comprobante Generado!</h3>
+                        <div className="bg-stone-50 dark:bg-stone-800 rounded-3xl p-6 space-y-4 text-left mt-8 border-2 border-dashed border-emerald-500/20">
+                            <div className="flex justify-between items-center"><span className="text-[10px] font-black text-stone-400 uppercase tracking-widest">N° Comprobante</span><span className="text-base font-black text-stone-900 dark:text-white">{success.voucherLabel}</span></div>
+                            <div className="flex justify-between items-center"><span className="text-[10px] font-black text-stone-400 uppercase tracking-widest">CAE</span><span className="text-base font-mono font-bold text-blue-600">{success.cae}</span></div>
+                            <div className="flex justify-between items-center"><span className="text-[10px] font-black text-stone-400 uppercase tracking-widest">Monto</span><span className="text-base font-black text-emerald-600">${targetAmount.toLocaleString('es-AR')}</span></div>
+                        </div>
+                        <button onClick={onClose} className="mt-10 w-full py-4 bg-stone-900 text-white rounded-2xl font-black text-sm hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-stone-900/10">FINALIZAR Y CERRAR</button>
+                    </div>
+                ) : (
+                    <div className="space-y-8">
+                        {/* Target Amount Header */}
+                        <div className={`p-4 sm:p-6 rounded-[2rem] shadow-xl transition-all duration-300 ${targetAmount > paidReal ? 'bg-red-600 text-white' : 'bg-stone-900 dark:bg-stone-100 text-white dark:text-stone-900'}`}>
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                                <div>
+                                    <p className="text-[10px] font-black uppercase tracking-widest opacity-60">Monto del Comprobante</p>
+                                    <div className="flex items-center gap-2 mt-1">
+                                        <span className="text-3xl font-black tracking-tighter">$</span>
+                                        <input 
+                                            type="number" 
+                                            value={targetAmount}
+                                            onChange={(e) => setTargetAmount(Number(e.target.value))}
+                                            className="bg-transparent text-3xl font-black tracking-tighter w-48 outline-none border-b-2 border-white/20 focus:border-white transition-all"
+                                        />
+                                    </div>
+                                </div>
+                                <div className="text-left sm:text-right">
+                                    <p className="text-[10px] font-black uppercase tracking-widest opacity-60">Tope según pago</p>
+                                    <p className="text-lg font-black mt-1">${paidReal.toLocaleString('es-AR')}</p>
+                                </div>
+                            </div>
+                            {targetAmount > paidReal && (
+                                <div className="mt-3 flex items-center gap-2 text-[10px] font-bold bg-white/20 p-2 rounded-xl animate-pulse">
+                                    <AlertCircle size={14} /> NO PODÉS FACTURAR MÁS DE LO PAGADO
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Item Editor */}
+                        <div>
+                            <div className="flex items-center justify-between mb-4">
+                                <h4 className="text-xs font-black text-stone-400 uppercase tracking-widest flex items-center gap-2">
+                                    <Info className="w-3.5 h-3.5" /> Detalle de los ítems
+                                </h4>
+                                <button onClick={addItem} className="flex items-center gap-2 text-[10px] font-black text-blue-600 hover:text-blue-700 transition-colors uppercase tracking-widest">
+                                    <Plus className="w-3.5 h-3.5" /> Agregar ítem
+                                </button>
+                            </div>
+                            <div className="space-y-3">
+                                {items.map((it) => (
+                                    <div key={it.id} className={`group bg-stone-50 dark:bg-stone-800/50 p-4 rounded-2xl border-2 transition-all ${it.price > MONOTRIBUTO_LIMIT ? 'border-orange-500/30' : 'border-transparent hover:border-stone-200 dark:hover:border-stone-701'}`}>
+                                        <div className="flex flex-col sm:flex-row gap-4 items-start">
+                                            <div className="flex-1 space-y-3 w-full">
+                                                <input 
+                                                    type="text" 
+                                                    value={it.description}
+                                                    onChange={(e) => updateItem(it.id, 'description', e.target.value)}
+                                                    className="w-full bg-transparent font-bold text-sm text-stone-800 dark:text-white outline-none placeholder:text-stone-300"
+                                                    placeholder="Descripción del concepto..."
+                                                />
+                                                <div className="flex flex-wrap items-center gap-2 sm:gap-4">
+                                                    <div className="flex items-center gap-2 bg-white dark:bg-stone-800 px-3 py-1.5 rounded-xl text-xs shadow-sm">
+                                                        <span className="text-stone-400 font-bold">Cant:</span>
+                                                        <input 
+                                                            type="number" 
+                                                            value={it.quantity}
+                                                            onChange={(e) => updateItem(it.id, 'quantity', Number(e.target.value))}
+                                                            className="w-8 bg-transparent font-black outline-none"
+                                                        />
+                                                    </div>
+                                                    <div className="flex items-center gap-2 bg-white dark:bg-stone-800 px-3 py-1.5 rounded-xl text-xs shadow-sm">
+                                                        <span className="text-stone-400 font-bold">Precio: $</span>
+                                                        <input 
+                                                            type="number" 
+                                                            value={it.price}
+                                                            onChange={(e) => updateItem(it.id, 'price', Number(e.target.value))}
+                                                            className="w-24 bg-transparent font-black outline-none"
+                                                        />
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div className="flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                {it.price > MONOTRIBUTO_LIMIT && (
+                                                    <button onClick={() => splitItem(it.id)} className="p-2 bg-orange-100 text-orange-600 rounded-lg hover:bg-orange-200 transition-colors shadow-sm" title="Dividir por límite de Monotributo">
+                                                        <Split className="w-4 h-4" />
+                                                    </button>
+                                                )}
+                                                <button onClick={() => removeItem(it.id)} className="p-2 bg-red-50 text-red-500 rounded-lg hover:bg-red-100 transition-colors shadow-sm">
+                                                    <Trash2 className="w-4 h-4" />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                            <div className="mt-4 p-4 rounded-2xl flex items-center justify-between text-xs font-black transition-all bg-emerald-50 text-emerald-600">
+                                <span className="uppercase tracking-widest">Suma de ítems: ${totalInvoiced.toLocaleString('es-AR')}</span>
+                            </div>
+                        </div>
+
+                        {/* Config Panels */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <div className="space-y-4">
+                                <label className="block text-[10px] font-black text-stone-400 uppercase tracking-widest">Cuenta Emisora</label>
+                                <div className="flex gap-2 p-1.5 bg-stone-100 dark:bg-stone-800 rounded-2xl">
+                                    {['ISH', 'YANI'].map(acc => (
+                                        <button 
+                                            key={acc}
+                                            onClick={() => setAccount(acc as any)}
+                                            className={`flex-1 py-3 rounded-xl text-[10px] font-black transition-all ${account === acc ? 'bg-white dark:bg-stone-700 text-blue-600 shadow-md' : 'text-stone-400'}`}
+                                        >
+                                            {acc === 'ISH' ? 'ISH' : 'YANI'}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className="space-y-4">
+                                <label className="block text-[10px] font-black text-stone-400 uppercase tracking-widest">Receptor (Comprobante)</label>
+                                <div className="grid grid-cols-3 gap-2">
+                                    {DOC_TYPES.map(dt => (
+                                        <button 
+                                            key={dt.value}
+                                            onClick={() => {
+                                                setDocTipo(dt.value);
+                                                if (dt.value === 99) setDocNro('0');
+                                                else if (dt.value === 96 && order.client.dni) setDocNro(order.client.dni);
+                                            }}
+                                            className={`py-3 rounded-xl text-[10px] font-black transition-all ${docTipo === dt.value ? 'bg-indigo-600 text-white shadow-lg' : 'bg-stone-100 dark:bg-stone-800 text-stone-400'}`}
+                                        >
+                                            {dt.label}
+                                        </button>
+                                    ))}
+                                </div>
+                                {docTipo !== 99 && (
+                                    <input 
+                                        type="text" 
+                                        value={docNro}
+                                        onChange={e => setDocNro(e.target.value)}
+                                        className="w-full px-5 py-3 bg-stone-50 dark:bg-stone-800 border-2 border-transparent focus:border-indigo-500 rounded-2xl text-xs font-black tracking-widest outline-none transition-all"
+                                        placeholder="Nro de Documento..."
+                                    />
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Error & Action */}
+                        {error && (
+                            <div className="bg-red-50 text-red-600 p-4 rounded-2xl text-[10px] font-black uppercase tracking-widest flex items-center gap-3 animate-pulse">
+                                <AlertCircle className="w-5 h-5" /> {error}
+                            </div>
+                        )}
+
+                        <button
+                            onClick={handleEmit}
+                            disabled={!!emittingStep}
+                            className="w-full py-5 bg-gradient-to-r from-indigo-600 to-blue-700 text-white rounded-[2rem] font-black text-xs uppercase tracking-widest shadow-2xl shadow-indigo-500/20 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-30 disabled:grayscale disabled:scale-100 flex items-center justify-center gap-3"
+                        >
+                            {emittingStep ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
+                            {emittingStep ? emittingStep.toUpperCase() : 'GENERAR COMPROBANTE ELECTRÓNICO'}
+                        </button>
+                    </div>
+                )}
+            </div>
+        </Modal>
     );
 }

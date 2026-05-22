@@ -56,3 +56,29 @@ export async function PUT(
     }
 }
 
+// PATCH público — solo para actualizar medidas del armazón desde la web
+export async function PATCH(
+    request: Request,
+    { params }: { params: Promise<{ id: string }> }
+) {
+    try {
+        const { id } = await params;
+        const body = await request.json();
+
+        const { lensWidth, bridgeWidth, templeLength, frameHeight } = body;
+
+        const updated = await prisma.product.update({
+            where: { id },
+            data: {
+                ...(lensWidth !== undefined && { lensWidth: lensWidth ? parseInt(lensWidth) : null }),
+                ...(bridgeWidth !== undefined && { bridgeWidth: bridgeWidth ? parseInt(bridgeWidth) : null }),
+                ...(templeLength !== undefined && { templeLength: templeLength ? parseInt(templeLength) : null }),
+                ...(frameHeight !== undefined && { frameHeight: frameHeight ? parseInt(frameHeight) : null }),
+            },
+        });
+        return NextResponse.json({ success: true, id: updated.id });
+    } catch (error: any) {
+        console.error('Error updating frame measures:', error);
+        return NextResponse.json({ error: 'Error al guardar medidas', details: error.message }, { status: 500 });
+    }
+}
