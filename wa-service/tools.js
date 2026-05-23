@@ -33,6 +33,69 @@ async function checkExistingClient({ phone, name }) {
 }
 
 /**
+ * Detect contact source based on the first inbound message in the chat history.
+ */
+async function detectContactSourceFromChat(chatId) {
+    try {
+        if (!chatId) return 'Otros';
+        
+        // Find the earliest inbound message
+        const firstMessage = await prisma.whatsAppMessage.findFirst({
+            where: { chatId, direction: 'INBOUND' },
+            orderBy: { createdAt: 'asc' }
+        });
+
+        if (!firstMessage || !firstMessage.content) {
+            return 'Otros';
+        }
+
+        const text = firstMessage.content.toLowerCase();
+
+        // 1. Meta (Instagram, Facebook, Anuncio, Publicidad)
+        if (
+            text.includes('instagram') ||
+            text.includes('facebook') ||
+            text.includes('anuncio') ||
+            text.includes('publicidad') ||
+            text.includes('vi esto en') ||
+            text.includes('ad')
+        ) {
+            return 'Meta';
+        }
+
+        // 2. Google (Google, Maps, Búsqueda)
+        if (
+            text.includes('google') ||
+            text.includes('maps') ||
+            text.includes('busqueda') ||
+            text.includes('búsqueda')
+        ) {
+            return 'Google Ads';
+        }
+
+        // 3. Referido (Recomendó, Amiga, Amigo, etc.)
+        if (
+            text.includes('recomendó') ||
+            text.includes('recomendo') ||
+            text.includes('recomendada') ||
+            text.includes('recomendado') ||
+            text.includes('amiga') ||
+            text.includes('amigo') ||
+            text.includes('contacto de') ||
+            text.includes('pasó tu número') ||
+            text.includes('paso tu numero')
+        ) {
+            return 'Referido';
+        }
+
+        return 'Otros';
+    } catch (e) {
+        console.error('Error detecting contact source from chat:', e.message);
+        return 'Otros';
+    }
+}
+
+/**
  * Tool: Convert a chat into a Lead in the CRM
  */
 async function convertIntoLead({ phone, name, contactSource, interest, chatId, insurance }) {
@@ -50,11 +113,22 @@ async function convertIntoLead({ phone, name, contactSource, interest, chatId, i
         }
 
         if (!cleanPhone) {
-            return { error: 'No se pudo registrar el lead: el tel\u00e9fono no es v\u00e1lido o no se pudo resolver.' };
+            return { error: 'No se pudo registrar el lead: el teléfono no es válido o no se pudo resolver.' };
+        }
+
+        const VALID_SOURCES = ["Google Ads", "Meta", "Calle", "Jemima", "Ya es Cliente", "Tienda nube", "Referido", "Wave", "Salida"];
+        let resolvedSource = contactSource;
+        if (!resolvedSource || !VALID_SOURCES.includes(resolvedSource)) {
+            resolvedSource = await detectContactSourceFromChat(chatId);
         }
 
         const response = await apiClient.post(`${CRM_API_URL}/clients`, {
-            phone: cleanPhone, name, contactSource, interest, status: 'CONTACT', insurance
+            phone: cleanPhone, 
+            name, 
+            contactSource: resolvedSource, 
+            interest: interest || 'Otros', 
+            status: 'CONTACT', 
+            insurance
         });
         const newContact = response.data.client || response.data;
 

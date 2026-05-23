@@ -65,7 +65,7 @@ const getTypeConfig = (type: string | null, category?: string | null) => {
     }
 };
 
-const CONTACT_SOURCES = ["Google Ads", "Meta", "Calle", "Jemima", "Ya es Cliente", "Tienda nube", "Referido", "Wave", "Salida"];
+const CONTACT_SOURCES = ["Google Ads", "Meta", "Calle", "Jemima", "Ya es Cliente", "Tienda nube", "Referido", "Wave", "Salida", "Otros"];
 const PRODUCT_TYPES = ["Monofocal", "Multifocal", "Bifocal", "Ocupacional", "Solar", "Accesorios", "Lentes de Contacto", "Otros"];
 
 interface QuoteItem {
@@ -929,7 +929,7 @@ function CotizadorPageContent() {
                                     </div>
                                 </div>
                                 <div className="space-y-1.5">
-                                    <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest ml-2 flex items-center gap-1">Etiqueta <span className="text-primary">*</span></label>
+                                    <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest ml-2 flex items-center gap-1">Origen / Canal <span className="text-primary">*</span></label>
                                     <div className="relative group">
                                         <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-3 h-3 text-stone-400 pointer-events-none" />
                                         <select value={newContactSource} onChange={e => setNewContactSource(e.target.value)} className="w-full px-5 py-4 bg-white border-2 border-stone-100 rounded-2xl text-xs font-bold appearance-none cursor-pointer outline-none focus:border-primary transition-all">

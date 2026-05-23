@@ -32,7 +32,7 @@ interface ContactFormProps {
 }
 
 const PRODUCT_TYPES = ["Monofocal", "Multifocal", "Bifocal", "Ocupacional", "Solar", "Accesorios", "Lentes de Contacto", "Otros"];
-const CONTACT_SOURCES = ["Google Ads", "Meta", "Calle", "Jemima", "Ya es Cliente", "Tienda nube", "Referido", "Wave", "Salida"];
+const CONTACT_SOURCES = ["Google Ads", "Meta", "Calle", "Jemima", "Ya es Cliente", "Tienda nube", "Referido", "Wave", "Salida", "Otros"];
 
 export default function ContactForm({ onClose, onSubmit, onUnify, onGoToOriginal, initialData }: ContactFormProps) {
     const [formData, setFormData] = useState<ContactFormData>({
@@ -40,8 +40,8 @@ export default function ContactForm({ onClose, onSubmit, onUnify, onGoToOriginal
         email: initialData?.email || '',
         phone: initialData?.phone || '',
         dni: initialData?.dni || '',
-        contactSource: initialData?.contactSource || '',
-        interest: initialData?.interest || '',
+        contactSource: initialData?.contactSource || 'Otros',
+        interest: initialData?.interest || 'Otros',
         expectedValue: initialData?.expectedValue || 0,
         priority: initialData?.priority || 0,
         address: initialData?.address || '',

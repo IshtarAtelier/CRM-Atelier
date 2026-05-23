@@ -61,7 +61,7 @@ export function PersonalDataSection({ formData, setFormData, doctors, sources }:
                 </div>
 
                 <div className="space-y-2">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-stone-500 ml-1 flex items-center gap-1">Etiqueta <span className="text-primary">*</span></label>
+                    <label className="text-[10px] font-black uppercase tracking-widest text-stone-500 ml-1 flex items-center gap-1">Origen / Canal <span className="text-primary">*</span></label>
                     <div className="relative group">
                         <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400 pointer-events-none" />
                         <select className="w-full px-5 py-4 bg-stone-50 dark:bg-stone-800 border-2 rounded-2xl font-bold text-sm appearance-none cursor-pointer outline-none focus:border-primary" value={formData.contactSource} onChange={(e) => setFormData({ ...formData, contactSource: e.target.value })}>

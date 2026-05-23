@@ -49,7 +49,7 @@ export default function BalancePanel({ orders, onClose }: BalancePanelProps) {
             {/* Selector de Forma de Pago para Saldo */}
             <div className="px-6 py-3 border-b border-stone-100 dark:border-stone-800 bg-stone-50/30 dark:bg-stone-900/20 flex gap-2">
                 {[
-                    { id: 'cash', label: '💵 Efectivo', color: 'bg-emerald-500 text-white shadow-emerald-500/10' },
+                    { id: 'cash', label: '💵 Efec.', color: 'bg-emerald-500 text-white shadow-emerald-500/10' },
                     { id: 'transfer', label: '🏦 Transf.', color: 'bg-violet-500 text-white shadow-violet-500/10' },
                     { id: 'card', label: '💳 Tarjeta', color: 'bg-orange-500 text-white shadow-orange-500/10' }
                 ].map(tab => (
@@ -119,7 +119,7 @@ export default function BalancePanel({ orders, onClose }: BalancePanelProps) {
                                     <div className="mt-2.5 flex flex-wrap gap-1">
                                         {viewMode !== 'cash' && (
                                             <span className="text-[8px] font-black uppercase tracking-wider bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-900/30 px-1.5 py-0.5 rounded-lg">
-                                                Efectivo: ${(order.remainingCash ?? 0).toLocaleString('es-AR')}
+                                                Efec: ${(order.remainingCash ?? 0).toLocaleString('es-AR')}
                                             </span>
                                         )}
                                         {viewMode !== 'transfer' && (

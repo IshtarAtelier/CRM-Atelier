@@ -103,8 +103,8 @@ const savePrescriptionDataTool = new DynamicTool({
                 const leadResult = await convertIntoLead({
                     phone: userPhone || '',
                     name: resolvedName,
-                    contactSource: origen || 'WhatsApp',
-                    interest: tipoDeLente || 'Desconocido',
+                    contactSource: origen,
+                    interest: tipoDeLente || 'Otros',
                     insurance: obraSocial || null,
                     chatId: chatId
                 });
@@ -127,7 +127,7 @@ const savePrescriptionDataTool = new DynamicTool({
                             name: resolvedName,
                             phone: userPhone,
                             interest: tipoDeLente || 'No especificado',
-                            source: origen || 'WhatsApp'
+                            source: leadResult.contact.contactSource || 'Calle'
                         });
                     }
                 } else {
@@ -180,7 +180,7 @@ const convertIntoLeadTool = new DynamicTool({
                 name: parsed.name || result.contact.name,
                 phone: parsed.phone,
                 interest: parsed.interest || 'No especificado',
-                source: parsed.contactSource || 'WhatsApp',
+                source: result.contact.contactSource || 'Calle',
                 hasPrescription: false,
                 timestamp: new Date().toISOString(),
             });

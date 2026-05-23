@@ -46,6 +46,7 @@ export default function PedidosPage() {
     const [copiedField, setCopiedField] = useState<string | null>(null);
     const [labFields, setLabFields] = useState<Record<string, string>>({});
     const [savingField, setSavingField] = useState<string | null>(null);
+    const [isAutoSubmitting, setIsAutoSubmitting] = useState(false);
 
     useEffect(() => {
         fetchOrders();
