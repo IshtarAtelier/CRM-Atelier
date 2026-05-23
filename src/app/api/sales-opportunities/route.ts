@@ -44,7 +44,7 @@ export async function GET() {
                 orders: {
                     orderBy: { createdAt: 'desc' },
                     take: 1,
-                    select: { createdAt: true }
+                    select: { createdAt: true, total: true }
                 },
                 tasks: {
                     orderBy: { createdAt: 'desc' },
@@ -55,6 +55,18 @@ export async function GET() {
                     orderBy: { lastMessageAt: 'desc' },
                     take: 1,
                     select: { lastMessageAt: true }
+                },
+                prescriptions: {
+                    orderBy: { date: 'desc' },
+                    take: 1,
+                    select: {
+                        sphereOD: true,
+                        cylinderOD: true,
+                        additionOD: true,
+                        sphereOI: true,
+                        cylinderOI: true,
+                        additionOI: true
+                    }
                 }
             }
         });
@@ -73,6 +85,34 @@ export async function GET() {
                 : client.createdAt;
 
             if (lastActivity < threeDaysAgo) {
+                const latestRx = client.prescriptions[0];
+                const latestOrder = client.orders[0];
+
+                const isHighValue = 
+                    // Alto valor (monto >= 250.000)
+                    (latestOrder && latestOrder.total >= 250000) ||
+                    // Graduaciones altas (abs >= 4 esfera o abs >= 2 cilindro)
+                    (latestRx && (
+                        Math.abs(latestRx.sphereOD || 0) >= 4.0 ||
+                        Math.abs(latestRx.sphereOI || 0) >= 4.0 ||
+                        Math.abs(latestRx.cylinderOD || 0) >= 2.0 ||
+                        Math.abs(latestRx.cylinderOI || 0) >= 2.0
+                    )) ||
+                    // Multifocales (tiene adición)
+                    (latestRx && (latestRx.additionOD != null || latestRx.additionOI != null)) ||
+                    // Interés en multifocales, miopía o control miópico
+                    (client.interest && (
+                        client.interest.toLowerCase().includes('multifocal') ||
+                        client.interest.toLowerCase().includes('progresivo') ||
+                        client.interest.toLowerCase().includes('bifocal') ||
+                        client.interest.toLowerCase().includes('miop') ||
+                        client.interest.toLowerCase().includes('myofix') ||
+                        client.interest.toLowerCase().includes('myolens') ||
+                        client.interest.toLowerCase().includes('myopilux')
+                    ));
+
+                if (!isHighValue) continue;
+
                 const daysElapsed = Math.floor((Date.now() - lastActivity.getTime()) / (1000 * 60 * 60 * 24));
                 opportunities.push({
                     id: client.id,
@@ -82,7 +122,7 @@ export async function GET() {
                     clientId: client.id,
                     phone: client.phone,
                     detail: `Sin actividad por ${daysElapsed} días`,
-                    amount: null,
+                    amount: latestOrder?.total || null,
                     daysElapsed,
                     lastActivity: lastActivity.toISOString()
                 });
@@ -118,11 +158,57 @@ export async function GET() {
                         name: true,
                         phone: true
                     }
+                },
+                items: {
+                    select: {
+                        sphereVal: true,
+                        cylinderVal: true,
+                        additionVal: true,
+                        productNameSnapshot: true,
+                        productBrandSnapshot: true,
+                        productCategorySnapshot: true
+                    }
                 }
             }
         });
 
         for (const quote of pendingQuotes) {
+            const hasHighValue = quote.total >= 250000;
+            let hasHighGraduation = false;
+            let hasSpecialLenses = false;
+
+            for (const item of quote.items) {
+                if (
+                    (item.sphereVal != null && Math.abs(item.sphereVal) >= 4.0) ||
+                    (item.cylinderVal != null && Math.abs(item.cylinderVal) >= 2.0)
+                ) {
+                    hasHighGraduation = true;
+                }
+
+                if (item.additionVal != null) {
+                    hasSpecialLenses = true;
+                }
+
+                const name = `${item.productBrandSnapshot || ''} ${item.productNameSnapshot || ''} ${item.productCategorySnapshot || ''}`.toLowerCase();
+                if (
+                    name.includes('multifocal') ||
+                    name.includes('progresivo') ||
+                    name.includes('bifocal') ||
+                    name.includes('myofix') ||
+                    name.includes('myopilux') ||
+                    name.includes('myolens') ||
+                    name.includes('miopía') ||
+                    name.includes('miopia') ||
+                    name.includes('control miop')
+                ) {
+                    hasSpecialLenses = true;
+                }
+            }
+
+            if (!hasHighValue && !hasHighGraduation && !hasSpecialLenses) {
+                continue; // Skip if it doesn't meet the target criteria
+            }
+
             const daysElapsed = Math.floor((Date.now() - quote.createdAt.getTime()) / (1000 * 60 * 60 * 24));
             opportunities.push({
                 id: quote.id,
@@ -177,6 +263,32 @@ export async function GET() {
                     });
                     if (existingClient) continue; // Skip since they are already a customer
                 }
+            }
+
+            // Exclude small/simple carts (only show high value, multifocals, myopia controls)
+            const hasHighValue = cart.total >= 250000;
+            let hasSpecialLenses = false;
+
+            const cartItems = Array.isArray(cart.cartData) ? cart.cartData as any[] : [];
+            for (const item of cartItems) {
+                const name = `${item.brand || ''} ${item.model || ''} ${item.category || ''}`.toLowerCase();
+                if (
+                    name.includes('multifocal') ||
+                    name.includes('progresivo') ||
+                    name.includes('bifocal') ||
+                    name.includes('myofix') ||
+                    name.includes('myopilux') ||
+                    name.includes('myolens') ||
+                    name.includes('miopía') ||
+                    name.includes('miopia') ||
+                    name.includes('control miop')
+                ) {
+                    hasSpecialLenses = true;
+                }
+            }
+
+            if (!hasHighValue && !hasSpecialLenses) {
+                continue; // Skip if it doesn't meet the target criteria
             }
 
             const daysElapsed = Math.floor((Date.now() - cart.createdAt.getTime()) / (1000 * 60 * 60 * 24));
