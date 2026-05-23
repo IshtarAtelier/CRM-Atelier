@@ -4,7 +4,8 @@ const { SystemMessage, HumanMessage } = require("@langchain/core/messages");
 const {
     checkExistingClient, convertIntoLead, updateClientData,
     getPriceList, getOrderStatus, createTask,
-    addInteraction, savePrescription, createQuote, cancelBot, addTagToClient, disableBotForChat
+    addInteraction, savePrescription, createQuote, cancelBot, addTagToClient, disableBotForChat,
+    isPhrase
 } = require("./tools");
 
 // Helper para parsear JSON de forma segura en todas las herramientas
@@ -27,161 +28,122 @@ function getModel() {
 // ── SUB-AGENTS (Efímeros) ────────────────────────────────────────────────
 
 // Sub-agente: Procesador de Recetas (Multimodal con File API)
-const processPrescriptionSubagent = new DynamicTool({
-    name: "process_prescription_subagent",
-    description: "Útil cuando el cliente envía la foto de una receta médica. DEBES pasar un JSON estricto con 5 campos: 'chatId', 'clientId' (si lo tienes, o null), 'context' (los últimos mensajes), 'userName', y 'userPhone'.",
-    func: async (inputStr) => {
+// Herramienta: Guardar receta en CRM (invocada por el agente principal tras ver la imagen)
+const savePrescriptionDataTool = new DynamicTool({
+    name: "save_prescription_data",
+    description: "Guarda los valores de una receta médica (esferas, cilindros, ejes, adición, DIP, etc.) en la ficha del cliente en el CRM. Úsala de forma MANDATORIA cuando has leído una receta en el chat y querés dejarla guardada. Requisitos: JSON estricto con 'chatId' (MANDATORIO), 'clientId' (MANDATORIO, o null/none/empty si el contacto aún no está registrado), 'tipoDeLente' ('Monofocal' o 'Multifocal'), 'odEsf' (número), 'odCil' (número), 'odEje' (entero), 'oiEsf' (número), 'oiCil' (número), 'oiEje' (entero), 'add' (adición, número, opcional), 'odDip' (DIP ojo derecho, opcional), 'oiDip' (DIP ojo izquierdo, opcional), 'origen' (opcional), 'obraSocial' (opcional), 'notes' (comentarios, opcional), 'userName' (nombre del cliente si clientId es null, opcional), 'userPhone' (teléfono si clientId es null, opcional). La herramienta buscará la foto de la receta en la caché de la charla y la subirá automáticamente.",
+    func: async (input) => {
         try {
-            const input = JSON.parse(inputStr);
-            const { chatId, clientId, context, userName, userPhone } = input;
+            const { ChatGoogleGenerativeAI } = require("@langchain/google-genai");
+            const { HumanMessage } = require("@langchain/core/messages");
+            const { savePrescription, convertIntoLead, addInteraction, isPhrase } = require("./tools");
+
+            const parsed = safeParse(input, "save_prescription_data");
+            const { chatId, clientId, tipoDeLente, odEsf, odCil, odEje, oiEsf, oiCil, oiEje, add, odDip, oiDip, origen, obraSocial, notes, userName, userPhone } = parsed;
+
+            if (!chatId) return "Error: chatId es requerido.";
+
+            // 1. Obtener imagen en caché
+            const cacheItems = global.mediaCache?.[chatId] || [];
             
-            if (!chatId) return "Error: chatId faltante.";
-
-            console.log(`🔍 Sub-agente recetas: chatId='${chatId}', keys en mediaCache: [${Object.keys(global.mediaCache || {}).join(', ')}]`);
-            const mediaData = global.mediaCache?.[chatId];
-            if (!mediaData) return `Error: No se encontró la imagen en caché para chatId '${chatId}'. Keys disponibles: [${Object.keys(global.mediaCache || {}).join(', ')}]. Pídele al usuario que reenvíe la receta.`;
-
-            // ── PASO 1: Validar que la imagen sea realmente una receta óptica ──
+            // Buscar cuál de las imágenes en caché es una receta
             const validationModel = new ChatGoogleGenerativeAI({
                 model: 'gemini-2.5-flash',
                 temperature: 0,
                 apiKey: process.env.GOOGLE_GENAI_API_KEY || process.env.GOOGLE_API_KEY
             });
 
-            const validationResponse = await validationModel.invoke([
-                new HumanMessage({
-                    content: [
-                        { type: "text", text: `Clasificá esta imagen en UNA de estas categorías. Respondé SOLO con la palabra clave:
-- RECETA: si es una receta/prescripción óptica u oftalmológica (con valores de graduación como esfera, cilindro, eje, adición, etc.)
-- NO_RECETA: si es cualquier otra cosa (captura de pantalla, foto de anteojos, foto de una página web, selfie, documento no médico, etc.)
+            let confirmedPrescriptionItem = null;
 
-Respondé ÚNICAMENTE "RECETA" o "NO_RECETA", sin explicación.` },
-                        { type: "image_url", image_url: { url: `data:${mediaData.mimeType};base64,${mediaData.base64}` } }
-                    ]
-                })
-            ]);
-
-            const classification = validationResponse.content.toString().trim().toUpperCase();
-            console.log(`🔍 Clasificación de imagen: ${classification}`);
-
-            if (!classification.includes('RECETA') || classification.includes('NO_RECETA')) {
-                // NO es una receta — liberar caché y devolver aviso al agente
-                delete global.mediaCache[chatId];
-                return `[INSTRUCCIÓN INTERNA - NO COMPARTIR TEXTUALMENTE CON EL CLIENTE] La imagen enviada NO es una receta óptica. Parece ser una foto genérica, captura de pantalla u otro tipo de imagen. ACCIÓN: Respondé al cliente de forma natural. Si estaban hablando de recetas, pedile amablemente que envíe la foto de su receta óptica. Si no, continuá la conversación normalmente según el contexto. NO crees ficha ni registres datos de esta imagen.`;
+            for (let i = 0; i < cacheItems.length; i++) {
+                const item = cacheItems[i];
+                try {
+                    const validationResponse = await validationModel.invoke([
+                        new HumanMessage({
+                            content: [
+                                { type: "text", text: `Clasificá esta imagen. Respondé SOLO con "RECETA" o "NO_RECETA"` },
+                                { type: "image_url", image_url: { url: `data:${item.mimeType};base64,${item.base64}` } }
+                            ]
+                        })
+                    ]);
+                    const classification = validationResponse.content.toString().trim().toUpperCase();
+                    if (classification.includes('RECETA') && !classification.includes('NO_RECETA')) {
+                        confirmedPrescriptionItem = item;
+                        break;
+                    }
+                } catch (err) {
+                    console.error("Error validating image inside save_prescription_data tool:", err.message);
+                }
             }
 
-            // ── PASO 2: Es receta confirmada — proceder con OCR ──
-            const prompt = `Analiza esta receta óptica. Extrae los valores para OD y OI (Esférico, Cilíndrico, Eje, DIP, Adición). 
-Basado en estos datos, deduce el "tipoDeLente" sugerido (ej. "Multifocal" si hay Adición, "Monofocal", etc.).
-REGLAS DE RECOMENDACIÓN DE ÍNDICE (ESPESOR):
-Si el valor Esférico o Cilíndrico (en cualquier ojo) supera los +/- 3.00, añade una nota recomendando ofrecer cristales de Policarbonato (índice 1.59).
-Si el valor supera los +/- 5.00, añade una nota recomendando fuertemente ofrecer cristales de Alto Índice (Stylis 1.67 o 1.74) por estética y reducción de espesor.
-RESTRICCIÓN MI PRIMER VARILUX (MULTIFOCALES):
-Si el valor numérico de la "Adición" (Add) es MENOR o IGUAL a 1.50, incluye un campo "aptoMiPrimerVarilux": true en el JSON. Si es mayor a 1.50, incluye "aptoMiPrimerVarilux": false.
-RESTRICCIÓN HD MR7 ASFÉRICO (MONOFOCALES):
-Si el valor Esférico es positivo (> 0) y el valor Cilíndrico es positivo y MAYOR a +4.00, el cliente NO es apto para el cristal HD MR7 Asférico. En ese caso (o si supera el rango de laboratorio) pon "aptoMr7Asferico": false. De lo contrario, pon "aptoMr7Asferico": true.
-También analiza el siguiente contexto de la charla: "${context || ''}" para deducir el "origen" del contacto (ej. "Meta", "Google Ads", "Referido") y la "obraSocial" (insurance, ej. "OSDE", "Sancor", "Swiss Medical"). Si no se puede inferir, usa "Desconocido" o null.
-Responde únicamente con un JSON estructurado, sin texto adicional. Incluye el campo "recomendacionIndice", "aptoMiPrimerVarilux", "aptoMr7Asferico", "origen" y "obraSocial".`;
+            const finalItem = confirmedPrescriptionItem || cacheItems[cacheItems.length - 1];
 
-            const model = new ChatGoogleGenerativeAI({
-                model: 'gemini-2.5-flash',
-                temperature: 0,
-                apiKey: process.env.GOOGLE_GENAI_API_KEY || process.env.GOOGLE_API_KEY
-            });
+            const prescriptionData = {
+                tipoDeLente,
+                odEsf, odCil, odEje,
+                oiEsf, oiCil, oiEje,
+                add, odDip, oiDip,
+                origen, obraSocial, notes
+            };
 
-            const response = await model.invoke([
-                new HumanMessage({
-                    content: [
-                        { type: "text", text: prompt },
-                        { type: "image_url", image_url: { url: `data:${mediaData.mimeType};base64,${mediaData.base64}` } }
-                    ]
-                })
-            ]);
+            if (finalItem) {
+                prescriptionData.imageBase64 = finalItem.base64;
+                prescriptionData.imageMimeType = finalItem.mimeType;
+            }
 
-            // Guardar temporalmente para adjuntarlo al envío y optimizar RAM
-            const base64Data = mediaData.base64;
-            const mimeTypeData = mediaData.mimeType;
+            let resolvedClientId = clientId;
+
+            if (!resolvedClientId || resolvedClientId === 'null' || resolvedClientId === 'none' || resolvedClientId === '') {
+                const resolvedName = (userName && userName.trim().length >= 2 && userName !== 'null' && !/^\d+$/.test(userName.trim()) && !isPhrase(userName.trim())) ? userName.trim() : null;
+                
+                if (!resolvedName) {
+                    return "Error: No se pudo crear la ficha del cliente porque no se proporcionó un nombre válido (userName). Por favor, preguntale el nombre al cliente de forma natural primero, y luego vuelve a intentar con un nombre de pila/apellido real.";
+                }
+
+                const leadResult = await convertIntoLead({
+                    phone: userPhone || '',
+                    name: resolvedName,
+                    contactSource: origen || 'WhatsApp',
+                    interest: tipoDeLente || 'Desconocido',
+                    insurance: obraSocial || null,
+                    chatId: chatId
+                });
+
+                if (leadResult && leadResult.contact) {
+                    resolvedClientId = leadResult.contact.id;
+                    
+                    // Crear Hito automático
+                    try {
+                        const hitoContent = `📍 [HITO] Prospecto registrado vía WhatsApp. Receta procesada: ${tipoDeLente || 'N/A'}. OD: Esf ${odEsf || 0} Cil ${odCil || 0}. OI: Esf ${oiEsf || 0} Cil ${oiEje || 0}.${add ? ' Add: ' + add : ''}`;
+                        await addInteraction({ clientId: resolvedClientId, type: 'NOTE', content: hitoContent });
+                    } catch (hitoErr) {
+                        console.error('Error creando hito automático en save_prescription_data:', hitoErr.message);
+                    }
+
+                    // Emitir notificación al panel
+                    if (global.io) {
+                        global.io.emit('lead_created', {
+                            id: resolvedClientId,
+                            name: resolvedName,
+                            phone: userPhone,
+                            interest: tipoDeLente || 'No especificado',
+                            source: origen || 'WhatsApp'
+                        });
+                    }
+                } else {
+                    return `Error al crear el prospecto en el CRM: ${leadResult?.error || 'Desconocido'}`;
+                }
+            }
+
+            // Guardar receta
+            const result = await savePrescription({ clientId: resolvedClientId, ...prescriptionData });
+            
+            // Limpiar caché
             delete global.mediaCache[chatId];
 
-            const textResponse = response.content.toString();
-            
-            // Intentar parsear el JSON y guardarlo en el CRM
-            try {
-                // Extracción robusta usando Regex por si el modelo devuelve texto adicional
-                const jsonMatch = textResponse.match(/\{[\s\S]*\}/);
-                if (!jsonMatch) {
-                    throw new Error("No se encontró una estructura JSON válida en la respuesta del modelo.");
-                }
-                const cleanedJson = jsonMatch[0].replace(/```json/g, '').replace(/```/g, '').trim();
-                const prescriptionData = JSON.parse(cleanedJson);
-                
-                // Adjuntar imagen para subir a Google Cloud (Firebase) / Local
-                prescriptionData.imageBase64 = base64Data;
-                prescriptionData.imageMimeType = mimeTypeData;
-                
-                if (clientId) {
-                    await savePrescription({ clientId, ...prescriptionData });
-                    // Formatear datos legibles para el agente (SIN IDs ni JSON crudo)
-                    const resumen = `Tipo: ${prescriptionData.tipoDeLente || 'No determinado'}. OD: Esf ${prescriptionData.odEsf || 0} Cil ${prescriptionData.odCil || 0}. OI: Esf ${prescriptionData.oiEsf || 0} Cil ${prescriptionData.oiCil || 0}.${prescriptionData.add ? ` Add: ${prescriptionData.add}` : ''}${prescriptionData.recomendacionIndice ? ` Recomendación espesor: ${prescriptionData.recomendacionIndice}.` : ''}`;
-                    return `[INSTRUCCIÓN INTERNA - NO COMPARTIR TEXTUALMENTE CON EL CLIENTE] Receta procesada correctamente. Graduación: ${resumen}. Apto Mi Primer Varilux: ${prescriptionData.aptoMiPrimerVarilux ? 'Sí' : 'No'}. Apto MR7: ${prescriptionData.aptoMr7Asferico ? 'Sí' : 'No'}. ACCIÓN: Procede a cotizar con 'get_price_list' usando estos datos. Respondé al cliente de forma NATURAL confirmando que revisaste su receta y pasale las opciones.`;
-                } else {
-                    // Delegación Total: El sub-agente crea el prospecto en el CRM directamente
-                    // Validar que tengamos un nombre real antes de crear la ficha
-                    const resolvedName = (userName && userName.trim().length >= 2 && userName !== 'null' && !/^\d+$/.test(userName.trim())) ? userName.trim() : null;
-                    
-                    if (!resolvedName) {
-                        // NO crear ficha fantasma — devolver datos al agente para que pida el nombre
-                        const resumenSinFicha = `Tipo: ${prescriptionData.tipoDeLente || 'No determinado'}. OD: Esf ${prescriptionData.odEsf || 0} Cil ${prescriptionData.odCil || 0}. OI: Esf ${prescriptionData.oiEsf || 0} Cil ${prescriptionData.oiCil || 0}.${prescriptionData.add ? ` Add: ${prescriptionData.add}` : ''}${prescriptionData.recomendacionIndice ? ` Recomendación espesor: ${prescriptionData.recomendacionIndice}.` : ''}`;
-                        return `[INSTRUCCIÓN INTERNA - NO COMPARTIR TEXTUALMENTE CON EL CLIENTE] Receta leída correctamente. Graduación: ${resumenSinFicha}. Apto Mi Primer Varilux: ${prescriptionData.aptoMiPrimerVarilux ? 'Sí' : 'No'}. Apto MR7: ${prescriptionData.aptoMr7Asferico ? 'Sí' : 'No'}. ATENCIÓN: No se pudo crear la ficha porque no tenemos el nombre del cliente. ACCIÓN OBLIGATORIA: 1) Preguntale amablemente su nombre y apellido. 2) Una vez que te lo dé, usá 'convert_into_lead' para registrarlo. 3) Mientras tanto, podés cotizarle con 'get_price_list'.`;
-                    }
-                    
-                    const leadResult = await convertIntoLead({ 
-                        phone: userPhone, 
-                        name: resolvedName, 
-                        contactSource: prescriptionData.origen || 'Desconocido', 
-                        interest: prescriptionData.tipoDeLente || 'Desconocido',
-                        insurance: prescriptionData.obraSocial || null,
-                        chatId: chatId
-                    });
-
-                    if (leadResult.success && leadResult.contact) {
-                        const newClientId = leadResult.contact.id;
-                        await savePrescription({ clientId: newClientId, ...prescriptionData });
-                        // AUTO-CREAR HITO al registrar ficha con receta
-                        try {
-                            const { addInteraction } = require('./tools');
-                            const hitoContent = `📍 [HITO] Prospecto registrado vía WhatsApp. Receta procesada: ${prescriptionData.tipoDeLente || 'N/A'}. OD: Esf ${prescriptionData.odEsf || 0} Cil ${prescriptionData.odCil || 0}. OI: Esf ${prescriptionData.oiEsf || 0} Cil ${prescriptionData.oiCil || 0}.${prescriptionData.add ? ' Add: ' + prescriptionData.add : ''}${prescriptionData.recomendacionIndice ? ' Recomendación: ' + prescriptionData.recomendacionIndice : ''}`;
-                            await addInteraction({ clientId: newClientId, type: 'NOTE', content: hitoContent });
-                        } catch (hitoErr) {
-                            console.error('Error creando hito automático:', hitoErr.message);
-                        }
-                        // Emitir notificación al panel con datos de receta
-                        if (global.io) {
-                            global.io.emit('lead_created', {
-                                id: newClientId,
-                                name: userName || 'Cliente WhatsApp',
-                                phone: userPhone,
-                                interest: prescriptionData.tipoDeLente || 'No especificado',
-                                source: prescriptionData.origen || 'WhatsApp',
-                                hasPrescription: true,
-                                prescriptionType: prescriptionData.tipoDeLente,
-                                timestamp: new Date().toISOString(),
-                            });
-                        }
-                        // Formatear datos legibles para el agente (SIN IDs ni JSON crudo)
-                        const resumen = `Tipo: ${prescriptionData.tipoDeLente || 'No determinado'}. OD: Esf ${prescriptionData.odEsf || 0} Cil ${prescriptionData.odCil || 0}. OI: Esf ${prescriptionData.oiEsf || 0} Cil ${prescriptionData.oiCil || 0}.${prescriptionData.add ? ` Add: ${prescriptionData.add}` : ''}${prescriptionData.recomendacionIndice ? ` Recomendación espesor: ${prescriptionData.recomendacionIndice}.` : ''}`;
-                        return `[INSTRUCCIÓN INTERNA - NO COMPARTIR TEXTUALMENTE CON EL CLIENTE] Prospecto registrado y receta guardada. Graduación: ${resumen}. Apto Mi Primer Varilux: ${prescriptionData.aptoMiPrimerVarilux ? 'Sí' : 'No'}. Apto MR7: ${prescriptionData.aptoMr7Asferico ? 'Sí' : 'No'}. ACCIÓN: Procede a cotizarle con 'get_price_list'. Respondé al cliente de forma NATURAL confirmando que revisaste su receta, mencioná el tipo de lente que necesita y empezá a cotizar. NUNCA menciones IDs, JSONs ni datos técnicos del sistema.`;
-                    } else {
-                        const resumenFallback = `Tipo: ${prescriptionData.tipoDeLente || 'No determinado'}. OD: Esf ${prescriptionData.odEsf || 0} Cil ${prescriptionData.odCil || 0}. OI: Esf ${prescriptionData.oiEsf || 0} Cil ${prescriptionData.oiCil || 0}.${prescriptionData.add ? ` Add: ${prescriptionData.add}` : ''}`;
-                        return `[INSTRUCCIÓN INTERNA - NO COMPARTIR TEXTUALMENTE CON EL CLIENTE] Receta leída correctamente. Graduación: ${resumenFallback}. NOTA: No se pudo registrar automáticamente, usá 'convert_into_lead' para crearlo. Mientras tanto, podés avanzar cotizando con 'get_price_list'.`;
-                    }
-                }
-            } catch (jsonErr) {
-                return `[INSTRUCCIÓN INTERNA - NO COMPARTIR TEXTUALMENTE CON EL CLIENTE] No se pudo estructurar la receta automáticamente. Pedile al cliente que reenvíe la foto más nítida, bien iluminada y derecha. Decile algo como: "No llegué a leerla bien, me la podrías mandar de nuevo con un poquito más de luz?". NO digas que hubo un error técnico.`;
-            }
-        } catch (err) {
-            console.error("Error en processPrescriptionSubagent:", err);
-            return `[INSTRUCCIÓN INTERNA - NO COMPARTIR TEXTUALMENTE CON EL CLIENTE] Hubo un problema técnico al procesar la imagen. Pedile al cliente que reenvíe la foto con mejor calidad. Decile algo natural como: "No me llegó bien la foto, me la mandás de nuevo?". NUNCA menciones errores técnicos, sub-agentes ni sistemas internos.`;
+            return `Receta guardada exitosamente en el CRM para el cliente ID ${resolvedClientId}. Detalle: ` + JSON.stringify(result);
+        } catch (e) {
+            return `Error al ejecutar save_prescription_data: ${e.message}`;
         }
     }
 });
@@ -207,6 +169,9 @@ const convertIntoLeadTool = new DynamicTool({
     description: "Registra un prospecto nuevo. Usa JSON con 'phone' (MANDATORIO, usa el del cliente), 'name', 'contactSource', 'interest', 'chatId' (MANDATORIO), y 'insurance' (Obra Social si la tiene).",
     func: async (input) => {
         const parsed = safeParse(input, "convert_into_lead");
+        if (parsed.name && isPhrase(parsed.name)) {
+            return "Error: El nombre proporcionado no es un nombre de persona válido (parece ser una frase o saludo). Por favor, preguntale su nombre real al cliente de forma natural y luego vuelve a intentar.";
+        }
         const result = await convertIntoLead(parsed);
         // Emitir notificación en tiempo real al panel
         if (result.success && result.contact && global.io) {
@@ -293,7 +258,7 @@ const salesToolsList = [
     checkExistingClientTool,
     getPriceListTool,
     convertIntoLeadTool,
-    processPrescriptionSubagent,
+    savePrescriptionDataTool,
     cancelBotTool,
     addTagToClientTool,
     addInteractionTool,
@@ -311,7 +276,7 @@ const executiveToolsList = [
     createQuoteTool,
     createTaskTool,
     addInteractionTool,
-    processPrescriptionSubagent,
+    savePrescriptionDataTool,
     cancelBotTool,
     addTagToClientTool,
     disableBotForChatTool,

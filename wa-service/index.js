@@ -10,7 +10,7 @@ const { Server } = require('socket.io');
 const cors = require('cors');
 const { prisma } = require('./db');
 const { graph } = require('./graph');
-const { logBotMessage } = require('./tools');
+const { logBotMessage, isPhrase } = require('./tools');
 const { HumanMessage } = require("@langchain/core/messages");
 const path = require('path');
 const fs = require('fs');
@@ -313,8 +313,8 @@ const handleMessage = async (msg) => {
     // ── Resolve Profile Name ──────────────────────────
     const rawName = contact.pushname || contact.name || '';
     let profileName = rawName.replace(/[^a-zA-Z0-9 áéíóúÁÉÍÓÚñÑüÜ.,\-']/g, '').trim();
-    // Reject garbage names: empty, pure numbers, too short, or looks like an ID code
-    if (!profileName || /^\d+$/.test(profileName) || profileName.length < 2 || /^[0-9a-f]{10,}$/i.test(profileName)) {
+    // Reject garbage names: empty, pure numbers, too short, looks like an ID code, or if it is a phrase/sentence
+    if (!profileName || /^\d+$/.test(profileName) || profileName.length < 2 || /^[0-9a-f]{10,}$/i.test(profileName) || isPhrase(profileName)) {
         profileName = '';
     }
 
