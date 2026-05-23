@@ -1,6 +1,5 @@
 import { NextResponse, NextRequest } from 'next/server';
-
-const WA_SERVICE_URL = process.env.WA_SERVICE_URL || 'http://localhost:3100';
+import { WA_SERVER_URL } from '@/lib/wa-config';
 
 // Next.js App Router: aumentar límite de body para imágenes base64
 export const maxDuration = 60; // Aumentar timeout a 60s (el bot puede tardar)
@@ -16,7 +15,7 @@ export async function POST(request: NextRequest) {
             console.log(`[Test Chat Proxy] Imagen detectada: ${(mediaMsg.mediaBase64.length / 1024).toFixed(0)} KB, mime: ${mediaMsg.mediaMime}`);
         }
 
-        const res = await fetch(`${WA_SERVICE_URL}/api/test/chat`, {
+        const res = await fetch(`${WA_SERVER_URL}/api/test/chat`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(body),
