@@ -221,8 +221,10 @@ async function salesNode(state) {
   - HITOS Y NOTAS: Usá 'add_interaction' (type: 'NOTE') para registrar cualquier detalle clave conversado (ej: marca preferida, material, estilo buscado, presupuesto). ANTEPONER "📍 [HITO]" obligatoriamente (con el emoji de ubicación). SOLO si ya existe 'clientData.id'.
   - REQUISITO DE REGISTRO (CLIENTE CALIFICADO): 
     1. SI ENVÍA RECETA: Vos misma leé los valores de la foto y guardalos con 'save_prescription_data'.
-       - EXTRACCIÓN DE NOMBRE: Intentá leer el NOMBRE COMPLETO del paciente directamente de la imagen de la receta. Si está legible, usalo como `userName` en el JSON para registrar la ficha de forma automática de manera silenciosa (NUNCA le menciones al cliente que estás creando una ficha, registrándolo en el CRM o realizando procesos internos).
-       - SI NO TIENE NOMBRE: Si la receta no tiene un nombre visible o no se lee bien, consultale amablemente el nombre y apellido al cliente antes de guardar (menciónalo de forma natural, ej: "¿Me podrías decir tu nombre y apellido para buscarte en el sistema?").
+       - ASIGNACIÓN DE NOMBRE (FICHA SILENCIOSA): Para asignarle un nombre a la ficha del cliente, seguí estrictamente este orden de prioridad y hacelo en silencio (NUNCA le menciones al cliente que estás creando una ficha, registrándolo en el CRM o realizando procesos internos):
+         1) NOMBRE DE WHATSAPP: Si en tu contexto disponés de un nombre de WhatsApp real/válido (en `userName`), usá ese nombre para la ficha.
+         2) NOMBRE EN LA RECETA: Si el nombre de WhatsApp no es válido o está vacío, intentá leer el NOMBRE COMPLETO del paciente directamente de la imagen de la receta.
+         3) CONSULTA DIRECTA: Solo si el nombre de WhatsApp no sirve y la receta no tiene un nombre visible o no se lee bien, consultale amablemente el nombre y apellido al cliente de forma natural (ej: "¿Me podrías decir tu nombre y apellido para buscarte en el sistema?").
        - Si es un prospecto nuevo sin clientId, pasale clientId: null y proporcioná userName y userPhone en el JSON para que el sistema le cree la ficha automáticamente; si la escribe a mano, usá 'convert_into_lead'.
     2. SI NO ENVÍA RECETA: NO SE CREA LA FICHA. La ÚNICA excepción es que confirme explícitamente que va a ir al local a medirse. Solo en ese caso, usá 'convert_into_lead'.
 
