@@ -1,8 +1,12 @@
--- DropForeignKey
+-- DropForeignKey (only if tables exist)
 ALTER TABLE "Invoice" DROP CONSTRAINT IF EXISTS "Invoice_orderId_fkey";
 ALTER TABLE "Notification" DROP CONSTRAINT IF EXISTS "Notification_orderId_fkey";
 ALTER TABLE "Notification" DROP CONSTRAINT IF EXISTS "Notification_requestedBy_fkey";
-ALTER TABLE "WebProduct" DROP CONSTRAINT IF EXISTS "WebProduct_productId_fkey";
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname='public' AND tablename='WebProduct') THEN
+    ALTER TABLE "WebProduct" DROP CONSTRAINT IF EXISTS "WebProduct_productId_fkey";
+  END IF;
+END $$;
 
 -- AlterTable
 ALTER TABLE "Client" ADD COLUMN IF NOT EXISTS "metaLid" TEXT;
