@@ -618,6 +618,7 @@ export default function VentasPage() {
                         const LabIcon = labInfo.icon;
                         const isUpdating = updatingId === order.id;
                         const financials = getFinancials(order.id);
+                        const isGrupoOptico = order.items.some((i: any) => i.product?.category === 'Cristal' && /grupo[\s\-]?ó?o?ptico/i.test((i.product as any)?.laboratory || ''));
 
                         return (
                             <div key={order.id} className={`border-2 rounded-2xl p-4 lg:p-6 hover:shadow-lg transition-all ${financials.hasBalance
@@ -850,23 +851,27 @@ export default function VentasPage() {
                                             </button>
                                         )}
                                         {/* === ENVIAR A SMARTLAB — BOTÓN PRINCIPAL === */}
-                                        <button
-                                            onClick={() => autoSubmitSmartLab(order)}
-                                            disabled={isAutoSubmitting}
-                                            className="px-4 py-2.5 bg-gradient-to-r from-amber-400 to-orange-400 text-amber-950 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 hover:scale-105 active:scale-95 transition-all shadow-lg shadow-amber-400/30 disabled:opacity-50"
-                                            title="Copiar datos y abrir SmartLab"
-                                        >
-                                            {isAutoSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <FlaskConical className="w-4 h-4" />}
-                                            {isAutoSubmitting ? 'Copiando...' : '🧪 SmartLab'}
-                                        </button>
+                                        {isGrupoOptico && (
+                                            <button
+                                                onClick={() => autoSubmitSmartLab(order)}
+                                                disabled={isAutoSubmitting}
+                                                className="px-4 py-2.5 bg-gradient-to-r from-amber-400 to-orange-400 text-amber-950 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 hover:scale-105 active:scale-95 transition-all shadow-lg shadow-amber-400/30 disabled:opacity-50"
+                                                title="Copiar datos y abrir SmartLab"
+                                            >
+                                                {isAutoSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <FlaskConical className="w-4 h-4" />}
+                                                {isAutoSubmitting ? 'Copiando...' : '🧪 SmartLab'}
+                                            </button>
+                                        )}
                                         {/* SmartLab detail toggle */}
-                                        <button
-                                            onClick={() => setExpandedDetail(expandedDetail === order.id ? null : order.id)}
-                                            className={`p-3 rounded-xl hover:scale-110 transition-all ${expandedDetail === order.id ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-500/30' : 'bg-indigo-50 dark:bg-indigo-950/30 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100'}`}
-                                            title="Ver detalle para SmartLab"
-                                        >
-                                            <Eye className="w-4 h-4" />
-                                        </button>
+                                        {isGrupoOptico && (
+                                            <button
+                                                onClick={() => setExpandedDetail(expandedDetail === order.id ? null : order.id)}
+                                                className={`p-3 rounded-xl hover:scale-110 transition-all ${expandedDetail === order.id ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-500/30' : 'bg-indigo-50 dark:bg-indigo-950/30 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100'}`}
+                                                title="Ver detalle para SmartLab"
+                                            >
+                                                <Eye className="w-4 h-4" />
+                                            </button>
+                                        )}
                                         <button
                                             onClick={() => downloadLabSheet(order)}
                                             className="p-3 bg-blue-50 text-blue-600 rounded-xl hover:scale-110 transition-all"

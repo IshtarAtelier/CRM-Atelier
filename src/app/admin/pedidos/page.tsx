@@ -600,6 +600,7 @@ export default function PedidosPage() {
                         const payProgress = order.total > 0 ? Math.min(100, (order.paid / order.total) * 100) : 100;
 
                         const financials = PricingService.calculateOrderFinancials(order);
+                        const isGrupoOptico = order.items.some((i: any) => i.product?.category === 'Cristal' && /grupo[\s\-]?ó?o?ptico/i.test((i.product as any)?.laboratory || ''));
 
                         return (
                             <div
@@ -768,13 +769,15 @@ export default function PedidosPage() {
                                         </button>
 
                                         {/* SmartLab Button */}
-                                        <button
-                                            onClick={() => setSmartLabId(order.id)}
-                                            className="p-3 bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-400 rounded-xl hover:scale-110 hover:bg-blue-100 dark:hover:bg-blue-900 transition-all"
-                                            title="Cargar en SmartLab"
-                                        >
-                                            <ExternalLink className="w-4 h-4" />
-                                        </button>
+                                        {isGrupoOptico && (
+                                            <button
+                                                onClick={() => setSmartLabId(order.id)}
+                                                className="p-3 bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-400 rounded-xl hover:scale-110 hover:bg-blue-100 dark:hover:bg-blue-900 transition-all"
+                                                title="Cargar en SmartLab"
+                                            >
+                                                <ExternalLink className="w-4 h-4" />
+                                            </button>
+                                        )}
 
                                         {/* WhatsApp Send to Client */}
                                         <button

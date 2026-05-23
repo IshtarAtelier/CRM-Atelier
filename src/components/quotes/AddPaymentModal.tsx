@@ -95,6 +95,7 @@ export default function AddPaymentModal({
     const [receiptFile, setReceiptFile] = useState<File | null>(null);
     const [receiptPreview, setReceiptPreview] = useState<string | null>(null);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
+    const [showOcrVerifyMessage, setShowOcrVerifyMessage] = useState(false);
 
     // Obtener los financieros para las sugerencias de saldo
     const [financials, setFinancials] = useState<any>(null);
@@ -319,6 +320,7 @@ export default function AddPaymentModal({
                                         if (data.amount != null) setAmount(data.amount.toString());
                                         if (data.reference != null) setReference(data.reference);
                                         if (data.date != null) setDate(data.date);
+                                        setShowOcrVerifyMessage(true);
                                     } else {
                                         console.warn('OCR falló');
                                     }
@@ -332,10 +334,21 @@ export default function AddPaymentModal({
                             onClearPreview={() => {
                                 setReceiptFile(null);
                                 setReceiptPreview(null);
+                                setShowOcrVerifyMessage(false);
                             }}
                             label="Subir foto del pago"
                         />
                     </div>
+
+                    {showOcrVerifyMessage && (
+                        <div className="flex items-start gap-2.5 p-4 bg-amber-50 dark:bg-amber-950/20 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-900/30 rounded-2xl text-xs font-semibold animate-in slide-in-from-top-2">
+                            <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-500 shrink-0 mt-0.5" />
+                            <div>
+                                <span className="font-black text-amber-900 dark:text-amber-200 block mb-1">🤖 DATOS SUGERIDOS</span>
+                                Se completaron los campos con datos leídos del comprobante. Por favor, **verifica y corrige** cualquier valor antes de confirmar el pago.
+                            </div>
+                        </div>
+                    )}
 
                     {error && (
                         <div className="flex items-center gap-2 p-4 bg-red-50 text-red-600 rounded-xl text-xs font-bold animate-in slide-in-from-top-2">

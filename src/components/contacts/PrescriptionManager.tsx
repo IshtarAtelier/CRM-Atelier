@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { 
-    FileText, Plus, History, CheckCircle2, X 
+    FileText, Plus, History, CheckCircle2, X, AlertCircle
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -38,6 +38,7 @@ export default function PrescriptionManager({
     // File state
     const [receiptFile, setReceiptFile] = useState<File | null>(null);
     const [receiptPreview, setReceiptPreview] = useState<string | null>(null);
+    const [showOcrVerifyMessage, setShowOcrVerifyMessage] = useState(false);
 
     const [form, setForm] = useState({
         sphereOD: '', cylinderOD: '', axisOD: '', additionOD: '',
@@ -113,6 +114,7 @@ export default function PrescriptionManager({
         setShowNear(false);
         setReceiptFile(null);
         setReceiptPreview(null);
+        setShowOcrVerifyMessage(false);
         setStep('form');
         setError(null);
         setEditingRxId(null);
@@ -515,6 +517,7 @@ export default function PrescriptionManager({
                                         if (data.additionOD != null || data.additionOI != null) {
                                             setShowNear(true);
                                         }
+                                        setShowOcrVerifyMessage(true);
                                     } else {
                                         console.warn('OCR falló');
                                     }
@@ -528,12 +531,23 @@ export default function PrescriptionManager({
                             onClearPreview={() => {
                                 setReceiptFile(null);
                                 setReceiptPreview(null);
+                                setShowOcrVerifyMessage(false);
                             }}
                             label="Subir foto de la receta"
                         />
                     )}
                 </div>
             </div>
+
+            {showOcrVerifyMessage && (
+                <div className="flex items-start gap-2.5 p-4 bg-amber-50 dark:bg-amber-950/20 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-900/30 rounded-2xl text-xs font-semibold mt-4 animate-in slide-in-from-top-2">
+                    <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-500 shrink-0 mt-0.5" />
+                    <div>
+                        <span className="font-black text-amber-900 dark:text-amber-200 block mb-1">🤖 DATOS SUGERIDOS</span>
+                        Se completaron los campos con datos leídos de la receta. Por favor, **verifica y corrige** cualquier valor antes de guardar.
+                    </div>
+                </div>
+            )}
 
             {error && <p className="text-red-500 text-[10px] font-black bg-red-50 p-3 rounded-xl mt-4">⚠️ {error}</p>}
 

@@ -174,15 +174,26 @@ Solo devuelve el JSON, sin texto antes ni después.`;
                 });
                 const clientName = clientNameQuery?.client?.name || 'Desconocido';
 
+                const alertMsg = `ERROR IA en Comprobante (${clientName}): ${errors.join(' ')}`;
+
                 await prisma.notification.create({
                     data: {
                         type: 'RECEIPT_ERROR',
-                        message: `ERROR IA en Comprobante (${clientName}): ${errors.join(' ')}`,
+                        message: alertMsg,
                         orderId: orderId,
                         requestedBy: 'IA (Auditor)',
                         status: 'PENDING'
                     }
                 });
+
+                // Send immediate email alert to admin
+                import('@/lib/email').then(({ sendEmail }) => {
+                    sendEmail({
+                        to: 'pisano.ishtar@gmail.com',
+                        subject: '⚠️ Alerta de Auditoría de Comprobante',
+                        text: `El auditor automático de comprobantes ha detectado observaciones en el pago de la orden #${orderId.slice(-4).toUpperCase()} del cliente "${clientName}".\n\nDetalles:\n${errors.map(e => `- ${e}`).join('\n')}\n\nPuedes revisar esto en el panel de administración.`
+                    });
+                }).catch(err => console.error('[ReceiptAgent Email Alert Error]', err));
             } else {
                  console.log(`[ReceiptAgent] Payment ${paymentId} check passed successfully.`);
             }

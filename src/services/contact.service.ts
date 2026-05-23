@@ -680,6 +680,81 @@ export const ContactService = {
                 throw new Error(`El pago excede con creces el total máximo de la orden ($${maxAllowed}). Revisá el monto ingresado.`);
             }
 
+            const isCash = method === 'EFECTIVO' || method === 'CASH';
+
+            // 1. Check for Duplicate notes/reference (manual entry / non-cash)
+            if (notes && notes.trim() && !isCash) {
+                const cleanedNotes = notes.trim();
+                const duplicatePayment = await tx.payment.findFirst({
+                    where: {
+                        notes: { equals: cleanedNotes }
+                    },
+                    include: {
+                        order: { select: { client: { select: { name: true } } } }
+                    }
+                });
+
+                if (duplicatePayment) {
+                    const clientName = (await tx.client.findUnique({ where: { id: order.clientId }, select: { name: true } }))?.name || 'Cliente';
+                    const dupClientName = duplicatePayment.order?.client?.name || 'Otro Cliente';
+                    const warningMsg = `⚠️ DUPLICADO DETECTADO: Pago de $${amount.toLocaleString('es-AR')} para ${clientName} con la misma referencia "${cleanedNotes}" que ya fue usada en la orden #${duplicatePayment.orderId.slice(-4).toUpperCase()} (${dupClientName}).`;
+                    
+                    await tx.notification.create({
+                        data: {
+                            type: 'RECEIPT_ERROR',
+                            message: warningMsg,
+                            orderId: orderId,
+                            requestedBy: 'SISTEMA (Duplicado Manual)',
+                            status: 'PENDING'
+                        }
+                    });
+
+                    import('@/lib/email').then(({ sendEmail }) => {
+                        sendEmail({
+                            to: 'pisano.ishtar@gmail.com',
+                            subject: '⚠️ Alerta de Referencia Duplicada',
+                            text: warningMsg
+                        });
+                    }).catch(console.error);
+                }
+            }
+
+            // 2. Check for Duplicate receipt image file/URL (duplicate receipt uploaded)
+            if (receiptUrl) {
+                const duplicateReceipt = await tx.payment.findFirst({
+                    where: {
+                        receiptUrl: { equals: receiptUrl }
+                    },
+                    include: {
+                        order: { select: { client: { select: { name: true } } } }
+                    }
+                });
+
+                if (duplicateReceipt) {
+                    const clientName = (await tx.client.findUnique({ where: { id: order.clientId }, select: { name: true } }))?.name || 'Cliente';
+                    const dupClientName = duplicateReceipt.order?.client?.name || 'Otro Cliente';
+                    const warningMsg = `🚨 COMPROBANTE REPETIDO: Se subió el mismo archivo de comprobante para la orden #${orderId.slice(-4).toUpperCase()} (${clientName}) que ya se usó anteriormente en la orden #${duplicateReceipt.orderId.slice(-4).toUpperCase()} (${dupClientName}).`;
+                    
+                    await tx.notification.create({
+                        data: {
+                            type: 'RECEIPT_ERROR',
+                            message: warningMsg,
+                            orderId: orderId,
+                            requestedBy: 'SISTEMA (Archivo Duplicado)',
+                            status: 'PENDING'
+                        }
+                    });
+
+                    import('@/lib/email').then(({ sendEmail }) => {
+                        sendEmail({
+                            to: 'pisano.ishtar@gmail.com',
+                            subject: '🚨 Alerta: Comprobante ya utilizado',
+                            text: warningMsg
+                        });
+                    }).catch(console.error);
+                }
+            }
+
             const payment = await tx.payment.create({
                 data: { orderId, amount, method, notes, receiptUrl }
             });
@@ -942,6 +1017,86 @@ export const ContactService = {
 
             // Si no hay cambios reales, retornar el pago sin tocar nada
             if (changes.length === 0) return oldPayment;
+
+            const method = updates.method || oldPayment.method;
+            const isCash = method === 'EFECTIVO' || method === 'CASH';
+
+            // 1. Check for Duplicate notes/reference (on edit)
+            if (updates.notes !== undefined && updates.notes !== oldPayment.notes && updates.notes !== null && !isCash) {
+                const cleanedNotes = updates.notes.trim();
+                if (cleanedNotes) {
+                    const duplicatePayment = await tx.payment.findFirst({
+                        where: {
+                            notes: { equals: cleanedNotes },
+                            id: { not: paymentId }
+                        },
+                        include: {
+                            order: { select: { client: { select: { name: true } } } }
+                        }
+                    });
+
+                    if (duplicatePayment) {
+                        const clientName = (await tx.client.findUnique({ where: { id: oldPayment.order.clientId }, select: { name: true } }))?.name || 'Cliente';
+                        const dupClientName = duplicatePayment.order?.client?.name || 'Otro Cliente';
+                        const warningMsg = `⚠️ DUPLICADO DETECTADO AL EDITAR: El pago editado ID ${paymentId} para ${clientName} tiene la misma referencia "${cleanedNotes}" que ya fue usada en la orden #${duplicatePayment.orderId.slice(-4).toUpperCase()} (${dupClientName}).`;
+                        
+                        await tx.notification.create({
+                            data: {
+                                type: 'RECEIPT_ERROR',
+                                message: warningMsg,
+                                orderId: orderId,
+                                requestedBy: 'SISTEMA (Edición Duplicada)',
+                                status: 'PENDING'
+                            }
+                        });
+
+                        import('@/lib/email').then(({ sendEmail }) => {
+                            sendEmail({
+                                to: 'pisano.ishtar@gmail.com',
+                                subject: '⚠️ Alerta de Referencia Duplicada (Edición)',
+                                text: warningMsg
+                            });
+                        }).catch(console.error);
+                    }
+                }
+            }
+
+            // 2. Check for Duplicate receipt image file/URL (on edit)
+            if (updates.receiptUrl !== undefined && updates.receiptUrl !== oldPayment.receiptUrl && updates.receiptUrl !== null) {
+                const duplicateReceipt = await tx.payment.findFirst({
+                    where: {
+                        receiptUrl: { equals: updates.receiptUrl },
+                        id: { not: paymentId }
+                    },
+                    include: {
+                        order: { select: { client: { select: { name: true } } } }
+                    }
+                });
+
+                if (duplicateReceipt) {
+                    const clientName = (await tx.client.findUnique({ where: { id: oldPayment.order.clientId }, select: { name: true } }))?.name || 'Cliente';
+                    const dupClientName = duplicateReceipt.order?.client?.name || 'Otro Cliente';
+                    const warningMsg = `🚨 COMPROBANTE REPETIDO AL EDITAR: Se subió el mismo archivo de comprobante para la orden #${orderId.slice(-4).toUpperCase()} (${clientName}) que ya se usó anteriormente en la orden #${duplicateReceipt.orderId.slice(-4).toUpperCase()} (${dupClientName}).`;
+                    
+                    await tx.notification.create({
+                        data: {
+                            type: 'RECEIPT_ERROR',
+                            message: warningMsg,
+                            orderId: orderId,
+                            requestedBy: 'SISTEMA (Edición de Archivo Duplicado)',
+                            status: 'PENDING'
+                        }
+                    });
+
+                    import('@/lib/email').then(({ sendEmail }) => {
+                        sendEmail({
+                            to: 'pisano.ishtar@gmail.com',
+                            subject: '🚨 Alerta: Comprobante ya utilizado (Edición)',
+                            text: warningMsg
+                        });
+                    }).catch(console.error);
+                }
+            }
 
             // 3. Actualizar el Payment in-place
             const updatedPayment = await tx.payment.update({

@@ -111,6 +111,118 @@ const handleMessageCreate = async (msg) => {
     }
 };
 
+/**
+ * Capa de Seguridad (Output Guardrail)
+ * Verifica si el texto contiene estructuras JSON o IDs de base de datos tipo CUID
+ */
+function runOutputGuardrail(text) {
+    if (!text) return { safe: true };
+
+    // 1. Detectar IDs de base de datos tipo CUID (ej: cmpiyd5790000dzris5hpt628)
+    const cuidRegex = /\bc[a-z0-9]{23,29}\b/gi;
+    const hasCuid = cuidRegex.test(text);
+
+    // 2. Detectar estructuras JSON (ej: { "precio": 30000 })
+    const jsonRegex = /\{[\s\S]*?\}/;
+    const hasJson = jsonRegex.test(text) && (text.includes('"') || text.includes(':'));
+
+    if (hasCuid || hasJson) {
+        return {
+            safe: false,
+            reason: hasCuid ? 'ID de Base de Datos Detectado' : 'Estructura JSON Detectada',
+            matched: hasCuid ? text.match(cuidRegex) : null
+        };
+    }
+
+    return { safe: true };
+}
+
+/**
+ * Verifica si la hora actual corresponde a horario comercial de Argentina (UTC-3)
+ */
+function isBusinessHours(date) {
+    const argDate = new Date(date.toLocaleString("en-US", { timeZone: "America/Argentina/Buenos_Aires" }));
+    const day = argDate.getDay(); // 0 = Domingo, 6 = Sábado
+    const hour = argDate.getHours();
+
+    if (day === 0) return false; // Domingo cerrado
+    if (day === 6) {
+        return hour >= 9 && hour < 13; // Sábado 9:00 - 13:00
+    }
+    return hour >= 9 && hour < 18; // Lunes a Viernes 9:00 - 18:00
+}
+
+/**
+ * Cron / Chequeo de seguimientos por inactividad del cliente
+ */
+async function checkAndSendInactivityFollowUps() {
+    const now = new Date();
+    if (!isBusinessHours(now)) {
+        return; // Solo enviar en horario comercial
+    }
+
+    if (!agentEnabled) return; // Solo si el bot global está activo
+
+    // Obtener todos los chats activos con bot encendido
+    const activeChats = await prisma.whatsAppChat.findMany({
+        where: { botEnabled: true },
+        include: {
+            messages: {
+                orderBy: { createdAt: 'desc' },
+                take: 1
+            }
+        }
+    });
+
+    const FOLLOW_UP_TEXT = "Hola! Avisame si pudiste encontrar la receta o los datos de tu obra social así te dejamos lista la cotización?";
+
+    for (const chat of activeChats) {
+        if (chat.messages.length === 0) continue;
+        const lastMsg = chat.messages[0];
+
+        // Solo si el último mensaje fue enviado por el Bot
+        if (lastMsg.direction === 'OUTBOUND' && lastMsg.senderName === 'Bot') {
+            if (lastMsg.content === FOLLOW_UP_TEXT) {
+                continue; // Ya se envió el recordatorio
+            }
+
+            const diffMs = now.getTime() - new Date(lastMsg.createdAt).getTime();
+            const diffHours = diffMs / (1000 * 60 * 60);
+
+            if (diffHours >= 4) {
+                console.log(`  ✉️ [Follow-Up] Enviando recordatorio por inactividad de ${diffHours.toFixed(1)}hs a ${chat.profileName || chat.waId}`);
+                
+                try {
+                    await sendTypingState(chat.waId);
+                    await new Promise(r => setTimeout(r, 2000));
+                    await sendMessage(chat.waId, FOLLOW_UP_TEXT);
+
+                    await prisma.whatsAppMessage.create({
+                        data: {
+                            chatId: chat.id,
+                            direction: 'OUTBOUND',
+                            type: 'TEXT',
+                            content: FOLLOW_UP_TEXT,
+                            senderName: 'Bot',
+                            status: 'SENT'
+                        }
+                    });
+
+                    // Actualizar lastMessageAt para reiniciar contadores
+                    await prisma.whatsAppChat.update({
+                        where: { id: chat.id },
+                        data: { lastMessageAt: new Date() }
+                    });
+                    
+                    broadcastChatUpdate(chat.id);
+                } catch (err) {
+                    console.error(`Error enviando follow-up a ${chat.waId}:`, err.message);
+                }
+            }
+        }
+    }
+}
+
 // ── Bot Orchestrator (Extraído para Modularidad) ─
 async function processBotTurn(chat, waId, profileName, realPhone) {
     try {
@@ -178,6 +290,41 @@ async function processBotTurn(chat, waId, profileName, realPhone) {
         const responseText = lastMessage.content;
 
         if (responseText) {
+            // ── Capa de Seguridad (Output Guardrail) ──
+            const guardrail = runOutputGuardrail(responseText);
+            if (!guardrail.safe) {
+                console.warn(`  ⚠️ [Output Guardrail] Respuesta bloqueada para ${profileName} por: ${guardrail.reason}`);
+                
+                // 1. Apagar bot para este chat
+                await prisma.whatsAppChat.update({
+                    where: { id: chat.id },
+                    data: { botEnabled: false }
+                });
+                
+                // 2. Registrar nota de seguridad en la ficha del cliente
+                if (chat.clientId) {
+                    await prisma.interaction.create({
+                        data: {
+                            clientId: chat.clientId,
+                            type: 'NOTE',
+                            content: `⚠️ [Output Guardrail] Bot desactivado. Se bloqueó una respuesta automática por contener datos internos o JSON: "${responseText.substring(0, 150)}..."`
+                        }
+                    }).catch(() => {});
+                }
+
+                // 3. Notificar al panel vía WebSocket
+                if (global.io) {
+                    global.io.emit('bot_error', {
+                        chatId: chat.id,
+                        name: profileName || chat.profileName || 'Cliente',
+                        phone: realPhone || chat.realPhone || waId.split('@')[0],
+                        error: `Bloqueo de Seguridad (${guardrail.reason})`
+                    });
+                }
+                
+                broadcastChatUpdate(chat.id);
+                return;
+            }
             // VERIFICACIÓN POST-PROCESAMIENTO
             if (newestMessageProcessed) {
                 const newMessagesCount = await prisma.whatsAppMessage.count({
@@ -286,6 +433,8 @@ async function processBotTurn(chat, waId, profileName, realPhone) {
 // ── Recepción de mensajes ──────────────────────
 const handleMessage = async (msg) => {
     if (msg.from.includes('@g.us') || msg.from === 'status@broadcast') return;
+
+    let oldLastMessageAt = null;
 
     // 1. Ignorar mensajes de sistema (cambio de número, e2e, etc) para que el bot no se active solo
     const validTypes = ['chat', 'image', 'video', 'audio', 'document', 'ptt', 'sticker', 'location', 'vcard'];
@@ -436,6 +585,7 @@ const handleMessage = async (msg) => {
                 } else throw createErr;
             }
         } else {
+            oldLastMessageAt = chat.lastMessageAt;
             const updateData = { lastMessageAt: new Date(), unreadCount: { increment: 1 } };
             // Solo actualizar profileName si tenemos uno válido y el chat no tiene cliente CRM
             if (profileName && !chat.clientId) updateData.profileName = profileName;
@@ -493,11 +643,24 @@ const handleMessage = async (msg) => {
         );
         if (tieneTagSinBot) {
             if (chat.botEnabled) {
-                await prisma.whatsAppChat.update({
+                chat = await prisma.whatsAppChat.update({
                     where: { id: chat.id },
                     data: { botEnabled: false }
                 });
                 console.log(`  🚫 Bot bloqueado para ${profileName} por etiqueta.`);
+            }
+        }
+
+        // ── Auto-Reanudación Inteligente (Smart Auto-Resume) ──
+        if (oldLastMessageAt && !chat.botEnabled && !tieneTagSinBot) {
+            const diffMs = Date.now() - new Date(oldLastMessageAt).getTime();
+            const diffHours = diffMs / (1000 * 60 * 60);
+            if (diffHours >= 24) {
+                console.log(`  🔄 [Auto-Resume] Reactivando bot para ${profileName || chat.waId} tras ${diffHours.toFixed(1)}hs de inactividad.`);
+                chat = await prisma.whatsAppChat.update({
+                    where: { id: chat.id },
+                    data: { botEnabled: true }
+                });
             }
         }
 
@@ -907,6 +1070,12 @@ app.post('/api/test/chat', async (req, res) => {
 const PORT = process.env.PORT || 3100;
 server.listen(PORT, '0.0.0.0', async () => {
     console.log(`🚀 WA-Service (WhatsApp + Bot Multi-Agente) on port ${PORT}`);
+    
+    // Programar recordatorios por inactividad cada 15 minutos
+    setInterval(() => {
+        checkAndSendInactivityFollowUps().catch(e => console.error("❌ Error en follow-ups de inactividad:", e.message));
+    }, 15 * 60 * 1000);
+    
     try {
         await initWhatsApp({ 
             onMessage: handleMessage, 
