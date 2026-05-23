@@ -153,6 +153,106 @@ function isBusinessHours(date) {
 }
 
 /**
+ * Obtiene la fecha del siguiente día de la semana correspondiente (lunes, martes, etc.)
+ * a partir de una fecha base en el huso horario de Argentina.
+ */
+function getNextWeekdayDate(dayName, baseDate = new Date()) {
+    const daysMap = {
+        'domingo': 0,
+        'lunes': 1,
+        'martes': 2,
+        'miercoles': 3,
+        'jueves': 4,
+        'viernes': 5,
+        'sabado': 6
+    };
+    const targetDay = daysMap[dayName.toLowerCase()];
+    if (targetDay === undefined) return null;
+
+    // Convertir a representación en Argentina
+    const argDate = new Date(baseDate.toLocaleString("en-US", { timeZone: "America/Argentina/Buenos_Aires" }));
+    const currentDay = argDate.getDay();
+    
+    let daysToAdd = targetDay - currentDay;
+    if (daysToAdd < 0) {
+        daysToAdd += 7;
+    } else if (daysToAdd === 0) {
+        // Si es hoy, y ya pasó el mediodía (12:00), lo movemos a la semana que viene
+        if (argDate.getHours() >= 12) {
+            daysToAdd += 7;
+        }
+    }
+
+    argDate.setDate(argDate.getDate() + daysToAdd);
+    
+    const year = argDate.getFullYear();
+    const month = argDate.getMonth();
+    const date = argDate.getDate();
+    
+    // Devolver la fecha a las 9:00 AM de Argentina (UTC-3)
+    const pad = (n) => String(n).padStart(2, '0');
+    const isoString = `${year}-${pad(month + 1)}-${pad(date)}T09:00:00-03:00`;
+    return new Date(isoString);
+}
+
+/**
+ * Detecta promesas de visita en el local y crea automáticamente una tarea de seguimiento.
+ */
+async function detectAndCreateVisitTask(clientId, text) {
+    if (!text || typeof text !== 'string') return;
+
+    // Normalizar texto (pasar a minúsculas y quitar acentos)
+    const normalizedText = text.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
+    // Buscar si indica intención de pasar/visitar y un día de la semana
+    const triggerWords = /\b(pas[ao]|pasar[eé]?|ir[eé]?|voy|visitar|visito|vuelta)\b/i;
+    const daysRegex = /\b(lunes|martes|miercoles|jueves|viernes|sabado|domingo)\b/i;
+
+    const hasTrigger = triggerWords.test(normalizedText);
+    const dayMatch = normalizedText.match(daysRegex);
+
+    if (hasTrigger && dayMatch) {
+        const dayName = dayMatch[1];
+        const targetDate = getNextWeekdayDate(dayName);
+
+        if (targetDate) {
+            // Evitar crear tareas duplicadas para el mismo día, cliente y descripción
+            const startOfDay = new Date(targetDate);
+            startOfDay.setHours(0, 0, 0, 0);
+            const endOfDay = new Date(targetDate);
+            endOfDay.setHours(23, 59, 59, 999);
+
+            const existingTask = await prisma.clientTask.findFirst({
+                where: {
+                    clientId: clientId,
+                    description: "Quedó que pasaba por el local.",
+                    status: "PENDING",
+                    dueDate: {
+                        gte: startOfDay,
+                        lte: endOfDay
+                    }
+                }
+            });
+
+            if (!existingTask) {
+                console.log(`  📝 [Auto-Task] Creando tarea para el cliente ${clientId} el día ${dayName} (${targetDate.toISOString()})`);
+                await prisma.clientTask.create({
+                    data: {
+                        clientId: clientId,
+                        description: "Quedó que pasaba por el local.",
+                        status: "PENDING",
+                        type: "TASK",
+                        dueDate: targetDate
+                    }
+                });
+            } else {
+                console.log(`  📝 [Auto-Task] Tarea ya existente para el día ${dayName}. Omitiendo duplicado.`);
+            }
+        }
+    }
+}
+
+/**
  * Cron / Chequeo de seguimientos por inactividad del cliente
  */
 async function checkAndSendInactivityFollowUps() {
@@ -764,6 +864,11 @@ const handleMessage = async (msg) => {
         });
 
         broadcastChatUpdate(chat.id);
+
+        // ── Auto-Creación de Tarea por Promesa de Visita ──
+        if (chat.clientId && body && messageType === 'TEXT') {
+            detectAndCreateVisitTask(chat.clientId, body).catch(e => console.error("❌ Error en detectAndCreateVisitTask:", e.message));
+        }
 
         // 3. Bot Logic — Llamada DIRECTA al grafo (sin HTTP intermedio) con DEBOUNCE
         if (agentEnabled && chat.botEnabled && !tieneTagSinBot) {

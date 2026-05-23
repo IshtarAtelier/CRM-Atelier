@@ -20,6 +20,13 @@ export async function GET() {
         const favoriteClients = await prisma.client.findMany({
             where: {
                 isFavorite: true,
+                status: { not: 'CLIENT' },
+                orders: {
+                    none: {
+                        orderType: 'SALE',
+                        isDeleted: false
+                    }
+                }
             },
             select: {
                 id: true,
@@ -90,6 +97,15 @@ export async function GET() {
                 isDeleted: false,
                 createdAt: {
                     lt: threeDaysAgo
+                },
+                client: {
+                    status: { not: 'CLIENT' },
+                    orders: {
+                        none: {
+                            orderType: 'SALE',
+                            isDeleted: false
+                        }
+                    }
                 }
             },
             select: {
@@ -139,6 +155,30 @@ export async function GET() {
         });
 
         for (const cart of abandonedCarts) {
+            // Check if there is a client with this phone number who has already bought (status CLIENT or has active SALE)
+            if (cart.phone) {
+                const cleanedPhone = cart.phone.replace(/\D/g, '');
+                if (cleanedPhone) {
+                    const existingClient = await prisma.client.findFirst({
+                        where: {
+                            phone: { contains: cleanedPhone.slice(-8) }, // match last 8 digits for flexible matching
+                            OR: [
+                                { status: 'CLIENT' },
+                                {
+                                    orders: {
+                                        some: {
+                                            orderType: 'SALE',
+                                            isDeleted: false
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    });
+                    if (existingClient) continue; // Skip since they are already a customer
+                }
+            }
+
             const daysElapsed = Math.floor((Date.now() - cart.createdAt.getTime()) / (1000 * 60 * 60 * 24));
             const hoursElapsed = Math.floor((Date.now() - cart.createdAt.getTime()) / (1000 * 60 * 60));
             const clientName = `${cart.firstName || ''} ${cart.lastName || ''}`.trim() || 'Cliente Web';

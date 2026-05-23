@@ -268,11 +268,34 @@ export const ContactService = {
             throw new Error('No se puede revertir un cliente ya cerrado a Confirmado');
         }
 
-        // REGLA: Para cerrar venta (CONFIRMED → CLIENT), validar requisitos
+        // REGLA: Para cerrar venta (CONFIRMED → CLIENT), validar requisitos.
+        // Si no cumple, permitimos cerrar pero disparamos una alerta/notificación en el sistema.
         if (client.status === 'CONFIRMED' && status === 'CLIENT') {
             const validation = await this.canCloseSale(id);
             if (!validation.canClose) {
-                throw new Error(validation.reason || 'No se cumplen los requisitos para cerrar la venta');
+                const warningMsg = `⚠️ Venta de ${client.name} cerrada con datos faltantes: ${validation.reason}`;
+                
+                // Encontrar la orden actual (SALE) para vincularla a la alerta
+                const lastOrder = client.orders[0];
+                
+                await prisma.notification.create({
+                    data: {
+                        type: 'RECEIPT_ERROR',
+                        message: warningMsg,
+                        orderId: lastOrder?.id || null,
+                        requestedBy: 'SISTEMA (Cierre Incompleto)',
+                        status: 'PENDING'
+                    }
+                }).catch(err => console.error('[Notification Close Sale Error]', err));
+
+                // Enviar correo de alerta al admin
+                import('@/lib/email').then(({ sendEmail }) => {
+                    sendEmail({
+                        to: 'pisano.ishtar@gmail.com',
+                        subject: '⚠️ Alerta de Cierre: Venta con Datos Faltantes',
+                        text: warningMsg
+                    });
+                }).catch(console.error);
             }
         }
 
