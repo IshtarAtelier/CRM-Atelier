@@ -177,6 +177,12 @@ CREATE INDEX IF NOT EXISTS "SocialContent_createdAt_idx" ON "SocialContent"("cre
 CREATE INDEX IF NOT EXISTS "CrystalColor_category_active_idx" ON "CrystalColor"("category", "active");
 CREATE UNIQUE INDEX IF NOT EXISTS "CrystalColor_name_category_key" ON "CrystalColor"("name", "category");
 
+-- Clean up orphaned records to prevent foreign key constraint violations
+DELETE FROM "Invoice" WHERE "orderId" IS NOT NULL AND "orderId" NOT IN (SELECT "id" FROM "Order");
+DELETE FROM "Notification" WHERE "orderId" IS NOT NULL AND "orderId" NOT IN (SELECT "id" FROM "Order");
+DELETE FROM "Notification" WHERE "requestedBy" IS NOT NULL AND "requestedBy" NOT IN (SELECT "id" FROM "User");
+DELETE FROM "WebProduct" WHERE "productId" IS NOT NULL AND "productId" NOT IN (SELECT "id" FROM "Product");
+
 -- AddForeignKey
 ALTER TABLE "Invoice" ADD CONSTRAINT "Invoice_orderId_fkey" FOREIGN KEY ("orderId") REFERENCES "Order"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 ALTER TABLE "Notification" ADD CONSTRAINT "Notification_orderId_fkey" FOREIGN KEY ("orderId") REFERENCES "Order"("id") ON DELETE CASCADE ON UPDATE CASCADE;
