@@ -38,7 +38,7 @@ export default function BalancePanel({ orders, onClose }: BalancePanelProps) {
                 <div className="flex items-center gap-3 text-emerald-600 dark:text-emerald-400">
                     <Banknote className="w-6 h-6 animate-pulse" />
                     <h3 className="font-black text-stone-800 dark:text-white uppercase tracking-tighter italic text-xl">
-                        Facturas con Saldo
+                        Pedidos con Saldos
                     </h3>
                 </div>
                 <button onClick={onClose} className="p-3 hover:bg-stone-100 dark:hover:bg-stone-800 rounded-2xl transition-all hover:rotate-90">
