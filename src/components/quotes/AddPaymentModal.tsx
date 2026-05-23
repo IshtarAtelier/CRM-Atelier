@@ -316,9 +316,9 @@ export default function AddPaymentModal({
                                     const res = await fetch('/api/ocr', { method: 'POST', body: formData });
                                     if (res.ok) {
                                         const data = await res.json();
-                                        if (data.amount !== null) setAmount(data.amount.toString());
-                                        if (data.reference !== null) setReference(data.reference);
-                                        if (data.date !== null) setDate(data.date);
+                                        if (data.amount != null) setAmount(data.amount.toString());
+                                        if (data.reference != null) setReference(data.reference);
+                                        if (data.date != null) setDate(data.date);
                                     } else {
                                         console.warn('OCR falló');
                                     }
@@ -354,15 +354,15 @@ export default function AddPaymentModal({
                         </button>
                         <button
                             type="submit"
-                            disabled={loading || !amount || (requiresReceipt && !receiptFile)}
+                            disabled={loading || isAnalyzing || !amount || (requiresReceipt && !receiptFile)}
                             className="flex-[2] py-4 bg-stone-900 dark:bg-white text-white dark:text-stone-900 rounded-2xl text-xs font-black uppercase tracking-widest hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 disabled:hover:scale-100 shadow-xl flex items-center justify-center gap-3"
                         >
-                            {loading ? (
+                            {loading || isAnalyzing ? (
                                 <Loader2 className="w-4 h-4 animate-spin" />
                             ) : (
                                 <Save className="w-4 h-4" />
                             )}
-                            Confirmar Pago
+                            {isAnalyzing ? 'Analizando...' : 'Confirmar Pago'}
                         </button>
                     </div>
                 </form>

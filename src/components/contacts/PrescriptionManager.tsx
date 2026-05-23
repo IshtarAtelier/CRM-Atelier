@@ -498,21 +498,21 @@ export default function PrescriptionManager({
                                         const data = await res.json();
                                         setForm(prev => ({
                                             ...prev,
-                                            sphereOD: data.sphereOD !== null ? data.sphereOD.toString() : prev.sphereOD,
-                                            cylinderOD: data.cylinderOD !== null ? data.cylinderOD.toString() : prev.cylinderOD,
-                                            axisOD: data.axisOD !== null ? data.axisOD.toString() : prev.axisOD,
-                                            additionOD: data.additionOD !== null ? data.additionOD.toString() : prev.additionOD,
-                                            distanceOD: data.distanceOD !== null ? data.distanceOD.toString() : prev.distanceOD,
-                                            heightOD: data.heightOD !== null ? data.heightOD.toString() : prev.heightOD,
-                                            sphereOI: data.sphereOI !== null ? data.sphereOI.toString() : prev.sphereOI,
-                                            cylinderOI: data.cylinderOI !== null ? data.cylinderOI.toString() : prev.cylinderOI,
-                                            axisOI: data.axisOI !== null ? data.axisOI.toString() : prev.axisOI,
-                                            additionOI: data.additionOI !== null ? data.additionOI.toString() : prev.additionOI,
-                                            distanceOI: data.distanceOI !== null ? data.distanceOI.toString() : prev.distanceOI,
-                                            heightOI: data.heightOI !== null ? data.heightOI.toString() : prev.heightOI,
+                                            sphereOD: data.sphereOD != null ? data.sphereOD.toString() : prev.sphereOD,
+                                            cylinderOD: data.cylinderOD != null ? data.cylinderOD.toString() : prev.cylinderOD,
+                                            axisOD: data.axisOD != null ? data.axisOD.toString() : prev.axisOD,
+                                            additionOD: data.additionOD != null ? data.additionOD.toString() : prev.additionOD,
+                                            distanceOD: data.distanceOD != null ? data.distanceOD.toString() : prev.distanceOD,
+                                            heightOD: data.heightOD != null ? data.heightOD.toString() : prev.heightOD,
+                                            sphereOI: data.sphereOI != null ? data.sphereOI.toString() : prev.sphereOI,
+                                            cylinderOI: data.cylinderOI != null ? data.cylinderOI.toString() : prev.cylinderOI,
+                                            axisOI: data.axisOI != null ? data.axisOI.toString() : prev.axisOI,
+                                            additionOI: data.additionOI != null ? data.additionOI.toString() : prev.additionOI,
+                                            distanceOI: data.distanceOI != null ? data.distanceOI.toString() : prev.distanceOI,
+                                            heightOI: data.heightOI != null ? data.heightOI.toString() : prev.heightOI,
                                         }));
                                         // Auto-enable near toggle if OCR detected addition values
-                                        if (data.additionOD !== null || data.additionOI !== null) {
+                                        if (data.additionOD != null || data.additionOI != null) {
                                             setShowNear(true);
                                         }
                                     } else {
@@ -541,10 +541,10 @@ export default function PrescriptionManager({
                 <button onClick={() => { setIsAdding(false); onCloseConversion?.(); resetForm(); }} className="px-6 py-4 bg-stone-100 rounded-2xl font-black text-xs uppercase tracking-widest">CANCELAR</button>
                 <button 
                     onClick={handleSave} 
-                    disabled={saving || (!form.sphereOD && !form.sphereOI && !form.cylinderOD && !form.cylinderOI && !form.additionOD && !form.additionOI && !receiptFile && !form.imageUrl)}
+                    disabled={saving || isAnalyzing || (!form.sphereOD && !form.sphereOI && !form.cylinderOD && !form.cylinderOI && !form.additionOD && !form.additionOI && !receiptFile && !form.imageUrl)}
                     className="flex-1 py-4 bg-emerald-500 text-white rounded-2xl font-black text-xs uppercase tracking-widest disabled:opacity-50"
                 >
-                    {saving ? 'GUARDANDO...' : 'GUARDAR RECETA'}
+                    {saving ? 'GUARDANDO...' : (isAnalyzing ? 'ANALIZANDO RECETA...' : 'GUARDAR RECETA')}
                 </button>
             </div>
         </div>
