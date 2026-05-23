@@ -132,8 +132,18 @@ async function processBotTurn(chat, waId, profileName, realPhone) {
                 return new AIMessage(m.content || '');
             } else {
                 if (m.type === 'IMAGE') {
-                    const promptMedia = `[El cliente envió una imagen adjunta. ChatId: ${chat.id}. Mensaje del cliente: "${m.content || '(sin texto)'}". IMPORTANTE: NO asumas que toda imagen es una receta. Evaluá el contexto de la conversación y el mensaje que acompaña la imagen. Solo usá 'process_prescription_subagent' si el cliente indicó explícitamente que envía una receta, o si el contexto de la charla indica claramente que se le pidió una receta y la está enviando. Si la imagen no es una receta (ej: foto de un armazón, captura de pantalla, foto de la tienda, etc.), respondé naturalmente sin invocar el sub-agente de recetas.]`;
-                    return new HumanMessage(promptMedia);
+                    const cached = (global.mediaCache?.[chat.id] || []).find(item => item.waMessageId === m.waMessageId);
+                    if (cached) {
+                        console.log(`📸 Enviando imagen multimodal a Gemini para mensaje: ${m.waMessageId}`);
+                        return new HumanMessage({
+                            content: [
+                                { type: "text", text: `[Imagen adjunta. Mensaje del cliente: "${m.content || '(sin texto)'}"]` },
+                                { type: "image_url", image_url: { url: `data:${cached.mimeType};base64,${cached.base64}` } }
+                            ]
+                        });
+                    } else {
+                        return new HumanMessage(`[Imagen adjunta (antigua): ${m.content || '(sin texto)'}]`);
+                    }
                 } else if (m.type === 'AUDIO') {
                     // Ahora la transcripción es manejada antes de guardar el mensaje
                     return new HumanMessage(`[El cliente envió un audio transcrito. Mensaje: ${m.content}]`);
@@ -241,6 +251,29 @@ async function processBotTurn(chat, waId, profileName, realPhone) {
         botReplyingTo.delete(waId); // B1: limpiar tracking en caso de error
         console.error('  ❌ Error bot:', err.message);
         if (err.message && (err.message.includes('429') || err.message.includes('RESOURCE_EXHAUSTED'))) {
+            // 1. Apagar bot en la DB para este chat
+            try {
+                await prisma.whatsAppChat.update({
+                    where: { id: chat.id },
+                    data: { botEnabled: false }
+                });
+                broadcastChatUpdate(chat.id);
+                console.log(`  ⏹️ Bot desactivado para ${profileName} debido a límite de cuota (429).`);
+            } catch (dbErr) {
+                console.error('Error apagando bot en DB:', dbErr.message);
+            }
+
+            // 2. Emitir notificación de error por WebSocket a todos los usuarios del CRM
+            if (global.io) {
+                global.io.emit('bot_error', {
+                    chatId: chat.id,
+                    name: profileName || chat.profileName || 'Cliente',
+                    phone: realPhone || chat.realPhone || waId.split('@')[0],
+                    error: 'Crédito Agotado (Error 429)'
+                });
+            }
+
+            // 3. Enviar correo de alerta
             const axios = require('axios');
             axios.post('http://localhost:3000/api/admin/alert', {
                 subject: '🚨 ALERTA: Crédito Agotado en Bot de WhatsApp (Gemini)',
@@ -506,9 +539,22 @@ const handleMessage = async (msg) => {
                         
                         // Guardar en cache global para que el sub-agente pueda leerlo sin File API
                         if (chat && chat.id) {
-                            global.mediaCache[chat.id] = { base64: mediaBase64, mimeType: mediaMime };
-                            // Limpiar cache después de 5 minutos para evitar fugas de memoria
-                            setTimeout(() => { delete global.mediaCache[chat.id]; }, 5 * 60 * 1000);
+                            if (!global.mediaCache) global.mediaCache = {};
+                            if (!Array.isArray(global.mediaCache[chat.id])) {
+                                global.mediaCache[chat.id] = [];
+                            }
+                            const cacheItem = { waMessageId: msg.id._serialized, base64: mediaBase64, mimeType: mediaMime, timestamp: Date.now() };
+                            global.mediaCache[chat.id].push(cacheItem);
+                            
+                            // Limpiar este item específico de la caché después de 5 minutos
+                            setTimeout(() => {
+                                if (global.mediaCache[chat.id]) {
+                                    global.mediaCache[chat.id] = global.mediaCache[chat.id].filter(item => item !== cacheItem);
+                                    if (global.mediaCache[chat.id].length === 0) {
+                                        delete global.mediaCache[chat.id];
+                                    }
+                                }
+                            }, 5 * 60 * 1000);
                         }
                     }
 
@@ -831,7 +877,7 @@ app.post('/api/test/chat', async (req, res) => {
             if (m.role === 'ai') return new AIMessage(m.content);
             if (m.mediaBase64) {
                 global.mediaCache = global.mediaCache || {};
-                global.mediaCache[TEST_CHAT_ID] = { base64: m.mediaBase64, mimeType: m.mediaMime || 'image/jpeg' };
+                global.mediaCache[TEST_CHAT_ID] = [{ base64: m.mediaBase64, mimeType: m.mediaMime || 'image/jpeg', timestamp: Date.now() }];
                 console.log(`📸 Test Chat: Imagen guardada en mediaCache['${TEST_CHAT_ID}'] (${(m.mediaBase64.length / 1024).toFixed(0)} KB)`);
                 const promptMedia = `[El cliente envió una imagen adjunta. DEBES usar la herramienta 'process_prescription_subagent' INMEDIATAMENTE con este JSON exacto: {"chatId": "${TEST_CHAT_ID}", "clientId": null, "context": "Simulador de prueba", "userName": "Tester", "userPhone": "1111111111"}. Mensaje del cliente: ${m.content || 'Foto de receta'}]`;
                 return new HumanMessage(promptMedia);
