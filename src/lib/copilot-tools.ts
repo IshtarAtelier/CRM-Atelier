@@ -346,8 +346,8 @@ const updateLabOrder: CopilotTool = {
         try {
             const { ContactService } = await import('@/services/contact.service');
             const taskDesc = `Solicitar comentario a ${order.client.name}`;
-            await ContactService.addTask(order.clientId, taskDesc);
-            sideEffectMsg = '\n(Se generó la tarea automática para pedirle una reseña)';
+            await ContactService.addReviewRequest(order.clientId, taskDesc);
+            sideEffectMsg = '\n(Se generó la solicitud automática de reseña)';
         } catch (e) {
             console.error('Error creating task from Copilot tool:', e);
         }
@@ -358,6 +358,362 @@ const updateLabOrder: CopilotTool = {
     if (willChangeStatus) responseMsg += ` El estado pasó a: ${finalStatus}.`;
     
     return responseMsg + sideEffectMsg;
+  },
+};
+
+const getClientPrescriptions: CopilotTool = {
+  name: 'get_client_prescriptions',
+  description: 'Obtiene las recetas (graduaciones médicas) asociadas a un cliente específico. Necesita el clientId.',
+  parameters: {
+    type: 'object',
+    properties: {
+      clientId: { type: 'string', description: 'ID del cliente' },
+    },
+    required: ['clientId'],
+  },
+  execute: async (args) => {
+    const prescriptions = await prisma.prescription.findMany({
+      where: { clientId: args.clientId as string },
+      orderBy: { date: 'desc' },
+      take: 5,
+    });
+    if (!prescriptions.length) return 'No se encontraron recetas para este cliente.';
+    
+    return JSON.stringify(prescriptions.map(p => {
+      const parts = [];
+      if (p.sphereOD !== null || p.cylinderOD !== null || p.axisOD !== null) {
+        parts.push(`Lejos OD: Esf ${p.sphereOD || 0}, Cil ${p.cylinderOD || 0}, Eje ${p.axisOD || 0}°`);
+      }
+      if (p.sphereOI !== null || p.cylinderOI !== null || p.axisOI !== null) {
+        parts.push(`Lejos OI: Esf ${p.sphereOI || 0}, Cil ${p.cylinderOI || 0}, Eje ${p.axisOI || 0}°`);
+      }
+      if (p.nearSphereOD !== null || p.nearCylinderOD !== null || p.nearAxisOD !== null) {
+        parts.push(`Cerca OD: Esf ${p.nearSphereOD || 0}, Cil ${p.nearCylinderOD || 0}, Eje ${p.nearAxisOD || 0}°`);
+      }
+      if (p.nearSphereOI !== null || p.nearCylinderOI !== null || p.nearAxisOI !== null) {
+        parts.push(`Cerca OI: Esf ${p.nearSphereOI || 0}, Cil ${p.nearCylinderOI || 0}, Eje ${p.nearAxisOI || 0}°`);
+      }
+      if (p.addition !== null || p.additionOD !== null || p.additionOI !== null) {
+        parts.push(`Adición: General ${p.addition || 'N/A'}, OD ${p.additionOD || 'N/A'}, OI ${p.additionOI || 'N/A'}`);
+      }
+      if (p.pd !== null || p.distanceOD !== null || p.distanceOI !== null) {
+        parts.push(`DIP: General ${p.pd || 'N/A'}, OD ${p.distanceOD || 'N/A'}, OI ${p.distanceOI || 'N/A'}`);
+      }
+      return {
+        id: p.id,
+        fecha: p.date.toISOString().split('T')[0],
+        tipo: p.prescriptionType,
+        graduacion: parts.join(' | '),
+        notas: p.notes,
+        imagenUrl: p.imageUrl,
+      };
+    }));
+  },
+};
+
+const updateClientInfo: CopilotTool = {
+  name: 'update_client_info',
+  description: 'Actualiza los datos personales, de contacto u obra social de un cliente. Necesita clientId.',
+  parameters: {
+    type: 'object',
+    properties: {
+      clientId: { type: 'string', description: 'ID del cliente' },
+      dni: { type: 'string', description: 'DNI del cliente (opcional)' },
+      insurance: { type: 'string', description: 'Obra social / Prepaga (opcional)' },
+      doctor: { type: 'string', description: 'Oftalmólogo / Doctor de cabecera (opcional)' },
+      phone: { type: 'string', description: 'Número de teléfono (opcional)' },
+      email: { type: 'string', description: 'Dirección de correo electrónico (opcional)' },
+      address: { type: 'string', description: 'Dirección física / Domicilio (opcional)' },
+      interest: { type: 'string', description: 'Interés del cliente, ej: Multifocal, Monofocal, Contacto (opcional)' },
+      status: { type: 'string', description: 'Estado del cliente, ej: LEAD, CONTACT, CUSTOMER, CONFIRMED (opcional)' },
+    },
+    required: ['clientId'],
+  },
+  execute: async (args) => {
+    const { clientId, ...data } = args;
+    
+    const updateData: Record<string, any> = {};
+    for (const [key, val] of Object.entries(data)) {
+      if (val !== undefined && val !== null && val !== '') {
+        updateData[key] = val;
+      }
+    }
+
+    if (Object.keys(updateData).length === 0) {
+      return 'No se especificaron datos para actualizar.';
+    }
+
+    const updated = await prisma.client.update({
+      where: { id: clientId as string },
+      data: updateData,
+      select: { name: true, phone: true, email: true, dni: true, insurance: true, doctor: true },
+    });
+
+    return `Datos de ${updated.name} actualizados exitosamente: ` + JSON.stringify(updated);
+  },
+};
+
+const createClientTask: CopilotTool = {
+  name: 'create_client_task',
+  description: 'Crea una tarea de seguimiento para un cliente específico (ej. reclamar saldo, consultar si está conforme, llamar para coordinar).',
+  parameters: {
+    type: 'object',
+    properties: {
+      clientId: { type: 'string', description: 'ID del cliente' },
+      description: { type: 'string', description: 'Descripción de la tarea a realizar' },
+      dueDate: { type: 'string', description: 'Fecha de vencimiento en formato AAAA-MM-DD (opcional)' },
+    },
+    required: ['clientId', 'description'],
+  },
+  execute: async (args, ctx) => {
+    const due = args.dueDate ? new Date(args.dueDate as string) : null;
+    const task = await prisma.clientTask.create({
+      data: {
+        clientId: args.clientId as string,
+        description: args.description as string,
+        dueDate: due,
+        createdBy: ctx.userName || 'Copilot',
+        status: 'PENDING',
+        type: 'TASK',
+      },
+      include: { client: { select: { name: true } } },
+    });
+    return `Tarea creada con éxito para ${task.client.name}: "${task.description}" (Vence: ${task.dueDate ? task.dueDate.toISOString().split('T')[0] : 'Sin fecha límite'}).`;
+  },
+};
+
+const getClientTasks: CopilotTool = {
+  name: 'get_client_tasks',
+  description: 'Obtiene las tareas pendientes o de revisión asociadas a un cliente específico. Necesita clientId.',
+  parameters: {
+    type: 'object',
+    properties: {
+      clientId: { type: 'string', description: 'ID del cliente' },
+      status: { type: 'string', description: 'Estado de la tarea (PENDING, COMPLETED, ALL). Por defecto es PENDING.' },
+    },
+    required: ['clientId'],
+  },
+  execute: async (args) => {
+    const statusFilter = (args.status as string || 'PENDING').toUpperCase();
+    const whereClause: Record<string, any> = { clientId: args.clientId as string };
+    if (statusFilter !== 'ALL') {
+      whereClause.status = statusFilter;
+    }
+    const tasks = await prisma.clientTask.findMany({
+      where: whereClause,
+      orderBy: { createdAt: 'desc' },
+      take: 10,
+    });
+    if (!tasks.length) return 'No se encontraron tareas con ese criterio.';
+    return JSON.stringify(tasks.map(t => ({
+      id: t.id,
+      descripcion: t.description,
+      estado: t.status,
+      tipo: t.type,
+      vencimiento: t.dueDate ? t.dueDate.toISOString().split('T')[0] : 'Sin fecha límite',
+      creadaPor: t.createdBy,
+      fechaCreacion: t.createdAt.toISOString().split('T')[0],
+    })));
+  },
+};
+
+const completeClientTask: CopilotTool = {
+  name: 'complete_client_task',
+  description: 'Marca una tarea específica de un cliente como completada. Necesita el taskId.',
+  parameters: {
+    type: 'object',
+    properties: {
+      taskId: { type: 'string', description: 'ID de la tarea a completar' },
+    },
+    required: ['taskId'],
+  },
+  execute: async (args) => {
+    const updated = await prisma.clientTask.update({
+      where: { id: args.taskId as string },
+      data: { status: 'COMPLETED' },
+      include: { client: { select: { name: true } } },
+    });
+    return `Tarea "${updated.description}" de ${updated.client.name} marcada como COMPLETADA.`;
+  },
+};
+
+const addClientInteraction: CopilotTool = {
+  name: 'add_client_interaction',
+  description: 'Agrega una nota, registro de llamada o visita al local en el historial de un cliente.',
+  parameters: {
+    type: 'object',
+    properties: {
+      clientId: { type: 'string', description: 'ID del cliente' },
+      type: { type: 'string', description: 'Tipo de interacción (NOTE, CALL, STORE_VISIT, WHATSAPP, EMAIL). Por defecto es NOTE.' },
+      content: { type: 'string', description: 'El contenido o detalles de la nota/interacción' },
+    },
+    required: ['clientId', 'content'],
+  },
+  execute: async (args) => {
+    const type = (args.type as string || 'NOTE').toUpperCase();
+    const interaction = await prisma.interaction.create({
+      data: {
+        clientId: args.clientId as string,
+        type,
+        content: args.content as string,
+      },
+      include: { client: { select: { name: true } } },
+    });
+    return `Interacción tipo ${interaction.type} agregada al cliente ${interaction.client.name}: "${interaction.content}".`;
+  },
+};
+
+const getClientHistory: CopilotTool = {
+  name: 'get_client_history',
+  description: 'Obtiene el historial de compras y presupuestos (cotizaciones) de un cliente específico. Necesita clientId.',
+  parameters: {
+    type: 'object',
+    properties: {
+      clientId: { type: 'string', description: 'ID del cliente' },
+    },
+    required: ['clientId'],
+  },
+  execute: async (args) => {
+    const orders = await prisma.order.findMany({
+      where: { clientId: args.clientId as string, isDeleted: false },
+      select: {
+        id: true,
+        orderType: true,
+        status: true,
+        total: true,
+        paid: true,
+        createdAt: true,
+        items: {
+          select: {
+            productNameSnapshot: true,
+            productBrandSnapshot: true,
+            productCategorySnapshot: true,
+            quantity: true,
+            price: true,
+          }
+        }
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 10,
+    });
+    if (!orders.length) return 'No hay historial de compras o presupuestos para este cliente.';
+    return JSON.stringify(orders.map(o => ({
+      id: o.id.slice(-6),
+      tipo: o.orderType === 'SALE' ? 'COMPRA' : 'PRESUPUESTO',
+      estado: o.status,
+      total: `$${o.total.toLocaleString('es-AR')}`,
+      pagado: `$${o.paid.toLocaleString('es-AR')}`,
+      saldo: `$${Math.max(0, o.total - o.paid).toLocaleString('es-AR')}`,
+      fecha: o.createdAt.toISOString().split('T')[0],
+      items: o.items.map(i => `${i.quantity}x ${i.productBrandSnapshot || ''} ${i.productNameSnapshot || ''} (${i.productCategorySnapshot || ''}) - $${i.price.toLocaleString('es-AR')}`),
+    })));
+  },
+};
+
+const getSalesVsTarget: CopilotTool = {
+  name: 'get_sales_vs_target',
+  description: 'Compara el total facturado y cobrado del mes en curso contra los objetivos mensuales (MonthlyTarget) configurados en el sistema.',
+  parameters: {
+    type: 'object',
+    properties: {
+      month: { type: 'number', description: 'Mes a consultar (1-12). Por defecto es el mes actual.' },
+      year: { type: 'number', description: 'Año a consultar. Por defecto es el año actual.' },
+    },
+  },
+  execute: async (args) => {
+    const now = new Date();
+    const month = (args.month as number) || now.getMonth() + 1;
+    const year = (args.year as number) || now.getFullYear();
+    
+    const from = new Date(year, month - 1, 1);
+    const to = new Date(year, month, 0, 23, 59, 59, 999);
+
+    const orders = await prisma.order.findMany({
+      where: { orderType: 'SALE', isDeleted: false, createdAt: { gte: from, lte: to } },
+      select: {
+        total: true,
+        paid: true,
+        subtotalWithMarkup: true,
+        payments: { select: { amount: true } },
+      },
+    });
+
+    let totalSold = 0;
+    let totalPaid = 0;
+    for (const o of orders) {
+      totalSold += o.total || o.subtotalWithMarkup || 0;
+      for (const p of o.payments) {
+        totalPaid += p.amount || 0;
+      }
+    }
+
+    let target = null;
+    try {
+      target = await prisma.monthlyTarget.findUnique({
+        where: { month_year: { month, year } }
+      });
+    } catch (e) {
+      console.error('Error fetching targets:', e);
+    }
+
+    const monthNames = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
+    const monthStr = monthNames[month - 1];
+
+    if (!target) {
+      return `Ventas de ${monthStr} ${year}:\n` +
+             `- Total vendido: $${totalSold.toLocaleString('es-AR')}\n` +
+             `- Total cobrado: $${totalPaid.toLocaleString('es-AR')}\n` +
+             `* No hay objetivos mensuales definidos para este período en el sistema.`;
+    }
+
+    const goal1 = target.target1 || 0;
+    const goal2 = target.target2 || 0;
+    const goal3 = target.target3 || 0;
+
+    const progressSoldPercent1 = goal1 > 0 ? ((totalSold / goal1) * 100).toFixed(1) : '0';
+    const progressSoldPercent2 = goal2 > 0 ? ((totalSold / goal2) * 100).toFixed(1) : '0';
+    const progressSoldPercent3 = goal3 > 0 ? ((totalSold / goal3) * 100).toFixed(1) : '0';
+
+    let msg = `Progreso de Objetivos para ${monthStr} ${year}:\n`;
+    msg += `- Facturado actual: $${totalSold.toLocaleString('es-AR')}\n`;
+    msg += `- Cobrado actual: $${totalPaid.toLocaleString('es-AR')}\n\n`;
+    msg += `🎯 **Metas Mensuales (Base en Facturación):**\n`;
+    msg += `1. **Meta 1 (Mínimo):** $${goal1.toLocaleString('es-AR')} | Progreso: ${progressSoldPercent1}% ${totalSold >= goal1 ? '✅ ¡Alcanzado!' : `(Falta $${(goal1 - totalSold).toLocaleString('es-AR')})`}\n`;
+    msg += `2. **Meta 2 (Medio):** $${goal2.toLocaleString('es-AR')} | Progreso: ${progressSoldPercent2}% ${totalSold >= goal2 ? '✅ ¡Alcanzado!' : `(Falta $${(goal2 - totalSold).toLocaleString('es-AR')})`}\n`;
+    if (goal3 > 0) {
+      msg += `3. **Meta 3 (Ideal):** $${goal3.toLocaleString('es-AR')} | Progreso: ${progressSoldPercent3}% ${totalSold >= goal3 ? '✅ ¡Alcanzado!' : `(Falta $${(goal3 - totalSold).toLocaleString('es-AR')})`}\n`;
+    }
+
+    // Calcular días restantes y promedio necesario diario
+    const isCurrentMonth = now.getMonth() + 1 === month && now.getFullYear() === year;
+    const totalDaysInMonth = new Date(year, month, 0).getDate();
+    const remainingDays = isCurrentMonth ? totalDaysInMonth - now.getDate() + 1 : 0;
+
+    if (remainingDays > 0) {
+      msg += `\n📅 **Para los ${remainingDays} días restantes del mes (promedio diario a vender):**\n`;
+      if (totalSold < goal1) {
+        const reqDaily1 = (goal1 - totalSold) / remainingDays;
+        msg += `- **Para Meta 1:** promedio de **$${Math.round(reqDaily1).toLocaleString('es-AR')}/día**.\n`;
+      } else {
+        msg += `- **Para Meta 1:** ¡Alcanzado! 🎉\n`;
+      }
+      if (totalSold < goal2) {
+        const reqDaily2 = (goal2 - totalSold) / remainingDays;
+        msg += `- **Para Meta 2:** promedio de **$${Math.round(reqDaily2).toLocaleString('es-AR')}/día**.\n`;
+      } else {
+        msg += `- **Para Meta 2:** ¡Alcanzado! 🎉\n`;
+      }
+      if (goal3 > 0) {
+        if (totalSold < goal3) {
+          const reqDaily3 = (goal3 - totalSold) / remainingDays;
+          msg += `- **Para Meta 3:** promedio de **$${Math.round(reqDaily3).toLocaleString('es-AR')}/día**.\n`;
+        } else {
+          msg += `- **Para Meta 3:** ¡Alcanzado! 🎉\n`;
+        }
+      }
+    }
+
+    return msg;
   },
 };
 
@@ -651,7 +1007,9 @@ const getPendingBalances: CopilotTool = {
 
 export const STAFF_TOOLS: CopilotTool[] = [
   lookupClient, getClientBalance, getOrderStatus,
-  getProductStock, getPriceList, getMySalesToday, getLabStatus, updateLabOrder
+  getProductStock, getPriceList, getMySalesToday, getLabStatus, updateLabOrder,
+  getClientPrescriptions, updateClientInfo, createClientTask, getClientTasks,
+  completeClientTask, addClientInteraction, getClientHistory, getSalesVsTarget
 ];
 
 export const ADMIN_TOOLS: CopilotTool[] = [

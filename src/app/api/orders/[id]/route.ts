@@ -743,17 +743,18 @@ export async function PATCH(
         if (labStatus === 'DELIVERED') {
             const taskDescription = `Solicitar comentario a ${order.client.name}`;
             
-            // Avoid duplicate pending tasks
+            // Avoid duplicate pending review requests
             const existingTask = await prisma.clientTask.findFirst({
                 where: {
                     clientId: order.clientId,
                     description: taskDescription,
-                    status: 'PENDING'
+                    status: 'PENDING',
+                    type: 'REVIEW_REQUEST'
                 }
             });
 
             if (!existingTask) {
-                await ContactService.addTask(order.clientId, taskDescription);
+                await ContactService.addReviewRequest(order.clientId, taskDescription);
             }
         }
 

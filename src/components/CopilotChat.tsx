@@ -13,6 +13,47 @@ interface Message {
   content: string;
 }
 
+function formatMessageContent(content: string) {
+  if (!content) return '';
+  
+  // Escape HTML to prevent XSS
+  const escaped = content
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+  
+  // Parse ***bold italic***
+  let formatted = escaped.replace(/\*\*\*([^*]+)\*\*\*/g, '<strong><em>$1</em></strong>');
+  
+  // Parse **bold**
+  formatted = formatted.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+  
+  // Parse *italic*
+  formatted = formatted.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+  
+  // Parse `code`
+  formatted = formatted.replace(/`([^`]+)`/g, '<code class="px-1.5 py-0.5 bg-stone-200/50 dark:bg-stone-700/50 rounded font-mono text-[11px]">$1</code>');
+
+  // Convert bullet points (- item or * item)
+  const lines = formatted.split('\n').map(line => {
+    const trimmed = line.trim();
+    if (trimmed.startsWith('- ') || trimmed.startsWith('* ')) {
+      const rest = trimmed.substring(2);
+      return `<li class="ml-4 list-disc my-1">${rest}</li>`;
+    }
+    return line;
+  });
+  
+  formatted = lines.join('\n');
+
+  // Convert line breaks to <br />
+  formatted = formatted.replace(/\n/g, '<br />');
+  
+  return <span dangerouslySetInnerHTML={{ __html: formatted }} />;
+}
+
 export function CopilotChat({ userName = 'Usuario', userRole = 'STAFF' }: CopilotChatProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -186,7 +227,9 @@ export function CopilotChat({ userName = 'Usuario', userRole = 'STAFF' }: Copilo
                       ? 'bg-violet-600 text-white rounded-br-md'
                       : 'bg-stone-100 dark:bg-stone-800 text-stone-800 dark:text-stone-200 rounded-bl-md border border-stone-200 dark:border-stone-700'
                   }`}>
-                    <p className="text-[13px] leading-relaxed whitespace-pre-wrap">{msg.content}</p>
+                    <div className="text-[13px] leading-relaxed whitespace-pre-wrap">
+                      {formatMessageContent(msg.content)}
+                    </div>
                   </div>
                 </div>
               </div>

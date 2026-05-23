@@ -34,8 +34,8 @@ export function GlobalBalanceReminders() {
     return (
         <>
             {/* Botón flotante de Saldos (Banknote) */}
-            {/* Ubicado a la izquierda del de tareas en desktop, apilado en fila en mobile */}
-            <div className="fixed bottom-6 right-[136px] md:bottom-8 md:right-[248px] z-[60] flex items-center gap-4">
+            {/* Ubicado a la izquierda del de reseñas en desktop, apilado en fila en mobile */}
+            <div className="fixed bottom-6 right-[192px] md:bottom-8 md:right-[392px] z-[60] flex items-center gap-4">
                 <button
                     onClick={() => setIsOpen(!isOpen)}
                     className={`p-3 md:p-4 rounded-full md:rounded-2xl border transition-all shadow-lg flex items-center gap-0 md:gap-3 active:scale-95 group relative ${isOpen

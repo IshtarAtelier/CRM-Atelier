@@ -1,7 +1,9 @@
 import { headers } from "next/headers";
 import { Sidebar } from "@/components/Sidebar";
 import { GlobalTasks } from "@/components/GlobalTasks";
+import { GlobalReviewRequests } from "@/components/GlobalReviewRequests";
 import { GlobalBalanceReminders } from "@/components/GlobalBalanceReminders";
+import { GlobalOpportunities } from "@/components/GlobalOpportunities";
 import CommandPalette from "@/components/CommandPalette";
 import { LeadToastNotifications } from "@/components/LeadToastNotifications";
 import { CopilotChat } from "@/components/CopilotChat";
@@ -21,7 +23,9 @@ export default async function AdminLayout({
       <Sidebar userName={userName} userRole={userRole} userId={userId} />
       <main className="flex-1 min-w-0 ml-0 lg:ml-[var(--sidebar-width,16rem)] min-h-screen relative flex flex-col pt-16 lg:pt-0 transition-[margin] duration-300 ease-in-out">
         <GlobalTasks />
+        <GlobalReviewRequests />
         <GlobalBalanceReminders />
+        <GlobalOpportunities />
         <CommandPalette />
         <LeadToastNotifications />
         <CopilotChat userName={userName} userRole={userRole} />

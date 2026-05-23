@@ -212,12 +212,7 @@ async function createQuote({ clientId, items, total, discountCash }) {
         const response = await apiClient.post(`${CRM_API_URL}/orders`, {
             clientId, items, total, discountCash
         });
-        const order = response.data;
-        if (order && order.id) {
-            const baseUrl = CRM_API_URL.replace('/api/bot', '');
-            order.pdfUrl = `${baseUrl}/api/orders/${order.id}/pdf`;
-        }
-        return order;
+        return response.data;
     } catch (error) {
         console.error('Error in createQuote tool:', error.message);
         return { error: 'Error al registrar el presupuesto en el CRM' };

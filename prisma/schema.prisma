@@ -89,6 +89,7 @@ model ClientTask {
   clientId    String
   description String
   status      String    @default("PENDING")
+  type        String    @default("TASK") // TASK, REVIEW_REQUEST
   dueDate     DateTime?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt

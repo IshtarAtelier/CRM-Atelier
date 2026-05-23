@@ -2,6 +2,7 @@ import { prisma } from '@/lib/db';
 import { CashService } from './cash.service';
 import { ISH_POSNET_THRESHOLD, ISH_POSNET_METHODS } from '@/lib/constants';
 import { ReceiptAgentService } from './receipt-agent.service';
+import { PricingService } from './PricingService';
 
 
 export interface ContactCreateData {
@@ -282,7 +283,7 @@ export const ContactService = {
             // Si se convierte en CLIENT (venta), completar automáticamente todas las tareas pendientes
             if (status === 'CLIENT') {
                 await prisma.clientTask.updateMany({
-                    where: { clientId: id, status: 'PENDING' },
+                    where: { clientId: id, status: 'PENDING', type: 'TASK' },
                     data: { status: 'COMPLETED' }
                 });
             }
@@ -433,7 +434,7 @@ export const ContactService = {
 
     async getTasks(clientId: string) {
         return await prisma.clientTask.findMany({
-            where: { clientId },
+            where: { clientId, type: 'TASK' },
             orderBy: { createdAt: 'desc' }
         });
     },
@@ -444,7 +445,19 @@ export const ContactService = {
                 clientId,
                 description,
                 dueDate: dueDate ? new Date(dueDate) : null,
-                status: 'PENDING'
+                status: 'PENDING',
+                type: 'TASK'
+            }
+        });
+    },
+
+    async addReviewRequest(clientId: string, description: string) {
+        return await prisma.clientTask.create({
+            data: {
+                clientId,
+                description,
+                status: 'PENDING',
+                type: 'REVIEW_REQUEST'
             }
         });
     },
@@ -1143,9 +1156,17 @@ export const ContactService = {
 
     async getAllPendingTasks() {
         return await prisma.clientTask.findMany({
-            where: { status: 'PENDING' },
+            where: { status: 'PENDING', type: 'TASK' },
             include: { client: true },
             orderBy: { dueDate: 'asc' }
+        });
+    },
+
+    async getAllPendingReviewRequests() {
+        return await prisma.clientTask.findMany({
+            where: { status: 'PENDING', type: 'REVIEW_REQUEST' },
+            include: { client: true },
+            orderBy: { createdAt: 'desc' }
         });
     },
 
@@ -1173,6 +1194,9 @@ export const ContactService = {
 
         // Calculamos el saldo global por cliente
         return clients.map(client => {
+            let totalRemainingCash = 0;
+            let totalRemainingTransfer = 0;
+            let totalRemainingCard = 0;
             let totalSales = 0;
             let totalPaid = 0;
             let lastOrderDate = new Date(0);
@@ -1181,7 +1205,14 @@ export const ContactService = {
             client.orders.forEach(order => {
                 // Sumamos los totales solo de las VENTAS
                 if (order.orderType === 'SALE') {
-                    totalSales += Number(order.total);
+                    const financials = PricingService.calculateOrderFinancials(order);
+                    totalRemainingCash += financials.remainingCash;
+                    totalRemainingTransfer += financials.remainingTransfer;
+                    totalRemainingCard += financials.remainingCard;
+                    
+                    totalSales += financials.listPrice;
+                    totalPaid += financials.paidReal;
+
                     const orderDate = new Date(order.createdAt);
                     if (orderDate > lastOrderDate) {
                         lastOrderDate = orderDate;
@@ -1199,14 +1230,9 @@ export const ContactService = {
                     });
                     if (hasMultifocal) isMultifocal = true;
                 }
-                
-                // Sumamos TODOS los pagos (vengan de presupuestos o ventas)
-                order.payments.forEach(p => {
-                    totalPaid += Number(p.amount);
-                });
             });
 
-            const balance = totalSales - totalPaid;
+            const balance = totalRemainingCard;
 
             return {
                 id: client.id, 
@@ -1215,6 +1241,9 @@ export const ContactService = {
                 total: totalSales,
                 paid: totalPaid,
                 balance,
+                remainingCash: totalRemainingCash,
+                remainingTransfer: totalRemainingTransfer,
+                remainingCard: totalRemainingCard,
                 isMultifocal,
                 createdAt: lastOrderDate.getTime() > 0 ? lastOrderDate : new Date()
             };

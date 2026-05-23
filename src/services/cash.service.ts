@@ -94,16 +94,20 @@ export const CashService = {
         if (type === 'OUT') {
             const labLine = laboratory ? `\nLaboratorio: ${laboratory}` : '';
             const catLabel = category === 'PAGO_LABORATORIO' ? 'Pago Laboratorio' : category === 'GASTO_GENERAL' ? 'Gasto General' : 'Otro';
-            await sendEmail({
-                to: ADMIN_EMAIL,
-                subject: '🚨 Salida de Efectivo Registrada',
-                text: `Se ha registrado una salida de efectivo:\n\n` +
-                `Monto: $${amount.toLocaleString('es-AR')}\n` +
-                `Categoría: ${catLabel}\n` +
-                `Motivo: ${reason}${labLine}\n` +
-                `Registrado por: ${movement.user.name}\n` +
-                `Fecha: ${movement.createdAt.toLocaleString('es-AR')}`
-            });
+            try {
+                await sendEmail({
+                    to: ADMIN_EMAIL,
+                    subject: '🚨 Salida de Efectivo Registrada',
+                    text: `Se ha registrado una salida de efectivo:\n\n` +
+                    `Monto: $${amount.toLocaleString('es-AR')}\n` +
+                    `Categoría: ${catLabel}\n` +
+                    `Motivo: ${reason}${labLine}\n` +
+                    `Registrado por: ${movement.user.name}\n` +
+                    `Fecha: ${movement.createdAt.toLocaleString('es-AR')}`
+                });
+            } catch (e) {
+                console.error('Error enviando email de egreso:', e);
+            }
 
             // También registrar en notificaciones de la DB
             await prisma.notification.create({
@@ -152,13 +156,17 @@ export const CashService = {
             });
 
             if (!existingAlert) {
-                await sendEmail({
-                    to: ADMIN_EMAIL,
-                    subject: urgency,
-                    text: `El saldo de efectivo en caja ha superado los límites establecidos.\n\n` +
-                    `Saldo actual: $${balance.total.toLocaleString('es-AR')}\n\n` +
-                    `Por motivos de seguridad, se requiere realizar un retiro a la brevedad.`
-                });
+                try {
+                    await sendEmail({
+                        to: ADMIN_EMAIL,
+                        subject: urgency,
+                        text: `El saldo de efectivo en caja ha superado los límites establecidos.\n\n` +
+                        `Saldo actual: $${balance.total.toLocaleString('es-AR')}\n\n` +
+                        `Por motivos de seguridad, se requiere realizar un retiro a la brevedad.`
+                    });
+                } catch (e) {
+                    console.error('Error enviando email de alerta de caja:', e);
+                }
 
                 // También registrar en notificaciones de la DB
                 await prisma.notification.create({

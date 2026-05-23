@@ -26,6 +26,7 @@ const getCategoryInfo = (key: string) => CATEGORIES.find(c => c.key === key) || 
 
 export default function CajaPage() {
     const [movements, setMovements] = useState<CashMovement[]>([]);
+    const [balances, setBalances] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [showModal, setShowModal] = useState(false);
     const [movementType, setMovementType] = useState<'IN' | 'OUT'>('OUT');
@@ -59,6 +60,12 @@ export default function CajaPage() {
             const json = await res.json();
             if (json.movements) {
                 setMovements(json.movements);
+                setBalances({
+                    total: json.total || 0,
+                    paymentsTotal: json.paymentsTotal || 0,
+                    manualIn: json.manualIn || 0,
+                    manualOut: json.manualOut || 0,
+                });
             }
         } catch (error) {
             console.error('Error fetching movements:', error);
@@ -191,6 +198,31 @@ export default function CajaPage() {
                     <p className="text-[10px] font-bold text-stone-400 uppercase tracking-widest mt-1">Salida de Efectivo</p>
                 </button>
             </div>
+
+            {/* Cash Balance Summary */}
+            {balances && (
+                <div className="mb-8 flex justify-center">
+                    <div className={`w-full max-w-md bg-gradient-to-br transition-all duration-300 hover:scale-[1.01] rounded-[2rem] p-6 text-center flex flex-col items-center justify-center shadow-lg border ${
+                        balances.total >= 0 
+                            ? 'from-emerald-500/10 to-emerald-500/5 dark:from-emerald-950/40 dark:to-emerald-950/20 border-emerald-500/20 dark:border-emerald-500/10 shadow-emerald-500/5' 
+                            : 'from-red-500/10 to-red-500/5 dark:from-red-950/40 dark:to-red-950/20 border-red-500/20 dark:border-red-500/10 shadow-red-500/5'
+                    }`}>
+                        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center mb-3 shadow-md ${
+                            balances.total >= 0
+                                ? 'bg-emerald-500 text-white shadow-emerald-500/20'
+                                : 'bg-red-500 text-white shadow-red-500/20'
+                        }`}>
+                            <Wallet className="w-6 h-6" />
+                        </div>
+                        <p className="text-[10px] font-black text-stone-400 dark:text-stone-500 uppercase tracking-[0.25em] mb-1">Saldo en Efectivo</p>
+                        <p className={`text-4xl font-black tracking-tight ${
+                            balances.total >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'
+                        }`}>
+                            ${balances.total.toLocaleString('es-AR')}
+                        </p>
+                    </div>
+                </div>
+            )}
 
             {/* Recent Movements List */}
             <div className="bg-white dark:bg-stone-900 rounded-[2rem] border border-stone-100 dark:border-stone-800 shadow-sm overflow-hidden">
