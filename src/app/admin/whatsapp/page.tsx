@@ -6,7 +6,7 @@ import {
     MessageCircle, Send, Wifi, WifiOff, QrCode, RefreshCw, User,
     Clock, CheckCircle2, Bot, Settings, X, ChevronLeft, Phone,
     Tag, Archive, ArchiveRestore, Filter, Plus, Mic, PlaySquare, Image as ImageIcon, Calendar, Search, Play, Paperclip, Smile, Square, Trash2,
-    UserPlus, Loader2, Sparkles
+    UserPlus, Loader2, Sparkles, Pin
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -18,6 +18,7 @@ const EmojiPicker = dynamic(() => import('emoji-picker-react'), { ssr: false });
 
 // Etiquetas predefinidas para chats
 const CHAT_LABEL_OPTIONS = [
+    { label: 'Fijado', color: 'bg-yellow-100/80 text-yellow-700 border-yellow-200' },
     { label: 'Cancelar Bot', color: 'bg-red-100/80 text-red-700 border-red-200' },
     { label: 'VIP', color: 'bg-amber-100/80 text-amber-700 border-amber-200' },
     { label: 'Proveedor', color: 'bg-slate-100/80 text-slate-700 border-slate-200' },
@@ -260,6 +261,10 @@ export default function WhatsAppPage() {
                 // --------------------------
 
                 const sorted = [...data].sort((a, b) => {
+                    const aPinned = (a.chatLabels || []).includes('Fijado') ? 1 : 0;
+                    const bPinned = (b.chatLabels || []).includes('Fijado') ? 1 : 0;
+                    if (aPinned !== bPinned) return bPinned - aPinned;
+
                     const ta = a.lastMessageAt ? new Date(a.lastMessageAt).getTime() : 0;
                     const tb = b.lastMessageAt ? new Date(b.lastMessageAt).getTime() : 0;
                     return tb - ta;
@@ -491,6 +496,17 @@ export default function WhatsAppPage() {
         await updateChat(selectedChat.id, { chatLabels: next });
         if (label === 'Cancelar Bot' && next.includes(label)) {
             await updateChat(selectedChat.id, { botEnabled: false });
+        }
+        if (label === 'Fijado' && selectedChat.client?.id) {
+            try {
+                await fetch(`/api/contacts/${selectedChat.client.id}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ isFavorite: next.includes('Fijado') })
+                });
+            } catch (e) {
+                console.error('Error actualizando favorito:', e);
+            }
         }
     };
 
@@ -882,8 +898,11 @@ export default function WhatsAppPage() {
                                                 </div>
                                                 <div className="flex-1 min-w-0 pr-1">
                                                     <div className="flex items-center justify-between">
-                                                        <span className={`text-[13px] font-black truncate ${isSelected ? 'text-stone-900 dark:text-white' : ''}`}>
+                                                        <span className={`text-[13px] font-black truncate flex items-center gap-1 ${isSelected ? 'text-stone-900 dark:text-white' : ''}`}>
                                                             {getDisplayName(chat)}
+                                                            {(chat.chatLabels || []).includes('Fijado') && (
+                                                                <Pin className="w-3 h-3 text-stone-400 rotate-45 shrink-0" />
+                                                            )}
                                                         </span>
                                                         {chat.lastMessageAt && (
                                                             <span className="text-[10px] text-stone-400 font-bold shrink-0">
