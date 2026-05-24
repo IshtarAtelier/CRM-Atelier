@@ -178,7 +178,7 @@ async function getPriceList({ category }) {
     try {
         const params = { botRecommended: 'true' };
         if (category) params.category = category;
-        const response = await apiClient.get(`${CRM_API_URL}/bot/pricing`, { params });
+        const response = await apiClient.get(`${CRM_API_URL}/pricing`, { params });
         return response.data;
     } catch (error) {
         console.error('Error in getPriceList tool:', error.message);
