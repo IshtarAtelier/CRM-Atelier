@@ -39,6 +39,7 @@ interface LaboratoryConfig {
     name: string;
     calibrado: number;
     iva: number;
+    deliveryTime?: string | null;
 }
 
 interface BillingConfig {
@@ -67,6 +68,7 @@ interface ServicePricing {
 // ── Page ──────────────────────────────────
 
 export default function ConfiguracionPage() {
+    const [activeTab, setActiveTab] = useState<'usuarios' | 'laboratorios' | 'automatizaciones' | 'finanzas' | 'sistema'>('usuarios');
     const [users, setUsers] = useState<User[]>([]);
     const [loading, setLoading] = useState(true);
     const [showCreateForm, setShowCreateForm] = useState(false);
@@ -100,6 +102,7 @@ export default function ConfiguracionPage() {
     const [editingLabId, setEditingLabId] = useState<string | null>(null);
     const [editLabCalibrado, setEditLabCalibrado] = useState(0);
     const [editLabIva, setEditLabIva] = useState(0);
+    const [editLabDeliveryTime, setEditLabDeliveryTime] = useState('');
 
     // Service Pricing state
     const [services, setServices] = useState<ServicePricing[]>([]);
@@ -253,7 +256,7 @@ export default function ConfiguracionPage() {
             const res = await fetch('/api/laboratories', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name: newLabName.trim(), calibrado: 0, iva: 0 })
+                body: JSON.stringify({ name: newLabName.trim(), calibrado: 0, iva: 0, deliveryTime: null })
             });
             if (!res.ok) {
                 const data = await res.json();
@@ -274,7 +277,7 @@ export default function ConfiguracionPage() {
             const res = await fetch(`/api/laboratories/${id}`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ calibrado: editLabCalibrado, iva: editLabIva })
+                body: JSON.stringify({ calibrado: editLabCalibrado, iva: editLabIva, deliveryTime: editLabDeliveryTime || null })
             });
             if (res.ok) {
                 setMessage({ type: 'success', text: 'Laboratorio actualizado' });
@@ -602,7 +605,62 @@ export default function ConfiguracionPage() {
                 </div>
             )}
 
+            {/* Tabs Navigation */}
+            <div className="flex flex-wrap items-center gap-2 mb-8 bg-stone-100 dark:bg-stone-800/50 p-2 rounded-2xl">
+                <button
+                    onClick={() => setActiveTab('usuarios')}
+                    className={`flex-1 min-w-[120px] py-2.5 px-4 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${
+                        activeTab === 'usuarios' 
+                            ? 'bg-white dark:bg-stone-700 text-stone-800 dark:text-white shadow-sm' 
+                            : 'text-stone-500 hover:bg-white/50 dark:hover:bg-stone-700/50'
+                    }`}
+                >
+                    <Users className="w-4 h-4" /> Usuarios
+                </button>
+                <button
+                    onClick={() => setActiveTab('laboratorios')}
+                    className={`flex-1 min-w-[120px] py-2.5 px-4 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${
+                        activeTab === 'laboratorios' 
+                            ? 'bg-white dark:bg-stone-700 text-stone-800 dark:text-white shadow-sm' 
+                            : 'text-stone-500 hover:bg-white/50 dark:hover:bg-stone-700/50'
+                    }`}
+                >
+                    <Database className="w-4 h-4" /> Laboratorios
+                </button>
+                <button
+                    onClick={() => setActiveTab('automatizaciones')}
+                    className={`flex-1 min-w-[120px] py-2.5 px-4 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${
+                        activeTab === 'automatizaciones' 
+                            ? 'bg-white dark:bg-stone-700 text-stone-800 dark:text-white shadow-sm' 
+                            : 'text-stone-500 hover:bg-white/50 dark:hover:bg-stone-700/50'
+                    }`}
+                >
+                    <Bot className="w-4 h-4" /> IA y Bots
+                </button>
+                <button
+                    onClick={() => setActiveTab('finanzas')}
+                    className={`flex-1 min-w-[120px] py-2.5 px-4 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${
+                        activeTab === 'finanzas' 
+                            ? 'bg-white dark:bg-stone-700 text-stone-800 dark:text-white shadow-sm' 
+                            : 'text-stone-500 hover:bg-white/50 dark:hover:bg-stone-700/50'
+                    }`}
+                >
+                    <Sparkles className="w-4 h-4" /> Finanzas
+                </button>
+                <button
+                    onClick={() => setActiveTab('sistema')}
+                    className={`flex-1 min-w-[120px] py-2.5 px-4 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${
+                        activeTab === 'sistema' 
+                            ? 'bg-white dark:bg-stone-700 text-stone-800 dark:text-white shadow-sm' 
+                            : 'text-stone-500 hover:bg-white/50 dark:hover:bg-stone-700/50'
+                    }`}
+                >
+                    <HardDrive className="w-4 h-4" /> Sistema
+                </button>
+            </div>
+
             {/* Users Section */}
+            {activeTab === 'usuarios' && (
             <section className="bg-white dark:bg-stone-800 border-2 border-stone-100 dark:border-stone-700 rounded-2xl overflow-hidden">
                 <div className="p-6 flex items-center justify-between border-b-2 border-stone-100 dark:border-stone-700">
                     <div className="flex items-center gap-2">
@@ -837,8 +895,10 @@ export default function ConfiguracionPage() {
                     </div>
                 )}
             </section>
+            )}
 
             {/* Doctors Section */}
+            {activeTab === 'usuarios' && (
             <section className="mt-8 bg-white dark:bg-stone-800 border-2 border-stone-100 dark:border-stone-700 rounded-2xl overflow-hidden">
                 <div className="p-6 flex items-center justify-between border-b-2 border-stone-100 dark:border-stone-700">
                     <div className="flex items-center gap-2">
@@ -905,8 +965,10 @@ export default function ConfiguracionPage() {
                     </div>
                 )}
             </section>
+            )}
 
             {/* Laboratories Section */}
+            {activeTab === 'laboratorios' && (
             <section className="mt-8 bg-white dark:bg-stone-800 border-2 border-stone-100 dark:border-stone-700 rounded-2xl overflow-hidden">
                 <div className="p-6 flex items-center justify-between border-b-2 border-stone-100 dark:border-stone-700">
                     <div className="flex items-center gap-2">
@@ -985,6 +1047,16 @@ export default function ConfiguracionPage() {
                                                             className="w-20 px-3 py-1.5 border-2 border-primary rounded-lg text-sm font-bold outline-none bg-white dark:bg-stone-900"
                                                         />
                                                     </div>
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="text-[10px] font-black uppercase text-stone-400">T. Entrega</span>
+                                                        <input 
+                                                            type="text" 
+                                                            value={editLabDeliveryTime} 
+                                                            onChange={e => setEditLabDeliveryTime(e.target.value)}
+                                                            className="w-32 px-3 py-1.5 border-2 border-primary rounded-lg text-sm font-bold outline-none bg-white dark:bg-stone-900"
+                                                            placeholder="Ej: 7 a 10 días"
+                                                        />
+                                                    </div>
                                                     <div className="flex gap-2">
                                                         <button onClick={() => handleSaveLab(lab.id)} className="p-2 bg-emerald-500 text-white rounded-lg hover:scale-105 transition-all">
                                                             <Save className="w-4 h-4" />
@@ -1005,6 +1077,10 @@ export default function ConfiguracionPage() {
                                                             <p className="text-[9px] font-black uppercase tracking-widest text-stone-400">IVA</p>
                                                             <p className="text-sm font-black text-stone-800 dark:text-stone-200">{lab.iva}%</p>
                                                         </div>
+                                                        <div className="text-right">
+                                                            <p className="text-[9px] font-black uppercase tracking-widest text-stone-400">Entrega</p>
+                                                            <p className="text-sm font-black text-stone-800 dark:text-stone-200">{lab.deliveryTime || '-'}</p>
+                                                        </div>
                                                     </div>
                                                     <div className="flex gap-2">
                                                         <button
@@ -1012,6 +1088,7 @@ export default function ConfiguracionPage() {
                                                                 setEditingLabId(lab.id);
                                                                 setEditLabCalibrado(lab.calibrado);
                                                                 setEditLabIva(lab.iva);
+                                                                setEditLabDeliveryTime(lab.deliveryTime || '');
                                                             }}
                                                             className="p-2.5 bg-stone-50 dark:bg-stone-700 text-stone-400 rounded-xl hover:bg-blue-50 hover:text-blue-500 transition-all opacity-0 group-hover:opacity-100"
                                                         >
@@ -1034,9 +1111,11 @@ export default function ConfiguracionPage() {
                     </div>
                 )}
             </section>
+            )}
 
             
             {/* Tags Section */}
+            {activeTab === 'automatizaciones' && (
             <section className="mt-8 bg-white dark:bg-stone-800 border-2 border-stone-100 dark:border-stone-700 rounded-2xl overflow-hidden">
                 <div className="p-6 flex items-center justify-between border-b-2 border-stone-100 dark:border-stone-700">
                     <div className="flex items-center gap-2">
@@ -1098,8 +1177,10 @@ export default function ConfiguracionPage() {
                     ))}
                 </div>
             </section>
+            )}
 
             {/* WhatsApp Agent Section */}
+            {activeTab === 'automatizaciones' && (
             <section className="mt-8 bg-white dark:bg-stone-800 border-2 border-stone-100 dark:border-stone-700 rounded-2xl overflow-hidden">
                 <div className="p-6 flex items-center justify-between border-b-2 border-stone-100 dark:border-stone-700">
                     <div className="flex items-center gap-2">
@@ -1255,9 +1336,11 @@ export default function ConfiguracionPage() {
                     </div>
                 </div>
             </section>
+            )}
 
             {/* Configuración de Precios del Bot */}
             {/* Services Pricing Section */}
+            {activeTab === 'finanzas' && (
             <section className="mt-8 bg-white dark:bg-stone-800 border-2 border-stone-100 dark:border-stone-700 rounded-2xl overflow-hidden">
                 <div className="p-6 flex items-center justify-between border-b-2 border-stone-100 dark:border-stone-700">
                     <div className="flex items-center gap-2">
@@ -1354,8 +1437,10 @@ export default function ConfiguracionPage() {
                     </div>
                 )}
             </section>
+            )}
 
             {/* AI Blog Agent Section */}
+            {activeTab === 'automatizaciones' && (
             <section className="mt-8 bg-white dark:bg-stone-800 border-2 border-stone-100 dark:border-stone-700 rounded-2xl overflow-hidden">
                 <div className="p-6 flex items-center justify-between border-b-2 border-stone-100 dark:border-stone-700">
                     <div className="flex items-center gap-2">
@@ -1411,10 +1496,12 @@ export default function ConfiguracionPage() {
                     </div>
                 </div>
             </section>
+            )}
 
             <BotPricingSection />
 
             {/* ARCA Billing Section */}
+            {activeTab === 'finanzas' && (
             <section className="mt-8 bg-white dark:bg-stone-800 border-2 border-stone-100 dark:border-stone-700 rounded-2xl overflow-hidden">
                 <div className="p-6 flex items-center justify-between border-b-2 border-stone-100 dark:border-stone-700">
                     <div className="flex items-center gap-2">
@@ -1528,8 +1615,10 @@ export default function ConfiguracionPage() {
                     </div>
                 </div>
             </section>
+            )}
 
             {/* Database Backup */}
+            {activeTab === 'sistema' && (
             <section className="mt-8 bg-white dark:bg-stone-800 border-2 border-stone-100 dark:border-stone-700 rounded-2xl overflow-hidden">
                 <div className="p-6 flex items-center justify-between border-b-2 border-stone-100 dark:border-stone-700">
                     <div className="flex items-center gap-2">
@@ -1650,8 +1739,10 @@ export default function ConfiguracionPage() {
                     </div>
                 </div>
             </section>
+            )}
 
             {/* System Info */}
+            {activeTab === 'sistema' && (
             <section className="mt-8 bg-white dark:bg-stone-800 border-2 border-stone-100 dark:border-stone-700 rounded-2xl p-6">
                 <div className="flex items-center gap-2 mb-4">
                     <Shield className="w-5 h-5 text-stone-400" />
@@ -1664,6 +1755,7 @@ export default function ConfiguracionPage() {
                     <InfoItem label="Base de Datos" value="PostgreSQL (Railway)" />
                 </div>
             </section>
+            )}
         </main>
     );
 }

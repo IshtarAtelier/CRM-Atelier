@@ -32,6 +32,7 @@ export async function POST(req: Request) {
                 name: data.name.trim().toUpperCase(),
                 calibrado: parseFloat(data.calibrado) || 0.0,
                 iva: parseFloat(data.iva) || 0.0,
+                deliveryTime: data.deliveryTime || null,
             }
         });
 

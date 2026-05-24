@@ -23,6 +23,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
                 name: data.name.trim().toUpperCase(),
                 calibrado: parseFloat(data.calibrado) || 0.0,
                 iva: parseFloat(data.iva) || 0.0,
+                deliveryTime: data.deliveryTime !== undefined ? data.deliveryTime : null,
             }
         });
 
@@ -50,6 +51,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
         if (data.name !== undefined) updateData.name = data.name.trim().toUpperCase();
         if (data.calibrado !== undefined) updateData.calibrado = parseFloat(data.calibrado) || 0.0;
         if (data.iva !== undefined) updateData.iva = parseFloat(data.iva) || 0.0;
+        if (data.deliveryTime !== undefined) updateData.deliveryTime = data.deliveryTime;
 
         const lab = await prisma.laboratoryConfig.update({
             where: { id },

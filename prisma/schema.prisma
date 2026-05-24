@@ -131,50 +131,50 @@ model Prescription {
 }
 
 model Product {
-  id                    String       @id @default(cuid())
+  id                    String   @id @default(cuid())
   name                  String?
   category              String
   type                  String?
   brand                 String?
   model                 String?
-  stock                 Int          @default(0)
+  stock                 Int      @default(0)
   lensIndex             String?
-  unitType              String?      @default("UNIDAD")
+  unitType              String?  @default("UNIDAD")
   laboratory            String?
-  price                 Float        @default(0.0)
-  cost                  Float        @default(0.0)
+  price                 Float    @default(0.0)
+  cost                  Float    @default(0.0)
   sphereMin             Float?
   sphereMax             Float?
   cylinderMin           Float?
   cylinderMax           Float?
   additionMin           Float?
   additionMax           Float?
-  is2x1                 Boolean      @default(false)
-  createdAt             DateTime     @default(now())
-  updatedAt             DateTime     @updatedAt
+  is2x1                 Boolean  @default(false)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
   botLabel              String?
-  botRecommended        Boolean      @default(false)
-  imageProcessingStatus String?      @default("IDLE")
-  rawImageUrls          String[]     @default([])
-  imagenesCatalogo      String[]     @default([])
-  publishToWeb          Boolean      @default(false)
+  botRecommended        Boolean  @default(false)
+  imageProcessingStatus String?  @default("IDLE")
+  rawImageUrls          String[] @default([])
+  imagenesCatalogo      String[] @default([])
+  publishToWeb          Boolean  @default(false)
   // Medidas del armazón (en mm)
   lensWidth             Int?
   bridgeWidth           Int?
   templeLength          Int?
   frameHeight           Int?
-  
-  // SEO & E-Commerce (TiendaNube Style)
-  seoTitle              String?
-  seoDescription        String?
-  seoTags               String?
-  customSlug            String?
-  mpn                   String?
-  gender                String?
-  ageGroup              String?
 
-  orderItems            OrderItem[]
-  webProducts           WebProduct[]
+  // SEO & E-Commerce (TiendaNube Style)
+  seoTitle       String?
+  seoDescription String?
+  seoTags        String?
+  customSlug     String?
+  mpn            String?
+  gender         String?
+  ageGroup       String?
+
+  orderItems  OrderItem[]
+  webProducts WebProduct[]
 }
 
 model Order {
@@ -430,12 +430,13 @@ model WebProduct {
 }
 
 model LaboratoryConfig {
-  id        String   @id @default(cuid())
-  name      String   @unique
-  calibrado Float    @default(0.0)
-  iva       Float    @default(0.0)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id           String   @id @default(cuid())
+  name         String   @unique
+  calibrado    Float    @default(0.0)
+  iva          Float    @default(0.0)
+  deliveryTime String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 }
 
 model SystemSetting {
@@ -445,17 +446,17 @@ model SystemSetting {
 }
 
 model CheckoutSession {
-  id          String   @id @default(cuid())
-  email       String?
-  firstName   String?
-  lastName    String?
-  phone       String?
-  cartData    Json     // Store items, quantities, prices
-  shippingData Json?   // Store selected shipping method
-  status      String   @default("PENDING") // PENDING, RECOVERED, COMPLETED, ABANDONED
-  total       Float    @default(0.0)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id           String   @id @default(cuid())
+  email        String?
+  firstName    String?
+  lastName     String?
+  phone        String?
+  cartData     Json // Store items, quantities, prices
+  shippingData Json? // Store selected shipping method
+  status       String   @default("PENDING") // PENDING, RECOVERED, COMPLETED, ABANDONED
+  total        Float    @default(0.0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 }
 
 model BlogPost {
@@ -476,17 +477,17 @@ model BlogPost {
 
 model SocialContent {
   id          String   @id @default(cuid())
-  platform    String   // INSTAGRAM, FACEBOOK, WHATSAPP
-  format      String   // POST, STORY, REEL, CAROUSEL
-  sourceType  String   // PRODUCT, BLOG, PROMO, FREE
-  sourceId    String?  // ID del producto o blog post
-  sourceName  String?  // Nombre del producto o blog para referencia rápida
-  copy        String   // Texto principal generado
-  hashtags    String?  // Hashtags separados por espacio
-  cta         String?  // Call to action
-  imageUrl    String?  // URL de la imagen generada (S3/storage)
-  imagePrompt String?  // Prompt usado para generar la imagen
-  publishTips String?  // Indicaciones de publicación en JSON
+  platform    String // INSTAGRAM, FACEBOOK, WHATSAPP
+  format      String // POST, STORY, REEL, CAROUSEL
+  sourceType  String // PRODUCT, BLOG, PROMO, FREE
+  sourceId    String? // ID del producto o blog post
+  sourceName  String? // Nombre del producto o blog para referencia rápida
+  copy        String // Texto principal generado
+  hashtags    String? // Hashtags separados por espacio
+  cta         String? // Call to action
+  imageUrl    String? // URL de la imagen generada (S3/storage)
+  imagePrompt String? // Prompt usado para generar la imagen
+  publishTips String? // Indicaciones de publicación en JSON
   status      String   @default("DRAFT") // DRAFT, PUBLISHED, ARCHIVED
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
