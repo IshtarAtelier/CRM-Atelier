@@ -195,91 +195,53 @@ export default function DashboardObjectives({
         )}
 
         {/* Goals Grid */}
-        <div className={isAdmin ? "grid grid-cols-1 lg:grid-cols-3 gap-6" : "max-w-4xl mx-auto"}>
-          {isAdmin ? (
-            <>
-              {/* Base Goal */}
-              <ObjectiveCard 
-                title="Base" 
-                subtitle="Crecimiento"
-                target={t1} 
-                progress={progress1} 
-                current={currentTotal} 
-                dolar={toUSD(t1)}
-                daily={getDailyRequired(t1)}
-                icon={Target}
-                color="base"
-                expected={expectedPacePct}
-                isAdmin={isAdmin}
-              />
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Base Goal */}
+          <ObjectiveCard 
+            title="Base" 
+            subtitle="Objetivo Mínimo"
+            target={t1} 
+            progress={progress1} 
+            current={currentTotal} 
+            dolar={toUSD(t1)}
+            daily={getDailyRequired(t1)}
+            icon={Target}
+            color="base"
+            expected={expectedPacePct}
+            isAdmin={isAdmin}
+          />
 
-              {/* Stretch Goal */}
-              <ObjectiveCard 
-                title="Stretch" 
-                subtitle="Expansión"
-                target={t2} 
-                progress={progress2} 
-                current={currentTotal} 
-                dolar={toUSD(t2)}
-                daily={getDailyRequired(t2)}
-                icon={Zap}
-                color="stretch"
-                expected={expectedPacePct}
-                isAdmin={isAdmin}
-              />
+          {/* Stretch Goal */}
+          <ObjectiveCard 
+            title="Stretch" 
+            subtitle="Expansión"
+            target={t2} 
+            progress={progress2} 
+            current={currentTotal} 
+            dolar={toUSD(t2)}
+            daily={getDailyRequired(t2)}
+            icon={Zap}
+            color="stretch"
+            expected={expectedPacePct}
+            isAdmin={isAdmin}
+          />
 
-              {/* Elite Goal */}
-              <ObjectiveCard 
-                title="Elite" 
-                subtitle="Dominio"
-                target={t3} 
-                progress={progress3} 
-                current={currentTotal} 
-                dolar={toUSD(t3)}
-                daily={getDailyRequired(t3)}
-                icon={Trophy}
-                color="elite"
-                expected={expectedPacePct}
-                isAdmin={isAdmin}
-                isElite
-              />
-            </>
-          ) : (
-            <div className="space-y-6">
-              <div className="flex justify-between items-end">
-                <div>
-                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-stone-400 mb-2">Meta del Mes</p>
-                  <h3 className="text-3xl font-black italic tracking-tighter text-white">Camino al Objetivo</h3>
-                </div>
-                <span className={`text-4xl font-black ${progress1 >= 100 ? 'text-emerald-400' : 'text-[#c2a38a]'}`}>
-                  {progress1.toFixed(0)}%
-                </span>
-              </div>
-              <div className="h-8 bg-white/5 rounded-full overflow-hidden p-1.5 backdrop-blur-sm border border-white/10 shadow-inner">
-                <motion.div 
-                  initial={{ width: 0 }}
-                  animate={{ width: `${progress1}%` }}
-                  transition={{ duration: 2, ease: "easeOut" }}
-                  className={`h-full rounded-full bg-[#c2a38a] shadow-[0_0_20px_rgba(194,163,138,0.4)] ${progress1 >= 100 ? 'bg-emerald-500 shadow-emerald-500/40' : ''}`}
-                />
-              </div>
-              <div className="flex items-center justify-center gap-2 p-4 bg-white/5 rounded-2xl border border-white/5">
-                <Trophy className={`w-5 h-5 ${progress1 >= 100 ? 'text-amber-400' : 'text-stone-600'}`} />
-                <p className="text-xs font-black uppercase tracking-widest text-stone-400">
-                  {progress1 >= 100 ? '¡Objetivo Principal alcanzado! 🏆' : '¡Seguí sumando ventas para alcanzar la meta!'}
-                </p>
-              </div>
-            </div>
-          )}
+          {/* Elite Goal */}
+          <ObjectiveCard 
+            title="Elite" 
+            subtitle="Dominio"
+            target={t3} 
+            progress={progress3} 
+            current={currentTotal} 
+            dolar={toUSD(t3)}
+            daily={getDailyRequired(t3)}
+            icon={Trophy}
+            color="elite"
+            expected={expectedPacePct}
+            isAdmin={isAdmin}
+            isElite
+          />
         </div>
-
-        {!isAdmin && (
-          <div className="mt-10 p-6 bg-white/5 rounded-3xl border border-white/10 text-center">
-            <p className="text-sm font-bold text-stone-400 uppercase tracking-widest">
-              {progress1 >= 100 ? '¡Objetivo Principal alcanzado! 🏆' : '¡Seguí sumando ventas para alcanzar la meta!'}
-            </p>
-          </div>
-        )}
       </div>
 
       {/* Edit Modal */}
@@ -379,10 +341,10 @@ function ObjectiveCard({ title, subtitle, target, progress, current, dolar, dail
       {/* Main Metric */}
       <div className="mb-6">
         <p className="text-[10px] font-black uppercase tracking-widest text-stone-500 mb-1">
-          {isAdmin ? 'Facturado a la Fecha' : 'Progreso'}
+          {isAdmin ? 'Facturado a la Fecha' : 'Progreso de la Meta'}
         </p>
-        <p className="text-3xl lg:text-4xl font-black tracking-tighter text-white">
-          {isAdmin ? `$${current.toLocaleString()}` : 'Objetivo Activo'}
+        <p className={`text-3xl lg:text-4xl font-black tracking-tighter ${progress >= 100 ? 'text-emerald-400 drop-shadow-[0_0_15px_rgba(52,211,153,0.5)]' : 'text-white'}`}>
+          {isAdmin ? `$${current.toLocaleString()}` : `${progress.toFixed(1)}%`}
         </p>
         {isAdmin && (
           <p className="text-xs font-bold text-stone-400 mt-1">
@@ -394,10 +356,10 @@ function ObjectiveCard({ title, subtitle, target, progress, current, dolar, dail
       {/* Progress Section */}
       <div className="space-y-3 mb-8">
         <div className="flex justify-between items-end">
-          <span className={`text-3xl font-black tracking-tighter ${progress >= 100 ? 'text-emerald-400' : isAhead ? 'text-white' : 'text-stone-400'}`}>
-            {progress.toFixed(progress >= 100 ? 0 : 1)}%
+          <span className={`text-xl lg:text-3xl font-black tracking-tighter ${progress >= 100 ? 'text-emerald-400' : isAhead ? 'text-white' : 'text-stone-400'}`}>
+            {isAdmin ? `${progress.toFixed(progress >= 100 ? 0 : 1)}%` : 'Avance'}
           </span>
-          <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${isAhead ? 'bg-emerald-500/20 text-emerald-400' : 'bg-amber-500/20 text-amber-400'}`}>
+          <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${isAhead ? 'bg-emerald-500/20 text-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.2)]' : 'bg-amber-500/20 text-amber-400'}`}>
             {isAhead ? '▲ ADELANTADO' : '▼ ATRASADO'}
           </span>
         </div>
@@ -407,7 +369,7 @@ function ObjectiveCard({ title, subtitle, target, progress, current, dolar, dail
             initial={{ width: 0 }}
             animate={{ width: `${progress}%` }}
             transition={{ duration: 1.5, ease: "easeOut" }}
-            className={`h-full rounded-full ${colorClasses[color]}`}
+            className={`h-full rounded-full ${colorClasses[color]} ${progress >= 100 ? 'bg-emerald-500 shadow-[0_0_15px_rgba(52,211,153,0.5)]' : ''}`}
           />
           {/* Pace Marker */}
           <div 
@@ -423,9 +385,9 @@ function ObjectiveCard({ title, subtitle, target, progress, current, dolar, dail
       {/* Footer Info */}
       <div className="pt-6 border-t border-white/5 space-y-4">
         <div className="flex justify-between items-center">
-          <p className="text-[10px] font-black uppercase tracking-widest text-stone-500">{isAdmin ? 'Meta Diaria Restante' : 'Progreso de Ventas'}</p>
-          <p className="text-sm font-black text-white">
-            {isAdmin && daily > 0 ? `$${Math.round(daily).toLocaleString()}` : (progress >= 100 ? '¡LOGRADO!' : 'EN PROCESO')}
+          <p className="text-[10px] font-black uppercase tracking-widest text-stone-500">{isAdmin ? 'Meta Diaria Restante' : 'Estado'}</p>
+          <p className={`text-sm font-black ${progress >= 100 ? 'text-emerald-400 drop-shadow-[0_0_10px_rgba(52,211,153,0.5)]' : 'text-white'}`}>
+            {isAdmin && daily > 0 ? `$${Math.round(daily).toLocaleString()}` : (progress >= 100 ? '¡LOGRADO! 🏆' : 'EN PROCESO 🔥')}
           </p>
         </div>
         {isAdmin && (
