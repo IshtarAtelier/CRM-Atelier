@@ -359,9 +359,12 @@ function ObjectiveCard({ title, subtitle, target, progress, current, dolar, dail
           <span className={`text-xl lg:text-3xl font-black tracking-tighter ${progress >= 100 ? 'text-emerald-400' : isAhead ? 'text-white' : 'text-stone-400'}`}>
             {isAdmin ? `${progress.toFixed(progress >= 100 ? 0 : 1)}%` : 'Avance'}
           </span>
-          <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${isAhead ? 'bg-emerald-500/20 text-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.2)]' : 'bg-amber-500/20 text-amber-400'}`}>
-            {isAhead ? '▲ ADELANTADO' : '▼ ATRASADO'}
-          </span>
+          <div className="flex flex-col items-end gap-1">
+            <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${isAhead ? 'bg-emerald-500/20 text-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.2)]' : 'bg-amber-500/20 text-amber-400'}`}>
+              {isAhead ? '▲ ADELANTADO' : '▼ ATRASADO'}
+            </span>
+            <span className="text-[9px] font-bold text-stone-500">Esperado hoy: {expected.toFixed(1)}%</span>
+          </div>
         </div>
         
         <div className="relative h-4 bg-white/5 rounded-full overflow-hidden p-1 backdrop-blur-sm border border-white/5">
@@ -385,9 +388,9 @@ function ObjectiveCard({ title, subtitle, target, progress, current, dolar, dail
       {/* Footer Info */}
       <div className="pt-6 border-t border-white/5 space-y-4">
         <div className="flex justify-between items-center">
-          <p className="text-[10px] font-black uppercase tracking-widest text-stone-500">{isAdmin ? 'Meta Diaria Restante' : 'Estado'}</p>
+          <p className="text-[10px] font-black uppercase tracking-widest text-stone-500">Meta Diaria Restante</p>
           <p className={`text-sm font-black ${progress >= 100 ? 'text-emerald-400 drop-shadow-[0_0_10px_rgba(52,211,153,0.5)]' : 'text-white'}`}>
-            {isAdmin && daily > 0 ? `$${Math.round(daily).toLocaleString()}` : (progress >= 100 ? '¡LOGRADO! 🏆' : 'EN PROCESO 🔥')}
+            {daily > 0 ? `$${Math.round(daily).toLocaleString()} / día` : '¡LOGRADO! 🏆'}
           </p>
         </div>
         {isAdmin && (
