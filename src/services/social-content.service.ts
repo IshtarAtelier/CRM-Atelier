@@ -268,7 +268,39 @@ export async function generateSocialImage(contentId: string) {
 
     // Use Google GenAI for image generation
     const { GoogleGenAI } = await import('@google/genai');
-    const ai = new GoogleGenAI({ apiKey: process.env.GOOGLE_GENAI_API_KEY });
+    
+    let ai;
+    if (process.env.GOOGLE_VERTEX_AI_WEB_CREDENTIALS) {
+        const fs = await import('fs');
+        const os = await import('os');
+        const path = await import('path');
+        const credsPath = path.join(os.tmpdir(), `vertex-creds-${Date.now()}.json`);
+        
+        try {
+            // Parse and stringify to ensure it's valid JSON and handle any escaping issues from env vars
+            const creds = JSON.parse(process.env.GOOGLE_VERTEX_AI_WEB_CREDENTIALS);
+            fs.writeFileSync(credsPath, JSON.stringify(creds));
+            process.env.GOOGLE_APPLICATION_CREDENTIALS = credsPath;
+            
+            // Delete the API key temporarily to force Vertex AI usage
+            const oldApiKey = process.env.GOOGLE_GENAI_API_KEY;
+            delete process.env.GOOGLE_GENAI_API_KEY;
+            
+            ai = new GoogleGenAI({
+                vertexai: {
+                    project: process.env.GOOGLE_CLOUD_PROJECT || creds.project_id || '',
+                    location: process.env.GOOGLE_CLOUD_LOCATION || 'us-central1'
+                }
+            });
+            
+            if (oldApiKey) process.env.GOOGLE_GENAI_API_KEY = oldApiKey;
+        } catch (err) {
+            console.error('Error setting up Vertex AI credentials:', err);
+            ai = new GoogleGenAI({ apiKey: process.env.GOOGLE_GENAI_API_KEY });
+        }
+    } else {
+        ai = new GoogleGenAI({ apiKey: process.env.GOOGLE_GENAI_API_KEY });
+    }
 
     let response;
     try {

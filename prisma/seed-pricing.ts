@@ -7,7 +7,18 @@ import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
 const prices = [
-  // ── MULTIFOCALES VARILUX (3 opciones principales para el bot) ─────────────
+  // ── MULTIFOCALES KODAK Y VARILUX (3 opciones competitivas) ────────────────
+  {
+    name: 'Kodak – Gama Entrada',
+    description: 'Multifocal digital Kodak. Opción más económica y competitiva.',
+    category: 'MULTIFOCAL',
+    subcategory: 'KODAK',
+    priceCash: 450000,
+    priceCredit: 520000,
+    creditMonths: 6,
+    notes: 'Línea de entrada competitiva recomendada.',
+    sortOrder: 5,
+  },
   {
     name: 'Smart Lens FREE – Gama Alta',
     description: 'Multifocal con antirreflejo Essential + Filtro luz azul. Tallado digital.',
@@ -20,7 +31,7 @@ const prices = [
     sortOrder: 10,
   },
   {
-    name: 'Varilux Comfort Max AR Crizal – Gama Superior',
+    name: 'Varilux Comfort Orma AR Crizal – Gama Superior',
     description: 'Multifocal con Antirreflejo Crizal + Filtro luz azul. Tallado digital.',
     category: 'MULTIFOCAL',
     subcategory: 'VARILUX',
@@ -85,7 +96,7 @@ const prices = [
     priceCash: 95200,
     priceCredit: 112000,
     creditMonths: 6,
-    notes: 'Stock hasta ESF -6.00 / CIL -2.00',
+    notes: 'Stock hasta ESF -6.00 / CIL -2.00. Opción Super Blue recomendada.',
     sortOrder: 20,
   },
   {
@@ -110,13 +121,14 @@ const prices = [
     sortOrder: 40,
   },
   {
-    name: 'Policarbonato con Antirreflejo',
+    name: 'Policarbonato Opto con Antirreflejo',
     description: 'Monofocal policarbonato resistente a impactos.',
     category: 'MONOFOCAL',
     subcategory: 'STOCK',
     priceCash: 80750,
     priceCredit: 95000,
     creditMonths: 6,
+    notes: 'Opción recomendada si es una miopía alta.',
     sortOrder: 50,
   },
 

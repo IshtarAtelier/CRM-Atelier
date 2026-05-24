@@ -145,6 +145,38 @@ export default function CotizadorCart({
 
     const handleAddItem = (product: any) => {
         if (isCrystal(product)) {
+            const selectedRx = prescriptionId ? prescriptions.find(r => r.id === prescriptionId) : null;
+            if (selectedRx) {
+                const sphMax = product.sphereMax ?? Infinity;
+                const sphMin = product.sphereMin ?? -Infinity;
+                const cylMax = product.cylinderMax ?? Infinity;
+                const cylMin = product.cylinderMin ?? -Infinity;
+                
+                let outOfBounds = false;
+                
+                const checkEye = (sph: number | null | undefined, cyl: number | null | undefined) => {
+                    const s = sph ?? 0;
+                    const c = cyl ?? 0;
+                    if (sph != null && (s > sphMax || s < sphMin)) outOfBounds = true;
+                    if (cyl != null && (c > cylMax || c < cylMin)) outOfBounds = true;
+                };
+                
+                if (selectedRx.sphereOD != null || selectedRx.cylinderOD != null) checkEye(selectedRx.sphereOD, selectedRx.cylinderOD);
+                if (selectedRx.sphereOI != null || selectedRx.cylinderOI != null) checkEye(selectedRx.sphereOI, selectedRx.cylinderOI);
+
+                if (selectedRx.prescriptionType === 'NEAR') {
+                     if (selectedRx.nearSphereOD != null || selectedRx.nearCylinderOD != null) checkEye(selectedRx.nearSphereOD, selectedRx.nearCylinderOD);
+                     if (selectedRx.nearSphereOI != null || selectedRx.nearCylinderOI != null) checkEye(selectedRx.nearSphereOI, selectedRx.nearCylinderOI);
+                }
+                
+                if (outOfBounds) {
+                    if (!window.confirm('⚠️ ALERTA DE LABORATORIO:\n\nLa receta del paciente está FUERA DE RANGO para los límites de fabricación de este cristal.\n\n¿Deseas agregarlo al presupuesto de todos modos?')) {
+                        setFullSearch('');
+                        return;
+                    }
+                }
+            }
+
             setItems(prev => {
                 const is2x1 = isMultifocal2x1(product);
                 const existingPairsFiltered = prev.filter(it => it.product.id === product.id && it.eye === 'OD');

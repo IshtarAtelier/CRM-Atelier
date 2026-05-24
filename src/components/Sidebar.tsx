@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Users, Glasses, Package, ClipboardList, LayoutDashboard, Cog, FileText, Contact, Calculator, ShoppingCart, MessageCircle, Wallet, Search, Menu, X, Receipt, Banknote, TrendingDown, ChevronLeft, ChevronRight, Megaphone } from "lucide-react";
+import { Users, Glasses, Package, ClipboardList, LayoutDashboard, Cog, FileText, Contact, Calculator, ShoppingCart, MessageCircle, Wallet, Search, Menu, X, Receipt, Banknote, TrendingDown, ChevronLeft, ChevronRight, Megaphone, Target } from "lucide-react";
 import { motion } from "framer-motion";
 import { UserProfile } from "./UserProfile";
 import { NotificationBell } from "./NotificationBell";
@@ -64,6 +64,7 @@ export function Sidebar({ userName = "Usuario", userRole = "STAFF", userId = "" 
     { href: "/admin/administracion", label: "Administración", icon: Wallet, adminOnly: true },
     { href: "/admin/reportes", label: "Reportes", icon: FileText, adminOnly: true },
     { href: "/admin/social", label: "Social Media", icon: Megaphone, adminOnly: true },
+    { href: "/admin/campanas", label: "Campañas Ads", icon: Target, adminOnly: true },
     { href: "/admin/configuracion", label: "Configuración", icon: Cog, adminOnly: true },
   ];
 

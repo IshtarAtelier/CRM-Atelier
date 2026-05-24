@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { Zap, X, User, ChevronRight, MessageCircle, Heart, FileText, ShoppingCart, Loader2 } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Zap, X, User, ChevronRight, MessageCircle, Heart, FileText, ShoppingCart, Loader2, Check } from 'lucide-react';
 import Link from 'next/link';
 
 interface Opportunity {
@@ -25,6 +25,23 @@ interface OpportunitiesPanelProps {
 
 export default function OpportunitiesPanel({ opportunities, onClose, onRefresh }: OpportunitiesPanelProps) {
     const [sendingId, setSendingId] = useState<string | null>(null);
+    const [finalizingId, setFinalizingId] = useState<string | null>(null);
+    const [isWhatsAppConnected, setIsWhatsAppConnected] = useState(false);
+
+    useEffect(() => {
+        const checkWhatsAppStatus = async () => {
+            try {
+                const res = await fetch('/api/whatsapp/status');
+                if (res.ok) {
+                    const data = await res.json();
+                    setIsWhatsAppConnected(!!data.connected);
+                }
+            } catch (err) {
+                console.error('Error checking WhatsApp status:', err);
+            }
+        };
+        checkWhatsAppStatus();
+    }, []);
 
     const getOppIcon = (type: string) => {
         if (type === 'STALLED_FAVORITE') return <Heart className="w-5 h-5 text-red-500 fill-red-500/10" />;
@@ -68,6 +85,36 @@ export default function OpportunitiesPanel({ opportunities, onClose, onRefresh }
 
         if (!opp.phone) return;
 
+        let phone = opp.phone.replace(/\D/g, '');
+        if (phone.length === 10) phone = '549' + phone;
+
+        // If WhatsApp service is connected, navigate directly to local chat page
+        if (isWhatsAppConnected) {
+            // Generate follow-up template message
+            const firstName = opp.clientName.split(' ')[0];
+            let message = '';
+
+            if (opp.type === 'STALLED_FAVORITE') {
+                message = `Hola ${firstName}! Espero que estés muy bien 🤍 Queríamos saber si tenés alguna duda sobre tu consulta y si te podemos ayudar en algo más. ¡Que tengas un excelente día! ✨`;
+            } else if (opp.type === 'PENDING_QUOTE') {
+                message = `Hola ${firstName}! Te escribimos de Atelier para ver si habías podido analizar el presupuesto que te armamos el otro día. Avisanos si querés modificar algo o coordinar la compra. ¡Saludos! 👓✨`;
+            } else {
+                message = `Hola ${firstName}! Vimos que dejaste algunos artículos en tu carrito en nuestra web Atelier. Queríamos ver si tuviste algún inconveniente con el pago o si tenías alguna consulta técnica con los cristales. ¡Quedamos a tu disposición! 🛒✨`;
+            }
+
+            // Copy to clipboard for easy pasting in the local WhatsApp chat
+            try {
+                await navigator.clipboard.writeText(message);
+            } catch (err) {
+                console.warn('Failed to copy to clipboard:', err);
+            }
+
+            onClose();
+            window.location.href = `/admin/whatsapp?phone=${phone}`;
+            return;
+        }
+
+        // Otherwise fallback to wa.me (opens WhatsApp Web)
         setSendingId(opp.id);
 
         let message = '';
@@ -80,9 +127,6 @@ export default function OpportunitiesPanel({ opportunities, onClose, onRefresh }
         } else {
             message = `Hola ${firstName}! Vimos que dejaste algunos artículos en tu carrito en nuestra web Atelier. Queríamos ver si tuviste algún inconveniente con el pago o si tenías alguna consulta técnica con los cristales. ¡Quedamos a tu disposición! 🛒✨`;
         }
-
-        let phone = opp.phone.replace(/\D/g, '');
-        if (phone.length === 10) phone = '549' + phone;
 
         try {
             const res = await fetch('/api/whatsapp/send', {
@@ -102,6 +146,33 @@ export default function OpportunitiesPanel({ opportunities, onClose, onRefresh }
             window.open(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`, '_blank');
         } finally {
             setSendingId(null);
+        }
+    };
+
+    const handleFinalizeOpportunity = async (e: React.MouseEvent, opp: Opportunity) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        if (confirm(`¿Estás seguro de que querés finalizar el seguimiento de ${opp.clientName}?`)) {
+            setFinalizingId(opp.id);
+            try {
+                const res = await fetch('/api/sales-opportunities', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id: opp.id, type: opp.type })
+                });
+
+                if (res.ok) {
+                    onRefresh();
+                } else {
+                    alert('Error al finalizar el seguimiento');
+                }
+            } catch (err) {
+                console.error('Error finalizing opportunity:', err);
+                alert('Error al finalizar el seguimiento');
+            } finally {
+                setFinalizingId(null);
+            }
         }
     };
 
@@ -134,7 +205,7 @@ export default function OpportunitiesPanel({ opportunities, onClose, onRefresh }
                                     {getOppIcon(opp.type)}
                                 </div>
 
-                                <div className="flex-1 min-w-0 pr-16 md:pr-20">
+                                <div className={`flex-1 min-w-0 ${opp.phone ? 'pr-24 md:pr-36' : 'pr-16 md:pr-20'}`}>
                                     <div className="flex items-center gap-2 mb-1 flex-wrap">
                                         <p className="font-black text-stone-800 dark:text-stone-200 text-sm tracking-tight uppercase truncate">
                                             {opp.clientName}
@@ -147,6 +218,22 @@ export default function OpportunitiesPanel({ opportunities, onClose, onRefresh }
                                 </div>
                                 <ChevronRight className="w-5 h-5 text-stone-200 group-hover:text-amber-500 transition-all group-hover:translate-x-1" />
                             </Link>
+
+                            {/* Finalizar Opportunity Action */}
+                            <button
+                                onClick={(e) => handleFinalizeOpportunity(e, opp)}
+                                disabled={finalizingId === opp.id}
+                                className={`absolute top-1/2 -translate-y-1/2 p-2.5 md:p-3 bg-stone-100 hover:bg-emerald-50 hover:text-emerald-600 dark:bg-stone-800 dark:hover:bg-emerald-950/30 dark:hover:text-emerald-400 text-stone-500 dark:text-stone-400 rounded-xl md:rounded-2xl border border-stone-200/40 dark:border-stone-700/40 shadow hover:scale-110 active:scale-95 transition-all z-10 disabled:opacity-50 ${
+                                    opp.phone ? 'right-[5.5rem] md:right-[7.5rem]' : 'right-12 md:right-16'
+                                }`}
+                                title="Finalizar Seguimiento"
+                            >
+                                {finalizingId === opp.id ? (
+                                    <Loader2 className="w-4 h-4 md:w-5 md:h-5 animate-spin" />
+                                ) : (
+                                    <Check className="w-4 h-4 md:w-5 md:h-5" />
+                                )}
+                            </button>
 
                             {/* WhatsApp Follow-up Action */}
                             {opp.phone && (

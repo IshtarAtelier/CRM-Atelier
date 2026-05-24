@@ -57,3 +57,8 @@ dev.db*
 prisma/dev.db*
 backups/
 /storage
+
+# scratch files
+/scratch/
+/next.log
+

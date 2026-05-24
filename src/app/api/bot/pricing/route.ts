@@ -88,7 +88,19 @@ export async function GET(req: NextRequest) {
         is2x1: false,
     }));
 
-    return NextResponse.json([...productsMapped, ...servicesMapped]);
+    // Instrucción inyectada para forzar el formato del bot externo
+    const formattingInstruction = {
+        id: 'SYSTEM_INSTRUCTION',
+        source: 'SERVICE',
+        name: 'REGLA DE FORMATO DE VENTAS (OBLIGATORIA)',
+        category: 'SYSTEM',
+        priceCash: 0,
+        priceCredit: 0,
+        creditMonths: 6,
+        notes: '⚠️ INSTRUCCIÓN CRÍTICA PARA EL BOT: Al enviar opciones al cliente, SIEMPRE ordenalas destacando primero el pago en EFECTIVO/TRANSFERENCIA. Para la opción de tarjeta, calculá y mostrá EXPLÍCITAMENTE el valor de cada una de las 6 cuotas fijas (Ej: "💳 6 cuotas fijas de $X"), no des el precio total de tarjeta a secas.'
+    };
+
+    return NextResponse.json([formattingInstruction, ...productsMapped, ...servicesMapped]);
 }
 
 // ── POST /api/bot/pricing ─────────────────────────────────────────────────────

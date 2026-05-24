@@ -340,6 +340,10 @@ async function cancelBot({ clientId, waId }) {
                         chatLabels: Array.from(updatedLabels)
                     }
                 });
+
+                // Generar resumen de handoff
+                generateAndSaveHandoffSummary(chat.id).catch(e => console.error("Error en resumen cancelBot:", e.message));
+
                 return { success: true, message: 'BOT_CANCELED' };
             }
         }
@@ -414,6 +418,10 @@ async function disableBotForChat({ chatId }) {
             where: { id: chatId },
             data: { botEnabled: false }
         });
+
+        // Generar resumen de handoff
+        generateAndSaveHandoffSummary(chatId).catch(e => console.error("Error en resumen disableBotForChat:", e.message));
+
         return { success: true, message: `Bot apagado para el chat.` };
     } catch (error) {
         console.error('Error in disableBotForChat tool:', error.message);
@@ -512,10 +520,80 @@ function isPhrase(str) {
     return false;
 }
 
+/**
+ * Genera un resumen ejecutivo de 2 líneas de la conversación y lo guarda como nota en el CRM.
+ */
+async function generateAndSaveHandoffSummary(chatId) {
+    try {
+        const chat = await prisma.whatsAppChat.findUnique({
+            where: { id: chatId },
+            include: { client: true }
+        });
+        if (!chat || !chat.clientId) {
+            console.log(`  [Summary Skip] Chat no encontrado o no tiene clientId vinculado: ${chatId}`);
+            return;
+        }
+
+        // Recuperar los últimos 15 mensajes del chat para tener el contexto
+        const messages = await prisma.whatsAppMessage.findMany({
+            where: { chatId },
+            orderBy: { createdAt: 'desc' },
+            take: 15
+        });
+
+        if (messages.length === 0) return;
+
+        // Evitar duplicación si ya hay un resumen creado recientemente (últimos 5 minutos)
+        const lastSummary = await prisma.interaction.findFirst({
+            where: {
+                clientId: chat.clientId,
+                type: 'NOTE',
+                content: { startsWith: '📍 [RESUMEN BOT]' },
+                createdAt: { gte: new Date(Date.now() - 5 * 60 * 1000) }
+            }
+        });
+        if (lastSummary) {
+            console.log(`  [Summary Skip] Ya se generó un resumen de handoff recientemente para el cliente ID ${chat.clientId}`);
+            return;
+        }
+
+        // Formatear el historial para pasárselo al modelo
+        const formattedHistory = messages.reverse().map(m => {
+            const sender = m.direction === 'INBOUND' ? 'Cliente' : 'Bot/Vendedor';
+            return `${sender}: ${m.content}`;
+        }).join('\n');
+
+        const { ChatGoogleGenerativeAI } = require("@langchain/google-genai");
+        const model = new ChatGoogleGenerativeAI({
+            model: 'gemini-2.5-flash',
+            temperature: 0,
+            apiKey: process.env.GOOGLE_GENAI_API_KEY || process.env.GOOGLE_API_KEY
+        });
+
+        const prompt = `A continuación tenés los últimos mensajes de un chat de WhatsApp con un cliente de Atelier Óptica. Generá un resumen ejecutivo de exactamente 2 líneas para el vendedor que va a tomar el caso. El resumen debe incluir lo que busca el cliente (ej: tipo de anteojo o cristal), si envió receta, su obra social/prepaga (si la mencionó), y cualquier preferencia relevante. NO inventes datos. Sé conciso y directo.\n\nHistorial:\n${formattedHistory}`;
+        
+        const response = await model.invoke(prompt);
+        const summaryText = response.content.toString().trim();
+
+        if (summaryText) {
+            await prisma.interaction.create({
+                data: {
+                    clientId: chat.clientId,
+                    type: 'NOTE',
+                    content: `📍 [RESUMEN BOT] ${summaryText}`
+                }
+            });
+            console.log(`  📍 Resumen de traspaso generado y guardado para el cliente: ${chat.client.name}`);
+        }
+    } catch (e) {
+        console.error('Error generando resumen de traspaso:', e.message);
+    }
+}
+
 module.exports = {
     checkExistingClient, convertIntoLead, updateClientData,
     getPriceList, getOrderStatus, createTask,
     addInteraction, savePrescription, logBotMessage, createQuote,
     cancelBot, addTagToClient, disableBotForChat, reportComplaint,
-    isPhrase
+    isPhrase, generateAndSaveHandoffSummary
 };

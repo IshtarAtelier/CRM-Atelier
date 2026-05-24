@@ -10,7 +10,7 @@ const { Server } = require('socket.io');
 const cors = require('cors');
 const { prisma } = require('./db');
 const { graph } = require('./graph');
-const { logBotMessage, isPhrase } = require('./tools');
+const { logBotMessage, isPhrase, generateAndSaveHandoffSummary } = require('./tools');
 const { HumanMessage } = require("@langchain/core/messages");
 const path = require('path');
 const fs = require('fs');
@@ -82,11 +82,7 @@ const handleMessageCreate = async (msg) => {
             const chat = await prisma.whatsAppChat.findUnique({ where: { waId } });
             if (chat) {
                 if (chat.botEnabled && !isBotReplying) {
-                    await prisma.whatsAppChat.update({
-                        where: { id: chat.id },
-                        data: { botEnabled: false }
-                    });
-                    console.log(`  ⏸️ Bot pausado para ${waId} por intervención humana.`);
+                    await disableBotForChatById(chat.id, 'Intervención humana (mensaje saliente)');
                 }
                 
                 // GUARDAR EL MENSAJE EN EL CRM (UPSERT para evitar race conditions con el envío directo)
@@ -138,6 +134,74 @@ function runOutputGuardrail(text) {
 }
 
 /**
+ * Desactiva el bot para un chat específico y genera el resumen de handoff.
+ */
+async function disableBotForChatById(chatId, reason) {
+    try {
+        const chat = await prisma.whatsAppChat.findUnique({ where: { id: chatId } });
+        if (chat && chat.botEnabled) {
+            await prisma.whatsAppChat.update({
+                where: { id: chatId },
+                data: { botEnabled: false }
+            });
+            console.log(`  ⏹️ Bot desactivado para chat ${chatId}. Razón: ${reason}`);
+            broadcastChatUpdate(chatId);
+            
+            // Generar resumen de handoff
+            await generateAndSaveHandoffSummary(chatId).catch(e => console.error("Error generando resumen de handoff:", e.message));
+        }
+    } catch (e) {
+        console.error('Error disabling bot for chat ID:', e.message);
+    }
+}
+
+/**
+ * Desactiva el bot usando waId y genera el resumen de handoff.
+ */
+async function disableBotForWaId(waId, reason) {
+    try {
+        const chat = await prisma.whatsAppChat.findUnique({ where: { waId } });
+        if (chat && chat.botEnabled) {
+            await disableBotForChatById(chat.id, reason);
+        }
+    } catch (e) {
+        console.error('Error disabling bot for waId:', e.message);
+    }
+}
+
+/**
+ * Clasifica si una imagen es un comprobante de transferencia o pago utilizando Gemini multimodal.
+ */
+async function detectPaymentReceipt(mediaBase64, mimeType) {
+    try {
+        const { ChatGoogleGenerativeAI } = require("@langchain/google-genai");
+        const model = new ChatGoogleGenerativeAI({
+            model: 'gemini-2.5-flash',
+            temperature: 0,
+            apiKey: process.env.GOOGLE_GENAI_API_KEY || process.env.GOOGLE_API_KEY
+        });
+
+        const response = await model.invoke([
+            new HumanMessage({
+                content: [
+                    { 
+                        type: "text", 
+                        text: `Clasificá esta imagen. Respondé ÚNICAMENTE con la palabra "COMPROBANTE" si parece ser un ticket de transferencia, recibo de pago, comprobante de Mercado Pago o captura de pantalla de transferencia de pago confirmada. Si es cualquier otra cosa (receta médica, foto de un anteojo, foto de una persona, saludo, etc.), respondé con "OTRO".` 
+                    },
+                    { type: "image_url", image_url: { url: `data:${mimeType};base64,${mediaBase64}` } }
+                ]
+            })
+        ]);
+
+        const text = response.content.toString().trim().toUpperCase();
+        return text.includes('COMPROBANTE') && !text.includes('OTRO');
+    } catch (e) {
+        console.error('Error en detectPaymentReceipt:', e.message);
+        return false;
+    }
+}
+
+/**
  * Verifica si la hora actual corresponde a horario comercial de Argentina (UTC-3)
  */
 function isBusinessHours(date) {
@@ -150,6 +214,30 @@ function isBusinessHours(date) {
         return hour >= 9 && hour < 13; // Sábado 9:00 - 13:00
     }
     return hour >= 9 && hour < 18; // Lunes a Viernes 9:00 - 18:00
+}
+
+/**
+ * Obtiene la fecha y hora de las 9:00 AM del próximo día comercial (Lunes a Sábado).
+ */
+function getNextBusinessMorning(baseDate = new Date()) {
+    const argDate = new Date(baseDate.toLocaleString("en-US", { timeZone: "America/Argentina/Buenos_Aires" }));
+    
+    let found = false;
+    while (!found) {
+        argDate.setDate(argDate.getDate() + 1);
+        const day = argDate.getDay();
+        if (day !== 0) { // Lunes a Sábado
+            found = true;
+        }
+    }
+    
+    const year = argDate.getFullYear();
+    const month = argDate.getMonth();
+    const date = argDate.getDate();
+    
+    const pad = (n) => String(n).padStart(2, '0');
+    const isoString = `${year}-${pad(month + 1)}-${pad(date)}T09:00:00-03:00`;
+    return new Date(isoString);
 }
 
 /**
@@ -396,10 +484,7 @@ async function processBotTurn(chat, waId, profileName, realPhone) {
                 console.warn(`  ⚠️ [Output Guardrail] Respuesta bloqueada para ${profileName} por: ${guardrail.reason}`);
                 
                 // 1. Apagar bot para este chat
-                await prisma.whatsAppChat.update({
-                    where: { id: chat.id },
-                    data: { botEnabled: false }
-                });
+                await disableBotForChatById(chat.id, `Brecha de seguridad (Guardrail: ${guardrail.reason})`);
                 
                 // 2. Registrar nota de seguridad en la ficha del cliente
                 if (chat.clientId) {
@@ -442,7 +527,9 @@ async function processBotTurn(chat, waId, profileName, realPhone) {
             }
 
             botReplyingTo.add(waId);
-            const messageBlocks = responseText.split('\n\n').map(b => b.trim()).filter(b => b.length > 0);
+            // Limpiar signos de interrogación de apertura para seguir la regla de estilo humano
+            const cleanResponseText = responseText.replace(/¿/g, '');
+            const messageBlocks = cleanResponseText.split('\n\n').map(b => b.trim()).filter(b => b.length > 0);
             
             for (let i = 0; i < messageBlocks.length; i++) {
                 let block = messageBlocks[i];
@@ -499,16 +586,7 @@ async function processBotTurn(chat, waId, profileName, realPhone) {
         console.error('  ❌ Error bot:', err.message);
         if (err.message && (err.message.includes('429') || err.message.includes('RESOURCE_EXHAUSTED'))) {
             // 1. Apagar bot en la DB para este chat
-            try {
-                await prisma.whatsAppChat.update({
-                    where: { id: chat.id },
-                    data: { botEnabled: false }
-                });
-                broadcastChatUpdate(chat.id);
-                console.log(`  ⏹️ Bot desactivado para ${profileName} debido a límite de cuota (429).`);
-            } catch (dbErr) {
-                console.error('Error apagando bot en DB:', dbErr.message);
-            }
+            await disableBotForChatById(chat.id, 'Cuota agotada de API (Error 429)');
 
             // 2. Emitir notificación de error por WebSocket a todos los usuarios del CRM
             if (global.io) {
@@ -743,11 +821,8 @@ const handleMessage = async (msg) => {
         );
         if (tieneTagSinBot) {
             if (chat.botEnabled) {
-                chat = await prisma.whatsAppChat.update({
-                    where: { id: chat.id },
-                    data: { botEnabled: false }
-                });
-                console.log(`  🚫 Bot bloqueado para ${profileName} por etiqueta.`);
+                await disableBotForChatById(chat.id, 'Etiquetas excluidas (Sin Bot)');
+                chat.botEnabled = false; // sincronizar localmente
             }
         }
 
@@ -864,6 +939,167 @@ const handleMessage = async (msg) => {
         });
 
         broadcastChatUpdate(chat.id);
+
+        // ── Smart Off-Hours Routing (Fuera de Horario) ──
+        const isCurrentlyBusinessHours = isBusinessHours(new Date());
+        if (!isCurrentlyBusinessHours && agentEnabled && chat.botEnabled && !tieneTagSinBot) {
+            // Buscamos los últimos mensajes en DB para ver si ya enviamos la advertencia fuera de horario
+            const recentOutbounds = await prisma.whatsAppMessage.findMany({
+                where: { chatId: chat.id, direction: 'OUTBOUND' },
+                orderBy: { createdAt: 'desc' },
+                take: 3
+            });
+            const alreadySent = recentOutbounds.some(m => m.content && m.content.includes("el local está cerrado"));
+
+            if (!alreadySent) {
+                const offHoursText = "Hola! En este momento el local está cerrado, pero podés dejarme tu consulta o receta por acá. Mañana apenas abramos los chicos se ponen en contacto con vos para cotizarte!";
+                
+                // Despachar a WhatsApp
+                await sendMessage(waId, offHoursText);
+
+                // Guardar en la DB
+                await prisma.whatsAppMessage.create({
+                    data: {
+                        chatId: chat.id,
+                        direction: 'OUTBOUND',
+                        content: offHoursText,
+                        status: 'SENT'
+                    }
+                });
+
+                // Apagar el bot con el helper
+                await disableBotForChatById(chat.id, 'Mensaje fuera de horario comercial');
+
+                // Crear tarea en CRM
+                if (chat.clientId) {
+                    const nextMorning = getNextBusinessMorning();
+                    await prisma.clientTask.create({
+                        data: {
+                            clientId: chat.clientId,
+                            description: "Contactar a cliente (escribió fuera de horario)",
+                            dueDate: nextMorning
+                        }
+                    }).catch(e => console.error("Error creando tarea de fuera de horario:", e.message));
+                }
+
+                broadcastChatUpdate(chat.id);
+                return; // Detener flujo
+            } else {
+                // Ya se le avisó, nos aseguramos de apagar el bot por si las dudas y abortamos
+                await disableBotForChatById(chat.id, 'Mensaje fuera de horario comercial (reiterado)');
+                return;
+            }
+        }
+
+        // ── Filtros de Seguridad y Resiliencia (Mensajes Largos / Audios / Hostilidad) ──
+        let triggerSecurityFilter = false;
+        let filterReason = '';
+        let taskDescription = '';
+
+        if (agentEnabled && chat.botEnabled && !tieneTagSinBot) {
+            // A. Longitud de mensaje de texto
+            if (messageType === 'TEXT' && body && body.length > 500) {
+                triggerSecurityFilter = true;
+                filterReason = 'Mensaje entrante demasiado extenso (> 500 caracteres)';
+                taskDescription = 'Atención humana requerida: Cliente envió mensaje muy largo por WhatsApp.';
+            }
+
+            // B. Duración de audio largo (si el mensaje es audio y tiene duración en los metadatos)
+            if (messageType === 'AUDIO' && msg.duration && msg.duration > 120) {
+                triggerSecurityFilter = true;
+                filterReason = `Mensaje de voz demasiado largo (${msg.duration} segundos)`;
+                taskDescription = `Atención humana requerida: Cliente envió un audio largo de ${Math.round(msg.duration / 60)} minutos.`;
+            }
+
+            // C. Expresiones hostiles de reclamo grave
+            if (messageType === 'TEXT' && body) {
+                const normalizedBody = body.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                const hostileKeywords = [
+                    'defensa al consumidor', 'coprec', 'denuncia', 'denunciar', 'estafa', 
+                    'estafadores', 'sinverguenza', 'sinvergüenza', 'quiero mi plata', 
+                    'devolucion', 'devolución', 'me mintieron', 'una porqueria', 'una porquería',
+                    'abogado', 'carta documento'
+                ];
+                const matchesHostile = hostileKeywords.some(keyword => normalizedBody.includes(keyword));
+                if (matchesHostile) {
+                    triggerSecurityFilter = true;
+                    filterReason = 'Detección de expresiones hostiles o reclamo grave';
+                    taskDescription = '⚠️ ATENCIÓN URGENTE: Cliente reportó queja hostil o amenaza legal por WhatsApp.';
+                }
+            }
+        }
+
+        if (triggerSecurityFilter) {
+            await disableBotForChatById(chat.id, `Filtro de Seguridad: ${filterReason}`);
+
+            if (chat.clientId) {
+                await prisma.clientTask.create({
+                    data: {
+                        clientId: chat.clientId,
+                        description: taskDescription,
+                        dueDate: new Date()
+                    }
+                }).catch(e => console.error("Error creando tarea de filtro de seguridad:", e.message));
+                
+                await prisma.interaction.create({
+                    data: {
+                        clientId: chat.clientId,
+                        type: 'NOTE',
+                        content: `⚠️ [Alerta Seguridad] Bot desactivado automáticamente. Razón: ${filterReason}`
+                    }
+                }).catch(() => {});
+            }
+
+            broadcastChatUpdate(chat.id);
+            return; // Abortar
+        }
+
+        // ── Detección de Comprobantes de Pago Multimodal ──
+        if (messageType === 'IMAGE' && mediaBase64 && agentEnabled && chat.botEnabled && !tieneTagSinBot) {
+            console.log(`  🔍 Analizando si la imagen recibida es un comprobante de pago...`);
+            const isPayment = await detectPaymentReceipt(mediaBase64, mediaMime);
+            if (isPayment) {
+                console.log(`  💳 Comprobante de pago detectado para ${profileName || chat.waId}. Procesando cierre.`);
+                
+                if (chat.clientId) {
+                    const { addTagToClient } = require('./tools');
+                    await addTagToClient({ clientId: chat.clientId, tagName: 'Cerrado' }).catch(e => console.error("Error al asignar tag Cerrado:", e.message));
+                    
+                    await prisma.clientTask.create({
+                        data: {
+                            clientId: chat.clientId,
+                            description: "Validar comprobante de pago recibido por WhatsApp.",
+                            dueDate: new Date()
+                        }
+                    }).catch(e => console.error("Error creando tarea de pago:", e.message));
+
+                    await prisma.interaction.create({
+                        data: {
+                            clientId: chat.clientId,
+                            type: 'NOTE',
+                            content: `📍 [HITO] Recibido comprobante de pago por WhatsApp.`
+                        }
+                    }).catch(() => {});
+                }
+
+                const receiptConfirmation = "Buenísimo, ahí le paso el comprobante a administración para que lo registren en tu ficha!";
+                await sendMessage(waId, receiptConfirmation);
+
+                await prisma.whatsAppMessage.create({
+                    data: {
+                        chatId: chat.id,
+                        direction: 'OUTBOUND',
+                        content: receiptConfirmation,
+                        status: 'SENT'
+                    }
+                });
+
+                await disableBotForChatById(chat.id, 'Detección automática de comprobante de pago');
+
+                broadcastChatUpdate(chat.id);
+                return; // Abortar
+            }
+        }
 
         // ── Auto-Creación de Tarea por Promesa de Visita ──
         if (chat.clientId && body && messageType === 'TEXT') {
@@ -1002,9 +1238,16 @@ app.patch('/api/chats/:id', async (req, res) => {
         const data = {};
         if (chatLabels !== undefined) data.chatLabels = chatLabels;
         if (archived !== undefined) data.archived = archived;
-        if (botEnabled !== undefined) data.botEnabled = botEnabled;
         if (clientId !== undefined) data.clientId = clientId;
-        const chat = await prisma.whatsAppChat.update({ where: { id }, data });
+        
+        let chat;
+        if (botEnabled === false) {
+            await disableBotForChatById(id, 'API patch CRM (Vendedor desactivó el bot)');
+            chat = await prisma.whatsAppChat.update({ where: { id }, data });
+        } else {
+            if (botEnabled !== undefined) data.botEnabled = botEnabled;
+            chat = await prisma.whatsAppChat.update({ where: { id }, data });
+        }
         res.json(chat);
     } catch (e) {
         res.status(404).json({ error: 'Chat no encontrado' });

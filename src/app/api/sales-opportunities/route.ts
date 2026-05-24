@@ -320,3 +320,53 @@ export async function GET() {
         }, { status: 500 });
     }
 }
+
+export async function POST(req: Request) {
+    try {
+        const body = await req.json();
+        const { id, type } = body;
+
+        if (!id || !type) {
+            return NextResponse.json({ error: 'Faltan parámetros' }, { status: 400 });
+        }
+
+        if (type === 'STALLED_FAVORITE') {
+            // Create a system interaction note to update last activity
+            await prisma.interaction.create({
+                data: {
+                    clientId: id,
+                    type: 'NOTE',
+                    content: 'Seguimiento finalizado (Oportunidad de Cierre)'
+                }
+            });
+            // Also trigger client updatedAt update
+            await prisma.client.update({
+                where: { id },
+                data: { updatedAt: new Date() }
+            });
+        } else if (type === 'PENDING_QUOTE') {
+            // Update order status to LOST
+            await prisma.order.update({
+                where: { id },
+                data: { status: 'LOST' }
+            });
+        } else if (type === 'ABANDONED_CART') {
+            // Update checkout session status to FINALIZED
+            await prisma.checkoutSession.update({
+                where: { id },
+                data: { status: 'FINALIZED' }
+            });
+        } else {
+            return NextResponse.json({ error: 'Tipo inválido' }, { status: 400 });
+        }
+
+        return NextResponse.json({ success: true });
+    } catch (error) {
+        console.error('Error finalizing opportunity:', error);
+        return NextResponse.json({
+            error: 'Error al finalizar oportunidad',
+            message: error instanceof Error ? error.message : String(error)
+        }, { status: 500 });
+    }
+}
+

@@ -5,6 +5,7 @@ import { BotService } from '@/services/bot.service';
 import { prisma } from '@/lib/db';
 import { calculateQuoteTotals } from '@/lib/promo-utils';
 import { z } from 'zod';
+import { AdsService } from '@/services/ads.service';
 
 const OrderItemSchema = z.object({
     productId: z.string(),
@@ -344,6 +345,9 @@ export async function PATCH(
                     },
                     payments: {
                         select: { amount: true, method: true, receiptUrl: true }
+                    },
+                    client: {
+                        select: { email: true }
                     }
                 }
             });
@@ -355,6 +359,11 @@ export async function PATCH(
 
                 if (isFirstSend) {
                     const errors: string[] = [];
+
+                    // 0. Email validation (required for CAPI and billing)
+                    if (!orderForValidation.client?.email) {
+                        errors.push('El cliente debe tener un email registrado para enviar a fábrica (necesario para CAPI y facturación).');
+                    }
 
                     // 1. Crystal validations
                     const hasCrystals = orderForValidation.items.some((item: any) =>
@@ -661,6 +670,11 @@ export async function PATCH(
                         data,
                         select: {
                             id: true,
+                            total: true,
+                            createdAt: true,
+                            client: {
+                                select: { name: true, email: true, phone: true }
+                            },
                             items: {
                                 select: {
                                     id: true, price: true, quantity: true, eye: true,
@@ -707,6 +721,11 @@ export async function PATCH(
                         await prisma.$transaction(crystalItemUpdates as any[]);
                     }
                 }
+
+                // Enviar conversión offline a Meta/Google de forma asíncrona (fire and forget)
+                AdsService.sendOfflineConversion(updatedOrder as any).catch(err => {
+                    console.error('Error al notificar conversión offline:', err);
+                });
 
                 return NextResponse.json(updatedOrder);
             }
