@@ -314,11 +314,28 @@ function ObjectiveCard({ title, subtitle, target, progress, current, dolar, dail
     elite: 'border-white/20 hover:border-[#e8dccf]/40'
   };
 
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    e.currentTarget.style.setProperty('--mouse-x', `${x}px`);
+    e.currentTarget.style.setProperty('--mouse-y', `${y}px`);
+  };
+
   return (
     <motion.div 
       whileHover={{ y: -5 }}
+      onMouseMove={handleMouseMove}
       className={`relative p-8 rounded-[2rem] bg-white/[0.04] border ${borderClasses[color]} transition-all duration-300 group overflow-hidden`}
     >
+      {/* Glow Effect */}
+      <div 
+        className="pointer-events-none absolute -inset-px rounded-[2rem] opacity-0 transition duration-300 group-hover:opacity-100"
+        style={{
+          background: `radial-gradient(600px circle at var(--mouse-x) var(--mouse-y), ${color === 'elite' ? 'rgba(232,220,207,0.1)' : 'rgba(194,163,138,0.1)'}, transparent 40%)`
+        }}
+      />
+
       {/* Background Icon */}
       <Icon className={`absolute -right-4 -bottom-4 w-32 h-32 opacity-[0.03] group-hover:opacity-[0.06] transition-opacity -rotate-12`} />
       

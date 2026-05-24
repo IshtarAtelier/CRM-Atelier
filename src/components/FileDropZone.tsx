@@ -142,16 +142,47 @@ export default function FileDropZone({
     // If there's a preview, show it
     if (preview) {
         return (
-            <div className={`relative group ${className}`}>
+            <div className={`relative group overflow-hidden rounded-2xl ${className}`}>
                 <img
                     src={preview}
                     alt="Preview"
-                    className={`w-full ${compact ? 'h-32' : 'h-40'} object-cover rounded-2xl border-2 border-emerald-200 dark:border-emerald-800 transition-all`}
+                    className={`w-full ${compact ? 'h-32' : 'h-40'} object-cover border-2 ${loading ? 'border-primary opacity-80' : 'border-emerald-200 dark:border-emerald-800'} transition-all`}
                 />
-                {onClearPreview && (
+                
+                {loading && (
+                    <>
+                        {/* Dark Overlay */}
+                        <div className="absolute inset-0 bg-primary/10 backdrop-blur-[2px]" />
+                        
+                        {/* Laser Scanner Line */}
+                        <div 
+                            className="absolute left-0 right-0 h-0.5 bg-primary shadow-[0_0_20px_3px_rgba(52,211,153,1)] z-10"
+                            style={{
+                                animation: 'scan-laser 1.5s ease-in-out infinite alternate'
+                            }}
+                        />
+                        <style>{`
+                            @keyframes scan-laser {
+                                0% { top: 0%; opacity: 0; }
+                                10% { opacity: 1; }
+                                90% { opacity: 1; }
+                                100% { top: 100%; opacity: 0; }
+                            }
+                        `}</style>
+                        
+                        {/* Centered Loading Badge */}
+                        <div className="absolute inset-0 flex items-center justify-center z-20">
+                            <span className="bg-stone-900/80 text-primary px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest backdrop-blur-md border border-primary/50 shadow-[0_0_30px_rgba(52,211,153,0.3)] animate-pulse">
+                                {loadingLabel || 'Escaneando...'}
+                            </span>
+                        </div>
+                    </>
+                )}
+
+                {onClearPreview && !loading && (
                     <button
                         onClick={onClearPreview}
-                        className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-full hover:scale-110 transition-all shadow-lg opacity-0 group-hover:opacity-100"
+                        className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-full hover:scale-110 transition-all shadow-lg opacity-0 group-hover:opacity-100 z-30"
                     >
                         <X className="w-3.5 h-3.5" />
                     </button>
