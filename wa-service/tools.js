@@ -174,10 +174,11 @@ async function updateClientData({ id, ...data }) {
  * Returns products marked as botRecommended from the real inventory.
  * Optionally filtered by category (MULTIFOCAL, MONOFOCAL, CONTACTO, ARMAZON).
  */
-async function getPriceList({ category }) {
+async function getPriceList({ category, search }) {
     try {
         const params = { botRecommended: 'true' };
         if (category) params.category = category;
+        if (search) params.search = search;
         const response = await apiClient.get(`${CRM_API_URL}/pricing`, { params });
         return response.data;
     } catch (error) {

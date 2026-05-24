@@ -11,12 +11,28 @@ export async function GET(req: NextRequest) {
     const category = searchParams.get('category')?.toUpperCase();
     const onlyBotRecommended = searchParams.get('botRecommended') === 'true';
     const all = searchParams.get('all'); // admin: incluye inactivos
+    const search = searchParams.get('search')?.trim();
 
     // ── Fuente 1: Productos del inventario ──────────────────────────────────
-    const productWhere: Record<string, unknown> = {};
+    const productWhere: any = {};
     if (onlyBotRecommended) productWhere.botRecommended = true;
-    if (category) {
-        productWhere.type = { contains: category, mode: 'insensitive' };
+
+    if (search) {
+        productWhere.OR = [
+            { name: { contains: search, mode: 'insensitive' } },
+            { brand: { contains: search, mode: 'insensitive' } },
+            { model: { contains: search, mode: 'insensitive' } }
+        ];
+    } else if (category) {
+        if (category === 'CLIPON') {
+            productWhere.OR = [
+                { name: { contains: 'clip', mode: 'insensitive' } },
+                { brand: { contains: 'clip', mode: 'insensitive' } },
+                { model: { contains: 'clip', mode: 'insensitive' } }
+            ];
+        } else {
+            productWhere.type = { contains: category, mode: 'insensitive' };
+        }
     }
 
     const products = await prisma.product.findMany({
@@ -43,9 +59,15 @@ export async function GET(req: NextRequest) {
     });
 
     // ── Fuente 2: ServicePricing (servicios de lab) ─────────────────────────
-    const servicePricingWhere: Record<string, unknown> = {};
+    const servicePricingWhere: any = {};
     if (!all) servicePricingWhere.active = true;
-    if (category) servicePricingWhere.category = category;
+    if (category) {
+        if (category === 'CLIPON') {
+            servicePricingWhere.category = 'NONE';
+        } else {
+            servicePricingWhere.category = category;
+        }
+    }
 
     const services = await prisma.servicePricing.findMany({
         where: servicePricingWhere,

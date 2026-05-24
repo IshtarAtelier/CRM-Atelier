@@ -158,7 +158,7 @@ const checkExistingClientTool = new DynamicTool({
 
 const getPriceListTool = new DynamicTool({
     name: "get_price_list",
-    description: "Obtiene precios del catálogo. Filtra por category (MONOFOCAL, MULTIFOCAL, CONTACTO, ARMAZON). Usa JSON.",
+    description: "Obtiene precios del catálogo. Usa JSON con 'category' (MONOFOCAL, MULTIFOCAL, CONTACTO, ARMAZON, CLIPON) o 'search' (ej. 'clipon', 'prune') para buscar un producto por nombre, marca o modelo.",
     func: async (input) => JSON.stringify(await getPriceList(safeParse(input, "get_price_list"))),
 });
 
