@@ -53,6 +53,7 @@ interface CotizadorCartProps {
     editingQuoteId?: string | null;
     onCancelEdit?: () => void;
     crystalColors?: any[];
+    isCard?: boolean;
 }
 
 export default function CotizadorCart({
@@ -87,6 +88,7 @@ export default function CotizadorCart({
     editingQuoteId,
     onCancelEdit,
     crystalColors = [],
+    isCard = true,
 }: CotizadorCartProps) {
 
     const [fullSearch, setFullSearch] = useState('');
@@ -197,16 +199,19 @@ export default function CotizadorCart({
     };
 
     return (
-        <div className="bg-white dark:bg-stone-800 border-2 border-primary/20 rounded-[2.5rem] p-8 shadow-2xl animate-in zoom-in-95 duration-300">
-            <header className="flex justify-between items-center mb-8">
+        <div className={isCard 
+            ? "bg-white dark:bg-stone-800 border border-primary/20 rounded-[2rem] p-6 sm:p-8 shadow-2xl animate-in zoom-in-95 duration-300"
+            : "flex flex-col space-y-6"
+        }>
+            <header className="flex justify-between items-center mb-6">
                 <div>
-                    <h3 className="text-2xl font-black text-stone-800 dark:text-white tracking-tighter">
+                    <h3 className="text-xl font-bold text-stone-850 dark:text-white tracking-tighter">
                         Cotizar <span className="text-primary italic">— {contactName || 'Nuevo Presupuesto'}</span>
                     </h3>
                     <p className="text-[10px] font-bold text-stone-400 uppercase tracking-[0.2em] mt-1">Armado presupuesto personalizado</p>
                 </div>
                 {onClose && (
-                    <button onClick={onClose} className="px-4 py-2 bg-stone-100 dark:bg-stone-900 text-stone-400 hover:text-stone-800 dark:hover:text-stone-100 rounded-xl font-black text-[10px] uppercase tracking-widest transition-colors border border-stone-200 dark:border-stone-700">
+                    <button onClick={onClose} className="px-4 py-2 bg-stone-100 dark:bg-stone-900 text-stone-500 hover:text-stone-800 dark:hover:text-stone-100 rounded-xl font-bold text-[10px] uppercase tracking-widest transition-colors border border-stone-250/60 dark:border-stone-750">
                         CERRAR
                     </button>
                 )}
@@ -226,32 +231,35 @@ export default function CotizadorCart({
             />
 
             {hasAnyMultifocal && (
-                <div className={`mb-8 p-5 rounded-[2rem] border-2 flex items-center gap-4 ${hasMultifocalPromo ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200' : 'bg-blue-50 dark:bg-blue-900/10 border-blue-200'}`}>
-                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shadow-lg ${hasMultifocalPromo ? 'bg-emerald-500 text-white' : 'bg-blue-500 text-white'}`}>
-                        <Gift className="w-6 h-6" />
+                <div className={`mb-6 p-4 rounded-2xl border flex items-center gap-4 ${hasMultifocalPromo ? 'bg-emerald-50 dark:bg-emerald-950/20 border-emerald-200' : 'bg-blue-50 dark:bg-blue-950/10 border-blue-205'}`}>
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center shadow-md ${hasMultifocalPromo ? 'bg-emerald-500 text-white' : 'bg-blue-500 text-white'}`}>
+                        <Gift className="w-5 h-5" />
                     </div>
                     <div className="flex-1">
-                        <p className="text-sm font-black uppercase tracking-widest">{hasMultifocalPromo ? '🎁 ¡Promoción Multifocal 2x1 Activa!' : '✨ Mi Primer Varilux'}</p>
-                        <p className="text-[10px] font-bold">{hasMultifocalPromo ? `Incluye armazón Atelier sin cargo` : 'Solo incluye el par de cristales'}</p>
+                        <p className="text-xs font-bold uppercase tracking-wider">{hasMultifocalPromo ? '🎁 ¡Promoción Multifocal 2x1 Activa!' : '✨ Mi Primer Varilux'}</p>
+                        <p className="text-[10px] font-bold text-stone-550 dark:text-stone-400">{hasMultifocalPromo ? `Incluye armazón Atelier sin cargo` : 'Solo incluye el par de cristales'}</p>
                     </div>
                 </div>
             )}
 
             {items.some(i => isCrystal(i.product)) && (
-                <div className="p-6 bg-amber-50/50 dark:bg-amber-950/20 rounded-[2.5rem] border-2 border-amber-200/50 mb-8">
-                    <div className="flex gap-3 mb-6">
-                        <button onClick={() => setFrameSource('OPTICA')} className={`flex-1 py-4 rounded-2xl text-[10px] font-black uppercase ${frameSource === 'OPTICA' ? 'bg-amber-500 text-white shadow-xl shadow-amber-500/20' : 'bg-white dark:bg-stone-800 text-stone-400 border-2 dark:border-stone-700'}`}>DE LA ÓPTICA</button>
-                        <button onClick={() => setFrameSource('USUARIO')} className={`flex-1 py-4 rounded-2xl text-[10px] font-black uppercase ${frameSource === 'USUARIO' ? 'bg-amber-500 text-white shadow-xl shadow-amber-500/20' : 'bg-white dark:bg-stone-800 text-stone-400 border-2 dark:border-stone-700'}`}>DEL USUARIO</button>
+                <div className="p-4 bg-amber-50/50 dark:bg-amber-950/20 rounded-2xl border border-amber-200/50 mb-6">
+                    <div className="flex gap-3 mb-4">
+                        <button onClick={() => setFrameSource('OPTICA')} className={`flex-1 py-3 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all border ${frameSource === 'OPTICA' ? 'bg-amber-500 text-white border-amber-500 shadow-lg shadow-amber-500/20' : 'bg-white dark:bg-stone-850 text-stone-500 border-stone-200 dark:border-stone-750'}`}>DE LA ÓPTICA</button>
+                        <button onClick={() => setFrameSource('USUARIO')} className={`flex-1 py-3 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all border ${frameSource === 'USUARIO' ? 'bg-amber-500 text-white border-amber-500 shadow-lg shadow-amber-500/20' : 'bg-white dark:bg-stone-850 text-stone-500 border-stone-200 dark:border-stone-750'}`}>DEL USUARIO</button>
                     </div>
                     {frameSource === 'OPTICA' && framesInQuote.length < 2 && (
-                        <div className="relative mb-3">
-                            <Search className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-stone-300 dark:text-stone-500" />
-                            <input type="text" placeholder="Buscar armazón..." value={frameSearch} onChange={e => setFrameSearch(e.target.value)} className="w-full bg-white dark:bg-stone-800 border-2 dark:border-stone-700 dark:text-stone-100 py-3 pl-11 pr-4 rounded-2xl text-xs font-bold" />
-                            {frameResults.length > 0 && <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2">{frameResults.map(fr => <button key={fr.id} onClick={() => { setItems(prev => [...prev, { product: fr, quantity: 1, customPrice: fr.price, uid: Date.now() }]); setFrameSearch(''); }} className="p-3 bg-white dark:bg-stone-800 border-2 dark:border-stone-700 dark:text-stone-100 rounded-xl text-left text-[11px] font-black hover:border-amber-400 dark:hover:border-amber-500">{fr.brand} · {fr.name}</button>)}</div>}
+                        <div className="relative mb-1">
+                            <Search className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-stone-400 dark:text-stone-500" />
+                            <input type="text" placeholder="Buscar armazón..." value={frameSearch} onChange={e => setFrameSearch(e.target.value)} className="w-full bg-white dark:bg-stone-800 border dark:border-stone-700 dark:text-stone-100 py-2.5 pl-11 pr-4 rounded-xl text-xs font-semibold outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/30 transition-all" />
+                            {frameResults.length > 0 && <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2">{frameResults.map(fr => <button key={fr.id} onClick={() => { setItems(prev => [...prev, { product: fr, quantity: 1, customPrice: fr.price, uid: Date.now() }]); setFrameSearch(''); }} className="p-2.5 bg-white dark:bg-stone-800 border dark:border-stone-700 dark:text-stone-100 rounded-lg text-left text-xs font-semibold hover:border-amber-400 dark:hover:border-amber-500 transition-colors">{fr.brand} · {fr.name}</button>)}</div>}
                         </div>
                     )}
                     {frameSource === 'USUARIO' && (
-                        <div className="grid grid-cols-2 gap-3"><input type="text" placeholder="Marca" value={userFrameData.brand} onChange={e => setUserFrameData(prev => ({ ...prev, brand: e.target.value }))} className="bg-white dark:bg-stone-800 border-2 dark:border-stone-700 dark:text-stone-100 py-3 px-5 rounded-2xl text-xs font-bold" /><input type="text" placeholder="Modelo" value={userFrameData.model} onChange={e => setUserFrameData(prev => ({ ...prev, model: e.target.value }))} className="bg-white dark:bg-stone-800 border-2 dark:border-stone-700 dark:text-stone-100 py-3 px-5 rounded-2xl text-xs font-bold" /></div>
+                        <div className="grid grid-cols-2 gap-3">
+                            <input type="text" placeholder="Marca" value={userFrameData.brand} onChange={e => setUserFrameData(prev => ({ ...prev, brand: e.target.value }))} className="bg-white dark:bg-stone-800 border dark:border-stone-700 dark:text-stone-100 py-2.5 px-4 rounded-xl text-xs font-semibold outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/30 transition-all" />
+                            <input type="text" placeholder="Modelo" value={userFrameData.model} onChange={e => setUserFrameData(prev => ({ ...prev, model: e.target.value }))} className="bg-white dark:bg-stone-800 border dark:border-stone-700 dark:text-stone-100 py-2.5 px-4 rounded-xl text-xs font-semibold outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/30 transition-all" />
+                        </div>
                     )}
                 </div>
             )}
@@ -263,19 +271,21 @@ export default function CotizadorCart({
                 discountCard={discountCard} setDiscountCard={setDiscountCard}
                 specialDiscount={specialDiscount} setSpecialDiscount={setSpecialDiscount}
                 currentUserRole={currentUserRole}
+                isCard={isCard}
             />
 
             <CartTotals 
                 subtotal={subtotal} markup={markup} markupAmount={subtotal * (safePrice(markup) / 100)}
                 specialDiscount={specialDiscount}
                 priceWithMarkup={priceWithMarkup} totalCash={totalCash} totalTransfer={totalTransfer}
+                isCard={isCard}
             />
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 {extraActions}
-                {onWhatsApp && <button onClick={onWhatsApp} className="py-5 bg-emerald-50 text-emerald-600 border-2 border-emerald-200 rounded-[2.2rem] font-black text-xs uppercase tracking-[0.2em] hover:bg-emerald-500 hover:text-white transition-all"><MessageCircle className="w-5 h-5 mx-auto" /></button>}
-                <button onClick={onSave} disabled={isSaving || items.length === 0} className={`py-5 text-white rounded-[2.2rem] font-black text-xs uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-3 ${editingQuoteId ? 'bg-amber-500' : 'bg-primary'}`}>
-                    {isSaving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
+                {onWhatsApp && <button onClick={onWhatsApp} className="py-4 bg-emerald-50 text-emerald-600 border border-emerald-200 rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-emerald-500 hover:text-white transition-all flex items-center justify-center gap-2"><MessageCircle className="w-4 h-4" /> WhatsApp</button>}
+                <button onClick={onSave} disabled={isSaving || items.length === 0} className={`py-4 text-white rounded-2xl font-bold text-xs uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${editingQuoteId ? 'bg-amber-500' : 'bg-primary'}`}>
+                    {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                     {editingQuoteId ? 'ACTUALIZAR' : 'GUARDAR'}
                 </button>
             </div>

@@ -139,31 +139,29 @@ async function getSourceContext(sourceType: string, sourceId?: string, topic?: s
 // ── Main Generation Function ───────────────
 // ── Image style prompts ────────────────────
 const IMAGE_STYLE_GUIDES: Record<string, string> = {
-    PLACA: `ESTILO DE IMAGEN: PLACA / GRÁFICA SOCIAL
-Generar una imagen tipo "placa" o gráfica para redes sociales.
-- Fondo elegante con gradientes cálidos (nude, beige, dorado suave) o colores sólidos premium.
-- Espacio limpio para superponer texto (el texto NO debe estar en la imagen, solo el fondo/diseño).
-- Puede incluir elementos decorativos sutiles: líneas geométricas, destellos de luz, texturas de mármol o lino.
-- Estilo minimalista y premium, como las placas de marcas de lujo (Chanel, Dior eyewear).
-- NO incluir texto ni letras en la imagen.
+    PLACA: `ESTILO DE IMAGEN: PLACA / GRÁFICA SOCIAL (ORIENTADO A ÓPTICA)
+Generar una imagen tipo "placa" o fondo de diseño gráfico de alta gama para redes sociales.
+- Debe incluir representaciones artísticas y minimalistas de óptica: siluetas doradas y delgadas de anteojos, destellos de luz pasando a través de cristales o lentes transparentes, o reflejos elegantes de vidrios sobre fondos nude/warm (#9e7f65, #c2a38a).
+- Fondo elegante con gradientes cálidos (nude, beige, dorado suave) o texturas de mármol o lino.
+- Espacio limpio y despejado para que podamos superponer texto posteriormente en el frontend (la imagen generada NO debe contener letras, palabras ni números).
+- Estilo de alta costura, sofisticado y minimalista, inspirado en campañas de marcas de gafas de lujo.
 - Aspect ratio: vertical 9:16 para stories/reels, cuadrado 1:1 para posts.`,
-    UGC_AVATAR: `ESTILO DE IMAGEN: UGC CON AVATAR IA
-Generar una imagen de una persona realista generada por IA.
-- Persona atractiva (hombre o mujer según el contexto) usando anteojos/gafas premium.
-- Estilo "User Generated Content": natural, como selfie o foto casual pero estilizada.
-- Iluminación natural, golden hour o indoor cálido.
-- La persona debe verse real, moderna, profesional (30-55 años).
-- Vestimenta elegante casual. Fondo: café, oficina moderna, calle urbana, o interior de óptica boutique.
-- Los anteojos deben ser el foco visual.
+    UGC_AVATAR: `ESTILO DE IMAGEN: UGC CON AVATAR IA (DEBE USAR ANTEOJOS/GAFAS)
+Generar una foto realista de una persona (hombre o mujer de 30 a 55 años) que represente la estética de Atelier Óptica.
+- CRÍTICO: La persona DEBE llevar puestos anteojos recetados o gafas de sol premium y de diseño muy marcado, que sean el centro de atención.
+- Estilo natural tipo "contenido creado por usuario" (UGC): foto casual, selfie moderna o retrato espontáneo pero cuidado y elegante.
+- Iluminación cálida, natural (golden hour) o en interiores con luz suave.
+- La persona debe lucir profesional, con estilo y segura de sí misma.
+- Fondo: un café de diseño, una oficina moderna y luminosa, la calle de una ciudad o el interior de una boutique de óptica premium.
+- Los anteojos deben ser el elemento más nítido y enfocado de la imagen.
 - Aspect ratio: vertical 9:16 para stories/reels, cuadrado 1:1 para posts.`,
-    EDITORIAL: `ESTILO DE IMAGEN: EDITORIAL / PRODUCTO
-Generar una imagen editorial de producto de alta gama.
-- Anteojos/gafas premium fotografiados sobre superficie elegante (mármol, terciopelo, madera noble).
-- Iluminación de estudio suave, sombras definidas, reflejos controlados.
-- Composición tipo campaña de moda: minimalista, limpia, aspiracional.
-- Paleta: nude, dorado, negro, blanco crema.
-- Puede incluir elementos de ambientación: flores secas, perfume, libro de arte.
-- Estilo Gentle Monster / Oliver Peoples campaign.
+    EDITORIAL: `ESTILO DE IMAGEN: EDITORIAL DE PRODUCTO (CRISTALES Y ARMAZONES)
+Generar una fotografía publicitaria de producto (bodegón de moda) de alta gama.
+- CRÍTICO: Debe mostrar anteojos premium, cristales oftálmicos con filtros antirreflejo de tonalidad azul/violeta/verde, o lentes de sol sobre una superficie elegante (mármol veteado, madera pulida, lino o piedras texturizadas).
+- Iluminación de estudio cinematográfica, con sombras suaves pero definidas y destellos limpios a través de los cristales para denotar precisión y calidad óptica.
+- Composición minimalista, aspiracional y artística (estilo Gentle Monster o campañas de revistas de moda).
+- Paleta de colores: tonos nude, crema, negro mate, y detalles en dorado.
+- Puede acompañarse de elementos de diseño sutiles: libros de arte, fragancias exclusivas, o flores secas minimalistas.
 - Aspect ratio: vertical 9:16 para stories/reels, cuadrado 1:1 para posts.`
 };
 
@@ -207,7 +205,7 @@ REGLAS DE SALIDA:
   "copy": "El texto principal del post/caption. Si es CAROUSEL, separá cada slide con ---SLIDE--- como delimitador.",
   "hashtags": "#hashtag1 #hashtag2 #hashtag3 (todos juntos separados por espacio)",
   "cta": "Call to action final sugerido",
-  "imagePrompt": "Prompt DETALLADO en inglés para generar la imagen con IA según el estilo indicado arriba. Incluir todos los detalles visuales: composición, iluminación, colores, elementos, aspecto ratio.",
+  "imagePrompt": "Prompt DETALLADO en inglés para generar la imagen con IA. DEBE representar de forma explícita el producto, artículo o tema óptico de esta publicación (por ejemplo: si es sobre Ray-Ban Meta, describir anteojos inteligentes de diseño clásico con cámaras discretas en el frente; si es sobre multifocales Varilux, mostrar a un adulto profesional leyendo o mirando a través de anteojos elegantes de forma nítida; si es sobre control de miopía infantil, un niño feliz con gafas de marco amigable; si es Crizal Sapphire, un primer plano del cristal de un anteojo con destellos antirreflejo azulados). Debe respetar el estilo indicado arriba (PLACA, UGC_AVATAR o EDITORIAL) y describir la iluminación, composición, colores, y la relación de aspecto en inglés.",
   "publishTips": {
     "bestTime": "Mejor horario para publicar (horario Argentina)",
     "tone": "Descripción del tono usado",

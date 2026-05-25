@@ -10,9 +10,11 @@ export function GlobalTasks() {
     const [tasks, setTasks] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [mounted, setMounted] = useState(false);
+    const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(null);
 
     useEffect(() => {
         setMounted(true);
+        setPortalTarget(document.body);
         fetchTasks();
         const interval = setInterval(fetchTasks, 60000); // Actualizar cada minuto
         return () => clearInterval(interval);
@@ -79,7 +81,7 @@ export function GlobalTasks() {
                 </button>
             </div>
 
-            {isOpen && mounted && createPortal(
+            {isOpen && portalTarget && createPortal(
                 <>
                     <TasksPanel
                         tasks={tasks}
@@ -90,7 +92,7 @@ export function GlobalTasks() {
                         onClick={() => setIsOpen(false)}
                     />
                 </>,
-                document.body
+                portalTarget
             )}
         </>
     );

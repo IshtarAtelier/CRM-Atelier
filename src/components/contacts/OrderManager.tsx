@@ -172,6 +172,7 @@ export default function OrderManager({
                         contactName={contactName}
                         onClose={() => setIsQuoting(false)}
                         editingQuoteId={editingQuoteId}
+                        isCard={false}
                     />
                 )}
             </div>

@@ -308,6 +308,7 @@ export default function CotizadorPopup({ clientName, clientId, onClose }: Cotiza
                                     showRegisterActions={false}
                                     editingQuoteId={editingQuoteId}
                                     onCancelEdit={handleCancelEditQuote}
+                                    isCard={false}
                                 />
                             </div>
 

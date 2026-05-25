@@ -9,9 +9,11 @@ export function GlobalReviewRequests() {
     const [isOpen, setIsOpen] = useState(false);
     const [requests, setRequests] = useState<any[]>([]);
     const [mounted, setMounted] = useState(false);
+    const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(null);
 
     useEffect(() => {
         setMounted(true);
+        setPortalTarget(document.body);
         fetchRequests();
         const interval = setInterval(fetchRequests, 60000);
         return () => clearInterval(interval);
@@ -62,7 +64,7 @@ export function GlobalReviewRequests() {
                 </button>
             </div>
 
-            {isOpen && mounted && createPortal(
+            {isOpen && portalTarget && createPortal(
                 <>
                     <ReviewRequestsPanel
                         requests={requests}
@@ -73,7 +75,7 @@ export function GlobalReviewRequests() {
                         onClick={() => setIsOpen(false)}
                     />
                 </>,
-                document.body
+                portalTarget
             )}
         </>
     );

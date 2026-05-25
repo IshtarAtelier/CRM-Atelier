@@ -10,9 +10,11 @@ export function GlobalBalanceReminders() {
     const [orders, setOrders] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [mounted, setMounted] = useState(false);
+    const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(null);
 
     useEffect(() => {
         setMounted(true);
+        setPortalTarget(document.body);
         fetchBalances();
         const interval = setInterval(fetchBalances, 60000); // Actualizar cada minuto
         return () => clearInterval(interval);
@@ -66,7 +68,7 @@ export function GlobalBalanceReminders() {
                 </button>
             </div>
 
-            {isOpen && mounted && createPortal(
+            {isOpen && portalTarget && createPortal(
                 <>
                     <BalancePanel
                         orders={orders}
@@ -77,7 +79,7 @@ export function GlobalBalanceReminders() {
                         onClick={() => setIsOpen(false)}
                     />
                 </>,
-                document.body
+                portalTarget
             )}
         </>
     );

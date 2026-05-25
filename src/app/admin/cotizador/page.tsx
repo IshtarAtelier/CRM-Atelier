@@ -522,27 +522,27 @@ function CotizadorPageContent() {
             </header>
 
             {/* Search + Categories */}
-            <div className="px-4 lg:px-8 py-3 border-b border-sidebar-border bg-sidebar/60 flex flex-col md:flex-row md:items-center gap-3 flex-shrink-0">
+            <div className="px-4 lg:px-8 py-3.5 border-b border-sidebar-border bg-sidebar/65 flex flex-col md:flex-row md:items-center gap-3 flex-shrink-0">
                 <div className="relative w-full md:w-64 flex-shrink-0">
-                    <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-stone-300" />
+                    <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-stone-400" />
                     <input
                         ref={searchRef}
                         type="text"
-                        placeholder="Buscar..."
+                        placeholder="Buscar producto..."
                         value={search}
                         onChange={e => setSearch(e.target.value)}
-                        className="w-full bg-white dark:bg-stone-800 border border-stone-100 dark:border-stone-700 py-2 px-9 rounded-xl text-xs font-semibold outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/30 transition-all placeholder:text-stone-300"
+                        className="w-full bg-white dark:bg-stone-850 border border-stone-200 dark:border-stone-750 py-2 px-9 rounded-xl text-xs font-semibold outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/30 transition-all placeholder:text-stone-400 dark:text-stone-100"
                     />
                     {search && (
-                        <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-300 hover:text-stone-500 text-xs">✕</button>
+                        <button onClick={() => setSearch('')} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600 text-xs">✕</button>
                     )}
                 </div>
                 <div className="flex-1 flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1">
                     <button
                         onClick={() => setActiveType(null)}
-                        className={`h-[30px] px-3 rounded-lg text-[10px] font-black uppercase tracking-wider whitespace-nowrap transition-all border flex items-center justify-center ${activeType === null
-                            ? 'bg-primary text-primary-foreground border-primary shadow-md'
-                            : 'bg-white dark:bg-stone-800 text-stone-400 border-stone-100 dark:border-stone-700 hover:border-primary/30'
+                        className={`h-9 px-4 rounded-xl text-xs font-bold uppercase tracking-wider whitespace-nowrap transition-all border flex items-center justify-center ${activeType === null
+                            ? 'bg-primary text-primary-foreground border-primary shadow-sm hover:bg-primary/95'
+                            : 'bg-white dark:bg-stone-850 text-stone-500 border-stone-200 dark:border-stone-750 hover:border-primary/30 hover:text-stone-700 dark:hover:text-white'
                             }`}
                     >
                         Todos ({products.length})
@@ -555,12 +555,12 @@ function CotizadorPageContent() {
                             <button
                                 key={cat}
                                 onClick={() => setActiveType(cat)}
-                                className={`h-[30px] px-3 rounded-lg text-[10px] font-black uppercase tracking-wider whitespace-nowrap transition-all border flex items-center gap-1.5 ${activeType === cat
-                                    ? 'bg-primary text-primary-foreground border-primary shadow-md'
+                                className={`h-9 px-4 rounded-xl text-xs font-bold uppercase tracking-wider whitespace-nowrap transition-all border flex items-center gap-2 ${activeType === cat
+                                    ? 'bg-primary text-primary-foreground border-primary shadow-sm'
                                     : `${config.color} hover:shadow-sm`
                                     }`}
                             >
-                                <Icon className="w-3 h-3" />
+                                <Icon className="w-3.5 h-3.5" />
                                 {config.label} ({count})
                             </button>
                         );
@@ -569,123 +569,295 @@ function CotizadorPageContent() {
             </div>
 
             {/* Main Content Area */}
-            <div
-                className="flex-1 overflow-y-auto px-4 lg:px-8 py-4"
-                style={{ scrollbarWidth: 'thin', paddingBottom: quoteItems.length > 0 ? (cartExpanded ? '460px' : '100px') : '16px' }}
-            >
-                {loading ? (
-                    <div className="flex items-center justify-center h-40">
-                        <Loader2 className="w-6 h-6 text-primary animate-spin" />
-                    </div>
-                ) : filtered.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center h-[60vh] text-stone-300">
-                        <Search className="w-16 h-16 text-stone-200 mb-4" />
-                        <p className="text-sm font-bold uppercase tracking-widest text-stone-400">Sin resultados</p>
-                    </div>
-                ) : activeType?.startsWith('Cristal') ? (
-                    <div className="max-w-[1500px] mx-auto">
-                        <div className="rounded-2xl border border-stone-200 dark:border-stone-700 overflow-hidden shadow-xl bg-white dark:bg-stone-900">
-                            <div className="overflow-x-auto">
-                                <table className="w-full text-left border-collapse" style={{ minWidth: 1000 }}>
-                                    <thead>
-                                        <tr className="bg-stone-900 text-white">
-                                            <th className="px-3 py-3 text-[10px] font-black uppercase tracking-widest border-r border-stone-700 w-[100px]">Tipo</th>
-                                            <th className="px-3 py-3 text-[10px] font-black uppercase tracking-widest border-r border-stone-700 w-[100px]">Marca</th>
-                                            <th className="px-3 py-3 text-[10px] font-black uppercase tracking-widest border-r border-stone-700 text-center w-[60px]">Índice</th>
-                                            <th className="px-3 py-3 text-[10px] font-black uppercase tracking-widest border-r border-stone-700">Descripción</th>
-                                            <th className="px-3 py-3 text-[10px] font-black uppercase tracking-widest text-right w-[110px]">Lista</th>
-                                            <th className="px-3 py-3 text-[10px] font-black uppercase tracking-widest text-right w-[110px] text-emerald-400">Efectivo</th>
-                                            <th className="px-3 py-3 text-[10px] font-black uppercase tracking-widest text-right w-[110px] text-violet-400">Transf.</th>
-                                            <th className="px-1 py-3 w-10 bg-stone-800"></th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {filtered.map((product, idx) => {
-                                            const inQuote = quoteItems.find(i => i.product.id === product.id);
-                                            const sprice = safePrice(product.price);
-                                            const pTotal = sprice * (1 + markup / 100);
-                                            const pCash = pTotal * (1 - discountCash / 100);
-                                            const pTrans = pTotal * (1 - discountTransfer / 100);
-                                            return (
-                                                <tr
-                                                    key={product.id}
-                                                    onClick={() => addToQuote(product)}
-                                                    className={`cursor-pointer transition-colors border-b border-stone-100 dark:border-stone-800 ${idx % 2 === 0 ? 'bg-white dark:bg-stone-900' : 'bg-stone-50/50 dark:bg-stone-800/30'} hover:bg-primary/5`}
-                                                >
-                                                    <td className="px-3 py-2 border-r border-stone-100 dark:border-stone-800">
-                                                        <span className="text-[10px] font-black uppercase text-stone-400">{product.type || 'Cristal'}</span>
-                                                    </td>
-                                                    <td className="px-3 py-2 border-r border-stone-100 dark:border-stone-800">
-                                                        <span className="text-[10px] font-black uppercase">{product.brand || '—'}</span>
-                                                    </td>
-                                                    <td className="px-3 py-2 border-r border-stone-100 dark:border-stone-800 text-center">
-                                                        <span className="text-[10px] font-bold">{product.lensIndex || '—'}</span>
-                                                    </td>
-                                                    <td className="px-3 py-2 border-r border-stone-100 dark:border-stone-800">
-                                                        <p className="text-[11px] font-bold truncate max-w-sm">{product.name || '—'}</p>
-                                                    </td>
-                                                    <td className="px-3 py-2 text-right font-black text-xs">${Math.round(pTotal).toLocaleString()}</td>
-                                                    <td className="px-3 py-2 text-right font-black text-xs text-emerald-600">${Math.round(pCash).toLocaleString()}</td>
-                                                    <td className="px-3 py-2 text-right font-black text-xs text-violet-600">${Math.round(pTrans).toLocaleString()}</td>
-                                                    <td className="px-1 py-2 text-center">
-                                                        {inQuote ? <Check className="w-4 h-4 text-emerald-500 mx-auto" /> : <Plus className="w-4 h-4 text-stone-200 mx-auto" />}
-                                                    </td>
-                                                </tr>
-                                            );
-                                        })}
-                                    </tbody>
-                                </table>
+            <div className="flex-1 flex overflow-hidden min-h-0 relative">
+                {/* Left Column: Product Catalog */}
+                <div
+                    className="flex-1 overflow-y-auto px-4 lg:px-8 py-4"
+                    style={{ scrollbarWidth: 'thin' }}
+                >
+                    {loading ? (
+                        <div className="flex items-center justify-center h-40">
+                            <Loader2 className="w-6 h-6 text-primary animate-spin" />
+                        </div>
+                    ) : filtered.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center h-[60vh] text-stone-300">
+                            <Search className="w-16 h-16 text-stone-200 mb-4" />
+                            <p className="text-sm font-bold uppercase tracking-widest text-stone-400">Sin resultados</p>
+                        </div>
+                    ) : activeType?.startsWith('Cristal') ? (
+                        <div className="max-w-[1500px] mx-auto">
+                            <div className="rounded-2xl border border-stone-200 dark:border-stone-800 overflow-hidden shadow-md bg-white dark:bg-stone-900">
+                                <div className="overflow-x-auto">
+                                    <table className="w-full text-left border-collapse" style={{ minWidth: 1000 }}>
+                                        <thead>
+                                            <tr className="bg-stone-50 dark:bg-stone-800/80 text-stone-500 dark:text-stone-400 border-b border-stone-200/60 dark:border-stone-800">
+                                                <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider w-[100px]">Tipo</th>
+                                                <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider w-[100px]">Marca</th>
+                                                <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-center w-[70px]">Índice</th>
+                                                <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider">Descripción</th>
+                                                <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-right w-[110px]">Lista</th>
+                                                <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-right w-[110px] text-emerald-600 dark:text-emerald-400">Efectivo</th>
+                                                <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-right w-[110px] text-violet-600 dark:text-violet-400">Transf.</th>
+                                                <th className="px-3 py-3 w-12 text-center"></th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {filtered.map((product, idx) => {
+                                                const inQuote = quoteItems.find(i => i.product.id === product.id);
+                                                const sprice = safePrice(product.price);
+                                                const pTotal = sprice * (1 + markup / 100);
+                                                const pCash = pTotal * (1 - discountCash / 100);
+                                                const pTrans = pTotal * (1 - discountTransfer / 100);
+                                                return (
+                                                    <tr
+                                                        key={product.id}
+                                                        onClick={() => addToQuote(product)}
+                                                        className={`cursor-pointer transition-colors border-b border-stone-100 dark:border-stone-800 ${idx % 2 === 0 ? 'bg-white dark:bg-stone-900' : 'bg-stone-50/30 dark:bg-stone-850/20'} hover:bg-primary/5`}
+                                                    >
+                                                        <td className="px-4 py-2.5">
+                                                            <span className="text-[10px] font-bold uppercase text-stone-400">{product.type || 'Cristal'}</span>
+                                                        </td>
+                                                        <td className="px-4 py-2.5">
+                                                            <span className="text-[10px] font-bold uppercase">{product.brand || '—'}</span>
+                                                        </td>
+                                                        <td className="px-4 py-2.5 text-center">
+                                                            <span className="text-[10px] font-bold">{product.lensIndex || '—'}</span>
+                                                        </td>
+                                                        <td className="px-4 py-2.5">
+                                                            <p className="text-xs font-semibold truncate max-w-xs xl:max-w-sm">{product.name || '—'}</p>
+                                                        </td>
+                                                        <td className="px-4 py-2.5 text-right font-bold text-xs">${Math.round(pTotal).toLocaleString()}</td>
+                                                        <td className="px-4 py-2.5 text-right font-bold text-xs text-emerald-650">${Math.round(pCash).toLocaleString()}</td>
+                                                        <td className="px-4 py-2.5 text-right font-bold text-xs text-violet-650">${Math.round(pTrans).toLocaleString()}</td>
+                                                        <td className="px-3 py-2.5 text-center">
+                                                            {inQuote ? <Check className="w-4 h-4 text-emerald-500 mx-auto" /> : <Plus className="w-4 h-4 text-stone-300 group-hover:text-primary mx-auto transition-colors" />}
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            })}
+                                        </tbody>
+                                    </table>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                ) : (
-                    <div className="max-w-6xl mx-auto grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
-                        {filtered.map(product => {
-                            const inQuote = quoteItems.find(i => i.product.id === product.id);
-                            return (
-                                <button
-                                    key={product.id}
-                                    onClick={() => addToQuote(product)}
-                                    className={`p-3 rounded-2xl border-2 transition-all text-left flex flex-col justify-between h-32 ${inQuote 
-                                        ? 'bg-primary/5 border-primary/30 shadow-lg' 
-                                        : 'bg-white dark:bg-stone-900 border-stone-100 dark:border-stone-800'}`}
-                                >
-                                    <div>
-                                        <p className="text-[9px] font-black uppercase text-stone-400 truncate">{product.brand}</p>
-                                        <p className="text-[11px] font-black leading-tight mt-0.5 line-clamp-2">{product.name}</p>
-                                    </div>
-                                    <div className="flex items-center justify-between mt-auto">
-                                        <p className="text-sm font-black text-primary">${safePrice(product.price).toLocaleString()}</p>
-                                        {inQuote && (
-                                            <span className="w-5 h-5 bg-primary text-white rounded-full flex items-center justify-center text-[10px] font-black">
-                                                {inQuote.quantity}
-                                            </span>
-                                        )}
-                                    </div>
-                                </button>
-                            );
-                        })}
+                    ) : (
+                        <div className="max-w-[1500px] mx-auto grid grid-cols-2 md:grid-cols-4 xl:grid-cols-6 gap-3">
+                            {filtered.map(product => {
+                                const inQuote = quoteItems.find(i => i.product.id === product.id);
+                                return (
+                                    <button
+                                        key={product.id}
+                                        onClick={() => addToQuote(product)}
+                                        className={`p-3.5 rounded-xl border transition-all text-left flex flex-col justify-between h-28 hover:-translate-y-0.5 hover:shadow-md duration-300 ${inQuote 
+                                            ? 'bg-primary/5 border-primary/40 shadow-sm' 
+                                            : 'bg-white dark:bg-stone-900 border-stone-200 dark:border-stone-800'}`}
+                                    >
+                                        <div className="min-w-0 w-full">
+                                            <p className="text-[9px] font-bold uppercase tracking-wider text-stone-400 truncate">{product.brand}</p>
+                                            <p className="text-xs font-semibold leading-snug mt-0.5 line-clamp-2 text-stone-800 dark:text-stone-150">{product.name}</p>
+                                        </div>
+                                        <div className="flex items-center justify-between w-full mt-auto">
+                                            <p className="text-xs font-bold text-primary">${safePrice(product.price).toLocaleString()}</p>
+                                            {inQuote && (
+                                                <span className="w-4.5 h-4.5 bg-primary text-white rounded-full flex items-center justify-center text-[9px] font-bold">
+                                                    {inQuote.quantity}
+                                                </span>
+                                            )}
+                                        </div>
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    )}
+                </div>
+
+                {/* Right Column: Desktop Cart (Sticky Sidebar) */}
+                {quoteItems.length > 0 && (
+                    <div className="hidden lg:flex w-[400px] xl:w-[460px] border-l border-sidebar-border bg-white dark:bg-stone-900/40 flex-col h-full overflow-y-auto flex-shrink-0 animate-in slide-in-from-right duration-300" style={{ scrollbarWidth: 'thin' }}>
+                        <div className="flex-1 p-6">
+                            {!showRegister ? (
+                                <CotizadorCart 
+                                    items={quoteItems}
+                                    setItems={setQuoteItems}
+                                    markup={markup}
+                                    setMarkup={setMarkup}
+                                    discountCash={discountCash}
+                                    setDiscountCash={setDiscountCash}
+                                    discountTransfer={discountTransfer}
+                                    setDiscountTransfer={setDiscountTransfer}
+                                    discountCard={discountCard}
+                                    setDiscountCard={setDiscountCard}
+                                    frameSource={frameSource}
+                                    setFrameSource={setFrameSource}
+                                    userFrameData={userFrameData}
+                                    setUserFrameData={setUserFrameData}
+                                    availableProducts={products}
+                                    contactName={pendingContact?.name}
+                                    onWhatsApp={handleWhatsApp}
+                                    onCopy={handleCopy}
+                                    onSave={async () => {
+                                        if (pendingContact) await saveQuoteToContact(pendingContact.id, pendingContact.name);
+                                        else setShowRegister(true);
+                                    }}
+                                    isSaving={savingQuote}
+                                    editingQuoteId={editingQuoteId}
+                                    onCancelEdit={handleCancelEdit}
+                                    prescriptions={pendingContact?.prescriptions || []}
+                                    prescriptionId={quotePrescriptionId}
+                                    setPrescriptionId={setQuotePrescriptionId}
+                                    isCard={false}
+                                    extraActions={
+                                        previousQuotes.length > 0 && (
+                                            <button
+                                                onClick={() => setShowHistory(!showHistory)}
+                                                className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all ${showHistory 
+                                                    ? 'bg-stone-900 text-white dark:bg-white dark:text-stone-900 shadow-md' 
+                                                    : 'bg-stone-100 dark:bg-stone-850 text-stone-500 hover:bg-stone-205'}`}
+                                            >
+                                                <History className="w-3.5 h-3.5" /> {showHistory ? 'Cerrar' : `Historial (${previousQuotes.length})`}
+                                            </button>
+                                        )
+                                    }
+                                    crystalColors={crystalColors}
+                                />
+                            ) : (
+                                <div className="bg-white dark:bg-stone-800 border border-primary/20 rounded-2xl p-6 shadow-xl relative animate-in zoom-in-95 duration-300">
+                                    <button onClick={() => setShowRegister(false)} className="absolute top-4 right-4 text-stone-400 hover:text-stone-800 dark:hover:text-white"><X className="w-4 h-4" /></button>
+                                    
+                                    {savedContact ? (
+                                        <div className="py-6 text-center space-y-6">
+                                            <div className="w-16 h-16 bg-emerald-500 rounded-full flex items-center justify-center mx-auto shadow-lg shadow-emerald-500/25">
+                                                <Check className="w-8 h-8 text-white" />
+                                            </div>
+                                            <div>
+                                                <h4 className="text-lg font-bold tracking-tight">¡Guardado con éxito!</h4>
+                                                <p className="text-stone-500 font-semibold text-xs mt-1">Registrado en la ficha de {savedContact.name}</p>
+                                            </div>
+                                            <div className="flex gap-3 justify-center pt-2">
+                                                <button onClick={() => router.push(`/admin/contactos?clientId=${savedContact.id}`)} className="px-4 py-2 bg-emerald-500 text-white rounded-xl font-bold text-xs uppercase tracking-wider hover:scale-105 transition-all shadow-md">Ver Ficha</button>
+                                                <button onClick={resetRegister} className="px-4 py-2 bg-stone-100 dark:bg-stone-700 dark:text-stone-200 text-stone-600 rounded-xl font-bold text-xs uppercase tracking-wider hover:scale-105 transition-all">Nuevo</button>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div className="space-y-6">
+                                            <div>
+                                                <h3 className="text-lg font-bold tracking-tight">Vincular Contacto</h3>
+                                                <p className="text-[10px] font-bold text-stone-400 uppercase tracking-wider mt-0.5">Busca un cliente o crea uno nuevo</p>
+                                            </div>
+
+                                            {pendingContact ? (
+                                                <div className="space-y-6 animate-in slide-in-from-bottom-2 duration-300">
+                                                    <div className="p-4 bg-primary/5 border border-primary/20 rounded-xl flex items-center gap-4">
+                                                        <div className="w-12 h-12 rounded-lg bg-white shadow-sm flex items-center justify-center border border-primary/20"><User className="w-6 h-6 text-primary" /></div>
+                                                        <div className="flex-1 min-w-0">
+                                                            <p className="text-[9px] font-bold text-primary uppercase tracking-wider">Cliente Seleccionado</p>
+                                                            <h4 className="text-base font-bold truncate mt-0.5">{pendingContact.name}</h4>
+                                                            {pendingContact.phone && <p className="text-xs text-stone-400 mt-0.5">{pendingContact.phone}</p>}
+                                                        </div>
+                                                        {!editingQuoteId && <button onClick={() => setPendingContact(null)} className="p-2 text-stone-300 hover:text-red-500"><X className="w-5 h-5" /></button>}
+                                                    </div>
+
+                                                    {hasCrystals && pendingContact.prescriptions && pendingContact.prescriptions.length > 0 && (
+                                                        <div className="p-4 bg-emerald-50 dark:bg-emerald-950/20 rounded-xl border border-emerald-250/50 space-y-3">
+                                                            <div className="flex items-center gap-1.5"><FileText className="w-4 h-4 text-emerald-600" /><span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider">Vincular Receta Médica</span></div>
+                                                            <select 
+                                                                value={quotePrescriptionId || ''} 
+                                                                onChange={e => setQuotePrescriptionId(e.target.value || null)}
+                                                                className="w-full bg-white dark:bg-stone-800 border border-emerald-200 py-2 px-3 rounded-xl text-xs font-bold outline-none cursor-pointer"
+                                                            >
+                                                                <option value="">Sin receta vinculada...</option>
+                                                                {pendingContact.prescriptions.map((p: any) => (
+                                                                    <option key={p.id} value={p.id}>{new Date(p.date).toLocaleDateString('es-AR')} — OD: {p.sphereOD}/${p.sphereOI}</option>
+                                                                ))}
+                                                            </select>
+                                                        </div>
+                                                    )}
+
+                                                    <div className="flex gap-3 pt-2">
+                                                        <button 
+                                                            onClick={() => saveQuoteToContact(pendingContact.id, pendingContact.name)} 
+                                                            disabled={savingQuote}
+                                                            className="flex-1 py-3 bg-primary text-primary-foreground rounded-xl font-bold text-xs uppercase tracking-wider shadow-md flex justify-center items-center gap-2"
+                                                        >
+                                                            {savingQuote ? <Loader2 className="w-4 h-4 animate-spin" /> : editingQuoteId ? 'Actualizar' : 'Guardar'}
+                                                        </button>
+                                                        {!editingQuoteId && <button onClick={() => { setPendingContact(null); setPreviousQuotes([]); }} className="px-4 py-3 bg-white border border-stone-200 text-stone-400 rounded-xl font-bold text-[10px] uppercase tracking-wider hover:text-stone-850 transition-all">Cambiar</button>}
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <div className="space-y-6">
+                                                    <div className="flex gap-3">
+                                                        <div className="relative flex-1">
+                                                            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-stone-300" />
+                                                            <input 
+                                                                ref={contactSearchRef} 
+                                                                type="text" 
+                                                                placeholder="Buscar cliente..." 
+                                                                value={contactSearch} 
+                                                                onChange={e => setContactSearch(e.target.value)}
+                                                                className="w-full bg-stone-50 border border-stone-200 py-2.5 pl-9 pr-4 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+                                                            />
+                                                        </div>
+                                                        <button onClick={() => { setShowNewContact(true); setNewContactName(contactSearch); }} className="px-4 bg-primary/10 text-primary border border-primary/20 rounded-xl font-bold text-xs uppercase tracking-wider hover:bg-primary hover:text-white transition-all flex items-center gap-1.5"><Plus className="w-4 h-4" /> Nuevo</button>
+                                                    </div>
+                                                    {contactResults.length > 0 && (
+                                                        <div className="grid grid-cols-1 gap-2 max-h-[220px] overflow-y-auto pr-1" style={{ scrollbarWidth: 'thin' }}>
+                                                            {contactResults.map((c: any) => (
+                                                                <button key={c.id} onClick={() => selectContactForQuote(c)} className="flex items-center gap-3 p-3 bg-stone-50 dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-xl hover:border-primary/40 transition-all group text-left">
+                                                                    <div className="w-10 h-10 rounded-lg bg-white dark:bg-stone-800 shadow-sm flex items-center justify-center border border-stone-100 dark:border-stone-700"><User className="w-5 h-5 text-primary" /></div>
+                                                                    <div className="flex-1 text-left min-w-0">
+                                                                        <p className="text-xs font-bold truncate">{c.name}</p>
+                                                                        {c.phone && <p className="text-[10px] text-stone-400">{c.phone}</p>}
+                                                                    </div>
+                                                                    <ChevronRight className="w-4 h-4 text-stone-300 group-hover:text-primary transition-colors" />
+                                                                </button>
+                                                            ))}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+
+                        {showHistory && (
+                            <div className="border-t border-sidebar-border bg-stone-50/50 dark:bg-stone-950/20 p-5 overflow-y-auto max-h-[250px] animate-in slide-in-from-bottom duration-300" style={{ scrollbarWidth: 'thin' }}>
+                                <h3 className="text-[10px] font-bold text-stone-400 uppercase tracking-wider mb-4">Historial de Consultas</h3>
+                                <div className="space-y-4">
+                                    {previousQuotes.map(quote => (
+                                        <QuoteSummary 
+                                            key={quote.id} 
+                                            order={quote} 
+                                            contact={{ id: pendingContact?.id || '', name: pendingContact?.name || '' }} 
+                                            compact={true}
+                                            onEdit={handleEditQuote}
+                                        />
+                                    ))}
+                                </div>
+                            </div>
+                        )}
                     </div>
                 )}
             </div>
 
-            {/* Bottom Sticky Cart */}
+            {/* Bottom Sticky Cart for Mobile/Tablet */}
             {quoteItems.length > 0 && (
-                <div className={`fixed bottom-0 left-0 lg:left-64 right-0 z-[40] bg-white dark:bg-stone-900 border-t border-sidebar-border shadow-[0_-10px_40px_rgba(0,0,0,0.1)] transition-all duration-500 ${cartExpanded ? 'h-[600px]' : 'h-16'}`}>
+                <div className={`lg:hidden fixed bottom-0 left-0 right-0 z-[40] bg-white dark:bg-stone-900 border-t border-sidebar-border shadow-[0_-10px_40px_rgba(0,0,0,0.1)] transition-all duration-500 ${cartExpanded ? 'h-[85vh] rounded-t-[2rem]' : 'h-16'}`}>
                     {/* Collapsed Bar */}
                     <button 
                         onClick={() => setCartExpanded(!cartExpanded)}
-                        className="h-16 w-full flex items-center justify-between px-8 border-b border-stone-100 dark:border-stone-800 hover:bg-stone-50 dark:hover:bg-stone-800/50 transition-colors"
+                        className="h-16 w-full flex items-center justify-between px-6 hover:bg-stone-50 dark:hover:bg-stone-800/50 transition-colors"
                     >
-                        <div className="flex items-center gap-6">
+                        <div className="flex items-center gap-4">
                             <div className="flex items-center gap-2">
                                 <ShoppingBag className="w-5 h-5 text-primary" />
-                                <span className="text-xs font-black uppercase tracking-[0.2em]">Presupuesto</span>
-                                <span className="bg-primary text-primary-foreground text-[10px] font-black px-2 py-0.5 rounded-full">{itemCount}</span>
+                                <span className="text-xs font-bold uppercase tracking-wider">Presupuesto</span>
+                                <span className="bg-primary text-primary-foreground text-[10px] font-bold px-2 py-0.5 rounded-full">{itemCount}</span>
                             </div>
-                            <div className="flex items-center gap-4">
-                                <span className="text-xl font-black">${Math.round(totalCash).toLocaleString()} <span className="text-[10px] text-stone-400 font-black uppercase ml-1">en efectivo</span></span>
-                                {markup > 0 && <span className="text-[10px] font-black text-blue-500 bg-blue-50 dark:bg-blue-900/20 px-2 py-0.5 rounded-full">+{markup}% MU</span>}
+                            <div className="flex items-center gap-3">
+                                <span className="text-lg font-extrabold">${Math.round(totalCash).toLocaleString()} <span className="text-[9px] text-stone-400 font-semibold uppercase ml-0.5">efectivo</span></span>
                             </div>
                         </div>
                         {cartExpanded ? <ChevronDown className="w-5 h-5" /> : <ChevronUp className="w-5 h-5" />}
@@ -693,8 +865,8 @@ function CotizadorPageContent() {
 
                     {/* Expanded Content */}
                     {cartExpanded && (
-                        <div className="h-[calc(100%-64px)] overflow-hidden flex">
-                            <div className={`flex-1 transition-all duration-500 p-8 overflow-y-auto ${showHistory ? 'max-w-[70%]' : 'max-w-full'}`} style={{ scrollbarWidth: 'thin' }}>
+                        <div className="h-[calc(100%-64px)] overflow-hidden flex flex-col">
+                            <div className="flex-1 overflow-y-auto p-6" style={{ scrollbarWidth: 'thin' }}>
                                 {!showRegister ? (
                                     <CotizadorCart 
                                         items={quoteItems}
@@ -725,64 +897,65 @@ function CotizadorPageContent() {
                                         prescriptions={pendingContact?.prescriptions || []}
                                         prescriptionId={quotePrescriptionId}
                                         setPrescriptionId={setQuotePrescriptionId}
+                                        isCard={false}
                                         extraActions={
                                             previousQuotes.length > 0 && (
                                                 <button
                                                     onClick={() => setShowHistory(!showHistory)}
-                                                    className={`flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${showHistory 
-                                                        ? 'bg-stone-900 text-white' 
-                                                        : 'bg-stone-100 text-stone-500'}`}
+                                                    className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all ${showHistory 
+                                                        ? 'bg-stone-900 text-white dark:bg-white dark:text-stone-900 shadow-md' 
+                                                        : 'bg-stone-100 dark:bg-stone-850 text-stone-500 hover:bg-stone-205'}`}
                                                 >
-                                                    <History className="w-3.5 h-3.5" /> {showHistory ? 'Cerrar Historial' : `Historial (${previousQuotes.length})`}
+                                                    <History className="w-3.5 h-3.5" /> {showHistory ? 'Cerrar' : `Historial (${previousQuotes.length})`}
                                                 </button>
                                             )
                                         }
                                         crystalColors={crystalColors}
                                     />
                                 ) : (
-                                    <div className="bg-white dark:bg-stone-800 border-2 border-primary/20 rounded-[2.5rem] p-12 shadow-2xl relative max-w-4xl mx-auto animate-in zoom-in-95 duration-500">
-                                        <button onClick={() => setShowRegister(false)} className="absolute top-8 right-8 text-stone-300 hover:text-stone-800"><X className="w-6 h-6" /></button>
+                                    <div className="bg-white dark:bg-stone-800 border border-primary/20 rounded-2xl p-6 shadow-xl relative animate-in zoom-in-95 duration-300">
+                                        <button onClick={() => setShowRegister(false)} className="absolute top-4 right-4 text-stone-400 hover:text-stone-805 dark:hover:text-white"><X className="w-4 h-4" /></button>
                                         
                                         {savedContact ? (
-                                            <div className="py-12 text-center space-y-8">
-                                                <div className="w-24 h-24 bg-emerald-500 rounded-full flex items-center justify-center mx-auto shadow-xl shadow-emerald-500/30">
-                                                    <Check className="w-12 h-12 text-white" />
+                                            <div className="py-6 text-center space-y-6">
+                                                <div className="w-16 h-16 bg-emerald-500 rounded-full flex items-center justify-center mx-auto shadow-lg shadow-emerald-500/25">
+                                                    <Check className="w-8 h-8 text-white" />
                                                 </div>
                                                 <div>
-                                                    <h4 className="text-3xl font-black tracking-tighter">¡Guardado con éxito!</h4>
-                                                    <p className="text-stone-500 font-bold mt-2">Registrado en la ficha de {savedContact.name}</p>
+                                                    <h4 className="text-lg font-bold tracking-tight">¡Guardado con éxito!</h4>
+                                                    <p className="text-stone-500 font-semibold text-xs mt-1">Registrado en la ficha de {savedContact.name}</p>
                                                 </div>
-                                                <div className="flex gap-4 justify-center pt-8">
-                                                    <button onClick={() => router.push(`/admin/contactos?clientId=${savedContact.id}`)} className="px-8 py-4 bg-emerald-500 text-white rounded-2xl font-black text-xs uppercase tracking-[0.2em] hover:scale-105 transition-all shadow-lg">Ver Ficha</button>
-                                                    <button onClick={resetRegister} className="px-8 py-4 bg-stone-100 text-stone-600 rounded-2xl font-black text-xs uppercase tracking-[0.2em] hover:scale-105 transition-all">Nuevo Presupuesto</button>
+                                                <div className="flex gap-3 justify-center pt-2">
+                                                    <button onClick={() => router.push(`/admin/contactos?clientId=${savedContact.id}`)} className="px-4 py-2 bg-emerald-500 text-white rounded-xl font-bold text-xs uppercase tracking-wider hover:scale-105 transition-all shadow-md">Ver Ficha</button>
+                                                    <button onClick={resetRegister} className="px-4 py-2 bg-stone-100 dark:bg-stone-700 dark:text-stone-200 text-stone-605 rounded-xl font-bold text-xs uppercase tracking-wider hover:scale-105 transition-all">Nuevo</button>
                                                 </div>
                                             </div>
                                         ) : (
-                                            <div className="space-y-10">
+                                            <div className="space-y-6">
                                                 <div>
-                                                    <h3 className="text-3xl font-black tracking-tighter">Vincular Contacto</h3>
-                                                    <p className="text-[11px] font-black text-stone-400 uppercase tracking-[0.3em] mt-1">Busca un cliente o crea uno nuevo</p>
+                                                    <h3 className="text-lg font-bold tracking-tight">Vincular Contacto</h3>
+                                                    <p className="text-[10px] font-bold text-stone-400 uppercase tracking-wider mt-0.5">Busca un cliente o crea uno nuevo</p>
                                                 </div>
 
                                                 {pendingContact ? (
-                                                    <div className="space-y-8 animate-in slide-in-from-bottom-4 duration-500">
-                                                        <div className="p-8 bg-primary/5 border-2 border-primary/20 rounded-[2rem] flex items-center gap-6">
-                                                            <div className="w-20 h-20 rounded-3xl bg-white shadow-xl flex items-center justify-center border border-primary/20"><User className="w-10 h-10 text-primary" /></div>
-                                                            <div className="flex-1">
-                                                                <p className="text-[10px] font-black text-primary uppercase tracking-[0.3em]">Cliente Seleccionado</p>
-                                                                <h4 className="text-2xl font-black tracking-tighter mt-1">{pendingContact.name}</h4>
-                                                                {pendingContact.phone && <p className="text-sm font-bold text-stone-400 mt-1">{pendingContact.phone}</p>}
+                                                    <div className="space-y-6 animate-in slide-in-from-bottom-2 duration-300">
+                                                        <div className="p-4 bg-primary/5 border border-primary/20 rounded-xl flex items-center gap-4">
+                                                            <div className="w-12 h-12 rounded-lg bg-white shadow-sm flex items-center justify-center border border-primary/20"><User className="w-6 h-6 text-primary" /></div>
+                                                            <div className="flex-1 min-w-0">
+                                                                <p className="text-[9px] font-bold text-primary uppercase tracking-wider">Cliente Seleccionado</p>
+                                                                <h4 className="text-base font-bold truncate mt-0.5">{pendingContact.name}</h4>
+                                                                {pendingContact.phone && <p className="text-xs text-stone-400 mt-0.5">{pendingContact.phone}</p>}
                                                             </div>
-                                                            {!editingQuoteId && <button onClick={() => setPendingContact(null)} className="p-4 text-stone-300 hover:text-red-500"><X className="w-7 h-7" /></button>}
+                                                            {!editingQuoteId && <button onClick={() => setPendingContact(null)} className="p-2 text-stone-300 hover:text-red-500"><X className="w-5 h-5" /></button>}
                                                         </div>
 
                                                         {hasCrystals && pendingContact.prescriptions && pendingContact.prescriptions.length > 0 && (
-                                                            <div className="p-8 bg-emerald-50 dark:bg-emerald-950/20 rounded-[2rem] border-2 border-emerald-200/50 space-y-4">
-                                                                <div className="flex items-center gap-2"><FileText className="w-5 h-5 text-emerald-600" /><span className="text-[10px] font-black text-emerald-700 uppercase tracking-widest">Vincular Receta Médica</span></div>
+                                                            <div className="p-4 bg-emerald-50 dark:bg-emerald-950/20 rounded-xl border border-emerald-250/50 space-y-3">
+                                                                <div className="flex items-center gap-1.5"><FileText className="w-4 h-4 text-emerald-600" /><span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider">Vincular Receta Médica</span></div>
                                                                 <select 
                                                                     value={quotePrescriptionId || ''} 
                                                                     onChange={e => setQuotePrescriptionId(e.target.value || null)}
-                                                                    className="w-full bg-white dark:bg-stone-800 border-2 border-emerald-100 py-4 px-6 rounded-2xl text-sm font-black outline-none focus:ring-4 focus:ring-emerald-500/10 transition-all cursor-pointer"
+                                                                    className="w-full bg-white dark:bg-stone-800 border border-emerald-200 py-2 px-3 rounded-xl text-xs font-bold outline-none cursor-pointer"
                                                                 >
                                                                     <option value="">Sin receta vinculada...</option>
                                                                     {pendingContact.prescriptions.map((p: any) => (
@@ -792,43 +965,43 @@ function CotizadorPageContent() {
                                                             </div>
                                                         )}
 
-                                                        <div className="flex gap-4 pt-4">
+                                                        <div className="flex gap-3 pt-2">
                                                             <button 
                                                                 onClick={() => saveQuoteToContact(pendingContact.id, pendingContact.name)} 
                                                                 disabled={savingQuote}
-                                                                className="flex-1 py-6 bg-primary text-primary-foreground rounded-[2rem] font-black text-xs uppercase tracking-[0.2em] shadow-2xl flex justify-center items-center gap-3"
+                                                                className="flex-1 py-3 bg-primary text-primary-foreground rounded-xl font-bold text-xs uppercase tracking-wider shadow-md flex justify-center items-center gap-2"
                                                             >
-                                                                {savingQuote ? <Loader2 className="w-6 h-6 animate-spin" /> : editingQuoteId ? 'Actualizar Presupuesto' : 'Guardar Presupuesto'}
+                                                                {savingQuote ? <Loader2 className="w-4 h-4 animate-spin" /> : editingQuoteId ? 'Actualizar' : 'Guardar'}
                                                             </button>
-                                                            {!editingQuoteId && <button onClick={() => { setPendingContact(null); setPreviousQuotes([]); }} className="px-8 py-6 bg-white border-2 border-stone-100 text-stone-400 rounded-[2rem] font-black text-[11px] uppercase tracking-widest hover:text-stone-800 transition-all">Cambiar</button>}
+                                                            {!editingQuoteId && <button onClick={() => { setPendingContact(null); setPreviousQuotes([]); }} className="px-4 py-3 bg-white border border-stone-200 text-stone-400 rounded-xl font-bold text-[10px] uppercase tracking-wider hover:text-stone-850 transition-all">Cambiar</button>}
                                                         </div>
                                                     </div>
                                                 ) : (
-                                                    <div className="space-y-8">
-                                                        <div className="flex gap-4">
+                                                    <div className="space-y-6">
+                                                        <div className="flex gap-3">
                                                             <div className="relative flex-1">
-                                                                <Search className="w-5 h-5 absolute left-6 top-1/2 -translate-y-1/2 text-stone-300" />
+                                                                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-stone-300" />
                                                                 <input 
                                                                     ref={contactSearchRef} 
                                                                     type="text" 
-                                                                    placeholder="Busca por nombre..." 
+                                                                    placeholder="Buscar cliente..." 
                                                                     value={contactSearch} 
                                                                     onChange={e => setContactSearch(e.target.value)}
-                                                                    className="w-full bg-stone-50 border-2 border-stone-100 py-6 px-16 rounded-[2rem] text-sm font-black outline-none focus:ring-4 focus:ring-primary/10 transition-all"
+                                                                    className="w-full bg-stone-50 border border-stone-200 py-2.5 pl-9 pr-4 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-primary/20 transition-all"
                                                                 />
                                                             </div>
-                                                            <button onClick={() => { setShowNewContact(true); setNewContactName(contactSearch); }} className="px-8 bg-primary/10 text-primary border-2 border-primary/20 rounded-[2rem] font-black text-xs uppercase tracking-[0.2em] hover:bg-primary hover:text-white transition-all flex items-center gap-2"><Plus className="w-5 h-5" /> Nuevo</button>
+                                                            <button onClick={() => { setShowNewContact(true); setNewContactName(contactSearch); }} className="px-4 bg-primary/10 text-primary border border-primary/20 rounded-xl font-bold text-xs uppercase tracking-wider hover:bg-primary hover:text-white transition-all flex items-center gap-1.5"><Plus className="w-4 h-4" /> Nuevo</button>
                                                         </div>
                                                         {contactResults.length > 0 && (
-                                                            <div className="grid grid-cols-2 gap-4 max-h-[300px] overflow-y-auto pr-4" style={{ scrollbarWidth: 'thin' }}>
+                                                            <div className="grid grid-cols-1 gap-2 max-h-[220px] overflow-y-auto pr-1" style={{ scrollbarWidth: 'thin' }}>
                                                                 {contactResults.map((c: any) => (
-                                                                    <button key={c.id} onClick={() => selectContactForQuote(c)} className="flex items-center gap-4 p-6 bg-stone-50 border-2 border-stone-100 rounded-[2rem] hover:border-primary/40 transition-all group">
-                                                                        <div className="w-14 h-14 rounded-2xl bg-white shadow-sm flex items-center justify-center border border-stone-100"><User className="w-7 h-7 text-primary" /></div>
-                                                                        <div className="flex-1 text-left">
-                                                                            <p className="text-sm font-black truncate">{c.name}</p>
-                                                                            {c.phone && <p className="text-[10px] font-bold text-stone-400">{c.phone}</p>}
+                                                                    <button key={c.id} onClick={() => selectContactForQuote(c)} className="flex items-center gap-3 p-3 bg-stone-50 dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-xl hover:border-primary/40 transition-all group text-left">
+                                                                        <div className="w-10 h-10 rounded-lg bg-white dark:bg-stone-800 shadow-sm flex items-center justify-center border border-stone-100 dark:border-stone-700"><User className="w-5 h-5 text-primary" /></div>
+                                                                        <div className="flex-1 text-left min-w-0">
+                                                                            <p className="text-xs font-bold truncate">{c.name}</p>
+                                                                            {c.phone && <p className="text-[10px] text-stone-405">{c.phone}</p>}
                                                                         </div>
-                                                                        <ChevronRight className="w-5 h-5 text-stone-300 group-hover:text-primary" />
+                                                                        <ChevronRight className="w-4 h-4 text-stone-300 group-hover:text-primary transition-colors" />
                                                                     </button>
                                                                 ))}
                                                             </div>
@@ -840,10 +1013,11 @@ function CotizadorPageContent() {
                                     </div>
                                 )}
                             </div>
+                            
                             {showHistory && (
-                                <div className="w-[30%] border-l border-sidebar-border bg-stone-50/50 dark:bg-stone-900/50 p-8 overflow-y-auto animate-in slide-in-from-right duration-500">
-                                    <h3 className="text-[11px] font-black text-stone-400 uppercase tracking-[0.3em] mb-8">Historial de Consultas</h3>
-                                    <div className="space-y-6">
+                                <div className="border-t border-sidebar-border bg-stone-50/50 dark:bg-stone-950/20 p-5 overflow-y-auto max-h-[220px]" style={{ scrollbarWidth: 'thin' }}>
+                                    <h3 className="text-[10px] font-bold text-stone-400 uppercase tracking-wider mb-4">Historial de Consultas</h3>
+                                    <div className="space-y-4">
                                         {previousQuotes.map(quote => (
                                             <QuoteSummary 
                                                 key={quote.id} 

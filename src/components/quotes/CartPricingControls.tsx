@@ -15,6 +15,7 @@ interface CartPricingControlsProps {
     specialDiscount?: number;
     setSpecialDiscount?: (val: number) => void;
     currentUserRole?: string;
+    isCard?: boolean;
 }
 
 export default function CartPricingControls({
@@ -28,82 +29,83 @@ export default function CartPricingControls({
     setDiscountCard,
     specialDiscount = 0,
     setSpecialDiscount,
-    currentUserRole
+    currentUserRole,
+    isCard = true
 }: CartPricingControlsProps) {
     const isAdmin = currentUserRole === 'ADMIN';
 
     return (
-        <div className={`grid grid-cols-2 gap-4 mb-8 ${isAdmin ? 'md:grid-cols-5' : 'md:grid-cols-4'}`}>
-            <div className="p-4 bg-blue-50/50 dark:bg-blue-950/20 rounded-3xl border-2 border-blue-100 dark:border-blue-900/30 group/markup">
-                 <div className="flex items-center gap-2 mb-2">
+        <div className={`grid grid-cols-2 gap-3 mb-6 ${isAdmin ? 'md:grid-cols-5' : 'md:grid-cols-4'}`}>
+            <div className="p-3 bg-stone-50 dark:bg-stone-900/40 rounded-2xl border border-stone-250/60 dark:border-stone-800 transition-all focus-within:border-blue-400 dark:focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-400/25 group/markup">
+                 <div className="flex items-center gap-1.5 mb-1.5">
                      <TrendingUp className="w-3.5 h-3.5 text-blue-500" />
-                     <span className="text-[9px] font-black text-blue-600 uppercase tracking-widest">Markup</span>
+                     <span className="text-[10px] font-bold text-stone-500 dark:text-stone-400 uppercase tracking-wider">Markup</span>
                  </div>
-                 <div className="flex items-center gap-2">
+                 <div className="flex items-center gap-1">
                     <input
                         type="number"
                         min={0}
                         value={markup || ''}
                         onChange={e => setMarkup(Math.abs(Number(e.target.value)))}
-                        className="w-full bg-white dark:bg-stone-800 border-2 border-blue-100 dark:border-blue-900/50 rounded-xl px-3 py-2 text-sm font-black outline-none focus:ring-2 focus:ring-blue-400 transition-all font-bold"
+                        className="w-full bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-lg px-2.5 py-1.5 text-xs font-bold outline-none"
                     />
-                    <span className="text-xs font-black text-blue-600">%</span>
+                    <span className="text-xs font-bold text-blue-500">%</span>
                  </div>
             </div>
-            <div className="p-4 bg-emerald-50/50 dark:bg-emerald-950/20 rounded-3xl border-2 border-emerald-100 dark:border-emerald-900/30 group/efvo">
-                 <div className="flex items-center gap-2 mb-2">
+            <div className="p-3 bg-stone-50 dark:bg-stone-900/40 rounded-2xl border border-stone-250/60 dark:border-stone-800 transition-all focus-within:border-emerald-450 dark:focus-within:border-emerald-550 focus-within:ring-2 focus-within:ring-emerald-400/25 group/efvo">
+                 <div className="flex items-center gap-1.5 mb-1.5">
                      <Banknote className="w-3.5 h-3.5 text-emerald-500" />
-                     <span className="text-[9px] font-black text-emerald-600 uppercase tracking-widest">Dto. Efvo</span>
+                     <span className="text-[10px] font-bold text-stone-500 dark:text-stone-400 uppercase tracking-wider">Dto. Efvo</span>
                  </div>
                  <select
                     value={discountCash}
                     onChange={e => setDiscountCash(Number(e.target.value))}
-                    className="w-full bg-white dark:bg-stone-800 border-2 border-emerald-100 dark:border-emerald-900/50 rounded-xl px-3 py-2 text-sm font-black outline-none focus:ring-2 focus:ring-emerald-400 transition-all font-bold cursor-pointer"
+                    className="w-full bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-lg px-2.5 py-1.5 text-xs font-bold outline-none cursor-pointer"
                 >
                     {[0, 5, 10, 15, 20, 25, 30].map(v => <option key={v} value={v}>-{v}%</option>)}
                 </select>
             </div>
-            <div className="p-4 bg-violet-50/50 dark:bg-violet-950/20 rounded-3xl border-2 border-violet-100 dark:border-violet-900/30 group/transf">
-                 <div className="flex items-center gap-2 mb-2">
+            <div className="p-3 bg-stone-50 dark:bg-stone-900/40 rounded-2xl border border-stone-250/60 dark:border-stone-800 transition-all focus-within:border-violet-400 dark:focus-within:border-violet-500 focus-within:ring-2 focus-within:ring-violet-400/25 group/transf">
+                 <div className="flex items-center gap-1.5 mb-1.5">
                      <ArrowRightLeft className="w-3.5 h-3.5 text-violet-500" />
-                     <span className="text-[9px] font-black text-violet-600 uppercase tracking-widest">Dto. Transf</span>
+                     <span className="text-[10px] font-bold text-stone-500 dark:text-stone-400 uppercase tracking-wider">Dto. Transf</span>
                  </div>
                  <select
                     value={discountTransfer}
                     onChange={e => setDiscountTransfer(Number(e.target.value))}
-                    className="w-full bg-white dark:bg-stone-800 border-2 border-violet-100 dark:border-violet-900/50 rounded-xl px-3 py-2 text-sm font-black outline-none focus:ring-2 focus:ring-violet-400 transition-all font-bold cursor-pointer"
+                    className="w-full bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-lg px-2.5 py-1.5 text-xs font-bold outline-none cursor-pointer"
                 >
                     {[0, 5, 10, 15, 20].map(v => <option key={v} value={v}>-{v}%</option>)}
                 </select>
             </div>
-            <div className="p-4 bg-orange-50/50 dark:bg-orange-950/20 rounded-3xl border-2 border-orange-100 dark:border-orange-900/30 group/card">
-                 <div className="flex items-center gap-2 mb-2">
+            <div className="p-3 bg-stone-50 dark:bg-stone-900/40 rounded-2xl border border-stone-250/60 dark:border-stone-800 transition-all focus-within:border-orange-400 dark:focus-within:border-orange-500 focus-within:ring-2 focus-within:ring-orange-400/25 group/card">
+                 <div className="flex items-center gap-1.5 mb-1.5">
                      <CreditCard className="w-3.5 h-3.5 text-orange-500" />
-                     <span className="text-[9px] font-black text-orange-600 uppercase tracking-widest">Rec. Cuotas</span>
+                     <span className="text-[10px] font-bold text-stone-500 dark:text-stone-400 uppercase tracking-wider">Rec. Cuotas</span>
                  </div>
                  <select
                     value={discountCard}
                     onChange={e => setDiscountCard(Number(e.target.value))}
-                    className="w-full bg-white dark:bg-stone-800 border-2 border-orange-100 dark:border-orange-900/50 rounded-xl px-3 py-2 text-sm font-black outline-none focus:ring-2 focus:ring-orange-400 transition-all font-bold cursor-pointer"
+                    className="w-full bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-lg px-2.5 py-1.5 text-xs font-bold outline-none cursor-pointer"
                 >
                     {[0, 5, 10].map(v => <option key={v} value={v}>{v === 0 ? '0%' : `+${v}%`}</option>)}
                 </select>
             </div>
             
             {isAdmin && setSpecialDiscount && (
-                <div className="p-4 bg-rose-50/50 dark:bg-rose-950/20 rounded-3xl border-2 border-rose-100 dark:border-rose-900/30 group/special">
-                     <div className="flex items-center gap-2 mb-2">
+                <div className="p-3 bg-stone-50 dark:bg-stone-900/40 rounded-2xl border border-stone-250/60 dark:border-stone-800 transition-all focus-within:border-rose-400 dark:focus-within:border-rose-500 focus-within:ring-2 focus-within:ring-rose-400/25 group/special">
+                     <div className="flex items-center gap-1.5 mb-1.5">
                          <Banknote className="w-3.5 h-3.5 text-rose-500" />
-                         <span className="text-[9px] font-black text-rose-600 uppercase tracking-widest">Dto. Especial</span>
+                         <span className="text-[10px] font-bold text-stone-500 dark:text-stone-400 uppercase tracking-wider">Dto. Especial</span>
                      </div>
-                     <div className="flex items-center gap-2">
-                         <span className="text-xs font-black text-rose-600">$</span>
-                         <input
+                     <div className="flex items-center gap-1">
+                          <span className="text-xs font-bold text-rose-550">$</span>
+                          <input
                             type="number"
                             min={0}
                             value={specialDiscount || ''}
                             onChange={e => setSpecialDiscount(Math.abs(Number(e.target.value)))}
-                            className="w-full bg-white dark:bg-stone-800 border-2 border-rose-100 dark:border-rose-900/50 rounded-xl px-3 py-2 text-sm font-black outline-none focus:ring-2 focus:ring-rose-400 transition-all font-bold"
+                            className="w-full bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-lg px-2.5 py-1.5 text-xs font-bold outline-none"
                             placeholder="Monto"
                         />
                      </div>

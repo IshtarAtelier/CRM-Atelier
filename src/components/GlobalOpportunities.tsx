@@ -9,9 +9,11 @@ export function GlobalOpportunities() {
     const [isOpen, setIsOpen] = useState(false);
     const [opportunities, setOpportunities] = useState<any[]>([]);
     const [mounted, setMounted] = useState(false);
+    const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(null);
 
     useEffect(() => {
         setMounted(true);
+        setPortalTarget(document.body);
         fetchOpportunities();
         const interval = setInterval(fetchOpportunities, 60000); // Check every minute
         return () => clearInterval(interval);
@@ -62,7 +64,7 @@ export function GlobalOpportunities() {
                 </button>
             </div>
 
-            {isOpen && mounted && createPortal(
+            {isOpen && portalTarget && createPortal(
                 <>
                     <OpportunitiesPanel
                         opportunities={opportunities}
@@ -74,7 +76,7 @@ export function GlobalOpportunities() {
                         onClick={() => setIsOpen(false)}
                     />
                 </>,
-                document.body
+                portalTarget
             )}
         </>
     );
