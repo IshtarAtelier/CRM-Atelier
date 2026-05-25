@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Bell } from 'lucide-react';
 import TasksPanel from './TasksPanel';
 
@@ -8,8 +9,10 @@ export function GlobalTasks() {
     const [isOpen, setIsOpen] = useState(false);
     const [tasks, setTasks] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [mounted, setMounted] = useState(false);
 
     useEffect(() => {
+        setMounted(true);
         fetchTasks();
         const interval = setInterval(fetchTasks, 60000); // Actualizar cada minuto
         return () => clearInterval(interval);
@@ -63,33 +66,31 @@ export function GlobalTasks() {
                     )}
 
                     <div className="relative">
-                        <Bell className={`w-5 h-5 md:w-6 md:h-6 ${isOpen ? 'animate-none' : urgentCount > 0 ? 'text-red-600 dark:text-red-500' : 'text-stone-400 group-hover:text-stone-600 dark:text-stone-500 dark:group-hover:text-stone-300 transition-colors'}`} />
+                        <Bell className={`w-5 h-5 md:w-6 md:h-6 ${isOpen ? 'text-white' : urgentCount > 0 ? 'text-red-600 dark:text-red-500' : 'text-stone-400 group-hover:text-stone-600 dark:text-stone-500 dark:group-hover:text-stone-300 transition-colors'}`} />
                         {urgentCount > 0 && (
                             <span className="absolute -top-1.5 -right-1.5 w-4 h-4 md:w-5 md:h-5 bg-red-500 text-white text-[9px] md:text-[10px] font-black rounded-full flex items-center justify-center border-2 border-white dark:border-stone-900 shadow-md">
                                 {urgentCount}
                             </span>
                         )}
                     </div>
-                    <span className={`text-[10px] font-bold uppercase tracking-widest hidden md:block transition-colors ${urgentCount > 0 ? 'text-red-700 dark:text-red-400' : 'text-stone-500 dark:text-stone-400'}`}>
+                    <span className={`text-[10px] font-bold uppercase tracking-widest hidden md:block transition-colors ${isOpen ? 'text-white' : urgentCount > 0 ? 'text-red-700 dark:text-red-400' : 'text-stone-500 dark:text-stone-400'}`}>
                         Tareas
                     </span>
                 </button>
             </div>
 
-            {/* Panel de Tareas */}
-            {isOpen && (
-                <TasksPanel
-                    tasks={tasks}
-                    onClose={() => setIsOpen(false)}
-                />
-            )}
-
-            {/* Backdrop para cerrar al hacer clic afuera (Opcional, pero recomendado) */}
-            {isOpen && (
-                <div
-                    className="fixed inset-0 bg-stone-900/20 dark:bg-black/40 backdrop-blur-sm z-50 transition-opacity"
-                    onClick={() => setIsOpen(false)}
-                />
+            {isOpen && mounted && createPortal(
+                <>
+                    <TasksPanel
+                        tasks={tasks}
+                        onClose={() => setIsOpen(false)}
+                    />
+                    <div
+                        className="fixed inset-0 bg-stone-900/20 dark:bg-black/40 backdrop-blur-sm z-50 transition-opacity"
+                        onClick={() => setIsOpen(false)}
+                    />
+                </>,
+                document.body
             )}
         </>
     );

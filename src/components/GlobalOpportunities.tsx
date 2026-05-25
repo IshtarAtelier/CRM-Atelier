@@ -1,14 +1,17 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Zap } from 'lucide-react';
 import OpportunitiesPanel from './OpportunitiesPanel';
 
 export function GlobalOpportunities() {
     const [isOpen, setIsOpen] = useState(false);
     const [opportunities, setOpportunities] = useState<any[]>([]);
+    const [mounted, setMounted] = useState(false);
 
     useEffect(() => {
+        setMounted(true);
         fetchOpportunities();
         const interval = setInterval(fetchOpportunities, 60000); // Check every minute
         return () => clearInterval(interval);
@@ -31,8 +34,6 @@ export function GlobalOpportunities() {
     return (
         <>
             {/* Botón flotante al lado de Saldos */}
-            {/* Ubicación: a la izquierda del de Saldos (Saldos está en right-[192px] / right-[392px]) */}
-            {/* Posición Mobile: right-[248px], Posición Desktop: right-[536px] */}
             <div className="relative">
                 <button
                     onClick={() => setIsOpen(!isOpen)}
@@ -48,32 +49,32 @@ export function GlobalOpportunities() {
                     )}
 
                     <div className="relative">
-                        <Zap className={`w-5 h-5 md:w-6 md:h-6 ${isOpen ? 'animate-none' : count > 0 ? 'text-amber-500 fill-amber-500' : 'text-stone-400 group-hover:text-stone-600 dark:text-stone-500 dark:group-hover:text-stone-300 transition-colors'}`} />
+                        <Zap className={`w-5 h-5 md:w-6 md:h-6 ${isOpen ? 'text-white' : count > 0 ? 'text-amber-500 fill-amber-500' : 'text-stone-400 group-hover:text-stone-600 dark:text-stone-500 dark:group-hover:text-stone-300 transition-colors'}`} />
                         {count > 0 && (
                             <span className="absolute -top-1.5 -right-1.5 w-4 h-4 md:w-5 md:h-5 bg-amber-500 text-white text-[9px] md:text-[10px] font-black rounded-full flex items-center justify-center border-2 border-white dark:border-stone-900 shadow-md">
                                 {count}
                             </span>
                         )}
                     </div>
-                    <span className={`text-[10px] font-bold uppercase tracking-widest hidden md:block transition-colors ${count > 0 ? 'text-amber-700 dark:text-amber-400' : 'text-stone-500 dark:text-stone-400'}`}>
+                    <span className={`text-[10px] font-bold uppercase tracking-widest hidden md:block transition-colors ${isOpen ? 'text-white' : count > 0 ? 'text-amber-700 dark:text-amber-400' : 'text-stone-500 dark:text-stone-400'}`}>
                         Cierres
                     </span>
                 </button>
             </div>
 
-            {isOpen && (
-                <OpportunitiesPanel
-                    opportunities={opportunities}
-                    onClose={() => setIsOpen(false)}
-                    onRefresh={fetchOpportunities}
-                />
-            )}
-
-            {isOpen && (
-                <div
-                    className="fixed inset-0 bg-stone-900/20 dark:bg-black/40 backdrop-blur-sm z-50 transition-opacity"
-                    onClick={() => setIsOpen(false)}
-                />
+            {isOpen && mounted && createPortal(
+                <>
+                    <OpportunitiesPanel
+                        opportunities={opportunities}
+                        onClose={() => setIsOpen(false)}
+                        onRefresh={fetchOpportunities}
+                    />
+                    <div
+                        className="fixed inset-0 bg-stone-900/20 dark:bg-black/40 backdrop-blur-sm z-50 transition-opacity"
+                        onClick={() => setIsOpen(false)}
+                    />
+                </>,
+                document.body
             )}
         </>
     );

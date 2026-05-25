@@ -1,6 +1,7 @@
 import { ChatVertexAI } from "@langchain/google-vertexai-web";
 import { SystemMessage, HumanMessage } from "@langchain/core/messages";
 import { prisma } from '@/lib/db';
+import { staticPosts } from '@/lib/static-blog-posts';
 
 // ── Types ──────────────────────────────────
 interface GenerateRequest {
@@ -98,10 +99,23 @@ async function getSourceContext(sourceType: string, sourceId?: string, topic?: s
     }
 
     if (sourceType === 'BLOG' && sourceId) {
-        const post = await prisma.blogPost.findUnique({
+        let post = await prisma.blogPost.findUnique({
             where: { id: sourceId },
             select: { title: true, excerpt: true, category: true, slug: true }
         });
+        
+        if (!post) {
+            const staticPost = staticPosts.find(p => p.slug === sourceId);
+            if (staticPost) {
+                post = {
+                    title: staticPost.title,
+                    excerpt: staticPost.excerpt,
+                    category: staticPost.category,
+                    slug: staticPost.slug
+                };
+            }
+        }
+
         if (!post) throw new Error('Artículo de blog no encontrado');
         return `ARTÍCULO DE BLOG A PROMOCIONAR:
 - Título: ${post.title}
@@ -165,7 +179,13 @@ export async function generateSocialContent(request: GenerateRequest) {
         const p = await prisma.product.findUnique({ where: { id: sourceId }, select: { brand: true, model: true } });
         sourceName = p ? `${p.brand} ${p.model}` : 'Producto';
     } else if (sourceType === 'BLOG' && sourceId) {
-        const b = await prisma.blogPost.findUnique({ where: { id: sourceId }, select: { title: true } });
+        let b = await prisma.blogPost.findUnique({ where: { id: sourceId }, select: { title: true } });
+        if (!b) {
+            const staticPost = staticPosts.find(p => p.slug === sourceId);
+            if (staticPost) {
+                b = { title: staticPost.title };
+            }
+        }
         sourceName = b?.title || 'Artículo';
     }
 

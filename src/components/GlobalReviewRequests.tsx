@@ -1,14 +1,17 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Star } from 'lucide-react';
 import ReviewRequestsPanel from './ReviewRequestsPanel';
 
 export function GlobalReviewRequests() {
     const [isOpen, setIsOpen] = useState(false);
     const [requests, setRequests] = useState<any[]>([]);
+    const [mounted, setMounted] = useState(false);
 
     useEffect(() => {
+        setMounted(true);
         fetchRequests();
         const interval = setInterval(fetchRequests, 60000);
         return () => clearInterval(interval);
@@ -31,7 +34,6 @@ export function GlobalReviewRequests() {
     return (
         <>
             {/* Botón flotante al lado de Tareas */}
-            {/* The right offset is increased to 136px on mobile and 248px on desktop to sit next to the tasks bell */}
             <div className="relative">
                 <button
                     onClick={() => setIsOpen(!isOpen)}
@@ -47,31 +49,31 @@ export function GlobalReviewRequests() {
                     )}
 
                     <div className="relative">
-                        <Star className={`w-5 h-5 md:w-6 md:h-6 ${isOpen ? 'animate-none' : count > 0 ? 'text-yellow-500 fill-yellow-500' : 'text-stone-400 group-hover:text-stone-600 dark:text-stone-500 dark:group-hover:text-stone-300 transition-colors'}`} />
+                        <Star className={`w-5 h-5 md:w-6 md:h-6 ${isOpen ? 'text-white' : count > 0 ? 'text-yellow-500 fill-yellow-500' : 'text-stone-400 group-hover:text-stone-600 dark:text-stone-500 dark:group-hover:text-stone-300 transition-colors'}`} />
                         {count > 0 && (
                             <span className="absolute -top-1.5 -right-1.5 w-4 h-4 md:w-5 md:h-5 bg-yellow-500 text-white text-[9px] md:text-[10px] font-black rounded-full flex items-center justify-center border-2 border-white dark:border-stone-900 shadow-md">
                                 {count}
                             </span>
                         )}
                     </div>
-                    <span className={`text-[10px] font-bold uppercase tracking-widest hidden md:block transition-colors ${count > 0 ? 'text-yellow-700 dark:text-yellow-400' : 'text-stone-500 dark:text-stone-400'}`}>
+                    <span className={`text-[10px] font-bold uppercase tracking-widest hidden md:block transition-colors ${isOpen ? 'text-white' : count > 0 ? 'text-yellow-700 dark:text-yellow-400' : 'text-stone-500 dark:text-stone-400'}`}>
                         Reseñas
                     </span>
                 </button>
             </div>
 
-            {isOpen && (
-                <ReviewRequestsPanel
-                    requests={requests}
-                    onClose={() => setIsOpen(false)}
-                />
-            )}
-
-            {isOpen && (
-                <div
-                    className="fixed inset-0 bg-stone-900/20 dark:bg-black/40 backdrop-blur-sm z-50 transition-opacity"
-                    onClick={() => setIsOpen(false)}
-                />
+            {isOpen && mounted && createPortal(
+                <>
+                    <ReviewRequestsPanel
+                        requests={requests}
+                        onClose={() => setIsOpen(false)}
+                    />
+                    <div
+                        className="fixed inset-0 bg-stone-900/20 dark:bg-black/40 backdrop-blur-sm z-50 transition-opacity"
+                        onClick={() => setIsOpen(false)}
+                    />
+                </>,
+                document.body
             )}
         </>
     );

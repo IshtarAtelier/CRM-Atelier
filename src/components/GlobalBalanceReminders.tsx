@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Banknote } from 'lucide-react';
 import BalancePanel from './BalancePanel';
 
@@ -8,8 +9,10 @@ export function GlobalBalanceReminders() {
     const [isOpen, setIsOpen] = useState(false);
     const [orders, setOrders] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [mounted, setMounted] = useState(false);
 
     useEffect(() => {
+        setMounted(true);
         fetchBalances();
         const interval = setInterval(fetchBalances, 60000); // Actualizar cada minuto
         return () => clearInterval(interval);
@@ -34,7 +37,6 @@ export function GlobalBalanceReminders() {
     return (
         <>
             {/* Botón flotante de Saldos (Banknote) */}
-            {/* Ubicado a la izquierda del de reseñas en desktop, apilado en fila en mobile */}
             <div className="relative">
                 <button
                     onClick={() => setIsOpen(!isOpen)}
@@ -51,33 +53,31 @@ export function GlobalBalanceReminders() {
                     )}
 
                     <div className="relative">
-                        <Banknote className={`w-5 h-5 md:w-6 md:h-6 ${isOpen ? 'animate-none' : count > 0 ? 'text-emerald-600 dark:text-emerald-500' : 'text-stone-400 group-hover:text-stone-600 dark:text-stone-500 dark:group-hover:text-stone-300 transition-colors'}`} />
+                        <Banknote className={`w-5 h-5 md:w-6 md:h-6 ${isOpen ? 'text-white' : count > 0 ? 'text-emerald-600 dark:text-emerald-500' : 'text-stone-400 group-hover:text-stone-600 dark:text-stone-500 dark:group-hover:text-stone-300 transition-colors'}`} />
                         {count > 0 && (
                             <span className="absolute -top-1.5 -right-1.5 w-4 h-4 md:w-5 md:h-5 bg-emerald-500 text-white text-[9px] md:text-[10px] font-black rounded-full flex items-center justify-center border-2 border-white dark:border-stone-900 shadow-md">
                                 {count}
                             </span>
                         )}
                     </div>
-                    <span className={`text-[10px] font-bold uppercase tracking-widest hidden md:block transition-colors ${count > 0 ? 'text-emerald-700 dark:text-emerald-400' : 'text-stone-500 dark:text-stone-400'}`}>
+                    <span className={`text-[10px] font-bold uppercase tracking-widest hidden md:block transition-colors ${isOpen ? 'text-white' : count > 0 ? 'text-emerald-700 dark:text-emerald-400' : 'text-stone-500 dark:text-stone-400'}`}>
                         Saldos
                     </span>
                 </button>
             </div>
 
-            {/* Panel de Saldos */}
-            {isOpen && (
-                <BalancePanel
-                    orders={orders}
-                    onClose={() => setIsOpen(false)}
-                />
-            )}
-
-            {/* Backdrop */}
-            {isOpen && (
-                <div
-                    className="fixed inset-0 bg-stone-900/20 dark:bg-black/40 backdrop-blur-sm z-50 transition-opacity"
-                    onClick={() => setIsOpen(false)}
-                />
+            {isOpen && mounted && createPortal(
+                <>
+                    <BalancePanel
+                        orders={orders}
+                        onClose={() => setIsOpen(false)}
+                    />
+                    <div
+                        className="fixed inset-0 bg-stone-900/20 dark:bg-black/40 backdrop-blur-sm z-50 transition-opacity"
+                        onClick={() => setIsOpen(false)}
+                    />
+                </>,
+                document.body
             )}
         </>
     );
