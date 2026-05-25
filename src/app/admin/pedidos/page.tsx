@@ -448,6 +448,7 @@ export default function PedidosPage() {
                 od_dp: order.labPdOd || '',
                 oi_dp: order.labPdOi || '',
                 diametro: order.labDiameter || '',
+                color: order.labColor || '',
                 observaciones: order.labNotes || '',
                 armazon: frameInfo
             };

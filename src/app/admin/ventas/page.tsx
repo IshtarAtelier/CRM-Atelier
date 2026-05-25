@@ -95,6 +95,7 @@ export default function VentasPage() {
                 od_altura: rx.heightOD != null ? String(rx.heightOD) : '',
                 oi_altura: rx.heightOI != null ? String(rx.heightOI) : '',
                 observaciones: rx.notes || '',
+                color: order.labColor || '',
                 armazon: frameInfo
             };
 

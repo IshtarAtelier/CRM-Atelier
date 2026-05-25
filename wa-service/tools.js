@@ -419,15 +419,44 @@ async function addTagToClient({ clientId, tagName }) {
 async function disableBotForChat({ chatId }) {
     if (!chatId || chatId === 'none') return { error: "No chatId provided." };
     try {
+        const chat = await prisma.whatsAppChat.findUnique({ where: { id: chatId } });
+        if (!chat) return { error: "Chat not found." };
+
+        let tag = await prisma.tag.findFirst({
+            where: { name: { equals: 'Cancelar Bot', mode: 'insensitive' } }
+        });
+        if (!tag) {
+            tag = await prisma.tag.create({
+                data: { name: 'Cancelar Bot', color: '#ff4d4f' }
+            });
+        }
+
+        if (chat.clientId) {
+            await prisma.client.update({
+                where: { id: chat.clientId },
+                data: {
+                    tags: {
+                        connect: { id: tag.id }
+                    }
+                }
+            }).catch(e => console.error("Error linking tag in disableBotForChat:", e.message));
+        }
+
+        const updatedLabels = new Set(chat.chatLabels || []);
+        updatedLabels.add('Cancelar Bot');
+
         await prisma.whatsAppChat.update({
             where: { id: chatId },
-            data: { botEnabled: false }
+            data: { 
+                botEnabled: false, 
+                chatLabels: Array.from(updatedLabels)
+            }
         });
 
         // Generar resumen de handoff
         generateAndSaveHandoffSummary(chatId).catch(e => console.error("Error en resumen disableBotForChat:", e.message));
 
-        return { success: true, message: `Bot apagado para el chat.` };
+        return { success: true, message: `Bot apagado y etiquetado como 'Cancelar Bot' para el chat.` };
     } catch (error) {
         console.error('Error in disableBotForChat tool:', error.message);
         return { error: `No se pudo apagar el bot para el chat.` };

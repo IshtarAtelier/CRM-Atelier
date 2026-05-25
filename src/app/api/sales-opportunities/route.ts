@@ -20,7 +20,7 @@ export async function GET() {
         const favoriteClients = await prisma.client.findMany({
             where: {
                 isFavorite: true,
-                status: { not: 'CLIENT' },
+                status: { notIn: ['CLIENT', 'active'] },
                 orders: {
                     none: {
                         orderType: 'SALE',
@@ -139,7 +139,7 @@ export async function GET() {
                     lt: threeDaysAgo
                 },
                 client: {
-                    status: { not: 'CLIENT' },
+                    status: { notIn: ['CLIENT', 'active'] },
                     orders: {
                         none: {
                             orderType: 'SALE',
@@ -249,7 +249,7 @@ export async function GET() {
                         where: {
                             phone: { contains: cleanedPhone.slice(-8) }, // match last 8 digits for flexible matching
                             OR: [
-                                { status: 'CLIENT' },
+                                { status: { in: ['CLIENT', 'active'] } },
                                 {
                                     orders: {
                                         some: {
@@ -308,10 +308,64 @@ export async function GET() {
             });
         }
 
-        // Sort by days elapsed descending (most stalled/oldest first)
-        opportunities.sort((a, b) => b.daysElapsed - a.daysElapsed);
+        // Fetch all clients who are already customers (status CLIENT/active OR have a SALE order)
+        const clientsWithSales = await prisma.client.findMany({
+            where: {
+                OR: [
+                    { status: { in: ['CLIENT', 'active'] } },
+                    {
+                        orders: {
+                            some: {
+                                orderType: 'SALE',
+                                isDeleted: false
+                            }
+                        }
+                    }
+                ]
+            },
+            select: {
+                name: true,
+                phone: true
+            }
+        });
 
-        return NextResponse.json(opportunities);
+        // Create sets of phone numbers (last 8 digits) and lowercase names of existing clients
+        const clientPhones = new Set<string>();
+        const clientNames = new Set<string>();
+
+        for (const c of clientsWithSales) {
+            clientNames.add(c.name.trim().toLowerCase());
+            if (c.phone) {
+                const cleaned = c.phone.replace(/\D/g, '');
+                if (cleaned.length >= 8) {
+                    clientPhones.add(cleaned.slice(-8));
+                }
+            }
+        }
+
+        // Filter out opportunities that belong to already registered customers (by exact name or last 8 digits of phone)
+        const filteredOpportunities = opportunities.filter(opp => {
+            // Check if there is an existing customer with the same exact name
+            if (clientNames.has(opp.clientName.trim().toLowerCase())) {
+                return false;
+            }
+            // Check if there is an existing customer with the same phone number (last 8 digits)
+            if (opp.phone) {
+                const cleaned = opp.phone.replace(/\D/g, '');
+                if (cleaned.length >= 8) {
+                    const last8 = cleaned.slice(-8);
+                    if (clientPhones.has(last8)) {
+                        return false;
+                    }
+                }
+            }
+            return true;
+        });
+
+        // Sort by days elapsed descending (most stalled/oldest first)
+        filteredOpportunities.sort((a, b) => b.daysElapsed - a.daysElapsed);
+
+        return NextResponse.json(filteredOpportunities);
     } catch (error) {
         console.error('Error fetching sales opportunities:', error);
         return NextResponse.json({

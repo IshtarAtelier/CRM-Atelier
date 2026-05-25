@@ -1741,6 +1741,32 @@ export default function ConfiguracionPage() {
             </section>
             )}
 
+            {/* Google Contacts */}
+            {activeTab === 'sistema' && (
+            <section className="mt-8 bg-white dark:bg-stone-800 border-2 border-stone-100 dark:border-stone-700 rounded-2xl overflow-hidden">
+                <div className="p-6 flex items-center justify-between border-b-2 border-stone-100 dark:border-stone-700">
+                    <div className="flex items-center gap-2">
+                        <Users className="w-5 h-5 text-blue-500" />
+                        <h2 className="text-xs font-black uppercase tracking-widest text-stone-400">Google Contacts</h2>
+                    </div>
+                </div>
+                <div className="p-6 flex flex-col md:flex-row items-center justify-between gap-4">
+                    <div>
+                        <h3 className="text-sm font-bold text-stone-800 dark:text-white mb-1">Sincronización de Agenda</h3>
+                        <p className="text-xs text-stone-500">
+                            Conecta tu cuenta de Google para agendar automáticamente a cada cliente nuevo en el celular del local.
+                        </p>
+                    </div>
+                    <button
+                        onClick={() => window.location.href = '/api/admin/google/auth'}
+                        className="px-6 py-3 bg-blue-600 text-white rounded-xl text-xs font-black uppercase tracking-widest hover:bg-blue-700 transition-all shadow-lg shadow-blue-500/20 whitespace-nowrap"
+                    >
+                        Conectar Google
+                    </button>
+                </div>
+            </section>
+            )}
+
             {/* System Info */}
             {activeTab === 'sistema' && (
             <section className="mt-8 bg-white dark:bg-stone-800 border-2 border-stone-100 dark:border-stone-700 rounded-2xl p-6">

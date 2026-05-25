@@ -112,6 +112,7 @@ export default function WhatsAppPage() {
     const [extracting, setExtracting] = useState(false);
     const [extractedClient, setExtractedClient] = useState<{ name: string; phone: string | null; interest: string | null; insurance: string | null; contactSource: string; notes: string | null } | null>(null);
     const [creatingClient, setCreatingClient] = useState(false);
+    const [syncing, setSyncing] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const pollRef = useRef<NodeJS.Timeout | null>(null);
@@ -206,6 +207,31 @@ export default function WhatsAppPage() {
             console.error('Error enviando audio:', e);
         }
         setSending(false);
+    };
+
+    const handleSync = async () => {
+        if (syncing) return;
+        setSyncing(true);
+        try {
+            const res = await fetch('/api/whatsapp/sync', { method: 'POST' });
+            const data = await res.json();
+            if (data.success) {
+                alert('Sincronización iniciada. Los chats y mensajes se actualizarán en segundo plano en unos segundos.');
+                setTimeout(async () => {
+                    await fetchChats();
+                    if (selectedChatRef.current) {
+                        await fetchMessages(selectedChatRef.current.id);
+                    }
+                }, 3000);
+            } else {
+                alert('Error al sincronizar: ' + (data.error || 'Desconocido'));
+            }
+        } catch (e) {
+            console.error('Error al sincronizar:', e);
+            alert('Error al iniciar la sincronización.');
+        } finally {
+            setSyncing(false);
+        }
     };
 
     // ── Fetch status ──────────────────────────────
@@ -685,6 +711,21 @@ export default function WhatsAppPage() {
                             <div className={`w-5 h-5 rounded-full bg-white shadow-sm absolute top-0.5 transition-transform ${agentEnabled ? 'translate-x-[22px]' : 'translate-x-[2px]'}`} />
                         </button>
                     </div>
+
+                    {status.connected && (
+                        <button
+                            onClick={handleSync}
+                            disabled={syncing}
+                            className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl font-bold text-sm transition-all shadow-sm border ${
+                                syncing
+                                    ? 'bg-stone-300 dark:bg-stone-700 text-stone-500 cursor-not-allowed'
+                                    : 'bg-indigo-500 text-white border-indigo-400 hover:bg-indigo-600 hover:scale-105'
+                            }`}
+                        >
+                            <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
+                            {syncing ? 'Sincronizar' : 'Sincronizar'}
+                        </button>
+                    )}
 
                     <button
                         onClick={() => setShowTestChat(true)}

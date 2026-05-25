@@ -3,6 +3,7 @@ import { CashService } from './cash.service';
 import { ISH_POSNET_THRESHOLD, ISH_POSNET_METHODS } from '@/lib/constants';
 import { ReceiptAgentService } from './receipt-agent.service';
 import { PricingService } from './PricingService';
+import { GoogleContactsService } from './google-contacts.service';
 
 
 export interface ContactCreateData {
@@ -208,9 +209,18 @@ export const ContactService = {
             metaLid: data.metaLid
         };
 
-        return await prisma.client.create({
+        const createdClient = await prisma.client.create({
             data: createData
         });
+
+        // Sincronizar en background con Google Contacts
+        GoogleContactsService.syncClient({
+            name: createdClient.name,
+            phone: createdClient.phone,
+            email: createdClient.email
+        });
+
+        return createdClient;
     },
 
     async update(id: string, data: Partial<ContactCreateData>) {

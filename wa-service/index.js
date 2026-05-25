@@ -940,56 +940,7 @@ const handleMessage = async (msg) => {
 
         broadcastChatUpdate(chat.id);
 
-        // ── Smart Off-Hours Routing (Fuera de Horario) ──
-        const isCurrentlyBusinessHours = isBusinessHours(new Date());
-        if (!isCurrentlyBusinessHours && agentEnabled && chat.botEnabled && !tieneTagSinBot) {
-            // Buscamos los últimos mensajes en DB para ver si ya enviamos la advertencia fuera de horario
-            const recentOutbounds = await prisma.whatsAppMessage.findMany({
-                where: { chatId: chat.id, direction: 'OUTBOUND' },
-                orderBy: { createdAt: 'desc' },
-                take: 3
-            });
-            const alreadySent = recentOutbounds.some(m => m.content && m.content.includes("el local está cerrado"));
 
-            if (!alreadySent) {
-                const offHoursText = "Hola! En este momento el local está cerrado, pero podés dejarme tu consulta o receta por acá. Mañana apenas abramos los chicos se ponen en contacto con vos para cotizarte!";
-                
-                // Despachar a WhatsApp
-                await sendMessage(waId, offHoursText);
-
-                // Guardar en la DB
-                await prisma.whatsAppMessage.create({
-                    data: {
-                        chatId: chat.id,
-                        direction: 'OUTBOUND',
-                        content: offHoursText,
-                        status: 'SENT'
-                    }
-                });
-
-                // Apagar el bot con el helper
-                await disableBotForChatById(chat.id, 'Mensaje fuera de horario comercial');
-
-                // Crear tarea en CRM
-                if (chat.clientId) {
-                    const nextMorning = getNextBusinessMorning();
-                    await prisma.clientTask.create({
-                        data: {
-                            clientId: chat.clientId,
-                            description: "Contactar a cliente (escribió fuera de horario)",
-                            dueDate: nextMorning
-                        }
-                    }).catch(e => console.error("Error creando tarea de fuera de horario:", e.message));
-                }
-
-                broadcastChatUpdate(chat.id);
-                return; // Detener flujo
-            } else {
-                // Ya se le avisó, nos aseguramos de apagar el bot por si las dudas y abortamos
-                await disableBotForChatById(chat.id, 'Mensaje fuera de horario comercial (reiterado)');
-                return;
-            }
-        }
 
         // ── Filtros de Seguridad y Resiliencia (Mensajes Largos / Audios / Hostilidad) ──
         let triggerSecurityFilter = false;
@@ -1378,6 +1329,170 @@ app.patch('/api/chats/:id/bot', async (req, res) => {
     }
 });
 
+// ── Sincronización de Chats y Mensajes desde Celular ──
+const syncRecentChatsAndMessages = async (wc) => {
+    const status = getStatus();
+    if (!status.isReady) {
+        console.log('⚠️ WhatsApp no está listo para sincronizar (desconectado).');
+        return;
+    }
+    if (!wc) {
+        console.log('⚠️ No hay cliente de WhatsApp disponible para sincronizar.');
+        return;
+    }
+    if (global.isSyncingWhatsApp) {
+        console.log('⏳ Sincronización ya en curso. Ignorando petición.');
+        return;
+    }
+    global.isSyncingWhatsApp = true;
+    console.log('🔄 Sincronizando chats y mensajes recientes desde WhatsApp...');
+
+    try {
+        const chats = await wc.getChats();
+        const individualChats = chats.filter(c => !c.isGroup && !c.id.server.includes('broadcast')).slice(0, 45);
+        console.log(`🔍 Procesando ${individualChats.length} chats individuales recientes...`);
+
+        for (const chatObj of individualChats) {
+            const waId = chatObj.id._serialized;
+            const profileName = chatObj.name || '';
+            let realPhone = chatObj.id.user || '';
+
+            // Si es LID, intentar obtener el teléfono real
+            if (waId.includes('@lid')) {
+                realPhone = '';
+                try {
+                    if (typeof wc.getContactLidAndPhone === 'function') {
+                        const mapping = await wc.getContactLidAndPhone([waId]);
+                        if (mapping && mapping.length > 0 && mapping[0].pn) {
+                            realPhone = mapping[0].pn.replace('@c.us', '').replace('@s.whatsapp.net', '');
+                        }
+                    }
+                } catch (e) {}
+                if (!realPhone) {
+                    try {
+                        const formatted = await wc.getFormattedNumber(waId);
+                        if (formatted) realPhone = formatted.replace(/[^0-9]/g, '');
+                    } catch (e) {}
+                }
+            }
+
+            // Buscar o crear el chat en la base de datos
+            let dbChat = await prisma.whatsAppChat.findUnique({ where: { waId } });
+            
+            if (!dbChat) {
+                let shouldEnableBot = true;
+                try {
+                    const prevMsgs = await chatObj.fetchMessages({ limit: 15 });
+                    const hasOutbound = prevMsgs.some(m => m.fromMe);
+                    if (hasOutbound) {
+                        shouldEnableBot = false;
+                    }
+                } catch (err) {}
+
+                dbChat = await prisma.whatsAppChat.create({
+                    data: {
+                        waId,
+                        realPhone: realPhone || null,
+                        profileName: profileName || null,
+                        status: 'OPEN',
+                        botEnabled: shouldEnableBot,
+                        lastMessageAt: chatObj.timestamp ? new Date(chatObj.timestamp * 1000) : new Date(),
+                        unreadCount: chatObj.unreadCount || 0
+                    }
+                });
+            } else {
+                const updateData = {};
+                if (profileName && !dbChat.profileName) updateData.profileName = profileName;
+                if (realPhone && !dbChat.realPhone) updateData.realPhone = realPhone;
+                if (chatObj.unreadCount !== undefined) updateData.unreadCount = chatObj.unreadCount;
+                if (chatObj.timestamp) updateData.lastMessageAt = new Date(chatObj.timestamp * 1000);
+
+                dbChat = await prisma.whatsAppChat.update({
+                    where: { id: dbChat.id },
+                    data: updateData
+                });
+            }
+
+            // Auto-vincular cliente del CRM por número de teléfono
+            if (!dbChat.clientId && realPhone && realPhone.length >= 8) {
+                const client = await prisma.client.findFirst({
+                    where: { phone: { contains: realPhone.slice(-8) } }
+                });
+                if (client) {
+                    dbChat = await prisma.whatsAppChat.update({
+                        where: { id: dbChat.id },
+                        data: { clientId: client.id }
+                    });
+                    console.log(`  🔗 [Auto-Sync] Chat ${waId} vinculado a cliente CRM: ${client.name}`);
+                }
+            }
+
+            // Traer y guardar los mensajes recientes
+            try {
+                const messagesFromPhone = await chatObj.fetchMessages({ limit: 20 });
+                const validTypes = ['chat', 'image', 'video', 'audio', 'document', 'ptt', 'sticker', 'location', 'vcard'];
+                
+                for (const msg of messagesFromPhone) {
+                    if (!validTypes.includes(msg.type)) continue;
+
+                    const direction = msg.fromMe ? 'OUTBOUND' : 'INBOUND';
+                    const messageType = msg.hasMedia ? 'IMAGE' : 'TEXT';
+
+                    await prisma.whatsAppMessage.upsert({
+                        where: { waMessageId: msg.id._serialized },
+                        update: {},
+                        create: {
+                            chatId: dbChat.id,
+                            direction,
+                            type: messageType,
+                            content: msg.body || '[Media/Documento]',
+                            waMessageId: msg.id._serialized,
+                            createdAt: new Date(msg.timestamp * 1000)
+                        }
+                    });
+                }
+
+                // Ajustar timestamp al último mensaje real guardado
+                const lastMsg = await prisma.whatsAppMessage.findFirst({
+                    where: { chatId: dbChat.id },
+                    orderBy: { createdAt: 'desc' }
+                });
+                if (lastMsg) {
+                    await prisma.whatsAppChat.update({
+                        where: { id: dbChat.id },
+                        data: { lastMessageAt: lastMsg.createdAt }
+                    });
+                }
+
+                broadcastChatUpdate(dbChat.id);
+            } catch (msgErr) {
+                console.error(`  ⚠️ Error cargando mensajes para ${waId}:`, msgErr.message);
+            }
+        }
+        console.log('✅ Sincronización de chats y mensajes completada.');
+    } catch (err) {
+        console.error('❌ Error en syncRecentChatsAndMessages:', err);
+    } finally {
+        global.isSyncingWhatsApp = false;
+    }
+};
+
+app.post('/api/sync', async (req, res) => {
+    const status = getStatus();
+    if (!status.isReady) {
+        return res.status(400).json({ success: false, error: 'WhatsApp no está conectado' });
+    }
+    const wc = getClient();
+    if (!wc) {
+        return res.status(400).json({ success: false, error: 'WhatsApp client no disponible' });
+    }
+    // Ejecutar asíncronamente en background para no bloquear el request
+    syncRecentChatsAndMessages(wc).catch(err => {
+        console.error('Error in manual sync:', err);
+    });
+    res.json({ success: true, message: 'Sincronización iniciada en segundo plano.' });
+});
+
 // ── Simulador de Chat (Test) ───────────────────
 app.post('/api/test/chat', async (req, res) => {
     const { messages } = req.body;
@@ -1429,7 +1544,21 @@ server.listen(PORT, '0.0.0.0', async () => {
             onMessage: handleMessage, 
             onMessageCreate: handleMessageCreate,
             onStatusChange: (status) => {
+                const wasConnected = global.lastWhatsAppConnectedState || false;
+                const isNowConnected = status.isReady;
+                global.lastWhatsAppConnectedState = isNowConnected;
+
                 io.emit('bot_status', { ...status, connected: status.isReady, phone: status.connectedPhone, qr: status.qrCode, agentEnabled, prompt: agentPrompt });
+
+                if (isNowConnected && !wasConnected) {
+                    console.log('📱 WhatsApp conectado. Iniciando sincronización automática...');
+                    const wc = getClient();
+                    if (wc) {
+                        syncRecentChatsAndMessages(wc).catch(err => {
+                            console.error('Error en auto-sync al cambiar de estado:', err);
+                        });
+                    }
+                }
             }
         });
     } catch (err) {
