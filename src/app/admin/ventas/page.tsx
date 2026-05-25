@@ -63,6 +63,13 @@ export default function VentasPage() {
             const apellido = nameParts.pop() || '';
             const nombre = nameParts.join(' ') || apellido;
 
+            const frameItems = order.items?.filter((i: any) => i.product?.category === 'FRAME' || i.product?.category === 'SUNGLASS') || [];
+            const frameInfo = frameItems.length > 0
+                ? `Armazón ${frameItems[0]?.product?.brand || ''} ${frameItems[0]?.product?.name || ''}`.trim()
+                : order.frameSource === 'USUARIO'
+                    ? `Armazón del cliente ${order.userFrameBrand || ''} ${order.userFrameModel || ''}`.trim()
+                    : '';
+
             const payload = {
                 codigoInterno: clientName,
                 paciente_nombre: nombre,
@@ -87,7 +94,8 @@ export default function VentasPage() {
                 oi_dp: rx.distanceOI != null ? String(rx.distanceOI) : '',
                 od_altura: rx.heightOD != null ? String(rx.heightOD) : '',
                 oi_altura: rx.heightOI != null ? String(rx.heightOI) : '',
-                observaciones: rx.notes || ''
+                observaciones: rx.notes || '',
+                armazon: frameInfo
             };
 
             const encodedData = encodeURIComponent(JSON.stringify(payload));

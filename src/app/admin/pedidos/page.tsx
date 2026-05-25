@@ -427,6 +427,13 @@ export default function PedidosPage() {
             const odItem = lensItems.find((i: any) => i.eye === 'OD');
             const oiItem = lensItems.find((i: any) => i.eye === 'OI');
 
+            const frameItems = order.items?.filter((i: any) => i.product?.category === 'FRAME' || i.product?.category === 'SUNGLASS') || [];
+            const frameInfo = frameItems.length > 0
+                ? `Armazón ${frameItems[0]?.product?.brand || ''} ${frameItems[0]?.product?.name || ''}`.trim()
+                : order.frameSource === 'USUARIO'
+                    ? `Armazón del cliente ${order.userFrameBrand || ''} ${order.userFrameModel || ''}`.trim()
+                    : '';
+
             const payload = {
                 codigoInterno: order.client.name, // Requested by user: en codigo interno va el nombre del cliente
                 paciente: order.client.name,
@@ -441,7 +448,8 @@ export default function PedidosPage() {
                 od_dp: order.labPdOd || '',
                 oi_dp: order.labPdOi || '',
                 diametro: order.labDiameter || '',
-                observaciones: order.labNotes || ''
+                observaciones: order.labNotes || '',
+                armazon: frameInfo
             };
 
             const dataString = `ATELIER_SMARTLAB_DATA:${JSON.stringify(payload)}`;
