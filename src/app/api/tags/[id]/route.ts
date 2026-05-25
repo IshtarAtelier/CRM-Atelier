@@ -13,7 +13,8 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
                 name: body.name,
                 color: body.color,
                 botAction: body.botAction,
-                notifyPhone: body.notifyPhone
+                notifyPhone: body.notifyPhone,
+                autoAssignCondition: body.autoAssignCondition
             }
         });
         return NextResponse.json(updatedTag);

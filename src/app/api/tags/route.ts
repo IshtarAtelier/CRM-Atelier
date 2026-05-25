@@ -29,7 +29,8 @@ export async function POST(request: NextRequest) {
                 name: body.name,
                 color: body.color || '#9e7f65',
                 botAction: body.botAction || 'NONE',
-                notifyPhone: body.notifyPhone || null
+                notifyPhone: body.notifyPhone || null,
+                autoAssignCondition: body.autoAssignCondition || null
             }
         });
         

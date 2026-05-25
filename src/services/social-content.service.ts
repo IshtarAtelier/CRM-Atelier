@@ -287,10 +287,9 @@ export async function generateSocialImage(contentId: string) {
             delete process.env.GOOGLE_GENAI_API_KEY;
             
             ai = new GoogleGenAI({
-                vertexai: {
-                    project: process.env.GOOGLE_CLOUD_PROJECT || creds.project_id || '',
-                    location: process.env.GOOGLE_CLOUD_LOCATION || 'us-central1'
-                }
+                vertexai: true,
+                project: process.env.GOOGLE_CLOUD_PROJECT || creds.project_id || '',
+                location: process.env.GOOGLE_CLOUD_LOCATION || 'us-central1'
             });
             
             if (oldApiKey) process.env.GOOGLE_GENAI_API_KEY = oldApiKey;

@@ -370,6 +370,21 @@ async function addTagToClient({ clientId, tagName }) {
         console.log(`[Etiqueta Automation] Bot ${tag.botAction === 'TURN_ON' ? 'activado' : 'pausado'} para cliente ${client.name}`);
     }
 
+    // 1.5. Visual Automation (Push to WhatsAppChat chatLabels)
+    try {
+        const chatsToLabel = await prisma.whatsAppChat.findMany({ where: { clientId: clientId } });
+        for (const c of chatsToLabel) {
+            const labels = new Set(c.chatLabels || []);
+            labels.add(tag.name);
+            await prisma.whatsAppChat.update({
+                where: { id: c.id },
+                data: { chatLabels: Array.from(labels) }
+            });
+        }
+    } catch (labelErr) {
+        console.error("[Etiqueta Automation] Error push chatLabel:", labelErr.message);
+    }
+
     // 2. Notification Automation
     if (tag.notifyPhone) {
         try {

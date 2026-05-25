@@ -294,15 +294,20 @@ cur.execute("DELETE FROM \"Interaction\" WHERE content LIKE '%HISTORIAL SISTEMA 
 print(f"   🧹 Borradas las interactions viejas de prueba: {cur.rowcount}")
 
 # 2. Obtener Tag Histórico
-cur.execute('SELECT id FROM "Tag" WHERE name = %s', ('Histórico',))
+cur.execute("SELECT id FROM \"Tag\" WHERE name ILIKE 'Histórico'")
 tag_row = cur.fetchone()
 if tag_row:
     tag_id = tag_row['id']
 else:
     tag_id = gen_cuid()
-    cur.execute('INSERT INTO "Tag" (id, name, color, "botAction") VALUES (%s, %s, %s, %s)',
-                (tag_id, 'Histórico', '#8B7355', 'NONE'))
-
+    try:
+        cur.execute('INSERT INTO "Tag" (id, name, color, "botAction") VALUES (%s, %s, %s, %s)',
+                    (tag_id, 'Histórico', '#8B7355', 'NONE'))
+    except psycopg2.errors.UniqueViolation:
+        conn.rollback() # Rollback the failed transaction block
+        cur.execute("SELECT id FROM \"Tag\" WHERE name ILIKE 'Histórico'")
+        tag_id = cur.fetchone()['id']
+            
 stats = {'creados': 0, 'actualizados': 0, 'notas': 0, 'tags': 0}
 
 # 3. Crear Nuevos Clientes

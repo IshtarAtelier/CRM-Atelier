@@ -35,14 +35,14 @@ export function GlobalBalanceReminders() {
         <>
             {/* Botón flotante de Saldos (Banknote) */}
             {/* Ubicado a la izquierda del de reseñas en desktop, apilado en fila en mobile */}
-            <div className="fixed bottom-6 right-[192px] md:bottom-8 md:right-[392px] z-[60] flex items-center gap-4">
+            <div className="relative">
                 <button
                     onClick={() => setIsOpen(!isOpen)}
-                    className={`p-3 md:p-4 rounded-full md:rounded-2xl border transition-all shadow-lg flex items-center gap-0 md:gap-3 active:scale-95 group relative ${isOpen
+                    className={`p-2.5 md:px-4 md:py-3 rounded-full md:rounded-2xl border transition-all flex items-center gap-0 md:gap-2.5 active:scale-95 group relative ${isOpen
                         ? 'bg-stone-900 border-stone-800 text-white dark:bg-stone-800 dark:border-stone-700'
                         : count > 0
-                            ? 'bg-white/95 dark:bg-stone-900/95 backdrop-blur-xl border-emerald-500/30 text-stone-900 dark:text-white shadow-emerald-500/10 hover:border-emerald-500/50 hover:bg-emerald-50 dark:hover:bg-emerald-950/20'
-                            : 'bg-white/80 dark:bg-stone-900/80 backdrop-blur-xl border-stone-200 dark:border-stone-800 text-stone-900 dark:text-white hover:border-stone-300 dark:hover:border-stone-700 hover:bg-stone-50 dark:hover:bg-stone-800/50'
+                            ? 'bg-emerald-500/10 dark:bg-emerald-500/10 border-emerald-500/20 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-500/20 dark:hover:bg-emerald-500/20'
+                            : 'bg-transparent border-transparent text-stone-500 hover:bg-stone-100 dark:hover:bg-stone-800/50 hover:text-stone-900 dark:text-stone-400 dark:hover:text-stone-100'
                         }`}
                 >
                     {/* Pulsing glow effect when balances exist and panel is closed */}

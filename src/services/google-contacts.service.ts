@@ -1,98 +1,66 @@
-import { google } from 'googleapis';
-import { prisma } from '@/lib/db';
+import { WA_SERVER_URL } from '@/lib/wa-config';
 
 export class GoogleContactsService {
-    private static getOAuthClient() {
-        const clientId = process.env.GOOGLE_CONTACTS_CLIENT_ID || process.env.GOOGLE_CLIENT_ID;
-        const clientSecret = process.env.GOOGLE_CONTACTS_CLIENT_SECRET || process.env.GOOGLE_CLIENT_SECRET;
-        
-        // El Redirect URI debe coincidir exactamente con el configurado en Google Cloud Console
-        // Usamos una URL relativa que Google no permite, por lo que requeriremos que sea absoluta.
-        // Asumimos que la app corre en un dominio conocido, o permitimos que se sobreescriba en env.
-        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
-        const redirectUri = `${baseUrl}/api/admin/google/callback`;
-
-        return new google.auth.OAuth2(
-            clientId,
-            clientSecret,
-            redirectUri
-        );
-    }
-
-    public static async getAuthUrl() {
-        const oauth2Client = this.getOAuthClient();
-        return oauth2Client.generateAuthUrl({
-            access_type: 'offline', // Para obtener el refresh_token
-            scope: ['https://www.googleapis.com/auth/contacts'],
-            prompt: 'consent' // Fuerza a preguntar siempre y devolver el refresh token
-        });
-    }
-
-    public static async handleCallback(code: string) {
-        const oauth2Client = this.getOAuthClient();
-        const { tokens } = await oauth2Client.getToken(code);
-        
-        if (tokens.refresh_token) {
-            // Guardamos el refresh_token en la base de datos
-            await prisma.systemSetting.upsert({
-                where: { key: 'GOOGLE_CONTACTS_REFRESH_TOKEN' },
-                update: { value: tokens.refresh_token },
-                create: { key: 'GOOGLE_CONTACTS_REFRESH_TOKEN', value: tokens.refresh_token }
-            });
-            return true;
-        }
-        return false;
-    }
-
-    private static async getAuthenticatedClient() {
-        const setting = await prisma.systemSetting.findUnique({
-            where: { key: 'GOOGLE_CONTACTS_REFRESH_TOKEN' }
-        });
-
-        if (!setting || !setting.value) {
-            return null;
-        }
-
-        const oauth2Client = this.getOAuthClient();
-        oauth2Client.setCredentials({ refresh_token: setting.value });
-        return oauth2Client;
-    }
-
     /**
-     * Sincroniza un cliente a Google Contacts
-     * @param clientData Datos del cliente a crear o actualizar
+     * Envía una vCard por WhatsApp al propio celular del local
+     * para que puedan agendar al cliente con 1 toque.
      */
     public static async syncClient(clientData: { name: string; phone?: string | null; email?: string | null }) {
         try {
-            const auth = await this.getAuthenticatedClient();
-            if (!auth) {
-                console.log('[GoogleContactsService] No refresh token found. Skipping sync.');
+            // 1. Obtener el número del bot conectado
+            const statusRes = await fetch(`${WA_SERVER_URL}/api/status`);
+            if (!statusRes.ok) return;
+            const status = await statusRes.json();
+            
+            if (!status.isReady && !status.connectedPhone) {
+                console.log('[ContactSync] WhatsApp no está conectado. Omitiendo envío de vCard.');
                 return;
             }
 
-            const service = google.people({ version: 'v1', auth });
+            const botPhone = status.connectedPhone || status.phone;
+            if (!botPhone) return;
 
-            const contactBody: any = {
-                names: [{ givenName: `Cliente ${clientData.name}` }],
-            };
+            const waId = `${botPhone}@c.us`;
 
-            if (clientData.phone) {
-                contactBody.phoneNumbers = [{ value: clientData.phone }];
-            }
+            // 2. Generar el string VCard
+            const vcard = `BEGIN:VCARD
+VERSION:3.0
+FN:Cliente ${clientData.name}
+${clientData.phone ? `TEL;type=CELL;waid=${clientData.phone.replace(/[^0-9]/g, '')}:+${clientData.phone.replace(/[^0-9]/g, '')}` : ''}
+${clientData.email ? `EMAIL:${clientData.email}` : ''}
+END:VCARD`;
 
-            if (clientData.email) {
-                contactBody.emailAddresses = [{ value: clientData.email }];
-            }
+            const base64Vcard = Buffer.from(vcard).toString('base64');
 
-            const res = await service.people.createContact({
-                requestBody: contactBody
+            // 3. Enviar a sí mismo
+            await fetch(`${WA_SERVER_URL}/api/send`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    chatId: waId,
+                    message: `📌 Nuevo Cliente en CRM: *${clientData.name}*\nAbre el archivo adjunto (.vcf) para guardarlo en tus contactos.`,
+                })
             });
 
-            console.log(`[GoogleContactsService] Sincronizado con éxito: ${clientData.name} -> ${res.data.resourceName}`);
-            return res.data;
+            // Enviar el archivo VCF separado
+            await fetch(`${WA_SERVER_URL}/api/send`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    chatId: waId,
+                    message: '',
+                    media: {
+                        base64: base64Vcard,
+                        mimetype: 'text/x-vcard',
+                        filename: `Contacto_${clientData.name.replace(/[^a-zA-Z0-9]/g, '_')}.vcf`
+                    },
+                    senderName: 'CRM Automático'
+                })
+            });
+
+            console.log(`[ContactSync] vCard enviada exitosamente a ${waId}`);
         } catch (error) {
-            console.error('[GoogleContactsService] Error sincronizando cliente:', error);
-            // No hacemos un throw para no frenar la creación del cliente en el CRM
+            console.error('[ContactSync] Error enviando vCard:', error);
         }
     }
 }

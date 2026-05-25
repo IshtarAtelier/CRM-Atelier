@@ -75,12 +75,13 @@ model Interaction {
 }
 
 model Tag {
-  id          String   @id @default(cuid())
-  name        String   @unique
-  color       String?  @default("#9e7f65")
-  botAction   String?  @default("NONE") // NONE, TURN_OFF, TURN_ON
-  notifyPhone String?
-  clients     Client[] @relation("ClientToTag")
+  id                  String   @id @default(cuid())
+  name                String   @unique
+  color               String?  @default("#9e7f65")
+  botAction           String?  @default("NONE") // NONE, TURN_OFF, TURN_ON
+  notifyPhone         String?
+  autoAssignCondition String?
+  clients             Client[] @relation("ClientToTag")
   orders      Order[]  @relation("OrderToTag")
 }
 

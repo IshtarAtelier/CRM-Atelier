@@ -23,8 +23,8 @@ function getModel() {
   return modelInstance;
 }
 
-const salesToolNode = new ToolNode(salesToolsList);
-const executiveToolNode = new ToolNode(executiveToolsList);
+const salesToolNode = new ToolNode(salesToolsList, { handleToolErrors: false });
+const executiveToolNode = new ToolNode(executiveToolsList, { handleToolErrors: false });
 
 // ── NODO 1: ROUTER INTELIGENTE ──
 async function routerNode(state) {
@@ -103,12 +103,38 @@ async function getTiemposModule() {
   }
 }
 
+async function getTagsModule() {
+  try {
+    const tags = await prisma.tag.findMany({
+      where: {
+        autoAssignCondition: { not: null, not: '' }
+      }
+    });
+    if (!tags || tags.length === 0) return '';
+    
+    let rules = `
+  ══════════════════════════════════════
+  REGLAS DE ETIQUETADO AUTOMÁTICO (IA)
+  ══════════════════════════════════════
+  Además de las etiquetas obligatorias, DEBES usar la herramienta 'add_tags' para aplicar las siguientes etiquetas especiales si se cumplen estrictamente sus condiciones:`;
+    for (const tag of tags) {
+      if (tag.autoAssignCondition && tag.autoAssignCondition.trim().length > 0) {
+        rules += `\n  - Etiqueta "${tag.name}": [CONDICIÓN: ${tag.autoAssignCondition}]`;
+      }
+    }
+    return rules;
+  } catch (e) {
+    return '';
+  }
+}
+
 // ── NODO 2: AGENTE DE VENTAS (Prospectos) ──
 async function salesNode(state) {
   const horaActual = new Date().toLocaleString("es-AR", { timeZone: "America/Argentina/Buenos_Aires", hour: '2-digit', minute:'2-digit' });
   let custom = state.customPrompt || "";
   const clientInfoText = formatClientData(state.clientData, state.userPhone, state.userName, state.chatId);
   const tiemposModule = await getTiemposModule();
+  const tagsModule = await getTagsModule();
   
   const systemPrompt = `Eres Ishtar, Óptico Contactólogo de Atelier Óptica. Atiendes a prospectos nuevos.
   DIRECCIÓN DEL LOCAL: José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba.
@@ -118,6 +144,7 @@ async function salesNode(state) {
   INSTRUCCIÓN DE LA ÓPTICA: ${custom}
   HORA ACTUAL EN ARGENTINA: ${horaActual} (Usala para saber si es de mañana, tarde o noche).
   ${clientInfoText}
+  ${tagsModule}
 
   ══════════════════════════════════════
   OBLIGACIONES DE HERRAMIENTAS
@@ -364,6 +391,7 @@ async function executiveNode(state) {
   let custom = state.customPrompt || "";
   const clientInfoText = formatClientData(state.clientData, state.userPhone, state.userName, state.chatId);
   const tiemposModule = await getTiemposModule();
+  const tagsModule = await getTagsModule();
   
   const systemPrompt = `Eres Ishtar, Ejecutivo de Cuentas de Atelier Óptica. Atiendes EXCLUSIVAMENTE a clientes existentes.
   DIRECCIÓN DEL LOCAL: José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba.
@@ -372,6 +400,7 @@ async function executiveNode(state) {
   INSTRUCCIÓN DE LA ÓPTICA: ${custom}
   HORA ACTUAL EN ARGENTINA: ${horaActual} (Úsala para saber si es de mañana, tarde o noche).
   ${clientInfoText}
+  ${tagsModule}
   
   OBLIGACIONES:
   - Tu prioridad es el soporte: estados de pedido ('get_order_status'), informar saldos pendientes, etc.

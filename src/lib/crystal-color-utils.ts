@@ -12,14 +12,15 @@ export function needsColorSelection(product: any): boolean {
   if (!product) return false;
   
   const name = (product.name || '').toLowerCase();
-  const type = (product.type || '').toUpperCase();
+  const type = (product.type || '').toLowerCase();
+  const category = (product.category || '').toLowerCase();
 
   // Dedicated Teñido addon product
-  if (type === 'ADDON' && name === 'teñido') return true;
+  if (type === 'addon' && name === 'teñido') return true;
   
-  // Must be a crystal for other checks
-  const category = (product.category || '').toLowerCase();
-  if (category !== 'cristal') return false;
+  // Check if it's a crystal
+  const isCrystalProduct = category === 'cristal' || type.includes('cristal');
+  if (!isCrystalProduct) return false;
 
   return (
     name.includes('teñido') ||

@@ -33,14 +33,14 @@ export function GlobalOpportunities() {
             {/* Botón flotante al lado de Saldos */}
             {/* Ubicación: a la izquierda del de Saldos (Saldos está en right-[192px] / right-[392px]) */}
             {/* Posición Mobile: right-[248px], Posición Desktop: right-[536px] */}
-            <div className="fixed bottom-6 right-[248px] md:bottom-8 md:right-[536px] z-[60] flex items-center gap-4">
+            <div className="relative">
                 <button
                     onClick={() => setIsOpen(!isOpen)}
-                    className={`p-3 md:p-4 rounded-full md:rounded-2xl border transition-all shadow-lg flex items-center gap-0 md:gap-3 active:scale-95 group relative ${isOpen
+                    className={`p-2.5 md:px-4 md:py-3 rounded-full md:rounded-2xl border transition-all flex items-center gap-0 md:gap-2.5 active:scale-95 group relative ${isOpen
                         ? 'bg-stone-900 border-stone-800 text-white dark:bg-stone-800 dark:border-stone-700'
                         : count > 0
-                            ? 'bg-white/95 dark:bg-stone-900/95 backdrop-blur-xl border-amber-500/30 text-stone-900 dark:text-white shadow-amber-500/10 hover:border-amber-500/50 hover:bg-amber-50 dark:hover:bg-amber-950/20'
-                            : 'bg-white/80 dark:bg-stone-900/80 backdrop-blur-xl border-stone-200 dark:border-stone-800 text-stone-900 dark:text-white hover:border-stone-300 dark:hover:border-stone-700 hover:bg-stone-50 dark:hover:bg-stone-800/50'
+                            ? 'bg-amber-500/10 dark:bg-amber-500/10 border-amber-500/20 text-amber-700 dark:text-amber-400 hover:bg-amber-500/20 dark:hover:bg-amber-500/20'
+                            : 'bg-transparent border-transparent text-stone-500 hover:bg-stone-100 dark:hover:bg-stone-800/50 hover:text-stone-900 dark:text-stone-400 dark:hover:text-stone-100'
                         }`}
                 >
                     {!isOpen && count > 0 && (

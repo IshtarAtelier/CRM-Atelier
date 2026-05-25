@@ -47,15 +47,14 @@ export function GlobalTasks() {
 
     return (
         <>
-            {/* Botón flotante de Tareas (Bell) */}
-            <div className="fixed bottom-6 right-20 md:bottom-8 md:right-[104px] z-[60] flex items-center gap-4">
+            <div className="relative">
                 <button
                     onClick={() => setIsOpen(!isOpen)}
-                    className={`p-3 md:p-4 rounded-full md:rounded-2xl border transition-all shadow-lg flex items-center gap-0 md:gap-3 active:scale-95 group relative ${isOpen
+                    className={`p-2.5 md:px-4 md:py-3 rounded-full md:rounded-2xl border transition-all flex items-center gap-0 md:gap-2.5 active:scale-95 group relative ${isOpen
                         ? 'bg-stone-900 border-stone-800 text-white dark:bg-stone-800 dark:border-stone-700'
                         : urgentCount > 0
-                            ? 'bg-white/95 dark:bg-stone-900/95 backdrop-blur-xl border-red-500/30 text-stone-900 dark:text-white shadow-red-500/10 hover:border-red-500/50 hover:bg-red-50 dark:hover:bg-red-950/20'
-                            : 'bg-white/80 dark:bg-stone-900/80 backdrop-blur-xl border-stone-200 dark:border-stone-800 text-stone-900 dark:text-white hover:border-stone-300 dark:hover:border-stone-700 hover:bg-stone-50 dark:hover:bg-stone-800/50'
+                            ? 'bg-red-500/10 dark:bg-red-500/10 border-red-500/20 text-red-700 dark:text-red-400 hover:bg-red-500/20 dark:hover:bg-red-500/20'
+                            : 'bg-transparent border-transparent text-stone-500 hover:bg-stone-100 dark:hover:bg-stone-800/50 hover:text-stone-900 dark:text-stone-400 dark:hover:text-stone-100'
                         }`}
                 >
                     {/* Pulsing glow effect when tasks exist and panel is closed */}

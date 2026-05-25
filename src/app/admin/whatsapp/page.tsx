@@ -16,9 +16,7 @@ import dynamic from 'next/dynamic';
 import { useSearchParams } from 'next/navigation';
 const EmojiPicker = dynamic(() => import('emoji-picker-react'), { ssr: false });
 
-// Etiquetas predefinidas para chats
 const CHAT_LABEL_OPTIONS = [
-    { label: 'Fijado', color: 'bg-yellow-100/80 text-yellow-700 border-yellow-200' },
     { label: 'Cancelar Bot', color: 'bg-red-100/80 text-red-700 border-red-200' },
     { label: 'VIP', color: 'bg-amber-100/80 text-amber-700 border-amber-200' },
     { label: 'Proveedor', color: 'bg-slate-100/80 text-slate-700 border-slate-200' },
@@ -55,6 +53,31 @@ const QUICK_REPLIES = [
 ];
 
 // ── Types ─────────────────────────────────────────
+
+interface Tag {
+    id: string;
+    name: string;
+    color: string | null;
+    botAction: string | null;
+    notifyPhone: string | null;
+    autoAssignCondition: string | null;
+}
+
+const getLabelStyleInline = (hexColor: string | null | undefined) => {
+    let r = 128, g = 128, b = 128;
+    const h = hexColor || '#9e7f65';
+    if (h.startsWith('#') && h.length === 7) {
+        r = parseInt(h.slice(1, 3), 16);
+        g = parseInt(h.slice(3, 5), 16);
+        b = parseInt(h.slice(5, 7), 16);
+    }
+    return {
+        backgroundColor: `rgba(${r}, ${g}, ${b}, 0.1)`,
+        color: h,
+        borderColor: `rgba(${r}, ${g}, ${b}, 0.2)`
+    };
+};
+
 interface Chat {
     id: string;
     waId: string;
@@ -87,6 +110,9 @@ export default function WhatsAppPage() {
     const [status, setStatus] = useState<{ connected: boolean; phone: string | null; qr: string | null; agentEnabled: boolean }>({
         connected: false, phone: null, qr: null, agentEnabled: false
     });
+    const [dbTags, setDbTags] = useState<Tag[]>([]);
+    const [showTagManager, setShowTagManager] = useState(false);
+    const [editingTag, setEditingTag] = useState<Partial<Tag> | null>(null);
     const [chats, setChats] = useState<Chat[]>([]);
     const [selectedChat, setSelectedChat] = useState<Chat | null>(null);
     const [messages, setMessages] = useState<Message[]>([]);
@@ -335,6 +361,19 @@ export default function WhatsAppPage() {
     }, []);
 
     // ── Agent config ──────────────────────────────
+    
+    const fetchTags = useCallback(async () => {
+        try {
+            const res = await fetch('/api/tags');
+            const data = await res.json();
+            if (Array.isArray(data)) setDbTags(data);
+        } catch { setDbTags([]); }
+    }, []);
+
+    useEffect(() => {
+        fetchTags();
+    }, [fetchTags]);
+
     const fetchAgent = async () => {
         try {
             const res = await fetch('/api/whatsapp/agent');
@@ -536,6 +575,27 @@ export default function WhatsAppPage() {
         }
     };
 
+    const togglePinChat = async (chat: Chat) => {
+        const current = chat.chatLabels || [];
+        const next = current.includes('Fijado')
+            ? current.filter(l => l !== 'Fijado')
+            : [...current, 'Fijado'];
+        
+        await updateChat(chat.id, { chatLabels: next });
+        
+        if (chat.client?.id) {
+            try {
+                await fetch(`/api/contacts/${chat.client.id}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ isFavorite: next.includes('Fijado') })
+                });
+            } catch (e) {
+                console.error('Error actualizando favorito:', e);
+            }
+        }
+    };
+
     // ── Crear Ficha desde Chat (IA) ───────────────
     const extractClientFromChat = async () => {
         if (!selectedChat) return;
@@ -668,7 +728,7 @@ export default function WhatsAppPage() {
         return true;
     });
 
-    const usedLabels = Array.from(new Set(chats.flatMap(c => c.chatLabels || []))).filter(Boolean);
+    const usedLabels = Array.from(new Set(chats.flatMap(c => c.chatLabels || []))).filter(l => l !== 'Fijado').filter(Boolean);
 
     // ═══════════════════════════════════════════════
     // RENDER: PREMIUM GLASSMORPHIC UI
@@ -735,6 +795,13 @@ export default function WhatsAppPage() {
                     </button>
 
                     <button
+                        onClick={() => setShowTagManager(true)}
+                        className="flex items-center gap-2 px-4 py-2.5 rounded-2xl font-bold text-sm transition-all shadow-sm border bg-white/80 dark:bg-stone-800/80 text-stone-700 dark:text-stone-300 border-white/50 dark:border-white/10 hover:bg-white hover:scale-105"
+                    >
+                        <Tag className="w-4 h-4" /> Etiquetas
+                    </button>
+
+                    <button
                         onClick={() => { setShowConfig(!showConfig); if (!showConfig) fetchAgent(); }}
                         className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl font-bold text-sm transition-all shadow-sm border ${showConfig
                             ? 'bg-violet-600 text-white border-violet-500 shadow-violet-500/20'
@@ -745,6 +812,116 @@ export default function WhatsAppPage() {
                     </button>
                 </div>
             </div>
+
+            
+            {showTagManager && (
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+                    <div className="bg-white dark:bg-stone-900 w-full max-w-3xl rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+                        <div className="p-6 border-b border-stone-200 dark:border-stone-800 flex justify-between items-center">
+                            <h2 className="text-xl font-black text-stone-800 dark:text-white flex items-center gap-2">
+                                <Tag className="w-6 h-6 text-violet-500" />
+                                Gestor de Etiquetas e IA
+                            </h2>
+                            <button onClick={() => setShowTagManager(false)} className="p-2 bg-stone-100 dark:bg-stone-800 rounded-full hover:bg-stone-200 dark:hover:bg-stone-700 transition-colors">
+                                <X className="w-5 h-5 text-stone-500" />
+                            </button>
+                        </div>
+                        <div className="flex-1 overflow-y-auto p-6 flex flex-col lg:flex-row gap-8">
+                            {/* List of tags */}
+                            <div className="lg:w-1/3 flex flex-col gap-3">
+                                <h3 className="text-xs font-bold text-stone-500 uppercase tracking-widest mb-2">Etiquetas Actuales</h3>
+                                {dbTags.map(t => (
+                                    <div key={t.id} className="flex items-center justify-between p-3 bg-stone-50 dark:bg-stone-800/50 rounded-2xl border border-stone-200/50 dark:border-stone-800 cursor-pointer hover:border-violet-300 transition-all" onClick={() => setEditingTag(t)}>
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-4 h-4 rounded-full" style={{ backgroundColor: t.color || '#9e7f65' }} />
+                                            <span className="text-sm font-bold text-stone-700 dark:text-stone-300">{t.name}</span>
+                                        </div>
+                                    </div>
+                                ))}
+                                <button onClick={() => setEditingTag({ name: '', color: '#1677ff', botAction: 'NONE', notifyPhone: '', autoAssignCondition: '' })} className="mt-2 flex items-center justify-center gap-2 p-3 border-2 border-dashed border-stone-300 dark:border-stone-700 rounded-2xl text-stone-500 hover:text-violet-600 hover:border-violet-300 hover:bg-violet-50 dark:hover:bg-violet-900/20 transition-all font-bold text-sm">
+                                    <Plus className="w-4 h-4" /> Crear Nueva
+                                </button>
+                            </div>
+                            
+                            {/* Editor */}
+                            <div className="lg:w-2/3 bg-stone-50 dark:bg-stone-900/50 p-6 rounded-3xl border border-stone-200/50 dark:border-stone-800 flex flex-col gap-5">
+                                {editingTag && (
+                                    <>
+                                        <div className="flex gap-4">
+                                            <div className="flex-1">
+                                                <label className="block text-[11px] font-black text-stone-500 uppercase tracking-widest mb-1.5">Nombre de la Etiqueta</label>
+                                                <input type="text" value={editingTag.name || ''} onChange={e => setEditingTag({...editingTag, name: e.target.value})} className="w-full bg-white dark:bg-stone-950 border border-stone-200 dark:border-stone-800 rounded-xl px-4 py-2.5 text-sm font-medium outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500" placeholder="Ej: Urgente, VIP, Proveedor" />
+                                            </div>
+                                            <div>
+                                                <label className="block text-[11px] font-black text-stone-500 uppercase tracking-widest mb-1.5">Color</label>
+                                                <input type="color" value={editingTag.color || '#1677ff'} onChange={e => setEditingTag({...editingTag, color: e.target.value})} className="w-14 h-[42px] bg-white dark:bg-stone-950 border border-stone-200 dark:border-stone-800 rounded-xl p-1 cursor-pointer" />
+                                            </div>
+                                        </div>
+                                        
+                                        <div>
+                                            <label className="block text-[11px] font-black text-stone-500 uppercase tracking-widest mb-1.5 flex items-center gap-1.5"><Sparkles className="w-3.5 h-3.5 text-violet-500" /> Condición de Auto-Asignación (Inteligencia Artificial)</label>
+                                            <textarea value={editingTag.autoAssignCondition || ''} onChange={e => setEditingTag({...editingTag, autoAssignCondition: e.target.value})} rows={3} className="w-full bg-white dark:bg-stone-950 border border-stone-200 dark:border-stone-800 rounded-xl px-4 py-3 text-sm font-medium outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 resize-none" placeholder="Opcional. Ej: Cuando el cliente diga que necesita los lentes rápido o use la palabra urgente." />
+                                            <p className="text-[10px] text-stone-500 mt-1.5">Si escribís una condición, el Bot detectará la intención en la conversación y aplicará esta etiqueta automáticamente.</p>
+                                        </div>
+                                        
+                                        <div className="flex flex-col sm:flex-row gap-5">
+                                            <div className="flex-1">
+                                                <label className="block text-[11px] font-black text-stone-500 uppercase tracking-widest mb-1.5 flex items-center gap-1.5"><Bot className="w-3.5 h-3.5" /> Acción del Bot</label>
+                                                <select value={editingTag.botAction || 'NONE'} onChange={e => setEditingTag({...editingTag, botAction: e.target.value})} className="w-full bg-white dark:bg-stone-950 border border-stone-200 dark:border-stone-800 rounded-xl px-4 py-2.5 text-sm font-medium outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500">
+                                                    <option value="NONE">No hacer nada (Solo visual)</option>
+                                                    <option value="TURN_OFF">Apagar Bot al asignar</option>
+                                                    <option value="TURN_ON">Activar Bot al asignar</option>
+                                                </select>
+                                            </div>
+                                            <div className="flex-1">
+                                                <label className="block text-[11px] font-black text-stone-500 uppercase tracking-widest mb-1.5 flex items-center gap-1.5"><Phone className="w-3.5 h-3.5" /> Notificación por WhatsApp</label>
+                                                <input type="text" value={editingTag.notifyPhone || ''} onChange={e => setEditingTag({...editingTag, notifyPhone: e.target.value})} className="w-full bg-white dark:bg-stone-950 border border-stone-200 dark:border-stone-800 rounded-xl px-4 py-2.5 text-sm font-medium outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500" placeholder="Opcional. Ej: 5493512222222" />
+                                                <p className="text-[10px] text-stone-500 mt-1">Se enviará un WhatsApp a este número cuando se asigne la etiqueta.</p>
+                                            </div>
+                                        </div>
+
+                                        <div className="flex items-center justify-between mt-auto pt-4 border-t border-stone-200 dark:border-stone-800">
+                                            {editingTag.id ? (
+                                                <button onClick={async () => {
+                                                    if (!confirm('¿Seguro que querés borrar esta etiqueta?')) return;
+                                                    await fetch(`/api/tags/${editingTag.id}`, { method: 'DELETE' });
+                                                    fetchTags();
+                                                    setEditingTag(null);
+                                                }} className="px-4 py-2 text-xs font-bold text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-colors">
+                                                    Borrar
+                                                </button>
+                                            ) : <div />}
+                                            <div className="flex items-center gap-3">
+                                                <button onClick={() => setEditingTag(null)} className="px-5 py-2 text-sm font-bold text-stone-600 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-800 rounded-xl transition-colors">Cancelar</button>
+                                                <button onClick={async () => {
+                                                    if (!editingTag.name) return alert('El nombre es obligatorio');
+                                                    const method = editingTag.id ? 'PUT' : 'POST';
+                                                    const url = editingTag.id ? `/api/tags/${editingTag.id}` : '/api/tags';
+                                                    await fetch(url, {
+                                                        method,
+                                                        headers: { 'Content-Type': 'application/json' },
+                                                        body: JSON.stringify(editingTag)
+                                                    });
+                                                    fetchTags();
+                                                    setEditingTag(null);
+                                                }} className="px-6 py-2 bg-violet-600 hover:bg-violet-700 text-white text-sm font-bold rounded-xl shadow-lg shadow-violet-500/30 transition-all hover:scale-105">
+                                                    Guardar Etiqueta
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </>
+                                )}
+                                {!editingTag && (
+                                    <div className="flex flex-col items-center justify-center h-full text-stone-400 gap-3">
+                                        <Tag className="w-12 h-12 opacity-20" />
+                                        <p className="text-sm font-medium">Seleccioná una etiqueta o creá una nueva.</p>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Panel de Configuración Agente Animado */}
             {showConfig && (
@@ -921,7 +1098,7 @@ export default function WhatsAppPage() {
                                         <button
                                             key={chat.id}
                                             onClick={() => selectChat(chat)}
-                                            className={`w-full text-left p-3 rounded-2xl transition-all relative border ${isSelected
+                                            className={`w-full text-left p-3 rounded-2xl transition-all relative border group/card ${isSelected
                                                 ? 'bg-white dark:bg-stone-800 border-transparent shadow-lg shadow-black/5 ring-1 ring-stone-900/5 dark:ring-white/10 z-10'
                                                 : 'hover:bg-white/50 dark:hover:bg-stone-800/50 border-transparent text-stone-700 dark:text-stone-300'
                                                 }`}
@@ -939,11 +1116,22 @@ export default function WhatsAppPage() {
                                                 </div>
                                                 <div className="flex-1 min-w-0 pr-1">
                                                     <div className="flex items-center justify-between">
-                                                        <span className={`text-[13px] font-black truncate flex items-center gap-1 ${isSelected ? 'text-stone-900 dark:text-white' : ''}`}>
-                                                            {getDisplayName(chat)}
-                                                            {(chat.chatLabels || []).includes('Fijado') && (
-                                                                <Pin className="w-3 h-3 text-stone-400 rotate-45 shrink-0" />
-                                                            )}
+                                                        <span className={`text-[13px] font-black truncate flex items-center gap-1.5 ${isSelected ? 'text-stone-900 dark:text-white' : ''}`}>
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    togglePinChat(chat);
+                                                                }}
+                                                                className={`transition-all duration-200 shrink-0 ${
+                                                                    (chat.chatLabels || []).includes('Fijado')
+                                                                        ? 'text-amber-500 scale-100 opacity-100'
+                                                                        : 'text-stone-300 dark:text-stone-600 hover:text-stone-500 hover:scale-110 opacity-0 group-hover/card:opacity-100'
+                                                                }`}
+                                                                title={(chat.chatLabels || []).includes('Fijado') ? 'Desfijar' : 'Fijar'}
+                                                            >
+                                                                <Pin className={`w-3.5 h-3.5 ${((chat.chatLabels || []).includes('Fijado')) ? 'fill-current' : 'rotate-45'}`} />
+                                                            </button>
+                                                            <span className="truncate">{getDisplayName(chat)}</span>
                                                         </span>
                                                         {chat.lastMessageAt && (
                                                             <span className="text-[10px] text-stone-400 font-bold shrink-0">
@@ -1023,11 +1211,15 @@ export default function WhatsAppPage() {
                                     </div>
 
                                     <div className="flex items-center gap-1.5 shrink-0">
-                                        {(selectedChat.chatLabels || []).length > 0 && (
+                                        {(selectedChat.chatLabels || []).filter(l => l !== 'Fijado').length > 0 && (
                                             <div className="hidden lg:flex flex-wrap gap-1 mr-2 border-r border-stone-200/50 dark:border-stone-700 pr-2">
-                                                {selectedChat.chatLabels.map(lbl => (
-                                                    <span key={lbl} className={`px-2 py-0.5 rounded-full text-[9px] font-bold border ${getLabelStyle(lbl)}`}>{lbl}</span>
-                                                ))}
+                                                {selectedChat.chatLabels.filter(l => l !== 'Fijado').map(lbl => {
+    const tagObj = dbTags.find(t => t.name === lbl);
+    if (tagObj && tagObj.color) {
+        return <span key={lbl} style={getLabelStyleInline(tagObj.color)} className="px-2 py-0.5 rounded-full text-[9px] font-bold border">{lbl}</span>;
+    }
+    return <span key={lbl} className={`px-2 py-0.5 rounded-full text-[9px] font-bold border ${getLabelStyle(lbl)}`}>{lbl}</span>;
+})}
                                             </div>
                                         )}
                                         
@@ -1037,14 +1229,14 @@ export default function WhatsAppPage() {
                                             </button>
                                             {showLabelPicker && (
                                                 <div className="absolute right-0 top-11 bg-white/90 dark:bg-stone-900/90 backdrop-blur-xl border border-stone-200/50 dark:border-white/10 rounded-2xl shadow-2xl z-50 w-44 p-2">
-                                                    {CHAT_LABEL_OPTIONS.map(opt => {
-                                                        const active = (selectedChat.chatLabels || []).includes(opt.label);
-                                                        return (
-                                                            <button key={opt.label} onClick={() => toggleLabel(opt.label)} className={`w-full text-left px-3 py-2 rounded-xl text-xs font-bold transition-all mb-1 last:mb-0 ${active ? opt.color : 'text-stone-600 hover:bg-stone-100'}`}>
-                                                                {opt.label}
-                                                            </button>
-                                                        );
-                                                    })}
+                                                    {dbTags.map(tag => {
+    const active = (selectedChat.chatLabels || []).includes(tag.name);
+    return (
+        <button key={tag.id} onClick={() => toggleLabel(tag.name)} style={active ? getLabelStyleInline(tag.color) : {}} className={`w-full text-left px-3 py-2 rounded-xl text-xs font-bold transition-all mb-1 last:mb-0 ${active ? 'border' : 'text-stone-600 hover:bg-stone-100'}`}>
+            {tag.name}
+        </button>
+    );
+})}
                                                 </div>
                                             )}
                                         </div>
