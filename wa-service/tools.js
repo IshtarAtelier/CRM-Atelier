@@ -12,371 +12,293 @@ const apiClient = axios.create({
 
 const { sendMessage } = require('./whatsapp-client');
 
+// Helper: Request retry mechanism for transient network or database errors.
+// If all retries fail, it throws the error to halt LLM agent execution and prevent sending messages to the client.
+async function requestWithRetry(fn, retries = 3, delay = 1000) {
+    for (let i = 0; i < retries; i++) {
+        try {
+            return await fn();
+        } catch (error) {
+            console.error(`[API Retry] Attempt ${i + 1}/${retries} failed:`, error.message);
+            if (i === retries - 1) {
+                throw error;
+            }
+            await new Promise(res => setTimeout(res, delay * Math.pow(2, i)));
+        }
+    }
+}
+
 /**
  * Tool: Search for an existing client by phone or name
  */
 async function checkExistingClient({ phone, name }) {
-    try {
-        const response = await apiClient.get(`${CRM_API_URL}/clients`, {
+    const response = await requestWithRetry(() => 
+        apiClient.get(`${CRM_API_URL}/clients`, {
             params: { phone, name }
-        });
-        
-        const contact = response.data;
-        if (contact && contact.found) {
-            return { found: true, contact: contact.client };
-        }
-        return { found: false };
-    } catch (error) {
-        console.error('Error in checkExistingClient tool:', error.message);
-        return { found: false, error: 'Error al consultar el CRM' };
+        })
+    );
+    
+    const contact = response.data;
+    if (contact && contact.found) {
+        return { found: true, contact: contact.client };
     }
+    return { found: false };
 }
 
 /**
  * Detect contact source based on the first inbound message in the chat history.
  */
 async function detectContactSourceFromChat(chatId) {
-    try {
-        if (!chatId) return 'Otros';
-        
-        // Find the earliest inbound message
-        const firstMessage = await prisma.whatsAppMessage.findFirst({
-            where: { chatId, direction: 'INBOUND' },
-            orderBy: { createdAt: 'asc' }
-        });
+    if (!chatId) return 'Otros';
+    
+    // Find the earliest inbound message
+    const firstMessage = await prisma.whatsAppMessage.findFirst({
+        where: { chatId, direction: 'INBOUND' },
+        orderBy: { createdAt: 'asc' }
+    });
 
-        if (!firstMessage || !firstMessage.content) {
-            return 'Otros';
-        }
-
-        const text = firstMessage.content.toLowerCase();
-
-        // 1. Meta (Instagram, Facebook, Anuncio, Publicidad)
-        if (
-            text.includes('instagram') ||
-            text.includes('facebook') ||
-            text.includes('anuncio') ||
-            text.includes('publicidad') ||
-            text.includes('vi esto en') ||
-            text.includes('ad')
-        ) {
-            return 'Meta';
-        }
-
-        // 2. Google (Google, Maps, Búsqueda)
-        if (
-            text.includes('google') ||
-            text.includes('maps') ||
-            text.includes('busqueda') ||
-            text.includes('búsqueda')
-        ) {
-            return 'Google Ads';
-        }
-
-        // 3. Referido (Recomendó, Amiga, Amigo, etc.)
-        if (
-            text.includes('recomendó') ||
-            text.includes('recomendo') ||
-            text.includes('recomendada') ||
-            text.includes('recomendado') ||
-            text.includes('amiga') ||
-            text.includes('amigo') ||
-            text.includes('contacto de') ||
-            text.includes('pasó tu número') ||
-            text.includes('paso tu numero')
-        ) {
-            return 'Referido';
-        }
-
-        return 'Otros';
-    } catch (e) {
-        console.error('Error detecting contact source from chat:', e.message);
+    if (!firstMessage || !firstMessage.content) {
         return 'Otros';
     }
+
+    const text = firstMessage.content.toLowerCase();
+
+    // 1. Meta (Instagram, Facebook, Anuncio, Publicidad)
+    if (
+        text.includes('instagram') ||
+        text.includes('facebook') ||
+        text.includes('anuncio') ||
+        text.includes('publicidad') ||
+        text.includes('vi esto en') ||
+        text.includes('ad')
+    ) {
+        return 'Meta';
+    }
+
+    // 2. Google (Google, Maps, Búsqueda)
+    if (
+        text.includes('google') ||
+        text.includes('maps') ||
+        text.includes('busqueda') ||
+        text.includes('búsqueda')
+    ) {
+        return 'Google Ads';
+    }
+
+    // 3. Referido (Recomendó, Amiga, Amigo, etc.)
+    if (
+        text.includes('recomendó') ||
+        text.includes('recomendo') ||
+        text.includes('recomendada') ||
+        text.includes('recomendado') ||
+        text.includes('amiga') ||
+        text.includes('amigo') ||
+        text.includes('contacto de') ||
+        text.includes('pasó tu número') ||
+        text.includes('paso tu numero')
+    ) {
+        return 'Referido';
+    }
+
+    return 'Otros';
 }
 
 /**
  * Tool: Convert a chat into a Lead in the CRM
  */
 async function convertIntoLead({ phone, name, contactSource, interest, chatId, insurance }) {
-    try {
-        if (name && isPhrase(name)) {
-            return { error: 'El nombre proporcionado no es un nombre de persona válido (es una frase o saludo).' };
-        }
-        // Sanitizar teléfono: números @lid falsos suelen tener 15+ dígitos puros
-        let cleanPhone = phone ? phone.replace(/\D/g, '') : '';
-        if (cleanPhone.length > 15 || cleanPhone.length < 8) {
-            console.log(`  ⚠️ Teléfono sospechoso descartado: "${phone}" (${cleanPhone.length} dígitos)`);
-            cleanPhone = null;
-        } else {
-            cleanPhone = phone; // Mantener formato original si es válido
-        }
+    if (name && isPhrase(name)) {
+        throw new Error('El nombre proporcionado no es un nombre de persona válido (es una frase o saludo).');
+    }
+    // Sanitizar teléfono: números @lid falsos suelen tener 15+ dígitos puros
+    let cleanPhone = phone ? phone.replace(/\D/g, '') : '';
+    if (cleanPhone.length > 15 || cleanPhone.length < 8) {
+        console.log(`  ⚠️ Teléfono sospechoso descartado: "${phone}" (${cleanPhone.length} dígitos)`);
+        cleanPhone = null;
+    } else {
+        cleanPhone = phone; // Mantener formato original si es válido
+    }
 
-        if (!cleanPhone) {
-            return { error: 'No se pudo registrar el lead: el teléfono no es válido o no se pudo resolver.' };
-        }
+    if (!cleanPhone) {
+        throw new Error('No se pudo registrar el lead: el teléfono no es válido o no se pudo resolver.');
+    }
 
-        const VALID_SOURCES = ["Google Ads", "Meta", "Calle", "Jemima", "Ya es Cliente", "Tienda nube", "Referido", "Wave", "Salida"];
-        let resolvedSource = contactSource;
-        if (!resolvedSource || !VALID_SOURCES.includes(resolvedSource)) {
-            resolvedSource = await detectContactSourceFromChat(chatId);
-        }
+    const VALID_SOURCES = ["Google Ads", "Meta", "Calle", "Jemima", "Ya es Cliente", "Tienda nube", "Referido", "Wave", "Salida"];
+    let resolvedSource = contactSource;
+    if (!resolvedSource || !VALID_SOURCES.includes(resolvedSource)) {
+        resolvedSource = await detectContactSourceFromChat(chatId);
+    }
 
-        const response = await apiClient.post(`${CRM_API_URL}/clients`, {
+    const response = await requestWithRetry(() =>
+        apiClient.post(`${CRM_API_URL}/clients`, {
             phone: cleanPhone, 
             name, 
             contactSource: resolvedSource, 
             interest: interest || 'Otros', 
             status: 'CONTACT', 
             insurance
-        });
-        const newContact = response.data.client || response.data;
+        })
+    );
+    const newContact = response.data.client || response.data;
 
-        if (newContact && newContact.id) {
-            // Fix: Usar chatId estricto si se provee, o un phone válido. Si phone es vacío y no hay chatId, evitar desastre.
-            if (chatId) {
-                await prisma.whatsAppChat.update({
-                    where: { id: chatId },
-                    data: { clientId: newContact.id }
-                }).catch(() => {});
-            } else if (cleanPhone && cleanPhone.length > 5) {
-                await prisma.whatsAppChat.updateMany({
-                    where: { waId: { startsWith: cleanPhone } },
-                    data: { clientId: newContact.id }
-                });
-            }
-            // Auto-etiquetar como Bot Lead
-            await addTagToClient({ clientId: newContact.id, tagName: 'Bot Lead' });
+    if (newContact && newContact.id) {
+        // Fix: Usar chatId estricto si se provee, o un phone válido.
+        if (chatId) {
+            await prisma.whatsAppChat.update({
+                where: { id: chatId },
+                data: { clientId: newContact.id }
+            });
+        } else if (cleanPhone && cleanPhone.length > 5) {
+            await prisma.whatsAppChat.updateMany({
+                where: { waId: { startsWith: cleanPhone } },
+                data: { clientId: newContact.id }
+            });
         }
-
-        return { success: true, contact: newContact };
-    } catch (error) {
-        console.error('Error in convertIntoLead tool:', error.message);
-        return { error: 'Error al registrar el lead. Probablemente faltan datos o hay un duplicado.' };
+        // Auto-etiquetar como Bot Lead
+        await addTagToClient({ clientId: newContact.id, tagName: 'Bot Lead' });
     }
+
+    return { success: true, contact: newContact };
 }
 
 /**
  * Tool: Update client info
  */
 async function updateClientData({ id, ...data }) {
-    try {
-        const response = await apiClient.post(`${CRM_API_URL}/clients`, { id, ...data });
-        return response.data;
-    } catch (error) {
-        console.error('Error in updateClientData tool:', error.message);
-        return { error: 'Error al actualizar datos' };
-    }
+    const response = await requestWithRetry(() =>
+        apiClient.post(`${CRM_API_URL}/clients`, { id, ...data })
+    );
+    return response.data;
 }
 
 /**
  * Tool: Get price list for bot quotes
- * Returns products marked as botRecommended from the real inventory.
- * Optionally filtered by category (MULTIFOCAL, MONOFOCAL, CONTACTO, ARMAZON).
  */
 async function getPriceList({ category, search, botRecommended }) {
-    try {
-        const params = {};
-        const onlyRecommended = botRecommended !== undefined ? botRecommended : (search ? false : true);
-        if (onlyRecommended === true || onlyRecommended === 'true') {
-            params.botRecommended = 'true';
-        }
-        if (category) params.category = category;
-        if (search) params.search = search;
-        const response = await apiClient.get(`${CRM_API_URL}/pricing`, { params });
-        return response.data;
-    } catch (error) {
-        console.error('Error in getPriceList tool:', error.message);
-        return { error: 'No se pudo obtener la lista de precios.' };
+    const params = {};
+    const onlyRecommended = botRecommended !== undefined ? botRecommended : (search ? false : true);
+    if (onlyRecommended === true || onlyRecommended === 'true') {
+        params.botRecommended = 'true';
     }
+    if (category) params.category = category;
+    if (search) params.search = search;
+    const response = await requestWithRetry(() =>
+        apiClient.get(`${CRM_API_URL}/pricing`, { params })
+    );
+    return response.data;
 }
 
 /**
  * Tool: Check order status + balance calculation
  */
 async function getOrderStatus({ orderId, clientId }) {
-    try {
-        const response = await apiClient.get(`${CRM_API_URL}/orders`, {
+    const response = await requestWithRetry(() =>
+        apiClient.get(`${CRM_API_URL}/orders`, {
             params: { orderId }
-        });
-        const order = response.data;
-        
-        if (!order || !order.found) {
-            return { found: false, error: "Pedido no encontrado" };
-        }
-
-        const paid = (order.payments || []).reduce((acc, p) => acc + (p.amount || 0), 0);
-        const total = order.total || 0;
-        const balance = total - paid;
-
-        return { 
-            found: true, 
-            status: order.labStatus || order.status,
-            total,
-            paid,
-            balance,
-            updatedAt: order.updatedAt
-        };
-    } catch (error) {
-        console.error('Error in getOrderStatus tool:', error.message);
-        return { error: 'No se pudo consultar el estado del pedido.' };
+        })
+    );
+    const order = response.data;
+    
+    if (!order || !order.found) {
+        return { found: false, error: "Pedido no encontrado" };
     }
+
+    const paid = (order.payments || []).reduce((acc, p) => acc + (p.amount || 0), 0);
+    const total = order.total || 0;
+    const balance = total - paid;
+
+    return { 
+        found: true, 
+        status: order.labStatus || order.status,
+        total,
+        paid,
+        balance,
+        updatedAt: order.updatedAt
+    };
 }
 
 /**
  * Tool: Create a follow-up task
  */
 async function createTask({ clientId, description, dueDate }) {
-    try {
-        const response = await apiClient.post(`${CRM_API_URL}/tasks`, {
+    const response = await requestWithRetry(() =>
+        apiClient.post(`${CRM_API_URL}/tasks`, {
             clientId, description, dueDate
-        });
-        return response.data;
-    } catch (error) {
-        console.error('Error in createTask tool:', error.message);
-        return { error: 'Error al crear tarea' };
-    }
+        })
+    );
+    return response.data;
 }
 
 /**
  * Tool: Register an interaction
  */
 async function addInteraction({ clientId, type, content }) {
-    try {
-        const response = await apiClient.post(`${CRM_API_URL}/interactions`, {
+    const response = await requestWithRetry(() =>
+        apiClient.post(`${CRM_API_URL}/interactions`, {
             clientId, type, content
-        });
-        return response.data;
-    } catch (error) {
-        console.error('Error in addInteraction tool:', error.message);
-        return { error: 'Error al registrar interacción' };
-    }
+        })
+    );
+    return response.data;
 }
 
 /**
  * Tool: Save prescription data (OCR)
  */
 async function savePrescription({ clientId, ...prescriptionData }) {
-    try {
-        const response = await apiClient.post(`${CRM_API_URL}/prescriptions`, {
+    const response = await requestWithRetry(() =>
+        apiClient.post(`${CRM_API_URL}/prescriptions`, {
             clientId, ...prescriptionData
-        });
-        return response.data;
-    } catch (error) {
-        console.error('Error in savePrescription tool:', error.message);
-        return { error: 'Error al guardar la receta' };
-    }
+        })
+    );
+    return response.data;
 }
 
 /**
  * Tool: Log bot message in CRM
  */
 async function logBotMessage({ waId, content }) {
-    try {
-        await apiClient.post(`${CRM_API_URL}/messages`, {
+    await requestWithRetry(() =>
+        apiClient.post(`${CRM_API_URL}/messages`, {
             waId, content, direction: 'OUTBOUND'
-        });
-        return { success: true };
-    } catch (error) {
-        console.error('Error in logBotMessage tool:', error.message);
-        return { success: false };
-    }
+        })
+    );
+    return { success: true };
 }
 
 /**
  * Tool: Create a formal quote
  */
 async function createQuote({ clientId, items, total, discountCash }) {
-    try {
-        const response = await apiClient.post(`${CRM_API_URL}/orders`, {
+    const response = await requestWithRetry(() =>
+        apiClient.post(`${CRM_API_URL}/orders`, {
             clientId, items, total, discountCash
-        });
-        return response.data;
-    } catch (error) {
-        console.error('Error in createQuote tool:', error.message);
-        return { error: 'Error al registrar el presupuesto en el CRM' };
-    }
+        })
+    );
+    return response.data;
 }
 
 /**
  * Tool: Cancel the bot and tag the conversation
  */
 async function cancelBot({ clientId, waId }) {
-    try {
-        // If no waId provided, try to find it from clientId
-        if (!waId && clientId && clientId !== 'none') {
-            const chatFromClient = await prisma.whatsAppChat.findFirst({ where: { clientId } });
-            if (chatFromClient) waId = chatFromClient.waId;
-        }
-
-        let tag = await prisma.tag.findFirst({
-            where: { name: { equals: 'Cancelar Bot', mode: 'insensitive' } }
-        });
-        
-        if (!tag) {
-            tag = await prisma.tag.create({
-                data: { name: 'Cancelar Bot', color: '#ff4d4f' }
-            });
-        }
-
-        if (clientId && clientId !== 'none') {
-            await prisma.client.update({
-                where: { id: clientId },
-                data: {
-                    tags: {
-                        connect: { id: tag.id }
-                    }
-                }
-            });
-        }
-
-        if (waId) {
-            const chat = await prisma.whatsAppChat.findUnique({ where: { waId } });
-            if (chat) {
-                const updatedLabels = new Set(chat.chatLabels || []);
-                updatedLabels.add('Cancelar Bot');
-
-                await prisma.whatsAppChat.update({
-                    where: { waId },
-                    data: { 
-                        botEnabled: false, 
-                        status: 'OPEN', 
-                        unreadCount: { increment: 1 },
-                        chatLabels: Array.from(updatedLabels)
-                    }
-                });
-
-                // Generar resumen de handoff
-                generateAndSaveHandoffSummary(chat.id).catch(e => console.error("Error en resumen cancelBot:", e.message));
-
-                return { success: true, message: 'BOT_CANCELED' };
-            }
-        }
-
-        return { error: 'Se requiere waId para cancelar el bot en este chat o el chat no existe.' };
-    } catch (error) {
-        console.error('Error in cancelBot tool:', error.message);
-        return { error: 'No se pudo cancelar el bot.' };
+    // If no waId provided, try to find it from clientId
+    if (!waId && clientId && clientId !== 'none') {
+        const chatFromClient = await prisma.whatsAppChat.findFirst({ where: { clientId } });
+        if (chatFromClient) waId = chatFromClient.waId;
     }
-}
 
-/**
- * Tool: Add a tag dynamically to a client
- */
-async function addTagToClient({ clientId, tagName }) {
-    if (!clientId || clientId === 'none') return { error: "No client ID provided. No se puede etiquetar a un prospecto no guardado." };
-    try {
-        let tag = await prisma.tag.findFirst({
-            where: { name: { equals: tagName, mode: 'insensitive' } }
+    let tag = await prisma.tag.findFirst({
+        where: { name: { equals: 'Cancelar Bot', mode: 'insensitive' } }
+    });
+    
+    if (!tag) {
+        tag = await prisma.tag.create({
+            data: { name: 'Cancelar Bot', color: '#ff4d4f' }
         });
-        
-        if (!tag) {
-            tag = await prisma.tag.create({
-                data: { name: tagName, color: '#1677ff' } // azul por defecto
-            });
-        }
+    }
 
-        const client = await prisma.client.update({
+    if (clientId && clientId !== 'none') {
+        await prisma.client.update({
             where: { id: clientId },
             data: {
                 tags: {
@@ -384,127 +306,173 @@ async function addTagToClient({ clientId, tagName }) {
                 }
             }
         });
+    }
 
-        // 1. Bot Action Automation
-        if (tag.botAction === 'TURN_OFF' || tag.botAction === 'TURN_ON') {
-            await prisma.whatsAppChat.updateMany({
-                where: { clientId: clientId },
-                data: { botEnabled: tag.botAction === 'TURN_ON' }
+    if (waId) {
+        const chat = await prisma.whatsAppChat.findUnique({ where: { waId } });
+        if (chat) {
+            const updatedLabels = new Set(chat.chatLabels || []);
+            updatedLabels.add('Cancelar Bot');
+
+            await prisma.whatsAppChat.update({
+                where: { waId },
+                data: { 
+                    botEnabled: false, 
+                    status: 'OPEN', 
+                    unreadCount: { increment: 1 },
+                    chatLabels: Array.from(updatedLabels)
+                }
             });
-            console.log(`[Etiqueta Automation] Bot ${tag.botAction === 'TURN_ON' ? 'activado' : 'pausado'} para cliente ${client.name}`);
-        }
 
-        // 2. Notification Automation
-        if (tag.notifyPhone) {
-            try {
-                const message = `🔔 *NOTIFICACIÓN DEL CRM*\nSe ha aplicado la etiqueta *${tag.name}* al cliente *${client.name || 'Sin nombre'}* (ID: ${client.id}).`;
-                const notifyWaId = tag.notifyPhone.includes('@') ? tag.notifyPhone : `${tag.notifyPhone.replace(/[^0-9]/g, '')}@c.us`;
-                await sendMessage(notifyWaId, message);
-                console.log(`[Etiqueta Automation] Notificación enviada a ${notifyWaId}`);
-            } catch (err) {
-                console.error("[Etiqueta Automation] Error enviando notificación:", err.message);
+            // Generar resumen de handoff
+            generateAndSaveHandoffSummary(chat.id).catch(e => console.error("Error en resumen cancelBot:", e.message));
+
+            return { success: true, message: 'BOT_CANCELED' };
+        }
+    }
+
+    throw new Error('Se requiere waId para cancelar el bot en este chat o el chat no existe.');
+}
+
+/**
+ * Tool: Add a tag dynamically to a client
+ */
+async function addTagToClient({ clientId, tagName }) {
+    if (!clientId || clientId === 'none') {
+        throw new Error("No client ID provided. No se puede etiquetar a un prospecto no guardado.");
+    }
+    
+    let tag = await prisma.tag.findFirst({
+        where: { name: { equals: tagName, mode: 'insensitive' } }
+    });
+    
+    if (!tag) {
+        tag = await prisma.tag.create({
+            data: { name: tagName, color: '#1677ff' } // azul por defecto
+        });
+    }
+
+    const client = await prisma.client.update({
+        where: { id: clientId },
+        data: {
+            tags: {
+                connect: { id: tag.id }
             }
         }
+    });
 
-        return { success: true, message: `Etiqueta '${tagName}' agregada correctamente al cliente.` };
-    } catch (error) {
-        console.error('Error in addTagToClient tool:', error.message);
-        return { error: `No se pudo agregar la etiqueta '${tagName}'.` };
+    // 1. Bot Action Automation
+    if (tag.botAction === 'TURN_OFF' || tag.botAction === 'TURN_ON') {
+        await prisma.whatsAppChat.updateMany({
+            where: { clientId: clientId },
+            data: { botEnabled: tag.botAction === 'TURN_ON' }
+        });
+        console.log(`[Etiqueta Automation] Bot ${tag.botAction === 'TURN_ON' ? 'activado' : 'pausado'} para cliente ${client.name}`);
     }
+
+    // 2. Notification Automation
+    if (tag.notifyPhone) {
+        try {
+            const message = `🔔 *NOTIFICACIÓN DEL CRM*\nSe ha aplicado la etiqueta *${tag.name}* al cliente *${client.name || 'Sin nombre'}* (ID: ${client.id}).`;
+            const notifyWaId = tag.notifyPhone.includes('@') ? tag.notifyPhone : `${tag.notifyPhone.replace(/[^0-9]/g, '')}@c.us`;
+            await sendMessage(notifyWaId, message);
+            console.log(`[Etiqueta Automation] Notificación enviada a ${notifyWaId}`);
+        } catch (err) {
+            console.error("[Etiqueta Automation] Error enviando notificación:", err.message);
+        }
+    }
+
+    return { success: true, message: `Etiqueta '${tagName}' agregada correctamente al cliente.` };
 }
 
 /**
  * Tool: Disable Bot explicitly for a Chat
  */
 async function disableBotForChat({ chatId }) {
-    if (!chatId || chatId === 'none') return { error: "No chatId provided." };
-    try {
-        const chat = await prisma.whatsAppChat.findUnique({ where: { id: chatId } });
-        if (!chat) return { error: "Chat not found." };
+    if (!chatId || chatId === 'none') {
+        throw new Error("No chatId provided.");
+    }
+    
+    const chat = await prisma.whatsAppChat.findUnique({ where: { id: chatId } });
+    if (!chat) {
+        throw new Error("Chat not found.");
+    }
 
-        let tag = await prisma.tag.findFirst({
-            where: { name: { equals: 'Cancelar Bot', mode: 'insensitive' } }
+    let tag = await prisma.tag.findFirst({
+        where: { name: { equals: 'Cancelar Bot', mode: 'insensitive' } }
+    });
+    if (!tag) {
+        tag = await prisma.tag.create({
+            data: { name: 'Cancelar Bot', color: '#ff4d4f' }
         });
-        if (!tag) {
-            tag = await prisma.tag.create({
-                data: { name: 'Cancelar Bot', color: '#ff4d4f' }
-            });
-        }
+    }
 
-        if (chat.clientId) {
-            await prisma.client.update({
-                where: { id: chat.clientId },
-                data: {
-                    tags: {
-                        connect: { id: tag.id }
-                    }
+    if (chat.clientId) {
+        await prisma.client.update({
+            where: { id: chat.clientId },
+            data: {
+                tags: {
+                    connect: { id: tag.id }
                 }
-            }).catch(e => console.error("Error linking tag in disableBotForChat:", e.message));
-        }
-
-        const updatedLabels = new Set(chat.chatLabels || []);
-        updatedLabels.add('Cancelar Bot');
-
-        await prisma.whatsAppChat.update({
-            where: { id: chatId },
-            data: { 
-                botEnabled: false, 
-                chatLabels: Array.from(updatedLabels)
             }
         });
-
-        // Generar resumen de handoff
-        generateAndSaveHandoffSummary(chatId).catch(e => console.error("Error en resumen disableBotForChat:", e.message));
-
-        return { success: true, message: `Bot apagado y etiquetado como 'Cancelar Bot' para el chat.` };
-    } catch (error) {
-        console.error('Error in disableBotForChat tool:', error.message);
-        return { error: `No se pudo apagar el bot para el chat.` };
     }
-}
 
+    const updatedLabels = new Set(chat.chatLabels || []);
+    updatedLabels.add('Cancelar Bot');
+
+    await prisma.whatsAppChat.update({
+        where: { id: chatId },
+        data: { 
+            botEnabled: false, 
+            chatLabels: Array.from(updatedLabels)
+        }
+    });
+
+    // Generar resumen de handoff
+    generateAndSaveHandoffSummary(chatId).catch(e => console.error("Error en resumen disableBotForChat:", e.message));
+
+    return { success: true, message: `Bot apagado y etiquetado como 'Cancelar Bot' para el chat.` };
+}
 
 /**
  * Tool: Report a complaint via email
  */
 async function reportComplaint({ clientId, details }) {
-    if (!clientId) return { error: "No client ID provided." };
-    if (!details) return { error: "No details provided." };
-    try {
-        const complaintsUrl = CRM_API_URL.replace('/api/bot', '/api');
-        const response = await apiClient.post(`${complaintsUrl}/complaints`, {
+    if (!clientId) throw new Error("No client ID provided.");
+    if (!details) throw new Error("No details provided.");
+    
+    const complaintsUrl = CRM_API_URL.replace('/api/bot', '/api');
+    const response = await requestWithRetry(() =>
+        apiClient.post(`${complaintsUrl}/complaints`, {
             clientId,
             details
-        });
+        })
+    );
 
-        // Add the NOTE to the client's profile automatically
-        await addInteraction({
-            clientId,
-            type: 'NOTE',
-            content: `[RECLAMO POST-VENTA] ${details}`
-        });
+    // Add the NOTE to the client's profile automatically
+    await addInteraction({
+        clientId,
+        type: 'NOTE',
+        content: `[RECLAMO POST-VENTA] ${details}`
+    });
 
-        // Enviar notificación por WhatsApp a la administración
-        const adminPhone = process.env.ADMIN_PHONE || '5493512222222'; // A configurar
-        if (adminPhone) {
-            try {
-                // Obtenemos los datos del cliente para el msj
-                const client = await prisma.client.findUnique({ where: { id: clientId } });
-                const clientName = client ? client.name : clientId;
-                
-                const waMsg = `🚨 *NUEVO RECLAMO POST-VENTA* 🚨\n\n*Cliente:* ${clientName}\n\n*Detalles:*\n${details}\n\nRevisa el correo para más información.`;
-                await sendMessage(adminPhone + '@c.us', waMsg);
-                console.log(`WhatsApp notification sent to admin (${adminPhone})`);
-            } catch (waError) {
-                console.error('Error sending WA notification:', waError);
-            }
+    // Enviar notificación por WhatsApp a la administración
+    const adminPhone = process.env.ADMIN_PHONE || '5493512222222'; // A configurar
+    if (adminPhone) {
+        try {
+            // Obtenemos los datos del cliente para el msj
+            const client = await prisma.client.findUnique({ where: { id: clientId } });
+            const clientName = client ? client.name : clientId;
+            
+            const waMsg = `🚨 *NUEVO RECLAMO POST-VENTA* 🚨\n\n*Cliente:* ${clientName}\n\n*Detalles:*\n${details}\n\nRevisa el correo para más información.`;
+            await sendMessage(adminPhone, waMsg);
+        } catch (adminErr) {
+            console.error('Error enviando WhatsApp de reclamo a administración:', adminErr.message);
         }
-
-        return { success: true, message: `Reclamo reportado exitosamente.` };
-    } catch (error) {
-        console.error('Error in reportComplaint tool:', error.message);
-        return { error: `No se pudo enviar el reporte del reclamo.` };
     }
+
+    return { success: true, message: `Reclamo reportado exitosamente.` };
 }
 
 /**

@@ -33,118 +33,114 @@ const savePrescriptionDataTool = new DynamicTool({
     name: "save_prescription_data",
     description: "Guarda los valores de una receta médica (esferas, cilindros, ejes, adición, DIP, etc.) en la ficha del cliente en el CRM. Úsala de forma MANDATORIA cuando has leído una receta en el chat y querés dejarla guardada. Requisitos: JSON estricto con 'chatId' (MANDATORIO), 'clientId' (MANDATORIO, o null/none/empty si el contacto aún no está registrado), 'tipoDeLente' ('Monofocal' o 'Multifocal'), 'odEsf' (número), 'odCil' (número), 'odEje' (entero), 'oiEsf' (número), 'oiCil' (número), 'oiEje' (entero), 'add' (adición, número, opcional), 'odDip' (DIP ojo derecho, opcional), 'oiDip' (DIP ojo izquierdo, opcional), 'origen' (opcional), 'obraSocial' (opcional), 'notes' (comentarios, opcional), 'userName' (nombre del cliente si clientId es null, opcional), 'userPhone' (teléfono si clientId es null, opcional). La herramienta buscará la foto de la receta en la caché de la charla y la subirá automáticamente.",
     func: async (input) => {
-        try {
-            const { ChatGoogleGenerativeAI } = require("@langchain/google-genai");
-            const { HumanMessage } = require("@langchain/core/messages");
-            const { savePrescription, convertIntoLead, addInteraction, isPhrase } = require("./tools");
+        const { ChatGoogleGenerativeAI } = require("@langchain/google-genai");
+        const { HumanMessage } = require("@langchain/core/messages");
+        const { savePrescription, convertIntoLead, addInteraction, isPhrase } = require("./tools");
 
-            const parsed = safeParse(input, "save_prescription_data");
-            const { chatId, clientId, tipoDeLente, odEsf, odCil, odEje, oiEsf, oiCil, oiEje, add, odDip, oiDip, origen, obraSocial, notes, userName, userPhone } = parsed;
+        const parsed = safeParse(input, "save_prescription_data");
+        const { chatId, clientId, tipoDeLente, odEsf, odCil, odEje, oiEsf, oiCil, oiEje, add, odDip, oiDip, origen, obraSocial, notes, userName, userPhone } = parsed;
 
-            if (!chatId) return "Error: chatId es requerido.";
+        if (!chatId) return "Error: chatId es requerido.";
 
-            // 1. Obtener imagen en caché
-            const cacheItems = global.mediaCache?.[chatId] || [];
+        // 1. Obtener imagen en caché
+        const cacheItems = global.mediaCache?.[chatId] || [];
+        
+        // Buscar cuál de las imágenes en caché es una receta
+        const validationModel = new ChatGoogleGenerativeAI({
+            model: 'gemini-2.5-flash',
+            temperature: 0,
+            apiKey: process.env.GOOGLE_GENAI_API_KEY || process.env.GOOGLE_API_KEY
+        });
+
+        let confirmedPrescriptionItem = null;
+
+        for (let i = 0; i < cacheItems.length; i++) {
+            const item = cacheItems[i];
+            try {
+                const validationResponse = await validationModel.invoke([
+                    new HumanMessage({
+                        content: [
+                            { type: "text", text: `Clasificá esta imagen. Respondé SOLO con "RECETA" o "NO_RECETA"` },
+                            { type: "image_url", image_url: { url: `data:${item.mimeType};base64,${item.base64}` } }
+                        ]
+                    })
+                ]);
+                const classification = validationResponse.content.toString().trim().toUpperCase();
+                if (classification.includes('RECETA') && !classification.includes('NO_RECETA')) {
+                    confirmedPrescriptionItem = item;
+                    break;
+                }
+            } catch (err) {
+                console.error("Error validating image inside save_prescription_data tool:", err.message);
+            }
+        }
+
+        const finalItem = confirmedPrescriptionItem || cacheItems[cacheItems.length - 1];
+
+        const prescriptionData = {
+            tipoDeLente,
+            odEsf, odCil, odEje,
+            oiEsf, oiCil, oiEje,
+            add, odDip, oiDip,
+            origen, obraSocial, notes
+        };
+
+        if (finalItem) {
+            prescriptionData.imageBase64 = finalItem.base64;
+            prescriptionData.imageMimeType = finalItem.mimeType;
+        }
+
+        let resolvedClientId = clientId;
+
+        if (!resolvedClientId || resolvedClientId === 'null' || resolvedClientId === 'none' || resolvedClientId === '') {
+            const resolvedName = (userName && userName.trim().length >= 2 && userName !== 'null' && !/^\d+$/.test(userName.trim()) && !isPhrase(userName.trim())) ? userName.trim() : null;
             
-            // Buscar cuál de las imágenes en caché es una receta
-            const validationModel = new ChatGoogleGenerativeAI({
-                model: 'gemini-2.5-flash',
-                temperature: 0,
-                apiKey: process.env.GOOGLE_GENAI_API_KEY || process.env.GOOGLE_API_KEY
+            if (!resolvedName) {
+                return "Error: No se pudo crear la ficha del cliente porque no se proporcionó un nombre válido (userName). Por favor, preguntale el nombre al cliente de forma natural primero, y luego vuelve a intentar con un nombre de pila/apellido real.";
+            }
+
+            const leadResult = await convertIntoLead({
+                phone: userPhone || '',
+                name: resolvedName,
+                contactSource: origen,
+                interest: tipoDeLente || 'Otros',
+                insurance: obraSocial || null,
+                chatId: chatId
             });
 
-            let confirmedPrescriptionItem = null;
-
-            for (let i = 0; i < cacheItems.length; i++) {
-                const item = cacheItems[i];
-                try {
-                    const validationResponse = await validationModel.invoke([
-                        new HumanMessage({
-                            content: [
-                                { type: "text", text: `Clasificá esta imagen. Respondé SOLO con "RECETA" o "NO_RECETA"` },
-                                { type: "image_url", image_url: { url: `data:${item.mimeType};base64,${item.base64}` } }
-                            ]
-                        })
-                    ]);
-                    const classification = validationResponse.content.toString().trim().toUpperCase();
-                    if (classification.includes('RECETA') && !classification.includes('NO_RECETA')) {
-                        confirmedPrescriptionItem = item;
-                        break;
-                    }
-                } catch (err) {
-                    console.error("Error validating image inside save_prescription_data tool:", err.message);
-                }
-            }
-
-            const finalItem = confirmedPrescriptionItem || cacheItems[cacheItems.length - 1];
-
-            const prescriptionData = {
-                tipoDeLente,
-                odEsf, odCil, odEje,
-                oiEsf, oiCil, oiEje,
-                add, odDip, oiDip,
-                origen, obraSocial, notes
-            };
-
-            if (finalItem) {
-                prescriptionData.imageBase64 = finalItem.base64;
-                prescriptionData.imageMimeType = finalItem.mimeType;
-            }
-
-            let resolvedClientId = clientId;
-
-            if (!resolvedClientId || resolvedClientId === 'null' || resolvedClientId === 'none' || resolvedClientId === '') {
-                const resolvedName = (userName && userName.trim().length >= 2 && userName !== 'null' && !/^\d+$/.test(userName.trim()) && !isPhrase(userName.trim())) ? userName.trim() : null;
+            if (leadResult && leadResult.contact) {
+                resolvedClientId = leadResult.contact.id;
                 
-                if (!resolvedName) {
-                    return "Error: No se pudo crear la ficha del cliente porque no se proporcionó un nombre válido (userName). Por favor, preguntale el nombre al cliente de forma natural primero, y luego vuelve a intentar con un nombre de pila/apellido real.";
+                // Crear Hito automático
+                try {
+                    const hitoContent = `📍 [HITO] Prospecto registrado vía WhatsApp. Receta procesada: ${tipoDeLente || 'N/A'}. OD: Esf ${odEsf || 0} Cil ${odCil || 0}. OI: Esf ${oiEsf || 0} Cil ${oiEje || 0}.${add ? ' Add: ' + add : ''}`;
+                    await addInteraction({ clientId: resolvedClientId, type: 'NOTE', content: hitoContent });
+                } catch (hitoErr) {
+                    console.error('Error creando hito automático en save_prescription_data:', hitoErr.message);
                 }
 
-                const leadResult = await convertIntoLead({
-                    phone: userPhone || '',
-                    name: resolvedName,
-                    contactSource: origen,
-                    interest: tipoDeLente || 'Otros',
-                    insurance: obraSocial || null,
-                    chatId: chatId
-                });
-
-                if (leadResult && leadResult.contact) {
-                    resolvedClientId = leadResult.contact.id;
-                    
-                    // Crear Hito automático
-                    try {
-                        const hitoContent = `📍 [HITO] Prospecto registrado vía WhatsApp. Receta procesada: ${tipoDeLente || 'N/A'}. OD: Esf ${odEsf || 0} Cil ${odCil || 0}. OI: Esf ${oiEsf || 0} Cil ${oiEje || 0}.${add ? ' Add: ' + add : ''}`;
-                        await addInteraction({ clientId: resolvedClientId, type: 'NOTE', content: hitoContent });
-                    } catch (hitoErr) {
-                        console.error('Error creando hito automático en save_prescription_data:', hitoErr.message);
-                    }
-
-                    // Emitir notificación al panel
-                    if (global.io) {
-                        global.io.emit('lead_created', {
-                            id: resolvedClientId,
-                            name: resolvedName,
-                            phone: userPhone,
-                            interest: tipoDeLente || 'No especificado',
-                            source: leadResult.contact.contactSource || 'Calle'
-                        });
-                    }
-                } else {
-                    return `Error al crear el prospecto en el CRM: ${leadResult?.error || 'Desconocido'}`;
+                // Emitir notificación al panel
+                if (global.io) {
+                    global.io.emit('lead_created', {
+                        id: resolvedClientId,
+                        name: resolvedName,
+                        phone: userPhone,
+                        interest: tipoDeLente || 'No especificado',
+                        source: leadResult.contact.contactSource || 'Calle'
+                    });
                 }
+            } else {
+                throw new Error(`Error al crear el prospecto en el CRM: ${leadResult?.error || 'Desconocido'}`);
             }
-
-            // Guardar receta
-            const result = await savePrescription({ clientId: resolvedClientId, ...prescriptionData });
-            
-            // Limpiar caché
-            delete global.mediaCache[chatId];
-
-            return `Receta guardada exitosamente en el CRM para el cliente ID ${resolvedClientId}. Detalle: ` + JSON.stringify(result);
-        } catch (e) {
-            return `Error al ejecutar save_prescription_data: ${e.message}`;
         }
+
+        // Guardar receta
+        const result = await savePrescription({ clientId: resolvedClientId, ...prescriptionData });
+        
+        // Limpiar caché
+        delete global.mediaCache[chatId];
+
+        return `Receta guardada exitosamente en el CRM para el cliente ID ${resolvedClientId}. Detalle: ` + JSON.stringify(result);
     }
 });
 
