@@ -584,6 +584,17 @@ async function processBotTurn(chat, waId, profileName, realPhone) {
     } catch (err) {
         botReplyingTo.delete(waId); // B1: limpiar tracking en caso de error
         console.error('  ❌ Error bot:', err.message);
+
+        // Notificar al administrador por WhatsApp para que pueda continuar de forma manual
+        try {
+            const adminNotifyPhone = '5493541215971@c.us';
+            const alertMsg = `🚨 *ALERTA: FALLA EN BOT DE WHATSAPP* 🚨\n\nEl bot experimentó un error técnico procesando la consulta de *${profileName || 'Cliente'}* (${realPhone || waId.split('@')[0]}).\n\n*Acción:* El bot se ha quedado en silencio para no enviar mensajes de error al cliente. Por favor, revisá el chat en el CRM para continuar la operación manualmente.\n\n*Error:* ${err.message}`;
+            await sendMessage(adminNotifyPhone, alertMsg);
+            console.log(`  🔔 Alerta de error enviada al administrador (3541215971)`);
+        } catch (alertErr) {
+            console.error('Error enviando alerta de error al administrador:', alertErr.message);
+        }
+
         if (err.message && (err.message.includes('429') || err.message.includes('RESOURCE_EXHAUSTED'))) {
             // 1. Apagar bot en la DB para este chat
             await disableBotForChatById(chat.id, 'Cuota agotada de API (Error 429)');
