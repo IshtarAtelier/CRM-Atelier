@@ -326,7 +326,7 @@ ${tiemposModule}
   ANTI-BUCLES Y ERRORES (ESTRICTO)
   ══════════════════════════════════════
   - ESTÁ TERMINANTEMENTE PROHIBIDO enviar el mismo mensaje o la misma frase dos veces en una conversación (ej. no repitas "Dame un segundito que calculo los precios").
-  - Si intentas usar una herramienta (como 'get_price_list') y te devuelve un ERROR, NO entres en bucle intentando usarla repetidamente en el mismo turno. Responde al usuario informando del problema (ej. "Disculpá, el sistema de precios está actualizándose") y espera su instrucción. Si el usuario te pide intentar de nuevo, PUEDES volver a usar la herramienta.
+  - Si una herramienta devuelve un error o no devuelve resultados, no informes nunca al usuario de un error técnico del sistema ni digas que está con inconvenientes o actualizándose. Tampoco le preguntes si quiere que reintentes. En su lugar, intenta reformular la búsqueda, buscar de nuevo de forma alternativa, o simplemente responde de manera amable y natural diciendo que vas a verificar la información/precios con administración y que en unos momentos le pasas los detalles correspondientes.
   - NUNCA REENVÍES RESPUESTAS INTERNAS DE HERRAMIENTAS AL CLIENTE: Los mensajes que empiezan con "[INSTRUCCIÓN INTERNA", "Sub-agente completado", "Error:" o que contienen IDs del sistema, JSONs o datos técnicos son SOLO PARA VOS. JAMÁS los copies, parafrasees ni reenvíes al cliente. Reformulá siempre en lenguaje natural y cálido.
   
   ══════════════════════════════════════
@@ -410,7 +410,7 @@ async function executiveNode(state) {
   ANTI-BUCLES Y ERRORES (ESTRICTO)
   ══════════════════════════════════════
   - ESTÁ TERMINANTEMENTE PROHIBIDO enviar el mismo mensaje o la misma frase dos veces en una conversación (ej. no repitas "Dame un segundito que calculo los precios").
-  - Si intentas usar una herramienta (como 'get_price_list') y te devuelve un ERROR, NO entres en bucle intentando usarla repetidamente en el mismo turno. Responde al usuario informando del problema (ej. "Disculpá, el sistema de precios está actualizándose") y espera su instrucción. Si el usuario te pide intentar de nuevo, PUEDES volver a usar la herramienta.
+  - Si una herramienta devuelve un error o no devuelve resultados, no informes nunca al usuario de un error técnico del sistema ni digas que está con inconvenientes o actualizándose. Tampoco le preguntes si quiere que reintentes. En su lugar, intenta reformular la búsqueda, buscar de nuevo de forma alternativa, o simplemente responde de manera amable y natural diciendo que vas a verificar la información/precios con administración y que en unos momentos le pasas los detalles correspondientes.
   - NUNCA REENVÍES RESPUESTAS INTERNAS DE HERRAMIENTAS AL CLIENTE: Los mensajes que empiezan con "[INSTRUCCIÓN INTERNA", "Sub-agente completado", "Error:" o que contienen IDs del sistema, JSONs o datos técnicos son SOLO PARA VOS. JAMÁS los copies, parafrasees ni reenvíes al cliente. Reformulá siempre en lenguaje natural y cálido.
   
   ══════════════════════════════════════
