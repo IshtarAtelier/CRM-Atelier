@@ -13,6 +13,20 @@ let _onStatusChange = null;
 const MAX_RETRIES = 3;
 const RETRY_DELAY_MS = 5000;
 
+function withTimeout(promise, ms) {
+    let timeout = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Timeout de respuesta')), ms)
+    );
+    return Promise.race([promise, timeout]);
+}
+
+function clearKeepAlive() {
+    if (global.waKeepAliveInterval) {
+        clearInterval(global.waKeepAliveInterval);
+        global.waKeepAliveInterval = null;
+    }
+}
+
 async function initWhatsApp({ onMessage, onMessageCreate, onStatusChange }) {
     _onMessage = onMessage;
     _onMessageCreate = onMessageCreate;
@@ -25,6 +39,7 @@ async function startClient(attempt = 1) {
 
     // Destroy previous client if exists
     if (waClient) {
+        clearKeepAlive();
         try { await waClient.destroy(); } catch (e) { /* ignore */ }
         waClient = null;
     }
@@ -78,10 +93,33 @@ async function startClient(attempt = 1) {
         connectedPhone = waClient.info?.wid?.user || 'desconocido';
         console.log(`\n✅ WhatsApp conectado: ${connectedPhone}`);
         if (_onStatusChange) _onStatusChange(getStatus());
+
+        // Configurar Keep-Alive para verificar salud de Chromium periódicamente
+        if (global.waKeepAliveInterval) {
+            clearInterval(global.waKeepAliveInterval);
+        }
+        global.waKeepAliveInterval = setInterval(async () => {
+            if (waClient && isReady) {
+                try {
+                    const state = await withTimeout(waClient.getState(), 15000);
+                    console.log(`[WA Keep-Alive] Conexión activa (estado: ${state})`);
+                    if (state !== 'CONNECTED') {
+                        console.warn(`[WA Keep-Alive] Estado no conectado (${state}). Reiniciando...`);
+                        isReady = false;
+                        startClient(1);
+                    }
+                } catch (err) {
+                    console.error('[WA Keep-Alive] Error en chequeo o página congelada. Reiniciando cliente:', err.message);
+                    isReady = false;
+                    startClient(1);
+                }
+            }
+        }, 5 * 60 * 1000); // Chequear cada 5 minutos
     });
 
     waClient.on('disconnected', (reason) => {
         isReady = false;
+        clearKeepAlive();
         console.log('❌ WhatsApp desconectado:', reason);
         if (_onStatusChange) _onStatusChange(getStatus());
         // Auto-restart after disconnect
