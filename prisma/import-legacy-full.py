@@ -27,7 +27,7 @@ except ImportError:
     import psycopg2
     import psycopg2.extras
 
-DATABASE_URL = "postgresql://postgres:localpassword@localhost:5432/atelier"
+DATABASE_URL = os.environ.get('DATABASE_URL', "postgresql://postgres:localpassword@localhost:5432/atelier")
 DRY_RUN = "--execute" not in sys.argv
 
 # ── Helpers ──

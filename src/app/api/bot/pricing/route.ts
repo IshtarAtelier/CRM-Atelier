@@ -18,10 +18,15 @@ export async function GET(req: NextRequest) {
     if (onlyBotRecommended) productWhere.botRecommended = true;
 
     if (search) {
+        let sanitizedSearch = search;
+        const clean = search.toLowerCase().replace(/[^a-z0-9]/g, '');
+        if (clean.includes('clipon') || clean.includes('clip')) {
+            sanitizedSearch = 'clip';
+        }
         productWhere.OR = [
-            { name: { contains: search, mode: 'insensitive' } },
-            { brand: { contains: search, mode: 'insensitive' } },
-            { model: { contains: search, mode: 'insensitive' } }
+            { name: { contains: sanitizedSearch, mode: 'insensitive' } },
+            { brand: { contains: sanitizedSearch, mode: 'insensitive' } },
+            { model: { contains: sanitizedSearch, mode: 'insensitive' } }
         ];
     } else if (category) {
         if (category === 'CLIPON') {
