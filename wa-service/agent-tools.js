@@ -11,19 +11,20 @@ const {
 
 // Helper para parsear JSON de forma segura en todas las herramientas
 function safeParse(input, toolName) {
-    if (typeof input === 'object' && input !== null) return input;
-    if (typeof input === 'string') {
-        // A veces el LLM pasa un string que es un objeto literal o manda un string vacío
-        if (!input.trim()) return {};
-        try {
-            return JSON.parse(input);
-        } catch (e) {
-            // Intento desesperado: si pasaron la info en string sin JSON
-            return { rawInput: input };
+    try {
+        if (typeof input === 'object' && input !== null) return input;
+        if (typeof input === 'string') {
+            // A veces el LLM pasa un string que es un objeto literal o manda un string vacío
+            if (!input.trim()) return {};
+            try {
+                return JSON.parse(input);
+            } catch (e) {
+                // Intento desesperado: si pasaron la info en string sin JSON
+                return { rawInput: input };
+            }
         }
-    }
-    return {};
-} catch (e) {
+        return {};
+    } catch (e) {
         throw new Error(`Error de formato en '${toolName}': se esperaba un JSON válido. Recibido: ${typeof input === "string" ? input.substring(0, 80) : typeof input}. Revisá que el formato sea correcto.`);
     }
 }
