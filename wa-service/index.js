@@ -500,6 +500,36 @@ async function processBotTurn(chat, waId, profileName, realPhone) {
             return;
         }
 
+        // ── GUARDRAIL DE ERRORES DE API SILENCIOSOS ──
+        let hasApiError = false;
+        let apiErrorMessage = '';
+        if (result && result.messages) {
+            for (const msg of result.messages) {
+                const isToolMsg = msg.tool_call_id !== undefined || (typeof msg.getType === 'function' && msg.getType() === 'tool') || msg._getType === 'tool';
+                if (isToolMsg && (msg.status === 'error' || (msg.content && (msg.content.includes('Error') || msg.content.includes('getaddrinfo') || msg.content.includes('ECONNREFUSED'))))) {
+                    const content = msg.content || '';
+                    if (content.includes('getaddrinfo') || content.includes('ECONNREFUSED') || content.includes('404') || content.includes('500') || content.includes('Network Error')) {
+                        hasApiError = true;
+                        apiErrorMessage = content;
+                        break;
+                    }
+                }
+            }
+        }
+
+        if (hasApiError) {
+            console.log(`  ⏹️ Error de API detectado en ToolMessage (${chat.id}). Cancelando respuesta.`);
+            try {
+                const adminNotifyPhone = '5493541215971@c.us';
+                const alertMsg = `🚨 *ALERTA: FALLA EN BOT DE WHATSAPP* 🚨\n\nEl bot experimentó un error técnico de API procesando la consulta de *${profileName || 'Cliente'}* (${realPhone || waId.split('@')[0]}).\n\n*Acción:* El bot se ha quedado en silencio para no enviar mensajes de error al cliente. Por favor, revisá el chat en el CRM para continuar la operación manualmente.\n\n*Error:* ${apiErrorMessage}`;
+                await sendMessage(adminNotifyPhone, alertMsg);
+                console.log(`  🔔 Alerta de error de API enviada al administrador (3541215971)`);
+            } catch (alertErr) {
+                console.error('Error enviando alerta de error de API al administrador:', alertErr.message);
+            }
+            return; // RETORNAR EN ABSOLUTO SILENCIO
+        }
+
         // Re-verificar si el bot sigue encendido
         const checkChat = await prisma.whatsAppChat.findUnique({ where: { id: chat.id } });
         if (!checkChat || !checkChat.botEnabled) {
