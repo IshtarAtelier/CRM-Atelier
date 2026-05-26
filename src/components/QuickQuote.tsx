@@ -76,8 +76,12 @@ export default function QuickQuote({ onClose }: QuickQuoteProps) {
 
             if (newContact) {
                 // 2. Registrar la interacción del presupuesto
-                const itemsList = quoteItems.map(i => `${i.brand} ${i.name || ''} ($${i.price})`).join(', ');
-                await addInteraction(newContact.id, 'BUDGET_SENT', `Presupuesto enviado: ${itemsList}. Total: $${total}`);
+                const itemsList = quoteItems.map(i => `${i.brand} ${i.name || ''} ($${i.price.toLocaleString('es-AR')})`).join('\n• ');
+                await addInteraction(
+                    newContact.id,
+                    'BUDGET_SENT',
+                    `📋 Presupuesto rápido generado por $${total.toLocaleString('es-AR')}\n\nProductos:\n• ${itemsList}`
+                );
 
                 alert('Venta y contacto registrados correctamente.');
                 onClose();

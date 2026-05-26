@@ -1,7 +1,15 @@
 'use client';
 
 import React, { useState } from 'react';
-import { History, MessageCircle } from 'lucide-react';
+import { 
+    History, 
+    MessageCircle, 
+    Calculator, 
+    ShoppingBag, 
+    CheckCircle2, 
+    Sparkles, 
+    AlertCircle 
+} from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
@@ -30,6 +38,53 @@ export default function HistoryManager({
         }
     };
 
+    const getInteractionStyles = (type: string) => {
+        switch (type) {
+            case 'BUDGET_SENT':
+                return {
+                    icon: Calculator,
+                    borderColor: 'border-amber-400 dark:border-amber-600',
+                    textColor: 'text-amber-500 dark:text-amber-400',
+                    bgColor: 'bg-amber-50/50 dark:bg-amber-950/10'
+                };
+            case 'SALE_CONFIRMED':
+                return {
+                    icon: ShoppingBag,
+                    borderColor: 'border-emerald-400 dark:border-emerald-600',
+                    textColor: 'text-emerald-500 dark:text-emerald-400',
+                    bgColor: 'bg-emerald-50/50 dark:bg-emerald-950/10'
+                };
+            case 'TASK_COMPLETED':
+                return {
+                    icon: CheckCircle2,
+                    borderColor: 'border-blue-400 dark:border-blue-600',
+                    textColor: 'text-blue-500 dark:text-blue-400',
+                    bgColor: 'bg-blue-50/50 dark:bg-blue-950/10'
+                };
+            case 'SYSTEM':
+                return {
+                    icon: Sparkles,
+                    borderColor: 'border-purple-400 dark:border-purple-600',
+                    textColor: 'text-purple-500 dark:text-purple-400',
+                    bgColor: 'bg-purple-50/50 dark:bg-purple-950/10'
+                };
+            case 'ERROR':
+                return {
+                    icon: AlertCircle,
+                    borderColor: 'border-red-400 dark:border-red-600',
+                    textColor: 'text-red-500 dark:text-red-400',
+                    bgColor: 'bg-red-50/50 dark:bg-red-950/10'
+                };
+            default:
+                return {
+                    icon: MessageCircle,
+                    borderColor: 'border-stone-300 dark:border-stone-700',
+                    textColor: 'text-stone-500 dark:text-stone-400',
+                    bgColor: 'bg-white dark:bg-stone-900/50'
+                };
+        }
+    };
+
     return (
         <div className="space-y-8 animate-in fade-in duration-300">
             <div className="bg-stone-50 dark:bg-stone-800/30 p-6 rounded-[2rem] border border-stone-100 dark:border-stone-800">
@@ -55,24 +110,29 @@ export default function HistoryManager({
                 {interactions.length === 0 ? (
                     <div className="text-center py-12 text-stone-300 italic text-sm">No hay actividad registrada.</div>
                 ) : (
-                    interactions.map((interaction, idx) => (
-                        <div key={interaction.id || `int-${idx}`} className="relative pl-8">
-                            {idx !== interactions.length - 1 && (
-                                <div className="absolute left-[11px] top-6 bottom-0 w-0.5 bg-stone-100 dark:bg-stone-800" />
-                            )}
-                            <div className="absolute left-0 top-1.5 w-6 h-6 bg-white dark:bg-stone-900 rounded-full border-2 border-primary flex items-center justify-center z-10">
-                                <MessageCircle className="w-3 h-3 text-primary" />
-                            </div>
-                            <div className="bg-white dark:bg-stone-900/50 p-5 rounded-2xl border border-stone-50 dark:border-stone-800 shadow-sm">
-                                <div className="flex justify-between items-start mb-2">
-                                    <span className="text-[10px] font-black text-stone-400 uppercase tracking-widest">
-                                        {format(new Date(interaction.createdAt), "EEEE d 'de' MMMM, HH:mm", { locale: es })}
-                                    </span>
+                    interactions.map((interaction, idx) => {
+                        const styles = getInteractionStyles(interaction.type);
+                        const IconComponent = styles.icon;
+
+                        return (
+                            <div key={interaction.id || `int-${idx}`} className="relative pl-8">
+                                {idx !== interactions.length - 1 && (
+                                    <div className="absolute left-[11px] top-6 bottom-0 w-0.5 bg-stone-100 dark:bg-stone-800" />
+                                )}
+                                <div className={`absolute left-0 top-1.5 w-6 h-6 bg-white dark:bg-stone-900 rounded-full border-2 ${styles.borderColor} flex items-center justify-center z-10`}>
+                                    <IconComponent className={`w-3 h-3 ${styles.textColor}`} />
                                 </div>
-                                <p className="text-sm font-medium text-stone-700 dark:text-stone-300 leading-relaxed">{interaction.content}</p>
+                                <div className={`${styles.bgColor} p-5 rounded-2xl border border-stone-100 dark:border-stone-800/80 shadow-sm transition-all`}>
+                                    <div className="flex justify-between items-start mb-2">
+                                        <span className="text-[10px] font-black text-stone-400 uppercase tracking-widest">
+                                            {format(new Date(interaction.createdAt), "EEEE d 'de' MMMM, HH:mm", { locale: es })}
+                                        </span>
+                                    </div>
+                                    <p className="text-sm font-medium text-stone-700 dark:text-stone-300 leading-relaxed whitespace-pre-line">{interaction.content}</p>
+                                </div>
                             </div>
-                        </div>
-                    ))
+                        );
+                    })
                 )}
             </div>
         </div>

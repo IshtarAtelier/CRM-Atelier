@@ -63,9 +63,9 @@ export default function VentasPage() {
             const apellido = nameParts.pop() || '';
             const nombre = nameParts.join(' ') || apellido;
 
-            const frameItems = order.items?.filter((i: any) => i.product?.category === 'FRAME' || i.product?.category === 'SUNGLASS') || [];
+            const frameItems = order.items?.filter((i: any) => i.product?.category === 'FRAME' || i.product?.category === 'SUNGLASS' || i.productCategorySnapshot === 'FRAME' || i.productCategorySnapshot === 'SUNGLASS') || [];
             const frameInfo = frameItems.length > 0
-                ? `Armazón ${frameItems[0]?.product?.brand || ''} ${frameItems[0]?.product?.name || ''}`.trim()
+                ? `Armazón ${frameItems[0]?.product?.brand || frameItems[0]?.productBrandSnapshot || ''} ${frameItems[0]?.product?.name || frameItems[0]?.productNameSnapshot || ''}`.trim()
                 : order.frameSource === 'USUARIO'
                     ? `Armazón del cliente ${order.userFrameBrand || ''} ${order.userFrameModel || ''}`.trim()
                     : '';
@@ -385,7 +385,7 @@ export default function VentasPage() {
 
 <table>
     <thead><tr><th>Producto</th><th>Tipo</th><th style='text-align:center'>Cant.</th><th style='text-align:right'>Precio</th><th style='text-align:right'>Subtotal</th></tr></thead>
-    <tbody>${items.map(it => `<tr><td>${it.product?.brand || ''} ${it.product?.name || ''}</td><td>${it.product?.type || it.product?.category || ''}</td><td style='text-align:center'>${it.quantity}</td><td style='text-align:right'>$${it.price?.toLocaleString()}</td><td style='text-align:right'>$${(it.price * it.quantity).toLocaleString()}</td></tr>`).join('')}</tbody>
+    <tbody>${items.map(it => `<tr><td>${it.product?.brand || it.productBrandSnapshot || ''} ${it.product?.name || it.productNameSnapshot || ''}</td><td>${it.product?.type || it.product?.category || it.productCategorySnapshot || ''}</td><td style='text-align:center'>${it.quantity}</td><td style='text-align:right'>$${it.price?.toLocaleString()}</td><td style='text-align:right'>$${(it.price * it.quantity).toLocaleString()}</td></tr>`).join('')}</tbody>
 </table>
 
 <div class='financial-grid'>
@@ -1096,7 +1096,7 @@ export default function VentasPage() {
                                                     <span className="text-[8px] font-black text-stone-400 uppercase tracking-widest">Armazón</span>
                                                     {(() => {
                                                         const frameItems = order.items.filter(i => {
-                                                            const cat = (i.product?.category || '').toLowerCase();
+                                                            const cat = (i.product?.category || i.productCategorySnapshot || '').toLowerCase();
                                                             return cat === 'frame' || cat === 'atelier' || cat === 'armazón de receta' || cat.includes('armazon') || cat.includes('armazón');
                                                         });
                                                         const hasUserFrame = order.frameSource === 'USUARIO';
@@ -1104,7 +1104,7 @@ export default function VentasPage() {
                                                             <div className="mt-1 space-y-1">
                                                                 {frameItems.map(fi => (
                                                                     <div key={fi.id} className="bg-white/60 dark:bg-stone-800/40 rounded-lg px-3 py-1.5">
-                                                                        <span className="text-xs font-bold text-stone-800 dark:text-stone-200">{fi.product?.brand} · {fi.product?.name}</span>
+                                                                        <span className="text-xs font-bold text-stone-800 dark:text-stone-200">{fi.product?.brand || fi.productBrandSnapshot || ''} · {fi.product?.name || fi.productNameSnapshot || 'Armazón'}</span>
                                                                     </div>
                                                                 ))}
                                                                 {hasUserFrame && (
@@ -1158,14 +1158,14 @@ export default function VentasPage() {
                                                 <div className="pt-3 mt-3 border-t border-amber-100 dark:border-amber-800/30">
                                                     <span className="text-[8px] font-black text-stone-400 uppercase tracking-widest">Cristales</span>
                                                     {(() => {
-                                                        const lensItems = order.items.filter(i => i.product?.category === 'Cristal');
+                                                        const lensItems = order.items.filter(i => (i.product?.category || i.productCategorySnapshot || '') === 'Cristal');
                                                         if (lensItems.length === 0) return <p className="text-xs text-stone-400 italic mt-1">Sin cristales</p>;
                                                         return (
                                                             <div className="mt-1 space-y-1">
                                                                 {lensItems.map(li => (
                                                                     <div key={li.id} className="bg-white/60 dark:bg-stone-800/40 rounded-lg px-3 py-1.5">
                                                                         <div className="flex items-center justify-between">
-                                                                            <span className="text-xs font-bold text-stone-800 dark:text-stone-200">{li.product?.brand} · {li.product?.name}</span>
+                                                                            <span className="text-xs font-bold text-stone-800 dark:text-stone-200">{li.product?.brand || li.productBrandSnapshot || ''} · {li.product?.name || li.productNameSnapshot || 'Cristal'}</span>
                                                                             <div className="flex items-center gap-1">
                                                                                 {li.product?.lensIndex && (
                                                                                     <span className="text-[7px] font-black uppercase tracking-wider px-1.5 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-600 rounded">Índ: {li.product.lensIndex}</span>
@@ -1214,18 +1214,18 @@ export default function VentasPage() {
 
                                         {/* Full Items List (all non-lens items like accessories) */}
                                         {order.items.filter(i => {
-                                            const cat = (i.product?.category || '').toLowerCase();
+                                            const cat = (i.product?.category || i.productCategorySnapshot || '').toLowerCase();
                                             return cat !== 'cristal' && cat !== 'frame' && cat !== 'atelier' && cat !== 'armazón de receta' && !cat.includes('armazon') && !cat.includes('armazón');
                                         }).length > 0 && (
                                             <div className="mt-2">
                                                 <span className="text-[8px] font-black text-stone-400 uppercase tracking-widest">Otros Items</span>
                                                 <div className="flex flex-wrap gap-2 mt-1">
                                                     {order.items.filter(i => {
-                                                        const cat = (i.product?.category || '').toLowerCase();
+                                                        const cat = (i.product?.category || i.productCategorySnapshot || '').toLowerCase();
                                                         return cat !== 'cristal' && cat !== 'frame' && cat !== 'atelier' && cat !== 'armazón de receta' && !cat.includes('armazon') && !cat.includes('armazón');
                                                     }).map(oi => (
                                                         <span key={oi.id} className="text-[10px] font-bold bg-stone-100 dark:bg-stone-700 px-2 py-1 rounded-lg text-stone-600 dark:text-stone-300">
-                                                            {oi.product?.brand} · {oi.product?.name} x{oi.quantity}
+                                                            {oi.product?.brand || oi.productBrandSnapshot || ''} · {oi.product?.name || oi.productNameSnapshot || 'Producto'} x{oi.quantity}
                                                         </span>
                                                     ))}
                                                 </div>

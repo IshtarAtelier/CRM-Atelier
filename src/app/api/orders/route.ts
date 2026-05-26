@@ -4,6 +4,7 @@ import { headers } from 'next/headers';
 export const dynamic = 'force-dynamic';
 import { prisma } from '@/lib/db';
 import { calculateQuoteTotals, isMultifocal2x1 } from '@/lib/promo-utils';
+import { formatOrderItemsSummary } from '@/lib/order-utils';
 
 // POST /api/orders — Create order from inline cotizador
 export async function POST(request: Request) {
@@ -27,18 +28,18 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Usuario no autenticado' }, { status: 401 });
         }
 
+        // Fetch all products in the cart for snapshot saving and total calculations
+        const productIds = items.map((it: any) => it.productId).filter(Boolean);
+        const dbProducts = await prisma.product.findMany({
+            where: { id: { in: productIds } }
+        });
+
         // Calculate totals if missing or zero
         let finalSubtotalWithMarkup = subtotalWithMarkup;
         let finalTotal = total;
         let finalDiscount = discount || 0;
 
         if (!finalSubtotalWithMarkup || !finalTotal) {
-            // To calculate totals correctly (including promos), we need the full product details
-            const productIds = items.map((it: any) => it.productId).filter(Boolean);
-            const dbProducts = await prisma.product.findMany({
-                where: { id: { in: productIds } }
-            });
-
             // Map items for calculateQuoteTotals utility
             const cartItems = items.map((it: any) => ({
                 product: dbProducts.find(p => p.id === it.productId) || { price: it.price },
@@ -107,18 +108,24 @@ export async function POST(request: Request) {
                 userFrameNotes: userFrameNotes || null,
                 prescriptionId: prescriptionId || null,
                 items: {
-                    create: items.map((item: { productId: string; quantity: number; price: number; eye?: string; sphereVal?: number; cylinderVal?: number; axisVal?: number; additionVal?: number; crystalColor?: string; crystalColorType?: string }) => ({
-                        productId: item.productId,
-                        quantity: item.quantity,
-                        price: item.price,
-                        eye: item.eye || null,
-                        sphereVal: item.sphereVal ?? null,
-                        cylinderVal: item.cylinderVal ?? null,
-                        axisVal: item.axisVal ?? null,
-                        additionVal: item.additionVal ?? null,
-                        crystalColor: item.crystalColor || null,
-                        crystalColorType: item.crystalColorType || null,
-                    })),
+                    create: items.map((item: { productId: string; quantity: number; price: number; eye?: string; sphereVal?: number; cylinderVal?: number; axisVal?: number; additionVal?: number; crystalColor?: string; crystalColorType?: string }) => {
+                        const dbProd = dbProducts.find(p => p.id === item.productId);
+                        return {
+                            productId: item.productId,
+                            quantity: item.quantity,
+                            price: item.price,
+                            eye: item.eye || null,
+                            sphereVal: item.sphereVal ?? null,
+                            cylinderVal: item.cylinderVal ?? null,
+                            axisVal: item.axisVal ?? null,
+                            additionVal: item.additionVal ?? null,
+                            crystalColor: item.crystalColor || null,
+                            crystalColorType: item.crystalColorType || null,
+                            productNameSnapshot: dbProd ? (dbProd.model || dbProd.name || null) : null,
+                            productBrandSnapshot: dbProd ? (dbProd.brand || null) : null,
+                            productCategorySnapshot: dbProd ? (dbProd.category || null) : null,
+                        };
+                    }),
                 },
             },
             select: {
@@ -153,10 +160,8 @@ export async function POST(request: Request) {
         });
 
         // Register quote in client history
-        const itemSummaries = order.items.map((i: any) =>
-            `${i.product?.brand || ''} ${i.product?.name || ''} x${i.quantity}`.trim()
-        );
-        const historyContent = `📋 Presupuesto #${order.id.slice(-4).toUpperCase()} creado por $${(total || 0).toLocaleString('es-AR')}${discount ? ` (${discount}% desc. efvo)` : ''}${markup ? ` (+${markup}% markup)` : ''} — ${itemSummaries.join(', ')}`;
+        const itemSummaries = formatOrderItemsSummary(order.items);
+        const historyContent = `📋 Presupuesto #${order.id.slice(-4).toUpperCase()} creado por $${(total || 0).toLocaleString('es-AR')}${discount ? ` (${discount}% desc. efvo)` : ''}${markup ? ` (+${markup}% markup)` : ''}\n\nProductos:\n• ${itemSummaries}`;
         await prisma.interaction.create({
             data: {
                 clientId,

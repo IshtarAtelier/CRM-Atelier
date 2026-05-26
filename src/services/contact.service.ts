@@ -213,13 +213,6 @@ export const ContactService = {
             data: createData
         });
 
-        // Sincronizar en background con Google Contacts
-        GoogleContactsService.syncClient({
-            name: createdClient.name,
-            phone: createdClient.phone,
-            email: createdClient.email
-        });
-
         return createdClient;
     },
 

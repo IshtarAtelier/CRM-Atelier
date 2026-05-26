@@ -251,7 +251,7 @@ export default function PedidosPage() {
       <tbody>${items.map(it => {
             const itemPrice = Math.round(it.price * markupFactor);
             return `<tr>
-          <td><div style="font-weight: 700">${it.product?.brand || ''} ${it.product?.name || ''}</div></td>
+          <td><div style="font-weight: 750">${it.product?.brand || it.productBrandSnapshot || ''} ${it.product?.name || it.productNameSnapshot || ''}</div></td>
           <td style='text-align:center'>${it.quantity}</td>
           <td style='text-align:right'>$${itemPrice.toLocaleString()}</td>
           <td style='text-align:right; font-weight:700;'>$${(itemPrice * it.quantity).toLocaleString()}</td>
@@ -294,7 +294,7 @@ export default function PedidosPage() {
         const items = order.items || [];
         const saldo = (order.total || 0) - (order.paid || 0);
         const labStepLabel = getLabStep(order.labStatus || 'NONE').label;
-        const lines = items.map(it => `• ${it.product?.brand || ''} ${it.product?.name || ''} x${it.quantity} — $${(it.price * it.quantity).toLocaleString()}`);
+        const lines = items.map(it => `• ${it.product?.brand || it.productBrandSnapshot || ''} ${it.product?.name || it.productNameSnapshot || ''} x${it.quantity} — $${(it.price * it.quantity).toLocaleString()}`);
 
         let text = `✨ *ATELIER ÓPTICA — PEDIDO EN PROCESO* ✨\n`;
         text += `📍 José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba\n`;
@@ -364,11 +364,11 @@ export default function PedidosPage() {
         const oiItem = lensItems.find(i => i.eye === 'OI');
         const lensType = lensItems[0]?.product?.type || 'MONOFOCAL';
         const lensIndex = lensItems[0]?.product?.lensIndex || '';
-        const lensBrand = lensItems[0]?.product?.brand || '';
+        const lensBrand = lensItems[0]?.product?.brand || lensItems[0]?.productBrandSnapshot || '';
         const laboratory = lensItems[0]?.product?.laboratory || '';
         const frameItems = order.items.filter(i => i.product?.category === 'FRAME' || i.product?.category === 'SUNGLASS');
         const frameInfo = frameItems.length > 0
-            ? `${frameItems[0]?.product?.brand || ''} ${frameItems[0]?.product?.name || ''}`.trim()
+            ? `${frameItems[0]?.product?.brand || frameItems[0]?.productBrandSnapshot || ''} ${frameItems[0]?.product?.name || frameItems[0]?.productNameSnapshot || ''}`.trim()
             : order.frameSource === 'USUARIO'
                 ? `${order.userFrameBrand || ''} ${order.userFrameModel || ''}`.trim()
                 : '';
@@ -422,7 +422,7 @@ export default function PedidosPage() {
 
             const frameItems = order.items?.filter((i: any) => i.product?.category === 'FRAME' || i.product?.category === 'SUNGLASS') || [];
             const frameInfo = frameItems.length > 0
-                ? `Armazón ${frameItems[0]?.product?.brand || ''} ${frameItems[0]?.product?.name || ''}`.trim()
+                ? `Armazón ${frameItems[0]?.product?.brand || frameItems[0]?.productBrandSnapshot || ''} ${frameItems[0]?.product?.name || frameItems[0]?.productNameSnapshot || ''}`.trim()
                 : order.frameSource === 'USUARIO'
                     ? `Armazón del cliente ${order.userFrameBrand || ''} ${order.userFrameModel || ''}`.trim()
                     : '';
@@ -992,10 +992,10 @@ export default function PedidosPage() {
                                                     {order.items.map(item => (
                                                         <tr key={item.id} className="border-b border-stone-50 dark:border-stone-700/50 last:border-0">
                                                             <td className="px-5 py-3 text-sm font-bold text-stone-800 dark:text-white">
-                                                                {item.product?.brand} · {item.product?.name || '—'}
+                                                                {item.product?.brand || item.productBrandSnapshot || '—'} · {item.product?.name || item.productNameSnapshot || '—'}
                                                             </td>
                                                             <td className="px-5 py-3 text-xs text-stone-500">
-                                                                {item.product?.type || item.product?.category || '—'}
+                                                                {item.product?.type || item.product?.category || item.productCategorySnapshot || '—'}
                                                             </td>
                                                             <td className="px-5 py-3 text-sm font-bold text-stone-600 dark:text-stone-300 text-center">
                                                                 {item.quantity}

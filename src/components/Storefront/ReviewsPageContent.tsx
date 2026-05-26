@@ -75,9 +75,15 @@ const FALLBACK_REVIEWS: Review[] = [
 
 interface ReviewsPageContentProps {
   initialReviews: Review[];
+  rating?: number;
+  userRatingCount?: number;
 }
 
-export function ReviewsPageContent({ initialReviews }: ReviewsPageContentProps) {
+export function ReviewsPageContent({ 
+  initialReviews,
+  rating = 5.0,
+  userRatingCount = 621
+}: ReviewsPageContentProps) {
   // Combinar iniciales con fallbacks si son pocas, filtrando duplicados
   const displayReviews = initialReviews.length > 0 
     ? [
@@ -96,8 +102,8 @@ export function ReviewsPageContent({ initialReviews }: ReviewsPageContentProps) 
   });
 
   // Calculate statistics
-  const averageRating = 5.0; // Calificación Máxima en Google
-  const totalReviewsCount = 142; // Cantidad total real de reseñas en Google Maps para el local
+  const averageRating = rating; // Calificación dinámica desde Google
+  const totalReviewsCount = userRatingCount; // Cantidad total dinámica de reseñas desde Google
 
   const getInitials = (name: string) => {
     return name
@@ -132,7 +138,7 @@ export function ReviewsPageContent({ initialReviews }: ReviewsPageContentProps) 
             <div className="bg-white dark:bg-stone-950 p-8 rounded-3xl border border-stone-200 dark:border-stone-800 shadow-sm shrink-0 flex flex-col md:flex-row items-center gap-8 md:gap-12 lg:max-w-md">
               <div className="text-center md:text-left">
                 <div className="text-6xl font-black text-stone-900 dark:text-white tracking-tight mb-1 flex items-baseline justify-center md:justify-start gap-1">
-                  <span>5.0</span>
+                  <span>{averageRating.toFixed(1)}</span>
                   <span className="text-xl text-stone-400 dark:text-stone-600 font-normal">/ 5.0</span>
                 </div>
                 <div className="flex justify-center md:justify-start text-yellow-400 mb-3">

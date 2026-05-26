@@ -23,8 +23,8 @@ function getModel() {
   return modelInstance;
 }
 
-const salesToolNode = new ToolNode(salesToolsList, { handleToolErrors: false });
-const executiveToolNode = new ToolNode(executiveToolsList, { handleToolErrors: false });
+const salesToolNode = new ToolNode(salesToolsList, { handleToolErrors: true });
+const executiveToolNode = new ToolNode(executiveToolsList, { handleToolErrors: true });
 
 // ── NODO 1: ROUTER INTELIGENTE ──
 async function routerNode(state) {

@@ -6,6 +6,8 @@ import { prisma } from '@/lib/db';
 import { calculateQuoteTotals } from '@/lib/promo-utils';
 import { z } from 'zod';
 import { AdsService } from '@/services/ads.service';
+import { GoogleContactsService } from '@/services/google-contacts.service';
+import { formatOrderItemsSummary } from '@/lib/order-utils';
 
 const OrderItemSchema = z.object({
     productId: z.string(),
@@ -301,18 +303,29 @@ export async function PATCH(
         if (specialDiscount !== undefined) data.specialDiscount = specialDiscount;
 
         if (items && Array.isArray(items)) {
+            const productIds = items.map((it: any) => it.productId).filter(Boolean);
+            const dbProducts = await prisma.product.findMany({
+                where: { id: { in: productIds } }
+            });
+
             data.items = {
                 deleteMany: {},
-                create: items.map((item: any) => ({
-                    productId: item.productId,
-                    quantity: item.quantity,
-                    price: item.price,
-                    eye: item.eye || null,
-                    sphereVal: item.sphereVal ?? null,
-                    cylinderVal: item.cylinderVal ?? null,
-                    axisVal: item.axisVal ?? null,
-                    additionVal: item.additionVal ?? null,
-                })),
+                create: items.map((item: any) => {
+                    const dbProd = dbProducts.find(p => p.id === item.productId);
+                    return {
+                        productId: item.productId,
+                        quantity: item.quantity,
+                        price: item.price,
+                        eye: item.eye || null,
+                        sphereVal: item.sphereVal ?? null,
+                        cylinderVal: item.cylinderVal ?? null,
+                        axisVal: item.axisVal ?? null,
+                        additionVal: item.additionVal ?? null,
+                        productNameSnapshot: dbProd ? (dbProd.model || dbProd.name || null) : null,
+                        productBrandSnapshot: dbProd ? (dbProd.brand || null) : null,
+                        productCategorySnapshot: dbProd ? (dbProd.category || null) : null,
+                    };
+                }),
             };
         }
 
@@ -730,6 +743,26 @@ export async function PATCH(
                 AdsService.sendOfflineConversion(updatedOrder as any).catch(err => {
                     console.error('Error al notificar conversión offline:', err);
                 });
+
+                // Enviar vCard por WhatsApp (Sincronización de Contacto)
+                if (updatedOrder.client) {
+                    GoogleContactsService.syncClient({
+                        name: updatedOrder.client.name,
+                        phone: updatedOrder.client.phone,
+                        email: updatedOrder.client.email
+                    }).catch(err => console.error('Error syncClient:', err));
+                }
+
+                // Registrar conversión a VENTA en el historial del cliente
+                const saleSummaries = formatOrderItemsSummary(updatedOrder.items);
+                const historyContent = `🛒 Presupuesto #${updatedOrder.id.slice(-4).toUpperCase()} confirmado como VENTA por $${(updatedOrder.total || 0).toLocaleString('es-AR')}\n\nProductos:\n• ${saleSummaries}`;
+                await prisma.interaction.create({
+                    data: {
+                        clientId: existingOrder.client.id,
+                        type: 'SALE_CONFIRMED',
+                        content: historyContent,
+                    },
+                }).catch(err => console.error('Error al registrar interacción de venta:', err));
 
                 return NextResponse.json(updatedOrder);
             }

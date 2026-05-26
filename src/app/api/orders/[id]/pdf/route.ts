@@ -165,9 +165,8 @@ export async function GET(
                 const markupFactor = 1 + ((order.markup || 0) / 100);
                 const itemPrice = Math.round(it.price * markupFactor);
                 return `
-                <tr>
                     <td>
-                        <div style="font-weight: 900;">${it.product?.brand || ''} ${it.product?.name || ''}</div>
+                        <div style="font-weight: 900;">${it.product?.brand || it.productBrandSnapshot || ''} ${it.product?.name || it.productNameSnapshot || ''}</div>
                         ${it.eye ? `<div style="font-size:10px; color:#78716c;">Lado: ${it.eye}</div>` : ''}
                     </td>
                     <td style='text-align:center; font-weight: 800;'>${it.quantity}</td>

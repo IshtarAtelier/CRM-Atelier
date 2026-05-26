@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { formatOrderItemsSummary } from '@/lib/order-utils';
 
 export const dynamic = 'force-dynamic';
 
@@ -52,6 +53,11 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'clientId y items son requeridos' }, { status: 400 });
         }
 
+        const productIds = items.map((it: any) => it.productId).filter(Boolean);
+        const dbProducts = await prisma.product.findMany({
+            where: { id: { in: productIds } }
+        });
+
         // Create the Budget (Quote)
         const order = await prisma.order.create({
             data: {
@@ -63,12 +69,18 @@ export async function POST(request: Request) {
                 paid: 0,
                 discountCash: discountCash || 0,
                 items: {
-                    create: items.map((it: any) => ({
-                        productId: it.productId,
-                        quantity: it.quantity || 1,
-                        price: it.price,
-                        eye: it.eye || null
-                    }))
+                    create: items.map((it: any) => {
+                        const dbProd = dbProducts.find(p => p.id === it.productId);
+                        return {
+                            productId: it.productId,
+                            quantity: it.quantity || 1,
+                            price: it.price,
+                            eye: it.eye || null,
+                            productNameSnapshot: dbProd ? (dbProd.model || dbProd.name || null) : null,
+                            productBrandSnapshot: dbProd ? (dbProd.brand || null) : null,
+                            productCategorySnapshot: dbProd ? (dbProd.category || null) : null,
+                        };
+                    })
                 }
             },
             include: {
@@ -79,12 +91,12 @@ export async function POST(request: Request) {
         });
 
         // Register interaction
-        const itemNames = order.items.map(i => `${i.product?.brand || ''} ${i.product?.name || ''}`).join(', ');
+        const itemSummaries = formatOrderItemsSummary(order.items);
         await prisma.interaction.create({
             data: {
                 clientId,
                 type: 'BUDGET_SENT',
-                content: `🤖 Presupuesto generado automáticamente vía WhatsApp por $${order.total.toLocaleString()}. Productos: ${itemNames}`
+                content: `🤖 Presupuesto generado automáticamente vía WhatsApp por $${order.total.toLocaleString('es-AR')}\n\nProductos:\n• ${itemSummaries}`
             }
         });
 

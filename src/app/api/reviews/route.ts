@@ -39,13 +39,13 @@ const FALLBACK_REVIEWS = [
 ];
 
 async function fetchLegacyReviews(placeId: string, apiKey: string) {
-  const url = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&fields=reviews&key=${apiKey}&language=es`;
+  const url = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&fields=reviews,rating,user_ratings_total&key=${apiKey}&language=es`;
   const response = await fetch(url, { next: { revalidate: 3600 } });
   const data = await response.json();
   if (data.status !== 'OK') {
     throw new Error(data.error_message || `Legacy API returned status: ${data.status}`);
   }
-  return (data.result?.reviews || []).map((r: any) => ({
+  const reviews = (data.result?.reviews || []).map((r: any) => ({
     author_name: r.author_name,
     author_url: r.author_url,
     profile_photo_url: r.profile_photo_url,
@@ -54,6 +54,11 @@ async function fetchLegacyReviews(placeId: string, apiKey: string) {
     text: r.text,
     time: r.time,
   }));
+  return {
+    reviews,
+    rating: data.result?.rating || 5.0,
+    userRatingCount: data.result?.user_ratings_total || 621
+  };
 }
 
 async function fetchNewReviews(placeId: string, apiKey: string) {
@@ -62,7 +67,7 @@ async function fetchNewReviews(placeId: string, apiKey: string) {
     headers: {
       'Content-Type': 'application/json',
       'X-Goog-Api-Key': apiKey,
-      'X-Goog-FieldMask': 'reviews'
+      'X-Goog-FieldMask': 'reviews,rating,userRatingCount'
     },
     next: { revalidate: 3600 }
   });
@@ -75,7 +80,7 @@ async function fetchNewReviews(placeId: string, apiKey: string) {
     throw new Error(data.error.message || 'New Places API Error');
   }
   
-  return (data.reviews || []).map((r: any) => ({
+  const reviews = (data.reviews || []).map((r: any) => ({
     author_name: r.authorAttribution?.displayName || '',
     author_url: r.authorAttribution?.uri || '',
     profile_photo_url: r.authorAttribution?.photoUri || '',
@@ -84,6 +89,11 @@ async function fetchNewReviews(placeId: string, apiKey: string) {
     text: r.text?.text || '',
     time: r.publishTime ? new Date(r.publishTime).getTime() / 1000 : 0,
   }));
+  return {
+    reviews,
+    rating: data.rating || 5.0,
+    userRatingCount: data.userRatingCount || 621
+  };
 }
 
 export async function GET() {
@@ -93,15 +103,15 @@ export async function GET() {
 
     if (!apiKey) {
       console.warn('Falta la API Key de Google Places en el entorno. Usando reseñas locales de fallback.');
-      return NextResponse.json({ reviews: FALLBACK_REVIEWS });
+      return NextResponse.json({ reviews: FALLBACK_REVIEWS, rating: 5.0, userRatingCount: 621 });
     }
 
     try {
       // Intentar primero con la API Legacy
       console.log('Intentando obtener reseñas con la API de Places Legacy...');
-      const reviews = await fetchLegacyReviews(placeId, apiKey);
-      if (reviews && reviews.length > 0) {
-        return NextResponse.json({ reviews });
+      const resData = await fetchLegacyReviews(placeId, apiKey);
+      if (resData && resData.reviews && resData.reviews.length > 0) {
+        return NextResponse.json(resData);
       }
     } catch (legacyError: any) {
       console.warn('Fallo la API Legacy:', legacyError.message);
@@ -109,9 +119,9 @@ export async function GET() {
       // Si falla la legacy (por ejemplo, porque está deshabilitada y requiere la API nueva)
       try {
         console.log('Intentando obtener reseñas con la API de Places (New)...');
-        const reviews = await fetchNewReviews(placeId, apiKey);
-        if (reviews && reviews.length > 0) {
-          return NextResponse.json({ reviews });
+        const resData = await fetchNewReviews(placeId, apiKey);
+        if (resData && resData.reviews && resData.reviews.length > 0) {
+          return NextResponse.json(resData);
         }
       } catch (newApiError: any) {
         console.error('Fallo también la API de Places (New):', newApiError.message);
@@ -120,9 +130,9 @@ export async function GET() {
 
     // Si fallaron ambas llamadas pero hay una key configurada, retornamos fallback
     console.warn('No se pudieron obtener reseñas reales de Google. Usando fallbacks.');
-    return NextResponse.json({ reviews: FALLBACK_REVIEWS });
+    return NextResponse.json({ reviews: FALLBACK_REVIEWS, rating: 5.0, userRatingCount: 621 });
   } catch (error) {
     console.error('Error general en GET /api/reviews:', error);
-    return NextResponse.json({ reviews: FALLBACK_REVIEWS });
+    return NextResponse.json({ reviews: FALLBACK_REVIEWS, rating: 5.0, userRatingCount: 621 });
   }
 }

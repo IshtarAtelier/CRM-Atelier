@@ -138,7 +138,7 @@ export default function TaskManager({ tasks, contact, onAddTask, onToggleTask }:
                                         onClick={(e) => {
                                             e.stopPropagation();
                                             const clientName = contact?.name ? contact.name.split(' ')[0] : 'Cliente';
-                                            const message = `Hola ${clientName}! Te escribimos para pedirte un favor enorme 🙏\n\n¿Nos dejarías una reseña en Google? Nos ayudaría muchísimo si podés mencionar por qué somos la mejor óptica en Córdoba para vos y cómo fue tu experiencia.\n\n👉 https://g.page/r/CcVls8v7ic_NEBM/review\n\n¡Nos suma muchísimo para seguir creciendo!\nEspero tu comentario 🤍✨🫶`;
+                                            const message = `Hola ${clientName}! Te escribimos para pedirte un favor enorme 🙏\n\n¿Nos dejarías una reseña en Google? Nos ayudaría muchísimo si podés mencionar por qué somos la mejor óptica en Córdoba para vos y cómo fue tu experiencia.\n\nSi podés, contá en la reseña qué anteojos o cristales te hiciste (por ejemplo: multifocales, lentes de sol, cristales Crizal, etc.), ¡nos ayuda un montón! 🙌\n\n👉 https://g.page/r/CcVls8v7ic_NEBM/review\n\n¡Nos suma muchísimo para seguir creciendo!\nEspero tu comentario 🤍✨🫶`;
                                             const phone = contact.phone.replace(/\D/g, '');
                                             window.open(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`, '_blank');
                                         }}
