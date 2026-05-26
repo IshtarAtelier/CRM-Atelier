@@ -6,10 +6,10 @@ import { MapPin, Clock, Phone, MessageCircle } from "lucide-react";
 import { GoogleReviews } from "@/components/Storefront/GoogleReviews";
 
 export const metadata: Metadata = {
-  title: "Nuestro Local | Óptica Boutique en Cerro de las Rosas, Córdoba | Atelier Óptica",
+  title: "Nuestro Local | Óptica Boutique en Cerro de las Rosas, Córdoba",
   description: "Visitá Atelier Óptica en el corazón del Cerro de las Rosas. Somos especialistas en asesoramiento estético y técnico, cristales multifocales y anteojos de diseño exclusivo.",
   openGraph: {
-    title: "Nuestro Local | Óptica Boutique en Cerro de las Rosas, Córdoba | Atelier Óptica",
+    title: "Nuestro Local | Óptica Boutique en Cerro de las Rosas, Córdoba",
     description: "Visitá Atelier Óptica en el corazón del Cerro de las Rosas. Somos especialistas en asesoramiento estético y técnico, cristales multifocales y anteojos de diseño exclusivo.",
     type: "website",
     url: "https://www.atelieroptica.com.ar/nuestro-local",

@@ -5,10 +5,10 @@ import { FloatingWhatsApp } from '@/components/Storefront/FloatingWhatsApp';
 import { Sparkles, Eye, MapPin, Heart } from 'lucide-react';
 
 export const metadata: Metadata = {
-  title: "Quiénes Somos | Atelier Óptica Córdoba",
+  title: "Quiénes Somos",
   description: "Conocé Atelier Óptica, especialistas en salud visual en el Cerro de las Rosas. Diseño, atención personalizada y cristales de alta gama.",
   openGraph: {
-    title: "Quiénes Somos | Atelier Óptica Córdoba",
+    title: "Quiénes Somos",
     description: "Conocé Atelier Óptica, especialistas en salud visual en el Cerro de las Rosas. Diseño, atención personalizada y cristales de alta gama.",
     type: "website",
     url: "https://www.atelieroptica.com.ar/quienes-somos",

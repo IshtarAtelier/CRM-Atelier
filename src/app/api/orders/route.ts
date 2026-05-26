@@ -195,6 +195,7 @@ export async function GET(request: Request) {
             status: true,
             orderType: true,
             createdAt: true,
+            updatedAt: true,
             labStatus: true,
             clientId: true,
             userId: true,

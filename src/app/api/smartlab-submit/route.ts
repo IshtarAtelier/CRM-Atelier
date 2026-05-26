@@ -125,9 +125,10 @@ export async function POST(request: Request) {
         await prisma.order.update({
             where: { id: orderId },
             data: {
-                labStatus: 'SENT',
+                labStatus: 'IN_PROGRESS',
                 // Si la API devuelve un ID interno, lo guardamos, sino usamos un placeholder o la referencia local
-                labOrderNumber: responseData.id ? `SML-${responseData.id}` : `Borrador-${order.id.slice(-4).toUpperCase()}`
+                labOrderNumber: responseData.id ? `SML-${responseData.id}` : `Borrador-${order.id.slice(-4).toUpperCase()}`,
+                labSentAt: order.labSentAt || new Date()
             }
         });
 

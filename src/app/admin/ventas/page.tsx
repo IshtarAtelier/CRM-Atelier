@@ -11,8 +11,8 @@ import type { Order } from '@/types/orders';
 
 const LAB_STATUS: Record<string, { key: string, label: string; color: string; icon: any; bg: string; text: string; ring: string }> = {
     'NONE': { key: 'NONE', label: 'Sin enviar', color: 'bg-stone-100 text-stone-500', bg: 'bg-stone-100 dark:bg-stone-800', text: 'text-stone-500 dark:text-stone-400', ring: 'ring-stone-200 dark:ring-stone-700', icon: Clock },
-    'SENT': { key: 'SENT', label: 'Enviado', color: 'bg-blue-100 text-blue-600', bg: 'bg-blue-50 dark:bg-blue-950', text: 'text-blue-600 dark:text-blue-400', ring: 'ring-blue-200 dark:ring-blue-800', icon: Package },
-    'IN_PROGRESS': { key: 'IN_PROGRESS', label: 'En Proceso', color: 'bg-amber-100 text-amber-600', bg: 'bg-amber-50 dark:bg-amber-950', text: 'text-amber-600 dark:text-amber-400', ring: 'ring-amber-200 dark:ring-amber-800', icon: Clock },
+    'SENT': { key: 'SENT', label: 'Falta procesar', color: 'bg-amber-100 text-amber-600', bg: 'bg-amber-50 dark:bg-amber-950', text: 'text-amber-600 dark:text-amber-400', ring: 'ring-amber-200 dark:ring-amber-800', icon: Clock },
+    'IN_PROGRESS': { key: 'IN_PROGRESS', label: 'Procesado', color: 'bg-blue-100 text-blue-600', bg: 'bg-blue-50 dark:bg-blue-950', text: 'text-blue-600 dark:text-blue-400', ring: 'ring-blue-200 dark:ring-blue-800', icon: Package },
     'READY': { key: 'READY', label: 'Listo p/ Retirar', color: 'bg-emerald-100 text-emerald-600', bg: 'bg-emerald-50 dark:bg-emerald-950', text: 'text-emerald-600 dark:text-emerald-400', ring: 'ring-emerald-200 dark:ring-emerald-800', icon: CheckCircle2 },
     'DELIVERED': { key: 'DELIVERED', label: 'Entregado', color: 'bg-indigo-100 text-indigo-600', bg: 'bg-indigo-50 dark:bg-indigo-950', text: 'text-indigo-600 dark:text-indigo-400', ring: 'ring-indigo-200 dark:ring-indigo-800', icon: Truck },
 };
@@ -474,8 +474,8 @@ export default function VentasPage() {
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-8">
                 {[
                     { label: 'Total Ventas', value: stats.total, color: 'bg-stone-900 text-white' },
-                    { label: 'Enviadas', value: stats.sent, color: 'bg-blue-100 text-blue-600' },
-                    { label: 'En Proceso', value: stats.inProgress, color: 'bg-amber-100 text-amber-600' },
+                    { label: 'Falta Procesar', value: stats.sent, color: 'bg-amber-100 text-amber-600' },
+                    { label: 'Procesados', value: stats.inProgress, color: 'bg-blue-100 text-blue-600' },
                     { label: 'Listas', value: stats.ready, color: 'bg-emerald-100 text-emerald-600' },
                     { label: 'Entregadas', value: stats.delivered, color: 'bg-indigo-100 text-indigo-600' },
                 ].map(s => (
@@ -691,12 +691,25 @@ export default function VentasPage() {
                                         <span>{format(new Date(order.createdAt), "d MMM yyyy", { locale: es })}</span>
                                         <span>·</span>
                                         <span>{order.items.length} item{order.items.length !== 1 ? 's' : ''}</span>
-                                        {order.labSentAt && (
-                                            <>
-                                                <span className="hidden sm:inline">·</span>
-                                                <span className="w-full sm:w-auto mt-1 sm:mt-0">Enviado: {format(new Date(order.labSentAt), "d/MM HH:mm", { locale: es })}</span>
-                                            </>
-                                        )}
+                                        {order.labSentAt && (() => {
+                                            const start = new Date(order.labSentAt);
+                                            const end = ['READY', 'DELIVERED'].includes(order.labStatus || '') && order.updatedAt
+                                                ? new Date(order.updatedAt)
+                                                : new Date();
+                                            const days = Math.max(0, Math.floor((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)));
+                                            const isCompleted = ['READY', 'DELIVERED'].includes(order.labStatus || '');
+                                            return (
+                                                <>
+                                                    <span className="hidden sm:inline">·</span>
+                                                    <span className="w-full sm:w-auto mt-1 sm:mt-0">
+                                                        Enviado: {format(new Date(order.labSentAt), "d/MM HH:mm", { locale: es })}
+                                                        <span className={`ml-1 font-black ${isCompleted ? 'text-emerald-500' : 'text-blue-500'}`}>
+                                                            ({isCompleted ? `demoró ${days} d` : `${days} d`})
+                                                        </span>
+                                                    </span>
+                                                </>
+                                            );
+                                        })()}
                                     </div>
                                 </div>
 

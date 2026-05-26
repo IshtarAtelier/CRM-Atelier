@@ -83,6 +83,7 @@ export async function GET(
                 prescriptionId: true,
                 labStatus: true,
                 createdAt: true,
+                updatedAt: true,
                 items: {
                     select: {
                         id: true,
@@ -428,16 +429,18 @@ export async function PATCH(
         if (labNotes !== undefined) data.labNotes = labNotes;
         if (labOrderNumber !== undefined) {
             data.labOrderNumber = labOrderNumber;
-            // Auto-set status to SENT (Procesado) when operation number is loaded
+            // Auto-set status to IN_PROGRESS (Procesado) when operation number is loaded
             if (labOrderNumber && labOrderNumber.trim() !== '' && !labStatus) {
                 const currentOrder = await prisma.order.findUnique({
                     where: { id },
-                    select: { labStatus: true }
+                    select: { labStatus: true, labSentAt: true }
                 });
-                // Only auto-advance if still in NONE (Pendiente)
-                if (!currentOrder?.labStatus || currentOrder.labStatus === 'NONE') {
-                    data.labStatus = 'SENT';
-                    data.labSentAt = new Date();
+                // Auto-advance if still in NONE (Pendiente) or SENT (Falta procesar)
+                if (!currentOrder?.labStatus || currentOrder.labStatus === 'NONE' || currentOrder.labStatus === 'SENT') {
+                    data.labStatus = 'IN_PROGRESS';
+                    if (!currentOrder?.labSentAt) {
+                        data.labSentAt = new Date();
+                    }
                 }
             }
         }
@@ -672,6 +675,7 @@ export async function PATCH(
                             id: true,
                             total: true,
                             createdAt: true,
+                            updatedAt: true,
                             client: {
                                 select: { name: true, email: true, phone: true }
                             },

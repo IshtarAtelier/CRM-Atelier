@@ -240,6 +240,26 @@ function CotizadorPageContent() {
         }).sort((a, b) => (a.price || 0) - (b.price || 0));
     }, [products, search, activeType]);
 
+    const groupedProducts = useMemo(() => {
+        const groups: { [key: string]: Product[] } = {};
+        filtered.forEach(p => {
+            const brand = p.brand?.trim() || 'Otros';
+            if (!groups[brand]) {
+                groups[brand] = [];
+            }
+            groups[brand].push(p);
+        });
+        return groups;
+    }, [filtered]);
+
+    const sortedBrands = useMemo(() => {
+        return Object.keys(groupedProducts).sort((a, b) => {
+            if (a === 'Otros') return 1;
+            if (b === 'Otros') return -1;
+            return a.localeCompare(b);
+        });
+    }, [groupedProducts]);
+
     // Cart logic
     const addToQuote = (p: Product) => {
         const sprice = safePrice(p.price);
@@ -641,30 +661,72 @@ function CotizadorPageContent() {
                             </div>
                         </div>
                     ) : (
-                        <div className="max-w-[1500px] mx-auto grid grid-cols-2 md:grid-cols-4 xl:grid-cols-6 gap-3">
-                            {filtered.map(product => {
-                                const inQuote = quoteItems.find(i => i.product.id === product.id);
+                        <div className="max-w-[1500px] mx-auto flex flex-col gap-6">
+                            {sortedBrands.map(brandName => {
+                                const brandProducts = groupedProducts[brandName] || [];
                                 return (
-                                    <button
-                                        key={product.id}
-                                        onClick={() => addToQuote(product)}
-                                        className={`p-3.5 rounded-xl border transition-all text-left flex flex-col justify-between h-28 hover:-translate-y-0.5 hover:shadow-md duration-300 ${inQuote 
-                                            ? 'bg-primary/5 border-primary/40 shadow-sm' 
-                                            : 'bg-white dark:bg-stone-900 border-stone-200 dark:border-stone-800'}`}
-                                    >
-                                        <div className="min-w-0 w-full">
-                                            <p className="text-[9px] font-bold uppercase tracking-wider text-stone-400 truncate">{product.brand}</p>
-                                            <p className="text-xs font-semibold leading-snug mt-0.5 line-clamp-2 text-stone-800 dark:text-stone-150">{product.name}</p>
+                                    <div key={brandName} className="space-y-2">
+                                        <div className="flex items-center gap-3 py-1">
+                                            <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-stone-400 dark:text-stone-500">
+                                                {brandName}
+                                            </h3>
+                                            <div className="h-px flex-1 bg-stone-205 dark:bg-stone-800/50" />
+                                            <span className="text-[9px] font-extrabold uppercase tracking-wider text-stone-400 dark:text-stone-500">
+                                                {brandProducts.length} {brandProducts.length === 1 ? 'item' : 'items'}
+                                            </span>
                                         </div>
-                                        <div className="flex items-center justify-between w-full mt-auto">
-                                            <p className="text-xs font-bold text-primary">${safePrice(product.price).toLocaleString()}</p>
-                                            {inQuote && (
-                                                <span className="w-4.5 h-4.5 bg-primary text-white rounded-full flex items-center justify-center text-[9px] font-bold">
-                                                    {inQuote.quantity}
-                                                </span>
-                                            )}
+                                        <div className="grid grid-cols-1 gap-2">
+                                            {brandProducts.map(product => {
+                                                const inQuote = quoteItems.find(i => i.product.id === product.id);
+                                                const config = getTypeConfig(product.type, product.category);
+                                                const TypeIcon = config.icon;
+                                                return (
+                                                    <button
+                                                        key={product.id}
+                                                        onClick={() => addToQuote(product)}
+                                                        className={`w-full p-3 rounded-xl border transition-all text-left flex items-center justify-between hover:shadow-sm duration-200 group ${inQuote 
+                                                            ? 'bg-primary/[0.03] border-primary/30 shadow-sm' 
+                                                            : 'bg-white dark:bg-stone-900 border-stone-200/70 dark:border-stone-800'}`}
+                                                    >
+                                                        <div className="flex items-center gap-3 min-w-0 flex-1">
+                                                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${inQuote ? 'bg-primary/10 text-primary' : 'bg-stone-50 dark:bg-stone-850 text-stone-400 dark:text-stone-500 group-hover:bg-primary/5 group-hover:text-primary transition-colors'}`}>
+                                                                <TypeIcon className="w-4 h-4" />
+                                                            </div>
+                                                            <div className="min-w-0 flex-1">
+                                                                <div className="flex items-center gap-2">
+                                                                    <span className="text-[9px] font-extrabold uppercase tracking-wider px-1.5 py-0.5 rounded bg-stone-100 dark:bg-stone-800 text-stone-500 dark:text-stone-400">
+                                                                        {product.type || 'Otros'}
+                                                                    </span>
+                                                                    {product.stock !== undefined && product.stock <= 2 && (
+                                                                        <span className="text-[9px] font-extrabold uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-50 dark:bg-amber-950/20 text-amber-600 dark:text-amber-400">
+                                                                            Stock: {product.stock}
+                                                                        </span>
+                                                                    )}
+                                                                </div>
+                                                                <p className="text-xs font-semibold mt-1 text-stone-800 dark:text-stone-200 group-hover:text-stone-900 dark:group-hover:text-white transition-colors truncate">
+                                                                    {product.name}
+                                                                </p>
+                                                            </div>
+                                                        </div>
+                                                        <div className="flex items-center gap-4 flex-shrink-0 ml-4">
+                                                            <p className="text-xs font-bold text-primary">
+                                                                ${safePrice(product.price).toLocaleString()}
+                                                            </p>
+                                                            {inQuote ? (
+                                                                <div className="flex items-center justify-center w-6 h-6 bg-primary text-white rounded-full text-[10px] font-bold shadow-md shadow-primary/20">
+                                                                    {inQuote.quantity}
+                                                                </div>
+                                                            ) : (
+                                                                <div className="w-6 h-6 rounded-full border border-stone-200 dark:border-stone-700 flex items-center justify-center group-hover:border-primary/45 group-hover:bg-primary/5 transition-all">
+                                                                    <Plus className="w-3.5 h-3.5 text-stone-400 group-hover:text-primary transition-colors" />
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    </button>
+                                                );
+                                            })}
                                         </div>
-                                    </button>
+                                    </div>
                                 );
                             })}
                         </div>
@@ -673,7 +735,7 @@ function CotizadorPageContent() {
 
                 {/* Right Column: Desktop Cart (Sticky Sidebar) */}
                 {quoteItems.length > 0 && (
-                    <div className="hidden lg:flex w-[400px] xl:w-[460px] border-l border-sidebar-border bg-white dark:bg-stone-900/40 flex-col h-full overflow-y-auto flex-shrink-0 animate-in slide-in-from-right duration-300" style={{ scrollbarWidth: 'thin' }}>
+                    <div className="hidden lg:flex w-[400px] xl:w-[460px] border-l border-sidebar-border bg-white dark:bg-stone-900 relative z-50 shadow-xl flex-col h-full overflow-y-auto flex-shrink-0 animate-in slide-in-from-right duration-300" style={{ scrollbarWidth: 'thin' }}>
                         <div className="flex-1 p-6">
                             {!showRegister ? (
                                 <CotizadorCart 
@@ -844,7 +906,7 @@ function CotizadorPageContent() {
 
             {/* Bottom Sticky Cart for Mobile/Tablet */}
             {quoteItems.length > 0 && (
-                <div className={`lg:hidden fixed bottom-0 left-0 right-0 z-[40] bg-white dark:bg-stone-900 border-t border-sidebar-border shadow-[0_-10px_40px_rgba(0,0,0,0.1)] transition-all duration-500 ${cartExpanded ? 'h-[85vh] rounded-t-[2rem]' : 'h-16'}`}>
+                <div className={`lg:hidden fixed bottom-0 left-0 right-0 z-[50] bg-white dark:bg-stone-900 border-t border-sidebar-border shadow-[0_-10px_40px_rgba(0,0,0,0.1)] transition-all duration-500 ${cartExpanded ? 'h-[85vh] rounded-t-[2rem]' : 'h-16'}`}>
                     {/* Collapsed Bar */}
                     <button 
                         onClick={() => setCartExpanded(!cartExpanded)}

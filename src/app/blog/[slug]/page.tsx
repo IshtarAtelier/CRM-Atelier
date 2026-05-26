@@ -1112,15 +1112,17 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   
   if (!post) {
     return {
-      title: 'Artículo no encontrado | Atelier Óptica',
+      title: 'Artículo no encontrado',
     };
   }
 
+  const cleanTitle = post.metaTitle.replace(/\s*\|\s*Atelier Óptica.*$/i, '');
+
   return {
-    title: post.metaTitle,
+    title: cleanTitle,
     description: post.metaDescription,
     openGraph: {
-      title: post.metaTitle,
+      title: cleanTitle,
       description: post.metaDescription,
       type: 'article',
       publishedTime: post.date,

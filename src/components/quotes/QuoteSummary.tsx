@@ -133,8 +133,8 @@ export default function QuoteSummary({
 
     const LAB_LABELS: Record<string, { label: string; color: string }> = {
         'NONE': { label: 'Sin enviar', color: 'bg-stone-100 text-stone-500' },
-        'SENT': { label: 'Enviado', color: 'bg-blue-100 text-blue-600' },
-        'IN_PROGRESS': { label: 'En Lab', color: 'bg-amber-100 text-amber-600' },
+        'SENT': { label: 'Falta procesar', color: 'bg-amber-100 text-amber-600' },
+        'IN_PROGRESS': { label: 'Procesado', color: 'bg-blue-100 text-blue-600' },
         'READY': { label: 'Listo', color: 'bg-emerald-100 text-emerald-600' },
         'DELIVERED': { label: 'Entregado', color: 'bg-indigo-100 text-indigo-600' },
     };

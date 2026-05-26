@@ -11,7 +11,7 @@ interface FavoritesPanelProps {
 
 export default function FavoritesPanel({ favorites, onClose, onSelect }: FavoritesPanelProps) {
     return (
-        <div className="fixed top-24 right-8 bottom-24 w-80 bg-white/80 dark:bg-stone-900/80 backdrop-blur-2xl z-40 rounded-[3rem] shadow-2xl border border-stone-200/50 dark:border-stone-800/50 flex flex-col overflow-hidden animate-in slide-in-from-right-8 duration-500">
+        <div className="fixed top-24 right-8 bottom-24 w-80 bg-white/80 dark:bg-stone-900/80 backdrop-blur-2xl z-50 rounded-[3rem] shadow-2xl border border-stone-200/50 dark:border-stone-800/50 flex flex-col overflow-hidden animate-in slide-in-from-right-8 duration-500">
             <header className="p-6 border-b border-stone-100 dark:border-stone-800 flex justify-between items-center bg-stone-50/50 dark:bg-stone-800/30">
                 <div className="flex items-center gap-3 text-red-500">
                     <Heart className="w-6 h-6 fill-current" />

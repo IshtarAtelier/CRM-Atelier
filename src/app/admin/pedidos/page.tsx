@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
     Package, Clock, CheckCircle2, Truck, Search, Download, Pencil,
     Save, X, ChevronRight, AlertCircle, Eye, ArrowRight, Hash,
@@ -16,7 +16,8 @@ import type { Order } from '@/types/orders';
 
 const LAB_STEPS = [
     { key: 'NONE', label: 'Pendiente', icon: Clock, color: 'stone', bg: 'bg-stone-100 dark:bg-stone-800', text: 'text-stone-500 dark:text-stone-400', ring: 'ring-stone-200 dark:ring-stone-700' },
-    { key: 'SENT', label: 'Procesado', icon: Package, color: 'blue', bg: 'bg-blue-50 dark:bg-blue-950', text: 'text-blue-600 dark:text-blue-400', ring: 'ring-blue-200 dark:ring-blue-800' },
+    { key: 'SENT', label: 'Falta procesar', icon: Clock, color: 'amber', bg: 'bg-amber-50 dark:bg-amber-950', text: 'text-amber-600 dark:text-amber-400', ring: 'ring-amber-200 dark:ring-amber-800' },
+    { key: 'IN_PROGRESS', label: 'Procesado', icon: Package, color: 'blue', bg: 'bg-blue-50 dark:bg-blue-950', text: 'text-blue-600 dark:text-blue-400', ring: 'ring-blue-200 dark:ring-blue-800' },
     { key: 'READY', label: 'Listo p/ Retirar', icon: CheckCircle2, color: 'emerald', bg: 'bg-emerald-50 dark:bg-emerald-950', text: 'text-emerald-600 dark:text-emerald-400', ring: 'ring-emerald-200 dark:ring-emerald-800' },
     { key: 'DELIVERED', label: 'Entregado', icon: Truck, color: 'indigo', bg: 'bg-indigo-50 dark:bg-indigo-950', text: 'text-indigo-600 dark:text-indigo-400', ring: 'ring-indigo-200 dark:ring-indigo-800' },
 ];
@@ -37,7 +38,7 @@ export default function PedidosPage() {
     const [orders, setOrders] = useState<Order[]>([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
-    const [filterStatus, setFilterStatus] = useState('ALL');
+    const [filterStatus, setFilterStatus] = useState('SENT');
     const [editingId, setEditingId] = useState<string | null>(null);
     const [editValue, setEditValue] = useState('');
     const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -140,14 +141,6 @@ export default function PedidosPage() {
         setUpdatingId(order.id);
         try {
             const updateData: any = { labOrderNumber: editValue };
-            
-            // Offer to advance to SENT if it's currently NONE
-            if ((order.labStatus || 'NONE') === 'NONE') {
-                const wantToAdvance = window.confirm('¿Deseás pasar este pedido automáticamente a estado PROCESADO?');
-                if (wantToAdvance) {
-                    updateData.labStatus = 'SENT';
-                }
-            }
 
             await fetch(`/api/orders/${order.id}`, {
                 method: 'PATCH',
@@ -512,6 +505,62 @@ export default function PedidosPage() {
         count: orders.filter(o => (o.labStatus || 'NONE') === step.key).length,
     }));
 
+    // Calculate crystal delay stats
+    const crystalStats = useMemo(() => {
+        const statsMap: Record<string, { totalDays: number; count: number; name: string }> = {};
+        const labMap: Record<string, { totalDays: number; count: number; name: string }> = {};
+        
+        let totalValids = 0;
+        let grandTotalDays = 0;
+
+        orders.forEach(order => {
+            if (!order.labSentAt) return;
+            const start = new Date(order.labSentAt);
+            const end = ['READY', 'DELIVERED'].includes(order.labStatus || '') && order.updatedAt
+                ? new Date(order.updatedAt)
+                : new Date();
+            const diffDays = Math.max(0, Math.floor((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)));
+            
+            totalValids++;
+            grandTotalDays += diffDays;
+
+            // Find crystal items
+            const crystals = order.items.filter(i => i.product?.category === 'Cristal');
+            crystals.forEach(item => {
+                const crystalType = item.product?.type || 'Otros';
+                if (!statsMap[crystalType]) {
+                    statsMap[crystalType] = { totalDays: 0, count: 0, name: crystalType };
+                }
+                statsMap[crystalType].totalDays += diffDays;
+                statsMap[crystalType].count++;
+            });
+
+            // Group by laboratory
+            const lab = (crystals[0]?.product as any)?.laboratory || 'No especificado';
+            if (!labMap[lab]) {
+                labMap[lab] = { totalDays: 0, count: 0, name: lab };
+            }
+            labMap[lab].totalDays += diffDays;
+            labMap[lab].count++;
+        });
+
+        const crystalAverages = Object.values(statsMap).map(s => ({
+            name: s.name,
+            avg: s.count > 0 ? (s.totalDays / s.count).toFixed(1) : '0',
+            count: s.count
+        })).sort((a, b) => b.count - a.count);
+
+        const labAverages = Object.values(labMap).map(s => ({
+            name: s.name,
+            avg: s.count > 0 ? (s.totalDays / s.count).toFixed(1) : '0',
+            count: s.count
+        })).sort((a, b) => b.count - a.count);
+
+        const generalAvg = totalValids > 0 ? (grandTotalDays / totalValids).toFixed(1) : '0';
+
+        return { crystalAverages, labAverages, generalAvg };
+    }, [orders]);
+
     // ── Render ─────────────────────────────────
 
     return (
@@ -557,6 +606,73 @@ export default function PedidosPage() {
                         </button>
                     );
                 })}
+            </div>
+
+            {/* Tiempos de Demora Analytics */}
+            <div className="bg-gradient-to-br from-stone-900 to-stone-800 dark:from-stone-950 dark:to-stone-900 rounded-[2.5rem] p-6 lg:p-8 text-white mb-8 border border-stone-800 dark:border-stone-850 shadow-2xl relative overflow-hidden">
+                <div className="absolute right-0 top-0 w-80 h-80 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
+                <div className="absolute left-1/3 bottom-0 w-60 h-60 bg-amber-500/5 rounded-full blur-3xl pointer-events-none" />
+
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6 relative z-10">
+                    <div>
+                        <h2 className="text-xl lg:text-2xl font-black tracking-tight flex items-center gap-2">
+                            <Clock className="w-6 h-6 text-amber-400 animate-pulse" /> Tiempos de Demora en Fábrica
+                        </h2>
+                        <p className="text-stone-400 text-xs mt-1 font-semibold">
+                            Estadísticas y parámetros de demora real desde el envío a laboratorio
+                        </p>
+                    </div>
+                    <div className="bg-stone-800/80 backdrop-blur-sm border border-stone-700/50 rounded-2xl px-5 py-3 text-center">
+                        <span className="text-[9px] font-black uppercase tracking-widest text-stone-400 block">Promedio General</span>
+                        <span className="text-2xl font-black text-amber-400">{crystalStats.generalAvg} <span className="text-xs font-bold text-white">días</span></span>
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 relative z-10">
+                    {/* Cristal stats */}
+                    <div className="bg-stone-850/50 backdrop-blur-md rounded-2xl p-5 border border-stone-700/30">
+                        <h3 className="text-xs font-black uppercase tracking-widest text-stone-400 mb-4 flex items-center gap-2">
+                            <span>👓 Por Tipo de Cristal</span>
+                        </h3>
+                        <div className="space-y-3.5 animate-in fade-in duration-500">
+                            {crystalStats.crystalAverages.length === 0 ? (
+                                <p className="text-xs text-stone-500 font-bold py-2">No hay datos suficientes de cristales.</p>
+                            ) : (
+                                crystalStats.crystalAverages.map(c => (
+                                    <div key={c.name} className="flex justify-between items-center bg-stone-900/30 p-2.5 rounded-xl border border-stone-800/50">
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-xs font-black tracking-tight text-stone-200">{c.name}</span>
+                                            <span className="px-1.5 py-0.5 bg-stone-805 text-[8px] font-black text-stone-400 rounded-md">{c.count} pedido{c.count !== 1 ? 's' : ''}</span>
+                                        </div>
+                                        <span className="text-sm font-black text-amber-400">{c.avg} <span className="text-[10px] font-bold text-stone-400">días</span></span>
+                                    </div>
+                                ))
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Laboratory stats */}
+                    <div className="bg-stone-850/50 backdrop-blur-md rounded-2xl p-5 border border-stone-700/30">
+                        <h3 className="text-xs font-black uppercase tracking-widest text-stone-400 mb-4 flex items-center gap-2">
+                            <span>🧪 Por Laboratorio</span>
+                        </h3>
+                        <div className="space-y-3.5 animate-in fade-in duration-500">
+                            {crystalStats.labAverages.length === 0 ? (
+                                <p className="text-xs text-stone-500 font-bold py-2">No hay datos suficientes de laboratorios.</p>
+                            ) : (
+                                crystalStats.labAverages.map(l => (
+                                    <div key={l.name} className="flex justify-between items-center bg-stone-900/30 p-2.5 rounded-xl border border-stone-800/50">
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-xs font-black tracking-tight text-stone-200 truncate max-w-[150px]">{l.name}</span>
+                                            <span className="px-1.5 py-0.5 bg-stone-805 text-[8px] font-black text-stone-400 rounded-md">{l.count} pedido{l.count !== 1 ? 's' : ''}</span>
+                                        </div>
+                                        <span className="text-sm font-black text-blue-400">{l.avg} <span className="text-[10px] font-bold text-stone-400">días</span></span>
+                                    </div>
+                                ))
+                            )}
+                        </div>
+                    </div>
+                </div>
             </div>
 
             {/* Search */}
@@ -646,6 +762,23 @@ export default function PedidosPage() {
                                                 <Calendar className="w-3 h-3" />
                                                 {format(new Date(order.createdAt), "d MMM yyyy", { locale: es })}
                                             </span>
+                                            {order.labSentAt && (() => {
+                                                const start = new Date(order.labSentAt);
+                                                const end = ['READY', 'DELIVERED'].includes(order.labStatus || '') && order.updatedAt
+                                                    ? new Date(order.updatedAt)
+                                                    : new Date();
+                                                const days = Math.max(0, Math.floor((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)));
+                                                const isCompleted = ['READY', 'DELIVERED'].includes(order.labStatus || '');
+                                                return (
+                                                    <>
+                                                        <span>·</span>
+                                                        <span className={`flex items-center gap-1 font-black ${isCompleted ? 'text-emerald-500' : 'text-blue-500'}`}>
+                                                            <Clock className="w-3.5 h-3.5" />
+                                                            {isCompleted ? `Demoró ${days} días` : `Lleva ${days} días`}
+                                                        </span>
+                                                    </>
+                                                );
+                                            })()}
                                         </div>
                                     </div>
 
@@ -751,9 +884,9 @@ export default function PedidosPage() {
                                                 onClick={() => advanceStatus(order.id, order.labStatus || 'NONE')}
                                                 disabled={isUpdating}
                                                 className={`px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 transition-all hover:scale-105 active:scale-95 disabled:opacity-50 shadow-sm ${nextStepInfo.key === 'SENT'
-                                                    ? 'bg-blue-500 text-white shadow-blue-500/20 hover:shadow-blue-500/30'
+                                                    ? 'bg-amber-500 text-white shadow-amber-500/20'
                                                     : nextStepInfo.key === 'IN_PROGRESS'
-                                                        ? 'bg-amber-500 text-white shadow-amber-500/20'
+                                                        ? 'bg-blue-500 text-white shadow-blue-500/20 hover:shadow-blue-500/30'
                                                         : nextStepInfo.key === 'READY'
                                                             ? 'bg-emerald-500 text-white shadow-emerald-500/20'
                                                             : 'bg-indigo-500 text-white shadow-indigo-500/20'

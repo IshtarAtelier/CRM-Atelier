@@ -114,6 +114,7 @@ export interface Order {
     frameDbl?: string | null;
     frameEdc?: string | null;
     createdAt: string;
+    updatedAt: string;
     isDeleted?: boolean;
     deletedReason?: string | null;
     markup?: number;

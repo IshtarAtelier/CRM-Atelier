@@ -261,12 +261,12 @@ const getLabStatus: CopilotTool = {
 
 const updateLabOrder: CopilotTool = {
   name: 'update_lab_order',
-  description: 'Actualiza el estado de laboratorio o el número de operación de un pedido. Útil cuando te piden "pasá el pedido a listo para retirar" o "cargale el número de operación 1234". Estados válidos: NONE (Pendiente), SENT (Procesado), READY (Listo para retirar), DELIVERED (Entregado).',
+  description: 'Actualiza el estado de laboratorio o el número de operación de un pedido. Útil cuando te piden "pasá el pedido a listo para retirar" o "cargale el número de operación 1234". Estados válidos: NONE (Pendiente), SENT (Falta procesar), IN_PROGRESS (Procesado), READY (Listo para retirar), DELIVERED (Entregado).',
   parameters: {
     type: 'object',
     properties: {
       query: { type: 'string', description: 'Nombre del cliente o últimos 6 caracteres del ID del pedido' },
-      newStatus: { type: 'string', description: 'El nuevo estado (NONE, SENT, READY, DELIVERED) - Opcional' },
+      newStatus: { type: 'string', description: 'El nuevo estado (NONE, SENT, IN_PROGRESS, READY, DELIVERED) - Opcional' },
       labOrderNumber: { type: 'string', description: 'El número de operación de laboratorio - Opcional' },
     },
     required: ['query'],
@@ -280,8 +280,8 @@ const updateLabOrder: CopilotTool = {
         return 'Debes proveer al menos un nuevo estado o un número de operación para actualizar.';
     }
 
-    if (newStatus && !['NONE', 'SENT', 'READY', 'DELIVERED'].includes(newStatus)) {
-        return 'Estado inválido. Debe ser NONE, SENT, READY o DELIVERED.';
+    if (newStatus && !['NONE', 'SENT', 'IN_PROGRESS', 'READY', 'DELIVERED'].includes(newStatus)) {
+        return 'Estado inválido. Debe ser NONE, SENT, IN_PROGRESS, READY o DELIVERED.';
     }
 
     const order = await prisma.order.findFirst({
@@ -303,10 +303,12 @@ const updateLabOrder: CopilotTool = {
 
     if (labOrderNumber) {
         dataToUpdate.labOrderNumber = labOrderNumber;
-        // Auto-advance to SENT if it's currently NONE
-        if (!newStatus && (!order.labStatus || order.labStatus === 'NONE')) {
-            dataToUpdate.labStatus = 'SENT';
-            dataToUpdate.labSentAt = new Date();
+        // Auto-advance to IN_PROGRESS (Procesado) if it's currently NONE or SENT
+        if (!newStatus && (!order.labStatus || order.labStatus === 'NONE' || order.labStatus === 'SENT')) {
+            dataToUpdate.labStatus = 'IN_PROGRESS';
+            if (!order.labSentAt) {
+                dataToUpdate.labSentAt = new Date();
+            }
             willChangeStatus = true;
         }
     }
@@ -314,7 +316,9 @@ const updateLabOrder: CopilotTool = {
     let finalStatus = order.labStatus;
     if (newStatus && order.labStatus !== newStatus) {
         dataToUpdate.labStatus = newStatus;
-        if (newStatus === 'SENT') dataToUpdate.labSentAt = new Date();
+        if ((newStatus === 'SENT' || newStatus === 'IN_PROGRESS') && !order.labSentAt) {
+            dataToUpdate.labSentAt = new Date();
+        }
         willChangeStatus = true;
         finalStatus = newStatus;
     } else if (dataToUpdate.labStatus) {

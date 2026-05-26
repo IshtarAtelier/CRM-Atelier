@@ -496,6 +496,30 @@ export default function AdministracionPage() {
                 </div>
             </div>
 
+            {/* Payway Ishtar Limit Warning */}
+            {(() => {
+                const paywayIshTotal = data?.methodBreakdown
+                    ?.filter(m => m.method === 'PAY_WAY_3_ISH' || m.method === 'PAY_WAY_6_ISH')
+                    ?.reduce((acc, curr) => acc + curr.total, 0) || 0;
+                
+                if (paywayIshTotal > 5000000) {
+                    return (
+                        <div className="mb-8 p-5 bg-red-50 dark:bg-red-950/20 border-2 border-red-250/30 dark:border-red-900/30 rounded-3xl flex items-start gap-4 animate-in fade-in duration-300">
+                            <div className="w-10 h-10 rounded-xl bg-red-500 flex items-center justify-center text-white flex-shrink-0">
+                                <AlertCircle className="w-6 h-6" />
+                            </div>
+                            <div>
+                                <h4 className="text-sm font-black text-red-800 dark:text-red-300 uppercase tracking-wider">Límite de PayWay Ishtar Superado</h4>
+                                <p className="text-xs text-red-700 dark:text-red-400 mt-1 font-bold">
+                                    ¡Atención! La suma de pagos por PayWay Ishtar (3 y 6 cuotas) en este período es de <span className="underline">${paywayIshTotal.toLocaleString('es-AR')}</span>, superando el límite establecido de $5,000,000.
+                                </p>
+                            </div>
+                        </div>
+                    );
+                }
+                return null;
+            })()}
+
             {/* Tabs & Period Filters */}
             <div className="flex flex-col lg:flex-row items-center justify-between mb-8 gap-4">
                 <div className="flex bg-stone-100 dark:bg-stone-800 p-1.5 rounded-2xl shadow-inner w-full lg:w-auto">

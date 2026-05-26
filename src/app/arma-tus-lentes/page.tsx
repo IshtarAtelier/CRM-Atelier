@@ -4,7 +4,7 @@ import { prisma } from '@/lib/db';
 import { CustomGlassesBuilder } from "@/components/Storefront/CustomGlassesBuilder";
 
 export const metadata: Metadata = {
-  title: "Armá tus Lentes a Medida | Atelier Óptica",
+  title: "Armá tus Lentes a Medida",
   description: "Elegí tu armazón favorito y configurá tus cristales con receta en un solo lugar.",
 };
 
