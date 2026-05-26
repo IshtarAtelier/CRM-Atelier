@@ -51,6 +51,8 @@ export function Interactive3DImage({ src, alt, className = "", imageClassName = 
     y.set(0);
   };
 
+  if (!src) return null;
+
   return (
     <motion.div
       ref={ref}

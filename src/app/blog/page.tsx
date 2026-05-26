@@ -86,7 +86,7 @@ export default function BlogPage() {
               <Link key={post.slug} href={`/blog/${post.slug}`} className={`group bg-white dark:bg-stone-900 rounded-3xl border border-stone-200 dark:border-stone-800 shadow-sm hover:shadow-xl hover:border-primary/40 transition-all duration-300 overflow-hidden flex flex-col ${layoutStyle}`}>
                 <div className={`${imgHeight} w-full overflow-hidden bg-stone-100 relative shrink-0`}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={post.imageUrl} alt={post.title} className={`w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ${post.slug === 'matias-turchi' ? 'object-top' : 'object-center'}`} />
+                  <img src={post.imageUrl || undefined} alt={post.title} className={`w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ${post.slug === 'matias-turchi' ? 'object-top' : 'object-center'}`} />
                   <div className="absolute inset-0 bg-gradient-to-t from-stone-900/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                 </div>
                 <div className="p-6 lg:p-8 flex-1 flex flex-col relative bg-white dark:bg-stone-900 h-full">

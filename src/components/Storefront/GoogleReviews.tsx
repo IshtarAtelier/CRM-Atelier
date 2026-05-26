@@ -35,6 +35,16 @@ export function GoogleReviews() {
     fetchReviews();
   }, []);
 
+  const getInitials = (name: string) => {
+    if (!name) return "";
+    return name
+      .split(" ")
+      .map(n => n[0])
+      .slice(0, 2)
+      .join("")
+      .toUpperCase();
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center py-20 bg-stone-50">
@@ -86,8 +96,19 @@ export function GoogleReviews() {
             <div key={i} className="bg-white p-8 rounded-2xl shadow-sm border border-stone-100 hover:shadow-md transition-shadow flex flex-col">
               <div className="flex items-center justify-between mb-5">
                 <div className="flex items-center gap-3">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={review.profile_photo_url} alt={review.author_name} className="w-10 h-10 rounded-full bg-stone-100" referrerPolicy="no-referrer" />
+                  {review.profile_photo_url ? (
+                    /* eslint-disable-next-line @next/next/no-img-element */
+                    <img 
+                      src={review.profile_photo_url} 
+                      alt={review.author_name} 
+                      className="w-10 h-10 rounded-full bg-stone-100 object-cover shrink-0" 
+                      referrerPolicy="no-referrer" 
+                    />
+                  ) : (
+                    <div className="w-10 h-10 rounded-full bg-stone-100 text-stone-600 border border-stone-200/60 flex items-center justify-center text-xs font-bold tracking-wider shrink-0">
+                      {getInitials(review.author_name)}
+                    </div>
+                  )}
                   <div>
                     <p className="text-sm font-bold text-stone-800">{review.author_name}</p>
                     <p className="text-[10px] text-stone-400 uppercase tracking-wider">{review.relative_time_description}</p>

@@ -1174,7 +1174,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="rounded-3xl overflow-hidden mb-12 shadow-lg border border-stone-100 dark:border-stone-800 h-64 md:h-96 w-full relative">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={post.imageUrl} alt={post.title} className="w-full h-full object-cover" />
+          <img src={post.imageUrl || undefined} alt={post.title} className="w-full h-full object-cover" />
         </div>
 
         <article className="prose prose-stone dark:prose-invert prose-lg max-w-none prose-headings:font-black prose-a:text-primary hover:prose-a:text-primary/80 prose-p:leading-relaxed prose-li:my-1">
@@ -1207,7 +1207,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
               <Link key={related.slug} href={`/blog/${related.slug}`} className="group bg-white dark:bg-stone-900 rounded-2xl border border-stone-200 dark:border-stone-800 overflow-hidden hover:shadow-lg hover:border-primary/30 transition-all duration-300">
                 <div className="h-40 overflow-hidden bg-stone-100">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={related.imageUrl} alt={related.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
+                  <img src={related.imageUrl || undefined} alt={related.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
                 </div>
                 <div className="p-5">
                   <span className="text-[9px] font-black uppercase tracking-widest text-primary">{related.category}</span>

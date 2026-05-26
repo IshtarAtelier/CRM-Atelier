@@ -64,7 +64,7 @@ export function CartSidebar() {
                   <div key={item.id} className="flex gap-4 group">
                     {/* Imagen */}
                     <div className="w-24 h-24 bg-stone-100 flex items-center justify-center overflow-hidden relative rounded-sm shrink-0">
-                      <img src={item.image} alt={item.model} className="w-full h-full object-contain mix-blend-multiply" />
+                      <img src={item.image || undefined} alt={item.model} className="w-full h-full object-contain mix-blend-multiply" />
                     </div>
 
                     {/* Info */}

@@ -9,7 +9,7 @@ export function CheckoutSummarySidebar({ items, getCartTotal, formData }: { item
         {items.map((item) => (
           <div key={item.id} className="flex gap-4">
             <div className="w-16 h-16 bg-white border border-stone-100 flex items-center justify-center overflow-hidden shrink-0 relative p-2">
-              <img src={item.image} alt={item.model} className="w-full h-full object-contain mix-blend-multiply" />
+              <img src={item.image || undefined} alt={item.model} className="w-full h-full object-contain mix-blend-multiply" />
               <div className="absolute -top-2 -right-2 bg-stone-200 text-[9px] font-bold w-5 h-5 rounded-full flex items-center justify-center">
                 {item.quantity}
               </div>
