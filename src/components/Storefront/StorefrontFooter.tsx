@@ -25,6 +25,7 @@ export function StorefrontFooter() {
             <Link href="/contacto" className="text-[13px] font-medium hover:opacity-60 transition-opacity">Contact Us</Link>
             <Link href="/faq" className="text-[13px] font-medium hover:opacity-60 transition-opacity">Customer Service / FAQ</Link>
             <Link href="/nuestro-local" className="text-[13px] font-medium hover:opacity-60 transition-opacity">Store Locator</Link>
+            <Link href="/resenas" className="text-[13px] font-medium hover:opacity-60 transition-opacity">Reseñas</Link>
             <Link href="/blog" className="text-[13px] font-medium hover:opacity-60 transition-opacity">Editorial</Link>
           </div>
 

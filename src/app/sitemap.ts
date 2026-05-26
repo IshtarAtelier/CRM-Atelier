@@ -19,6 +19,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     '/lentes-de-contacto',
     '/cristales-opticos',
     '/clip-on',
+    '/resenas',
     '/blog'
   ].map((route) => ({
     url: `${baseUrl}${route}`,

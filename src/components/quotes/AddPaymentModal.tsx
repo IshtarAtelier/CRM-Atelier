@@ -99,6 +99,7 @@ export default function AddPaymentModal({
 
     // Obtener los financieros para las sugerencias de saldo
     const [financials, setFinancials] = useState<any>(null);
+    const [paywayIshMonthTotal, setPaywayIshMonthTotal] = useState(0);
 
     React.useEffect(() => {
         const fetchOrder = async () => {
@@ -111,6 +112,27 @@ export default function AddPaymentModal({
         };
         fetchOrder();
     }, [orderId]);
+
+    React.useEffect(() => {
+        const fetchPaywayTotal = async () => {
+            try {
+                const now = new Date();
+                const from = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+                const to = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
+                const res = await fetch(`/api/payments?from=${from}&to=${to}`);
+                if (res.ok) {
+                    const data = await res.json();
+                    const total = data.methodBreakdown
+                        ?.filter((m: any) => m.method === 'PAY_WAY_3_ISH' || m.method === 'PAY_WAY_6_ISH')
+                        ?.reduce((acc: number, curr: any) => acc + curr.total, 0) || 0;
+                    setPaywayIshMonthTotal(total);
+                }
+            } catch (err) {
+                console.error('Error fetching payway total:', err);
+            }
+        };
+        fetchPaywayTotal();
+    }, []);
 
     const isCashMethod = method === 'CASH' || method === 'EFECTIVO';
     const requiresReceipt = !isCashMethod;
@@ -274,6 +296,17 @@ export default function AddPaymentModal({
                             ))}
                         </div>
                     </div>
+
+                    {/* Payway Ishtar Limit Warning inside Modal */}
+                    {paywayIshMonthTotal > 5000000 && (method === 'PAY_WAY_3_ISH' || method === 'PAY_WAY_6_ISH') && (
+                        <div className="flex items-start gap-2.5 p-4 bg-red-50 dark:bg-red-950/20 text-red-800 dark:text-red-300 border border-red-200 dark:border-red-900/30 rounded-2xl text-xs font-semibold animate-in slide-in-from-top-2">
+                            <AlertCircle className="w-4.5 h-4.5 text-red-600 dark:text-red-500 shrink-0 mt-0.5" />
+                            <div>
+                                <span className="font-black text-red-900 dark:text-red-250 block mb-1">⚠️ LÍMITE PAYWAY ISHTAR SUPERADO</span>
+                                Los cobros por PayWay Ishtar (3c + 6c) de este mes ya suman **${paywayIshMonthTotal.toLocaleString('es-AR')}**, superando el límite establecido de $5,000,000.
+                            </div>
+                        </div>
+                    )}
 
                     {/* Fecha y Referencia */}
                     <div className="grid grid-cols-2 gap-4">

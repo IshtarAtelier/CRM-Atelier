@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+/* Configure Tailwind v4 to only trigger dark: classes under .dark selector (never system) */
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
   --background: #faf8f5;
   --foreground: #433831;
@@ -7,17 +10,6 @@
   --primary-foreground: #ffffff;
   --sidebar: #ffffff;
   --sidebar-border: #e8e2db;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #1a1715;
-    --foreground: #ebe5df;
-    --primary: #c2a38a;
-    --primary-foreground: #1a1715;
-    --sidebar: #221d1a;
-    --sidebar-border: #362f2a;
-  }
 }
 
 @theme inline {

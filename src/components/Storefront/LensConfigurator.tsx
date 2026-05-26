@@ -16,9 +16,10 @@ interface ConfiguratorProps {
   productInfo?: { brand: string; model: string; image: string };
   cartItemId?: string;
   onSuccess?: () => void;
+  onStepChange?: (step: number) => void;
 }
 
-export function LensConfigurator({ basePrice, productId, category, onColorChange, productInfo, cartItemId, onSuccess }: ConfiguratorProps) {
+export function LensConfigurator({ basePrice, productId, category, onColorChange, productInfo, cartItemId, onSuccess, onStepChange }: ConfiguratorProps) {
   const [step, setStep] = useState<number>(1);
   const [lensType, setLensType] = useState<LensType>(null);
   const [treatment, setTreatment] = useState<Treatment>(null);
@@ -27,6 +28,12 @@ export function LensConfigurator({ basePrice, productId, category, onColorChange
   const [dynamicPricing, setDynamicPricing] = useState<any>(null);
   const { addItem, updateItemLensConfig } = useCart();
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (onStepChange) {
+      onStepChange(step);
+    }
+  }, [step, onStepChange]);
 
   const [flowType, setFlowType] = useState<"SUN" | "CLEAR">(category === "Anteojos de Sol" ? "SUN" : "CLEAR");
 
@@ -297,6 +304,14 @@ export function LensConfigurator({ basePrice, productId, category, onColorChange
           >
             ${calculateTotal().toLocaleString()}
           </motion.p>
+          <div className="flex flex-col items-center gap-1 mt-3.5 text-center">
+            <p className="text-[11px] font-bold text-stone-700">
+              💳 6 cuotas sin interés de <span className="underline">${Math.round(calculateTotal() / 6).toLocaleString('es-AR')}</span>
+            </p>
+            <p className="text-[11px] font-bold text-[#9e7f65] bg-[#faf8f5] px-3.5 py-1 rounded-full border border-[#e8e2db] mt-0.5 shadow-sm">
+              💵 ${Math.round(calculateTotal() * 0.85).toLocaleString('es-AR')} en efectivo / transferencia <span className="text-[10px] font-black uppercase text-primary ml-1">(15% OFF)</span>
+            </p>
+          </div>
         </div>
         
         <button 

@@ -77,7 +77,8 @@ export function Interactive3DImage({ src, alt, className = "", imageClassName = 
             alt={alt}
             fill
             sizes="(max-width: 768px) 100vw, 50vw"
-            className={`object-contain mix-blend-multiply ${imageClassName}`}
+            style={{ objectFit: "contain" }}
+            className={`mix-blend-multiply ${imageClassName}`}
           />
         </motion.div>
       </motion.div>

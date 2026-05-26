@@ -87,7 +87,8 @@ export function ProductClient({ product }: { product: any }) {
                     alt={`${product.brand} ${product.model}`}
                     fill
                     sizes="(max-width: 1024px) 100vw, 85vw"
-                    className={activeImageIndex === 0 ? "object-contain p-8 lg:p-12" : "object-cover"}
+                    style={{ objectFit: activeImageIndex === 0 ? "contain" : "cover" }}
+                    className={activeImageIndex === 0 ? "p-8 lg:p-12" : ""}
                   />
                 </motion.div>
               ) : (
@@ -149,7 +150,7 @@ export function ProductClient({ product }: { product: any }) {
               ${(product.price || 0).toLocaleString()}
             </motion.p>
             
-            <PaymentOptions variant="inline" />
+            <PaymentOptions variant="inline" price={product.price || 0} />
             
               {/* E-Commerce Accordions */}
             <motion.div

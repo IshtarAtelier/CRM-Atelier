@@ -185,7 +185,7 @@ export default function Home() {
             <Link 
               href={`/producto/${item.slug}`} 
               key={`${item.id}-${i}`} 
-              className="group flex-shrink-0 w-[45vw] md:w-[33vw] lg:w-[25vw] block transition-all duration-500 hover:scale-[1.03] hover:z-10 relative bg-white hover:shadow-[0_0_40px_rgba(0,0,0,0.05)]"
+              className="group flex-shrink-0 w-[45vw] md:w-[33vw] lg:w-[25vw] block transition-shadow duration-500 hover:z-10 relative bg-white hover:shadow-[0_0_40px_rgba(0,0,0,0.05)]"
             >
               {/* Contenedor de imagen — fondo gris muy claro */}
               <div className="bg-[#f5f5f5] aspect-square overflow-hidden border-r border-[#e5e5e5] relative">

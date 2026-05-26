@@ -39,8 +39,8 @@ export const metadata: Metadata = {
   },
   manifest: "/manifest.json",
   icons: {
-    icon: "/assets/logo-atelier-optica.png",
-    apple: "/assets/logo-atelier-optica.png",
+    icon: "/assets/logo-pwa-192.png",
+    apple: "/assets/logo-pwa-512.png",
   },
   other: { "theme-color": "#c8a55c" },
 };
