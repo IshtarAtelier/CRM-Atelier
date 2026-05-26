@@ -122,10 +122,21 @@ function runOutputGuardrail(text) {
     const jsonRegex = /\{[\s\S]*?\}/;
     const hasJson = jsonRegex.test(text) && (text.includes('"') || text.includes(':'));
 
-    if (hasCuid || hasJson) {
+    // 3. Detectar si revela que es un bot o menciona desactivar el bot por temas personales/humanos
+    const botRevealKeywords = [
+        'carácter personal', 'caracter personal', 'desactivo el bot', 'desactivar el bot',
+        'conversación personal', 'conversacion personal', 'soy un bot', 'soy un asistente virtual',
+        'asistente de inteligencia artificial', 'ia de la optica', 'bot de whatsapp', 'desactivo para que',
+        'desactivo el agente', 'desactivar el agente', 'desactivo respuestas', 'desactivo la ia',
+        'me despido por ahora'
+    ];
+    const lowerText = text.toLowerCase();
+    const revealsBot = botRevealKeywords.some(keyword => lowerText.includes(keyword));
+
+    if (hasCuid || hasJson || revealsBot) {
         return {
             safe: false,
-            reason: hasCuid ? 'ID de Base de Datos Detectado' : 'Estructura JSON Detectada',
+            reason: hasCuid ? 'ID de Base de Datos Detectado' : (hasJson ? 'Estructura JSON Detectada' : 'Revelación de Identidad de Bot o Desactivación Manual'),
             matched: hasCuid ? text.match(cuidRegex) : null
         };
     }
@@ -466,6 +477,29 @@ async function processBotTurn(chat, waId, profileName, realPhone) {
         
         const result = await graph.invoke(state, config);
         
+        // ── GUARDRAIL DE DESACTIVACIÓN SILENCIOSA ──
+        let hasPersonalOrCancelToolCall = false;
+        if (result && result.messages) {
+            for (const msg of result.messages) {
+                if (msg.tool_calls && Array.isArray(msg.tool_calls)) {
+                    for (const call of msg.tool_calls) {
+                        if (call.name === 'disable_bot_for_personal_chat' || call.name === 'cancel_bot') {
+                            hasPersonalOrCancelToolCall = true;
+                            break;
+                        }
+                    }
+                }
+                if (hasPersonalOrCancelToolCall) break;
+            }
+        }
+
+        if (hasPersonalOrCancelToolCall) {
+            console.log(`  ⏹️ Desactivación silenciosa detectada por llamada a herramienta de desactivación (${chat.id}). Cancelando respuesta.`);
+            await disableBotForChatById(chat.id, 'Detección de chat personal/cancelación silenciosa');
+            broadcastChatUpdate(chat.id);
+            return;
+        }
+
         // Re-verificar si el bot sigue encendido
         const checkChat = await prisma.whatsAppChat.findUnique({ where: { id: chat.id } });
         if (!checkChat || !checkChat.botEnabled) {
