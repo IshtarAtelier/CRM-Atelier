@@ -58,7 +58,7 @@ export default function InvoiceModal({ order, initialAccount, initialAmount, onC
     const financials = PricingService.calculateOrderFinancials(order as any);
     const paidReal = financials.paidReal;
     
-    const [targetAmount, setTargetAmount] = useState(initialAmount || Math.min(order.total, paidReal));
+    const [targetAmount, setTargetAmount] = useState(initialAmount || paidReal || order.total);
     const [items, setItems] = useState<InvoiceItem[]>([]);
 
     useEffect(() => {

@@ -353,7 +353,7 @@ export default function BillingPage() {
                                 )}
 
                                 <button 
-                                    onClick={() => setSelectedOrder({ ...order, customAmount: order.total, detectedAccount: detectBillingAccount(order.payments) || 'ISH' } as any)}
+                                    onClick={() => setSelectedOrder({ ...order, customAmount: order.paid || order.total, detectedAccount: detectBillingAccount(order.payments) || 'ISH' } as any)}
                                     className="bg-stone-100 dark:bg-stone-700 text-stone-600 dark:text-stone-300 px-6 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest italic flex items-center gap-2 hover:bg-orange-500 hover:text-white transition-all active:scale-95 shadow-sm"
                                 >
                                     FACTURAR MANUAL <ArrowRight size={14} />
