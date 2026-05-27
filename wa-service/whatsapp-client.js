@@ -74,6 +74,10 @@ async function startClient(attempt = 1) {
                 '--disable-web-security',
                 '--disable-site-isolation-trials',
                 '--disable-features=IsolateOrigins,site-per-process',
+                '--disable-accelerated-2d-canvas',
+                '--no-first-run',
+                '--no-zygote',
+                '--single-process',
                 `--user-data-dir=${require('path').join(__dirname, '.wwebjs_auth', 'chromium-profile')}`,
             ],
         }
