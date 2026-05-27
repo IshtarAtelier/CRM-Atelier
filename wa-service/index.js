@@ -937,6 +937,36 @@ const handleMessage = async (msg) => {
             }
         }
 
+        // ── Chequeo de Post-Venta, Reclamos y Estado de Pedidos (Petición del Usuario) ──
+        let esPostVenta = false;
+        
+        // A. Si el cliente ya es un cliente de post-venta (status: CLIENT)
+        if (chat.client && chat.client.status === 'CLIENT') {
+            esPostVenta = true;
+        }
+        
+        // B. Si el mensaje contiene keywords de reclamos o estados de pedidos
+        if (body) {
+            const normalizedBody = body.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+            const postVentaKeywords = [
+                'mi pedido', 'estado de mi', 'estado del pedido',
+                'cuando estan', 'cuando esta', 'listo para retirar', 'puedo retirar',
+                'veo mal', 'no veo', 'no me adapto', 'me duele', 'dolor', 'molesta',
+                'rayado', 'fallado', 'roto', 'rompio', 'defecto', 'reclamo', 'queja', 'garantia'
+            ];
+            const tieneKeywordPostVenta = postVentaKeywords.some(keyword => normalizedBody.includes(keyword));
+            if (tieneKeywordPostVenta) {
+                esPostVenta = true;
+            }
+        }
+        
+        if (esPostVenta) {
+            if (chat.botEnabled) {
+                await disableBotForChatById(chat.id, 'Post-Venta / Reclamo / Estado de Pedido detectado');
+                chat.botEnabled = false; // desactivar bot localmente para no responder
+            }
+        }
+
         // ── Auto-Reanudación Inteligente (Smart Auto-Resume) ──
         if (oldLastMessageAt && !chat.botEnabled && !tieneTagSinBot) {
             const diffMs = Date.now() - new Date(oldLastMessageAt).getTime();
@@ -970,8 +1000,27 @@ const handleMessage = async (msg) => {
                     let ext = 'bin';
                     if (media.mimetype.includes('jpeg') || media.mimetype.includes('jpg')) ext = 'jpg';
                     else if (media.mimetype.includes('png')) ext = 'png';
+                    else if (media.mimetype.includes('webp')) ext = 'webp';
+                    else if (media.mimetype.includes('gif')) ext = 'gif';
+                    else if (media.mimetype.includes('pdf')) ext = 'pdf';
                     else if (media.mimetype.includes('ogg') || media.mimetype.includes('audio')) ext = 'ogg';
-                    else ext = 'bin';
+                    else if (media.mimetype.includes('mp3') || media.mimetype.includes('mpeg')) ext = 'mp3';
+                    else if (media.mimetype.includes('wav')) ext = 'wav';
+                    else if (media.mimetype.includes('mp4')) ext = 'mp4';
+                    else if (media.mimetype.includes('m4a')) ext = 'm4a';
+                    else if (media.mimetype.includes('heic')) ext = 'heic';
+                    else if (media.mimetype.includes('heif')) ext = 'heif';
+                    else if (media.mimetype.includes('amr')) ext = 'amr';
+                    else if (media.mimetype.includes('aac')) ext = 'aac';
+                    else {
+                        const parts = media.mimetype.split('/');
+                        if (parts.length > 1) {
+                            const sub = parts[1].split(';')[0].toLowerCase();
+                            if (/^[a-z0-9]+$/.test(sub)) {
+                                ext = sub;
+                            }
+                        }
+                    }
 
                     if (messageType === 'AUDIO' && agentEnabled) {
                         console.log(`  🎧 Transcribiendo audio de ${profileName}...`);
@@ -1377,7 +1426,38 @@ app.post('/api/send', async (req, res) => {
                 const buffer = Buffer.from(media.base64, 'base64');
                 const blob = new Blob([buffer], { type: media.mimetype });
                 const f = new FormData();
-                f.append('file', blob, `out_${Date.now()}_${media.filename || 'media.bin'}`);
+                let outExt = 'bin';
+                if (media.filename) {
+                    const parts = media.filename.split('.');
+                    if (parts.length > 1) outExt = parts.pop().toLowerCase();
+                }
+                if (outExt === 'bin' && media.mimetype) {
+                    if (media.mimetype.includes('jpeg') || media.mimetype.includes('jpg')) outExt = 'jpg';
+                    else if (media.mimetype.includes('png')) outExt = 'png';
+                    else if (media.mimetype.includes('webp')) outExt = 'webp';
+                    else if (media.mimetype.includes('gif')) outExt = 'gif';
+                    else if (media.mimetype.includes('pdf')) outExt = 'pdf';
+                    else if (media.mimetype.includes('ogg') || media.mimetype.includes('audio')) outExt = 'ogg';
+                    else if (media.mimetype.includes('mp3') || media.mimetype.includes('mpeg')) outExt = 'mp3';
+                    else if (media.mimetype.includes('wav')) outExt = 'wav';
+                    else if (media.mimetype.includes('mp4')) outExt = 'mp4';
+                    else if (media.mimetype.includes('m4a')) outExt = 'm4a';
+                    else if (media.mimetype.includes('heic')) outExt = 'heic';
+                    else if (media.mimetype.includes('heif')) outExt = 'heif';
+                    else if (media.mimetype.includes('amr')) outExt = 'amr';
+                    else if (media.mimetype.includes('aac')) outExt = 'aac';
+                    else {
+                        const parts = media.mimetype.split('/');
+                        if (parts.length > 1) {
+                            const sub = parts[1].split(';')[0].toLowerCase();
+                            if (/^[a-z0-9]+$/.test(sub)) {
+                                outExt = sub;
+                            }
+                        }
+                    }
+                }
+                const filename = media.filename ? (media.filename.includes('.') ? media.filename : `${media.filename}.${outExt}`) : `media.${outExt}`;
+                f.append('file', blob, `out_${Date.now()}_${filename}`);
                 const uploadUrl = process.env.CRM_API_URL.replace('/api/bot', '/api/upload');
                 const uploadRes = await fetch(uploadUrl, { 
                     method: 'POST', 
