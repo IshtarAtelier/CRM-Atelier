@@ -72,7 +72,16 @@ INSTRUCCIONES:
 2. Extrae el teléfono. Si el waId es @lid y el cliente mencionó un número en la charla, usa ese. Si no, deja vacío.
 3. Deduce el interés principal (ej: "Multifocal", "Monofocal", "Lentes de contacto", "Armazones", "Gafas de sol", etc.)
 4. Detecta si mencionó obra social/seguro médico (ej: "OSDE", "Swiss Medical", "PAMI", "Apross", etc.)
-5. Detecta la fuente de contacto (ej: "Instagram", "Facebook", "Google", "Referido", "WhatsApp directo")
+5. Detecta la fuente de contacto. Debe ser exactamente uno de estos valores:
+   - "Google Ads" (si menciona Google, Maps, búsqueda, o un anuncio de Google)
+   - "Meta" (si menciona Instagram, Facebook, o un anuncio/publicidad de redes sociales sin mencionar Google)
+   - "Referido" (si es recomendado por un amigo, conocido o familiar)
+   - "Calle" (si vio el local al pasar)
+   - "Ya es Cliente"
+   - "Tienda nube"
+   - "Wave"
+   - "Salida"
+   - "Otros" (si no se especifica o no encaja en los anteriores)
 6. Extrae cualquier nota relevante (ej: preferencias, urgencia, comentarios importantes)
 
 Responde ÚNICAMENTE con un JSON válido con estos campos:
@@ -81,7 +90,7 @@ Responde ÚNICAMENTE con un JSON válido con estos campos:
   "phone": "string o null",
   "interest": "string o null",
   "insurance": "string o null",
-  "contactSource": "string",
+  "contactSource": "Google Ads" | "Meta" | "Calle" | "Jemima" | "Ya es Cliente" | "Tienda nube" | "Referido" | "Wave" | "Salida" | "Otros",
   "notes": "string o null"
 }`;
 

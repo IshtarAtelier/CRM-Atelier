@@ -1500,11 +1500,16 @@ export default function WhatsAppPage() {
                             </div>
                             <div>
                                 <label className="text-[10px] font-black uppercase tracking-widest text-stone-400 mb-1 block">Origen</label>
-                                <input
+                                <select
                                     value={extractedClient.contactSource || ''}
                                     onChange={e => setExtractedClient({ ...extractedClient, contactSource: e.target.value })}
-                                    className="w-full px-3 py-2 bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl text-sm font-semibold text-stone-900 dark:text-white focus:ring-2 focus:ring-violet-500 focus:border-transparent transition-all"
-                                />
+                                    className="w-full px-3 py-2 bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl text-sm font-semibold text-stone-900 dark:text-white focus:ring-2 focus:ring-violet-500 focus:border-transparent transition-all cursor-pointer"
+                                >
+                                    <option value="">Seleccionar origen...</option>
+                                    {["Google Ads", "Meta", "Calle", "Jemima", "Ya es Cliente", "Tienda nube", "Referido", "Wave", "Salida", "Otros"].map(s => (
+                                        <option key={s} value={s}>{s}</option>
+                                    ))}
+                                </select>
                             </div>
                             <div>
                                 <label className="text-[10px] font-black uppercase tracking-widest text-stone-400 mb-1 block">Notas</label>
