@@ -473,7 +473,7 @@ async function reportComplaint({ clientId, details }) {
     });
 
     // Enviar notificación por WhatsApp a la administración
-    const adminPhone = process.env.ADMIN_PHONE || '5493512222222'; // A configurar
+    const adminPhone = process.env.ADMIN_PHONE;
     if (adminPhone) {
         try {
             // Obtenemos los datos del cliente para el msj
@@ -565,7 +565,7 @@ async function generateAndSaveHandoffSummary(chatId) {
             where: {
                 clientId: chat.clientId,
                 type: 'NOTE',
-                content: { startsWith: '📍 [RESUMEN BOT]' },
+                content: { startsWith: '📍 [RESUMEN AUTOMÁTICO]' },
                 createdAt: { gte: new Date(Date.now() - 5 * 60 * 1000) }
             }
         });
@@ -576,7 +576,7 @@ async function generateAndSaveHandoffSummary(chatId) {
 
         // Formatear el historial para pasárselo al modelo
         const formattedHistory = messages.reverse().map(m => {
-            const sender = m.direction === 'INBOUND' ? 'Cliente' : 'Bot/Vendedor';
+            const sender = m.direction === 'INBOUND' ? 'Cliente' : 'Vendedor';
             return `${sender}: ${m.content}`;
         }).join('\n');
 
@@ -597,7 +597,7 @@ async function generateAndSaveHandoffSummary(chatId) {
                 data: {
                     clientId: chat.clientId,
                     type: 'NOTE',
-                    content: `📍 [RESUMEN BOT] ${summaryText}`
+                    content: `📍 [RESUMEN AUTOMÁTICO] ${summaryText}`
                 }
             });
             console.log(`  📍 Resumen de traspaso generado y guardado para el cliente: ${chat.client.name}`);

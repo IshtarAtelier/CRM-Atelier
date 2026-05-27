@@ -126,7 +126,7 @@ const savePrescriptionDataTool = new DynamicStructuredTool({
                 
                 // Crear Hito automático
                 try {
-                    const hitoContent = `📍 [HITO] Prospecto registrado vía WhatsApp. Receta procesada: ${tipoDeLente || 'N/A'}. OD: Esf ${odEsf || 0} Cil ${odCil || 0}. OI: Esf ${oiEsf || 0} Cil ${oiEje || 0}.${add ? ' Add: ' + add : ''}`;
+                    const hitoContent = `📍 [HITO] Prospecto registrado vía WhatsApp. Receta procesada: ${tipoDeLente || 'N/A'}. OD: Esf ${odEsf || 0} Cil ${odCil || 0} Eje ${odEje || 0}. OI: Esf ${oiEsf || 0} Cil ${oiCil || 0} Eje ${oiEje || 0}.${add ? ' Add: ' + add : ''}`;
                     await addInteraction({ clientId: resolvedClientId, type: 'NOTE', content: hitoContent });
                 } catch (hitoErr) {
                     console.error('Error creando hito automático en save_prescription_data:', hitoErr.message);
@@ -241,7 +241,7 @@ const addInteractionTool = new DynamicStructuredTool({
 const cancelBotTool = new DynamicStructuredTool({
     schema: z.object({ clientId: z.string().optional() }).catchall(z.any()),
     name: "cancel_bot",
-    description: "USA ESTA HERRAMIENTA SIEMPRE QUE EL CLIENTE EMPIECE A HABLAR DE TEMAS PERSONALES, SE ENOJE, HAGA PREGUNTAS FUERA DE CONTEXTO O REQUIERA HABLAR CON UN HUMANO. Agregará la etiqueta 'Cancelar Bot' y pausará tus respuestas. Usa JSON con 'clientId' (o 'none') y 'waId' (el teléfono del cliente).",
+    description: "Desactiva el bot y delega a un humano. USA ESTA HERRAMIENTA cuando el cliente SE ENOJE, tenga una QUEJA COMPLEJA, REQUIERA hablar con un humano, o haga preguntas que no podés responder. NO la uses para chats personales o familiares (para eso usá 'disable_bot_for_personal_chat'). Agrega la etiqueta 'Cancelar Bot' y pausa tus respuestas. Usa JSON con 'clientId' (o 'none') y 'waId' (el teléfono del cliente).",
     func: async (input) => JSON.stringify(await cancelBot(safeParse(input, "cancel_bot"))),
 });
 
@@ -254,7 +254,7 @@ const addTagToClientTool = new DynamicTool({
 const disableBotForChatTool = new DynamicStructuredTool({
     schema: z.object({ chatId: z.string().optional() }).catchall(z.any()),
     name: "disable_bot_for_personal_chat",
-    description: "ÚSALA INMEDIATAMENTE si el cliente habla de temas familiares, personales, spam, o si es un proveedor/laboratorio B2B. Esta herramienta apaga el bot para este chat. Usa JSON: chatId.",
+    description: "ÚSALA INMEDIATAMENTE si detectás que la conversación es de carácter familiar, personal, de amistad, spam, o si es un proveedor/laboratorio B2B. Esta herramienta apaga el bot SILENCIOSAMENTE para este chat. NO escribas ningún mensaje al cliente antes de usarla. Usa JSON: chatId.",
     func: async (input) => {
         const parsed = safeParse(input, "disable_bot_for_personal_chat");
         const result = await disableBotForChat(parsed);

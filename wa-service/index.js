@@ -128,7 +128,13 @@ function runOutputGuardrail(text) {
         'conversación personal', 'conversacion personal', 'soy un bot', 'soy un asistente virtual',
         'asistente de inteligencia artificial', 'ia de la optica', 'bot de whatsapp', 'desactivo para que',
         'desactivo el agente', 'desactivar el agente', 'desactivo respuestas', 'desactivo la ia',
-        'me despido por ahora'
+        'me despido por ahora',
+        // Ampliación de guardrail (Auditoría 2026-05-26)
+        'soy una inteligencia artificial', 'soy un asistente de ia', 'soy un programa',
+        'fui programada', 'fui diseñada para', 'como modelo de lenguaje', 'soy una ia',
+        'soy un chatbot', 'no soy humana', 'no soy una persona real', 'asistente automatizado',
+        'respuesta automática', 'respuesta automatica', 'sistema automatizado', 'no soy humano',
+        'no soy una persona', 'inteligencia artificial de', 'algoritmo de', 'modelo de ia'
     ];
     const lowerText = text.toLowerCase();
     const revealsBot = botRevealKeywords.some(keyword => lowerText.includes(keyword));
@@ -219,12 +225,15 @@ function isBusinessHours(date) {
     const argDate = new Date(date.toLocaleString("en-US", { timeZone: "America/Argentina/Buenos_Aires" }));
     const day = argDate.getDay(); // 0 = Domingo, 6 = Sábado
     const hour = argDate.getHours();
+    const minute = argDate.getMinutes();
+    const timeDecimal = hour + minute / 60; // Ej: 13:30 = 13.5
 
     if (day === 0) return false; // Domingo cerrado
     if (day === 6) {
-        return hour >= 9 && hour < 13; // Sábado 9:00 - 13:00
+        return timeDecimal >= 10 && timeDecimal < 14; // Sábado 10:00 - 14:00
     }
-    return hour >= 9 && hour < 18; // Lunes a Viernes 9:00 - 18:00
+    // Lunes a Viernes: 9:00 - 13:30 y 16:00 - 19:30
+    return (timeDecimal >= 9 && timeDecimal < 13.5) || (timeDecimal >= 16 && timeDecimal < 19.5);
 }
 
 /**
@@ -520,7 +529,7 @@ async function processBotTurn(chat, waId, profileName, realPhone) {
         if (hasApiError) {
             console.log(`  ⏹️ Error de API detectado en ToolMessage (${chat.id}). Cancelando respuesta.`);
             try {
-                const adminNotifyPhone = '5493541215971@c.us';
+                const adminNotifyPhone = (process.env.ADMIN_PHONE || '5493541215971') + (process.env.ADMIN_PHONE?.includes('@') ? '' : '@c.us');
                 const alertMsg = `🚨 *ALERTA: FALLA EN BOT DE WHATSAPP* 🚨\n\nEl bot experimentó un error técnico de API procesando la consulta de *${profileName || 'Cliente'}* (${realPhone || waId.split('@')[0]}).\n\n*Acción:* El bot se ha quedado en silencio para no enviar mensajes de error al cliente. Por favor, revisá el chat en el CRM para continuar la operación manualmente.\n\n*Error:* ${apiErrorMessage}`;
                 await sendMessage(adminNotifyPhone, alertMsg);
                 console.log(`  🔔 Alerta de error de API enviada al administrador (3541215971)`);
@@ -651,7 +660,7 @@ async function processBotTurn(chat, waId, profileName, realPhone) {
 
         // Notificar al administrador por WhatsApp para que pueda continuar de forma manual
         try {
-            const adminNotifyPhone = '5493541215971@c.us';
+            const adminNotifyPhone = (process.env.ADMIN_PHONE || '5493541215971') + (process.env.ADMIN_PHONE?.includes('@') ? '' : '@c.us');
             const alertMsg = `🚨 *ALERTA: FALLA EN BOT DE WHATSAPP* 🚨\n\nEl bot experimentó un error técnico procesando la consulta de *${profileName || 'Cliente'}* (${realPhone || waId.split('@')[0]}).\n\n*Acción:* El bot se ha quedado en silencio para no enviar mensajes de error al cliente. Por favor, revisá el chat en el CRM para continuar la operación manualmente.\n\n*Error:* ${err.message}`;
             await sendMessage(adminNotifyPhone, alertMsg);
             console.log(`  🔔 Alerta de error enviada al administrador (3541215971)`);
@@ -1580,7 +1589,7 @@ app.post('/api/test/chat', async (req, res) => {
                 global.mediaCache = global.mediaCache || {};
                 global.mediaCache[TEST_CHAT_ID] = [{ base64: m.mediaBase64, mimeType: m.mediaMime || 'image/jpeg', timestamp: Date.now() }];
                 console.log(`📸 Test Chat: Imagen guardada en mediaCache['${TEST_CHAT_ID}'] (${(m.mediaBase64.length / 1024).toFixed(0)} KB)`);
-                const promptMedia = `[El cliente envió una imagen adjunta. DEBES usar la herramienta 'process_prescription_subagent' INMEDIATAMENTE con este JSON exacto: {"chatId": "${TEST_CHAT_ID}", "clientId": null, "context": "Simulador de prueba", "userName": "Tester", "userPhone": "1111111111"}. Mensaje del cliente: ${m.content || 'Foto de receta'}]`;
+                const promptMedia = `[El cliente envió una imagen adjunta. DEBES usar la herramienta 'save_prescription_data' INMEDIATAMENTE con este JSON exacto: {"chatId": "${TEST_CHAT_ID}", "clientId": null, "userName": "Tester", "userPhone": "1111111111"}. Mensaje del cliente: ${m.content || 'Foto de receta'}]`;
                 return new HumanMessage(promptMedia);
             }
             return new HumanMessage(m.content);
