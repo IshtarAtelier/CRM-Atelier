@@ -26,15 +26,16 @@ const configPath = path.join(__dirname, 'agent_config.json');
 
 const app = express();
 const server = http.createServer(app);
+const ALLOWED_ORIGINS = process.env.CORS_ORIGINS ? process.env.CORS_ORIGINS.split(',') : ['*'];
 const io = new Server(server, {
-    cors: { origin: '*' } // Permitir conexiones del frontend
+    cors: { origin: ALLOWED_ORIGINS }
 });
 
 // Hacer io accesible globalmente para que los tools puedan emitir eventos
 global.io = io;
 
-app.use(cors());
-app.use(express.json({ limit: '50mb' }));
+app.use(cors({ origin: ALLOWED_ORIGINS }));
+app.use(express.json({ limit: '10mb' }));
 
 io.on('connection', (socket) => {
     console.log('🔌 Nuevo cliente WebSocket conectado:', socket.id);
@@ -684,7 +685,8 @@ async function processBotTurn(chat, waId, profileName, realPhone) {
 
             // 3. Enviar correo de alerta
             const axios = require('axios');
-            axios.post('http://localhost:3000/api/admin/alert', {
+            const alertUrl = (process.env.CRM_API_URL || '').replace('/api/bot', '') + '/api/admin/alert';
+            axios.post(alertUrl, {
                 subject: '🚨 ALERTA: Crédito Agotado en Bot de WhatsApp (Gemini)',
                 message: 'El bot de WhatsApp intentó procesar un mensaje pero la solicitud fue rechazada por falta de créditos (Error 429: RESOURCE_EXHAUSTED).\n\nPor favor, recargá saldo en tu cuenta de Google Cloud / AI Studio para que el bot y el sistema vuelvan a funcionar.\n\nLink: https://aistudio.google.com/app/billing'
             }).catch(e => console.error('Error enviando alerta de email:', e.message));
@@ -995,7 +997,7 @@ const handleMessage = async (msg) => {
                         const uploadRes = await axios.post(uploadUrl, form, {
                             headers: {
                                 ...form.getHeaders(),
-                                'x-api-key': process.env.BOT_API_KEY || 'atelier-bot-secret-key-2026'
+                                'x-api-key': process.env.BOT_API_KEY
                             }
                         });
                         
@@ -1175,6 +1177,36 @@ const handleMessage = async (msg) => {
     }
 };
 
+// ── Health Check (exempt from auth) ────────────
+app.get('/health', async (req, res) => {
+    try {
+        await prisma.$queryRaw`SELECT 1`;
+        const waStatus = getStatus();
+        res.json({ 
+            status: 'ok', 
+            whatsapp: waStatus.isReady,
+            uptime: process.uptime()
+        });
+    } catch (e) {
+        res.status(503).json({ status: 'error', error: e.message });
+    }
+});
+
+// ── Auth middleware for API endpoints ──────────
+const WA_API_KEY = process.env.WA_API_KEY;
+if (!WA_API_KEY) {
+    console.warn('⚠️ WARNING: WA_API_KEY not set. API endpoints are UNPROTECTED.');
+}
+function apiAuth(req, res, next) {
+    if (!WA_API_KEY) return next(); // Sin key configurada, permitir (modo legacy)
+    const key = req.headers['x-api-key'];
+    if (key !== WA_API_KEY) {
+        return res.status(401).json({ error: 'Unauthorized: Invalid API key' });
+    }
+    next();
+}
+app.use('/api', apiAuth);
+
 // ── API REST ───────────────────────────────────
 
 app.get('/api/status', (req, res) => {
@@ -1325,7 +1357,7 @@ app.post('/api/send', async (req, res) => {
                 const uploadRes = await fetch(uploadUrl, { 
                     method: 'POST', 
                     body: f,
-                    headers: { 'x-api-key': process.env.BOT_API_KEY || 'atelier-bot-secret-key-2026' }
+                    headers: { 'x-api-key': process.env.BOT_API_KEY }
                 });
                 const resJson = await uploadRes.json();
                 if (resJson.url) mediaUrl = resJson.url;

@@ -4,8 +4,8 @@ import nodemailer from 'nodemailer';
 export const transporter = nodemailer.createTransport({
     service: 'gmail',
     auth: {
-        user: process.env.EMAIL_USER || 'crm.atelier.optica@gmail.com',
-        pass: process.env.EMAIL_PASS || 'Escarlata97*'
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS
     }
 });
 
@@ -22,7 +22,7 @@ interface SendEmailOptions {
 export async function sendEmail({ to, subject, text, html }: SendEmailOptions) {
     try {
         const info = await transporter.sendMail({
-            from: `"Atelier Óptica" <${process.env.EMAIL_USER || 'crm.atelier.optica@gmail.com'}>`,
+            from: `"Atelier Óptica" <${process.env.EMAIL_USER || 'noreply@atelier.com'}>`,
             to,
             subject,
             text,

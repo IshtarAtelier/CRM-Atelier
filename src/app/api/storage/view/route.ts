@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getFileBuffer, getSignedUrl } from '@/lib/storage';
+import path from 'path';
 
 export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
@@ -7,6 +8,17 @@ export async function GET(req: NextRequest) {
 
     if (!key) {
         return new NextResponse('Missing key', { status: 400 });
+    }
+
+    // Security: Sanitize key to prevent path traversal attacks
+    const cleanKey = key.replace('local://', '');
+    if (cleanKey.includes('..') || cleanKey.includes('\\')) {
+        return new NextResponse('Forbidden: Invalid key', { status: 403 });
+    }
+    const storageDir = path.resolve(process.cwd(), 'storage', 'uploads');
+    const resolvedPath = path.resolve(storageDir, cleanKey);
+    if (!resolvedPath.startsWith(storageDir)) {
+        return new NextResponse('Forbidden: Path traversal detected', { status: 403 });
     }
 
     try {

@@ -58,7 +58,10 @@ export async function GET(request: Request) {
         const authHeader = request.headers.get('Authorization');
         const token = authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : null;
 
-        const cronSecret = process.env.CRON_SECRET || 'atelier-cron-secret-key-2026';
+        const cronSecret = process.env.CRON_SECRET;
+        if (!cronSecret) {
+            return NextResponse.json({ error: 'CRON_SECRET not configured' }, { status: 500 });
+        }
 
         if (secret !== cronSecret && token !== cronSecret) {
             return NextResponse.json({ error: 'No autorizado' }, { status: 401 });

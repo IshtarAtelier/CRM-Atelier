@@ -50,7 +50,8 @@ export async function POST(
         const profileName = chat.profileName || '';
         const waId = chat.waId || '';
         const isLid = waId.includes('@lid');
-        const rawPhone = isLid ? '' : waId.replace('@c.us', '').replace('@s.whatsapp.net', '');
+        // Priorizar realPhone (resuelto por el wa-service) sobre el waId crudo
+        const rawPhone = chat.realPhone || (isLid ? '' : waId.replace('@c.us', '').replace('@s.whatsapp.net', ''));
 
         // Llamar a Gemini para extraer datos
         const apiKey = process.env.GOOGLE_GENAI_API_KEY || process.env.GOOGLE_API_KEY || '';

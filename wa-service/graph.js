@@ -107,7 +107,10 @@ async function getTagsModule() {
   try {
     const tags = await prisma.tag.findMany({
       where: {
-        autoAssignCondition: { not: null, not: '' }
+        NOT: [
+          { autoAssignCondition: null },
+          { autoAssignCondition: '' }
+        ]
       }
     });
     if (!tags || tags.length === 0) return '';

@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { sendEmail } from '@/lib/email';
 import { prisma } from '@/lib/db';
 
-const BOT_API_KEY = process.env.BOT_API_KEY || 'atelier-bot-secret-key-2026';
+const BOT_API_KEY = process.env.BOT_API_KEY;
 
 export async function POST(req: Request) {
     try {

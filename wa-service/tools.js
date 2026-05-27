@@ -4,7 +4,11 @@ require('dotenv').config({ path: path.join(__dirname, '.env') });
 
 const { prisma } = require('./db');
 const CRM_API_URL = process.env.CRM_API_URL;
-const BOT_API_KEY = process.env.BOT_API_KEY || 'atelier-bot-secret-key-2026';
+const BOT_API_KEY = process.env.BOT_API_KEY;
+if (!BOT_API_KEY) {
+    console.error('⚠️ CRITICAL: BOT_API_KEY environment variable is not set!');
+    // No lanzar error aquí para no romper el servicio, pero loguear advertencia
+}
 
 const apiClient = axios.create({
     headers: { 'x-api-key': BOT_API_KEY }

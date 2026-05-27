@@ -21,9 +21,10 @@ export async function middleware(request: NextRequest) {
         return NextResponse.next();
     }
 
-    // Proteger rutas API (excepto auth, cron, rescue, upload y whatsapp proxy)
+    // Proteger rutas API (excepto auth, cron, upload y whatsapp proxy)
     // Las rutas de bot (/api/bot/) tienen su propia validación de API KEY abajo
-    if (isApiRoute && !isAuthRoute && !pathname.startsWith('/api/cron/') && pathname !== '/api/diag' && pathname !== '/api/rescue' && !pathname.startsWith('/api/reports') && !pathname.startsWith('/api/bot/') && !pathname.startsWith('/api/whatsapp/') && !pathname.startsWith('/api/upload') && !pathname.startsWith('/api/store/') && !pathname.startsWith('/api/web/') && !pathname.startsWith('/api/storage/view') && !pathname.startsWith('/api/checkout/')) {
+    // Las rutas públicas del e-commerce (store, web, checkout) no requieren auth
+    if (isApiRoute && !isAuthRoute && !pathname.startsWith('/api/cron/') && !pathname.startsWith('/api/bot/') && !pathname.startsWith('/api/whatsapp/') && !pathname.startsWith('/api/upload') && !pathname.startsWith('/api/store/') && !pathname.startsWith('/api/web/') && !pathname.startsWith('/api/checkout/')) {
         if (!token) {
             return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
         }
@@ -43,7 +44,7 @@ export async function middleware(request: NextRequest) {
     // Proteger rutas internas de bot (wa-service)
     if (pathname.startsWith('/api/bot/')) {
         const apiKey = request.headers.get('x-api-key');
-        const validKey = process.env.BOT_API_KEY || 'atelier-bot-secret-key-2026';
+        const validKey = process.env.BOT_API_KEY;
         if (!apiKey || apiKey !== validKey) {
             return NextResponse.json({ error: 'Acceso denegado al bot. API Key inválida.' }, { status: 403 });
         }
@@ -53,7 +54,7 @@ export async function middleware(request: NextRequest) {
     // Proteger la ruta de subida de archivos (acepta JWT o BOT_API_KEY)
     if (pathname.startsWith('/api/upload')) {
         const apiKey = request.headers.get('x-api-key');
-        const validKey = process.env.BOT_API_KEY || 'atelier-bot-secret-key-2026';
+        const validKey = process.env.BOT_API_KEY;
         
         if (apiKey === validKey) {
             return NextResponse.next(); // Autorizado como bot
@@ -62,7 +63,11 @@ export async function middleware(request: NextRequest) {
         if (!token) {
             return NextResponse.json({ error: 'No autenticado para subir archivos' }, { status: 401 });
         }
-        return NextResponse.next(); // Autorizado por cookie (verificación profunda se haría si necesitara sacar el payload, pero para upload basta con tener token válido general, aunque mejor si comprobamos el decrypt aquí si quisieramos)
+        const payload = await decrypt(token);
+        if (!payload) {
+            return NextResponse.json({ error: 'Sesión inválida' }, { status: 401 });
+        }
+        return NextResponse.next();
     }
 
     // Proteger rutas de administración (/admin)

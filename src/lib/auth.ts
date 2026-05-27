@@ -1,6 +1,9 @@
 import * as jose from 'jose'
 
-const secretKey = process.env.JWT_SECRET || 'atelier-optica-super-secret-key-for-dev'
+const secretKey = process.env.JWT_SECRET
+if (!secretKey) {
+    throw new Error('JWT_SECRET environment variable is required. Set it in your .env file or Railway dashboard.')
+}
 const key = new TextEncoder().encode(secretKey)
 
 export async function encrypt(payload: any) {
