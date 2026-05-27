@@ -11,8 +11,7 @@ export async function GET() {
     } catch (error: any) {
         return NextResponse.json({ 
             error: 'Database or Logic Crash',
-            message: error.message,
-            stack: error.stack
+            message: error.message
         }, { status: 500 });
     }
 }

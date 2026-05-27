@@ -11,8 +11,7 @@ export async function GET() {
         console.error('Error fetching orders with balance:', error);
         return NextResponse.json({ 
             error: 'Error al obtener pedidos con saldo',
-            message: error instanceof Error ? error.message : String(error),
-            stack: error instanceof Error ? error.stack : undefined
+            message: error instanceof Error ? error.message : String(error)
         }, { status: 500 });
     }
 }

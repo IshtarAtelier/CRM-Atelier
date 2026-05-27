@@ -1,7 +1,8 @@
+require("dotenv").config();
 const { PrismaClient } = require('@prisma/client');
 const fs = require('fs');
 
-const PROD_URL = "postgresql://postgres:JqNVkEgwNDmTidZHmZdmlxLTnlxrBsYT@crossover.proxy.rlwy.net:16284/railway";
+const PROD_URL = process.env.PROD_DATABASE_URL;
 const ARTIFACT_PATH = "/Users/ishtarpissano/.gemini/antigravity/brain/a8d97409-2017-4b1f-9a8b-e268168a1fbe/optovision_production_prices.md";
 
 async function main() {

@@ -1,5 +1,6 @@
+require("dotenv").config();
 const { PrismaClient } = require('@prisma/client');
-const PROD_URL = "postgresql://postgres:JqNVkEgwNDmTidZHmZdmlxLTnlxrBsYT@crossover.proxy.rlwy.net:16284/railway";
+const PROD_URL = process.env.PROD_DATABASE_URL;
 
 const updates = [
     {

@@ -11,8 +11,7 @@ export async function GET() {
         console.error('Error fetching pending tasks:', error);
         return NextResponse.json({ 
             error: 'Error al obtener tareas',
-            message: error instanceof Error ? error.message : String(error),
-            stack: error instanceof Error ? error.stack : undefined
+            message: error instanceof Error ? error.message : String(error)
         }, { status: 500 });
     }
 }

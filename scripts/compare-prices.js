@@ -1,8 +1,9 @@
+require("dotenv").config();
 const { PrismaClient } = require('@prisma/client');
 const fs = require('fs');
 const path = require('path');
 
-const PROD_URL = "postgresql://postgres:JqNVkEgwNDmTidZHmZdmlxLTnlxrBsYT@crossover.proxy.rlwy.net:16284/railway";
+const PROD_URL = process.env.PROD_DATABASE_URL;
 const LOCAL_URL = "postgresql://postgres:localpassword@localhost:5432/atelier?schema=public";
 const REPORT_PATH = "/Users/ishtarpissano/.gemini/antigravity/brain/2893449a-0c4c-4814-b3d6-6e69df503ca4/pricing_comparison.md";
 
