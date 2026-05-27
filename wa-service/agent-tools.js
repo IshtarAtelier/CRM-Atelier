@@ -241,7 +241,7 @@ const addInteractionTool = new DynamicStructuredTool({
 const cancelBotTool = new DynamicStructuredTool({
     schema: z.object({ clientId: z.string().optional() }).catchall(z.any()),
     name: "cancel_bot",
-    description: "Desactiva el bot y delega a un humano. USA ESTA HERRAMIENTA cuando el cliente SE ENOJE, tenga una QUEJA COMPLEJA, REQUIERA hablar con un humano, o haga preguntas que no podés responder. NO la uses para chats personales o familiares (para eso usá 'disable_bot_for_personal_chat'). Agrega la etiqueta 'Cancelar Bot' y pausa tus respuestas. Usa JSON con 'clientId' (o 'none') y 'waId' (el teléfono del cliente).",
+    description: "Desactiva el bot y pausa tus respuestas para que un humano tome el control. Usala por cualquier motivo en el que consideres importante que interceda un humano: conversación personal, proveedor, laboratorio, cliente enojado, consulta compleja, etc. Agrega la etiqueta 'Cancelar Bot'. Usa JSON con 'clientId' (o 'none') y 'waId' (el teléfono del cliente). Si solo tenés chatId y no waId, usá 'disable_bot_for_personal_chat' en su lugar.",
     func: async (input) => JSON.stringify(await cancelBot(safeParse(input, "cancel_bot"))),
 });
 
