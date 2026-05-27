@@ -55,13 +55,38 @@ let agentPrompt = '';
 // Cache global para las imágenes en base64 de cada chat, para que los sub-agentes puedan acceder
 global.mediaCache = global.mediaCache || {};
 
-if (fs.existsSync(configPath)) {
+// Load configuration from database SystemSetting with fallback to agent_config.json
+async function loadConfig() {
     try {
-        const conf = JSON.parse(fs.readFileSync(configPath, 'utf8'));
-        agentEnabled = conf.enabled || false;
-        agentPrompt = conf.prompt || '';
+        const enabledSetting = await prisma.systemSetting.findUnique({ where: { key: 'bot_enabled' } });
+        const promptSetting = await prisma.systemSetting.findUnique({ where: { key: 'bot_prompt' } });
+        
+        if (enabledSetting) {
+            agentEnabled = enabledSetting.value === 'true';
+        } else if (fs.existsSync(configPath)) {
+            const conf = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+            agentEnabled = conf.enabled || false;
+        }
+        
+        if (promptSetting) {
+            agentPrompt = promptSetting.value || '';
+        } else if (fs.existsSync(configPath)) {
+            const conf = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+            agentPrompt = conf.prompt || '';
+        }
+        
+        console.log(`🤖 Bot configuration loaded from DB. Enabled: ${agentEnabled}, Prompt length: ${agentPrompt.length}`);
     } catch (e) {
-        console.error("Error reading agent config:", e);
+        console.error("❌ Error loading configuration from DB, falling back to file:", e);
+        if (fs.existsSync(configPath)) {
+            try {
+                const conf = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+                agentEnabled = conf.enabled || false;
+                agentPrompt = conf.prompt || '';
+            } catch (fileErr) {
+                console.error("Error reading fallback agent config file:", fileErr);
+            }
+        }
     }
 }
 
@@ -1409,15 +1434,33 @@ app.get('/api/agent', (req, res) => {
     res.json({ enabled: agentEnabled, prompt: agentPrompt });
 });
 
-app.post('/api/agent', (req, res) => {
+app.post('/api/agent', async (req, res) => {
     const { enabled, prompt } = req.body;
     if (enabled !== undefined) agentEnabled = enabled;
     if (prompt !== undefined) agentPrompt = prompt;
     
-    fs.writeFileSync(configPath, JSON.stringify({ enabled: agentEnabled, prompt: agentPrompt }, null, 2));
+    try {
+        fs.writeFileSync(configPath, JSON.stringify({ enabled: agentEnabled, prompt: agentPrompt }, null, 2));
+        
+        if (enabled !== undefined) {
+            await prisma.systemSetting.upsert({
+                where: { key: 'bot_enabled' },
+                update: { value: String(agentEnabled) },
+                create: { key: 'bot_enabled', value: String(agentEnabled) }
+            });
+        }
+        if (prompt !== undefined) {
+            await prisma.systemSetting.upsert({
+                where: { key: 'bot_prompt' },
+                update: { value: agentPrompt },
+                create: { key: 'bot_prompt', value: agentPrompt }
+            });
+        }
+    } catch (e) {
+        console.error("❌ Error persisting config to database:", e);
+    }
     
     io.emit('bot_status', { agentEnabled, prompt: agentPrompt });
-    
     res.json({ enabled: agentEnabled, prompt: agentPrompt });
 });
 
@@ -1649,6 +1692,9 @@ app.post('/api/test/chat', async (req, res) => {
 const PORT = process.env.PORT || 3100;
 server.listen(PORT, '0.0.0.0', async () => {
     console.log(`🚀 WA-Service (WhatsApp + Bot Multi-Agente) on port ${PORT}`);
+    
+    // Load config from DB on startup
+    await loadConfig();
     
     // Programar recordatorios por inactividad cada 15 minutos
     setInterval(() => {
