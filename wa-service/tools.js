@@ -67,19 +67,7 @@ async function detectContactSourceFromChat(chatId) {
 
     const text = firstMessage.content.toLowerCase();
 
-    // 1. Meta (Instagram, Facebook, Anuncio, Publicidad)
-    if (
-        text.includes('instagram') ||
-        text.includes('facebook') ||
-        text.includes('anuncio') ||
-        text.includes('publicidad') ||
-        text.includes('vi esto en') ||
-        text.includes('ad')
-    ) {
-        return 'Meta';
-    }
-
-    // 2. Google (Google, Maps, Búsqueda)
+    // 1. Google (Google, Maps, Búsqueda)
     if (
         text.includes('google') ||
         text.includes('maps') ||
@@ -87,6 +75,18 @@ async function detectContactSourceFromChat(chatId) {
         text.includes('búsqueda')
     ) {
         return 'Google Ads';
+    }
+
+    // 2. Meta (Instagram, Facebook, Anuncio, Publicidad, Ads)
+    if (
+        text.includes('instagram') ||
+        text.includes('facebook') ||
+        text.includes('anuncio') ||
+        text.includes('publicidad') ||
+        text.includes('vi esto en') ||
+        /\bads?\b/i.test(text)
+    ) {
+        return 'Meta';
     }
 
     // 3. Referido (Recomendó, Amiga, Amigo, etc.)
