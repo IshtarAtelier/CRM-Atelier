@@ -3,7 +3,7 @@ import { writeFile, mkdir } from 'fs/promises';
 import path from 'path';
 import { uploadFile } from '@/lib/storage';
 
-const ALLOWED_EXTENSIONS = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'pdf', 'ogg', 'mp3', 'oga', 'wav', 'mp4', 'm4a'];
+const BLOCKED_EXTENSIONS = ['exe', 'sh', 'bat', 'cmd', 'ps1', 'php', 'pl', 'py', 'js', 'html', 'htm'];
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
 export async function POST(request: Request) {
@@ -20,11 +20,11 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'El archivo excede el tamaño máximo de 10MB' }, { status: 400 });
         }
 
-        // Validate file extension
+        // Validate file extension (Blacklist approach for maximum stability)
         const ext = (file.name.split('.').pop() || '').toLowerCase();
-        if (!ALLOWED_EXTENSIONS.includes(ext)) {
+        if (BLOCKED_EXTENSIONS.includes(ext)) {
             return NextResponse.json({
-                error: `Tipo de archivo no permitido. Extensiones válidas: ${ALLOWED_EXTENSIONS.join(', ')}`
+                error: `Tipo de archivo no seguro. No se permiten archivos ejecutables o scripts.`
             }, { status: 400 });
         }
 
