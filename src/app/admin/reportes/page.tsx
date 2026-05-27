@@ -10,6 +10,7 @@ import {
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import DoctorCommissions from '@/components/DoctorCommissions';
+import { METHOD_LABELS } from '@/lib/constants';
 
 // ── Types ─────────────────────────────────────
 
@@ -98,26 +99,7 @@ const FIXED_COST_CATEGORIES = [
     { id: 'OTRO', label: 'Otro' },
 ];
 
-const METHOD_LABELS: Record<string, string> = {
-    CASH: 'Efectivo',
-    EFECTIVO: 'Efectivo',
-    DEBIT: 'Débito',
-    CREDIT: 'Crédito (1 pago)',
-    CREDIT_3: '3 Cuotas S/I',
-    CREDIT_6: '6 Cuotas S/I',
-    PLAN_Z: 'Plan Z',
-    TRANSFER: 'Transferencia',
-    TRANSFERENCIA_ISHTAR: 'Transf. Ishtar',
-    TRANSFERENCIA_LUCIA: 'Transf. Lucía',
-    PAY_WAY_3_ISH: 'PayWay 3c Ish',
-    PAY_WAY_3_YANI: 'PayWay 3c Yani',
-    PAY_WAY_6_ISH: 'PayWay 6c Ish',
-    PAY_WAY_6_YANI: 'PayWay 6c Yani',
-    NARANJA_Z_ISH: 'Naranja Z Ish',
-    NARANJA_Z_YANI: 'Naranja Z Yani',
-    GO_CUOTAS: 'Go Cuotas',
-    GO_CUOTAS_ISH: 'Go Cuotas Ish',
-};
+
 
 // ── Helpers ────────────────────────────────────
 

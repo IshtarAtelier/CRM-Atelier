@@ -1,12 +1,12 @@
 import { NextResponse } from 'next/server';
 
-import { WA_SERVER_URL } from '@/lib/wa-config';
+import { fetchWa } from '@/lib/wa-config';
 
 // POST /api/whatsapp/notify — notificar estado de pedido
 export async function POST(request: Request) {
     try {
         const body = await request.json();
-        const res = await fetch(`${WA_SERVER_URL}/api/notify-order`, {
+        const res = await fetchWa('/api/notify-order', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(body),

@@ -123,7 +123,7 @@ export default function NuestroLocalPage() {
                 <div>
                   <p className="text-[10px] font-black uppercase tracking-widest text-stone-400 mb-1">Horarios</p>
                   <p className="text-sm font-medium text-stone-800">Lunes a Viernes</p>
-                  <p className="text-sm text-stone-500">9:30 a 13:30 · 16:30 a 20:30</p>
+                  <p className="text-sm text-stone-500">9:00 a 13:30 · 16:00 a 19:30</p>
                   <p className="text-sm font-medium text-stone-800 mt-1">Sábados</p>
                   <p className="text-sm text-stone-500">10:00 a 14:00</p>
                 </div>

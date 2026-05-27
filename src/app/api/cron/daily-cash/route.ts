@@ -78,7 +78,7 @@ export async function GET(request: Request) {
             </html>
         `;
 
-        const emailTo = 'Pisano.ishtar@gmail.com';
+        const emailTo = process.env.ADMIN_EMAIL || 'Pisano.ishtar@gmail.com';
         const emailSubject = `Caja Efectivo - ${dateStr} - Atelier Óptica`;
         const emailText = `Atelier Óptica\nEstado de Caja Efectivo al Comienzo del Día\nFecha: ${dateStr}\nTotal: $${balance.total.toLocaleString('es-AR')}`;
 

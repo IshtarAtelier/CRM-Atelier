@@ -1,4 +1,4 @@
-import { WA_SERVER_URL } from '@/lib/wa-config';
+import { fetchWa } from '@/lib/wa-config';
 
 export class GoogleContactsService {
     /**
@@ -8,7 +8,7 @@ export class GoogleContactsService {
     public static async syncClient(clientData: { name: string; phone?: string | null; email?: string | null }) {
         try {
             // 1. Obtener el número del bot conectado
-            const statusRes = await fetch(`${WA_SERVER_URL}/api/status`);
+            const statusRes = await fetchWa('/api/status');
             if (!statusRes.ok) return;
             const status = await statusRes.json();
             
@@ -33,7 +33,7 @@ END:VCARD`;
             const base64Vcard = Buffer.from(vcard).toString('base64');
 
             // 3. Enviar a sí mismo
-            await fetch(`${WA_SERVER_URL}/api/send`, {
+            await fetchWa('/api/send', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -43,7 +43,7 @@ END:VCARD`;
             });
 
             // Enviar el archivo VCF separado
-            await fetch(`${WA_SERVER_URL}/api/send`, {
+            await fetchWa('/api/send', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({

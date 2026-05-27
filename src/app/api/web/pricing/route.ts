@@ -11,9 +11,20 @@ export async function GET() {
             where: { category: 'Cristal' }
         });
 
+        // Fetch extra treatments
+        const treatments = await prisma.product.findMany({
+            where: { category: 'Tratamientos y Accesorios' }
+        });
+
         if (!crystals || crystals.length === 0) {
             return NextResponse.json({ error: 'No se encontraron cristales' }, { status: 404 });
         }
+
+        const findTintPrice = () => {
+            const tintProduct = treatments.find(p => p.name?.toLowerCase() === 'teñido' || p.name?.toLowerCase() === 'tenido');
+            if (tintProduct && tintProduct.price) return tintProduct.price;
+            return CrystalMapping.EXTRAS.TINT; // fallback to hardcoded if deleted
+        };
 
         // Helper function to find minimum price matching config
         const findPrice = (config: any) => {
@@ -67,7 +78,7 @@ export async function GET() {
                 FOTOCROMATICO: findPrice(CrystalMapping.MULTIFOCAL.FOTOCROMATICO),
             },
             EXTRAS: {
-                TINT: CrystalMapping.EXTRAS.TINT
+                TINT: findTintPrice()
             }
         };
 

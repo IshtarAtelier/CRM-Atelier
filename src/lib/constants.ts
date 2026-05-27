@@ -39,3 +39,25 @@ export const DOCTOR_COMMISSION_RATE = 0.15; // 15%
 // ISH POSNET Threshold Monitoring
 export const ISH_POSNET_THRESHOLD = 8500000;
 export const ISH_POSNET_METHODS = ['PAY_WAY_6_ISH', 'PAY_WAY_3_ISH', 'NARANJA_Z_ISH'];
+
+// Human-readable labels for payment methods (single source of truth)
+export const METHOD_LABELS: Record<string, string> = {
+    CASH: 'Efectivo',
+    EFECTIVO: 'Efectivo',
+    DEBIT: 'Débito',
+    CREDIT: 'Crédito (1 pago)',
+    CREDIT_3: '3 Cuotas S/I',
+    CREDIT_6: '6 Cuotas S/I',
+    PLAN_Z: 'Plan Z',
+    TRANSFER: 'Transferencia',
+    TRANSFERENCIA_ISHTAR: 'Transf. Ishtar',
+    TRANSFERENCIA_LUCIA: 'Transf. Lucía',
+    PAY_WAY_3_ISH: 'PayWay 3c Ish',
+    PAY_WAY_3_YANI: 'PayWay 3c Yani',
+    PAY_WAY_6_ISH: 'PayWay 6c Ish',
+    PAY_WAY_6_YANI: 'PayWay 6c Yani',
+    NARANJA_Z_ISH: 'Naranja Z Ish',
+    NARANJA_Z_YANI: 'Naranja Z Yani',
+    GO_CUOTAS: 'Go Cuotas',
+    GO_CUOTAS_ISH: 'Go Cuotas Ish',
+};

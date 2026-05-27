@@ -1,7 +1,7 @@
 import { prisma } from '@/lib/db';
 import { ChatVertexAI } from "@langchain/google-vertexai-web";
 import { SystemMessage, HumanMessage } from "@langchain/core/messages";
-import { WA_SERVER_URL } from '@/lib/wa-config';
+import { fetchWa } from '@/lib/wa-config';
 import { PricingService } from './PricingService';
 
 export class BotService {
@@ -148,7 +148,7 @@ export class BotService {
             message += `\n_La óptica mejor calificada en Google Business 5/5_`;
 
             // Send via internal WA server proxy
-            const res = await fetch(`${WA_SERVER_URL}/api/send`, {
+            const res = await fetchWa('/api/send', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ 

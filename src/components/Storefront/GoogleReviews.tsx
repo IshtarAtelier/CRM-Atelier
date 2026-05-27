@@ -1,39 +1,9 @@
-"use client";
-
-import { useEffect, useState } from "react";
+import { getGoogleReviews } from "@/lib/googleReviews";
 import { Star, Quote, Sparkles, Check } from "lucide-react";
 
-interface Review {
-  author_name: string;
-  author_url: string;
-  profile_photo_url: string;
-  rating: number;
-  relative_time_description: string;
-  text: string;
-  time: number;
-}
-
-export function GoogleReviews() {
-  const [reviews, setReviews] = useState<Review[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    async function fetchReviews() {
-      try {
-        const res = await fetch("/api/reviews");
-        if (!res.ok) throw new Error("Error cargando reseñas");
-        const data = await res.json();
-        setReviews(data.reviews || []);
-      } catch (err: any) {
-        setError(err.message);
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    fetchReviews();
-  }, []);
+export async function GoogleReviews() {
+  const data = await getGoogleReviews();
+  const reviews = data.reviews || [];
 
   const getInitials = (name: string) => {
     if (!name) return "";
@@ -45,18 +15,7 @@ export function GoogleReviews() {
       .toUpperCase();
   };
 
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center py-24 bg-[#faf8f5]">
-        <div className="relative flex items-center justify-center">
-          <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-primary"></div>
-          <div className="absolute w-4 h-4 bg-primary/20 rounded-full animate-ping"></div>
-        </div>
-      </div>
-    );
-  }
-
-  if (error || reviews.length === 0) {
+  if (reviews.length === 0) {
     return null; // Fallback silencioso si no hay reseñas
   }
 
@@ -119,7 +78,7 @@ export function GoogleReviews() {
 
         {/* REVIEWS GRID CON MEJOR EFECTO 3D/HOVER */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 lg:gap-10">
-          {reviews.slice(0, 3).map((review, i) => (
+          {reviews.slice(0, 3).map((review: any, i: number) => (
             <div 
               key={i} 
               className={`bg-white p-8 md:p-10 rounded-[2.5rem] border transition-all duration-500 flex flex-col justify-between relative group hover:-translate-y-3
@@ -205,4 +164,5 @@ export function GoogleReviews() {
     </div>
   );
 }
+
 

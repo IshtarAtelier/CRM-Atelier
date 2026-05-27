@@ -294,7 +294,7 @@ export const ContactService = {
                 // Enviar correo de alerta al admin
                 import('@/lib/email').then(({ sendEmail }) => {
                     sendEmail({
-                        to: 'pisano.ishtar@gmail.com',
+                        to: process.env.ADMIN_EMAIL || 'pisano.ishtar@gmail.com',
                         subject: '⚠️ Alerta de Cierre: Venta con Datos Faltantes',
                         text: warningMsg
                     });
@@ -737,7 +737,7 @@ export const ContactService = {
 
                     import('@/lib/email').then(({ sendEmail }) => {
                         sendEmail({
-                            to: 'pisano.ishtar@gmail.com',
+                            to: process.env.ADMIN_EMAIL || 'pisano.ishtar@gmail.com',
                             subject: '⚠️ Alerta de Referencia Duplicada',
                             text: warningMsg
                         });
@@ -773,7 +773,7 @@ export const ContactService = {
 
                     import('@/lib/email').then(({ sendEmail }) => {
                         sendEmail({
-                            to: 'pisano.ishtar@gmail.com',
+                            to: process.env.ADMIN_EMAIL || 'pisano.ishtar@gmail.com',
                             subject: '🚨 Alerta: Comprobante ya utilizado',
                             text: warningMsg
                         });

@@ -2,7 +2,7 @@ import Parser from 'rss-parser';
 import { ChatVertexAI } from "@langchain/google-vertexai-web";
 import { SystemMessage, HumanMessage } from "@langchain/core/messages";
 import { prisma } from '@/lib/db';
-import { WA_SERVER_URL } from '@/lib/wa-config';
+import { fetchWa } from '@/lib/wa-config';
 
 const parser = new Parser();
 
@@ -92,7 +92,7 @@ El formato de salida DEBE ser estrictamente un objeto JSON plano, sin backticks 
     const waMessage = `🤖 *Asistente Atelier (Blog IA)*\n\nHe redactado un nuevo artículo para el blog basado en noticias internacionales.\n\n*Título:* ${newPost.title}\n*Categoría:* ${newPost.category}\n\nEl artículo se ha guardado como *Borrador* en el sistema. Puedes revisarlo en el panel de administración para publicarlo.`;
 
     if (adminPhone) {
-      await fetch(`${WA_SERVER_URL}/api/send`, {
+      await fetchWa('/api/send', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

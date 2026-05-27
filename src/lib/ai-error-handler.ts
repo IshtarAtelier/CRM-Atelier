@@ -1,5 +1,5 @@
 import { sendEmail } from '@/lib/email';
-import { WA_SERVER_URL } from '@/lib/wa-config';
+import { fetchWa } from '@/lib/wa-config';
 
 /**
  * Global handler for AI processes to gracefully catch and alert on Quota/429 errors.
@@ -39,7 +39,7 @@ export async function handleAIError(error: any, context: string) {
         const adminPhone = process.env.ADMIN_PHONE;
         if (adminPhone) {
             try {
-                await fetch(`${WA_SERVER_URL}/api/send`, {
+                await fetchWa('/api/send', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({

@@ -1,14 +1,13 @@
-"use client";
-
 import Link from "next/link";
-import Image from "next/image";
-import { motion, useScroll, useTransform } from "framer-motion";
-import { useRef, useState, useEffect } from "react";
 import { StorefrontNavbar } from "@/components/Storefront/StorefrontNavbar";
 import { StorefrontFooter } from "@/components/Storefront/StorefrontFooter";
 import { FloatingWhatsApp } from "@/components/Storefront/FloatingWhatsApp";
 import { FilmmakerReel } from "@/components/Storefront/FilmmakerReel";
 import { GoogleReviews } from "@/components/Storefront/GoogleReviews";
+import { HomeProductCarousel } from "@/components/Storefront/HomeProductCarousel";
+import { HomeConfiguratorSection } from "@/components/Storefront/HomeConfiguratorSection";
+import { HomeMacroFilm } from "@/components/Storefront/HomeMacroFilm";
+import { prisma } from "@/lib/db";
 
 // ==========================================
 // ATELIER ÓPTICA — GENTLE MONSTER REPLICA
@@ -24,99 +23,41 @@ const PRODUCTS = [
   { id: 5, name: "Cima Dreamy(CRL)", price: "$ 58.000", img: "/images/products/cima-dreamy.png", slug: "atelier-carey-vintage" },
 ];
 
-export default function Home() {
-  const containerRef = useRef(null);
-  const carouselRef = useRef<HTMLDivElement>(null);
-  const { scrollYProgress } = useScroll();
-  const heroScale = useTransform(scrollYProgress, [0, 0.25], [1.05, 1]);
+export default async function Home() {
+  // 1. Server-Side Data Fetching (Reemplaza el antiguo useEffect)
+  const dbProducts = await prisma.product.findMany({
+    where: {
+      publishToWeb: true,
+      category: { not: 'Cristal' } // No mostramos cristales sueltos en el catálogo principal
+    },
+    select: {
+      id: true,
+      name: true,
+      brand: true,
+      model: true,
+      price: true,
+      imagenesCatalogo: true,
+    },
+    orderBy: { createdAt: 'desc' },
+    take: 40
+  });
 
-  const [dbProducts, setDbProducts] = useState<any[]>([]);
-
-  useEffect(() => {
-    fetch('/api/store/products')
-      .then(res => res.json())
-      .then(data => {
-        if (Array.isArray(data)) {
-          setDbProducts(data);
-        }
-      })
-      .catch(console.error);
-  }, []);
-
-  // Hybrid Marquee Logic
-  useEffect(() => {
-    const container = carouselRef.current;
-    if (!container) return;
-
-    let animationId: number;
-    let isInteracting = false;
-
-    const onInteract = () => { isInteracting = true; };
-    const onStopInteract = () => { isInteracting = false; };
-
-    container.addEventListener('touchstart', onInteract, { passive: true });
-    container.addEventListener('touchend', onStopInteract, { passive: true });
-    container.addEventListener('mousedown', onInteract, { passive: true });
-    container.addEventListener('mouseup', onStopInteract, { passive: true });
-    container.addEventListener('mouseleave', onStopInteract, { passive: true });
-
-    let wheelTimeout: any;
-    const onWheel = () => {
-      isInteracting = true;
-      clearTimeout(wheelTimeout);
-      wheelTimeout = setTimeout(() => {
-        isInteracting = false;
-      }, 500);
-    };
-    container.addEventListener('wheel', onWheel, { passive: true });
-
-    let scrollAccumulator = 0;
-    const scroll = () => {
-      if (!isInteracting) {
-        scrollAccumulator += 1; // 1 pixel per frame (approx 60px/s)
-        if (scrollAccumulator >= 1) {
-          const shift = Math.floor(scrollAccumulator);
-          container.scrollLeft += shift;
-          scrollAccumulator -= shift;
-          
-          if (container.scrollLeft >= container.scrollWidth / 2) {
-            container.scrollLeft -= container.scrollWidth / 2;
-          }
-        }
-      }
-      animationId = requestAnimationFrame(scroll);
-    };
-
-    animationId = requestAnimationFrame(scroll);
-
-    return () => {
-      cancelAnimationFrame(animationId);
-      container.removeEventListener('touchstart', onInteract);
-      container.removeEventListener('touchend', onStopInteract);
-      container.removeEventListener('mousedown', onInteract);
-      container.removeEventListener('mouseup', onStopInteract);
-      container.removeEventListener('mouseleave', onStopInteract);
-      container.removeEventListener('wheel', onWheel);
-      clearTimeout(wheelTimeout);
-    };
-  }, [dbProducts]);
-
-  // Filtramos solo los productos que tengan imagen y estén listos para la web (o al menos tengan imagen)
+  // Filtramos solo los productos que tengan imagen
   const validWebProducts = dbProducts.filter(p => p.imagenesCatalogo && p.imagenesCatalogo.length > 0);
 
-  // Si no hay productos reales con foto aún, usamos los de prueba para no dejar la web vacía
+  // Formateamos los productos para el carrusel
   const displayProducts = validWebProducts.length > 0 
     ? validWebProducts.map(p => ({
         id: p.id,
         name: `${p.brand} ${p.model}`,
         price: `$ ${p.price?.toLocaleString()}`,
         img: `/api/storage/view?key=${encodeURIComponent(p.imagenesCatalogo[0])}`,
-        slug: p.id
+        slug: p.id.toString()
       }))
     : PRODUCTS;
 
   return (
-    <div ref={containerRef} className="bg-white text-black selection:bg-black selection:text-white overflow-x-hidden" style={{ fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif" }}>
+    <div className="bg-white text-black selection:bg-black selection:text-white overflow-x-hidden" style={{ fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif" }}>
       
       {/* ═══════════════════════════════════════════════ */}
       {/* NAV — Replica exacta de Gentle Monster          */}
@@ -159,7 +100,6 @@ export default function Home() {
       {/* LATEST — Título + Catálogo horizontal scroll    */}
       {/* ═══════════════════════════════════════════════ */}
       <section className="w-full bg-white pt-16 pb-8">
-        {/* Título */}
         <div className="px-5 mb-2">
           <h2 className="text-[13px] font-bold tracking-normal uppercase">
             LATEST: ATELIER&apos;S NEW ARRIVAL
@@ -170,127 +110,21 @@ export default function Home() {
         </div>
       </section>
 
-
-      {/* ═══════════════════════════════════════════════ */}
-      {/* PRODUCT GRID — Scroll horizontal como GM        */}
-      {/* Fondo blanco, productos con MUCHO aire           */}
-      {/* Nombre y precio debajo, tipografía pequeña       */}
-      {/* ═══════════════════════════════════════════════ */}
-      <section className="w-full bg-white pb-20">
-        <div 
-          ref={carouselRef}
-          className="flex w-full overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-        >
-          {[...displayProducts, ...displayProducts, ...displayProducts, ...displayProducts].map((item, i) => (
-            <Link 
-              href={`/producto/${item.slug}`} 
-              key={`${item.id}-${i}`} 
-              className="group flex-shrink-0 w-[45vw] md:w-[33vw] lg:w-[25vw] block transition-shadow duration-500 hover:z-10 relative bg-white hover:shadow-[0_0_40px_rgba(0,0,0,0.05)]"
-            >
-              {/* Contenedor de imagen — fondo gris muy claro */}
-              <div className="bg-[#f5f5f5] aspect-square overflow-hidden border-r border-[#e5e5e5] relative">
-                {item.img ? (
-                  <img 
-                    src={item.img}
-                    alt={item.name}
-                    className="absolute inset-0 w-full h-full object-contain p-6 mix-blend-multiply group-hover:scale-110 transition-transform duration-500 ease-out"
-                  />
-                ) : (
-                  <div className="absolute inset-0 w-full h-full flex items-center justify-center text-stone-400 text-[10px] font-black uppercase tracking-widest text-center">
-                    Sin<br/>Imagen
-                  </div>
-                )}
-              </div>
-              
-              {/* Nombre y precio — tipografía GM exacta */}
-              <div className="px-3 pt-6 pb-4 border-r border-[#e5e5e5] h-full">
-                <h3 className="text-[13px] font-medium">{item.name}</h3>
-                <p className="text-[13px] text-[#999] mt-0.5">{item.price}</p>
-              </div>
-            </Link>
-          ))}
-        </div>
-      </section>
+      {/* PRODUCT GRID — Scroll horizontal infinito en Cliente */}
+      <HomeProductCarousel products={displayProducts} />
 
       {/* ═══════════════════════════════════════════════ */}
       {/* CONFIGURADOR CTA — Nuestra diferencia vs GM     */}
       {/* ═══════════════════════════════════════════════ */}
-      <section className="w-full bg-[#f2f2f2] py-24 flex flex-col items-center justify-center text-center px-4 md:px-8 overflow-hidden">
-        <motion.h2 
-          className="text-2xl md:text-4xl font-serif uppercase tracking-tight mb-16"
-          initial={{ opacity: 0, y: 15 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8 }}
-          viewport={{ once: true }}
-        >
-          Armá tus anteojos graduados
-        </motion.h2>
-
-        <div className="w-full max-w-5xl flex flex-col md:flex-row items-center justify-between gap-12 md:gap-4 mb-16 relative">
-          {/* Línea conectora (solo Desktop) */}
-          <div className="hidden md:block absolute top-6 left-[10%] right-[10%] h-[1px] bg-black/10 z-0"></div>
-
-          {/* Línea conectora (solo Mobile) */}
-          <div className="md:hidden absolute top-0 bottom-0 left-1/2 w-[1px] bg-black/10 -translate-x-1/2 z-0"></div>
-
-          {[
-            { num: 1, title: "Elegí tu armazón", desc: "Explorá la colección" },
-            { num: 2, title: "Elegí tus cristales", desc: "A medida exacta" },
-            { num: 3, title: "Enviá tu receta", desc: "Cargala en el checkout" },
-            { num: 4, title: "Recibí tus lentes", desc: "Envío a tu hogar" }
-          ].map((step, i) => (
-            <motion.div 
-              key={step.num}
-              className="flex flex-col items-center relative z-10 bg-[#f2f2f2] px-4"
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.15 + 0.2, duration: 0.6 }}
-              viewport={{ once: true }}
-            >
-              <div className={`w-12 h-12 rounded-full flex items-center justify-center text-xs font-bold mb-4 shadow-sm transition-all duration-500 ${step.num === 1 ? 'bg-black text-white' : 'bg-white border border-black/10 text-black'}`}>
-                {step.num}
-              </div>
-              <h3 className="text-[11px] font-bold uppercase tracking-widest mb-1.5">{step.title}</h3>
-              <p className="text-[9px] text-[#999] uppercase tracking-[0.2em]">{step.desc}</p>
-            </motion.div>
-          ))}
-        </div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 15 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.8, duration: 0.5 }}
-          viewport={{ once: true }}
-        >
-          <Link 
-            href="/arma-tus-lentes" 
-            className="px-10 py-4 text-[11px] font-bold uppercase tracking-[0.2em] text-white bg-black border border-black rounded-full hover:bg-transparent hover:text-black transition-all duration-300 inline-block"
-          >
-            Comenzar ahora
-          </Link>
-        </motion.div>
-      </section>
+      <HomeConfiguratorSection />
 
       {/* ═══════════════════════════════════════════════ */}
       {/* CINEMATIC MACRO FILM LOOP (HOME)                */}
       {/* ═══════════════════════════════════════════════ */}
-      <section className="w-full h-screen relative overflow-hidden bg-[#111]">
-        <motion.div
-          animate={{ scale: [1.0, 1.15, 1.0], x: ['0%', '-2%', '0%'], y: ['0%', '1%', '0%'] }}
-          transition={{ duration: 30, ease: "linear", repeat: Infinity }}
-          className="absolute inset-0 w-[110%] h-[110%] -left-[5%] -top-[5%]"
-        >
-          <img src="/images/atelier-macro-film.png" alt="Atelier Macro Detail" className="w-full h-full object-cover opacity-90" />
-        </motion.div>
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent flex items-end p-8 md:p-12">
-          <p className="text-white/90 text-[10px] md:text-[12px] uppercase tracking-[0.4em] font-medium mix-blend-overlay">Atelier Óptica — Detalles</p>
-        </div>
-      </section>
-
-
+      <HomeMacroFilm />
 
       {/* ═══════════════════════════════════════════════ */}
-      {/* GOOGLE REVIEWS (REAL TIME)                      */}
+      {/* GOOGLE REVIEWS (REAL TIME - Server Component)   */}
       {/* ═══════════════════════════════════════════════ */}
       <GoogleReviews />
 

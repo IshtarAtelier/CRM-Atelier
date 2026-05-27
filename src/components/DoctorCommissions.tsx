@@ -46,15 +46,7 @@ interface CommissionData {
     doctorPayments: DoctorPayment[];
 }
 
-const METHOD_LABELS: Record<string, string> = {
-    CASH: 'Efectivo',
-    DEBIT: 'Débito',
-    CREDIT: 'Crédito',
-    CREDIT_3: '3 Cuotas',
-    CREDIT_6: '6 Cuotas',
-    PLAN_Z: 'Plan Z',
-    TRANSFER: 'Transferencia',
-};
+import { METHOD_LABELS } from '@/lib/constants';
 
 export default function DoctorCommissions() {
     const [doctors, setDoctors] = useState<Doctor[]>([]);

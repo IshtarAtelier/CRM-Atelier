@@ -47,7 +47,7 @@ const QUICK_REPLIES = [
     { label: 'Receta', text: '¿Me podés compartir tu receta óptica para ayudarte mejor?' },
     { label: 'Turno', text: '¿Querés coordinar un turno para una consulta en el local? 📍' },
     { label: 'Dirección', text: '📍 Nos encontrás en Tejeda 4380, Córdoba.' },
-    { label: 'Horario', text: 'Atendemos de lunes a viernes de 9 a 18hs.' },
+    { label: 'Horario', text: 'Atendemos de Lunes a Viernes de 9 a 13:30 y de 16 a 19:30hs. Sábados de 10 a 14hs.' },
     { label: 'Listo para retirar', text: '🎉 ¡Tu pedido está listo para retirar!' },
     { label: 'Pago pendiente', text: 'Te recuerdo que quedó pendiente el saldo restante. ¿Cuándo te viene bien coordinar el pago?' },
 ];
@@ -1130,6 +1130,27 @@ export default function WhatsAppPage() {
                                                                 title={(chat.chatLabels || []).includes('Fijado') ? 'Desfijar' : 'Fijar'}
                                                             >
                                                                 <Pin className={`w-3.5 h-3.5 ${((chat.chatLabels || []).includes('Fijado')) ? 'fill-current' : 'rotate-45'}`} />
+                                                            </button>
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    updateChat(chat.id, { archived: !chat.archived });
+                                                                    if (selectedChat?.id === chat.id) {
+                                                                        setSelectedChat(null);
+                                                                    }
+                                                                }}
+                                                                className={`transition-all duration-200 shrink-0 ${
+                                                                    chat.archived
+                                                                        ? 'text-stone-500 dark:text-stone-400 scale-100 opacity-100 hover:scale-110'
+                                                                        : 'text-stone-300 dark:text-stone-600 hover:text-stone-500 hover:scale-110 opacity-0 group-hover/card:opacity-100'
+                                                                }`}
+                                                                title={chat.archived ? 'Desarchivar' : 'Archivar'}
+                                                            >
+                                                                {chat.archived ? (
+                                                                    <ArchiveRestore className="w-3.5 h-3.5" />
+                                                                ) : (
+                                                                    <Archive className="w-3.5 h-3.5" />
+                                                                )}
                                                             </button>
                                                             <span className="truncate">{getDisplayName(chat)}</span>
                                                         </span>

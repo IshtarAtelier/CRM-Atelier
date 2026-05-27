@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server';
-import { WA_SERVER_URL } from '@/lib/wa-config';
+import { fetchWa } from '@/lib/wa-config';
 
 export const dynamic = 'force-dynamic';
 
 export async function POST() {
     try {
-        const res = await fetch(`${WA_SERVER_URL}/api/sync`, { method: 'POST', cache: 'no-store' });
+        const res = await fetchWa('/api/sync', { method: 'POST', cache: 'no-store' });
         const data = await res.json();
         return NextResponse.json(data);
     } catch (e: any) {

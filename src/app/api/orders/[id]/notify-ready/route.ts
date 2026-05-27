@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { WA_SERVER_URL } from '@/lib/wa-config';
+import { fetchWa } from '@/lib/wa-config';
 
 // POST /api/orders/[id]/notify-ready
 export async function POST(
@@ -45,10 +45,10 @@ export async function POST(
         } else {
             msgText += `¡Ya está todo abonado! ✅\n`;
         }
-        msgText += `\nTe esperamos de Lunes a Viernes de 9:30 a 13:30 y de 16:30 a 20:30, o Sábados de 10:00 a 14:00.`;
+        msgText += `\nTe esperamos de Lunes a Viernes de 9:00 a 13:30 y de 16:00 a 19:30, o Sábados de 10:00 a 14:00.`;
 
         // 4. Enviar usando el microservicio wa-service
-        const res = await fetch(`${WA_SERVER_URL}/api/send`, {
+        const res = await fetchWa('/api/send', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({

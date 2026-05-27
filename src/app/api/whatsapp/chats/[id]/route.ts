@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-
-const WA_URL = process.env.WA_SERVER_URL || 'http://localhost:3100';
+import { fetchWa } from '@/lib/wa-config';
 
 // PATCH /api/whatsapp/chats/[id]
 // { chatLabels?, archived?, botEnabled? }
@@ -10,7 +9,7 @@ export async function PATCH(
 ) {
     const { id } = await params;
     const body = await req.json();
-    const res = await fetch(`${WA_URL}/api/chats/${id}`, {
+    const res = await fetchWa(`/api/chats/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),

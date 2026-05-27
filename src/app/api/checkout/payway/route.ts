@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { sendOrderConfirmationEmail } from '@/lib/services/email-service';
+import { sendEmail } from '@/lib/email';
 
 export async function POST(req: Request) {
   try {
@@ -63,31 +63,61 @@ export async function POST(req: Request) {
 
     console.log("[PAYWAY CHECKOUT] Ficha de venta creada en CRM:", order.id);
 
-    // 4. Enviar email de confirmación (asincrónico)
+    // 4. Enviar email de confirmación (asincrónico, usando sendEmail centralizado)
     const isTransfer = customer.paymentMethod === 'TRANSFER';
     const emailTotal = isTransfer ? total * 0.85 : total;
+    const hasCrystals = items.some((item: any) => item.lensConfig?.lensType && item.lensConfig.lensType !== "NONE");
+    const whatsappPhone = process.env.NEXT_PUBLIC_WHATSAPP_PHONE || '5493541215971';
     
+    const itemsHtml = items.map((item: any) => `
+      <tr>
+        <td style="padding: 15px 0; border-bottom: 1px solid #eeeeee;">
+          <p style="margin: 0; font-size: 14px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; color: #333;">${item.brand || 'ATELIER'}</p>
+          <p style="margin: 5px 0 0; font-size: 16px; color: #000;">${item.model}</p>
+          ${item.lensConfig ? `<p style="margin: 5px 0 0; font-size: 12px; color: #666;">Cristales: ${item.lensConfig.lensType} - ${item.lensConfig.treatment}</p>` : ''}
+        </td>
+        <td style="padding: 15px 0; border-bottom: 1px solid #eeeeee; text-align: right; font-size: 14px;">
+          $${(item.price * item.quantity).toLocaleString("es-AR")}
+        </td>
+      </tr>
+    `).join('');
+
+    const confirmationHtml = `
+      <div style="font-family: 'Inter', Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 40px; border: 1px solid #e5e5e5;">
+        <h1 style="font-size: 32px; text-align: center; border-bottom: 2px solid #000; padding-bottom: 20px;">ATELIER ÓPTICA</h1>
+        <h2 style="font-size: 18px; font-weight: normal; margin-top: 30px;">Hola ${customer.firstName},</h2>
+        <p>Gracias por elegir a Atelier Óptica. Hemos recibido tu pedido con el número de orden <strong>#${order.id}</strong>.</p>
+        <table width="100%" cellpadding="0" cellspacing="0">${itemsHtml}</table>
+        <p style="text-align: right; font-weight: bold; font-size: 16px; margin-top: 20px;">Total: $${emailTotal.toLocaleString("es-AR")}</p>
+        <div style="background: #f9f9f9; border-left: 4px solid #000; padding: 15px; margin: 20px 0;">
+          <strong>Tiempo de entrega estimado:</strong><br/>
+          ${hasCrystals ? '7 a 10 días hábiles por trabajo de laboratorio.' : 'Despacho rápido dentro de las 24/48hs hábiles.'}
+        </div>
+        <p style="text-align: center; color: #666; font-size: 12px; margin-top: 30px; border-top: 1px solid #eee; padding-top: 20px;">
+          Atelier Óptica - Cerro de las Rosas, Córdoba.<br/>
+          WhatsApp: <a href="https://wa.me/${whatsappPhone}">${whatsappPhone}</a>
+        </p>
+      </div>
+    `;
+
     // No usamos await acá para no demorar la respuesta de la API al cliente web
-    sendOrderConfirmationEmail({
-      orderId: order.id,
-      customerName: customer.firstName,
-      items: items,
-      total: emailTotal,
-      isTransfer: isTransfer
-    }, customer.email).catch(err => console.error("Error trigger email:", err));
+    sendEmail({
+      to: customer.email,
+      subject: `Confirmación de Orden #${order.id} - Atelier Óptica`,
+      html: confirmationHtml
+    }).catch(err => console.error("Error confirmation email:", err));
 
     // Email de notificación al administrador
-    import('@/lib/email').then(({ sendEmail }) => {
-      sendEmail({
-        to: 'pisano.ishtar@gmail.com',
-        subject: `🛒 Nueva Compra Web - $${emailTotal.toLocaleString('es-AR')}`,
-        text: `Se ha registrado una nueva venta en la web.\n\n` +
-              `Cliente: ${customer.firstName} ${customer.lastName} (${customer.email})\n` +
-              `Total: $${emailTotal.toLocaleString('es-AR')} (${isTransfer ? 'Transferencia' : 'Tarjeta'})\n` +
-              `Items: ${items.length} producto(s)\n\n` +
-              `Ingresá al CRM para ver el detalle de la Ficha #${order.id.slice(-4).toUpperCase()}`
-      }).catch(err => console.error("Error admin email:", err));
-    });
+    const adminEmail = process.env.ADMIN_EMAIL || 'pisano.ishtar@gmail.com';
+    sendEmail({
+      to: adminEmail,
+      subject: `🛒 Nueva Compra Web - $${emailTotal.toLocaleString('es-AR')}`,
+      text: `Se ha registrado una nueva venta en la web.\n\n` +
+            `Cliente: ${customer.firstName} ${customer.lastName} (${customer.email})\n` +
+            `Total: $${emailTotal.toLocaleString('es-AR')} (${isTransfer ? 'Transferencia' : 'Tarjeta'})\n` +
+            `Items: ${items.length} producto(s)\n\n` +
+            `Ingresá al CRM para ver el detalle de la Ficha #${order.id.slice(-4).toUpperCase()}`
+    }).catch(err => console.error("Error admin email:", err));
 
     // Función para descontar stock (ignorando cristales a medida o productos sin ID válido)
     const decrementStock = async () => {

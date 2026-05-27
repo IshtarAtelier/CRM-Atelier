@@ -4,26 +4,7 @@ import { sendEmail } from '@/lib/email';
 
 export const dynamic = 'force-dynamic';
 
-const METHOD_LABELS: Record<string, string> = {
-    CASH: 'Efectivo',
-    EFECTIVO: 'Efectivo',
-    DEBIT: 'Débito',
-    CREDIT: 'Crédito (1 pago)',
-    CREDIT_3: '3 Cuotas S/I',
-    CREDIT_6: '6 Cuotas S/I',
-    PLAN_Z: 'Plan Z',
-    TRANSFER: 'Transferencia',
-    TRANSFERENCIA_ISHTAR: 'Transf. Ishtar',
-    TRANSFERENCIA_LUCIA: 'Transf. Lucía',
-    PAY_WAY_3_ISH: 'PayWay 3c Ish',
-    PAY_WAY_3_YANI: 'PayWay 3c Yani',
-    PAY_WAY_6_ISH: 'PayWay 6c Ish',
-    PAY_WAY_6_YANI: 'PayWay 6c Yani',
-    NARANJA_Z_ISH: 'Naranja Z Ish',
-    NARANJA_Z_YANI: 'Naranja Z Yani',
-    GO_CUOTAS: 'Go Cuotas',
-    GO_CUOTAS_ISH: 'Go Cuotas Ish',
-};
+import { METHOD_LABELS } from '@/lib/constants';
 
 function getAccountName(method: string): string {
     if (['PAY_WAY_6_ISH', 'PAY_WAY_3_ISH', 'NARANJA_Z_ISH', 'GO_CUOTAS_ISH', 'TRANSFERENCIA_ISHTAR'].includes(method)) {
@@ -304,7 +285,7 @@ export async function GET(request: Request) {
         `;
 
         // Send Email
-        const emailTo = 'Pisano.ishtar@gmail.com';
+        const emailTo = process.env.ADMIN_EMAIL || 'Pisano.ishtar@gmail.com';
         const emailSubject = `Reporte de Cobros: ${periodStr} - Atelier Óptica`;
         const emailText = `Reporte de Cobros Atelier Óptica\nPeriodo: ${periodStr}\nTotal General: $${grandTotal.toLocaleString('es-AR')}\n\nRevisá el formato HTML en tu cliente de correo.`;
 

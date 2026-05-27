@@ -24,6 +24,7 @@ export function LensConfigurator({ basePrice, productId, category, onColorChange
   const [lensType, setLensType] = useState<LensType>(null);
   const [treatment, setTreatment] = useState<Treatment>(null);
   const [tintColor, setTintColor] = useState<string | null>(null);
+  const [tintStyle, setTintStyle] = useState<"COMPACTO" | "DEGRADÉ" | "SEGÚN MUESTRA" | null>(null);
   const [prescriptionFile, setPrescriptionFile] = useState<File | null>(null);
   const [dynamicPricing, setDynamicPricing] = useState<any>(null);
   const { addItem, updateItemLensConfig } = useCart();
@@ -53,27 +54,49 @@ export function LensConfigurator({ basePrice, productId, category, onColorChange
     MONOFOCAL: { ORGANICO_BLANCO: 20000, ORGANICO_AR: 45000, ORGANICO_BLUE: 68000, POLI_BLUE: 120000, ORGANICO_FOTOCROMATICO: 105000, ORGANICO_BLANCO_TENIDO: 68000 },
     BIFOCAL: { ORGANICO_BLANCO: 45000 },
     MULTIFOCAL: { SMART_FREE: 120000, VARILUX: 350000, FOTOCROMATICO: 180000 },
-    EXTRAS: { TINT: 15000 },
+    EXTRAS: { TINT: 35000 },
   };
 
   const calculateTotal = () => {
     let total = basePrice;
-    if (lensType === "MONOFOCAL" && treatment) {
-      total += PRICING.MONOFOCAL[treatment as keyof typeof PRICING.MONOFOCAL] || 0;
+    
+    if (flowType === "SUN" && tintColor && tintStyle) {
+      // SUN FLOW: All lenses are base "Organico Blanco" (or Smart Free for Multifocal) + TINT
+      if (lensType === "NONE") total += (PRICING.MONOFOCAL.ORGANICO_BLANCO || 0);
+      if (lensType === "MONOFOCAL") total += (PRICING.MONOFOCAL.ORGANICO_BLANCO || 0);
+      if (lensType === "BIFOCAL") total += (PRICING.BIFOCAL.ORGANICO_BLANCO || 0);
+      if (lensType === "MULTIFOCAL") total += (PRICING.MULTIFOCAL.SMART_FREE || 0);
+      
+      // Teñido applies to Monofocal, Bifocal, None. Free for Multifocal.
+      if (lensType !== "MULTIFOCAL" && lensType !== null) {
+        total += PRICING.EXTRAS.TINT;
+      }
+    } else {
+      // CLEAR FLOW
+      if (lensType === "MONOFOCAL" && treatment) {
+        total += PRICING.MONOFOCAL[treatment as keyof typeof PRICING.MONOFOCAL] || 0;
+      }
+      if (lensType === "BIFOCAL" && treatment) {
+        total += PRICING.BIFOCAL.ORGANICO_BLANCO;
+      }
+      if (lensType === "MULTIFOCAL" && treatment) {
+        total += PRICING.MULTIFOCAL[treatment as keyof typeof PRICING.MULTIFOCAL] || 0;
+      }
     }
-    if (lensType === "BIFOCAL" && treatment) {
-      total += PRICING.BIFOCAL.ORGANICO_BLANCO;
-    }
-    if (lensType === "MULTIFOCAL" && treatment) {
-      total += PRICING.MULTIFOCAL[treatment as keyof typeof PRICING.MULTIFOCAL] || 0;
-    }
-    if (lensType === "NONE" && treatment === "ORGANICO_BLANCO_TENIDO") {
-      total += PRICING.MONOFOCAL.ORGANICO_BLANCO_TENIDO || 0;
-    }
-    if (tintColor && treatment !== "ORGANICO_BLANCO_TENIDO") {
-      total += PRICING.EXTRAS.TINT;
-    }
+    
     return total;
+  };
+
+  const mapColorToHex = (colorName: string | null) => {
+    if (!colorName) return null;
+    if (colorName.includes("Gris")) return "#555555";
+    if (colorName.includes("Marrón")) return "#6b4c3a";
+    if (colorName.includes("Verde")) return "#2c4c3b";
+    if (colorName.includes("Rosa")) return "#d4a3a3";
+    if (colorName.includes("Amarillo")) return "#e1b854";
+    if (colorName.includes("Naranja")) return "#d6804a";
+    if (colorName.includes("Rojo")) return "#ab4040";
+    return null;
   };
 
   return (
@@ -97,7 +120,7 @@ export function LensConfigurator({ basePrice, productId, category, onColorChange
       </div>
 
       {flowType === "CLEAR" && category !== "Anteojos de Sol" && (
-        <div className="relative overflow-hidden mb-8 p-6 bg-stone-900 text-white rounded-[1rem] flex flex-col sm:flex-row items-center justify-between gap-4 cursor-pointer hover:bg-black transition-colors shadow-xl shadow-stone-900/10 group" onClick={() => { setFlowType("SUN"); setStep(1); setLensType(null); setTreatment(null); setTintColor(null); }}>
+        <div className="relative overflow-hidden mb-8 p-6 bg-stone-900 text-white rounded-[1rem] flex flex-col sm:flex-row items-center justify-between gap-4 cursor-pointer hover:bg-black transition-colors shadow-xl shadow-stone-900/10 group" onClick={() => { setFlowType("SUN"); setStep(1); setLensType(null); setTreatment(null); setTintColor(null); setTintStyle(null); }}>
           {/* Brillo móvil infinito (Shimmer) */}
           <div className="absolute inset-0 pointer-events-none bg-gradient-to-r from-transparent via-white/15 to-transparent animate-shimmer" />
           
@@ -112,7 +135,7 @@ export function LensConfigurator({ basePrice, productId, category, onColorChange
       )}
 
       {flowType === "SUN" && category !== "Anteojos de Sol" && (
-        <div className="mb-8 p-4 border border-black/10 rounded-[1rem] flex flex-col sm:flex-row items-center justify-between cursor-pointer hover:bg-black/5 transition-colors" onClick={() => { setFlowType("CLEAR"); setStep(1); setLensType(null); setTreatment(null); setTintColor(null); }}>
+        <div className="mb-8 p-4 border border-black/10 rounded-[1rem] flex flex-col sm:flex-row items-center justify-between cursor-pointer hover:bg-black/5 transition-colors" onClick={() => { setFlowType("CLEAR"); setStep(1); setLensType(null); setTreatment(null); setTintColor(null); setTintStyle(null); }}>
           <p className="text-[11px] font-bold uppercase tracking-widest text-black flex items-center gap-3"><span className="text-xl">👓</span> Volver a cristales transparentes</p>
           <span className="text-[10px] uppercase tracking-widest underline underline-offset-4 mt-2 sm:mt-0 font-bold">Cambiar</span>
         </div>
@@ -125,7 +148,7 @@ export function LensConfigurator({ basePrice, productId, category, onColorChange
           {/* PASO 1: COLOR DEL CRISTAL */}
           <motion.div animate={{ opacity: step < 1 ? 0.5 : 1 }} className="mb-8">
             {step > 1 ? (
-              <CompletedStep num="01" subtitle="Color" title={tintColor || "Elegir"} onClick={() => setStep(1)} />
+              <CompletedStep num="01" subtitle="Color" title={tintColor || "Elegir"} onClick={() => {setStep(1); setTintStyle(null); setLensType(null);}} />
             ) : (
               <>
                 <div className="mb-6">
@@ -133,34 +156,82 @@ export function LensConfigurator({ basePrice, productId, category, onColorChange
                   <p className="text-sm font-serif italic text-black">Seleccioná el tinte para proteger tu vista con estilo.</p>
                 </div>
                 <div className="flex flex-wrap gap-4 mt-6">
-                  <ColorOption color="Gris" hex="#555555" price={PRICING.EXTRAS.TINT} selected={tintColor === "Gris"} onClick={() => { setTintColor("Gris"); if (onColorChange) onColorChange("#555555"); setStep(2); }} />
-                  <ColorOption color="Marrón" hex="#6b4c3a" price={PRICING.EXTRAS.TINT} selected={tintColor === "Marrón"} onClick={() => { setTintColor("Marrón"); if (onColorChange) onColorChange("#6b4c3a"); setStep(2); }} />
-                  <ColorOption color="Verde G15" hex="#2c4c3b" price={PRICING.EXTRAS.TINT} selected={tintColor === "Verde G15"} onClick={() => { setTintColor("Verde G15"); if (onColorChange) onColorChange("#2c4c3b"); setStep(2); }} />
-                  <ColorOption color="Rosa" hex="#d4a3a3" price={PRICING.EXTRAS.TINT} selected={tintColor === "Rosa"} onClick={() => { setTintColor("Rosa"); if (onColorChange) onColorChange("#d4a3a3"); setStep(2); }} />
-                  <ColorOption color="Amarillo" hex="#e1b854" price={PRICING.EXTRAS.TINT} selected={tintColor === "Amarillo"} onClick={() => { setTintColor("Amarillo"); if (onColorChange) onColorChange("#e1b854"); setStep(2); }} />
-                  <ColorOption color="Naranja" hex="#d6804a" price={PRICING.EXTRAS.TINT} selected={tintColor === "Naranja"} onClick={() => { setTintColor("Naranja"); if (onColorChange) onColorChange("#d6804a"); setStep(2); }} />
-                  <ColorOption color="Rojo" hex="#ab4040" price={PRICING.EXTRAS.TINT} selected={tintColor === "Rojo"} onClick={() => { setTintColor("Rojo"); if (onColorChange) onColorChange("#ab4040"); setStep(2); }} />
+                  <ColorOption color="Gris" hex="#555555" selected={tintColor === "Gris"} onClick={() => { setTintColor("Gris"); if (onColorChange) onColorChange("#555555"); setStep(2); }} />
+                  <ColorOption color="Marrón" hex="#6b4c3a" selected={tintColor === "Marrón"} onClick={() => { setTintColor("Marrón"); if (onColorChange) onColorChange("#6b4c3a"); setStep(2); }} />
+                  <ColorOption color="Verde G15" hex="#2c4c3b" selected={tintColor === "Verde G15"} onClick={() => { setTintColor("Verde G15"); if (onColorChange) onColorChange("#2c4c3b"); setStep(2); }} />
+                  <ColorOption color="Rosa" hex="#d4a3a3" selected={tintColor === "Rosa"} onClick={() => { setTintColor("Rosa"); if (onColorChange) onColorChange("#d4a3a3"); setStep(2); }} />
+                  <ColorOption color="Amarillo" hex="#e1b854" selected={tintColor === "Amarillo"} onClick={() => { setTintColor("Amarillo"); if (onColorChange) onColorChange("#e1b854"); setStep(2); }} />
+                  <ColorOption color="Naranja" hex="#d6804a" selected={tintColor === "Naranja"} onClick={() => { setTintColor("Naranja"); if (onColorChange) onColorChange("#d6804a"); setStep(2); }} />
+                  <ColorOption color="Rojo" hex="#ab4040" selected={tintColor === "Rojo"} onClick={() => { setTintColor("Rojo"); if (onColorChange) onColorChange("#ab4040"); setStep(2); }} />
                 </div>
               </>
             )}
           </motion.div>
 
-          {/* PASO 2: AUMENTO (OPCIONAL) */}
+          {/* PASO 2: ESTILO DE TEÑIDO */}
           <AnimatePresence>
             {step >= 2 && tintColor && (
               <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="mb-8 overflow-hidden">
                 {step > 2 ? (
-                  <CompletedStep num="02" subtitle="Visión" title={lensType === "NONE" ? "Sin Aumento" : lensType || ""} onClick={() => setStep(2)} />
+                  <CompletedStep num="02" subtitle="Estilo" title={tintStyle || ""} onClick={() => {setStep(2); setLensType(null);}} />
                 ) : (
                   <>
                     <div className="mb-6 mt-4">
-                      <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-[#999] mb-2">02 / Agregá Aumento</p>
-                      <p className="text-sm font-serif italic text-black">Podés hacer que tus anteojos de sol tengan tu receta.</p>
+                      <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-[#999] mb-2">02 / Estilo de Teñido</p>
+                      <p className="text-sm font-serif italic text-black">Elegí la forma en que se aplicará el color en tu lente.</p>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-6">
+                      <OptionCard selected={tintStyle === "COMPACTO"} onClick={() => { setTintStyle("COMPACTO"); setStep(3); }} title="Compacto" desc="Color uniforme en todo el lente." />
+                      <OptionCard selected={tintStyle === "DEGRADÉ"} onClick={() => { setTintStyle("DEGRADÉ"); setStep(3); }} title="Degradé" desc="Más oscuro arriba y claro abajo." />
+                      <OptionCard selected={tintStyle === "SEGÚN MUESTRA"} onClick={() => { setTintStyle("SEGÚN MUESTRA"); setStep(3); }} title="Según Muestra" desc="Igualamos el color de una foto o muestra." />
+                    </div>
+                  </>
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* PASO 3: AUMENTO (OPCIONAL) */}
+          <AnimatePresence>
+            {step >= 3 && tintStyle && (
+              <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="mb-8 overflow-hidden">
+                {step > 3 ? (
+                  <CompletedStep num="03" subtitle="Visión" title={lensType === "NONE" ? "Sin Aumento" : lensType || ""} onClick={() => setStep(3)} />
+                ) : (
+                  <>
+                    <div className="mb-6 mt-4">
+                      <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-[#999] mb-2">03 / Visión</p>
+                      <p className="text-sm font-serif italic text-black">Podés hacer que tus anteojos de sol tengan tu receta (El teñido solo es válido sobre Orgánico Blanco).</p>
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-6">
-                      <OptionCard selected={lensType === "NONE"} onClick={() => { setLensType("NONE"); setTreatment("ORGANICO_BLANCO_TENIDO"); setStep(4); }} title="Sin Aumento" desc="Cristales de sol estándar sin graduación." price={`+$${(PRICING.MONOFOCAL.ORGANICO_BLANCO_TENIDO || 0).toLocaleString()}`} />
-                      <OptionCard selected={lensType === "MONOFOCAL"} onClick={() => { setLensType("MONOFOCAL"); setTreatment("ORGANICO_BLANCO_TENIDO"); setStep(4); }} title="Monofocal Teñido" desc="Graduación de lejos." price={`+$${(PRICING.MONOFOCAL.ORGANICO_BLANCO_TENIDO || 0).toLocaleString()}`} />
-                      <OptionCard selected={lensType === "MULTIFOCAL"} onClick={() => { setLensType("MULTIFOCAL"); setTreatment("SMART_FREE"); setStep(4); }} title="Multifocal Teñido" desc="Multifocal Digital (Smart Free)." price={`+$${(PRICING.MULTIFOCAL.SMART_FREE || 0).toLocaleString()}`} />
+                      <OptionCard 
+                        selected={lensType === "NONE"} 
+                        onClick={() => { setLensType("NONE"); setTreatment("ORGANICO_BLANCO"); setStep(4); }} 
+                        title="Sin Aumento" 
+                        desc="Orgánico Blanco neutro + Teñido." 
+                        price={`+$${(PRICING.MONOFOCAL.ORGANICO_BLANCO + PRICING.EXTRAS.TINT).toLocaleString()}`} 
+                      />
+                      <OptionCard 
+                        selected={lensType === "MONOFOCAL"} 
+                        onClick={() => { setLensType("MONOFOCAL"); setTreatment("ORGANICO_BLANCO"); setStep(4); }} 
+                        title="Monofocal Teñido" 
+                        desc="Orgánico Blanco para lejos o cerca." 
+                        price={`+$${(PRICING.MONOFOCAL.ORGANICO_BLANCO + PRICING.EXTRAS.TINT).toLocaleString()}`} 
+                      />
+                      <OptionCard 
+                        selected={lensType === "BIFOCAL"} 
+                        onClick={() => { setLensType("BIFOCAL"); setTreatment("ORGANICO_BLANCO"); setStep(4); }} 
+                        title="Bifocal Teñido" 
+                        desc="Visión dividida para lejos y cerca." 
+                        price={`+$${(PRICING.BIFOCAL.ORGANICO_BLANCO + PRICING.EXTRAS.TINT).toLocaleString()}`} 
+                      />
+                      <OptionCard 
+                        selected={lensType === "MULTIFOCAL"} 
+                        onClick={() => { setLensType("MULTIFOCAL"); setTreatment("SMART_FREE"); setStep(4); }} 
+                        title="Multifocal Teñido" 
+                        desc="Digital Smart Free (Teñido Bonificado)." 
+                        price={`+$${(PRICING.MULTIFOCAL.SMART_FREE).toLocaleString()}`} 
+                      />
                     </div>
                   </>
                 )}
@@ -170,7 +241,7 @@ export function LensConfigurator({ basePrice, productId, category, onColorChange
         </>
       ) : (
         <>
-          {/* ====== FLUJO DE RECETA (DEFAULT) ====== */}
+          {/* ====== FLUJO DE RECETA (DEFAULT CLEAR) ====== */}
           
           {/* PASO 1: TIPO DE CRISTAL */}
           <motion.div animate={{ opacity: step < 1 ? 0.5 : 1 }} className="mb-8">
@@ -187,7 +258,7 @@ export function LensConfigurator({ basePrice, productId, category, onColorChange
                   <OptionCard selected={lensType === "MULTIFOCAL"} onClick={() => { setLensType("MULTIFOCAL"); setTreatment(null); setStep(2); }} title="Multifocal" desc="Para ver a todas las distancias sin cambiar de anteojos." />
                   <OptionCard selected={lensType === "BIFOCAL"} onClick={() => { setLensType("BIFOCAL"); setTreatment("UNICO"); setStep(2); }} title="Bifocal" desc="Visión dividida para lejos y cerca de forma tradicional." />
                   {!cartItemId && (
-                    <OptionCard selected={lensType === "NONE"} onClick={() => { setLensType("NONE"); setTreatment(null); setTintColor(null); setStep(4); }} title="Solo Armazón" desc="Llevar el armazón sin cristales con aumento." />
+                    <OptionCard selected={lensType === "NONE"} onClick={() => { setLensType("NONE"); setTreatment(null); setTintColor(null); setTintStyle(null); setStep(4); }} title="Solo Armazón" desc="Llevar el armazón sin cristales con aumento." />
                   )}
                 </div>
               </>
@@ -248,7 +319,7 @@ export function LensConfigurator({ basePrice, productId, category, onColorChange
           >
             <div className="mb-6">
               <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-[#999] mb-2">
-                {flowType === "SUN" ? "03" : "04"} / Tu Receta
+                {flowType === "SUN" ? "04" : "03"} / Tu Receta
               </p>
               <p className="text-sm font-serif italic text-black">Adjuntá la receta de tu oftalmólogo para fabricarlos exactos.</p>
             </div>
@@ -317,21 +388,16 @@ export function LensConfigurator({ basePrice, productId, category, onColorChange
         <button 
           disabled={lensType !== "NONE" && step < 4}
           onClick={() => {
+            const finalColorStr = flowType === "SUN" && tintColor && tintStyle 
+              ? `${tintColor} (${tintStyle})` 
+              : tintColor;
+
             if (cartItemId) {
               const additionalPrice = calculateTotal() - basePrice;
-              const lensColorName = tintColor === "Gris" ? "#555555" :
-                         tintColor === "Marrón / Sepia" ? "#6b4c3a" :
-                         tintColor === "Marrón" ? "#6b4c3a" :
-                         tintColor === "Verde G15" ? "#2c4c3b" :
-                         tintColor === "Rosa" ? "#d4a3a3" :
-                         tintColor === "Amarillo" ? "#e1b854" :
-                         tintColor === "Naranja" ? "#d6804a" :
-                         tintColor === "Rojo" ? "#ab4040" : null;
-
               updateItemLensConfig(cartItemId, {
                 lensType,
                 treatment,
-                color: tintColor,
+                color: finalColorStr,
                 prescriptionFile: prescriptionFile ? prescriptionFile.name : null
               }, additionalPrice);
               
@@ -344,18 +410,11 @@ export function LensConfigurator({ basePrice, productId, category, onColorChange
                 model: productInfo.model,
                 price: calculateTotal(),
                 image: productInfo.image,
-                lensColor: tintColor === "Gris" ? "#555555" :
-                           tintColor === "Marrón / Sepia" ? "#6b4c3a" :
-                           tintColor === "Marrón" ? "#6b4c3a" :
-                           tintColor === "Verde G15" ? "#2c4c3b" :
-                           tintColor === "Rosa" ? "#d4a3a3" :
-                           tintColor === "Amarillo" ? "#e1b854" :
-                           tintColor === "Naranja" ? "#d6804a" :
-                           tintColor === "Rojo" ? "#ab4040" : null,
+                lensColor: mapColorToHex(tintColor),
                 lensConfig: {
                   lensType,
                   treatment,
-                  color: tintColor,
+                  color: finalColorStr,
                   prescriptionFile: prescriptionFile ? prescriptionFile.name : null
                 },
                 quantity: 1
@@ -372,8 +431,6 @@ export function LensConfigurator({ basePrice, productId, category, onColorChange
     </div>
   );
 }
-
-
 
 function OptionCard({ selected, onClick, title, desc, price }: any) {
   return (
@@ -403,7 +460,7 @@ function OptionCard({ selected, onClick, title, desc, price }: any) {
   );
 }
 
-function ColorOption({ color, hex, price, selected, onClick }: any) {
+function ColorOption({ color, hex, selected, onClick }: any) {
   return (
     <motion.div 
       whileTap={{ scale: 0.95 }}
@@ -424,7 +481,6 @@ function ColorOption({ color, hex, price, selected, onClick }: any) {
         <h4 className={`text-[9px] uppercase tracking-[0.15em] font-bold transition-colors ${selected ? 'text-black' : 'text-[#666]'}`}>
           {color}
         </h4>
-        {price > 0 && <p className="text-[9px] text-[#999] mt-1">+${price.toLocaleString()}</p>}
       </div>
     </motion.div>
   );
