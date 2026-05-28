@@ -58,6 +58,7 @@ import { usePathname } from 'next/navigation';
 
 export function CopilotChat({ userName = 'Usuario', userRole = 'STAFF' }: CopilotChatProps) {
   const pathname = usePathname();
+  const isWhatsApp = pathname === '/admin/whatsapp';
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
@@ -65,8 +66,6 @@ export function CopilotChat({ userName = 'Usuario', userRole = 'STAFF' }: Copilo
   const [hasInteracted, setHasInteracted] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-
-  if (pathname === '/admin/whatsapp') return null;
 
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -143,7 +142,7 @@ export function CopilotChat({ userName = 'Usuario', userRole = 'STAFF' }: Copilo
       {/* FAB Button */}
       <button
         onClick={() => setIsOpen(true)}
-        className={`fixed bottom-6 right-4 md:bottom-8 md:right-8 z-[90] w-14 h-14 rounded-full bg-gradient-to-br from-violet-600 to-indigo-600 text-white shadow-xl shadow-violet-500/25 flex items-center justify-center hover:scale-110 active:scale-95 transition-all duration-200 ${isOpen ? 'scale-0 opacity-0' : 'scale-100 opacity-100'}`}
+        className={`fixed ${isWhatsApp ? 'bottom-[120px] md:bottom-[120px]' : 'bottom-6 md:bottom-8'} right-4 md:right-8 z-[90] w-14 h-14 rounded-full bg-gradient-to-br from-violet-600 to-indigo-600 text-white shadow-xl shadow-violet-500/25 flex items-center justify-center hover:scale-110 active:scale-95 transition-all duration-200 ${isOpen ? 'scale-0 opacity-0' : 'scale-100 opacity-100'}`}
         title="Copilot (Ctrl+J)"
         id="copilot-fab"
       >
@@ -151,7 +150,7 @@ export function CopilotChat({ userName = 'Usuario', userRole = 'STAFF' }: Copilo
       </button>
 
       {/* Chat Panel */}
-      <div className={`fixed bottom-6 right-6 z-[95] w-[420px] max-w-[calc(100vw-2rem)] transition-all duration-300 ease-out ${isOpen ? 'translate-y-0 opacity-100 scale-100' : 'translate-y-8 opacity-0 scale-95 pointer-events-none'}`}>
+      <div className={`fixed ${isWhatsApp ? 'bottom-[120px]' : 'bottom-6'} right-6 z-[95] w-[420px] max-w-[calc(100vw-2rem)] transition-all duration-300 ease-out ${isOpen ? 'translate-y-0 opacity-100 scale-100' : 'translate-y-8 opacity-0 scale-95 pointer-events-none'}`}>
         <div className="h-[560px] max-h-[80vh] bg-white/95 dark:bg-stone-900/95 backdrop-blur-2xl rounded-3xl shadow-2xl shadow-black/20 border border-stone-200/80 dark:border-stone-700/80 flex flex-col overflow-hidden">
           
           {/* Header */}

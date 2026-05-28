@@ -10,16 +10,15 @@ import { GlobalTasks } from './GlobalTasks';
 
 export function FloatingDock() {
     const pathname = usePathname();
-    const [isCollapsed, setIsCollapsed] = useState(false);
-
-    if (pathname === '/admin/whatsapp') return null;
+    const isWhatsApp = pathname === '/admin/whatsapp';
+    const [isCollapsed, setIsCollapsed] = useState(isWhatsApp);
 
     useEffect(() => {
-        // Not used for whatsapp anymore, but keeping for reference if needed
-    }, [pathname]);
+        if (isWhatsApp) setIsCollapsed(true);
+    }, [isWhatsApp]);
 
     return (
-        <div className="fixed bottom-6 right-20 md:bottom-8 md:right-[104px] z-[40] flex items-center gap-1 p-1 bg-white/60 dark:bg-stone-900/60 backdrop-blur-xl border border-stone-200/50 dark:border-stone-800/50 rounded-full shadow-lg hover:shadow-xl hover:border-stone-300/80 dark:hover:border-stone-700/80 transition-all duration-300">
+        <div className={`fixed ${isWhatsApp ? 'bottom-[120px] md:bottom-[120px]' : 'bottom-6 md:bottom-8'} right-20 md:right-[104px] z-[40] flex items-center gap-1 p-1 bg-white/60 dark:bg-stone-900/60 backdrop-blur-xl border border-stone-200/50 dark:border-stone-800/50 rounded-full shadow-lg hover:shadow-xl hover:border-stone-300/80 dark:hover:border-stone-700/80 transition-all duration-300`}>
             {/* Collapse toggle button */}
             <button
                 type="button"
