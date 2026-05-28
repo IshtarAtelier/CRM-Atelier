@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const schemaPath = path.join(__dirname, '..', 'prisma', 'schema.prisma');
+const schemaPath = path.join(__dirname, '..', '..', 'prisma', 'schema.prisma');
 const schemaContent = fs.readFileSync(schemaPath, 'utf8');
 
 console.log('--- CRM Safety Audit ---');
@@ -20,7 +20,7 @@ if (schemaContent.includes('url = "file:')) {
 }
 
 // 2. Check for dangerous commands in package.json (extra safety)
-const pkgPath = path.join(__dirname, '..', 'package.json');
+const pkgPath = path.join(__dirname, '..', '..', 'package.json');
 const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
 const startScript = pkg.scripts.start || '';
 

@@ -62,3 +62,8 @@ backups/
 /scratch/
 /next.log
 
+# logs
+/logs/
+
+# prisma debug files
+/prisma/_match_results.json

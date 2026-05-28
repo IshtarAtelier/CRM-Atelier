@@ -41,14 +41,34 @@ export async function middleware(request: NextRequest) {
         return NextResponse.next({ request: { headers: requestHeaders } });
     }
 
-    // Proteger rutas internas de bot (wa-service)
+    // Proteger rutas internas de bot (wa-service) o admin panel
     if (pathname.startsWith('/api/bot/')) {
         const apiKey = request.headers.get('x-api-key');
         const validKey = process.env.BOT_API_KEY;
-        if (!apiKey || apiKey !== validKey) {
-            return NextResponse.json({ error: 'Acceso denegado al bot. API Key inválida.' }, { status: 403 });
+        
+        // 1. Validar por API Key (usado por wa-service)
+        if (apiKey && apiKey === validKey) {
+            return NextResponse.next();
         }
-        return NextResponse.next();
+        
+        // 2. Validar por Cookie de Sesión (usado por panel de administración)
+        if (token) {
+            const payload = await decrypt(token);
+            if (payload) {
+                const requestHeaders = new Headers(request.headers);
+                requestHeaders.set('x-user-id', payload.id as string);
+                requestHeaders.set('x-user-role', payload.role as string);
+                requestHeaders.set('x-user-name', payload.name as string);
+                
+                return NextResponse.next({
+                    request: {
+                        headers: requestHeaders,
+                    },
+                });
+            }
+        }
+        
+        return NextResponse.json({ error: 'Acceso denegado. Se requiere API Key o sesión válida.' }, { status: 403 });
     }
 
     // Proteger la ruta de subida de archivos (acepta JWT o BOT_API_KEY)

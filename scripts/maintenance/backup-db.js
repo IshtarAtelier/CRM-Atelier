@@ -12,8 +12,8 @@
 const fs = require('fs');
 const path = require('path');
 
-const DB_PATH = path.join(__dirname, '..', 'prisma', 'dev.db');
-const BACKUP_DIR = path.join(__dirname, '..', 'backups');
+const DB_PATH = path.join(__dirname, '..', '..', 'prisma', 'dev.db');
+const BACKUP_DIR = path.join(__dirname, '..', '..', 'backups');
 const MAX_BACKUPS = 10; // Mantener solo los últimos 10 backups
 
 function formatDate() {
