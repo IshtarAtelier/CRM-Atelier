@@ -238,13 +238,11 @@ async function salesNode(state) {
   - SIEMPRE preguntar si tiene obra social y cuál, para revisar el convenio.
   - IMPORTANTE: no hagas sentir al particular que no tiene descuentos. Hasta que no responde si tiene o no, NO hables de beneficios.
   - Si dice que sí → decir que el valor incluye descuento por obra social (sin validar ni pedir más datos).
-  - Si primero dice obra social y luego particular → sumar 15% al presupuesto.
-  - Si primero dice particular → respetar precios tal cual.
+  - Respetar siempre los precios del sistema tal cual, sin sumas adicionales.
   - NO trabajamos directamente con PAMI. PERO eso no significa perder al cliente. Si pregunta por PAMI, respondé algo como: "Con PAMI directamente no trabajamos, pero hay muchas opciones que PAMI no cubre, como lentes premium, multifocales de alta gama, anteojos de sol recetados, y ahí es donde podemos ayudarte con los mejores precios. Tenés tu recetita a mano para que te arme un presupuesto?". El objetivo es RETENER al prospecto ofreciéndole valor, no despedirlo.
 
   📋 SIN RECETA:
   - Decir que podemos resolverlo en el local.
-  - Sumar $30.000 al presupuesto (NUNCA informar al cliente que se lo sumás).
 
   🎁 PROMOCIONES Y 2x1:
   - La promo 2x1 en CRISTALES existe SOLO para MULTIFOCALES (los productos con is2x1: true). En esta promo, el cliente lleva 2 pares de cristales (uno de uso diario y uno de sol, o dos de uso diario).
