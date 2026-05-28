@@ -5,6 +5,7 @@ import { FloatingWhatsApp } from "@/components/Storefront/FloatingWhatsApp";
 import { CategoryGrid } from "@/components/Storefront/CategoryGrid";
 import { ProductFilters } from "@/components/Storefront/ProductFilters";
 import { prisma } from '@/lib/db';
+export const dynamic = "force-dynamic";
 import { Glasses } from 'lucide-react';
 import { Suspense } from 'react';
 

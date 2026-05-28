@@ -1,14 +1,15 @@
 import { Metadata } from 'next';
 import { StorefrontNavbar } from "@/components/Storefront/StorefrontNavbar";
-import { prisma } from '@/lib/db';
+import { prisma } from "@/lib/db";
+
+export const dynamic = "force-dynamic";
 import { CustomGlassesBuilder } from "@/components/Storefront/CustomGlassesBuilder";
+
 
 export const metadata: Metadata = {
   title: "Armá tus Lentes a Medida",
   description: "Elegí tu armazón favorito y configurá tus cristales con receta en un solo lugar.",
 };
-
-export const dynamic = 'force-dynamic';
 
 export default async function ArmaTusLentesPage() {
   const dbProducts = await prisma.webProduct.findMany({
