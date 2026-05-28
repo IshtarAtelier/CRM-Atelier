@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { sendEmail } from '@/lib/email';
+import { WHATSAPP_PHONE } from '@/lib/constants';
 
 export async function POST(req: Request) {
   try {
@@ -67,7 +68,7 @@ export async function POST(req: Request) {
     const isTransfer = customer.paymentMethod === 'TRANSFER';
     const emailTotal = isTransfer ? total * 0.85 : total;
     const hasCrystals = items.some((item: any) => item.lensConfig?.lensType && item.lensConfig.lensType !== "NONE");
-    const whatsappPhone = process.env.NEXT_PUBLIC_WHATSAPP_PHONE || '5493541215971';
+    const whatsappPhone = WHATSAPP_PHONE;
     
     const itemsHtml = items.map((item: any) => `
       <tr>

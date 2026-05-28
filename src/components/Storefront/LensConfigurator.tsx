@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import { useCart } from "@/store/useCart";
+import { WHATSAPP_PHONE } from "@/lib/constants";
 
 type LensType = "MONOFOCAL" | "BIFOCAL" | "MULTIFOCAL" | "NONE" | null;
 type Treatment = "ORGANICO_BLANCO" | "ORGANICO_AR" | "ORGANICO_BLUE" | "POLI_BLUE" | "ORGANICO_FOTOCROMATICO" | "ORGANICO_BLANCO_TENIDO" | "SMART_FREE" | "VARILUX" | "FOTOCROMATICO" | "UNICO" | null;
@@ -109,7 +110,7 @@ export function LensConfigurator({ basePrice, productId, category, onColorChange
       <div className="mb-12 border-b border-black/10 pb-6 flex flex-col gap-5">
         <div className="flex items-center justify-between">
           <span className="text-[9px] font-bold uppercase tracking-[0.3em] text-[#999]">Asistencia Personalizada</span>
-          <a href="https://wa.me/5493541215971?text=Hola,%20necesito%20asesoramiento%20para%20elegir%20mis%20cristales." target="_blank" rel="noopener noreferrer" className="text-[10px] font-bold uppercase tracking-[0.15em] text-black hover:text-[#666] transition-colors flex items-center gap-3">
+          <a href={`https://wa.me/${WHATSAPP_PHONE}?text=Hola,%20necesito%20asesoramiento%20para%20elegir%20mis%20cristales.`} target="_blank" rel="noopener noreferrer" className="text-[10px] font-bold uppercase tracking-[0.15em] text-black hover:text-[#666] transition-colors flex items-center gap-3">
             <div className="relative flex h-2 w-2">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>

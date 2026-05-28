@@ -3,6 +3,7 @@
 import { StorefrontNavbar } from "@/components/Storefront/StorefrontNavbar";
 import { StorefrontFooter } from "@/components/Storefront/StorefrontFooter";
 import { FloatingWhatsApp } from "@/components/Storefront/FloatingWhatsApp";
+import { WHATSAPP_PHONE } from "@/lib/constants";
 import { useState } from "react";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -73,7 +74,7 @@ export default function FAQPage() {
         <div className="mt-16 text-center">
           <p className="text-stone-500 text-sm mb-4">¿Tenés otra duda?</p>
           <a 
-            href="https://wa.me/5493541215971" 
+            href={`https://wa.me/${WHATSAPP_PHONE}`} 
             target="_blank"
             rel="noreferrer"
             className="inline-block px-8 py-3 bg-black text-white text-[12px] uppercase tracking-widest font-medium hover:opacity-80 transition-opacity rounded-full"

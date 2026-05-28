@@ -3,6 +3,7 @@ import { StorefrontNavbar } from "@/components/Storefront/StorefrontNavbar";
 import { StorefrontFooter } from "@/components/Storefront/StorefrontFooter";
 import { FloatingWhatsApp } from "@/components/Storefront/FloatingWhatsApp";
 import { Award, BookOpen, Target, Microscope, Star } from "lucide-react";
+import { WHATSAPP_PHONE } from '@/lib/constants';
 
 export const metadata: Metadata = {
   title: "Matías Turchi | Especialista en Multifocales Essilor Expert | Atelier Óptica",
@@ -194,7 +195,7 @@ export default function MatiasTurchiPage() {
                 Agendá una consulta presencial con Matías en nuestro local para asegurar el mejor rendimiento de tu visión.
               </p>
               <a 
-                href="https://wa.me/5493541215971?text=Hola%2C%20quiero%20agendar%20un%20turno%20con%20Matias%20Turchi%20para%20multifocales"
+                href={`https://wa.me/${WHATSAPP_PHONE}?text=Hola%2C%20quiero%20agendar%20un%20turno%20con%20Matias%20Turchi%20para%20multifocales`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center justify-center px-6 py-3 bg-white text-black text-xs font-black uppercase tracking-widest hover:bg-stone-200 transition-colors rounded-full"

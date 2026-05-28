@@ -4,6 +4,7 @@ import { StorefrontFooter } from "@/components/Storefront/StorefrontFooter";
 import { FloatingWhatsApp } from "@/components/Storefront/FloatingWhatsApp";
 import { MapPin, Clock, Phone, MessageCircle } from "lucide-react";
 import { GoogleReviews } from "@/components/Storefront/GoogleReviews";
+import { WHATSAPP_PHONE } from '@/lib/constants';
 
 export const metadata: Metadata = {
   title: "Nuestro Local | Óptica Boutique en Cerro de las Rosas, Córdoba",
@@ -143,7 +144,7 @@ export default function NuestroLocalPage() {
             {/* CTA */}
             <div className="flex flex-col sm:flex-row gap-3">
               <a
-                href="https://wa.me/5493541215971?text=Hola%20Atelier%2C%20quiero%20hacer%20una%20consulta"
+                href={`https://wa.me/${WHATSAPP_PHONE}?text=Hola%20Atelier%2C%20quiero%20hacer%20una%20consulta`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 justify-center px-6 py-3 bg-black text-white text-xs font-black uppercase tracking-widest hover:bg-stone-800 transition-colors"

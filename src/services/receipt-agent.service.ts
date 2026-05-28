@@ -189,7 +189,7 @@ Solo devuelve el JSON, sin texto antes ni después.`;
                 // Send immediate email alert to admin
                 import('@/lib/email').then(({ sendEmail }) => {
                     sendEmail({
-                        to: 'pisano.ishtar@gmail.com',
+                        to: process.env.ADMIN_EMAIL || 'pisano.ishtar@gmail.com',
                         subject: '⚠️ Alerta de Auditoría de Comprobante',
                         text: `El auditor automático de comprobantes ha detectado observaciones en el pago de la orden #${orderId.slice(-4).toUpperCase()} del cliente "${clientName}".\n\nDetalles:\n${errors.map(e => `- ${e}`).join('\n')}\n\nPuedes revisar esto en el panel de administración.`
                     });

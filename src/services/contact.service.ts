@@ -858,7 +858,7 @@ export const ContactService = {
                     // Notificar al administrador por email (fire-and-forget para no bloquear tx)
                     import('@/lib/email').then(({ sendEmail }) => {
                         sendEmail({
-                            to: 'pisano.ishtar@gmail.com',
+                            to: process.env.ADMIN_EMAIL || 'pisano.ishtar@gmail.com',
                             subject: '🧾 Solicitud de Factura (Automática)',
                             text: `El sistema ha generado una nueva solicitud de factura:\n\n${msg}`
                         });
@@ -1084,7 +1084,7 @@ export const ContactService = {
 
                         import('@/lib/email').then(({ sendEmail }) => {
                             sendEmail({
-                                to: 'pisano.ishtar@gmail.com',
+                                to: process.env.ADMIN_EMAIL || 'pisano.ishtar@gmail.com',
                                 subject: '⚠️ Alerta de Referencia Duplicada (Edición)',
                                 text: warningMsg
                             });
@@ -1122,7 +1122,7 @@ export const ContactService = {
 
                     import('@/lib/email').then(({ sendEmail }) => {
                         sendEmail({
-                            to: 'pisano.ishtar@gmail.com',
+                            to: process.env.ADMIN_EMAIL || 'pisano.ishtar@gmail.com',
                             subject: '🚨 Alerta: Comprobante ya utilizado (Edición)',
                             text: warningMsg
                         });
@@ -1216,7 +1216,7 @@ export const ContactService = {
 
                         import('@/lib/email').then(({ sendEmail }) => {
                             sendEmail({
-                                to: 'pisano.ishtar@gmail.com',
+                                to: process.env.ADMIN_EMAIL || 'pisano.ishtar@gmail.com',
                                 subject: '🧾 Solicitud de Factura (Edición de Pago)',
                                 text: `El sistema ha generado una nueva solicitud de factura por modificación de pago:\n\n${msg}`
                             });

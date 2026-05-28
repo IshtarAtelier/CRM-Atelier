@@ -3,6 +3,7 @@
 import { StorefrontNavbar } from "@/components/Storefront/StorefrontNavbar";
 import { StorefrontFooter } from "@/components/Storefront/StorefrontFooter";
 import { FloatingWhatsApp } from "@/components/Storefront/FloatingWhatsApp";
+import { WHATSAPP_PHONE } from "@/lib/constants";
 
 export default function ContactoPage() {
   return (
@@ -23,7 +24,7 @@ export default function ContactoPage() {
           <div className="space-y-8">
             <div>
               <p className="text-xs uppercase tracking-widest font-bold text-stone-400 mb-2">WhatsApp Directo</p>
-              <a href="https://wa.me/5493541215971" className="text-lg font-medium hover:underline decoration-1 underline-offset-4">+54 9 3541 21-5971</a>
+              <a href={`https://wa.me/${WHATSAPP_PHONE}`} className="text-lg font-medium hover:underline decoration-1 underline-offset-4">+54 9 3541 21-5971</a>
             </div>
             
             <div>

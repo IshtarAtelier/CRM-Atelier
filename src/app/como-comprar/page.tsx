@@ -3,6 +3,7 @@ import { StorefrontNavbar } from '@/components/Storefront/StorefrontNavbar';
 import { StorefrontFooter } from '@/components/Storefront/StorefrontFooter';
 import { FloatingWhatsApp } from '@/components/Storefront/FloatingWhatsApp';
 import { ShoppingBag, Truck, CreditCard, ShieldCheck } from 'lucide-react';
+import { WHATSAPP_PHONE } from '@/lib/constants';
 
 export const metadata: Metadata = {
   title: "Cómo Comprar | Atelier Óptica Córdoba",
@@ -72,7 +73,7 @@ export default function ComoComprarPage() {
               Si necesitás encargar cristales graduados o multifocales, la mejor manera es contactarnos directamente. Nuestro equipo de ópticos revisará tu receta oftalmológica y te recomendará el mejor lente para tu caso.
             </p>
             <a 
-              href="https://wa.me/5493541215971"
+              href={`https://wa.me/${WHATSAPP_PHONE}`}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 bg-primary text-white font-bold py-4 px-8 rounded-full hover:bg-primary/90 transition-colors shadow-lg shadow-primary/25"

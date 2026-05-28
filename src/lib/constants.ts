@@ -1,3 +1,6 @@
+// WhatsApp phone number (single source of truth for all storefront pages)
+export const WHATSAPP_PHONE = process.env.NEXT_PUBLIC_WHATSAPP_PHONE || '5493541215971';
+
 // Platform commission rates for payment methods
 export const PLATFORM_COMMISSIONS: Record<string, number> = {
     // ── Pay Way 6 cuotas (20% plataforma) ──

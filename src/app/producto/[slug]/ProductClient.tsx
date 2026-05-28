@@ -1,5 +1,6 @@
 "use client";
 import Image from "next/image";
+import { WHATSAPP_PHONE } from "@/lib/constants";
 
 import { LensConfigurator } from "@/components/Storefront/LensConfigurator";
 import { GlassesDiagram } from "@/components/Storefront/GlassesDiagram";
@@ -328,7 +329,7 @@ export function ProductClient({ product }: { product: any }) {
             </button>
 
             <a 
-              href={`https://wa.me/5493541215971?text=${encodeURIComponent(`¡Hola! Tengo una consulta sobre el modelo ${product.brand || ''} ${product.model || ''}`)}`}
+              href={`https://wa.me/${WHATSAPP_PHONE}?text=${encodeURIComponent(`¡Hola! Tengo una consulta sobre el modelo ${product.brand || ''} ${product.model || ''}`)}`}
               target="_blank"
               rel="noopener noreferrer"
               className="w-full border border-[#e5e5e5] bg-[#f9f9f9] text-[#666] px-8 py-4 text-[11px] font-bold uppercase tracking-widest hover:border-black hover:text-black transition-colors flex items-center justify-center gap-2"

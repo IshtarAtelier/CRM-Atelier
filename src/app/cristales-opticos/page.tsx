@@ -3,6 +3,7 @@ import { StorefrontNavbar } from "@/components/Storefront/StorefrontNavbar";
 import { StorefrontFooter } from "@/components/Storefront/StorefrontFooter";
 import { FloatingWhatsApp } from "@/components/Storefront/FloatingWhatsApp";
 import { Sparkles } from 'lucide-react';
+import { WHATSAPP_PHONE } from '@/lib/constants';
 
 export const metadata: Metadata = {
   title: "Cristales Ópticos | Atelier Óptica Córdoba",
@@ -25,7 +26,7 @@ export default function CristalesOpticosPage() {
           Somos especialistas en alta miopía y lentes multifocales. Contactanos para que coticemos tus cristales según tu receta médica.
         </p>
         <a 
-          href="https://wa.me/5493541215971"
+          href={`https://wa.me/${WHATSAPP_PHONE}`}
           target="_blank"
           rel="noopener noreferrer"
           className="bg-stone-900 dark:bg-white text-white dark:text-stone-900 font-bold py-4 px-8 rounded-full hover:bg-stone-800 dark:hover:bg-stone-100 transition-colors shadow-lg"

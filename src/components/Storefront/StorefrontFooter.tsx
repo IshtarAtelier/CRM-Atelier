@@ -1,5 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
+import { WHATSAPP_PHONE } from "@/lib/constants";
 
 export function StorefrontFooter() {
   return (
@@ -54,7 +55,7 @@ export function StorefrontFooter() {
             <p className="text-[10px] uppercase tracking-widest font-bold text-stone-400 mb-2">Social</p>
             <a href="https://instagram.com/atelieroptica_" target="_blank" rel="noopener noreferrer" className="text-[13px] font-medium hover:opacity-60 transition-opacity">Instagram</a>
             <a href="https://youtube.com/@atelieroptica_" target="_blank" rel="noopener noreferrer" className="text-[13px] font-medium hover:opacity-60 transition-opacity">YouTube</a>
-            <a href="https://wa.me/5493541215971" target="_blank" rel="noopener noreferrer" className="text-[13px] font-medium hover:opacity-60 transition-opacity">WhatsApp</a>
+            <a href={`https://wa.me/${WHATSAPP_PHONE}`} target="_blank" rel="noopener noreferrer" className="text-[13px] font-medium hover:opacity-60 transition-opacity">WhatsApp</a>
           </div>
           
         </div>

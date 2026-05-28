@@ -1,7 +1,7 @@
 import { prisma } from '@/lib/db';
 import { sendEmail } from '@/lib/email';
 
-const ADMIN_EMAIL = 'pisano.ishtar@gmail.com';
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'pisano.ishtar@gmail.com';
 
 export const CashService = {
     /**

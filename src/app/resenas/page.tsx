@@ -3,6 +3,7 @@ import { StorefrontNavbar } from '@/components/Storefront/StorefrontNavbar';
 import { StorefrontFooter } from '@/components/Storefront/StorefrontFooter';
 import { FloatingWhatsApp } from '@/components/Storefront/FloatingWhatsApp';
 import { ReviewsPageContent } from '@/components/Storefront/ReviewsPageContent';
+import { WHATSAPP_PHONE } from '@/lib/constants';
 
 export const metadata: Metadata = {
   title: 'Reseñas de Clientes | Atelier Óptica Córdoba',
@@ -109,7 +110,7 @@ export default async function ResenasPage() {
     'image': 'https://www.atelieroptica.com.ar/images/og-image.jpg',
     '@id': 'https://www.google.com/maps?cid=14830223812501661125',
     'url': 'https://www.atelieroptica.com.ar',
-    'telephone': '+5493541215971',
+    'telephone': `+${WHATSAPP_PHONE}`,
     'priceRange': '$$',
     'address': {
       '@type': 'PostalAddress',

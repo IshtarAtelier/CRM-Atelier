@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { motion } from "framer-motion";
+import { WHATSAPP_PHONE } from "@/lib/constants";
 
 import Image from "next/image";
 
@@ -19,7 +20,7 @@ export function CategoryGrid({ products, emptyMessage = "Estamos actualizando nu
           {emptyMessage}
         </p>
         <a 
-          href="https://wa.me/5493541215971"
+          href={`https://wa.me/${WHATSAPP_PHONE}`}
           target="_blank"
           rel="noopener noreferrer"
           className="bg-stone-900 dark:bg-white text-white dark:text-stone-900 font-bold py-4 px-8 rounded-full hover:bg-stone-800 dark:hover:bg-stone-100 transition-colors shadow-lg"

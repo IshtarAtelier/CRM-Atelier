@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { sendEmail } from '@/lib/email';
 import { prisma } from '@/lib/db';
+import { WHATSAPP_PHONE } from '@/lib/constants';
 
 export async function POST(req: Request) {
   try {
@@ -121,7 +122,7 @@ export async function POST(req: Request) {
                     <div style="margin-top: 30px; background-color: #faf9f7; border-left: 3px solid #a39382; padding: 20px;">
                       <p style="margin: 0; font-size: 14px; color: #555; line-height: 1.6;">
                         ¿Necesitás ayuda o tenés alguna duda? Respondé este correo o escribinos a nuestro 
-                        <a href="https://wa.me/5493541215971" style="color: #1a1a1a; font-weight: 600; text-decoration: none;">WhatsApp</a>.
+                        <a href="https://wa.me/${WHATSAPP_PHONE}" style="color: #1a1a1a; font-weight: 600; text-decoration: none;">WhatsApp</a>.
                       </p>
                     </div>
                   </td>

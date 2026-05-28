@@ -3,6 +3,7 @@
 import { motion } from "framer-motion";
 import { MessageCircle } from "lucide-react";
 import { useState, useEffect } from "react";
+import { WHATSAPP_PHONE } from "@/lib/constants";
 
 export function FloatingWhatsApp() {
   const [isVisible, setIsVisible] = useState(false);
@@ -15,9 +16,8 @@ export function FloatingWhatsApp() {
     return () => clearTimeout(timer);
   }, []);
 
-  const WHATSAPP_NUMBER = "5493541215971";
   const WHATSAPP_MESSAGE = encodeURIComponent("¡Hola Atelier! Me gustaría hacer una consulta.");
-  const WHATSAPP_URL = `https://wa.me/${WHATSAPP_NUMBER}?text=${WHATSAPP_MESSAGE}`;
+  const WHATSAPP_URL = `https://wa.me/${WHATSAPP_PHONE}?text=${WHATSAPP_MESSAGE}`;
 
   if (!isVisible) return null;
 

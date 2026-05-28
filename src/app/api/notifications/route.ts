@@ -90,7 +90,7 @@ export async function POST(request: Request) {
         if (type === 'INVOICE_REQUEST') {
             import('@/lib/email').then(({ sendEmail }) => {
                 sendEmail({
-                    to: 'pisano.ishtar@gmail.com',
+                    to: process.env.ADMIN_EMAIL || 'pisano.ishtar@gmail.com',
                     subject: '🧾 Solicitud de Factura (Manual)',
                     text: `El usuario ${userName} ha generado una solicitud de factura manualmente:\n\n${message}`
                 });

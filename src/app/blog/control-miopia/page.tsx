@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { WHATSAPP_PHONE } from '@/lib/constants';
 
 export default function MyopiaControlPage() {
   return (
@@ -81,7 +82,7 @@ export default function MyopiaControlPage() {
         <div className="mt-16 lg:mt-20 p-8 lg:p-12 border border-black text-center">
           <h3 className="text-xl font-medium mb-3">Evaluación Especializada en Atelier</h3>
           <p className="text-[14px] text-[#666] mb-8">La gestión de la miopía requiere de un diagnóstico preciso y seguimiento constante. Agendá una consulta con nuestro equipo para evaluar si la tecnología Essilor es la indicada para vos o para tu hijo.</p>
-          <a href="https://wa.me/5493541215971" target="_blank" rel="noopener noreferrer" className="inline-block bg-black text-white px-8 py-4 text-[11px] font-bold uppercase tracking-widest hover:opacity-80 transition-opacity">Coordinar Asesoramiento</a>
+          <a href={`https://wa.me/${WHATSAPP_PHONE}`} target="_blank" rel="noopener noreferrer" className="inline-block bg-black text-white px-8 py-4 text-[11px] font-bold uppercase tracking-widest hover:opacity-80 transition-opacity">Coordinar Asesoramiento</a>
         </div>
       </main>
     </div>

@@ -27,7 +27,7 @@ export async function handleAIError(error: any, context: string) {
         
         try {
             await sendEmail({
-                to: 'pisano.ishtar@gmail.com',
+                to: process.env.ADMIN_EMAIL || 'pisano.ishtar@gmail.com',
                 subject: `🚨 ALERTA: Crédito Agotado en Google AI Studio (${context})`,
                 text: emailMessage
             });
