@@ -1354,7 +1354,9 @@ export default function WhatsAppPage() {
                                     const isSelected = selectedChat?.id === chat.id;
                                     const lastMsg = chat.messages?.[0];
                                     return (
-                                        <button
+                                        <div
+                                            role="button"
+                                            tabIndex={0}
                                             key={chat.id}
                                             onClick={() => selectChat(chat)}
                                             className={`w-full text-left p-3 rounded-2xl transition-all relative border group/card ${isSelected
@@ -1436,7 +1438,7 @@ export default function WhatsAppPage() {
                                                     </div>
                                                 </div>
                                             </div>
-                                        </button>
+                                        </div>
                                     );
                                 })
                             )}

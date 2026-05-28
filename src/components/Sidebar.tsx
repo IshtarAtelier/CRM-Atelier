@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Users, Glasses, Package, ClipboardList, LayoutDashboard, Cog, FileText, Contact, Calculator, ShoppingCart, MessageCircle, Wallet, Search, Menu, X, Receipt, Banknote, TrendingDown, ChevronLeft, ChevronRight, Megaphone, Target } from "lucide-react";
+import { Users, Glasses, Package, ClipboardList, LayoutDashboard, Cog, FileText, Contact, Calculator, ShoppingCart, MessageCircle, Wallet, Search, Menu, X, Receipt, Banknote, TrendingDown, ChevronLeft, ChevronRight, Megaphone, Target, Wrench } from "lucide-react";
 import { motion } from "framer-motion";
 import { UserProfile } from "./UserProfile";
 import { NotificationBell } from "./NotificationBell";
@@ -54,7 +54,6 @@ export function Sidebar({ userName = "Usuario", userRole = "STAFF", userId = "" 
     { href: "/admin", label: "Dashboard", icon: LayoutDashboard, adminOnly: false },
     { href: "/admin/contactos", label: "Contactos y Clientes", icon: Contact, adminOnly: false },
     { href: "/admin/inventario", label: "Stock y Productos", icon: Glasses, adminOnly: true },
-    { href: "/admin/carritos", label: "Carritos Abandonados", icon: ShoppingCart, adminOnly: false },
     { href: "/admin/cotizador", label: "Cotizador", icon: Calculator, adminOnly: false },
     { href: "/admin/ventas", label: "Ventas / Laboratorio", icon: ClipboardList, adminOnly: false },
     { href: "/admin/facturacion", label: "Facturación", icon: Receipt, adminOnly: true },
@@ -63,8 +62,7 @@ export function Sidebar({ userName = "Usuario", userRole = "STAFF", userId = "" 
     { href: "/admin/gastos", label: "Gastos", icon: TrendingDown, adminOnly: true },
     { href: "/admin/administracion", label: "Administración", icon: Wallet, adminOnly: true },
     { href: "/admin/reportes", label: "Reportes", icon: FileText, adminOnly: true },
-    { href: "/admin/social", label: "Social Media", icon: Megaphone, adminOnly: true },
-    { href: "/admin/campanas", label: "Campañas Ads", icon: Target, adminOnly: true },
+    { href: "/admin/desarrollo", label: "Desarrollo", icon: Wrench, adminOnly: true },
     { href: "/admin/configuracion", label: "Configuración", icon: Cog, adminOnly: true },
   ];
 
