@@ -9,6 +9,8 @@ import { HomeConfiguratorSection } from "@/components/Storefront/HomeConfigurato
 import { HomeMacroFilm } from "@/components/Storefront/HomeMacroFilm";
 import { prisma } from "@/lib/db";
 
+export const dynamic = "force-dynamic";
+
 // ==========================================
 // ATELIER ÓPTICA — GENTLE MONSTER REPLICA
 // Estructura exacta: Hero cinematográfico
@@ -22,6 +24,8 @@ const PRODUCTS = [
   { id: 4, name: "Mistral Manglares(BRD)", price: "$ 52.000", img: "/images/products/mistral-manglares.png", slug: "atelier-carey-vintage" },
   { id: 5, name: "Cima Dreamy(CRL)", price: "$ 58.000", img: "/images/products/cima-dreamy.png", slug: "atelier-carey-vintage" },
 ];
+
+export const dynamic = 'force-dynamic';
 
 export default async function Home() {
   // 1. Server-Side Data Fetching (Reemplaza el antiguo useEffect)
