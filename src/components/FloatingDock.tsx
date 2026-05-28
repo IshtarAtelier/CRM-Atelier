@@ -18,7 +18,7 @@ export function FloatingDock() {
     }, [isWhatsApp]);
 
     return (
-        <div className={`fixed ${isWhatsApp ? 'bottom-[120px] md:bottom-[120px]' : 'bottom-6 md:bottom-8'} right-20 md:right-[104px] z-[40] flex items-center gap-1 p-1 bg-white/60 dark:bg-stone-900/60 backdrop-blur-xl border border-stone-200/50 dark:border-stone-800/50 rounded-full shadow-lg hover:shadow-xl hover:border-stone-300/80 dark:hover:border-stone-700/80 transition-all duration-300`}>
+        <div className={`fixed ${isWhatsApp ? 'top-[160px] right-4' : 'bottom-6 md:bottom-8 right-20 md:right-[104px]'} z-[40] flex items-center gap-1 p-1 bg-white/60 dark:bg-stone-900/60 backdrop-blur-xl border border-stone-200/50 dark:border-stone-800/50 rounded-full shadow-lg hover:shadow-xl hover:border-stone-300/80 dark:hover:border-stone-700/80 transition-all duration-300`}>
             {/* Collapse toggle button */}
             <button
                 type="button"
