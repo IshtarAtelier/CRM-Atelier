@@ -25,6 +25,8 @@ const PRODUCTS = [
   { id: 5, name: "Cima Dreamy(CRL)", price: "$ 58.000", img: "/images/products/cima-dreamy.png", slug: "atelier-carey-vintage" },
 ];
 
+export const dynamic = 'force-dynamic';
+
 export default async function Home() {
   // 1. Server-Side Data Fetching (Reemplaza el antiguo useEffect)
   const dbProducts = await prisma.product.findMany({
