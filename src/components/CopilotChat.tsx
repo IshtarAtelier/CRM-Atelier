@@ -54,7 +54,10 @@ function formatMessageContent(content: string) {
   return <span dangerouslySetInnerHTML={{ __html: formatted }} />;
 }
 
+import { usePathname } from 'next/navigation';
+
 export function CopilotChat({ userName = 'Usuario', userRole = 'STAFF' }: CopilotChatProps) {
+  const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
@@ -62,6 +65,8 @@ export function CopilotChat({ userName = 'Usuario', userRole = 'STAFF' }: Copilo
   const [hasInteracted, setHasInteracted] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  if (pathname === '/admin/whatsapp') return null;
 
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });

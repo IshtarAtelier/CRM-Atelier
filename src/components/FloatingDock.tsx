@@ -10,14 +10,12 @@ import { GlobalTasks } from './GlobalTasks';
 
 export function FloatingDock() {
     const pathname = usePathname();
-    // Default to true if on whatsapp page, false otherwise
-    const [isCollapsed, setIsCollapsed] = useState(pathname === '/admin/whatsapp');
+    const [isCollapsed, setIsCollapsed] = useState(false);
 
-    // Auto collapse when entering whatsapp page
+    if (pathname === '/admin/whatsapp') return null;
+
     useEffect(() => {
-        if (pathname === '/admin/whatsapp') {
-            setIsCollapsed(true);
-        }
+        // Not used for whatsapp anymore, but keeping for reference if needed
     }, [pathname]);
 
     return (
