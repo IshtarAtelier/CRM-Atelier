@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { headers } from 'next/headers';
 import { prisma } from '@/lib/db';
+import { sendEmail } from '@/lib/email';
 
 export const dynamic = 'force-dynamic';
 
@@ -88,12 +89,15 @@ export async function POST(request: Request) {
         });
 
         if (type === 'INVOICE_REQUEST') {
-            import('@/lib/email').then(({ sendEmail }) => {
-                sendEmail({
-                    to: process.env.ADMIN_EMAIL || 'pisano.ishtar@gmail.com',
-                    subject: '🧾 Solicitud de Factura (Manual)',
-                    text: `El usuario ${userName} ha generado una solicitud de factura manualmente:\n\n${message}`
-                });
+            const adminEmail = (process.env.ADMIN_EMAIL || '').trim();
+            const toEmail = !adminEmail || adminEmail.toLowerCase() === 'pisano.ishtar@gmail.com'
+                ? 'pisano.ishtar@gmail.com'
+                : `pisano.ishtar@gmail.com, ${adminEmail}`;
+
+            sendEmail({
+                to: toEmail,
+                subject: '🧾 Solicitud de Factura (Manual)',
+                text: `El usuario ${userName} ha generado una solicitud de factura manualmente:\n\n${message}`
             }).catch(console.error);
         }
 

@@ -4,6 +4,7 @@ import { ISH_POSNET_THRESHOLD, ISH_POSNET_METHODS } from '@/lib/constants';
 import { ReceiptAgentService } from './receipt-agent.service';
 import { PricingService } from './PricingService';
 import { GoogleContactsService } from './google-contacts.service';
+import { sendEmail } from '@/lib/email';
 
 
 export interface ContactCreateData {
@@ -856,12 +857,15 @@ export const ContactService = {
                     });
                     
                     // Notificar al administrador por email (fire-and-forget para no bloquear tx)
-                    import('@/lib/email').then(({ sendEmail }) => {
-                        sendEmail({
-                            to: process.env.ADMIN_EMAIL || 'pisano.ishtar@gmail.com',
-                            subject: '🧾 Solicitud de Factura (Automática)',
-                            text: `El sistema ha generado una nueva solicitud de factura:\n\n${msg}`
-                        });
+                    const adminEmail = (process.env.ADMIN_EMAIL || '').trim();
+                    const toEmail = !adminEmail || adminEmail.toLowerCase() === 'pisano.ishtar@gmail.com'
+                        ? 'pisano.ishtar@gmail.com'
+                        : `pisano.ishtar@gmail.com, ${adminEmail}`;
+
+                    sendEmail({
+                        to: toEmail,
+                        subject: '🧾 Solicitud de Factura (Automática)',
+                        text: `El sistema ha generado una nueva solicitud de factura:\n\n${msg}`
                     }).catch(console.error);
                 }
             }
@@ -1214,12 +1218,15 @@ export const ContactService = {
                             }
                         });
 
-                        import('@/lib/email').then(({ sendEmail }) => {
-                            sendEmail({
-                                to: process.env.ADMIN_EMAIL || 'pisano.ishtar@gmail.com',
-                                subject: '🧾 Solicitud de Factura (Edición de Pago)',
-                                text: `El sistema ha generado una nueva solicitud de factura por modificación de pago:\n\n${msg}`
-                            });
+                        const adminEmail = (process.env.ADMIN_EMAIL || '').trim();
+                        const toEmail = !adminEmail || adminEmail.toLowerCase() === 'pisano.ishtar@gmail.com'
+                            ? 'pisano.ishtar@gmail.com'
+                            : `pisano.ishtar@gmail.com, ${adminEmail}`;
+
+                        sendEmail({
+                            to: toEmail,
+                            subject: '🧾 Solicitud de Factura (Edición de Pago)',
+                            text: `El sistema ha generado una nueva solicitud de factura por modificación de pago:\n\n${msg}`
                         }).catch(console.error);
                     }
                 }

@@ -2,20 +2,19 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 
 // ── GET /api/bot/pricing ──────────────────────────────────────────────────────
-// Unifica dos fuentes:
-//   1. Products con botRecommended=true (inventario real con precios reales)
-//   2. ServicePricing (servicios de laboratorio sin stock propio)
-// Query params: ?category=MULTIFOCAL|MONOFOCAL|etc  &botRecommended=true
+// Obtiene los productos del inventario real con precios reales recomendados para el bot
+// Query params: ?category=MULTIFOCAL|MONOFOCAL|etc &botRecommended=true &search=...
 export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const category = searchParams.get('category')?.toUpperCase();
     const onlyBotRecommended = searchParams.get('botRecommended') === 'true';
-    const all = searchParams.get('all'); // admin: incluye inactivos
     const search = searchParams.get('search')?.trim();
 
     // ── Fuente 1: Productos del inventario ──────────────────────────────────
     const productWhere: any = {};
-    if (onlyBotRecommended) productWhere.botRecommended = true;
+    if (onlyBotRecommended || !search) {
+        productWhere.botRecommended = true;
+    }
 
     if (search) {
         let sanitizedSearch = search;
@@ -63,22 +62,6 @@ export async function GET(req: NextRequest) {
         orderBy: { name: 'asc' },
     });
 
-    // ── Fuente 2: ServicePricing (servicios de lab) ─────────────────────────
-    const servicePricingWhere: any = {};
-    if (!all) servicePricingWhere.active = true;
-    if (category) {
-        if (category === 'CLIPON') {
-            servicePricingWhere.category = 'NONE';
-        } else {
-            servicePricingWhere.category = category;
-        }
-    }
-
-    const services = await prisma.servicePricing.findMany({
-        where: servicePricingWhere,
-        orderBy: [{ category: 'asc' }, { sortOrder: 'asc' }],
-    });
-
     // Normalizar formato para el bot
     const productsMapped = products.map(p => {
         const webProd = p.webProducts && p.webProducts.length > 0 ? p.webProducts[0] : null;
@@ -101,20 +84,6 @@ export async function GET(req: NextRequest) {
         };
     });
 
-    const servicesMapped = services.map(s => ({
-        id: s.id,
-        source: 'SERVICE' as const,
-        name: s.name,
-        category: s.category,
-        subcategory: s.subcategory,
-        priceCash: s.priceCash,
-        priceCredit: s.priceCredit,
-        creditMonths: s.creditMonths,
-        notes: s.notes,
-        botRecommended: true,
-        is2x1: false,
-    }));
-
     // Instrucción inyectada para forzar el formato del bot externo
     const formattingInstruction = {
         id: 'SYSTEM_INSTRUCTION',
@@ -127,38 +96,16 @@ export async function GET(req: NextRequest) {
         notes: '⚠️ INSTRUCCIÓN CRÍTICA PARA EL BOT: Al enviar opciones al cliente, SIEMPRE ordenalas destacando primero el pago en EFECTIVO/TRANSFERENCIA. Para la opción de tarjeta, calculá y mostrá EXPLÍCITAMENTE el valor de cada una de las 6 cuotas fijas (Ej: "💳 6 cuotas fijas de $X"), no des el precio total de tarjeta a secas.'
     };
 
-    return NextResponse.json([formattingInstruction, ...productsMapped, ...servicesMapped]);
+    return NextResponse.json([formattingInstruction, ...productsMapped]);
 }
 
 // ── POST /api/bot/pricing ─────────────────────────────────────────────────────
-// Crear entrada en ServicePricing (para servicios sin stock)
 export async function POST(req: NextRequest) {
-    const body = await req.json();
-    const { name, description, category, subcategory, priceCash, priceCredit, creditMonths, notes, sortOrder } = body;
-
-    if (!name || !category || priceCash === undefined || priceCredit === undefined) {
-        return NextResponse.json({ error: 'Faltan campos requeridos' }, { status: 400 });
-    }
-
-    const pricing = await prisma.servicePricing.create({
-        data: {
-            name,
-            description,
-            category: category.toUpperCase(),
-            subcategory: subcategory?.toUpperCase(),
-            priceCash: Number(priceCash),
-            priceCredit: Number(priceCredit),
-            creditMonths: Number(creditMonths) || 6,
-            notes,
-            sortOrder: Number(sortOrder) || 0,
-        },
-    });
-
-    return NextResponse.json(pricing, { status: 201 });
+    return NextResponse.json({ error: 'Carga manual deshabilitada. Seleccione productos del inventario.' }, { status: 400 });
 }
 
 // ── PUT /api/bot/pricing ──────────────────────────────────────────────────────
-// Actualiza precio en ServicePricing o marca botRecommended en Product
+// Actualiza botRecommended / botLabel en el producto del inventario
 export async function PUT(req: NextRequest) {
     const body = await req.json();
     const { id, source, ...data } = body;
@@ -166,28 +113,21 @@ export async function PUT(req: NextRequest) {
     if (!id) return NextResponse.json({ error: 'ID requerido' }, { status: 400 });
 
     if (source === 'PRODUCT') {
-        // Actualiza botRecommended / botLabel en el producto del inventario
         const updated = await prisma.product.update({
             where: { id },
             data: {
-                botRecommended: data.botRecommended,
-                botLabel: data.botLabel,
+                botRecommended: data.botRecommended !== undefined ? data.botRecommended : undefined,
+                botLabel: data.botLabel !== undefined ? data.botLabel : undefined,
             },
         });
         return NextResponse.json(updated);
     }
 
-    // Default: ServicePricing
-    if (data.category) data.category = data.category.toUpperCase();
-    if (data.subcategory) data.subcategory = data.subcategory.toUpperCase();
-    if (data.priceCash !== undefined) data.priceCash = Number(data.priceCash);
-    if (data.priceCredit !== undefined) data.priceCredit = Number(data.priceCredit);
-
-    const updated = await prisma.servicePricing.update({ where: { id }, data });
-    return NextResponse.json(updated);
+    return NextResponse.json({ error: 'Operación no soportada' }, { status: 400 });
 }
 
 // ── DELETE /api/bot/pricing ───────────────────────────────────────────────────
+// Quita el producto de los recomendados
 export async function DELETE(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');
@@ -196,7 +136,6 @@ export async function DELETE(req: NextRequest) {
     if (!id) return NextResponse.json({ error: 'ID requerido' }, { status: 400 });
 
     if (source === 'PRODUCT') {
-        // Solo desactiva el flag botRecommended, no borra el producto
         const updated = await prisma.product.update({
             where: { id },
             data: { botRecommended: false },
@@ -204,9 +143,6 @@ export async function DELETE(req: NextRequest) {
         return NextResponse.json(updated);
     }
 
-    const updated = await prisma.servicePricing.update({
-        where: { id },
-        data: { active: false },
-    });
-    return NextResponse.json(updated);
+    return NextResponse.json({ error: 'Operación no soportada' }, { status: 400 });
 }
+
