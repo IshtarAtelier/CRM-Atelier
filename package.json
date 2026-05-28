@@ -7,7 +7,7 @@
   },
   "scripts": {
     "dev": "next dev --turbo",
-    "build": "npx prisma generate && next build",
+    "build": "rm -rf .next && npx prisma generate && next build",
     "start": "npx prisma migrate deploy && next start -p ${PORT:-3000} -H 0.0.0.0",
     "lint": "eslint",
     "verify": "node scripts/checks/verify-build.js",
