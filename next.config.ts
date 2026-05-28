@@ -15,12 +15,11 @@ const nextConfig: NextConfig = {
     },
   },
   webpack: (config, { dev }) => {
-    // Re-enabled cache to prevent chunk mismatches and static assets 404s
-    /*
     if (dev) {
-      config.cache = false; // Disable cache in dev to prevent Next.js 15 MODULE_NOT_FOUND errors
+      config.cache = {
+        type: 'memory',
+      };
     }
-    */
     return config;
   },
   images: {

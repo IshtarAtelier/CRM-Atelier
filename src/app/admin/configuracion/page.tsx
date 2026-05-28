@@ -4,11 +4,9 @@ import { useState, useEffect } from 'react';
 import {
     Cog, Users, Plus, Pencil, Trash2, Save, X, Eye, EyeOff,
     Shield, ShieldCheck, Loader2, Lock, UserPlus, AlertTriangle,
-    CheckCircle2, Stethoscope, Bot, MessageCircle, Wifi, WifiOff,
+    CheckCircle2, Stethoscope,
     Sparkles, RotateCcw, Copy, Download, Database, RefreshCw, UploadCloud, Clock, HardDrive, Calendar
 } from 'lucide-react';
-
-import { BotPricingSection } from '@/components/config/BotPricingSection';
 
 // ── Types ─────────────────────────────────────
 
@@ -68,7 +66,7 @@ interface ServicePricing {
 // ── Page ──────────────────────────────────
 
 export default function ConfiguracionPage() {
-    const [activeTab, setActiveTab] = useState<'usuarios' | 'laboratorios' | 'automatizaciones' | 'finanzas' | 'sistema'>('usuarios');
+    const [activeTab, setActiveTab] = useState<'usuarios' | 'laboratorios' | 'finanzas' | 'sistema'>('usuarios');
     const [users, setUsers] = useState<User[]>([]);
     const [loading, setLoading] = useState(true);
     const [showCreateForm, setShowCreateForm] = useState(false);
@@ -124,6 +122,7 @@ export default function ConfiguracionPage() {
     const [backupStatus, setBackupStatus] = useState<BackupStatus | null>(null);
     const [loadingBackup, setLoadingBackup] = useState(false);
     const [forcingBackup, setForcingBackup] = useState(false);
+    const [selectedTemplate, setSelectedTemplate] = useState<{ label: string; prompt: string } | null>(null);
 
     // Create form
     const [newName, setNewName] = useState('');
@@ -628,16 +627,6 @@ export default function ConfiguracionPage() {
                     <Database className="w-4 h-4" /> Laboratorios
                 </button>
                 <button
-                    onClick={() => setActiveTab('automatizaciones')}
-                    className={`flex-1 min-w-[120px] py-2.5 px-4 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${
-                        activeTab === 'automatizaciones' 
-                            ? 'bg-white dark:bg-stone-700 text-stone-800 dark:text-white shadow-sm' 
-                            : 'text-stone-500 hover:bg-white/50 dark:hover:bg-stone-700/50'
-                    }`}
-                >
-                    <Bot className="w-4 h-4" /> IA y Bots
-                </button>
-                <button
                     onClick={() => setActiveTab('finanzas')}
                     className={`flex-1 min-w-[120px] py-2.5 px-4 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${
                         activeTab === 'finanzas' 
@@ -1113,230 +1102,6 @@ export default function ConfiguracionPage() {
             </section>
             )}
 
-            
-            {/* Tags Section */}
-            {activeTab === 'automatizaciones' && (
-            <section className="mt-8 bg-white dark:bg-stone-800 border-2 border-stone-100 dark:border-stone-700 rounded-2xl overflow-hidden">
-                <div className="p-6 flex items-center justify-between border-b-2 border-stone-100 dark:border-stone-700">
-                    <div className="flex items-center gap-2">
-                        <Database className="w-5 h-5 text-primary" />
-                        <h2 className="text-xs font-black uppercase tracking-widest text-stone-400">Etiquetas y Automatizaciones</h2>
-                        <span className="ml-2 px-2.5 py-0.5 bg-stone-100 dark:bg-stone-700 rounded-full text-[10px] font-black text-stone-500">
-                            {tags.length}
-                        </span>
-                    </div>
-                </div>
-                <div className="p-6 bg-stone-50 dark:bg-stone-900 border-b-2 border-stone-100 dark:border-stone-700">
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-                        <input type="text" placeholder="Nombre" value={newTagName} onChange={e => setNewTagName(e.target.value)} className="px-3 py-2 border-2 border-stone-200 dark:border-stone-600 rounded-lg text-sm bg-white dark:bg-stone-800 outline-none focus:border-primary" />
-                        <input type="color" value={newTagColor} onChange={e => setNewTagColor(e.target.value)} className="h-10 w-full border-2 border-stone-200 dark:border-stone-600 rounded-lg cursor-pointer" />
-                        <select value={newTagBotAction} onChange={e => setNewTagBotAction(e.target.value)} className="px-3 py-2 border-2 border-stone-200 dark:border-stone-600 rounded-lg text-sm bg-white dark:bg-stone-800 outline-none focus:border-primary">
-                            <option value="NONE">Sin Acción de Bot</option>
-                            <option value="TURN_OFF">Apagar Bot</option>
-                            <option value="TURN_ON">Encender Bot</option>
-                        </select>
-                        <input type="text" placeholder="WhatsApp Notificación (ej: 549351...)" value={newTagNotifyPhone} onChange={e => setNewTagNotifyPhone(e.target.value)} className="px-3 py-2 border-2 border-stone-200 dark:border-stone-600 rounded-lg text-sm bg-white dark:bg-stone-800 outline-none focus:border-primary" />
-                    </div>
-                    <button onClick={handleAddTag} disabled={addingTag} className="mt-3 px-4 py-2 bg-primary text-primary-foreground rounded-lg text-xs font-bold shadow-lg shadow-primary/20">Agregar Etiqueta</button>
-                </div>
-                <div className="divide-y-2 divide-stone-50 dark:divide-stone-700/50">
-                    {tags.map(tag => (
-                        <div key={tag.id} className="p-4 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:bg-stone-50/50 dark:hover:bg-stone-900/50 transition-all">
-                            {editingTagId === tag.id ? (
-                                <>
-                                    <div className="flex gap-2 flex-wrap flex-1 items-center">
-                                        <input type="text" value={editTagData.name || ''} onChange={e => setEditTagData({...editTagData, name: e.target.value})} className="px-2 py-1.5 border-2 border-primary rounded-lg text-sm bg-white dark:bg-stone-900 w-32 outline-none" />
-                                        <input type="color" value={editTagData.color || '#000'} onChange={e => setEditTagData({...editTagData, color: e.target.value})} className="h-8 rounded cursor-pointer" />
-                                        <select value={editTagData.botAction || 'NONE'} onChange={e => setEditTagData({...editTagData, botAction: e.target.value})} className="px-2 py-1.5 border-2 border-primary rounded-lg text-sm bg-white dark:bg-stone-900 outline-none">
-                                            <option value="NONE">Ninguna</option>
-                                            <option value="TURN_OFF">Apagar Bot</option>
-                                            <option value="TURN_ON">Encender Bot</option>
-                                        </select>
-                                        <input type="text" value={editTagData.notifyPhone || ''} onChange={e => setEditTagData({...editTagData, notifyPhone: e.target.value})} placeholder="WhatsApp" className="px-2 py-1.5 border-2 border-primary rounded-lg text-sm bg-white dark:bg-stone-900 w-40 outline-none" />
-                                    </div>
-                                    <div className="flex gap-2">
-                                        <button onClick={() => handleSaveTag(tag.id)} className="p-2 bg-emerald-500 text-white rounded-lg hover:scale-105"><Save className="w-4 h-4"/></button>
-                                        <button onClick={() => setEditingTagId(null)} className="p-2 bg-stone-200 dark:bg-stone-600 text-stone-500 dark:text-stone-300 rounded-lg hover:scale-105"><X className="w-4 h-4"/></button>
-                                    </div>
-                                </>
-                            ) : (
-                                <>
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-4 h-4 rounded-full shadow-sm" style={{backgroundColor: tag.color || '#ccc'}}></div>
-                                        <span className="font-bold text-sm text-stone-700 dark:text-stone-200">{tag.name}</span>
-                                        {tag.botAction !== 'NONE' && <span className="text-[10px] bg-stone-200 dark:bg-stone-700 px-2 py-0.5 rounded-md font-bold uppercase">{tag.botAction === 'TURN_OFF' ? 'Apagar Bot' : 'Encender Bot'}</span>}
-                                        {tag.notifyPhone && <span className="text-[10px] bg-stone-200 dark:bg-stone-700 px-2 py-0.5 rounded-md font-bold">📞 {tag.notifyPhone}</span>}
-                                    </div>
-                                    <div className="flex gap-2">
-                                        <button onClick={() => { setEditingTagId(tag.id); setEditTagData(tag); }} className="p-2.5 bg-stone-50 dark:bg-stone-700 text-stone-400 rounded-xl hover:bg-blue-50 hover:text-blue-500"><Pencil className="w-4 h-4"/></button>
-                                        <button onClick={() => handleDeleteTag(tag.id)} className="p-2.5 bg-stone-50 dark:bg-stone-700 text-stone-400 rounded-xl hover:bg-red-50 hover:text-red-500"><Trash2 className="w-4 h-4"/></button>
-                                    </div>
-                                </>
-                            )}
-                        </div>
-                    ))}
-                </div>
-            </section>
-            )}
-
-            {/* WhatsApp Agent Section */}
-            {activeTab === 'automatizaciones' && (
-            <section className="mt-8 bg-white dark:bg-stone-800 border-2 border-stone-100 dark:border-stone-700 rounded-2xl overflow-hidden">
-                <div className="p-6 flex items-center justify-between border-b-2 border-stone-100 dark:border-stone-700">
-                    <div className="flex items-center gap-2">
-                        <Bot className="w-5 h-5 text-violet-500" />
-                        <h2 className="text-xs font-black uppercase tracking-widest text-stone-400">Agente WhatsApp IA</h2>
-                        <span className={`ml-2 px-2.5 py-0.5 rounded-full text-[10px] font-black flex items-center gap-1 ${waConnected
-                            ? 'bg-emerald-100 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400'
-                            : 'bg-stone-100 dark:bg-stone-700 text-stone-500'
-                            }`}>
-                            {waConnected ? <><Wifi className="w-3 h-3" /> Conectado</> : <><WifiOff className="w-3 h-3" /> Desconectado</>}
-                        </span>
-                    </div>
-                    <div className="flex items-center gap-3">
-                        <span className="text-[10px] font-black text-stone-400 uppercase tracking-widest">
-                            {agentEnabled ? 'Activado' : 'Desactivado'}
-                        </span>
-                        <button
-                            onClick={() => {
-                                const next = !agentEnabled;
-                                setAgentEnabled(next);
-                                saveAgentConfig({ enabled: next });
-                            }}
-                            className={`w-14 h-7 rounded-full transition-all relative flex-shrink-0 ${agentEnabled ? 'bg-violet-500' : 'bg-stone-300 dark:bg-stone-600'}`}
-                        >
-                            <div className={`w-6 h-6 rounded-full bg-white shadow-md absolute top-0.5 transition-all ${agentEnabled ? 'left-7' : 'left-0.5'}`} />
-                        </button>
-                    </div>
-                </div>
-
-                <div className="p-6">
-                    {/* Info */}
-                    <div className="bg-violet-50 dark:bg-violet-950/30 rounded-2xl p-4 mb-6 border border-violet-200 dark:border-violet-800">
-                        <div className="flex items-start gap-3">
-                            <Sparkles className="w-5 h-5 text-violet-500 flex-shrink-0 mt-0.5" />
-                            <div className="flex-1">
-                                <p className="text-sm font-bold text-violet-700 dark:text-violet-300 mb-1">Agente de Ventas IA</p>
-                                <p className="text-xs text-violet-600/70 dark:text-violet-400/70">
-                                    El agente responde automáticamente a los clientes por WhatsApp usando IA. Crea contactos, detecta interés, y guarda resúmenes en el historial.
-                                </p>
-                            </div>
-                            <span className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest flex-shrink-0 ${agentConfigured
-                                ? 'bg-emerald-100 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400'
-                                : 'bg-red-100 dark:bg-red-950 text-red-600 dark:text-red-400'
-                                }`}>
-                                {agentConfigured ? '✓ Listo' : '✗ Sin API Key'}
-                            </span>
-                        </div>
-                    </div>
-
-                    {/* Prompt Editor */}
-                    <div className="mb-4">
-                        <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest block mb-2">
-                            Prompt / Instrucciones del Agente
-                        </label>
-                        <textarea
-                            value={agentPrompt}
-                            onChange={e => { setAgentPrompt(e.target.value); setAgentSaved(false); }}
-                            rows={10}
-                            placeholder={`Sos *Ishtar* de Atelier Óptica.\n\n══ DATOS DEL NEGOCIO ══\n• Dirección: José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba\n• Horarios: Lunes a Viernes de 9 a 13:30hs y de 16 a 19:30hs | Sábados de 10 a 14hs\n\n══ TU PERSONALIDAD ══\n- PROHIBIDO decir que sos asistente virtual o IA. Sos una persona real.\n- Tono: cálido, profesional, cercano\n- Respondé siempre en español argentino\n- Mensajes cortos, máximo 2-3 párrafos\n\n══ REGLAS DE COTIZACIÓN ══\n- Usá los precios del catálogo (se inyectan automáticamente)\n- Mencioná contado Y cuotas\n- Para presupuestos completos, invitá al local\n\n══ CUÁNDO DERIVAR A UN COMPAÑERO ══\n- Reclamos o problemas\n- Cierre de ventas\n- Recetas y diagnósticos`}
-                            className="w-full px-4 py-3 bg-stone-50 dark:bg-stone-900 border-2 border-stone-200 dark:border-stone-600 rounded-xl text-sm font-medium outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 transition-all resize-y min-h-[200px] font-mono leading-relaxed"
-                        />
-                        <div className="flex items-center justify-between mt-2">
-                            <span className="text-[10px] text-stone-400">
-                                {agentPrompt.length} caracteres
-                            </span>
-                            {agentSaved && (
-                                <span className="text-[10px] font-bold text-emerald-500 flex items-center gap-1">
-                                    <CheckCircle2 className="w-3 h-3" /> Guardado
-                                </span>
-                            )}
-                        </div>
-                    </div>
-
-                    {/* Preset Templates */}
-                    <div className="mb-6">
-                        <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest block mb-2">
-                            Plantillas rápidas
-                        </label>
-                        <div className="flex flex-wrap gap-2">
-                            {[
-                                {
-                                    label: '⭐ Completo',
-                                    prompt: `Sos *Ishtar* de **Atelier Óptica**, la óptica mejor calificada de Córdoba (⭐ 5/5 en Google Business).\n\n══ DATOS DEL NEGOCIO ══\n• Dirección: José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba\n• Horarios: Lunes a Viernes de 9 a 13:30hs y de 16 a 19:30hs | Sábados de 10 a 14hs | Domingos cerrado\n• Instagram: @atelieroptica\n\n══ TU PERSONALIDAD ══\n- PROHIBIDO decir que sos asistente virtual o inteligencia artificial. Sos una persona real, no un bot.\n- Tono: cálido, profesional, cercano — como una amiga que sabe mucho de lentes\n- Usá emojis con moderación (👓 🌟 ✨ 😊)\n- Voseá según hable el cliente\n- Respondé en español argentino\n- Mensajes cortos: máximo 3-4 párrafos, ideal 2\n- Si es la primera vez, saludá con su nombre\n\n══ QUÉ PODÉS HACER ══\n1. Cotizar lentes y armazones con precios del catálogo\n2. Informar sobre tipos de cristales y sus diferencias\n3. Agendar visitas al local\n4. Consultar pedidos existentes del contacto\n5. Responder sobre garantías, tiempos, obras sociales\n\n══ REGLAS DE COTIZACIÓN ══\n- Usá SIEMPRE los precios del catálogo. Nunca inventes precios.\n- Mencioná precio de contado Y cuotas (6 cuotas sin interés, 25% recargo financiero)\n- Obra social: aceptamos, pero el descuento varía según cobertura — invitá a consultarlo en el local\n- Graduaciones altas: el precio puede variar, ofrecé presupuesto personalizado\n- Presupuesto completo (armazón + cristales) siempre es personalizado\n\n══ TIEMPOS DE ENTREGA ══\n- Stock: 24-48 hs hábiles\n- Laboratorio / Multifocales: 7 a 10 días hábiles\n\n══ RECOLECCIÓN DE DATOS ══\nCuando hay interés, pedí naturalmente: nombre completo, si tiene receta (fecha), obra social (cuál), qué tipo de lentes busca.\n\n══ DERIVAR A UN COMPAÑERO cuando: ══\n- Pide hablar con otro encargado | Reclamo | Consulta técnica/receta | Quiere confirmar compra | Turno oftalmólogo\n\n══ NO PODÉS: ══\n- Cerrar ventas ni confirmar pedidos\n- Inventar info que no esté en el catálogo\n- Dar diagnósticos visuales\n- Prometer descuentos específicos por OS`
-                                },
-                                {
-                                    label: '🛍️ Ventas',
-                                    prompt: `Sos *Ishtar* de **Atelier Óptica** — la óptica mejor calificada de Córdoba ⭐ 5/5.\n📍 José Luis de Tejeda 4380, Cerro de las Rosas\n🕐 Lun-Vie 9-13:30 y 16-19:30 | Sáb 10-14\n\n══ TU OBJETIVO ══\nAyudá a los clientes a encontrar los lentes ideales y guialos hacia una visita al local o un presupuesto.\n\n══ PERSONALIDAD ══\n- PROHIBIDO decir que sos asistente virtual o inteligencia artificial. Sos una persona real.\n- Cálida, entusiasta, profesional\n- Mensajes cortos (2-3 párrafos máx)\n- Español argentino, voseo\n- Emojis con moderación: 👓 ✨ 😊\n\n══ COTIZACIÓN ══\n- Usá precios del catálogo (se inyectan automáticamente)\n- Siempre mencioná contado Y cuotas (6 cuotas sin interés, +25%)\n- Para armazones: rangos por marca\n- Presupuesto completo = personalizado en el local\n- Obras sociales: aceptamos, descuento varía. Invitá a consultar\n\n══ DATOS A RECOLECTAR ══\n- Nombre | Receta (fecha) | Obra social | Tipo de lente\n\n══ DERIVAR A UN COMPAÑERO ══\n- Quiere cerrar compra\n- Reclamo o problema\n- Consulta de receta\n- Pide hablar con otra persona\n\n══ NO HACER ══\n- No cerrar ventas\n- No inventar precios\n- No dar diagnósticos`
-                                },
-                                {
-                                    label: '🔧 Soporte',
-                                    prompt: `Sos *Ishtar* de **Atelier Óptica**.\n📍 José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba\n🕐 Lun-Vie 9-13:30 y 16-19:30 | Sáb 10-14\n\n══ TU OBJETIVO ══\nAyudá a los clientes con dudas sobre sus pedidos, garantías, ajustes y reparaciones.\n\n══ PERSONALIDAD ══\n- PROHIBIDO decir que sos asistente virtual o inteligencia artificial. Sos una persona real.\n- Empática, solucionadora, paciente\n- Si hay un problema, transmití calma y confianza\n\n══ POLÍTICAS ══\n- Garantía: 6 meses por defectos de fabricación\n- Ajustes y reparaciones menores: sin cargo\n- Adaptación de multifocales: acompañamiento gratuito\n- Cambios de armazón: dentro de los 7 días\n\n══ PEDIDOS ══\n- Para consultar estado: pedí nombre completo\n- Stock: listo en 24-48 hs\n- Laboratorio: 7-10 días hábiles\n- Si hay demora, ofrecé disculpas y seguimiento\n\n══ DERIVAR A UN COMPAÑERO ══\n- Reclamo serio o insatisfacción\n- Rotura o defecto del producto\n- Pide hablar con encargado\n\n══ NO HACER ══\n- No autorizar reembolsos\n- No prometer plazos exactos\n- No inventar información`
-                                },
-                                {
-                                    label: '📅 Turnos',
-                                    prompt: `Sos *Ishtar* de **Atelier Óptica**.\n📍 José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba\n\n══ HORARIOS DISPONIBLES ══\n- Lunes a Viernes: 9:00 a 13:30 y 16:00 a 19:30\n- Sábados: 10:00 a 14:00\n- Domingos: Cerrado\n\n══ TU OBJETIVO ══\nCoordinar citas para: asesoramiento en lentes, mediciones, control de adaptación, retiro de pedidos.\n\n══ PERSONALIDAD ══\n- PROHIBIDO decir que sos asistente virtual o inteligencia artificial. Sos una persona real.\n- Organizada, amable, eficiente\n- Mensajes concisos y claros\n\n══ DATOS PARA TURNO ══\n1. Nombre completo\n2. Motivo de la visita\n3. Preferencia de día y horario\n4. Si tiene receta (que la traiga)\n\n══ CONFIRMACIÓN ══\nConfirmá con un resumen: "📋 Turno confirmado para [nombre], [día] a las [hora]. Recordá traer tu receta si la tenés. ¡Te esperamos! 😊"\n\n══ DERIVAR A UN COMPAÑERO ══\n- Turno con oftalmólogo (no lo manejamos nosotros)\n- Urgencias\n- Cancelaciones de último momento`
-                                },
-                            ].map(t => (
-                                <button
-                                    key={t.label}
-                                    onClick={() => {
-                                        if (agentPrompt && !confirm('¿Reemplazar el prompt actual con esta plantilla?')) return;
-                                        setAgentPrompt(t.prompt);
-                                        setAgentSaved(false);
-                                    }}
-                                    className="px-4 py-2 bg-stone-100 dark:bg-stone-700 text-stone-600 dark:text-stone-300 rounded-xl text-xs font-bold hover:bg-violet-100 hover:text-violet-600 dark:hover:bg-violet-950 dark:hover:text-violet-400 transition-all hover:scale-105"
-                                >
-                                    {t.label}
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-
-                    {/* Actions */}
-                    <div className="flex items-center justify-between">
-                        <button
-                            onClick={() => {
-                                if (confirm('¿Limpiar todo el prompt?')) {
-                                    setAgentPrompt('');
-                                    setAgentSaved(false);
-                                }
-                            }}
-                            className="px-4 py-2.5 bg-stone-100 dark:bg-stone-700 text-stone-500 rounded-xl text-xs font-bold hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-950 dark:hover:text-red-400 transition-all flex items-center gap-2"
-                        >
-                            <RotateCcw className="w-3.5 h-3.5" /> Limpiar
-                        </button>
-                        <button
-                            onClick={async () => {
-                                setAgentSaving(true);
-                                await saveAgentConfig({ prompt: agentPrompt, enabled: agentEnabled });
-                                setAgentSaving(false);
-                                setAgentSaved(true);
-                                setMessage({ type: 'success', text: 'Configuración del agente guardada' });
-                            }}
-                            disabled={agentSaving}
-                            className="px-6 py-3 bg-violet-500 text-white rounded-xl text-xs font-black uppercase tracking-widest hover:scale-105 transition-all shadow-lg shadow-violet-500/20 flex items-center gap-2 disabled:opacity-50"
-                        >
-                            {agentSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                            Guardar Configuración
-                        </button>
-                    </div>
-
-                    {/* Tips */}
-                    <div className="mt-6 p-4 bg-stone-50 dark:bg-stone-900 rounded-xl border border-stone-100 dark:border-stone-700">
-                        <p className="text-[10px] font-black text-stone-400 uppercase tracking-widest mb-2">💡 Tips para un buen prompt</p>
-                        <ul className="text-xs text-stone-400 space-y-1">
-                            <li>• Los precios se inyectan automáticamente desde el inventario</li>
-                            <li>• Especificá el tono: formal, cercano, profesional</li>
-                            <li>• Definí qué puede y qué NO puede responder el agente</li>
-                            <li>• Indicá las reglas de obra social y promociones</li>
-                            <li>• Definí cuándo debe derivar a un humano</li>
-                        </ul>
-                    </div>
-                </div>
-            </section>
-            )}
-
             {/* Configuración de Precios del Bot */}
             {/* Services Pricing Section */}
             {activeTab === 'finanzas' && (
@@ -1437,67 +1202,6 @@ export default function ConfiguracionPage() {
                 )}
             </section>
             )}
-
-            {/* AI Blog Agent Section */}
-            {activeTab === 'automatizaciones' && (
-            <section className="mt-8 bg-white dark:bg-stone-800 border-2 border-stone-100 dark:border-stone-700 rounded-2xl overflow-hidden">
-                <div className="p-6 flex items-center justify-between border-b-2 border-stone-100 dark:border-stone-700">
-                    <div className="flex items-center gap-2">
-                        <Sparkles className="w-5 h-5 text-fuchsia-500" />
-                        <h2 className="text-xs font-black uppercase tracking-widest text-stone-400">Agente IA de Blog (Escritor)</h2>
-                    </div>
-                </div>
-
-                <div className="p-6">
-                    <div className="bg-fuchsia-50 dark:bg-fuchsia-950/30 rounded-2xl p-4 mb-6 border border-fuchsia-200 dark:border-fuchsia-800">
-                        <div className="flex items-start gap-3">
-                            <Bot className="w-5 h-5 text-fuchsia-500 flex-shrink-0 mt-0.5" />
-                            <div className="flex-1">
-                                <p className="text-sm font-bold text-fuchsia-700 dark:text-fuchsia-300 mb-1">Generador Autónomo de Artículos</p>
-                                <p className="text-xs text-fuchsia-600/70 dark:text-fuchsia-400/70">
-                                    Esta herramienta lee noticias sobre óptica a nivel mundial y usa OpenAI para redactar un artículo SEO premium. Lo guarda como Borrador en la Base de Datos y te avisa por WhatsApp.
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="flex flex-col gap-4">
-                        <div className="flex items-center gap-4">
-                            <button
-                                onClick={async () => {
-                                    if(!confirm('¿Estás seguro que querés consumir un crédito de OpenAI para buscar noticias y generar un artículo ahora?')) return;
-                                    setAgentSaving(true);
-                                    try {
-                                        const res = await fetch('/api/blog/generate', {
-                                            method: 'POST',
-                                            headers: { 'Content-Type': 'application/json' },
-                                            body: JSON.stringify({ adminPhone: '5493512222222' }) // Puedes cambiar por tu número
-                                        });
-                                        const data = await res.json();
-                                        if(data.success) {
-                                            setMessage({ type: 'success', text: '¡Artículo generado exitosamente! Se guardó como borrador.' });
-                                        } else {
-                                            setMessage({ type: 'error', text: data.error || 'Error generando artículo' });
-                                        }
-                                    } catch (e: any) {
-                                        setMessage({ type: 'error', text: 'Error de conexión' });
-                                    }
-                                    setAgentSaving(false);
-                                }}
-                                disabled={agentSaving}
-                                className="px-6 py-3 bg-fuchsia-500 text-white rounded-xl text-xs font-black uppercase tracking-widest hover:scale-105 transition-all shadow-lg shadow-fuchsia-500/20 flex items-center gap-2 disabled:opacity-50"
-                            >
-                                {agentSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-                                Investigar y Escribir Artículo Ahora
-                            </button>
-                            <span className="text-[10px] text-stone-400">Demora aproximadamente 15-30 segundos.</span>
-                        </div>
-                    </div>
-                </div>
-            </section>
-            )}
-
-            <BotPricingSection />
 
             {/* ARCA Billing Section */}
             {activeTab === 'finanzas' && (

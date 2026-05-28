@@ -9,7 +9,7 @@ const http = require('http');
 const { Server } = require('socket.io');
 const cors = require('cors');
 const { prisma } = require('./db');
-const { graph } = require('./graph');
+const { graph, DEFAULT_SALES_PROMPT } = require('./graph');
 const { logBotMessage, isPhrase, generateAndSaveHandoffSummary } = require('./tools');
 const { HumanMessage } = require("@langchain/core/messages");
 const path = require('path');
@@ -51,6 +51,7 @@ function broadcastChatUpdate(chatId) {
 // ── Estado global ──────────────────────────────
 let agentEnabled = false;
 let agentPrompt = '';
+let dailyContext = '';
 
 // Cache global para las imágenes en base64 de cada chat, para que los sub-agentes puedan acceder
 global.mediaCache = global.mediaCache || {};
@@ -60,6 +61,7 @@ async function loadConfig() {
     try {
         const enabledSetting = await prisma.systemSetting.findUnique({ where: { key: 'bot_enabled' } });
         const promptSetting = await prisma.systemSetting.findUnique({ where: { key: 'bot_prompt' } });
+        const contextSetting = await prisma.systemSetting.findUnique({ where: { key: 'bot_daily_context' } });
         
         if (enabledSetting) {
             agentEnabled = enabledSetting.value === 'true';
@@ -74,8 +76,15 @@ async function loadConfig() {
             const conf = JSON.parse(fs.readFileSync(configPath, 'utf8'));
             agentPrompt = conf.prompt || '';
         }
+
+        if (contextSetting) {
+            dailyContext = contextSetting.value || '';
+        } else if (fs.existsSync(configPath)) {
+            const conf = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+            dailyContext = conf.dailyContext || '';
+        }
         
-        console.log(`🤖 Bot configuration loaded from DB. Enabled: ${agentEnabled}, Prompt length: ${agentPrompt.length}`);
+        console.log(`🤖 Bot configuration loaded from DB. Enabled: ${agentEnabled}, Prompt length: ${agentPrompt.length}, Daily context length: ${dailyContext.length}`);
     } catch (e) {
         console.error("❌ Error loading configuration from DB, falling back to file:", e);
         if (fs.existsSync(configPath)) {
@@ -83,6 +92,7 @@ async function loadConfig() {
                 const conf = JSON.parse(fs.readFileSync(configPath, 'utf8'));
                 agentEnabled = conf.enabled || false;
                 agentPrompt = conf.prompt || '';
+                dailyContext = conf.dailyContext || '';
             } catch (fileErr) {
                 console.error("Error reading fallback agent config file:", fileErr);
             }
@@ -192,6 +202,13 @@ async function disableBotForChatById(chatId, reason) {
             
             // Generar resumen de handoff
             await generateAndSaveHandoffSummary(chatId).catch(e => console.error("Error generando resumen de handoff:", e.message));
+        }
+
+        // Cancelar timer de debounce si existe
+        if (botDebounceTimers.has(chatId)) {
+            clearTimeout(botDebounceTimers.get(chatId));
+            botDebounceTimers.delete(chatId);
+            console.log(`  🕒 Timer de debounce cancelado para chat ${chatId}`);
         }
     } catch (e) {
         console.error('Error disabling bot for chat ID:', e.message);
@@ -460,6 +477,27 @@ async function checkAndSendInactivityFollowUps() {
 // ── Bot Orchestrator (Extraído para Modularidad) ─
 async function processBotTurn(chat, waId, profileName, realPhone) {
     try {
+        // Consultar el estado actual en la base de datos para no responder si se apagó el bot en el debounce de 25s
+        const freshChat = await prisma.whatsAppChat.findUnique({
+            where: { id: chat.id },
+            include: { client: { include: { tags: true } } }
+        });
+
+        if (!freshChat || !freshChat.botEnabled) {
+            console.log(`  🚫 Turno de bot cancelado para ${profileName || waId} porque el bot está desactivado.`);
+            return;
+        }
+
+        const TAGS_SIN_BOT = ['cancelar bot', 'no bot', 'proveedor', 'no interesado', 'error', 'familiar', 'personal', 'spam', 'post-venta', 'postventa', 'ya es cliente', 'cerrado'];
+        const clientTags = freshChat.client?.tags || [];
+        const tieneTagSinBot = clientTags.some(tag =>
+            TAGS_SIN_BOT.some(t => tag.name.toLowerCase().includes(t))
+        );
+        if (tieneTagSinBot) {
+            console.log(`  🚫 Turno de bot cancelado para ${profileName || waId} por etiqueta de exclusión.`);
+            return;
+        }
+
         console.log(`  🤖 Bot procesando bloque de mensajes de ${profileName}...`);
         
         const recentMessages = await prisma.whatsAppMessage.findMany({
@@ -507,6 +545,7 @@ async function processBotTurn(chat, waId, profileName, realPhone) {
             waId: waId,
             chatId: chat.id,
             customPrompt: agentPrompt,
+            dailyContext: dailyContext,
             clientData: chat.client || null,
         };
         
@@ -925,7 +964,7 @@ const handleMessage = async (msg) => {
         // ── Chequeo de etiquetas de exclusión ──────────
         // Si el cliente tiene tag "Cancelar Bot", "No Bot", "Proveedor", etc.
         // el bot NO responde y se silencia completamente para ese chat.
-        const TAGS_SIN_BOT = ['cancelar bot', 'no bot', 'proveedor', 'no interesado', 'error', 'familiar', 'personal', 'spam'];
+        const TAGS_SIN_BOT = ['cancelar bot', 'no bot', 'proveedor', 'no interesado', 'error', 'familiar', 'personal', 'spam', 'post-venta', 'postventa', 'ya es cliente', 'cerrado'];
         const clientTags = chat?.client?.tags || [];
         const tieneTagSinBot = clientTags.some(tag =>
             TAGS_SIN_BOT.some(t => tag.name.toLowerCase().includes(t))
@@ -968,7 +1007,7 @@ const handleMessage = async (msg) => {
         }
 
         // ── Auto-Reanudación Inteligente (Smart Auto-Resume) ──
-        if (oldLastMessageAt && !chat.botEnabled && !tieneTagSinBot) {
+        if (oldLastMessageAt && !chat.botEnabled && !tieneTagSinBot && !esPostVenta) {
             const diffMs = Date.now() - new Date(oldLastMessageAt).getTime();
             const diffHours = diffMs / (1000 * 60 * 60);
             if (diffHours >= 24) {
@@ -1511,16 +1550,19 @@ app.post('/api/send', async (req, res) => {
 });
 
 app.get('/api/agent', (req, res) => {
-    res.json({ enabled: agentEnabled, prompt: agentPrompt });
+    const hasApiKey = !!(process.env.GOOGLE_GENAI_API_KEY || process.env.GOOGLE_API_KEY);
+    const displayPrompt = (!agentPrompt || agentPrompt.trim().length <= 300) ? DEFAULT_SALES_PROMPT : agentPrompt;
+    res.json({ enabled: agentEnabled, prompt: displayPrompt, configured: hasApiKey, dailyContext });
 });
 
 app.post('/api/agent', async (req, res) => {
-    const { enabled, prompt } = req.body;
+    const { enabled, prompt, dailyContext: newDailyContext } = req.body;
     if (enabled !== undefined) agentEnabled = enabled;
     if (prompt !== undefined) agentPrompt = prompt;
+    if (newDailyContext !== undefined) dailyContext = newDailyContext;
     
     try {
-        fs.writeFileSync(configPath, JSON.stringify({ enabled: agentEnabled, prompt: agentPrompt }, null, 2));
+        fs.writeFileSync(configPath, JSON.stringify({ enabled: agentEnabled, prompt: agentPrompt, dailyContext }, null, 2));
         
         if (enabled !== undefined) {
             await prisma.systemSetting.upsert({
@@ -1536,12 +1578,20 @@ app.post('/api/agent', async (req, res) => {
                 create: { key: 'bot_prompt', value: agentPrompt }
             });
         }
+        if (newDailyContext !== undefined) {
+            await prisma.systemSetting.upsert({
+                where: { key: 'bot_daily_context' },
+                update: { value: dailyContext },
+                create: { key: 'bot_daily_context', value: dailyContext }
+            });
+        }
     } catch (e) {
         console.error("❌ Error persisting config to database:", e);
     }
     
-    io.emit('bot_status', { agentEnabled, prompt: agentPrompt });
-    res.json({ enabled: agentEnabled, prompt: agentPrompt });
+    const hasApiKey = !!(process.env.GOOGLE_GENAI_API_KEY || process.env.GOOGLE_API_KEY);
+    io.emit('bot_status', { agentEnabled, prompt: agentPrompt, configured: hasApiKey, dailyContext });
+    res.json({ enabled: agentEnabled, prompt: agentPrompt, configured: hasApiKey, dailyContext });
 });
 
 // ── Toggle bot por chat individual ─────────────
@@ -1755,7 +1805,8 @@ app.post('/api/test/chat', async (req, res) => {
             messages: allMessages,
             userPhone: '1111111111',
             userName: 'Tester',
-            customPrompt: agentPrompt
+            customPrompt: agentPrompt,
+            dailyContext: dailyContext
         };
         
         const result = await graph.invoke(state, config);
