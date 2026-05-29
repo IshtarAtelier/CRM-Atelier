@@ -123,17 +123,73 @@ const handleMessageCreate = async (msg) => {
                 
                 // GUARDAR EL MENSAJE EN EL CRM (UPSERT para evitar race conditions con el envío directo)
                 let messageType = msg.hasMedia ? 'IMAGE' : 'TEXT';
+                let mediaUrl = null;
                 
+                if (msg.hasMedia) {
+                    try {
+                        const media = await msg.downloadMedia();
+                        if (media) {
+                            if (media.mimetype.startsWith('audio/')) messageType = 'AUDIO';
+                            else if (media.mimetype.startsWith('video/')) messageType = 'VIDEO';
+                            else messageType = 'IMAGE';
+
+                            const buffer = Buffer.from(media.data, 'base64');
+                            let ext = 'bin';
+                            if (media.mimetype.includes('jpeg') || media.mimetype.includes('jpg')) ext = 'jpg';
+                            else if (media.mimetype.includes('png')) ext = 'png';
+                            else if (media.mimetype.includes('webp')) ext = 'webp';
+                            else if (media.mimetype.includes('pdf')) ext = 'pdf';
+                            else if (media.mimetype.includes('ogg') || media.mimetype.includes('audio')) ext = 'ogg';
+                            else if (media.mimetype.includes('mp4')) ext = 'mp4';
+                            else {
+                                const parts = media.mimetype.split('/');
+                                if (parts.length > 1) {
+                                    const sub = parts[1].split(';')[0].toLowerCase();
+                                    if (/^[a-z0-9]+$/.test(sub)) {
+                                        ext = sub;
+                                    }
+                                }
+                            }
+
+                            const axios = require('axios');
+                            const FormDataNode = require('form-data');
+                            const form = new FormDataNode();
+                            form.append('file', buffer, { filename: `wa_out_${Date.now()}.${ext}`, contentType: media.mimetype });
+                            
+                            let uploadUrl = process.env.CRM_API_URL;
+                            if (uploadUrl.endsWith('/api/bot')) uploadUrl = uploadUrl.replace('/api/bot', '/api/upload');
+                            else if (uploadUrl.endsWith('/api')) uploadUrl = uploadUrl + '/upload';
+                            else uploadUrl = uploadUrl + '/upload';
+
+                            const uploadRes = await axios.post(uploadUrl, form, {
+                                headers: {
+                                    ...form.getHeaders(),
+                                    'x-api-key': process.env.BOT_API_KEY
+                                }
+                            });
+                            
+                            if (uploadRes.data && uploadRes.data.url) {
+                                mediaUrl = uploadRes.data.url;
+                            }
+                        }
+                    } catch (err) {
+                        console.error('Error procesando media saliente:', err.message);
+                    }
+                }
+                
+                const createData = {
+                    chatId: chat.id,
+                    direction: 'OUTBOUND',
+                    type: messageType,
+                    content: msg.body || '[Media/Documento]',
+                    waMessageId: msg.id._serialized,
+                };
+                if (mediaUrl) createData.mediaUrl = mediaUrl;
+
                 await prisma.whatsAppMessage.upsert({
                     where: { waMessageId: msg.id._serialized },
                     update: {}, // No pisamos el senderName si ya fue creado por el POST /api/send
-                    create: {
-                        chatId: chat.id,
-                        direction: 'OUTBOUND',
-                        type: messageType,
-                        content: msg.body || '[Media/Documento]',
-                        waMessageId: msg.id._serialized,
-                    }
+                    create: createData
                 });
                 broadcastChatUpdate(chat.id);
             }
@@ -1439,12 +1495,30 @@ app.patch('/api/chats/:id', async (req, res) => {
         if (clientId !== undefined) data.clientId = clientId;
         if (chatSummary !== undefined) data.chatSummary = chatSummary;
         
-        let chat;
+        let chat = await prisma.whatsAppChat.findUnique({ where: { id } });
+        if (!chat) return res.status(404).json({ error: 'Chat no encontrado' });
+
         if (botEnabled === false) {
             await disableBotForChatById(id, 'API patch CRM (Vendedor desactivó el bot)');
+            // Agregar etiqueta para evitar auto-resume si no existe
+            let currentLabels = data.chatLabels !== undefined ? data.chatLabels : (chat.chatLabels || '');
+            if (!currentLabels.includes('[SISTEMA - BOT APAGADO]')) {
+                data.chatLabels = currentLabels ? currentLabels + ', [SISTEMA - BOT APAGADO]' : '[SISTEMA - BOT APAGADO]';
+            }
             chat = await prisma.whatsAppChat.update({ where: { id }, data });
         } else {
-            if (botEnabled !== undefined) data.botEnabled = botEnabled;
+            if (botEnabled === true) {
+                data.botEnabled = true;
+                // Si el vendedor activa el bot manualmente, quitamos la etiqueta de apagado manual
+                let currentLabels = data.chatLabels !== undefined ? data.chatLabels : (chat.chatLabels || '');
+                if (currentLabels.includes('[SISTEMA - BOT APAGADO]')) {
+                    data.chatLabels = currentLabels.replace(/,?s*\[SISTEMA - BOT APAGADO\]/g, '').trim();
+                    // Limpiar coma residual inicial si queda
+                    if (data.chatLabels.startsWith(',')) data.chatLabels = data.chatLabels.substring(1).trim();
+                }
+            } else if (botEnabled !== undefined) {
+                data.botEnabled = botEnabled;
+            }
             chat = await prisma.whatsAppChat.update({ where: { id }, data });
         }
         res.json(chat);
