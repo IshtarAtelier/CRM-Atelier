@@ -117,7 +117,7 @@ export function NotificationBell() {
                                         </div>
                                         <div className="flex-1 min-w-0">
                                             <p className="text-[9px] font-black text-stone-400 uppercase tracking-widest">{getTypeLabel(n.type)}</p>
-                                            <p className="text-xs font-bold text-stone-700 dark:text-stone-300 mt-0.5 break-words">{n.message}</p>
+                                            <p className="text-xs font-bold text-stone-700 dark:text-stone-300 mt-0.5 break-words whitespace-pre-wrap">{n.message}</p>
                                             <p className="text-[9px] text-stone-400 mt-1">
                                                 Solicitado por <span className="font-bold text-stone-500">{n.requestedBy}</span>
                                             </p>

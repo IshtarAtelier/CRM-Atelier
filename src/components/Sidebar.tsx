@@ -144,7 +144,7 @@ export function Sidebar({ userName = "Usuario", userRole = "STAFF", userId = "" 
             <Search size={16} />
             </button>
         )}
-        <div className={`flex items-center gap-1 ${isCollapsed ? 'justify-center py-4 flex-col' : 'px-2 pb-2'}`}>
+        <div className={`flex items-center gap-1 ${isCollapsed ? 'justify-center py-4 flex-col' : 'px-2 pb-6 lg:pb-2'}`}>
           {isAdmin && <NotificationBell />}
           {!isCollapsed && (
             <div className="flex-1 overflow-hidden">
@@ -187,7 +187,7 @@ export function Sidebar({ userName = "Usuario", userRole = "STAFF", userId = "" 
 
       {/* Mobile drawer */}
       <aside
-        className={`lg:hidden fixed top-0 left-0 h-screen w-72 bg-sidebar border-r border-sidebar-border flex flex-col z-50 transition-transform duration-300 ease-out ${
+        className={`lg:hidden fixed top-0 left-0 h-[100dvh] w-72 bg-sidebar border-r border-sidebar-border flex flex-col z-50 transition-transform duration-300 ease-out ${
           mobileOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
