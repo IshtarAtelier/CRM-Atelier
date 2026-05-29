@@ -112,7 +112,7 @@ async function detectContactSourceFromChat(chatId) {
  */
 async function convertIntoLead({ phone, name, contactSource, interest, chatId, insurance }) {
     if (name && isPhrase(name)) {
-        throw new Error('El nombre proporcionado no es un nombre de persona válido (es una frase o saludo).');
+        return { success: false, error: '[INSTRUCCIÓN INTERNA] El nombre no es válido, parece una frase. Preguntale al cliente su nombre de pila de forma natural.' };
     }
     // Sanitizar teléfono: números @lid falsos suelen tener 15+ dígitos puros
     let cleanPhone = phone ? phone.replace(/\D/g, '') : '';
@@ -124,28 +124,32 @@ async function convertIntoLead({ phone, name, contactSource, interest, chatId, i
     }
 
     if (!cleanPhone) {
-        throw new Error('No se pudo registrar el lead: el teléfono no es válido o no se pudo resolver.');
+        return { success: false, error: '[INSTRUCCIÓN INTERNA] El teléfono no es válido. Continuá la conversación normalmente sin mencionar este problema.' };
     }
 
-    const VALID_SOURCES = ["Google Ads", "Meta", "Calle", "Jemima", "Ya es Cliente", "Tienda nube", "Referido", "Wave", "Salida"];
-    let resolvedSource = contactSource;
-    if (!resolvedSource || !VALID_SOURCES.includes(resolvedSource)) {
-        resolvedSource = await detectContactSourceFromChat(chatId);
-    }
+    try {
+        const VALID_SOURCES = ["Google Ads", "Meta", "Calle", "Jemima", "Ya es Cliente", "Tienda nube", "Referido", "Wave", "Salida"];
+        let resolvedSource = contactSource;
+        if (!resolvedSource || !VALID_SOURCES.includes(resolvedSource)) {
+            resolvedSource = await detectContactSourceFromChat(chatId);
+        }
 
-    const response = await requestWithRetry(() =>
-        apiClient.post(`${CRM_API_URL}/clients`, {
-            phone: cleanPhone, 
-            name, 
-            contactSource: resolvedSource, 
-            interest: interest || 'Otros', 
-            status: 'CONTACT', 
-            insurance
-        })
-    );
-    const newContact = response.data.client || response.data;
+        const response = await requestWithRetry(() =>
+            apiClient.post(`${CRM_API_URL}/clients`, {
+                phone: cleanPhone, 
+                name, 
+                contactSource: resolvedSource, 
+                interest: interest || 'Otros', 
+                status: 'CONTACT', 
+                insurance
+            })
+        );
+        const newContact = response.data.client || response.data;
 
-    if (newContact && newContact.id) {
+        if (!newContact || !newContact.id) {
+            return { success: false, error: '[INSTRUCCIÓN INTERNA] No se pudo crear el prospecto.' };
+        }
+
         // Fix: Usar chatId estricto si se provee, o un phone válido.
         if (chatId) {
             await prisma.whatsAppChat.update({
@@ -167,9 +171,12 @@ async function convertIntoLead({ phone, name, contactSource, interest, chatId, i
         } else if (resolvedSource === 'Google Ads') {
             await addTagToClient({ clientId: newContact.id, tagName: 'Google Ads' });
         }
-    }
 
-    return { success: true, contact: newContact };
+        return { success: true, contact: newContact };
+    } catch (e) {
+        console.error('Error en convertIntoLead:', e.message);
+        return { success: false, error: '[INSTRUCCIÓN INTERNA] No se pudo registrar al prospecto. Continuá la conversación normalmente.' };
+    }
 }
 
 /**
@@ -292,57 +299,58 @@ async function createQuote({ clientId, items, total, discountCash }) {
  * Tool: Cancel the bot and tag the conversation
  */
 async function cancelBot({ clientId, waId }) {
-    // If no waId provided, try to find it from clientId
-    if (!waId && clientId && clientId !== 'none') {
-        const chatFromClient = await prisma.whatsAppChat.findFirst({ where: { clientId } });
-        if (chatFromClient) waId = chatFromClient.waId;
-    }
+    try {
+        // If no waId provided, try to find it from clientId
+        if (!waId && clientId && clientId !== 'none') {
+            const chatFromClient = await prisma.whatsAppChat.findFirst({ where: { clientId } });
+            if (chatFromClient) waId = chatFromClient.waId;
+        }
 
-    let tag = await prisma.tag.findFirst({
-        where: { name: { equals: 'Cancelar Bot', mode: 'insensitive' } }
-    });
-    
-    if (!tag) {
-        tag = await prisma.tag.create({
-            data: { name: 'Cancelar Bot', color: '#ff4d4f' }
+        const tag = await prisma.tag.upsert({
+            where: { name: 'Cancelar Bot' },
+            update: {},
+            create: { name: 'Cancelar Bot', color: '#ff4d4f' }
         });
-    }
 
-    if (clientId && clientId !== 'none') {
-        await prisma.client.update({
-            where: { id: clientId },
-            data: {
-                tags: {
-                    connect: { id: tag.id }
-                }
-            }
-        });
-    }
-
-    if (waId) {
-        const chat = await prisma.whatsAppChat.findUnique({ where: { waId } });
-        if (chat) {
-            const updatedLabels = new Set(chat.chatLabels || []);
-            updatedLabels.add('Cancelar Bot');
-
-            await prisma.whatsAppChat.update({
-                where: { waId },
-                data: { 
-                    botEnabled: false, 
-                    status: 'OPEN', 
-                    unreadCount: { increment: 1 },
-                    chatLabels: Array.from(updatedLabels)
+        if (clientId && clientId !== 'none') {
+            await prisma.client.update({
+                where: { id: clientId },
+                data: {
+                    tags: {
+                        connect: { id: tag.id }
+                    }
                 }
             });
-
-            // Generar resumen de handoff
-            generateAndSaveHandoffSummary(chat.id).catch(e => console.error("Error en resumen cancelBot:", e.message));
-
-            return { success: true, message: 'BOT_CANCELED' };
         }
-    }
 
-    throw new Error('Se requiere waId para cancelar el bot en este chat o el chat no existe.');
+        if (waId) {
+            const chat = await prisma.whatsAppChat.findUnique({ where: { waId } });
+            if (chat) {
+                const updatedLabels = new Set(chat.chatLabels || []);
+                updatedLabels.add('Cancelar Bot');
+
+                await prisma.whatsAppChat.update({
+                    where: { waId },
+                    data: { 
+                        botEnabled: false, 
+                        status: 'OPEN', 
+                        unreadCount: { increment: 1 },
+                        chatLabels: Array.from(updatedLabels)
+                    }
+                });
+
+                // Generar resumen de handoff
+                generateAndSaveHandoffSummary(chat.id).catch(e => console.error("Error en resumen cancelBot:", e.message));
+
+                return { success: true, message: 'BOT_CANCELED' };
+            }
+        }
+
+        return { success: false, message: '[INSTRUCCIÓN INTERNA] No se pudo desactivar el bot. Continuá la conversación normalmente.' };
+    } catch (e) {
+        console.error('Error en cancelBot:', e.message);
+        return { success: false, message: '[INSTRUCCIÓN INTERNA] No se pudo desactivar el bot. Continuá la conversación normalmente.' };
+    }
 }
 
 /**
@@ -350,65 +358,66 @@ async function cancelBot({ clientId, waId }) {
  */
 async function addTagToClient({ clientId, tagName }) {
     if (!clientId || clientId === 'none') {
-        throw new Error("No client ID provided. No se puede etiquetar a un prospecto no guardado.");
+        return { success: false, message: '[INSTRUCCIÓN INTERNA] No se pudo agregar la etiqueta porque falta el clientId.' };
     }
     
-    let tag = await prisma.tag.findFirst({
-        where: { name: { equals: tagName, mode: 'insensitive' } }
-    });
-    
-    if (!tag) {
-        tag = await prisma.tag.create({
-            data: { name: tagName, color: '#1677ff' } // azul por defecto
+    try {
+        const tag = await prisma.tag.upsert({
+            where: { name: tagName },
+            update: {},
+            create: { name: tagName, color: '#1677ff' } // azul por defecto
         });
-    }
 
-    const client = await prisma.client.update({
-        where: { id: clientId },
-        data: {
-            tags: {
-                connect: { id: tag.id }
+        const client = await prisma.client.update({
+            where: { id: clientId },
+            data: {
+                tags: {
+                    connect: { id: tag.id }
+                }
+            }
+        });
+
+        // 1. Bot Action Automation
+        if (tag.botAction === 'TURN_OFF' || tag.botAction === 'TURN_ON') {
+            await prisma.whatsAppChat.updateMany({
+                where: { clientId: clientId },
+                data: { botEnabled: tag.botAction === 'TURN_ON' }
+            });
+            console.log(`[Etiqueta Automation] Bot ${tag.botAction === 'TURN_ON' ? 'activado' : 'pausado'} para cliente ${client.name}`);
+        }
+
+        // 1.5. Visual Automation (Push to WhatsAppChat chatLabels)
+        try {
+            const chatsToLabel = await prisma.whatsAppChat.findMany({ where: { clientId: clientId } });
+            for (const c of chatsToLabel) {
+                const labels = new Set(c.chatLabels || []);
+                labels.add(tag.name);
+                await prisma.whatsAppChat.update({
+                    where: { id: c.id },
+                    data: { chatLabels: Array.from(labels) }
+                });
+            }
+        } catch (labelErr) {
+            console.error("[Etiqueta Automation] Error push chatLabel:", labelErr.message);
+        }
+
+        // 2. Notification Automation
+        if (tag.notifyPhone) {
+            try {
+                const message = `🔔 *NOTIFICACIÓN DEL CRM*\nSe ha aplicado la etiqueta *${tag.name}* al cliente *${client.name || 'Sin nombre'}* (ID: ${client.id}).`;
+                const notifyWaId = tag.notifyPhone.includes('@') ? tag.notifyPhone : `${tag.notifyPhone.replace(/[^0-9]/g, '')}@c.us`;
+                await sendMessage(notifyWaId, message);
+                console.log(`[Etiqueta Automation] Notificación enviada a ${notifyWaId}`);
+            } catch (err) {
+                console.error("[Etiqueta Automation] Error enviando notificación:", err.message);
             }
         }
-    });
 
-    // 1. Bot Action Automation
-    if (tag.botAction === 'TURN_OFF' || tag.botAction === 'TURN_ON') {
-        await prisma.whatsAppChat.updateMany({
-            where: { clientId: clientId },
-            data: { botEnabled: tag.botAction === 'TURN_ON' }
-        });
-        console.log(`[Etiqueta Automation] Bot ${tag.botAction === 'TURN_ON' ? 'activado' : 'pausado'} para cliente ${client.name}`);
+        return { success: true, message: `Etiqueta '${tagName}' agregada correctamente al cliente.` };
+    } catch (e) {
+        console.error('Error en addTagToClient:', e.message);
+        return { success: false, message: '[INSTRUCCIÓN INTERNA] No se pudo agregar la etiqueta.' };
     }
-
-    // 1.5. Visual Automation (Push to WhatsAppChat chatLabels)
-    try {
-        const chatsToLabel = await prisma.whatsAppChat.findMany({ where: { clientId: clientId } });
-        for (const c of chatsToLabel) {
-            const labels = new Set(c.chatLabels || []);
-            labels.add(tag.name);
-            await prisma.whatsAppChat.update({
-                where: { id: c.id },
-                data: { chatLabels: Array.from(labels) }
-            });
-        }
-    } catch (labelErr) {
-        console.error("[Etiqueta Automation] Error push chatLabel:", labelErr.message);
-    }
-
-    // 2. Notification Automation
-    if (tag.notifyPhone) {
-        try {
-            const message = `🔔 *NOTIFICACIÓN DEL CRM*\nSe ha aplicado la etiqueta *${tag.name}* al cliente *${client.name || 'Sin nombre'}* (ID: ${client.id}).`;
-            const notifyWaId = tag.notifyPhone.includes('@') ? tag.notifyPhone : `${tag.notifyPhone.replace(/[^0-9]/g, '')}@c.us`;
-            await sendMessage(notifyWaId, message);
-            console.log(`[Etiqueta Automation] Notificación enviada a ${notifyWaId}`);
-        } catch (err) {
-            console.error("[Etiqueta Automation] Error enviando notificación:", err.message);
-        }
-    }
-
-    return { success: true, message: `Etiqueta '${tagName}' agregada correctamente al cliente.` };
 }
 
 /**
@@ -416,89 +425,95 @@ async function addTagToClient({ clientId, tagName }) {
  */
 async function disableBotForChat({ chatId }) {
     if (!chatId || chatId === 'none') {
-        throw new Error("No chatId provided.");
+        return { success: false, message: '[INSTRUCCIÓN INTERNA] No se pudo desactivar el bot porque falta el chatId.' };
     }
     
-    const chat = await prisma.whatsAppChat.findUnique({ where: { id: chatId } });
-    if (!chat) {
-        throw new Error("Chat not found.");
-    }
+    try {
+        const chat = await prisma.whatsAppChat.findUnique({ where: { id: chatId } });
+        if (!chat) {
+            return { success: false, message: '[INSTRUCCIÓN INTERNA] No se encontró el chat para desactivar el bot.' };
+        }
 
-    let tag = await prisma.tag.findFirst({
-        where: { name: { equals: 'Cancelar Bot', mode: 'insensitive' } }
-    });
-    if (!tag) {
-        tag = await prisma.tag.create({
-            data: { name: 'Cancelar Bot', color: '#ff4d4f' }
+        const tag = await prisma.tag.upsert({
+            where: { name: 'Cancelar Bot' },
+            update: {},
+            create: { name: 'Cancelar Bot', color: '#ff4d4f' }
         });
-    }
 
-    if (chat.clientId) {
-        await prisma.client.update({
-            where: { id: chat.clientId },
-            data: {
-                tags: {
-                    connect: { id: tag.id }
+        if (chat.clientId) {
+            await prisma.client.update({
+                where: { id: chat.clientId },
+                data: {
+                    tags: {
+                        connect: { id: tag.id }
+                    }
                 }
+            });
+        }
+
+        const updatedLabels = new Set(chat.chatLabels || []);
+        updatedLabels.add('Cancelar Bot');
+
+        await prisma.whatsAppChat.update({
+            where: { id: chatId },
+            data: { 
+                botEnabled: false, 
+                chatLabels: Array.from(updatedLabels)
             }
         });
+
+        // Generar resumen de handoff
+        generateAndSaveHandoffSummary(chatId).catch(e => console.error("Error en resumen disableBotForChat:", e.message));
+
+        return { success: true, message: `Bot apagado y etiquetado como 'Cancelar Bot' para el chat.` };
+    } catch (e) {
+        console.error('Error en disableBotForChat:', e.message);
+        return { success: false, message: '[INSTRUCCIÓN INTERNA] No se pudo desactivar el bot. Continuá la conversación normalmente.' };
     }
-
-    const updatedLabels = new Set(chat.chatLabels || []);
-    updatedLabels.add('Cancelar Bot');
-
-    await prisma.whatsAppChat.update({
-        where: { id: chatId },
-        data: { 
-            botEnabled: false, 
-            chatLabels: Array.from(updatedLabels)
-        }
-    });
-
-    // Generar resumen de handoff
-    generateAndSaveHandoffSummary(chatId).catch(e => console.error("Error en resumen disableBotForChat:", e.message));
-
-    return { success: true, message: `Bot apagado y etiquetado como 'Cancelar Bot' para el chat.` };
 }
 
 /**
  * Tool: Report a complaint via email
  */
 async function reportComplaint({ clientId, details }) {
-    if (!clientId) throw new Error("No client ID provided.");
-    if (!details) throw new Error("No details provided.");
+    if (!clientId) return { success: false, message: '[INSTRUCCIÓN INTERNA] Falta el clientId para reportar el reclamo.' };
+    if (!details) return { success: false, message: '[INSTRUCCIÓN INTERNA] Falta el detalle del reclamo.' };
     
-    const complaintsUrl = CRM_API_URL.replace('/api/bot', '/api');
-    const response = await requestWithRetry(() =>
-        apiClient.post(`${complaintsUrl}/complaints`, {
+    try {
+        const complaintsUrl = CRM_API_URL.replace('/api/bot', '/api');
+        const response = await requestWithRetry(() =>
+            apiClient.post(`${complaintsUrl}/complaints`, {
+                clientId,
+                details
+            })
+        );
+
+        // Add the NOTE to the client's profile automatically
+        await addInteraction({
             clientId,
-            details
-        })
-    );
+            type: 'NOTE',
+            content: `[RECLAMO POST-VENTA] ${details}`
+        });
 
-    // Add the NOTE to the client's profile automatically
-    await addInteraction({
-        clientId,
-        type: 'NOTE',
-        content: `[RECLAMO POST-VENTA] ${details}`
-    });
-
-    // Enviar notificación por WhatsApp a la administración
-    const adminPhone = process.env.ADMIN_PHONE;
-    if (adminPhone) {
-        try {
-            // Obtenemos los datos del cliente para el msj
-            const client = await prisma.client.findUnique({ where: { id: clientId } });
-            const clientName = client ? client.name : clientId;
-            
-            const waMsg = `🚨 *NUEVO RECLAMO POST-VENTA* 🚨\n\n*Cliente:* ${clientName}\n\n*Detalles:*\n${details}\n\nRevisa el correo para más información.`;
-            await sendMessage(adminPhone, waMsg);
-        } catch (adminErr) {
-            console.error('Error enviando WhatsApp de reclamo a administración:', adminErr.message);
+        // Enviar notificación por WhatsApp a la administración
+        const adminPhone = process.env.ADMIN_PHONE;
+        if (adminPhone) {
+            try {
+                const client = await prisma.client.findUnique({ where: { id: clientId } });
+                const clientName = client ? client.name : clientId;
+                
+                const waMsg = `🚨 *NUEVO RECLAMO POST-VENTA* 🚨\n\n*Cliente:* ${clientName}\n\n*Detalles:*\n${details}\n\nRevisa el correo para más información.`;
+                await sendMessage(adminPhone, waMsg);
+            } catch (adminErr) {
+                console.error('Error enviando WhatsApp de reclamo a administración:', adminErr.message);
+            }
         }
-    }
 
-    return { success: true, message: `Reclamo reportado exitosamente.` };
+        return { success: true, message: `Reclamo reportado exitosamente.` };
+    } catch (e) {
+        console.error('Error en reportComplaint:', e.message);
+        return { success: false, message: '[INSTRUCCIÓN INTERNA] No se pudo reportar el reclamo. Decile al cliente que lo vas a derivar con el equipo.' };
+    }
 }
 
 /**
@@ -637,7 +652,7 @@ async function updateChatSummary({ chatId, summaryText }) {
         return { success: true, message: 'Resumen e hitos del chat actualizados correctamente.' };
     } catch (e) {
         console.error('Error actualizando chat summary:', e.message);
-        return { success: false, error: e.message };
+        return { success: false, error: 'No se pudo actualizar el resumen del chat.' };
     }
 }
 

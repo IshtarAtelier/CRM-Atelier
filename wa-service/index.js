@@ -497,7 +497,7 @@ async function processBotTurn(chat, waId, profileName, realPhone) {
         // Consultar el estado actual en la base de datos para no responder si se apagó el bot en el debounce de 25s
         const freshChat = await prisma.whatsAppChat.findUnique({
             where: { id: chat.id },
-            include: { client: { include: { tags: true } } }
+            include: { client: { include: { tags: true, prescriptions: { orderBy: { createdAt: 'desc' }, take: 3 }, interactions: { orderBy: { createdAt: 'desc' }, take: 5 } } } }
         });
 
         if (!freshChat || !freshChat.botEnabled) {
@@ -563,7 +563,7 @@ async function processBotTurn(chat, waId, profileName, realPhone) {
             chatId: chat.id,
             customPrompt: agentPrompt,
             dailyContext: dailyContext,
-            clientData: chat.client || null,
+            clientData: freshChat?.client || chat.client || null,
             chatSummary: freshChat.chatSummary || null,
         };
         

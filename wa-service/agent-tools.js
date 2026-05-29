@@ -25,7 +25,8 @@ function safeParse(input, toolName) {
         }
         return {};
     } catch (e) {
-        throw new Error(`Error de formato en '${toolName}': se esperaba un JSON válido. Recibido: ${typeof input === "string" ? input.substring(0, 80) : typeof input}. Revisá que el formato sea correcto.`);
+        console.error(`safeParse error en '${toolName}':`, e.message);
+        return {};
     }
 }
 

@@ -376,7 +376,7 @@ function formatClientData(clientData, userPhone, userName, chatId, chatSummary) 
   }
   
   if (!clientData) {
-    return `${summaryText}\n\nDATOS:\nNo registrado. Teléfono: ${resolvedPhone}\nNombre WA: ${userName}\nChat ID OBLIGATORIO PARA REGISTRO: ${chatId}`;
+    return `${summaryText}\n\nDATOS:\nNo registrado. Teléfono: ${resolvedPhone}\nNombre WA: ${userName || 'No disponible'}\nChat ID OBLIGATORIO PARA REGISTRO: ${chatId}`;
   }
   
   let text = `${summaryText}\n\nDATOS DEL CLIENTE EN SISTEMA:\nID: ${clientData.id}\nNombre: ${clientData.name}\nTeléfono: ${resolvedPhone}\nEstado: ${clientData.status}\nChat ID: ${chatId}`;
@@ -527,7 +527,10 @@ async function auditorNode(state) {
   const lastMessage = state.messages[state.messages.length - 1];
   if (lastMessage.tool_calls && lastMessage.tool_calls.length > 0) return state;
 
-  return { messages: [new AIMessage(lastMessage.content.toString().trim())] };
+  const rawContent = lastMessage.content;
+  const safeContent = (rawContent && typeof rawContent === 'string') ? rawContent.trim() : (rawContent ? rawContent.toString().trim() : '');
+  if (!safeContent) return state;
+  return { messages: [new AIMessage(safeContent)] };
 }
 
 // ── FUNCIONES CONDICIONALES DE RUTEO ──
@@ -550,7 +553,7 @@ const GraphAnnotation = Annotation.Root({
   userName: Annotation({ reducer: (_, v) => v, default: () => "" }),
   agentType: Annotation({ reducer: (_, v) => v, default: () => "SALES" }),
   clientData: Annotation({ reducer: (_, v) => v, default: () => null }),
-  isExisting: Annotation({ reducer: (_, v) => v, default: () => false }),
+  chatSummary: Annotation({ reducer: (_, v) => v, default: () => null }),
   customPrompt: Annotation({ reducer: (_, v) => v, default: () => "" }),
   dailyContext: Annotation({ reducer: (_, v) => v, default: () => "" }),
   chatId: Annotation({ reducer: (_, v) => v, default: () => "" }),
