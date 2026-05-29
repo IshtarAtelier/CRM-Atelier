@@ -425,7 +425,7 @@ async function checkAndSendInactivityFollowUps() {
         }
     });
 
-    const FOLLOW_UP_TEXT = "Hola! Avisame si pudiste encontrar la receta o los datos de tu obra social así te dejamos lista la cotización?";
+    const FOLLOW_UP_TEXT = "¡Hola! Quería saber si te quedó alguna duda o si querés que sigamos viendo opciones. ¡Avisame cualquier cosita! 😊";
 
     for (const chat of activeChats) {
         if (chat.messages.length === 0) continue;
@@ -446,18 +446,35 @@ async function checkAndSendInactivityFollowUps() {
                 try {
                     await sendTypingState(chat.waId);
                     await new Promise(r => setTimeout(r, 2000));
-                    await sendMessage(chat.waId, FOLLOW_UP_TEXT);
-
-                    await prisma.whatsAppMessage.create({
-                        data: {
-                            chatId: chat.id,
-                            direction: 'OUTBOUND',
-                            type: 'TEXT',
-                            content: FOLLOW_UP_TEXT,
-                            senderName: 'Bot',
-                            status: 'SENT'
-                        }
-                    });
+                    const sent = await sendMessage(chat.waId, FOLLOW_UP_TEXT);
+                    
+                    if (sent && sent.id && sent.id._serialized) {
+                        await prisma.whatsAppMessage.upsert({
+                            where: { waMessageId: sent.id._serialized },
+                            update: { senderName: 'Bot' },
+                            create: {
+                                chatId: chat.id,
+                                direction: 'OUTBOUND',
+                                type: 'TEXT',
+                                content: FOLLOW_UP_TEXT,
+                                waMessageId: sent.id._serialized,
+                                senderName: 'Bot',
+                                status: 'SENT'
+                            }
+                        });
+                    } else {
+                        // Fallback por si falla obtener el ID
+                        await prisma.whatsAppMessage.create({
+                            data: {
+                                chatId: chat.id,
+                                direction: 'OUTBOUND',
+                                type: 'TEXT',
+                                content: FOLLOW_UP_TEXT,
+                                senderName: 'Bot',
+                                status: 'SENT'
+                            }
+                        });
+                    }
 
                     // Actualizar lastMessageAt para reiniciar contadores
                     await prisma.whatsAppChat.update({
@@ -547,6 +564,7 @@ async function processBotTurn(chat, waId, profileName, realPhone) {
             customPrompt: agentPrompt,
             dailyContext: dailyContext,
             clientData: chat.client || null,
+            chatSummary: freshChat.chatSummary || null,
         };
         
         const result = await graph.invoke(state, config);
@@ -1413,12 +1431,13 @@ app.get('/api/chats/:id/messages', async (req, res) => {
 // PATCH /api/chats/:id  { chatLabels?, archived?, botEnabled?, clientId? }
 app.patch('/api/chats/:id', async (req, res) => {
     const { id } = req.params;
-    const { chatLabels, archived, botEnabled, clientId } = req.body;
+    const { chatLabels, archived, botEnabled, clientId, chatSummary } = req.body;
     try {
         const data = {};
         if (chatLabels !== undefined) data.chatLabels = chatLabels;
         if (archived !== undefined) data.archived = archived;
         if (clientId !== undefined) data.clientId = clientId;
+        if (chatSummary !== undefined) data.chatSummary = chatSummary;
         
         let chat;
         if (botEnabled === false) {

@@ -160,6 +160,13 @@ async function convertIntoLead({ phone, name, contactSource, interest, chatId, i
         }
         // Auto-etiquetar como Bot Lead
         await addTagToClient({ clientId: newContact.id, tagName: 'Bot Lead' });
+        
+        // Agregar etiqueta visual explícita según la fuente detectada
+        if (resolvedSource === 'Meta') {
+            await addTagToClient({ clientId: newContact.id, tagName: 'Meta Ads' });
+        } else if (resolvedSource === 'Google Ads') {
+            await addTagToClient({ clientId: newContact.id, tagName: 'Google Ads' });
+        }
     }
 
     return { success: true, contact: newContact };
@@ -611,10 +618,33 @@ async function generateAndSaveHandoffSummary(chatId) {
     }
 }
 
+/**
+ * Tool: Update Chat Summary (Milestones)
+ */
+async function updateChatSummary({ chatId, summaryText }) {
+    if (!chatId || !summaryText) return { success: false, error: 'chatId y summaryText son obligatorios' };
+    try {
+        const updatedChat = await prisma.whatsAppChat.update({
+            where: { id: chatId },
+            data: { chatSummary: summaryText }
+        });
+        
+        // Notificar al front-end para que actualice la UI
+        if (global.io) {
+            global.io.emit('chat_summary_updated', { chatId, summary: summaryText });
+        }
+        
+        return { success: true, message: 'Resumen e hitos del chat actualizados correctamente.' };
+    } catch (e) {
+        console.error('Error actualizando chat summary:', e.message);
+        return { success: false, error: e.message };
+    }
+}
+
 module.exports = {
     checkExistingClient, convertIntoLead, updateClientData,
     getPriceList, getOrderStatus, createTask,
     addInteraction, savePrescription, logBotMessage, createQuote,
     cancelBot, addTagToClient, disableBotForChat, reportComplaint,
-    isPhrase, generateAndSaveHandoffSummary
+    isPhrase, generateAndSaveHandoffSummary, updateChatSummary
 };

@@ -122,8 +122,8 @@ export function BotPricingSection() {
     const categories = ['TODO', 'MONOFOCAL', 'MULTIFOCAL', 'BIFOCAL', 'ARMAZON', 'CONTACTO'];
     const filteredItems = items.filter(item => {
         if (filterCategory === 'TODO') return true;
-        // Normalizar categorías para el filtro
-        const itemCat = item.category?.toUpperCase() || '';
+        // Normalizar categorías para el filtro (ignorar tildes)
+        const itemCat = (item.category || '').normalize('NFD').replace(/[\u0300-\u036f]/g, "").toUpperCase();
         return itemCat.includes(filterCategory);
     });
 

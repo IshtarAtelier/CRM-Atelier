@@ -131,6 +131,8 @@ export default function WhatsAppPage() {
     const [showArchived, setShowArchived] = useState(false);
     const [showLabelPicker, setShowLabelPicker] = useState(false);
     const [showQuickReplies, setShowQuickReplies] = useState(false);
+    const [summaryModalChat, setSummaryModalChat] = useState<any>(null);
+    const [editingSummary, setEditingSummary] = useState('');
     const [showEmojiPicker, setShowEmojiPicker] = useState(false);
     const [selectedImage, setSelectedImage] = useState<{ base64: string; mimetype: string; filename: string } | null>(null);
     const [isRecording, setIsRecording] = useState(false);
@@ -680,6 +682,13 @@ export default function WhatsAppPage() {
             fetchChats();
             if (selectedChatRef.current?.id === chatId) {
                 fetchMessages(chatId);
+            }
+        });
+
+        socket.on('chat_summary_updated', ({ chatId, summary }) => {
+            fetchChats();
+            if (selectedChatRef.current?.id === chatId) {
+                setSelectedChat(prev => prev ? { ...prev, chatSummary: summary } : null);
             }
         });
 
@@ -1460,7 +1469,14 @@ export default function WhatsAppPage() {
                                             <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-emerald-500 border-2 border-white shadow-sm" />
                                         </div>
                                         <div className="min-w-0">
-                                            <h3 className="text-sm font-black text-stone-900 dark:text-white truncate flex items-center gap-1.5">
+                                            <h3 
+                                                className="text-sm font-black text-stone-900 dark:text-white truncate flex items-center gap-1.5 cursor-pointer hover:text-violet-600 transition-colors"
+                                                title="Doble click para ver resumen e hitos"
+                                                onDoubleClick={() => {
+                                                    setSummaryModalChat(selectedChat);
+                                                    setEditingSummary(selectedChat.chatSummary || '');
+                                                }}
+                                            >
                                                 {getDisplayName(selectedChat)}
                                                 {selectedChat.client && (
                                                     <span className="px-1.5 py-0.5 rounded-md bg-stone-100 dark:bg-stone-800 text-[8px] font-black tracking-widest uppercase text-stone-400 shrink-0">CRM</span>
@@ -1823,6 +1839,45 @@ export default function WhatsAppPage() {
                                 ) : (
                                     <><UserPlus className="w-3.5 h-3.5" /> Crear Ficha</>
                                 )}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+            {summaryModalChat && (
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-[60] flex items-center justify-center p-4" onClick={() => setSummaryModalChat(null)}>
+                    <div className="bg-white dark:bg-stone-900 w-full max-w-lg rounded-3xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh]" onClick={e => e.stopPropagation()}>
+                        <div className="px-6 py-5 border-b border-stone-200/50 dark:border-white/5 flex items-center justify-between">
+                            <h3 className="text-lg font-black text-stone-900 dark:text-white flex items-center gap-2">
+                                <Sparkles className="w-5 h-5 text-violet-500" /> Resumen del Chat
+                            </h3>
+                            <button onClick={() => setSummaryModalChat(null)} className="p-1.5 rounded-xl hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors">
+                                <X className="w-5 h-5 text-stone-500" />
+                            </button>
+                        </div>
+                        <div className="p-6 flex-1 overflow-y-auto">
+                            <p className="text-xs text-stone-500 dark:text-stone-400 mb-4 font-medium">Este resumen e hitos son leídos automáticamente por el Bot IA para no perder el contexto. Podés editarlo manualmente si querés agregar una indicación especial para el asistente o para vos.</p>
+                            <textarea
+                                value={editingSummary}
+                                onChange={e => setEditingSummary(e.target.value)}
+                                rows={8}
+                                placeholder="Aún no hay un resumen para este chat..."
+                                className="w-full px-4 py-3 bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl text-sm font-medium text-stone-900 dark:text-white focus:ring-2 focus:ring-violet-500 focus:border-transparent transition-all resize-none"
+                            />
+                        </div>
+                        <div className="px-6 py-5 border-t border-stone-200/50 dark:border-white/5 flex justify-end gap-3">
+                            <button onClick={() => setSummaryModalChat(null)} className="px-4 py-2 text-sm font-bold text-stone-600 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-800 rounded-xl transition-colors">Cancelar</button>
+                            <button
+                                onClick={async () => {
+                                    await updateChat(summaryModalChat.id, { chatSummary: editingSummary });
+                                    setSummaryModalChat(null);
+                                    if (selectedChat?.id === summaryModalChat.id) {
+                                        setSelectedChat({ ...selectedChat, chatSummary: editingSummary });
+                                    }
+                                }}
+                                className="px-5 py-2 bg-violet-600 hover:bg-violet-700 text-white text-sm font-bold rounded-xl shadow-lg shadow-violet-500/30 transition-all"
+                            >
+                                Guardar Resumen
                             </button>
                         </div>
                     </div>

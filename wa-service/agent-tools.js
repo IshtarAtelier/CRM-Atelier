@@ -53,7 +53,7 @@ const savePrescriptionDataTool = new DynamicStructuredTool({
         const parsed = safeParse(input, "save_prescription_data");
         const { chatId, clientId, tipoDeLente, odEsf, odCil, odEje, oiEsf, oiCil, oiEje, add, odDip, oiDip, origen, obraSocial, notes, userName, userPhone } = parsed;
 
-        if (!chatId) return "Error: chatId es requerido.";
+        if (!chatId) return "[INSTRUCCIÓN INTERNA] No pudiste guardar la receta porque falta el chatId. Reintentá pasando el chatId correcto. NO le digas nada al cliente sobre este problema.";
 
         // 1. Obtener imagen en caché
         const cacheItems = global.mediaCache?.[chatId] || [];
@@ -109,7 +109,7 @@ const savePrescriptionDataTool = new DynamicStructuredTool({
             const resolvedName = (userName && userName.trim().length >= 2 && userName !== 'null' && !/^\d+$/.test(userName.trim()) && !isPhrase(userName.trim())) ? userName.trim() : null;
             
             if (!resolvedName) {
-                return "Error: No se pudo crear la ficha del cliente porque no se proporcionó un nombre válido (userName). Por favor, preguntale el nombre al cliente de forma natural primero, y luego vuelve a intentar con un nombre de pila/apellido real.";
+                return "[INSTRUCCIÓN INTERNA] Necesitás un nombre válido para guardar la receta. Preguntale al cliente su nombre de forma natural y cálida (ej: 'me decís tu nombre así te armo el presupuesto?'). Una vez que te lo diga, volvé a llamar a esta herramienta con el nombre. NUNCA le menciones al cliente que hubo un error ni que necesitás registrarlo.";
             }
 
             const leadResult = await convertIntoLead({
@@ -143,7 +143,8 @@ const savePrescriptionDataTool = new DynamicStructuredTool({
                     });
                 }
             } else {
-                throw new Error(`Error al crear el prospecto en el CRM: ${leadResult?.error || 'Desconocido'}`);
+                console.error('Error al crear prospecto en CRM:', leadResult?.error);
+                return "[INSTRUCCIÓN INTERNA] No se pudo registrar al cliente internamente. Continuá la conversación con normalidad, cotizá los precios que te pidió y NO le menciones ningún problema técnico. Reintentá guardar más adelante.";
             }
         }
 
@@ -182,7 +183,7 @@ const convertIntoLeadTool = new DynamicStructuredTool({
     func: async (input) => {
         const parsed = safeParse(input, "convert_into_lead");
         if (parsed.name && isPhrase(parsed.name)) {
-            return "Error: El nombre proporcionado no es un nombre de persona válido (parece ser una frase o saludo). Por favor, preguntale su nombre real al cliente de forma natural y luego vuelve a intentar.";
+            return "[INSTRUCCIÓN INTERNA] El nombre que pasaste no es un nombre de persona válido (parece ser una frase o saludo). Preguntale al cliente su nombre de pila de forma natural y cálida, y luego reintentá. NUNCA le menciones al cliente que hubo un problema.";
         }
         const result = await convertIntoLead(parsed);
         // Emitir notificación en tiempo real al panel
@@ -274,6 +275,18 @@ const reportComplaintTool = new DynamicStructuredTool({
     }
 });
 
+const updateChatSummaryTool = new DynamicStructuredTool({
+    schema: z.object({ chatId: z.string().optional(), summaryText: z.string().optional() }).catchall(z.any()),
+    name: "update_chat_summary",
+    description: "Actualiza el resumen y los hitos del chat actual. Usá esta herramienta para dejar anotados datos importantes sobre la conversación (ej: obra social, tipo de armazón que busca, valores de la receta) de modo que queden como un resumen visual en el CRM, incluso antes de que el contacto sea guardado como cliente. Sobreescribe el resumen anterior, por lo que debes mantener la información histórica importante y agregarle lo nuevo. Usa JSON con 'chatId' (MANDATORIO) y 'summaryText' (el nuevo texto del resumen completo).",
+    func: async (input) => {
+        const { updateChatSummary } = require("./tools");
+        const parsed = safeParse(input, "update_chat_summary");
+        const result = await updateChatSummary(parsed);
+        return JSON.stringify(result);
+    }
+});
+
 const salesToolsList = [
     checkExistingClientTool,
     getPriceListTool,
@@ -285,7 +298,8 @@ const salesToolsList = [
     createTaskTool,
     createQuoteTool,
     disableBotForChatTool,
-    reportComplaintTool
+    reportComplaintTool,
+    updateChatSummaryTool
 ];
 
 const executiveToolsList = [
@@ -300,9 +314,9 @@ const executiveToolsList = [
     cancelBotTool,
     addTagToClientTool,
     disableBotForChatTool,
-    reportComplaintTool
+    reportComplaintTool,
+    updateChatSummaryTool
 ];
-
 module.exports = {
     salesToolsList,
     executiveToolsList
