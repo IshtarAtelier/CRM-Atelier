@@ -18,7 +18,7 @@ model User {
   updatedAt        DateTime       @updatedAt
   cashMovements    CashMovement[]
   orders           Order[]
-  notificationsReq Notification[] @relation("RequestedBy")
+
 }
 
 model Client {
@@ -359,7 +359,6 @@ model Notification {
   requestedBy String
   resolvedBy  String?
   order       Order?   @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  userReq     User     @relation("RequestedBy", fields: [requestedBy], references: [id])
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 

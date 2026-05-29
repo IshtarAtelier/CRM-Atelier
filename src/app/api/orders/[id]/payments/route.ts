@@ -50,6 +50,18 @@ export async function POST(
         return NextResponse.json(payment);
     } catch (error: any) {
         console.error('Error in payment API:', error);
-        return NextResponse.json({ error: error.message }, { status: 500 });
+        
+        // Traducir errores técnicos de Prisma a mensajes claros en castellano
+        let userMessage = error.message || 'Error desconocido al registrar el pago';
+        
+        if (error.code === 'P2003' || error.message?.includes('Foreign key constraint')) {
+            userMessage = 'Error interno del sistema al crear una notificación. Por favor, contactá al administrador para que revise la configuración.';
+        } else if (error.code === 'P2002') {
+            userMessage = 'Ya existe un registro con estos datos. Verificá que no estés duplicando el pago.';
+        } else if (error.code === 'P2025') {
+            userMessage = 'No se encontró el registro solicitado. Es posible que haya sido eliminado.';
+        }
+        
+        return NextResponse.json({ error: userMessage }, { status: 500 });
     }
 }

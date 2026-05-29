@@ -104,7 +104,13 @@ export async function POST(request: Request) {
         return NextResponse.json(notification);
     } catch (error: any) {
         console.error('Error creating notification:', error);
-        return NextResponse.json({ error: error.message }, { status: 500 });
+        
+        let userMessage = error.message || 'Error desconocido al crear la notificación';
+        if (error.code === 'P2003' || error.message?.includes('Foreign key constraint')) {
+            userMessage = 'Error interno: no se pudo crear la notificación porque el usuario no fue encontrado en el sistema.';
+        }
+        
+        return NextResponse.json({ error: userMessage }, { status: 500 });
     }
 }
 
@@ -131,6 +137,12 @@ export async function PATCH(request: Request) {
         return NextResponse.json(updated);
     } catch (error: any) {
         console.error('Error updating notification:', error);
-        return NextResponse.json({ error: error.message }, { status: 500 });
+        
+        let userMessage = error.message || 'Error desconocido al actualizar la notificación';
+        if (error.code === 'P2025') {
+            userMessage = 'La notificación que intentaste actualizar ya no existe o fue eliminada.';
+        }
+        
+        return NextResponse.json({ error: userMessage }, { status: 500 });
     }
 }
