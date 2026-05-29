@@ -90,6 +90,7 @@ interface Chat {
     botEnabled: boolean;
     archived: boolean;
     chatLabels: string[];
+    chatSummary?: string | null;
     client?: { id: string; name: string; phone: string; status: string } | null;
     messages?: Message[];
 }
@@ -777,7 +778,7 @@ export default function WhatsAppPage() {
     };
 
     // ── Actualizar etiquetas / archivar ───────────
-    const updateChat = async (chatId: string, patch: Partial<Pick<Chat, 'chatLabels' | 'archived' | 'botEnabled'>>) => {
+    const updateChat = async (chatId: string, patch: Partial<Pick<Chat, 'chatLabels' | 'archived' | 'botEnabled' | 'chatSummary'>>) => {
         try {
             await fetch(`/api/whatsapp/chats/${chatId}`, {
                 method: 'PATCH',
@@ -1587,7 +1588,7 @@ export default function WhatsAppPage() {
                                                         )}
                                                         {msg.mediaUrl && msg.type === 'IMAGE' && (
                                                             <div className="mb-2 overflow-hidden rounded-xl border border-black/5">
-                                                                <img src={resolveMediaUrl(msg.mediaUrl)} alt="📸" className="max-w-full max-h-64 object-contain" />
+                                                                <img src={resolveMediaUrl(msg.mediaUrl)} alt="📸" className="max-w-full max-h-64 object-contain" onError={(e) => { const t = e.target as HTMLImageElement; t.src = ''; t.alt = '📷 Imagen no disponible'; t.style.opacity = '0.5'; t.style.height = '40px'; }} />
                                                             </div>
                                                         )}
                                                         {msg.mediaUrl && msg.type === 'VIDEO' && (

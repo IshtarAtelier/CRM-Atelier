@@ -164,12 +164,12 @@ const savePrescriptionDataTool = new DynamicStructuredTool({
 const checkExistingClientTool = new DynamicStructuredTool({
     schema: z.object({ phone: z.string().optional(), name: z.string().optional() }).catchall(z.any()),
     name: "check_existing_client",
-    description: "Busca los datos del cliente por teléfono. Usa un JSON con 'phone'.",
+    description: "Busca los datos del cliente en el CRM. Usa JSON con 'phone' (teléfono) y/o 'name' (nombre). Podés buscar por cualquiera de los dos o ambos.",
     func: async (input) => JSON.stringify(await checkExistingClient(safeParse(input, "check_existing_client"))),
 });
 
 const getPriceListTool = new DynamicStructuredTool({
-    schema: z.object({ query: z.string().optional() }).catchall(z.any()),
+    schema: z.object({ category: z.string().optional(), search: z.string().optional(), botRecommended: z.boolean().optional() }).catchall(z.any()),
     name: "get_price_list",
     description: "Obtiene precios del catálogo. Usa JSON con 'category' (MONOFOCAL, MULTIFOCAL, CONTACTO, ARMAZON, CLIPON), 'search' (ej. 'clipon', 'prune') para buscar por nombre/marca/modelo, y 'botRecommended' (booleano opcional, por defecto es true si no hay search para mostrar productos estrella, y false si hay search para buscar en todo el catálogo).",
     func: async (input) => JSON.stringify(await getPriceList(safeParse(input, "get_price_list"))),
@@ -206,44 +206,44 @@ const convertIntoLeadTool = new DynamicStructuredTool({
 // ── HERRAMIENTAS EJECUTIVO (Clientes) ────────────────────────────────────
 
 const updateClientDataTool = new DynamicStructuredTool({
-    schema: z.object({ clientId: z.string().optional(), email: z.string().optional(), address: z.string().optional(), insurance: z.string().optional(), name: z.string().optional(), status: z.string().optional(), interest: z.string().optional() }).catchall(z.any()),
+    schema: z.object({ id: z.string(), email: z.string().optional(), address: z.string().optional(), insurance: z.string().optional(), name: z.string().optional(), status: z.string().optional(), interest: z.string().optional() }).catchall(z.any()),
     name: "update_client_data",
-    description: "Actualiza datos del cliente (obra social, origen). Usa JSON con 'id' y los datos.",
+    description: "Actualiza datos del cliente existente. Usa JSON con 'id' (MANDATORIO, el ID del cliente en el sistema), y los campos a actualizar: 'email', 'address', 'insurance' (obra social), 'name', 'status', 'interest'.",
     func: async (input) => JSON.stringify(await updateClientData(safeParse(input, "update_client_data"))),
 });
 
 const getOrderStatusTool = new DynamicStructuredTool({
-    schema: z.object({ clientId: z.string().optional() }).catchall(z.any()),
+    schema: z.object({ orderId: z.string(), clientId: z.string().optional() }).catchall(z.any()),
     name: "get_order_status",
-    description: "Consulta estado de un pedido y saldo. Usa JSON con 'orderId' y 'clientId'.",
+    description: "Consulta estado de un pedido y saldo pendiente. Usa JSON con 'orderId' (MANDATORIO, el ID del pedido) y opcionalmente 'clientId'.",
     func: async (input) => JSON.stringify(await getOrderStatus(safeParse(input, "get_order_status"))),
 });
 
 const createQuoteTool = new DynamicStructuredTool({
-    schema: z.object({ clientId: z.string().optional(), frameModel: z.string().optional(), labColor: z.string().optional(), labTreatment: z.string().optional(), total: z.number().optional(), paid: z.number().optional(), discount: z.number().optional() }).catchall(z.any()),
+    schema: z.object({ clientId: z.string(), items: z.array(z.any()).optional(), total: z.number().optional(), discountCash: z.number().optional() }).catchall(z.any()),
     name: "create_quote",
-    description: "Registra un presupuesto en el CRM. Usa JSON con 'clientId', 'items', 'total'.",
+    description: "Registra un presupuesto/cotización en el CRM. Usa JSON con 'clientId' (MANDATORIO), 'items' (array con los productos cotizados), 'total' (monto total), 'discountCash' (descuento en efectivo, opcional).",
     func: async (input) => JSON.stringify(await createQuote(safeParse(input, "create_quote"))),
 });
 
 const createTaskTool = new DynamicStructuredTool({
-    schema: z.object({ clientId: z.string().optional(), content: z.string().optional(), assignedTo: z.string().optional(), dueDate: z.string().optional() }).catchall(z.any()),
+    schema: z.object({ clientId: z.string(), description: z.string(), dueDate: z.string().optional() }).catchall(z.any()),
     name: "create_task",
-    description: "Crea tarea para un humano. Usa JSON con 'clientId', 'description', 'dueDate'.",
+    description: "Crea una tarea/seguimiento para que un humano la atienda. Usa JSON con 'clientId' (MANDATORIO), 'description' (MANDATORIO, qué hay que hacer), 'dueDate' (fecha opcional, formato ISO).",
     func: async (input) => JSON.stringify(await createTask(safeParse(input, "create_task"))),
 });
 
 const addInteractionTool = new DynamicStructuredTool({
-    schema: z.object({ clientId: z.string().optional(), content: z.string().optional() }).catchall(z.any()),
+    schema: z.object({ clientId: z.string(), type: z.string().optional(), content: z.string() }).catchall(z.any()),
     name: "add_interaction",
-    description: "Registra nota/reclamo en la ficha del cliente. Usa JSON con 'clientId', 'type', 'content'.",
+    description: "Registra una nota o interacción en la ficha del cliente. Usa JSON con 'clientId' (MANDATORIO), 'type' ('NOTE', 'CALL', 'WHATSAPP', etc.), 'content' (MANDATORIO, el texto de la nota).",
     func: async (input) => JSON.stringify(await addInteraction(safeParse(input, "add_interaction"))),
 });
 
 const cancelBotTool = new DynamicStructuredTool({
-    schema: z.object({ clientId: z.string().optional() }).catchall(z.any()),
+    schema: z.object({ clientId: z.string().optional(), waId: z.string().optional() }).catchall(z.any()),
     name: "cancel_bot",
-    description: "Desactiva el bot y pausa tus respuestas para que un humano tome el control. Usala por cualquier motivo en el que consideres importante que interceda un humano: conversación personal, proveedor, laboratorio, cliente enojado, consulta compleja, etc. Agrega la etiqueta 'Cancelar Bot'. Usa JSON con 'clientId' (o 'none') y 'waId' (el teléfono del cliente). Si solo tenés chatId y no waId, usá 'disable_bot_for_personal_chat' en su lugar.",
+    description: "Desactiva el bot y pausa tus respuestas para que un humano tome el control. Usala por cualquier motivo en el que consideres importante que interceda un humano: conversación personal, proveedor, laboratorio, cliente enojado, consulta compleja, etc. Agrega la etiqueta 'Cancelar Bot'. Usa JSON con 'clientId' (o 'none') y 'waId' (el teléfono del cliente con @c.us). Si solo tenés chatId y no waId, usá 'disable_bot_for_personal_chat' en su lugar.",
     func: async (input) => JSON.stringify(await cancelBot(safeParse(input, "cancel_bot"))),
 });
 
