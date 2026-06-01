@@ -47,6 +47,9 @@ export default function VentasPage() {
     const [searchDebounce, setSearchDebounce] = useState<any>(null);
     const [loadingMore, setLoadingMore] = useState(false);
 
+    const [updatingId, setUpdatingId] = useState<string | null>(null);
+    const [requestingInvoiceId, setRequestingInvoiceId] = useState<string | null>(null);
+
     const [isAutoSubmitting, setIsAutoSubmitting] = useState(false);
 
     const autoSubmitSmartLab = async (order: any) => {
