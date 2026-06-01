@@ -16,7 +16,7 @@ export async function POST(request: Request) {
         }
 
         const body = await request.json();
-        const { orderId, account, docTipo, docNro, puntoDeVenta, items, amount } = body;
+        const { orderId, account, docTipo, docNro, puntoDeVenta, items, amount, issueDate } = body;
 
         if (!orderId) {
             return NextResponse.json({ error: 'orderId es requerido' }, { status: 400 });
@@ -29,7 +29,8 @@ export async function POST(request: Request) {
             docNro: docNro || '0',
             puntoDeVenta,
             items,
-            amount
+            amount,
+            issueDate
         });
 
         return NextResponse.json(invoice);

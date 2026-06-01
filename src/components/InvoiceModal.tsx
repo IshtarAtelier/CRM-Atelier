@@ -60,6 +60,7 @@ export default function InvoiceModal({ order, initialAccount, initialAmount, onC
     
     const [targetAmount, setTargetAmount] = useState(initialAmount || paidReal || order.total);
     const [items, setItems] = useState<InvoiceItem[]>([]);
+    const [issueDate, setIssueDate] = useState<string>(new Date().toISOString().split('T')[0]);
 
     useEffect(() => {
         // Initialize items from order — prices must include the order's markup
@@ -133,6 +134,7 @@ export default function InvoiceModal({ order, initialAccount, initialAmount, onC
                     docTipo: docTipo,
                     docNro: docTipo === 99 ? '0' : docNro.replace(/\D/g, ''),
                     amount: targetAmount,
+                    issueDate: issueDate,
                     items: items.map(({ description, quantity, price }) => ({ description, quantity, price }))
                 }),
             });
@@ -285,17 +287,29 @@ export default function InvoiceModal({ order, initialAccount, initialAmount, onC
                         {/* Config Panels */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                             <div className="space-y-4">
-                                <label className="block text-[10px] font-black text-stone-400 uppercase tracking-widest">Cuenta Emisora</label>
-                                <div className="flex gap-2 p-1.5 bg-stone-100 dark:bg-stone-800 rounded-2xl">
-                                    {['ISH', 'YANI'].map(acc => (
-                                        <button 
-                                            key={acc}
-                                            onClick={() => setAccount(acc as any)}
-                                            className={`flex-1 py-3 rounded-xl text-[10px] font-black transition-all ${account === acc ? 'bg-white dark:bg-stone-700 text-blue-600 shadow-md' : 'text-stone-400'}`}
-                                        >
-                                            {acc === 'ISH' ? 'ISH' : 'YANI'}
-                                        </button>
-                                    ))}
+                                <div>
+                                    <label className="block text-[10px] font-black text-stone-400 uppercase tracking-widest mb-2">Cuenta Emisora</label>
+                                    <div className="flex gap-2 p-1.5 bg-stone-100 dark:bg-stone-800 rounded-2xl">
+                                        {['ISH', 'YANI'].map(acc => (
+                                            <button 
+                                                key={acc}
+                                                onClick={() => setAccount(acc as any)}
+                                                className={`flex-1 py-3 rounded-xl text-[10px] font-black transition-all ${account === acc ? 'bg-white dark:bg-stone-700 text-blue-600 shadow-md' : 'text-stone-400'}`}
+                                            >
+                                                {acc === 'ISH' ? 'ISH' : 'YANI'}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                                <div className="mt-4">
+                                    <label className="block text-[10px] font-black text-stone-400 uppercase tracking-widest mb-2">Fecha de Factura</label>
+                                    <input 
+                                        type="date"
+                                        value={issueDate}
+                                        onChange={(e) => setIssueDate(e.target.value)}
+                                        className="w-full px-5 py-3 bg-stone-50 dark:bg-stone-800 border-2 border-transparent focus:border-indigo-500 rounded-2xl text-xs font-black tracking-widest outline-none transition-all"
+                                    />
+                                    <p className="text-[9px] text-stone-400 mt-1.5">Recordá que AFIP solo permite facturar hasta 5 días hacia atrás.</p>
                                 </div>
                             </div>
 

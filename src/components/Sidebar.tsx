@@ -170,9 +170,9 @@ export function Sidebar({ userName = "Usuario", userRole = "STAFF", userId = "" 
       {/* Desktop sidebar — always visible on lg+ */}
       <div 
         style={{ width: 'var(--sidebar-width, 16rem)' }}
-        className="hidden lg:block fixed left-0 top-0 h-screen z-40 transition-[width] duration-300 ease-in-out"
+        className="hidden lg:block fixed left-0 top-0 h-screen z-[60] transition-[width] duration-300 ease-in-out"
       >
-        <aside className="absolute inset-y-4 left-4 right-4 bg-white/70 dark:bg-[#221d1a]/70 backdrop-blur-2xl border border-black/5 dark:border-white/5 rounded-[2rem] shadow-2xl flex flex-col overflow-hidden transition-all duration-300">
+        <aside className="absolute inset-y-4 left-4 right-4 bg-white/70 dark:bg-[#221d1a]/70 backdrop-blur-2xl border border-black/5 dark:border-white/5 rounded-[2rem] shadow-2xl flex flex-col transition-all duration-300">
           {sidebarContent}
         </aside>
       </div>

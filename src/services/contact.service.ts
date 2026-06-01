@@ -815,12 +815,8 @@ export const ContactService = {
                 }
             });
 
-            // AUTOMATED BILLING REQUEST for Card Platforms & Transfers
-            const cardMethods = ['PAY_WAY', 'NARANJA', 'GO_CUOTAS'];
-            const transferMethods = ['TRANSFER', 'TRANSFERENCIA', 'TRANSF', 'DEPOSITO'];
-            const isEligibleForAutoBilling = 
-                cardMethods.some(m => method.toUpperCase().includes(m)) ||
-                transferMethods.some(m => method.toUpperCase().includes(m));
+            // AUTOMATED BILLING REQUEST ONLY for Pay Way
+            const isEligibleForAutoBilling = method.toUpperCase().includes('PAY_WAY');
             
             if (isEligibleForAutoBilling) {
                 // DUPLICATE PROTECTION: Check if this exact payment already has a request
@@ -982,11 +978,7 @@ export const ContactService = {
         notes?: string | null;
         receiptUrl?: string | null;
     }) {
-        const CARD_METHODS = ['PAY_WAY', 'NARANJA', 'GO_CUOTAS'];
-        const TRANSFER_METHODS = ['TRANSFER', 'TRANSFERENCIA', 'TRANSF', 'DEPOSITO'];
-        const isCardOrTransferMethod = (m: string) => 
-            CARD_METHODS.some(cm => m.toUpperCase().includes(cm)) ||
-            TRANSFER_METHODS.some(tm => m.toUpperCase().includes(tm));
+        const isAutoBillingMethod = (m: string) => m.toUpperCase().includes('PAY_WAY');
 
         return await prisma.$transaction(async (tx) => {
             // 1. Obtener estado previo completo
@@ -1165,13 +1157,13 @@ export const ContactService = {
 
             // 5. Gestionar INVOICE_REQUEST si el método cambió
             if (updateData.method !== undefined) {
-                const oldIsCardOrTransfer = isCardOrTransferMethod(oldPayment.method);
-                const newIsCardOrTransfer = isCardOrTransferMethod(updateData.method);
+                const oldIsAutoBilling = isAutoBillingMethod(oldPayment.method);
+                const newIsAutoBilling = isAutoBillingMethod(updateData.method);
                 const amount = updateData.amount ?? oldPayment.amount;
                 const amountStr = `$${amount.toLocaleString('es-AR')}`;
 
                 // Si el viejo método requería factura → eliminar su INVOICE_REQUEST pendiente
-                if (oldIsCardOrTransfer) {
+                if (oldIsAutoBilling) {
                     const oldAmountStr = `$${oldPayment.amount.toLocaleString('es-AR')}`;
                     await tx.notification.deleteMany({
                         where: {
@@ -1184,7 +1176,7 @@ export const ContactService = {
                 }
 
                 // Si el nuevo método requiere factura → crear nueva INVOICE_REQUEST
-                if (newIsCardOrTransfer) {
+                if (newIsAutoBilling) {
                     const isIsh = updateData.method.toUpperCase().endsWith('_ISH');
                     const isYani = updateData.method.toUpperCase().endsWith('_YANI');
                     const accountLabel = isIsh ? '[ISH]' : isYani ? '[YANI]' : '';

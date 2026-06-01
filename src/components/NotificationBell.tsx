@@ -96,7 +96,7 @@ export function NotificationBell() {
             </button>
 
             {isOpen && (
-                <div className="absolute bottom-full left-0 mb-2 w-80 bg-white dark:bg-stone-900 rounded-2xl shadow-2xl border border-stone-200 dark:border-stone-700 overflow-hidden animate-in slide-in-from-bottom-2 fade-in duration-200 z-50">
+                <div className="absolute bottom-full left-0 mb-2 w-80 bg-white dark:bg-stone-900 rounded-2xl shadow-2xl border border-stone-200 dark:border-stone-700 overflow-hidden animate-in slide-in-from-bottom-2 fade-in duration-200 z-[100]">
                     <div className="px-4 py-3 border-b border-stone-100 dark:border-stone-800 flex items-center justify-between">
                         <h3 className="text-xs font-black uppercase tracking-widest text-stone-500">Solicitudes Pendientes</h3>
                         <span className="text-[9px] font-black text-stone-400 bg-stone-100 dark:bg-stone-800 px-2 py-1 rounded-lg">{pendingCount}</span>

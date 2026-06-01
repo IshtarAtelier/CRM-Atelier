@@ -37,6 +37,7 @@ export interface CreateInvoiceParams {
     puntoDeVenta?: number; // Punto de venta (default: config de la cuenta)
     amount?: number;       // Nuevo: monto exacto enviado desde el frontend
     items?: CreateInvoiceItem[]; // Nuevo: ítems ya validados (ej: divididos por el tope de 500k)
+    issueDate?: string;    // Nuevo: Fecha de emisión de la factura (YYYY-MM-DD)
 }
 
 export const BillingService = {
@@ -45,7 +46,7 @@ export const BillingService = {
      * Emite una Factura C electrónica para una orden de tipo SALE.
      */
     async createInvoice(params: CreateInvoiceParams) {
-        const { orderId, account = 'ISH', docTipo = 99, docNro = '0', puntoDeVenta, amount, items } = params;
+        const { orderId, account = 'ISH', docTipo = 99, docNro = '0', puntoDeVenta, amount, items, issueDate } = params;
  
         // 1. Validar orden
         const order = await prisma.order.findUnique({
@@ -91,6 +92,11 @@ export const BillingService = {
         const ptoVta = puntoDeVenta || accountConfig.puntoDeVenta;
         const afip = getAfipInstance(account);
 
+        let cbteFch = formatAfipDate();
+        if (issueDate) {
+            cbteFch = parseInt(issueDate.replace(/-/g, ''));
+        }
+
         const voucherData: any = {
             'CantReg': 1,
             'PtoVta': ptoVta,
@@ -98,7 +104,7 @@ export const BillingService = {
             'Concepto': 1,
             'DocTipo': docTipo,
             'DocNro': docTipo === 99 ? 0 : parseInt(docNro || '0'),
-            'CbteFch': formatAfipDate(),
+            'CbteFch': cbteFch,
             'ImpTotal': totalAmount,
             'ImpTotConc': 0,
             'ImpNeto': totalAmount,
