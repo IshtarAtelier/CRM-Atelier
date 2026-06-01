@@ -745,7 +745,7 @@ export default function VentasPage() {
                         const LabIcon = labInfo.icon;
                         const isUpdating = updatingId === order.id;
                         const financials = getFinancials(order.id);
-                        const isGrupoOptico = order.items.some((i: any) => i.product?.category === 'Cristal' && /grupo[\s\-]?ó?o?ptico/i.test((i.product as any)?.laboratory || ''));
+                        const isGrupoOptico = (order.items || []).some((i: any) => i.product?.category === 'Cristal' && /grupo[\s\-]?ó?o?ptico/i.test((i.product as any)?.laboratory || ''));
 
                         return (
                             <div key={order.id} className={`border-2 rounded-2xl p-4 lg:p-6 hover:shadow-lg transition-all ${financials.hasBalance
@@ -759,7 +759,7 @@ export default function VentasPage() {
                                             <LabIcon className="w-5 h-5 lg:w-6 lg:h-6" />
                                         </div>
                                         <div className="flex-1 min-w-0">
-                                            <h3 className="text-base lg:text-lg font-black text-stone-800 dark:text-white truncate">{order.client.name}</h3>
+                                            <h3 className="text-base lg:text-lg font-black text-stone-800 dark:text-white truncate">{order.client?.name || 'Cliente Desconocido'}</h3>
                                             <div className="flex flex-wrap gap-2 mt-1">
                                                 <span className={`px-2 py-0.5 rounded-lg text-[8px] lg:text-[9px] font-black uppercase tracking-widest ${labInfo.color}`}>
                                                     {labInfo.label}
@@ -808,7 +808,7 @@ export default function VentasPage() {
                                         <span>·</span>
                                         <span>{format(new Date(order.createdAt), "d MMM yyyy", { locale: es })}</span>
                                         <span>·</span>
-                                        <span>{order.items.length} item{order.items.length !== 1 ? 's' : ''}</span>
+                                        <span>{(order.items || []).length} item{(order.items || []).length !== 1 ? 's' : ''}</span>
                                         {order.labSentAt && (() => {
                                             const start = new Date(order.labSentAt);
                                             const end = ['READY', 'DELIVERED'].includes(order.labStatus || '') && order.updatedAt
@@ -961,10 +961,10 @@ export default function VentasPage() {
                                             return <>{renderNodes}</>;
                                         })()}
                                         {/* WhatsApp notify */}
-                                        {order.client.phone && (order.labStatus === 'READY' || financials.hasBalance) && (
+                                        {order.client?.phone && (order.labStatus === 'READY' || financials.hasBalance) && (
                                             <button
                                                 onClick={() => {
-                                                    let msg = `*Hola ${order.client.name}*\n\n`;
+                                                    let msg = `*Hola ${order.client?.name || ''}*\n\n`;
                                                     msg += `Te avisamos que *tu pedido ya está listo para retirar* en *Atelier Óptica*\n\n`;
                                                     if (financials.hasBalance) {
                                                         msg += `*Detalle del saldo:*\n`;
@@ -981,7 +981,7 @@ export default function VentasPage() {
                                                     msg += `*Horarios:*\n   • Lunes a viernes de 9:00 a 13:30 y de 16:00 a 19:30\n   • Sábados de 10:00 a 14:00 hs\n\n`;
                                                     msg += `¡Te esperamos! Muchas gracias.\n`;
                                                     msg += `\n_La óptica mejor calificada en Google Business 5/5_`;
-                                                    const phone = (order.client.phone || '').replace(/\D/g, '');
+                                                    const phone = (order.client?.phone || '').replace(/\D/g, '');
                                                     window.open(`https://wa.me/${phone.startsWith('54') ? phone : '54' + phone}?text=${encodeURIComponent(msg)}`, '_blank');
                                                 }}
                                                 className={`p-3 rounded-xl hover:scale-110 transition-all ${order.labStatus === 'READY' ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/30 animate-pulse hover:animate-none' : 'bg-emerald-50 text-emerald-600'}`}
