@@ -272,17 +272,35 @@ export default function VentasPage() {
         return map;
     }, [orders]);
 
-    const getFinancials = (orderId: string) => financialsMap.get(orderId)!;
+    const getFinancials = (orderId: string) => {
+        const f = financialsMap.get(orderId);
+        if (f) return f;
+        return {
+            hasBalance: false,
+            remainingCash: 0,
+            remainingTransfer: 0,
+            remainingCard: 0,
+            paidReal: 0,
+            listPrice: 0,
+            totalCard: 0,
+            totalCash: 0,
+            totalTransfer: 0,
+            progress: 0,
+            discountAmount: 0,
+            subtotal: 0
+        };
+    };
 
     const filteredOrders = orders.filter(o => {
+        if (!o) return false;
         const searchWords = search.toLowerCase().trim().split(/\s+/).filter(Boolean);
         const matchSearch = searchWords.length === 0 || searchWords.every(word =>
-            o.client.name.toLowerCase().includes(word) ||
-            o.id.toLowerCase().includes(word) ||
+            (o.client?.name || '').toLowerCase().includes(word) ||
+            (o.id || '').toLowerCase().includes(word) ||
             (o.labOrderNumber || '').toLowerCase().includes(word)
         );
         const matchLab = filterLab === 'ALL' || (o.labStatus || 'NONE') === filterLab;
-        const matchLaboratory = filterLaboratory === 'ALL' || o.items.some(i => i.product?.category === 'Cristal' && (i.product as any)?.laboratory === filterLaboratory);
+        const matchLaboratory = filterLaboratory === 'ALL' || (o.items || []).some(i => i.product?.category === 'Cristal' && (i.product as any)?.laboratory === filterLaboratory);
         const matchDate = (!dateFrom || new Date(o.createdAt) >= new Date(dateFrom)) && (!dateTo || new Date(o.createdAt) <= new Date(dateTo + 'T23:59:59'));
         const matchBalance = !filterBalance || getFinancials(o.id).hasBalance;
         return matchSearch && matchLab && matchLaboratory && matchDate && matchBalance;

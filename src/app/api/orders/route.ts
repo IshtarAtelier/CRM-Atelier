@@ -3,7 +3,6 @@ import { headers } from 'next/headers';
 
 export const dynamic = 'force-dynamic';
 import { prisma } from '@/lib/db';
-import { Prisma } from '@prisma/client';
 import { calculateQuoteTotals, isMultifocal2x1 } from '@/lib/promo-utils';
 import { formatOrderItemsSummary } from '@/lib/order-utils';
 import { PricingService } from '@/services/PricingService';
@@ -245,13 +244,7 @@ export async function GET(request: Request) {
             andConditions.push({ createdAt: dateCond });
         }
 
-        if (hasBalance) {
-            andConditions.push({
-                paid: {
-                    lt: Prisma.Order.fields.total
-                }
-            });
-        }
+
 
         if (andConditions.length > 0) {
             where.AND = andConditions;

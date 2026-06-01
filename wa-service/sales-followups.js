@@ -179,7 +179,7 @@ async function checkAndSendSalesFollowUps() {
         const completedOrders = await prisma.order.findMany({
             where: {
                 clientId: client.id,
-                orderType: 'ORDER',
+                orderType: 'SALE',
                 createdAt: { gt: quote.createdAt },
                 isDeleted: false
             }
