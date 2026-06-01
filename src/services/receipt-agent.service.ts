@@ -146,12 +146,21 @@ Solo devuelve el JSON, sin texto antes ni después.`;
                     where: {
                         notes: { contains: txString },
                         id: { not: paymentId }
+                    },
+                    include: {
+                        order: {
+                            include: { client: true }
+                        }
                     }
                 });
 
                 if (duplicates.length > 0) {
                     isDuplicate = true;
-                    errors.push(`¡Posible Duplicado! El comprobante tiene la Operación ${extractedTx}, igual a la/s en pago/s: ${duplicates.map(d => d.id).join(', ')}.`);
+                    const duplicateDetails = duplicates.map(d => {
+                        const clientName = d.order?.client?.name || 'Cliente Desconocido';
+                        return `ID: ...${d.id.slice(-4).toUpperCase()} de ${clientName}`;
+                    }).join(', ');
+                    errors.push(`¡Posible Duplicado! El comprobante tiene la Operación ${extractedTx}, igual a la/s en pago/s: ${duplicateDetails}.`);
                 }
             }
 

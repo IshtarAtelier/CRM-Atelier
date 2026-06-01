@@ -57,14 +57,19 @@ Responde SOLO con el JSON, sin texto alrededor, sin comillas de código ni forma
         } else {
             prompt = `Analiza este comprobante de pago o transferencia bancaria. Extrae ÚNICAMENTE:
 - amount: el monto final transferido o pagado (número sin símbolos, sin formato de miles).
-- reference: el código de transferencia, número de comprobante, código de operación o referencia (string).
+- reference: el identificador principal del comprobante. En tickets de PayWay/posnet, usar el "N° de operación" del voucher. En comprobantes de transferencia bancaria, usar el "N° de operación" o "N° de transferencia". En otros casos, el número de comprobante o código de referencia (string).
 - date: la fecha del comprobante si está visible (formato YYYY-MM-DD).
+- payway_owner: si el comprobante es un ticket/voucher de PayWay (posnet/tarjeta), identifica el titular comparando con estos datos:
+  * ISHTAR: N° Establecimiento 82671397, Terminales 16770672 o 16328313, CUIT 23386152314
+  * YANI: N° Establecimiento 33173675, Terminal 16726469, CUIT 27425128138
+  Devuelve "ISHTAR" o "YANI" según corresponda. Si no es un ticket de PayWay o no se puede identificar, devuelve null.
 
 Devuelve los resultados usando esta estructura JSON exacta. Usa null si un valor no está presente.
 {
   "amount": número_o_null,
   "reference": "texto_o_null",
-  "date": "YYYY-MM-DD_o_null"
+  "date": "YYYY-MM-DD_o_null",
+  "payway_owner": "ISHTAR_o_YANI_o_null"
 }
 Responde SOLO con el JSON, sin texto alrededor, sin comillas de código ni formato markdown.`;
         }

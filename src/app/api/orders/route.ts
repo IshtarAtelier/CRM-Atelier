@@ -3,8 +3,10 @@ import { headers } from 'next/headers';
 
 export const dynamic = 'force-dynamic';
 import { prisma } from '@/lib/db';
+import { Prisma } from '@prisma/client';
 import { calculateQuoteTotals, isMultifocal2x1 } from '@/lib/promo-utils';
 import { formatOrderItemsSummary } from '@/lib/order-utils';
+import { PricingService } from '@/services/PricingService';
 
 // POST /api/orders — Create order from inline cotizador
 export async function POST(request: Request) {
@@ -187,12 +189,74 @@ export async function GET(request: Request) {
         const skip = (page - 1) * limit;
 
         const typeFilter = searchParams.get('type');
+        const searchTerm = searchParams.get('search');
+        const nolimit = searchParams.get('nolimit') === 'true';
+        const hasBalance = searchParams.get('hasBalance') === 'true';
+        const labStatus = searchParams.get('labStatus');
+        const dateFrom = searchParams.get('dateFrom');
+        const dateTo = searchParams.get('dateTo');
 
         // Base query conditions
         const where: any = { isDeleted: false };
+        const andConditions: any[] = [];
+
         if (typeFilter) {
-            where.orderType = typeFilter;
+            andConditions.push({ orderType: typeFilter });
         }
+
+        if (searchTerm) {
+            const words = searchTerm.trim().split(/\s+/).filter(Boolean);
+            if (words.length > 0) {
+                andConditions.push({
+                    AND: words.map(word => ({
+                        OR: [
+                            { client: { name: { contains: word, mode: 'insensitive' } } },
+                            { labOrderNumber: { contains: word, mode: 'insensitive' } },
+                            { id: { contains: word, mode: 'insensitive' } },
+                        ]
+                    }))
+                });
+            }
+        }
+
+        if (labStatus) {
+            if (labStatus === 'NONE') {
+                andConditions.push({
+                    OR: [
+                        { labStatus: null },
+                        { labStatus: 'NONE' }
+                    ]
+                });
+            } else {
+                andConditions.push({ labStatus: labStatus });
+            }
+        }
+
+        if (dateFrom || dateTo) {
+            const dateCond: any = {};
+            if (dateFrom) {
+                dateCond.gte = new Date(dateFrom);
+            }
+            if (dateTo) {
+                const toDate = new Date(dateTo);
+                toDate.setHours(23, 59, 59, 999);
+                dateCond.lte = toDate;
+            }
+            andConditions.push({ createdAt: dateCond });
+        }
+
+        if (hasBalance) {
+            andConditions.push({
+                paid: {
+                    lt: Prisma.Order.fields.total
+                }
+            });
+        }
+
+        if (andConditions.length > 0) {
+            where.AND = andConditions;
+        }
+
         const select = {
             id: true,
             total: true,
@@ -254,14 +318,44 @@ export async function GET(request: Request) {
         };
         const orderBy: any = { createdAt: 'desc' };
 
+        if (hasBalance) {
+            // When filtering by balance, we retrieve matching records, filter in-memory, and manually paginate.
+            const allMatchingOrders = await prisma.order.findMany({
+                where,
+                select,
+                orderBy,
+            });
+
+            const ordersWithBalance = allMatchingOrders.filter((o: any) => {
+                const financials = PricingService.calculateOrderFinancials(o);
+                return financials.hasBalance;
+            });
+
+            if (paginate) {
+                const total = ordersWithBalance.length;
+                const paginated = ordersWithBalance.slice(skip, skip + limit);
+                return NextResponse.json({
+                    orders: paginated,
+                    pagination: {
+                        total,
+                        page,
+                        limit,
+                        totalPages: Math.ceil(total / limit)
+                    }
+                });
+            } else {
+                return NextResponse.json(ordersWithBalance);
+            }
+        }
+
         if (paginate) {
             const [orders, total] = await Promise.all([
                 prisma.order.findMany({
                     where,
                     select,
                     orderBy,
-                    skip,
-                    take: limit,
+                    skip: nolimit ? undefined : skip,
+                    take: nolimit ? undefined : limit,
                 }),
                 prisma.order.count({ where })
             ]);

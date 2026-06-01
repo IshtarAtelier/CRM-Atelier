@@ -353,6 +353,9 @@ export default function AddPaymentModal({
                                         if (data.amount != null) setAmount(data.amount.toString());
                                         if (data.reference != null) setReference(data.reference);
                                         if (data.date != null) setDate(data.date);
+                                        // Auto-select PayWay method based on OCR-detected terminal owner
+                                        if (data.payway_owner === 'ISHTAR') setMethod('PAY_WAY_3_ISH');
+                                        else if (data.payway_owner === 'YANI') setMethod('PAY_WAY_3_YANI');
                                         setShowOcrVerifyMessage(true);
                                     } else {
                                         console.warn('OCR falló');

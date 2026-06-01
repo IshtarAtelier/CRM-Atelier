@@ -21,6 +21,7 @@ require('dotenv').config({ path: path.join(__dirname, '.env') });
 const { initWhatsApp, getStatus, getClient, sendMessage, sendTypingState } = require('./whatsapp-client');
 const { processPassiveExtraction } = require('./passive-extractor');
 const { transcribeAudio } = require('./transcriber');
+const { checkAndSendSalesFollowUps } = require('./sales-followups');
 
 const configPath = path.join(__dirname, 'agent_config.json');
 
@@ -1924,6 +1925,11 @@ server.listen(PORT, '0.0.0.0', async () => {
     setInterval(() => {
         checkAndSendInactivityFollowUps().catch(e => console.error("❌ Error en follow-ups de inactividad:", e.message));
     }, 15 * 60 * 1000);
+
+    // Chequear seguimientos de venta cada 30 minutos
+    setInterval(() => {
+        checkAndSendSalesFollowUps().catch(e => console.error("❌ Error en follow-ups de ventas:", e.message));
+    }, 30 * 60 * 1000);
     
     try {
         await initWhatsApp({ 

@@ -1,9 +1,10 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { X, FileText, CheckCircle2, AlertCircle, Loader2, Plus, Trash2, Split, Save, Info } from 'lucide-react';
+import { X, FileText, CheckCircle2, AlertCircle, Loader2, Plus, Trash2, Split, Save, Info, Download } from 'lucide-react';
 import { PricingService } from '@/services/PricingService';
 import { Modal } from '@/components/ui/Modal';
+import { generateInvoicePDF } from '@/lib/invoice-generator';
 
 interface InvoiceItem {
 // ... (rest of interface remains same)
@@ -46,7 +47,9 @@ export default function InvoiceModal({ order, initialAccount, initialAmount, onC
     const [loading, setLoading] = useState(false);
     const [emittingStep, setEmittingStep] = useState<string | null>(null);
     const [error, setError] = useState('');
+    const [downloadingPDF, setDownloadingPDF] = useState(false);
     const [success, setSuccess] = useState<{
+        id: string;
         cae: string;
         caeExpiration: string;
         voucherNumber: number;
@@ -146,6 +149,7 @@ export default function InvoiceModal({ order, initialAccount, initialAmount, onC
             await new Promise(r => setTimeout(r, 800));
 
             setSuccess({
+                id: data.id,
                 cae: data.cae,
                 caeExpiration: data.caeExpiration,
                 voucherNumber: data.voucherNumber,
@@ -158,6 +162,24 @@ export default function InvoiceModal({ order, initialAccount, initialAmount, onC
             setEmittingStep(null);
         } finally {
             setEmittingStep(null);
+        }
+    };
+
+    const handleDownloadPDF = async () => {
+        if (!success?.id) return;
+        setDownloadingPDF(true);
+        try {
+            const res = await fetch(`/api/billing/invoice/${success.id}/pdf-data`);
+            if (!res.ok) {
+                const data = await res.json();
+                throw new Error(data.error || 'Error al obtener datos de la factura');
+            }
+            const data = await res.json();
+            await generateInvoicePDF(data);
+        } catch (error: any) {
+            alert('Error descargando la factura: ' + error.message);
+        } finally {
+            setDownloadingPDF(false);
         }
     };
 
@@ -191,7 +213,22 @@ export default function InvoiceModal({ order, initialAccount, initialAmount, onC
                             <div className="flex justify-between items-center"><span className="text-[10px] font-black text-stone-400 uppercase tracking-widest">CAE</span><span className="text-base font-mono font-bold text-blue-600">{success.cae}</span></div>
                             <div className="flex justify-between items-center"><span className="text-[10px] font-black text-stone-400 uppercase tracking-widest">Monto</span><span className="text-base font-black text-emerald-600">${targetAmount.toLocaleString('es-AR')}</span></div>
                         </div>
-                        <button onClick={onClose} className="mt-10 w-full py-4 bg-stone-900 text-white rounded-2xl font-black text-sm hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-stone-900/10">FINALIZAR Y CERRAR</button>
+                        <div className="flex gap-4 mt-10">
+                            <button 
+                                onClick={handleDownloadPDF} 
+                                disabled={downloadingPDF}
+                                className="flex-1 py-4 bg-white border-2 border-stone-200 text-stone-700 rounded-2xl font-black text-sm hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2 shadow-sm"
+                            >
+                                {downloadingPDF ? <Loader2 className="w-5 h-5 animate-spin" /> : <Download className="w-5 h-5" />}
+                                DESCARGAR PDF
+                            </button>
+                            <button 
+                                onClick={onClose} 
+                                className="flex-1 py-4 bg-stone-900 text-white rounded-2xl font-black text-sm hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-stone-900/10"
+                            >
+                                FINALIZAR Y CERRAR
+                            </button>
+                        </div>
                     </div>
                 ) : (
                     <div className="space-y-8">

@@ -347,11 +347,16 @@ const updateLabOrder: CopilotTool = {
     }
 
     if (willChangeStatus && finalStatus === 'DELIVERED') {
+        // Auto-complete order when lab marks as delivered
+        await prisma.order.update({
+            where: { id: order.id },
+            data: { status: 'COMPLETED' }
+        });
         try {
             const { ContactService } = await import('@/services/contact.service');
             const taskDesc = `Solicitar comentario a ${order.client.name}`;
             await ContactService.addReviewRequest(order.clientId, taskDesc);
-            sideEffectMsg = '\n(Se generó la solicitud automática de reseña)';
+            sideEffectMsg = '\n(Se generó la solicitud automática de reseña y se marcó como completado)';
         } catch (e) {
             console.error('Error creating task from Copilot tool:', e);
         }

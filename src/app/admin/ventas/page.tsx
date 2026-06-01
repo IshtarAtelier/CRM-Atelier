@@ -40,10 +40,12 @@ export default function VentasPage() {
     const [invoiceOrder, setInvoiceOrder] = useState<Order | null>(null);
     const [expandedDetail, setExpandedDetail] = useState<string | null>(null);
 
-    const [updatingId, setUpdatingId] = useState<string | null>(null);
-    const [requestingInvoiceId, setRequestingInvoiceId] = useState<string | null>(null);
-
     const [error, setError] = useState<string | null>(null);
+    const [pageSize, setPageSize] = useState(20);
+    const [totalOrders, setTotalOrders] = useState(0);
+    const [allLoaded, setAllLoaded] = useState(false);
+    const [searchDebounce, setSearchDebounce] = useState<any>(null);
+    const [loadingMore, setLoadingMore] = useState(false);
 
     const [isAutoSubmitting, setIsAutoSubmitting] = useState(false);
 
@@ -115,7 +117,6 @@ export default function VentasPage() {
     };
 
     useEffect(() => {
-        fetchOrders();
         // Get user role from localStorage or fallback to API
         const loadUserRole = async () => {
             try {
@@ -139,28 +140,113 @@ export default function VentasPage() {
         loadUserRole();
     }, []);
 
-    const fetchOrders = async () => {
+    useEffect(() => {
+        fetchOrders(search);
+    }, [filterLab, filterBalance, dateFrom, dateTo]);
+
+    const fetchOrders = async (searchTerm?: string, loadAll?: boolean) => {
         setLoading(true);
         setError(null);
         try {
-            const res = await fetch('/api/orders?paginate=true&limit=100');
+            const currentSearch = searchTerm !== undefined ? searchTerm : search;
+            const params = new URLSearchParams({
+                paginate: 'true',
+                type: 'SALE',
+                limit: loadAll ? '9999' : String(pageSize),
+            });
+            if (currentSearch) params.set('search', currentSearch);
+            if (loadAll) params.set('nolimit', 'true');
+
+            // Apply active filters directly to API request
+            if (filterLab !== 'ALL') params.set('labStatus', filterLab);
+            if (filterBalance) params.set('hasBalance', 'true');
+            if (dateFrom) params.set('dateFrom', dateFrom);
+            if (dateTo) params.set('dateTo', dateTo);
+            
+            const res = await fetch(`/api/orders?${params}`);
             const data = await res.json();
             
             if (data.error) {
                 setError(data.error);
                 setOrders([]);
             } else {
-                // The API now returns { orders, pagination } if ?paginate=true
                 const allOrders = data.orders || [];
-                // Only show SALE orders (not QUOTE)
-                const sales = allOrders.filter((o: Order) => o.orderType === 'SALE' && !o.isDeleted);
+                const sales = allOrders.filter((o: Order) => !o.isDeleted);
                 setOrders(sales);
+                setTotalOrders(data.pagination?.total || sales.length);
+                setAllLoaded(loadAll || sales.length >= (data.pagination?.total || 0));
             }
         } catch (err: any) {
             console.error('Error fetching orders:', err);
             setError('Error al conectar con el servidor. Por favor, reintente.');
         } finally {
             setLoading(false);
+        }
+    };
+
+    const loadMore = async () => {
+        setLoadingMore(true);
+        try {
+            const nextPage = Math.floor(orders.length / pageSize) + 1;
+            const params = new URLSearchParams({
+                paginate: 'true',
+                type: 'SALE',
+                limit: String(pageSize),
+                page: String(nextPage),
+            });
+            if (search) params.set('search', search);
+
+            // Apply active filters directly to API request
+            if (filterLab !== 'ALL') params.set('labStatus', filterLab);
+            if (filterBalance) params.set('hasBalance', 'true');
+            if (dateFrom) params.set('dateFrom', dateFrom);
+            if (dateTo) params.set('dateTo', dateTo);
+            
+            const res = await fetch(`/api/orders?${params}`);
+            const data = await res.json();
+            
+            if (data.orders) {
+                const newSales = (data.orders || []).filter((o: Order) => !o.isDeleted);
+                setOrders(prev => {
+                    const existingIds = new Set(prev.map(o => o.id));
+                    const unique = newSales.filter((o: Order) => !existingIds.has(o.id));
+                    return [...prev, ...unique];
+                });
+                setTotalOrders(data.pagination?.total || 0);
+                if (newSales.length < pageSize || (orders.length + newSales.length) >= (data.pagination?.total || 0)) {
+                    setAllLoaded(true);
+                }
+            }
+        } catch (err) {
+            console.error('Error loading more:', err);
+        } finally {
+            setLoadingMore(false);
+        }
+    };
+
+    const loadAll = async () => {
+        setLoadingMore(true);
+        try {
+            const params = new URLSearchParams({
+                paginate: 'true',
+                type: 'SALE',
+                nolimit: 'true',
+            });
+            if (search) params.set('search', search);
+            
+            const res = await fetch(`/api/orders?${params}`);
+            const data = await res.json();
+            
+            if (data.orders) {
+                const sales = (data.orders || []).filter((o: Order) => !o.isDeleted);
+                setOrders(sales);
+                setTotalOrders(data.pagination?.total || sales.length);
+                setAllLoaded(true);
+            }
+        } catch (err) {
+            console.error('Error loading all:', err);
+        } finally {
+            setLoadingMore(false);
         }
     };
 
@@ -189,10 +275,12 @@ export default function VentasPage() {
     const getFinancials = (orderId: string) => financialsMap.get(orderId)!;
 
     const filteredOrders = orders.filter(o => {
-        const matchSearch = search === '' ||
-            o.client.name.toLowerCase().includes(search.toLowerCase()) ||
-            o.id.toLowerCase().includes(search.toLowerCase()) ||
-            (o.labOrderNumber || '').toLowerCase().includes(search.toLowerCase());
+        const searchWords = search.toLowerCase().trim().split(/\s+/).filter(Boolean);
+        const matchSearch = searchWords.length === 0 || searchWords.every(word =>
+            o.client.name.toLowerCase().includes(word) ||
+            o.id.toLowerCase().includes(word) ||
+            (o.labOrderNumber || '').toLowerCase().includes(word)
+        );
         const matchLab = filterLab === 'ALL' || (o.labStatus || 'NONE') === filterLab;
         const matchLaboratory = filterLaboratory === 'ALL' || o.items.some(i => i.product?.category === 'Cristal' && (i.product as any)?.laboratory === filterLaboratory);
         const matchDate = (!dateFrom || new Date(o.createdAt) >= new Date(dateFrom)) && (!dateTo || new Date(o.createdAt) <= new Date(dateTo + 'T23:59:59'));
@@ -495,7 +583,16 @@ export default function VentasPage() {
                             type="text"
                             placeholder="Buscar por cliente, N° venta o N° operación lab..."
                             value={search}
-                            onChange={e => setSearch(e.target.value)}
+                            onChange={e => {
+                                const val = e.target.value;
+                                setSearch(val);
+                                if (searchDebounce) clearTimeout(searchDebounce);
+                                const newDebounce = setTimeout(() => {
+                                    setAllLoaded(false);
+                                    fetchOrders(val);
+                                }, 400);
+                                setSearchDebounce(newDebounce);
+                            }}
                             className="w-full pl-14 pr-6 py-5 bg-stone-50/50 dark:bg-stone-800/30 backdrop-blur-md border border-stone-200/50 dark:border-stone-700/50 rounded-full shadow-[0_2px_10px_-3px_rgba(16,185,129,0.05)] focus:bg-white dark:focus:bg-stone-900 focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 outline-none transition-all font-medium text-stone-800 dark:text-stone-100 placeholder-stone-400"
                         />
                     </div>
@@ -1238,7 +1335,33 @@ export default function VentasPage() {
                     })}
                 </div>
             )}
-
+            {/* Pagination Controls */}
+            {!loading && !error && orders.length > 0 && (
+                <div className="mt-8 flex flex-col items-center gap-4">
+                    <p className="text-xs font-bold text-stone-400 uppercase tracking-widest">
+                        Mostrando {filteredOrders.length} de {totalOrders} ventas
+                    </p>
+                    {!allLoaded && (
+                        <div className="flex gap-3">
+                            <button
+                                onClick={loadMore}
+                                disabled={loadingMore}
+                                className="px-6 py-3 bg-stone-900 dark:bg-stone-100 text-white dark:text-stone-900 rounded-2xl text-xs font-black uppercase tracking-widest hover:scale-105 active:scale-95 transition-all disabled:opacity-50 flex items-center gap-2"
+                            >
+                                {loadingMore ? <Loader2 className="w-4 h-4 animate-spin" /> : <ChevronRight className="w-4 h-4" />}
+                                Cargar más
+                            </button>
+                            <button
+                                onClick={loadAll}
+                                disabled={loadingMore}
+                                className="px-6 py-3 bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-300 rounded-2xl text-xs font-black uppercase tracking-widest hover:scale-105 active:scale-95 transition-all border-2 border-stone-200 dark:border-stone-700 disabled:opacity-50"
+                            >
+                                Cargar todas
+                            </button>
+                        </div>
+                    )}
+                </div>
+            )}
 
             {/* Invoice Modal */}
             {invoiceOrder && (

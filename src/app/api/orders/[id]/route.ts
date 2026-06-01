@@ -437,6 +437,10 @@ export async function PATCH(
             if (labStatus === 'SENT') {
                 data.labSentAt = new Date();
             }
+            // Auto-complete order when lab marks as delivered
+            if (labStatus === 'DELIVERED') {
+                data.status = 'COMPLETED';
+            }
         }
 
         if (labNotes !== undefined) data.labNotes = labNotes;

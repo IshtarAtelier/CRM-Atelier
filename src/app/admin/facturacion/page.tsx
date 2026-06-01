@@ -429,7 +429,6 @@ export default function BillingPage() {
                         }
                         setSelectedOrder(null);
                         refreshData();
-                        setActiveTab('completed');
                     }}
                 />
             )}
