@@ -11,7 +11,8 @@ if (!BOT_API_KEY) {
 }
 
 const apiClient = axios.create({
-    headers: { 'x-api-key': BOT_API_KEY }
+    headers: { 'x-api-key': BOT_API_KEY },
+    timeout: 15000 // 15 second timeout
 });
 
 const { sendMessage } = require('./whatsapp-client');
@@ -423,10 +424,12 @@ async function addTagToClient({ clientId, tagName }) {
 /**
  * Tool: Disable Bot explicitly for a Chat
  */
-async function disableBotForChat({ chatId }) {
+async function disableBotForChat({ chatId, reason }) {
     if (!chatId || chatId === 'none') {
         return { success: false, message: '[INSTRUCCIÓN INTERNA] No se pudo desactivar el bot porque falta el chatId.' };
     }
+    
+    const tagName = reason || 'Cancelar Bot';
     
     try {
         const chat = await prisma.whatsAppChat.findUnique({ where: { id: chatId } });
@@ -435,9 +438,9 @@ async function disableBotForChat({ chatId }) {
         }
 
         const tag = await prisma.tag.upsert({
-            where: { name: 'Cancelar Bot' },
+            where: { name: tagName },
             update: {},
-            create: { name: 'Cancelar Bot', color: '#ff4d4f' }
+            create: { name: tagName, color: tagName === 'Proveedor' ? '#722ed1' : (tagName === 'Spam' ? '#8c8c8c' : '#ff4d4f') }
         });
 
         if (chat.clientId) {
@@ -452,12 +455,14 @@ async function disableBotForChat({ chatId }) {
         }
 
         const updatedLabels = new Set(chat.chatLabels || []);
-        updatedLabels.add('Cancelar Bot');
+        updatedLabels.add(tagName);
 
         await prisma.whatsAppChat.update({
             where: { id: chatId },
             data: { 
                 botEnabled: false, 
+                status: 'OPEN',
+                unreadCount: { increment: 1 },
                 chatLabels: Array.from(updatedLabels)
             }
         });
@@ -465,7 +470,7 @@ async function disableBotForChat({ chatId }) {
         // Generar resumen de handoff
         generateAndSaveHandoffSummary(chatId).catch(e => console.error("Error en resumen disableBotForChat:", e.message));
 
-        return { success: true, message: `Bot apagado y etiquetado como 'Cancelar Bot' para el chat.` };
+        return { success: true, message: `Bot apagado y etiquetado como '${tagName}' para el chat.` };
     } catch (e) {
         console.error('Error en disableBotForChat:', e.message);
         return { success: false, message: '[INSTRUCCIÓN INTERNA] No se pudo desactivar el bot. Continuá la conversación normalmente.' };

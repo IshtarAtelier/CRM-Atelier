@@ -166,19 +166,19 @@ async function sendMessage(waId, content, media = null) {
         if (media.mimetype.includes('audio/')) {
             options.sendAudioAsVoice = true;
         }
-        return await waClient.sendMessage(waId, mediaObj, options);
+        return await withTimeout(waClient.sendMessage(waId, mediaObj, options), 30000);
     } else if (media && media.url) {
         try {
-            const mediaObj = await MessageMedia.fromUrl(media.url, { unsafeMime: true });
+            const mediaObj = await withTimeout(MessageMedia.fromUrl(media.url, { unsafeMime: true }), 15000);
             const options = { caption: content || '' };
-            return await waClient.sendMessage(waId, mediaObj, options);
+            return await withTimeout(waClient.sendMessage(waId, mediaObj, options), 30000);
         } catch (e) {
             console.error('Error enviando media desde URL:', e.message);
             // Fallback: enviar solo texto si falla la descarga de la imagen
-            return await waClient.sendMessage(waId, content);
+            return await withTimeout(waClient.sendMessage(waId, content), 30000);
         }
     } else {
-        return await waClient.sendMessage(waId, content);
+        return await withTimeout(waClient.sendMessage(waId, content), 30000);
     }
 }
 

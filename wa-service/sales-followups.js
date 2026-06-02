@@ -108,7 +108,7 @@ async function checkAndSendSalesFollowUps() {
     const now = new Date();
     
     // 1. Validar horario comercial
-    if (!isBusinessHours(now)) {
+    if (!module.exports.isBusinessHours(now)) {
         console.log(`  [Sales-FollowUps] Fuera de horario comercial. Postergando envíos.`);
         return;
     }
@@ -126,7 +126,8 @@ async function checkAndSendSalesFollowUps() {
         where: {
             orderType: 'QUOTE',
             status: 'PENDING',
-            isDeleted: false
+            isDeleted: false,
+            createdAt: { gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) }
         },
         include: {
             client: {
@@ -157,35 +158,69 @@ async function checkAndSendSalesFollowUps() {
     const model = new ChatGoogleGenerativeAI({
         model: 'gemini-2.5-flash',
         temperature: 0.7, // Un toque de creatividad para sonar humano
+        maxOutputTokens: 300,
         apiKey: process.env.GOOGLE_GENAI_API_KEY || process.env.GOOGLE_API_KEY
     });
 
     let queueDelay = 0; // Delay acumulado para la cola de envíos
 
+    const processedClients = new Set();
+
     for (const quote of pendingQuotes) {
         const client = quote.client;
         if (!client) continue;
 
+        if (processedClients.has(client.id)) {
+            continue;
+        }
+        processedClients.add(client.id);
+
+        try {
+
         const chat = client.whatsappChats[0];
         if (!chat) continue; // Cliente sin chat de WhatsApp activo
 
-        // Excluir si tiene tags de no bot o cancelación
+        // Excluir si tiene tags de no bot o cancelación en el cliente
         const tieneTagExclusion = client.tags.some(tag =>
             TAGS_SIN_BOT.some(t => tag.name.toLowerCase().includes(t))
         );
         if (tieneTagExclusion) continue;
 
-        // Validar si tiene compras/pedidos posteriores
+        // Excluir si el vendedor desactivó manualmente el bot en el chat
+        const tieneLabelApagado = (chat.chatLabels || []).some(label => 
+            label.includes('[SISTEMA - BOT APAGADO]') || 
+            TAGS_SIN_BOT.some(t => label.toLowerCase().includes(t))
+        );
+        if (tieneLabelApagado) {
+            console.log(`  [Sales-FollowUps] Chat de ${client.name} desactivado manualmente o excluido. Ignorando.`);
+            continue;
+        }
+
+        // Validar si tiene compras/pedidos posteriores (tanto tipo SALE como ORDER)
         const completedOrders = await prisma.order.findMany({
             where: {
                 clientId: client.id,
-                orderType: 'SALE',
+                orderType: { in: ['SALE', 'ORDER'] },
                 createdAt: { gt: quote.createdAt },
                 isDeleted: false
             }
         });
         if (completedOrders.length > 0) {
             console.log(`  [Sales-FollowUps] Cliente ${client.name} ya realizó compras posteriores. Ignorando.`);
+            continue;
+        }
+
+        // Validar si tiene algún pago registrado posterior al presupuesto
+        const completedPayments = await prisma.payment.findMany({
+            where: {
+                order: {
+                    clientId: client.id
+                },
+                date: { gt: quote.createdAt }
+            }
+        });
+        if (completedPayments.length > 0) {
+            console.log(`  [Sales-FollowUps] Cliente ${client.name} ya registró pagos posteriores. Ignorando.`);
             continue;
         }
 
@@ -233,7 +268,8 @@ async function checkAndSendSalesFollowUps() {
             "4. Sé breve: máximo 3 líneas de texto.\n" +
             "5. Usá emojis de forma sutil y amigable (ej: 😊, ☕, 👓, 👋).\n" +
             "6. Sé original: no copies plantillas. Adaptá el saludo y la forma de escribir a la personalidad del cliente.\n" +
-            "7. Hacé referencia al contexto de los últimos mensajes o al resumen de la conversación si es pertinente para continuar la charla con fluidez."
+            "7. Hacé referencia al contexto de los últimos mensajes o al resumen de la conversación si es pertinente para continuar la charla con fluidez.\n" +
+            "8. ESTÁ COMPLETAMENTE PROHIBIDO usar lunfardo o expresiones callejeras como 'che', 'copado', 'piola', 're', 'mortal', 'todo súper', 'qué onda', 'geniazo'. El tono debe ser hospitalario y profesional, no callejero. La palabra 'dale' sí está permitida."
         );
 
         let userPromptText = `INFORMACIÓN DEL CLIENTE:\n- Nombre: ${client.name}\n`;
@@ -257,7 +293,10 @@ async function checkAndSendSalesFollowUps() {
 
         try {
             const response = await model.invoke([systemMessage, humanMessage]);
-            const generatedText = response.content.toString().trim();
+            let generatedText = response.content.toString().trim();
+
+            // Sanitizar salida: eliminar ¿ y ¡ prohibidos
+            generatedText = generatedText.replace(/[¿¡]/g, '').trim();
 
             if (!generatedText) {
                 console.error(`  ⚠️ [Sales-FollowUps] Gemini devolvió respuesta vacía para ${client.name}.`);
@@ -279,6 +318,10 @@ async function checkAndSendSalesFollowUps() {
 
         } catch (llmErr) {
             console.error(`❌ Error invocando a Gemini para ${client.name}:`, llmErr.message);
+        }
+        } catch (quoteError) {
+            console.error(`  ⚠️ [Sales-FollowUps] Error procesando presupuesto de ${client?.name || 'desconocido'}:`, quoteError.message);
+            continue;
         }
     }
 }

@@ -101,9 +101,11 @@ async function loadConfig() {
     }
 }
 
-const botMessageIds = new Set();
 const botDebounceTimers = new Map();
 const passiveDebounceTimers = new Map();
+
+// ── Constante global de etiquetas que desactivan el bot ──
+const TAGS_SIN_BOT = ['cancelar bot', 'no bot', 'proveedor', 'no interesado', 'error', 'familiar', 'personal', 'spam', 'post-venta', 'postventa', 'ya es cliente', 'cerrado'];
 
 // ── Detección de Intervención Humana ───────────
 const botReplyingTo = new Set(); // Trackear cuando el bot está enviando para evitar race conditions
@@ -554,7 +556,7 @@ async function processBotTurn(chat, waId, profileName, realPhone) {
         // Consultar el estado actual en la base de datos para no responder si se apagó el bot en el debounce de 25s
         const freshChat = await prisma.whatsAppChat.findUnique({
             where: { id: chat.id },
-            include: { client: { include: { tags: true, prescriptions: { orderBy: { createdAt: 'desc' }, take: 3 }, interactions: { orderBy: { createdAt: 'desc' }, take: 5 } } } }
+            include: { client: { include: { tags: true, prescriptions: { orderBy: { date: 'desc' }, take: 3 }, interactions: { orderBy: { createdAt: 'desc' }, take: 5 } } } }
         });
 
         if (!freshChat || !freshChat.botEnabled) {
@@ -562,13 +564,16 @@ async function processBotTurn(chat, waId, profileName, realPhone) {
             return;
         }
 
-        const TAGS_SIN_BOT = ['cancelar bot', 'no bot', 'proveedor', 'no interesado', 'error', 'familiar', 'personal', 'spam', 'post-venta', 'postventa', 'ya es cliente', 'cerrado'];
+
         const clientTags = freshChat.client?.tags || [];
+        const chatLabels = freshChat.chatLabels || [];
         const tieneTagSinBot = clientTags.some(tag =>
             TAGS_SIN_BOT.some(t => tag.name.toLowerCase().includes(t))
+        ) || chatLabels.some(label =>
+            TAGS_SIN_BOT.some(t => label.toLowerCase().includes(t))
         );
         if (tieneTagSinBot) {
-            console.log(`  🚫 Turno de bot cancelado para ${profileName || waId} por etiqueta de exclusión.`);
+            console.log(`  🚫 Turno de bot cancelado para ${profileName || waId} por etiqueta de exclusión (etiquetas o labels de chat).`);
             return;
         }
 
@@ -670,7 +675,7 @@ async function processBotTurn(chat, waId, profileName, realPhone) {
             console.log(`  ⏹️ Error de API detectado en ToolMessage (${chat.id}). Cancelando respuesta.`);
             try {
                 const adminNotifyPhone = (process.env.ADMIN_PHONE || '5493541215971') + (process.env.ADMIN_PHONE?.includes('@') ? '' : '@c.us');
-                const alertMsg = `🚨 *ALERTA: FALLA EN BOT DE WHATSAPP* 🚨\n\nEl bot experimentó un error técnico de API procesando la consulta de *${profileName || 'Cliente'}* (${realPhone || waId.split('@')[0]}).\n\n*Acción:* El bot se ha quedado en silencio para no enviar mensajes de error al cliente. Por favor, revisá el chat en el CRM para continuar la operación manualmente.\n\n*Error:* ${apiErrorMessage}`;
+                const alertMsg = `Conversación con bot apagado: ${profileName || 'Cliente'} (${realPhone || waId.split('@')[0]})`;
                 await sendMessage(adminNotifyPhone, alertMsg);
                 console.log(`  🔔 Alerta de error de API enviada al administrador (3541215971)`);
             } catch (alertErr) {
@@ -707,7 +712,7 @@ async function processBotTurn(chat, waId, profileName, realPhone) {
                             type: 'NOTE',
                             content: `⚠️ [Output Guardrail] Bot desactivado. Se bloqueó una respuesta automática por contener datos internos o JSON: "${responseText.substring(0, 150)}..."`
                         }
-                    }).catch(() => {});
+                    }).catch(e => console.error('Error guardando nota:', e.message));
                 }
 
                 // 3. Notificar al panel vía WebSocket
@@ -801,7 +806,7 @@ async function processBotTurn(chat, waId, profileName, realPhone) {
         // Notificar al administrador por WhatsApp para que pueda continuar de forma manual
         try {
             const adminNotifyPhone = (process.env.ADMIN_PHONE || '5493541215971') + (process.env.ADMIN_PHONE?.includes('@') ? '' : '@c.us');
-            const alertMsg = `🚨 *ALERTA: FALLA EN BOT DE WHATSAPP* 🚨\n\nEl bot experimentó un error técnico procesando la consulta de *${profileName || 'Cliente'}* (${realPhone || waId.split('@')[0]}).\n\n*Acción:* El bot se ha quedado en silencio para no enviar mensajes de error al cliente. Por favor, revisá el chat en el CRM para continuar la operación manualmente.\n\n*Error:* ${err.message}`;
+            const alertMsg = `Conversación con bot apagado: ${profileName || 'Cliente'} (${realPhone || waId.split('@')[0]})`;
             await sendMessage(adminNotifyPhone, alertMsg);
             console.log(`  🔔 Alerta de error enviada al administrador (3541215971)`);
         } catch (alertErr) {
@@ -1036,13 +1041,27 @@ const handleMessage = async (msg) => {
             }
         }
 
+        // ── Chequeo de Contacto en Agenda (Teléfono) ──────────
+        // Si el contacto está guardado en la agenda del teléfono, es un proveedor,
+        // familiar o contacto conocido. El bot se apaga silenciosamente.
+        if (contact.isMyContact) {
+            if (chat.botEnabled) {
+                console.log(`  📇 Contacto agendado detectado: ${profileName || waId}. Apagando bot silenciosamente.`);
+                await disableBotForChatById(chat.id, 'Contacto agendado en teléfono');
+                chat.botEnabled = false;
+            }
+        }
+
         // ── Chequeo de etiquetas de exclusión ──────────
         // Si el cliente tiene tag "Cancelar Bot", "No Bot", "Proveedor", etc.
         // el bot NO responde y se silencia completamente para ese chat.
-        const TAGS_SIN_BOT = ['cancelar bot', 'no bot', 'proveedor', 'no interesado', 'error', 'familiar', 'personal', 'spam', 'post-venta', 'postventa', 'ya es cliente', 'cerrado'];
+
         const clientTags = chat?.client?.tags || [];
+        const chatLabels = chat?.chatLabels || [];
         const tieneTagSinBot = clientTags.some(tag =>
             TAGS_SIN_BOT.some(t => tag.name.toLowerCase().includes(t))
+        ) || chatLabels.some(label =>
+            TAGS_SIN_BOT.some(t => label.toLowerCase().includes(t))
         );
         if (tieneTagSinBot) {
             if (chat.botEnabled) {
@@ -1056,11 +1075,28 @@ const handleMessage = async (msg) => {
         
         // A. Si el cliente ya es un cliente de post-venta (status: CLIENT)
         if (chat.client && chat.client.status === 'CLIENT') {
-            esPostVenta = true;
+            // Un cliente con status 'CLIENT' solo se considera en post-venta activa si tiene pedidos pendientes/en curso.
+            // Si todos sus pedidos están completados o entregados, el bot puede seguir interactuando (ej. para nuevos presupuestos).
+            const activeOrder = await prisma.order.findFirst({
+                where: {
+                    clientId: chat.client.id,
+                    orderType: { in: ['SALE', 'ORDER'] },
+                    isDeleted: false,
+                    NOT: {
+                        AND: [
+                            { status: 'COMPLETED' },
+                            { labStatus: 'DELIVERED' }
+                        ]
+                    }
+                }
+            });
+            if (activeOrder) {
+                esPostVenta = true;
+            }
         }
         
-        // B. Si el mensaje contiene keywords de reclamos o estados de pedidos
-        if (body) {
+        // B. Si el mensaje contiene keywords de reclamos o estados de pedidos (SOLO para clientes registrados)
+        if (body && chat.client && chat.client.status === 'CLIENT') {
             const normalizedBody = body.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
             const postVentaKeywords = [
                 'mi pedido', 'estado de mi', 'estado del pedido',
@@ -1082,7 +1118,8 @@ const handleMessage = async (msg) => {
         }
 
         // ── Auto-Reanudación Inteligente (Smart Auto-Resume) ──
-        if (oldLastMessageAt && !chat.botEnabled && !tieneTagSinBot && !esPostVenta) {
+        const tieneApagadoManual = (chat?.chatLabels || []).some(label => label.includes('[SISTEMA - BOT APAGADO]'));
+        if (oldLastMessageAt && !chat.botEnabled && !tieneTagSinBot && !esPostVenta && !tieneApagadoManual && !contact.isMyContact) {
             const diffMs = Date.now() - new Date(oldLastMessageAt).getTime();
             const diffHours = diffMs / (1000 * 60 * 60);
             if (diffHours >= 24) {
@@ -1272,7 +1309,7 @@ const handleMessage = async (msg) => {
                         type: 'NOTE',
                         content: `⚠️ [Alerta Seguridad] Bot desactivado automáticamente. Razón: ${filterReason}`
                     }
-                }).catch(() => {});
+                }).catch(e => console.error('Error guardando nota:', e.message));
             }
 
             broadcastChatUpdate(chat.id);
@@ -1304,17 +1341,22 @@ const handleMessage = async (msg) => {
                             type: 'NOTE',
                             content: `📍 [HITO] Recibido comprobante de pago por WhatsApp.`
                         }
-                    }).catch(() => {});
+                    }).catch(e => console.error('Error guardando nota:', e.message));
                 }
 
                 const receiptConfirmation = "Buenísimo, ahí le paso el comprobante a administración para que lo registren en tu ficha!";
-                await sendMessage(waId, receiptConfirmation);
+                botReplyingTo.add(waId);
+                const sentReceipt = await sendMessage(waId, receiptConfirmation);
+                setTimeout(() => botReplyingTo.delete(waId), 3000);
 
                 await prisma.whatsAppMessage.create({
                     data: {
                         chatId: chat.id,
                         direction: 'OUTBOUND',
+                        type: 'TEXT',
                         content: receiptConfirmation,
+                        waMessageId: sentReceipt?.id?._serialized || `receipt_${Date.now()}`,
+                        senderName: 'Bot',
                         status: 'SENT'
                     }
                 });
@@ -1513,7 +1555,7 @@ app.patch('/api/chats/:id', async (req, res) => {
                 // Si el vendedor activa el bot manualmente, quitamos la etiqueta de apagado manual
                 let currentLabels = data.chatLabels !== undefined ? data.chatLabels : (chat.chatLabels || '');
                 if (currentLabels.includes('[SISTEMA - BOT APAGADO]')) {
-                    data.chatLabels = currentLabels.replace(/,?s*\[SISTEMA - BOT APAGADO\]/g, '').trim();
+                    data.chatLabels = currentLabels.replace(/,?\s*\[SISTEMA - BOT APAGADO\]/g, '').trim();
                     // Limpiar coma residual inicial si queda
                     if (data.chatLabels.startsWith(',')) data.chatLabels = data.chatLabels.substring(1).trim();
                 }
@@ -1627,10 +1669,11 @@ app.post('/api/send', async (req, res) => {
             }
         }
 
-        // MARCAR COMO YA PROCESADO
-        // No agregamos nada aquí, porque el CRM (botReplyingTo)
-        // ya se borró, entonces message_create asumirá que es intervención humana si ocurre después.
+        // Limpiar flag de botReplyingTo y DESACTIVAR el bot, ya que un humano tomó el control
         botReplyingTo.delete(waId);
+        if (dbChatId) {
+            await disableBotForChatById(dbChatId, 'Intervención humana (mensaje desde CRM)');
+        }
 
         // Ya no guardamos el mensaje manualmente aquí para evitar duplicados.
         // Solo enviamos una respuesta exitosa, y handleMessageCreate se ocupará del DB y broadcast.
@@ -1699,14 +1742,20 @@ app.patch('/api/chats/:id/bot', async (req, res) => {
         return res.status(400).json({ error: 'botEnabled must be a boolean' });
     }
     try {
-        const chat = await prisma.whatsAppChat.update({
-            where: { id },
-            data: { botEnabled }
-        });
-        const estado = botEnabled ? '▶️ Activado' : '⏸️ Pausado';
-        console.log(`  🤖 Bot ${estado} para chat ${chat.waId}`);
-        broadcastChatUpdate(chat.id);
-        res.json({ id: chat.id, waId: chat.waId, botEnabled: chat.botEnabled });
+        if (!botEnabled) {
+            // Usar disableBotForChatById para consistencia (genera handoff, cancela timers)
+            await disableBotForChatById(id, 'API patch CRM (Vendedor desactivó el bot)');
+            const chat = await prisma.whatsAppChat.findUnique({ where: { id } });
+            res.json({ id: chat.id, waId: chat.waId, botEnabled: chat.botEnabled });
+        } else {
+            const chat = await prisma.whatsAppChat.update({
+                where: { id },
+                data: { botEnabled: true }
+            });
+            console.log(`  🤖 Bot ▶️ Activado para chat ${chat.waId}`);
+            broadcastChatUpdate(chat.id);
+            res.json({ id: chat.id, waId: chat.waId, botEnabled: chat.botEnabled });
+        }
     } catch (e) {
         res.status(404).json({ error: 'Chat no encontrado' });
     }

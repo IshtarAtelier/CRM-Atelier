@@ -247,16 +247,23 @@ const cancelBotTool = new DynamicStructuredTool({
     func: async (input) => JSON.stringify(await cancelBot(safeParse(input, "cancel_bot"))),
 });
 
-const addTagToClientTool = new DynamicTool({
+const addTagToClientTool = new DynamicStructuredTool({
     name: "add_tags",
     description: "Usa esta herramienta para agregar una etiqueta importante al cliente a medida que obtienes datos (ej: 'OSDE', 'Urgente', 'Monofocal'). Usa JSON estricto con 'clientId' y 'tagName'.",
-    func: async (input) => JSON.stringify(await addTagToClient(safeParse(input, "add_tags"))),
+    schema: z.object({
+        clientId: z.string().describe("ID del cliente en el CRM"),
+        tagName: z.string().describe("Nombre de la etiqueta a agregar")
+    }),
+    func: async (input) => JSON.stringify(await addTagToClient(input)),
 });
 
 const disableBotForChatTool = new DynamicStructuredTool({
-    schema: z.object({ chatId: z.string().optional() }).catchall(z.any()),
+    schema: z.object({ 
+        chatId: z.string().optional(),
+        reason: z.enum(['Personal', 'Familiar', 'Proveedor', 'Spam', 'Cancelar Bot']).default('Personal')
+    }).catchall(z.any()),
     name: "disable_bot_for_personal_chat",
-    description: "ÚSALA INMEDIATAMENTE si detectás que la conversación es de carácter familiar, personal, de amistad, spam, o si es un proveedor/laboratorio B2B. Esta herramienta apaga el bot SILENCIOSAMENTE para este chat. NO escribas ningún mensaje al cliente antes de usarla. Usa JSON: chatId.",
+    description: "ÚSALA INMEDIATAMENTE si detectás que la conversación es de carácter familiar, personal, de amistad, spam, o si es un proveedor/laboratorio B2B. Esta herramienta apaga el bot SILENCIOSAMENTE para este chat. Especificá la razón (reason): 'Personal' (para familiares/amigos), 'Familiar' (para familia directa), 'Proveedor' (para B2B/laboratorios/ventas B2B), 'Spam' (publicidades molestas) o 'Cancelar Bot' (otras razones). NO escribas ningún mensaje al cliente antes de usarla. Usa JSON.",
     func: async (input) => {
         const parsed = safeParse(input, "disable_bot_for_personal_chat");
         const result = await disableBotForChat(parsed);
