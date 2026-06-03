@@ -10,7 +10,7 @@ interface TestChatModalProps {
 
 export function TestChatModal({ isOpen, onClose }: TestChatModalProps) {
     const [messages, setMessages] = useState<{ role: 'user' | 'ai', content: string, mediaBase64?: string, mediaMime?: string }[]>([
-        { role: 'ai', content: '¡Hola! Soy Ishtar, tu asistente IA. ¿En qué te puedo ayudar hoy?' }
+        { role: 'ai', content: 'Hola! Soy Matías de Atelier Óptica, contame qué estás necesitando.' }
     ]);
     const [input, setInput] = useState('');
     const [isTyping, setIsTyping] = useState(false);
@@ -76,10 +76,10 @@ export function TestChatModal({ isOpen, onClose }: TestChatModalProps) {
             if (res.ok && data.response) {
                 setMessages(prev => [...prev, { role: 'ai', content: data.response }]);
             } else {
-                setMessages(prev => [...prev, { role: 'ai', content: '⚠️ Error de conexión con el simulador.' }]);
+                setMessages(prev => [...prev, { role: 'ai', content: 'Dejame revisarlo bien y en un ratito te respondo.' }]);
             }
         } catch (e) {
-            setMessages(prev => [...prev, { role: 'ai', content: '⚠️ Error de red al contactar al simulador.' }]);
+            setMessages(prev => [...prev, { role: 'ai', content: 'Dejame revisarlo bien y en un ratito te respondo.' }]);
         } finally {
             setIsTyping(false);
         }
@@ -98,7 +98,7 @@ export function TestChatModal({ isOpen, onClose }: TestChatModalProps) {
                             <div className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 rounded-full border-2 border-white dark:border-stone-900" />
                         </div>
                         <div>
-                            <h3 className="text-sm font-bold text-stone-800 dark:text-stone-100">Simulador IA</h3>
+                            <h3 className="text-sm font-bold text-stone-800 dark:text-stone-100">Matías - Atelier Óptica</h3>
                             <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold uppercase tracking-widest">En línea</p>
                         </div>
                     </div>

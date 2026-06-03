@@ -4,6 +4,16 @@
  * Se despliega como un servicio separado en Railway.
  */
 
+// Monkeypatch LangChain's uuid export bug
+try {
+    const uuidModule = require('@langchain/core/utils/uuid');
+    if (uuidModule && uuidModule.v4 && typeof uuidModule.v4.default === 'function') {
+        uuidModule.v4 = uuidModule.v4.default;
+    }
+} catch (e) {
+    console.warn("UUID monkeypatch failed:", e.message);
+}
+
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
@@ -1037,6 +1047,11 @@ const handleMessage = async (msg) => {
             if (profileName && !chat.clientId) updateData.profileName = profileName;
             // Solo actualizar realPhone si tenemos uno y el chat no tiene uno ya guardado
             if (realPhone && !chat.realPhone) updateData.realPhone = realPhone;
+            // Auto-desarchivar: si el chat estaba archivado y llega un mensaje nuevo, vuelve al buzón activo
+            if (chat.archived) {
+                updateData.archived = false;
+                console.log(`  📥 [Auto-Desarchivar] Chat de ${profileName || waId} desarchivado por nuevo mensaje entrante.`);
+            }
             chat = await prisma.whatsAppChat.update({
                 where: { id: chat.id },
                 data: updateData,
@@ -1976,36 +1991,66 @@ app.post('/api/sync', async (req, res) => {
 });
 
 // ── Simulador de Chat (Test) ───────────────────
+// Réplica exacta del flujo real (processBotTurn) para testing fiel.
 app.post('/api/test/chat', async (req, res) => {
     const { messages } = req.body;
     const TEST_CHAT_ID = 'test-chat-simulator';
+    const TEST_WA_ID = 'test@simulator';
     try {
         const { AIMessage, HumanMessage } = require("@langchain/core/messages");
+        
+        // Reconstruir historial exactamente como lo hace processBotTurn
         const allMessages = messages.map(m => {
-            if (m.role === 'ai') return new AIMessage(m.content);
+            if (m.role === 'ai') return new AIMessage(m.content || '');
+            
+            // Imagen: enviar como multimodal (igual que el flujo real)
             if (m.mediaBase64) {
                 global.mediaCache = global.mediaCache || {};
                 global.mediaCache[TEST_CHAT_ID] = [{ base64: m.mediaBase64, mimeType: m.mediaMime || 'image/jpeg', timestamp: Date.now() }];
                 console.log(`📸 Test Chat: Imagen guardada en mediaCache['${TEST_CHAT_ID}'] (${(m.mediaBase64.length / 1024).toFixed(0)} KB)`);
-                const promptMedia = `[El cliente envió una imagen adjunta. DEBES usar la herramienta 'save_prescription_data' INMEDIATAMENTE con este JSON exacto: {"chatId": "${TEST_CHAT_ID}", "clientId": null, "userName": "Tester", "userPhone": "1111111111"}. Mensaje del cliente: ${m.content || 'Foto de receta'}]`;
-                return new HumanMessage(promptMedia);
+                
+                return new HumanMessage({
+                    content: [
+                        { type: "text", text: `[Imagen adjunta. Mensaje del cliente: "${m.content || '(sin texto)'}"]` },
+                        { type: "image_url", image_url: { url: `data:${m.mediaMime || 'image/jpeg'};base64,${m.mediaBase64}` } }
+                    ]
+                });
             }
-            return new HumanMessage(m.content);
+            
+            return new HumanMessage(m.content || '[Mensaje vacío]');
         });
 
+        // State idéntico al de processBotTurn
         const config = { configurable: { thread_id: TEST_CHAT_ID } };
         const state = { 
             messages: allMessages,
             userPhone: '1111111111',
             userName: 'Tester',
+            waId: TEST_WA_ID,
+            chatId: TEST_CHAT_ID,
             customPrompt: agentPrompt,
-            dailyContext: dailyContext
+            dailyContext: dailyContext,
+            clientData: null,
+            chatSummary: null,
         };
         
         const result = await graph.invoke(state, config);
         const lastMessage = result.messages[result.messages.length - 1];
+        let responseText = lastMessage.content;
+
+        if (responseText) {
+            // Output Guardrail (igual que el flujo real)
+            const guardrail = runOutputGuardrail(responseText);
+            if (!guardrail.safe) {
+                console.warn(`  ⚠️ [Test Chat Guardrail] Respuesta bloqueada: ${guardrail.reason}`);
+                return res.json({ response: 'Dejame revisarlo bien y en un ratito te respondo con la info exacta.', guardrailBlocked: true, guardrailReason: guardrail.reason });
+            }
+            
+            // Limpieza de signos de apertura (igual que el flujo real)
+            responseText = responseText.replace(/¿/g, '');
+        }
         
-        res.json({ response: lastMessage.content });
+        res.json({ response: responseText });
     } catch (e) {
         console.error("Error in Test Chat:", e);
         res.status(500).json({ error: e.message });

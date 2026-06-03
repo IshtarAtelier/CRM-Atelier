@@ -963,7 +963,7 @@ export default function VentasPage() {
                                         {/* WhatsApp notify */}
                                         {order.client?.phone && (order.labStatus === 'READY' || financials.hasBalance) && (
                                             <button
-                                                onClick={() => {
+                                                onClick={async () => {
                                                     let msg = `*Hola ${order.client?.name || ''}*\n\n`;
                                                     msg += `Te avisamos que *tu pedido ya está listo para retirar* en *Atelier Óptica*\n\n`;
                                                     if (financials.hasBalance) {
@@ -982,7 +982,24 @@ export default function VentasPage() {
                                                     msg += `¡Te esperamos! Muchas gracias.\n`;
                                                     msg += `\n_La óptica mejor calificada en Google Business 5/5_`;
                                                     const phone = (order.client?.phone || '').replace(/\D/g, '');
-                                                    window.open(`https://wa.me/${phone.startsWith('54') ? phone : '54' + phone}?text=${encodeURIComponent(msg)}`, '_blank');
+                                                    if (!phone) {
+                                                        alert('⚠️ El cliente no tiene teléfono registrado.');
+                                                        return;
+                                                    }
+                                                    try {
+                                                        const res = await fetch('/api/whatsapp/send', {
+                                                            method: 'POST',
+                                                            headers: { 'Content-Type': 'application/json' },
+                                                            body: JSON.stringify({ chatId: `${phone}@c.us`, message: msg })
+                                                        });
+                                                        if (res.ok) {
+                                                            alert('✅ Mensaje enviado por WhatsApp al cliente.');
+                                                        } else {
+                                                            alert('❌ Error al enviar el WhatsApp.');
+                                                        }
+                                                    } catch {
+                                                        alert('❌ Error: verificá que el servidor WhatsApp esté corriendo.');
+                                                    }
                                                 }}
                                                 className={`p-3 rounded-xl hover:scale-110 transition-all ${order.labStatus === 'READY' ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/30 animate-pulse hover:animate-none' : 'bg-emerald-50 text-emerald-600'}`}
                                                 title={order.labStatus === 'READY' ? 'Avisar que está listo para retirar' : 'Avisar saldo pendiente'}

@@ -301,7 +301,7 @@ const updateLabOrder: CopilotTool = {
           { client: { name: { contains: q, mode: 'insensitive' } } },
         ],
       },
-      include: { client: true },
+      include: { client: true, payments: true },
       orderBy: { createdAt: 'desc' },
     });
 
@@ -348,10 +348,15 @@ const updateLabOrder: CopilotTool = {
     if (willChangeStatus && finalStatus === 'READY' && order.client.phone) {
         try {
             const { BotService } = await import('@/services/bot.service');
-            await BotService.notifyOrderReady(order as any);
-            sideEffectMsg = '\n(Se le envió automáticamente un WhatsApp al cliente avisándole del retiro y su saldo)';
-        } catch (e) {
+            const sent = await BotService.notifyOrderReady(order as any);
+            if (sent) {
+                sideEffectMsg = '\n(Se le envió automáticamente un WhatsApp al cliente avisándole del retiro y su saldo)';
+            } else {
+                sideEffectMsg = '\n⚠️ No se pudo enviar el WhatsApp automático (el cliente puede no tener teléfono válido o el servidor WA no respondió). Envialo manualmente desde Pedidos.';
+            }
+        } catch (e: any) {
             console.error('Error auto-notifying from Copilot tool:', e);
+            sideEffectMsg = `\n⚠️ Error al enviar WhatsApp automático: ${e.message || 'Error desconocido'}. Envialo manualmente desde Pedidos.`;
         }
     }
 

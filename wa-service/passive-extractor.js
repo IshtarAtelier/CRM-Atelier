@@ -1,5 +1,5 @@
 const { ChatGoogleGenerativeAI } = require("@langchain/google-genai");
-const { SystemMessage } = require("@langchain/core/messages");
+const { SystemMessage, HumanMessage } = require("@langchain/core/messages");
 const { prisma } = require('./db');
 const { addTagToClient } = require('./tools');
 const { withTimeout } = require('./utils');
@@ -71,7 +71,7 @@ No incluyas markdown ni explicaciones, solo el JSON puro.
 
         const model = getPassiveModel();
         const res = await withTimeout(
-            model.invoke([new SystemMessage(prompt)]),
+            model.invoke([new HumanMessage(prompt)]),
             30000,
             'Gemini passive extractor timeout'
         );

@@ -86,22 +86,8 @@ export default function PedidosPage() {
                 alert(`⚠️ ${data.error || 'Error al avanzar el estado'}`);
             } else {
                 await fetchOrders();
-                
-                // Disparo automático de WhatsApp si el estado es Listo p/ Retirar
-                if (next === 'READY') {
-                    try {
-                        const notifyRes = await fetch(`/api/orders/${orderId}/notify-ready`, {
-                            method: 'POST'
-                        });
-                        if (notifyRes.ok) {
-                            console.log('Notificación automática de Listo para Retirar enviada al cliente.');
-                        } else {
-                            console.error('No se pudo enviar la notificación automática');
-                        }
-                    } catch (e) {
-                        console.error('Error llamando a notify-ready', e);
-                    }
-                }
+                // WhatsApp automático: el servidor (PATCH handler) ya envía la notificación
+                // via BotService.notifyOrderReady() cuando labStatus cambia a READY
             }
         } catch (error) {
             console.error('Error advancing status:', error);
@@ -321,8 +307,8 @@ export default function PedidosPage() {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    to: phone,
-                    text: text
+                    chatId: `${phone}@c.us`,
+                    message: text
                 })
             });
             if (res.ok) {

@@ -47,8 +47,8 @@ const QUICK_REPLIES = [
     { label: 'Saludo', text: '¡Hola! 👋 Bienvenido a Atelier Óptica. ¿En qué te puedo ayudar?' },
     { label: 'Receta', text: '¿Me podés compartir tu receta óptica para ayudarte mejor?' },
     { label: 'Turno', text: '¿Querés coordinar un turno para una consulta en el local? 📍' },
-    { label: 'Dirección', text: '📍 Nos encontrás en Tejeda 4380, Córdoba.' },
-    { label: 'Horario', text: 'Atendemos de Lunes a Viernes de 9 a 13:30 y de 16 a 19:30hs. Sábados de 10 a 14hs.' },
+    { label: 'Dirección', text: '📍 Nos encontrás en José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba.\n\nTe dejo la ubicación para que llegues fácil 👉 https://g.co/kgs/5Jp7D4e' },
+    { label: 'Horario', text: 'Atendemos de Lunes a Viernes de 9 a 13:30 y de 16 a 19:30hs. Sábados de 10 a 14hs.\n\n📍 José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba.\n👉 https://g.co/kgs/5Jp7D4e\n\nCuándo te queda cómodo que te esperemos?' },
     { label: 'Listo para retirar', text: '🎉 ¡Tu pedido está listo para retirar!' },
     { label: 'Pago pendiente', text: 'Te recuerdo que quedó pendiente el saldo restante. ¿Cuándo te viene bien coordinar el pago?' },
 ];
@@ -954,15 +954,24 @@ export default function WhatsAppPage() {
 
     // ── Vista filtrada de chats ───────────────────
     const filteredChats = chats.filter(c => {
-        if (c.archived !== showArchived) return false;
-        if (filterLabel && !(c.chatLabels || []).includes(filterLabel)) return false;
-        
         if (searchQuery.trim()) {
-            const query = searchQuery.toLowerCase();
-            const name = getDisplayName(c).toLowerCase();
+            const query = searchQuery.toLowerCase().replace(/[\s-]/g, '');
+            const queryDigits = query.replace(/\D/g, '');
+            const name = getDisplayName(c).toLowerCase().replace(/[\s-]/g, '');
             const num = c.waId.toLowerCase();
-            if (!name.includes(query) && !num.includes(query)) return false;
+            const realPhone = c.realPhone || '';
+            const clientPhone = c.client?.phone || '';
+            
+            const matchName = name.includes(query);
+            const matchWaId = num.includes(query);
+            const matchReal = queryDigits && realPhone.includes(queryDigits);
+            const matchClient = queryDigits && clientPhone.includes(queryDigits);
+            
+            if (!matchName && !matchWaId && !matchReal && !matchClient) return false;
         } else {
+            if (c.archived !== showArchived) return false;
+            if (filterLabel && !(c.chatLabels || []).includes(filterLabel)) return false;
+            
             if (!showArchived && !filterLabel && c.unreadCount === 0) {
                 const daysOld = c.lastMessageAt ? (new Date().getTime() - new Date(c.lastMessageAt).getTime()) / (1000 * 3600 * 24) : 0;
                 if (daysOld > 2) return false;
