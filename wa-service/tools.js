@@ -3,6 +3,7 @@ const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '.env') });
 
 const { prisma } = require('./db');
+const { getAdminWaId, withTimeout } = require('./utils');
 const CRM_API_URL = process.env.CRM_API_URL;
 const BOT_API_KEY = process.env.BOT_API_KEY;
 if (!BOT_API_KEY) {
@@ -240,6 +241,14 @@ async function getOrderStatus({ orderId, clientId }) {
  * Tool: Create a follow-up task
  */
 async function createTask({ clientId, description, dueDate }) {
+    // Validar que clientId sea un CUID real y no un valor inventado por el LLM
+    if (!clientId || clientId === 'none' || clientId === 'null' || clientId === '') {
+        return { success: false, error: '[INSTRUCCIÓN INTERNA] No se pudo crear la tarea porque falta el clientId. Continuá la conversación normalmente sin mencionar errores.' };
+    }
+    if (!/^c[a-z0-9]{20,30}$/.test(clientId)) {
+        console.warn(`[createTask] clientId inválido descartado: "${clientId}"`);
+        return { success: false, error: '[INSTRUCCIÓN INTERNA] El clientId no es válido. Solo usá create_task cuando tengas clientData.id real en tu contexto.' };
+    }
     const response = await requestWithRetry(() =>
         apiClient.post(`${CRM_API_URL}/tasks`, {
             clientId, description, dueDate
@@ -252,6 +261,14 @@ async function createTask({ clientId, description, dueDate }) {
  * Tool: Register an interaction
  */
 async function addInteraction({ clientId, type, content }) {
+    // Validar que clientId sea un CUID real
+    if (!clientId || clientId === 'none' || clientId === 'null' || clientId === '') {
+        return { success: false, error: '[INSTRUCCIÓN INTERNA] No se pudo registrar la nota porque falta el clientId.' };
+    }
+    if (!/^c[a-z0-9]{20,30}$/.test(clientId)) {
+        console.warn(`[addInteraction] clientId inválido descartado: "${clientId}"`);
+        return { success: false, error: '[INSTRUCCIÓN INTERNA] El clientId no es válido.' };
+    }
     const response = await requestWithRetry(() =>
         apiClient.post(`${CRM_API_URL}/interactions`, {
             clientId, type, content
@@ -501,17 +518,15 @@ async function reportComplaint({ clientId, details }) {
         });
 
         // Enviar notificación por WhatsApp a la administración
-        const adminPhone = process.env.ADMIN_PHONE;
-        if (adminPhone) {
-            try {
-                const client = await prisma.client.findUnique({ where: { id: clientId } });
-                const clientName = client ? client.name : clientId;
-                
-                const waMsg = `🚨 *NUEVO RECLAMO POST-VENTA* 🚨\n\n*Cliente:* ${clientName}\n\n*Detalles:*\n${details}\n\nRevisa el correo para más información.`;
-                await sendMessage(adminPhone, waMsg);
-            } catch (adminErr) {
-                console.error('Error enviando WhatsApp de reclamo a administración:', adminErr.message);
-            }
+        try {
+            const client = await prisma.client.findUnique({ where: { id: clientId } });
+            const clientName = client ? client.name : clientId;
+            
+            const adminWaId = getAdminWaId();
+            const waMsg = `🚨 *NUEVO RECLAMO POST-VENTA* 🚨\n\n*Cliente:* ${clientName}\n\n*Detalles:*\n${details}\n\nRevisa el correo para más información.`;
+            await sendMessage(adminWaId, waMsg);
+        } catch (adminErr) {
+            console.error('Error enviando WhatsApp de reclamo a administración:', adminErr.message);
         }
 
         return { success: true, message: `Reclamo reportado exitosamente.` };
@@ -620,7 +635,11 @@ async function generateAndSaveHandoffSummary(chatId) {
 
         const prompt = `A continuación tenés los últimos mensajes de un chat de WhatsApp con un cliente de Atelier Óptica. Generá un resumen ejecutivo de exactamente 2 líneas para el vendedor que va a tomar el caso. El resumen debe incluir lo que busca el cliente (ej: tipo de anteojo o cristal), si envió receta, su obra social/prepaga (si la mencionó), y cualquier preferencia relevante. NO inventes datos. Sé conciso y directo.\n\nHistorial:\n${formattedHistory}`;
         
-        const response = await model.invoke(prompt);
+        const response = await withTimeout(
+            model.invoke(prompt),
+            30000,
+            'Gemini handoff summary timeout'
+        );
         const summaryText = response.content.toString().trim();
 
         if (summaryText) {

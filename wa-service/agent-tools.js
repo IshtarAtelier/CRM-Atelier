@@ -227,9 +227,9 @@ const createQuoteTool = new DynamicStructuredTool({
 });
 
 const createTaskTool = new DynamicStructuredTool({
-    schema: z.object({ clientId: z.string(), description: z.string(), dueDate: z.string().optional() }).catchall(z.any()),
+    schema: z.object({ clientId: z.string().optional(), description: z.string(), dueDate: z.string().optional() }).catchall(z.any()),
     name: "create_task",
-    description: "Crea una tarea/seguimiento para que un humano la atienda. Usa JSON con 'clientId' (MANDATORIO), 'description' (MANDATORIO, qué hay que hacer), 'dueDate' (fecha opcional, formato ISO).",
+    description: "Crea una tarea/seguimiento para que un humano la atienda. Usa JSON con 'clientId' (SOLO si clientData.id existe en tu contexto; si no hay clientData.id, NO pases clientId), 'description' (MANDATORIO, qué hay que hacer), 'dueDate' (fecha opcional, formato ISO). IMPORTANTE: Si no tenés un clientData.id real, NO inventes un ID ni uses el chatId.",
     func: async (input) => JSON.stringify(await createTask(safeParse(input, "create_task"))),
 });
 
