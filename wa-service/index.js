@@ -4,15 +4,6 @@
  * Se despliega como un servicio separado en Railway.
  */
 
-// Monkeypatch LangChain's uuid export bug
-try {
-    const uuidModule = require('@langchain/core/utils/uuid');
-    if (uuidModule && uuidModule.v4 && typeof uuidModule.v4.default === 'function') {
-        uuidModule.v4 = uuidModule.v4.default;
-    }
-} catch (e) {
-    console.warn("UUID monkeypatch failed:", e.message);
-}
 
 const express = require('express');
 const http = require('http');
