@@ -245,7 +245,7 @@ export default function AgentPhotosPage() {
                                     placeholder="Ej: Enviar esta foto cuando el cliente pregunte por la ubicación del local."
                                     className="w-full px-4 py-3 bg-stone-50 dark:bg-stone-950 border border-stone-200 dark:border-stone-800 rounded-xl text-sm outline-none focus:border-indigo-500 transition-all resize-none h-20 placeholder:text-stone-400"
                                 />
-                                <p className="text-[10px] text-stone-400">Si escribís una instrucción aquí, la foto se vinculará automáticamente al "cerebro" del bot al subirla.</p>
+                                <p className="text-[10px] text-stone-400">Si escribís una instrucción aquí, la foto se vinculará automáticamente al &quot;cerebro&quot; del bot al subirla.</p>
                             </div>
 
                             <form 
