@@ -7,6 +7,7 @@ import { Users, Glasses, Package, ClipboardList, LayoutDashboard, Cog, FileText,
 import { motion } from "framer-motion";
 import { UserProfile } from "./UserProfile";
 import { NotificationBell } from "./NotificationBell";
+import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon";
 
 interface SidebarProps {
   userName?: string;
@@ -57,7 +58,7 @@ export function Sidebar({ userName = "Usuario", userRole = "STAFF", userId = "" 
     { href: "/admin/cotizador", label: "Cotizador", icon: Calculator, adminOnly: false },
     { href: "/admin/ventas", label: "Ventas / Laboratorio", icon: ClipboardList, adminOnly: false },
     { href: "/admin/facturacion", label: "Facturación", icon: Receipt, adminOnly: true },
-    { href: "/admin/whatsapp", label: "WhatsApp", icon: MessageCircle, adminOnly: false },
+    { href: "/admin/whatsapp", label: "WhatsApp", icon: WhatsAppIcon, adminOnly: false },
     { href: "/admin/caja", label: "Caja Efectivo", icon: Banknote, adminOnly: false },
     { href: "/admin/gastos", label: "Gastos", icon: TrendingDown, adminOnly: true },
     { href: "/admin/administracion", label: "Administración", icon: Wallet, adminOnly: true },

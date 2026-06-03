@@ -10,7 +10,8 @@ import { FloatingWhatsApp } from "@/components/Storefront/FloatingWhatsApp";
 import { PaymentOptions } from "@/components/Storefront/PaymentOptions";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Camera, User, UserPlus, Share2, ChevronDown, Truck, Package, MessageCircle, MapPin } from "lucide-react";
+import { Camera, User, UserPlus, Share2, ChevronDown, Truck, Package, MapPin } from "lucide-react";
+import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon";
 import { useCart } from "@/store/useCart";
 
 export function ProductClient({ product }: { product: any }) {
@@ -334,7 +335,7 @@ export function ProductClient({ product }: { product: any }) {
               rel="noopener noreferrer"
               className="w-full border border-[#e5e5e5] bg-[#f9f9f9] text-[#666] px-8 py-4 text-[11px] font-bold uppercase tracking-widest hover:border-black hover:text-black transition-colors flex items-center justify-center gap-2"
             >
-              <MessageCircle className="w-4 h-4" /> Consultar por WhatsApp
+              <WhatsAppIcon className="w-4 h-4" /> Consultar por WhatsApp
             </a>
             
             <p className="text-[10px] uppercase font-bold tracking-widest text-[#999] mt-2 text-center">Envío sin cargo a todo el país</p>

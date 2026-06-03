@@ -12,6 +12,7 @@ import {
     calculateQuoteTotals
 } from '@/lib/promo-utils';
 import { format } from 'date-fns';
+import { WhatsAppIcon } from '@/components/icons/WhatsAppIcon';
 
 // Modular Components
 import CartSearch from './CartSearch';
@@ -283,7 +284,7 @@ export default function CotizadorCart({
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 {extraActions}
-                {onWhatsApp && <button onClick={onWhatsApp} className="py-4 bg-emerald-50 text-emerald-600 border border-emerald-200 rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-emerald-500 hover:text-white transition-all flex items-center justify-center gap-2"><MessageCircle className="w-4 h-4" /> WhatsApp</button>}
+                {onWhatsApp && <button onClick={onWhatsApp} className="py-4 bg-emerald-50 text-emerald-600 border border-emerald-200 rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-emerald-500 hover:text-white transition-all flex items-center justify-center gap-2"><WhatsAppIcon className="w-4 h-4" /> WhatsApp</button>}
                 <button onClick={onSave} disabled={isSaving || items.length === 0} className={`py-4 text-white rounded-2xl font-bold text-xs uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${editingQuoteId ? 'bg-amber-500' : 'bg-primary'}`}>
                     {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                     {editingQuoteId ? 'ACTUALIZAR' : 'GUARDAR'}

@@ -2,7 +2,8 @@ import { Metadata } from 'next';
 import { StorefrontNavbar } from "@/components/Storefront/StorefrontNavbar";
 import { StorefrontFooter } from "@/components/Storefront/StorefrontFooter";
 import { FloatingWhatsApp } from "@/components/Storefront/FloatingWhatsApp";
-import { MapPin, Clock, Phone, MessageCircle } from "lucide-react";
+import { MapPin, Clock, Phone } from "lucide-react";
+import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon";
 import { GoogleReviews } from "@/components/Storefront/GoogleReviews";
 import { WHATSAPP_PHONE } from '@/lib/constants';
 
@@ -149,7 +150,7 @@ export default function NuestroLocalPage() {
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 justify-center px-6 py-3 bg-black text-white text-xs font-black uppercase tracking-widest hover:bg-stone-800 transition-colors"
               >
-                <MessageCircle className="w-4 h-4" /> Escribinos
+                <WhatsAppIcon className="w-4 h-4" /> Escribinos
               </a>
               <a
                 href="https://www.google.com/maps?cid=14830223812501661125"

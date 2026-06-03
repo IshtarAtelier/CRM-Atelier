@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Zap, X, User, ChevronRight, MessageCircle, Heart, FileText, ShoppingCart, Loader2, Check } from 'lucide-react';
+import { Zap, X, User, ChevronRight, Heart, FileText, ShoppingCart, Loader2, Check } from 'lucide-react';
+import { WhatsAppIcon } from '@/components/icons/WhatsAppIcon';
 import Link from 'next/link';
 
 interface Opportunity {
@@ -132,7 +133,7 @@ export default function OpportunitiesPanel({ opportunities, onClose, onRefresh }
             const res = await fetch('/api/whatsapp/send', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ to: phone, text: message })
+                body: JSON.stringify({ chatId: `${phone}@c.us`, message })
             });
 
             if (res.ok) {
@@ -246,7 +247,7 @@ export default function OpportunitiesPanel({ opportunities, onClose, onRefresh }
                                     {sendingId === opp.id ? (
                                         <Loader2 className="w-4 h-4 md:w-5 md:h-5 animate-spin" />
                                     ) : (
-                                        <MessageCircle className="w-4 h-4 md:w-5 md:h-5" />
+                                        <WhatsAppIcon className="w-4 h-4 md:w-5 md:h-5" />
                                     )}
                                 </button>
                             )}

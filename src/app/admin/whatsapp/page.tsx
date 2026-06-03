@@ -1,13 +1,15 @@
 'use client';
 
 import QRCode from 'qrcode';
+import Link from 'next/link';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import {
-    MessageCircle, Send, Wifi, WifiOff, QrCode, RefreshCw, User,
+    Send, Wifi, WifiOff, QrCode, RefreshCw, User,
     Clock, CheckCircle2, Bot, Settings, X, ChevronLeft, Phone,
     Tag, Archive, ArchiveRestore, Filter, Plus, Mic, PlaySquare, Image as ImageIcon, Calendar, Search, Play, Paperclip, Smile, Square, Trash2,
     UserPlus, Loader2, Sparkles, Pin
 } from 'lucide-react';
+import { WhatsAppIcon } from '@/components/icons/WhatsAppIcon';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { io as SocketIOClient } from 'socket.io-client';
@@ -51,6 +53,8 @@ const QUICK_REPLIES = [
     { label: 'Horario', text: 'Atendemos de Lunes a Viernes de 9 a 13:30 y de 16 a 19:30hs. Sábados de 10 a 14hs.\n\n📍 José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba.\n👉 https://g.co/kgs/5Jp7D4e\n\nCuándo te queda cómodo que te esperemos?' },
     { label: 'Listo para retirar', text: '🎉 ¡Tu pedido está listo para retirar!' },
     { label: 'Pago pendiente', text: 'Te recuerdo que quedó pendiente el saldo restante. ¿Cuándo te viene bien coordinar el pago?' },
+    { label: 'Pedir reseña', text: '¡Te escribo para pedirte un favor enorme 🙏\n\n¿Nos dejarías una reseña en Google? Nos ayudaría muchísimo si podés mencionar por qué somos la mejor óptica en Córdoba para vos y cómo fue tu experiencia.\n\nSi podés, contá en la reseña qué anteojos o cristales te hiciste (por ejemplo: multifocales, lentes de sol, cristales Crizal, etc.), ¡nos ayuda un montón! 🙌\n\n👉 https://g.page/r/CcVls8v7ic_NEBM/review\n\n¡Nos suma muchísimo para seguir creciendo!\nEspero tu comentario 🤍✨🫶' },
+    { label: 'Instagram', text: '¡Te invito a seguirnos en Instagram para ver todas nuestras novedades, promos y modelitos nuevos! 📸✨\n\n👉 https://instagram.com/atelieroptica_\n\n¡Nos encontrás como @atelieroptica_!' },
 ];
 
 // ── Types ─────────────────────────────────────────
@@ -522,6 +526,10 @@ export default function WhatsAppPage() {
   - PRECIOS EXACTOS: Usá ÚNICAMENTE los ítems de 'get_price_list'. NUNCA inventes precios.
   - REGLA CRÍTICA E INQUEBRANTABLE DE PRECIOS: **SIEMPRE, antes de dar cualquier precio, costo o presupuesto, debés preguntar al cliente si cuenta con alguna obra social o prepaga (o si es particular)**. Está TERMINANTEMENTE PROHIBIDO cotizar o dar precios si no le preguntaste esto antes y obtuviste su respuesta en la conversación, a menos que el cliente ya lo haya aclarado espontáneamente en sus mensajes anteriores (ej. si ya te dijo que es particular o mencionó su obra social). Si el cliente pide precios, tu única respuesta inmediata debe ser consultarle de forma natural sobre su obra social para verificar convenios y descuentos, y no mostrarle precios hasta que responda.
   - REGLA DE CLIP-ONS: Siempre que pregunten por clip-on, por defecto asumí que es para adultos. Ofrecé primero y de manera principal el modelo para adultos ("Clip On"). Mencioná la opción para niños ("Clip On kids") únicamente como una alternativa secundaria o si el cliente especifica que es para un niño.
+    ⚠️ FOTOS DE CLIP-ONS: Cuando te pregunten por clip-ons o quieran ver fotos, podés enviar estas imágenes (recordá colocar la etiqueta [IMAGE: URL] al inicio del párrafo correspondiente):
+    * Armazón dorado con clip-on de sol oscuro y amarillo: [IMAGE: https://atelieroptica.com.ar/api/storage/view?key=agent_clipon_dorado_1.jpg]
+    * Armazón azul con clip-on de sol oscuro y amarillo: [IMAGE: https://atelieroptica.com.ar/api/storage/view?key=agent_clipon_azul_1.jpg]
+    * Detalle del armazón en mano: [IMAGE: https://atelieroptica.com.ar/api/storage/view?key=agent_clipon_azul_2.jpg]
   - NOMBRE COMPLETO: Escribí el nombre completo del producto, NUNCA abrevies.
   - DOS OPCIONES DE PAGO: SIEMPRE informá precio contado y en cuotas.
   - MÁXIMO 3 OPCIONES por vez. NO enviar la más barata sin averiguar qué busca.
@@ -993,7 +1001,7 @@ export default function WhatsAppPage() {
             <div className="flex items-center justify-between px-8 py-5 border-b border-white/40 dark:border-white/5 bg-white/40 dark:bg-black/30 backdrop-blur-2xl flex-shrink-0 z-20 shadow-sm">
                 <div className="flex items-center gap-4">
                     <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center shadow-lg shadow-emerald-500/30">
-                        <MessageCircle className="w-6 h-6 text-white" />
+                        <WhatsAppIcon className="w-6 h-6 text-white" />
                     </div>
                     <div>
                         <h1 className="text-xl font-black text-stone-800 dark:text-white tracking-tight">Comunicaciones</h1>
@@ -1053,6 +1061,13 @@ export default function WhatsAppPage() {
                     >
                         <Tag className="w-4 h-4" /> Etiquetas
                     </button>
+
+                    <Link
+                        href="/admin/whatsapp/fotos"
+                        className="flex items-center gap-2 px-4 py-2.5 rounded-2xl font-bold text-sm transition-all shadow-sm border bg-white/80 dark:bg-stone-800/80 text-stone-700 dark:text-stone-300 border-white/50 dark:border-white/10 hover:bg-white hover:scale-105"
+                    >
+                        <ImageIcon className="w-4 h-4 text-indigo-500" /> Galería Fotos
+                    </Link>
 
                     <button
                         onClick={() => { setShowConfig(!showConfig); if (!showConfig) fetchAgent(); }}
@@ -1364,7 +1379,7 @@ export default function WhatsAppPage() {
                             {filteredChats.length === 0 ? (
                                 <div className="text-center py-20 px-6">
                                     <div className="w-16 h-16 bg-white dark:bg-stone-800 rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm">
-                                        <MessageCircle className="w-6 h-6 text-stone-300" />
+                                        <WhatsAppIcon className="w-6 h-6 text-stone-300" />
                                     </div>
                                     <p className="text-sm font-bold text-stone-400">Todo limpio.</p>
                                 </div>
@@ -1741,7 +1756,7 @@ export default function WhatsAppPage() {
                         ) : (
                             <div className="flex-1 flex flex-col items-center justify-center opacity-70">
                                 <div className="w-32 h-32 bg-gradient-to-br from-stone-100 to-white dark:from-stone-800 dark:to-stone-900 rounded-full flex items-center justify-center mb-6 shadow-2xl shadow-black/5 hover:scale-105 transition-transform duration-500">
-                                    <MessageCircle className="w-12 h-12 text-stone-300 dark:text-stone-600" />
+                                    <WhatsAppIcon className="w-12 h-12 text-stone-300 dark:text-stone-600" />
                                 </div>
                                 <h2 className="text-2xl font-black text-stone-400 dark:text-stone-500">Buzón Atelier</h2>
                             </div>

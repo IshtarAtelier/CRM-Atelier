@@ -4,9 +4,10 @@ import { useState, useEffect, useMemo } from 'react';
 import {
     Package, Clock, CheckCircle2, Truck, Search, Download, Pencil,
     Save, X, ChevronRight, AlertCircle, Eye, ArrowRight, Hash,
-    Calendar, User, ShoppingBag, Loader2, Filter, MessageCircle,
-    ExternalLink, Copy, CheckCheck, Clipboard
+    Calendar, User, ShoppingBag, Loader2, Filter,
+    TrendingUp, DollarSign, Glasses, ExternalLink, Copy, CheckCheck, Clipboard
 } from 'lucide-react';
+import { WhatsAppIcon } from '@/components/icons/WhatsAppIcon';
 import { PricingService } from '@/services/PricingService';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -913,7 +914,7 @@ export default function PedidosPage() {
                                             className="p-3 bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 rounded-xl hover:scale-110 hover:bg-emerald-100 transition-all"
                                             title="Enviar resumen al cliente por WhatsApp"
                                         >
-                                            <MessageCircle className="w-4 h-4" />
+                                            <WhatsAppIcon className="w-4 h-4" />
                                         </button>
 
                                         {/* Expand */}

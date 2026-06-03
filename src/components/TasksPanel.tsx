@@ -92,13 +92,27 @@ export default function TasksPanel({ tasks, onClose }: TasksPanelProps) {
                             {/* WhatsApp Action */}
                             {task.client?.phone && (
                                 <button
-                                    onClick={(e) => {
+                                    onClick={async (e) => {
                                         e.preventDefault();
                                         e.stopPropagation();
                                         const message = `Hola ${task.client.name.split(' ')[0]}! Te escribimos de Atelier Óptica.`;
                                         let phone = task.client.phone.replace(/\D/g, '');
                                         if (phone.length === 10) phone = '549' + phone;
-                                        window.open(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`, '_blank');
+                                        
+                                        try {
+                                            const res = await fetch('/api/whatsapp/send', {
+                                                method: 'POST',
+                                                headers: { 'Content-Type': 'application/json' },
+                                                body: JSON.stringify({ chatId: `${phone}@c.us`, message })
+                                            });
+                                            if (!res.ok) {
+                                                window.open(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`, '_blank');
+                                            } else {
+                                                alert('✅ Mensaje enviado por WhatsApp (Bot)');
+                                            }
+                                        } catch (err) {
+                                            window.open(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`, '_blank');
+                                        }
                                     }}
                                     className="absolute right-12 md:right-16 top-1/2 -translate-y-1/2 p-2.5 md:p-3 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl md:rounded-2xl shadow-lg hover:scale-110 active:scale-95 transition-all z-10"
                                     title="Abrir WhatsApp"

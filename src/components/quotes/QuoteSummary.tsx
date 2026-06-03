@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { 
-    Calculator, Receipt, Download, MessageCircle, 
+    Calculator, Receipt, Download,
     CheckCircle2, X, Plus, Clock, Glasses, 
     Banknote, ArrowRightLeft, CreditCard,
     Lock, ChevronRight, ChevronUp, Pencil,
@@ -13,6 +13,7 @@ import { es } from 'date-fns/locale';
 import { safePrice } from '@/lib/promo-utils';
 import { resolveStorageUrl } from '@/lib/utils/storage';
 import { PricingService } from '@/services/PricingService';
+import { WhatsAppIcon } from '@/components/icons/WhatsAppIcon';
 
 // Modular Components
 import QuoteLineItems from './QuoteLineItems';
@@ -153,21 +154,41 @@ export default function QuoteSummary({
         return labels[method] || method;
     };
 
-    const handleWhatsApp = () => {
+    const handleWhatsApp = async () => {
         const items = order.items || [];
-        const itemLines = items.map((it: any) => `• ${it.product?.brand || ''} · ${it.product?.name || 'Producto'} x${it.quantity}`).join('%0A');
+        const itemLines = items.map((it: any) => `• ${it.product?.brand || ''} · ${it.product?.name || 'Producto'} x${it.quantity}`).join('\n');
         
-        let text = `✨ *${isSale ? 'VENTA' : 'PRESUPUESTO'} — ATELIER ÓPTICA* ✨%0A`;
-        text += `👤 *Cliente:* ${contact.name}%0A%0A`;
-        text += `${itemLines}%0A%0A`;
-        text += `*Precio Lista: $${Math.round(financials.listPrice).toLocaleString()}*%0A`;
-        text += `🏦 *Transf. (-${financials.discountTransfer}%): $${financials.totalTransfer.toLocaleString()}*%0A`;
-        text += `💵 *Efectivo (-${financials.discountCash}%): $${financials.totalCash.toLocaleString()}*%0A`;
-        text += `💳 *Tarjeta (Lista): $${financials.totalCard.toLocaleString()}*%0A`;
-        text += `   ↳ 3 cuotas sin interés: $${financials.installment3.toLocaleString()} c/u%0A`;
-        text += `   ↳ 6 cuotas sin interés: $${financials.installment6.toLocaleString()} c/u%0A`;
+        let text = `✨ *${isSale ? 'VENTA' : 'PRESUPUESTO'} — ATELIER ÓPTICA* ✨\n`;
+        text += `👤 *Cliente:* ${contact.name}\n\n`;
+        text += `${itemLines}\n\n`;
+        text += `*Precio Lista: $${Math.round(financials.listPrice).toLocaleString()}*\n`;
+        text += `🏦 *Transf. (-${financials.discountTransfer}%): $${financials.totalTransfer.toLocaleString()}*\n`;
+        text += `💵 *Efectivo (-${financials.discountCash}%): $${financials.totalCash.toLocaleString()}*\n`;
+        text += `💳 *Tarjeta (Lista): $${financials.totalCard.toLocaleString()}*\n`;
+        text += `   ↳ 3 cuotas sin interés: $${financials.installment3.toLocaleString()} c/u\n`;
+        text += `   ↳ 6 cuotas sin interés: $${financials.installment6.toLocaleString()} c/u\n`;
 
-        window.open(`https://wa.me/${contact.phone?.replace(/\D/g,'')}?text=${text}`, '_blank');
+        const phoneNum = contact.phone?.replace(/\D/g, '');
+        if (!phoneNum) return;
+        
+        let formattedPhone = phoneNum;
+        if (formattedPhone.length === 10) formattedPhone = '549' + formattedPhone;
+
+        try {
+            const res = await fetch('/api/whatsapp/send', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ chatId: `${formattedPhone}@c.us`, message: text })
+            });
+
+            if (res.ok) {
+                alert(`✅ ${isSale ? 'Venta' : 'Presupuesto'} enviado por WhatsApp`);
+            } else {
+                window.open(`https://wa.me/${formattedPhone}?text=${encodeURIComponent(text)}`, '_blank');
+            }
+        } catch (err) {
+            window.open(`https://wa.me/${formattedPhone}?text=${encodeURIComponent(text)}`, '_blank');
+        }
     };
 
 
@@ -481,7 +502,7 @@ export default function QuoteSummary({
                             disabled={!contact.phone}
                             className="py-3 bg-emerald-50 dark:bg-emerald-900 text-emerald-600 rounded-xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 disabled:opacity-30"
                         >
-                            <MessageCircle className="w-3.5 h-3.5" /> WhatsApp
+                            <WhatsAppIcon className="w-3.5 h-3.5" /> WhatsApp
                         </button>
                         <button 
                             onClick={() => setShowPayment(true)}

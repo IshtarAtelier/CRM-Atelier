@@ -443,7 +443,7 @@ function CotizadorPageContent() {
         router.replace('/admin/cotizador');
     };
 
-    const handleWhatsApp = () => {
+    const handleWhatsApp = async () => {
         if (!pendingContact?.phone) {
             console.error('El contacto no tiene teléfono');
             return;
@@ -465,8 +465,24 @@ function CotizadorPageContent() {
         msg += `   ↳ 6 cuotas sin interés: $${inst6.toLocaleString()} c/u\n`;
         msg += `\nAtelier Óptica`;
         
-        const url = `https://wa.me/${pendingContact.phone}?text=${encodeURIComponent(msg)}`;
-        window.open(url, '_blank');
+        let phone = pendingContact.phone.replace(/\D/g, '');
+        if (phone.length === 10) phone = '549' + phone;
+
+        try {
+            const res = await fetch('/api/whatsapp/send', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ chatId: `${phone}@c.us`, message: msg })
+            });
+
+            if (res.ok) {
+                alert('✅ Presupuesto enviado por WhatsApp');
+            } else {
+                window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank');
+            }
+        } catch (err) {
+            window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank');
+        }
     };
 
 

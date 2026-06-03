@@ -4,8 +4,9 @@ import React from 'react';
 import { 
     User, Heart, Pencil, Calculator, Star, X, 
     Phone, Mail, FileText, MapPin, Building2, Share2, Tag,
-    History, CheckCircle2, Receipt, MessageCircle, Trash2
+    History, CheckCircle2, Receipt, Trash2
 } from 'lucide-react';
+import { WhatsAppIcon } from '@/components/icons/WhatsAppIcon';
 import { useRouter } from 'next/navigation';
 
 interface ContactHeaderProps {
@@ -95,7 +96,7 @@ export default function ContactHeader({
                                         className="p-1.5 rounded-lg text-stone-300 hover:text-green-500 hover:bg-green-50 transition-all"
                                         title="Hablar por WhatsApp"
                                     >
-                                        <MessageCircle className="w-5 h-5" />
+                                        <WhatsAppIcon className="w-5 h-5" />
                                     </button>
                                 )}
 

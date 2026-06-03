@@ -3,7 +3,8 @@
 import { useState, useEffect } from "react";
 import { formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
-import { ShoppingCart, MessageCircle, AlertCircle, Clock, Trash2, Mail, CheckCircle2, Loader2 } from "lucide-react";
+import { ShoppingCart, AlertCircle, Clock, Trash2, Mail, CheckCircle2, Loader2 } from "lucide-react";
+import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon";
 
 export default function CarritosAbandonadosPage() {
   const [sessions, setSessions] = useState<any[]>([]);
@@ -42,8 +43,23 @@ export default function CarritosAbandonadosPage() {
     const items = session.cartData ? session.cartData.map((item: any) => item.model).join(', ') : 'los anteojos';
     const message = `¡Hola ${name}! Somos de Atelier Óptica. Vimos que dejaste en tu carrito ${items}. ¿Tuviste algún problema con el pago o necesitás ayuda con algo? ¡Avisanos y te damos una mano!`;
     
-    const waUrl = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
-    window.open(waUrl, "_blank");
+    let phoneFormat = phone;
+    if (phoneFormat.length === 10) phoneFormat = '549' + phoneFormat;
+    
+    try {
+      const res = await fetch('/api/whatsapp/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chatId: `${phoneFormat}@c.us`, message })
+      });
+      if (!res.ok) {
+        const waUrl = `https://wa.me/${phoneFormat}?text=${encodeURIComponent(message)}`;
+        window.open(waUrl, "_blank");
+      }
+    } catch (e) {
+      const waUrl = `https://wa.me/${phoneFormat}?text=${encodeURIComponent(message)}`;
+      window.open(waUrl, "_blank");
+    }
 
     // Marcar como recuperado (opcional, en una futura iteración)
     try {
@@ -155,7 +171,7 @@ export default function CarritosAbandonadosPage() {
                       className="flex items-center justify-center gap-1 px-2.5 py-2 bg-[#25D366] text-white rounded-xl text-[9px] font-black uppercase tracking-widest shadow-md hover:scale-105 transition-transform disabled:opacity-50 disabled:cursor-not-allowed"
                       title="Retomar por WhatsApp"
                     >
-                      <MessageCircle className="w-3 h-3" />
+                      <WhatsAppIcon className="w-3 h-3" />
                       <span className="hidden xl:inline">WA</span>
                     </button>
                     <button
@@ -222,7 +238,7 @@ export default function CarritosAbandonadosPage() {
                     disabled={!session.phone}
                     className="flex items-center justify-center gap-2 px-4 py-3 w-full bg-[#25D366] text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-md hover:opacity-90 disabled:opacity-50"
                   >
-                    <MessageCircle className="w-4 h-4" /> WhatsApp
+                    <WhatsAppIcon className="w-4 h-4" /> WhatsApp
                   </button>
                   <button
                     onClick={() => handleSendEmail(session)}
