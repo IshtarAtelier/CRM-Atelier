@@ -1768,7 +1768,27 @@ export default function WhatsAppPage() {
                                             <p className="text-[10px] font-black text-stone-500 uppercase tracking-widest mb-3">Escudos de Respuesta</p>
                                             <div className="flex flex-wrap gap-2">
                                                 {QUICK_REPLIES.map(qr => (
-                                                    <button key={qr.label} onClick={() => { setNewMessage(qr.text); setShowQuickReplies(false); }} className="px-4 py-2 bg-white dark:bg-stone-700 rounded-xl shadow-sm hover:shadow-md border border-stone-200 dark:border-stone-600 transition-all text-left group">
+                                                    <button key={qr.label} onClick={async () => {
+                                                        let finalMessage = qr.text;
+                                                        if (qr.label === 'Pedir reseña' && selectedChat?.client?.id) {
+                                                            setNewMessage('Generando mensaje personalizado con última compra...');
+                                                            try {
+                                                                const res = await fetch(`/api/contacts/${selectedChat.client.id}`);
+                                                                if (res.ok) {
+                                                                    const clientData = await res.json();
+                                                                    const lastSale = clientData.orders?.find((o: any) => o.orderType === 'SALE' && !o.isDeleted);
+                                                                    if (lastSale && lastSale.items && lastSale.items.length > 0) {
+                                                                        const productNames = lastSale.items.map((it: any) => it.product?.name || it.productNameSnapshot).filter(Boolean).join(', ');
+                                                                        finalMessage = finalMessage.replace('qué anteojos o cristales te hiciste (por ejemplo: multifocales, lentes de sol, cristales Crizal, etc.)', `qué te parecieron tus ${productNames}`);
+                                                                    }
+                                                                }
+                                                            } catch (e) {
+                                                                console.error('Error fetching latest order', e);
+                                                            }
+                                                        }
+                                                        setNewMessage(finalMessage);
+                                                        setShowQuickReplies(false);
+                                                    }} className="px-4 py-2 bg-white dark:bg-stone-700 rounded-xl shadow-sm hover:shadow-md border border-stone-200 dark:border-stone-600 transition-all text-left group">
                                                         <span className="block text-[11px] font-black text-stone-800 dark:text-white uppercase tracking-wider">{qr.label}</span>
                                                         <span className="block text-xs text-stone-500 truncate max-w-[200px] mt-0.5 group-hover:text-stone-700">{qr.text}</span>
                                                     </button>

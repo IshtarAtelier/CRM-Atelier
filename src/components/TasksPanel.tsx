@@ -95,7 +95,32 @@ export default function TasksPanel({ tasks, onClose }: TasksPanelProps) {
                                     onClick={async (e) => {
                                         e.preventDefault();
                                         e.stopPropagation();
-                                        const message = `Hola ${task.client.name.split(' ')[0]}! Te escribimos de Atelier Óptica.`;
+                                        
+                                        const btn = e.currentTarget;
+                                        const originalHTML = btn.innerHTML;
+                                        btn.innerHTML = '<span class="w-4 h-4 md:w-5 md:h-5 block rounded-full border-2 border-white border-t-transparent animate-spin"></span>';
+                                        btn.disabled = true;
+
+                                        let finalMessage = `Hola ${task.client.name.split(' ')[0]}! Te escribimos de Atelier Óptica.`;
+                                        
+                                        if (task.type === 'REVIEW_REQUEST') {
+                                            let productNames = 'anteojos o cristales (por ejemplo: multifocales, lentes de sol, cristales Crizal, etc.)';
+                                            try {
+                                                const res = await fetch(`/api/contacts/${task.clientId}`);
+                                                if (res.ok) {
+                                                    const clientData = await res.json();
+                                                    const lastSale = clientData.orders?.find((o: any) => o.orderType === 'SALE' && !o.isDeleted);
+                                                    if (lastSale && lastSale.items && lastSale.items.length > 0) {
+                                                        productNames = lastSale.items.map((it: any) => it.product?.name || it.productNameSnapshot).filter(Boolean).join(', ');
+                                                    }
+                                                }
+                                            } catch (err) {
+                                                console.error('Error fetching orders for review task', err);
+                                            }
+                                            
+                                            finalMessage = `¡Hola ${task.client.name.split(' ')[0]}! Te escribo para pedirte un favor enorme 🙏\n\n¿Nos dejarías una reseña en Google? Nos ayudaría muchísimo si podés compartir cómo fue tu experiencia y qué fue lo que más te gustó de nuestra atención.\n\nSi podés, contá en la reseña qué te parecieron tus ${productNames}, ¡nos ayuda un montón! 🙌\n\n👉 https://g.page/r/CcVls8v7ic_NEBM/review\n\n¡Nos suma muchísimo para seguir creciendo!\nEspero tu comentario 🤍✨🫶`;
+                                        }
+
                                         let phone = task.client.phone.replace(/\D/g, '');
                                         if (phone.length === 10) phone = '549' + phone;
                                         
@@ -103,19 +128,22 @@ export default function TasksPanel({ tasks, onClose }: TasksPanelProps) {
                                             const res = await fetch('/api/whatsapp/send', {
                                                 method: 'POST',
                                                 headers: { 'Content-Type': 'application/json' },
-                                                body: JSON.stringify({ chatId: `${phone}@c.us`, message })
+                                                body: JSON.stringify({ chatId: `${phone}@c.us`, message: finalMessage })
                                             });
                                             if (!res.ok) {
-                                                window.open(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`, '_blank');
+                                                alert('❌ Error al enviar el mensaje por WhatsApp. Asegurate de que el bot esté conectado.');
                                             } else {
-                                                alert('✅ Mensaje enviado por WhatsApp (Bot)');
+                                                alert('✅ Mensaje de WhatsApp enviado correctamente (Bot).');
                                             }
                                         } catch (err) {
-                                            window.open(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`, '_blank');
+                                            alert('❌ Error de conexión al enviar el mensaje de WhatsApp.');
+                                        } finally {
+                                            btn.innerHTML = originalHTML;
+                                            btn.disabled = false;
                                         }
                                     }}
-                                    className="absolute right-12 md:right-16 top-1/2 -translate-y-1/2 p-2.5 md:p-3 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl md:rounded-2xl shadow-lg hover:scale-110 active:scale-95 transition-all z-10"
-                                    title="Abrir WhatsApp"
+                                    className="absolute right-12 md:right-16 top-1/2 -translate-y-1/2 p-2.5 md:p-3 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl md:rounded-2xl shadow-lg hover:scale-110 active:scale-95 transition-all z-10 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    title="Enviar Mensaje por WhatsApp"
                                 >
                                     <WhatsAppIcon className="w-4 h-4 md:w-5 md:h-5" />
                                 </button>

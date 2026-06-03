@@ -149,10 +149,9 @@ async function convertIntoLead({ phone, name, contactSource, interest, chatId, i
         const newContact = response.data.client || response.data;
 
         if (!newContact || !newContact.id) {
-            return { success: false, error: '[INSTRUCCIÓN INTERNA] No se pudo crear el prospecto.' };
+            throw new Error('No se pudo crear el prospecto.');
         }
 
-        // Fix: Usar chatId estricto si se provee, o un phone válido.
         if (chatId) {
             await prisma.whatsAppChat.update({
                 where: { id: chatId },
@@ -177,7 +176,7 @@ async function convertIntoLead({ phone, name, contactSource, interest, chatId, i
         return { success: true, contact: newContact };
     } catch (e) {
         console.error('Error en convertIntoLead:', e.message);
-        return { success: false, error: '[INSTRUCCIÓN INTERNA] No se pudo registrar al prospecto. Continuá la conversación normalmente.' };
+        throw new Error('No se pudo registrar al prospecto debido a un error de base de datos.');
     }
 }
 
@@ -263,11 +262,11 @@ async function createTask({ clientId, description, dueDate }) {
 async function addInteraction({ clientId, type, content }) {
     // Validar que clientId sea un CUID real
     if (!clientId || clientId === 'none' || clientId === 'null' || clientId === '') {
-        return { success: false, error: '[INSTRUCCIÓN INTERNA] No se pudo registrar la nota porque falta el clientId.' };
+      throw new Error('Falta el clientId para crear la nota');
     }
     if (!/^c[a-z0-9]{20,30}$/.test(clientId)) {
         console.warn(`[addInteraction] clientId inválido descartado: "${clientId}"`);
-        return { success: false, error: '[INSTRUCCIÓN INTERNA] El clientId no es válido.' };
+      throw new Error('El clientId provisto para la nota no es válido');
     }
     const response = await requestWithRetry(() =>
         apiClient.post(`${CRM_API_URL}/interactions`, {
@@ -281,12 +280,17 @@ async function addInteraction({ clientId, type, content }) {
  * Tool: Save prescription data (OCR)
  */
 async function savePrescription({ clientId, ...prescriptionData }) {
-    const response = await requestWithRetry(() =>
-        apiClient.post(`${CRM_API_URL}/prescriptions`, {
-            clientId, ...prescriptionData
-        })
-    );
-    return response.data;
+    try {
+        const response = await requestWithRetry(() =>
+            apiClient.post(`${CRM_API_URL}/prescriptions`, {
+                clientId, ...prescriptionData
+            })
+        );
+        return response.data;
+    } catch (e) {
+        console.error('Error en savePrescription:', e.message);
+        throw new Error('No se pudo guardar la receta en la base de datos.');
+    }
 }
 
 /**
@@ -367,7 +371,7 @@ async function cancelBot({ clientId, waId }) {
         return { success: false, message: '[INSTRUCCIÓN INTERNA] No se pudo desactivar el bot. Continuá la conversación normalmente.' };
     } catch (e) {
         console.error('Error en cancelBot:', e.message);
-        return { success: false, message: '[INSTRUCCIÓN INTERNA] No se pudo desactivar el bot. Continuá la conversación normalmente.' };
+        throw new Error('No se pudo desactivar el bot en la base de datos.');
     }
 }
 
@@ -434,7 +438,7 @@ async function addTagToClient({ clientId, tagName }) {
         return { success: true, message: `Etiqueta '${tagName}' agregada correctamente al cliente.` };
     } catch (e) {
         console.error('Error en addTagToClient:', e.message);
-        return { success: false, message: '[INSTRUCCIÓN INTERNA] No se pudo agregar la etiqueta.' };
+        throw new Error('Error al agregar etiqueta al cliente en la base de datos.');
     }
 }
 
@@ -489,8 +493,8 @@ async function disableBotForChat({ chatId, reason }) {
 
         return { success: true, message: `Bot apagado y etiquetado como '${tagName}' para el chat.` };
     } catch (e) {
-        console.error('Error en disableBotForChat:', e.message);
-        return { success: false, message: '[INSTRUCCIÓN INTERNA] No se pudo desactivar el bot. Continuá la conversación normalmente.' };
+        console.error('Error en disableBotForChatById:', e.message);
+        throw new Error('No se pudo desactivar el bot en la base de datos.');
     }
 }
 
@@ -532,7 +536,7 @@ async function reportComplaint({ clientId, details }) {
         return { success: true, message: `Reclamo reportado exitosamente.` };
     } catch (e) {
         console.error('Error en reportComplaint:', e.message);
-        return { success: false, message: '[INSTRUCCIÓN INTERNA] No se pudo reportar el reclamo. Decile al cliente que lo vas a derivar con el equipo.' };
+        throw new Error('No se pudo reportar el reclamo en la base de datos.');
     }
 }
 

@@ -507,12 +507,9 @@ function wrapToolNodeWithCycleDetection(originalToolNode, agentType) {
 
                 const current = toolErrorTracker.get(chatId);
                 if (current && current.count >= 3) {
-                    console.error(`  🛑 [${agentType}] Tool "${toolName}" falló ${current.count} veces consecutivas para chat ${chatId}. Rompiendo ciclo.`);
+                    console.error(`  🛑 [${agentType}] Tool "${toolName}" falló ${current.count} veces consecutivas para chat ${chatId}. Rompiendo ciclo y abortando.`);
                     toolErrorTracker.delete(chatId);
-                    // Devolver un mensaje AI de fallback para romper el ciclo
-                    return {
-                        messages: [new AIMessage('Disculpá, estoy teniendo dificultades técnicas en este momento. Un asesor te va a contactar para ayudarte.')]
-                    };
+                    throw new Error(`Tool ${toolName} falló repetidamente. Forzando apagado silencioso.`);
                 }
             } else {
                 // Tool exitoso: resetear tracker
