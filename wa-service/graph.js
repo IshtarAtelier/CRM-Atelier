@@ -427,6 +427,57 @@ function getModel() {
 const salesToolNode = new ToolNode(salesToolsList, { handleToolErrors: true });
 const executiveToolNode = new ToolNode(executiveToolsList, { handleToolErrors: true });
 
+// ── Wrappers con detección de ciclos de error en herramientas ──
+const toolErrorTracker = new Map(); // key: chatId, value: { toolName, count }
+
+function wrapToolNodeWithCycleDetection(originalToolNode, agentType) {
+    return async (state) => {
+        const chatId = state.chatId || 'unknown';
+        const result = await originalToolNode.invoke(state);
+
+        // Analizar los mensajes de resultado para detectar errores repetidos
+        const resultMessages = result.messages || [];
+        for (const msg of resultMessages) {
+            const isToolMsg = msg.tool_call_id !== undefined || (typeof msg.getType === 'function' && msg.getType() === 'tool');
+            if (!isToolMsg) continue;
+
+            const content = (msg.content || '').toString();
+            const isError = msg.status === 'error' || content.includes('Error') || content.includes('ECONNREFUSED') || content.includes('getaddrinfo') || content.includes('timeout');
+            const toolName = msg.name || msg.tool_call_id || 'unknown_tool';
+
+            const tracker = toolErrorTracker.get(chatId);
+
+            if (isError) {
+                if (tracker && tracker.toolName === toolName) {
+                    tracker.count++;
+                } else {
+                    toolErrorTracker.set(chatId, { toolName, count: 1 });
+                }
+
+                const current = toolErrorTracker.get(chatId);
+                if (current && current.count >= 3) {
+                    console.error(`  🛑 [${agentType}] Tool "${toolName}" falló ${current.count} veces consecutivas para chat ${chatId}. Rompiendo ciclo.`);
+                    toolErrorTracker.delete(chatId);
+                    // Devolver un mensaje AI de fallback para romper el ciclo
+                    return {
+                        messages: [new AIMessage('Disculpá, estoy teniendo dificultades técnicas en este momento. Un asesor te va a contactar para ayudarte.')]
+                    };
+                }
+            } else {
+                // Tool exitoso: resetear tracker
+                if (tracker && tracker.toolName === toolName) {
+                    toolErrorTracker.delete(chatId);
+                }
+            }
+        }
+
+        return result;
+    };
+}
+
+const salesToolNodeWrapped = wrapToolNodeWithCycleDetection(salesToolNode, 'SALES');
+const executiveToolNodeWrapped = wrapToolNodeWithCycleDetection(executiveToolNode, 'EXECUTIVE');
+
 // ── NODO 1: ROUTER INTELIGENTE ──
 async function routerNode(state) {
   const isClient = state.clientData && state.clientData.status === 'CLIENT';
@@ -456,7 +507,7 @@ function formatClientData(clientData, userPhone, userName, chatId, chatSummary) 
   if (clientData.prescriptions && clientData.prescriptions.length > 0) {
     text += `\n\nRECETAS GUARDADAS (USAR ESTOS DATOS PARA COTIZAR SIN PEDIR FOTO DE NUEVO):`;
     clientData.prescriptions.forEach((p, i) => {
-      text += `\nReceta ${i + 1} (${new Date(p.createdAt).toLocaleDateString()}): Tipo: ${p.tipoDeLente || 'N/A'}`;
+      text += `\nReceta ${i + 1} (${new Date(p.date).toLocaleDateString()}): Tipo: ${p.tipoDeLente || 'N/A'}`;
       text += `\n- OD (Ojo Derecho): Esf ${p.odEsf || 0}, Cil ${p.odCil || 0}, Eje ${p.odEje || 0}, DIP ${p.odDip || '-'}`;
       text += `\n- OI (Ojo Izquierdo): Esf ${p.oiEsf || 0}, Cil ${p.oiCil || 0}, Eje ${p.oiEje || 0}, DIP ${p.oiDip || '-'}`;
       if (p.add) text += `\n- Adición: ${p.add}`;
