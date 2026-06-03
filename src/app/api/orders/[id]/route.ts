@@ -709,7 +709,7 @@ export async function PATCH(
                     }),
                     prisma.client.update({
                         where: { id: existingOrder.client.id },
-                        data: { status: 'CLIENT' }
+                        data: { status: 'CLIENT', isFavorite: false }
                     }),
                     ...stockUpdates,
                 ]);

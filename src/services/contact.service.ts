@@ -224,7 +224,12 @@ export const ContactService = {
         if (data.email !== undefined) updateData.email = data.email?.trim() === "" ? null : data.email;
         if (data.phone !== undefined) updateData.phone = data.phone;
         if (data.dni !== undefined) updateData.dni = data.dni;
-        if (data.status !== undefined) updateData.status = data.status;
+        if (data.status !== undefined) {
+            updateData.status = data.status;
+            if (data.status === 'CLIENT') {
+                updateData.isFavorite = false;
+            }
+        }
         if (data.contactSource !== undefined) updateData.contactSource = data.contactSource;
         if (data.interest !== undefined) updateData.interest = data.interest;
         if (data.expectedValue !== undefined) updateData.expectedValue = Number(data.expectedValue) || 0;
@@ -305,7 +310,10 @@ export const ContactService = {
 
         return await prisma.client.update({
             where: { id },
-            data: { status }
+            data: { 
+                status,
+                ...(status === 'CLIENT' ? { isFavorite: false } : {})
+            }
         }).then(async (updated) => {
             // Si se convierte en CLIENT (venta), completar automáticamente todas las tareas pendientes
             if (status === 'CLIENT') {

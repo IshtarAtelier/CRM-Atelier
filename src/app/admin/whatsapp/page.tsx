@@ -7,7 +7,7 @@ import {
     Send, Wifi, WifiOff, QrCode, RefreshCw, User,
     Clock, CheckCircle2, Bot, Settings, X, ChevronLeft, Phone,
     Tag, Archive, ArchiveRestore, Filter, Plus, Mic, PlaySquare, Image as ImageIcon, Calendar, Search, Play, Paperclip, Smile, Square, Trash2,
-    UserPlus, Loader2, Sparkles, Pin
+    UserPlus, Loader2, Sparkles, Pin, Heart
 } from 'lucide-react';
 import { WhatsAppIcon } from '@/components/icons/WhatsAppIcon';
 import { format } from 'date-fns';
@@ -95,7 +95,7 @@ interface Chat {
     archived: boolean;
     chatLabels: string[];
     chatSummary?: string | null;
-    client?: { id: string; name: string; phone: string; status: string } | null;
+    client?: { id: string; name: string; phone: string; status: string; isFavorite?: boolean } | null;
     messages?: Message[];
 }
 
@@ -340,11 +340,33 @@ export default function WhatsAppPage() {
                     );
                     if (targetChat) {
                         setSelectedChat(targetChat);
+                        handledUrlPhoneRef.current = true;
                     } else {
-                        // Si no existe el chat todavía, mostramos un aviso
-                        alert(`No hay conversación de WhatsApp iniciada con el número ${urlPhone}. Podés mandarle el primer mensaje desde tu celular para abrir el chat.`);
+                        handledUrlPhoneRef.current = true;
+                        (async () => {
+                            try {
+                                const response = await fetch('/api/whatsapp/chats', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ phone: urlPhone })
+                                });
+                                if (response.ok) {
+                                    const newChat = await response.json();
+                                    setChats(prev => {
+                                        const exists = prev.some(c => c.id === newChat.id);
+                                        if (exists) return prev;
+                                        return [newChat, ...prev];
+                                    });
+                                    setSelectedChat(newChat);
+                                } else {
+                                    alert(`No hay conversación de WhatsApp iniciada con el número ${urlPhone}. Podés mandarle el primer mensaje desde tu celular para abrir el chat.`);
+                                }
+                            } catch (err) {
+                                console.error('Error al iniciar chat automático:', err);
+                                alert(`No hay conversación de WhatsApp iniciada con el número ${urlPhone}. Podés mandarle el primer mensaje desde tu celular para abrir el chat.`);
+                            }
+                        })();
                     }
-                    handledUrlPhoneRef.current = true;
                 }
 
                 // Update selectedChat to reflect fresh botEnabled/labels
@@ -829,18 +851,33 @@ export default function WhatsAppPage() {
 
     const togglePinChat = async (chat: Chat) => {
         const current = chat.chatLabels || [];
-        const next = current.includes('Fijado')
+        const isFav = current.includes('Fijado');
+        const next = isFav
             ? current.filter(l => l !== 'Fijado')
             : [...current, 'Fijado'];
         
         await updateChat(chat.id, { chatLabels: next });
+        
+        // Optimistic local state update for client favorite status
+        setChats(prev => prev.map(c => {
+            if (c.id === chat.id && c.client) {
+                return { ...c, client: { ...c.client, isFavorite: !isFav } };
+            }
+            return c;
+        }));
+        if (selectedChat?.id === chat.id) {
+            setSelectedChat(prev => prev && prev.client ? {
+                ...prev,
+                client: { ...prev.client, isFavorite: !isFav }
+            } : prev);
+        }
         
         if (chat.client?.id) {
             try {
                 await fetch(`/api/contacts/${chat.client.id}`, {
                     method: 'PATCH',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ isFavorite: next.includes('Fijado') })
+                    body: JSON.stringify({ isFavorite: !isFav })
                 });
             } catch (e) {
                 console.error('Error actualizando favorito:', e);
@@ -1399,12 +1436,36 @@ export default function WhatsAppPage() {
                                                 }`}
                                         >
                                             <div className="flex items-center gap-3">
-                                                <div className="relative">
-                                                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-lg font-black shrink-0 transition-transform ${isSelected ? 'scale-105' : ''} ${chat.botEnabled && isSelected ? 'bg-gradient-to-br from-violet-500 to-indigo-600 text-white shadow-md shadow-violet-500/30' : (isSelected ? 'bg-emerald-500 text-white' : 'bg-stone-200 dark:bg-stone-700 text-stone-600 dark:text-stone-300')}`}>
-                                                        {getDisplayName(chat)[0].toUpperCase()}
-                                                    </div>
+                                                <div className="relative group/avatar">
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            togglePinChat(chat);
+                                                        }}
+                                                        className={`w-12 h-12 rounded-2xl flex items-center justify-center text-lg font-black shrink-0 transition-all duration-200 relative overflow-hidden ${
+                                                            ((chat.chatLabels || []).includes('Fijado') || chat.client?.isFavorite)
+                                                                ? 'bg-rose-500 text-white shadow-md shadow-rose-500/30 scale-105'
+                                                                : isSelected
+                                                                    ? chat.botEnabled
+                                                                        ? 'bg-gradient-to-br from-violet-500 to-indigo-600 text-white shadow-md shadow-violet-500/30'
+                                                                        : 'bg-emerald-500 text-white'
+                                                                    : 'bg-stone-200 dark:bg-stone-700 text-stone-600 dark:text-stone-300'
+                                                        } hover:scale-110`}
+                                                        title={((chat.chatLabels || []).includes('Fijado') || chat.client?.isFavorite) ? 'Quitar de favoritos' : 'Marcar como favorito'}
+                                                    >
+                                                        {((chat.chatLabels || []).includes('Fijado') || chat.client?.isFavorite) ? (
+                                                            <Heart className="w-5 h-5 fill-current text-white animate-[pulse_2s_infinite]" />
+                                                        ) : (
+                                                            <>
+                                                                <span className="group-hover/avatar:hidden">
+                                                                    {getDisplayName(chat)[0].toUpperCase()}
+                                                                </span>
+                                                                <Heart className="w-5 h-5 hidden group-hover/avatar:block text-stone-500 dark:text-stone-400 fill-transparent hover:text-rose-500 hover:fill-rose-500/20" />
+                                                            </>
+                                                        )}
+                                                    </button>
                                                     {chat.botEnabled && agentEnabled && !isSelected && (
-                                                        <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-violet-500 rounded-full border-2 border-white flex items-center justify-center">
+                                                        <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-violet-500 rounded-full border-2 border-white flex items-center justify-center pointer-events-none">
                                                             <Bot className="w-3 h-3 text-white" />
                                                         </div>
                                                     )}
