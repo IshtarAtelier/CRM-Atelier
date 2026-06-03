@@ -67,6 +67,8 @@ export default function QuoteSummary({
     const [showIshAlert, setShowIshAlert] = React.useState(false);
     const [showPaymentsList, setShowPaymentsList] = React.useState(false);
     const [isDeletingPayment, setIsDeletingPayment] = React.useState<string | null>(null);
+    const [isSendingWhatsApp, setIsSendingWhatsApp] = React.useState(false);
+    const [isSendingPDF, setIsSendingPDF] = React.useState(false);
 
     if (compact) {
         const total = order.total || 0;
@@ -174,6 +176,7 @@ export default function QuoteSummary({
         let formattedPhone = phoneNum;
         if (formattedPhone.length === 10) formattedPhone = '549' + formattedPhone;
 
+        setIsSendingWhatsApp(true);
         try {
             const res = await fetch('/api/whatsapp/send', {
                 method: 'POST',
@@ -184,10 +187,64 @@ export default function QuoteSummary({
             if (res.ok) {
                 alert(`✅ ${isSale ? 'Venta' : 'Presupuesto'} enviado por WhatsApp`);
             } else {
-                window.open(`https://wa.me/${formattedPhone}?text=${encodeURIComponent(text)}`, '_blank');
+                alert(`❌ Error al enviar el mensaje por WhatsApp desde el bot.`);
             }
         } catch (err) {
-            window.open(`https://wa.me/${formattedPhone}?text=${encodeURIComponent(text)}`, '_blank');
+            alert(`❌ Error de red al intentar enviar por WhatsApp.`);
+        } finally {
+            setIsSendingWhatsApp(false);
+        }
+    };
+
+    const handleWhatsAppPDF = async () => {
+        const phoneNum = contact.phone?.replace(/\D/g, '');
+        if (!phoneNum) return;
+        
+        let formattedPhone = phoneNum;
+        if (formattedPhone.length === 10) formattedPhone = '549' + formattedPhone;
+
+        setIsSendingPDF(true);
+        try {
+            const pdfRes = await fetch(`/api/orders/${order.id}/pdf`);
+            if (!pdfRes.ok) throw new Error('No se pudo generar el PDF');
+            const blob = await pdfRes.blob();
+            
+            const base64 = await new Promise<string>((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onloadend = () => {
+                    const result = reader.result as string;
+                    resolve(result.split(',')[1]);
+                };
+                reader.onerror = reject;
+                reader.readAsDataURL(blob);
+            });
+            
+            const text = `📄 Adjunto el comprobante de su ${isSale ? 'compra' : 'presupuesto'} en Atelier Óptica.`;
+            
+            const sendRes = await fetch('/api/whatsapp/send', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    chatId: `${formattedPhone}@c.us`, 
+                    message: text,
+                    media: {
+                        base64,
+                        mimetype: 'application/pdf',
+                        filename: `${isSale ? 'Venta' : 'Presupuesto'}_${order.id.slice(-4).toUpperCase()}.pdf`
+                    }
+                })
+            });
+
+            if (sendRes.ok) {
+                alert(`✅ PDF enviado por WhatsApp`);
+            } else {
+                alert(`❌ Error al enviar el PDF por WhatsApp desde el bot.`);
+            }
+        } catch (err) {
+            console.error(err);
+            alert(`❌ Error al intentar enviar el PDF por WhatsApp.`);
+        } finally {
+            setIsSendingPDF(false);
         }
     };
 
@@ -499,10 +556,17 @@ export default function QuoteSummary({
                         </button>
                         <button 
                             onClick={handleWhatsApp} 
-                            disabled={!contact.phone}
+                            disabled={!contact.phone || isSendingWhatsApp}
                             className="py-3 bg-emerald-50 dark:bg-emerald-900 text-emerald-600 rounded-xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 disabled:opacity-30"
                         >
-                            <WhatsAppIcon className="w-3.5 h-3.5" /> WhatsApp
+                            <WhatsAppIcon className={`w-3.5 h-3.5 ${isSendingWhatsApp ? 'animate-pulse' : ''}`} /> {isSendingWhatsApp ? 'Enviando...' : 'WhatsApp'}
+                        </button>
+                        <button 
+                            onClick={handleWhatsAppPDF} 
+                            disabled={!contact.phone || isSendingPDF}
+                            className="py-3 bg-emerald-50 dark:bg-emerald-900 text-emerald-600 rounded-xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 disabled:opacity-30"
+                        >
+                            <Download className={`w-3.5 h-3.5 ${isSendingPDF ? 'animate-bounce' : ''}`} /> {isSendingPDF ? 'Enviando...' : 'Enviar PDF'}
                         </button>
                         <button 
                             onClick={() => setShowPayment(true)}

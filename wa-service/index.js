@@ -1818,6 +1818,25 @@ app.patch('/api/chats/:id/bot', async (req, res) => {
     }
 });
 
+const mediaDownloadQueue = [];
+let isDownloadingMedia = false;
+
+async function processMediaDownloadQueue() {
+    if (isDownloadingMedia) return;
+    isDownloadingMedia = true;
+    while (mediaDownloadQueue.length > 0) {
+        const item = mediaDownloadQueue.shift();
+        try {
+            await downloadAndUploadMediaForSyncMessage(item.msg, item.dbMessageId, item.chatId);
+        } catch (e) {
+            console.error(`  ❌ Error en processMediaDownloadQueue para ${item.msg?.id?._serialized}:`, e.message);
+        }
+        // Pequeña pausa entre descargas para evitar saturar Chromium/Puppeteer (Railway RAM limit)
+        await new Promise(resolve => setTimeout(resolve, 1000));
+    }
+    isDownloadingMedia = false;
+}
+
 // Auxiliar: Descarga el archivo de WhatsApp, lo sube al CRM y actualiza el mensaje en DB en segundo plano
 async function downloadAndUploadMediaForSyncMessage(msg, dbMessageId, chatId) {
     try {
@@ -2075,11 +2094,10 @@ const syncRecentChatsAndMessages = async (wc) => {
                         });
                     }
 
-                    // Si tiene media y le falta el mediaUrl, descargamos y subimos en segundo plano
+                    // Si tiene media y le falta el mediaUrl, lo agregamos a la cola para descargarlo secuencialmente en segundo plano
                     if (msg.hasMedia && !dbMsg.mediaUrl) {
-                        downloadAndUploadMediaForSyncMessage(msg, dbMsg.id, dbChat.id).catch(err => {
-                            console.error(`  ❌ Error en downloadAndUploadMediaForSyncMessage para ${msg.id._serialized}:`, err.message);
-                        });
+                        mediaDownloadQueue.push({ msg, dbMessageId: dbMsg.id, chatId: dbChat.id });
+                        processMediaDownloadQueue();
                     }
                 }
 

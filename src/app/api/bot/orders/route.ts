@@ -58,11 +58,23 @@ export async function POST(request: Request) {
             where: { id: { in: productIds } }
         });
 
+        // Get an existing admin user to act as the SYSTEM creator
+        let systemUser = await prisma.user.findFirst({
+            where: { role: 'ADMIN' },
+            orderBy: { createdAt: 'asc' }
+        });
+
+        if (!systemUser) {
+            systemUser = await prisma.user.findFirst();
+        }
+
+        const fallbackUserId = systemUser ? systemUser.id : 'SYSTEM';
+
         // Create the Budget (Quote)
         const order = await prisma.order.create({
             data: {
                 clientId,
-                userId: 'SYSTEM', // Marked as bot-created
+                userId: fallbackUserId, // Marked as bot-created (using a real user ID)
                 status: 'PENDING',
                 orderType: 'QUOTE',
                 total: Math.round(total || 0),
