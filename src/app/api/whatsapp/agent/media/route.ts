@@ -73,7 +73,7 @@ export async function POST(request: NextRequest) {
         const buffer = Buffer.from(await file.arrayBuffer());
         const timestamp = Date.now();
         const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
-        const filename = `agent_${timestamp}_${safeName}`;
+        const filename = file.name.startsWith('agent_') ? file.name : `agent_${timestamp}_${safeName}`;
         
         const urlOrKey = await uploadFile(buffer, filename, file.type || 'image/jpeg');
         const cleanKey = urlOrKey.replace('local://', '');
