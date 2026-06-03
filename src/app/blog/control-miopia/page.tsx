@@ -43,7 +43,7 @@ export default function MyopiaControlPage() {
             <h2 className="text-xl font-medium mb-6 lg:mb-8 text-center">¿Qué es el Desenfoque Periférico?</h2>
             <div className="p-6 lg:p-8 border border-[#e5e5e5] relative overflow-hidden">
                 <p className="text-[14px] lg:text-[15px] text-[#666] leading-relaxed mb-6">
-                Históricamente, los cristales monofocales tradicionales se han limitado a corregir la visión central, enfocando la luz directamente en la retina. Sin embargo, esto puede generar un "desenfoque hipermetrópico" en la periferia del ojo, lo que paradójicamente estimula su elongación y el aumento de la miopía.
+                Históricamente, los cristales monofocales tradicionales se han limitado a corregir la visión central, enfocando la luz directamente en la retina. Sin embargo, esto puede generar un &quot;desenfoque hipermetrópico&quot; en la periferia del ojo, lo que paradójicamente estimula su elongación y el aumento de la miopía.
                 </p>
                 <p className="text-[14px] lg:text-[15px] text-[#666] leading-relaxed">
                 La innovación de Essilor con su tecnología <strong>H.A.L.T. (Highly Aspherical Lenslet Target)</strong> introduce una constelación de microlentillas invisibles. Estas crean un volumen de luz no enfocada frente a la retina periférica, enviando una señal clara al ojo: detener su alargamiento anormal.

@@ -4,7 +4,7 @@ import { generateSocialContent, generateSocialImage } from '@/services/social-co
 export async function POST(request: Request) {
     try {
         const body = await request.json();
-        const { platform, format, sourceType, sourceId, topic, action, imageStyle } = body;
+        const { platform, format, sourceType, sourceId, topic, action, imageStyle, goal } = body;
 
         // Image generation for existing content
         if (action === 'generate-image' && body.contentId) {
@@ -39,7 +39,7 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'sourceId es requerido para PRODUCT y BLOG' }, { status: 400 });
         }
 
-        const result = await generateSocialContent({ platform, format, sourceType, sourceId, topic, imageStyle });
+        const result = await generateSocialContent({ platform, format, sourceType, sourceId, topic, imageStyle, goal });
 
         return NextResponse.json({ success: true, content: result });
     } catch (error: any) {

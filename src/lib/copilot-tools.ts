@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/db';
+import { PricingService } from '@/services/PricingService';
 
 // ═══════════════════════════════════════════════════
 // Tipos
@@ -77,8 +78,9 @@ const getClientBalance: CopilotTool = {
         orders: {
           where: { isDeleted: false },
           select: {
-            orderType: true, total: true, subtotalWithMarkup: true,
-            payments: { select: { amount: true } },
+            orderType: true, total: true, subtotalWithMarkup: true, paid: true,
+            discountCash: true, discountTransfer: true,
+            payments: { select: { amount: true, method: true } },
           },
         },
       },
@@ -87,14 +89,16 @@ const getClientBalance: CopilotTool = {
 
     let totalSales = 0;
     let totalPaid = 0;
+    let totalBalance = 0;
     for (const order of client.orders) {
       if (order.orderType === 'SALE') {
-        totalSales += order.total || order.subtotalWithMarkup || 0;
+        const financials = PricingService.calculateOrderFinancials(order);
+        totalSales += financials.totalCash;
+        totalPaid += financials.paidReal;
+        totalBalance += financials.remainingCash;
       }
-      for (const p of order.payments) totalPaid += p.amount || 0;
     }
-    const balance = Math.max(0, totalSales - totalPaid);
-    return `${client.name}: Saldo pendiente $${balance.toLocaleString('es-AR')}. Total vendido: $${totalSales.toLocaleString('es-AR')}. Total pagado: $${totalPaid.toLocaleString('es-AR')}.`;
+    return `${client.name}: Saldo pendiente $${Math.round(totalBalance).toLocaleString('es-AR')}. Total vendido (Efectivo): $${Math.round(totalSales).toLocaleString('es-AR')}. Total pagado: $${Math.round(totalPaid).toLocaleString('es-AR')}.`;
   },
 };
 
@@ -121,6 +125,8 @@ const getOrderStatus: CopilotTool = {
       },
       select: {
         id: true, status: true, labStatus: true, total: true, paid: true,
+        discountCash: true, discountTransfer: true, subtotalWithMarkup: true,
+        payments: { select: { amount: true, method: true } },
         labOrderNumber: true, createdAt: true,
         client: { select: { name: true } },
         items: { select: { productNameSnapshot: true, productBrandSnapshot: true } },
@@ -129,15 +135,18 @@ const getOrderStatus: CopilotTool = {
       take: 3,
     });
     if (!orders.length) return 'No se encontraron pedidos con ese criterio.';
-    return JSON.stringify(orders.map(o => ({
-      id: o.id.slice(-6), cliente: o.client.name,
-      estado: o.status, estadoLab: o.labStatus,
-      nroLab: o.labOrderNumber,
-      total: o.total, pagado: o.paid,
-      saldoPendiente: Math.max(0, (o.total || 0) - (o.paid || 0)),
-      fecha: o.createdAt.toISOString().split('T')[0],
-      productos: o.items.map(i => `${i.productBrandSnapshot || ''} ${i.productNameSnapshot || ''}`.trim()),
-    })));
+    return JSON.stringify(orders.map(o => {
+      const financials = PricingService.calculateOrderFinancials(o);
+      return {
+        id: o.id.slice(-6), cliente: o.client.name,
+        estado: o.status, estadoLab: o.labStatus,
+        nroLab: o.labOrderNumber,
+        total: financials.totalCash, pagado: financials.paidReal,
+        saldoPendiente: financials.remainingCash,
+        fecha: o.createdAt.toISOString().split('T')[0],
+        productos: o.items.map(i => `${i.productBrandSnapshot || ''} ${i.productNameSnapshot || ''}`.trim()),
+      };
+    }));
   },
 };
 
@@ -980,8 +989,9 @@ const getPendingBalances: CopilotTool = {
         orders: {
           where: { isDeleted: false },
           select: {
-            orderType: true, total: true, subtotalWithMarkup: true,
-            payments: { select: { amount: true } },
+            orderType: true, total: true, subtotalWithMarkup: true, paid: true,
+            discountCash: true, discountTransfer: true,
+            payments: { select: { amount: true, method: true } },
           },
         },
       },
@@ -990,13 +1000,14 @@ const getPendingBalances: CopilotTool = {
     const balances: { name: string; balance: number }[] = [];
     let globalTotal = 0;
     for (const c of clients) {
-      let sales = 0, paid = 0;
+      let balance = 0;
       for (const o of c.orders) {
-        if (o.orderType === 'SALE') sales += o.total || o.subtotalWithMarkup || 0;
-        for (const p of o.payments) paid += p.amount || 0;
+        if (o.orderType === 'SALE') {
+          const financials = PricingService.calculateOrderFinancials(o);
+          balance += financials.remainingCash;
+        }
       }
-      const balance = Math.max(0, sales - paid);
-      if (balance > 0) {
+      if (balance > 1000) {
         balances.push({ name: c.name, balance });
         globalTotal += balance;
       }
@@ -1004,9 +1015,9 @@ const getPendingBalances: CopilotTool = {
 
     balances.sort((a, b) => b.balance - a.balance);
     const top = balances.slice(0, 10).map((b, i) =>
-      `${i + 1}. ${b.name}: $${b.balance.toLocaleString('es-AR')}`
+      `${i + 1}. ${b.name}: $${Math.round(b.balance).toLocaleString('es-AR')}`
     );
-    return `Saldos pendientes globales: $${globalTotal.toLocaleString('es-AR')} (${balances.length} clientes)\n\nTop deudores:\n${top.join('\n')}`;
+    return `Saldos pendientes globales: $${Math.round(globalTotal).toLocaleString('es-AR')} (${balances.length} clientes)\n\nTop deudores:\n${top.join('\n')}`;
   },
 };
 

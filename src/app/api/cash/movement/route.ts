@@ -17,6 +17,11 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Faltan campos obligatorios (type, amount, reason)' }, { status: 400 });
         }
 
+        const validTypes = ['IN', 'OUT'];
+        if (!validTypes.includes(type)) {
+            return NextResponse.json({ error: `Tipo de movimiento inválido. Valores permitidos: ${validTypes.join(', ')}` }, { status: 400 });
+        }
+
         const movement = await CashService.registerMovement({
             type,
             amount: parseFloat(amount),

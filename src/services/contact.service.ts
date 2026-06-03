@@ -376,8 +376,10 @@ export const ContactService = {
     },
 
     async delete(id: string) {
-        return await prisma.client.delete({
-            where: { id }
+        return await prisma.$transaction(async (tx) => {
+            return await tx.client.delete({
+                where: { id }
+            });
         });
     },
 
@@ -800,11 +802,7 @@ export const ContactService = {
                 data: orderUpdateData
             });
 
-            // Si es efectivo, verificar alerta de saldo
-            if (method === 'EFECTIVO' || method === 'CASH') {
-                // No esperamos a que termine para no bloquear la transacción, aunque es asíncrono afuera
-                CashService.checkBalanceAndAlert().catch(err => console.error('Error in cash alert:', err));
-            }
+
 
             // Registrar en la ficha del cliente
             await tx.interaction.create({
@@ -907,6 +905,10 @@ export const ContactService = {
 
             return { ...payment, thresholdReached };
         }).then(result => {
+            // Si es efectivo, verificar alerta de saldo fuera de la transacción
+            if (method === 'EFECTIVO' || method === 'CASH') {
+                CashService.checkBalanceAndAlert().catch(err => console.error('Error in cash alert:', err));
+            }
             // FIRE BACKGROUND AI VERIFICATION IF RECEIPT EXISTS
             if (receiptUrl) {
                 ReceiptAgentService.analyzeReceipt(
@@ -929,11 +931,15 @@ export const ContactService = {
 
             if (!payment) throw new Error('Pago no encontrado');
 
-            // Decrementar lo pagado en la orden
+            // Recalcular lo pagado con SUM atómico (evita paid negativo)
+            const totalPaidAgg = await tx.payment.aggregate({
+                _sum: { amount: true },
+                where: { orderId: payment.orderId, id: { not: paymentId } }
+            });
             await tx.order.update({
                 where: { id: payment.orderId },
                 data: {
-                    paid: { decrement: payment.amount }
+                    paid: Math.max(0, totalPaidAgg._sum.amount || 0)
                 }
             });
 

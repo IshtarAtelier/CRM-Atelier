@@ -38,13 +38,21 @@ const IMAGE_STYLES = [
     { value: 'EDITORIAL', label: 'Editorial', desc: 'Producto de campaña', icon: '📸' },
 ];
 
+const GOALS = [
+    { value: 'Aportar valor y educar', label: 'Educar (Valor)' },
+    { value: 'Inspirar con moda y tendencias', label: 'Inspirar (Tendencias)' },
+    { value: 'Generar interacción (preguntas, encuestas)', label: 'Interacción' },
+    { value: 'Promocionar y vender un producto', label: 'Venta Directa' },
+];
+
 export default function SocialMediaPage() {
     const [platform, setPlatform] = useState('INSTAGRAM');
     const [format, setFormat] = useState('STORY');
     const [sourceType, setSourceType] = useState('FREE');
     const [sourceId, setSourceId] = useState('');
     const [topic, setTopic] = useState('');
-    const [imageStyle, setImageStyle] = useState('PLACA');
+    const [imageStyle, setImageStyle] = useState('EDITORIAL');
+    const [goal, setGoal] = useState('Aportar valor y educar');
     const [generating, setGenerating] = useState(false);
     const [generatingImage, setGeneratingImage] = useState(false);
     const [result, setResult] = useState<SocialResult | null>(null);
@@ -73,7 +81,7 @@ export default function SocialMediaPage() {
             const res = await fetch('/api/social/generate', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ platform, format, sourceType, sourceId: sourceId || undefined, topic: topic || undefined, imageStyle })
+                body: JSON.stringify({ platform, format, sourceType, sourceId: sourceId || undefined, topic: topic || undefined, imageStyle, goal })
             });
             const data = await res.json();
             if (!res.ok || !data.success) throw new Error(data.error || 'Error al generar');
@@ -202,6 +210,15 @@ export default function SocialMediaPage() {
                                     </button>
                                 ))}
                             </div>
+                        </div>
+
+                        {/* Goal Selector */}
+                        <div>
+                            <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest block mb-2">Objetivo del contenido</label>
+                            <select value={goal} onChange={e => setGoal(e.target.value)}
+                                className="w-full px-4 py-3 bg-stone-50 dark:bg-stone-900 border-2 border-stone-200 dark:border-stone-600 rounded-xl text-sm font-bold outline-none focus:border-primary transition-all">
+                                {GOALS.map(g => <option key={g.value} value={g.value}>{g.label}</option>)}
+                            </select>
                         </div>
 
                         {/* Source Selector */}

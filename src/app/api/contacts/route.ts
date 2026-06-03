@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { ContactService } from '@/services/contact.service';
+import { prisma } from '@/lib/db';
 
 export const dynamic = 'force-dynamic';
 
@@ -30,6 +31,23 @@ export async function POST(request: Request) {
 
         if (!body.name || !body.name.trim()) {
             return NextResponse.json({ error: 'El nombre es obligatorio' }, { status: 400 });
+        }
+
+        // Deduplication: Check if a contact with the same phone already exists
+        if (body.phone) {
+            const normalizedPhone = body.phone.replace(/\D/g, '');
+            if (normalizedPhone.length >= 8) {
+                const existingByPhone = await prisma.client.findFirst({
+                    where: { phone: { contains: normalizedPhone } },
+                });
+                if (existingByPhone) {
+                    // Check that the normalized digits actually match (suffix match)
+                    const existingNormalized = (existingByPhone.phone || '').replace(/\D/g, '');
+                    if (existingNormalized.endsWith(normalizedPhone) || normalizedPhone.endsWith(existingNormalized)) {
+                        return NextResponse.json(existingByPhone);
+                    }
+                }
+            }
         }
 
         const contact = await ContactService.create(body);

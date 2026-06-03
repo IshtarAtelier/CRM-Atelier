@@ -1,7 +1,29 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { ContactService } from '@/services/contact.service';
 
 export const dynamic = 'force-dynamic';
+
+export async function POST(request: Request) {
+    try {
+        const body = await request.json();
+        const { orderId, amount, method, notes, receiptUrl } = body;
+
+        if (!orderId || !method) {
+            return NextResponse.json({ error: 'Datos de pago incompletos (orderId y method son obligatorios)' }, { status: 400 });
+        }
+
+        if (!amount || typeof amount !== 'number' || amount <= 0) {
+            return NextResponse.json({ error: 'El monto debe ser un número positivo' }, { status: 400 });
+        }
+
+        const result = await ContactService.addPayment(orderId, amount, method, notes, receiptUrl);
+        return NextResponse.json(result);
+    } catch (error: any) {
+        console.error('Error creating payment:', error);
+        return NextResponse.json({ error: error.message || 'Error al registrar pago' }, { status: 500 });
+    }
+}
 
 export async function GET(request: Request) {
     try {

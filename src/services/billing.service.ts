@@ -23,6 +23,34 @@ function getLogoBase64(): string | null {
 const VOUCHER_TYPE_FC = 11;    // Factura C
 const VOUCHER_TYPE_NCC = 13;   // Nota de Crédito C
 
+async function retryWithBackoff<T>(
+    fn: () => Promise<T>,
+    retries: number = 3,
+    delay: number = 1000,
+    backoffFactor: number = 2
+): Promise<T> {
+    try {
+        return await fn();
+    } catch (error: any) {
+        if (retries <= 1) {
+            throw error;
+        }
+        const errMsg = String(error.message || '');
+        if (
+            errMsg.includes('Could not authenticate') ||
+            errMsg.includes('Punto de Venta') ||
+            errMsg.includes('CUIT') ||
+            errMsg.includes('invalid')
+        ) {
+            throw error;
+        }
+        
+        console.warn(`[AFIP RETRY] Call failed. Retrying in ${delay}ms... Errors remaining: ${retries - 1}`, error);
+        await new Promise(resolve => setTimeout(resolve, delay));
+        return retryWithBackoff(fn, retries - 1, delay * backoffFactor, backoffFactor);
+    }
+}
+
 export interface CreateInvoiceItem {
     description: string;
     quantity: number;
@@ -69,12 +97,13 @@ export const BillingService = {
             
         const maximumInvoiceable = PricingService.calculateOrderFinancials(order as any).paidReal;
 
-        if (totalInvoiced > 0 && (totalInvoiced + (amount || 0)) > maximumInvoiceable) {
-            throw new Error(`Esta venta ya tiene un saldo facturado ($${totalInvoiced}). No podés facturar este nuevo monto porque superaría el saldo total pagado de $${maximumInvoiceable}.`);
-        }
-
         // 2. Calcular importes e ítems
         const totalAmount = amount !== undefined ? amount : (order.total || 0);
+
+        // 1.5 Validar doble facturación (ahora con totalAmount real)
+        if (totalInvoiced > 0 && (totalInvoiced + totalAmount) > maximumInvoiceable) {
+            throw new Error(`Esta venta ya tiene un saldo facturado ($${totalInvoiced}). No podés facturar este nuevo monto porque superaría el saldo total pagado de $${maximumInvoiceable}.`);
+        }
         const UNIT_PRICE_LIMIT = 499000;
         
         const itemsToValidate = items || order.items.map(it => ({
@@ -118,7 +147,49 @@ export const BillingService = {
         // 4. Crear comprobante en ARCA
         let result;
         try {
-            result = await afip.ElectronicBilling.createNextVoucher(voucherData);
+            // Get the last voucher number from AFIP
+            const lastVoucherNumber = await retryWithBackoff<number>(() => afip.ElectronicBilling.getLastVoucher(ptoVta, VOUCHER_TYPE_FC));
+            
+            // Check if we already have this voucher in our DB
+            const existingInvoiceInDb = await prisma.invoice.findFirst({
+                where: {
+                    pointOfSale: ptoVta,
+                    voucherType: VOUCHER_TYPE_FC,
+                    voucherNumber: lastVoucherNumber,
+                    billingAccount: account,
+                    status: 'COMPLETED'
+                }
+            });
+
+            let recoveredFromAfip = false;
+
+            if (!existingInvoiceInDb && lastVoucherNumber > 0) {
+                // If it is NOT in our DB, query AFIP to see if it matches our request details
+                try {
+                    const voucherInfo = await retryWithBackoff<any>(() => afip.ElectronicBilling.getVoucherInfo(lastVoucherNumber, ptoVta, VOUCHER_TYPE_FC));
+                    if (
+                        voucherInfo &&
+                        voucherInfo.ImpTotal === totalAmount &&
+                        Number(voucherInfo.DocNro) === (voucherData.DocNro || 0) &&
+                        Number(voucherInfo.DocTipo) === (voucherData.DocTipo || 0)
+                    ) {
+                        console.log(`[AFIP RECOVERY] Found previously authorized voucher ${lastVoucherNumber} matching this request. Recovering...`);
+                        result = {
+                            CAE: voucherInfo.CodAutorizacion,
+                            CAEFchVto: voucherInfo.FchVto,
+                            voucherNumber: lastVoucherNumber
+                        };
+                        recoveredFromAfip = true;
+                    }
+                } catch (infoErr) {
+                    console.warn(`[AFIP RECOVERY] Failed to query voucher info for ${lastVoucherNumber}:`, infoErr);
+                }
+            }
+
+            if (!recoveredFromAfip) {
+                // Emit normally if not recovered
+                result = await retryWithBackoff<any>(() => afip.ElectronicBilling.createNextVoucher(voucherData));
+            }
         } catch (error: any) {
             console.error('[ARCA ERROR]', error);
             const errorPayload = error.data || error.response?.data || error;
@@ -200,7 +271,7 @@ export const BillingService = {
         const accountConfig = getBillingAccountConfig(account);
         const ptoVta = puntoDeVenta || accountConfig.puntoDeVenta;
         const afip = getAfipInstance(account);
-        const lastVoucher = await afip.ElectronicBilling.getLastVoucher(ptoVta, VOUCHER_TYPE_FC);
+        const lastVoucher = await retryWithBackoff<number>(() => afip.ElectronicBilling.getLastVoucher(ptoVta, VOUCHER_TYPE_FC));
         return { lastVoucher, pointOfSale: ptoVta, voucherType: VOUCHER_TYPE_FC, account };
     },
 
@@ -209,7 +280,7 @@ export const BillingService = {
      */
     async getSalesPoints(account: BillingAccount = 'ISH') {
         const afip = getAfipInstance(account);
-        return await afip.ElectronicBilling.getSalesPoints();
+        return await retryWithBackoff<any>(() => afip.ElectronicBilling.getSalesPoints());
     },
 
     /**
@@ -218,7 +289,7 @@ export const BillingService = {
     async checkConnection(account: BillingAccount = 'ISH') {
         try {
             const afip = getAfipInstance(account);
-            const serverStatus = await afip.ElectronicBilling.getServerStatus();
+            const serverStatus = await retryWithBackoff<any>(() => afip.ElectronicBilling.getServerStatus());
             const accountConfig = getBillingAccountConfig(account);
             return {
                 connected: true,
@@ -261,11 +332,11 @@ export const BillingService = {
             const accountConfig = getBillingAccountConfig(invoice.billingAccount as BillingAccount);
             
             // Consultar la data REAL autorizada en ARCA para evitar discrepancias de fechas
-            const voucherInfo = await afip.ElectronicBilling.getVoucherInfo(
+            const voucherInfo = await retryWithBackoff<any>(() => afip.ElectronicBilling.getVoucherInfo(
                 invoice.voucherNumber, 
                 invoice.pointOfSale, 
                 invoice.voucherType
-            );
+            ));
 
             if (!voucherInfo) {
                 throw new Error("El comprobante no figura en los servidores de AFIP.");

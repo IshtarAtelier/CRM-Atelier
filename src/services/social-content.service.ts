@@ -10,7 +10,8 @@ interface GenerateRequest {
     sourceType: 'PRODUCT' | 'BLOG' | 'PROMO' | 'FREE';
     sourceId?: string;
     topic?: string;
-    imageStyle?: 'PLACA' | 'UGC_AVATAR' | 'EDITORIAL';
+    imageStyle?: 'PLACA' | 'PLACA_TEXTO' | 'UGC_AVATAR' | 'EDITORIAL';
+    goal?: string;
 }
 
 interface GeneratedContent {
@@ -39,8 +40,9 @@ AUDIENCIA: Adultos 30-65 años, profesionales, interesados en salud visual premi
 WEB: www.atelieroptica.com.ar
 INSTAGRAM: @atelier.optica
 
-NO USAR: Lenguaje genérico, humor forzado, emojis excesivos. Máximo 3-4 emojis por post.
-SÍ USAR: Lenguaje aspiracional, datos técnicos accesibles, storytelling visual, llamados a acción suaves.
+ENFOQUE PRINCIPAL: Aportar valor real al usuario. No sonar como un catálogo de ventas ni forzar promociones salvo que se pida explícitamente. Priorizar la educación sobre salud visual, tendencias de diseño, y el storytelling de la marca. 
+NO USAR: Lenguaje genérico, humor forzado, emojis excesivos. Máximo 3-4 emojis por post. Tonos agresivos de venta ("¡Comprá ya!").
+SÍ USAR: Lenguaje aspiracional, datos técnicos accesibles, storytelling visual, llamados a acción suaves y orgánicos.
 `;
 
 // ── Platform-specific guidelines ───────────
@@ -75,7 +77,7 @@ Para WhatsApp Status/Difusión:
 // ── Format-specific guidelines ─────────────
 const FORMAT_GUIDES: Record<string, string> = {
     POST: 'Publicación individual con imagen. Copy + hashtags + CTA.',
-    STORY: 'Contenido efímero vertical. Texto muy breve, visualmente impactante.',
+    STORY: 'Contenido efímero vertical (9:16). NO GENERAR CAPTION LARGO. Generar: 1) Texto corto sugerido para poner en la pantalla. 2) Sugerencia de Stickers (Ej: Encuesta, Caja de preguntas, Link). Separar ambas cosas en el campo "copy".',
     REEL: 'Video corto. Generar caption atractivo y guión de 30-60 segundos con indicaciones.',
     CAROUSEL: 'Carrusel educativo o de producto. Generar texto para cada slide (5-7 slides).'
 };
@@ -146,6 +148,12 @@ Generar una imagen tipo "placa" o fondo de diseño gráfico de alta gama para re
 - Espacio limpio y despejado para que podamos superponer texto posteriormente en el frontend (la imagen generada NO debe contener letras, palabras ni números).
 - Estilo de alta costura, sofisticado y minimalista, inspirado en campañas de marcas de gafas de lujo.
 - Aspect ratio: vertical 9:16 para stories/reels, cuadrado 1:1 para posts.`,
+    PLACA_TEXTO: `ESTILO DE IMAGEN: PLACA PUBLICITARIA CON TEXTO (TIPOGRAFÍA IA)
+Generar una gráfica publicitaria de alta gama que INCLUYA texto escrito de manera artística por la IA.
+- La IA debe generar una frase corta promocional (ej: "SALE", "NUEVO", "ATELIER") en tipografía elegante, grande y central.
+- Fondo sofisticado (nude/warm, texturas de mármol o lino) con elementos sutiles de óptica (siluetas de gafas, destellos).
+- Diseño de campaña promocional, impactante y directo.
+- Aspect ratio: vertical 9:16 para stories/reels, cuadrado 1:1 para posts.`,
     UGC_AVATAR: `ESTILO DE IMAGEN: UGC CON AVATAR IA (DEBE USAR ANTEOJOS/GAFAS)
 Generar una foto realista de una persona (hombre o mujer de 30 a 55 años) que represente la estética de Atelier Óptica.
 - CRÍTICO: La persona DEBE llevar puestos anteojos recetados o gafas de sol premium y de diseño muy marcado, que sean el centro de atención.
@@ -166,7 +174,7 @@ Generar una fotografía publicitaria de producto (bodegón de moda) de alta gama
 };
 
 export async function generateSocialContent(request: GenerateRequest) {
-    const { platform, format, sourceType, sourceId, topic, imageStyle = 'PLACA' } = request;
+    const { platform, format, sourceType, sourceId, topic, imageStyle = 'PLACA', goal = 'Aportar valor y educar' } = request;
 
     // 1. Get source context
     const sourceContext = await getSourceContext(sourceType, sourceId, topic);
@@ -192,18 +200,22 @@ export async function generateSocialContent(request: GenerateRequest) {
 
 ${BRAND_CONTEXT}
 
+OBJETIVO DEL CONTENIDO: ${goal}
+(Asegurate de que el tono y la estructura del texto apunten directamente a este objetivo).
+
 ${PLATFORM_GUIDES[platform] || ''}
 
 FORMATO ACTUAL: ${format} — ${FORMAT_GUIDES[format] || ''}
 
 ${IMAGE_STYLE_GUIDES[imageStyle] || IMAGE_STYLE_GUIDES.PLACA}
 
-REGLAS DE SALIDA:
+REGLAS DE SALIDA OBLIGATORIAS:
 - Devolvé ÚNICAMENTE un objeto JSON válido, sin backticks, sin markdown, sin explicaciones.
+- Si el formato es STORY, NO redactes captions bajo ningún punto de vista. Solo redactá lo que iría escrito sobre la foto y opciones de interactividad.
 - El JSON debe tener esta estructura exacta:
 {
-  "copy": "El texto principal del post/caption. Si es CAROUSEL, separá cada slide con ---SLIDE--- como delimitador.",
-  "hashtags": "#hashtag1 #hashtag2 #hashtag3 (todos juntos separados por espacio)",
+  "copy": "El texto principal del post/caption. Si es CAROUSEL, separá cada slide con ---SLIDE--- como delimitador. Si es STORY, ES OBLIGATORIO NO ESCRIBIR CAPTION LARGO. Devolver únicamente el formato: 'TEXTO EN PANTALLA: [tu texto]' y luego 'STICKERS: [tus sugerencias]'.",
+  "hashtags": "#hashtag1 #hashtag2 #hashtag3 (todos juntos separados por espacio, dejar vacío si es STORY)",
   "cta": "Call to action final sugerido",
   "imagePrompt": "Prompt DETALLADO en inglés para generar la imagen con IA. DEBE representar de forma explícita el producto, artículo o tema óptico de esta publicación (por ejemplo: si es sobre Ray-Ban Meta, describir anteojos inteligentes de diseño clásico con cámaras discretas en el frente; si es sobre multifocales Varilux, mostrar a un adulto profesional leyendo o mirando a través de anteojos elegantes de forma nítida; si es sobre control de miopía infantil, un niño feliz con gafas de marco amigable; si es Crizal Sapphire, un primer plano del cristal de un anteojo con destellos antirreflejo azulados). Debe respetar el estilo indicado arriba (PLACA, UGC_AVATAR o EDITORIAL) y describir la iluminación, composición, colores, y la relación de aspecto en inglés.",
   "publishTips": {

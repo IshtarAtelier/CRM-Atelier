@@ -2,6 +2,18 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { decrypt } from '@/lib/auth'
 
+function safeCompare(a: string, b: string): boolean {
+    if (a.length !== b.length) return false;
+    const encoder = new TextEncoder();
+    const aBuf = encoder.encode(a);
+    const bBuf = encoder.encode(b);
+    let result = 0;
+    for (let i = 0; i < aBuf.length; i++) {
+        result |= aBuf[i] ^ bBuf[i];
+    }
+    return result === 0;
+}
+
 export async function middleware(request: NextRequest) {
     const token = request.cookies.get('session')?.value
     const { pathname } = request.nextUrl
@@ -47,7 +59,7 @@ export async function middleware(request: NextRequest) {
         const validKey = process.env.BOT_API_KEY;
         
         // 1. Validar por API Key (usado por wa-service)
-        if (apiKey && apiKey === validKey) {
+        if (apiKey && validKey && safeCompare(apiKey, validKey)) {
             return NextResponse.next();
         }
         
@@ -76,7 +88,7 @@ export async function middleware(request: NextRequest) {
         const apiKey = request.headers.get('x-api-key');
         const validKey = process.env.BOT_API_KEY;
         
-        if (apiKey === validKey) {
+        if (apiKey && validKey && safeCompare(apiKey, validKey)) {
             return NextResponse.next(); // Autorizado como bot
         }
         

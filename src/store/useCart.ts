@@ -7,6 +7,7 @@ export interface CartItem {
   brand: string;
   model: string;
   price: number;
+  basePrice?: number; // precio original sin adicionales de cristales
   image: string;
   lensColor?: string | null;
   lensConfig?: any; // Para guardar configuraciones de cristales recetados en el futuro
@@ -49,7 +50,7 @@ export const useCart = create<CartState>()(
         }
 
         return {
-          items: [...state.items, { ...item, id: crypto.randomUUID() }],
+          items: [...state.items, { ...item, id: crypto.randomUUID(), basePrice: item.basePrice ?? item.price }],
           isOpen: true,
         };
       }),
@@ -70,7 +71,7 @@ export const useCart = create<CartState>()(
 
       updateItemLensConfig: (id, lensConfig, additionalPrice) => set((state) => ({
         items: state.items.map((i) => 
-          i.id === id ? { ...i, lensConfig, price: i.price + additionalPrice } : i
+          i.id === id ? { ...i, lensConfig, price: (i.basePrice ?? i.price) + additionalPrice } : i
         ),
       })),
       

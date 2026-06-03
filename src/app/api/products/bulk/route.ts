@@ -3,6 +3,11 @@ import { ProductService } from '@/services/product.service';
 
 export async function POST(request: Request) {
     try {
+        const role = request.headers.get('x-user-role');
+        if (role !== 'ADMIN') {
+            return NextResponse.json({ error: 'Acceso denegado. Se requiere rol ADMIN.' }, { status: 403 });
+        }
+
         const { items } = await request.json();
 
         if (!Array.isArray(items)) {

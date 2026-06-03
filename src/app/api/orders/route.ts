@@ -35,55 +35,48 @@ export async function POST(request: Request) {
             where: { id: { in: productIds } }
         });
 
-        // Calculate totals if missing or zero
-        let finalSubtotalWithMarkup = subtotalWithMarkup;
-        let finalTotal = total;
-        let finalDiscount = discount || 0;
+        // Map items for calculateQuoteTotals utility
+        const cartItems = items.map((it: any) => ({
+            product: dbProducts.find(p => p.id === it.productId) || { price: it.price },
+            quantity: it.quantity,
+            customPrice: it.price
+        }));
 
-        if (!finalSubtotalWithMarkup || !finalTotal) {
-            // Map items for calculateQuoteTotals utility
-            const cartItems = items.map((it: any) => ({
-                product: dbProducts.find(p => p.id === it.productId) || { price: it.price },
-                quantity: it.quantity,
-                customPrice: it.price
-            }));
-
-            // Fetch all products for Atelier average price calculation (only if needed by a 2x1 promo)
-            const hasPromo = cartItems.some((it: any) => isMultifocal2x1(it.product));
-            let allProducts: any[] = [];
-            if (hasPromo) {
-                allProducts = await prisma.product.findMany({
-                    where: { 
-                        OR: [
-                            { brand: { contains: 'Atelier' } },
-                            { name: { contains: 'Atelier' } },
-                            { category: 'FRAME' }
-                        ]
-                    }
-                });
-            }
-
-            const totals = calculateQuoteTotals(
-                cartItems, 
-                markup || 0, 
-                discountCash || 0, 
-                allProducts,
-                specialDiscount || 0
-            );
-
-            finalSubtotalWithMarkup = totals.subtotalWithMarkup;
-            finalTotal = totals.totalCash; // Reports use sum of payments, this is for balance display only
-            finalDiscount = discountCash || 0;
-            
-            // Auto-detect frame source if frames are in cart
-            const hasFramesInCart = cartItems.some((it: any) => 
-                it.product?.category === 'FRAME' || it.product?.category === 'ATELIER'
-            );
-            
-            (body as any).effectiveFrameSource = frameSource || (hasFramesInCart ? 'OPTICA' : null);
-            (body as any).calcPromoName = totals.appliedPromoName;
-            (body as any).calcPromoDiscount = totals.promoFrameDiscount;
+        // Fetch all products for Atelier average price calculation (only if needed by a 2x1 promo)
+        const hasPromo = cartItems.some((it: any) => isMultifocal2x1(it.product));
+        let allProducts: any[] = [];
+        if (hasPromo) {
+            allProducts = await prisma.product.findMany({
+                where: { 
+                    OR: [
+                        { brand: { contains: 'Atelier' } },
+                        { name: { contains: 'Atelier' } },
+                        { category: 'FRAME' }
+                    ]
+                }
+            });
         }
+
+        const totals = calculateQuoteTotals(
+            cartItems, 
+            markup || 0, 
+            discountCash || 0, 
+            allProducts,
+            specialDiscount || 0
+        );
+
+        const finalSubtotalWithMarkup = totals.subtotalWithMarkup;
+        const finalTotal = totals.totalCash; // Reports use sum of payments, this is for balance display only
+        const finalDiscount = discountCash || 0;
+        
+        // Auto-detect frame source if frames are in cart
+        const hasFramesInCart = cartItems.some((it: any) => 
+            it.product?.category === 'FRAME' || it.product?.category === 'ATELIER'
+        );
+        
+        const effectiveFrameSource = frameSource || (hasFramesInCart ? 'OPTICA' : null);
+        const calcPromoName = totals.appliedPromoName;
+        const calcPromoDiscount = totals.promoFrameDiscount;
 
         const order = await prisma.order.create({
             data: {
@@ -92,8 +85,8 @@ export async function POST(request: Request) {
                 status: 'PENDING',
                 total: Math.round(finalTotal),
                 paid: 0,
-                appliedPromoName: (body as any).calcPromoName || null,
-                appliedPromoDiscount: (body as any).calcPromoDiscount || 0,
+                appliedPromoName: calcPromoName || null,
+                appliedPromoDiscount: calcPromoDiscount || 0,
                 discount: finalDiscount || 0,
                 markup: Math.max(0, markup || 0),
                 discountCash: discountCash || 0,
@@ -103,7 +96,7 @@ export async function POST(request: Request) {
                 subtotalWithMarkup: Math.round(finalSubtotalWithMarkup),
                 orderType: 'QUOTE',
                 labStatus: 'NONE',
-                frameSource: (body as any).effectiveFrameSource || null,
+                frameSource: effectiveFrameSource || null,
                 userFrameBrand: userFrameBrand || null,
                 userFrameModel: userFrameModel || null,
                 userFrameNotes: userFrameNotes || null,

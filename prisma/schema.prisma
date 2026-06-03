@@ -62,7 +62,9 @@ model CashMovement {
   userId     String
   receiptUrl String?
   createdAt  DateTime @default(now())
-  user       User     @relation(fields: [userId], references: [id])
+  user       User     @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@index([userId])
 }
 
 model Interaction {
@@ -72,6 +74,8 @@ model Interaction {
   content   String
   createdAt DateTime @default(now())
   client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([clientId])
 }
 
 model Tag {
@@ -96,6 +100,8 @@ model ClientTask {
   updatedAt   DateTime  @updatedAt
   createdBy   String?
   client      Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([clientId])
 }
 
 model Prescription {
@@ -129,6 +135,8 @@ model Prescription {
   prismOI          String?
   orders           Order[]
   client           Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([clientId])
 }
 
 model Product {
@@ -226,8 +234,8 @@ model Order {
   specialDiscount      Float?         @default(0.0)
   invoices             Invoice[]
   client               Client         @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  prescription         Prescription?  @relation(fields: [prescriptionId], references: [id])
-  user                 User           @relation(fields: [userId], references: [id])
+  prescription         Prescription?  @relation(fields: [prescriptionId], references: [id], onDelete: SetNull)
+  user                 User           @relation(fields: [userId], references: [id], onDelete: Restrict)
   items                OrderItem[]
   payments             Payment[]
   tags                 Tag[]          @relation("OrderToTag")
@@ -280,7 +288,10 @@ model OrderItem {
   crystalColor            String?
   crystalColorType        String?
   order                   Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  product                 Product? @relation(fields: [productId], references: [id])
+  product                 Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  @@index([orderId])
+  @@index([productId])
 }
 
 model Payment {
@@ -320,6 +331,8 @@ model WhatsAppChat {
   chatSummary   String?           @db.Text
   client        Client?           @relation(fields: [clientId], references: [id], onDelete: SetNull)
   messages      WhatsAppMessage[]
+
+  @@index([clientId])
 }
 
 model WhatsAppMessage {
@@ -334,6 +347,8 @@ model WhatsAppMessage {
   senderName  String?
   createdAt   DateTime     @default(now())
   chat        WhatsAppChat @relation(fields: [chatId], references: [id], onDelete: Cascade)
+
+  @@index([chatId])
 }
 
 model DoctorPayment {
@@ -363,6 +378,7 @@ model Notification {
   updatedAt   DateTime @updatedAt
 
   @@index([status])
+  @@index([orderId])
 }
 
 model MonthlyTarget {

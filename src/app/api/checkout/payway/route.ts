@@ -124,13 +124,17 @@ export async function POST(req: Request) {
     const decrementStock = async () => {
       for (const item of items) {
         if (item.productId && item.productId !== "unknown") {
-          // Chequear primero si es un producto físico (no un servicio o cristal genérico)
-          const dbProd = await prisma.product.findUnique({ where: { id: item.productId } });
-          if (dbProd && dbProd.category !== "Cristal" && dbProd.stock > 0) {
+          try {
             await prisma.product.update({
-              where: { id: item.productId },
+              where: {
+                id: item.productId,
+                category: { not: "Cristal" },
+                stock: { gte: item.quantity || 1 }
+              },
               data: { stock: { decrement: item.quantity || 1 } }
             });
+          } catch (err) {
+            console.warn(`[STOCK DECREMENT FAILED] Atomic stock decrement failed for product ${item.productId}:`, err);
           }
         }
       }

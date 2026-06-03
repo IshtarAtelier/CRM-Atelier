@@ -1872,7 +1872,7 @@ export default function WhatsAppPage() {
                                 onClick={async () => {
                                     await updateChat(summaryModalChat.id, { chatSummary: editingSummary });
                                     setSummaryModalChat(null);
-                                    if (selectedChat?.id === summaryModalChat.id) {
+                                    if (selectedChat && selectedChat.id === summaryModalChat.id) {
                                         setSelectedChat({ ...selectedChat, chatSummary: editingSummary });
                                     }
                                 }}

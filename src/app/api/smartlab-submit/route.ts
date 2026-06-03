@@ -58,7 +58,7 @@ export async function POST(request: Request) {
         
         const buttons = await page.$$('button');
         let loginClicked = false;
-        for (let btn of buttons) {
+        for (const btn of buttons) {
             const text = await btn.innerText();
             if (text.toLowerCase().includes('iniciar') || text.toLowerCase().includes('ingresar') || text.toLowerCase().includes('login')) {
                 await btn.click();

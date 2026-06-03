@@ -1,4 +1,4 @@
-import { isMultifocal2x1, isCrystal, isFrame, isAtelierFrame, safePrice, getCategoryKey } from '@/lib/promo-utils';
+import { isMultifocal2x1, isCrystal, isFrame, isAtelierFrame, safePrice, getCategoryKey, isMiPrimerVarilux } from '@/lib/promo-utils';
 
 export interface CartItem {
     productId: string | null;
@@ -66,7 +66,7 @@ export class PricingService {
 
         // Lógica de 2x1 en multifocales (regla actual)
         const hasMultifocalPromo = items.some(
-            it => isCrystal(it.product) && isMultifocal2x1(it.product)
+            it => isCrystal(it.product) && isMultifocal2x1(it.product) && !isMiPrimerVarilux(it.product)
         );
 
         if (hasMultifocalPromo) {
