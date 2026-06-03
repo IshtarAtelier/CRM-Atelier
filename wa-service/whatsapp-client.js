@@ -55,6 +55,26 @@ async function startClient(attempt = 1) {
         // ignore
     }
 
+    // Validar integridad del archivo de sesión antes de iniciar
+    const sessionPath = path.join(__dirname, '.wwebjs_auth', 'session');
+    try {
+        if (fs.existsSync(sessionPath)) {
+            const defaultFile = path.join(sessionPath, 'Default', 'Preferences');
+            if (fs.existsSync(defaultFile)) {
+                const content = fs.readFileSync(defaultFile, 'utf8');
+                JSON.parse(content); // Validar que el JSON sea válido
+            }
+        }
+    } catch (sessionErr) {
+        console.error('⚠️ Sesión corrupta detectada. Eliminando archivos de sesión para regenerar...', sessionErr.message);
+        try {
+            fs.rmSync(sessionPath, { recursive: true, force: true });
+            console.log('🗑️ Archivos de sesión eliminados.');
+        } catch (cleanErr) {
+            console.error('Error eliminando sesión corrupta:', cleanErr.message);
+        }
+    }
+
     waClient = new Client({
         authStrategy: new LocalAuth({ dataPath: './.wwebjs_auth' }),
         webVersionCache: {
@@ -129,6 +149,29 @@ async function startClient(attempt = 1) {
         // Auto-restart after disconnect
         setTimeout(() => startClient(1), RETRY_DELAY_MS);
     });
+
+    // ── Recuperación automática ante fallo de autenticación ──
+    waClient.on('auth_failure', (msg) => {
+        console.error('❌ Fallo de autenticación de WhatsApp:', msg);
+        isReady = false;
+        clearKeepAlive();
+        // Eliminar datos de sesión corruptos para forzar re-escaneo de QR
+        const fs = require('fs');
+        const path = require('path');
+        const sessionPath = path.join(__dirname, '.wwebjs_auth', 'session');
+        try {
+            fs.rmSync(sessionPath, { recursive: true, force: true });
+            console.log('🗑️ Sesión eliminada tras auth_failure. Se requerirá nuevo escaneo de QR.');
+        } catch (e) {
+            console.error('Error eliminando sesión tras auth_failure:', e.message);
+        }
+        if (_onStatusChange) _onStatusChange(getStatus());
+        setTimeout(() => startClient(1), RETRY_DELAY_MS);
+    });
+
+    // Limpiar listeners previos para evitar duplicados en reconexiones
+    waClient.removeAllListeners('message');
+    waClient.removeAllListeners('message_create');
 
     if (_onMessage) {
         waClient.on('message', _onMessage);

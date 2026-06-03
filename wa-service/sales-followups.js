@@ -2,9 +2,10 @@ const { ChatGoogleGenerativeAI } = require("@langchain/google-genai");
 const { SystemMessage, HumanMessage } = require("@langchain/core/messages");
 const { prisma } = require('./db');
 const { getClient, sendMessage, sendTypingState } = require('./whatsapp-client');
+const { TAGS_SIN_BOT, withTimeout } = require('./utils');
 
-// Etiquetas de exclusión para no molestar al cliente
-const TAGS_SIN_BOT = ['cancelar bot', 'no bot', 'proveedor', 'no interesado', 'error', 'familiar', 'personal', 'spam', 'post-venta', 'postventa', 'ya es cliente', 'cerrado'];
+// Lock para evitar ejecuciones concurrentes del cron
+let isFollowUpRunning = false;
 
 /**
  * Verifica si corresponde al horario comercial de Argentina (UTC-3)
@@ -45,6 +46,9 @@ function formatQuoteDetails(order) {
  */
 async function sendFollowUpMessage(waId, text, chatId, labelToAdd) {
     try {
+        if (global.botReplyingTo) {
+            global.botReplyingTo.add(waId);
+        }
         console.log(`  ⏳ [Follow-Up] Simulando escritura para ${waId}...`);
         await sendTypingState(waId);
         
@@ -95,9 +99,13 @@ async function sendFollowUpMessage(waId, text, chatId, labelToAdd) {
             global.io.emit('chat_updated', { chatId });
         }
 
-        console.log(`  ✅ [Follow-Up] Mensaje enviado y chat ${chatId} actualizado con etiqueta ${labelToAdd}`);
+        console.log(`  @ [Follow-Up] Mensaje enviado y chat ${chatId} actualizado con etiqueta ${labelToAdd}`);
     } catch (err) {
         console.error(`❌ Error en sendFollowUpMessage para ${waId}:`, err.message);
+    } finally {
+        if (global.botReplyingTo) {
+            setTimeout(() => global.botReplyingTo.delete(waId), 3000);
+        }
     }
 }
 
@@ -105,6 +113,14 @@ async function sendFollowUpMessage(waId, text, chatId, labelToAdd) {
  * Procesa y envía los seguimientos de venta contextuales (Día 1 y Día 4)
  */
 async function checkAndSendSalesFollowUps() {
+    // Lock de concurrencia: prevenir ejecuciones superpuestas del cron
+    if (isFollowUpRunning) {
+        console.log(`  [Sales-FollowUps] Ya hay una ejecución en curso. Omitiendo.`);
+        return;
+    }
+    isFollowUpRunning = true;
+
+    try {
     const now = new Date();
     
     // 1. Validar horario comercial
@@ -292,7 +308,11 @@ async function checkAndSendSalesFollowUps() {
         const humanMessage = new HumanMessage(userPromptText);
 
         try {
-            const response = await model.invoke([systemMessage, humanMessage]);
+            const response = await withTimeout(
+                model.invoke([systemMessage, humanMessage]),
+                30000,
+                'Gemini sales followups timeout'
+            );
             let generatedText = response.content.toString().trim();
 
             // Sanitizar salida: eliminar ¿ y ¡ prohibidos
@@ -312,7 +332,7 @@ async function checkAndSendSalesFollowUps() {
             console.log(`  🕒 [Sales-FollowUps] Programando envío a ${client.name} en ${(queueDelay / 60000).toFixed(1)} minutos.`);
 
             setTimeout(() => {
-                sendFollowUpMessage(chat.realPhone || chat.waId, generatedText, chat.id, labelToAdd)
+                sendFollowUpMessage(chat.waId, generatedText, chat.id, labelToAdd)
                     .catch(err => console.error(`❌ Error en envío diferido a ${client.name}:`, err.message));
             }, queueDelay);
 
@@ -323,6 +343,10 @@ async function checkAndSendSalesFollowUps() {
             console.error(`  ⚠️ [Sales-FollowUps] Error procesando presupuesto de ${client?.name || 'desconocido'}:`, quoteError.message);
             continue;
         }
+    }
+
+    } finally {
+        isFollowUpRunning = false;
     }
 }
 

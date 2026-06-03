@@ -22,6 +22,7 @@ const { initWhatsApp, getStatus, getClient, sendMessage, sendTypingState } = req
 const { processPassiveExtraction } = require('./passive-extractor');
 const { transcribeAudio } = require('./transcriber');
 const { checkAndSendSalesFollowUps } = require('./sales-followups');
+const { TAGS_SIN_BOT, getAdminWaId, withTimeout } = require('./utils');
 
 const configPath = path.join(__dirname, 'agent_config.json');
 
@@ -105,10 +106,14 @@ const botDebounceTimers = new Map();
 const passiveDebounceTimers = new Map();
 
 // ── Constante global de etiquetas que desactivan el bot ──
-const TAGS_SIN_BOT = ['cancelar bot', 'no bot', 'proveedor', 'no interesado', 'error', 'familiar', 'personal', 'spam', 'post-venta', 'postventa', 'ya es cliente', 'cerrado'];
+// (TAGS_SIN_BOT se importa desde ./utils)
 
 // ── Detección de Intervención Humana ───────────
-const botReplyingTo = new Set(); // Trackear cuando el bot está enviando para evitar race conditions
+global.botReplyingTo = new Set();
+const botReplyingTo = global.botReplyingTo; // Trackear cuando el bot está enviando para evitar race conditions
+
+// ── Contador de errores consecutivos por chat (auto-disable tras 3 fallos) ──
+const chatErrorCounts = new Map();
 
 const handleMessageCreate = async (msg) => {
     if (msg.fromMe) {
@@ -300,17 +305,21 @@ async function detectPaymentReceipt(mediaBase64, mimeType) {
             apiKey: process.env.GOOGLE_GENAI_API_KEY || process.env.GOOGLE_API_KEY
         });
 
-        const response = await model.invoke([
-            new HumanMessage({
-                content: [
-                    { 
-                        type: "text", 
-                        text: `Clasificá esta imagen. Respondé ÚNICAMENTE con la palabra "COMPROBANTE" si parece ser un ticket de transferencia, recibo de pago, comprobante de Mercado Pago o captura de pantalla de transferencia de pago confirmada. Si es cualquier otra cosa (receta médica, foto de un anteojo, foto de una persona, saludo, etc.), respondé con "OTRO".` 
-                    },
-                    { type: "image_url", image_url: { url: `data:${mimeType};base64,${mediaBase64}` } }
-                ]
-            })
-        ]);
+        const response = await withTimeout(
+            model.invoke([
+                new HumanMessage({
+                    content: [
+                        { 
+                            type: "text", 
+                            text: `Clasificá esta imagen. Respondé ÚNICAMENTE con la palabra "COMPROBANTE" si parece ser un ticket de transferencia, recibo de pago, comprobante de Mercado Pago o captura de pantalla de transferencia de pago confirmada. Si es cualquier otra cosa (receta médica, foto de un anteojo, foto de una persona, saludo, etc.), respondé con "OTRO".` 
+                        },
+                        { type: "image_url", image_url: { url: `data:${mimeType};base64,${mediaBase64}` } }
+                    ]
+                })
+            ]),
+            30000,
+            'Gemini payment receipt detection timeout'
+        );
 
         const text = response.content.toString().trim().toUpperCase();
         return text.includes('COMPROBANTE') && !text.includes('OTRO');
@@ -503,6 +512,7 @@ async function checkAndSendInactivityFollowUps() {
                 console.log(`  ✉️ [Follow-Up] Enviando recordatorio por inactividad de ${diffHours.toFixed(1)}hs a ${chat.profileName || chat.waId}`);
                 
                 try {
+                    botReplyingTo.add(chat.waId);
                     await sendTypingState(chat.waId);
                     await new Promise(r => setTimeout(r, 2000));
                     const sent = await sendMessage(chat.waId, FOLLOW_UP_TEXT);
@@ -544,6 +554,8 @@ async function checkAndSendInactivityFollowUps() {
                     broadcastChatUpdate(chat.id);
                 } catch (err) {
                     console.error(`Error enviando follow-up a ${chat.waId}:`, err.message);
+                } finally {
+                    setTimeout(() => botReplyingTo.delete(chat.waId), 3000);
                 }
             }
         }
@@ -674,10 +686,10 @@ async function processBotTurn(chat, waId, profileName, realPhone) {
         if (hasApiError) {
             console.log(`  ⏹️ Error de API detectado en ToolMessage (${chat.id}). Cancelando respuesta.`);
             try {
-                const adminNotifyPhone = (process.env.ADMIN_PHONE || '5493541215971') + (process.env.ADMIN_PHONE?.includes('@') ? '' : '@c.us');
+                const adminNotifyPhone = getAdminWaId();
                 const alertMsg = `Conversación con bot apagado: ${profileName || 'Cliente'} (${realPhone || waId.split('@')[0]})`;
                 await sendMessage(adminNotifyPhone, alertMsg);
-                console.log(`  🔔 Alerta de error de API enviada al administrador (3541215971)`);
+                console.log(`  🔔 Alerta de error de API enviada al administrador`);
             } catch (alertErr) {
                 console.error('Error enviando alerta de error de API al administrador:', alertErr.message);
             }
@@ -740,10 +752,11 @@ async function processBotTurn(chat, waId, profileName, realPhone) {
 
                 if (newMessagesCount > 0) {
                     console.log(`  ⏳ Nuevos mensajes detectados. Abortando respuesta actual.`);
-                    return; 
+                    return; // botReplyingTo aún no fue seteado, no hay leak
                 }
             }
 
+            // Seteamos DESPUÉS del check de mensajes nuevos para evitar leak en early return
             botReplyingTo.add(waId);
             // Limpiar signos de interrogación de apertura para seguir la regla de estilo humano
             const cleanResponseText = responseText.replace(/¿/g, '');
@@ -797,24 +810,49 @@ async function processBotTurn(chat, waId, profileName, realPhone) {
             }
 
             setTimeout(() => botReplyingTo.delete(waId), 2000);
+            // Resetear contador de errores consecutivos tras envío exitoso
+            chatErrorCounts.delete(chat.id);
             console.log(`  ✅ Bot respondió a ${profileName} (${result.agentType || 'UNKNOWN'}) con ${messageBlocks.length} mensajes`);
         }
     } catch (err) {
         botReplyingTo.delete(waId); // B1: limpiar tracking en caso de error
         console.error('  ❌ Error bot:', err.message);
 
+        // ── Incrementar contador de errores consecutivos ──
+        const prevCount = chatErrorCounts.get(chat.id) || 0;
+        const newCount = prevCount + 1;
+        chatErrorCounts.set(chat.id, newCount);
+        console.log(`  ⚠️ Error consecutivo #${newCount} para chat ${chat.id}`);
+
         // Notificar al administrador por WhatsApp para que pueda continuar de forma manual
         try {
-            const adminNotifyPhone = (process.env.ADMIN_PHONE || '5493541215971') + (process.env.ADMIN_PHONE?.includes('@') ? '' : '@c.us');
-            const alertMsg = `Conversación con bot apagado: ${profileName || 'Cliente'} (${realPhone || waId.split('@')[0]})`;
+            const adminNotifyPhone = getAdminWaId();
+            const alertMsg = `⚠️ Error bot (#${newCount}): ${profileName || 'Cliente'} (${realPhone || waId.split('@')[0]}) - ${err.message?.substring(0, 100)}`;
             await sendMessage(adminNotifyPhone, alertMsg);
-            console.log(`  🔔 Alerta de error enviada al administrador (3541215971)`);
+            console.log(`  🔔 Alerta de error enviada al administrador`);
         } catch (alertErr) {
             console.error('Error enviando alerta de error al administrador:', alertErr.message);
         }
 
+        // ── Auto-desactivar tras 3 errores consecutivos (CUALQUIER tipo de error) ──
+        if (newCount >= 3) {
+            console.error(`  🛑 3 errores consecutivos para chat ${chat.id}. Auto-desactivando bot.`);
+            chatErrorCounts.delete(chat.id);
+            await disableBotForChatById(chat.id, `Auto-desactivado: ${newCount} errores consecutivos (${err.message?.substring(0, 80)})`);
+
+            if (global.io) {
+                global.io.emit('bot_error', {
+                    chatId: chat.id,
+                    name: profileName || chat.profileName || 'Cliente',
+                    phone: realPhone || chat.realPhone || waId.split('@')[0],
+                    error: `Auto-desactivado: ${newCount} errores consecutivos`
+                });
+            }
+        }
+
         if (err.message && (err.message.includes('429') || err.message.includes('RESOURCE_EXHAUSTED'))) {
             // 1. Apagar bot en la DB para este chat
+            chatErrorCounts.delete(chat.id);
             await disableBotForChatById(chat.id, 'Cuota agotada de API (Error 429)');
 
             // 2. Emitir notificación de error por WebSocket a todos los usuarios del CRM
@@ -1543,22 +1581,19 @@ app.patch('/api/chats/:id', async (req, res) => {
 
         if (botEnabled === false) {
             await disableBotForChatById(id, 'API patch CRM (Vendedor desactivó el bot)');
-            // Agregar etiqueta para evitar auto-resume si no existe
-            let currentLabels = data.chatLabels !== undefined ? data.chatLabels : (chat.chatLabels || '');
+            // Agregar etiqueta para evitar auto-resume si no existe (array-safe)
+            let currentLabels = Array.isArray(data.chatLabels) ? data.chatLabels : (Array.isArray(chat.chatLabels) ? [...chat.chatLabels] : []);
             if (!currentLabels.includes('[SISTEMA - BOT APAGADO]')) {
-                data.chatLabels = currentLabels ? currentLabels + ', [SISTEMA - BOT APAGADO]' : '[SISTEMA - BOT APAGADO]';
+                currentLabels.push('[SISTEMA - BOT APAGADO]');
             }
+            data.chatLabels = currentLabels;
             chat = await prisma.whatsAppChat.update({ where: { id }, data });
         } else {
             if (botEnabled === true) {
                 data.botEnabled = true;
-                // Si el vendedor activa el bot manualmente, quitamos la etiqueta de apagado manual
-                let currentLabels = data.chatLabels !== undefined ? data.chatLabels : (chat.chatLabels || '');
-                if (currentLabels.includes('[SISTEMA - BOT APAGADO]')) {
-                    data.chatLabels = currentLabels.replace(/,?\s*\[SISTEMA - BOT APAGADO\]/g, '').trim();
-                    // Limpiar coma residual inicial si queda
-                    if (data.chatLabels.startsWith(',')) data.chatLabels = data.chatLabels.substring(1).trim();
-                }
+                // Si el vendedor activa el bot manualmente, quitamos la etiqueta de apagado manual (array-safe)
+                let currentLabels = Array.isArray(data.chatLabels) ? data.chatLabels : (Array.isArray(chat.chatLabels) ? [...chat.chatLabels] : []);
+                data.chatLabels = currentLabels.filter(l => l !== '[SISTEMA - BOT APAGADO]');
             } else if (botEnabled !== undefined) {
                 data.botEnabled = botEnabled;
             }
@@ -1821,17 +1856,32 @@ const syncRecentChatsAndMessages = async (wc) => {
                     }
                 } catch (err) {}
 
-                dbChat = await prisma.whatsAppChat.create({
-                    data: {
-                        waId,
-                        realPhone: realPhone || null,
-                        profileName: profileName || null,
-                        status: 'OPEN',
-                        botEnabled: shouldEnableBot,
-                        lastMessageAt: chatObj.timestamp ? new Date(chatObj.timestamp * 1000) : new Date(),
-                        unreadCount: chatObj.unreadCount || 0
-                    }
-                });
+                try {
+                    dbChat = await prisma.whatsAppChat.create({
+                        data: {
+                            waId,
+                            realPhone: realPhone || null,
+                            profileName: profileName || null,
+                            status: 'OPEN',
+                            botEnabled: shouldEnableBot,
+                            lastMessageAt: chatObj.timestamp ? new Date(chatObj.timestamp * 1000) : new Date(),
+                            unreadCount: chatObj.unreadCount || 0
+                        }
+                    });
+                } catch (createErr) {
+                    if (createErr.code === 'P2002') {
+                        const updateData = {};
+                        if (profileName) updateData.profileName = profileName;
+                        if (realPhone) updateData.realPhone = realPhone;
+                        if (chatObj.unreadCount !== undefined) updateData.unreadCount = chatObj.unreadCount;
+                        if (chatObj.timestamp) updateData.lastMessageAt = new Date(chatObj.timestamp * 1000);
+                        
+                        dbChat = await prisma.whatsAppChat.update({
+                            where: { waId },
+                            data: updateData
+                        });
+                    } else throw createErr;
+                }
             } else {
                 const updateData = {};
                 if (profileName && !dbChat.profileName) updateData.profileName = profileName;

@@ -12,4 +12,13 @@ try {
     prisma = new PrismaClient();
 }
 
+// Probar conexión a la base de datos al inicializar
+prisma.$connect()
+    .then(() => {
+        console.log('✅ Prisma conectado exitosamente a la base de datos.');
+    })
+    .catch((err) => {
+        console.error('❌ Error de conexión inicial en Prisma:', err.message);
+    });
+
 module.exports = { prisma };

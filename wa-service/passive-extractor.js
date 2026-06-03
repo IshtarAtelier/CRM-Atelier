@@ -2,6 +2,7 @@ const { ChatGoogleGenerativeAI } = require("@langchain/google-genai");
 const { SystemMessage } = require("@langchain/core/messages");
 const { prisma } = require('./db');
 const { addTagToClient } = require('./tools');
+const { withTimeout } = require('./utils');
 const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '.env') });
 
@@ -10,7 +11,7 @@ let passiveModelInstance = null;
 function getPassiveModel() {
     if (!passiveModelInstance) {
         passiveModelInstance = new ChatGoogleGenerativeAI({
-                model: 'gemini-2.5-flash',
+            model: 'gemini-2.5-flash',
             maxOutputTokens: 256,
             temperature: 0.1,
             apiKey: process.env.GOOGLE_GENAI_API_KEY || process.env.GOOGLE_API_KEY,
@@ -69,7 +70,11 @@ No incluyas markdown ni explicaciones, solo el JSON puro.
 `;
 
         const model = getPassiveModel();
-        const res = await model.invoke([new SystemMessage(prompt)]);
+        const res = await withTimeout(
+            model.invoke([new SystemMessage(prompt)]),
+            30000,
+            'Gemini passive extractor timeout'
+        );
         let resultText = res.content.replace(/```json/g, '').replace(/```/g, '').trim();
         
         let parsed;
