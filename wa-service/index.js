@@ -694,7 +694,29 @@ async function processBotTurn(chat, waId, profileName, realPhone) {
             } catch (alertErr) {
                 console.error('Error enviando alerta de error de API al administrador:', alertErr.message);
             }
-            return; // RETORNAR EN ABSOLUTO SILENCIO
+            
+            // MANTENER LA DINÁMICA: Avisar al cliente en lugar de silencio absoluto
+            const fallbackMsg = "Tuve un pequeño inconveniente técnico al buscar esa información 😅. Ya le dejé el aviso a uno de los chicos de Atelier para que lo revise y te responda en breve.";
+            try {
+                await sendMessage(waId, fallbackMsg);
+                await prisma.whatsAppMessage.create({
+                    data: {
+                        chatId: chat.id,
+                        direction: 'OUTBOUND',
+                        type: 'TEXT',
+                        content: fallbackMsg,
+                        waMessageId: `fallback_${Date.now()}`,
+                        senderName: 'Bot',
+                        status: 'SENT'
+                    }
+                });
+                await disableBotForChatById(chat.id, 'Error de API detectado en ToolMessage (Fallback enviado)');
+                broadcastChatUpdate(chat.id);
+            } catch (fallbackErr) {
+                console.error('Error enviando mensaje de fallback al cliente:', fallbackErr.message);
+            }
+            
+            return;
         }
 
         // Re-verificar si el bot sigue encendido
