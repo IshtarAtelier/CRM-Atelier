@@ -53,7 +53,7 @@ const QUICK_REPLIES = [
     { label: 'Horario', text: 'Atendemos de Lunes a Viernes de 9 a 13:30 y de 16 a 19:30hs. Sábados de 10 a 14hs.\n\n📍 José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba.\n👉 https://g.co/kgs/5Jp7D4e\n\nCuándo te queda cómodo que te esperemos?' },
     { label: 'Listo para retirar', text: '🎉 ¡Tu pedido está listo para retirar!' },
     { label: 'Pago pendiente', text: 'Te recuerdo que quedó pendiente el saldo restante. ¿Cuándo te viene bien coordinar el pago?' },
-    { label: 'Pedir reseña', text: '¡Te escribo para pedirte un favor enorme 🙏\n\n¿Nos dejarías una reseña en Google? Nos ayudaría muchísimo si podés mencionar por qué somos la mejor óptica en Córdoba para vos y cómo fue tu experiencia.\n\nSi podés, contá en la reseña qué anteojos o cristales te hiciste (por ejemplo: multifocales, lentes de sol, cristales Crizal, etc.), ¡nos ayuda un montón! 🙌\n\n👉 https://g.page/r/CcVls8v7ic_NEBM/review\n\n¡Nos suma muchísimo para seguir creciendo!\nEspero tu comentario 🤍✨🫶' },
+    { label: 'Pedir reseña', text: '¡Te escribo para pedirte un favor enorme 🙏\n\n¿Nos dejarías una reseña en Google? Nos ayudaría muchísimo si podés compartir cómo fue tu experiencia y qué fue lo que más te gustó de nuestra atención.\n\nSi podés, contá en la reseña qué anteojos o cristales te hiciste (por ejemplo: multifocales, lentes de sol, cristales Crizal, etc.), ¡nos ayuda un montón! 🙌\n\n👉 https://g.page/r/CcVls8v7ic_NEBM/review\n\n¡Nos suma muchísimo para seguir creciendo!\nEspero tu comentario 🤍✨🫶' },
     { label: 'Instagram', text: '¡Te invito a seguirnos en Instagram para ver todas nuestras novedades, promos y modelitos nuevos! 📸✨\n\n👉 https://instagram.com/atelieroptica_\n\n¡Nos encontrás como @atelieroptica_!' },
 ];
 
@@ -138,6 +138,15 @@ export default function WhatsAppPage() {
     const [showQuickReplies, setShowQuickReplies] = useState(false);
     const [summaryModalChat, setSummaryModalChat] = useState<any>(null);
     const [editingSummary, setEditingSummary] = useState('');
+    const [inAppNotifications, setInAppNotifications] = useState<{id: string, title: string, body: string, icon?: string, onClick?: () => void}[]>([]);
+
+    const showInAppNotification = useCallback((title: string, body: string, icon?: string, onClick?: () => void) => {
+        const id = Date.now().toString();
+        setInAppNotifications(prev => [...prev, { id, title, body, icon, onClick }]);
+        setTimeout(() => {
+            setInAppNotifications(prev => prev.filter(n => n.id !== id));
+        }, 6000);
+    }, []);
     const [showEmojiPicker, setShowEmojiPicker] = useState(false);
     const [selectedImage, setSelectedImage] = useState<{ base64: string; mimetype: string; filename: string } | null>(null);
     const [isRecording, setIsRecording] = useState(false);
@@ -309,11 +318,14 @@ export default function WhatsAppPage() {
                     data.forEach(c => {
                         if (c.client?.id && !knownClientIds.current.has(c.client.id)) {
                             knownClientIds.current.add(c.client.id);
+                            const title = "🌟 Nuevo Lead Calificado";
+                            const body = `La IA acaba de ingresar la receta y clasificar a ${c.client.name}.`;
+                            const icon = "https://cdn-icons-png.flaticon.com/512/4712/4712139.png";
+                            
+                            showInAppNotification(title, body, icon, () => setSelectedChat(c));
+
                             if ("Notification" in window && Notification.permission === "granted") {
-                                new Notification("🌟 Nuevo Lead Calificado", {
-                                    body: `La IA acaba de ingresar la receta y clasificar a ${c.client.name}.`,
-                                    icon: "https://cdn-icons-png.flaticon.com/512/4712/4712139.png"
-                                });
+                                new Notification(title, { body, icon });
                             }
                         }
                     });
@@ -1034,6 +1046,39 @@ export default function WhatsAppPage() {
 
     return (
         <main className="absolute inset-0 flex flex-col bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-50/50 via-stone-100 to-stone-200 dark:from-stone-900 dark:via-stone-950 dark:to-black">
+            {/* In-App Notifications */}
+            <div className="fixed bottom-6 right-6 z-[100] flex flex-col gap-3 pointer-events-none">
+                {inAppNotifications.map(notification => (
+                    <div 
+                        key={notification.id} 
+                        onClick={() => {
+                            if(notification.onClick) notification.onClick();
+                            setInAppNotifications(prev => prev.filter(n => n.id !== notification.id));
+                        }}
+                        className="pointer-events-auto cursor-pointer bg-white dark:bg-stone-900 border border-emerald-500/30 shadow-2xl rounded-2xl p-4 flex items-start gap-4 w-80 animate-in slide-in-from-right-8 fade-in duration-300 hover:scale-105 transition-transform"
+                    >
+                        {notification.icon && (
+                            <div className="w-12 h-12 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 flex-shrink-0 flex items-center justify-center p-2">
+                                <img src={notification.icon} alt="Icon" className="w-full h-full object-contain drop-shadow-md" />
+                            </div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                            <h4 className="font-black text-stone-800 dark:text-white text-sm truncate">{notification.title}</h4>
+                            <p className="text-xs font-medium text-stone-500 dark:text-stone-400 mt-1 line-clamp-2 leading-relaxed">{notification.body}</p>
+                        </div>
+                        <button 
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setInAppNotifications(prev => prev.filter(n => n.id !== notification.id));
+                            }}
+                            className="text-stone-400 hover:text-stone-600 dark:hover:text-white transition-colors"
+                        >
+                            <X className="w-4 h-4" />
+                        </button>
+                    </div>
+                ))}
+            </div>
+
             {/* Header Flotante / Premium */}
             <div className="flex items-center justify-between px-8 py-5 border-b border-white/40 dark:border-white/5 bg-white/40 dark:bg-black/30 backdrop-blur-2xl flex-shrink-0 z-20 shadow-sm">
                 <div className="flex items-center gap-4">
