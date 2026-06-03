@@ -65,17 +65,20 @@ export const ContactService = {
             if (search) {
                 const searchDigits = search.replace(/\D/g, '');
                 if (searchDigits.length >= 4) {
+                    const searchStr = searchDigits.length > 8 ? searchDigits.slice(-8) : searchDigits;
                     const rawSearch: any[] = await prisma.$queryRawUnsafe(`
                         SELECT id 
                         FROM "Client" 
-                        WHERE REGEXP_REPLACE(COALESCE(phone, ''), '\\D', '', 'g') LIKE '%${searchDigits}%'
+                        WHERE REGEXP_REPLACE(COALESCE(phone, ''), '\\D', '', 'g') LIKE '%${searchStr}%'
                     `);
                     const phoneMatchIds = rawSearch.map(d => d.id);
                     where.OR = [
                         { name: { contains: search, mode: 'insensitive' } },
                         { id: { in: phoneMatchIds } },
                         { interest: { contains: search, mode: 'insensitive' } },
-                        { insurance: { contains: search, mode: 'insensitive' } }
+                        { insurance: { contains: search, mode: 'insensitive' } },
+                        // Fallback por si lo guardaron exactamente con espacios y símbolos que no matchean la regex por algún caso raro
+                        { phone: { contains: search, mode: 'insensitive' } }
                     ];
                 } else {
                     where.OR = [
@@ -231,7 +234,7 @@ export const ContactService = {
         const createData: any = {
             name: data.name,
             email: data.email?.trim() === "" ? null : data.email,
-            phone: data.phone,
+            phone: normalizedIncomingPhone, // Se guarda normalizado (solo números)
             dni: data.dni,
             status: data.status || 'CONTACT',
             contactSource: data.contactSource || 'Otros',
@@ -256,7 +259,7 @@ export const ContactService = {
 
         if (data.name !== undefined) updateData.name = data.name;
         if (data.email !== undefined) updateData.email = data.email?.trim() === "" ? null : data.email;
-        if (data.phone !== undefined) updateData.phone = data.phone;
+        if (data.phone !== undefined) updateData.phone = data.phone?.replace(/\D/g, '') || null;
         if (data.dni !== undefined) updateData.dni = data.dni;
         if (data.status !== undefined) {
             updateData.status = data.status;

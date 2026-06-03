@@ -55,7 +55,6 @@ export function Sidebar({ userName = "Usuario", userRole = "STAFF", userId = "" 
     { href: "/admin", label: "Dashboard", icon: LayoutDashboard, adminOnly: false },
     { href: "/admin/contactos", label: "Contactos y Clientes", icon: Contact, adminOnly: false },
     { href: "/admin/inventario", label: "Stock y Productos", icon: Glasses, adminOnly: true },
-    { href: "/admin/tratamientos", label: "Tratamientos y Colores", icon: Droplet, adminOnly: true },
     { href: "/admin/cotizador", label: "Cotizador", icon: Calculator, adminOnly: false },
     { href: "/admin/ventas", label: "Ventas / Laboratorio", icon: ClipboardList, adminOnly: false },
     { href: "/admin/facturacion", label: "Facturación", icon: Receipt, adminOnly: true },

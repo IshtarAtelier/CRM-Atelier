@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Plus, Search, Package, Loader2, AlertCircle, ArrowUpRight, Trash2, ShoppingBag, CheckSquare, Square, X, Pencil, Save, Download, Upload, CheckCircle2, Zap, Camera, Clock } from "lucide-react";
+import { Plus, Search, Package, Loader2, AlertCircle, ArrowUpRight, Trash2, ShoppingBag, CheckSquare, Square, X, Pencil, Save, Download, Upload, CheckCircle2, Zap, Camera, Clock, Palette } from "lucide-react";
 import { Product } from '@/hooks/useProducts';
 import ProductForm from '@/components/inventory/ProductForm';
 import LabPriceImporter from '@/components/inventory/LabPriceImporter';
@@ -18,7 +18,7 @@ const PRODUCT_CATEGORIES = [
     { id: 'Armazón de Receta', label: '👓 Armazón' },
     { id: 'Lentes de Contacto', label: '👁️ Contacto' },
     { id: 'Lentes Especiales', label: '✨ Especiales' },
-    { id: 'Tratamiento', label: '💧 Tratamientos' },
+    { id: 'Tratamiento', label: '💧 Tratamientos y Colores', subtypes: ['Tratamientos', 'Colores de Cristal'] },
 ];
 
 
@@ -46,6 +46,68 @@ export default function InventarioPage() {
     const [editMarkupValue, setEditMarkupValue] = useState('');
     const [labsConfig, setLabsConfig] = useState<{name: string, calibrado?: number, iva?: number}[]>([]);
 
+    // -- State for Colors --
+    const [colors, setColors] = useState<any[]>([]);
+    const [loadingColors, setLoadingColors] = useState(false);
+    const [colorForm, setColorForm] = useState({ id: '', name: '', category: 'COMPACTO', hexColor: '#000000', sortOrder: 0, active: true });
+    const [showColorForm, setShowColorForm] = useState(false);
+    const [savingColor, setSavingColor] = useState(false);
+
+    const loadColors = async () => {
+        setLoadingColors(true);
+        try {
+            const res = await fetch('/api/crystal-colors');
+            const data = await res.json();
+            if (Array.isArray(data)) setColors(data);
+        } catch (error) {
+            console.error(error);
+        } finally {
+            setLoadingColors(false);
+        }
+    };
+
+    const handleSaveColor = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setSavingColor(true);
+        try {
+            const method = colorForm.id ? 'PATCH' : 'POST';
+            const url = colorForm.id ? `/api/crystal-colors/${colorForm.id}` : '/api/crystal-colors';
+            
+            const res = await fetch(url, {
+                method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(colorForm)
+            });
+
+            if (res.ok) {
+                setShowColorForm(false);
+                setColorForm({ id: '', name: '', category: 'COMPACTO', hexColor: '#000000', sortOrder: 0, active: true });
+                loadColors();
+            } else {
+                const data = await res.json();
+                alert(data.error || 'Error al guardar el color');
+            }
+        } catch (error) {
+            alert('Error de conexión');
+        } finally {
+            setSavingColor(false);
+        }
+    };
+
+    const handleDeleteColor = async (id: string, name: string) => {
+        if (!confirm(`¿Estás seguro de eliminar el color "${name}"?`)) return;
+        try {
+            const res = await fetch(`/api/crystal-colors/${id}`, { method: 'DELETE' });
+            if (res.ok) {
+                loadColors();
+            } else {
+                alert('Error al eliminar');
+            }
+        } catch (error) {
+            alert('Error de conexión');
+        }
+    };
+
     useEffect(() => {
         try {
             const stored = localStorage.getItem('user');
@@ -58,12 +120,14 @@ export default function InventarioPage() {
         fetch('/api/laboratories').then(r => r.json()).then(d => {
             if(d.laboratories) setLabsConfig(d.laboratories);
         }).catch(console.error);
+
+        loadColors();
     }, []);
 
     const isAdmin = userRole === 'ADMIN';
 
     // The filter passed to useProducts: if subtype selected use it, otherwise use category
-    const activeFilter = selectedSubtype ? `Cristal ${selectedSubtype}` : selectedCategory;
+    const activeFilter = selectedSubtype && selectedCategory === 'Cristal' ? `Cristal ${selectedSubtype}` : selectedCategory;
 
     const activeCategory = PRODUCT_CATEGORIES.find(c => c.id === selectedCategory);
 
@@ -90,8 +154,11 @@ export default function InventarioPage() {
         || p.type?.startsWith('Cristal')
         || ['MONOFOCAL','MULTIFOCAL','BIFOCAL','OCUPACIONAL'].includes(p.type?.toUpperCase() || '');
 
-    // Excluir cristales del cálculo de stock (se compran bajo demanda)
-    const nonCrystalProducts = products.filter(p => !checkCristal(p));
+    // Helper: determinar si el producto maneja stock propio o se pide a laboratorio
+    const isRequestedToLab = (p: { category?: string; type?: string | null }) => checkCristal(p) || p.category === 'Tratamiento';
+
+    // Excluir cristales y tratamientos del cálculo de stock (se compran bajo demanda)
+    const nonCrystalProducts = products.filter(p => !isRequestedToLab(p));
     
     // Helper para armar el nombre completo (Marca + Nombre) evitando duplicados
     const getDisplayName = (p: Product) => {
@@ -431,8 +498,8 @@ export default function InventarioPage() {
                     })}
                 </div>
 
-                {/* Subtype filters — only when Cristal is selected */}
-                {selectedCategory === 'Cristal' && activeCategory?.subtypes && (
+                {/* Subtype filters — only when Cristal or Tratamiento is selected */}
+                {(selectedCategory === 'Cristal' || selectedCategory === 'Tratamiento') && activeCategory?.subtypes && (
                     <div className="inline-flex flex-wrap items-center gap-2 bg-stone-100/50 dark:bg-stone-800/50 backdrop-blur-md p-1.5 rounded-full border border-stone-200/50 dark:border-stone-700/50 w-max animate-in fade-in slide-in-from-top-2 duration-300">
                         <button
                             onClick={() => setSelectedSubtype('')}
@@ -503,8 +570,52 @@ export default function InventarioPage() {
 
             </div>
 
-            {/* Product List */}
-            <div className="bg-white dark:bg-stone-900 rounded-3xl border border-stone-100 dark:border-stone-800 overflow-hidden shadow-sm">
+            {/* Product List or Colors UI */}
+            {selectedCategory === 'Tratamiento' && selectedSubtype === 'Colores de Cristal' ? (
+                <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
+                    <div className="flex justify-between items-center bg-emerald-50 dark:bg-emerald-950/30 p-4 rounded-2xl border border-emerald-100 dark:border-emerald-900/50">
+                        <div>
+                            <p className="text-sm font-black text-emerald-900 dark:text-emerald-300">Paleta de Colores de Cristales</p>
+                            <p className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400">Opciones que el cliente puede elegir al pedir un tratamiento de Teñido.</p>
+                        </div>
+                        <button
+                            onClick={() => {
+                                setColorForm({ id: '', name: '', category: 'COMPACTO', hexColor: '#000000', sortOrder: 0, active: true });
+                                setShowColorForm(true);
+                            }}
+                            className="flex items-center gap-2 px-5 py-2.5 bg-emerald-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg hover:scale-105 transition-all shrink-0"
+                        >
+                            <Plus className="w-4 h-4" /> Nuevo Color
+                        </button>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {loadingColors ? (
+                            <div className="col-span-full py-12 flex justify-center"><Loader2 className="w-6 h-6 animate-spin text-emerald-600" /></div>
+                        ) : colors.length === 0 ? (
+                            <div className="col-span-full py-12 text-center text-stone-400 text-xs font-bold uppercase tracking-widest">No hay colores cargados</div>
+                        ) : (
+                            colors.map(c => (
+                                <div key={c.id} className="bg-white dark:bg-stone-900 p-5 rounded-3xl border border-stone-200 dark:border-stone-800 flex items-center gap-4 hover:shadow-md transition-all group">
+                                    <div className="w-12 h-12 rounded-full border-4 border-stone-50 dark:border-stone-800 shadow-sm shrink-0" style={{ backgroundColor: c.hexColor || '#eee' }} />
+                                    <div className="flex-1 min-w-0">
+                                        <p className="font-black text-sm text-stone-800 dark:text-stone-100 truncate">{c.name}</p>
+                                        <div className="flex gap-2 mt-1">
+                                            <span className="text-[8px] font-black uppercase tracking-widest bg-stone-100 dark:bg-stone-800 text-stone-500 px-2 py-0.5 rounded-md">{c.category}</span>
+                                            {!c.active && <span className="text-[8px] font-black uppercase bg-red-100 text-red-600 px-2 py-0.5 rounded-md">Inactivo</span>}
+                                        </div>
+                                    </div>
+                                    <div className="flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <button onClick={() => { setColorForm(c); setShowColorForm(true); }} className="p-2 text-stone-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg"><Pencil className="w-4 h-4" /></button>
+                                        <button onClick={() => handleDeleteColor(c.id, c.name)} className="p-2 text-stone-400 hover:text-red-500 hover:bg-red-50 rounded-lg"><Trash2 className="w-4 h-4" /></button>
+                                    </div>
+                                </div>
+                            ))
+                        )}
+                    </div>
+                </div>
+            ) : (
+                <div className="bg-white dark:bg-stone-900 rounded-3xl border border-stone-100 dark:border-stone-800 overflow-hidden shadow-sm">
 
                 {/* Table view (Desktop only) */}
                 <div className="hidden lg:block overflow-x-auto">
@@ -563,7 +674,7 @@ export default function InventarioPage() {
                                     <div className="flex justify-center">{p.lensIndex ? <span className="text-[9px] font-black bg-primary/10 text-primary px-2.5 py-1 rounded-lg">{p.lensIndex}</span> : <span className="text-stone-300">-</span>}</div>
                                     <div className="text-right pr-4 shrink-0 flex items-center justify-end gap-2">
                                         {p.is2x1 && <span className="text-[9px] font-black text-emerald-600 bg-emerald-100 dark:bg-emerald-900/30 px-1.5 py-0.5 rounded-md">2x1</span>}
-                                        {isCristal ? <span className="text-[9px] font-black text-violet-600 bg-violet-50 dark:bg-violet-950/30 px-2 py-1 rounded-lg inline-block">{p.laboratory || 'Lab'}</span> : <span className={`text-sm font-black ${p.stock <= 2 ? 'text-red-500' : 'text-stone-800 dark:text-stone-200'}`}>{p.stock}</span>}
+                                        {isRequestedToLab(p) ? <span className="text-[9px] font-black text-violet-600 bg-violet-50 dark:bg-violet-950/30 px-2 py-1 rounded-lg inline-block">{p.laboratory || 'A Pedido'}</span> : <span className={`text-sm font-black ${p.stock <= 2 ? 'text-red-500' : 'text-stone-800 dark:text-stone-200'}`}>{p.stock}</span>}
                                     </div>
                                     {isAdmin && <div className="text-right pr-4"><span className="text-sm font-bold text-stone-400">${p.cost?.toLocaleString()}</span></div>}
                                     {isAdmin && <div className="text-right pr-4">{p.cost > 0 ? (
@@ -642,7 +753,7 @@ export default function InventarioPage() {
                                             </span>
                                             {p.lensIndex && <span className="text-[8px] font-black bg-primary/10 text-primary px-1.5 py-0.5 rounded-full">{p.lensIndex}</span>}
                                             {p.is2x1 && <span className="text-[8px] font-black bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 px-1.5 py-0.5 rounded-full">2x1</span>}
-                                            <span className="text-[8px] font-black bg-stone-100 dark:bg-stone-800 text-stone-500 px-1.5 py-0.5 rounded-full">STOCK: {isCristal ? (p.laboratory || 'Lab') : p.stock}</span>
+                                            <span className="text-[8px] font-black bg-stone-100 dark:bg-stone-800 text-stone-500 px-1.5 py-0.5 rounded-full">STOCK: {isRequestedToLab(p) ? (p.laboratory || 'A Pedido') : p.stock}</span>
                                         </div>
                                         {isAdmin && (
                                             <div className="flex items-center justify-between mt-4 pt-3 border-t border-stone-50 dark:border-stone-800">
@@ -665,6 +776,7 @@ export default function InventarioPage() {
                     )}
                 </div>
             </div>
+            )}
 
             {showForm && (
                 <ProductForm
@@ -718,8 +830,8 @@ export default function InventarioPage() {
                                         <input type="text" value={editForm.model} onChange={e => setEditForm({ ...editForm, model: e.target.value })} className="w-full px-5 py-4 bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-2xl font-bold text-sm outline-none focus:border-primary" />
                                     </div>
                                 )}
-                                {/* Ocultar stock para cristales — se compran bajo demanda */}
-                                {!checkCristal(editingProduct) && (
+                                {/* Ocultar stock para cristales y tratamientos — se piden bajo demanda */}
+                                {!isRequestedToLab(editingProduct) && (
                                     <div className="space-y-1">
                                         <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest ml-3">Stock</label>
                                         <input type="number" min={0} value={editForm.stock} onChange={e => setEditForm({ ...editForm, stock: parseInt(e.target.value) || 0 })} className="w-full px-5 py-4 bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-2xl font-bold text-sm outline-none focus:border-primary" />
@@ -1058,6 +1170,55 @@ export default function InventarioPage() {
                     onClose={() => setShowSettings(false)}
                 />
             )}
+
+            {showColorForm && (
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in">
+                    <div className="bg-white dark:bg-stone-900 w-full max-w-md rounded-[2.5rem] overflow-hidden shadow-2xl animate-in zoom-in-95">
+                        <div className="p-6 md:p-8 flex justify-between items-center border-b border-stone-100 dark:border-stone-800">
+                            <div>
+                                <h3 className="text-lg font-black text-stone-800 dark:text-white italic tracking-tight">{colorForm.id ? 'Editar' : 'Nuevo'} <span className="text-emerald-600 not-italic">Color</span></h3>
+                            </div>
+                            <button onClick={() => setShowColorForm(false)} className="p-2 bg-stone-100 dark:bg-stone-800 rounded-xl hover:bg-stone-200 transition-colors"><X className="w-4 h-4" /></button>
+                        </div>
+                        <form onSubmit={handleSaveColor} className="p-6 md:p-8 space-y-5">
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest ml-3">Nombre del Color</label>
+                                <input required type="text" value={colorForm.name} onChange={e => setColorForm({ ...colorForm, name: e.target.value })} placeholder="Ej: Sepia" className="w-full px-5 py-4 bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-2xl font-bold text-sm outline-none focus:border-emerald-500" />
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest ml-3">Categoría</label>
+                                    <select value={colorForm.category} onChange={e => setColorForm({ ...colorForm, category: e.target.value })} className="w-full px-5 py-4 bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-2xl font-bold text-sm outline-none focus:border-emerald-500">
+                                        <option value="COMPACTO">Compacto</option>
+                                        <option value="DEGRADEE">Degradée</option>
+                                        <option value="ESPEJADO">Espejado</option>
+                                    </select>
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest ml-3">Color Hex</label>
+                                    <div className="flex items-center gap-2 px-3 py-3 bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-2xl">
+                                        <input type="color" value={colorForm.hexColor || '#000000'} onChange={e => setColorForm({ ...colorForm, hexColor: e.target.value })} className="w-8 h-8 rounded-full border-none p-0 cursor-pointer" />
+                                        <input type="text" value={colorForm.hexColor || ''} onChange={e => setColorForm({ ...colorForm, hexColor: e.target.value })} className="flex-1 bg-transparent border-none outline-none font-bold text-xs uppercase" />
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="pt-2">
+                                <label className="flex items-center gap-3 cursor-pointer group w-max">
+                                    <div className={`relative w-10 h-6 rounded-full transition-colors ${colorForm.active ? 'bg-emerald-500' : 'bg-stone-300 dark:bg-stone-700'}`}>
+                                        <div className={`absolute top-1 left-1 bg-white w-4 h-4 rounded-full transition-transform ${colorForm.active ? 'translate-x-4' : 'translate-x-0'}`} />
+                                    </div>
+                                    <input type="checkbox" className="hidden" checked={colorForm.active} onChange={e => setColorForm({ ...colorForm, active: e.target.checked })} />
+                                    <span className="text-xs font-black text-stone-600 dark:text-stone-300 uppercase tracking-widest">Activo</span>
+                                </label>
+                            </div>
+                            <button disabled={savingColor} className="w-full py-5 bg-emerald-600 text-white rounded-2xl font-black uppercase tracking-widest hover:opacity-90 flex justify-center items-center gap-2 mt-4">
+                                {savingColor ? <Loader2 className="w-5 h-5 animate-spin" /> : <><Save className="w-5 h-5" /> Guardar Color</>}
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            )}
+
         </div>
     );
 }

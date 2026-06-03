@@ -195,7 +195,7 @@ const getPriceListTool = new DynamicStructuredTool({
 const convertIntoLeadTool = new DynamicStructuredTool({
     schema: z.object({ phone: z.string().optional(), name: z.string().optional(), contactSource: z.string().optional(), interest: z.string().optional(), chatId: z.string().optional(), insurance: z.string().optional() }).catchall(z.any()),
     name: "convert_into_lead",
-    description: "Registra un prospecto nuevo. Usa JSON con 'phone' (MANDATORIO, usa el del cliente), 'name', 'contactSource', 'interest', 'chatId' (MANDATORIO), y 'insurance' (Obra Social si la tiene).",
+    description: "Registra un prospecto nuevo. Usa JSON con 'phone' (MANDATORIO, usa el del cliente), 'name', 'contactSource', 'interest' (SOLO USAR UNO DE ESTOS VALORES: Monofocal, Multifocal, Bifocal, Ocupacional, Solar, Accesorios, Lentes de Contacto, Otros), 'chatId' (MANDATORIO), y 'insurance' (Obra Social si la tiene).",
     func: safeToolRun(async (input) => {
         const parsed = safeParse(input, "convert_into_lead");
         if (parsed.name && isPhrase(parsed.name)) {
@@ -223,7 +223,7 @@ const convertIntoLeadTool = new DynamicStructuredTool({
 const updateClientDataTool = new DynamicStructuredTool({
     schema: z.object({ id: z.string(), email: z.string().optional(), address: z.string().optional(), insurance: z.string().optional(), name: z.string().optional(), status: z.string().optional(), interest: z.string().optional() }).catchall(z.any()),
     name: "update_client_data",
-    description: "Actualiza datos del cliente existente. Usa JSON con 'id' (MANDATORIO, el ID del cliente en el sistema), y los campos a actualizar: 'email', 'address', 'insurance' (obra social), 'name', 'status', 'interest'.",
+    description: "Actualiza datos del cliente existente. Usa JSON con 'id' (MANDATORIO, el ID del cliente en el sistema), y los campos a actualizar: 'email', 'address', 'insurance' (obra social), 'name', 'status', 'interest' (SOLO USAR UNO DE ESTOS VALORES: Monofocal, Multifocal, Bifocal, Ocupacional, Solar, Accesorios, Lentes de Contacto, Otros).",
     func: safeToolRun(async (input) => await updateClientData(safeParse(input, "update_client_data"))),
 });
 

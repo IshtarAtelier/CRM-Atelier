@@ -23,6 +23,7 @@ export default function AgentPhotosPage() {
     const [dragActive, setDragActive] = useState(false);
     const [copiedKey, setCopiedKey] = useState<string | null>(null);
     const [copiedType, setCopiedType] = useState<'label' | 'url' | null>(null);
+    const [imagePrompt, setImagePrompt] = useState('');
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     // Fetch existing files
@@ -112,6 +113,26 @@ export default function AgentPhotosPage() {
             });
             const data = await res.json();
             if (data.success) {
+                if (imagePrompt.trim()) {
+                    const absoluteUrl = window.location.origin + data.file.url;
+                    try {
+                        const agentRes = await fetch('/api/whatsapp/agent');
+                        const agentConfig = await agentRes.json();
+                        if (agentConfig && agentConfig.prompt !== undefined) {
+                            const newRule = `\n\nREGLA PARA ESTA IMAGEN:\n${imagePrompt.trim()}\n[IMAGE: ${absoluteUrl}]`;
+                            const updatedPrompt = agentConfig.prompt + newRule;
+                            
+                            await fetch('/api/whatsapp/agent', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ ...agentConfig, prompt: updatedPrompt })
+                            });
+                        }
+                    } catch (e) {
+                        console.error('Failed to update agent prompt:', e);
+                    }
+                    setImagePrompt('');
+                }
                 await fetchFiles();
             } else {
                 setError(data.error || 'Error al subir la imagen.');
@@ -211,6 +232,20 @@ export default function AgentPhotosPage() {
                             <div>
                                 <h3 className="font-black text-xs text-stone-400 dark:text-stone-500 uppercase tracking-widest">Subir Imagen</h3>
                                 <p className="text-xs text-stone-500 mt-1">Sube banners promocionales, fotos de armazones, lentes de sol, recetas de muestra o mapas de ubicación.</p>
+                            </div>
+
+                            <div className="space-y-2 border-t border-b border-stone-100 dark:border-stone-800 py-4">
+                                <label className="text-[11px] font-black text-stone-500 dark:text-stone-400 uppercase tracking-widest flex items-center gap-1.5">
+                                    <Sparkles className="w-3.5 h-3.5 text-indigo-500" />
+                                    Regla para el Bot (Opcional)
+                                </label>
+                                <textarea
+                                    value={imagePrompt}
+                                    onChange={(e) => setImagePrompt(e.target.value)}
+                                    placeholder="Ej: Enviar esta foto cuando el cliente pregunte por la ubicación del local."
+                                    className="w-full px-4 py-3 bg-stone-50 dark:bg-stone-950 border border-stone-200 dark:border-stone-800 rounded-xl text-sm outline-none focus:border-indigo-500 transition-all resize-none h-20 placeholder:text-stone-400"
+                                />
+                                <p className="text-[10px] text-stone-400">Si escribís una instrucción aquí, la foto se vinculará automáticamente al "cerebro" del bot al subirla.</p>
                             </div>
 
                             <form 

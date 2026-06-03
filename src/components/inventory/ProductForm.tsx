@@ -96,6 +96,7 @@ export default function ProductForm({ onClose, onSuccess, isAdmin = false, uniqu
     const activeCategory = PRODUCT_CATEGORIES.find(c => c.id === selectedCategory);
     const hasSubtypes = !!(activeCategory?.subtypes?.length);
     const isCristal = selectedCategory === 'Cristal';
+    const isRequestedToLab = selectedCategory === 'Cristal' || selectedCategory === 'Tratamiento';
     const finalType = hasSubtypes && selectedSubtype
         ? `${selectedCategory} ${selectedSubtype}`
         : selectedCategory;
@@ -124,7 +125,7 @@ export default function ProductForm({ onClose, onSuccess, isAdmin = false, uniqu
                 category: selectedCategory,
                 price: formData.price,
                 cost: isCristal ? getFinalCost(formData.cost, formData.laboratory) : formData.cost,
-                stock: isCristal ? 0 : formData.stock,
+                stock: isRequestedToLab ? 0 : formData.stock,
                 lensIndex: isCristal ? formData.lensIndex : null,
                 unitType: isCristal ? 'PAR' : 'UNIDAD',
                 laboratory: isCristal && formData.laboratory ? formData.laboratory : null,
@@ -220,7 +221,7 @@ export default function ProductForm({ onClose, onSuccess, isAdmin = false, uniqu
                     return;
                 }
             } else {
-                if (!item.name || item.price === '' || item.stock === '') {
+                if (!item.name || item.price === '' || (!isRequestedToLab && item.stock === '')) {
                     alert(`Faltan campos obligatorios en la fila ${i + 1} (Nombre, Stock, Precio)`);
                     return;
                 }
@@ -257,7 +258,7 @@ export default function ProductForm({ onClose, onSuccess, isAdmin = false, uniqu
                 category: selectedCategory,
                 price: Number(item.price) || 0,
                 cost: isAdmin ? Number(item.cost) || 0 : 0,
-                stock: Number(item.stock) || 0,
+                stock: isRequestedToLab ? 0 : (Number(item.stock) || 0),
                 unitType: 'UNIDAD',
             };
         });
@@ -588,6 +589,7 @@ export default function ProductForm({ onClose, onSuccess, isAdmin = false, uniqu
                             </div>
 
                             {/* Stock */}
+                            {!isRequestedToLab && (
                             <div className="space-y-2">
                                 <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest ml-4">Stock Inicial</label>
                                 <div className="relative group">
@@ -599,6 +601,7 @@ export default function ProductForm({ onClose, onSuccess, isAdmin = false, uniqu
                                     />
                                 </div>
                             </div>
+                            )}
 
                             {/* Costo — solo admin */}
                             {isAdmin && (
@@ -817,7 +820,7 @@ export default function ProductForm({ onClose, onSuccess, isAdmin = false, uniqu
                                         <th className="p-3 text-[9px] font-black uppercase tracking-widest text-stone-500">Nombre *</th>
                                         <th className="p-3 text-[9px] font-black uppercase tracking-widest text-stone-500">Marca</th>
                                         <th className="p-3 text-[9px] font-black uppercase tracking-widest text-stone-500">Modelo</th>
-                                        <th className="p-3 text-[9px] font-black uppercase tracking-widest text-stone-500">Stock *</th>
+                                        {!isRequestedToLab && <th className="p-3 text-[9px] font-black uppercase tracking-widest text-stone-500">Stock *</th>}
                                         <th className="p-3 text-[9px] font-black uppercase tracking-widest text-primary">Venta $ *</th>
                                         {isAdmin && <th className="p-3 text-[9px] font-black uppercase tracking-widest text-stone-500">{isCristal ? 'Lista $' : 'Costo $'}</th>}
                                     </>
@@ -850,7 +853,7 @@ export default function ProductForm({ onClose, onSuccess, isAdmin = false, uniqu
                                             <td className="p-2"><input type="text" className="w-full min-w-[150px] px-3 py-2.5 bg-transparent border border-transparent focus:border-stone-300 dark:focus:border-stone-600 focus:bg-white dark:focus:bg-stone-800 rounded-lg text-[11px] font-bold outline-none transition-all" value={item.name} onChange={e => updateBulkItem(item.id, 'name', e.target.value)} placeholder="Ej: Armazón Titanio" /></td>
                                             <td className="p-2"><input type="text" list="brands-list" className="w-full min-w-[100px] px-3 py-2.5 bg-transparent border border-transparent focus:border-stone-300 dark:focus:border-stone-600 focus:bg-white dark:focus:bg-stone-800 rounded-lg text-[11px] font-bold outline-none transition-all" value={item.brand} onChange={e => updateBulkItem(item.id, 'brand', e.target.value)} placeholder="Marca" /></td>
                                             <td className="p-2"><input type="text" className="w-full min-w-[100px] px-3 py-2.5 bg-transparent border border-transparent focus:border-stone-300 dark:focus:border-stone-600 focus:bg-white dark:focus:bg-stone-800 rounded-lg text-[11px] font-bold outline-none transition-all" value={item.model} onChange={e => updateBulkItem(item.id, 'model', e.target.value)} placeholder="Modelo/Color" /></td>
-                                            <td className="p-2"><input type="number" min="0" className="w-full min-w-[70px] px-3 py-2.5 bg-transparent border border-transparent focus:border-stone-300 dark:focus:border-stone-600 focus:bg-white dark:focus:bg-stone-800 rounded-lg text-[11px] font-bold outline-none transition-all" value={item.stock} onChange={e => updateBulkItem(item.id, 'stock', e.target.value)} placeholder="0" /></td>
+                                            {!isRequestedToLab && <td className="p-2"><input type="number" min="0" className="w-full min-w-[70px] px-3 py-2.5 bg-transparent border border-transparent focus:border-stone-300 dark:focus:border-stone-600 focus:bg-white dark:focus:bg-stone-800 rounded-lg text-[11px] font-bold outline-none transition-all" value={item.stock} onChange={e => updateBulkItem(item.id, 'stock', e.target.value)} placeholder="0" /></td>}
                                             <td className="p-2"><input type="number" min="0" className="w-full min-w-[90px] px-3 py-2.5 bg-primary/5 border border-transparent focus:border-primary focus:bg-primary/10 rounded-lg text-[11px] font-black text-primary outline-none transition-all" value={item.price} onChange={e => updateBulkItem(item.id, 'price', e.target.value)} placeholder="0.00" /></td>
                                             {isAdmin && <td className="p-2"><input type="number" min="0" className="w-full min-w-[80px] px-3 py-2.5 bg-transparent border border-transparent focus:border-stone-300 dark:focus:border-stone-600 focus:bg-white dark:focus:bg-stone-800 rounded-lg text-[11px] font-bold outline-none transition-all" value={item.cost} onChange={e => updateBulkItem(item.id, 'cost', e.target.value)} placeholder="0.00" /></td>}
                                         </>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Bell, Check, X, Trash2, FileText, Loader2 } from "lucide-react";
+import { Bell, Check, X, Trash2, FileText, Loader2, ExternalLink } from "lucide-react";
 
 interface Notification {
     id: string;
@@ -124,10 +124,20 @@ export function NotificationBell() {
                                         </div>
                                     </div>
                                     <div className="flex gap-2 mt-2 ml-11">
+                                        {n.orderId && (
+                                            <a
+                                                href={`/admin/ventas?id=${n.orderId}`}
+                                                className="flex flex-1 items-center justify-center gap-1.5 px-3 py-2 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-blue-100 transition-all border border-blue-100 dark:border-blue-800"
+                                                title="Ir a la Ficha"
+                                            >
+                                                <ExternalLink className="w-3 h-3" />
+                                                Ver Ficha
+                                            </a>
+                                        )}
                                         <button
                                             onClick={() => handleAction(n.id, "APPROVED")}
                                             disabled={processingId === n.id}
-                                            className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-emerald-500 text-white rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-emerald-600 active:scale-95 transition-all disabled:opacity-50"
+                                            className="flex flex-1 items-center justify-center gap-1.5 px-3 py-2 bg-emerald-500 text-white rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-emerald-600 active:scale-95 transition-all disabled:opacity-50"
                                         >
                                             {processingId === n.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
                                             Aprobar
@@ -135,7 +145,7 @@ export function NotificationBell() {
                                         <button
                                             onClick={() => handleAction(n.id, "REJECTED")}
                                             disabled={processingId === n.id}
-                                            className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-stone-200 dark:bg-stone-700 text-stone-600 dark:text-stone-300 rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-stone-300 active:scale-95 transition-all disabled:opacity-50"
+                                            className="flex flex-1 items-center justify-center gap-1.5 px-3 py-2 bg-stone-200 dark:bg-stone-700 text-stone-600 dark:text-stone-300 rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-stone-300 active:scale-95 transition-all disabled:opacity-50"
                                         >
                                             <X className="w-3 h-3" />
                                             Rechazar
