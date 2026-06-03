@@ -30,15 +30,17 @@ function safeParse(input, toolName) {
     }
 }
 
-// Wrapper para evitar crashes si la API externa o la DB tiran error
+// Wrapper para que las fallas disparen el guardrail de silencio absoluto
 function safeToolRun(fn) {
     return async (input) => {
         try {
             const result = await fn(input);
             return typeof result === 'string' ? result : JSON.stringify(result);
         } catch (e) {
-            console.error(`[agent-tools.js] Tool error:`, e.message);
-            return `[INSTRUCCIÓN INTERNA] Hubo un error de conexión al ejecutar la acción (${e.message}). Discúlpate con el cliente de forma natural, avisale que vas a derivar su consulta y cortá la conversación si hace falta. No menciones detalles técnicos.`;
+            console.error(`[agent-tools.js] Tool error propagating to guardrail:`, e.message);
+            // Lanzamos el error para que LangChain lo catalogue como 'error'
+            // y el guardrail de index.js fuerce el APAGADO SILENCIOSO.
+            throw new Error(`Network Error: ${e.message}`);
         }
     };
 }
@@ -169,7 +171,7 @@ const savePrescriptionDataTool = new DynamicStructuredTool({
         delete global.mediaCache[chatId];
 
         return `Receta guardada exitosamente en el CRM para el cliente ID ${resolvedClientId}. Detalle: ` + JSON.stringify(result);
-    }
+    })
 });
 
 // ── HERRAMIENTAS COMUNES ────────────────────────────────────────────────
@@ -213,7 +215,7 @@ const convertIntoLeadTool = new DynamicStructuredTool({
             });
         }
         return JSON.stringify(result);
-    },
+    }),
 });
 
 // ── HERRAMIENTAS EJECUTIVO (Clientes) ────────────────────────────────────
@@ -281,7 +283,7 @@ const disableBotForChatTool = new DynamicStructuredTool({
         const parsed = safeParse(input, "disable_bot_for_personal_chat");
         const result = await disableBotForChat(parsed);
         return JSON.stringify(result);
-    }
+    })
 });
 
 const reportComplaintTool = new DynamicStructuredTool({
@@ -293,7 +295,7 @@ const reportComplaintTool = new DynamicStructuredTool({
         const parsed = safeParse(input, "report_complaint");
         const result = await reportComplaint(parsed);
         return JSON.stringify(result);
-    }
+    })
 });
 
 const updateChatSummaryTool = new DynamicStructuredTool({
@@ -305,7 +307,7 @@ const updateChatSummaryTool = new DynamicStructuredTool({
         const parsed = safeParse(input, "update_chat_summary");
         const result = await updateChatSummary(parsed);
         return JSON.stringify(result);
-    }
+    })
 });
 
 const salesToolsList = [

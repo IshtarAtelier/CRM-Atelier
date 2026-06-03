@@ -687,36 +687,24 @@ async function processBotTurn(chat, waId, profileName, realPhone) {
         if (hasApiError) {
             console.log(`  ⏹️ Error de API detectado en ToolMessage (${chat.id}). Cancelando respuesta.`);
             try {
-                const adminNotifyPhone = getAdminWaId();
-                const alertMsg = `Conversación con bot apagado: ${profileName || 'Cliente'} (${realPhone || waId.split('@')[0]})`;
+                // Notificar exclusivamente al admin especificado por el usuario
+                const adminNotifyPhone = "5493541215971@c.us";
+                const alertMsg = `🚨 *ERROR TÉCNICO EN BOT* 🚨\nConversación con bot apagado: ${profileName || 'Cliente'} (${realPhone || waId.split('@')[0]})\nMotivo: El bot sufrió un error y se apagó en silencio.`;
                 await sendMessage(adminNotifyPhone, alertMsg);
-                console.log(`  🔔 Alerta de error de API enviada al administrador`);
+                console.log(`  🔔 Alerta de error enviada al administrador (3541215971)`);
             } catch (alertErr) {
                 console.error('Error enviando alerta de error de API al administrador:', alertErr.message);
             }
             
-            // MANTENER LA DINÁMICA: Avisar al cliente en lugar de silencio absoluto
-            const fallbackMsg = "Tuve un pequeño inconveniente técnico al buscar esa información 😅. Ya le dejé el aviso a uno de los chicos de Atelier para que lo revise y te responda en breve.";
+            // Apagar el bot EN ABSOLUTO SILENCIO
             try {
-                await sendMessage(waId, fallbackMsg);
-                await prisma.whatsAppMessage.create({
-                    data: {
-                        chatId: chat.id,
-                        direction: 'OUTBOUND',
-                        type: 'TEXT',
-                        content: fallbackMsg,
-                        waMessageId: `fallback_${Date.now()}`,
-                        senderName: 'Bot',
-                        status: 'SENT'
-                    }
-                });
-                await disableBotForChatById(chat.id, 'Error de API detectado en ToolMessage (Fallback enviado)');
+                await disableBotForChatById(chat.id, 'Error técnico (Apagado silencioso)');
                 broadcastChatUpdate(chat.id);
-            } catch (fallbackErr) {
-                console.error('Error enviando mensaje de fallback al cliente:', fallbackErr.message);
+            } catch (e) {
+                console.error('Error al apagar bot en silencio:', e.message);
             }
             
-            return;
+            return; // RETORNAR EN ABSOLUTO SILENCIO SIN ENVIAR NADA AL CLIENTE
         }
 
         // Re-verificar si el bot sigue encendido
@@ -1316,7 +1304,17 @@ const handleMessage = async (msg) => {
         });
 
         broadcastChatUpdate(chat.id);
-
+        
+        // Emitir evento para notificaciones de escritorio en el CRM
+        if (global.io) {
+            global.io.emit('new_message_received', {
+                chatId: chat.id,
+                name: profileName || chat.profileName || 'Cliente',
+                phone: realPhone || chat.realPhone || waId.split('@')[0],
+                content: messageType === 'TEXT' ? body : `[Mensaje ${messageType}]`,
+                botEnabled: chat.botEnabled
+            });
+        }
 
 
         // ── Filtros de Seguridad y Resiliencia (Mensajes Largos / Audios / Hostilidad) ──

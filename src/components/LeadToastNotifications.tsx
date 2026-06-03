@@ -74,6 +74,27 @@ export function LeadToastNotifications() {
             }
         });
 
+        socket.on('new_message_received', (data: { chatId: string, name: string, phone: string, content: string, botEnabled: boolean }) => {
+            // Solo notificar si el bot está apagado (requiere atención humana) o si prefieren todo, notificamos todo.
+            // Para emular WhatsApp, lanzamos notificación nativa.
+            if ("Notification" in window && Notification.permission === "granted") {
+                // Prevenir spam: si tenemos foco en la ventana actual, quizás no notificar?
+                // if (document.hasFocus()) return;
+                
+                // Mostrar siempre como pidió el usuario "toda nueva conversacion/mensaje"
+                const notification = new Notification(`Mensaje de ${data.name} (${data.phone})`, {
+                    body: data.content,
+                    icon: "https://cdn-icons-png.flaticon.com/512/124/124034.png", // WhatsApp-like icon
+                    tag: `chat-${data.chatId}` // Agrupa notificaciones por chat
+                });
+                
+                notification.onclick = () => {
+                    window.focus();
+                    window.location.href = `/admin/whatsapp?phone=${data.phone}`;
+                };
+            }
+        });
+
         return () => { socket.disconnect(); };
     }, [removeToast]);
 
