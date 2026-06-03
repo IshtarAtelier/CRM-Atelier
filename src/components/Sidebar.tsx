@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Users, Glasses, Package, ClipboardList, LayoutDashboard, Cog, FileText, Contact, Calculator, ShoppingCart, MessageCircle, Wallet, Search, Menu, X, Receipt, Banknote, TrendingDown, ChevronLeft, ChevronRight, Megaphone, Target, Wrench } from "lucide-react";
+import { Users, Glasses, Package, ClipboardList, LayoutDashboard, Cog, FileText, Contact, Calculator, ShoppingCart, MessageCircle, Wallet, Search, Menu, X, Receipt, Banknote, TrendingDown, ChevronLeft, ChevronRight, Megaphone, Target, Wrench, Droplet } from "lucide-react";
 import { motion } from "framer-motion";
 import { UserProfile } from "./UserProfile";
 import { NotificationBell } from "./NotificationBell";
@@ -55,6 +55,7 @@ export function Sidebar({ userName = "Usuario", userRole = "STAFF", userId = "" 
     { href: "/admin", label: "Dashboard", icon: LayoutDashboard, adminOnly: false },
     { href: "/admin/contactos", label: "Contactos y Clientes", icon: Contact, adminOnly: false },
     { href: "/admin/inventario", label: "Stock y Productos", icon: Glasses, adminOnly: true },
+    { href: "/admin/tratamientos", label: "Tratamientos y Colores", icon: Droplet, adminOnly: true },
     { href: "/admin/cotizador", label: "Cotizador", icon: Calculator, adminOnly: false },
     { href: "/admin/ventas", label: "Ventas / Laboratorio", icon: ClipboardList, adminOnly: false },
     { href: "/admin/facturacion", label: "Facturación", icon: Receipt, adminOnly: true },

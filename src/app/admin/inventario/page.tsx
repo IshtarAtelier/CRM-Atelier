@@ -18,6 +18,7 @@ const PRODUCT_CATEGORIES = [
     { id: 'Armazón de Receta', label: '👓 Armazón' },
     { id: 'Lentes de Contacto', label: '👁️ Contacto' },
     { id: 'Lentes Especiales', label: '✨ Especiales' },
+    { id: 'Tratamiento', label: '💧 Tratamientos' },
 ];
 
 

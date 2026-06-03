@@ -33,7 +33,8 @@ const SOURCES = [
 ];
 
 const IMAGE_STYLES = [
-    { value: 'PLACA', label: 'Placa', desc: 'Fondo premium para texto', icon: '🎨' },
+    { value: 'PLACA', label: 'Placa limpia', desc: 'Fondo premium sin texto', icon: '🎨' },
+    { value: 'PLACA_TEXTO', label: 'Placa con texto', desc: 'Texto integrado por IA', icon: '📝' },
     { value: 'UGC_AVATAR', label: 'UGC Avatar', desc: 'Persona con anteojos', icon: '🧑' },
     { value: 'EDITORIAL', label: 'Editorial', desc: 'Producto de campaña', icon: '📸' },
 ];
@@ -266,7 +267,7 @@ export default function SocialMediaPage() {
                         {/* Image Style Selector */}
                         <div>
                             <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest block mb-3">Estilo de imagen</label>
-                            <div className="grid grid-cols-3 gap-2">
+                            <div className="grid grid-cols-2 gap-2">
                                 {IMAGE_STYLES.map(s => (
                                     <button key={s.value} onClick={() => setImageStyle(s.value)}
                                         className={`p-3 rounded-xl text-center transition-all border-2 hover:scale-[1.02] ${imageStyle === s.value ? 'border-amber-500 bg-amber-50 dark:bg-amber-950/30 shadow-lg shadow-amber-500/10' : 'border-stone-100 dark:border-stone-700 hover:border-stone-200'}`}>

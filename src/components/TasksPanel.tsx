@@ -15,16 +15,20 @@ interface TasksPanelProps {
 
 export default function TasksPanel({ tasks, onClose }: TasksPanelProps) {
     const [showFuture, setShowFuture] = useState(false);
+    const [completedTasks, setCompletedTasks] = useState<Set<string>>(new Set());
+    const [isCompleting, setIsCompleting] = useState<string | null>(null);
 
     const today = new Date();
     today.setHours(23, 59, 59, 999);
 
     const urgentTasks = tasks.filter(task => {
+        if (completedTasks.has(task.id)) return false;
         if (!task.dueDate) return true;
         return new Date(task.dueDate) <= today;
     });
 
     const futureTasks = tasks.filter(task => {
+        if (completedTasks.has(task.id)) return false;
         if (!task.dueDate) return false;
         return new Date(task.dueDate) > today;
     });
@@ -123,24 +127,8 @@ export default function TasksPanel({ tasks, onClose }: TasksPanelProps) {
 
                                         let phone = task.client.phone.replace(/\D/g, '');
                                         if (phone.length === 10) phone = '549' + phone;
-                                        
-                                        try {
-                                            const res = await fetch('/api/whatsapp/send', {
-                                                method: 'POST',
-                                                headers: { 'Content-Type': 'application/json' },
-                                                body: JSON.stringify({ chatId: `${phone}@c.us`, message: finalMessage })
-                                            });
-                                            if (!res.ok) {
-                                                alert('❌ Error al enviar el mensaje por WhatsApp. Asegurate de que el bot esté conectado.');
-                                            } else {
-                                                alert('✅ Mensaje de WhatsApp enviado correctamente (Bot).');
-                                            }
-                                        } catch (err) {
-                                            alert('❌ Error de conexión al enviar el mensaje de WhatsApp.');
-                                        } finally {
-                                            btn.innerHTML = originalHTML;
-                                            btn.disabled = false;
-                                        }
+                                        window.location.href = `/admin/whatsapp?phone=${phone}&text=${encodeURIComponent(finalMessage)}`;
+                                        onClose();
                                     }}
                                     className="absolute right-12 md:right-16 top-1/2 -translate-y-1/2 p-2.5 md:p-3 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl md:rounded-2xl shadow-lg hover:scale-110 active:scale-95 transition-all z-10 disabled:opacity-50 disabled:cursor-not-allowed"
                                     title="Enviar Mensaje por WhatsApp"
@@ -148,6 +136,43 @@ export default function TasksPanel({ tasks, onClose }: TasksPanelProps) {
                                     <WhatsAppIcon className="w-4 h-4 md:w-5 md:h-5" />
                                 </button>
                             )}
+
+                            {/* Mark Complete Action */}
+                            <button
+                                onClick={async (e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    if (isCompleting === task.id) return;
+                                    setIsCompleting(task.id);
+                                    try {
+                                        const res = await fetch(`/api/contacts/${task.clientId}/tasks`, {
+                                            method: 'PATCH',
+                                            headers: { 'Content-Type': 'application/json' },
+                                            body: JSON.stringify({ taskId: task.id, status: 'COMPLETED' })
+                                        });
+                                        if (res.ok) {
+                                            setCompletedTasks(prev => new Set(prev).add(task.id));
+                                        } else {
+                                            alert('❌ Error al completar la tarea.');
+                                        }
+                                    } catch (err) {
+                                        alert('❌ Error de red.');
+                                    } finally {
+                                        setIsCompleting(null);
+                                    }
+                                }}
+                                disabled={isCompleting === task.id}
+                                className={`absolute right-2 md:right-3 top-1/2 -translate-y-1/2 p-2 md:p-2.5 rounded-xl md:rounded-2xl transition-all z-10 
+                                    ${isCompleting === task.id ? 'bg-stone-100 text-stone-400' : 'bg-white hover:bg-emerald-50 dark:bg-stone-800 dark:hover:bg-emerald-900/30 text-stone-300 hover:text-emerald-500 shadow-sm hover:shadow-md'}
+                                `}
+                                title="Finalizar tarea"
+                            >
+                                {isCompleting === task.id ? (
+                                    <span className="w-4 h-4 md:w-5 md:h-5 block rounded-full border-2 border-stone-400 border-t-transparent animate-spin"></span>
+                                ) : (
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                                )}
+                            </button>
                         </div>
                     ))
                 ) : (

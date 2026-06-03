@@ -17,9 +17,23 @@ export async function GET(request: Request) {
         // Search primarily by phone
         const where: any = {};
         if (phone) {
+            const phoneDigits = phone.replace(/\D/g, '');
+            const searchStr = phoneDigits.length > 8 ? phoneDigits.slice(-8) : phoneDigits;
+
+            let phoneMatchIds: string[] = [];
+            if (searchStr.length >= 4) {
+                const rawSearch: any[] = await prisma.$queryRawUnsafe(`
+                    SELECT id 
+                    FROM "Client" 
+                    WHERE REGEXP_REPLACE(COALESCE(phone, ''), '\\D', '', 'g') LIKE '%${searchStr}%'
+                `);
+                phoneMatchIds = rawSearch.map(d => d.id);
+            }
+
             where.OR = [
                 { phone: { contains: phone } },
-                { whatsappChats: { some: { waId: { contains: phone } } } }
+                { id: { in: phoneMatchIds } },
+                { whatsappChats: { some: { waId: { contains: searchStr } } } }
             ];
         } else if (name) {
             where.name = { contains: name, mode: 'insensitive' };

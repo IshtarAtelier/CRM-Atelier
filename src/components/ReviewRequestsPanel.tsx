@@ -5,12 +5,18 @@ import Link from 'next/link';
 
 import { WhatsAppIcon } from '@/components/ui/icons';
 
+import { useState } from 'react';
+
 interface ReviewRequestsPanelProps {
     requests: any[];
     onClose: () => void;
 }
 
 export default function ReviewRequestsPanel({ requests, onClose }: ReviewRequestsPanelProps) {
+    const [completedTasks, setCompletedTasks] = useState<Set<string>>(new Set());
+    const [isCompleting, setIsCompleting] = useState<string | null>(null);
+
+    const displayedRequests = requests.filter(req => !completedTasks.has(req.id));
     return (
         <div className="fixed top-16 right-4 bottom-20 w-[calc(100vw-2rem)] max-w-[28rem] md:top-24 md:right-8 md:bottom-24 md:max-w-[34rem] bg-white/80 dark:bg-stone-900/80 backdrop-blur-2xl z-[100] rounded-[3rem] shadow-huge border border-stone-200/50 dark:border-stone-800/50 flex flex-col overflow-hidden animate-in slide-in-from-right-8 duration-500">
             <header className="p-6 md:p-8 border-b border-stone-100 dark:border-stone-800 flex justify-between items-center bg-yellow-50/50 dark:bg-yellow-900/10">
@@ -26,8 +32,8 @@ export default function ReviewRequestsPanel({ requests, onClose }: ReviewRequest
             </header>
 
             <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-3 md:space-y-4 custom-scrollbar">
-                {requests.length > 0 ? (
-                    requests.map(task => (
+                {displayedRequests.length > 0 ? (
+                    displayedRequests.map(task => (
                         <div key={task.id} className="relative group">
                             <Link
                                 href={`/admin/contactos?clientId=${task.clientId}`}
@@ -66,23 +72,80 @@ export default function ReviewRequestsPanel({ requests, onClose }: ReviewRequest
                             {/* WhatsApp Action */}
                             {task.client?.phone && (
                                 <button
-                                    onClick={(e) => {
+                                    onClick={async (e) => {
                                         e.preventDefault();
                                         e.stopPropagation();
-                                        const message = `Hola ${task.client.name.split(' ')[0]}! Te escribimos para pedirte un favor enorme 🙏\n\n¿Nos dejarías una reseña en Google? Nos ayudaría muchísimo si podés mencionar por qué somos la mejor óptica en Córdoba para vos y cómo fue tu experiencia.\n\nSi podés, contá en la reseña qué anteojos o cristales te hiciste (por ejemplo: multifocales, lentes de sol, cristales Crizal, etc.), ¡nos ayuda un montón! 🙌\n\n👉 https://g.page/r/CcVls8v7ic_NEBM/review\n\n¡Nos suma muchísimo para seguir creciendo!\nEspero tu comentario 🤍✨🫶`;
+                                        
+                                        const btn = e.currentTarget;
+                                        const originalHTML = btn.innerHTML;
+                                        btn.innerHTML = '<span class="w-4 h-4 md:w-5 md:h-5 block rounded-full border-2 border-white border-t-transparent animate-spin"></span>';
+                                        btn.disabled = true;
+
+                                        let productNames = 'anteojos o cristales (por ejemplo: multifocales, lentes de sol, cristales Crizal, etc.)';
+                                        try {
+                                            const res = await fetch(`/api/contacts/${task.clientId}`);
+                                            if (res.ok) {
+                                                const clientData = await res.json();
+                                                const lastSale = clientData.orders?.find((o: any) => o.orderType === 'SALE' && !o.isDeleted);
+                                                if (lastSale && lastSale.items && lastSale.items.length > 0) {
+                                                    productNames = lastSale.items.map((it: any) => it.product?.name || it.productNameSnapshot).filter(Boolean).join(', ');
+                                                }
+                                            }
+                                        } catch (err) {
+                                            console.error('Error fetching orders for review task', err);
+                                        }
+                                        
+                                        const finalMessage = `¡Hola ${task.client.name.split(' ')[0]}! Te escribo para pedirte un favor enorme 🙏\n\n¿Nos dejarías una reseña en Google? Nos ayudaría muchísimo si podés compartir cómo fue tu experiencia y qué fue lo que más te gustó de nuestra atención.\n\nSi podés, contá en la reseña qué te parecieron tus ${productNames}, ¡nos ayuda un montón! 🙌\n\n👉 https://g.page/r/CcVls8v7ic_NEBM/review\n\n¡Nos suma muchísimo para seguir creciendo!\nEspero tu comentario 🤍✨🫶`;
+
                                         let phone = task.client.phone.replace(/\D/g, '');
                                         if (phone.length === 10) phone = '549' + phone;
                                         
-                                        // Copiar mensaje al portapapeles y redirigir al agente activo de WhatsApp en el CRM
-                                        navigator.clipboard.writeText(message).catch(() => {});
-                                        window.location.href = `/admin/whatsapp?phone=${phone}`;
+                                        window.location.href = `/admin/whatsapp?phone=${phone}&text=${encodeURIComponent(finalMessage)}`;
+                                        onClose();
                                     }}
-                                    className="absolute right-12 md:right-16 top-1/2 -translate-y-1/2 p-2.5 md:p-3 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl md:rounded-2xl shadow-lg hover:scale-110 active:scale-95 transition-all z-10"
-                                    title="Ir al chat de WhatsApp en el CRM (Copia mensaje al portapapeles)"
+                                    className="absolute right-12 md:right-16 top-1/2 -translate-y-1/2 p-2.5 md:p-3 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl md:rounded-2xl shadow-lg hover:scale-110 active:scale-95 transition-all z-10 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    title="Ir al chat de WhatsApp en el CRM con el mensaje prearmado"
                                 >
                                     <WhatsAppIcon className="w-4 h-4 md:w-5 md:h-5" />
                                 </button>
                             )}
+
+                            {/* Mark Complete Action */}
+                            <button
+                                onClick={async (e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    if (isCompleting === task.id) return;
+                                    setIsCompleting(task.id);
+                                    try {
+                                        const res = await fetch(`/api/contacts/${task.clientId}/tasks`, {
+                                            method: 'PATCH',
+                                            headers: { 'Content-Type': 'application/json' },
+                                            body: JSON.stringify({ taskId: task.id, status: 'COMPLETED' })
+                                        });
+                                        if (res.ok) {
+                                            setCompletedTasks(prev => new Set(prev).add(task.id));
+                                        } else {
+                                            alert('❌ Error al completar la tarea.');
+                                        }
+                                    } catch (err) {
+                                        alert('❌ Error de red.');
+                                    } finally {
+                                        setIsCompleting(null);
+                                    }
+                                }}
+                                disabled={isCompleting === task.id}
+                                className={`absolute right-2 md:right-3 top-1/2 -translate-y-1/2 p-2 md:p-2.5 rounded-xl md:rounded-2xl transition-all z-10 
+                                    ${isCompleting === task.id ? 'bg-stone-100 text-stone-400' : 'bg-white hover:bg-yellow-50 dark:bg-stone-800 dark:hover:bg-yellow-900/30 text-stone-300 hover:text-yellow-500 shadow-sm hover:shadow-md'}
+                                `}
+                                title="Finalizar tarea de reseña"
+                            >
+                                {isCompleting === task.id ? (
+                                    <span className="w-4 h-4 md:w-5 md:h-5 block rounded-full border-2 border-stone-400 border-t-transparent animate-spin"></span>
+                                ) : (
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                                )}
+                            </button>
                         </div>
                     ))
                 ) : (

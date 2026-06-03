@@ -137,18 +137,38 @@ export default function TaskManager({ tasks, contact, onAddTask, onToggleTask }:
                             <div className="flex items-center gap-2 ml-4">
                                 {isReview && contact?.phone && (
                                     <button
-                                        onClick={(e) => {
+                                        onClick={async (e) => {
                                             e.stopPropagation();
-                                            const clientName = contact?.name ? contact.name.split(' ')[0] : 'Cliente';
-                                            const message = `Hola ${clientName}! Te escribimos para pedirte un favor enorme 🙏\n\n¿Nos dejarías una reseña en Google? Nos ayudaría muchísimo si podés mencionar por qué somos la mejor óptica en Córdoba para vos y cómo fue tu experiencia.\n\nSi podés, contá en la reseña qué anteojos o cristales te hiciste (por ejemplo: multifocales, lentes de sol, cristales Crizal, etc.), ¡nos ayuda un montón! 🙌\n\n👉 https://g.page/r/CcVls8v7ic_NEBM/review\n\n¡Nos suma muchísimo para seguir creciendo!\nEspero tu comentario 🤍✨🫶`;
-                                            const phone = contact.phone.replace(/\D/g, '');
                                             
-                                            // Copiar mensaje al portapapeles y redirigir al agente activo de WhatsApp en el CRM
-                                            navigator.clipboard.writeText(message).catch(() => {});
-                                            window.location.href = `/admin/whatsapp?phone=${phone}`;
+                                            const btn = e.currentTarget;
+                                            const originalHTML = btn.innerHTML;
+                                            btn.innerHTML = '<span class="w-4 h-4 md:w-5 md:h-5 block rounded-full border-2 border-white border-t-transparent animate-spin"></span>';
+                                            btn.disabled = true;
+
+                                            const clientName = contact?.name ? contact.name.split(' ')[0] : 'Cliente';
+                                            let productNames = 'anteojos o cristales (por ejemplo: multifocales, lentes de sol, cristales Crizal, etc.)';
+                                            
+                                            try {
+                                                const res = await fetch(`/api/contacts/${contact.id}`);
+                                                if (res.ok) {
+                                                    const clientData = await res.json();
+                                                    const lastSale = clientData.orders?.find((o: any) => o.orderType === 'SALE' && !o.isDeleted);
+                                                    if (lastSale && lastSale.items && lastSale.items.length > 0) {
+                                                        productNames = lastSale.items.map((it: any) => it.product?.name || it.productNameSnapshot).filter(Boolean).join(', ');
+                                                    }
+                                                }
+                                            } catch (err) {
+                                                console.error('Error fetching orders for review task', err);
+                                            }
+
+                                            const message = `¡Hola ${clientName}! Te escribo para pedirte un favor enorme 🙏\n\n¿Nos dejarías una reseña en Google? Nos ayudaría muchísimo si podés compartir cómo fue tu experiencia y qué fue lo que más te gustó de nuestra atención.\n\nSi podés, contá en la reseña qué te parecieron tus ${productNames}, ¡nos ayuda un montón! 🙌\n\n👉 https://g.page/r/CcVls8v7ic_NEBM/review\n\n¡Nos suma muchísimo para seguir creciendo!\nEspero tu comentario 🤍✨🫶`;
+                                            let phone = contact.phone.replace(/\D/g, '');
+                                            if (phone.length === 10) phone = '549' + phone;
+                                            
+                                            window.location.href = `/admin/whatsapp?phone=${phone}&text=${encodeURIComponent(message)}`;
                                         }}
-                                        className="p-2.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl shadow-lg hover:scale-110 active:scale-95 transition-all"
-                                        title="Ir al chat de WhatsApp en el CRM (Copia mensaje al portapapeles)"
+                                        className="p-2.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl shadow-lg hover:scale-110 active:scale-95 transition-all disabled:opacity-50"
+                                        title="Ir al chat de WhatsApp en el CRM con el mensaje prearmado"
                                     >
                                         <WhatsAppIcon className="w-5 h-5" />
                                     </button>

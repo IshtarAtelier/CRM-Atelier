@@ -43,6 +43,7 @@ const PRODUCT_CATEGORIES: { id: string; label: string; icon: string; noStock?: b
     { id: 'Armazón de Receta', label: 'Armazón de Receta', icon: '👓' },
     { id: 'Lentes de Contacto', label: 'Lentes de Contacto', icon: '👁️' },
     { id: 'Lentes Especiales', label: 'Lentes Especiales', icon: '✨' },
+    { id: 'Tratamiento', label: 'Tratamientos', icon: '💧' },
 ];
 
 export default function ProductForm({ onClose, onSuccess, isAdmin = false, uniqueBrands = [], uniqueLabs = [] }: ProductFormProps) {

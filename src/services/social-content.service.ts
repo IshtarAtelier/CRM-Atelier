@@ -338,6 +338,7 @@ export async function generateSocialImage(contentId: string) {
             prompt: content.imagePrompt,
             config: {
                 numberOfImages: 1,
+                aspectRatio: (content.format === 'STORY' || content.format === 'REEL') ? '9:16' : '1:1'
             }
         });
     } catch (error: any) {

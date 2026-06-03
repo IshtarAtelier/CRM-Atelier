@@ -63,12 +63,28 @@ export const ContactService = {
                 }
             }
             if (search) {
-                where.OR = [
-                    { name: { contains: search, mode: 'insensitive' } },
-                    { phone: { contains: search, mode: 'insensitive' } },
-                    { interest: { contains: search, mode: 'insensitive' } },
-                    { insurance: { contains: search, mode: 'insensitive' } }
-                ];
+                const searchDigits = search.replace(/\D/g, '');
+                if (searchDigits.length >= 4) {
+                    const rawSearch: any[] = await prisma.$queryRawUnsafe(`
+                        SELECT id 
+                        FROM "Client" 
+                        WHERE REGEXP_REPLACE(COALESCE(phone, ''), '\\D', '', 'g') LIKE '%${searchDigits}%'
+                    `);
+                    const phoneMatchIds = rawSearch.map(d => d.id);
+                    where.OR = [
+                        { name: { contains: search, mode: 'insensitive' } },
+                        { id: { in: phoneMatchIds } },
+                        { interest: { contains: search, mode: 'insensitive' } },
+                        { insurance: { contains: search, mode: 'insensitive' } }
+                    ];
+                } else {
+                    where.OR = [
+                        { name: { contains: search, mode: 'insensitive' } },
+                        { phone: { contains: search, mode: 'insensitive' } },
+                        { interest: { contains: search, mode: 'insensitive' } },
+                        { insurance: { contains: search, mode: 'insensitive' } }
+                    ];
+                }
             }
 
             const clients = await prisma.client.findMany({
@@ -172,19 +188,37 @@ export const ContactService = {
 
         // 2. Intelligent Phone Match
         if (!data.forceCreate && normalizedIncomingPhone.length >= 8) {
-            const phoneDuplicatesClient = await prisma.client.findMany({
-                where: { phone: { contains: normalizedIncomingPhone } },
-                include: {
-                    orders: {
-                        where: { orderType: 'SALE', isDeleted: false },
-                        orderBy: { createdAt: 'desc' },
-                        take: 1,
-                        select: { createdAt: true }
+            // Buscamos coincidencia usando los ultimos 8 digitos del telefono ingresado
+            const searchPhoneStr = normalizedIncomingPhone.slice(-8);
+
+            const rawDuplicates: any[] = await prisma.$queryRawUnsafe(`
+                SELECT id 
+                FROM "Client" 
+                WHERE REGEXP_REPLACE(COALESCE(phone, ''), '\\D', '', 'g') LIKE '%${searchPhoneStr}%'
+            `);
+            const duplicateIds = rawDuplicates.map(d => d.id);
+
+            let phoneDuplicatesClient: any[] = [];
+            if (duplicateIds.length > 0) {
+                phoneDuplicatesClient = await prisma.client.findMany({
+                    where: { id: { in: duplicateIds } },
+                    include: {
+                        orders: {
+                            where: { orderType: 'SALE', isDeleted: false },
+                            orderBy: { createdAt: 'desc' },
+                            take: 1,
+                            select: { createdAt: true }
+                        }
                     }
-                }
+                });
+            }
+
+            // Validar que efectivamente coinciden los telefonos para evitar falsos positivos
+            const realPhoneMatchClient = phoneDuplicatesClient.find(p => {
+                const dbPhoneNorm = (p.phone || "").replace(/\D/g, '');
+                return dbPhoneNorm.endsWith(searchPhoneStr) || normalizedIncomingPhone.endsWith(dbPhoneNorm.slice(-8));
             });
 
-            const realPhoneMatchClient = phoneDuplicatesClient.find(p => (p.phone || "").replace(/\D/g, '').endsWith(normalizedIncomingPhone));
             if (realPhoneMatchClient) {
                 const lastOrder = realPhoneMatchClient.orders[0];
                 const lastDate = lastOrder ? ` (Última compra: ${new Date(lastOrder.createdAt).toLocaleDateString('es-AR')})` : "";

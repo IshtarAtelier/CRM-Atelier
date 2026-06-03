@@ -345,6 +345,7 @@ export default function WhatsAppPage() {
 
                 // Auto-select chat from URL parameter if present
                 if (urlPhone && !handledUrlPhoneRef.current) {
+                    const urlText = searchParams.get('text');
                     const normalizedPhone = urlPhone.replace(/\D/g, '');
                     const targetChat = sorted.find(c => 
                         c.waId.includes(normalizedPhone) || 
@@ -352,6 +353,7 @@ export default function WhatsAppPage() {
                     );
                     if (targetChat) {
                         setSelectedChat(targetChat);
+                        if (urlText) setNewMessage(urlText);
                         handledUrlPhoneRef.current = true;
                     } else {
                         handledUrlPhoneRef.current = true;
@@ -370,6 +372,7 @@ export default function WhatsAppPage() {
                                         return [newChat, ...prev];
                                     });
                                     setSelectedChat(newChat);
+                                    if (urlText) setNewMessage(urlText);
                                 } else {
                                     alert(`No hay conversación de WhatsApp iniciada con el número ${urlPhone}. Podés mandarle el primer mensaje desde tu celular para abrir el chat.`);
                                 }
@@ -1770,20 +1773,26 @@ export default function WhatsAppPage() {
                                                 {QUICK_REPLIES.map(qr => (
                                                     <button key={qr.label} onClick={async () => {
                                                         let finalMessage = qr.text;
-                                                        if (qr.label === 'Pedir reseña' && selectedChat?.client?.id) {
-                                                            setNewMessage('Generando mensaje personalizado con última compra...');
-                                                            try {
-                                                                const res = await fetch(`/api/contacts/${selectedChat.client.id}`);
-                                                                if (res.ok) {
-                                                                    const clientData = await res.json();
-                                                                    const lastSale = clientData.orders?.find((o: any) => o.orderType === 'SALE' && !o.isDeleted);
-                                                                    if (lastSale && lastSale.items && lastSale.items.length > 0) {
-                                                                        const productNames = lastSale.items.map((it: any) => it.product?.name || it.productNameSnapshot).filter(Boolean).join(', ');
-                                                                        finalMessage = finalMessage.replace('qué anteojos o cristales te hiciste (por ejemplo: multifocales, lentes de sol, cristales Crizal, etc.)', `qué te parecieron tus ${productNames}`);
+                                                        if (qr.label === 'Pedir reseña' && selectedChat) {
+                                                            const nombreCliente = selectedChat?.client?.name ? selectedChat.client.name.split(' ')[0] : (selectedChat?.profileName ? selectedChat.profileName.split(' ')[0] : '');
+                                                            const saludoPersonalizado = nombreCliente ? `¡Hola ${nombreCliente}! Te escribo para pedirte` : '¡Te escribo para pedirte';
+                                                            finalMessage = finalMessage.replace('¡Te escribo para pedirte', saludoPersonalizado);
+
+                                                            if (selectedChat?.client?.id) {
+                                                                setNewMessage('Generando mensaje personalizado con última compra...');
+                                                                try {
+                                                                    const res = await fetch(`/api/contacts/${selectedChat.client.id}`);
+                                                                    if (res.ok) {
+                                                                        const clientData = await res.json();
+                                                                        const lastSale = clientData.orders?.find((o: any) => o.orderType === 'SALE' && !o.isDeleted);
+                                                                        if (lastSale && lastSale.items && lastSale.items.length > 0) {
+                                                                            const productNames = lastSale.items.map((it: any) => it.product?.name || it.productNameSnapshot).filter(Boolean).join(', ');
+                                                                            finalMessage = finalMessage.replace('qué anteojos o cristales te hiciste (por ejemplo: multifocales, lentes de sol, cristales Crizal, etc.)', `qué te parecieron tus ${productNames}`);
+                                                                        }
                                                                     }
+                                                                } catch (e) {
+                                                                    console.error('Error fetching latest order', e);
                                                                 }
-                                                            } catch (e) {
-                                                                console.error('Error fetching latest order', e);
                                                             }
                                                         }
                                                         setNewMessage(finalMessage);
