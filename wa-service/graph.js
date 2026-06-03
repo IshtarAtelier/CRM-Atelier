@@ -671,7 +671,7 @@ async function salesNode(state) {
         await new Promise(r => setTimeout(r, 1000));
         continue;
       }
-      return { messages: [new AIMessage('Dejame revisarlo bien y en un ratito te respondo con la info exacta.')] };
+      throw llmError;
     }
     const hasContent = response.content && (typeof response.content === 'string' ? response.content.trim().length > 0 : response.content.length > 0);
     const hasToolCalls = response.tool_calls && response.tool_calls.length > 0;
@@ -681,7 +681,7 @@ async function salesNode(state) {
         await new Promise(r => setTimeout(r, 1000));
         continue;
       }
-      return { messages: [new AIMessage('Dejame revisarlo bien y en un ratito te respondo con la info exacta.')] };
+      throw new Error('LLM devolvió respuesta vacía luego de múltiples intentos');
     }
     return { messages: [response] };
   }
@@ -722,7 +722,7 @@ async function executiveNode(state) {
         await new Promise(r => setTimeout(r, 1000));
         continue;
       }
-      return { messages: [new AIMessage('Dejame revisarlo bien y en un ratito te respondo con la info exacta.')] };
+      throw llmError;
     }
     const hasContent = response.content && (typeof response.content === 'string' ? response.content.trim().length > 0 : response.content.length > 0);
     const hasToolCalls = response.tool_calls && response.tool_calls.length > 0;
@@ -732,7 +732,7 @@ async function executiveNode(state) {
         await new Promise(r => setTimeout(r, 1000));
         continue;
       }
-      return { messages: [new AIMessage('Dejame revisarlo bien y en un ratito te respondo con la info exacta.')] };
+      throw new Error('LLM devolvió respuesta vacía luego de múltiples intentos');
     }
     return { messages: [response] };
   }

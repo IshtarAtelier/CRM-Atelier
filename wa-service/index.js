@@ -829,36 +829,32 @@ async function processBotTurn(chat, waId, profileName, realPhone) {
         botReplyingTo.delete(waId); // B1: limpiar tracking en caso de error
         console.error('  ❌ Error bot:', err.message);
 
-        // ── Incrementar contador de errores consecutivos ──
-        const prevCount = chatErrorCounts.get(chat.id) || 0;
-        const newCount = prevCount + 1;
-        chatErrorCounts.set(chat.id, newCount);
-        console.log(`  ⚠️ Error consecutivo #${newCount} para chat ${chat.id}`);
-
-        // Notificar al administrador por WhatsApp para que pueda continuar de forma manual
+        // Apagar el bot inmediatamente ante cualquier falla
         try {
-            const adminNotifyPhone = getAdminWaId();
-            const alertMsg = `⚠️ Error bot (#${newCount}): ${profileName || 'Cliente'} (${realPhone || waId.split('@')[0]}) - ${err.message?.substring(0, 100)}`;
-            await sendMessage(adminNotifyPhone, alertMsg);
-            console.log(`  🔔 Alerta de error enviada al administrador`);
-        } catch (alertErr) {
-            console.error('Error enviando alerta de error al administrador:', alertErr.message);
+            await disableBotForChatById(chat.id, `Error técnico (${err.message?.substring(0, 50)})`);
+            broadcastChatUpdate(chat.id);
+        } catch (e) {
+            console.error('Error al apagar bot tras falla general:', e.message);
         }
 
-        // ── Auto-desactivar tras 3 errores consecutivos (CUALQUIER tipo de error) ──
-        if (newCount >= 3) {
-            console.error(`  🛑 3 errores consecutivos para chat ${chat.id}. Auto-desactivando bot.`);
-            chatErrorCounts.delete(chat.id);
-            await disableBotForChatById(chat.id, `Auto-desactivado: ${newCount} errores consecutivos (${err.message?.substring(0, 80)})`);
+        // Emitir notificación por WebSocket al CRM
+        if (global.io) {
+            global.io.emit('bot_error', {
+                chatId: chat.id,
+                name: profileName || chat.profileName || 'Cliente',
+                phone: realPhone || chat.realPhone || waId.split('@')[0],
+                error: `Desactivado por error: ${err.message?.substring(0, 80)}`
+            });
+        }
 
-            if (global.io) {
-                global.io.emit('bot_error', {
-                    chatId: chat.id,
-                    name: profileName || chat.profileName || 'Cliente',
-                    phone: realPhone || chat.realPhone || waId.split('@')[0],
-                    error: `Auto-desactivado: ${newCount} errores consecutivos`
-                });
-            }
+        // Notificar al administrador especificado (3541215971)
+        try {
+            const adminNotifyPhone = "5493541215971@c.us";
+            const alertMsg = `🚨 *ERROR TÉCNICO EN BOT* 🚨\nConversación con bot apagado: ${profileName || 'Cliente'} (${realPhone || waId.split('@')[0]})\nMotivo: ${err.message?.substring(0, 100)}`;
+            await sendMessage(adminNotifyPhone, alertMsg);
+            console.log(`  🔔 Alerta de falla enviada al administrador (3541215971)`);
+        } catch (alertErr) {
+            console.error('Error enviando alerta de falla al administrador:', alertErr.message);
         }
 
         if (err.message && (err.message.includes('429') || err.message.includes('RESOURCE_EXHAUSTED'))) {
@@ -1822,6 +1818,113 @@ app.patch('/api/chats/:id/bot', async (req, res) => {
     }
 });
 
+// Auxiliar: Descarga el archivo de WhatsApp, lo sube al CRM y actualiza el mensaje en DB en segundo plano
+async function downloadAndUploadMediaForSyncMessage(msg, dbMessageId, chatId) {
+    try {
+        console.log(`  📥 Descargando media en segundo plano para mensaje ${msg.id._serialized}...`);
+        const media = await msg.downloadMedia();
+        if (!media) {
+            console.log(`  ⚠️ No se pudo descargar media para mensaje ${msg.id._serialized}`);
+            return;
+        }
+
+        let messageType = 'IMAGE';
+        if (media.mimetype.startsWith('audio/')) messageType = 'AUDIO';
+        else if (media.mimetype.startsWith('video/')) messageType = 'VIDEO';
+        else if (media.mimetype.startsWith('application/')) messageType = 'DOCUMENT';
+        else messageType = 'IMAGE';
+
+        const buffer = Buffer.from(media.data, 'base64');
+        let ext = 'bin';
+        if (media.mimetype.includes('jpeg') || media.mimetype.includes('jpg')) ext = 'jpg';
+        else if (media.mimetype.includes('png')) ext = 'png';
+        else if (media.mimetype.includes('webp')) ext = 'webp';
+        else if (media.mimetype.includes('gif')) ext = 'gif';
+        else if (media.mimetype.includes('pdf')) ext = 'pdf';
+        else if (media.mimetype.includes('ogg') || media.mimetype.includes('audio')) ext = 'ogg';
+        else if (media.mimetype.includes('mp3') || media.mimetype.includes('mpeg')) ext = 'mp3';
+        else if (media.mimetype.includes('wav')) ext = 'wav';
+        else if (media.mimetype.includes('mp4')) ext = 'mp4';
+        else if (media.mimetype.includes('m4a')) ext = 'm4a';
+        else if (media.mimetype.includes('heic')) ext = 'heic';
+        else if (media.mimetype.includes('heif')) ext = 'heif';
+        else if (media.mimetype.includes('amr')) ext = 'amr';
+        else if (media.mimetype.includes('aac')) ext = 'aac';
+        else {
+            const parts = media.mimetype.split('/');
+            if (parts.length > 1) {
+                const sub = parts[1].split(';')[0].toLowerCase();
+                if (/^[a-z0-9]+$/.test(sub)) {
+                    ext = sub;
+                }
+            }
+        }
+
+        // Cache local para audio/imagen
+        if (messageType === 'IMAGE' || messageType === 'AUDIO') {
+            const mediaMime = media.mimetype;
+            const mediaBase64 = buffer.toString('base64');
+            if (!global.mediaCache) global.mediaCache = {};
+            if (!Array.isArray(global.mediaCache[chatId])) {
+                global.mediaCache[chatId] = [];
+            }
+            const cacheItem = { waMessageId: msg.id._serialized, base64: mediaBase64, mimeType: mediaMime, timestamp: Date.now() };
+            global.mediaCache[chatId].push(cacheItem);
+            
+            setTimeout(() => {
+                if (global.mediaCache[chatId]) {
+                    global.mediaCache[chatId] = global.mediaCache[chatId].filter(item => item !== cacheItem);
+                    if (global.mediaCache[chatId].length === 0) {
+                        delete global.mediaCache[chatId];
+                    }
+                }
+            }, 5 * 60 * 1000);
+        }
+
+        // Subir al CRM
+        const axios = require('axios');
+        const FormDataNode = require('form-data');
+        const form = new FormDataNode();
+        form.append('file', buffer, { filename: `wa_${Date.now()}.${ext}`, contentType: media.mimetype });
+        
+        let mediaUrl = null;
+        try {
+            let uploadUrl = process.env.CRM_API_URL;
+            if (uploadUrl.endsWith('/api/bot')) uploadUrl = uploadUrl.replace('/api/bot', '/api/upload');
+            else if (uploadUrl.endsWith('/api')) uploadUrl = uploadUrl + '/upload';
+            else uploadUrl = uploadUrl + '/upload';
+
+            const uploadRes = await axios.post(uploadUrl, form, {
+                headers: {
+                    ...form.getHeaders(),
+                    'x-api-key': process.env.BOT_API_KEY
+                }
+            });
+            
+            if (uploadRes.data && uploadRes.data.url) {
+                mediaUrl = uploadRes.data.url;
+            }
+        } catch (uploadError) {
+            console.error('Error uploading file to CRM during sync:', uploadError.message);
+        }
+
+        if (mediaUrl) {
+            // Actualizar mensaje en la DB con el mediaUrl y el tipo resuelto
+            await prisma.whatsAppMessage.update({
+                where: { id: dbMessageId },
+                data: {
+                    mediaUrl,
+                    type: messageType
+                }
+            });
+            console.log(`  ✅ Media subido y guardado para mensaje ${msg.id._serialized}: ${mediaUrl}`);
+            broadcastChatUpdate(chatId);
+        }
+    } catch (e) {
+        console.error(`  ❌ Error en downloadAndUploadMediaForSyncMessage para ${msg.id._serialized}:`, e.message);
+    }
+}
+
 // ── Sincronización de Chats y Mensajes desde Celular ──
 const syncRecentChatsAndMessages = async (wc) => {
     const status = getStatus();
@@ -1944,20 +2047,40 @@ const syncRecentChatsAndMessages = async (wc) => {
                     if (!validTypes.includes(msg.type)) continue;
 
                     const direction = msg.fromMe ? 'OUTBOUND' : 'INBOUND';
-                    const messageType = msg.hasMedia ? 'IMAGE' : 'TEXT';
+                    
+                    // Determinar tipo de mensaje preliminar
+                    let messageType = 'TEXT';
+                    if (msg.hasMedia) {
+                        if (msg.type === 'audio' || msg.type === 'ptt') messageType = 'AUDIO';
+                        else if (msg.type === 'video') messageType = 'VIDEO';
+                        else if (msg.type === 'document') messageType = 'DOCUMENT';
+                        else messageType = 'IMAGE';
+                    }
 
-                    await prisma.whatsAppMessage.upsert({
-                        where: { waMessageId: msg.id._serialized },
-                        update: {},
-                        create: {
-                            chatId: dbChat.id,
-                            direction,
-                            type: messageType,
-                            content: msg.body || '[Media/Documento]',
-                            waMessageId: msg.id._serialized,
-                            createdAt: new Date(msg.timestamp * 1000)
-                        }
+                    // Chequear si ya existe en la DB
+                    let dbMsg = await prisma.whatsAppMessage.findUnique({
+                        where: { waMessageId: msg.id._serialized }
                     });
+
+                    if (!dbMsg) {
+                        dbMsg = await prisma.whatsAppMessage.create({
+                            data: {
+                                chatId: dbChat.id,
+                                direction,
+                                type: messageType,
+                                content: msg.body || (msg.hasMedia ? '[Media/Documento]' : ''),
+                                waMessageId: msg.id._serialized,
+                                createdAt: new Date(msg.timestamp * 1000)
+                            }
+                        });
+                    }
+
+                    // Si tiene media y le falta el mediaUrl, descargamos y subimos en segundo plano
+                    if (msg.hasMedia && !dbMsg.mediaUrl) {
+                        downloadAndUploadMediaForSyncMessage(msg, dbMsg.id, dbChat.id).catch(err => {
+                            console.error(`  ❌ Error en downloadAndUploadMediaForSyncMessage para ${msg.id._serialized}:`, err.message);
+                        });
+                    }
                 }
 
                 // Ajustar timestamp al último mensaje real guardado
