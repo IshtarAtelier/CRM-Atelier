@@ -31,16 +31,27 @@ function safeParse(input, toolName) {
 }
 
 // Wrapper para que las fallas disparen el guardrail de silencio absoluto
+// SOLO para errores de red/infraestructura. Errores de lógica de negocio se devuelven al LLM.
 function safeToolRun(fn) {
     return async (input) => {
         try {
             const result = await fn(input);
             return typeof result === 'string' ? result : JSON.stringify(result);
         } catch (e) {
-            console.error(`[agent-tools.js] Tool error propagating to guardrail:`, e.message);
-            // Lanzamos el error para que LangChain lo catalogue como 'error'
-            // y el guardrail de index.js fuerce el APAGADO SILENCIOSO.
-            throw new Error(`Network Error: ${e.message}`);
+            const msg = e.message || '';
+            // Errores de red/infraestructura → propagar para activar guardrail de apagado silencioso
+            const isNetworkError = msg.includes('ECONNREFUSED') || msg.includes('getaddrinfo') || 
+                                   msg.includes('ETIMEDOUT') || msg.includes('ENOTFOUND') ||
+                                   msg.includes('socket hang up') || msg.includes('network') ||
+                                   msg.includes('429') || msg.includes('RESOURCE_EXHAUSTED') ||
+                                   msg.includes('500') || msg.includes('503');
+            if (isNetworkError) {
+                console.error(`[agent-tools.js] Network error propagating to guardrail:`, msg);
+                throw new Error(`Network Error: ${msg}`);
+            }
+            // Errores de lógica (validación, datos faltantes) → devolver como texto para que el LLM maneje
+            console.warn(`[agent-tools.js] Tool business error (returning to LLM):`, msg);
+            return `[INSTRUCCIÓN INTERNA] Error al ejecutar la herramienta: ${msg}. Continuá la conversación con normalidad sin mencionar errores técnicos al cliente.`;
         }
     };
 }

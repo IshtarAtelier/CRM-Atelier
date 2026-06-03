@@ -6,6 +6,8 @@ let qrCode = null;
 let isReady = false;
 let connectedPhone = null;
 let _onMessage = null;
+let keepAliveFailCount = 0;
+const MAX_KEEPALIVE_FAILS = 2; // Tolerar 2 fallos antes de reiniciar
 let _onMessageCreate = null;
 
 let _onStatusChange = null;
@@ -75,8 +77,14 @@ async function startClient(attempt = 1) {
         }
     }
 
+    // Usar volumen persistente de Railway si existe, sino directorio local
+    const sessionDataPath = process.env.RAILWAY_VOLUME_MOUNT_PATH 
+        ? require('path').join(process.env.RAILWAY_VOLUME_MOUNT_PATH, 'wwebjs_auth')
+        : './.wwebjs_auth';
+    console.log(`📂 Usando directorio de sesión: ${sessionDataPath}`);
+
     waClient = new Client({
-        authStrategy: new LocalAuth({ dataPath: './.wwebjs_auth' }),
+        authStrategy: new LocalAuth({ dataPath: sessionDataPath }),
         webVersionCache: {
             type: 'remote',
             remotePath: 'https://raw.githubusercontent.com/AhmadHassan72/WW-cache/refs/heads/main/BootstrapQr.html',
@@ -98,7 +106,7 @@ async function startClient(attempt = 1) {
                 '--no-first-run',
                 '--no-zygote',
                 '--single-process',
-                `--user-data-dir=${require('path').join(__dirname, '.wwebjs_auth', 'chromium-profile')}`,
+                `--user-data-dir=${require('path').join(sessionDataPath, 'chromium-profile')}`,
             ],
         }
     });
@@ -114,6 +122,7 @@ async function startClient(attempt = 1) {
     waClient.on('ready', () => {
         isReady = true;
         qrCode = null;
+        keepAliveFailCount = 0; // Resetear contador de fallos
         connectedPhone = waClient.info?.wid?.user || 'desconocido';
         console.log(`\n✅ WhatsApp conectado: ${connectedPhone}`);
         if (_onStatusChange) _onStatusChange(getStatus());
@@ -125,20 +134,33 @@ async function startClient(attempt = 1) {
         global.waKeepAliveInterval = setInterval(async () => {
             if (waClient && isReady) {
                 try {
-                    const state = await withTimeout(waClient.getState(), 15000);
-                    console.log(`[WA Keep-Alive] Conexión activa (estado: ${state})`);
-                    if (state !== 'CONNECTED') {
-                        console.warn(`[WA Keep-Alive] Estado no conectado (${state}). Reiniciando...`);
+                    const state = await withTimeout(waClient.getState(), 20000);
+                    if (state === 'CONNECTED') {
+                        keepAliveFailCount = 0; // Resetear si conectado
+                        // Log silencioso, solo cada 3 chequeos para no saturar
+                        if (Math.random() < 0.33) console.log(`[WA Keep-Alive] ✅ Conexión estable`);
+                    } else {
+                        keepAliveFailCount++;
+                        console.warn(`[WA Keep-Alive] Estado: ${state} (fallo #${keepAliveFailCount}/${MAX_KEEPALIVE_FAILS})`);
+                        if (keepAliveFailCount >= MAX_KEEPALIVE_FAILS) {
+                            console.error('[WA Keep-Alive] Demasiados fallos consecutivos. Reiniciando cliente...');
+                            keepAliveFailCount = 0;
+                            isReady = false;
+                            startClient(1);
+                        }
+                    }
+                } catch (err) {
+                    keepAliveFailCount++;
+                    console.error(`[WA Keep-Alive] Error en chequeo (fallo #${keepAliveFailCount}/${MAX_KEEPALIVE_FAILS}):`, err.message);
+                    if (keepAliveFailCount >= MAX_KEEPALIVE_FAILS) {
+                        console.error('[WA Keep-Alive] Demasiados fallos consecutivos. Reiniciando cliente...');
+                        keepAliveFailCount = 0;
                         isReady = false;
                         startClient(1);
                     }
-                } catch (err) {
-                    console.error('[WA Keep-Alive] Error en chequeo o página congelada. Reiniciando cliente:', err.message);
-                    isReady = false;
-                    startClient(1);
                 }
             }
-        }, 5 * 60 * 1000); // Chequear cada 5 minutos
+        }, 3 * 60 * 1000); // Chequear cada 3 minutos
     });
 
     waClient.on('disconnected', (reason) => {
@@ -146,8 +168,16 @@ async function startClient(attempt = 1) {
         clearKeepAlive();
         console.log('❌ WhatsApp desconectado:', reason);
         if (_onStatusChange) _onStatusChange(getStatus());
-        // Auto-restart after disconnect
-        setTimeout(() => startClient(1), RETRY_DELAY_MS);
+        // Auto-restart after disconnect con delay más largo para no saturar
+        setTimeout(() => startClient(1), RETRY_DELAY_MS * 2);
+    });
+
+    // Detectar cambios de estado intermedios (OPENING, PAIRING, UNPAIRED, etc.)
+    waClient.on('change_state', (state) => {
+        console.log(`📱 [WA State Change] ${state}`);
+        if (state === 'CONFLICT' || state === 'UNLAUNCHED') {
+            console.warn(`⚠️ Estado conflictivo detectado: ${state}. Esperando resolución...`);
+        }
     });
 
     // ── Recuperación automática ante fallo de autenticación ──
