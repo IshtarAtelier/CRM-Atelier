@@ -248,7 +248,12 @@ export async function GET(request: Request) {
                 toDate.setHours(23, 59, 59, 999);
                 dateCond.lte = toDate;
             }
-            andConditions.push({ createdAt: dateCond });
+            andConditions.push({
+                OR: [
+                    { createdAt: dateCond },
+                    { labSentAt: dateCond }
+                ]
+            });
         }
 
 
@@ -316,7 +321,7 @@ export async function GET(request: Request) {
             labBevelPosition: true,
             smartLabScreenshot: true,
         };
-        const orderBy: any = { createdAt: 'desc' };
+        const orderBy: any = { updatedAt: 'desc' };
 
         if (hasBalance) {
             // When filtering by balance, we retrieve matching records, filter in-memory, and manually paginate.
