@@ -148,9 +148,20 @@ export async function GET(request: Request) {
         }
         const openQuotes = await prisma.order.findMany({
             where: quoteWhere,
-            select: { total: true, subtotalWithMarkup: true }
+            select: { total: true, subtotalWithMarkup: true, clientId: true },
+            orderBy: { createdAt: 'desc' }
         });
-        const totalQuotesValue = openQuotes.reduce((acc, q: any) => acc + (q.total || q.subtotalWithMarkup || 0), 0);
+        
+        const uniqueClientQuotes = new Map();
+        let totalQuotesValue = 0;
+        for (const q of openQuotes) {
+            if (!q.clientId) {
+                totalQuotesValue += (q.total || q.subtotalWithMarkup || 0);
+            } else if (!uniqueClientQuotes.has(q.clientId)) {
+                uniqueClientQuotes.set(q.clientId, true);
+                totalQuotesValue += (q.total || q.subtotalWithMarkup || 0);
+            }
+        }
 
         // CONFIRMADOS: Clients with status CONFIRMED, sum only their latest QUOTE
         const confirmedClients = await prisma.client.findMany({
