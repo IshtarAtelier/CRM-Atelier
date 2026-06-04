@@ -22,6 +22,7 @@ export interface ContactCreateData {
     doctor?: string | null;
     metaLid?: string | null;
     forceCreate?: boolean;
+    createdBy?: string;
 }
 
 export const ContactService = {
@@ -253,7 +254,8 @@ export const ContactService = {
             address: data.address,
             insurance: data.insurance,
             doctor: data.doctor,
-            metaLid: data.metaLid
+            metaLid: data.metaLid,
+            createdBy: (data as any).createdBy || 'Sistema'
         };
 
         const createdClient = await prisma.client.create({

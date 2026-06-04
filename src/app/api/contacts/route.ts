@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { ContactService } from '@/services/contact.service';
 import { prisma } from '@/lib/db';
+import { cookies } from 'next/headers';
+import { decrypt } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -28,6 +30,23 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
     try {
         const body = await request.json();
+        
+        // Add createdBy from session if not provided
+        if (!body.createdBy) {
+            try {
+                const cookieStore = await cookies();
+                const session = cookieStore.get('session');
+                if (session?.value) {
+                    const payload = await decrypt(session.value);
+                    if (payload && payload.name) {
+                        body.createdBy = payload.name;
+                    }
+                }
+            } catch (e) {
+                console.error('Failed to get session for createdBy', e);
+            }
+        }
+
 
         if (!body.name || !body.name.trim()) {
             return NextResponse.json({ error: 'El nombre es obligatorio' }, { status: 400 });

@@ -203,6 +203,8 @@ export default function ContactDetail({
 
                             <HistoryManager 
                                 contactId={contactId}
+                                contactCreatedAt={contact.createdAt}
+                                contactCreatedBy={contact.createdBy}
                                 interactions={contact.interactions || []}
                                 onAddInteraction={(content) => onAddInteraction(contactId, 'NOTE', content).then(() => fetchContact())}
                             />

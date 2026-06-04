@@ -15,12 +15,16 @@ import { es } from 'date-fns/locale';
 
 interface HistoryManagerProps {
     contactId: string;
+    contactCreatedAt: string;
+    contactCreatedBy?: string;
     interactions: any[];
     onAddInteraction: (content: string) => Promise<void>;
 }
 
 export default function HistoryManager({
     contactId,
+    contactCreatedAt,
+    contactCreatedBy = 'Sistema',
     interactions,
     onAddInteraction
 }: HistoryManagerProps) {
@@ -107,33 +111,49 @@ export default function HistoryManager({
             </div>
 
             <div className="space-y-4">
-                {interactions.length === 0 ? (
-                    <div className="text-center py-12 text-stone-300 italic text-sm">No hay actividad registrada.</div>
-                ) : (
-                    interactions.map((interaction, idx) => {
-                        const styles = getInteractionStyles(interaction.type);
-                        const IconComponent = styles.icon;
+                {/* Creation Block */}
+                <div className="relative pl-8">
+                    {interactions.length > 0 && (
+                        <div className="absolute left-[11px] top-6 bottom-0 w-0.5 bg-stone-100 dark:bg-stone-800" />
+                    )}
+                    <div className="absolute left-0 top-1.5 w-6 h-6 bg-white dark:bg-stone-900 rounded-full border-2 border-indigo-400 dark:border-indigo-600 flex items-center justify-center z-10">
+                        <Sparkles className="w-3 h-3 text-indigo-500 dark:text-indigo-400" />
+                    </div>
+                    <div className="bg-indigo-50/50 dark:bg-indigo-950/10 p-5 rounded-2xl border border-indigo-100 dark:border-indigo-900 shadow-sm transition-all">
+                        <div className="flex justify-between items-start mb-2">
+                            <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">
+                                {contactCreatedAt ? format(new Date(contactCreatedAt), "EEEE d 'de' MMMM, HH:mm", { locale: es }) : 'FECHA DESCONOCIDA'}
+                            </span>
+                        </div>
+                        <p className="text-sm font-medium text-indigo-700 dark:text-indigo-300 leading-relaxed">
+                            Ficha creada por <strong className="font-bold">{contactCreatedBy}</strong>
+                        </p>
+                    </div>
+                </div>
 
-                        return (
-                            <div key={interaction.id || `int-${idx}`} className="relative pl-8">
-                                {idx !== interactions.length - 1 && (
-                                    <div className="absolute left-[11px] top-6 bottom-0 w-0.5 bg-stone-100 dark:bg-stone-800" />
-                                )}
-                                <div className={`absolute left-0 top-1.5 w-6 h-6 bg-white dark:bg-stone-900 rounded-full border-2 ${styles.borderColor} flex items-center justify-center z-10`}>
-                                    <IconComponent className={`w-3 h-3 ${styles.textColor}`} />
-                                </div>
-                                <div className={`${styles.bgColor} p-5 rounded-2xl border border-stone-100 dark:border-stone-800/80 shadow-sm transition-all`}>
-                                    <div className="flex justify-between items-start mb-2">
-                                        <span className="text-[10px] font-black text-stone-400 uppercase tracking-widest">
-                                            {format(new Date(interaction.createdAt), "EEEE d 'de' MMMM, HH:mm", { locale: es })}
-                                        </span>
-                                    </div>
-                                    <p className="text-sm font-medium text-stone-700 dark:text-stone-300 leading-relaxed whitespace-pre-line">{interaction.content}</p>
-                                </div>
+                {interactions.map((interaction, idx) => {
+                    const styles = getInteractionStyles(interaction.type);
+                    const IconComponent = styles.icon;
+
+                    return (
+                        <div key={interaction.id || `int-${idx}`} className="relative pl-8">
+                            {idx !== interactions.length - 1 && (
+                                <div className="absolute left-[11px] top-6 bottom-0 w-0.5 bg-stone-100 dark:bg-stone-800" />
+                            )}
+                            <div className={`absolute left-0 top-1.5 w-6 h-6 bg-white dark:bg-stone-900 rounded-full border-2 ${styles.borderColor} flex items-center justify-center z-10`}>
+                                <IconComponent className={`w-3 h-3 ${styles.textColor}`} />
                             </div>
-                        );
-                    })
-                )}
+                            <div className={`${styles.bgColor} p-5 rounded-2xl border border-stone-100 dark:border-stone-800/80 shadow-sm transition-all`}>
+                                <div className="flex justify-between items-start mb-2">
+                                    <span className="text-[10px] font-black text-stone-400 uppercase tracking-widest">
+                                        {format(new Date(interaction.createdAt), "EEEE d 'de' MMMM, HH:mm", { locale: es })}
+                                    </span>
+                                </div>
+                                <p className="text-sm font-medium text-stone-700 dark:text-stone-300 leading-relaxed whitespace-pre-line">{interaction.content}</p>
+                            </div>
+                        </div>
+                    );
+                })}
             </div>
         </div>
     );

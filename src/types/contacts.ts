@@ -83,6 +83,7 @@ export interface Contact {
     orders?: Order[];
     tasks?: any[];
     createdAt: string;
+    createdBy?: string;
 }
 
 export interface ContactFormData {

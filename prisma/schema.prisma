@@ -39,6 +39,7 @@ model Client {
   metaLid       String?
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
+  createdBy     String?        @default("Sistema")
   wantsInvoice  Boolean?
   tasks         ClientTask[]
   interactions  Interaction[]

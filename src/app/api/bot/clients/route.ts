@@ -71,6 +71,7 @@ export async function POST(request: Request) {
             // Create new (Lead) with Deduplication Logic
             try {
                 const created = await ContactService.create({
+                    createdBy: 'Agente Bot',
                     ...data,
                     status: data.status || 'CONTACT'
                 });
