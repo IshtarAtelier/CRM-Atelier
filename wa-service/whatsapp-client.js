@@ -46,10 +46,6 @@ async function startClient(attempt = 1) {
         waClient = null;
     }
 
-    // Limpiar perfil de Chromium para evitar "Code: 21" tras reinicios/redeploys
-    // El error Code 21 es un lock POSIX interno de Chromium que queda del container anterior.
-    // La solución es eliminar el directorio chromium-profile completo (es solo cache del browser,
-    // la sesión de WhatsApp se guarda en session/ por LocalAuth).
     const fs = require('fs');
     const path = require('path');
     
@@ -63,27 +59,21 @@ async function startClient(attempt = 1) {
         require('child_process').execSync('pkill -9 -f chromium || pkill -9 -f chrome || true', { stdio: 'ignore', timeout: 3000 });
     } catch (e) { /* ignore */ }
     
-    // Eliminar el directorio chromium-profile completo para que Chromium arranque limpio
-    const chromiumProfilePath = path.join(sessionDataPath, 'chromium-profile');
-    try {
-        if (fs.existsSync(chromiumProfilePath)) {
-            fs.rmSync(chromiumProfilePath, { recursive: true, force: true });
-            console.log(`🗑️ Perfil de Chromium eliminado: ${chromiumProfilePath}`);
-        }
-    } catch (e) {
-        console.error('⚠️ No se pudo eliminar perfil de Chromium:', e.message);
-    }
-    
-    // También limpiar SingletonLock en session/ por si acaso
+    // Limpiar SOLO los archivos SingletonLock (no el directorio completo)
+    // Esto preserva la sesión de WhatsApp entre redeploys normales
     const lockPaths = [
+        path.join(sessionDataPath, 'chromium-profile', 'SingletonLock'),
         path.join(sessionDataPath, 'session', 'SingletonLock'),
         path.join(__dirname, '.wwebjs_auth', 'session', 'SingletonLock'),
     ];
     for (const lp of lockPaths) {
-        try { fs.rmSync(lp, { force: true }); } catch (e) { /* ignore */ }
+        try { 
+            if (fs.existsSync(lp)) {
+                fs.rmSync(lp, { force: true }); 
+                console.log(`🗑️ SingletonLock eliminado: ${lp}`);
+            }
+        } catch (e) { /* ignore */ }
     }
-    
-    console.log('🗑️ Limpieza de Chromium completada.');
 
     // Validar integridad del archivo de sesión antes de iniciar
     const sessionPath = path.join(__dirname, '.wwebjs_auth', 'session');
@@ -210,11 +200,9 @@ async function startClient(attempt = 1) {
         isReady = false;
         clearKeepAlive();
         // Eliminar datos de sesión corruptos para forzar re-escaneo de QR
-        const fs = require('fs');
-        const path = require('path');
-        const sessionPath = path.join(__dirname, '.wwebjs_auth', 'session');
+        const authSessionPath = path.join(sessionDataPath, 'session');
         try {
-            fs.rmSync(sessionPath, { recursive: true, force: true });
+            fs.rmSync(authSessionPath, { recursive: true, force: true });
             console.log('🗑️ Sesión eliminada tras auth_failure. Se requerirá nuevo escaneo de QR.');
         } catch (e) {
             console.error('Error eliminando sesión tras auth_failure:', e.message);
@@ -239,6 +227,19 @@ async function startClient(attempt = 1) {
         await waClient.initialize();
     } catch (err) {
         console.error(`❌ Error inicializando WhatsApp (intento ${attempt}):`, err.message);
+        
+        // Si es Code 21 (perfil bloqueado), eliminar chromium-profile y reintentar
+        if (err.message.includes('Code: 21') || err.message.includes('process_singleton')) {
+            console.log('🔧 Detectado lock de perfil Chromium (Code 21). Eliminando chromium-profile...');
+            const chromiumProfilePath = path.join(sessionDataPath, 'chromium-profile');
+            try {
+                fs.rmSync(chromiumProfilePath, { recursive: true, force: true });
+                console.log(`🗑️ Perfil de Chromium eliminado: ${chromiumProfilePath}`);
+            } catch (e) {
+                console.error('⚠️ No se pudo eliminar perfil:', e.message);
+            }
+        }
+        
         if (attempt < MAX_RETRIES) {
             console.log(`⏳ Reintentando en ${RETRY_DELAY_MS / 1000}s...`);
             await new Promise(r => setTimeout(r, RETRY_DELAY_MS));
