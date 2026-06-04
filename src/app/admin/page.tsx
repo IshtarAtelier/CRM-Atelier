@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { TrendingUp, Tag, Layers, ArrowUpRight, DollarSign, ShoppingCart, Percent, Calendar, Clock, Calculator, User, ArrowRight, Megaphone, MessageCircle, ExternalLink, Mail, Loader2, CheckCircle2 } from "lucide-react";
 import DashboardActions from "@/components/dashboard/DashboardActions";
 import DashboardObjectives from "@/components/dashboard/DashboardObjectives";
+import QuickQuote from "@/components/QuickQuote";
 import { formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
 
@@ -39,6 +40,7 @@ interface DashboardData {
 }
 
 export default function Home() {
+  const [isQuoteOpen, setIsQuoteOpen] = useState(false);
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [periodLabel, setPeriodLabel] = useState('Este Mes');
@@ -142,9 +144,17 @@ export default function Home() {
           </h1>
           <p className="text-foreground/50 mt-1 font-medium italic uppercase text-[8px] lg:text-[10px] tracking-widest leading-none">Inteligencia de Negocio y Control Administrativo</p>
         </div>
+        <button
+          onClick={() => setIsQuoteOpen(true)}
+          className="px-5 py-2 bg-primary text-primary-foreground rounded-xl text-xs font-bold shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all uppercase tracking-tight self-start md:self-auto"
+        >
+          Nueva Venta
+        </button>
       </header>
 
-      <DashboardActions onPeriodChange={handlePeriodChange} />
+      {isAdmin && (
+        <DashboardActions onPeriodChange={handlePeriodChange} />
+      )}
 
       {/* 1. Reporte General de Ventas / Métricas — Only for Admin */}
       {isAdmin && (
@@ -497,7 +507,9 @@ export default function Home() {
           )}
         </section>
       )}
-
+      {isQuoteOpen && (
+        <QuickQuote onClose={() => setIsQuoteOpen(false)} />
+      )}
     </div>
   );
 }
