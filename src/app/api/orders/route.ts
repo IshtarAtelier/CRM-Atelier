@@ -321,7 +321,10 @@ export async function GET(request: Request) {
             labBevelPosition: true,
             smartLabScreenshot: true,
         };
-        const orderBy: any = { updatedAt: 'desc' };
+        const orderBy: any = [
+            { labSentAt: { sort: 'desc', nulls: 'first' } },
+            { createdAt: 'desc' }
+        ];
 
         if (hasBalance) {
             // When filtering by balance, we retrieve matching records, filter in-memory, and manually paginate.
