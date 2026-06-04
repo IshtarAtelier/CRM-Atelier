@@ -2,7 +2,7 @@ import { Metadata } from 'next';
 import { StorefrontNavbar } from "@/components/Storefront/StorefrontNavbar";
 import { prisma } from "@/lib/db";
 
-export const revalidate = 300;
+export const dynamic = 'force-dynamic';
 import { CustomGlassesBuilder } from "@/components/Storefront/CustomGlassesBuilder";
 
 

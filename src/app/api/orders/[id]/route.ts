@@ -667,7 +667,6 @@ export async function PATCH(
             if (orderType === 'SALE' && !labStatus) {
                 data.labStatus = 'SENT';
                 data.labSentAt = new Date();
-                data.createdAt = new Date(); // Overwrite createdAt so it's born on conversion
             }
 
             // Stock decrement: when converting to SALE, atomically decrement stock

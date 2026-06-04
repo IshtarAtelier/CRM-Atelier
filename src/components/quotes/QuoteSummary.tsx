@@ -205,38 +205,44 @@ export default function QuoteSummary({
 
         setIsSendingPDF(true);
         try {
-            const items = order.items || [];
-            const itemLines = items.map((it: any) => `• ${it.product?.brand || ''} · ${it.product?.name || 'Producto'} x${it.quantity}`).join('\n');
+            const pdfRes = await fetch(`/api/orders/${order.id}/pdf`);
+            if (!pdfRes.ok) throw new Error('No se pudo generar el PDF');
+            const blob = await pdfRes.blob();
             
-            const pdfUrl = `${window.location.origin}/api/orders/${order.id}/pdf`;
+            const base64 = await new Promise<string>((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onloadend = () => {
+                    const result = reader.result as string;
+                    resolve(result.split(',')[1]);
+                };
+                reader.onerror = reject;
+                reader.readAsDataURL(blob);
+            });
             
-            let text = `✨ *${isSale ? 'VENTA' : 'PRESUPUESTO'} ATELIER ÓPTICA — ${contact.name.toUpperCase()}* ✨\n\n`;
-            text += `${itemLines}\n\n`;
-            text += `*Precio Lista: $${Math.round(financials.listPrice).toLocaleString()}*\n`;
-            text += `🏦 *Transf. (-${financials.discountTransfer}%): $${financials.totalTransfer.toLocaleString()}*\n`;
-            text += `💵 *Efectivo (-${financials.discountCash}%): $${financials.totalCash.toLocaleString()}*\n`;
-            text += `💳 *Tarjeta (Lista): $${financials.totalCard.toLocaleString()}*\n`;
-            text += `   ↳ 3 cuotas sin interés: $${financials.installment3.toLocaleString()} c/u\n`;
-            text += `   ↳ 6 cuotas sin interés: $${financials.installment6.toLocaleString()} c/u\n\n`;
-            text += `📄 *Ver comprobante detallado:*\n${pdfUrl}`;
+            const text = `📄 Adjunto el comprobante de su ${isSale ? 'compra' : 'presupuesto'} en Atelier Óptica.`;
             
             const sendRes = await fetch('/api/whatsapp/send', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ 
                     chatId: `${formattedPhone}@c.us`, 
-                    message: text
+                    message: text,
+                    media: {
+                        base64,
+                        mimetype: 'application/pdf',
+                        filename: `${isSale ? 'Venta' : 'Presupuesto'}_${order.id.slice(-4).toUpperCase()}.pdf`
+                    }
                 })
             });
 
             if (sendRes.ok) {
-                alert(`✅ Link del comprobante enviado por WhatsApp`);
+                alert(`✅ PDF enviado por WhatsApp`);
             } else {
-                alert(`❌ Error al enviar el link por WhatsApp desde el bot.`);
+                alert(`❌ Error al enviar el PDF por WhatsApp desde el bot.`);
             }
         } catch (err) {
             console.error(err);
-            alert(`❌ Error al intentar enviar el link por WhatsApp.`);
+            alert(`❌ Error al intentar enviar el PDF por WhatsApp.`);
         } finally {
             setIsSendingPDF(false);
         }
@@ -577,33 +583,6 @@ export default function QuoteSummary({
                             className="py-3 bg-amber-50 text-amber-600 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-amber-100 transition-all flex items-center justify-center gap-2"
                         >
                             <Banknote className="w-3.5 h-3.5" /> Abonar
-                        </button>
-                        <button 
-                            onClick={async () => {
-                                const note = window.prompt('Escribí el mensaje para Matías (se le enviará por WhatsApp con el link del cliente):');
-                                if (!note) return;
-                                
-                                try {
-                                    const link = `${window.location.origin}/admin/contactos?id=${contact.id}`;
-                                    const fullMessage = `📌 *Nota en el pedido de ${contact.name}*\n\n"${note}"\n\nLink: ${link}`;
-                                    
-                                    const res = await fetch('/api/equipo/mensajes', {
-                                        method: 'POST',
-                                        headers: { 'Content-Type': 'application/json' },
-                                        body: JSON.stringify({ content: fullMessage, sender: 'ISHTAR' })
-                                    });
-                                    if (res.ok) {
-                                        alert('✅ Mensaje enviado a Matías.');
-                                    } else {
-                                        alert('❌ Error al enviar el mensaje.');
-                                    }
-                                } catch (e) {
-                                    alert('❌ Error de red al enviar el mensaje.');
-                                }
-                            }}
-                            className="py-3 bg-blue-50 text-blue-600 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-blue-100 transition-all flex items-center justify-center gap-2"
-                        >
-                            <MessageSquare className="w-3.5 h-3.5" /> Avisar a Matías
                         </button>
                         {/* Ocultar botón eliminar para vendedores en ventas ya cerradas */}
                         {!isLockedSale && (
