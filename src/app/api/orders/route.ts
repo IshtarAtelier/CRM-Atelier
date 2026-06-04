@@ -248,12 +248,7 @@ export async function GET(request: Request) {
                 toDate.setHours(23, 59, 59, 999);
                 dateCond.lte = toDate;
             }
-            andConditions.push({
-                OR: [
-                    { createdAt: dateCond },
-                    { labSentAt: dateCond }
-                ]
-            });
+            andConditions.push({ createdAt: dateCond });
         }
 
 
