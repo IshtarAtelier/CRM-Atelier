@@ -103,10 +103,7 @@ async function startClient(attempt = 1) {
         }
     }
 
-    // Usar volumen persistente de Railway si existe, sino directorio local
-    const sessionDataPath = process.env.RAILWAY_VOLUME_MOUNT_PATH 
-        ? require('path').join(process.env.RAILWAY_VOLUME_MOUNT_PATH, 'wwebjs_auth')
-        : './.wwebjs_auth';
+    // Usar el sessionDataPath ya determinado arriba (Railway volume o local)
     console.log(`📂 Usando directorio de sesión: ${sessionDataPath}`);
 
     waClient = new Client({
