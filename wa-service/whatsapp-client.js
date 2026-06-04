@@ -120,7 +120,6 @@ async function startClient(attempt = 1) {
                 '--disable-accelerated-2d-canvas',
                 '--no-first-run',
                 '--no-zygote',
-                `--user-data-dir=${require('path').join(sessionDataPath, 'chromium-profile')}`,
             ],
         }
     });
