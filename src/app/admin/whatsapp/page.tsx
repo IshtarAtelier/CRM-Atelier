@@ -54,7 +54,7 @@ const QUICK_REPLIES = [
     { label: 'Listo para retirar', text: '🎉 ¡Tu pedido está listo para retirar!' },
     { label: 'Pago pendiente', text: 'Te recuerdo que quedó pendiente el saldo restante. ¿Cuándo te viene bien coordinar el pago?' },
     { label: 'Pedir reseña', text: 'Te escribo para pedirte un favor enorme 🙏\n\nMe dejarias una reseña en Google? me ayuda muchísimo, si podés compartir cómo fue tu experiencia y qué fue lo que más te gustó de nuestra atención.\n\nSi podés, contá en la reseña qué anteojos o cristales te hiciste (por ejemplo: multifocales, lentes de sol, cristales Crizal, etc.), ¡nos ayuda un montón! 🙌\n\n👉 https://g.page/r/CcVls8v7ic_NEBM/review\n\nMe suma muchísimo para seguir creciendo! Espero tu comentario 🤍✨🫶' },
-    { label: 'Instagram', text: '¡Te invito a seguirnos en Instagram para ver todas nuestras novedades, promos y modelitos nuevos! 📸✨\n\n👉 https://instagram.com/atelieroptica_\n\n¡Nos encontrás como @atelieroptica_!' },
+    { label: 'Instagram', text: '¡Te invito a seguirnos en Instagram para ver todas nuestras novedades, promos y modelitos nuevos! 📸✨\n\n👉 https://www.instagram.com/atelieroptica_/\n\n¡Nos encontrás como @atelieroptica_!' },
 ];
 
 // ── Types ─────────────────────────────────────────
