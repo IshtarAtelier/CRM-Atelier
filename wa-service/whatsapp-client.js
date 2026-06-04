@@ -105,7 +105,6 @@ async function startClient(attempt = 1) {
                 '--disable-accelerated-2d-canvas',
                 '--no-first-run',
                 '--no-zygote',
-                '--single-process',
                 `--user-data-dir=${require('path').join(sessionDataPath, 'chromium-profile')}`,
             ],
         }
@@ -169,7 +168,7 @@ async function startClient(attempt = 1) {
         console.log('❌ WhatsApp desconectado:', reason);
         if (_onStatusChange) _onStatusChange(getStatus());
         // Auto-restart after disconnect con delay más largo para no saturar
-        setTimeout(() => startClient(1), RETRY_DELAY_MS * 2);
+        setTimeout(() => startClient(1).catch(err => console.error('Error auto-reconnecting after disconnect:', err)), RETRY_DELAY_MS * 2);
     });
 
     // Detectar cambios de estado intermedios (OPENING, PAIRING, UNPAIRED, etc.)
@@ -196,7 +195,7 @@ async function startClient(attempt = 1) {
             console.error('Error eliminando sesión tras auth_failure:', e.message);
         }
         if (_onStatusChange) _onStatusChange(getStatus());
-        setTimeout(() => startClient(1), RETRY_DELAY_MS);
+        setTimeout(() => startClient(1).catch(err => console.error('Error auto-reconnecting after auth_failure:', err)), RETRY_DELAY_MS);
     });
 
     // Limpiar listeners previos para evitar duplicados en reconexiones

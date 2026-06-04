@@ -131,8 +131,8 @@ function CotizadorPageContent() {
     // Initial load
     // Fetch doctors for the new contact form
     useEffect(() => {
-        fetch('/api/doctors').then(res => res.json()).then(data => { if (Array.isArray(data)) setDoctors(data); }).catch(() => {});
-        fetch('/api/crystal-colors').then(res => res.json()).then(data => { if (Array.isArray(data)) setCrystalColors(data); }).catch(() => {});
+        fetch('/api/doctors').then(res => res.json()).then(data => { if (Array.isArray(data)) setDoctors(data); }).catch((err) => console.error("Error fetching doctors:", err));
+        fetch('/api/crystal-colors').then(res => res.json()).then(data => { if (Array.isArray(data)) setCrystalColors(data); }).catch((err) => console.error("Error fetching crystal colors:", err));
     }, []);
 
     useEffect(() => {
