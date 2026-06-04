@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useRef, useCallback } from 'react';
-import { Upload, X, FileImage, File as FileIcon, AlertCircle } from 'lucide-react';
+import { useState, useRef, useCallback, useEffect } from 'react';
+import { Upload, X, FileImage, File as FileIcon, AlertCircle, Clipboard } from 'lucide-react';
 
 interface FileDropZoneProps {
     /** Accepted file types, e.g. "image/*" or "image/*,.pdf" */
@@ -43,6 +43,7 @@ export default function FileDropZone({
 }: FileDropZoneProps) {
     const [isDragging, setIsDragging] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [pasteFlash, setPasteFlash] = useState(false);
     const inputRef = useRef<HTMLInputElement>(null);
     const dragCountRef = useRef(0);
 
@@ -139,6 +140,34 @@ export default function FileDropZone({
         }
     }, [disabled, loading]);
 
+    // Clipboard paste support (Ctrl+V / Cmd+V)
+    useEffect(() => {
+        const handlePaste = (e: ClipboardEvent) => {
+            if (disabled || loading || preview) return;
+
+            const items = e.clipboardData?.items;
+            if (!items) return;
+
+            for (let i = 0; i < items.length; i++) {
+                const item = items[i];
+                if (item.type.startsWith('image/')) {
+                    e.preventDefault();
+                    const file = item.getAsFile();
+                    if (file) {
+                        // Show paste flash animation
+                        setPasteFlash(true);
+                        setTimeout(() => setPasteFlash(false), 600);
+                        handleFile(file);
+                    }
+                    return;
+                }
+            }
+        };
+
+        document.addEventListener('paste', handlePaste);
+        return () => document.removeEventListener('paste', handlePaste);
+    }, [disabled, loading, preview, handleFile]);
+
     // If there's a preview, show it
     if (preview) {
         return (
@@ -203,15 +232,18 @@ export default function FileDropZone({
                     relative flex flex-col items-center justify-center w-full
                     ${compact ? 'h-28' : 'min-h-[140px] py-6'}
                     rounded-2xl cursor-pointer
-                    transition-all duration-300 ease-out
+                    transition-all duration-300 ease-out overflow-hidden
                     ${disabled || loading
                         ? 'opacity-50 cursor-not-allowed bg-stone-100 dark:bg-stone-900 border-2 border-stone-200 dark:border-stone-700'
-                        : isDragging
+                        : isDragging || pasteFlash
                             ? 'bg-primary/5 dark:bg-primary/10 border-2 border-primary border-dashed scale-[1.02] shadow-lg shadow-primary/10'
                             : 'bg-stone-50 dark:bg-stone-900 border-2 border-dashed border-stone-200 dark:border-stone-700 hover:border-primary/50 hover:bg-primary/[0.02] group'
                     }
                 `}
             >
+                {/* Paste Flash Overlay */}
+                <div className={`absolute inset-0 bg-primary/20 transition-opacity duration-300 pointer-events-none ${pasteFlash ? 'opacity-100' : 'opacity-0'}`} />
+
                 <input
                     ref={inputRef}
                     type="file"
@@ -223,35 +255,50 @@ export default function FileDropZone({
 
                 {loading ? (
                     <>
-                        <div className="w-8 h-8 border-3 border-primary/30 border-t-primary rounded-full animate-spin mb-3" />
-                        <span className="text-[10px] font-black text-primary uppercase tracking-widest animate-pulse">
+                        <div className="w-8 h-8 border-3 border-primary/30 border-t-primary rounded-full animate-spin mb-3 relative z-10" />
+                        <span className="text-[10px] font-black text-primary uppercase tracking-widest animate-pulse relative z-10">
                             {loadingLabel}
                         </span>
                     </>
                 ) : isDragging ? (
                     <>
-                        <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mb-3 animate-bounce">
+                        <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mb-3 animate-bounce relative z-10">
                             <Upload className="w-6 h-6 text-primary" />
                         </div>
-                        <span className="text-xs font-black text-primary uppercase tracking-widest">
+                        <span className="text-xs font-black text-primary uppercase tracking-widest relative z-10">
                             Soltá el archivo aquí
+                        </span>
+                    </>
+                ) : pasteFlash ? (
+                    <>
+                        <div className="w-12 h-12 bg-primary/20 rounded-full flex items-center justify-center mb-3 scale-110 transition-transform relative z-10">
+                            <Clipboard className="w-6 h-6 text-primary" />
+                        </div>
+                        <span className="text-xs font-black text-primary uppercase tracking-widest relative z-10">
+                            ¡Imagen Pegada!
                         </span>
                     </>
                 ) : (
                     <>
-                        <div className="w-10 h-10 bg-stone-100 dark:bg-stone-800 rounded-full flex items-center justify-center mb-2 group-hover:bg-primary/10 group-hover:scale-110 transition-all duration-300">
+                        <div className="w-10 h-10 bg-stone-100 dark:bg-stone-800 rounded-full flex items-center justify-center mb-2 group-hover:bg-primary/10 group-hover:scale-110 transition-all duration-300 relative z-10">
                             {accept?.includes('image') ? (
                                 <FileImage className="w-5 h-5 text-stone-300 group-hover:text-primary transition-colors duration-300" />
                             ) : (
                                 <FileIcon className="w-5 h-5 text-stone-300 group-hover:text-primary transition-colors duration-300" />
                             )}
                         </div>
-                        <span className="text-[10px] font-black text-stone-400 group-hover:text-primary/70 uppercase tracking-widest transition-colors duration-300 text-center px-4">
+                        <span className="text-[10px] font-black text-stone-400 group-hover:text-primary/70 uppercase tracking-widest transition-colors duration-300 text-center px-4 relative z-10">
                             {label}
                         </span>
-                        <span className="text-[9px] font-bold text-stone-300 mt-1">
-                            Máx. {maxSizeMB}MB
-                        </span>
+                        
+                        <div className="flex items-center gap-2 mt-2 relative z-10">
+                            <span className="flex items-center gap-1 text-[9px] font-bold text-stone-400 bg-stone-200/50 dark:bg-stone-800/50 px-2 py-0.5 rounded-md">
+                                <Clipboard className="w-3 h-3" /> Ctrl+V para pegar
+                            </span>
+                            <span className="text-[9px] font-bold text-stone-300">
+                                Máx. {maxSizeMB}MB
+                            </span>
+                        </div>
                     </>
                 )}
             </div>
