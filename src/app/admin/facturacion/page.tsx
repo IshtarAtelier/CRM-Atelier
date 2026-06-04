@@ -208,8 +208,8 @@ export default function BillingPage() {
                             <span className="text-xs font-black text-indigo-700 dark:text-indigo-300">
                                 YANI: <span className="bg-indigo-100 dark:bg-indigo-800/50 px-2 py-0.5 rounded-lg ml-1">${billingStats.YANI.total.toLocaleString('es-AR')} ({billingStats.YANI.count})</span>
                             </span>
-                            <span className="text-xs font-black text-indigo-700 dark:text-indigo-300">
-                                ISH: <span className="bg-indigo-100 dark:bg-indigo-800/50 px-2 py-0.5 rounded-lg ml-1">${billingStats.ISH.total.toLocaleString('es-AR')} ({billingStats.ISH.count})</span>
+                             <span className="text-xs font-black text-indigo-700 dark:text-indigo-300">
+                                ISHTAR: <span className="bg-indigo-100 dark:bg-indigo-800/50 px-2 py-0.5 rounded-lg ml-1">${billingStats.ISH.total.toLocaleString('es-AR')} ({billingStats.ISH.count})</span>
                             </span>
                         </div>
                     </div>
@@ -255,11 +255,20 @@ export default function BillingPage() {
                                         <Receipt size={24} className="group-hover:rotate-12 transition-transform" />
                                     </div>
                                     <div>
-                                        <h3 className="font-black text-stone-800 dark:text-white flex items-center gap-2 tracking-tight">
+                                        <h3 className="font-black text-stone-800 dark:text-white flex flex-wrap items-center gap-2.5 tracking-tight">
                                             <span className="cursor-pointer hover:text-blue-600 hover:underline transition-colors" onClick={(e) => { e.stopPropagation(); router.push(`/admin/contactos?id=${req.order.client.id}`); }}>{req.order.client.name}</span>
-                                            <span className="text-[9px] px-2 py-1 rounded-full bg-blue-100 text-blue-600 uppercase tracking-widest">
+                                            <span className="text-[9px] px-2.5 py-1 rounded-lg bg-stone-100 dark:bg-stone-750 text-stone-600 dark:text-stone-400 uppercase tracking-widest font-black">
                                                 {req.requestedBy?.includes('SISTEMA') ? 'AUTOMÁTICA' : 'MANUAL'}
                                             </span>
+                                            {req.detectedAccount && (
+                                                <span className={`text-[12px] font-black px-4 py-1.5 rounded-2xl uppercase tracking-widest shadow-sm animate-in zoom-in-95 duration-200 border-2 ${
+                                                    req.detectedAccount === 'YANI'
+                                                        ? 'bg-blue-600 text-white border-blue-500/20'
+                                                        : 'bg-emerald-600 text-white border-emerald-500/20'
+                                                }`}>
+                                                    {req.detectedAccount === 'YANI' ? 'YANI' : 'ISHTAR'}
+                                                </span>
+                                            )}
                                         </h3>
                                         <div className="flex items-center gap-3 mt-1.5">
                                             <span className="text-[10px] font-black text-stone-400 uppercase tracking-widest flex items-center gap-1">
@@ -318,8 +327,21 @@ export default function BillingPage() {
                                         <Receipt size={24} />
                                     </div>
                                     <div>
-                                        <h3 className="font-black text-stone-800 dark:text-white flex items-center gap-2 tracking-tight">
+                                        <h3 className="font-black text-stone-800 dark:text-white flex flex-wrap items-center gap-2.5 tracking-tight">
                                             <span className="cursor-pointer hover:text-blue-600 hover:underline transition-colors" onClick={(e) => { e.stopPropagation(); router.push(`/admin/contactos?id=${order.client.id}`); }}>{order.client.name}</span>
+                                            {(() => {
+                                                const detected = detectBillingAccount(order.payments);
+                                                if (!detected) return null;
+                                                return (
+                                                    <span className={`text-[12px] font-black px-4 py-1.5 rounded-2xl uppercase tracking-widest shadow-sm border-2 ${
+                                                        detected === 'YANI'
+                                                            ? 'bg-blue-600 text-white border-blue-500/20'
+                                                            : 'bg-emerald-600 text-white border-emerald-500/20'
+                                                    }`}>
+                                                        {detected === 'YANI' ? 'YANI' : 'ISHTAR'}
+                                                    </span>
+                                                );
+                                            })()}
                                         </h3>
                                         <div className="flex items-center gap-3 mt-1.5">
                                             <span className="text-[10px] font-black text-stone-400 uppercase tracking-widest flex items-center gap-1">

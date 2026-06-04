@@ -325,17 +325,27 @@ export default function InvoiceModal({ order, initialAccount, initialAmount, onC
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                             <div className="space-y-4">
                                 <div>
-                                    <label className="block text-[10px] font-black text-stone-400 uppercase tracking-widest mb-2">Cuenta Emisora</label>
-                                    <div className="flex gap-2 p-1.5 bg-stone-100 dark:bg-stone-800 rounded-2xl">
-                                        {['ISH', 'YANI'].map(acc => (
-                                            <button 
-                                                key={acc}
-                                                onClick={() => setAccount(acc as any)}
-                                                className={`flex-1 py-3 rounded-xl text-[10px] font-black transition-all ${account === acc ? 'bg-white dark:bg-stone-700 text-blue-600 shadow-md' : 'text-stone-400'}`}
-                                            >
-                                                {acc === 'ISH' ? 'ISH' : 'YANI'}
-                                            </button>
-                                        ))}
+                                    <label className="block text-[10px] font-black text-stone-400 uppercase tracking-widest mb-2">Cuenta Emisora (Facturación)</label>
+                                    <div className="flex gap-2 p-1.5 bg-stone-100 dark:bg-stone-800 rounded-[1.5rem]">
+                                        {['ISH', 'YANI'].map(acc => {
+                                            const isActive = account === acc;
+                                            return (
+                                                <button 
+                                                    key={acc}
+                                                    type="button"
+                                                    onClick={() => setAccount(acc as any)}
+                                                    className={`flex-1 py-4 rounded-2xl text-[12px] font-black uppercase tracking-widest transition-all ${
+                                                        isActive 
+                                                            ? acc === 'ISH' 
+                                                                ? 'bg-emerald-600 text-white shadow-md scale-[1.02]' 
+                                                                : 'bg-blue-600 text-white shadow-md scale-[1.02]'
+                                                            : 'text-stone-400 hover:text-stone-600 dark:hover:text-stone-300'
+                                                    }`}
+                                                >
+                                                    {acc === 'ISH' ? 'ISHTAR' : 'YANI'}
+                                                </button>
+                                            );
+                                        })}
                                     </div>
                                 </div>
                                 <div className="mt-4">
