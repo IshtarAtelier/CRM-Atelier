@@ -61,18 +61,18 @@ export async function GET(request: Request) {
         // ── Fetch Fixed Costs for the period ──────────
         let fixedCostsWhere: any = {};
         if (from || to) {
-            // Build month/year filter from the date range
+            // Build month/year filter from the date range using UTC to avoid local timezone offset shifting the month
             const fromDate = from ? new Date(from) : null;
             const toDate = to ? new Date(to) : null;
 
             if (fromDate && toDate) {
-                // Get all months in range
+                // Get all months in range using UTC getters
                 const monthYearPairs: { month: number; year: number }[] = [];
-                const current = new Date(fromDate.getFullYear(), fromDate.getMonth(), 1);
-                const end = new Date(toDate.getFullYear(), toDate.getMonth(), 1);
+                const current = new Date(Date.UTC(fromDate.getUTCFullYear(), fromDate.getUTCMonth(), 1));
+                const end = new Date(Date.UTC(toDate.getUTCFullYear(), toDate.getUTCMonth(), 1));
                 while (current <= end) {
-                    monthYearPairs.push({ month: current.getMonth() + 1, year: current.getFullYear() });
-                    current.setMonth(current.getMonth() + 1);
+                    monthYearPairs.push({ month: current.getUTCMonth() + 1, year: current.getUTCFullYear() });
+                    current.setUTCMonth(current.getUTCMonth() + 1);
                 }
                 if (monthYearPairs.length > 0) {
                     fixedCostsWhere = {
@@ -80,7 +80,7 @@ export async function GET(request: Request) {
                     };
                 }
             } else if (fromDate) {
-                fixedCostsWhere = { year: { gte: fromDate.getFullYear() } };
+                fixedCostsWhere = { year: { gte: fromDate.getUTCFullYear() } };
             }
         }
 

@@ -205,8 +205,20 @@ export default function QuoteSummary({
 
         setIsSendingPDF(true);
         try {
+            const items = order.items || [];
+            const itemLines = items.map((it: any) => `• ${it.product?.brand || ''} · ${it.product?.name || 'Producto'} x${it.quantity}`).join('\n');
+            
             const pdfUrl = `${window.location.origin}/api/orders/${order.id}/pdf`;
-            const text = `📄 Podés ver o descargar el comprobante de tu ${isSale ? 'compra' : 'presupuesto'} ingresando al siguiente enlace:\n\n${pdfUrl}`;
+            
+            let text = `✨ *${isSale ? 'VENTA' : 'PRESUPUESTO'} ATELIER ÓPTICA — ${contact.name.toUpperCase()}* ✨\n\n`;
+            text += `${itemLines}\n\n`;
+            text += `*Precio Lista: $${Math.round(financials.listPrice).toLocaleString()}*\n`;
+            text += `🏦 *Transf. (-${financials.discountTransfer}%): $${financials.totalTransfer.toLocaleString()}*\n`;
+            text += `💵 *Efectivo (-${financials.discountCash}%): $${financials.totalCash.toLocaleString()}*\n`;
+            text += `💳 *Tarjeta (Lista): $${financials.totalCard.toLocaleString()}*\n`;
+            text += `   ↳ 3 cuotas sin interés: $${financials.installment3.toLocaleString()} c/u\n`;
+            text += `   ↳ 6 cuotas sin interés: $${financials.installment6.toLocaleString()} c/u\n\n`;
+            text += `📄 *Ver comprobante detallado:*\n${pdfUrl}`;
             
             const sendRes = await fetch('/api/whatsapp/send', {
                 method: 'POST',
