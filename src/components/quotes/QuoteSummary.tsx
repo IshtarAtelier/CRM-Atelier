@@ -205,44 +205,26 @@ export default function QuoteSummary({
 
         setIsSendingPDF(true);
         try {
-            const pdfRes = await fetch(`/api/orders/${order.id}/pdf`);
-            if (!pdfRes.ok) throw new Error('No se pudo generar el PDF');
-            const blob = await pdfRes.blob();
-            
-            const base64 = await new Promise<string>((resolve, reject) => {
-                const reader = new FileReader();
-                reader.onloadend = () => {
-                    const result = reader.result as string;
-                    resolve(result.split(',')[1]);
-                };
-                reader.onerror = reject;
-                reader.readAsDataURL(blob);
-            });
-            
-            const text = `📄 Adjunto el comprobante de su ${isSale ? 'compra' : 'presupuesto'} en Atelier Óptica.`;
+            const pdfUrl = `${window.location.origin}/api/orders/${order.id}/pdf`;
+            const text = `📄 Podés ver o descargar el comprobante de tu ${isSale ? 'compra' : 'presupuesto'} ingresando al siguiente enlace:\n\n${pdfUrl}`;
             
             const sendRes = await fetch('/api/whatsapp/send', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ 
                     chatId: `${formattedPhone}@c.us`, 
-                    message: text,
-                    media: {
-                        base64,
-                        mimetype: 'application/pdf',
-                        filename: `${isSale ? 'Venta' : 'Presupuesto'}_${order.id.slice(-4).toUpperCase()}.pdf`
-                    }
+                    message: text
                 })
             });
 
             if (sendRes.ok) {
-                alert(`✅ PDF enviado por WhatsApp`);
+                alert(`✅ Link del comprobante enviado por WhatsApp`);
             } else {
-                alert(`❌ Error al enviar el PDF por WhatsApp desde el bot.`);
+                alert(`❌ Error al enviar el link por WhatsApp desde el bot.`);
             }
         } catch (err) {
             console.error(err);
-            alert(`❌ Error al intentar enviar el PDF por WhatsApp.`);
+            alert(`❌ Error al intentar enviar el link por WhatsApp.`);
         } finally {
             setIsSendingPDF(false);
         }

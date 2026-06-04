@@ -833,8 +833,6 @@ export default function VentasPage() {
                                     <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[9px] lg:text-[10px] font-bold text-stone-400 uppercase tracking-widest">
                                         <span>Venta #{order.id.slice(-4).toUpperCase()}</span>
                                         <span>·</span>
-                                        <span>{format(new Date(order.labSentAt || order.createdAt), "d MMM yyyy", { locale: es })}</span>
-                                        <span>·</span>
                                         <span>{(order.items || []).length} item{(order.items || []).length !== 1 ? 's' : ''}</span>
                                         {order.labSentAt && (() => {
                                             const start = new Date(order.labSentAt);
