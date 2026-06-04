@@ -1,5 +1,5 @@
 import React from 'react';
-import { UserPlus, Star, Phone, Tag as TagIcon, ChevronRight, CheckCircle2, UserCheck, Building2, Heart, FileText, Trash2, MapPin } from "lucide-react";
+import { UserPlus, Star, Phone, Tag as TagIcon, ChevronRight, CheckCircle2, UserCheck, Building2, Heart, FileText, Trash2, MapPin, Store } from "lucide-react";
 import { Contact } from '@/types/contacts';
 
 interface ContactCardProps {
@@ -32,10 +32,20 @@ export const ContactCard: React.FC<ContactCardProps> = ({
         >
             <div className="flex items-center gap-6 flex-1 w-full">
                 <div className="relative">
-                    <div className="w-14 h-14 bg-stone-100 dark:bg-stone-700 rounded-2xl flex items-center justify-center text-stone-400 group-hover:bg-primary/10 group-hover:text-primary transition-colors shrink-0">
-                        {contact.status === 'CONTACT' && <UserPlus className="w-7 h-7" />}
-                        {contact.status === 'CONFIRMED' && <CheckCircle2 className="w-7 h-7" />}
-                        {contact.status === 'CLIENT' && <UserCheck className="w-7 h-7" />}
+                    <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 transition-colors ${
+                        contact.hasVisitedStore
+                            ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400'
+                            : 'bg-stone-100 dark:bg-stone-700 text-stone-400 group-hover:bg-primary/10 group-hover:text-primary'
+                    }`}>
+                        {contact.hasVisitedStore ? (
+                            <Store className="w-7 h-7" />
+                        ) : (
+                            <>
+                                {contact.status === 'CONTACT' && <UserPlus className="w-7 h-7" />}
+                                {contact.status === 'CONFIRMED' && <CheckCircle2 className="w-7 h-7" />}
+                                {contact.status === 'CLIENT' && <UserCheck className="w-7 h-7" />}
+                            </>
+                        )}
                     </div>
                     <button
                         onClick={(e) => {
@@ -49,6 +59,11 @@ export const ContactCard: React.FC<ContactCardProps> = ({
                     >
                         <Heart className={`w-3 h-3 ${contact.isFavorite ? 'fill-current' : ''}`} />
                     </button>
+                    {contact.hasSales && (
+                        <div className="absolute -bottom-1 -left-1 p-1 bg-indigo-500 text-white rounded-full shadow-md border-2 border-white dark:border-stone-800" title="Ya compró">
+                            <CheckCircle2 className="w-3 h-3" />
+                        </div>
+                    )}
                 </div>
 
                 <div className="flex-1 space-y-1 overflow-hidden">

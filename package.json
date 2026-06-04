@@ -8,7 +8,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "npx prisma generate && next build",
-    "start": "npx prisma migrate resolve --applied 20260603223000_add_chat_summary && npx prisma migrate deploy && next start -p ${PORT:-3000} -H 0.0.0.0",
+    "start": "npx prisma migrate deploy && next start -p ${PORT:-3000} -H 0.0.0.0",
     "lint": "eslint",
     "verify": "node scripts/checks/verify-build.js",
     "db:backup": "node scripts/maintenance/backup-db.js",

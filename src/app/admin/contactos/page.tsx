@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useState, useEffect, useCallback, Suspense } from 'react';
+import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { Users, UserPlus, CheckCircle2, UserCheck, Loader2 } from "lucide-react";
 import { useContacts } from '@/hooks/useContacts';
 import { ContactStatus } from '@/types/contacts';
@@ -18,6 +18,8 @@ import ContactsList from '@/components/contacts/page/ContactsList';
 
 function ContactosPageContent() {
     const searchParams = useSearchParams();
+    const router = useRouter();
+    const pathname = usePathname();
     const [activeTab, setActiveTab] = useState<ContactStatus>('ALL');
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedInterest, setSelectedInterest] = useState('ALL');
@@ -71,6 +73,16 @@ function ContactosPageContent() {
         } catch { }
     }, [searchParams]);
 
+    // Sync URL with selected contact
+    const selectContact = useCallback((id: string | null) => {
+        setSelectedContactId(id);
+        if (id) {
+            window.history.replaceState(null, '', `${pathname}?id=${id}`);
+        } else {
+            window.history.replaceState(null, '', pathname);
+        }
+    }, [pathname]);
+
     const favoriteContacts = contacts.filter(c => c.isFavorite);
 
     const tabs = [
@@ -92,7 +104,7 @@ function ContactosPageContent() {
                 expiredRx={expiredRx}
                 showRxAlert={showRxAlert}
                 setShowRxAlert={setShowRxAlert}
-                onSelectContact={setSelectedContactId}
+                onSelectContact={selectContact}
             />
 
             {/* Tabs / Solapas */}
@@ -133,8 +145,8 @@ function ContactosPageContent() {
                 onStatusChange={updateStatus}
                 onPriorityChange={updatePriority}
                 onToggleFavorite={toggleFavorite}
-                onSelect={setSelectedContactId}
-                onQuote={(id) => { setSelectedContactId(id); setAutoStartQuote(true); }}
+                onSelect={selectContact}
+                onQuote={(id) => { selectContact(id); setAutoStartQuote(true); }}
                 currentUserRole={currentUserRole}
                 onDeleteContact={deleteContact}
                 onRegisterVisit={(id) => addInteraction(id, 'STORE_VISIT', '📍 Cliente visitó el local (marcado desde lista)')}
@@ -146,7 +158,7 @@ function ContactosPageContent() {
                     onClose={() => { setShowForm(false); setEditingContactData(null); }}
                     onGoToOriginal={(id) => {
                         setShowForm(false);
-                        setSelectedContactId(id);
+                        selectContact(id);
                     }}
                     initialData={editingContactData}
                     onSubmit={async (data) => {
@@ -162,7 +174,7 @@ function ContactosPageContent() {
                                 }
                                 setShowForm(false);
                                 if (data.startQuote) {
-                                    setSelectedContactId(updated.id);
+                                    selectContact(updated.id);
                                     setAutoStartQuote(true);
                                 }
                             }
@@ -179,7 +191,7 @@ function ContactosPageContent() {
                                     }
                                     setShowForm(false);
                                     if (data.startQuote) {
-                                        setSelectedContactId(newContact.id);
+                                        selectContact(newContact.id);
                                         setAutoStartQuote(true);
                                     }
                                 }
@@ -194,7 +206,7 @@ function ContactosPageContent() {
             {selectedContactId && (
                 <ContactDetail
                     contactId={selectedContactId}
-                    onClose={() => { setSelectedContactId(null); setAutoStartQuote(false); }}
+                    onClose={() => { selectContact(null); setAutoStartQuote(false); }}
                     onEdit={(data) => { setEditingContactData(data); setShowForm(true); }}
                     onToggleFavorite={toggleFavorite}
                     onUpdatePriority={updatePriority}
@@ -205,7 +217,7 @@ function ContactosPageContent() {
                     onDeleteOrder={(id) => deleteOrder(id)}
                     onDeleteContact={async (id) => {
                         const success = await deleteContact(id);
-                        if (success) setSelectedContactId(null);
+                        if (success) selectContact(null);
                         return success;
                     }}
                     autoStartQuote={autoStartQuote}
@@ -216,7 +228,7 @@ function ContactosPageContent() {
                 <FavoritesPanel
                     favorites={favoriteContacts}
                     onClose={() => setShowFavorites(false)}
-                    onSelect={(id) => { setSelectedContactId(id); setShowFavorites(false); }}
+                    onSelect={(id) => { selectContact(id); setShowFavorites(false); }}
                 />
             )}
 

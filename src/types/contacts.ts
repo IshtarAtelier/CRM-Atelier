@@ -70,6 +70,7 @@ export interface Contact {
     expectedValue: number | null;
     avgTicket?: number;
     hasSales?: boolean;
+    hasVisitedStore?: boolean;
     priority: number;
     isFavorite: boolean;
     address: string | null;

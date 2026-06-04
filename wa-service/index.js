@@ -23,7 +23,8 @@ const { initWhatsApp, getStatus, getClient, sendMessage, sendTypingState } = req
 const { processPassiveExtraction } = require('./passive-extractor');
 const { transcribeAudio } = require('./transcriber');
 const { checkAndSendSalesFollowUps } = require('./sales-followups');
-const { TAGS_SIN_BOT, getAdminWaId, withTimeout } = require('./utils');
+const { checkAndSendInactivityFollowUps } = require('./cron/inactivity-followups');
+const { TAGS_SIN_BOT, getAdminWaId, withTimeout, getFileExtension } = require('./utils');
 
 const configPath = path.join(__dirname, 'agent_config.json');
 
@@ -143,22 +144,7 @@ const handleMessageCreate = async (msg) => {
                             else messageType = 'IMAGE';
 
                             const buffer = Buffer.from(media.data, 'base64');
-                            let ext = 'bin';
-                            if (media.mimetype.includes('jpeg') || media.mimetype.includes('jpg')) ext = 'jpg';
-                            else if (media.mimetype.includes('png')) ext = 'png';
-                            else if (media.mimetype.includes('webp')) ext = 'webp';
-                            else if (media.mimetype.includes('pdf')) ext = 'pdf';
-                            else if (media.mimetype.includes('ogg') || media.mimetype.includes('audio')) ext = 'ogg';
-                            else if (media.mimetype.includes('mp4')) ext = 'mp4';
-                            else {
-                                const parts = media.mimetype.split('/');
-                                if (parts.length > 1) {
-                                    const sub = parts[1].split(';')[0].toLowerCase();
-                                    if (/^[a-z0-9]+$/.test(sub)) {
-                                        ext = sub;
-                                    }
-                                }
-                            }
+                            const ext = getFileExtension(media.mimetype);
 
                             const axios = require('axios');
                             const FormDataNode = require('form-data');
@@ -472,96 +458,7 @@ async function detectAndCreateVisitTask(clientId, text) {
     }
 }
 
-/**
- * Cron / Chequeo de seguimientos por inactividad del cliente
- */
-async function checkAndSendInactivityFollowUps() {
-    const now = new Date();
-    if (!isBusinessHours(now)) {
-        return; // Solo enviar en horario comercial
-    }
 
-    if (!agentEnabled) return; // Solo si el bot global está activo
-
-    // Obtener todos los chats activos con bot encendido
-    const activeChats = await prisma.whatsAppChat.findMany({
-        where: { botEnabled: true },
-        include: {
-            messages: {
-                orderBy: { createdAt: 'desc' },
-                take: 1
-            }
-        }
-    });
-
-    const FOLLOW_UP_TEXT = "¡Hola! Quería saber si te quedó alguna duda o si querés que sigamos viendo opciones. ¡Avisame cualquier cosita! 😊";
-
-    for (const chat of activeChats) {
-        if (chat.messages.length === 0) continue;
-        const lastMsg = chat.messages[0];
-
-        // Solo si el último mensaje fue enviado por el Bot
-        if (lastMsg.direction === 'OUTBOUND' && lastMsg.senderName === 'Bot') {
-            if (lastMsg.content === FOLLOW_UP_TEXT) {
-                continue; // Ya se envió el recordatorio
-            }
-
-            const diffMs = now.getTime() - new Date(lastMsg.createdAt).getTime();
-            const diffHours = diffMs / (1000 * 60 * 60);
-
-            if (diffHours >= 4) {
-                console.log(`  ✉️ [Follow-Up] Enviando recordatorio por inactividad de ${diffHours.toFixed(1)}hs a ${chat.profileName || chat.waId}`);
-                
-                try {
-                    botReplyingTo.add(chat.waId);
-                    await sendTypingState(chat.waId);
-                    await new Promise(r => setTimeout(r, 2000));
-                    const sent = await sendMessage(chat.waId, FOLLOW_UP_TEXT);
-                    
-                    if (sent && sent.id && sent.id._serialized) {
-                        await prisma.whatsAppMessage.upsert({
-                            where: { waMessageId: sent.id._serialized },
-                            update: { senderName: 'Bot' },
-                            create: {
-                                chatId: chat.id,
-                                direction: 'OUTBOUND',
-                                type: 'TEXT',
-                                content: FOLLOW_UP_TEXT,
-                                waMessageId: sent.id._serialized,
-                                senderName: 'Bot',
-                                status: 'SENT'
-                            }
-                        });
-                    } else {
-                        // Fallback por si falla obtener el ID
-                        await prisma.whatsAppMessage.create({
-                            data: {
-                                chatId: chat.id,
-                                direction: 'OUTBOUND',
-                                type: 'TEXT',
-                                content: FOLLOW_UP_TEXT,
-                                senderName: 'Bot',
-                                status: 'SENT'
-                            }
-                        });
-                    }
-
-                    // Actualizar lastMessageAt para reiniciar contadores
-                    await prisma.whatsAppChat.update({
-                        where: { id: chat.id },
-                        data: { lastMessageAt: new Date() }
-                    });
-                    
-                    broadcastChatUpdate(chat.id);
-                } catch (err) {
-                    console.error(`Error enviando follow-up a ${chat.waId}:`, err.message);
-                } finally {
-                    setTimeout(() => botReplyingTo.delete(chat.waId), 3000);
-                }
-            }
-        }
-    }
-}
 
 // ── Bot Orchestrator (Extraído para Modularidad) ─
 async function processBotTurn(chat, waId, profileName, realPhone) {
@@ -1198,30 +1095,7 @@ const handleMessage = async (msg) => {
                     else messageType = 'IMAGE';
 
                     const buffer = Buffer.from(media.data, 'base64');
-                    let ext = 'bin';
-                    if (media.mimetype.includes('jpeg') || media.mimetype.includes('jpg')) ext = 'jpg';
-                    else if (media.mimetype.includes('png')) ext = 'png';
-                    else if (media.mimetype.includes('webp')) ext = 'webp';
-                    else if (media.mimetype.includes('gif')) ext = 'gif';
-                    else if (media.mimetype.includes('pdf')) ext = 'pdf';
-                    else if (media.mimetype.includes('ogg') || media.mimetype.includes('audio')) ext = 'ogg';
-                    else if (media.mimetype.includes('mp3') || media.mimetype.includes('mpeg')) ext = 'mp3';
-                    else if (media.mimetype.includes('wav')) ext = 'wav';
-                    else if (media.mimetype.includes('mp4')) ext = 'mp4';
-                    else if (media.mimetype.includes('m4a')) ext = 'm4a';
-                    else if (media.mimetype.includes('heic')) ext = 'heic';
-                    else if (media.mimetype.includes('heif')) ext = 'heif';
-                    else if (media.mimetype.includes('amr')) ext = 'amr';
-                    else if (media.mimetype.includes('aac')) ext = 'aac';
-                    else {
-                        const parts = media.mimetype.split('/');
-                        if (parts.length > 1) {
-                            const sub = parts[1].split(';')[0].toLowerCase();
-                            if (/^[a-z0-9]+$/.test(sub)) {
-                                ext = sub;
-                            }
-                        }
-                    }
+                    const ext = getFileExtension(media.mimetype);
 
                     if (messageType === 'AUDIO' && agentEnabled) {
                         console.log(`  🎧 Transcribiendo audio de ${profileName}...`);
@@ -1497,327 +1371,6 @@ function apiAuth(req, res, next) {
 }
 app.use('/api', apiAuth);
 
-// ── API REST ───────────────────────────────────
-
-app.get('/api/status', (req, res) => {
-    const status = getStatus();
-    res.json({ ...status, connected: status.isReady, phone: status.connectedPhone, qr: status.qrCode, agentEnabled, prompt: agentPrompt });
-});
-
-app.get('/api/chats', async (req, res) => {
-    const chats = await prisma.whatsAppChat.findMany({
-        include: { client: true, messages: { orderBy: { createdAt: 'desc' }, take: 1 } },
-        orderBy: { lastMessageAt: 'desc' },
-    });
-    res.json(chats);
-});
-
-// Diagnostic + Backfill: Resolve real phone numbers for all @lid chats
-app.post('/api/resolve-phones', async (req, res) => {
-    const wc = getClient();
-    if (!wc) return res.status(400).json({ error: 'WhatsApp client not ready' });
-
-    const lidChats = await prisma.whatsAppChat.findMany({
-        where: { waId: { contains: '@lid' }, realPhone: null },
-        include: { client: true }
-    });
-
-    const results = [];
-
-    for (const chat of lidChats) {
-        let resolved = null;
-
-        // Method 1: getContactLidAndPhone
-        try {
-            if (typeof wc.getContactLidAndPhone === 'function') {
-                const mapping = await wc.getContactLidAndPhone([chat.waId]);
-                if (mapping && mapping.length > 0 && mapping[0].pn) {
-                    resolved = mapping[0].pn.replace('@c.us', '').replace('@s.whatsapp.net', '');
-                }
-            }
-        } catch (e) { console.error(`  Error M1 for ${chat.waId}:`, e.message); }
-
-        // Method 2: getFormattedNumber
-        if (!resolved) {
-            try {
-                const formatted = await wc.getFormattedNumber(chat.waId);
-                if (formatted && formatted.length >= 8) {
-                    resolved = formatted.replace(/[^0-9]/g, '');
-                }
-            } catch (e) { /* ignore */ }
-        }
-
-        // Method 3: getChatById
-        if (!resolved) {
-            try {
-                const chatObj = await wc.getChatById(chat.waId);
-                if (chatObj?.id?.user && /^\d{8,}$/.test(chatObj.id.user)) {
-                    resolved = chatObj.id.user;
-                }
-            } catch (e) { /* ignore */ }
-        }
-
-        // Method 4: CRM client phone
-        if (!resolved && chat.client?.phone) {
-            resolved = chat.client.phone;
-        }
-
-        if (resolved) {
-            await prisma.whatsAppChat.update({ where: { id: chat.id }, data: { realPhone: resolved } });
-        }
-
-        results.push({
-            name: chat.profileName || chat.waId,
-            waId: chat.waId,
-            resolved: resolved || 'NOT_RESOLVED',
-            method: resolved ? (resolved === chat.client?.phone ? 'CRM' : 'WhatsApp API') : null
-        });
-    }
-
-    res.json({ total: lidChats.length, resolved: results.filter(r => r.resolved !== 'NOT_RESOLVED').length, results });
-});
-
-app.get('/api/chats/:id/messages', async (req, res) => {
-    const messages = await prisma.whatsAppMessage.findMany({
-        where: { chatId: req.params.id },
-        orderBy: { createdAt: 'asc' },
-    });
-    await prisma.whatsAppChat.update({ where: { id: req.params.id }, data: { unreadCount: 0 } });
-    res.json(messages);
-});
-
-// ── Actualizar chat: etiquetas y/o archivado ───
-// PATCH /api/chats/:id  { chatLabels?, archived?, botEnabled?, clientId? }
-app.patch('/api/chats/:id', async (req, res) => {
-    const { id } = req.params;
-    const { chatLabels, archived, botEnabled, clientId, chatSummary } = req.body;
-    try {
-        const data = {};
-        if (chatLabels !== undefined) data.chatLabels = chatLabels;
-        if (archived !== undefined) data.archived = archived;
-        if (clientId !== undefined) data.clientId = clientId;
-        if (chatSummary !== undefined) data.chatSummary = chatSummary;
-        
-        let chat = await prisma.whatsAppChat.findUnique({ where: { id } });
-        if (!chat) return res.status(404).json({ error: 'Chat no encontrado' });
-
-        if (botEnabled === false) {
-            await disableBotForChatById(id, 'API patch CRM (Vendedor desactivó el bot)');
-            // Agregar etiqueta para evitar auto-resume si no existe (array-safe)
-            let currentLabels = Array.isArray(data.chatLabels) ? data.chatLabels : (Array.isArray(chat.chatLabels) ? [...chat.chatLabels] : []);
-            if (!currentLabels.includes('[SISTEMA - BOT APAGADO]')) {
-                currentLabels.push('[SISTEMA - BOT APAGADO]');
-            }
-            data.chatLabels = currentLabels;
-            chat = await prisma.whatsAppChat.update({ where: { id }, data });
-        } else {
-            if (botEnabled === true) {
-                data.botEnabled = true;
-                // Si el vendedor activa el bot manualmente, quitamos la etiqueta de apagado manual (array-safe)
-                let currentLabels = Array.isArray(data.chatLabels) ? data.chatLabels : (Array.isArray(chat.chatLabels) ? [...chat.chatLabels] : []);
-                data.chatLabels = currentLabels.filter(l => l !== '[SISTEMA - BOT APAGADO]');
-            } else if (botEnabled !== undefined) {
-                data.botEnabled = botEnabled;
-            }
-            chat = await prisma.whatsAppChat.update({ where: { id }, data });
-        }
-        res.json(chat);
-    } catch (e) {
-        res.status(404).json({ error: 'Chat no encontrado' });
-    }
-});
-
-app.post('/api/send', async (req, res) => {
-    const { chatId, message, media, senderName } = req.body;
-    // media: { base64: string, mimetype: string, filename?: string }
-    try {
-        let waId = chatId;
-        let dbChatId = chatId.includes('@c.us') ? null : chatId;
-
-        if (!chatId.includes('@c.us')) {
-            const chat = await prisma.whatsAppChat.findUnique({ where: { id: chatId } });
-            if (!chat) return res.status(404).json({ error: 'Chat not found' });
-            waId = chat.waId;
-            dbChatId = chat.id;
-        }
-        
-        const status = getStatus();
-        if (!status.isReady) return res.status(400).json({ error: 'WhatsApp not connected' });
-
-        let sent;
-        let mediaUrl = null;
-        
-        // Trackear que el CRM está enviando para que no haya race condition
-        botReplyingTo.add(waId);
-
-        if (media?.base64) {
-            sent = await sendMessage(waId, message, media);
-
-            // Subir al CRM para tener el pre-render
-            try {
-                const buffer = Buffer.from(media.base64, 'base64');
-                const blob = new Blob([buffer], { type: media.mimetype });
-                const f = new FormData();
-                let outExt = 'bin';
-                if (media.filename) {
-                    const parts = media.filename.split('.');
-                    if (parts.length > 1) outExt = parts.pop().toLowerCase();
-                }
-                if (outExt === 'bin' && media.mimetype) {
-                    if (media.mimetype.includes('jpeg') || media.mimetype.includes('jpg')) outExt = 'jpg';
-                    else if (media.mimetype.includes('png')) outExt = 'png';
-                    else if (media.mimetype.includes('webp')) outExt = 'webp';
-                    else if (media.mimetype.includes('gif')) outExt = 'gif';
-                    else if (media.mimetype.includes('pdf')) outExt = 'pdf';
-                    else if (media.mimetype.includes('ogg') || media.mimetype.includes('audio')) outExt = 'ogg';
-                    else if (media.mimetype.includes('mp3') || media.mimetype.includes('mpeg')) outExt = 'mp3';
-                    else if (media.mimetype.includes('wav')) outExt = 'wav';
-                    else if (media.mimetype.includes('mp4')) outExt = 'mp4';
-                    else if (media.mimetype.includes('m4a')) outExt = 'm4a';
-                    else if (media.mimetype.includes('heic')) outExt = 'heic';
-                    else if (media.mimetype.includes('heif')) outExt = 'heif';
-                    else if (media.mimetype.includes('amr')) outExt = 'amr';
-                    else if (media.mimetype.includes('aac')) outExt = 'aac';
-                    else {
-                        const parts = media.mimetype.split('/');
-                        if (parts.length > 1) {
-                            const sub = parts[1].split(';')[0].toLowerCase();
-                            if (/^[a-z0-9]+$/.test(sub)) {
-                                outExt = sub;
-                            }
-                        }
-                    }
-                }
-                const filename = media.filename ? (media.filename.includes('.') ? media.filename : `${media.filename}.${outExt}`) : `media.${outExt}`;
-                f.append('file', blob, `out_${Date.now()}_${filename}`);
-                const uploadUrl = process.env.CRM_API_URL.replace('/api/bot', '/api/upload');
-                const uploadRes = await fetch(uploadUrl, { 
-                    method: 'POST', 
-                    body: f,
-                    headers: { 'x-api-key': process.env.BOT_API_KEY }
-                });
-                const resJson = await uploadRes.json();
-                if (resJson.url) mediaUrl = resJson.url;
-            } catch (err) {
-                console.error("Error subiendo media saliente a CRM:", err.message);
-            }
-        } else {
-            sent = await sendMessage(waId, message);
-        }
-
-        if (sent && sent.id && sent.id._serialized && dbChatId) {
-            try {
-                await prisma.whatsAppMessage.upsert({
-                    where: { waMessageId: sent.id._serialized },
-                    update: { senderName: senderName || 'CRM' },
-                    create: {
-                        chatId: dbChatId,
-                        direction: 'OUTBOUND',
-                        type: media ? 'IMAGE' : 'TEXT',
-                        content: message || '[Media]',
-                        mediaUrl: mediaUrl,
-                        waMessageId: sent.id._serialized,
-                        senderName: senderName || 'CRM',
-                        status: 'SENT'
-                    }
-                });
-            } catch (e) {
-                console.error('Error guardando senderName del CRM:', e.message);
-            }
-        }
-
-        // Limpiar flag de botReplyingTo y DESACTIVAR el bot, ya que un humano tomó el control
-        botReplyingTo.delete(waId);
-        if (dbChatId) {
-            await disableBotForChatById(dbChatId, 'Intervención humana (mensaje desde CRM)');
-        }
-
-        // Ya no guardamos el mensaje manualmente aquí para evitar duplicados.
-        // Solo enviamos una respuesta exitosa, y handleMessageCreate se ocupará del DB y broadcast.
-        
-        if (dbChatId) broadcastChatUpdate(dbChatId);
-        
-        res.json({ success: true });
-    } catch (e) { 
-        res.status(500).json({ error: e.message }); 
-    }
-});
-
-app.get('/api/agent', (req, res) => {
-    const hasApiKey = !!(process.env.GOOGLE_GENAI_API_KEY || process.env.GOOGLE_API_KEY);
-    const displayPrompt = (!agentPrompt || agentPrompt.trim().length <= 300) ? DEFAULT_SALES_PROMPT : agentPrompt;
-    res.json({ enabled: agentEnabled, prompt: displayPrompt, configured: hasApiKey, dailyContext });
-});
-
-app.post('/api/agent', async (req, res) => {
-    const { enabled, prompt, dailyContext: newDailyContext } = req.body;
-    if (enabled !== undefined) agentEnabled = enabled;
-    if (prompt !== undefined) agentPrompt = prompt;
-    if (newDailyContext !== undefined) dailyContext = newDailyContext;
-    
-    try {
-        fs.writeFileSync(configPath, JSON.stringify({ enabled: agentEnabled, prompt: agentPrompt, dailyContext }, null, 2));
-        
-        if (enabled !== undefined) {
-            await prisma.systemSetting.upsert({
-                where: { key: 'bot_enabled' },
-                update: { value: String(agentEnabled) },
-                create: { key: 'bot_enabled', value: String(agentEnabled) }
-            });
-        }
-        if (prompt !== undefined) {
-            await prisma.systemSetting.upsert({
-                where: { key: 'bot_prompt' },
-                update: { value: agentPrompt },
-                create: { key: 'bot_prompt', value: agentPrompt }
-            });
-        }
-        if (newDailyContext !== undefined) {
-            await prisma.systemSetting.upsert({
-                where: { key: 'bot_daily_context' },
-                update: { value: dailyContext },
-                create: { key: 'bot_daily_context', value: dailyContext }
-            });
-        }
-    } catch (e) {
-        console.error("❌ Error persisting config to database:", e);
-    }
-    
-    const hasApiKey = !!(process.env.GOOGLE_GENAI_API_KEY || process.env.GOOGLE_API_KEY);
-    io.emit('bot_status', { agentEnabled, prompt: agentPrompt, configured: hasApiKey, dailyContext });
-    res.json({ enabled: agentEnabled, prompt: agentPrompt, configured: hasApiKey, dailyContext });
-});
-
-// ── Toggle bot por chat individual ─────────────
-// PATCH /api/chats/:id/bot  { "botEnabled": true/false }
-// Permite activar o cancelar el bot en una sola conversación
-// sin afectar el resto de los chats.
-app.patch('/api/chats/:id/bot', async (req, res) => {
-    const { id } = req.params;
-    const { botEnabled } = req.body;
-    if (typeof botEnabled !== 'boolean') {
-        return res.status(400).json({ error: 'botEnabled must be a boolean' });
-    }
-    try {
-        if (!botEnabled) {
-            // Usar disableBotForChatById para consistencia (genera handoff, cancela timers)
-            await disableBotForChatById(id, 'API patch CRM (Vendedor desactivó el bot)');
-            const chat = await prisma.whatsAppChat.findUnique({ where: { id } });
-            res.json({ id: chat.id, waId: chat.waId, botEnabled: chat.botEnabled });
-        } else {
-            const chat = await prisma.whatsAppChat.update({
-                where: { id },
-                data: { botEnabled: true }
-            });
-            console.log(`  🤖 Bot ▶️ Activado para chat ${chat.waId}`);
-            broadcastChatUpdate(chat.id);
-            res.json({ id: chat.id, waId: chat.waId, botEnabled: chat.botEnabled });
-        }
-    } catch (e) {
-        res.status(404).json({ error: 'Chat no encontrado' });
-    }
-});
-
 const mediaDownloadQueue = [];
 let isDownloadingMedia = false;
 
@@ -1854,30 +1407,7 @@ async function downloadAndUploadMediaForSyncMessage(msg, dbMessageId, chatId) {
         else messageType = 'IMAGE';
 
         const buffer = Buffer.from(media.data, 'base64');
-        let ext = 'bin';
-        if (media.mimetype.includes('jpeg') || media.mimetype.includes('jpg')) ext = 'jpg';
-        else if (media.mimetype.includes('png')) ext = 'png';
-        else if (media.mimetype.includes('webp')) ext = 'webp';
-        else if (media.mimetype.includes('gif')) ext = 'gif';
-        else if (media.mimetype.includes('pdf')) ext = 'pdf';
-        else if (media.mimetype.includes('ogg') || media.mimetype.includes('audio')) ext = 'ogg';
-        else if (media.mimetype.includes('mp3') || media.mimetype.includes('mpeg')) ext = 'mp3';
-        else if (media.mimetype.includes('wav')) ext = 'wav';
-        else if (media.mimetype.includes('mp4')) ext = 'mp4';
-        else if (media.mimetype.includes('m4a')) ext = 'm4a';
-        else if (media.mimetype.includes('heic')) ext = 'heic';
-        else if (media.mimetype.includes('heif')) ext = 'heif';
-        else if (media.mimetype.includes('amr')) ext = 'amr';
-        else if (media.mimetype.includes('aac')) ext = 'aac';
-        else {
-            const parts = media.mimetype.split('/');
-            if (parts.length > 1) {
-                const sub = parts[1].split(';')[0].toLowerCase();
-                if (/^[a-z0-9]+$/.test(sub)) {
-                    ext = sub;
-                }
-            }
-        }
+        const ext = getFileExtension(media.mimetype);
 
         // Cache local para audio/imagen
         if (messageType === 'IMAGE' || messageType === 'AUDIO') {
@@ -2126,88 +1656,32 @@ const syncRecentChatsAndMessages = async (wc) => {
     }
 };
 
-app.post('/api/sync', async (req, res) => {
-    const status = getStatus();
-    if (!status.isReady) {
-        return res.status(400).json({ success: false, error: 'WhatsApp no está conectado' });
-    }
-    const wc = getClient();
-    if (!wc) {
-        return res.status(400).json({ success: false, error: 'WhatsApp client no disponible' });
-    }
-    // Ejecutar asíncronamente en background para no bloquear el request
-    syncRecentChatsAndMessages(wc).catch(err => {
-        console.error('Error in manual sync:', err);
-    });
-    res.json({ success: true, message: 'Sincronización iniciada en segundo plano.' });
-});
-
-// ── Simulador de Chat (Test) ───────────────────
-// Réplica exacta del flujo real (processBotTurn) para testing fiel.
-app.post('/api/test/chat', async (req, res) => {
-    const { messages } = req.body;
-    const TEST_CHAT_ID = 'test-chat-simulator';
-    const TEST_WA_ID = 'test@simulator';
-    try {
-        const { AIMessage, HumanMessage } = require("@langchain/core/messages");
-        
-        // Reconstruir historial exactamente como lo hace processBotTurn
-        const allMessages = messages.map(m => {
-            if (m.role === 'ai') return new AIMessage(m.content || '');
-            
-            // Imagen: enviar como multimodal (igual que el flujo real)
-            if (m.mediaBase64) {
-                global.mediaCache = global.mediaCache || {};
-                global.mediaCache[TEST_CHAT_ID] = [{ base64: m.mediaBase64, mimeType: m.mediaMime || 'image/jpeg', timestamp: Date.now() }];
-                console.log(`📸 Test Chat: Imagen guardada en mediaCache['${TEST_CHAT_ID}'] (${(m.mediaBase64.length / 1024).toFixed(0)} KB)`);
-                
-                return new HumanMessage({
-                    content: [
-                        { type: "text", text: `[Imagen adjunta. Mensaje del cliente: "${m.content || '(sin texto)'}"]` },
-                        { type: "image_url", image_url: { url: `data:${m.mediaMime || 'image/jpeg'};base64,${m.mediaBase64}` } }
-                    ]
-                });
-            }
-            
-            return new HumanMessage(m.content || '[Mensaje vacío]');
-        });
-
-        // State idéntico al de processBotTurn
-        const config = { configurable: { thread_id: TEST_CHAT_ID } };
-        const state = { 
-            messages: allMessages,
-            userPhone: '1111111111',
-            userName: 'Tester',
-            waId: TEST_WA_ID,
-            chatId: TEST_CHAT_ID,
-            customPrompt: agentPrompt,
-            dailyContext: dailyContext,
-            clientData: null,
-            chatSummary: null,
-        };
-        
-        const result = await graph.invoke(state, config);
-        const lastMessage = result.messages[result.messages.length - 1];
-        let responseText = lastMessage.content;
-
-        if (responseText) {
-            // Output Guardrail (igual que el flujo real)
-            const guardrail = runOutputGuardrail(responseText);
-            if (!guardrail.safe) {
-                console.warn(`  ⚠️ [Test Chat Guardrail] Respuesta bloqueada: ${guardrail.reason}`);
-                return res.json({ response: 'Dejame revisarlo bien y en un ratito te respondo con la info exacta.', guardrailBlocked: true, guardrailReason: guardrail.reason });
-            }
-            
-            // Limpieza de signos de apertura (igual que el flujo real)
-            responseText = responseText.replace(/¿/g, '');
-        }
-        
-        res.json({ response: responseText });
-    } catch (e) {
-        console.error("Error in Test Chat:", e);
-        res.status(500).json({ error: e.message });
-    }
-});
+// ── API REST (modular router) ──────────────────
+const { createApiRouter } = require('./routes/api');
+app.use('/api', createApiRouter({
+    prisma,
+    io,
+    getStatus,
+    getClient,
+    sendMessage,
+    sendTypingState,
+    graph,
+    DEFAULT_SALES_PROMPT,
+    generateAndSaveHandoffSummary,
+    agentState: {
+        get agentEnabled() { return agentEnabled; },
+        set agentEnabled(v) { agentEnabled = v; },
+        get agentPrompt() { return agentPrompt; },
+        set agentPrompt(v) { agentPrompt = v; },
+        get dailyContext() { return dailyContext; },
+        set dailyContext(v) { dailyContext = v; },
+    },
+    botReplyingTo,
+    broadcastChatUpdate,
+    disableBotForChatById,
+    runOutputGuardrail,
+    syncRecentChatsAndMessages,
+}));
 
 // ── Start ──────────────────────────────────────
 const PORT = process.env.PORT || 3100;
@@ -2218,8 +1692,9 @@ server.listen(PORT, '0.0.0.0', async () => {
     await loadConfig();
     
     // Programar recordatorios por inactividad cada 15 minutos
+    const cronDeps = { isAgentEnabled: () => agentEnabled, botReplyingTo, broadcastChatUpdate };
     setInterval(() => {
-        checkAndSendInactivityFollowUps().catch(e => console.error("❌ Error en follow-ups de inactividad:", e.message));
+        checkAndSendInactivityFollowUps(cronDeps).catch(e => console.error("❌ Error en follow-ups de inactividad:", e.message));
     }, 15 * 60 * 1000);
 
     // Chequear seguimientos de venta cada 30 minutos

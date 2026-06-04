@@ -102,6 +102,11 @@ export const ContactService = {
                     orders: {
                         where: { isDeleted: false },
                         select: { total: true, orderType: true }
+                    },
+                    interactions: {
+                        where: { type: 'STORE_VISIT' },
+                        select: { id: true },
+                        take: 1
                     }
                 },
                 orderBy: {
@@ -117,12 +122,13 @@ export const ContactService = {
                     ? saleOrders.reduce((sum: number, o: any) => sum + o.total, 0) / saleOrders.length
                     : 0;
                 
-                const { orders, ...rest } = item;
+                const { orders, interactions, ...rest } = item;
                 return { 
                     ...rest, 
                     status: item.status === 'NEW' ? 'CONTACT' : item.status,
                     avgTicket: Math.round(avgTicket), 
-                    hasSales: saleOrders.length > 0 
+                    hasSales: saleOrders.length > 0,
+                    hasVisitedStore: (interactions || []).length > 0
                 };
             }).sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
         } catch (error: any) {
