@@ -17,21 +17,25 @@ export async function GET(request: Request) {
         const tipo = tipoParam && tipoParam !== '' ? tipoParam : null;
 
         const dateFilter: any = {};
-        if (from) dateFilter.gte = new Date(from);
-        if (to) {
-            const toDate = new Date(to);
-            toDate.setHours(23, 59, 59, 999);
-            dateFilter.lte = toDate;
+        let hasDateFilter = false;
+        if (from && from !== 'all') {
+            dateFilter.gte = new Date(`${from}T00:00:00.000Z`);
+            hasDateFilter = true;
+        }
+        if (to && to !== 'all') {
+            dateFilter.lte = new Date(`${to}T23:59:59.999Z`);
+            hasDateFilter = true;
         }
 
-        // If no dates provided (and not All Time), default to current month
-        if (!fromParam && !toParam) {
+        // If no parameters are provided at all (initial load), default to current month in UTC
+        if (fromParam === null && toParam === null) {
             const now = new Date();
-            dateFilter.gte = new Date(now.getFullYear(), now.getMonth(), 1);
+            dateFilter.gte = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+            hasDateFilter = true;
         }
 
         const whereClause: any = { orderType: 'SALE', isDeleted: false };
-        if (Object.keys(dateFilter).length > 0) {
+        if (hasDateFilter && Object.keys(dateFilter).length > 0) {
             whereClause.OR = [
                 { labSentAt: dateFilter },
                 {
@@ -135,12 +139,15 @@ export async function GET(request: Request) {
         const ticketPromedioMonth = ordersCountMonth > 0 ? totalSoldMonth / ordersCountMonth : 0;
 
         // Open Quotes (Presupuestos Activos)
+        const quoteWhere: any = {
+            orderType: 'QUOTE',
+            isDeleted: false,
+        };
+        if (hasDateFilter && Object.keys(dateFilter).length > 0) {
+            quoteWhere.createdAt = dateFilter;
+        }
         const openQuotes = await prisma.order.findMany({
-            where: {
-                createdAt: dateFilter,
-                orderType: 'QUOTE',
-                isDeleted: false,
-            },
+            where: quoteWhere,
             select: { total: true, subtotalWithMarkup: true }
         });
         const totalQuotesValue = openQuotes.reduce((acc, q: any) => acc + (q.total || q.subtotalWithMarkup || 0), 0);
@@ -242,15 +249,15 @@ export async function GET(request: Request) {
 
         const now = new Date();
         for (let i = 5; i >= 0; i--) {
-            const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-            const key = `${monthsNames[d.getMonth()]} ${d.getFullYear()}`;
+            const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - i, 1));
+            const key = `${monthsNames[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
             last6MonthsKeys.push(key);
             monthlyStats[key] = 0;
         }
 
         allOrders.forEach((order: any) => {
             const date = new Date(order.labSentAt || order.createdAt);
-            const key = `${monthsNames[date.getMonth()]} ${date.getFullYear()}`;
+            const key = `${monthsNames[date.getUTCMonth()]} ${date.getUTCFullYear()}`;
             if (monthlyStats[key] !== undefined) {
                 const price = order.total || order.subtotalWithMarkup || 0;
                 monthlyStats[key] += price;
@@ -329,9 +336,9 @@ export async function GET(request: Request) {
 
         // Previous period comparison
         let prevTotal = 0;
-        if (from) {
-            const fromDate = new Date(from);
-            const toDate = to ? new Date(to) : new Date();
+        if (from && from !== 'all') {
+            const fromDate = new Date(`${from}T00:00:00.000Z`);
+            const toDate = to && to !== 'all' ? new Date(`${to}T23:59:59.999Z`) : new Date();
             const periodDays = Math.ceil((toDate.getTime() - fromDate.getTime()) / (1000 * 60 * 60 * 24));
             const prevFrom = new Date(fromDate.getTime() - periodDays * 24 * 60 * 60 * 1000);
             const prevOrders = await prisma.order.findMany({
@@ -349,19 +356,26 @@ export async function GET(request: Request) {
 
         // ── Conversion Funnel ──
         const funnelDateFilter: any = {};
-        if (from) funnelDateFilter.gte = new Date(from);
-        if (to) {
-            const toD = new Date(to);
-            toD.setHours(23, 59, 59, 999);
-            funnelDateFilter.lte = toD;
+        let hasFunnelFilter = false;
+        if (from && from !== 'all') {
+            funnelDateFilter.gte = new Date(`${from}T00:00:00.000Z`);
+            hasFunnelFilter = true;
         }
-        if (!from && !to) {
+        if (to && to !== 'all') {
+            funnelDateFilter.lte = new Date(`${to}T23:59:59.999Z`);
+            hasFunnelFilter = true;
+        }
+        if (fromParam === null && toParam === null) {
             const now = new Date();
-            funnelDateFilter.gte = new Date(now.getFullYear(), now.getMonth(), 1);
+            funnelDateFilter.gte = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+            hasFunnelFilter = true;
         }
 
         // Build client filter for funnel
-        const clientWhere: any = { createdAt: funnelDateFilter };
+        const clientWhere: any = {};
+        if (hasFunnelFilter && Object.keys(funnelDateFilter).length > 0) {
+            clientWhere.createdAt = funnelDateFilter;
+        }
         if (etiqueta && etiqueta !== 'ALL') clientWhere.contactSource = etiqueta;
         if (tipo && tipo !== 'ALL') clientWhere.interest = tipo;
 
@@ -373,15 +387,17 @@ export async function GET(request: Request) {
         const filteredClientIds = filteredClients.map((c: any) => c.id);
 
         const orderFunnelWhere: any = { isDeleted: false };
-        orderFunnelWhere.OR = [
-            { labSentAt: funnelDateFilter },
-            {
-                AND: [
-                    { labSentAt: null },
-                    { createdAt: funnelDateFilter }
-                ]
-            }
-        ];
+        if (hasFunnelFilter && Object.keys(funnelDateFilter).length > 0) {
+            orderFunnelWhere.OR = [
+                { labSentAt: funnelDateFilter },
+                {
+                    AND: [
+                        { labSentAt: null },
+                        { createdAt: funnelDateFilter }
+                    ]
+                }
+            ];
+        }
         
         if (etiqueta !== null || tipo !== null) {
             orderFunnelWhere.clientId = { in: filteredClientIds };
@@ -411,8 +427,8 @@ export async function GET(request: Request) {
         };
 
         // Monthly Targets
-        const targetMonth = from ? new Date(from).getMonth() + 1 : now.getMonth() + 1;
-        const targetYear = from ? new Date(from).getFullYear() : now.getFullYear();
+        const targetMonth = from && from !== 'all' ? new Date(`${from}T00:00:00.000Z`).getUTCMonth() + 1 : now.getUTCMonth() + 1;
+        const targetYear = from && from !== 'all' ? new Date(`${from}T00:00:00.000Z`).getUTCFullYear() : now.getUTCFullYear();
         
         let targets = null;
         try {

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Calendar, X } from 'lucide-react';
+import { Calendar } from 'lucide-react';
 import QuickQuote from '@/components/QuickQuote';
 
 interface DashboardActionsProps {
@@ -10,12 +10,19 @@ interface DashboardActionsProps {
 
 export default function DashboardActions({ onPeriodChange }: DashboardActionsProps) {
     const [isQuoteOpen, setIsQuoteOpen] = useState(false);
-    const [showPeriodMenu, setShowPeriodMenu] = useState(false);
     const [activeLabel, setActiveLabel] = useState('Este Mes');
     const [customFrom, setCustomFrom] = useState('');
     const [customTo, setCustomTo] = useState('');
 
+    function fmt(d: Date) {
+        const Y = d.getFullYear();
+        const M = String(d.getMonth() + 1).padStart(2, '0');
+        const D = String(d.getDate()).padStart(2, '0');
+        return `${Y}-${M}-${D}`;
+    }
+
     const presets = [
+        { label: 'Todo', getRange: () => ({ from: 'all', to: 'all' }) },
         {
             label: 'Este Mes', getRange: () => {
                 const now = new Date();
@@ -32,7 +39,7 @@ export default function DashboardActions({ onPeriodChange }: DashboardActionsPro
             }
         },
         {
-            label: 'Últ. 3 Meses', getRange: () => {
+            label: 'Último Trimestre', getRange: () => {
                 const now = new Date();
                 const from = new Date(now.getFullYear(), now.getMonth() - 2, 1);
                 return { from: fmt(from), to: fmt(now) };
@@ -45,96 +52,74 @@ export default function DashboardActions({ onPeriodChange }: DashboardActionsPro
                 return { from: fmt(from), to: fmt(now) };
             }
         },
-        { label: 'Todo', getRange: () => ({ from: '', to: '' }) },
     ];
-
-    function fmt(d: Date) {
-        return d.toISOString().split('T')[0];
-    }
 
     const applyPreset = (preset: typeof presets[0]) => {
         const { from, to } = preset.getRange();
         setActiveLabel(preset.label);
-        setShowPeriodMenu(false);
         onPeriodChange?.(from, to, preset.label);
     };
 
     const applyCustom = () => {
         if (customFrom && customTo) {
             setActiveLabel(`${customFrom} → ${customTo}`);
-            setShowPeriodMenu(false);
             onPeriodChange?.(customFrom, customTo, 'Personalizado');
         }
     };
 
     return (
-        <div className="flex flex-wrap gap-2 items-center">
-            {/* Period Filter */}
-            <div className="relative">
-                <button
-                    onClick={() => setShowPeriodMenu(!showPeriodMenu)}
-                    className={`px-4 py-2 border rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${showPeriodMenu
-                        ? 'bg-stone-900 dark:bg-white text-white dark:text-stone-900 border-stone-900 dark:border-white'
-                        : 'bg-stone-100 dark:bg-stone-800 border-stone-200 dark:border-stone-700 hover:bg-stone-200 dark:hover:bg-stone-700 uppercase tracking-tight'
-                        }`}
-                >
-                    <Calendar className="w-3.5 h-3.5" />
-                    {activeLabel}
-                </button>
+        <div className="w-full flex flex-col xl:flex-row gap-4 items-stretch xl:items-center justify-between bg-white dark:bg-stone-900 border-2 border-stone-100 dark:border-stone-800 rounded-3xl p-5 shadow-xl transition-all">
+            {/* Left: Period Presets and Inputs */}
+            <div className="flex flex-wrap items-center gap-3">
+                <span className="text-[10px] font-black text-stone-400 dark:text-stone-500 uppercase tracking-widest mr-1 flex items-center gap-1.5">
+                    <Calendar className="w-4 h-4 text-primary" /> Período:
+                </span>
+                
+                <div className="flex flex-wrap gap-2">
+                    {presets.map(p => (
+                        <button
+                            key={p.label}
+                            onClick={() => applyPreset(p)}
+                            className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                                activeLabel === p.label
+                                    ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/20 scale-105'
+                                    : 'bg-stone-50 dark:bg-stone-800/80 text-stone-500 hover:bg-stone-100 dark:hover:bg-stone-800 hover:text-stone-700 dark:hover:text-stone-300'
+                            }`}
+                        >
+                            {p.label}
+                        </button>
+                    ))}
+                </div>
 
-                {showPeriodMenu && (
-                    <>
-                        <div className="fixed inset-0 z-40" onClick={() => setShowPeriodMenu(false)} />
-                        <div className="absolute right-0 top-full mt-2 w-72 bg-white dark:bg-stone-800 border-2 border-stone-100 dark:border-stone-700 rounded-2xl shadow-2xl z-50 p-4 animate-in fade-in slide-in-from-top-2 duration-200">
-                            <p className="text-[9px] font-black text-stone-400 uppercase tracking-widest mb-3">Filtrar Período</p>
+                <div className="h-6 w-px bg-stone-200 dark:bg-stone-850 mx-1 hidden md:block" />
 
-                            <div className="space-y-1.5 mb-4">
-                                {presets.map(p => (
-                                    <button
-                                        key={p.label}
-                                        onClick={() => applyPreset(p)}
-                                        className={`w-full text-left px-3 py-2 rounded-xl text-xs font-bold transition-all ${activeLabel === p.label
-                                            ? 'bg-primary text-primary-foreground'
-                                            : 'hover:bg-stone-50 dark:hover:bg-stone-700 text-stone-600 dark:text-stone-300'
-                                            }`}
-                                    >
-                                        {p.label}
-                                    </button>
-                                ))}
-                            </div>
-
-                            <div className="border-t border-stone-100 dark:border-stone-700 pt-3">
-                                <p className="text-[9px] font-black text-stone-400 uppercase tracking-widest mb-2">Rango Personalizado</p>
-                                <div className="flex gap-2 mb-2">
-                                    <input
-                                        type="date"
-                                        value={customFrom}
-                                        onChange={e => setCustomFrom(e.target.value)}
-                                        className="flex-1 px-2 py-1.5 border border-stone-200 dark:border-stone-600 rounded-lg text-[11px] font-bold bg-white dark:bg-stone-900 text-stone-800 dark:text-stone-200 outline-none focus:border-primary"
-                                    />
-                                    <input
-                                        type="date"
-                                        value={customTo}
-                                        onChange={e => setCustomTo(e.target.value)}
-                                        className="flex-1 px-2 py-1.5 border border-stone-200 dark:border-stone-600 rounded-lg text-[11px] font-bold bg-white dark:bg-stone-900 text-stone-800 dark:text-stone-200 outline-none focus:border-primary"
-                                    />
-                                </div>
-                                <button
-                                    onClick={applyCustom}
-                                    className="w-full py-2 bg-stone-900 dark:bg-white text-white dark:text-stone-900 rounded-xl text-[10px] font-black uppercase tracking-widest hover:scale-[1.02] transition-all"
-                                >
-                                    Aplicar
-                                </button>
-                            </div>
-                        </div>
-                    </>
-                )}
+                <div className="flex items-center gap-2">
+                    <input
+                        type="date"
+                        value={customFrom}
+                        onChange={e => setCustomFrom(e.target.value)}
+                        className="px-3 py-2 border border-stone-200 dark:border-stone-700 rounded-xl text-xs font-bold bg-white dark:bg-stone-950 text-stone-700 dark:text-stone-300 outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
+                    />
+                    <span className="text-stone-400 text-xs font-bold">a</span>
+                    <input
+                        type="date"
+                        value={customTo}
+                        onChange={e => setCustomTo(e.target.value)}
+                        className="px-3 py-2 border border-stone-200 dark:border-stone-700 rounded-xl text-xs font-bold bg-white dark:bg-stone-950 text-stone-700 dark:text-stone-300 outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
+                    />
+                    <button
+                        onClick={applyCustom}
+                        className="px-4 py-2 bg-stone-900 dark:bg-white text-white dark:text-stone-900 rounded-xl text-[10px] font-black uppercase tracking-widest hover:scale-105 active:scale-95 transition-all shadow-md"
+                    >
+                        Aplicar
+                    </button>
+                </div>
             </div>
 
-            {/* New Sale */}
+            {/* Right: Actions */}
             <button
                 onClick={() => setIsQuoteOpen(true)}
-                className="px-5 py-2 bg-primary text-primary-foreground rounded-xl text-xs font-bold shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all uppercase tracking-tight"
+                className="px-6 py-3 bg-primary text-primary-foreground rounded-xl text-xs font-black uppercase tracking-widest shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all hover:scale-105 active:scale-95 text-center xl:self-auto self-start"
             >
                 Nueva Venta
             </button>

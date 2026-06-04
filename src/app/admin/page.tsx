@@ -142,8 +142,9 @@ export default function Home() {
           </h1>
           <p className="text-foreground/50 mt-1 font-medium italic uppercase text-[8px] lg:text-[10px] tracking-widest leading-none">Inteligencia de Negocio y Control Administrativo</p>
         </div>
-        <DashboardActions onPeriodChange={handlePeriodChange} />
       </header>
+
+      <DashboardActions onPeriodChange={handlePeriodChange} />
 
       {/* 1. Reporte General de Ventas / Métricas — Only for Admin */}
       {isAdmin && (
