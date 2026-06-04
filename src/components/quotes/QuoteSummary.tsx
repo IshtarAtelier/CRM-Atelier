@@ -6,7 +6,7 @@ import {
     CheckCircle2, X, Plus, Clock, Glasses, 
     Banknote, ArrowRightLeft, CreditCard,
     Lock, ChevronRight, ChevronUp, Pencil,
-    History, Trash2, Eye, AlertCircle
+    History, Trash2, Eye, AlertCircle, MessageSquare
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -85,7 +85,7 @@ export default function QuoteSummary({
                         </div>
                         <div>
                             <p className="text-[10px] font-black text-stone-400 uppercase tracking-widest">#{order.id.slice(-4).toUpperCase()}</p>
-                            <p className="text-[10px] font-bold text-stone-500">{format(new Date(order.createdAt), "d MMM", { locale: es })}</p>
+                            <p className="text-[10px] font-bold text-stone-500">{format(new Date(order.labSentAt || order.createdAt), "d MMM", { locale: es })}</p>
                         </div>
                     </div>
                     <div className="text-right">
@@ -250,7 +250,7 @@ export default function QuoteSummary({
 
 
     if (!isExpanded) {
-        const dateStr = format(new Date(order.createdAt), "d MMM yy", { locale: es });
+        const dateStr = format(new Date(order.labSentAt || order.createdAt), "d MMM yy", { locale: es });
         return (
             <button
                 onClick={onToggleExpand}
@@ -583,6 +583,33 @@ export default function QuoteSummary({
                             className="py-3 bg-amber-50 text-amber-600 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-amber-100 transition-all flex items-center justify-center gap-2"
                         >
                             <Banknote className="w-3.5 h-3.5" /> Abonar
+                        </button>
+                        <button 
+                            onClick={async () => {
+                                const note = window.prompt('Escribí el mensaje para Matías (se le enviará por WhatsApp con el link del cliente):');
+                                if (!note) return;
+                                
+                                try {
+                                    const link = `${window.location.origin}/admin/contactos?id=${contact.id}`;
+                                    const fullMessage = `📌 *Nota en el pedido de ${contact.name}*\n\n"${note}"\n\nLink: ${link}`;
+                                    
+                                    const res = await fetch('/api/equipo/mensajes', {
+                                        method: 'POST',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({ content: fullMessage, sender: 'ISHTAR' })
+                                    });
+                                    if (res.ok) {
+                                        alert('✅ Mensaje enviado a Matías.');
+                                    } else {
+                                        alert('❌ Error al enviar el mensaje.');
+                                    }
+                                } catch (e) {
+                                    alert('❌ Error de red al enviar el mensaje.');
+                                }
+                            }}
+                            className="py-3 bg-blue-50 text-blue-600 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-blue-100 transition-all flex items-center justify-center gap-2"
+                        >
+                            <MessageSquare className="w-3.5 h-3.5" /> Avisar a Matías
                         </button>
                         {/* Ocultar botón eliminar para vendedores en ventas ya cerradas */}
                         {!isLockedSale && (

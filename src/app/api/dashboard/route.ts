@@ -30,12 +30,17 @@ export async function GET(request: Request) {
             dateFilter.gte = new Date(now.getFullYear(), now.getMonth(), 1);
         }
 
-        const whereClause: any = {
-            orderType: 'SALE',
-            isDeleted: false,
-        };
+        const whereClause: any = { orderType: 'SALE', isDeleted: false };
         if (Object.keys(dateFilter).length > 0) {
-            whereClause.createdAt = dateFilter;
+            whereClause.OR = [
+                { labSentAt: dateFilter },
+                {
+                    AND: [
+                        { labSentAt: null },
+                        { createdAt: dateFilter }
+                    ]
+                }
+            ];
         }
 
         const currentMonthOrders = await prisma.order.findMany({
@@ -78,8 +83,8 @@ export async function GET(request: Request) {
 
         const allOrders = await prisma.order.findMany({
             where: { orderType: 'SALE', isDeleted: false },
-            select: { total: true, subtotalWithMarkup: true, createdAt: true },
-            orderBy: { createdAt: 'asc' },
+            select: { total: true, subtotalWithMarkup: true, labSentAt: true, createdAt: true },
+            orderBy: { labSentAt: 'asc' },
         });
 
         const totalSoldMonth = currentMonthOrders.reduce((acc: number, order: any) => {
@@ -244,7 +249,7 @@ export async function GET(request: Request) {
         }
 
         allOrders.forEach((order: any) => {
-            const date = new Date(order.createdAt);
+            const date = new Date(order.labSentAt || order.createdAt);
             const key = `${monthsNames[date.getMonth()]} ${date.getFullYear()}`;
             if (monthlyStats[key] !== undefined) {
                 const price = order.total || order.subtotalWithMarkup || 0;
@@ -331,7 +336,7 @@ export async function GET(request: Request) {
             const prevFrom = new Date(fromDate.getTime() - periodDays * 24 * 60 * 60 * 1000);
             const prevOrders = await prisma.order.findMany({
                 where: {
-                    createdAt: { gte: prevFrom, lt: fromDate },
+                    labSentAt: { gte: prevFrom, lt: fromDate },
                     orderType: 'SALE',
                     isDeleted: false,
                 },
@@ -367,7 +372,17 @@ export async function GET(request: Request) {
         });
         const filteredClientIds = filteredClients.map((c: any) => c.id);
 
-        const orderFunnelWhere: any = { createdAt: funnelDateFilter, isDeleted: false };
+        const orderFunnelWhere: any = { isDeleted: false };
+        orderFunnelWhere.OR = [
+            { labSentAt: funnelDateFilter },
+            {
+                AND: [
+                    { labSentAt: null },
+                    { createdAt: funnelDateFilter }
+                ]
+            }
+        ];
+        
         if (etiqueta !== null || tipo !== null) {
             orderFunnelWhere.clientId = { in: filteredClientIds };
         }

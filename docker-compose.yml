@@ -34,6 +34,9 @@ services:
       - ./wa-service/utils.js:/app/utils.js
       - ./wa-service/sales-followups.js:/app/sales-followups.js
       - ./wa-service/agent_config.json:/app/agent_config.json
+      - ./wa-service/prompts:/app/prompts
+      - ./wa-service/routes:/app/routes
+      - ./wa-service/cron:/app/cron
       - ./wa-service/.env:/app/.env
     restart: unless-stopped
     # Necesario para Chromium en Docker

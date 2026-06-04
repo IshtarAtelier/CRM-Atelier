@@ -248,7 +248,19 @@ export async function GET(request: Request) {
                 toDate.setHours(23, 59, 59, 999);
                 dateCond.lte = toDate;
             }
-            andConditions.push({ createdAt: dateCond });
+            // Filtrar estrictamente por la fecha en que se pasó a venta / envío a fábrica (labSentAt)
+            // Si es un presupuesto o venta sin procesar (labSentAt es null), usamos createdAt
+            andConditions.push({
+                OR: [
+                    { labSentAt: dateCond },
+                    {
+                        AND: [
+                            { labSentAt: null },
+                            { createdAt: dateCond }
+                        ]
+                    }
+                ]
+            });
         }
 
 

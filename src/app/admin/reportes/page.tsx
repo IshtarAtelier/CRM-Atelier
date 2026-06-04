@@ -137,10 +137,13 @@ export default function ReportesPage() {
     const [loading, setLoading] = useState(true);
     const [dateFrom, setDateFrom] = useState('');
     const [dateTo, setDateTo] = useState('');
-    const [activePreset, setActivePreset] = useState('all');
+    const [activePreset, setActivePreset] = useState('month');
 
     useEffect(() => {
-        fetchReport();
+        const { from, to } = getPresetDates('month');
+        setDateFrom(from);
+        setDateTo(to);
+        fetchReport(from, to);
     }, []);
 
     const fetchReport = async (from?: string, to?: string) => {

@@ -31,7 +31,15 @@ export async function GET(request: Request) {
             isDeleted: false,
         };
         if (from || to) {
-            whereClause.createdAt = dateFilter;
+            whereClause.OR = [
+                { labSentAt: dateFilter },
+                {
+                    AND: [
+                        { labSentAt: null },
+                        { createdAt: dateFilter }
+                    ]
+                }
+            ];
         }
 
         // Fetch all sales with items, products, and payments
@@ -155,7 +163,7 @@ export async function GET(request: Request) {
             vendorStats[vId].orders += 1;
 
             // Monthly stats
-            const date = new Date(order.createdAt);
+            const date = new Date(order.labSentAt || order.createdAt);
             const monthKey = `${monthNames[date.getMonth()]} ${date.getFullYear()}`;
             if (!monthlyStats[monthKey]) monthlyStats[monthKey] = { revenue: 0, cost: 0, profit: 0, orders: 0 };
             monthlyStats[monthKey].revenue += orderPaidReal;

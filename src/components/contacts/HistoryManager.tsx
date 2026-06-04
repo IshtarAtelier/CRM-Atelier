@@ -122,7 +122,7 @@ export default function HistoryManager({
                     <div className="bg-indigo-50/50 dark:bg-indigo-950/10 p-5 rounded-2xl border border-indigo-100 dark:border-indigo-900 shadow-sm transition-all">
                         <div className="flex justify-between items-start mb-2">
                             <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">
-                                {contactCreatedAt ? format(new Date(contactCreatedAt), "EEEE d 'de' MMMM, HH:mm", { locale: es }) : 'FECHA DESCONOCIDA'}
+                                {contactCreatedAt && !isNaN(new Date(contactCreatedAt).getTime()) ? format(new Date(contactCreatedAt), "EEEE d 'de' MMMM, HH:mm", { locale: es }) : 'FECHA DESCONOCIDA'}
                             </span>
                         </div>
                         <p className="text-sm font-medium text-indigo-700 dark:text-indigo-300 leading-relaxed">

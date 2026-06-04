@@ -59,20 +59,24 @@ async function startClient(attempt = 1) {
         require('child_process').execSync('pkill -9 -f chromium || pkill -9 -f chrome || true', { stdio: 'ignore', timeout: 3000 });
     } catch (e) { /* ignore */ }
     
-    // Limpiar SOLO los archivos SingletonLock (no el directorio completo)
-    // Esto preserva la sesión de WhatsApp entre redeploys normales
+    // Limpiar SOLO los archivos SingletonLock
+    // OJO: fs.existsSync devuelve false para symlinks rotos (que es lo que es SingletonLock 
+    // tras un reinicio del container). Por eso ejecutamos rmSync directamente con force: true.
     const lockPaths = [
-        path.join(sessionDataPath, 'chromium-profile', 'SingletonLock'),
         path.join(sessionDataPath, 'session', 'SingletonLock'),
+        path.join(sessionDataPath, 'session', 'SingletonCookie'),
+        path.join(sessionDataPath, 'session', 'SingletonSocket'),
         path.join(__dirname, '.wwebjs_auth', 'session', 'SingletonLock'),
+        path.join(__dirname, '.wwebjs_auth', 'session', 'SingletonCookie'),
+        path.join(__dirname, '.wwebjs_auth', 'session', 'SingletonSocket'),
     ];
     for (const lp of lockPaths) {
         try { 
-            if (fs.existsSync(lp)) {
-                fs.rmSync(lp, { force: true }); 
-                console.log(`🗑️ SingletonLock eliminado: ${lp}`);
-            }
-        } catch (e) { /* ignore */ }
+            fs.rmSync(lp, { force: true }); 
+            console.log(`🗑️ Limpieza de lock forzada en: ${lp}`);
+        } catch (e) { 
+            console.error(`⚠️ Error al borrar lock en ${lp}:`, e.message);
+        }
     }
 
     // Validar integridad del archivo de sesión antes de iniciar
@@ -223,19 +227,20 @@ async function startClient(attempt = 1) {
     }
 
     try {
-        await waClient.initialize();
+        console.log('⏳ Llamando a waClient.initialize()...');
+        await withTimeout(waClient.initialize(), 60000); // 60 segundos máximo
     } catch (err) {
         console.error(`❌ Error inicializando WhatsApp (intento ${attempt}):`, err.message);
         
-        // Si es Code 21 (perfil bloqueado), eliminar chromium-profile y reintentar
+        // Si es Code 21 (perfil bloqueado), eliminar la sesión completa para destrabarlo
         if (err.message.includes('Code: 21') || err.message.includes('process_singleton')) {
-            console.log('🔧 Detectado lock de perfil Chromium (Code 21). Eliminando chromium-profile...');
-            const chromiumProfilePath = path.join(sessionDataPath, 'chromium-profile');
+            console.log('🔧 Detectado lock de perfil Chromium (Code 21). Eliminando sesión corrupta...');
+            const corruptedSessionPath = path.join(sessionDataPath, 'session');
             try {
-                fs.rmSync(chromiumProfilePath, { recursive: true, force: true });
-                console.log(`🗑️ Perfil de Chromium eliminado: ${chromiumProfilePath}`);
+                fs.rmSync(corruptedSessionPath, { recursive: true, force: true });
+                console.log(`🗑️ Sesión corrupta eliminada: ${corruptedSessionPath}`);
             } catch (e) {
-                console.error('⚠️ No se pudo eliminar perfil:', e.message);
+                console.error('⚠️ No se pudo eliminar sesión corrupta:', e.message);
             }
         }
         
