@@ -130,6 +130,15 @@ const handleMessageCreate = async (msg) => {
                 if (chat.botEnabled && !isBotReplying) {
                     await disableBotForChatById(chat.id, 'Intervención humana (mensaje saliente)');
                 }
+
+                // Actualizar timestamp de actividad y desarchivar chat por mensaje saliente
+                await prisma.whatsAppChat.update({
+                    where: { id: chat.id },
+                    data: {
+                        lastMessageAt: new Date(),
+                        archived: false
+                    }
+                });
                 
                 // GUARDAR EL MENSAJE EN EL CRM (UPSERT para evitar race conditions con el envío directo)
                 let messageType = msg.hasMedia ? 'IMAGE' : 'TEXT';
@@ -1543,7 +1552,8 @@ const syncRecentChatsAndMessages = async (wc) => {
                             status: 'OPEN',
                             botEnabled: shouldEnableBot,
                             lastMessageAt: chatObj.timestamp ? new Date(chatObj.timestamp * 1000) : new Date(),
-                            unreadCount: chatObj.unreadCount || 0
+                            unreadCount: chatObj.unreadCount || 0,
+                            archived: chatObj.archived || false
                         }
                     });
                 } catch (createErr) {
@@ -1553,6 +1563,7 @@ const syncRecentChatsAndMessages = async (wc) => {
                         if (realPhone) updateData.realPhone = realPhone;
                         if (chatObj.unreadCount !== undefined) updateData.unreadCount = chatObj.unreadCount;
                         if (chatObj.timestamp) updateData.lastMessageAt = new Date(chatObj.timestamp * 1000);
+                        if (chatObj.archived !== undefined) updateData.archived = chatObj.archived;
                         
                         dbChat = await prisma.whatsAppChat.update({
                             where: { waId },
@@ -1566,6 +1577,7 @@ const syncRecentChatsAndMessages = async (wc) => {
                 if (realPhone && !dbChat.realPhone) updateData.realPhone = realPhone;
                 if (chatObj.unreadCount !== undefined) updateData.unreadCount = chatObj.unreadCount;
                 if (chatObj.timestamp) updateData.lastMessageAt = new Date(chatObj.timestamp * 1000);
+                if (chatObj.archived !== undefined) updateData.archived = chatObj.archived;
 
                 dbChat = await prisma.whatsAppChat.update({
                     where: { id: dbChat.id },

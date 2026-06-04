@@ -168,6 +168,10 @@ function createApiRouter(deps) {
             let chat = await prisma.whatsAppChat.findUnique({ where: { id } });
             if (!chat) return res.status(404).json({ error: 'Chat no encontrado' });
 
+            if (archived === false && chat.archived === true) {
+                data.lastMessageAt = new Date();
+            }
+
             if (botEnabled === false) {
                 await disableBotForChatById(id, 'API patch CRM (Vendedor desactivó el bot)');
                 // Agregar etiqueta para evitar auto-resume si no existe (array-safe)
