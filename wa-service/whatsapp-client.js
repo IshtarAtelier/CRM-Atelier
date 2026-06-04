@@ -46,16 +46,42 @@ async function startClient(attempt = 1) {
         waClient = null;
     }
 
-    // Limpiar lock de Chromium para evitar "Code: 21" tras reinicios
+    // Limpiar TODOS los locks de Chromium para evitar "Code: 21" tras reinicios/redeploys
     const fs = require('fs');
     const path = require('path');
-    const lockPath = path.join(__dirname, '.wwebjs_auth', 'session', 'SingletonLock');
-    try {
-        fs.rmSync(lockPath, { force: true });
-        console.log('🗑️ Intentado eliminar lock de Chromium (SingletonLock).');
-    } catch (e) {
-        // ignore
+    
+    // Determinar el directorio de sesión (Railway volume o local)
+    const sessionDataPath = process.env.RAILWAY_VOLUME_MOUNT_PATH 
+        ? path.join(process.env.RAILWAY_VOLUME_MOUNT_PATH, 'wwebjs_auth')
+        : path.join(__dirname, '.wwebjs_auth');
+    
+    // Lista de todas las ubicaciones posibles donde Chromium deja locks
+    const lockPaths = [
+        path.join(__dirname, '.wwebjs_auth', 'session', 'SingletonLock'),
+        path.join(sessionDataPath, 'session', 'SingletonLock'),
+        path.join(sessionDataPath, 'chromium-profile', 'SingletonLock'),
+        path.join(sessionDataPath, 'session', 'Default', 'SingletonLock'),
+        path.join(sessionDataPath, 'chromium-profile', 'Default', 'SingletonLock'),
+    ];
+    
+    let cleaned = 0;
+    for (const lp of lockPaths) {
+        try {
+            if (fs.existsSync(lp)) {
+                fs.rmSync(lp, { force: true });
+                cleaned++;
+                console.log(`🗑️ Lock eliminado: ${lp}`);
+            }
+        } catch (e) { /* ignore */ }
     }
+    
+    // También matar cualquier proceso Chromium zombi (solo aplica en Linux/Railway)
+    try {
+        require('child_process').execSync('pkill -f chromium || pkill -f chrome || true', { stdio: 'ignore', timeout: 3000 });
+        console.log('🗑️ Intentado matar procesos Chromium residuales.');
+    } catch (e) { /* ignore - normal en Mac o si no hay procesos */ }
+    
+    console.log(`🗑️ Limpieza de locks completada (${cleaned} eliminados).`);
 
     // Validar integridad del archivo de sesión antes de iniciar
     const sessionPath = path.join(__dirname, '.wwebjs_auth', 'session');
