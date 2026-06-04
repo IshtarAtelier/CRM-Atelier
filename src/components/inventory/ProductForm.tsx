@@ -88,7 +88,8 @@ export default function ProductForm({ onClose, onSuccess, isAdmin = false, uniqu
     const getFinalCost = (listCost: number, labName: string) => {
         const config = labConfigs.find(l => l.name.toUpperCase() === (labName || '').toUpperCase());
         if (config) {
-            return Math.round((listCost + config.calibrado) * (1 + config.iva / 100));
+            const calibradoAmount = selectedCategory === 'Tratamiento' ? 0 : config.calibrado;
+            return Math.round((listCost + calibradoAmount) * (1 + config.iva / 100));
         }
         return listCost;
     };

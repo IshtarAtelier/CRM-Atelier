@@ -492,18 +492,28 @@ export default function QuoteSummary({
                                                     {(!isSale || currentUserRole === 'ADMIN') && (
                                                     <button 
                                                         onClick={async () => {
-                                                            if (window.confirm('¿Seguro que querés eliminar este pago? El saldo se actualizará automáticamente.')) {
-                                                                setIsDeletingPayment(paymentValue.id);
-                                                                try {
-                                                                    const res = await fetch(`/api/payments/${paymentValue.id}`, { method: 'DELETE' });
-                                                                    if (res.ok && onRefreshContact) {
-                                                                        await onRefreshContact();
-                                                                    }
-                                                                } catch (err) {
-                                                                    console.error('Error deleting payment:', err);
-                                                                } finally {
-                                                                    setIsDeletingPayment(null);
+                                                            const firstConfirm = window.confirm('⚠️ ATENCIÓN: Estás a punto de eliminar este pago. El saldo se actualizará automáticamente. ¿Estás seguro?');
+                                                            if (!firstConfirm) return;
+                                                            
+                                                            // Double validation for ADMINs
+                                                            if (currentUserRole === 'ADMIN') {
+                                                                const secondConfirm = window.prompt('Para confirmar la eliminación del pago, escribí "ELIMINAR" en mayúsculas:');
+                                                                if (secondConfirm !== 'ELIMINAR') {
+                                                                    window.alert('Eliminación cancelada. La palabra no coincide.');
+                                                                    return;
                                                                 }
+                                                            }
+
+                                                            setIsDeletingPayment(paymentValue.id);
+                                                            try {
+                                                                const res = await fetch(`/api/payments/${paymentValue.id}`, { method: 'DELETE' });
+                                                                if (res.ok && onRefreshContact) {
+                                                                    await onRefreshContact();
+                                                                }
+                                                            } catch (err) {
+                                                                console.error('Error deleting payment:', err);
+                                                            } finally {
+                                                                setIsDeletingPayment(null);
                                                             }
                                                         }}
                                                         disabled={isDeletingPayment === paymentValue.id}
@@ -578,8 +588,19 @@ export default function QuoteSummary({
                         {!isLockedSale && (
                         <button 
                             onClick={() => {
-                                if (window.confirm('¿Seguro que querés eliminar este presupuesto? Esta acción no se puede deshacer.')) {
-                                    onDelete?.(order.id);
+                                if (currentUserRole === 'ADMIN') {
+                                    const firstConfirm = window.confirm('⚠️ ATENCIÓN: Estás a punto de eliminar este presupuesto/venta. ¿Estás seguro?');
+                                    if (!firstConfirm) return;
+                                    const secondConfirm = window.prompt('Para confirmar la eliminación definitiva, escribí "ELIMINAR" en mayúsculas:');
+                                    if (secondConfirm === 'ELIMINAR') {
+                                        onDelete?.(order.id);
+                                    } else {
+                                        window.alert('Eliminación cancelada. La palabra no coincide.');
+                                    }
+                                } else {
+                                    if (window.confirm('¿Seguro que querés eliminar este presupuesto? Esta acción no se puede deshacer.')) {
+                                        onDelete?.(order.id);
+                                    }
                                 }
                             }}
                             className="py-3 bg-red-50 text-red-500 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-red-100 transition-all flex items-center justify-center gap-2"

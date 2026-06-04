@@ -44,6 +44,7 @@ export default function VentasPage() {
     const [error, setError] = useState<string | null>(null);
     const [pageSize, setPageSize] = useState(20);
     const [totalOrders, setTotalOrders] = useState(0);
+    const [totalRevenue, setTotalRevenue] = useState(0);
     const [allLoaded, setAllLoaded] = useState(false);
     const [searchDebounce, setSearchDebounce] = useState<any>(null);
     const [loadingMore, setLoadingMore] = useState(false);
@@ -146,7 +147,7 @@ export default function VentasPage() {
 
     useEffect(() => {
         fetchOrders(search);
-    }, [filterLab, filterBalance, dateFrom, dateTo]);
+    }, [filterLab, filterBalance, filterLaboratory, dateFrom, dateTo]);
 
     const fetchOrders = async (searchTerm?: string, loadAll?: boolean) => {
         setLoading(true);
@@ -166,6 +167,7 @@ export default function VentasPage() {
             if (filterBalance) params.set('hasBalance', 'true');
             if (dateFrom) params.set('dateFrom', dateFrom);
             if (dateTo) params.set('dateTo', dateTo);
+            if (filterLaboratory !== 'ALL') params.set('laboratory', filterLaboratory);
             
             const res = await fetch(`/api/orders?${params}`);
             const data = await res.json();
@@ -178,6 +180,7 @@ export default function VentasPage() {
                 const sales = allOrders.filter((o: Order) => !o.isDeleted);
                 setOrders(sales);
                 setTotalOrders(data.pagination?.total || sales.length);
+                setTotalRevenue(data.totalRevenue || 0);
                 setAllLoaded(loadAll || sales.length >= (data.pagination?.total || 0));
             }
         } catch (err: any) {
@@ -205,6 +208,7 @@ export default function VentasPage() {
             if (filterBalance) params.set('hasBalance', 'true');
             if (dateFrom) params.set('dateFrom', dateFrom);
             if (dateTo) params.set('dateTo', dateTo);
+            if (filterLaboratory !== 'ALL') params.set('laboratory', filterLaboratory);
             
             const res = await fetch(`/api/orders?${params}`);
             const data = await res.json();
@@ -217,6 +221,7 @@ export default function VentasPage() {
                     return [...prev, ...unique];
                 });
                 setTotalOrders(data.pagination?.total || 0);
+                if (data.totalRevenue !== undefined) setTotalRevenue(data.totalRevenue);
                 if (newSales.length < pageSize || (orders.length + newSales.length) >= (data.pagination?.total || 0)) {
                     setAllLoaded(true);
                 }
@@ -237,6 +242,11 @@ export default function VentasPage() {
                 nolimit: 'true',
             });
             if (search) params.set('search', search);
+            if (filterLab !== 'ALL') params.set('labStatus', filterLab);
+            if (filterBalance) params.set('hasBalance', 'true');
+            if (dateFrom) params.set('dateFrom', dateFrom);
+            if (dateTo) params.set('dateTo', dateTo);
+            if (filterLaboratory !== 'ALL') params.set('laboratory', filterLaboratory);
             
             const res = await fetch(`/api/orders?${params}`);
             const data = await res.json();
@@ -322,10 +332,18 @@ export default function VentasPage() {
 
     const handleDeleteRequest = async (orderId: string) => {
         if (isAdmin) {
-            if (confirm('¿Eliminar esta venta definitivamente?')) {
-                await fetch(`/api/orders/${orderId}?reason=Eliminado por admin`, { method: 'DELETE' });
-                fetchOrders();
+            const firstConfirm = confirm('⚠️ ATENCIÓN: Estás a punto de eliminar esta venta. ¿Estás seguro?');
+            if (!firstConfirm) return;
+            
+            const secondConfirm = prompt('Para confirmar la eliminación definitiva, escribí "ELIMINAR" en mayúsculas:');
+            if (secondConfirm !== 'ELIMINAR') {
+                alert('Eliminación cancelada. La palabra no coincide.');
+                return;
             }
+
+            const reason = prompt('Motivo de la eliminación (opcional pero recomendado):') || 'Eliminado por admin';
+            await fetch(`/api/orders/${orderId}?reason=${encodeURIComponent(reason)}`, { method: 'DELETE' });
+            fetchOrders();
         } else {
             const order = orders.find(o => o.id === orderId);
             const reason = prompt('Motivo de la solicitud de eliminación:');
@@ -553,12 +571,12 @@ export default function VentasPage() {
     }, 0);
 
     const stats = {
-        total: orders.length,
+        total: totalOrders,
         sent: orders.filter(o => o.labStatus === 'SENT').length,
         inProgress: orders.filter(o => o.labStatus === 'IN_PROGRESS').length,
         ready: orders.filter(o => o.labStatus === 'READY').length,
         delivered: orders.filter(o => o.labStatus === 'DELIVERED').length,
-        revenue: orders.reduce((s, o) => s + (o.total || 0), 0),
+        revenue: totalRevenue,
         withBalance: ordersWithBalance.length,
     };
 
@@ -760,7 +778,15 @@ export default function VentasPage() {
                                             <LabIcon className="w-5 h-5 lg:w-6 lg:h-6" />
                                         </div>
                                         <div className="flex-1 min-w-0">
-                                            <h3 className="text-base lg:text-lg font-black text-stone-800 dark:text-white truncate">{order.client?.name || 'Cliente Desconocido'}</h3>
+                                            <h3 className="text-base lg:text-lg font-black text-stone-800 dark:text-white truncate">
+                                                <a 
+                                                    href={`/admin/contactos?id=${order.clientId}`}
+                                                    className="hover:text-emerald-600 dark:hover:text-emerald-400 hover:underline underline-offset-2 transition-colors cursor-pointer"
+                                                    title="Ver ficha del cliente"
+                                                >
+                                                    {order.client?.name || 'Cliente Desconocido'}
+                                                </a>
+                                            </h3>
                                             <div className="flex flex-wrap gap-2 mt-1">
                                                 <span className={`px-2 py-0.5 rounded-lg text-[8px] lg:text-[9px] font-black uppercase tracking-widest ${labInfo.color}`}>
                                                     {labInfo.label}

@@ -101,7 +101,7 @@ export const ContactService = {
                     },
                     orders: {
                         where: { isDeleted: false },
-                        select: { total: true, orderType: true }
+                        select: { total: true, orderType: true, paid: true, labStatus: true }
                     },
                     interactions: {
                         where: { type: 'STORE_VISIT' },
@@ -123,12 +123,15 @@ export const ContactService = {
                     : 0;
                 
                 const { orders, interactions, ...rest } = item;
+                const hasPaidNotSent = (item.orders || []).some((o: any) => o.paid > 0 && (!o.labStatus || o.labStatus === 'NONE'));
+                
                 return { 
                     ...rest, 
                     status: item.status === 'NEW' ? 'CONTACT' : item.status,
                     avgTicket: Math.round(avgTicket), 
                     hasSales: saleOrders.length > 0,
-                    hasVisitedStore: (interactions || []).length > 0
+                    hasVisitedStore: (interactions || []).length > 0,
+                    hasPaidNotSent
                 };
             }).sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
         } catch (error: any) {

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { ContactService } from '@/services/contact.service';
 import { cookies } from 'next/headers';
 import { decrypt } from '@/lib/auth';
+import { logAudit } from '@/lib/audit';
 
 export const dynamic = 'force-dynamic';
 
@@ -57,7 +58,18 @@ export async function DELETE(
         }
 
         const { id } = await params;
+        const contact = await ContactService.getById(id);
         await ContactService.delete(id);
+
+        await logAudit({
+            userId: payload.id as string,
+            userName: payload.name as string,
+            action: 'DELETE',
+            entityType: 'CONTACT',
+            entityId: id,
+            details: { contactName: contact?.name }
+        });
+
         return NextResponse.json({ success: true });
     } catch (error: any) {
         console.error('Error deleting contact:', error);

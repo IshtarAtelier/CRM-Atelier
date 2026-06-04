@@ -9,7 +9,7 @@ import { HomeConfiguratorSection } from "@/components/Storefront/HomeConfigurato
 import { HomeMacroFilm } from "@/components/Storefront/HomeMacroFilm";
 import { prisma } from "@/lib/db";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 300;
 
 // ==========================================
 // ATELIER ÓPTICA — GENTLE MONSTER REPLICA

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import Link from "next/link";
+import Image from "next/image";
 
 interface CarouselProduct {
   id: string | number;
@@ -96,11 +97,12 @@ export function HomeProductCarousel({ products }: Props) {
             {/* Contenedor de imagen — fondo gris muy claro */}
             <div className="bg-[#f5f5f5] aspect-square overflow-hidden border-r border-[#e5e5e5] relative">
               {item.img ? (
-                /* eslint-disable-next-line @next/next/no-img-element */
-                <img 
+                <Image 
                   src={item.img}
                   alt={item.name}
-                  className="absolute inset-0 w-full h-full object-contain p-6 mix-blend-multiply group-hover:scale-110 transition-transform duration-500 ease-out"
+                  fill
+                  sizes="(max-width: 768px) 45vw, (max-width: 1024px) 33vw, 25vw"
+                  className="object-contain p-6 mix-blend-multiply group-hover:scale-110 transition-transform duration-500 ease-out"
                 />
               ) : (
                 <div className="absolute inset-0 w-full h-full flex items-center justify-center text-stone-400 text-[10px] font-black uppercase tracking-widest text-center">

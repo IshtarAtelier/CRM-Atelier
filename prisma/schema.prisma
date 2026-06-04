@@ -18,7 +18,7 @@ model User {
   updatedAt        DateTime       @updatedAt
   cashMovements    CashMovement[]
   orders           Order[]
-
+  auditLogs        AuditLog[]
 }
 
 model Client {
@@ -526,4 +526,30 @@ model CrystalColor {
 
   @@unique([name, category])
   @@index([category, active])
+}
+
+model TeamMessage {
+  id        String   @id @default(cuid())
+  sender    String   // ISHTAR, MATIAS, SYSTEM
+  content   String
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  userId     String?  // Puede ser null si es una acción del sistema
+  userName   String?  // Nombre del usuario (STAFF, ADMIN, etc)
+  action     String   // CREATE, UPDATE, DELETE
+  entityType String   // ORDER, CONTACT, PAYMENT, etc.
+  entityId   String   
+  details    Json?    // Qué campos cambiaron o razón
+  createdAt  DateTime @default(now())
+
+  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([entityType, entityId])
+  @@index([userId])
+  @@index([createdAt])
 }

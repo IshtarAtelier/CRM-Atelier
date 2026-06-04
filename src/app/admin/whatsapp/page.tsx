@@ -53,7 +53,7 @@ const QUICK_REPLIES = [
     { label: 'Horario', text: 'Atendemos de Lunes a Viernes de 9 a 13:30 y de 16 a 19:30hs. Sábados de 10 a 14hs.\n\n📍 José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba.\n👉 https://g.co/kgs/5Jp7D4e\n\nCuándo te queda cómodo que te esperemos?' },
     { label: 'Listo para retirar', text: '🎉 ¡Tu pedido está listo para retirar!' },
     { label: 'Pago pendiente', text: 'Te recuerdo que quedó pendiente el saldo restante. ¿Cuándo te viene bien coordinar el pago?' },
-    { label: 'Pedir reseña', text: '¡Te escribo para pedirte un favor enorme 🙏\n\n¿Nos dejarías una reseña en Google? Nos ayudaría muchísimo si podés compartir cómo fue tu experiencia y qué fue lo que más te gustó de nuestra atención.\n\nSi podés, contá en la reseña qué anteojos o cristales te hiciste (por ejemplo: multifocales, lentes de sol, cristales Crizal, etc.), ¡nos ayuda un montón! 🙌\n\n👉 https://g.page/r/CcVls8v7ic_NEBM/review\n\n¡Nos suma muchísimo para seguir creciendo!\nEspero tu comentario 🤍✨🫶' },
+    { label: 'Pedir reseña', text: 'Te escribo para pedirte un favor enorme 🙏\n\nMe dejarias una reseña en Google? me ayuda muchísimo, si podés compartir cómo fue tu experiencia y qué fue lo que más te gustó de nuestra atención.\n\nSi podés, contá en la reseña qué anteojos o cristales te hiciste (por ejemplo: multifocales, lentes de sol, cristales Crizal, etc.), ¡nos ayuda un montón! 🙌\n\n👉 https://g.page/r/CcVls8v7ic_NEBM/review\n\nMe suma muchísimo para seguir creciendo! Espero tu comentario 🤍✨🫶' },
     { label: 'Instagram', text: '¡Te invito a seguirnos en Instagram para ver todas nuestras novedades, promos y modelitos nuevos! 📸✨\n\n👉 https://instagram.com/atelieroptica_\n\n¡Nos encontrás como @atelieroptica_!' },
 ];
 
@@ -1775,8 +1775,8 @@ export default function WhatsAppPage() {
                                                         let finalMessage = qr.text;
                                                         if (qr.label === 'Pedir reseña' && selectedChat) {
                                                             const nombreCliente = selectedChat?.client?.name ? selectedChat.client.name.split(' ')[0] : (selectedChat?.profileName ? selectedChat.profileName.split(' ')[0] : '');
-                                                            const saludoPersonalizado = nombreCliente ? `¡Hola ${nombreCliente}! Te escribo para pedirte` : '¡Te escribo para pedirte';
-                                                            finalMessage = finalMessage.replace('¡Te escribo para pedirte', saludoPersonalizado);
+                                                            const saludoPersonalizado = nombreCliente ? `Hola ${nombreCliente}, Te escribo para pedirte` : 'Te escribo para pedirte';
+                                                            finalMessage = finalMessage.replace('Te escribo para pedirte', saludoPersonalizado);
 
                                                             if (selectedChat?.client?.id) {
                                                                 setNewMessage('Generando mensaje personalizado con última compra...');

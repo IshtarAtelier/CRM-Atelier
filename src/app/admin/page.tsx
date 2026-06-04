@@ -180,8 +180,8 @@ export default function Home() {
                 title="Cantidad de Pedidos"
                 value={d.ordersCountMonth}
                 icon={ShoppingCart}
-                trend={`${d.ordersCountMonth}`}
-                sub="Operaciones"
+                trend={`${d.confirmedCount}`}
+                sub="Confirmados"
               />
             </div>
             <div className="min-w-[260px] flex-1">

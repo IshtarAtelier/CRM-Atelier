@@ -1,5 +1,5 @@
 import React from 'react';
-import { UserPlus, Star, Phone, Tag as TagIcon, ChevronRight, CheckCircle2, UserCheck, Building2, Heart, FileText, Trash2, MapPin, Store } from "lucide-react";
+import { UserPlus, Star, Phone, Tag as TagIcon, ChevronRight, CheckCircle2, UserCheck, Building2, Heart, FileText, Trash2, MapPin, Store, AlertTriangle, Banknote } from "lucide-react";
 import { Contact } from '@/types/contacts';
 
 interface ContactCardProps {
@@ -120,6 +120,13 @@ export const ContactCard: React.FC<ContactCardProps> = ({
                             </div>
                         )}
                     </div>
+                    {contact.hasPaidNotSent && contact.status === 'CONFIRMED' && (
+                        <div className="inline-flex items-center gap-1.5 px-2.5 py-1.5 mt-2 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-lg border-2 border-red-200 dark:border-red-800/30 font-black text-[9px] uppercase tracking-widest shadow-sm animate-pulse">
+                            <AlertTriangle className="w-3.5 h-3.5" />
+                            <Banknote className="w-3.5 h-3.5" />
+                            <span>¡Tiene dinero a favor y sigue en confirmados!</span>
+                        </div>
+                    )}
                 </div>
             </div>
 

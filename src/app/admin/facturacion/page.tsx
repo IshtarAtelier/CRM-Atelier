@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { 
     Receipt, Search, Filter, Calendar, User, 
     CreditCard, CheckCircle2, AlertCircle, 
@@ -18,9 +18,10 @@ import type { Order } from '@/types/orders';
 
 export default function BillingPage() {
     const router = useRouter();
+    const searchParams = useSearchParams();
     const [orders, setOrders] = useState<Order[]>([]);
     const [loading, setLoading] = useState(true);
-    const [searchTerm, setSearchTerm] = useState('');
+    const [searchTerm, setSearchTerm] = useState(searchParams?.get('search') || '');
     const [activeTab, setActiveTab] = useState<'pending' | 'completed' | 'unbilled'>('pending');
     const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
     const [selectedReceipt, setSelectedReceipt] = useState<string | null>(null);

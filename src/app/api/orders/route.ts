@@ -187,10 +187,24 @@ export async function GET(request: Request) {
         const labStatus = searchParams.get('labStatus');
         const dateFrom = searchParams.get('dateFrom');
         const dateTo = searchParams.get('dateTo');
+        const laboratory = searchParams.get('laboratory');
 
         // Base query conditions
         const where: any = { isDeleted: false };
         const andConditions: any[] = [];
+
+        if (laboratory) {
+            andConditions.push({
+                items: {
+                    some: {
+                        product: {
+                            category: 'Cristal',
+                            laboratory: laboratory
+                        }
+                    }
+                }
+            });
+        }
 
         if (typeFilter) {
             andConditions.push({ orderType: typeFilter });
@@ -319,9 +333,11 @@ export async function GET(request: Request) {
 
             if (paginate) {
                 const total = ordersWithBalance.length;
+                const totalRevenue = ordersWithBalance.reduce((s: number, o: any) => s + (o.total || 0), 0);
                 const paginated = ordersWithBalance.slice(skip, skip + limit);
                 return NextResponse.json({
                     orders: paginated,
+                    totalRevenue,
                     pagination: {
                         total,
                         page,
@@ -335,7 +351,7 @@ export async function GET(request: Request) {
         }
 
         if (paginate) {
-            const [orders, total] = await Promise.all([
+            const [orders, total, aggregate] = await Promise.all([
                 prisma.order.findMany({
                     where,
                     select,
@@ -343,11 +359,13 @@ export async function GET(request: Request) {
                     skip: nolimit ? undefined : skip,
                     take: nolimit ? undefined : limit,
                 }),
-                prisma.order.count({ where })
+                prisma.order.count({ where }),
+                prisma.order.aggregate({ _sum: { total: true }, where })
             ]);
 
             return NextResponse.json({
                 orders,
+                totalRevenue: aggregate._sum.total || 0,
                 pagination: {
                     total,
                     page,

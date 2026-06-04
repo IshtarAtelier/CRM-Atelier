@@ -31,12 +31,21 @@ interface Toast {
 
 export function LeadToastNotifications() {
     const [toasts, setToasts] = useState<Toast[]>([]);
+    const [userRole, setUserRole] = useState<string | null>(null);
 
     const removeToast = useCallback((toastId: string) => {
         setToasts(prev => prev.map(t => t.id === toastId ? { ...t, exiting: true } : t));
         setTimeout(() => {
             setToasts(prev => prev.filter(t => t.id !== toastId));
         }, 300);
+    }, []);
+
+    // Fetch user role on mount
+    useEffect(() => {
+        fetch('/api/auth/me')
+            .then(res => res.ok ? res.json() : null)
+            .then(data => { if (data?.role) setUserRole(data.role); })
+            .catch(() => {});
     }, []);
 
     useEffect(() => {
@@ -59,6 +68,9 @@ export function LeadToastNotifications() {
         });
 
         socket.on('bot_error', (data: BotErrorNotification) => {
+            // Solo mostrar alertas de error del bot al usuario ADMIN (ishtar)
+            if (userRole !== 'ADMIN') return;
+
             const toastId = `bot-err-${data.chatId}-${Date.now()}`;
             setToasts(prev => [...prev, { id: toastId, type: 'BOT_ERROR', data, exiting: false }]);
 
@@ -96,7 +108,7 @@ export function LeadToastNotifications() {
         });
 
         return () => { socket.disconnect(); };
-    }, [removeToast]);
+    }, [removeToast, userRole]);
 
     if (toasts.length === 0) return null;
 

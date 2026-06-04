@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Bell, Check, X, Trash2, FileText, Loader2, ExternalLink } from "lucide-react";
+import { Bell, Check, X, Trash2, FileText, Loader2, ExternalLink, AlertTriangle } from "lucide-react";
 
 interface Notification {
     id: string;
@@ -19,7 +19,19 @@ export function NotificationBell() {
     const [isOpen, setIsOpen] = useState(false);
     const [loading, setLoading] = useState(false);
     const [processingId, setProcessingId] = useState<string | null>(null);
+    const [userRole, setUserRole] = useState<string | null>(null);
     const panelRef = useRef<HTMLDivElement>(null);
+
+    // Tipos de notificación que solo puede ver el ADMIN (ishtar)
+    const ADMIN_ONLY_TYPES = ['DELETE_REQUEST', 'INVOICE_REQUEST', 'CASH_OUTFLOW', 'HIGH_CASH_BALANCE', 'ISH_THRESHOLD_REACHED'];
+
+    // Fetch user role on mount
+    useEffect(() => {
+        fetch('/api/auth/me')
+            .then(res => res.ok ? res.json() : null)
+            .then(data => { if (data?.role) setUserRole(data.role); })
+            .catch(() => {});
+    }, []);
 
     const fetchNotifications = async () => {
         try {
@@ -67,17 +79,24 @@ export function NotificationBell() {
         setProcessingId(null);
     };
 
-    const pendingCount = notifications.length;
+    // Filtrar notificaciones según el rol del usuario
+    const isAdmin = userRole === 'ADMIN';
+    const visibleNotifications = notifications.filter(n =>
+        isAdmin || !ADMIN_ONLY_TYPES.includes(n.type)
+    );
+    const pendingCount = visibleNotifications.length;
 
     const getTypeIcon = (type: string) => {
         if (type === "DELETE_REQUEST") return <Trash2 className="w-4 h-4 text-red-500" />;
         if (type === "INVOICE_REQUEST") return <FileText className="w-4 h-4 text-indigo-500" />;
+        if (type === "RECEIPT_ERROR") return <AlertTriangle className="w-4 h-4 text-orange-500" />;
         return <Bell className="w-4 h-4" />;
     };
 
     const getTypeLabel = (type: string) => {
         if (type === "DELETE_REQUEST") return "Solicitud de Eliminación";
         if (type === "INVOICE_REQUEST") return "Solicitud de Factura";
+        if (type === "RECEIPT_ERROR") return "Error en Comprobante";
         return "Notificación";
     };
 
@@ -103,13 +122,13 @@ export function NotificationBell() {
                     </div>
 
                     <div className="max-h-80 overflow-y-auto">
-                        {notifications.length === 0 ? (
+                        {visibleNotifications.length === 0 ? (
                             <div className="py-8 text-center">
                                 <Bell className="w-8 h-8 text-stone-200 dark:text-stone-700 mx-auto mb-2" />
                                 <p className="text-[10px] font-black text-stone-300 dark:text-stone-600 uppercase tracking-widest">Sin solicitudes</p>
                             </div>
                         ) : (
-                            notifications.map(n => (
+                            visibleNotifications.map(n => (
                                 <div key={n.id} className="px-4 py-3 border-b border-stone-50 dark:border-stone-800 hover:bg-stone-50 dark:hover:bg-stone-800/50 transition-colors">
                                     <div className="flex items-start gap-3">
                                         <div className="mt-0.5 p-2 rounded-xl bg-stone-100 dark:bg-stone-800 flex-shrink-0">
@@ -126,12 +145,12 @@ export function NotificationBell() {
                                     <div className="flex gap-2 mt-2 ml-11">
                                         {n.orderId && (
                                             <a
-                                                href={`/admin/ventas?id=${n.orderId}`}
+                                                href={n.type === "INVOICE_REQUEST" ? `/admin/facturacion?search=${n.orderId}` : `/admin/ventas?id=${n.orderId}`}
                                                 className="flex flex-1 items-center justify-center gap-1.5 px-3 py-2 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-blue-100 transition-all border border-blue-100 dark:border-blue-800"
-                                                title="Ir a la Ficha"
+                                                title={n.type === "INVOICE_REQUEST" ? "Ir a Facturar" : "Ir a la Ficha"}
                                             >
                                                 <ExternalLink className="w-3 h-3" />
-                                                Ver Ficha
+                                                {n.type === "INVOICE_REQUEST" ? "Ir a Facturar" : "Ver Ficha"}
                                             </a>
                                         )}
                                         <button

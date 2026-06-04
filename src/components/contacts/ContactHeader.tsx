@@ -146,8 +146,14 @@ export default function ContactHeader({
                                     (!contact.orders || !contact.orders.some((o: any) => o.orderType === 'SALE' && o.isDeleted !== true)) && (
                                     <button
                                         onClick={() => {
-                                            if (window.confirm('¿Estás seguro que quieres eliminar este contacto?')) {
+                                            const firstConfirm = window.confirm('⚠️ ATENCIÓN: Estás a punto de eliminar este contacto. ¿Estás seguro?');
+                                            if (!firstConfirm) return;
+                                            
+                                            const secondConfirm = window.prompt('Para confirmar la eliminación definitiva, escribí "ELIMINAR" en mayúsculas:');
+                                            if (secondConfirm === 'ELIMINAR') {
                                                 onDeleteContact(contact.id);
+                                            } else {
+                                                window.alert('Eliminación cancelada. La palabra no coincide.');
                                             }
                                         }}
                                         className="p-1.5 ml-1 rounded-lg text-stone-300 hover:text-red-500 hover:bg-red-50 transition-all border border-transparent"

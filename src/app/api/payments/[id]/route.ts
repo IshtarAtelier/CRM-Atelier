@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
 import { headers } from 'next/headers';
-import { ContactService } from '@/services/contact.service';
 import { prisma } from '@/lib/db';
+import { logAudit } from '@/lib/audit';
+import { ContactService } from '@/services/contact.service';
 
 export const dynamic = 'force-dynamic';
 
@@ -34,13 +35,10 @@ export async function DELETE(
         }
 
         if (role !== 'ADMIN') {
-            const status = payment.order?.labStatus;
-            if (status && status !== 'NONE') {
-                return NextResponse.json(
-                    { error: 'Seguridad: No podés eliminar pagos de un pedido que ya fue enviado a fábrica.' },
-                    { status: 403 }
-                );
-            }
+            return NextResponse.json(
+                { error: 'Seguridad: Solo el administrador puede eliminar pagos.' },
+                { status: 403 }
+            );
         }
 
         const deletedPayment = await ContactService.deletePayment(paymentId);
@@ -51,6 +49,17 @@ export async function DELETE(
             const interactionText = `El Administrador eliminó un registro de pago por $${formattedAmount} (${payment.method}). Motivo: Eliminación manual / Corrección de caja.`;
             await ContactService.addInteraction(payment.order.clientId, 'SISTEMA', interactionText);
         }
+
+        const userId = headersList.get('x-user-id');
+        const userName = headersList.get('x-user-name');
+        await logAudit({
+            userId,
+            userName,
+            action: 'DELETE',
+            entityType: 'PAYMENT',
+            entityId: paymentId,
+            details: { amount: payment.amount, method: payment.method, orderId: payment.orderId }
+        });
 
         return NextResponse.json(deletedPayment);
     } catch (error: any) {

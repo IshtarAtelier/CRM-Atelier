@@ -157,6 +157,8 @@ export async function GET(
     }
 }
 
+import { logAudit } from '@/lib/audit';
+
 export async function DELETE(
     request: Request,
     { params }: { params: Promise<{ id: string }> }
@@ -168,6 +170,8 @@ export async function DELETE(
         // Read role from secure middleware header
         const headersList = await headers();
         const role = headersList.get('x-user-role') || 'STAFF';
+        const userId = headersList.get('x-user-id');
+        const userName = headersList.get('x-user-name');
 
         // Only ADMIN can delete orders
         if (role !== 'ADMIN') {
@@ -178,6 +182,16 @@ export async function DELETE(
         }
 
         const order = await ContactService.deleteOrder(id, reason);
+
+        await logAudit({
+            userId,
+            userName,
+            action: 'DELETE',
+            entityType: 'ORDER',
+            entityId: id,
+            details: { reason, orderType: order.orderType, total: order.total }
+        });
+
         return NextResponse.json(order);
     } catch (error) {
         console.error('Error deleting order:', error);
