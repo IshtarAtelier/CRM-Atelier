@@ -46,7 +46,10 @@ async function startClient(attempt = 1) {
         waClient = null;
     }
 
-    // Limpiar TODOS los locks de Chromium para evitar "Code: 21" tras reinicios/redeploys
+    // Limpiar perfil de Chromium para evitar "Code: 21" tras reinicios/redeploys
+    // El error Code 21 es un lock POSIX interno de Chromium que queda del container anterior.
+    // La solución es eliminar el directorio chromium-profile completo (es solo cache del browser,
+    // la sesión de WhatsApp se guarda en session/ por LocalAuth).
     const fs = require('fs');
     const path = require('path');
     
@@ -55,33 +58,32 @@ async function startClient(attempt = 1) {
         ? path.join(process.env.RAILWAY_VOLUME_MOUNT_PATH, 'wwebjs_auth')
         : path.join(__dirname, '.wwebjs_auth');
     
-    // Lista de todas las ubicaciones posibles donde Chromium deja locks
-    const lockPaths = [
-        path.join(__dirname, '.wwebjs_auth', 'session', 'SingletonLock'),
-        path.join(sessionDataPath, 'session', 'SingletonLock'),
-        path.join(sessionDataPath, 'chromium-profile', 'SingletonLock'),
-        path.join(sessionDataPath, 'session', 'Default', 'SingletonLock'),
-        path.join(sessionDataPath, 'chromium-profile', 'Default', 'SingletonLock'),
-    ];
+    // Matar procesos Chromium zombi (aplica en Linux/Railway)
+    try {
+        require('child_process').execSync('pkill -9 -f chromium || pkill -9 -f chrome || true', { stdio: 'ignore', timeout: 3000 });
+    } catch (e) { /* ignore */ }
     
-    let cleaned = 0;
-    for (const lp of lockPaths) {
-        try {
-            if (fs.existsSync(lp)) {
-                fs.rmSync(lp, { force: true });
-                cleaned++;
-                console.log(`🗑️ Lock eliminado: ${lp}`);
-            }
-        } catch (e) { /* ignore */ }
+    // Eliminar el directorio chromium-profile completo para que Chromium arranque limpio
+    const chromiumProfilePath = path.join(sessionDataPath, 'chromium-profile');
+    try {
+        if (fs.existsSync(chromiumProfilePath)) {
+            fs.rmSync(chromiumProfilePath, { recursive: true, force: true });
+            console.log(`🗑️ Perfil de Chromium eliminado: ${chromiumProfilePath}`);
+        }
+    } catch (e) {
+        console.error('⚠️ No se pudo eliminar perfil de Chromium:', e.message);
     }
     
-    // También matar cualquier proceso Chromium zombi (solo aplica en Linux/Railway)
-    try {
-        require('child_process').execSync('pkill -f chromium || pkill -f chrome || true', { stdio: 'ignore', timeout: 3000 });
-        console.log('🗑️ Intentado matar procesos Chromium residuales.');
-    } catch (e) { /* ignore - normal en Mac o si no hay procesos */ }
+    // También limpiar SingletonLock en session/ por si acaso
+    const lockPaths = [
+        path.join(sessionDataPath, 'session', 'SingletonLock'),
+        path.join(__dirname, '.wwebjs_auth', 'session', 'SingletonLock'),
+    ];
+    for (const lp of lockPaths) {
+        try { fs.rmSync(lp, { force: true }); } catch (e) { /* ignore */ }
+    }
     
-    console.log(`🗑️ Limpieza de locks completada (${cleaned} eliminados).`);
+    console.log('🗑️ Limpieza de Chromium completada.');
 
     // Validar integridad del archivo de sesión antes de iniciar
     const sessionPath = path.join(__dirname, '.wwebjs_auth', 'session');
