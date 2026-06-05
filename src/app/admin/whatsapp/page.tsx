@@ -226,16 +226,33 @@ export default function WhatsAppPage() {
 
     const sendAudio = async (base64: string, mimetype: string) => {
         if (!selectedChat || sending) return;
+        
+        const currentChatId = selectedChat.id;
+        let userName = 'CRM';
+        try {
+            const stored = localStorage.getItem('user');
+            if (stored) userName = JSON.parse(stored).name || 'CRM';
+        } catch { }
+
+        const optimisticMsg: Message = {
+            id: 'temp_' + Date.now(),
+            chatId: currentChatId,
+            direction: 'OUTBOUND',
+            type: 'audio',
+            content: '🎵 Audio',
+            mediaUrl: base64,
+            status: 'PENDING',
+            senderName: userName,
+            createdAt: new Date().toISOString()
+        };
+
+        setMessages(prev => [...prev, optimisticMsg]);
+        setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
+
         setSending(true);
         try {
-            let userName = 'CRM';
-            try {
-                const stored = localStorage.getItem('user');
-                if (stored) userName = JSON.parse(stored).name || 'CRM';
-            } catch { }
-
             const body = { 
-                chatId: selectedChat.id, 
+                chatId: currentChatId, 
                 message: '', 
                 media: { base64, mimetype, filename: `audio_${Date.now()}.webm` },
                 senderName: userName
@@ -244,8 +261,8 @@ export default function WhatsAppPage() {
                 method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
             });
             setSelectedChat(prev => prev ? { ...prev, botEnabled: false } : prev);
-            setChats(prev => prev.map(c => c.id === selectedChat.id ? { ...c, botEnabled: false } : c));
-            await fetchMessages(selectedChat.id);
+            setChats(prev => prev.map(c => c.id === currentChatId ? { ...c, botEnabled: false } : c));
+            await fetchMessages(currentChatId);
         } catch (e) {
             console.error('Error enviando audio:', e);
         }
@@ -765,27 +782,52 @@ export default function WhatsAppPage() {
     // ── Send text ─────────────────────────────────
     const sendMessage = async () => {
         if ((!newMessage.trim() && !selectedImage) || !selectedChat || sending) return;
+        
+        const messageText = newMessage;
+        const messageImage = selectedImage;
+        const currentChatId = selectedChat.id;
+
+        // Optimistic UI updates
+        setNewMessage('');
+        setSelectedImage(null);
+        
+        let userName = 'CRM';
+        try {
+            const stored = localStorage.getItem('user');
+            if (stored) userName = JSON.parse(stored).name || 'CRM';
+        } catch { }
+        
+        const optimisticMsg: Message = {
+            id: 'temp_' + Date.now(),
+            chatId: currentChatId,
+            direction: 'OUTBOUND',
+            type: messageImage ? 'image' : 'text',
+            content: messageText || (messageImage ? '📷 Imagen' : ''),
+            mediaUrl: messageImage ? messageImage.base64 : undefined,
+            status: 'PENDING',
+            senderName: userName,
+            createdAt: new Date().toISOString()
+        };
+        
+        setMessages(prev => [...prev, optimisticMsg]);
+        setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
+
         setSending(true);
         try {
-            let userName = 'CRM';
-            try {
-                const stored = localStorage.getItem('user');
-                if (stored) userName = JSON.parse(stored).name || 'CRM';
-            } catch { }
-            
-            const body: Record<string, unknown> = { chatId: selectedChat.id, message: newMessage, senderName: userName };
-            if (selectedImage) body.media = selectedImage;
+            const body: Record<string, unknown> = { chatId: currentChatId, message: messageText, senderName: userName };
+            if (messageImage) body.media = messageImage;
             await fetch('/api/whatsapp/send', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(body),
             });
-            setNewMessage('');
-            setSelectedImage(null);
+            
             // Si el humano envía un mensaje desde la interfaz, apagamos el bot instantáneamente
-            setSelectedChat(prev => prev ? { ...prev, botEnabled: false } : prev);
-            setChats(prev => prev.map(c => c.id === selectedChat.id ? { ...c, botEnabled: false } : c));
-            await fetchMessages(selectedChat.id);
+            if (selectedChat?.id === currentChatId) {
+                setSelectedChat(prev => prev ? { ...prev, botEnabled: false } : prev);
+            }
+            setChats(prev => prev.map(c => c.id === currentChatId ? { ...c, botEnabled: false } : c));
+            await fetchMessages(currentChatId);
         } catch (e) {
             console.error('Error enviando:', e);
         }

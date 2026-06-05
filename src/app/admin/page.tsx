@@ -36,6 +36,8 @@ interface DashboardData {
   confirmedCount: number;
   confirmedTotal: number;
   suggestedFollowUps: any[];
+  personalSoldMonth?: number;
+  personalConfirmedCount?: number;
 }
 
 export default function Home() {
@@ -47,6 +49,7 @@ export default function Home() {
   const [dateFrom, setDateFrom] = useState<string | undefined>();
   const [dateTo, setDateTo] = useState<string | undefined>();
   const [userRole, setUserRole] = useState('STAFF');
+  const [userId, setUserId] = useState<string | undefined>();
   const [dolarBlue, setDolarBlue] = useState<number | null>(null);
   const [abandonedCarts, setAbandonedCarts] = useState<AbandonedCart[]>([]);
   const [emailSending, setEmailSending] = useState<string | null>(null);
@@ -59,6 +62,7 @@ export default function Home() {
       if (stored) {
         const u = JSON.parse(stored);
         setUserRole(u.role || 'STAFF');
+        setUserId(u.id || undefined);
       }
     } catch { }
   }, []);
@@ -84,7 +88,7 @@ export default function Home() {
 
   useEffect(() => {
     fetchDashboard(dateFrom, dateTo, funnelEtiqueta, funnelTipo);
-  }, [dateFrom, dateTo, funnelEtiqueta, funnelTipo]);
+  }, [dateFrom, dateTo, funnelEtiqueta, funnelTipo, userId]);
 
   const fetchDashboard = async (from?: string, to?: string, etiqueta?: string, tipo?: string) => {
     setLoading(true);
@@ -94,6 +98,7 @@ export default function Home() {
       if (to) params.set('to', to);
       if (etiqueta && etiqueta !== 'ALL') params.set('etiqueta', etiqueta);
       if (tipo && tipo !== 'ALL') params.set('tipo', tipo);
+      if (userId) params.set('userId', userId);
       const res = await fetch(`/api/dashboard?${params.toString()}`);
       if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
       const json = await res.json();
@@ -129,6 +134,8 @@ export default function Home() {
     confirmedCount: 0,
     confirmedTotal: 0,
     suggestedFollowUps: [],
+    personalSoldMonth: 0,
+    personalConfirmedCount: 0,
   };
 
   const currentTotal = d.totalSoldMonth || 0;
@@ -142,7 +149,7 @@ export default function Home() {
           </h1>
           <p className="text-foreground/50 mt-1 font-medium italic uppercase text-[8px] lg:text-[10px] tracking-widest leading-none">Inteligencia de Negocio y Control Administrativo</p>
         </div>
-        <DashboardActions onPeriodChange={handlePeriodChange} />
+        {isAdmin && <DashboardActions onPeriodChange={handlePeriodChange} />}
       </header>
 
       {/* 1. Reporte General de Ventas / Métricas — Only for Admin */}
@@ -200,6 +207,40 @@ export default function Home() {
                 icon={User}
                 trend={`${d.funnel.contacts}`}
                 sub="Ingresados en período"
+              />
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Salesperson Stats Section */}
+      {!isAdmin && (
+        <section className="space-y-4">
+          <div className="flex items-center gap-2">
+            <TrendingUp className="text-primary w-5 h-5" />
+            <h2 className="text-xs font-black uppercase tracking-[0.2em] text-stone-400">
+              Mis Métricas del Mes
+            </h2>
+          </div>
+          <div className={`flex gap-6 overflow-x-auto pb-4 no-scrollbar transition-opacity duration-300 ${loading ? 'opacity-50' : 'opacity-100'}`}>
+            <div className="min-w-[260px] flex-1">
+              <StatsCard
+                title="Mis Ventas"
+                value={`${d.personalSoldMonth || 0}`}
+                icon={ShoppingCart}
+                trend="Este Mes"
+                sub="Pedidos entregados/vendidos"
+                highlight={true}
+              />
+            </div>
+            <div className="min-w-[260px] flex-1">
+              <StatsCard
+                title="Mis Pedidos Confirmados"
+                value={`${d.personalConfirmedCount || 0}`}
+                icon={CheckCircle2}
+                trend="Activos"
+                sub="Presupuestos aprobados"
+                highlight={false}
               />
             </div>
           </div>

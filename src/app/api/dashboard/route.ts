@@ -15,6 +15,8 @@ export async function GET(request: Request) {
         const tipoParam = searchParams.get('tipo');
         const etiqueta = etiquetaParam && etiquetaParam !== '' ? etiquetaParam : null;
         const tipo = tipoParam && tipoParam !== '' ? tipoParam : null;
+        const userIdParam = searchParams.get('userId');
+        const userId = userIdParam && userIdParam !== '' ? userIdParam : null;
 
         const dateFilter: any = {};
         let hasDateFilter = false;
@@ -452,6 +454,44 @@ export async function GET(request: Request) {
 
         const pendingBalancesList = await ContactService.getOrdersWithBalance();
 
+        let personalSoldMonth = 0;
+        let personalConfirmedCount = 0;
+
+        if (userId) {
+            const personalSoldWhere: any = {
+                userId,
+                orderType: 'SALE',
+                isDeleted: false
+            };
+            if (hasDateFilter && Object.keys(dateFilter).length > 0) {
+                personalSoldWhere.OR = [
+                    { labSentAt: dateFilter },
+                    {
+                        AND: [
+                            { labSentAt: null },
+                            { createdAt: dateFilter }
+                        ]
+                    }
+                ];
+            }
+            personalSoldMonth = await prisma.order.count({
+                where: personalSoldWhere
+            });
+
+            const confirmedClients = await prisma.client.findMany({
+                where: { status: 'CONFIRMED' },
+                select: {
+                    orders: {
+                        where: { orderType: 'QUOTE', isDeleted: false },
+                        orderBy: { createdAt: 'desc' },
+                        take: 1,
+                        select: { userId: true }
+                    }
+                }
+            });
+            personalConfirmedCount = confirmedClients.filter(c => c.orders[0]?.userId === userId).length;
+        }
+
         return NextResponse.json({
             totalSoldMonth,
             totalPaidMonth,
@@ -470,6 +510,8 @@ export async function GET(request: Request) {
             tagStats: Object.entries(tagStats).map(([name, data]) => ({ name, ...data })),
             locationStats: Object.entries(locationStats).map(([name, data]) => ({ name, ...data })),
             typeStats: Object.entries(typeStats).map(([name, data]) => ({ name, ...data })),
+            personalSoldMonth,
+            personalConfirmedCount,
         });
     } catch (error: any) {
         console.error('Error fetching dashboard data:', error);
