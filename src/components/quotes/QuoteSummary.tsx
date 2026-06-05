@@ -14,7 +14,6 @@ import { safePrice } from '@/lib/promo-utils';
 import { resolveStorageUrl } from '@/lib/utils/storage';
 import { PricingService } from '@/services/PricingService';
 import { WhatsAppIcon } from '@/components/icons/WhatsAppIcon';
-import { generateOrderPDF } from '@/lib/order-pdf-generator';
 
 // Modular Components
 import QuoteLineItems from './QuoteLineItems';
@@ -206,21 +205,14 @@ export default function QuoteSummary({
 
         setIsSendingPDF(true);
         try {
-            const { base64, filename } = await generateOrderPDF(order, contact);
-            
             const text = `📄 Adjunto el comprobante de su ${isSale ? 'compra' : 'presupuesto'} en Atelier Óptica.`;
             
-            const sendRes = await fetch('/api/whatsapp/send', {
+            const sendRes = await fetch(`/api/orders/${order.id}/send-pdf`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ 
-                    chatId: `${formattedPhone}@c.us`, 
-                    message: text,
-                    media: {
-                        base64,
-                        mimetype: 'application/pdf',
-                        filename
-                    }
+                    formattedPhone,
+                    text
                 })
             });
 
