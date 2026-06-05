@@ -102,6 +102,14 @@ function formatClientData(clientData, userPhone, userName, chatId, chatSummary) 
   
   let text = `${summaryText}\n\nDATOS DEL CLIENTE EN SISTEMA:\nID: ${clientData.id}\nNombre: ${clientData.name}\nTeléfono: ${resolvedPhone}\nEstado: ${clientData.status}\nChat ID: ${chatId}`;
   
+  if (clientData.insurance) {
+    text += `\nObra Social: ${clientData.insurance} (YA REGISTRADA - NO VOLVER A PREGUNTAR)`;
+  }
+  
+  if (clientData.interest) {
+    text += `\nInterés: ${clientData.interest}`;
+  }
+  
   if (clientData.tags && clientData.tags.length > 0) {
     text += `\nEtiquetas: ${clientData.tags.map(t => t.name).join(', ')}`;
   }

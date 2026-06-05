@@ -178,6 +178,15 @@ const savePrescriptionDataTool = new DynamicStructuredTool({
         // Guardar receta
         const result = await savePrescription({ clientId: resolvedClientId, ...prescriptionData });
         
+        // Si el modelo pasó obraSocial, persistirla en el cliente para que no la vuelva a preguntar
+        if (obraSocial && resolvedClientId) {
+            try {
+                await updateClientData({ id: resolvedClientId, insurance: obraSocial });
+            } catch (insErr) {
+                console.error('Error actualizando insurance en save_prescription_data:', insErr.message);
+            }
+        }
+        
         // Limpiar caché
         delete global.mediaCache[chatId];
 
