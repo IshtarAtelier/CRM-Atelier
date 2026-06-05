@@ -330,6 +330,7 @@ model WhatsAppChat {
   archived      Boolean           @default(false)
   chatLabels    String[]          @default([])
   chatSummary   String?           @db.Text
+  lastFollowUpAt DateTime?
   client        Client?           @relation(fields: [clientId], references: [id], onDelete: SetNull)
   messages      WhatsAppMessage[]
 

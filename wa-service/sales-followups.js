@@ -90,7 +90,8 @@ async function sendFollowUpMessage(waId, text, chatId, labelToAdd) {
             data: {
                 chatLabels: updatedLabels,
                 botEnabled: true, // reactivar bot para procesar su respuesta
-                lastMessageAt: new Date()
+                lastMessageAt: new Date(),
+                lastFollowUpAt: new Date() // DEDUP: evitar que el cron de inactividad envíe otro follow-up
             }
         });
 

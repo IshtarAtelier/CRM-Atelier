@@ -14,6 +14,7 @@ import { safePrice } from '@/lib/promo-utils';
 import { resolveStorageUrl } from '@/lib/utils/storage';
 import { PricingService } from '@/services/PricingService';
 import { WhatsAppIcon } from '@/components/icons/WhatsAppIcon';
+import { generateOrderPDF } from '@/lib/order-pdf-generator';
 
 // Modular Components
 import QuoteLineItems from './QuoteLineItems';
@@ -205,19 +206,7 @@ export default function QuoteSummary({
 
         setIsSendingPDF(true);
         try {
-            const pdfRes = await fetch(`/api/orders/${order.id}/pdf`);
-            if (!pdfRes.ok) throw new Error('No se pudo generar el PDF');
-            const blob = await pdfRes.blob();
-            
-            const base64 = await new Promise<string>((resolve, reject) => {
-                const reader = new FileReader();
-                reader.onloadend = () => {
-                    const result = reader.result as string;
-                    resolve(result.split(',')[1]);
-                };
-                reader.onerror = reject;
-                reader.readAsDataURL(blob);
-            });
+            const { base64, filename } = await generateOrderPDF(order, contact);
             
             const text = `📄 Adjunto el comprobante de su ${isSale ? 'compra' : 'presupuesto'} en Atelier Óptica.`;
             
@@ -230,7 +219,7 @@ export default function QuoteSummary({
                     media: {
                         base64,
                         mimetype: 'application/pdf',
-                        filename: `${isSale ? 'Venta' : 'Presupuesto'}_${order.id.slice(-4).toUpperCase()}.pdf`
+                        filename
                     }
                 })
             });

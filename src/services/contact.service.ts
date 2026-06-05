@@ -38,10 +38,18 @@ export const ContactService = {
                     };
                 } else if (status === 'CONFIRMED') {
                     // CONFIRMED tab: show contacts with status CONFIRMED but NO sales
-                    where.status = 'CONFIRMED';
-                    where.orders = {
-                        none: { orderType: 'SALE', isDeleted: false }
-                    };
+                    // OR contacts that have a QUOTE explicitly marked as CONFIRMED (re-purchasing clients)
+                    where.OR = [
+                        {
+                            status: 'CONFIRMED',
+                            orders: { none: { orderType: 'SALE', isDeleted: false } }
+                        },
+                        {
+                            orders: {
+                                some: { orderType: 'QUOTE', status: 'CONFIRMED', isDeleted: false }
+                            }
+                        }
+                    ];
                 } else {
                     where.status = status;
                 }
@@ -131,6 +139,7 @@ export const ContactService = {
                     status: item.status === 'NEW' ? 'CONTACT' : item.status,
                     avgTicket: Math.round(avgTicket), 
                     hasSales: saleOrders.length > 0,
+                    hasActiveConfirmedQuote: (item.orders || []).some((o: any) => o.orderType === 'QUOTE' && o.status === 'CONFIRMED'),
                     hasVisitedStore: (interactions || []).length > 0,
                     hasPaidNotSent
                 };

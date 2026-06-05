@@ -22,7 +22,7 @@ function getModel() {
     }
     modelInstance = new ChatGoogleGenerativeAI({
       model: "gemini-2.5-flash",
-      maxOutputTokens: 2048,
+      maxOutputTokens: 8192,
       apiKey: process.env.GOOGLE_GENAI_API_KEY || process.env.GOOGLE_API_KEY,
     });
   }

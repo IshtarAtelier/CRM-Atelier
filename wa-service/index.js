@@ -726,7 +726,9 @@ async function processBotTurn(chat, waId, profileName, realPhone) {
                 }
             }
 
-            setTimeout(() => botReplyingTo.delete(waId), 2000);
+            // Mantener botReplyingTo activo con grace period DESPUÉS de enviar todos los bloques
+            // (antes se borraba con setTimeout(2000) que podía expirar mientras aún se enviaban bloques)
+            setTimeout(() => botReplyingTo.delete(waId), 3000);
             // Resetear contador de errores consecutivos tras envío exitoso
             chatErrorCounts.delete(chat.id);
             console.log(`  ✅ Bot respondió a ${profileName} (${result.agentType || 'UNKNOWN'}) con ${messageBlocks.length} mensajes`);

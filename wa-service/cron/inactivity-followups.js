@@ -2,11 +2,24 @@
  * Módulo de seguimiento por inactividad del cliente.
  * Envía un recordatorio automático si el bot respondió hace más de 4 horas
  * y el cliente no contestó.
+ * 
+ * DEDUP: Usa lastFollowUpAt en la DB para no enviar más de 1 follow-up cada 24hs.
+ * EXCLUSIÓN MUTUA: Respeta etiquetas de sales-followups (SEGUIMIENTO_DIA_1, SEGUIMIENTO_DIA_4).
  */
 const { prisma } = require('../db');
 const { sendMessage, sendTypingState } = require('../whatsapp-client');
 
-const FOLLOW_UP_TEXT = "¡Hola! Quería saber si te quedó alguna duda o si querés que sigamos viendo opciones. ¡Avisame cualquier cosita! 😊";
+// Texto alineado con las reglas del prompt:
+// - Sin signos de apertura (¡¿) — regla 12
+// - Voseo cordobés neutro — regla 5
+// - No dice "cualquier cosita" (demasiado informal)
+const FOLLOW_UP_TEXT = "Hola! Te escribo para saber si te quedó alguna duda o si querés que sigamos viendo opciones 😊";
+
+// Cooldown mínimo entre follow-ups para el mismo chat (24 horas)
+const FOLLOW_UP_COOLDOWN_MS = 24 * 60 * 60 * 1000;
+
+// Etiquetas de sales-followups que indican que ese cron ya está gestionando el chat
+const SALES_FOLLOWUP_LABELS = ['SEGUIMIENTO_DIA_1', 'SEGUIMIENTO_DIA_4'];
 
 /**
  * Verifica si la hora actual corresponde a horario comercial de Argentina (UTC-3)
@@ -54,8 +67,23 @@ async function checkAndSendInactivityFollowUps({ isAgentEnabled, botReplyingTo, 
         if (chat.messages.length === 0) continue;
         const lastMsg = chat.messages[0];
 
+        // Solo actuar si el último mensaje fue del Bot (outbound)
         if (lastMsg.direction === 'OUTBOUND' && lastMsg.senderName === 'Bot') {
+            // DEDUP #1: Si el último mensaje ya es el follow-up, saltar
             if (lastMsg.content === FOLLOW_UP_TEXT) {
+                continue;
+            }
+
+            // DEDUP #2: Verificar cooldown persistente (24hs desde último follow-up)
+            if (chat.lastFollowUpAt) {
+                const timeSinceLastFollowUp = now.getTime() - new Date(chat.lastFollowUpAt).getTime();
+                if (timeSinceLastFollowUp < FOLLOW_UP_COOLDOWN_MS) {
+                    continue;
+                }
+            }
+
+            // EXCLUSIÓN MUTUA: Si sales-followups ya está gestionando este chat, no enviar
+            if (chat.chatLabels && SALES_FOLLOWUP_LABELS.some(label => chat.chatLabels.includes(label))) {
                 continue;
             }
 
@@ -98,9 +126,13 @@ async function checkAndSendInactivityFollowUps({ isAgentEnabled, botReplyingTo, 
                         });
                     }
 
+                    // Actualizar timestamps: lastMessageAt + lastFollowUpAt (DEDUP persistente)
                     await prisma.whatsAppChat.update({
                         where: { id: chat.id },
-                        data: { lastMessageAt: new Date() }
+                        data: { 
+                            lastMessageAt: new Date(),
+                            lastFollowUpAt: new Date()
+                        }
                     });
                     
                     broadcastChatUpdate(chat.id);
