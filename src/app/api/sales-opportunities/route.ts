@@ -162,6 +162,7 @@ export async function GET() {
                 id: true,
                 total: true,
                 createdAt: true,
+                status: true,
                 client: {
                     select: {
                         id: true,
@@ -380,8 +381,15 @@ export async function GET() {
             return true;
         });
 
-        // Sort by days elapsed descending (most stalled/oldest first)
-        filteredOpportunities.sort((a, b) => b.daysElapsed - a.daysElapsed);
+        // Sort by amount descending (most valuable first), then by daysElapsed descending
+        filteredOpportunities.sort((a, b) => {
+            const amountA = a.amount || 0;
+            const amountB = b.amount || 0;
+            if (amountB !== amountA) {
+                return amountB - amountA;
+            }
+            return b.daysElapsed - a.daysElapsed;
+        });
 
         const uniqueOpportunities = [];
         const seenClients = new Set<string>();
