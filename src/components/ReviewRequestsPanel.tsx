@@ -95,7 +95,7 @@ export default function ReviewRequestsPanel({ requests, onClose }: ReviewRequest
                                             console.error('Error fetching orders for review task', err);
                                         }
                                         
-                                        const finalMessage = `Hola ${task.client.name.split(' ')[0]}, Te escribo para pedirte un favor enorme 🙏\n\nMe dejarias una reseña en Google? me ayuda muchísimo, si podés compartir cómo fue tu experiencia y qué fue lo que más te gustó de nuestra atención.\n\nSi podés, contá en la reseña qué te parecieron tus ${productNames}, ¡nos ayuda un montón! 🙌\n\n👉 https://g.page/r/CcVls8v7ic_NEBM/review\n\nMe suma muchísimo para seguir creciendo! Espero tu comentario 🤍✨🫶`;
+                                        const finalMessage = `Hola ${task.client.name.split(' ')[0]}, Te escribo para pedirte un favor enorme 🙏\n\nMe dejarias una reseña en Google? me ayuda muchísimo, si podés compartir cómo fue tu experiencia y qué fue lo que más te gustó de nuestra atención.\n\nSi podés, contá en la reseña qué te parecieron tus ${productNames}, ¡nos ayuda un montón! 🙌\n\n👉 https://g.page/r/CcVls8v7ic_NEBM/review\n\n\nMe suma muchísimo para seguir creciendo! Espero tu comentario 🤍✨🫶`;
 
                                         let phone = task.client.phone.replace(/\D/g, '');
                                         if (phone.length === 10) phone = '549' + phone;
