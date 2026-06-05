@@ -14,6 +14,9 @@ export async function GET() {
         const sevenDaysAgo = new Date();
         sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
         const opportunities: any[] = [];
 
         // 1. Favoritos sin actividad (Favorite clients with no activity for 3 days)
@@ -23,7 +26,10 @@ export async function GET() {
                 status: { notIn: ['CLIENT', 'active'] },
                 orders: {
                     none: {
-                        orderType: 'SALE',
+                        OR: [
+                            { orderType: 'SALE' },
+                            { status: 'CONFIRMED', updatedAt: { gte: sevenDaysAgo } }
+                        ],
                         isDeleted: false
                     }
                 }
@@ -84,7 +90,7 @@ export async function GET() {
                 ? new Date(Math.max(...dates.map(d => d.getTime())))
                 : client.createdAt;
 
-            if (lastActivity < threeDaysAgo) {
+            if (lastActivity < threeDaysAgo && lastActivity > thirtyDaysAgo) {
                 const latestRx = client.prescriptions[0];
                 const latestOrder = client.orders[0];
 
@@ -133,16 +139,20 @@ export async function GET() {
         const pendingQuotes = await prisma.order.findMany({
             where: {
                 orderType: 'QUOTE',
-                status: 'PENDING',
+                status: { in: ['PENDING', 'CONFIRMED'] },
                 isDeleted: false,
                 createdAt: {
-                    lt: threeDaysAgo
+                    lt: threeDaysAgo,
+                    gt: thirtyDaysAgo
                 },
                 client: {
                     status: { notIn: ['CLIENT', 'active'] },
                     orders: {
                         none: {
-                            orderType: 'SALE',
+                            OR: [
+                                { orderType: 'SALE' },
+                                { status: 'CONFIRMED', updatedAt: { gte: sevenDaysAgo } }
+                            ],
                             isDeleted: false
                         }
                     }
@@ -210,10 +220,12 @@ export async function GET() {
             }
 
             const daysElapsed = Math.floor((Date.now() - quote.createdAt.getTime()) / (1000 * 60 * 60 * 24));
+            const title = quote.status === 'CONFIRMED' ? 'Presupuesto confirmado sin avance' : 'Presupuesto frío';
+            
             opportunities.push({
                 id: quote.id,
                 type: 'PENDING_QUOTE',
-                title: 'Presupuesto frío',
+                title: title,
                 clientName: quote.client.name,
                 clientId: quote.client.id,
                 phone: quote.client.phone,
@@ -232,7 +244,7 @@ export async function GET() {
                 },
                 createdAt: {
                     lt: oneDayAgo,
-                    gt: sevenDaysAgo
+                    gt: thirtyDaysAgo
                 }
             },
             orderBy: {
@@ -253,7 +265,10 @@ export async function GET() {
                                 {
                                     orders: {
                                         some: {
-                                            orderType: 'SALE',
+                                            OR: [
+                                                { orderType: 'SALE' },
+                                                { status: 'CONFIRMED', updatedAt: { gte: sevenDaysAgo } }
+                                            ],
                                             isDeleted: false
                                         }
                                     }
@@ -316,7 +331,10 @@ export async function GET() {
                     {
                         orders: {
                             some: {
-                                orderType: 'SALE',
+                                OR: [
+                                    { orderType: 'SALE' },
+                                    { status: 'CONFIRMED', updatedAt: { gte: sevenDaysAgo } }
+                                ],
                                 isDeleted: false
                             }
                         }
@@ -365,7 +383,37 @@ export async function GET() {
         // Sort by days elapsed descending (most stalled/oldest first)
         filteredOpportunities.sort((a, b) => b.daysElapsed - a.daysElapsed);
 
-        return NextResponse.json(filteredOpportunities);
+        const uniqueOpportunities = [];
+        const seenClients = new Set<string>();
+        const seenPhones = new Set<string>();
+
+        for (const opp of filteredOpportunities) {
+            let isDuplicate = false;
+            
+            if (opp.clientId) {
+                if (seenClients.has(opp.clientId)) {
+                    isDuplicate = true;
+                }
+                seenClients.add(opp.clientId);
+            }
+            
+            if (opp.phone) {
+                const cleaned = opp.phone.replace(/\D/g, '');
+                if (cleaned.length >= 8) {
+                    const last8 = cleaned.slice(-8);
+                    if (seenPhones.has(last8)) {
+                        isDuplicate = true;
+                    }
+                    seenPhones.add(last8);
+                }
+            }
+            
+            if (!isDuplicate) {
+                uniqueOpportunities.push(opp);
+            }
+        }
+
+        return NextResponse.json(uniqueOpportunities);
     } catch (error) {
         console.error('Error fetching sales opportunities:', error);
         return NextResponse.json({
