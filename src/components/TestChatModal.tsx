@@ -1,7 +1,21 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { X, Send, Bot, User, Loader2, Paperclip, ImageIcon } from 'lucide-react';
+import { X, Send, Bot, Loader2, Paperclip, ChevronDown, ChevronRight, AlertTriangle, ShieldAlert, Wrench } from 'lucide-react';
+
+interface ChatMessage {
+    role: 'user' | 'ai' | 'system';
+    content: string;
+    blocks?: string[];
+    mediaBase64?: string;
+    mediaMime?: string;
+    mediaType?: 'image' | 'audio';
+    toolCalls?: { name: string; args?: any }[];
+    guardrailBlocked?: boolean;
+    silentShutdown?: boolean;
+    apiError?: boolean;
+    reason?: string;
+}
 
 interface TestChatModalProps {
     isOpen: boolean;
@@ -9,12 +23,13 @@ interface TestChatModalProps {
 }
 
 export function TestChatModal({ isOpen, onClose }: TestChatModalProps) {
-    const [messages, setMessages] = useState<{ role: 'user' | 'ai', content: string, mediaBase64?: string, mediaMime?: string }[]>([
-        { role: 'ai', content: 'Hola! Soy Matías de Atelier Óptica, contame qué estás necesitando.' }
+    const [messages, setMessages] = useState<ChatMessage[]>([
+        { role: 'ai', content: 'Hola! Soy Matías de Atelier Óptica, contame qué estás necesitando.', blocks: ['Hola! Soy Matías de Atelier Óptica, contame qué estás necesitando.'] }
     ]);
     const [input, setInput] = useState('');
     const [isTyping, setIsTyping] = useState(false);
-    const [selectedFile, setSelectedFile] = useState<{base64: string, mime: string, url: string} | null>(null);
+    const [selectedFile, setSelectedFile] = useState<{base64: string, mime: string, url: string, type: 'image' | 'audio'} | null>(null);
+    const [showTools, setShowTools] = useState<number | null>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -31,11 +46,12 @@ export function TestChatModal({ isOpen, onClose }: TestChatModalProps) {
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
+        const isAudio = file.type.startsWith('audio/');
         const reader = new FileReader();
         reader.onload = (event) => {
             const result = event.target?.result as string;
             const base64 = result.split(',')[1];
-            setSelectedFile({ base64, mime: file.type, url: URL.createObjectURL(file) });
+            setSelectedFile({ base64, mime: file.type, url: URL.createObjectURL(file), type: isAudio ? 'audio' : 'image' });
         };
         reader.readAsDataURL(file);
     };
@@ -43,11 +59,12 @@ export function TestChatModal({ isOpen, onClose }: TestChatModalProps) {
     const handleSend = async () => {
         if ((!input.trim() && !selectedFile) || isTyping) return;
         
-        const newUserMsg = { 
-            role: 'user' as const, 
-            content: input.trim() || '[Imagen adjunta]', 
+        const newUserMsg: ChatMessage = { 
+            role: 'user', 
+            content: input.trim() || (selectedFile?.type === 'audio' ? '[Audio adjunto]' : '[Imagen adjunta]'), 
             mediaBase64: selectedFile?.base64, 
-            mediaMime: selectedFile?.mime 
+            mediaMime: selectedFile?.mime,
+            mediaType: selectedFile?.type
         };
         const newMessages = [...messages, newUserMsg];
         setMessages(newMessages);
@@ -57,12 +74,10 @@ export function TestChatModal({ isOpen, onClose }: TestChatModalProps) {
         setIsTyping(true);
 
         try {
-            // Enviar solo el último mensaje con media, los anteriores sin base64 para no exceder el body
+            // Enviar solo el último mensaje con media, los anteriores sin base64
             const apiMessages = newMessages.map((m, idx) => {
-                if (idx === newMessages.length - 1) return m; // último mensaje: incluir media si tiene
-                // Mensajes anteriores: strip media para no re-enviar megabytes
-                const { mediaBase64, mediaMime, ...rest } = m;
-                return rest;
+                if (idx === newMessages.length - 1) return { role: m.role, content: m.content, mediaBase64: m.mediaBase64, mediaMime: m.mediaMime, mediaType: m.mediaType };
+                return { role: m.role, content: m.content };
             });
 
             const res = await fetch('/api/whatsapp/test-chat', {
@@ -73,13 +88,35 @@ export function TestChatModal({ isOpen, onClose }: TestChatModalProps) {
             
             const data = await res.json();
             
-            if (res.ok && data.response) {
-                setMessages(prev => [...prev, { role: 'ai', content: data.response }]);
+            if (data.silentShutdown) {
+                setMessages(prev => [...prev, { 
+                    role: 'system', 
+                    content: `⚠️ Bot desactivado silenciosamente — ${data.reason || 'Chat personal detectado'}`,
+                    silentShutdown: true,
+                    toolCalls: data.toolCalls
+                }]);
+            } else if (data.apiError) {
+                setMessages(prev => [...prev, { 
+                    role: 'system', 
+                    content: `🚨 Error de API — Bot se apagó en silencio`,
+                    apiError: true,
+                    reason: data.reason,
+                    toolCalls: data.toolCalls
+                }]);
+            } else if (res.ok && data.response) {
+                const aiMsg: ChatMessage = {
+                    role: 'ai',
+                    content: data.response,
+                    blocks: data.blocks || [data.response],
+                    toolCalls: data.toolCalls,
+                    guardrailBlocked: data.guardrailBlocked,
+                };
+                setMessages(prev => [...prev, aiMsg]);
             } else {
-                setMessages(prev => [...prev, { role: 'ai', content: 'Dejame revisarlo bien y en un ratito te respondo.' }]);
+                setMessages(prev => [...prev, { role: 'ai', content: 'Dejame revisarlo bien y en un ratito te respondo.', blocks: ['Dejame revisarlo bien y en un ratito te respondo.'] }]);
             }
         } catch (e) {
-            setMessages(prev => [...prev, { role: 'ai', content: 'Dejame revisarlo bien y en un ratito te respondo.' }]);
+            setMessages(prev => [...prev, { role: 'ai', content: 'Dejame revisarlo bien y en un ratito te respondo.', blocks: ['Dejame revisarlo bien y en un ratito te respondo.'] }]);
         } finally {
             setIsTyping(false);
         }
@@ -99,7 +136,7 @@ export function TestChatModal({ isOpen, onClose }: TestChatModalProps) {
                         </div>
                         <div>
                             <h3 className="text-sm font-bold text-stone-800 dark:text-stone-100">Matías - Atelier Óptica</h3>
-                            <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold uppercase tracking-widest">En línea</p>
+                            <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold uppercase tracking-widest">Simulador · Réplica exacta</p>
                         </div>
                     </div>
                     <button onClick={onClose} className="p-2 hover:bg-stone-200 dark:hover:bg-stone-800 rounded-full transition-colors">
@@ -108,17 +145,82 @@ export function TestChatModal({ isOpen, onClose }: TestChatModalProps) {
                 </div>
 
                 {/* Messages Area */}
-                <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-[url('https://i.pinimg.com/originals/8c/98/99/8c98994518b575bfd8c949e91d20548b.jpg')] bg-cover bg-center dark:bg-blend-multiply dark:bg-stone-900">
-                    {messages.map((msg, idx) => (
-                        <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                            <div className={`max-w-[80%] rounded-2xl px-4 py-2 shadow-sm ${msg.role === 'user' ? 'bg-emerald-500 text-white rounded-tr-sm' : 'bg-white dark:bg-stone-800 text-stone-800 dark:text-stone-200 rounded-tl-sm border border-stone-100 dark:border-stone-700'}`}>
-                                {msg.mediaBase64 && (
-                                    <img src={`data:${msg.mediaMime};base64,${msg.mediaBase64}`} alt="Adjunto" className="w-full max-w-[200px] rounded-lg mb-2" />
+                <div className="flex-1 overflow-y-auto p-4 space-y-2 bg-[url('https://i.pinimg.com/originals/8c/98/99/8c98994518b575bfd8c949e91d20548b.jpg')] bg-cover bg-center dark:bg-blend-multiply dark:bg-stone-900">
+                    {messages.map((msg, idx) => {
+                        // System messages (shutdown, errors)
+                        if (msg.role === 'system') {
+                            return (
+                                <div key={idx} className="flex justify-center my-2">
+                                    <div className="bg-amber-100/90 dark:bg-amber-900/60 text-amber-800 dark:text-amber-200 text-xs px-4 py-2 rounded-full border border-amber-200 dark:border-amber-800 flex items-center gap-2 shadow-sm">
+                                        {msg.silentShutdown && <AlertTriangle className="w-3.5 h-3.5" />}
+                                        {msg.apiError && <ShieldAlert className="w-3.5 h-3.5" />}
+                                        {msg.content}
+                                    </div>
+                                </div>
+                            );
+                        }
+
+                        // User messages
+                        if (msg.role === 'user') {
+                            return (
+                                <div key={idx} className="flex justify-end">
+                                    <div className="max-w-[80%] rounded-2xl px-4 py-2 shadow-sm bg-emerald-500 text-white rounded-tr-sm">
+                                        {msg.mediaBase64 && msg.mediaType !== 'audio' && (
+                                            <img src={`data:${msg.mediaMime};base64,${msg.mediaBase64}`} alt="Adjunto" className="w-full max-w-[200px] rounded-lg mb-2" />
+                                        )}
+                                        {msg.mediaType === 'audio' && (
+                                            <div className="flex items-center gap-2 mb-1 bg-emerald-600/50 rounded-lg px-3 py-1.5">
+                                                <span className="text-xs">🎙️ Audio adjunto</span>
+                                            </div>
+                                        )}
+                                        <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+                                    </div>
+                                </div>
+                            );
+                        }
+
+                        // AI messages — render each block as separate bubble (igual que WhatsApp real)
+                        const blocks = msg.blocks || [msg.content];
+                        return (
+                            <div key={idx} className="space-y-1">
+                                {blocks.map((block, bIdx) => (
+                                    <div key={bIdx} className="flex justify-start">
+                                        <div className="max-w-[80%] rounded-2xl px-4 py-2 shadow-sm bg-white dark:bg-stone-800 text-stone-800 dark:text-stone-200 rounded-tl-sm border border-stone-100 dark:border-stone-700">
+                                            <p className="text-sm whitespace-pre-wrap">{block}</p>
+                                        </div>
+                                    </div>
+                                ))}
+
+                                {/* Guardrail blocked indicator */}
+                                {msg.guardrailBlocked && (
+                                    <div className="flex justify-center">
+                                        <span className="text-[10px] bg-orange-100 dark:bg-orange-900/40 text-orange-600 dark:text-orange-300 px-3 py-1 rounded-full">🛡️ Guardrail bloqueó la respuesta original</span>
+                                    </div>
                                 )}
-                                <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+
+                                {/* Tool calls debug - collapsible */}
+                                {msg.toolCalls && msg.toolCalls.length > 0 && (
+                                    <div className="ml-2">
+                                        <button 
+                                            onClick={() => setShowTools(showTools === idx ? null : idx)}
+                                            className="flex items-center gap-1 text-[10px] text-stone-400 hover:text-stone-600 dark:hover:text-stone-300 transition-colors"
+                                        >
+                                            {showTools === idx ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
+                                            <Wrench className="w-3 h-3" />
+                                            {msg.toolCalls.length} herramienta{msg.toolCalls.length > 1 ? 's' : ''}
+                                        </button>
+                                        {showTools === idx && (
+                                            <div className="mt-1 bg-stone-800/90 text-stone-300 rounded-lg px-3 py-2 text-[10px] font-mono space-y-0.5">
+                                                {msg.toolCalls.map((tc, tIdx) => (
+                                                    <div key={tIdx}>→ {tc.name}</div>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
                             </div>
-                        </div>
-                    ))}
+                        );
+                    })}
                     
                     {isTyping && (
                         <div className="flex justify-start">
@@ -136,7 +238,13 @@ export function TestChatModal({ isOpen, onClose }: TestChatModalProps) {
                 <div className="bg-white dark:bg-stone-900 border-t border-stone-200 dark:border-stone-800 p-3 shrink-0">
                     {selectedFile && (
                         <div className="mb-3 flex items-center gap-3 bg-stone-100 dark:bg-stone-800 p-2 rounded-xl relative w-fit">
-                            <img src={selectedFile.url} alt="Preview" className="w-12 h-12 object-cover rounded-lg" />
+                            {selectedFile.type === 'image' ? (
+                                <img src={selectedFile.url} alt="Preview" className="w-12 h-12 object-cover rounded-lg" />
+                            ) : (
+                                <div className="w-12 h-12 rounded-lg bg-violet-100 dark:bg-violet-900/50 flex items-center justify-center">
+                                    <span className="text-lg">🎙️</span>
+                                </div>
+                            )}
                             <button 
                                 type="button"
                                 onClick={() => {
@@ -153,7 +261,7 @@ export function TestChatModal({ isOpen, onClose }: TestChatModalProps) {
                         onSubmit={(e) => { e.preventDefault(); handleSend(); }}
                         className="flex items-center gap-2"
                     >
-                        <input type="file" accept="image/*" className="hidden" ref={fileInputRef} onChange={handleFileChange} />
+                        <input type="file" accept="image/*,audio/*" className="hidden" ref={fileInputRef} onChange={handleFileChange} />
                         <button type="button" onClick={() => fileInputRef.current?.click()} className="p-2 hover:bg-stone-100 dark:hover:bg-stone-800 rounded-full transition-colors shrink-0">
                             <Paperclip className="w-5 h-5 text-stone-500" />
                         </button>

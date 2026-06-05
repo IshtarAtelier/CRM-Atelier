@@ -391,7 +391,7 @@ function createApiRouter(deps) {
     // Simulador de Chat (Test)
     // Réplica exacta del flujo real (processBotTurn) para testing fiel.
     router.post('/test/chat', async (req, res) => {
-        const { messages } = req.body;
+        const { messages, testName, testPhone } = req.body;
         const TEST_CHAT_ID = 'test-chat-simulator';
         const TEST_WA_ID = 'test@simulator';
         try {
@@ -402,7 +402,7 @@ function createApiRouter(deps) {
                 if (m.role === 'ai') return new AIMessage(m.content || '');
                 
                 // Imagen: enviar como multimodal (igual que el flujo real)
-                if (m.mediaBase64) {
+                if (m.mediaBase64 && (!m.mediaType || m.mediaType === 'image')) {
                     global.mediaCache = global.mediaCache || {};
                     global.mediaCache[TEST_CHAT_ID] = [{ base64: m.mediaBase64, mimeType: m.mediaMime || 'image/jpeg', timestamp: Date.now() }];
                     console.log(`📸 Test Chat: Imagen guardada en mediaCache['${TEST_CHAT_ID}'] (${(m.mediaBase64.length / 1024).toFixed(0)} KB)`);
@@ -414,6 +414,11 @@ function createApiRouter(deps) {
                         ]
                     });
                 }
+
+                // Audio: enviar como texto transcrito (igual que el flujo real)
+                if (m.mediaType === 'audio') {
+                    return new HumanMessage(`[El cliente envió un audio transcrito. Mensaje: ${m.content || '(sin texto)'}]`);
+                }
                 
                 return new HumanMessage(m.content || '[Mensaje vacío]');
             });
@@ -422,8 +427,8 @@ function createApiRouter(deps) {
             const config = { configurable: { thread_id: TEST_CHAT_ID } };
             const state = { 
                 messages: allMessages,
-                userPhone: '1111111111',
-                userName: 'Tester',
+                userPhone: testPhone || '1111111111',
+                userName: testName || 'Tester',
                 waId: TEST_WA_ID,
                 chatId: TEST_CHAT_ID,
                 customPrompt: agentState.agentPrompt,
@@ -433,6 +438,43 @@ function createApiRouter(deps) {
             };
             
             const result = await graph.invoke(state, config);
+
+            // ── Extraer tool calls para debug (igual que el flujo real) ──
+            const toolCalls = [];
+            let hasPersonalOrCancelToolCall = false;
+            let hasApiError = false;
+            let apiErrorMessage = '';
+
+            if (result && result.messages) {
+                for (const msg of result.messages) {
+                    // Recopilar tool calls para debug
+                    if (msg.tool_calls && Array.isArray(msg.tool_calls)) {
+                        for (const call of msg.tool_calls) {
+                            toolCalls.push({ name: call.name, args: call.args });
+                            if (call.name === 'disable_bot_for_personal_chat' || call.name === 'cancel_bot') {
+                                hasPersonalOrCancelToolCall = true;
+                            }
+                        }
+                    }
+                    // Detectar errores de API en tool messages
+                    const isToolMsg = msg.tool_call_id !== undefined || (typeof msg.getType === 'function' && msg.getType() === 'tool') || msg._getType === 'tool';
+                    if (isToolMsg && msg.content && (msg.content.includes('getaddrinfo') || msg.content.includes('ECONNREFUSED') || msg.content.includes('404') || msg.content.includes('500') || msg.content.includes('Network Error'))) {
+                        hasApiError = true;
+                        apiErrorMessage = msg.content.substring(0, 150);
+                    }
+                }
+            }
+
+            // ── Guardrail de desactivación silenciosa ──
+            if (hasPersonalOrCancelToolCall) {
+                return res.json({ response: null, blocks: [], silentShutdown: true, reason: 'Detección de chat personal/cancelación silenciosa', toolCalls });
+            }
+
+            // ── Guardrail de errores de API ──
+            if (hasApiError) {
+                return res.json({ response: null, blocks: [], apiError: true, reason: apiErrorMessage, toolCalls });
+            }
+
             const lastMessage = result.messages[result.messages.length - 1];
             let responseText = lastMessage.content;
 
@@ -441,14 +483,17 @@ function createApiRouter(deps) {
                 const guardrail = runOutputGuardrail(responseText);
                 if (!guardrail.safe) {
                     console.warn(`  ⚠️ [Test Chat Guardrail] Respuesta bloqueada: ${guardrail.reason}`);
-                    return res.json({ response: 'Dejame revisarlo bien y en un ratito te respondo con la info exacta.', guardrailBlocked: true, guardrailReason: guardrail.reason });
+                    return res.json({ response: 'Dejame revisarlo bien y en un ratito te respondo con la info exacta.', blocks: ['Dejame revisarlo bien y en un ratito te respondo con la info exacta.'], guardrailBlocked: true, guardrailReason: guardrail.reason, toolCalls });
                 }
                 
                 // Limpieza de signos de apertura (igual que el flujo real)
                 responseText = responseText.replace(/¿/g, '');
             }
+
+            // Splitear en bloques (igual que el flujo real en index.js:680)
+            const blocks = responseText ? responseText.split('\n\n').map(b => b.trim()).filter(b => b.length > 0) : [];
             
-            res.json({ response: responseText });
+            res.json({ response: responseText, blocks, toolCalls });
         } catch (e) {
             console.error("Error in Test Chat:", e);
             res.status(500).json({ error: e.message });
