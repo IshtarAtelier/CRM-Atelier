@@ -1556,7 +1556,15 @@ export default function WhatsAppPage() {
                                                                     <Archive className="w-3.5 h-3.5" />
                                                                 )}
                                                             </button>
-                                                            <span className="truncate">{getDisplayName(chat)}</span>
+                                                            <span className="truncate flex items-center gap-1">
+                                                                {getDisplayName(chat)}
+                                                                {(chat.chatLabels || []).some((l: string) => l.startsWith('SEGUIMIENTO_')) && (
+                                                                    <span title="Seguimiento activo" className="text-[9px]">📅</span>
+                                                                )}
+                                                                {(chat.chatLabels || []).includes('SIN_SEGUIMIENTO') && (
+                                                                    <span title="Sin seguimiento" className="text-[9px] opacity-70">🚫</span>
+                                                                )}
+                                                            </span>
                                                         </span>
                                                         {chat.lastMessageAt && (
                                                             <span className="text-[10px] text-stone-400 font-bold shrink-0">
@@ -1646,7 +1654,43 @@ export default function WhatsAppPage() {
                                         {(selectedChat.chatLabels || []).filter(l => l !== 'Fijado').length > 0 && (
                                             <div className="hidden lg:flex flex-wrap gap-1 mr-2 border-r border-stone-200/50 dark:border-stone-700 pr-2">
                                                 {selectedChat.chatLabels.filter(l => l !== 'Fijado').map(lbl => {
+    const isSeguimiento = lbl.startsWith('SEGUIMIENTO_');
+    const isSinSeguimiento = lbl === 'SIN_SEGUIMIENTO';
     const tagObj = dbTags.find(t => t.name === lbl);
+    
+    if (isSeguimiento) {
+        const dayLabel = lbl === 'SEGUIMIENTO_DIA_1' ? 'Seg. Día 1' : lbl === 'SEGUIMIENTO_DIA_4' ? 'Seg. Día 4' : lbl;
+        return (
+            <span key={lbl} className="px-2 py-0.5 rounded-full text-[9px] font-bold border bg-amber-100/80 text-amber-700 border-amber-200 flex items-center gap-1 group cursor-pointer hover:bg-red-100 hover:text-red-600 hover:border-red-200 transition-all"
+                title="Click para cancelar seguimientos"
+                onClick={async () => {
+                    const current = selectedChat.chatLabels || [];
+                    const next = current.filter((l: string) => !l.startsWith('SEGUIMIENTO_'));
+                    if (!next.includes('SIN_SEGUIMIENTO')) next.push('SIN_SEGUIMIENTO');
+                    await updateChat(selectedChat.id, { chatLabels: next });
+                }}
+            >
+                📅 {dayLabel}
+                <span className="text-[7px] opacity-0 group-hover:opacity-100 transition-opacity">✕</span>
+            </span>
+        );
+    }
+    
+    if (isSinSeguimiento) {
+        return (
+            <span key={lbl} className="px-2 py-0.5 rounded-full text-[9px] font-bold border bg-red-100/80 text-red-600 border-red-200 flex items-center gap-1 cursor-pointer hover:bg-green-100 hover:text-green-600 hover:border-green-200 transition-all"
+                title="Click para reactivar seguimientos"
+                onClick={async () => {
+                    const current = selectedChat.chatLabels || [];
+                    const next = current.filter((l: string) => l !== 'SIN_SEGUIMIENTO');
+                    await updateChat(selectedChat.id, { chatLabels: next });
+                }}
+            >
+                🚫 Sin seguimiento
+            </span>
+        );
+    }
+    
     if (tagObj && tagObj.color) {
         return <span key={lbl} style={getLabelStyleInline(tagObj.color)} className="px-2 py-0.5 rounded-full text-[9px] font-bold border">{lbl}</span>;
     }

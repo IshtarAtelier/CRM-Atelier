@@ -1,6 +1,6 @@
 /**
  * Módulo de seguimiento por inactividad del cliente.
- * Envía un recordatorio automático si el bot respondió hace más de 4 horas
+ * Envía un recordatorio automático si el bot respondió hace más de 24 horas
  * y el cliente no contestó.
  * 
  * DEDUP: Usa lastFollowUpAt en la DB para no enviar más de 1 follow-up cada 24hs.
@@ -9,7 +9,7 @@
 const { prisma } = require('../db');
 const { sendMessage, sendTypingState } = require('../whatsapp-client');
 
-// Texto alineado con las reglas del prompt:
+// Texto alineado con las reglas del prompt (se envía tras 24hs de inactividad):
 // - Sin signos de apertura (¡¿) — regla 12
 // - Voseo cordobés neutro — regla 5
 // - No dice "cualquier cosita" (demasiado informal)
@@ -87,11 +87,31 @@ async function checkAndSendInactivityFollowUps({ isAgentEnabled, botReplyingTo, 
                 continue;
             }
 
+            // Verificar si el cliente tiene compras recientes (no enviar si ya compró)
+            if (chat.clientId) {
+                const recentOrders = await prisma.order.findFirst({
+                    where: {
+                        clientId: chat.clientId,
+                        orderType: { in: ['SALE', 'ORDER'] },
+                        isDeleted: false,
+                        createdAt: { gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) }
+                    }
+                });
+                if (recentOrders) {
+                    continue;
+                }
+            }
+
+            // Excluir si tiene label SIN_SEGUIMIENTO
+            if (chat.chatLabels && chat.chatLabels.includes('SIN_SEGUIMIENTO')) {
+                continue;
+            }
+
             const diffMs = now.getTime() - new Date(lastMsg.createdAt).getTime();
             const diffHours = diffMs / (1000 * 60 * 60);
 
-            if (diffHours >= 4) {
-                console.log(`  ✉️ [Follow-Up] Enviando recordatorio por inactividad de ${diffHours.toFixed(1)}hs a ${chat.profileName || chat.waId}`);
+            if (diffHours >= 24) {
+                console.log(`  ✉️ [Follow-Up] Enviando recordatorio por inactividad de ${diffHours.toFixed(1)}hs (umbral: 24hs) a ${chat.profileName || chat.waId}`);
                 
                 try {
                     botReplyingTo.add(chat.waId);

@@ -175,7 +175,7 @@ async function checkAndSendSalesFollowUps() {
     const model = new ChatGoogleGenerativeAI({
         model: 'gemini-2.5-flash',
         temperature: 0.7, // Un toque de creatividad para sonar humano
-        maxOutputTokens: 300,
+        maxOutputTokens: 500,
         apiKey: process.env.GOOGLE_GENAI_API_KEY || process.env.GOOGLE_API_KEY
     });
 
@@ -213,6 +213,12 @@ async function checkAndSendSalesFollowUps() {
             continue;
         }
 
+        // Excluir si el usuario canceló seguimientos manualmente
+        if ((chat.chatLabels || []).includes('SIN_SEGUIMIENTO')) {
+            console.log(`  [Sales-FollowUps] Chat de ${client.name} tiene SIN_SEGUIMIENTO. Omitiendo.`);
+            continue;
+        }
+
         // Validar si tiene compras/pedidos posteriores (tanto tipo SALE como ORDER)
         const completedOrders = await prisma.order.findMany({
             where: {
@@ -239,6 +245,15 @@ async function checkAndSendSalesFollowUps() {
         if (completedPayments.length > 0) {
             console.log(`  [Sales-FollowUps] Cliente ${client.name} ya registró pagos posteriores. Ignorando.`);
             continue;
+        }
+
+        // DEDUP con inactividad: respetar cooldown de 24hs desde último follow-up de cualquier tipo
+        if (chat.lastFollowUpAt) {
+            const timeSinceLastFU = now.getTime() - new Date(chat.lastFollowUpAt).getTime();
+            if (timeSinceLastFU < 24 * 60 * 60 * 1000) {
+                console.log(`  [Sales-FollowUps] Cliente ${client.name} recibió follow-up hace ${(timeSinceLastFU / 3600000).toFixed(1)}hs. Omitiendo.`);
+                continue;
+            }
         }
 
         // Determinar qué nivel de seguimiento le corresponde
@@ -322,6 +337,29 @@ async function checkAndSendSalesFollowUps() {
             if (!generatedText) {
                 console.error(`  ⚠️ [Sales-FollowUps] Gemini devolvió respuesta vacía para ${client.name}.`);
                 continue;
+            }
+
+            // Validar que el mensaje esté completo (no cortado a mitad de oración)
+            if (generatedText.length < 20 || 
+                (!generatedText.match(/[.!?😊☕👓👋🙌✨💪🤗😄🫶]$/) && generatedText.length > 100)) {
+                console.warn(`  ⚠️ [Sales-FollowUps] Mensaje posiblemente incompleto para ${client.name}: "${generatedText.substring(0, 50)}...". Descartando.`);
+                continue;
+            }
+
+            // ANTI-DUPLICADO: Marcar label INMEDIATAMENTE en la DB (antes del setTimeout)
+            // para que si el cron corre de nuevo, no vuelva a programar el mismo seguimiento
+            try {
+                const currentChat = await prisma.whatsAppChat.findUnique({ where: { id: chat.id } });
+                let updatedLabels = [...(currentChat?.chatLabels || [])];
+                if (!updatedLabels.includes(labelToAdd)) {
+                    updatedLabels.push(labelToAdd);
+                }
+                await prisma.whatsAppChat.update({
+                    where: { id: chat.id },
+                    data: { chatLabels: updatedLabels }
+                });
+            } catch (labelErr) {
+                console.error(`Error marcando label ${labelToAdd} para ${client.name}:`, labelErr.message);
             }
 
             // Cola de envíos: acumular delay para espaciar los envíos entre 3 y 7 minutos
