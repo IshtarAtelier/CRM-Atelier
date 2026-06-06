@@ -965,17 +965,29 @@ const handleMessage = async (msg) => {
 
         // 2. Auto-vincular cliente del CRM por número de teléfono
         if (!chat.clientId && realPhone && realPhone.length >= 8) {
-            const client = await prisma.client.findFirst({
-                where: { phone: { contains: realPhone.slice(-8) } },
-                include: { tags: true, prescriptions: true, interactions: { take: 5, orderBy: { createdAt: 'desc' } } }
-            });
-            if (client) {
-                chat = await prisma.whatsAppChat.update({
-                    where: { id: chat.id },
-                    data: { clientId: client.id },
-                    include: { client: { include: { tags: true, prescriptions: true, interactions: { take: 5, orderBy: { createdAt: 'desc' } } } } }
-                });
-                console.log(`  🔗 Vinculado a cliente CRM: ${client.name}`);
+            const searchPhoneStr = realPhone.slice(-6).replace(/\D/g, '');
+            if (searchPhoneStr.length >= 6) {
+                const rawDuplicates = await prisma.$queryRawUnsafe(`
+                    SELECT id 
+                    FROM "Client" 
+                    WHERE REGEXP_REPLACE(COALESCE(phone, ''), '\\D', '', 'g') LIKE '%${searchPhoneStr}%'
+                    LIMIT 1
+                `);
+                
+                if (rawDuplicates && rawDuplicates.length > 0) {
+                    const client = await prisma.client.findUnique({
+                        where: { id: rawDuplicates[0].id },
+                        include: { tags: true, prescriptions: true, interactions: { take: 5, orderBy: { createdAt: 'desc' } } }
+                    });
+                    if (client) {
+                        chat = await prisma.whatsAppChat.update({
+                            where: { id: chat.id },
+                            data: { clientId: client.id },
+                            include: { client: { include: { tags: true, prescriptions: true, interactions: { take: 5, orderBy: { createdAt: 'desc' } } } } }
+                        });
+                        console.log(`  🔗 Vinculado a cliente CRM: ${client.name}`);
+                    }
+                }
             }
         } else if (!chat.client) {
             // Recargar con relaciones si ya tenía clientId

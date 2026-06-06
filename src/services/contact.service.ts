@@ -5,6 +5,7 @@ import { ReceiptAgentService } from './receipt-agent.service';
 import { PricingService } from './PricingService';
 import { GoogleContactsService } from './google-contacts.service';
 import { sendEmail } from '@/lib/email';
+import { fetchWa } from '@/lib/wa-config';
 
 
 export interface ContactCreateData {
@@ -210,8 +211,9 @@ export const ContactService = {
 
         // 2. Intelligent Phone Match
         if (!data.forceCreate && normalizedIncomingPhone.length >= 8) {
-            // Buscamos coincidencia usando los ultimos 8 digitos del telefono ingresado
-            const searchPhoneStr = normalizedIncomingPhone.slice(-8);
+            // Buscamos coincidencia usando los ultimos 6 digitos del telefono ingresado
+            // (6 dígitos evita colisiones con el 15 y soporta códigos de área de 4 dígitos como 3541)
+            const searchPhoneStr = normalizedIncomingPhone.slice(-6);
 
             const rawDuplicates: any[] = await prisma.$queryRawUnsafe(`
                 SELECT id 
@@ -762,7 +764,19 @@ export const ContactService = {
             // Verificar que la orden existe y calcular si no se excede el total
             const order = await tx.order.findUnique({ 
                 where: { id: orderId },
-                select: { id: true, clientId: true, paid: true, total: true, subtotalWithMarkup: true }
+                select: { 
+                    id: true, 
+                    clientId: true, 
+                    paid: true, 
+                    total: true, 
+                    subtotalWithMarkup: true,
+                    client: {
+                        select: {
+                            id: true,
+                            name: true
+                        }
+                    }
+                }
             });
             if (!order) throw new Error('Orden no encontrada');
 
@@ -968,7 +982,46 @@ export const ContactService = {
                 }
             }
 
-            return { ...payment, thresholdReached };
+            const priorPaid = order.paid || 0;
+            const finalTotal = newPaid > currentTotal ? newPaid : currentTotal;
+            const isSena = priorPaid === 0;
+
+            const updatedOrder = await tx.order.findUnique({
+                where: { id: orderId },
+                select: {
+                    id: true,
+                    clientId: true,
+                    total: true,
+                    paid: true,
+                    subtotalWithMarkup: true,
+                    discountCash: true,
+                    discountTransfer: true,
+                    payments: {
+                        select: {
+                            amount: true,
+                            method: true
+                        }
+                    }
+                }
+            });
+
+            if (!updatedOrder) throw new Error('Error al recargar orden para cálculos');
+            const financials = PricingService.calculateOrderFinancials(updatedOrder);
+
+            return { 
+                ...payment, 
+                thresholdReached,
+                clientName: order.client?.name || 'Cliente Desconocido',
+                clientId: order.clientId,
+                isSena,
+                totalOperacion: finalTotal,
+                hasBalance: financials.hasBalance,
+                remainingCash: financials.remainingCash,
+                remainingTransfer: financials.remainingTransfer,
+                remainingCard: financials.remainingCard,
+                discountCash: financials.discountCash,
+                discountTransfer: financials.discountTransfer
+            };
         }).then(result => {
             // Si es efectivo, verificar alerta de saldo fuera de la transacción
             if (method === 'EFECTIVO' || method === 'CASH') {
@@ -984,6 +1037,57 @@ export const ContactService = {
                     method
                 ).catch(err => console.error('[ReceiptAgent Background Error]', err));
             }
+
+            // Enviar notificación de WhatsApp de forma asíncrona
+            (async () => {
+                try {
+                    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://crm-atelier-production-ae72.up.railway.app';
+                    const clientLink = `${appUrl}/admin/contactos?id=${result.clientId}`;
+                    
+                    const tipoPago = result.isSena ? 'SEÑA' : 'SALDO';
+                    
+                    let remainingText = '';
+                    if (result.hasBalance) {
+                        remainingText = `⚠️ *Saldos Restantes por Forma de Pago:*\n`;
+                        remainingText += `💵 *Efectivo (${result.discountCash}% desc):* $${result.remainingCash.toLocaleString('es-AR')}\n`;
+                        remainingText += `📲 *Transferencia (${result.discountTransfer}% desc):* $${result.remainingTransfer.toLocaleString('es-AR')}\n`;
+                        remainingText += `💳 *Tarjeta/Lista:* $${result.remainingCard.toLocaleString('es-AR')} (o 3 cuotas de $${Math.round(result.remainingCard / 3).toLocaleString('es-AR')})`;
+                    } else {
+                        remainingText = `✅ *Pedido totalmente abonado*`;
+                    }
+
+                    let msgText = `💵 *Nuevo Pago Registrado (${tipoPago})*\n\n`;
+                    msgText += `👤 *Cliente:* ${result.clientName}\n`;
+                    msgText += `💰 *Monto de este Pago:* $${amount.toLocaleString('es-AR')}\n`;
+                    msgText += `💳 *Método:* ${method}\n`;
+                    msgText += `📈 *Total de la Operación:* $${result.totalOperacion.toLocaleString('es-AR')}\n`;
+                    if (notes && notes.trim()) {
+                        msgText += `📝 *Referencia/Notas:* ${notes.trim()}\n`;
+                    }
+                    msgText += `\n${remainingText}\n\n`;
+                    msgText += `🔗 *Ficha del cliente:* ${clientLink}`;
+
+                    const res = await fetchWa('/api/send', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            chatId: '5493541215971@c.us',
+                            message: msgText,
+                            senderName: 'Sistema Atelier'
+                        }),
+                    });
+
+                    if (!res.ok) {
+                        const errText = await res.text();
+                        console.error('[Payment Notification] Failed to send WhatsApp:', errText);
+                    } else {
+                        console.log('[Payment Notification] WhatsApp sent successfully');
+                    }
+                } catch (err: any) {
+                    console.error('[Payment Notification] Error sending WhatsApp:', err.message);
+                }
+            })();
+
             return result;
         });
     },

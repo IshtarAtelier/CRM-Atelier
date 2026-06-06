@@ -135,6 +135,7 @@ export default function WhatsAppPage() {
     const [searchQuery, setSearchQuery] = useState('');
     const [showArchived, setShowArchived] = useState(false);
     const [showLabelPicker, setShowLabelPicker] = useState(false);
+    const [showFollowUpMenu, setShowFollowUpMenu] = useState(false);
     const [showQuickReplies, setShowQuickReplies] = useState(false);
     const [summaryModalChat, setSummaryModalChat] = useState<any>(null);
     const [editingSummary, setEditingSummary] = useState('');
@@ -776,6 +777,7 @@ export default function WhatsAppPage() {
     const selectChat = async (chat: Chat) => {
         setSelectedChat(chat);
         setShowLabelPicker(false);
+        setShowFollowUpMenu(false);
         await fetchMessages(chat.id);
     };
 
@@ -1701,7 +1703,7 @@ export default function WhatsAppPage() {
     const tagObj = dbTags.find(t => t.name === lbl);
     
     if (isSeguimiento) {
-        const dayLabel = lbl === 'SEGUIMIENTO_DIA_1' ? 'Seg. Día 1' : lbl === 'SEGUIMIENTO_DIA_4' ? 'Seg. Día 4' : lbl;
+        const dayLabel = lbl === 'SEGUIMIENTO_DIA_1' ? 'Seg. Día 1' : lbl === 'SEGUIMIENTO_DIA_4' ? 'Seg. Día 4' : lbl === 'SEGUIMIENTO_DIA_15' ? 'Seg. Día 15' : lbl;
         return (
             <span key={lbl} className="px-2 py-0.5 rounded-full text-[9px] font-bold border bg-amber-100/80 text-amber-700 border-amber-200 flex items-center gap-1 group cursor-pointer hover:bg-red-100 hover:text-red-600 hover:border-red-200 transition-all"
                 title="Click para cancelar seguimientos"
@@ -1762,6 +1764,109 @@ export default function WhatsAppPage() {
                                         <button onClick={() => { updateChat(selectedChat.id, { archived: !selectedChat.archived }); setSelectedChat(null); }} className="p-2 bg-white dark:bg-stone-800 border border-stone-200/50 dark:border-stone-700 hover:bg-stone-50 rounded-xl transition-all shadow-sm">
                                             {selectedChat.archived ? <ArchiveRestore className="w-3.5 h-3.5 text-stone-500" /> : <Archive className="w-3.5 h-3.5 text-stone-500" />}
                                         </button>
+
+                                        {/* Botón de Seguimientos */}
+                                        {(() => {
+                                            const seguimientoLabels = (selectedChat.chatLabels || []).filter((l: string) => l.startsWith('SEGUIMIENTO_'));
+                                            const sinSeguimiento = (selectedChat.chatLabels || []).includes('SIN_SEGUIMIENTO');
+                                            const hasSeguimientos = seguimientoLabels.length > 0;
+                                            
+                                            return (
+                                                <div className="relative">
+                                                    <button 
+                                                        onClick={() => setShowFollowUpMenu(v => !v)}
+                                                        className={`p-2 border rounded-xl transition-all shadow-sm relative ${
+                                                            sinSeguimiento 
+                                                                ? 'bg-red-50 dark:bg-red-900/30 border-red-200 dark:border-red-800 hover:bg-red-100' 
+                                                                : hasSeguimientos 
+                                                                    ? 'bg-amber-50 dark:bg-amber-900/30 border-amber-200 dark:border-amber-800 hover:bg-amber-100' 
+                                                                    : 'bg-white dark:bg-stone-800 border-stone-200/50 dark:border-stone-700 hover:bg-stone-50'
+                                                        }`}
+                                                        title="Gestionar seguimientos"
+                                                    >
+                                                        <Calendar className={`w-3.5 h-3.5 ${sinSeguimiento ? 'text-red-500' : hasSeguimientos ? 'text-amber-600' : 'text-stone-500'}`} />
+                                                        {hasSeguimientos && (
+                                                            <span className="absolute -top-1 -right-1 w-4 h-4 bg-amber-500 text-white text-[8px] font-black rounded-full flex items-center justify-center shadow-sm">
+                                                                {seguimientoLabels.length}
+                                                            </span>
+                                                        )}
+                                                        {sinSeguimiento && (
+                                                            <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[8px] font-black rounded-full flex items-center justify-center shadow-sm">
+                                                                ✕
+                                                            </span>
+                                                        )}
+                                                    </button>
+                                                    {showFollowUpMenu && (
+                                                        <div className="absolute right-0 top-11 bg-white/95 dark:bg-stone-900/95 backdrop-blur-xl border border-stone-200/50 dark:border-white/10 rounded-2xl shadow-2xl z-50 w-56 p-3 animate-in fade-in slide-in-from-top-2 duration-200">
+                                                            <p className="text-[10px] font-black text-stone-400 uppercase tracking-widest mb-2 px-1">Seguimientos</p>
+                                                            
+                                                            {hasSeguimientos ? (
+                                                                <>
+                                                                    {seguimientoLabels.map((lbl: string) => {
+                                                                        const dayLabel = lbl === 'SEGUIMIENTO_DIA_1' ? 'Día 1 (24hs)' : lbl === 'SEGUIMIENTO_DIA_4' ? 'Día 4 (96hs)' : lbl === 'SEGUIMIENTO_DIA_15' ? 'Día 15' : lbl;
+                                                                        return (
+                                                                            <div key={lbl} className="flex items-center justify-between px-2 py-1.5 rounded-lg bg-amber-50 dark:bg-amber-900/20 mb-1">
+                                                                                <span className="text-xs font-bold text-amber-700 dark:text-amber-400 flex items-center gap-1.5">
+                                                                                    📅 {dayLabel}
+                                                                                </span>
+                                                                                <span className="text-[9px] font-bold text-emerald-600 bg-emerald-100 dark:bg-emerald-900/50 px-1.5 py-0.5 rounded">Enviado ✓</span>
+                                                                            </div>
+                                                                        );
+                                                                    })}
+                                                                    <button 
+                                                                        onClick={async () => {
+                                                                            const current = selectedChat.chatLabels || [];
+                                                                            const next = current.filter((l: string) => !l.startsWith('SEGUIMIENTO_'));
+                                                                            if (!next.includes('SIN_SEGUIMIENTO')) next.push('SIN_SEGUIMIENTO');
+                                                                            await updateChat(selectedChat.id, { chatLabels: next });
+                                                                            setShowFollowUpMenu(false);
+                                                                        }}
+                                                                        className="w-full mt-2 px-3 py-2 bg-red-50 hover:bg-red-100 dark:bg-red-900/30 dark:hover:bg-red-900/50 text-red-600 dark:text-red-400 rounded-xl text-[11px] font-bold transition-all flex items-center justify-center gap-1.5 border border-red-200/50 dark:border-red-800/50"
+                                                                    >
+                                                                        🚫 Cancelar todos los seguimientos
+                                                                    </button>
+                                                                </>
+                                                            ) : sinSeguimiento ? (
+                                                                <>
+                                                                    <div className="flex items-center gap-2 px-2 py-2 rounded-lg bg-red-50 dark:bg-red-900/20 mb-2">
+                                                                        <span className="text-xs font-bold text-red-600 dark:text-red-400">🚫 Seguimientos desactivados</span>
+                                                                    </div>
+                                                                    <button 
+                                                                        onClick={async () => {
+                                                                            const current = selectedChat.chatLabels || [];
+                                                                            const next = current.filter((l: string) => l !== 'SIN_SEGUIMIENTO');
+                                                                            await updateChat(selectedChat.id, { chatLabels: next });
+                                                                            setShowFollowUpMenu(false);
+                                                                        }}
+                                                                        className="w-full px-3 py-2 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-900/30 dark:hover:bg-emerald-900/50 text-emerald-600 dark:text-emerald-400 rounded-xl text-[11px] font-bold transition-all flex items-center justify-center gap-1.5 border border-emerald-200/50 dark:border-emerald-800/50"
+                                                                    >
+                                                                        ✅ Reactivar seguimientos
+                                                                    </button>
+                                                                </>
+                                                            ) : (
+                                                                <>
+                                                                    <div className="flex items-center gap-2 px-2 py-2 rounded-lg bg-stone-50 dark:bg-stone-800 mb-2">
+                                                                        <span className="text-xs font-medium text-stone-500">Sin seguimientos programados</span>
+                                                                    </div>
+                                                                    <button 
+                                                                        onClick={async () => {
+                                                                            const current = selectedChat.chatLabels || [];
+                                                                            if (!current.includes('SIN_SEGUIMIENTO')) {
+                                                                                await updateChat(selectedChat.id, { chatLabels: [...current, 'SIN_SEGUIMIENTO'] });
+                                                                            }
+                                                                            setShowFollowUpMenu(false);
+                                                                        }}
+                                                                        className="w-full px-3 py-2 bg-red-50 hover:bg-red-100 dark:bg-red-900/30 dark:hover:bg-red-900/50 text-red-600 dark:text-red-400 rounded-xl text-[11px] font-bold transition-all flex items-center justify-center gap-1.5 border border-red-200/50 dark:border-red-800/50"
+                                                                    >
+                                                                        🚫 Bloquear seguimientos futuros
+                                                                    </button>
+                                                                </>
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            );
+                                        })()}
 
                                         <div className="w-px h-6 bg-stone-200/50 dark:bg-stone-700 mx-0.5" />
 

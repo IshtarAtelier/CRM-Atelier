@@ -53,17 +53,28 @@ export async function POST(request: Request) {
         }
 
         // Deduplication: Check if a contact with the same phone already exists
-        if (body.phone) {
+        if (body.phone && !body.forceCreate) {
             const normalizedPhone = body.phone.replace(/\D/g, '');
             if (normalizedPhone.length >= 8) {
+                const searchPhoneStr = normalizedPhone.slice(-8);
                 const existingByPhone = await prisma.client.findFirst({
-                    where: { phone: { contains: normalizedPhone } },
+                    where: { phone: { contains: searchPhoneStr } },
                 });
                 if (existingByPhone) {
                     // Check that the normalized digits actually match (suffix match)
                     const existingNormalized = (existingByPhone.phone || '').replace(/\D/g, '');
-                    if (existingNormalized.endsWith(normalizedPhone) || normalizedPhone.endsWith(existingNormalized)) {
-                        return NextResponse.json(existingByPhone);
+                    if (existingNormalized.endsWith(searchPhoneStr) || normalizedPhone.endsWith(existingNormalized.slice(-8))) {
+                        return NextResponse.json({
+                            error: 'Conflicto de Duplicidad',
+                            details: `Ya existe el cliente "${existingByPhone.name}" registrado con el teléfono ${existingByPhone.phone}.`,
+                            isDuplicate: true,
+                            existingClient: {
+                                id: existingByPhone.id,
+                                name: existingByPhone.name,
+                                phone: existingByPhone.phone,
+                                status: existingByPhone.status
+                            }
+                        }, { status: 409 });
                     }
                 }
             }

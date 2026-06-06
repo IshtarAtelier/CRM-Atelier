@@ -38,7 +38,8 @@ function formatQuoteDetails(order) {
         return `- ${qty}x ${name} ($${price})`;
     }).join('\n');
 
-    return `Presupuesto ID: ${order.id}\nItems:\n${itemsStr}\nTotal: $${order.total}`;
+    // NO incluir order.id para evitar que el LLM filtre CUIDs internos al cliente
+    return `Items del presupuesto:\n${itemsStr}\nTotal: $${order.total}`;
 }
 
 /**
@@ -46,6 +47,28 @@ function formatQuoteDetails(order) {
  */
 async function sendFollowUpMessage(waId, text, chatId, labelToAdd) {
     try {
+        // RE-VALIDACIÓN PRE-ENVÍO: verificar que el chat siga siendo válido para follow-up
+        // (entre el setTimeout y este momento pudieron pasar minutos donde el cliente escribió,
+        //  el vendedor intervino, o el bot se apagó)
+        const freshChat = await prisma.whatsAppChat.findUnique({ where: { id: chatId } });
+        if (!freshChat) {
+            console.log(`  🚫 [Follow-Up] Chat ${chatId} ya no existe. Cancelando envío.`);
+            return;
+        }
+        // Si el vendedor apagó el bot manualmente, no enviar
+        if (!freshChat.botEnabled) {
+            console.log(`  🚫 [Follow-Up] Bot desactivado para ${freshChat.profileName || waId}. Cancelando envío.`);
+            return;
+        }
+        // Si hubo actividad reciente (el cliente escribió o el vendedor respondió), no interrumpir
+        if (freshChat.lastMessageAt) {
+            const timeSinceLastMsg = Date.now() - new Date(freshChat.lastMessageAt).getTime();
+            if (timeSinceLastMsg < 2 * 60 * 60 * 1000) { // menos de 2 horas desde último msg
+                console.log(`  🚫 [Follow-Up] Actividad reciente en chat de ${freshChat.profileName || waId} (hace ${(timeSinceLastMsg / 3600000).toFixed(1)}hs). Cancelando envío diferido.`);
+                return;
+            }
+        }
+
         if (global.botReplyingTo) {
             global.botReplyingTo.add(waId);
         }
@@ -84,12 +107,11 @@ async function sendFollowUpMessage(waId, text, chatId, labelToAdd) {
             updatedLabels.push(labelToAdd);
         }
 
-        // Actualizar chat: agregar etiqueta de seguimiento y asegurar que el bot está habilitado
+        // Actualizar chat: agregar etiqueta de seguimiento (NO forzar botEnabled para respetar la decisión del vendedor)
         await prisma.whatsAppChat.update({
             where: { id: chatId },
             data: {
                 chatLabels: updatedLabels,
-                botEnabled: true, // reactivar bot para procesar su respuesta
                 lastMessageAt: new Date(),
                 lastFollowUpAt: new Date() // DEDUP: evitar que el cron de inactividad envíe otro follow-up
             }
@@ -119,6 +141,10 @@ async function checkAndSendSalesFollowUps() {
         console.log(`  [Sales-FollowUps] Ya hay una ejecución en curso. Omitiendo.`);
         return;
     }
+    
+    // URGENTE: DESACTIVADO TEMPORALMENTE
+    console.log(`  🛑 [Sales-FollowUps] SISTEMA DE SEGUIMIENTOS DESACTIVADO TEMPORALMENTE A PEDIDO DEL USUARIO.`);
+    return;
     isFollowUpRunning = true;
 
     try {
@@ -144,7 +170,7 @@ async function checkAndSendSalesFollowUps() {
             orderType: 'QUOTE',
             status: 'PENDING',
             isDeleted: false,
-            createdAt: { gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) }
+            createdAt: { gte: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000) }
         },
         include: {
             client: {
@@ -175,7 +201,7 @@ async function checkAndSendSalesFollowUps() {
     const model = new ChatGoogleGenerativeAI({
         model: 'gemini-2.5-flash',
         temperature: 0.7, // Un toque de creatividad para sonar humano
-        maxOutputTokens: 500,
+        maxOutputTokens: 1024, // 500 era muy bajo y causaba truncamiento de mensajes
         apiKey: process.env.GOOGLE_GENAI_API_KEY || process.env.GOOGLE_API_KEY
     });
 
@@ -196,6 +222,12 @@ async function checkAndSendSalesFollowUps() {
 
         const chat = client.whatsappChats[0];
         if (!chat) continue; // Cliente sin chat de WhatsApp activo
+
+        // Excluir si el bot está desactivado para este chat (no desperdiciar llamadas a Gemini)
+        if (!chat.botEnabled) {
+            console.log(`  [Sales-FollowUps] Bot desactivado para ${client.name}. Omitiendo generación de mensaje.`);
+            continue;
+        }
 
         // Excluir si tiene tags de no bot o cancelación en el cliente
         const tieneTagExclusion = client.tags.some(tag =>
@@ -256,6 +288,15 @@ async function checkAndSendSalesFollowUps() {
             }
         }
 
+        // EVITAR INTERRUMPIR CHATS ACTIVOS: Validar que el último mensaje (del bot o del usuario) haya sido hace más de 24hs
+        if (chat.lastMessageAt) {
+            const timeSinceLastMessage = now.getTime() - new Date(chat.lastMessageAt).getTime();
+            if (timeSinceLastMessage < 24 * 60 * 60 * 1000) {
+                console.log(`  [Sales-FollowUps] El chat con ${client.name} tuvo actividad reciente (hace ${(timeSinceLastMessage / 3600000).toFixed(1)}hs). Esperando a que se enfríe.`);
+                continue;
+            }
+        }
+
         // Determinar qué nivel de seguimiento le corresponde
         const diffMs = now.getTime() - new Date(quote.createdAt).getTime();
         const diffHours = diffMs / (1000 * 60 * 60);
@@ -271,6 +312,9 @@ async function checkAndSendSalesFollowUps() {
         } else if (diffHours >= 96 && labels.includes('SEGUIMIENTO_DIA_1') && !labels.includes('SEGUIMIENTO_DIA_4')) {
             followUpType = 'DIA_4';
             labelToAdd = 'SEGUIMIENTO_DIA_4';
+        } else if (diffHours >= 360 && labels.includes('SEGUIMIENTO_DIA_4') && !labels.includes('SEGUIMIENTO_DIA_15')) {
+            followUpType = 'DIA_15';
+            labelToAdd = 'SEGUIMIENTO_DIA_15';
         }
 
         if (!followUpType) continue; // No cumple los plazos o ya se enviaron los seguimientos
@@ -314,9 +358,12 @@ async function checkAndSendSalesFollowUps() {
         if (followUpType === 'DIA_1') {
             userPromptText += `TIPO DE SEGUIMIENTO: DÍA 1 (24 horas después del presupuesto).\n` +
                               `OBJETIVO: Preguntar amablemente si le quedó alguna duda sobre la cotización. Invitarlo a pasar por el Atelier a probarse los armazones en persona (decile que lo esperamos con un rico café/té ☕) o ver si prefiere coordinar online directamente. Recordá la pregunta clave: 'cuando te quedaría comodo venir o preferis hacerlo online?'.`;
-        } else {
+        } else if (followUpType === 'DIA_4') {
             userPromptText += `TIPO DE SEGUIMIENTO: DÍA 4 (96 horas después del presupuesto).\n` +
                               `OBJETIVO: Notificar de forma sumamente amigable que los precios de laboratorio pueden actualizarse pronto y el presupuesto vencerá. Recordarle la flexibilidad de señar para congelar el valor o usar cuotas. Si en el chat el cliente prometió pasar por el local o dio una respuesta intermedia, hacé referencia directa a eso.`;
+        } else if (followUpType === 'DIA_15') {
+            userPromptText += `TIPO DE SEGUIMIENTO: DÍA 15 (360 horas después del presupuesto).\n` +
+                              `OBJETIVO: Retomar la conversación. Mirando el contexto del chat, adaptá la siguiente idea para que suene natural y contenga el nombre de pila del cliente:\n"Hola [Nombre] como estas ? queria saber si pudiste al final hacer los anteojitos o si todavia estas interesado en hacerlos contame queres que retomemos la compra ?"`;
         }
 
         userPromptText += `\n\nRedactá únicamente el texto exacto del mensaje que enviaremos al cliente por WhatsApp. No agregues comillas, ni introducciones, ni explicaciones.`;
@@ -333,16 +380,26 @@ async function checkAndSendSalesFollowUps() {
 
             // Sanitizar salida: eliminar ¿ y ¡ prohibidos
             generatedText = generatedText.replace(/[¿¡]/g, '').trim();
+            // Limpiar comillas envolventes que Gemini a veces agrega
+            generatedText = generatedText.replace(/^"|"$/g, '').trim();
 
             if (!generatedText) {
                 console.error(`  ⚠️ [Sales-FollowUps] Gemini devolvió respuesta vacía para ${client.name}.`);
                 continue;
             }
 
+            // GUARDRAIL: Detectar si filtró IDs internos (CUIDs) o estructuras JSON
+            const cuidRegex = /\bc[a-z0-9]{23,29}\b/gi;
+            const hasJson = /\{[\s\S]*?\}/.test(generatedText) && (generatedText.includes('"') || generatedText.includes(':'));
+            if (cuidRegex.test(generatedText) || hasJson) {
+                console.warn(`  🛑 [Sales-FollowUps] GUARDRAIL: Mensaje para ${client.name} contenía datos internos. Descartando.`);
+                continue;
+            }
+
             // Validar que el mensaje esté completo (no cortado a mitad de oración)
-            if (generatedText.length < 20 || 
-                (!generatedText.match(/[.!?😊☕👓👋🙌✨💪🤗😄🫶]$/) && generatedText.length > 100)) {
-                console.warn(`  ⚠️ [Sales-FollowUps] Mensaje posiblemente incompleto para ${client.name}: "${generatedText.substring(0, 50)}...". Descartando.`);
+            const endsClean = /[.!?\)😊☕👓👋🙌✨💪🤗😄🫶🤙💐🌟🥰😉👀🏠🔬💎🕶️📋❤️]$/.test(generatedText);
+            if (generatedText.length < 20 || !endsClean) {
+                console.warn(`  ⚠️ [Sales-FollowUps] Mensaje posiblemente incompleto para ${client.name}: "${generatedText.substring(0, 80)}...". Descartando.`);
                 continue;
             }
 

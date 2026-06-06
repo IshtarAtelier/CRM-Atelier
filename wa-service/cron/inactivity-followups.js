@@ -19,7 +19,7 @@ const FOLLOW_UP_TEXT = "Hola! Te escribo para saber si te quedó alguna duda o s
 const FOLLOW_UP_COOLDOWN_MS = 24 * 60 * 60 * 1000;
 
 // Etiquetas de sales-followups que indican que ese cron ya está gestionando el chat
-const SALES_FOLLOWUP_LABELS = ['SEGUIMIENTO_DIA_1', 'SEGUIMIENTO_DIA_4'];
+const SALES_FOLLOWUP_LABELS = ['SEGUIMIENTO_DIA_1', 'SEGUIMIENTO_DIA_4', 'SEGUIMIENTO_DIA_15'];
 
 /**
  * Verifica si la hora actual corresponde a horario comercial de Argentina (UTC-3)
@@ -54,7 +54,7 @@ async function checkAndSendInactivityFollowUps({ isAgentEnabled, botReplyingTo, 
     if (!isAgentEnabled()) return;
 
     const activeChats = await prisma.whatsAppChat.findMany({
-        where: { botEnabled: true },
+        where: { botEnabled: true, archived: false },
         include: {
             messages: {
                 orderBy: { createdAt: 'desc' },
