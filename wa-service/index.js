@@ -965,8 +965,8 @@ const handleMessage = async (msg) => {
 
         // 2. Auto-vincular cliente del CRM por número de teléfono
         if (!chat.clientId && realPhone && realPhone.length >= 8) {
-            const searchPhoneStr = realPhone.slice(-6).replace(/\D/g, '');
-            if (searchPhoneStr.length >= 6) {
+            const searchPhoneStr = realPhone.slice(-8).replace(/\D/g, '');
+            if (searchPhoneStr.length >= 8) {
                 const rawDuplicates = await prisma.$queryRawUnsafe(`
                     SELECT id 
                     FROM "Client" 
@@ -1601,15 +1601,20 @@ const syncRecentChatsAndMessages = async (wc) => {
 
             // Auto-vincular cliente del CRM por número de teléfono
             if (!dbChat.clientId && realPhone && realPhone.length >= 8) {
-                const client = await prisma.client.findFirst({
-                    where: { phone: { contains: realPhone.slice(-8) } }
-                });
-                if (client) {
-                    dbChat = await prisma.whatsAppChat.update({
-                        where: { id: dbChat.id },
-                        data: { clientId: client.id }
-                    });
-                    console.log(`  🔗 [Auto-Sync] Chat ${waId} vinculado a cliente CRM: ${client.name}`);
+                const syncPhoneStr = realPhone.slice(-8).replace(/\D/g, '');
+                if (syncPhoneStr.length >= 8) {
+                    const rawMatch = await prisma.$queryRawUnsafe(`
+                        SELECT id, name FROM "Client" 
+                        WHERE REGEXP_REPLACE(COALESCE(phone, ''), '\\D', '', 'g') LIKE '%${syncPhoneStr}%'
+                        LIMIT 1
+                    `);
+                    if (rawMatch && rawMatch.length > 0) {
+                        dbChat = await prisma.whatsAppChat.update({
+                            where: { id: dbChat.id },
+                            data: { clientId: rawMatch[0].id }
+                        });
+                        console.log(`  🔗 [Auto-Sync] Chat ${waId} vinculado a cliente CRM: ${rawMatch[0].name}`);
+                    }
                 }
             }
 

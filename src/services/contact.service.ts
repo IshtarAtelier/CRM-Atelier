@@ -211,9 +211,9 @@ export const ContactService = {
 
         // 2. Intelligent Phone Match
         if (!data.forceCreate && normalizedIncomingPhone.length >= 8) {
-            // Buscamos coincidencia usando los ultimos 6 digitos del telefono ingresado
-            // (6 dígitos evita colisiones con el 15 y soporta códigos de área de 4 dígitos como 3541)
-            const searchPhoneStr = normalizedIncomingPhone.slice(-6);
+            // Buscamos coincidencia usando los ultimos 8 digitos del telefono ingresado
+            // (8 dígitos es suficiente para evitar colisiones con el 15 y códigos de área, y reduce falsos positivos)
+            const searchPhoneStr = normalizedIncomingPhone.slice(-8);
 
             const rawDuplicates: any[] = await prisma.$queryRawUnsafe(`
                 SELECT id 

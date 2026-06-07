@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import { ContactService } from '@/services/contact.service';
-import { prisma } from '@/lib/db';
 import { cookies } from 'next/headers';
 import { decrypt } from '@/lib/auth';
 
@@ -47,38 +46,13 @@ export async function POST(request: Request) {
             }
         }
 
-
         if (!body.name || !body.name.trim()) {
             return NextResponse.json({ error: 'El nombre es obligatorio' }, { status: 400 });
         }
 
-        // Deduplication: Check if a contact with the same phone already exists
-        if (body.phone && !body.forceCreate) {
-            const normalizedPhone = body.phone.replace(/\D/g, '');
-            if (normalizedPhone.length >= 8) {
-                const searchPhoneStr = normalizedPhone.slice(-8);
-                const existingByPhone = await prisma.client.findFirst({
-                    where: { phone: { contains: searchPhoneStr } },
-                });
-                if (existingByPhone) {
-                    // Check that the normalized digits actually match (suffix match)
-                    const existingNormalized = (existingByPhone.phone || '').replace(/\D/g, '');
-                    if (existingNormalized.endsWith(searchPhoneStr) || normalizedPhone.endsWith(existingNormalized.slice(-8))) {
-                        return NextResponse.json({
-                            error: 'Conflicto de Duplicidad',
-                            details: `Ya existe el cliente "${existingByPhone.name}" registrado con el teléfono ${existingByPhone.phone}.`,
-                            isDuplicate: true,
-                            existingClient: {
-                                id: existingByPhone.id,
-                                name: existingByPhone.name,
-                                phone: existingByPhone.phone,
-                                status: existingByPhone.status
-                            }
-                        }, { status: 409 });
-                    }
-                }
-            }
-        }
+        // Deduplication is handled entirely by ContactService.create() using raw SQL
+        // with REGEXP_REPLACE for digit normalization — this correctly handles phones
+        // stored with formatting (e.g. "+54 9 2216 73-6745" vs "5492216736745")
 
         const contact = await ContactService.create(body);
         return NextResponse.json(contact);
