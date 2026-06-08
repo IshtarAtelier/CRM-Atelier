@@ -34,9 +34,13 @@ export function CategoryGrid({ products, emptyMessage = "Estamos actualizando nu
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-x-6 gap-y-12">
       {products.map((p, index) => {
+        const hasSecondImage = p.imagenesCatalogo && p.imagenesCatalogo.length > 1;
         const imageUrl = p.imagenesCatalogo && p.imagenesCatalogo.length > 0
           ? `/api/storage/view?key=${encodeURIComponent(p.imagenesCatalogo[0])}`
           : (p.mockImage || '/images/og-image.jpg');
+        const secondImageUrl = hasSecondImage
+          ? `/api/storage/view?key=${encodeURIComponent(p.imagenesCatalogo[1])}`
+          : null;
 
         return (
           <motion.div 
@@ -55,8 +59,20 @@ export function CategoryGrid({ products, emptyMessage = "Estamos actualizando nu
                   unoptimized
                   style={{ transform: "translateZ(0)" }}
                   sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                  className="object-contain p-6 mix-blend-multiply group-hover:scale-105 transition-transform duration-700 ease-in-out"
+                  className={`object-contain p-6 mix-blend-multiply transition-all duration-700 ease-in-out ${hasSecondImage ? 'group-hover:opacity-0 group-hover:scale-105' : 'group-hover:scale-105'}`}
                 />
+
+                {hasSecondImage && secondImageUrl && (
+                  <Image 
+                    src={secondImageUrl} 
+                    alt={`${p.brand} ${p.model} Try-On`}
+                    fill
+                    unoptimized
+                    style={{ transform: "translateZ(0)" }}
+                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                    className="object-cover opacity-0 group-hover:opacity-100 transition-all duration-700 ease-in-out group-hover:scale-105"
+                  />
+                )}
                 
                 {/* Etiqueta de Stock / Promo */}
                 {p.stock === 0 && (

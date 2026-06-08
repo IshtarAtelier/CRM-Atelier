@@ -330,6 +330,20 @@ export function ProductClient({ product }: { product: any }) {
               + Agregar Cristales Con Receta
             </button>
 
+            {images.length > 1 && (
+              <button
+                onClick={() => setActiveImageIndex(activeImageIndex === 0 ? 1 : 0)}
+                className={`w-full py-4 text-[11px] font-bold uppercase tracking-widest transition-all duration-300 flex items-center justify-center gap-2 rounded-sm border ${
+                  activeImageIndex > 0 
+                    ? 'bg-[#c8a55c] text-white border-[#c8a55c] hover:bg-[#b08f4c]' 
+                    : 'border-[#c8a55c] text-[#c8a55c] bg-white hover:bg-[#c8a55c]/5'
+                }`}
+              >
+                <User className="w-4 h-4" /> 
+                {activeImageIndex > 0 ? "Ver Foto de Producto" : "✨ Probar con IA (Virtual Try-On)"}
+              </button>
+            )}
+
             <a 
               href={`https://wa.me/${WHATSAPP_PHONE}?text=${encodeURIComponent(`¡Hola! Tengo una consulta sobre el modelo ${product.brand || ''} ${product.model || ''}`)}`}
               target="_blank"

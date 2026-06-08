@@ -76,9 +76,16 @@ export default async function LentesDeSolPage({ searchParams }: { searchParams: 
   uniqueBrandsResult.forEach(wp => {
     const model = wp.product?.model || wp.name;
     const { shape, material } = getProductAttributes(model);
-    shapesSet.add(shape);
-    materialsSet.add(material);
+    if (shape) {
+      shape.split(',').forEach(s => shapesSet.add(s.trim()));
+    }
+    if (material) {
+      materialsSet.add(material);
+    }
   });
+  // Force add "XL" as requested by the user
+  shapesSet.add("XL");
+
   const availableShapes = Array.from(shapesSet).sort();
   const availableMaterials = Array.from(materialsSet).sort();
 
@@ -103,7 +110,11 @@ export default async function LentesDeSolPage({ searchParams }: { searchParams: 
   // Apply shape and material filters in memory
   let filteredProducts = products;
   if (filterShape) {
-    filteredProducts = filteredProducts.filter(p => p.shape.toLowerCase() === filterShape.toLowerCase());
+    filteredProducts = filteredProducts.filter(p => {
+      if (!p.shape) return false;
+      const shapes = p.shape.split(',').map(s => s.trim().toLowerCase());
+      return shapes.includes(filterShape.toLowerCase());
+    });
   }
   if (filterMaterial) {
     filteredProducts = filteredProducts.filter(p => p.material.toLowerCase() === filterMaterial.toLowerCase());

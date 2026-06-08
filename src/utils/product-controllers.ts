@@ -70,7 +70,9 @@ export function getProductAttributes(modelName: string | null | undefined): { sh
         shape = 'Cuadrado';
     } else if (modelUpper.includes('3684') || modelUpper.includes('AVIADOR')) {
         shape = 'Aviador';
-    } else if (modelUpper.includes('69CE') || modelUpper.includes('69CD') || modelUpper.includes('238014') || modelUpper.includes('238015') || modelUpper.includes('HEXAGONAL')) {
+    } else if (modelUpper.includes('238015')) {
+        shape = 'Cat-Eye, Hexagonal';
+    } else if (modelUpper.includes('69CE') || modelUpper.includes('69CD') || modelUpper.includes('238014') || modelUpper.includes('HEXAGONAL')) {
         shape = 'Hexagonal';
     } else if (modelUpper.includes('7015') || modelUpper.includes('3932') || modelUpper.includes('CAT-EYE') || modelUpper.includes('GATO')) {
         shape = 'Cat-Eye';

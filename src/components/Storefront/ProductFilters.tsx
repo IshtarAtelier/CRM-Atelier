@@ -15,7 +15,7 @@ function getShapeIcon(shape: string) {
   const s = shape.toLowerCase();
   if (s.includes('redondo')) {
     return (
-      <svg viewBox="0 0 48 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="w-12 h-6 transition-transform group-hover:scale-110 duration-300">
+      <svg viewBox="0 0 48 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="w-10 h-5 transition-transform group-hover:scale-110 duration-300">
         <circle cx="14" cy="12" r="7.5" />
         <circle cx="34" cy="12" r="7.5" />
         <path d="M21.5 12 C24 10.5, 24 10.5, 26.5 12" />
@@ -26,7 +26,7 @@ function getShapeIcon(shape: string) {
   }
   if (s.includes('cuadrado')) {
     return (
-      <svg viewBox="0 0 48 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="w-12 h-6 transition-transform group-hover:scale-110 duration-300">
+      <svg viewBox="0 0 48 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="w-10 h-5 transition-transform group-hover:scale-110 duration-300">
         <rect x="5" y="5" width="14" height="14" rx="2" />
         <rect x="29" y="5" width="14" height="14" rx="2" />
         <path d="M19 12 C22 10.5, 26 10.5, 29 12" />
@@ -37,7 +37,7 @@ function getShapeIcon(shape: string) {
   }
   if (s.includes('aviador')) {
     return (
-      <svg viewBox="0 0 48 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="w-12 h-6 transition-transform group-hover:scale-110 duration-300">
+      <svg viewBox="0 0 48 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="w-10 h-5 transition-transform group-hover:scale-110 duration-300">
         <path d="M6 8 C6 5.5, 19 4.5, 19 11 C19 16.5, 13.5 19, 10.5 19 C7.5 19, 6 15.5, 6 8 Z" />
         <path d="M42 8 C42 5.5, 29 4.5, 29 11 C29 16.5, 34.5 19, 37.5 19 C40.5 19, 42 15.5, 42 8 Z" />
         <path d="M19 9 L29 9" />
@@ -47,7 +47,7 @@ function getShapeIcon(shape: string) {
   }
   if (s.includes('hexagonal')) {
     return (
-      <svg viewBox="0 0 48 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="w-12 h-6 transition-transform group-hover:scale-110 duration-300">
+      <svg viewBox="0 0 48 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="w-10 h-5 transition-transform group-hover:scale-110 duration-300">
         <polygon points="12,5 18,8.5 18,15.5 12,19 6,15.5 6,8.5" />
         <polygon points="36,5 42,8.5 42,15.5 36,19 30,15.5 30,8.5" />
         <path d="M18 12 C22 10.5, 26 10.5, 30 12" />
@@ -56,7 +56,7 @@ function getShapeIcon(shape: string) {
   }
   if (s.includes('cat-eye') || s.includes('gato')) {
     return (
-      <svg viewBox="0 0 48 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="w-12 h-6 transition-transform group-hover:scale-110 duration-300">
+      <svg viewBox="0 0 48 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="w-10 h-5 transition-transform group-hover:scale-110 duration-300">
         <path d="M5 6.5 C9.5 6.5, 19 8, 19 13.5 C19 18.5, 11.5 18.5, 8 16.5 C5 14.5, 4.5 10.5, 5 6.5 Z" />
         <path d="M43 6.5 C38.5 6.5, 29 8, 29 13.5 C29 18.5, 36.5 18.5, 40 16.5 C43 14.5, 43.5 10.5, 43 6.5 Z" />
         <path d="M19 12 C22 10.5, 26 10.5, 29 12" />
@@ -65,13 +65,13 @@ function getShapeIcon(shape: string) {
   }
   if (s.includes('xl')) {
     return (
-      <div className="w-12 h-6 flex items-center justify-center font-black text-sm tracking-wider transition-transform group-hover:scale-110 duration-300 text-stone-950 dark:text-white">
+      <div className="w-10 h-5 flex items-center justify-center font-black text-xs tracking-wider transition-transform group-hover:scale-110 duration-300 text-stone-950 dark:text-white">
         XL
       </div>
     );
   }
   return (
-    <svg viewBox="0 0 48 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="w-12 h-6">
+    <svg viewBox="0 0 48 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="w-10 h-5">
       <circle cx="13" cy="12" r="7.5" />
       <circle cx="35" cy="12" r="7.5" />
       <path d="M20.5 12 L27.5 12" />
@@ -204,20 +204,20 @@ export function ProductFilters({
                     {/* Opción Todas */}
                     <button
                       onClick={() => handleFilterChange('forma', '')}
-                      className={`group flex flex-col items-center justify-center p-3 rounded-xl border text-center transition-all duration-300 ${
+                      className={`group flex flex-col items-center justify-center p-2 rounded-lg border text-center transition-all duration-300 ${
                         !currentShape
                           ? 'border-stone-950 bg-stone-900 text-white dark:bg-stone-50 dark:text-stone-950 dark:border-stone-50 shadow-md scale-[1.02]'
                           : 'border-stone-200 hover:border-stone-400 bg-white text-stone-700 dark:bg-stone-900 dark:border-stone-800 dark:text-stone-300 hover:bg-stone-50/50 dark:hover:bg-stone-800/30'
                       }`}
                     >
-                      <div className="w-12 h-6 flex items-center justify-center opacity-70 group-hover:opacity-100 mb-2">
-                        <svg viewBox="0 0 48 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="w-12 h-6 transition-transform group-hover:scale-110 duration-300">
+                      <div className="w-10 h-5 flex items-center justify-center opacity-70 group-hover:opacity-100 mb-1">
+                        <svg viewBox="0 0 48 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="w-10 h-5 transition-transform group-hover:scale-110 duration-300">
                           <circle cx="13" cy="12" r="7.5" />
                           <circle cx="35" cy="12" r="7.5" />
                           <path d="M20.5 12 L27.5 12" />
                         </svg>
                       </div>
-                      <span className="text-[10px] font-black uppercase tracking-wider">Todas</span>
+                      <span className="text-[9px] font-bold uppercase tracking-wider">Todas</span>
                     </button>
 
                     {/* Lista de Formas */}
@@ -227,16 +227,16 @@ export function ProductFilters({
                         <button
                           key={shape}
                           onClick={() => handleFilterChange('forma', isSelected ? '' : shape)}
-                          className={`group flex flex-col items-center justify-center p-3 rounded-xl border text-center transition-all duration-300 ${
+                          className={`group flex flex-col items-center justify-center p-2 rounded-lg border text-center transition-all duration-300 ${
                             isSelected
                               ? 'border-stone-950 bg-stone-900 text-white dark:bg-stone-50 dark:text-stone-950 dark:border-stone-50 shadow-md scale-[1.02]'
                               : 'border-stone-200 hover:border-stone-400 bg-white text-stone-700 dark:bg-stone-900 dark:border-stone-800 dark:text-stone-300 hover:bg-stone-50/50 dark:hover:bg-stone-800/30'
                           }`}
                         >
-                          <div className="w-12 h-6 flex items-center justify-center mb-2">
+                          <div className="w-10 h-5 flex items-center justify-center mb-1">
                             {getShapeIcon(shape)}
                           </div>
-                          <span className="text-[10px] font-black uppercase tracking-wider">{shape}</span>
+                          <span className="text-[9px] font-bold uppercase tracking-wider">{shape}</span>
                         </button>
                       );
                     })}
