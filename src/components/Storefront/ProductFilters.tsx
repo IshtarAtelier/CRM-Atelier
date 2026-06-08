@@ -15,7 +15,7 @@ function getShapeIcon(shape: string) {
   const s = shape.toLowerCase();
   if (s.includes('redondo')) {
     return (
-      <svg viewBox="0 0 48 24" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" className="w-10 h-5 transition-transform group-hover:scale-110 duration-300">
+      <svg viewBox="0 0 48 24" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" className="w-6 h-3 transition-transform group-hover:scale-110 duration-300">
         <circle cx="14.5" cy="12" r="6.5" />
         <circle cx="33.5" cy="12" r="6.5" />
         <path d="M21 12 C22.5 10.5, 25.5 10.5, 27 12" />
@@ -24,7 +24,7 @@ function getShapeIcon(shape: string) {
   }
   if (s.includes('cuadrado')) {
     return (
-      <svg viewBox="0 0 48 24" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" className="w-10 h-5 transition-transform group-hover:scale-110 duration-300">
+      <svg viewBox="0 0 48 24" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" className="w-6 h-3 transition-transform group-hover:scale-110 duration-300">
         <rect x="8" y="5.5" width="13" height="13" rx="2.5" />
         <rect x="27" y="5.5" width="13" height="13" rx="2.5" />
         <path d="M21 12 C22.5 10.5, 25.5 10.5, 27 12" />
@@ -33,7 +33,7 @@ function getShapeIcon(shape: string) {
   }
   if (s.includes('aviador')) {
     return (
-      <svg viewBox="0 0 48 24" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" className="w-10 h-5 transition-transform group-hover:scale-110 duration-300">
+      <svg viewBox="0 0 48 24" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" className="w-6 h-3 transition-transform group-hover:scale-110 duration-300">
         <path d="M20.5 8 C20.5 5.5, 8.5 5.5, 8.5 11 C8.5 16, 13 18.5, 17 18.5 C19.5 18.5, 20.5 15, 20.5 8 Z" />
         <path d="M27.5 8 C27.5 5.5, 39.5 5.5, 39.5 11 C39.5 16, 35 18.5, 31 18.5 C28.5 18.5, 27.5 15, 27.5 8 Z" />
         <path d="M20.5 8.5 H27.5" />
@@ -43,16 +43,16 @@ function getShapeIcon(shape: string) {
   }
   if (s.includes('hexagonal')) {
     return (
-      <svg viewBox="0 0 48 24" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" className="w-10 h-5 transition-transform group-hover:scale-110 duration-300">
-        <polygon points="14.5,5.5 21,9.25 21,14.75 14.5,18.5 8,14.75 8,9.25" />
-        <polygon points="33.5,5.5 40,9.25 40,14.75 33.5,18.5 27,14.75 27,9.25" />
+      <svg viewBox="0 0 48 24" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" className="w-6 h-3 transition-transform group-hover:scale-110 duration-300">
+        <polygon points="11.5,5.5 17.5,5.5 21,12 17.5,18.5 11.5,18.5 8,12" />
+        <polygon points="30.5,5.5 36.5,5.5 40,12 36.5,18.5 30.5,18.5 27,12" />
         <path d="M21 12 C22.5 10.5, 25.5 10.5, 27 12" />
       </svg>
     );
   }
   if (s.includes('cat-eye') || s.includes('gato')) {
     return (
-      <svg viewBox="0 0 48 24" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" className="w-10 h-5 transition-transform group-hover:scale-110 duration-300">
+      <svg viewBox="0 0 48 24" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" className="w-6 h-3 transition-transform group-hover:scale-110 duration-300">
         <path d="M7.5 7 C11.5 6.5, 20.5 8, 20.5 13 C20.5 17, 13.5 18.5, 10 16.5 C7.5 14.5, 7 10.5, 7.5 7 Z" />
         <path d="M40.5 7 C36.5 6.5, 27.5 8, 27.5 13 C27.5 17, 34.5 18.5, 38 16.5 C40.5 14.5, 41 10.5, 40.5 7 Z" />
         <path d="M20.5 12 C22 10.5, 26 10.5, 27.5 12" />
@@ -61,13 +61,13 @@ function getShapeIcon(shape: string) {
   }
   if (s.includes('xl')) {
     return (
-      <div className="w-10 h-5 flex items-center justify-center font-black text-[9px] tracking-widest border border-current/30 rounded-sm transition-transform group-hover:scale-110 duration-300">
+      <div className="w-8 h-4 flex items-center justify-center font-black text-[8px] tracking-widest border border-current/30 rounded-sm transition-transform group-hover:scale-110 duration-300">
         XL
       </div>
     );
   }
   return (
-    <svg viewBox="0 0 48 24" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" className="w-10 h-5">
+    <svg viewBox="0 0 48 24" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" className="w-6 h-3">
       <circle cx="14.5" cy="12" r="6.5" />
       <circle cx="33.5" cy="12" r="6.5" />
       <path d="M21 12 C22.5 10.5, 25.5 10.5, 27 12" />
@@ -146,7 +146,7 @@ export function ProductFilters({
               transition={{ type: 'tween', duration: 0.3 }}
               className={`
                 fixed lg:relative inset-y-0 left-0 z-50 w-4/5 max-w-sm lg:w-full lg:max-w-none 
-                bg-white lg:bg-transparent shadow-2xl lg:shadow-none p-8 lg:p-0 
+                bg-white lg:bg-transparent shadow-2xl lg:shadow-none p-8 lg:px-2 lg:py-0 
                 overflow-y-auto lg:overflow-visible flex flex-col gap-10
                 ${!isOpen ? 'hidden lg:flex' : 'flex'}
               `}
@@ -200,14 +200,14 @@ export function ProductFilters({
                     {/* Opción Todas */}
                     <button
                       onClick={() => handleFilterChange('forma', '')}
-                      className={`group flex flex-col items-center justify-center p-2 rounded-lg border text-center transition-all duration-300 ${
+                      className={`group flex flex-col items-center justify-center py-2 px-1 rounded-lg border text-center transition-all duration-300 ${
                         !currentShape
                           ? 'border-stone-950 bg-stone-900 text-white dark:bg-stone-50 dark:text-stone-950 dark:border-stone-50 shadow-md scale-[1.02]'
                           : 'border-stone-200 hover:border-stone-400 bg-white text-stone-700 dark:bg-stone-900 dark:border-stone-800 dark:text-stone-300 hover:bg-stone-50/50 dark:hover:bg-stone-800/30'
                       }`}
                     >
-                      <div className="w-10 h-5 flex items-center justify-center opacity-70 group-hover:opacity-100 mb-1">
-                        <svg viewBox="0 0 48 24" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" className="w-10 h-5 transition-transform group-hover:scale-110 duration-300">
+                      <div className="w-8 h-4 flex items-center justify-center opacity-70 group-hover:opacity-100 mb-1">
+                        <svg viewBox="0 0 48 24" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" className="w-6 h-3 transition-transform group-hover:scale-110 duration-300">
                           <circle cx="14.5" cy="12" r="6.5" />
                           <circle cx="33.5" cy="12" r="6.5" />
                           <path d="M21 12 C22.5 10.5, 25.5 10.5, 27 12" />
@@ -215,7 +215,7 @@ export function ProductFilters({
                       </div>
                       <span className="text-[9px] font-bold uppercase tracking-wider">Todas</span>
                     </button>
-
+ 
                     {/* Lista de Formas */}
                     {availableShapes.map((shape) => {
                       const isSelected = currentShape.toLowerCase() === shape.toLowerCase();
@@ -223,13 +223,13 @@ export function ProductFilters({
                         <button
                           key={shape}
                           onClick={() => handleFilterChange('forma', isSelected ? '' : shape)}
-                          className={`group flex flex-col items-center justify-center p-2 rounded-lg border text-center transition-all duration-300 ${
+                          className={`group flex flex-col items-center justify-center py-2 px-1 rounded-lg border text-center transition-all duration-300 ${
                             isSelected
                               ? 'border-stone-950 bg-stone-900 text-white dark:bg-stone-50 dark:text-stone-950 dark:border-stone-50 shadow-md scale-[1.02]'
                               : 'border-stone-200 hover:border-stone-400 bg-white text-stone-700 dark:bg-stone-900 dark:border-stone-800 dark:text-stone-300 hover:bg-stone-50/50 dark:hover:bg-stone-800/30'
                           }`}
                         >
-                          <div className="w-10 h-5 flex items-center justify-center mb-1">
+                          <div className="w-8 h-4 flex items-center justify-center mb-1">
                             {getShapeIcon(shape)}
                           </div>
                           <span className="text-[9px] font-bold uppercase tracking-wider">{shape}</span>

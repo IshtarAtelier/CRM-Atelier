@@ -273,6 +273,32 @@ export const ContactService = {
             data: createData
         });
 
+        // Link any unlinked chats matching the new client's phone number
+        if (normalizedIncomingPhone && normalizedIncomingPhone.length >= 8) {
+            const suffix = normalizedIncomingPhone.slice(-8);
+            try {
+                const matchingChats = await prisma.whatsAppChat.findMany({
+                    where: {
+                        clientId: null,
+                        OR: [
+                            { realPhone: { contains: suffix } },
+                            { waId: { contains: suffix } }
+                        ]
+                    }
+                });
+
+                for (const chat of matchingChats) {
+                    await prisma.whatsAppChat.update({
+                        where: { id: chat.id },
+                        data: { clientId: createdClient.id }
+                    });
+                    console.log(`[Contact Create Sync] Linked unlinked chat ${chat.waId} to new client ${createdClient.id}`);
+                }
+            } catch (syncErr) {
+                console.error('[Contact Create Sync] Error auto-linking chats:', syncErr);
+            }
+        }
+
         return createdClient;
     },
 
@@ -298,10 +324,72 @@ export const ContactService = {
         if (data.doctor !== undefined) updateData.doctor = data.doctor;
         if (data.metaLid !== undefined) updateData.metaLid = data.metaLid;
 
-        return await prisma.client.update({
+        let oldClient = null;
+        if (data.phone !== undefined) {
+            try {
+                oldClient = await prisma.client.findUnique({
+                    where: { id },
+                    select: { phone: true }
+                });
+            } catch (err) {
+                console.error('[Contact Update Sync] Error fetching old client:', err);
+            }
+        }
+
+        const updatedClient = await prisma.client.update({
             where: { id },
             data: updateData
         });
+
+        // Sync WhatsApp chats if phone changed
+        if (oldClient && oldClient.phone !== updatedClient.phone) {
+            try {
+                const newPhoneNorm = updatedClient.phone ? updatedClient.phone.replace(/\D/g, '') : '';
+                
+                // 1. Unlink chats that no longer match the client's new phone
+                const clientChats = await prisma.whatsAppChat.findMany({
+                    where: { clientId: id }
+                });
+
+                for (const chat of clientChats) {
+                    const chatPhone = (chat.realPhone || chat.waId || '').replace(/\D/g, '');
+                    const matchesNew = newPhoneNorm && chatPhone.endsWith(newPhoneNorm.slice(-8));
+                    if (!matchesNew) {
+                        await prisma.whatsAppChat.update({
+                            where: { id: chat.id },
+                            data: { clientId: null }
+                        });
+                        console.log(`[Phone Update Sync] Unlinked chat ${chat.waId} from client ${id} because phone changed`);
+                    }
+                }
+
+                // 2. Link chats that match the new phone and are currently unlinked
+                if (newPhoneNorm && newPhoneNorm.length >= 8) {
+                    const suffix = newPhoneNorm.slice(-8);
+                    const matchingChats = await prisma.whatsAppChat.findMany({
+                        where: {
+                            clientId: null,
+                            OR: [
+                                { realPhone: { contains: suffix } },
+                                { waId: { contains: suffix } }
+                            ]
+                        }
+                    });
+
+                    for (const chat of matchingChats) {
+                        await prisma.whatsAppChat.update({
+                            where: { id: chat.id },
+                            data: { clientId: id }
+                        });
+                        console.log(`[Phone Update Sync] Linked unlinked chat ${chat.waId} to client ${id}`);
+                    }
+                }
+            } catch (syncErr) {
+                console.error('[Contact Update Sync] Error syncing chats:', syncErr);
+            }
+        }
+
+        return updatedClient;
     },
 
     async updateStatus(id: string, status: string, userRole: string = 'STAFF') {

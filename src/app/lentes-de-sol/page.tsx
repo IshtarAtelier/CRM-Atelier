@@ -99,7 +99,18 @@ export default async function LentesDeSolPage({ searchParams }: { searchParams: 
       modelCode: modelCode,
       price: wp.product.price,
       stock: wp.product.stock,
-      imagenesCatalogo: wp.images.length > 0 ? wp.images : wp.product.imagenesCatalogo,
+      imagenesCatalogo: (() => {
+        let combinedImages = wp.images.length > 0 ? [...wp.images] : [];
+        if (wp.product.imagenesCatalogo && wp.product.imagenesCatalogo.length > 0) {
+            const avatars = wp.product.imagenesCatalogo.filter((img: string) => img.includes('avatar'));
+            if (avatars.length > 0 && !combinedImages.some(img => img.includes('avatar'))) {
+                combinedImages = [...combinedImages, ...avatars];
+            } else if (combinedImages.length === 0) {
+                combinedImages = wp.product.imagenesCatalogo;
+            }
+        }
+        return combinedImages;
+      })(),
       category: wp.category,
       slug: wp.slug,
       isFeatured: wp.isFeatured,

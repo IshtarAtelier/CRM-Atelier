@@ -28,7 +28,18 @@ export default async function ArmaTusLentesPage() {
     model: wp.name || wp.product.model || '',
     price: wp.product.price,
     stock: wp.product.stock,
-    imagenesCatalogo: wp.imageUrl ? [wp.imageUrl, ...wp.images] : (wp.images.length > 0 ? wp.images : wp.product.imagenesCatalogo),
+    imagenesCatalogo: (() => {
+      let combinedImages = wp.imageUrl ? [wp.imageUrl, ...wp.images] : (wp.images.length > 0 ? [...wp.images] : []);
+      if (wp.product.imagenesCatalogo && wp.product.imagenesCatalogo.length > 0) {
+          const avatars = wp.product.imagenesCatalogo.filter((img: string) => img.includes('avatar'));
+          if (avatars.length > 0 && !combinedImages.some(img => img.includes('avatar'))) {
+              combinedImages = [...combinedImages, ...avatars];
+          } else if (combinedImages.length === 0) {
+              combinedImages = wp.product.imagenesCatalogo;
+          }
+      }
+      return combinedImages;
+    })(),
     category: wp.category,
     slug: wp.slug
   }));
