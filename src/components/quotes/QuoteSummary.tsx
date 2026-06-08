@@ -208,7 +208,9 @@ export default function QuoteSummary({
 
         setIsSendingPDF(true);
         try {
-            const text = `📄 Adjunto el comprobante de su ${isSale ? 'compra' : 'presupuesto'} en Atelier Óptica.`;
+            const itemNames = (order.items || []).map((it: any) => it.product?.name || it.productNameSnapshot || 'Artículo').join(', ');
+            const clientName = contact.name?.split(' ')[0] || 'Cliente';
+            const text = `Hola ${clientName}, adjunto tu ${isSale ? 'orden' : 'presupuesto'} por: ${itemNames}.\n\nAtelier Óptica, la óptica mejor calificada.`;
             
             const sendRes = await fetch(`/api/orders/${order.id}/send-pdf`, {
                 method: 'POST',
