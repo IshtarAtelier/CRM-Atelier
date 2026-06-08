@@ -8,6 +8,7 @@ import { prisma } from '@/lib/db';
 export const revalidate = 300;
 import { Glasses } from 'lucide-react';
 import { Suspense } from 'react';
+import { getProductAttributes } from '@/utils/product-controllers';
 
 export const metadata: Metadata = {
   title: "Anteojos de Receta | Atelier Óptica Córdoba",
@@ -18,6 +19,8 @@ export default async function RecetaPage({ searchParams }: { searchParams: Promi
   const resolvedParams = await searchParams;
   const filterBrand = typeof resolvedParams.marca === 'string' ? resolvedParams.marca : undefined;
   const sortParam = typeof resolvedParams.orden === 'string' ? resolvedParams.orden : 'recientes';
+  const filterShape = typeof resolvedParams.forma === 'string' ? resolvedParams.forma : undefined;
+  const filterMaterial = typeof resolvedParams.material === 'string' ? resolvedParams.material : undefined;
 
   // Base Where Clause
   const whereClause: any = { 
@@ -52,7 +55,7 @@ export default async function RecetaPage({ searchParams }: { searchParams: Promi
     }),
     prisma.webProduct.findMany({
       where: { category: { contains: "Receta", mode: "insensitive" }, isActive: true },
-      include: { product: { select: { brand: true } } }
+      include: { product: { select: { brand: true, model: true } } }
     })
   ]);
 
@@ -65,32 +68,63 @@ export default async function RecetaPage({ searchParams }: { searchParams: Promi
   });
   const availableBrands = Array.from(brandsSet).sort();
 
-  const products = dbProducts.map(wp => ({
-    id: wp.product.id,
-    brand: wp.product.brand || 'Atelier',
-    model: wp.product.model || wp.name,
-    price: wp.product.price,
-    stock: wp.product.stock,
-    imagenesCatalogo: wp.images.length > 0 ? wp.images : wp.product.imagenesCatalogo,
-    category: wp.category,
-    slug: wp.slug,
-    isFeatured: wp.isFeatured
-  }));
+  // Extract distinct shapes and materials dynamically
+  const shapesSet = new Set<string>();
+  const materialsSet = new Set<string>();
+  uniqueBrandsResult.forEach(wp => {
+    const model = wp.product?.model || wp.name;
+    const { shape, material } = getProductAttributes(model);
+    shapesSet.add(shape);
+    materialsSet.add(material);
+  });
+  const availableShapes = Array.from(shapesSet).sort();
+  const availableMaterials = Array.from(materialsSet).sort();
 
-  // Agregamos el producto de demostración de Carey Vintage si la lista está vacía para probar el grid y no hay filtro.
-  if (products.length === 0 && !filterBrand) {
+  const products = dbProducts.map(wp => {
+    const model = wp.product.model || wp.name;
+    const { shape, material } = getProductAttributes(model);
+    return {
+      id: wp.product.id,
+      brand: wp.product.brand || 'Atelier',
+      model: model,
+      price: wp.product.price,
+      stock: wp.product.stock,
+      imagenesCatalogo: wp.images.length > 0 ? wp.images : wp.product.imagenesCatalogo,
+      category: wp.category,
+      slug: wp.slug,
+      isFeatured: wp.isFeatured,
+      shape,
+      material
+    };
+  });
+
+  // Agregamos el producto de demostración de Carey Vintage si la lista está vacía para probar el grid y no hay filtros.
+  if (products.length === 0 && !filterBrand && !filterShape && !filterMaterial) {
+    const demoModel = "9030 (GLD)";
+    const { shape, material } = getProductAttributes(demoModel);
     products.push({
       id: "atelier-carey-vintage",
       brand: "ATELIER",
-      model: "9030 (GLD)",
+      model: demoModel,
       price: 55000,
       stock: 5,
       imagenesCatalogo: [],
       mockImage: "/images/products/atelier-9030-gold.png",
       category: "Receta",
       slug: "atelier-carey-vintage",
-      isFeatured: true
+      isFeatured: true,
+      shape,
+      material
     } as any);
+  }
+
+  // Apply shape and material filters in memory
+  let filteredProducts = products;
+  if (filterShape) {
+    filteredProducts = filteredProducts.filter(p => p.shape.toLowerCase() === filterShape.toLowerCase());
+  }
+  if (filterMaterial) {
+    filteredProducts = filteredProducts.filter(p => p.material.toLowerCase() === filterMaterial.toLowerCase());
   }
 
   return (
@@ -113,13 +147,17 @@ export default async function RecetaPage({ searchParams }: { searchParams: Promi
         <div className="flex flex-col lg:flex-row gap-8 lg:gap-12 relative">
           <aside className="w-full lg:w-64 flex-shrink-0">
             <Suspense fallback={<div className="h-40 bg-stone-100 animate-pulse rounded-xl" />}>
-              <ProductFilters availableBrands={availableBrands} />
+              <ProductFilters 
+                availableBrands={availableBrands} 
+                availableShapes={availableShapes}
+                availableMaterials={availableMaterials}
+              />
             </Suspense>
           </aside>
 
           <div className="flex-1">
             <CategoryGrid 
-              products={products} 
+              products={filteredProducts} 
               categoryName="Armazones de Receta" 
               emptyMessage={filterBrand ? `No encontramos armazones de receta de la marca ${filterBrand}.` : "Estamos actualizando nuestra colección de anteojos de receta. Vení a probarte todos nuestros modelos a nuestro local."} 
             />

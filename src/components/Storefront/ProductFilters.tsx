@@ -7,9 +7,15 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 interface ProductFiltersProps {
   availableBrands: string[];
+  availableShapes?: string[];
+  availableMaterials?: string[];
 }
 
-export function ProductFilters({ availableBrands }: ProductFiltersProps) {
+export function ProductFilters({ 
+  availableBrands, 
+  availableShapes = [], 
+  availableMaterials = [] 
+}: ProductFiltersProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -18,6 +24,8 @@ export function ProductFilters({ availableBrands }: ProductFiltersProps) {
   // Get current state from URL
   const currentBrand = searchParams.get('marca') || '';
   const currentSort = searchParams.get('orden') || 'recientes';
+  const currentShape = searchParams.get('forma') || '';
+  const currentMaterial = searchParams.get('material') || '';
 
   // Helper to update URL params cleanly
   const createQueryString = useCallback(
@@ -166,8 +174,104 @@ export function ProductFilters({ availableBrands }: ProductFiltersProps) {
                 </div>
               )}
 
+              {/* Sección Forma */}
+              {availableShapes.length > 0 && (
+                <div>
+                  <h3 className="text-xs font-bold text-stone-900 uppercase tracking-[0.2em] mb-4 border-t lg:border-none pt-8 lg:pt-0">
+                    Forma
+                  </h3>
+                  <div className="flex flex-col gap-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+                    {/* Opción Todas */}
+                    <label className="flex items-center gap-3 cursor-pointer group">
+                      <div className={`w-4 h-4 rounded border border-stone-300 flex items-center justify-center transition-colors ${!currentShape ? 'bg-black border-black text-white' : 'group-hover:border-stone-500'}`}>
+                        {!currentShape && <svg viewBox="0 0 14 14" fill="none" className="w-3 h-3"><path d="M3 7.5L5.5 10L11 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+                      </div>
+                      <input 
+                        type="radio" 
+                        name="shape" 
+                        value="" 
+                        checked={!currentShape}
+                        onChange={() => handleFilterChange('forma', '')}
+                        className="hidden" 
+                      />
+                      <span className={`text-sm ${!currentShape ? 'font-medium text-black' : 'text-stone-500 group-hover:text-stone-800'}`}>
+                        Todas las Formas
+                      </span>
+                    </label>
+
+                    {/* Lista de Formas */}
+                    {availableShapes.map((shape) => (
+                      <label key={shape} className="flex items-center gap-3 cursor-pointer group">
+                        <div className={`w-4 h-4 rounded border border-stone-300 flex items-center justify-center transition-colors ${currentShape === shape ? 'bg-black border-black text-white' : 'group-hover:border-stone-500'}`}>
+                          {currentShape === shape && <svg viewBox="0 0 14 14" fill="none" className="w-3 h-3"><path d="M3 7.5L5.5 10L11 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+                        </div>
+                        <input 
+                          type="radio" 
+                          name="shape" 
+                          value={shape} 
+                          checked={currentShape === shape}
+                          onChange={(e) => handleFilterChange('forma', e.target.value)}
+                          className="hidden" 
+                        />
+                        <span className={`text-sm ${currentShape === shape ? 'font-medium text-black' : 'text-stone-500 group-hover:text-stone-800'}`}>
+                          {shape}
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Sección Material */}
+              {availableMaterials.length > 0 && (
+                <div>
+                  <h3 className="text-xs font-bold text-stone-900 uppercase tracking-[0.2em] mb-4 border-t lg:border-none pt-8 lg:pt-0">
+                    Material
+                  </h3>
+                  <div className="flex flex-col gap-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+                    {/* Opción Todos */}
+                    <label className="flex items-center gap-3 cursor-pointer group">
+                      <div className={`w-4 h-4 rounded border border-stone-300 flex items-center justify-center transition-colors ${!currentMaterial ? 'bg-black border-black text-white' : 'group-hover:border-stone-500'}`}>
+                        {!currentMaterial && <svg viewBox="0 0 14 14" fill="none" className="w-3 h-3"><path d="M3 7.5L5.5 10L11 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+                      </div>
+                      <input 
+                        type="radio" 
+                        name="material" 
+                        value="" 
+                        checked={!currentMaterial}
+                        onChange={() => handleFilterChange('material', '')}
+                        className="hidden" 
+                      />
+                      <span className={`text-sm ${!currentMaterial ? 'font-medium text-black' : 'text-stone-500 group-hover:text-stone-800'}`}>
+                        Todos los Materiales
+                      </span>
+                    </label>
+
+                    {/* Lista de Materiales */}
+                    {availableMaterials.map((material) => (
+                      <label key={material} className="flex items-center gap-3 cursor-pointer group">
+                        <div className={`w-4 h-4 rounded border border-stone-300 flex items-center justify-center transition-colors ${currentMaterial === material ? 'bg-black border-black text-white' : 'group-hover:border-stone-500'}`}>
+                          {currentMaterial === material && <svg viewBox="0 0 14 14" fill="none" className="w-3 h-3"><path d="M3 7.5L5.5 10L11 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+                        </div>
+                        <input 
+                          type="radio" 
+                          name="material" 
+                          value={material} 
+                          checked={currentMaterial === material}
+                          onChange={(e) => handleFilterChange('material', e.target.value)}
+                          className="hidden" 
+                        />
+                        <span className={`text-sm ${currentMaterial === material ? 'font-medium text-black' : 'text-stone-500 group-hover:text-stone-800'}`}>
+                          {material}
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* Botón Limpiar Filtros */}
-              {(currentBrand || currentSort !== 'recientes') && (
+              {(currentBrand || currentShape || currentMaterial || currentSort !== 'recientes') && (
                 <button 
                   onClick={clearFilters}
                   className="mt-4 text-xs font-bold text-stone-400 hover:text-black uppercase tracking-[0.1em] transition-colors self-start"

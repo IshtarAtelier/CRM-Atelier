@@ -9,6 +9,7 @@ import { prisma } from '@/lib/db';
 export const revalidate = 300;
 import { Glasses } from 'lucide-react';
 import { Suspense } from 'react';
+import { getProductAttributes } from '@/utils/product-controllers';
 
 export const metadata: Metadata = {
   title: "Anteojos de Sol | Atelier Óptica Córdoba",
@@ -19,6 +20,8 @@ export default async function LentesDeSolPage({ searchParams }: { searchParams: 
   const resolvedParams = await searchParams;
   const filterBrand = typeof resolvedParams.marca === 'string' ? resolvedParams.marca : undefined;
   const sortParam = typeof resolvedParams.orden === 'string' ? resolvedParams.orden : 'recientes';
+  const filterShape = typeof resolvedParams.forma === 'string' ? resolvedParams.forma : undefined;
+  const filterMaterial = typeof resolvedParams.material === 'string' ? resolvedParams.material : undefined;
 
   // Base Where Clause
   const whereClause: any = { 
@@ -54,7 +57,7 @@ export default async function LentesDeSolPage({ searchParams }: { searchParams: 
     // Prisma doesn't support distinct easily on nested relations, so we fetch all active sol products to extract brands
     prisma.webProduct.findMany({
       where: { category: { contains: "Sol", mode: "insensitive" }, isActive: true },
-      include: { product: { select: { brand: true } } }
+      include: { product: { select: { brand: true, model: true } } }
     })
   ]);
 
@@ -67,17 +70,44 @@ export default async function LentesDeSolPage({ searchParams }: { searchParams: 
   });
   const availableBrands = Array.from(brandsSet).sort();
 
-  const products = dbProducts.map(wp => ({
-    id: wp.product.id,
-    brand: wp.product.brand || 'Atelier',
-    model: wp.product.model || wp.name,
-    price: wp.product.price,
-    stock: wp.product.stock,
-    imagenesCatalogo: wp.images.length > 0 ? wp.images : wp.product.imagenesCatalogo,
-    category: wp.category,
-    slug: wp.slug,
-    isFeatured: wp.isFeatured
-  }));
+  // Extract distinct shapes and materials dynamically
+  const shapesSet = new Set<string>();
+  const materialsSet = new Set<string>();
+  uniqueBrandsResult.forEach(wp => {
+    const model = wp.product?.model || wp.name;
+    const { shape, material } = getProductAttributes(model);
+    shapesSet.add(shape);
+    materialsSet.add(material);
+  });
+  const availableShapes = Array.from(shapesSet).sort();
+  const availableMaterials = Array.from(materialsSet).sort();
+
+  const products = dbProducts.map(wp => {
+    const model = wp.product.model || wp.name;
+    const { shape, material } = getProductAttributes(model);
+    return {
+      id: wp.product.id,
+      brand: wp.product.brand || 'Atelier',
+      model: model,
+      price: wp.product.price,
+      stock: wp.product.stock,
+      imagenesCatalogo: wp.images.length > 0 ? wp.images : wp.product.imagenesCatalogo,
+      category: wp.category,
+      slug: wp.slug,
+      isFeatured: wp.isFeatured,
+      shape,
+      material
+    };
+  });
+
+  // Apply shape and material filters in memory
+  let filteredProducts = products;
+  if (filterShape) {
+    filteredProducts = filteredProducts.filter(p => p.shape.toLowerCase() === filterShape.toLowerCase());
+  }
+  if (filterMaterial) {
+    filteredProducts = filteredProducts.filter(p => p.material.toLowerCase() === filterMaterial.toLowerCase());
+  }
 
   return (
     <div className="min-h-screen bg-stone-50 dark:bg-stone-950 pb-20 flex flex-col">
@@ -99,13 +129,17 @@ export default async function LentesDeSolPage({ searchParams }: { searchParams: 
         <div className="flex flex-col lg:flex-row gap-8 lg:gap-12 relative">
           <aside className="w-full lg:w-64 flex-shrink-0">
             <Suspense fallback={<div className="h-40 bg-stone-100 animate-pulse rounded-xl" />}>
-              <ProductFilters availableBrands={availableBrands} />
+              <ProductFilters 
+                availableBrands={availableBrands} 
+                availableShapes={availableShapes}
+                availableMaterials={availableMaterials}
+              />
             </Suspense>
           </aside>
 
           <div className="flex-1">
             <CategoryGrid 
-              products={products} 
+              products={filteredProducts} 
               categoryName="Lentes de Sol" 
               emptyMessage={filterBrand ? `No encontramos anteojos de sol de la marca ${filterBrand}.` : "Estamos actualizando nuestra colección de anteojos de sol. ¡Volvé pronto para ver los nuevos modelos!"} 
             />

@@ -52,3 +52,29 @@ export function autoCorrectIndex(index: string | null | undefined): string | nul
     // but the supervisor feature will catch it.
     return i;
 }
+
+export function getProductAttributes(modelName: string | null | undefined): { shape: string; material: string } {
+    const modelUpper = (modelName || '').toUpperCase().trim();
+    
+    // Material
+    let material = 'Metal';
+    if (modelUpper.includes('ACETATO') || modelUpper.includes('WJ5022') || modelUpper.includes('CAREY') || modelUpper.includes('VINTAGE')) {
+        material = 'Acetato';
+    }
+    
+    // Forma
+    let shape = 'Cuadrado';
+    if (modelUpper.includes('91501') || modelUpper.includes('G7013') || modelUpper.includes('ZTGX')) {
+        shape = 'Cuadrado';
+    } else if (modelUpper.includes('3684') || modelUpper.includes('AVIADOR')) {
+        shape = 'Aviador';
+    } else if (modelUpper.includes('69CE') || modelUpper.includes('69CD') || modelUpper.includes('238014') || modelUpper.includes('HEXAGONAL')) {
+        shape = 'Hexagonal';
+    } else if (modelUpper.includes('7015') || modelUpper.includes('3932') || modelUpper.includes('CAT-EYE') || modelUpper.includes('GATO')) {
+        shape = 'Cat-Eye';
+    } else if (modelUpper.includes('011') || modelUpper.includes('238013') || modelUpper.includes('5217') || modelUpper.includes('9030') || modelUpper.includes('REDONDO')) {
+        shape = 'Redondo';
+    }
+    
+    return { shape, material };
+}
