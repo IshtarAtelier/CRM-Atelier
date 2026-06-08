@@ -26,35 +26,34 @@ const PRODUCTS = [
 ];
 
 export default async function Home() {
-  // 1. Server-Side Data Fetching (Reemplaza el antiguo useEffect)
-  const dbProducts = await prisma.product.findMany({
+  // 1. Server-Side Data Fetching from WebProduct to get Goddess names and slugs
+  const dbWebProducts = await prisma.webProduct.findMany({
     where: {
-      publishToWeb: true,
-      category: { not: 'Cristal' } // No mostramos cristales sueltos en el catálogo principal
+      isActive: true,
+      product: {
+        publishToWeb: true,
+        category: { not: 'Cristal' }
+      }
     },
-    select: {
-      id: true,
-      name: true,
-      brand: true,
-      model: true,
-      price: true,
-      imagenesCatalogo: true,
+    include: {
+      product: true
     },
     orderBy: { createdAt: 'desc' },
     take: 40
   });
 
-  // Filtramos solo los productos que tengan imagen
-  const validWebProducts = dbProducts.filter(p => p.imagenesCatalogo && p.imagenesCatalogo.length > 0);
-
   // Formateamos los productos para el carrusel
-  const displayProducts = validWebProducts.length > 0 
-    ? validWebProducts.map(p => ({
-        id: p.id,
-        name: `${p.brand} ${p.model}`,
-        price: `$ ${p.price?.toLocaleString()}`,
-        img: `/api/storage/view?key=${encodeURIComponent(p.imagenesCatalogo[0])}`,
-        slug: p.id.toString()
+  const displayProducts = dbWebProducts.length > 0 
+    ? dbWebProducts.map(wp => ({
+        id: wp.product.id,
+        name: wp.name,
+        price: `$ ${wp.product.price?.toLocaleString()}`,
+        img: wp.imageUrl 
+          ? `/api/storage/view?key=${encodeURIComponent(wp.imageUrl)}`
+          : (wp.images.length > 0 
+              ? `/api/storage/view?key=${encodeURIComponent(wp.images[0])}` 
+              : (wp.product.imagenesCatalogo.length > 0 ? `/api/storage/view?key=${encodeURIComponent(wp.product.imagenesCatalogo[0])}` : '/images/og-image.jpg')),
+        slug: wp.slug
       }))
     : PRODUCTS;
 

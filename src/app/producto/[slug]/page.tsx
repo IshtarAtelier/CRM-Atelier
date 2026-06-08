@@ -34,7 +34,8 @@ async function getProduct(slug: string) {
     return {
       id: webProduct.product.id,
       brand: webProduct.product.brand || 'Atelier',
-      model: webProduct.product.model || webProduct.name,
+      model: webProduct.name || webProduct.product.model || '',
+      modelCode: webProduct.product.model,
       price: webProduct.product.price,
       stock: webProduct.product.stock,
       imagenesCatalogo: webProduct.images.length > 0 ? webProduct.images : webProduct.product.imagenesCatalogo,
@@ -65,6 +66,7 @@ async function getProduct(slug: string) {
     id: product.id,
     brand: product.brand || 'Atelier',
     model: product.model || 'Sin modelo',
+    modelCode: product.model,
     price: product.price,
     stock: product.stock,
     imagenesCatalogo: product.imagenesCatalogo,

@@ -133,8 +133,13 @@ export function ProductClient({ product }: { product: any }) {
               initial={{ y: 20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ delay: 0.35, duration: 0.8 }}
-              className="flex items-center gap-3 mb-6"
+              className="flex flex-wrap items-center gap-3 mb-6"
             >
+              {product.modelCode && (
+                <span className="text-[10px] text-stone-500 font-bold bg-amber-50 border border-amber-200/50 px-2 py-1 rounded-sm">
+                  Código Interno: {product.modelCode}
+                </span>
+              )}
               <span className="text-[10px] text-stone-400 font-mono bg-stone-100 px-2 py-1 rounded-sm">
                 SKU: {product.id?.substring(0, 8).toUpperCase() || 'ATELIER'}
               </span>

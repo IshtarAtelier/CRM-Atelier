@@ -721,6 +721,11 @@ function CotizadorPageContent() {
                                                                             Stock: {product.stock}
                                                                         </span>
                                                                     )}
+                                                                    {product.publishToWeb && (
+                                                                        <span className="text-[9px] font-extrabold uppercase tracking-wider px-1.5 py-0.5 rounded bg-violet-100 dark:bg-violet-950/20 text-violet-750 dark:text-violet-400">
+                                                                            🌐 Web
+                                                                        </span>
+                                                                    )}
                                                                 </div>
                                                                 <p className="text-xs font-semibold mt-1 text-stone-800 dark:text-stone-200 group-hover:text-stone-900 dark:group-hover:text-white transition-colors truncate">
                                                                     {product.name}

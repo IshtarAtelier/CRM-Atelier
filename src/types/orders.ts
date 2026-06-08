@@ -171,6 +171,7 @@ export interface Product {
     imageProcessingStatus?: string | null;
     rawImageUrls?: string[];
     imagenesCatalogo?: string[];
+    publishToWeb?: boolean;
     createdAt?: string;
     updatedAt?: string;
 }
