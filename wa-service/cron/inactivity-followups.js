@@ -4,39 +4,18 @@
  * y el cliente no contestó.
  * 
  * DEDUP: Usa lastFollowUpAt en la DB para no enviar más de 1 follow-up cada 24hs.
- * EXCLUSIÓN MUTUA: Respeta etiquetas de sales-followups (SEGUIMIENTO_DIA_1, SEGUIMIENTO_DIA_4).
+ * EXCLUSIÓN MUTUA: Respeta etiquetas de sales-followups.
  */
 const { prisma } = require('../db');
 const { sendMessage, sendTypingState } = require('../whatsapp-client');
+const { isBusinessHours } = require('../shared/business-hours');
+const { ALL_FOLLOWUP_LABELS } = require('../followups/config');
 
-// Texto alineado con las reglas del prompt (se envía tras 24hs de inactividad):
-// - Sin signos de apertura (¡¿) — regla 12
-// - Voseo cordobés neutro — regla 5
-// - No dice "cualquier cosita" (demasiado informal)
+// Texto del follow-up por inactividad
 const FOLLOW_UP_TEXT = "Hola! Te escribo para saber si te quedó alguna duda o si querés que sigamos viendo opciones 😊";
 
 // Cooldown mínimo entre follow-ups para el mismo chat (24 horas)
 const FOLLOW_UP_COOLDOWN_MS = 24 * 60 * 60 * 1000;
-
-// Etiquetas de sales-followups que indican que ese cron ya está gestionando el chat
-const SALES_FOLLOWUP_LABELS = ['SEGUIMIENTO_DIA_1', 'SEGUIMIENTO_DIA_4', 'SEGUIMIENTO_DIA_15'];
-
-/**
- * Verifica si la hora actual corresponde a horario comercial de Argentina (UTC-3)
- */
-function isBusinessHours(date) {
-    const argDate = new Date(date.toLocaleString("en-US", { timeZone: "America/Argentina/Buenos_Aires" }));
-    const day = argDate.getDay();
-    const hour = argDate.getHours();
-    const minute = argDate.getMinutes();
-    const timeDecimal = hour + minute / 60;
-
-    if (day === 0) return false;
-    if (day === 6) {
-        return timeDecimal >= 10 && timeDecimal < 14;
-    }
-    return (timeDecimal >= 9 && timeDecimal < 13.5) || (timeDecimal >= 16 && timeDecimal < 19.5);
-}
 
 /**
  * Chequea y envía follow-ups por inactividad.
@@ -83,7 +62,7 @@ async function checkAndSendInactivityFollowUps({ isAgentEnabled, botReplyingTo, 
             }
 
             // EXCLUSIÓN MUTUA: Si sales-followups ya está gestionando este chat, no enviar
-            if (chat.chatLabels && SALES_FOLLOWUP_LABELS.some(label => chat.chatLabels.includes(label))) {
+            if (chat.chatLabels && ALL_FOLLOWUP_LABELS.some(label => chat.chatLabels.includes(label))) {
                 continue;
             }
 
@@ -111,7 +90,7 @@ async function checkAndSendInactivityFollowUps({ isAgentEnabled, botReplyingTo, 
             const diffHours = diffMs / (1000 * 60 * 60);
 
             if (diffHours >= 24) {
-                console.log(`  ✉️ [Follow-Up] Enviando recordatorio por inactividad de ${diffHours.toFixed(1)}hs (umbral: 24hs) a ${chat.profileName || chat.waId}`);
+                console.log(`  ✉️ [Follow-Up] Enviando recordatorio por inactividad de ${diffHours.toFixed(1)}hs a ${chat.profileName || chat.waId}`);
                 
                 try {
                     botReplyingTo.add(chat.waId);
@@ -146,7 +125,7 @@ async function checkAndSendInactivityFollowUps({ isAgentEnabled, botReplyingTo, 
                         });
                     }
 
-                    // Actualizar timestamps: lastMessageAt + lastFollowUpAt (DEDUP persistente)
+                    // Actualizar timestamps
                     await prisma.whatsAppChat.update({
                         where: { id: chat.id },
                         data: { 
