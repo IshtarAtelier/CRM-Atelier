@@ -145,4 +145,4 @@ async function checkAndSendInactivityFollowUps({ isAgentEnabled, botReplyingTo, 
     }
 }
 
-module.exports = { checkAndSendInactivityFollowUps, isBusinessHours };
+module.exports = { checkAndSendInactivityFollowUps };

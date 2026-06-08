@@ -6,7 +6,7 @@
 // ──────────────────────────────────────────────
 // MODO TEST: redirige TODOS los envíos al admin
 // ──────────────────────────────────────────────
-const TEST_MODE = true;
+const TEST_MODE = false;
 const TEST_PHONE = '5493541215971@c.us';
 
 // ──────────────────────────────────────────────

@@ -24,9 +24,14 @@ async function getProduct(slug: string) {
     return DEMO_PRODUCT;
   }
 
-  // 1) Intentar por WebProduct.slug
-  const webProduct = await prisma.webProduct.findUnique({
-    where: { slug },
+  // 1) Intentar por WebProduct.slug o productId
+  const webProduct = await prisma.webProduct.findFirst({
+    where: { 
+      OR: [
+        { slug },
+        { productId: slug }
+      ]
+    },
     include: { product: true }
   });
 
