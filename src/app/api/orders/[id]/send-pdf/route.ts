@@ -3,9 +3,10 @@ import { prisma } from '@/lib/db';
 import { fetchWa } from '@/lib/wa-config';
 import { generateOrderPDF } from '@/lib/order-pdf-generator';
 
-export async function POST(request: Request, { params }: { params: { id: string } }) {
+export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
     try {
-        const orderId = params.id;
+        const resolvedParams = await params;
+        const orderId = resolvedParams.id;
         const { formattedPhone, text } = await request.json();
 
         if (!formattedPhone || !text) {

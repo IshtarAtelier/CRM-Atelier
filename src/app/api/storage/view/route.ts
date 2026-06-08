@@ -47,6 +47,7 @@ export async function GET(req: NextRequest) {
         if (key.endsWith('.jpg') || key.endsWith('.jpeg')) contentType = 'image/jpeg';
         else if (key.endsWith('.png')) contentType = 'image/png';
         else if (key.endsWith('.webp')) contentType = 'image/webp';
+        else if (key.endsWith('.avif')) contentType = 'image/avif';
         else if (key.endsWith('.mp4')) contentType = 'video/mp4';
         else if (key.endsWith('.ogg')) contentType = 'audio/ogg';
         else if (key.endsWith('.pdf')) contentType = 'application/pdf';
