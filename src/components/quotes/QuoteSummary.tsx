@@ -187,10 +187,13 @@ export default function QuoteSummary({
             if (res.ok) {
                 alert(`✅ ${isSale ? 'Venta' : 'Presupuesto'} enviado por WhatsApp`);
             } else {
-                alert(`❌ Error al enviar el mensaje por WhatsApp desde el bot.`);
+                const errData = await res.json().catch(() => ({}));
+                console.error('[WhatsApp Text] Error:', res.status, errData);
+                alert(`❌ Error al enviar por WhatsApp (${res.status}): ${errData?.error || 'Error desconocido'}`);
             }
-        } catch (err) {
-            alert(`❌ Error de red al intentar enviar por WhatsApp.`);
+        } catch (err: any) {
+            console.error('[WhatsApp Text] Network Error:', err);
+            alert(`❌ Error de red al intentar enviar por WhatsApp: ${err.message}`);
         } finally {
             setIsSendingWhatsApp(false);
         }
@@ -219,11 +222,13 @@ export default function QuoteSummary({
             if (sendRes.ok) {
                 alert(`✅ PDF enviado por WhatsApp`);
             } else {
-                alert(`❌ Error al enviar el PDF por WhatsApp desde el bot.`);
+                const errData = await sendRes.json().catch(() => ({}));
+                console.error('[WhatsApp PDF] Error:', sendRes.status, errData);
+                alert(`❌ Error al enviar PDF (${sendRes.status}): ${errData?.error || 'Error desconocido'}`);
             }
-        } catch (err) {
-            console.error(err);
-            alert(`❌ Error al intentar enviar el PDF por WhatsApp.`);
+        } catch (err: any) {
+            console.error('[WhatsApp PDF] Network Error:', err);
+            alert(`❌ Error de red al enviar PDF: ${err.message}`);
         } finally {
             setIsSendingPDF(false);
         }

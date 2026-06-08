@@ -10,8 +10,10 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
         const { formattedPhone, text } = await request.json();
 
         if (!formattedPhone || !text) {
-            return NextResponse.json({ error: 'Faltan parámetros' }, { status: 400 });
+            return NextResponse.json({ error: 'Faltan parámetros (formattedPhone o text)' }, { status: 400 });
         }
+
+        console.log('[send-pdf] Generating PDF for order:', orderId, 'to:', formattedPhone);
 
         // Obtener orden y contacto
         const order = await prisma.order.findUnique({
@@ -31,7 +33,14 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
         }
 
         // Generar PDF del lado del servidor
-        const { base64, filename } = await generateOrderPDF(order, order.client);
+        let pdfResult;
+        try {
+            pdfResult = await generateOrderPDF(order, order.client);
+            console.log('[send-pdf] PDF generated successfully:', pdfResult.filename, '| Size:', Math.round(pdfResult.base64.length * 0.75 / 1024), 'KB');
+        } catch (pdfError: any) {
+            console.error('[send-pdf] PDF generation failed:', pdfError.message);
+            return NextResponse.json({ error: `Error generando PDF: ${pdfError.message}` }, { status: 500 });
+        }
 
         // Enviar por WhatsApp
         const res = await fetchWa('/api/send', {
@@ -41,23 +50,32 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
                 chatId: `${formattedPhone}@c.us`,
                 message: text,
                 media: {
-                    base64,
+                    base64: pdfResult.base64,
                     mimetype: 'application/pdf',
-                    filename
+                    filename: pdfResult.filename
                 }
             }),
         });
 
-        if (!res.ok) {
-            const errorData = await res.json().catch(() => ({}));
-            console.error('[send-pdf] Bot API Error:', errorData);
-            return NextResponse.json({ error: 'Error del bot al enviar PDF' }, { status: 500 });
+        const responseText = await res.text();
+        let responseData;
+        try {
+            responseData = JSON.parse(responseText);
+        } catch {
+            console.error('[send-pdf] Non-JSON response from wa-service:', res.status, responseText.substring(0, 200));
+            return NextResponse.json({ error: `wa-service respondió con formato inválido (${res.status})` }, { status: 502 });
         }
 
+        if (!res.ok) {
+            console.error('[send-pdf] Bot API Error:', res.status, responseData);
+            return NextResponse.json({ error: `Error del bot al enviar PDF (${res.status}): ${responseData?.error || 'desconocido'}` }, { status: 500 });
+        }
+
+        console.log('[send-pdf] PDF sent successfully to:', formattedPhone);
         return NextResponse.json({ success: true });
 
     } catch (error: any) {
-        console.error('[send-pdf] Error:', error);
-        return NextResponse.json({ error: 'Error interno generando o enviando el PDF' }, { status: 500 });
+        console.error('[send-pdf] Error:', error.message, error.stack);
+        return NextResponse.json({ error: `Error interno: ${error.message}` }, { status: 500 });
     }
 }
