@@ -47,11 +47,13 @@ export function CategoryGrid({ products, emptyMessage = "Estamos actualizando nu
             className="group cursor-pointer flex flex-col"
           >
             <Link href={`/producto/${p.slug}`} className="flex-1 flex flex-col">
-              <div className="relative aspect-square mb-4 bg-[#fdfdfd] border border-[#f0f0f0] overflow-hidden rounded-xl">
+              <div className="relative aspect-square mb-4 bg-[#fdfdfd] border border-[#f0f0f0] overflow-hidden rounded-xl isolate">
                 <Image 
                   src={imageUrl} 
                   alt={`${p.brand} ${p.model}`}
                   fill
+                  unoptimized
+                  style={{ transform: "translateZ(0)" }}
                   sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                   className="object-contain p-6 mix-blend-multiply group-hover:scale-105 transition-transform duration-700 ease-in-out"
                 />

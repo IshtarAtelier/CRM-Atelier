@@ -70,14 +70,15 @@ export function Interactive3DImage({ src, alt, className = "", imageClassName = 
       >
         <motion.div 
           style={{ x: translateX, y: translateY, translateZ: 50 }}
-          className="w-full h-full relative z-10"
+          className="w-full h-full relative z-10 isolate"
         >
           <Image 
             src={src}
             alt={alt}
             fill
+            unoptimized
             sizes="(max-width: 768px) 100vw, 50vw"
-            style={{ objectFit: "contain" }}
+            style={{ objectFit: "contain", transform: "translateZ(0)" }}
             className={`mix-blend-multiply ${imageClassName}`}
           />
         </motion.div>

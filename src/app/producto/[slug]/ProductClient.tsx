@@ -82,14 +82,15 @@ export function ProductClient({ product }: { product: any }) {
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
                   transition={{ duration: 0.4 }}
-                  className={`absolute inset-0 z-10 ${activeImageIndex === 0 ? 'mix-blend-multiply' : ''}`}
+                  className={`absolute inset-0 z-10 isolate ${activeImageIndex === 0 ? 'mix-blend-multiply' : ''}`}
                 >
                   <Image 
                     src={images[activeImageIndex]} 
                     alt={`${product.brand} ${product.model}`}
                     fill
+                    unoptimized
                     sizes="(max-width: 1024px) 100vw, 85vw"
-                    style={{ objectFit: activeImageIndex === 0 ? "contain" : "cover" }}
+                    style={{ objectFit: activeImageIndex === 0 ? "contain" : "cover", transform: "translateZ(0)" }}
                     className={activeImageIndex === 0 ? "p-8 lg:p-12" : ""}
                   />
                 </motion.div>

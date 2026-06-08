@@ -282,7 +282,7 @@ export function CustomGlassesBuilder({ products }: { products: Product[] }) {
                       onClick={() => handleSelect(p)}
                       className="flex flex-col items-center text-center group outline-none cursor-pointer"
                     >
-                      <div className={`w-full aspect-[4/3] relative mb-6 flex items-center justify-center transition-all duration-500 ${isSelected ? 'opacity-100 scale-105' : 'opacity-70 group-hover:opacity-100'}`}>
+                      <div className={`w-full aspect-[4/3] relative mb-6 flex items-center justify-center transition-all duration-500 isolate ${isSelected ? 'opacity-100 scale-105' : 'opacity-70 group-hover:opacity-100'}`}>
                         <Image 
                           src={p.imagenesCatalogo.length > 0 
                             ? (p.imagenesCatalogo[0].startsWith('http') || p.imagenesCatalogo[0].startsWith('/images')
@@ -292,7 +292,8 @@ export function CustomGlassesBuilder({ products }: { products: Product[] }) {
                           }
                           alt={p.model}
                           fill
-                          style={{ objectFit: "contain" }}
+                          unoptimized
+                          style={{ objectFit: "contain", transform: "translateZ(0)" }}
                           className="mix-blend-multiply"
                           sizes="(max-width: 768px) 50vw, 33vw"
                         />

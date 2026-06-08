@@ -9,7 +9,22 @@ import { StorefrontFooter } from "@/components/Storefront/StorefrontFooter";
 import { FloatingWhatsApp } from "@/components/Storefront/FloatingWhatsApp";
 import { PaymentOptions } from "@/components/Storefront/PaymentOptions";
 
-const CATEGORIES = ["Todo", "Receta", "Sol", "Clip-On", "Contacto"];
+const CATEGORIES = ["Todo", "Receta", "Sol", "XL", "Clip-On", "Contacto"];
+
+const isXlProduct = (p: any) => {
+  const nameLower = (p.name || "").toLowerCase();
+  const modelLower = (p.model || "").toLowerCase();
+  return nameLower.includes("athena") || 
+         nameLower.includes("gaia") || 
+         nameLower.includes("clio") || 
+         nameLower.includes("minerva") || 
+         nameLower.includes("artemis") ||
+         modelLower.includes("91501") ||
+         modelLower.includes("238014") ||
+         modelLower.includes("238015") ||
+         modelLower.includes("3932") ||
+         modelLower.includes("g7013");
+};
 
 export default function TiendaPage() {
   const [products, setProducts] = useState<any[]>([]);
@@ -29,7 +44,28 @@ export default function TiendaPage() {
 
   const filtered = activeCategory === "Todo"
     ? products
-    : products.filter(p => (p.category || "").toLowerCase() === activeCategory.toLowerCase());
+    : products.filter(p => {
+        const cat = (p.category || "").toLowerCase();
+        const active = activeCategory.toLowerCase();
+        
+        if (active === "receta") {
+          return cat.includes("receta") || cat.includes("armazón") || cat.includes("armazon") || cat.includes("frame");
+        }
+        if (active === "sol") {
+          return cat.includes("sol") || cat.includes("sun");
+        }
+        if (active === "xl") {
+          return isXlProduct(p);
+        }
+        if (active === "clip-on") {
+          return cat.includes("clip");
+        }
+        if (active === "contacto") {
+          return cat.includes("contacto") || cat.includes("contact");
+        }
+        return cat === active;
+      });
+
 
   return (
     <div className="bg-white min-h-screen text-black font-sans selection:bg-black selection:text-white">
@@ -138,7 +174,7 @@ export default function TiendaPage() {
                       {/* Badge categoría */}
                       {p.category && (
                         <span className="absolute top-3 left-3 text-[8px] font-black uppercase tracking-widest bg-white/80 backdrop-blur-sm px-2 py-1 z-10">
-                          {p.category}
+                          {isXlProduct(p) ? `${p.category} · XL` : p.category}
                         </span>
                       )}
                     </div>
