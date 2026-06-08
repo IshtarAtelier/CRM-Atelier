@@ -337,9 +337,207 @@ export async function generateOrderPDF(order: any, contact: any): Promise<{ base
         console.log('[generateOrderPDF] Generated with Playwright successfully');
         return { base64: base64String, filename };
     } catch (playwrightError: any) {
-        console.error('[generateOrderPDF] All browser-based PDF generation failed');
-        console.error('  @sparticuz/chromium error:', lastError);
-        console.error('  Playwright error:', playwrightError.message);
-        throw new Error('No se pudo generar el PDF: ningún motor de renderizado disponible');
+        console.warn('[generateOrderPDF] All browser-based PDF generation failed, falling back to jsPDF');
+        return generateOrderPDFWithJsPDF(order, contact, filename);
     }
+}
+
+async function generateOrderPDFWithJsPDF(order: any, contact: any, filename: string): Promise<{ base64: string, filename: string }> {
+    const { default: jsPDF } = await import('jspdf');
+    const autoTable = (await import('jspdf-autotable')).default;
+    
+    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+    const isSale = order.orderType === 'SALE';
+    const financials = PricingService.calculateOrderFinancials(order);
+    const markupFactor = 1 + ((order.markup || 0) / 100);
+    
+    const brandSand: [number, number, number] = [166, 139, 124];
+    const brandBeige: [number, number, number] = [212, 195, 181];
+    const emerald: [number, number, number] = [16, 185, 129];
+    const darkText: [number, number, number] = [28, 25, 23];
+    const grayText: [number, number, number] = [120, 113, 108];
+    const violet: [number, number, number] = [124, 58, 237];
+    const orange: [number, number, number] = [249, 115, 22];
+    
+    let dateStr = '';
+    try {
+        dateStr = format(new Date(order.createdAt), "dd/MM/yyyy", { locale: es });
+    } catch { dateStr = new Date().toLocaleDateString('es-AR'); }
+    
+    const pw = 210;
+    const m = 15;
+    const cw = pw - m * 2;
+    let y = m;
+
+    // --- LOGO ---
+    try {
+        const logoPath = path.join(process.cwd(), 'public', 'assets', 'logo-atelier-optica.png');
+        if (fs.existsSync(logoPath)) {
+            const logoB64 = fs.readFileSync(logoPath).toString('base64');
+            doc.addImage(`data:image/png;base64,${logoB64}`, 'PNG', m, y - 3, 40, 14);
+        } else {
+            doc.setFontSize(18); doc.setFont('helvetica', 'bold'); doc.setTextColor(...brandSand);
+            doc.text('ATELIER OPTICA', m, y + 5);
+        }
+    } catch {
+        doc.setFontSize(18); doc.setFont('helvetica', 'bold'); doc.setTextColor(...brandSand);
+        doc.text('ATELIER OPTICA', m, y + 5);
+    }
+    
+    doc.setFontSize(7); doc.setFont('helvetica', 'bold'); doc.setTextColor(...brandSand);
+    doc.text('JOSE LUIS DE TEJEDA 4380', pw - m, y, { align: 'right' });
+    doc.setFont('helvetica', 'normal'); doc.setTextColor(...grayText);
+    doc.text('Cerro de las Rosas, Cordoba', pw - m, y + 4, { align: 'right' });
+    doc.text('WhatsApp: 351 1234567', pw - m, y + 8, { align: 'right' });
+    
+    y += 14;
+    doc.setDrawColor(...brandBeige); doc.setLineWidth(0.5);
+    doc.line(m, y, pw - m, y);
+    y += 4;
+    
+    doc.setFontSize(6); doc.setFont('helvetica', 'bold'); doc.setTextColor(...brandSand);
+    doc.text('ATELIER OPTICA  -  LA OPTICA MEJOR CALIFICADA EN CORDOBA', pw / 2, y, { align: 'center' });
+    y += 7;
+    
+    // Doc title
+    doc.setFontSize(16); doc.setFont('helvetica', 'bold'); doc.setTextColor(...brandSand);
+    doc.text(isSale ? 'ORDEN DE VENTA' : 'PRESUPUESTO', m, y);
+    doc.setFontSize(8); doc.setTextColor(168, 162, 158);
+    doc.text(`#${order.id.slice(-6).toUpperCase()}  |  ${dateStr}`, m, y + 5);
+    y += 14;
+    
+    // --- CLIENT & LOCAL ---
+    const bh = 22; const hw = (cw - 6) / 2;
+    
+    doc.setFillColor(255, 252, 249); doc.setDrawColor(...brandBeige); doc.setLineWidth(0.3);
+    doc.roundedRect(m, y, hw, bh, 2, 2, 'FD');
+    doc.setFontSize(6); doc.setFont('helvetica', 'bold'); doc.setTextColor(...brandSand);
+    doc.text('CLIENTE', m + 4, y + 5);
+    doc.setDrawColor(...brandBeige); doc.line(m + 4, y + 7, m + hw - 4, y + 7);
+    doc.setFontSize(9); doc.setFont('helvetica', 'bold'); doc.setTextColor(...darkText);
+    doc.text(contact?.name || 'Cliente Final', m + 4, y + 13);
+    doc.setFontSize(8); doc.setFont('helvetica', 'normal'); doc.setTextColor(...grayText);
+    doc.text(`Tel: ${contact?.phone || '-'}`, m + 4, y + 18);
+    
+    const bx2 = m + hw + 6;
+    doc.setFillColor(255, 252, 249);
+    doc.roundedRect(bx2, y, hw, bh, 2, 2, 'FD');
+    doc.setFontSize(6); doc.setFont('helvetica', 'bold'); doc.setTextColor(...brandSand);
+    doc.text('ATELIER LOCAL', bx2 + 4, y + 5);
+    doc.line(bx2 + 4, y + 7, bx2 + hw - 4, y + 7);
+    doc.setFontSize(9); doc.setFont('helvetica', 'bold'); doc.setTextColor(...darkText);
+    doc.text('Cerro de las Rosas', bx2 + 4, y + 13);
+    doc.setFontSize(8); doc.setFont('helvetica', 'normal'); doc.setTextColor(...grayText);
+    doc.text('Vigencia: 15 dias corridos', bx2 + 4, y + 18);
+    
+    y += bh + 6;
+    
+    // --- ITEMS TABLE ---
+    const rows = (order.items || []).map((it: any) => {
+        const ip = Math.round(it.price * markupFactor);
+        return [
+            `${it.product?.brand || it.productBrandSnapshot || ''} ${it.product?.name || it.productNameSnapshot || ''}`.trim(),
+            `${it.quantity}`,
+            `$${ip.toLocaleString()}`,
+            `$${(ip * it.quantity).toLocaleString()}`
+        ];
+    });
+    
+    autoTable(doc, {
+        startY: y,
+        head: [['Descripcion', 'Cant.', 'Precio Unit.', 'Subtotal']],
+        body: rows,
+        margin: { left: m, right: m },
+        headStyles: { fillColor: brandSand, textColor: [255, 255, 255], fontSize: 7, fontStyle: 'bold', cellPadding: 3 },
+        bodyStyles: { fontSize: 8, cellPadding: 3, textColor: darkText },
+        columnStyles: {
+            0: { cellWidth: cw * 0.5 },
+            1: { halign: 'center' as const, cellWidth: cw * 0.1 },
+            2: { halign: 'right' as const, cellWidth: cw * 0.2 },
+            3: { halign: 'right' as const, cellWidth: cw * 0.2, fontStyle: 'bold' }
+        },
+        alternateRowStyles: { fillColor: [255, 252, 249] },
+        theme: 'grid'
+    });
+    
+    y = (doc as any).lastAutoTable.finalY + 8;
+    
+    // --- PAYMENT CARDS ---
+    if (financials.hasBalance) {
+        const cardW = (cw - 8) / 3;
+        const cy = y;
+        const ch = 32;
+        
+        const drawCard = (x: number, topColor: [number,number,number], title: string, amount: number, saldo: number, extra?: string[]) => {
+            doc.setDrawColor(...brandBeige); doc.setLineWidth(0.3);
+            doc.roundedRect(x, cy, cardW, ch, 2, 2);
+            doc.setFillColor(...topColor); doc.rect(x, cy, cardW, 1.5, 'F');
+            doc.setFontSize(6); doc.setFont('helvetica', 'bold'); doc.setTextColor(...darkText);
+            doc.text(title, x + 3, cy + 7);
+            doc.setFontSize(13); doc.text(`$${amount.toLocaleString()}`, x + 3, cy + 15);
+            doc.setFontSize(7); doc.setFont('helvetica', 'normal'); doc.setTextColor(...grayText);
+            doc.text(`Saldo: $${saldo.toLocaleString()}`, x + 3, cy + 21);
+            if (extra) extra.forEach((l, i) => { doc.setFontSize(6); doc.text(l, x + 3, cy + 25 + i * 4); });
+        };
+        
+        drawCard(m, emerald, `EFECTIVO (-${financials.discountCash}%)`, financials.totalCash, financials.remainingCash);
+        drawCard(m + cardW + 4, violet, `TRANSFERENCIA (-${financials.discountTransfer}%)`, financials.totalTransfer, financials.remainingTransfer);
+        drawCard(m + (cardW + 4) * 2, orange, 'TARJETAS (LISTA)', financials.totalCard, financials.remainingCard, [
+            `3 cuotas s/int: $${financials.installment3.toLocaleString()}`,
+            `6 cuotas s/int: $${financials.installment6.toLocaleString()}`
+        ]);
+        
+        y = cy + ch + 8;
+        
+        // Totals bar
+        doc.setFillColor(28, 25, 23); doc.roundedRect(m, y, cw, 20, 3, 3, 'F');
+        const colW = cw / 4;
+        const drawCol = (x: number, label: string, val: string, color: [number,number,number]) => {
+            doc.setFontSize(5); doc.setFont('helvetica', 'bold'); doc.setTextColor(...color);
+            doc.text(label, x, y + 7);
+            doc.setFontSize(11); doc.text(val, x, y + 14);
+        };
+        drawCol(m + 4, 'EFECTIVO', `$${financials.totalCash.toLocaleString()}`, emerald);
+        drawCol(m + colW + 4, 'TRANSFERENCIA', `$${financials.totalTransfer.toLocaleString()}`, [167, 139, 250]);
+        drawCol(m + colW * 2 + 4, 'TARJETA', `$${financials.totalCard.toLocaleString()}`, [251, 146, 60]);
+        drawCol(m + colW * 3 + 4, 'ABONADO REAL', `$${financials.paidReal.toLocaleString()}`, [251, 191, 36]);
+        y += 26;
+    } else {
+        doc.setFillColor(240, 253, 244); doc.setDrawColor(...emerald); doc.setLineWidth(0.5);
+        doc.roundedRect(m, y, cw, 18, 3, 3, 'FD');
+        doc.setFontSize(13); doc.setFont('helvetica', 'bold'); doc.setTextColor(6, 95, 70);
+        doc.text('ORDEN PAGADA EN SU TOTALIDAD', pw / 2, y + 8, { align: 'center' });
+        doc.setFontSize(9);
+        doc.text(`Total abonado: $${financials.paidReal.toLocaleString()}`, pw / 2, y + 14, { align: 'center' });
+        y += 24;
+    }
+    
+    // --- PRESCRIPTION ---
+    if (order.prescription) {
+        const rxW = (cw - 6) / 2;
+        doc.setDrawColor(...brandBeige); doc.setLineWidth(0.3);
+        doc.roundedRect(m, y, rxW, 16, 2, 2);
+        doc.setFontSize(6); doc.setFont('helvetica', 'bold'); doc.setTextColor(...brandSand);
+        doc.text('OJO DERECHO (OD)', m + 4, y + 5);
+        doc.setFontSize(10); doc.setTextColor(...darkText);
+        doc.text(`${order.prescription.sphereOD || '0'} / ${order.prescription.cylinderOD || '0'} x ${order.prescription.axisOD || '0'}`, m + 4, y + 12);
+        
+        doc.roundedRect(m + rxW + 6, y, rxW, 16, 2, 2);
+        doc.setFontSize(6); doc.setFont('helvetica', 'bold'); doc.setTextColor(...brandSand);
+        doc.text('OJO IZQUIERDO (OI)', m + rxW + 10, y + 5);
+        doc.setFontSize(10); doc.setTextColor(...darkText);
+        doc.text(`${order.prescription.sphereOI || '0'} / ${order.prescription.cylinderOI || '0'} x ${order.prescription.axisOI || '0'}`, m + rxW + 10, y + 12);
+        y += 22;
+    }
+    
+    // --- FOOTER ---
+    doc.setDrawColor(...brandBeige); doc.setLineWidth(0.5);
+    doc.line(m, y, pw - m, y);
+    y += 5;
+    doc.setFontSize(6); doc.setFont('helvetica', 'bold'); doc.setTextColor(168, 162, 158);
+    doc.text(`ATELIER OPTICA  |  TEJEDA 4380  |  PROFESIONALISMO ETICA Y DISENO  |  ${format(new Date(), 'yyyy')}`, pw / 2, y, { align: 'center' });
+    
+    const base64 = doc.output('datauristring').split(',')[1];
+    console.log('[generateOrderPDF] Generated with jsPDF fallback successfully');
+    return { base64, filename };
 }
