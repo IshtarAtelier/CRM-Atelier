@@ -64,11 +64,11 @@ export function getProductAttributes(modelName: string | null | undefined): { sh
     
     // Forma
     let shape = 'Cuadrado';
-    if (modelUpper.includes('91501') || modelUpper.includes('G7013') || modelUpper.includes('ZTGX')) {
+    if (modelUpper.includes('91501') || modelUpper.includes('901501') || modelUpper.includes('G7013') || modelUpper.includes('ZTGX')) {
         shape = 'Cuadrado';
     } else if (modelUpper.includes('3684') || modelUpper.includes('AVIADOR')) {
         shape = 'Aviador';
-    } else if (modelUpper.includes('69CE') || modelUpper.includes('69CD') || modelUpper.includes('238014') || modelUpper.includes('HEXAGONAL')) {
+    } else if (modelUpper.includes('69CE') || modelUpper.includes('69CD') || modelUpper.includes('238014') || modelUpper.includes('238015') || modelUpper.includes('HEXAGONAL')) {
         shape = 'Hexagonal';
     } else if (modelUpper.includes('7015') || modelUpper.includes('3932') || modelUpper.includes('CAT-EYE') || modelUpper.includes('GATO')) {
         shape = 'Cat-Eye';
