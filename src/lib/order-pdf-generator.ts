@@ -289,44 +289,7 @@ export async function generateOrderPDF(order: any, contact: any): Promise<{ base
     const safeName = (contact?.name || 'Cliente').replace(/[^a-z0-9]/gi, '-').replace(/-+/g, '-');
     const filename = `${isSale ? 'Venta' : 'Presupuesto'}_${order.id.slice(-4).toUpperCase()}_${safeName}.pdf`;
 
-    const html = getOrderHtml(order, contact);
-    
-    // Try Playwright first (best quality)
-    let browser;
-    try {
-        const browsersPath = path.join(process.cwd(), '.playwright-browsers');
-        process.env.PLAYWRIGHT_BROWSERS_PATH = browsersPath;
-        const { chromium } = await import('playwright');
-        browser = await chromium.launch({ headless: true });
-        const context = await browser.newContext();
-        const page = await context.newPage();
-        
-        await page.setContent(html, { waitUntil: 'networkidle' });
-        
-        const pdfBuffer = await page.pdf({
-            format: 'A4',
-            margin: {
-                top: '0mm',
-                right: '0mm',
-                bottom: '0mm',
-                left: '0mm'
-            },
-            printBackground: true
-        });
-        
-        const base64String = pdfBuffer.toString('base64');
-        console.log('[generateOrderPDF] Generated with Playwright successfully');
-        return { base64: base64String, filename };
-    } catch (playwrightError: any) {
-        console.warn('[generateOrderPDF] Playwright failed, using jsPDF fallback:', playwrightError.message);
-        // Fall through to jsPDF fallback
-    } finally {
-        if (browser) {
-            try { await browser.close(); } catch {}
-        }
-    }
-
-    // Fallback: Generate PDF with jsPDF (works without Chromium)
+    // Usar jsPDF directamente — funciona sin dependencias del sistema (sin Chromium)
     return generateOrderPDFWithJsPDF(order, contact, filename);
 }
 

@@ -27,7 +27,7 @@ export async function GET(
             return new Response('Pedido no encontrado', { status: 404 });
         }
 
-        // Generamos el PDF en el servidor (Playwright con fallback a jsPDF)
+        // Generamos el PDF con jsPDF en el servidor
         console.log('[pdf/route] Generating PDF for order:', id);
         const { base64, filename } = await generateOrderPDF(order, order.client);
         const pdfBuffer = Buffer.from(base64, 'base64');
