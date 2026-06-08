@@ -87,6 +87,7 @@ function CotizadorPageContent() {
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
     const [activeType, setActiveType] = useState<string | null>(null);
+    const [onlyWeb, setOnlyWeb] = useState(false);
     const [quoteItems, setQuoteItems] = useState<QuoteItem[]>([]);
     const [markup, setMarkup] = useState(0);
     const [discountCash, setDiscountCash] = useState(20);
@@ -237,11 +238,13 @@ function CotizadorPageContent() {
                 return words.every(w => haystack.includes(w));
             })();
             
-            if (activeType === 'NONE') return matchesSearch;
-            if (activeType) return matchesSearch && getCategoryKey(p.type, p.category) === activeType;
-            return matchesSearch;
+            const matchesWeb = !onlyWeb || p.publishToWeb === true;
+            
+            if (activeType === 'NONE') return matchesSearch && matchesWeb;
+            if (activeType) return matchesSearch && matchesWeb && getCategoryKey(p.type, p.category) === activeType;
+            return matchesSearch && matchesWeb;
         }).sort((a, b) => (a.price || 0) - (b.price || 0));
-    }, [products, search, activeType]);
+    }, [products, search, activeType, onlyWeb]);
 
     const groupedProducts = useMemo(() => {
         const groups: { [key: string]: Product[] } = {};
@@ -586,6 +589,15 @@ function CotizadorPageContent() {
                     >
                         Todos ({products.length})
                     </button>
+                    <button
+                        onClick={() => setOnlyWeb(!onlyWeb)}
+                        className={`h-9 px-4 rounded-xl text-xs font-bold uppercase tracking-wider whitespace-nowrap transition-all border flex items-center gap-1.5 ${onlyWeb
+                            ? 'bg-violet-600 text-white border-violet-600 shadow-sm hover:bg-violet-700'
+                            : 'bg-white dark:bg-stone-850 text-violet-650 border-violet-200 hover:border-violet-300 dark:border-violet-900/50 dark:text-violet-400'
+                            }`}
+                    >
+                        🌐 Solo Web
+                    </button>
                     {availableCategories.map(cat => {
                         const config = getTypeConfig(cat);
                         const count = products.filter(p => getCategoryKey(p.type, p.category) === cat).length;
@@ -708,9 +720,23 @@ function CotizadorPageContent() {
                                                             : 'bg-white dark:bg-stone-900 border-stone-200/70 dark:border-stone-800'}`}
                                                     >
                                                         <div className="flex items-center gap-3 min-w-0 flex-1">
-                                                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${inQuote ? 'bg-primary/10 text-primary' : 'bg-stone-50 dark:bg-stone-850 text-stone-400 dark:text-stone-500 group-hover:bg-primary/5 group-hover:text-primary transition-colors'}`}>
-                                                                <TypeIcon className="w-4 h-4" />
-                                                            </div>
+                                                            {(() => {
+                                                                 const imgUrl = product.imagenesCatalogo?.[0] || product.rawImageUrls?.[0];
+                                                                 if (imgUrl) {
+                                                                     return (
+                                                                         <img 
+                                                                             src={imgUrl} 
+                                                                             alt={product.name || ''} 
+                                                                             className="w-8 h-8 object-contain rounded-lg border border-stone-200 dark:border-stone-850 bg-stone-50 dark:bg-stone-900 shadow-sm shrink-0" 
+                                                                         />
+                                                                     );
+                                                                 }
+                                                                 return (
+                                                                     <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${inQuote ? 'bg-primary/10 text-primary' : 'bg-stone-50 dark:bg-stone-850 text-stone-400 dark:text-stone-500 group-hover:bg-primary/5 group-hover:text-primary transition-colors'}`}>
+                                                                         <TypeIcon className="w-4 h-4" />
+                                                                     </div>
+                                                                 );
+                                                             })()}
                                                             <div className="min-w-0 flex-1">
                                                                 <div className="flex items-center gap-2">
                                                                     <span className="text-[9px] font-extrabold uppercase tracking-wider px-1.5 py-0.5 rounded bg-stone-100 dark:bg-stone-800 text-stone-500 dark:text-stone-400">

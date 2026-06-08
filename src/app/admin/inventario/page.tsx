@@ -27,6 +27,7 @@ export default function InventarioPage() {
     const [searchQuery, setSearchQuery] = useState('');
     const [showForm, setShowForm] = useState(false);
     const [selectedCategory, setSelectedCategory] = useState('ALL');
+    const [onlyWeb, setOnlyWeb] = useState(false);
     const [selectedSubtype, setSelectedSubtype] = useState('');
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
     const [isDeleting, setIsDeleting] = useState(false);
@@ -146,7 +147,10 @@ export default function InventarioPage() {
     ).values()) as string[];
     uniqueLabs.sort();
 
-    const products = selectedBrand ? rawProducts.filter(p => p.brand?.toLowerCase() === selectedBrand.toLowerCase()) : rawProducts;
+    let products = selectedBrand ? rawProducts.filter(p => p.brand?.toLowerCase() === selectedBrand.toLowerCase()) : rawProducts;
+    if (onlyWeb) {
+        products = products.filter(p => p.publishToWeb === true);
+    }
 
     // Helper: detecta cristales (incluye valores legacy LENS/MULTIFOCAL/etc)
     const checkCristal = (p: { category?: string; type?: string | null }) =>
@@ -496,6 +500,16 @@ export default function InventarioPage() {
                             </button>
                         );
                     })}
+                    <button
+                        onClick={() => setOnlyWeb(!onlyWeb)}
+                        className={`px-5 py-2.5 rounded-full text-[11px] font-black uppercase tracking-[0.15em] transition-all duration-300 flex items-center gap-1.5 ${
+                            onlyWeb
+                            ? 'bg-violet-600 text-white shadow-md scale-105 hover:bg-violet-750'
+                            : 'bg-transparent border border-violet-200 text-violet-600 hover:border-violet-350 hover:bg-violet-50/50 dark:border-violet-900/50 dark:text-violet-400'
+                        }`}
+                    >
+                        🌐 Solo Web
+                    </button>
                 </div>
 
                 {/* Subtype filters — only when Cristal or Tratamiento is selected */}
@@ -662,18 +676,39 @@ export default function InventarioPage() {
                                             {isSelected ? <CheckSquare className="w-4 h-4 text-primary" /> : <Square className="w-4 h-4" />}
                                         </button>
                                     </div>
-                                    <div className="min-w-0 py-1">
-                                        <p className="font-black text-sm text-stone-800 dark:text-stone-100 italic tracking-tight">
-                                            {getDisplayName(p as Product)}
-                                        </p>
-                                        <span className={`text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-full mt-0.5 inline-block ${isCristal ? 'bg-violet-100 text-violet-600' : 'bg-stone-100 text-stone-400'}`}>
-                                            {isCristal ? '🔬 Cristal' : p.category || p.type}
-                                        </span>
-                                        {p.publishToWeb && (
-                                            <span className="text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-full mt-0.5 inline-block bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400 ml-1.5">
-                                                🌐 Web
-                                            </span>
-                                        )}
+                                    <div className="flex items-center gap-3 min-w-0 py-1">
+                                        {(() => {
+                                            const imgUrl = p.imagenesCatalogo?.[0] || p.rawImageUrls?.[0];
+                                            if (imgUrl) {
+                                                return (
+                                                    <img 
+                                                        src={imgUrl} 
+                                                        alt={p.name || ''} 
+                                                        className="w-10 h-10 object-contain rounded-lg border border-stone-200 dark:border-stone-800 bg-stone-50 dark:bg-stone-900 shadow-sm shrink-0" 
+                                                    />
+                                                );
+                                            }
+                                            return (
+                                                <div className="w-10 h-10 rounded-lg border border-stone-150 dark:border-stone-850 bg-stone-50/50 dark:bg-stone-900/50 flex items-center justify-center shrink-0 text-stone-300 dark:text-stone-750">
+                                                    <Package className="w-4 h-4" strokeWidth={1.5} />
+                                                </div>
+                                            );
+                                        })()}
+                                        <div className="min-w-0 flex-1">
+                                            <p className="font-black text-sm text-stone-800 dark:text-stone-100 italic tracking-tight truncate">
+                                                {getDisplayName(p as Product)}
+                                            </p>
+                                            <div className="flex flex-wrap items-center gap-1">
+                                                <span className={`text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-full mt-0.5 inline-block ${isCristal ? 'bg-violet-100 text-violet-600' : 'bg-stone-100 text-stone-400'}`}>
+                                                    {isCristal ? '🔬 Cristal' : p.category || p.type}
+                                                </span>
+                                                {p.publishToWeb && (
+                                                    <span className="text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-full mt-0.5 inline-block bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400 ml-1.5">
+                                                        🌐 Web
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </div>
                                     </div>
                                     <div className="flex justify-center"><span className="text-[9px] font-black uppercase bg-stone-100 dark:bg-stone-800 px-2.5 py-1 rounded-lg text-stone-600 dark:text-stone-400 whitespace-nowrap">{p.type || '-'}</span></div>
                                     <div className="flex justify-center">{p.lensIndex ? <span className="text-[9px] font-black bg-primary/10 text-primary px-2.5 py-1 rounded-lg">{p.lensIndex}</span> : <span className="text-stone-300">-</span>}</div>

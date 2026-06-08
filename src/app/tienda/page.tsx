@@ -159,7 +159,11 @@ export default function TiendaPage() {
                             src={imgUrl}
                             alt={`${p.brand} ${p.model}`}
                             className="w-full h-full object-contain mix-blend-multiply transition-transform duration-700"
-                            style={{ transform: hoveredId === p.id ? "scale(1.08)" : "scale(1)" }}
+                            style={{ 
+                              transform: hoveredId === p.id 
+                                ? ((p.model?.toLowerCase().includes('tl3932 c3') || p.model?.toLowerCase().includes('diana') || p.id === 'cmq5d11hf002rhy61fhvqs7nj') ? "scale(1.8)" : "scale(1.08)")
+                                : ((p.model?.toLowerCase().includes('tl3932 c3') || p.model?.toLowerCase().includes('diana') || p.id === 'cmq5d11hf002rhy61fhvqs7nj') ? "scale(1.65)" : "scale(1)")
+                            }}
                           />
                         </div>
                       ) : (
