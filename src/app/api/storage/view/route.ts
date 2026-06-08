@@ -22,22 +22,16 @@ export async function GET(req: NextRequest) {
     }
 
     try {
-        // Si el archivo es local (o era local://), el key aquí vendrá sin prefijo
-        // Pero lib/storage maneja local:// internamente.
-        // Vamos a verificar si es un archivo de la nube para redirigir
         const isCloudEnabled = !!process.env.FIREBASE_PROJECT_ID;
         
+        let buffer: Buffer | null = null;
         if (isCloudEnabled && !key.startsWith('local://')) {
-            // Generar URL firmada temporal y redirigir
-            const signedUrl = await getSignedUrl(key);
-            if (signedUrl.startsWith('http')) {
-                return NextResponse.redirect(signedUrl);
-            }
+            buffer = await getFileBuffer(key);
+        } else {
+            const lookupKey = key.startsWith('local://') ? key : `local://${key}`;
+            buffer = await getFileBuffer(lookupKey);
         }
 
-        // Si es local, lo servimos directamente leyendo el buffer
-        const lookupKey = key.startsWith('local://') ? key : `local://${key}`;
-        const buffer = await getFileBuffer(lookupKey);
         if (!buffer) {
             return new NextResponse('File not found', { status: 404 });
         }
