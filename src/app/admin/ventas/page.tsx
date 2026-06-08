@@ -814,15 +814,15 @@ export default function VentasPage() {
                                                 <>
                                                     <div className="flex flex-col rounded-lg bg-emerald-50 dark:bg-emerald-900/10 px-2 py-1 text-emerald-600 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-900/30">
                                                         <span className="text-[7px] lg:text-[8px] font-black uppercase tracking-widest flex items-center gap-1"><Banknote className="w-3 h-3" /> Efvo</span>
-                                                        <span className="text-[9px] lg:text-[10px] font-black mt-0.5">$${financials.remainingCash.toLocaleString()}</span>
+                                                        <span className="text-[9px] lg:text-[10px] font-black mt-0.5">${financials.remainingCash.toLocaleString()}</span>
                                                     </div>
                                                     <div className="flex flex-col rounded-lg bg-violet-50 dark:bg-violet-900/10 px-2 py-1 text-violet-600 dark:text-violet-400 border border-violet-100 dark:border-violet-900/30">
                                                         <span className="text-[7px] lg:text-[8px] font-black uppercase tracking-widest flex items-center gap-1"><ArrowRightLeft className="w-3 h-3" /> Transf</span>
-                                                        <span className="text-[9px] lg:text-[10px] font-black mt-0.5">$${financials.remainingTransfer.toLocaleString()}</span>
+                                                        <span className="text-[9px] lg:text-[10px] font-black mt-0.5">${financials.remainingTransfer.toLocaleString()}</span>
                                                     </div>
                                                     <div className="flex flex-col rounded-lg bg-orange-50 dark:bg-orange-900/10 px-2 py-1 text-orange-600 dark:text-orange-400 border border-orange-100 dark:border-orange-900/30">
                                                         <span className="text-[7px] lg:text-[8px] font-black uppercase tracking-widest flex items-center gap-1"><CreditCard className="w-3 h-3" /> Cuotas</span>
-                                                        <span className="text-[9px] lg:text-[10px] font-black mt-0.5">$${financials.remainingCard.toLocaleString()}</span>
+                                                        <span className="text-[9px] lg:text-[10px] font-black mt-0.5">${financials.remainingCard.toLocaleString()}</span>
                                                     </div>
                                                 </>
                                             )}

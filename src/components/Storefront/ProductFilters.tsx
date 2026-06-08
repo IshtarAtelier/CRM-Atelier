@@ -126,31 +126,26 @@ export function ProductFilters({
 
       {/* Contenedor de Filtros (Sidebar en Desktop, Modal en Mobile) */}
       <AnimatePresence>
-        {(isOpen || typeof window !== 'undefined' && window.innerWidth >= 1024) && (
-          <>
-            {/* Overlay para móviles */}
-            {isOpen && (
-              <motion.div 
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                onClick={() => setIsOpen(false)}
-                className="lg:hidden fixed inset-0 bg-black/40 z-40 backdrop-blur-sm"
-              />
-            )}
+        {isOpen && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setIsOpen(false)}
+            className="lg:hidden fixed inset-0 bg-black/40 z-40 backdrop-blur-sm"
+          />
+        )}
+      </AnimatePresence>
 
-            <motion.div 
-              initial={{ x: '-100%' }}
-              animate={{ x: 0 }}
-              exit={{ x: '-100%' }}
-              transition={{ type: 'tween', duration: 0.3 }}
-              className={`
-                fixed lg:relative inset-y-0 left-0 z-50 w-4/5 max-w-sm lg:w-full lg:max-w-none 
-                bg-white lg:bg-transparent shadow-2xl lg:shadow-none p-8 lg:px-2 lg:py-0 
-                overflow-y-auto lg:overflow-visible flex flex-col gap-10
-                ${!isOpen ? 'hidden lg:flex' : 'flex'}
-              `}
-            >
+      <div 
+        className={`
+          fixed lg:relative inset-y-0 left-0 z-50 w-4/5 max-w-sm lg:w-full lg:max-w-none 
+          bg-white lg:bg-transparent shadow-2xl lg:shadow-none p-8 lg:px-2 lg:py-0 
+          overflow-y-auto lg:overflow-visible flex-col gap-10
+          transition-transform duration-300 ease-in-out
+          ${isOpen ? 'translate-x-0 flex' : '-translate-x-full lg:translate-x-0 hidden lg:flex'}
+        `}
+      >
               {/* Cabecera Móvil */}
               <div className="flex lg:hidden items-center justify-between border-b pb-4 mb-4">
                 <span className="font-serif text-xl tracking-tight">Filtros</span>
@@ -334,10 +329,7 @@ export function ProductFilters({
                   Limpiar Filtros
                 </button>
               )}
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
+            </div>
     </>
   );
 }

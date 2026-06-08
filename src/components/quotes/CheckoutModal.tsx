@@ -234,11 +234,11 @@ export default function CheckoutModal({
                                 <div className="flex gap-6">
                                     <div>
                                         <p className="text-[8px] font-black text-emerald-600 uppercase tracking-widest">DNI</p>
-                                        <p className="text-sm font-bold text-stone-800 dark:text-white">{contact.dni}</p>
+                                        <p className="text-sm font-bold text-stone-800 dark:text-white">{contact.dni || 'No registrado'}</p>
                                     </div>
                                     <div>
                                         <p className="text-[8px] font-black text-emerald-600 uppercase tracking-widest">Dirección</p>
-                                        <p className="text-sm font-bold text-stone-800 dark:text-white">{contact.address}</p>
+                                        <p className="text-sm font-bold text-stone-800 dark:text-white">{contact.address || 'No registrada'}</p>
                                     </div>
                                 </div>
                                 <button onClick={() => setIsEditingClient(true)} className="text-[10px] font-black text-stone-400 hover:text-stone-900 uppercase tracking-widest">Editar</button>
