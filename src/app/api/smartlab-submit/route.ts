@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { chromium } from 'playwright';
+
 import path from 'path';
 
 export async function POST(request: Request) {
@@ -44,6 +44,7 @@ export async function POST(request: Request) {
         console.log('Iniciando sesión en SmartLab vía Headless Browser...');
         const browsersPath = path.join(process.cwd(), '.playwright-browsers');
         process.env.PLAYWRIGHT_BROWSERS_PATH = browsersPath;
+        const { chromium } = await import('playwright');
         browser = await chromium.launch({ headless: true });
         const context = await browser.newContext();
         const page = await context.newPage();

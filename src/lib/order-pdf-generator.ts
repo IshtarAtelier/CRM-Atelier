@@ -1,4 +1,4 @@
-import { chromium } from 'playwright';
+
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { PricingService } from '@/services/PricingService';
@@ -295,6 +295,7 @@ export async function generateOrderPDF(order: any, contact: any): Promise<{ base
     try {
         const browsersPath = path.join(process.cwd(), '.playwright-browsers');
         process.env.PLAYWRIGHT_BROWSERS_PATH = browsersPath;
+        const { chromium } = await import('playwright');
         browser = await chromium.launch({ headless: true });
         const context = await browser.newContext();
         const page = await context.newPage();
