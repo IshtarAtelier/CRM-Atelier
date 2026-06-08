@@ -25,7 +25,7 @@ export default async function ArmaTusLentesPage() {
   const products = dbProducts.map(wp => ({
     id: wp.product.id,
     brand: wp.product.brand || 'Atelier',
-    model: wp.product.model || wp.name,
+    model: wp.name || wp.product.model || '',
     price: wp.product.price,
     stock: wp.product.stock,
     imagenesCatalogo: wp.imageUrl ? [wp.imageUrl, ...wp.images] : (wp.images.length > 0 ? wp.images : wp.product.imagenesCatalogo),

@@ -88,12 +88,13 @@ export default async function RecetaPage({ searchParams }: { searchParams: Promi
   const availableMaterials = Array.from(materialsSet).sort();
 
   const products = dbProducts.map(wp => {
-    const model = wp.product.model || wp.name;
-    const { shape, material } = getProductAttributes(model);
+    const modelCode = wp.product.model || wp.name;
+    const { shape, material } = getProductAttributes(modelCode);
     return {
       id: wp.product.id,
       brand: wp.product.brand || 'Atelier',
-      model: model,
+      model: wp.name || modelCode,
+      modelCode: modelCode,
       price: wp.product.price,
       stock: wp.product.stock,
       imagenesCatalogo: wp.images.length > 0 ? wp.images : wp.product.imagenesCatalogo,

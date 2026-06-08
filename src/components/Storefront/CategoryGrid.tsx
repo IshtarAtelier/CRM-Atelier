@@ -42,6 +42,9 @@ export function CategoryGrid({ products, emptyMessage = "Estamos actualizando nu
           ? `/api/storage/view?key=${encodeURIComponent(p.imagenesCatalogo[1])}`
           : null;
 
+        const isSmallFrame = p.model.toLowerCase().includes('tl3932 c3') || p.model.toLowerCase().includes('diana') || p.id === 'cmq5d11hf002rhy61fhvqs7nj';
+        const imagePaddingClass = isSmallFrame ? 'p-0 scale-[1.45]' : 'p-6';
+
         return (
           <motion.div 
             key={p.id}
@@ -59,7 +62,7 @@ export function CategoryGrid({ products, emptyMessage = "Estamos actualizando nu
                   unoptimized
                   style={{ transform: "translateZ(0)" }}
                   sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                  className={`object-contain p-6 mix-blend-multiply transition-all duration-700 ease-in-out ${hasSecondImage ? 'group-hover:opacity-0 group-hover:scale-105' : 'group-hover:scale-105'}`}
+                  className={`object-contain mix-blend-multiply transition-all duration-700 ease-in-out ${imagePaddingClass} ${hasSecondImage ? 'group-hover:opacity-0 group-hover:scale-105' : 'group-hover:scale-105'}`}
                 />
 
                 {hasSecondImage && secondImageUrl && (
