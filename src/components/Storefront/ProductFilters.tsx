@@ -15,66 +15,62 @@ function getShapeIcon(shape: string) {
   const s = shape.toLowerCase();
   if (s.includes('redondo')) {
     return (
-      <svg viewBox="0 0 48 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="w-10 h-5 transition-transform group-hover:scale-110 duration-300">
-        <circle cx="14" cy="12" r="7.5" />
-        <circle cx="34" cy="12" r="7.5" />
-        <path d="M21.5 12 C24 10.5, 24 10.5, 26.5 12" />
-        <path d="M4 12 C4 11, 2 11, 2 11" />
-        <path d="M44 12 C44 11, 46 11, 46 11" />
+      <svg viewBox="0 0 48 24" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" className="w-10 h-5 transition-transform group-hover:scale-110 duration-300">
+        <circle cx="14.5" cy="12" r="6.5" />
+        <circle cx="33.5" cy="12" r="6.5" />
+        <path d="M21 12 C22.5 10.5, 25.5 10.5, 27 12" />
       </svg>
     );
   }
   if (s.includes('cuadrado')) {
     return (
-      <svg viewBox="0 0 48 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="w-10 h-5 transition-transform group-hover:scale-110 duration-300">
-        <rect x="5" y="5" width="14" height="14" rx="2" />
-        <rect x="29" y="5" width="14" height="14" rx="2" />
-        <path d="M19 12 C22 10.5, 26 10.5, 29 12" />
-        <path d="M2 11 L5 11" />
-        <path d="M43 11 L46 11" />
+      <svg viewBox="0 0 48 24" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" className="w-10 h-5 transition-transform group-hover:scale-110 duration-300">
+        <rect x="8" y="5.5" width="13" height="13" rx="2.5" />
+        <rect x="27" y="5.5" width="13" height="13" rx="2.5" />
+        <path d="M21 12 C22.5 10.5, 25.5 10.5, 27 12" />
       </svg>
     );
   }
   if (s.includes('aviador')) {
     return (
-      <svg viewBox="0 0 48 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="w-10 h-5 transition-transform group-hover:scale-110 duration-300">
-        <path d="M6 8 C6 5.5, 19 4.5, 19 11 C19 16.5, 13.5 19, 10.5 19 C7.5 19, 6 15.5, 6 8 Z" />
-        <path d="M42 8 C42 5.5, 29 4.5, 29 11 C29 16.5, 34.5 19, 37.5 19 C40.5 19, 42 15.5, 42 8 Z" />
-        <path d="M19 9 L29 9" />
-        <path d="M18 12 L30 12" />
+      <svg viewBox="0 0 48 24" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" className="w-10 h-5 transition-transform group-hover:scale-110 duration-300">
+        <path d="M20.5 8 C20.5 5.5, 8.5 5.5, 8.5 11 C8.5 16, 13 18.5, 17 18.5 C19.5 18.5, 20.5 15, 20.5 8 Z" />
+        <path d="M27.5 8 C27.5 5.5, 39.5 5.5, 39.5 11 C39.5 16, 35 18.5, 31 18.5 C28.5 18.5, 27.5 15, 27.5 8 Z" />
+        <path d="M20.5 8.5 H27.5" />
+        <path d="M21 11.5 Q24 10 27 11.5" />
       </svg>
     );
   }
   if (s.includes('hexagonal')) {
     return (
-      <svg viewBox="0 0 48 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="w-10 h-5 transition-transform group-hover:scale-110 duration-300">
-        <polygon points="12,5 18,8.5 18,15.5 12,19 6,15.5 6,8.5" />
-        <polygon points="36,5 42,8.5 42,15.5 36,19 30,15.5 30,8.5" />
-        <path d="M18 12 C22 10.5, 26 10.5, 30 12" />
+      <svg viewBox="0 0 48 24" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" className="w-10 h-5 transition-transform group-hover:scale-110 duration-300">
+        <polygon points="14.5,5.5 21,9.25 21,14.75 14.5,18.5 8,14.75 8,9.25" />
+        <polygon points="33.5,5.5 40,9.25 40,14.75 33.5,18.5 27,14.75 27,9.25" />
+        <path d="M21 12 C22.5 10.5, 25.5 10.5, 27 12" />
       </svg>
     );
   }
   if (s.includes('cat-eye') || s.includes('gato')) {
     return (
-      <svg viewBox="0 0 48 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="w-10 h-5 transition-transform group-hover:scale-110 duration-300">
-        <path d="M5 6.5 C9.5 6.5, 19 8, 19 13.5 C19 18.5, 11.5 18.5, 8 16.5 C5 14.5, 4.5 10.5, 5 6.5 Z" />
-        <path d="M43 6.5 C38.5 6.5, 29 8, 29 13.5 C29 18.5, 36.5 18.5, 40 16.5 C43 14.5, 43.5 10.5, 43 6.5 Z" />
-        <path d="M19 12 C22 10.5, 26 10.5, 29 12" />
+      <svg viewBox="0 0 48 24" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" className="w-10 h-5 transition-transform group-hover:scale-110 duration-300">
+        <path d="M7.5 7 C11.5 6.5, 20.5 8, 20.5 13 C20.5 17, 13.5 18.5, 10 16.5 C7.5 14.5, 7 10.5, 7.5 7 Z" />
+        <path d="M40.5 7 C36.5 6.5, 27.5 8, 27.5 13 C27.5 17, 34.5 18.5, 38 16.5 C40.5 14.5, 41 10.5, 40.5 7 Z" />
+        <path d="M20.5 12 C22 10.5, 26 10.5, 27.5 12" />
       </svg>
     );
   }
   if (s.includes('xl')) {
     return (
-      <div className="w-10 h-5 flex items-center justify-center font-black text-xs tracking-wider transition-transform group-hover:scale-110 duration-300 text-stone-950 dark:text-white">
+      <div className="w-10 h-5 flex items-center justify-center font-black text-[9px] tracking-widest border border-current/30 rounded-sm transition-transform group-hover:scale-110 duration-300">
         XL
       </div>
     );
   }
   return (
-    <svg viewBox="0 0 48 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="w-10 h-5">
-      <circle cx="13" cy="12" r="7.5" />
-      <circle cx="35" cy="12" r="7.5" />
-      <path d="M20.5 12 L27.5 12" />
+    <svg viewBox="0 0 48 24" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" className="w-10 h-5">
+      <circle cx="14.5" cy="12" r="6.5" />
+      <circle cx="33.5" cy="12" r="6.5" />
+      <path d="M21 12 C22.5 10.5, 25.5 10.5, 27 12" />
     </svg>
   );
 }
@@ -211,10 +207,10 @@ export function ProductFilters({
                       }`}
                     >
                       <div className="w-10 h-5 flex items-center justify-center opacity-70 group-hover:opacity-100 mb-1">
-                        <svg viewBox="0 0 48 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="w-10 h-5 transition-transform group-hover:scale-110 duration-300">
-                          <circle cx="13" cy="12" r="7.5" />
-                          <circle cx="35" cy="12" r="7.5" />
-                          <path d="M20.5 12 L27.5 12" />
+                        <svg viewBox="0 0 48 24" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" className="w-10 h-5 transition-transform group-hover:scale-110 duration-300">
+                          <circle cx="14.5" cy="12" r="6.5" />
+                          <circle cx="33.5" cy="12" r="6.5" />
+                          <path d="M21 12 C22.5 10.5, 25.5 10.5, 27 12" />
                         </svg>
                       </div>
                       <span className="text-[9px] font-bold uppercase tracking-wider">Todas</span>
