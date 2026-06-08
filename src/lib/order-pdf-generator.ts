@@ -293,6 +293,8 @@ export async function generateOrderPDF(order: any, contact: any): Promise<{ base
     
     let browser;
     try {
+        const browsersPath = path.join(process.cwd(), '.playwright-browsers');
+        process.env.PLAYWRIGHT_BROWSERS_PATH = browsersPath;
         browser = await chromium.launch({ headless: true });
         const context = await browser.newContext();
         const page = await context.newPage();

@@ -63,6 +63,13 @@ function getShapeIcon(shape: string) {
       </svg>
     );
   }
+  if (s.includes('xl')) {
+    return (
+      <div className="w-12 h-6 flex items-center justify-center font-black text-sm tracking-wider transition-transform group-hover:scale-110 duration-300 text-stone-950 dark:text-white">
+        XL
+      </div>
+    );
+  }
   return (
     <svg viewBox="0 0 48 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="w-12 h-6">
       <circle cx="13" cy="12" r="7.5" />

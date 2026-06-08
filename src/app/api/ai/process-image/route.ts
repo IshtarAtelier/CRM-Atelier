@@ -147,6 +147,13 @@ TASK: Clean up this eyewear photo for catalog use. You MUST follow ALL rules bel
 - Remove the ENTIRE background. Remove ALL shadows, reflections, glare, lighting artifacts.
 - Output: eyewear ONLY on pure flat white (#FFFFFF). NO shadows. NO glow. NO effects. Just the product on white.
 
+=== BRANDING REMOVAL AND REPLACEMENT ===
+- Identify any logo, brand name, text, or emblem printed on the lenses (cristales) of the glasses (for example: "Ray-Ban", "Oakley", etc.).
+- REMOVE this original text/logo completely from the glass/lens. Ensure that the lens is left perfectly clear, clean, and transparent where the logo was.
+- Add/print the text "ATELIER" ONLY on the lens. The font must always be identical across all products: use a small, clean, modern, medium-weight, geometric sans-serif typeface (similar to Arial or Helvetica), uppercase, colored in a soft semi-transparent white (approximately 70% opacity).
+- The text "ATELIER" must always be placed horizontally, centered in the lower portion of the viewer's left lens (the lens on the left side of the image from the viewer's perspective).
+- Do NOT alter, distort, or change the shape, structure, thickness, color, or style of the frames or lenses. Keep the glasses exactly as they are in the original image, except for removing the printed brand/logo from the lenses and adding the small, clean "ATELIER" brand text only on the lens.
+
 === MANDATORY SIZING — THIS IS THE MOST IMPORTANT RULE ===
 
 READ THIS CAREFULLY. THIS RULE CANNOT BE IGNORED OR APPROXIMATED.

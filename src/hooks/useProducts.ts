@@ -43,12 +43,12 @@ export function useProducts(searchQuery: string = '', selectedType: string = 'AL
 
                 // Filtering
                 if (searchQuery) {
-                    const q = searchQuery.toLowerCase();
-                    data = data.filter(p =>
-                        (p.name?.toLowerCase().includes(q)) ||
-                        (p.brand?.toLowerCase().includes(q)) ||
-                        (p.model?.toLowerCase().includes(q))
-                    );
+                    const normalizeText = (str: string) => str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                    const words = normalizeText(searchQuery).split(/\s+/).filter(Boolean);
+                    data = data.filter(p => {
+                        const haystack = normalizeText(`${p.brand || ''} ${p.model || ''} ${p.name || ''} ${p.type || ''} ${p.category || ''} ${p.lensIndex || ''}`);
+                        return words.every(w => haystack.includes(w));
+                    });
                 }
 
                 if (selectedType !== 'ALL') {

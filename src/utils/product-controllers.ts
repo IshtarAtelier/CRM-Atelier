@@ -64,7 +64,9 @@ export function getProductAttributes(modelName: string | null | undefined): { sh
     
     // Forma
     let shape = 'Cuadrado';
-    if (modelUpper.includes('91501') || modelUpper.includes('901501') || modelUpper.includes('G7013') || modelUpper.includes('ZTGX')) {
+    if (modelUpper.includes('XL')) {
+        shape = 'XL';
+    } else if (modelUpper.includes('91501') || modelUpper.includes('901501') || modelUpper.includes('G7013') || modelUpper.includes('ZTGX')) {
         shape = 'Cuadrado';
     } else if (modelUpper.includes('3684') || modelUpper.includes('AVIADOR')) {
         shape = 'Aviador';

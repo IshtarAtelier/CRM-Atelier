@@ -122,7 +122,9 @@ export default function QuickQuote({ onClose }: QuickQuoteProps) {
                             <div className="flex-1 overflow-y-auto p-8 border-r border-stone-50 dark:border-stone-800 custom-scrollbar">
                                 <div className="space-y-8">
                                     {['FRAME', 'CRISTAL', 'SUNGLASS', 'ACCESSORY'].map(category => {
-                                        const catProducts = products.filter(p => p.category === category);
+                                        const catProducts = products
+                                            .filter(p => p.category === category)
+                                            .sort((a, b) => (a.price || 0) - (b.price || 0));
                                         if (catProducts.length === 0) return null;
 
                                         return (

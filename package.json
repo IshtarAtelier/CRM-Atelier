@@ -7,7 +7,7 @@
   },
   "scripts": {
     "dev": "next dev",
-    "build": "npx prisma generate && next build",
+    "build": "npx prisma generate && next build && PLAYWRIGHT_BROWSERS_PATH=./.playwright-browsers npx playwright install chromium",
     "start": "npx prisma migrate deploy && next start -p ${PORT:-3000} -H 0.0.0.0",
     "lint": "eslint",
     "verify": "node scripts/checks/verify-build.js",

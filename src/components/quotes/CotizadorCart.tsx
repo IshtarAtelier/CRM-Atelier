@@ -131,18 +131,32 @@ export default function CotizadorCart({
     const totalTransfer = priceWithMarkup * (1 - safePrice(discountTransfer) / 100);
 
     // Filter results
-    const fullSearchResults = fullSearch ? availableProducts.filter(p => {
-        const words = fullSearch.toLowerCase().split(/\s+/).filter(Boolean);
-        const haystack = `${p.brand || ''} ${p.model || ''} ${p.name || ''} ${p.type || ''}`.toLowerCase();
-        return words.every(w => haystack.includes(w));
-    }).slice(0, 8) : [];
+    const fullSearchResults = useMemo(() => {
+        if (!fullSearch) return [];
+        const normalizeText = (str: string) => str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        const words = normalizeText(fullSearch).split(/\s+/).filter(Boolean);
+        return availableProducts
+            .filter(p => {
+                const haystack = normalizeText(`${p.brand || ''} ${p.model || ''} ${p.name || ''} ${p.type || ''} ${p.category || ''} ${p.lensIndex || ''}`);
+                return words.every(w => haystack.includes(w));
+            })
+            .sort((a, b) => safePrice(a.price) - safePrice(b.price))
+            .slice(0, 15);
+    }, [fullSearch, availableProducts]);
 
-    const frameResults = frameSearch ? availableProducts.filter(p => {
-        if (!isFrame(p)) return false;
-        const words = frameSearch.toLowerCase().split(/\s+/).filter(Boolean);
-        const haystack = `${p.brand || ''} ${p.model || ''} ${p.name || ''}`.toLowerCase();
-        return words.every(w => haystack.includes(w));
-    }).slice(0, 8) : [];
+    const frameResults = useMemo(() => {
+        if (!frameSearch) return [];
+        const normalizeText = (str: string) => str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        const words = normalizeText(frameSearch).split(/\s+/).filter(Boolean);
+        return availableProducts
+            .filter(p => {
+                if (!isFrame(p)) return false;
+                const haystack = normalizeText(`${p.brand || ''} ${p.model || ''} ${p.name || ''} ${p.type || ''} ${p.category || ''}`);
+                return words.every(w => haystack.includes(w));
+            })
+            .sort((a, b) => safePrice(a.price) - safePrice(b.price))
+            .slice(0, 15);
+    }, [frameSearch, availableProducts]);
 
     const framesInQuote = items.filter(i => i.product && isFrame(i.product));
 

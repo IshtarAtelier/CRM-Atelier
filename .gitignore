@@ -67,3 +67,4 @@ backups/
 
 # prisma debug files
 /prisma/_match_results.json
+.playwright-browsers/

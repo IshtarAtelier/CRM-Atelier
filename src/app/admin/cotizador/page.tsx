@@ -228,11 +228,14 @@ function CotizadorPageContent() {
     }, [products]);
 
     const filtered = useMemo(() => {
+        const normalizeText = (str: string) => str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        const words = search ? normalizeText(search).split(/\s+/).filter(Boolean) : [];
+
         return products.filter(p => {
-            const matchesSearch = !search || 
-                p.name?.toLowerCase().includes(search.toLowerCase()) ||
-                p.brand?.toLowerCase().includes(search.toLowerCase()) ||
-                p.type?.toLowerCase().includes(search.toLowerCase());
+            const matchesSearch = words.length === 0 || (() => {
+                const haystack = normalizeText(`${p.brand || ''} ${p.model || ''} ${p.name || ''} ${p.type || ''} ${p.category || ''} ${p.lensIndex || ''}`);
+                return words.every(w => haystack.includes(w));
+            })();
             
             if (activeType === 'NONE') return matchesSearch;
             if (activeType) return matchesSearch && getCategoryKey(p.type, p.category) === activeType;
