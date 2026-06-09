@@ -968,6 +968,48 @@ export const ContactService = {
                 }
             }
 
+            // 3. Check for Duplicate amount and method for the SAME CLIENT
+            // Excepción: Si el vendedor escribe "DIVIDIDO" o "COMPARTIDO" en la nota, se permite (pago dividido en varios pedidos).
+            const isSplitPayment = notes && (notes.toUpperCase().includes('DIVIDIDO') || notes.toUpperCase().includes('COMPARTIDO'));
+            
+            let duplicateAmountMethod = null;
+            if (!isSplitPayment) {
+                const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+                duplicateAmountMethod = await tx.payment.findFirst({
+                    where: {
+                        amount: amount,
+                        method: method,
+                        order: {
+                            clientId: order.clientId
+                        },
+                        date: {
+                            gte: thirtyDaysAgo
+                        }
+                    },
+                    include: {
+                        order: true
+                    }
+                });
+            }
+
+            if (duplicateAmountMethod) {
+                const clientName = (await tx.client.findUnique({ where: { id: order.clientId }, select: { name: true } }))?.name || 'Cliente';
+                const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://crm-atelier-production-ae72.up.railway.app';
+                const clientLink = `${appUrl}/admin/contactos?id=${order.clientId}`;
+                
+                const msg = `🚨 ALERTA IMPORTANTE: Ya ingresaste un pago idéntico de $${amount.toLocaleString('es-AR')} (${method}) para el cliente ${clientName} recientemente (Orden #${duplicateAmountMethod.orderId.slice(-4).toUpperCase()}).\n\nPor seguridad, el sistema bloqueó este ingreso para evitar pagos duplicados. Si el cliente realmente hizo DOS pagos exactos, por favor contactá al Administrador.`;
+                
+                import('@/lib/email').then(({ sendEmail }) => {
+                    sendEmail({
+                        to: 'pisano.ishtar@gmail.com',
+                        subject: '🚨 Vendedor bloqueado por Posible Pago Duplicado',
+                        text: `El vendedor intentó cargar un pago duplicado.\n\n${msg}\n\nFicha del cliente: ${clientLink}`
+                    });
+                }).catch(console.error);
+
+                throw new Error(msg);
+            }
+
             const payment = await tx.payment.create({
                 data: { orderId, amount, method, notes, receiptUrl }
             });
@@ -1475,6 +1517,52 @@ export const ContactService = {
                             text: warningMsg
                         });
                     }).catch(console.error);
+                }
+            }
+
+            // 3b. Check for Duplicate amount and method for the SAME CLIENT (on edit)
+            // Excepción: Si la nota incluye "DIVIDIDO" o "COMPARTIDO", no bloquea.
+            const newNotes = updates.notes !== undefined ? updates.notes : oldPayment.notes;
+            const isSplitEdit = newNotes && (newNotes.toUpperCase().includes('DIVIDIDO') || newNotes.toUpperCase().includes('COMPARTIDO'));
+
+            if (!isSplitEdit && (updates.amount !== undefined || updates.method !== undefined)) {
+                const checkAmount = updates.amount !== undefined ? updates.amount : oldPayment.amount;
+                const checkMethod = updates.method !== undefined ? updates.method : oldPayment.method;
+                const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+                
+                const duplicateAmountMethod = await tx.payment.findFirst({
+                    where: {
+                        amount: checkAmount,
+                        method: checkMethod,
+                        order: {
+                            clientId: clientId
+                        },
+                        date: {
+                            gte: thirtyDaysAgo
+                        },
+                        id: { not: paymentId }
+                    },
+                    include: {
+                        order: true
+                    }
+                });
+
+                if (duplicateAmountMethod) {
+                    const clientName = (await tx.client.findUnique({ where: { id: clientId }, select: { name: true } }))?.name || 'Cliente';
+                    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://crm-atelier-production-ae72.up.railway.app';
+                    const clientLink = `${appUrl}/admin/contactos?id=${clientId}`;
+
+                    const msg = `🚨 ALERTA IMPORTANTE AL EDITAR: El pago que estás editando ($${checkAmount.toLocaleString('es-AR')} - ${checkMethod}) coincide EXACTAMENTE con otro pago ya registrado recientemente en la orden #${duplicateAmountMethod.orderId.slice(-4).toUpperCase()}.\n\nPor seguridad, el sistema bloqueó la edición para evitar pagos duplicados. Si el cliente realmente hizo DOS pagos exactos, por favor contactá al Administrador.`;
+                    
+                    import('@/lib/email').then(({ sendEmail }) => {
+                        sendEmail({
+                            to: 'pisano.ishtar@gmail.com',
+                            subject: '🚨 Vendedor bloqueado por Posible Pago Duplicado (Edición)',
+                            text: `El vendedor intentó editar un pago que resultó en un duplicado.\n\n${msg}\n\nFicha del cliente: ${clientLink}`
+                        });
+                    }).catch(console.error);
+
+                    throw new Error(msg);
                 }
             }
 
