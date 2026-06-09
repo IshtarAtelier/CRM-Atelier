@@ -138,21 +138,17 @@ export async function generateReceiptPDF(payment: any, order: any, contact: any)
 
     const html = getReceiptHtml(payment, order, contact);
     
+    let browser;
     try {
-        const puppeteer = (await import('puppeteer-core')).default;
-        const executablePath = process.env.PUPPETEER_EXECUTABLE_PATH || 
-            (process.platform === 'win32' ? 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe' : 
-             process.platform === 'darwin' ? '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome' : 
-             '/usr/bin/google-chrome-stable');
-
-        const browser = await puppeteer.launch({
-            executablePath,
-            args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu'],
-            headless: true,
-        });
+        const path = await import('path');
+        const browsersPath = path.join(process.cwd(), '.playwright-browsers');
+        process.env.PLAYWRIGHT_BROWSERS_PATH = browsersPath;
+        const { chromium } = await import('playwright');
+        browser = await chromium.launch({ headless: true });
+        const context = await browser.newContext();
+        const page = await context.newPage();
         
-        const page = await browser.newPage();
-        await page.setContent(html, { waitUntil: 'networkidle0' as any });
+        await page.setContent(html, { waitUntil: 'networkidle' });
         
         const pdfBuffer = await page.pdf({
             format: 'A4',
@@ -160,14 +156,16 @@ export async function generateReceiptPDF(payment: any, order: any, contact: any)
             printBackground: true
         });
         
-        await browser.close();
-        
-        const base64String = Buffer.from(pdfBuffer).toString('base64');
+        const base64String = pdfBuffer.toString('base64');
         return { base64: base64String, filename };
-    } catch (browserError: any) {
-        console.error('[generateReceiptPDF] Browser PDF generation failed:', browserError.message);
-        console.warn('[generateReceiptPDF] Falling back to jsPDF');
+    } catch (e: any) {
+        console.error('Error generating Receipt PDF with Playwright:', e);
+        console.warn('Falling back to jsPDF');
         return generateReceiptPDFWithJsPDF(payment, order, contact, filename);
+    } finally {
+        if (browser) {
+            await browser.close();
+        }
     }
 }
 

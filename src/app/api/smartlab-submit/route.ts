@@ -42,21 +42,15 @@ export async function POST(request: Request) {
 
         // 3. Lanzar navegador oculto para autenticación
         console.log('Iniciando sesión en SmartLab vía Headless Browser...');
-        const puppeteer = (await import('puppeteer-core')).default;
-        
-        const executablePath = process.env.PUPPETEER_EXECUTABLE_PATH || 
-            (process.platform === 'win32' ? 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe' : 
-             process.platform === 'darwin' ? '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome' : 
-             '/usr/bin/google-chrome-stable');
+        const path = await import('path');
+        const browsersPath = path.join(process.cwd(), '.playwright-browsers');
+        process.env.PLAYWRIGHT_BROWSERS_PATH = browsersPath;
+        const { chromium } = await import('playwright');
+        browser = await chromium.launch({ headless: true });
+        const context = await browser.newContext();
+        const page = await context.newPage();
 
-        browser = await puppeteer.launch({ 
-            executablePath,
-            args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu'],
-            headless: true 
-        });
-        const page = await browser.newPage();
-
-        await page.goto('https://grupooptico.dyndns.info/smartlab/auth/authSmartlab/login', { waitUntil: 'networkidle0' as any });
+        await page.goto('https://grupooptico.dyndns.info/smartlab/auth/authSmartlab/login', { waitUntil: 'networkidle' });
         await page.waitForSelector('input', { timeout: 10000 });
         
         const inputs = await page.$$('input');
@@ -64,13 +58,13 @@ export async function POST(request: Request) {
             throw new Error('No se encontraron los campos de login en SmartLab.');
         }
 
-        await inputs[0].type('pisano.ishtar@gmail.com');
-        await inputs[1].type('atelier');
+        await inputs[0].fill('pisano.ishtar@gmail.com');
+        await inputs[1].fill('atelier');
         
         const buttons = await page.$$('button');
         let loginClicked = false;
         for (const btn of buttons) {
-            const text = await btn.evaluate(el => (el as HTMLElement).innerText || '');
+            const text = await btn.innerText();
             if (text.toLowerCase().includes('iniciar') || text.toLowerCase().includes('ingresar') || text.toLowerCase().includes('login')) {
                 await btn.click();
                 loginClicked = true;
@@ -83,7 +77,7 @@ export async function POST(request: Request) {
         }
         
         // Esperar a estar logueado
-        await page.waitForNavigation({ waitUntil: 'networkidle0' as any, timeout: 15000 }).catch(() => {});
+        await page.waitForURL('**/smartlab**', { timeout: 15000 });
         console.log('Login exitoso. Generando borrador...');
 
         // 4. Preparar Payload para su API interna (smartlab-api-v2)
@@ -115,21 +109,21 @@ export async function POST(request: Request) {
         };
 
         // Realizamos el POST directamente usando el contexto de sesión autenticado
-        const responseData = await page.evaluate(async (payload) => {
-            const res = await fetch('https://grupooptico.dyndns.info/smartlab-api-v2/public/index.php/laboratory/order/createupdate', {
-                method: 'POST',
-                headers: {
-                    'Accept': 'application/json',
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(payload)
-            });
-            if (!res.ok) {
-                throw new Error(`Error en la API de SmartLab: ${res.status} - ${await res.text()}`);
+        const apiResponse = await context.request.post('https://grupooptico.dyndns.info/smartlab-api-v2/public/index.php/laboratory/order/createupdate', {
+            data: smartLabPayload,
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+                'Referer': 'https://grupooptico.dyndns.info/smartlab/laboratory/new'
             }
-            return await res.json();
-        }, smartLabPayload);
+        });
 
+        if (!apiResponse.ok()) {
+            const errText = await apiResponse.text();
+            throw new Error(`Error en la API de SmartLab: ${apiResponse.status()} - ${errText}`);
+        }
+
+        const responseData = await apiResponse.json();
         console.log('Borrador creado en SmartLab:', responseData);
 
         // Actualizar el estado en nuestra BD
