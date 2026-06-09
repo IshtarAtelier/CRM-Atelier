@@ -67,6 +67,7 @@ Tu tarea es devolver un JSON estrictamente válido con los siguientes campos:
 2. "interestTag": string o null. (Si el cliente mostró interés en "Multifocal", "Monofocal", "Armazón", "Sol", "Lentes de Contacto". Solo si es nuevo y no está en sus etiquetas actuales).
 3. "insurance": string o null. (Si mencionó su obra social o prepaga, ej: "OSDE", "Galeno", "PAMI").
 4. "summary": string o null. (Un breve resumen de 1 o 2 oraciones sobre lo que el cliente quiere o el estado actual de la charla, para actualizar el historial. Si no hay nada relevante, null).
+5. "suggestedTask": objeto o null. Si el cliente o el vendedor se comprometen a una acción futura concreta (ej: "paso el lunes", "escribime la semana que viene"), devuelve un objeto {"description": "Breve descripción de la tarea", "dueDate": "YYYY-MM-DD"}. Si es una visita al local, la descripción DEBE incluir "Visita programada. Recordar ubicación y horarios". Si la fecha es incierta o no hay compromiso, null.
 
 Responde ÚNICAMENTE con el JSON puro. Sin markdown.
 `;
@@ -129,6 +130,39 @@ Responde ÚNICAMENTE con el JSON puro. Sin markdown.
             if (parsed.interestTag) {
                 console.log(`  🏷️ [Ficha Inteligente] Interés detectado: ${parsed.interestTag}`);
                 await addTagToClient({ clientId: currentClientId, tagName: parsed.interestTag }).catch(e => console.error("Error addTagToClient pasivo:", e.message));
+            }
+            
+            // Crear Tarea Inteligente si fue detectada
+            if (parsed.suggestedTask && parsed.suggestedTask.description) {
+                // Check if a similar task already exists for this client (to avoid duplicates in every message)
+                const existingTasks = await prisma.clientTask.findMany({
+                    where: { 
+                        clientId: currentClientId, 
+                        status: 'PENDING',
+                        description: `[Extracción Inteligente] ${parsed.suggestedTask.description}`
+                    }
+                });
+                
+                if (existingTasks.length === 0) {
+                    console.log(`  📅 [Ficha Inteligente] Creando Tarea: ${parsed.suggestedTask.description}`);
+                    await prisma.clientTask.create({
+                        data: {
+                            clientId: currentClientId,
+                            description: `[Extracción Inteligente] ${parsed.suggestedTask.description}`,
+                            type: 'TASK',
+                            dueDate: parsed.suggestedTask.dueDate ? new Date(parsed.suggestedTask.dueDate) : new Date(Date.now() + 24 * 60 * 60 * 1000), // Default tomorrow
+                            createdBy: 'Sistema (Pasivo)'
+                        }
+                    }).catch(e => console.error("Error creando tarea pasiva:", e.message));
+
+                    // Notificar al sistema
+                    if (global.io) {
+                        global.io.emit('task_created', {
+                            clientId: currentClientId,
+                            description: `[Extracción Inteligente] ${parsed.suggestedTask.description}`
+                        });
+                    }
+                }
             }
         }
 

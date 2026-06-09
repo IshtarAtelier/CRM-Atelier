@@ -782,6 +782,10 @@ export default function WhatsAppPage() {
             }
         });
 
+        socket.on('task_created', ({ clientId, description }) => {
+            showInAppNotification('📅 Tarea Programada', `La Ficha Inteligente agendó: ${description}`);
+        });
+
         pollRef.current = setInterval(() => {
             fetchStatus();
             fetchChats();
