@@ -454,6 +454,7 @@ async function generateOrderPDFWithJsPDF(order: any, contact: any, filename: str
         startY: y,
         head: [['Descripción', 'Cant.', 'Precio Unit.', 'Subtotal']],
         body: rows,
+        margin: { left: m, right: m },
         theme: 'plain',
         headStyles: { 
             fillColor: [255, 255, 255], 
