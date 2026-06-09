@@ -165,7 +165,7 @@ export function getOrderHtml(order: any, client: any): string {
                     <td>
                         <div style="font-weight: 900;">${it.product?.brand || it.productBrandSnapshot || ''} ${it.product?.name || it.productNameSnapshot || ''}</div>
                         ${eyeLabel ? `<div style="font-size:10px; color:#78716c; font-weight: 600;">Lado: ${eyeLabel}</div>` : ''}
-                        ${itemPrice === 0 ? `<div style="font-size:9px; color:#10b981; margin-top:2px; font-weight:bold; letter-spacing: 0.5px;">✨ Bonificado por Promoción</div>` : ''}
+                        ${itemPrice === 0 ? `<div style="font-size:9px; color:#10b981; margin-top:2px; font-weight:bold; letter-spacing: 0.5px;">* Bonificado por Promoción</div>` : ''}
                     </td>
                     <td style='text-align:center; font-weight: 800;'>${it.quantity}</td>
                     <td style='text-align:right'>${priceDisplay}</td>
@@ -437,7 +437,7 @@ async function generateOrderPDFWithJsPDF(order: any, contact: any, filename: str
         let totalLabel = `$${(ip * it.quantity).toLocaleString()}`;
         
         if (ip === 0) {
-            itemName += `\n✨ Bonificado por Promo`;
+            itemName += `\n* Bonificado por Promo`;
             priceLabel = 'SIN CARGO';
             totalLabel = '$0';
         }
