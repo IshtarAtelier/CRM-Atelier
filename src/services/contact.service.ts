@@ -1174,6 +1174,16 @@ export const ContactService = {
             // Si es efectivo, verificar alerta de saldo fuera de la transacción
             if (method === 'EFECTIVO' || method === 'CASH') {
                 CashService.checkBalanceAndAlert().catch(err => console.error('Error in cash alert:', err));
+                
+                import('@/lib/email').then(({ sendEmail }) => {
+                    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://crm-atelier-production-ae72.up.railway.app';
+                    const clientLink = `${appUrl}/admin/contactos?id=${result.clientId}`;
+                    sendEmail({
+                        to: 'pisano.ishtar@gmail.com',
+                        subject: `💵 Ingreso de Efectivo: $${amount.toLocaleString('es-AR')}`,
+                        text: `Se ha registrado un nuevo pago en EFECTIVO en el sistema.\n\n👤 Cliente: ${result.clientName}\n💰 Monto: $${amount.toLocaleString('es-AR')}\n\nFicha del cliente: ${clientLink}`
+                    });
+                }).catch(console.error);
             }
             // FIRE BACKGROUND AI VERIFICATION IF RECEIPT EXISTS
             if (receiptUrl) {
