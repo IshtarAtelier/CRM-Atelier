@@ -30,13 +30,13 @@ export function getReceiptHtml(payment: any, order: any, client: any): string {
     const brandSand = '#A68B7C';
     const systemEmerald = '#10b981';
     
-    let methodLabel = payment.method;
-    if (payment.method === 'EFECTIVO' || payment.method === 'CASH') methodLabel = 'Efectivo';
-    else if (payment.method.includes('TRANSFERENCIA')) methodLabel = 'Transferencia Bancaria';
-    else if (payment.method.includes('PAY_WAY')) methodLabel = 'Tarjeta (PayWay)';
-    else if (payment.method.includes('NARANJA_Z')) methodLabel = 'Tarjeta (Naranja Z)';
-    else if (payment.method.includes('GO_CUOTAS')) methodLabel = 'Go Cuotas';
-    else methodLabel = payment.method.replace(/_/g, ' ');
+    let methodLabel = payment?.method || 'Desconocido';
+    if (methodLabel === 'EFECTIVO' || methodLabel === 'CASH') methodLabel = 'Efectivo';
+    else if (methodLabel.includes('TRANSFERENCIA')) methodLabel = 'Transferencia Bancaria';
+    else if (methodLabel.includes('PAY_WAY')) methodLabel = 'Tarjeta (PayWay)';
+    else if (methodLabel.includes('NARANJA_Z')) methodLabel = 'Tarjeta (Naranja Z)';
+    else if (methodLabel.includes('GO_CUOTAS')) methodLabel = 'Go Cuotas';
+    else methodLabel = methodLabel.replace(/_/g, ' ');
 
     return `<!DOCTYPE html>
 <html lang="es">
@@ -251,17 +251,17 @@ async function generateReceiptPDFWithJsPDF(payment: any, order: any, contact: an
         doc.text(val, pw - m - 5, ly, { align: 'right' });
     };
 
-    let methodLabel = payment.method;
-    if (payment.method === 'EFECTIVO' || payment.method === 'CASH') methodLabel = 'Efectivo';
-    else if (payment.method.includes('TRANSFERENCIA')) methodLabel = 'Transferencia Bancaria';
-    else if (payment.method.includes('PAY_WAY')) methodLabel = 'Tarjeta (PayWay)';
-    else if (payment.method.includes('NARANJA_Z')) methodLabel = 'Tarjeta (Naranja Z)';
-    else if (payment.method.includes('GO_CUOTAS')) methodLabel = 'Go Cuotas';
-    else methodLabel = payment.method.replace(/_/g, ' ');
+    let methodLabel2 = payment?.method || 'Desconocido';
+    if (methodLabel2 === 'EFECTIVO' || methodLabel2 === 'CASH') methodLabel2 = 'Efectivo';
+    else if (methodLabel2.includes('TRANSFERENCIA')) methodLabel2 = 'Transferencia Bancaria';
+    else if (methodLabel2.includes('PAY_WAY')) methodLabel2 = 'Tarjeta (PayWay)';
+    else if (methodLabel2.includes('NARANJA_Z')) methodLabel2 = 'Tarjeta (Naranja Z)';
+    else if (methodLabel2.includes('GO_CUOTAS')) methodLabel2 = 'Go Cuotas';
+    else methodLabel2 = methodLabel2.replace(/_/g, ' ');
 
     drawRow(y + 8, 'RECIBIMOS DE', contact?.name || 'Cliente Final');
     drawRow(y + 18, 'EN CONCEPTO DE', `Pago a cuenta / Orden #${order.id.slice(-6).toUpperCase()}`);
-    drawRow(y + 28, 'METODO DE PAGO', methodLabel);
+    drawRow(y + 28, 'METODO DE PAGO', methodLabel2);
     
     if (payment.notes) {
         doc.setDrawColor(...brandBeige); doc.line(m + 5, y + 33, pw - m - 5, y + 33);
