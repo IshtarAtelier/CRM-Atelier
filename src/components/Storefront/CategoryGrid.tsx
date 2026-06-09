@@ -64,7 +64,7 @@ export function CategoryGrid({ products, emptyMessage = "Estamos actualizando nu
                   fill
                   style={{ transform: "translateZ(0)" }}
                   sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                  className={`object-contain mix-blend-multiply transition-all duration-700 ease-in-out ${imagePaddingClass} ${hasSecondImage ? 'md:group-hover:opacity-0 md:group-hover:scale-105' : 'md:group-hover:scale-105'}`}
+                  className={`object-contain mix-blend-multiply  ${imagePaddingClass} ${hasSecondImage ? 'md:group-hover:opacity-0 ' : ''}`}
                 />
 
                 {hasSecondImage && secondImageUrl && (
@@ -74,7 +74,7 @@ export function CategoryGrid({ products, emptyMessage = "Estamos actualizando nu
                     fill
                     style={{ transform: "translateZ(0)" }}
                     sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                    className="object-cover opacity-0 md:group-hover:opacity-100 transition-all duration-700 ease-in-out md:group-hover:scale-105"
+                    className="object-cover opacity-0 md:group-hover:opacity-100  "
                   />
                 )}
                 

@@ -136,10 +136,10 @@ export function TiendaClient({ initialProducts }: { initialProducts: any[] }) {
                           <img
                             src={imgUrl}
                             alt={`${p.brand} ${p.model}`}
-                            className={`w-full h-full object-contain mix-blend-multiply transition-transform duration-700 ${
+                            className={`w-full h-full object-contain mix-blend-multiply  ${
                               ((p.model || '').toLowerCase().includes('tl3932 c3') || (p.model || '').toLowerCase().includes('diana') || p.id === 'cmq5d11hf002rhy61fhvqs7nj')
-                                ? "scale-125 md:group-hover:scale-125"
-                                : "scale-100 md:group-hover:scale-[1.08]"
+                                ? "scale-125 "
+                                : "scale-100 "
                             }`}
                           />
                         </div>

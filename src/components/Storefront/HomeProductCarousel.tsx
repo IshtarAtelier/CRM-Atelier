@@ -105,7 +105,7 @@ export function HomeProductCarousel({ products }: Props) {
                   loading="eager"
                   style={{ transform: "translateZ(0)" }}
                   sizes="(max-width: 768px) 45vw, (max-width: 1024px) 33vw, 25vw"
-                  className="object-contain p-6 mix-blend-multiply group-hover:scale-110 transition-transform duration-500 ease-out"
+                  className="object-contain p-6 mix-blend-multiply "
                 />
               ) : (
                 <div className="absolute inset-0 w-full h-full flex items-center justify-center text-stone-400 text-[10px] font-black uppercase tracking-widest text-center">
