@@ -147,15 +147,29 @@ export function getOrderHtml(order: any, client: any): string {
         <tbody>
             ${(order.items || []).map((it: any) => {
                 const itemPrice = Math.round(it.price * markupFactor);
+                let eyeLabel = '';
+                if (it.eye === 'RIGHT' || it.eye === 'OD') eyeLabel = 'Ojo Derecho (OD)';
+                else if (it.eye === 'LEFT' || it.eye === 'OI') eyeLabel = 'Ojo Izquierdo (OI)';
+                else if (it.eye) eyeLabel = it.eye;
+
+                let priceDisplay = `$${itemPrice.toLocaleString()}`;
+                let totalDisplay = `$${(itemPrice * it.quantity).toLocaleString()}`;
+                
+                if (itemPrice === 0) {
+                    priceDisplay = '<span style="color:#10b981; font-weight:800; font-size:10px;">SIN CARGO</span>';
+                    totalDisplay = '<span style="color:#10b981; font-weight:900;">$0</span>';
+                }
+
                 return `
                 <tr>
                     <td>
                         <div style="font-weight: 900;">${it.product?.brand || it.productBrandSnapshot || ''} ${it.product?.name || it.productNameSnapshot || ''}</div>
-                        ${it.eye ? `<div style="font-size:10px; color:#78716c;">Lado: ${it.eye}</div>` : ''}
+                        ${eyeLabel ? `<div style="font-size:10px; color:#78716c; font-weight: 600;">Lado: ${eyeLabel}</div>` : ''}
+                        ${itemPrice === 0 ? `<div style="font-size:9px; color:#10b981; margin-top:2px; font-weight:bold; letter-spacing: 0.5px;">✨ Bonificado por Promoción</div>` : ''}
                     </td>
                     <td style='text-align:center; font-weight: 800;'>${it.quantity}</td>
-                    <td style='text-align:right'>$${itemPrice.toLocaleString()}</td>
-                    <td style='text-align:right; font-weight: 900;'>$${(itemPrice * it.quantity).toLocaleString()}</td>
+                    <td style='text-align:right'>${priceDisplay}</td>
+                    <td style='text-align:right; font-weight: 900;'>${totalDisplay}</td>
                 </tr>
             `}).join('')}
         </tbody>
@@ -410,11 +424,29 @@ async function generateOrderPDFWithJsPDF(order: any, contact: any, filename: str
     // --- ITEMS TABLE ---
     const rows = (order.items || []).map((it: any) => {
         const ip = Math.round(it.price * markupFactor);
+        
+        let eyeLabel = '';
+        if (it.eye === 'RIGHT' || it.eye === 'OD') eyeLabel = 'Ojo Derecho (OD)';
+        else if (it.eye === 'LEFT' || it.eye === 'OI') eyeLabel = 'Ojo Izquierdo (OI)';
+        else if (it.eye) eyeLabel = it.eye;
+        
+        let itemName = `${it.product?.brand || it.productBrandSnapshot || ''} ${it.product?.name || it.productNameSnapshot || ''}`.trim();
+        if (eyeLabel) itemName += `\nLado: ${eyeLabel}`;
+        
+        let priceLabel = `$${ip.toLocaleString()}`;
+        let totalLabel = `$${(ip * it.quantity).toLocaleString()}`;
+        
+        if (ip === 0) {
+            itemName += `\n✨ Bonificado por Promo`;
+            priceLabel = 'SIN CARGO';
+            totalLabel = '$0';
+        }
+
         return [
-            `${it.product?.brand || it.productBrandSnapshot || ''} ${it.product?.name || it.productNameSnapshot || ''}`.trim(),
+            itemName,
             `${it.quantity}`,
-            `$${ip.toLocaleString()}`,
-            `$${(ip * it.quantity).toLocaleString()}`
+            priceLabel,
+            totalLabel
         ];
     });
     
