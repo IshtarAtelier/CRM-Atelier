@@ -160,10 +160,12 @@ export function getOrderHtml(order: any, client: any): string {
                     totalDisplay = '<span style="color:#10b981; font-weight:900;">$0</span>';
                 }
 
+                const refIndex = it.product?.lensIndex || '';
                 return `
                 <tr>
                     <td>
                         <div style="font-weight: 900;">${it.product?.brand || it.productBrandSnapshot || ''} ${it.product?.name || it.productNameSnapshot || ''}</div>
+                        ${refIndex ? `<div style="font-size:10px; color:#c2410c; font-weight: 700; margin-top: 1px;">Índice de Refracción: ${refIndex}</div>` : ''}
                         ${eyeLabel ? `<div style="font-size:10px; color:#78716c; font-weight: 600;">Lado: ${eyeLabel}</div>` : ''}
                         ${itemPrice === 0 ? `<div style="font-size:9px; color:#10b981; margin-top:2px; font-weight:bold; letter-spacing: 0.5px;">* Bonificado por Promoción</div>` : ''}
                     </td>
@@ -431,6 +433,8 @@ async function generateOrderPDFWithJsPDF(order: any, contact: any, filename: str
         else if (it.eye) eyeLabel = it.eye;
         
         let itemName = `${it.product?.brand || it.productBrandSnapshot || ''} ${it.product?.name || it.productNameSnapshot || ''}`.trim();
+        const refIndex = it.product?.lensIndex || '';
+        if (refIndex) itemName += `\n   Índice: ${refIndex}`;
         if (eyeLabel) itemName += `\n   Lado: ${eyeLabel}`;
         
         let priceLabel = `$${ip.toLocaleString()}`;
