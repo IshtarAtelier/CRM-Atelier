@@ -46,7 +46,7 @@ export function CategoryGrid({ products, emptyMessage = "Estamos actualizando nu
 
         const modelLower = (p.model || "").toLowerCase();
         const isSmallFrame = modelLower.includes('tl3932 c3') || modelLower.includes('diana') || p.id === 'cmq5d11hf002rhy61fhvqs7nj';
-        const imagePaddingClass = isSmallFrame ? 'p-0 scale-[1.65]' : 'p-6';
+        const imagePaddingClass = isSmallFrame ? 'p-0 scale-125' : 'p-6';
 
         return (
           <motion.div 

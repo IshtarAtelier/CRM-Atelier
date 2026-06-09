@@ -121,6 +121,56 @@ export default function VentasPage() {
         }
     };
 
+    const handleSendWhatsAppInvoice = async (order: Order, invoiceId: string) => {
+        const phone = order.client?.phone?.replace(/\D/g, '');
+        if (!phone) {
+            alert('⚠️ El cliente no tiene teléfono registrado.');
+            return;
+        }
+
+        setRequestingInvoiceId(`wsp-${invoiceId}`);
+        try {
+            const res = await fetch(`/api/billing/invoice/${invoiceId}/pdf-data`);
+            if (!res.ok) {
+                const data = await res.json();
+                throw new Error(data.error || 'Error al obtener datos de la factura');
+            }
+            const data = await res.json();
+            const pdfResult = await generateInvoicePDF(data, true);
+            
+            if (!pdfResult) {
+                throw new Error('Error generando PDF');
+            }
+
+            const text = `✨ *ATELIER ÓPTICA* ✨\n\nHola ${order.client.name},\nTe enviamos adjunta tu factura electrónica de compra.\n\n¡Gracias por elegirnos!`;
+
+            const sendRes = await fetch('/api/whatsapp/send', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    chatId: `${phone}@c.us`,
+                    message: text,
+                    media: {
+                        base64: pdfResult.base64,
+                        mimetype: 'application/pdf',
+                        filename: pdfResult.fileName
+                    }
+                })
+            });
+
+            if (sendRes.ok) {
+                alert('✅ Factura enviada por WhatsApp al cliente');
+            } else {
+                throw new Error('Error de conexión con el bot de WhatsApp');
+            }
+        } catch (error: any) {
+            console.error('Error sending invoice via WhatsApp:', error);
+            alert(`❌ Error enviando la factura: ${error.message}`);
+        } finally {
+            setRequestingInvoiceId(null);
+        }
+    };
+
     useEffect(() => {
         // Get user role from localStorage or fallback to API
         const loadUserRole = async () => {
@@ -941,32 +991,42 @@ export default function VentasPage() {
 
                                             completedInvoices.forEach((inv: any) => {
                                                 renderNodes.push(
-                                                    <button 
-                                                        key={`inv-${inv.id}`}
-                                                        onClick={async () => {
-                                                            try {
-                                                                const res = await fetch(`/api/billing/invoice/${inv.id}/pdf-data`);
-                                                                if (!res.ok) {
-                                                                    const errorData = await res.json();
-                                                                    throw new Error(errorData.error || 'Error desconocido');
+                                                    <div key={`inv-group-${inv.id}`} className="flex items-center gap-1 bg-indigo-50 dark:bg-indigo-950/30 border-2 border-indigo-200 dark:border-indigo-800 rounded-xl overflow-hidden p-0.5">
+                                                        <button 
+                                                            key={`inv-${inv.id}`}
+                                                            onClick={async () => {
+                                                                try {
+                                                                    const res = await fetch(`/api/billing/invoice/${inv.id}/pdf-data`);
+                                                                    if (!res.ok) {
+                                                                        const errorData = await res.json();
+                                                                        throw new Error(errorData.error || 'Error desconocido');
+                                                                    }
+                                                                    const data = await res.json();
+                                                                    await generateInvoicePDF(data);
+                                                                } catch (e: any) {
+                                                                    alert('Error abriendo el PDF: ' + e.message);
                                                                 }
-                                                                const data = await res.json();
-                                                                await generateInvoicePDF(data);
-                                                            } catch (e: any) {
-                                                                alert('Error abriendo el PDF: ' + e.message);
-                                                            }
-                                                        }}
-                                                        className="px-3 py-2 bg-indigo-50 dark:bg-indigo-950/30 border-2 border-indigo-200 dark:border-indigo-800 rounded-xl hover:bg-indigo-100 dark:hover:bg-indigo-900 transition-all text-left flex items-center gap-2" 
-                                                        title={`Ver PDF de Factura\nCAE: ${inv.cae}\nVto: ${inv.caeExpiration}`}
-                                                    >
-                                                        <div>
-                                                            <span className="text-[9px] font-black text-indigo-400 uppercase tracking-widest block">Factura C</span>
-                                                            <span className="text-xs font-black text-indigo-600">
-                                                                {inv.pointOfSale?.toString().padStart(4, '0')}-{inv.voucherNumber?.toString().padStart(8, '0')}
-                                                            </span>
-                                                        </div>
-                                                        <ExternalLink className="w-4 h-4 text-indigo-400" />
-                                                    </button>
+                                                            }}
+                                                            className="px-2 py-1.5 hover:bg-indigo-100 dark:hover:bg-indigo-900 transition-all text-left flex items-center gap-2 rounded-lg" 
+                                                            title={`Ver PDF de Factura\nCAE: ${inv.cae}\nVto: ${inv.caeExpiration}`}
+                                                        >
+                                                            <div>
+                                                                <span className="text-[9px] font-black text-indigo-400 uppercase tracking-widest block">Factura C</span>
+                                                                <span className="text-xs font-black text-indigo-600">
+                                                                    {inv.pointOfSale?.toString().padStart(4, '0')}-{inv.voucherNumber?.toString().padStart(8, '0')}
+                                                                </span>
+                                                            </div>
+                                                            <ExternalLink className="w-4 h-4 text-indigo-400" />
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handleSendWhatsAppInvoice(order, inv.id)}
+                                                            disabled={requestingInvoiceId === `wsp-${inv.id}`}
+                                                            className="p-2 hover:bg-[#25D366]/10 text-stone-400 hover:text-[#25D366] transition-all rounded-lg disabled:opacity-50"
+                                                            title="Enviar Factura por WhatsApp"
+                                                        >
+                                                            {requestingInvoiceId === `wsp-${inv.id}` ? <Loader2 className="w-4 h-4 animate-spin" /> : <WhatsAppIcon className="w-4 h-4" />}
+                                                        </button>
+                                                    </div>
                                                 );
                                             });
 

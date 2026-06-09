@@ -14,7 +14,7 @@ export interface InvoiceData {
     logo?: string | null;
 }
 
-export async function generateInvoicePDF(data: InvoiceData) {
+export async function generateInvoicePDF(data: InvoiceData, returnBase64: boolean = false): Promise<{ base64: string, fileName: string } | void> {
     const { invoice, issuer, logo } = data;
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.getWidth();
@@ -208,5 +208,10 @@ export async function generateInvoicePDF(data: InvoiceData) {
     const clientName = (invoice.order.client?.name || 'Consumidor-Final').replace(/[^a-z0-9]/gi, '-').replace(/-+/g, '-');
     const fileName = `FC-${invoice.pointOfSale.toString().padStart(4, '0')}-${invoice.voucherNumber.toString().padStart(8, '0')}-${clientName}.pdf`;
     
-    doc.save(fileName);
+    if (returnBase64) {
+        const base64 = doc.output('datauristring').split(',')[1];
+        return { base64, fileName };
+    } else {
+        doc.save(fileName);
+    }
 }

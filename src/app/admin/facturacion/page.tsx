@@ -14,6 +14,7 @@ import InvoiceModal from '@/components/InvoiceModal';
 import { BillingAccount, detectBillingAccount } from '@/lib/afip';
 import { resolveStorageUrl } from '@/lib/utils/storage';
 import { generateInvoicePDF } from '@/lib/invoice-generator';
+import { WhatsAppIcon } from '@/components/icons/WhatsAppIcon';
 import type { Order } from '@/types/orders';
 
 export default function BillingPage() {
@@ -90,6 +91,56 @@ export default function BillingPage() {
         } catch (error: any) {
             console.error('Error downloading invoice:', error);
             alert('Error descargando la factura: ' + error.message);
+        } finally {
+            setDownloadingId(null);
+        }
+    };
+
+    const handleSendWhatsAppInvoice = async (order: Order, invoiceId: string) => {
+        const phone = order.client?.phone?.replace(/\D/g, '');
+        if (!phone) {
+            alert('⚠️ El cliente no tiene teléfono registrado.');
+            return;
+        }
+
+        setDownloadingId(`wsp-${invoiceId}`);
+        try {
+            const res = await fetch(`/api/billing/invoice/${invoiceId}/pdf-data`);
+            if (!res.ok) {
+                const data = await res.json();
+                throw new Error(data.error || 'Error al obtener datos de la factura');
+            }
+            const data = await res.json();
+            const pdfResult = await generateInvoicePDF(data, true);
+            
+            if (!pdfResult) {
+                throw new Error('Error generando PDF');
+            }
+
+            const text = `✨ *ATELIER ÓPTICA* ✨\n\nHola ${order.client.name},\nTe enviamos adjunta tu factura electrónica de compra.\n\n¡Gracias por elegirnos!`;
+
+            const sendRes = await fetch('/api/whatsapp/send', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    chatId: `${phone}@c.us`,
+                    message: text,
+                    media: {
+                        base64: pdfResult.base64,
+                        mimetype: 'application/pdf',
+                        filename: pdfResult.fileName
+                    }
+                })
+            });
+
+            if (sendRes.ok) {
+                alert('✅ Factura enviada por WhatsApp al cliente');
+            } else {
+                throw new Error('Error de conexión con el bot de WhatsApp');
+            }
+        } catch (error: any) {
+            console.error('Error sending invoice via WhatsApp:', error);
+            alert(`❌ Error enviando la factura: ${error.message}`);
         } finally {
             setDownloadingId(null);
         }
@@ -417,11 +468,19 @@ export default function BillingPage() {
                                                 </div>
                                                 <button 
                                                     onClick={() => handleDownloadInvoice(invoice.id)}
-                                                    disabled={downloadingId === invoice.id}
+                                                    disabled={downloadingId === invoice.id || downloadingId === `wsp-${invoice.id}`}
                                                     className="w-8 h-8 flex justify-center items-center rounded-xl bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 text-stone-500 hover:text-primary hover:bg-primary/5 transition-all disabled:opacity-50"
                                                     title="Descargar PDF"
                                                 >
                                                     {downloadingId === invoice.id ? <Loader2 size={12} className="animate-spin" /> : <Download size={12} />} 
+                                                </button>
+                                                <button 
+                                                    onClick={() => handleSendWhatsAppInvoice(order, invoice.id)}
+                                                    disabled={downloadingId === invoice.id || downloadingId === `wsp-${invoice.id}`}
+                                                    className="w-8 h-8 flex justify-center items-center rounded-xl bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 text-stone-500 hover:text-[#25D366] hover:bg-[#25D366]/10 transition-all disabled:opacity-50"
+                                                    title="Enviar PDF por WhatsApp"
+                                                >
+                                                    {downloadingId === `wsp-${invoice.id}` ? <Loader2 size={12} className="animate-spin" /> : <WhatsAppIcon className="w-3.5 h-3.5" />} 
                                                 </button>
                                             </div>
                                         ))}
