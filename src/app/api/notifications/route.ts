@@ -101,18 +101,35 @@ export async function POST(request: Request) {
             },
         });
 
-        if (type === 'INVOICE_REQUEST') {
-            const adminEmail = (process.env.ADMIN_EMAIL || '').trim();
-            const toEmail = !adminEmail || adminEmail.toLowerCase() === 'pisano.ishtar@gmail.com'
-                ? 'pisano.ishtar@gmail.com'
-                : `pisano.ishtar@gmail.com, ${adminEmail}`;
+        const adminEmail = (process.env.ADMIN_EMAIL || '').trim();
+        const toEmail = !adminEmail || adminEmail.toLowerCase() === 'pisano.ishtar@gmail.com'
+            ? 'pisano.ishtar@gmail.com'
+            : `pisano.ishtar@gmail.com, ${adminEmail}`;
 
-            sendEmail({
-                to: toEmail,
-                subject: '🧾 Solicitud de Factura (Manual)',
-                text: `El usuario ${userName} ha generado una solicitud de factura manualmente:\n\n${message}`
-            }).catch(console.error);
+        const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://crm-atelier-production-ae72.up.railway.app';
+        let clientLinkText = '';
+        
+        if (orderId) {
+            try {
+                const orderObj = await prisma.order.findUnique({ where: { id: orderId } });
+                if (orderObj) {
+                    clientLinkText = `\n\nFicha del Cliente:\n${appUrl}/admin/contactos?id=${orderObj.clientId}`;
+                } else {
+                    clientLinkText = `\n\nLink de la Venta (Ficha no encontrada):\n${appUrl}/admin/ventas?id=${orderId}`;
+                }
+            } catch (e) {
+                // ignore
+            }
         }
+
+        const actionLabel = type === 'INVOICE_REQUEST' ? 'Solicitud de Factura' : 'Solicitud de Eliminación';
+        const emailText = `El usuario ${userName.toUpperCase()} ha generado una nueva ${actionLabel}:\n\nDetalle de la acción: ${message}${clientLinkText}`;
+
+        sendEmail({
+            to: toEmail,
+            subject: `⚠️ Nueva ${actionLabel} (${userName})`,
+            text: emailText
+        }).catch(console.error);
 
         return NextResponse.json(notification);
     } catch (error: any) {
