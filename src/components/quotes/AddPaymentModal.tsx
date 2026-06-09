@@ -353,9 +353,20 @@ export default function AddPaymentModal({
                                         if (data.amount != null) setAmount(data.amount.toString());
                                         if (data.reference != null) setReference(data.reference);
                                         if (data.date != null) setDate(data.date);
-                                        // Auto-select PayWay method based on OCR-detected terminal owner
-                                        if (data.payway_owner === 'ISHTAR') setMethod('PAY_WAY_3_ISH');
-                                        else if (data.payway_owner === 'YANI') setMethod('PAY_WAY_3_YANI');
+                                        // Auto-select method based on OCR
+                                        if (data.is_mypime_6) {
+                                            if (data.payway_owner === 'ISHTAR') setMethod('PAY_WAY_6_ISH');
+                                            else if (data.payway_owner === 'YANI') setMethod('PAY_WAY_6_YANI');
+                                            else setMethod('PAY_WAY_6_ISH'); // Default if owner unknown
+                                        } else if (data.payway_owner === 'ISHTAR') {
+                                            setMethod('PAY_WAY_3_ISH');
+                                        } else if (data.payway_owner === 'YANI') {
+                                            setMethod('PAY_WAY_3_YANI');
+                                        } else if (data.transfer_recipient === 'LUCIA') {
+                                            setMethod('TRANSFERENCIA_LUCIA');
+                                        } else if (data.transfer_recipient === 'ISHTAR') {
+                                            setMethod('TRANSFERENCIA_ISHTAR');
+                                        }
                                         setShowOcrVerifyMessage(true);
                                     } else {
                                         console.warn('OCR falló');

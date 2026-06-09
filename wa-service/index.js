@@ -1728,9 +1728,15 @@ server.listen(PORT, '0.0.0.0', async () => {
         checkAndSendInactivityFollowUps(cronDeps).catch(e => console.error("❌ Error en follow-ups de inactividad:", e.message));
     }, 15 * 60 * 1000);
 
-    // Chequear seguimientos de venta cada 30 minutos
-    setInterval(() => {
-        checkAndSendSalesFollowUps().catch(e => console.error("❌ Error en follow-ups de ventas:", e.message));
+    // Generar tareas inteligentes de seguimiento de ventas cada 30 minutos
+    setInterval(async () => {
+        try {
+            const { generateFollowUpTasks } = require('./followups/task-generator');
+            await generateFollowUpTasks();
+            await checkAndSendSalesFollowUps(cronDeps);
+        } catch (e) {
+            console.error("❌ Error en follow-ups de ventas:", e.message);
+        }
     }, 30 * 60 * 1000);
     
     try {

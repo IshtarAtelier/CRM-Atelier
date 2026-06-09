@@ -1,188 +1,187 @@
 /**
- * Orquestador de seguimientos de venta.
- * Coordina: config → eligibility → generator → validator → sender.
- *
- * Este archivo SOLO orquesta el flujo. Toda la lógica vive en followups/.
+ * Ejecutor de Seguimientos Basado en Tareas.
+ * Lee las ClientTasks programadas y despacha el mensaje de WhatsApp.
  */
 
 const { prisma } = require('./db');
-const { getClient } = require('./whatsapp-client');
+const { isBusinessHours } = require('./shared/business-hours');
 const { checkEligibility } = require('./followups/eligibility');
 const { generateFollowUpMessage } = require('./followups/message-generator');
 const { sendFollowUp } = require('./followups/sender');
-const {
-    TEST_MODE,
-    QUOTE_LOOKBACK_DAYS,
-    SEND_DELAY_MIN_MINUTES,
-    SEND_DELAY_MAX_MINUTES,
-} = require('./followups/config');
+const { addTagToClient } = require('./tools');
 
-// Horario comercial — función centralizada
-const { isBusinessHours } = require('./shared/business-hours');
-
-// Lock de concurrencia
 let isFollowUpRunning = false;
+let botReplyingToRef = null;
 
-/**
- * Busca presupuestos pendientes y ejecuta el pipeline de seguimiento
- * para cada cliente elegible.
- */
-async function checkAndSendSalesFollowUps() {
-    if (isFollowUpRunning) {
-        console.log(`  [Sales-FollowUps] Ya hay una ejecución en curso. Omitiendo.`);
-        return;
-    }
+async function checkAndSendSalesFollowUps({ isAgentEnabled, botReplyingTo, broadcastChatUpdate }) {
+    if (isFollowUpRunning) return;
+
+    botReplyingToRef = botReplyingTo;
+    const now = new Date();
+
+    if (!isBusinessHours(now)) return;
+    if (!isAgentEnabled()) return;
 
     isFollowUpRunning = true;
+    console.log('\n[Bot Executor] Buscando tareas de seguimiento pendientes y vencidas...');
 
     try {
-        const now = new Date();
-
-        // 1. Validar horario comercial
-        if (!isBusinessHours(now)) {
-            console.log(`  [Sales-FollowUps] Fuera de horario comercial. Postergando.`);
-            return;
-        }
-
-        // 2. Validar que WhatsApp esté conectado
-        const wc = getClient();
-        if (!wc) {
-            console.log(`  [Sales-FollowUps] WhatsApp no inicializado. Cancelando.`);
-            return;
-        }
-
-        const modeLabel = TEST_MODE ? '🧪 MODO TEST' : '🚀 PRODUCCIÓN';
-        console.log(`\n  🔍 [Sales-FollowUps] ${modeLabel} — Buscando presupuestos pendientes...`);
-
-        // 3. Buscar presupuestos pendientes
-        const pendingQuotes = await prisma.order.findMany({
+        // Buscar tareas PENDIENTES que ya vencieron (ej: llegaron las 18:00 hs)
+        const pendingTasks = await prisma.clientTask.findMany({
             where: {
-                orderType: 'QUOTE',
+                type: 'FOLLOWUP',
                 status: 'PENDING',
-                isDeleted: false,
-                createdAt: { gte: new Date(Date.now() - QUOTE_LOOKBACK_DAYS * 24 * 60 * 60 * 1000) },
+                dueDate: { lte: now }
             },
             include: {
                 client: {
                     include: {
-                        tags: true,
-                        whatsappChats: { where: { archived: false } },
-                    },
-                },
-                items: {
-                    include: { product: true },
-                },
-            },
-            orderBy: { createdAt: 'desc' },
+                        whatsappChats: true,
+                        tags: true
+                    }
+                }
+            }
         });
 
-        if (pendingQuotes.length === 0) {
-            console.log(`  [Sales-FollowUps] No hay presupuestos pendientes.`);
+        if (pendingTasks.length === 0) {
+            console.log('[Bot Executor] No hay tareas de seguimiento pendientes para ejecutar.');
+            isFollowUpRunning = false;
             return;
         }
 
-        console.log(`  [Sales-FollowUps] ${pendingQuotes.length} presupuestos encontrados. Evaluando elegibilidad...`);
+        let queueDelay = 0;
 
-        // 4. Procesar cada presupuesto
-        const processedClients = new Set();
-        let sent = 0;
-        let skipped = 0;
-        let failed = 0;
-
-        for (const quote of pendingQuotes) {
-            const client = quote.client;
-            if (!client) continue;
-
-            // Dedup: solo 1 seguimiento por cliente por ejecución
-            if (processedClients.has(client.id)) continue;
-            processedClients.add(client.id);
+        for (const task of pendingTasks) {
+            const client = task.client;
+            if (!client || !client.whatsappChats || client.whatsappChats.length === 0) {
+                await cancelTask(task.id, 'Cliente sin chat de WhatsApp asociado');
+                continue;
+            }
 
             const chat = client.whatsappChats[0];
-            if (!chat) continue;
 
-            try {
-                // A. Verificar elegibilidad
-                const eligibility = await checkEligibility({ client, chat, quote, now });
-                if (!eligibility.eligible) {
-                    console.log(`  ⏭️ [Sales-FollowUps] ${eligibility.reason}`);
-                    skipped++;
-                    continue;
-                }
+            // Buscar la cotización más reciente para validar elegibilidad
+            const latestQuote = await prisma.order.findFirst({
+                where: {
+                    clientId: client.id,
+                    orderType: 'QUOTE',
+                    isDeleted: false,
+                },
+                orderBy: { createdAt: 'desc' }
+            });
 
-                console.log(`  🎯 [Sales-FollowUps] ${eligibility.reason}`);
-
-                // B. Recuperar historial reciente
-                const recentMessages = await prisma.whatsAppMessage.findMany({
-                    where: { chatId: chat.id },
-                    orderBy: { createdAt: 'desc' },
-                    take: 10,
-                });
-
-                // C. Generar mensaje con IA
-                const generated = await generateFollowUpMessage({
-                    client,
-                    chat,
-                    quote,
-                    followUpType: eligibility.followUpType,
-                    recentMessages,
-                });
-
-                if (!generated.text) {
-                    console.warn(`  ⚠️ [Sales-FollowUps] No se pudo generar mensaje para ${client.name}: ${generated.error}`);
-                    failed++;
-                    continue;
-                }
-
-                // D. Marcar label ANTES del delay (anti-duplicado entre ejecuciones del cron)
-                try {
-                    const currentChat = await prisma.whatsAppChat.findUnique({ where: { id: chat.id } });
-                    let updatedLabels = [...(currentChat?.chatLabels || [])];
-                    if (!updatedLabels.includes(eligibility.label)) {
-                        updatedLabels.push(eligibility.label);
-                    }
-                    await prisma.whatsAppChat.update({
-                        where: { id: chat.id },
-                        data: { chatLabels: updatedLabels },
-                    });
-                } catch (labelErr) {
-                    console.error(`  ⚠️ Error pre-marcando label ${eligibility.label} para ${client.name}:`, labelErr.message);
-                }
-
-                // E. Delay entre envíos (await secuencial, sin setTimeout huérfanos)
-                const delayMinutes = SEND_DELAY_MIN_MINUTES + Math.random() * (SEND_DELAY_MAX_MINUTES - SEND_DELAY_MIN_MINUTES);
-                console.log(`  🕒 [Sales-FollowUps] Esperando ${delayMinutes.toFixed(1)} min antes de enviar a ${client.name}...`);
-                await new Promise(resolve => setTimeout(resolve, delayMinutes * 60 * 1000));
-
-                // F. Enviar
-                const result = await sendFollowUp({
-                    waId: chat.waId,
-                    text: generated.text,
-                    chatId: chat.id,
-                    label: eligibility.label,
-                    clientName: client.name,
-                    followUpType: eligibility.followUpType,
-                });
-
-                if (result.sent) {
-                    sent++;
-                } else {
-                    console.log(`  🚫 [Sales-FollowUps] Envío cancelado para ${client.name}: ${result.reason}`);
-                    skipped++;
-                }
-
-            } catch (quoteError) {
-                console.error(`  ❌ [Sales-FollowUps] Error procesando ${client.name}:`, quoteError.message);
-                failed++;
+            if (!latestQuote) {
+                await cancelTask(task.id, 'Presupuesto original eliminado o no encontrado');
+                continue;
             }
+
+            // Validar elegibilidad "just-in-time" por si compró desde que se generó la tarea
+            const { eligible, followUpType, label, reason } = await checkEligibility({ client, chat, quote: latestQuote, now });
+
+            if (!eligible) {
+                console.log(`  🚫 [Bot Executor] Tarea cancelada para ${client.name}: ${reason}`);
+                await cancelTask(task.id, `Ya no es elegible: ${reason}`);
+                continue;
+            }
+
+            // Si es elegible, generamos el mensaje con Gemini
+            const recentMessages = await prisma.whatsAppMessage.findMany({
+                where: { chatId: chat.id },
+                orderBy: { createdAt: 'desc' },
+                take: 10
+            });
+
+            console.log(`  🤖 [Bot Executor] Generando mensaje para ${client.name} (${followUpType})...`);
+            const generated = await generateFollowUpMessage({
+                client,
+                chat,
+                quote: latestQuote,
+                followUpType,
+                recentMessages
+            });
+
+            if (!generated.text) {
+                console.error(`  ❌ [Bot Executor] Falló generación para ${client.name}: ${generated.error}`);
+                continue; // No cancelamos la tarea, probamos en el próximo ciclo
+            }
+
+            // Anti-duplicado in-memory
+            if (botReplyingToRef && botReplyingToRef.has(chat.waId)) {
+                console.log(`  ⚠️ Bot ya respondiendo a ${client.name}. Omitiendo.`);
+                continue;
+            }
+
+            // Marcar label INMEDIATAMENTE para evitar race conditions
+            try {
+                let updatedLabels = [...(chat.chatLabels || [])];
+                if (!updatedLabels.includes(label)) updatedLabels.push(label);
+                
+                await prisma.whatsAppChat.update({
+                    where: { id: chat.id },
+                    data: { chatLabels: updatedLabels }
+                });
+            } catch (err) {}
+
+            // Programar el envío diferido en la cola
+            const delayMin = 3;
+            const delayMax = 7;
+            const randomDelayMinutes = Math.random() * (delayMax - delayMin) + delayMin;
+            queueDelay += randomDelayMinutes * 60 * 1000;
+
+            console.log(`  🕒 [Bot Executor] Programando envío a ${client.name} en ${(queueDelay / 60000).toFixed(1)} minutos.`);
+
+            setTimeout(() => {
+                executeTaskAndSend(task.id, client.id, chat.waId, chat.id, generated.text, label, client.name, followUpType)
+                    .then(() => { if (broadcastChatUpdate) broadcastChatUpdate(chat.id); })
+                    .catch(err => console.error(`❌ Error enviando a ${client.name}:`, err.message));
+            }, queueDelay);
         }
 
-        console.log(`  📊 [Sales-FollowUps] Resumen: ${sent} enviados, ${skipped} omitidos, ${failed} fallidos.\n`);
-
+    } catch (error) {
+        console.error('❌ Error en Bot Executor:', error.message);
     } finally {
         isFollowUpRunning = false;
     }
 }
 
-module.exports = {
-    checkAndSendSalesFollowUps,
-};
+// Auxiliares
+async function cancelTask(taskId, reason) {
+    await prisma.clientTask.update({
+        where: { id: taskId },
+        data: { status: 'CANCELLED', updatedAt: new Date() } // Usamos CANCELLED (o DONE)
+    }).catch(e => {});
+}
+
+async function executeTaskAndSend(taskId, clientId, waId, chatId, text, label, clientName, followUpType) {
+    // Enviar WhatsApp
+    const { sent, reason } = await sendFollowUp({
+        waId, text, chatId, label, clientName, followUpType
+    });
+
+    if (sent) {
+        // 1. Marcar Tarea como DONE
+        await prisma.clientTask.update({
+            where: { id: taskId },
+            data: { status: 'DONE', updatedAt: new Date() }
+        });
+
+        // 2. Registrar Interacción en la ficha del cliente
+        await prisma.interaction.create({
+            data: {
+                clientId: clientId,
+                type: 'FOLLOWUP',
+                content: `📍 [BOT] Tarea de Seguimiento completada (${followUpType}).\nMensaje enviado: "${text}"`
+            }
+        });
+
+        // 3. Agregar Tag al CRM (Embudo de Etiquetas)
+        const funnelTag = `Seguimiento ${followUpType.replace('DIA_', '')}`;
+        await addTagToClient({ clientId, tagName: funnelTag }).catch(e=>{});
+
+        console.log(`  ✅ [Bot Executor] Ejecución completa para ${clientName} (${funnelTag})`);
+    } else {
+        console.error(`  ❌ [Bot Executor] Falló envío a ${clientName}: ${reason}`);
+    }
+}
+
+module.exports = { checkAndSendSalesFollowUps };

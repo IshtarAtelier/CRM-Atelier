@@ -125,6 +125,9 @@ export default function WhatsAppPage() {
     const [newMessage, setNewMessage] = useState('');
     const [sending, setSending] = useState(false);
     const [showConfig, setShowConfig] = useState(false);
+    const [showTaskModal, setShowTaskModal] = useState(false);
+    const [taskDraft, setTaskDraft] = useState({ description: '', dueDate: new Date().toISOString().split('T')[0] });
+    const [creatingTask, setCreatingTask] = useState(false);
     const [agentPrompt, setAgentPrompt] = useState('');
     const [dailyContext, setDailyContext] = useState('');
     const [agentEnabled, setAgentEnabled] = useState(false);
@@ -165,6 +168,29 @@ export default function WhatsAppPage() {
     const timerIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
     // ── Audio Recording ───────────────────────────
+    const handleCreateTask = async () => {
+        if (!selectedChat?.client?.id || !taskDraft.description.trim()) return;
+        setCreatingTask(true);
+        try {
+            const res = await fetch(`/api/contacts/${selectedChat.client.id}/tasks`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(taskDraft)
+            });
+            if (res.ok) {
+                setShowTaskModal(false);
+                setTaskDraft({ description: '', dueDate: new Date().toISOString().split('T')[0] });
+                showInAppNotification('Tarea Creada', `Tarea guardada exitosamente.`);
+            } else {
+                showInAppNotification('Error', 'No se pudo crear la tarea');
+            }
+        } catch (error) {
+            console.error('Error creating task', error);
+        } finally {
+            setCreatingTask(false);
+        }
+    };
+
     const formatTime = (seconds: number) => {
         const mins = Math.floor(seconds / 60);
         const secs = seconds % 60;
@@ -1695,6 +1721,15 @@ export default function WhatsAppPage() {
                                     </div>
 
                                     <div className="flex items-center gap-1.5 shrink-0">
+                                        {selectedChat.client && (
+                                            <button 
+                                                onClick={() => setShowTaskModal(true)}
+                                                className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold bg-white dark:bg-stone-800 text-stone-600 dark:text-stone-300 border border-stone-200 dark:border-stone-700 rounded-lg hover:bg-stone-50 dark:hover:bg-stone-700 transition-colors shadow-sm mr-2"
+                                            >
+                                                <Calendar className="w-3.5 h-3.5 text-violet-500" />
+                                                Crear Tarea
+                                            </button>
+                                        )}
                                         {(selectedChat.chatLabels || []).filter(l => l !== 'Fijado').length > 0 && (
                                             <div className="hidden lg:flex flex-wrap gap-1 mr-2 border-r border-stone-200/50 dark:border-stone-700 pr-2">
                                                 {selectedChat.chatLabels.filter(l => l !== 'Fijado').map(lbl => {
@@ -2091,6 +2126,57 @@ export default function WhatsAppPage() {
                 </div>
             )}
             <TestChatModal isOpen={showTestChat} onClose={() => setShowTestChat(false)} />
+
+            {/* Create Task Modal */}
+            {showTaskModal && selectedChat?.client && (
+                <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="w-full max-w-md bg-white dark:bg-stone-900 rounded-2xl shadow-2xl overflow-hidden border border-stone-200 dark:border-stone-800 animate-in zoom-in-95 duration-200">
+                        <div className="px-6 py-4 border-b border-stone-100 dark:border-stone-800 flex items-center justify-between bg-stone-50/50 dark:bg-black/20">
+                            <h3 className="text-sm font-black uppercase tracking-widest text-stone-800 dark:text-stone-200 flex items-center gap-2">
+                                <Calendar className="w-4 h-4 text-violet-500" /> Crear Tarea
+                            </h3>
+                            <button onClick={() => setShowTaskModal(false)} className="text-stone-400 hover:text-stone-600 dark:hover:text-stone-300">
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+                        <div className="p-6 space-y-4">
+                            <div>
+                                <label className="block text-[11px] font-black text-stone-500 uppercase tracking-widest mb-1.5">Descripción</label>
+                                <input 
+                                    autoFocus
+                                    type="text" 
+                                    className="w-full px-3 py-2 text-sm border border-stone-200 dark:border-stone-800 rounded-xl bg-white dark:bg-stone-950 focus:ring-2 focus:ring-violet-500 focus:border-transparent outline-none" 
+                                    placeholder="Ej: Llamar para avisar que llegó el anteojo"
+                                    value={taskDraft.description}
+                                    onChange={e => setTaskDraft({...taskDraft, description: e.target.value})}
+                                    onKeyDown={e => e.key === 'Enter' && handleCreateTask()}
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-[11px] font-black text-stone-500 uppercase tracking-widest mb-1.5">Fecha de Vencimiento</label>
+                                <input 
+                                    type="date" 
+                                    className="w-full px-3 py-2 text-sm border border-stone-200 dark:border-stone-800 rounded-xl bg-white dark:bg-stone-950 focus:ring-2 focus:ring-violet-500 focus:border-transparent outline-none" 
+                                    value={taskDraft.dueDate}
+                                    onChange={e => setTaskDraft({...taskDraft, dueDate: e.target.value})}
+                                />
+                            </div>
+                        </div>
+                        <div className="px-6 py-4 bg-stone-50 dark:bg-stone-900/50 flex justify-end gap-3 border-t border-stone-100 dark:border-stone-800">
+                            <button onClick={() => setShowTaskModal(false)} className="px-4 py-2 text-xs font-bold text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:hover:text-stone-200">
+                                Cancelar
+                            </button>
+                            <button 
+                                onClick={handleCreateTask}
+                                disabled={creatingTask || !taskDraft.description.trim()}
+                                className="px-5 py-2 text-xs font-black uppercase tracking-wider bg-violet-600 hover:bg-violet-700 disabled:opacity-50 text-white rounded-xl shadow-md transition-colors"
+                            >
+                                {creatingTask ? 'Guardando...' : 'Crear Tarea'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Modal: Crear Ficha desde Chat */}
             {showCreateClientModal && extractedClient && (

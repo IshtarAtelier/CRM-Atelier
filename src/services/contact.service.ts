@@ -862,7 +862,8 @@ export const ContactService = {
                         select: {
                             id: true,
                             name: true,
-                            status: true
+                            status: true,
+                            phone: true
                         }
                     }
                 }
@@ -1116,6 +1117,7 @@ export const ContactService = {
                 ...payment, 
                 thresholdReached,
                 clientName: order.client?.name || 'Cliente Desconocido',
+                clientPhone: order.client?.phone,
                 clientId: order.clientId,
                 isSena,
                 totalOperacion: finalTotal,
@@ -1171,7 +1173,7 @@ export const ContactService = {
                     msgText += `\n${remainingText}\n\n`;
                     msgText += `🔗 *Ficha del cliente:* ${clientLink}`;
 
-                    const res = await fetchWa('/api/send', {
+                    const resAdmin = await fetchWa('/api/send', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
@@ -1181,12 +1183,53 @@ export const ContactService = {
                         }),
                     });
 
-                    if (!res.ok) {
-                        const errText = await res.text();
-                        console.error('[Payment Notification] Failed to send WhatsApp:', errText);
+                    if (!resAdmin.ok) {
+                        const errText = await resAdmin.text();
+                        console.error('[Payment Notification] Failed to send WhatsApp to Admin:', errText);
                     } else {
-                        console.log('[Payment Notification] WhatsApp sent successfully');
+                        console.log('[Payment Notification] WhatsApp sent successfully to Admin');
                     }
+
+                    // Enviar comprobante automático al cliente para cualquier método de pago
+                    if (result.clientPhone) {
+                        let phoneTo = result.clientPhone.replace(/\D/g, '');
+                        if (!phoneTo.startsWith('549') && phoneTo.startsWith('54')) phoneTo = phoneTo.replace(/^54/, '549');
+                        if (!phoneTo.startsWith('549')) phoneTo = `549${phoneTo}`;
+                        if (!phoneTo.endsWith('@c.us')) phoneTo = `${phoneTo}@c.us`;
+
+                        const today = new Date().toLocaleDateString('es-AR');
+                        const isCash = method === 'EFECTIVO' || method === 'CASH';
+                        const methodLabel = isCash ? 'en efectivo' : `mediante ${method.replace(/_/g, ' ')}`;
+                        
+                        const clientMsgText = `Hola *${result.clientName}*, desde Atelier te informamos que hemos recibido tu pago ${methodLabel} por *$${amount.toLocaleString('es-AR')}* con fecha *${today}*. ¡Muchas gracias!`;
+
+                        // Enviar al cliente
+                        const resClient = await fetchWa('/api/send', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                chatId: phoneTo,
+                                message: clientMsgText,
+                                senderName: 'Sistema Atelier'
+                            }),
+                        });
+
+                        if (!resClient.ok) {
+                            console.error('[Payment Notification] Failed to send WhatsApp to Client:', await resClient.text());
+                        }
+
+                        // Enviar copia a Ishtar
+                        await fetchWa('/api/send', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                chatId: '5493541215971@c.us',
+                                message: `🤖 *[Copia enviada al cliente]*\n\n${clientMsgText}`,
+                                senderName: 'Sistema Atelier'
+                            }),
+                        });
+                    }
+
                 } catch (err: any) {
                     console.error('[Payment Notification] Error sending WhatsApp:', err.message);
                 }

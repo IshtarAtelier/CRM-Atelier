@@ -63,13 +63,17 @@ Responde SOLO con el JSON, sin texto alrededor, sin comillas de código ni forma
   * ISHTAR: N° Establecimiento 82671397, Terminales 16770672 o 16328313, CUIT 23386152314
   * YANI: N° Establecimiento 33173675, Terminal 16726469, CUIT 27425128138
   Devuelve "ISHTAR" o "YANI" según corresponda. Si no es un ticket de PayWay o no se puede identificar, devuelve null.
+- is_mypime_6: booleano (true o false). Será true si en cualquier parte del comprobante dice "mypime 6", "mypyme 6", "mi pyme 6" o hace referencia a un plan pyme de 6 cuotas. En caso contrario, false.
+- transfer_recipient: si el comprobante es de una transferencia bancaria, identifica el destinatario si está visible. Busca nombres o alias asociados a "LUCIA" o "ISHTAR". Devuelve "LUCIA" o "ISHTAR" si logras identificarlo, de lo contrario devuelve null.
 
 Devuelve los resultados usando esta estructura JSON exacta. Usa null si un valor no está presente.
 {
   "amount": número_o_null,
   "reference": "texto_o_null",
   "date": "YYYY-MM-DD_o_null",
-  "payway_owner": "ISHTAR_o_YANI_o_null"
+  "payway_owner": "ISHTAR_o_YANI_o_null",
+  "is_mypime_6": true_o_false,
+  "transfer_recipient": "LUCIA_o_ISHTAR_o_null"
 }
 Responde SOLO con el JSON, sin texto alrededor, sin comillas de código ni formato markdown.`;
         }
