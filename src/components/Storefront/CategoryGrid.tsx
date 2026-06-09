@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { WHATSAPP_PHONE } from "@/lib/constants";
+import { resolveStorageUrl } from "@/lib/utils/storage";
 
 import Image from "next/image";
 
@@ -35,19 +36,13 @@ export function CategoryGrid({ products, emptyMessage = "Estamos actualizando nu
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-x-6 gap-y-12">
       {products.map((p, index) => {
         const hasSecondImage = p.imagenesCatalogo && p.imagenesCatalogo.length > 1;
-        
-        const getImageUrl = (img?: string) => {
-          if (!img) return null;
-          if (img.startsWith('http') || img.startsWith('/images')) return img;
-          return `/api/storage/view?key=${encodeURIComponent(img)}`;
-        };
 
         const imageUrl = p.imagenesCatalogo && p.imagenesCatalogo.length > 0
-          ? getImageUrl(p.imagenesCatalogo[0])!
+          ? resolveStorageUrl(p.imagenesCatalogo[0])
           : (p.mockImage || '/images/og-image.jpg');
           
         const secondImageUrl = hasSecondImage
-          ? getImageUrl(p.imagenesCatalogo[1])
+          ? resolveStorageUrl(p.imagenesCatalogo[1])
           : null;
 
 

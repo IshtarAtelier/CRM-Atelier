@@ -144,13 +144,17 @@ Responde ÚNICAMENTE con el JSON puro. Sin markdown.
                 });
                 
                 if (existingTasks.length === 0) {
+                    const rawDate = parsed.suggestedTask.dueDate ? new Date(parsed.suggestedTask.dueDate) : new Date(Date.now() + 24 * 60 * 60 * 1000);
+                    // Asegurar que la tarea caiga a las 10:00 AM del día pautado
+                    rawDate.setHours(10, 0, 0, 0);
+
                     console.log(`  📅 [Ficha Inteligente] Creando Tarea: ${parsed.suggestedTask.description}`);
                     await prisma.clientTask.create({
                         data: {
                             clientId: currentClientId,
                             description: `[Extracción Inteligente] ${parsed.suggestedTask.description}`,
                             type: 'TASK',
-                            dueDate: parsed.suggestedTask.dueDate ? new Date(parsed.suggestedTask.dueDate) : new Date(Date.now() + 24 * 60 * 60 * 1000), // Default tomorrow
+                            dueDate: rawDate,
                             createdBy: 'Sistema (Pasivo)'
                         }
                     }).catch(e => console.error("Error creando tarea pasiva:", e.message));

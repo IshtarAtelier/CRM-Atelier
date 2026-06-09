@@ -1203,6 +1203,29 @@ export const ContactService = {
                         
                         const clientMsgText = `Hola *${result.clientName}*, desde Atelier te informamos que hemos recibido tu pago ${methodLabel} por *$${amount.toLocaleString('es-AR')}* con fecha *${today}*. ¡Muchas gracias!`;
 
+                        // Generar PDF del recibo
+                        let pdfMedia: any = null;
+                        try {
+                            const { generateReceiptPDF } = await import('@/lib/receipt-pdf-generator');
+                            
+                            const fullOrder = await prisma.order.findUnique({
+                                where: { id: orderId },
+                                include: { client: true }
+                            });
+                            
+                            if (fullOrder && fullOrder.client) {
+                                const pdfResult = await generateReceiptPDF(result, fullOrder, fullOrder.client);
+                                pdfMedia = {
+                                    base64: pdfResult.base64,
+                                    mimetype: 'application/pdf',
+                                    filename: pdfResult.filename
+                                };
+                                console.log('[Payment Notification] Receipt PDF generated successfully.');
+                            }
+                        } catch (pdfErr) {
+                            console.error('[Payment Notification] Failed to generate Receipt PDF:', pdfErr);
+                        }
+
                         // Enviar al cliente
                         const resClient = await fetchWa('/api/send', {
                             method: 'POST',
@@ -1210,7 +1233,8 @@ export const ContactService = {
                             body: JSON.stringify({
                                 chatId: phoneTo,
                                 message: clientMsgText,
-                                senderName: 'Sistema Atelier'
+                                senderName: 'Sistema Atelier',
+                                media: pdfMedia
                             }),
                         });
 

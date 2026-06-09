@@ -471,11 +471,18 @@ export default function QuoteSummary({
                                                         <button 
                                                             onClick={() => window.open(resolveStorageUrl(paymentValue.receiptUrl), '_blank')}
                                                             className="p-2 hover:bg-primary/5 text-stone-400 hover:text-primary rounded-xl transition-all"
-                                                            title="Ver Comprobante"
+                                                            title="Ver Comprobante Adjunto"
                                                         >
                                                             <Eye className="w-3.5 h-3.5" />
                                                         </button>
                                                     )}
+                                                    <button 
+                                                        onClick={() => window.open(`/api/payments/${paymentValue.id}/receipt-pdf`, '_blank')}
+                                                        className="p-2 hover:bg-emerald-50 text-emerald-500 hover:text-emerald-600 rounded-xl transition-all"
+                                                        title="Descargar Recibo PDF"
+                                                    >
+                                                        <Download className="w-3.5 h-3.5" />
+                                                    </button>
                                                     {/* Solo admin puede eliminar pagos de ventas */}
                                                     {(!isSale || currentUserRole === 'ADMIN') && (
                                                     <button 
