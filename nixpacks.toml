@@ -1,7 +1,0 @@
-providers = ["node"]
-
-[phases.setup]
-nixPkgs = ["...", "chromium", "nss", "freetype", "harfbuzz", "pango", "atk", "cairo", "gdk_pixbuf", "glib", "gtk3", "alsa-lib"]
-
-[phases.build]
-cmds = ["npm install", "npx prisma generate", "npm run build"]

@@ -358,6 +358,10 @@ export default function AddPaymentModal({
                                             if (data.payway_owner === 'ISHTAR') setMethod('PAY_WAY_6_ISH');
                                             else if (data.payway_owner === 'YANI') setMethod('PAY_WAY_6_YANI');
                                             else setMethod('PAY_WAY_6_ISH'); // Default if owner unknown
+                                        } else if (data.is_naranja_z) {
+                                            if (data.payway_owner === 'ISHTAR') setMethod('NARANJA_Z_ISH');
+                                            else if (data.payway_owner === 'YANI') setMethod('NARANJA_Z_YANI');
+                                            else setMethod('NARANJA_Z_ISH'); // Default if owner unknown
                                         } else if (data.payway_owner === 'ISHTAR') {
                                             setMethod('PAY_WAY_3_ISH');
                                         } else if (data.payway_owner === 'YANI') {

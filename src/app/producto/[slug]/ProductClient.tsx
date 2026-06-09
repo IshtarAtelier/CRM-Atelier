@@ -13,6 +13,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Camera, User, UserPlus, Share2, ChevronDown, Truck, Package, MapPin } from "lucide-react";
 import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon";
 import { useCart } from "@/store/useCart";
+import { resolveStorageUrl } from "@/lib/utils/storage";
 
 export function ProductClient({ product }: { product: any }) {
   const [activeImageIndex, setActiveImageIndex] = useState(0);
@@ -25,14 +26,8 @@ export function ProductClient({ product }: { product: any }) {
 
   const { addItem, setIsOpen } = useCart();
 
-  const getImageUrl = (img?: string) => {
-    if (!img) return null;
-    if (img.startsWith('http') || img.startsWith('/images')) return img;
-    return `/api/storage/view?key=${encodeURIComponent(img)}`;
-  };
-
   const images = product.imagenesCatalogo && product.imagenesCatalogo.length > 0 
-    ? product.imagenesCatalogo.map((key: string) => getImageUrl(key) as string).filter(Boolean)
+    ? product.imagenesCatalogo.map((key: string) => resolveStorageUrl(key)).filter(Boolean)
     : (product.mockImage ? [product.mockImage] : []);
 
   const getThumbnailLabel = (index: number) => {

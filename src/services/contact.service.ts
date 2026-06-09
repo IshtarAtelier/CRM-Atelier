@@ -1249,7 +1249,8 @@ export const ContactService = {
                             body: JSON.stringify({
                                 chatId: '5493541215971@c.us',
                                 message: `🤖 *[Copia enviada al cliente]*\n\n${clientMsgText}`,
-                                senderName: 'Sistema Atelier'
+                                senderName: 'Sistema Atelier',
+                                media: pdfMedia
                             }),
                         });
                     }

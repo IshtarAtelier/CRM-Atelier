@@ -8,6 +8,7 @@ import { HomeProductCarousel } from "@/components/Storefront/HomeProductCarousel
 import { HomeConfiguratorSection } from "@/components/Storefront/HomeConfiguratorSection";
 import { HomeMacroFilm } from "@/components/Storefront/HomeMacroFilm";
 import { prisma } from "@/lib/db";
+import { resolveStorageUrl } from "@/lib/utils/storage";
 
 export const dynamic = 'force-dynamic';
 
@@ -42,12 +43,6 @@ export default async function Home() {
     take: 40
   });
 
-  const getImageUrl = (img?: string) => {
-    if (!img) return null;
-    if (img.startsWith('http') || img.startsWith('/images')) return img;
-    return `/api/storage/view?key=${encodeURIComponent(img)}`;
-  };
-
   // Formateamos los productos para el carrusel
   const displayProducts = dbWebProducts.length > 0 
     ? dbWebProducts.map(wp => ({
@@ -55,10 +50,10 @@ export default async function Home() {
         name: wp.name,
         price: `$ ${wp.product.price?.toLocaleString()}`,
         img: wp.imageUrl 
-          ? getImageUrl(wp.imageUrl)
+          ? resolveStorageUrl(wp.imageUrl)
           : (wp.images.length > 0 
-              ? getImageUrl(wp.images[0])
-              : (wp.product.imagenesCatalogo.length > 0 ? getImageUrl(wp.product.imagenesCatalogo[0]) : '/images/og-image.jpg')),
+              ? resolveStorageUrl(wp.images[0])
+              : (wp.product.imagenesCatalogo.length > 0 ? resolveStorageUrl(wp.product.imagenesCatalogo[0]) : '/images/og-image.jpg')),
         slug: wp.slug
       }))
     : PRODUCTS;

@@ -6,6 +6,7 @@ import { LensConfigurator } from "./LensConfigurator";
 import { Interactive3DImage } from "./Interactive3DImage";
 import Image from "next/image";
 import { useCart } from "@/store/useCart";
+import { resolveStorageUrl } from "@/lib/utils/storage";
 
 interface Product {
   id: string;
@@ -86,9 +87,7 @@ export function CustomGlassesBuilder({ products }: { products: Product[] }) {
       <div className="flex flex-col items-center text-center mb-12">
         <Interactive3DImage 
           src={selectedProduct.imagenesCatalogo.length > 0 
-            ? (selectedProduct.imagenesCatalogo[0].startsWith('http') || selectedProduct.imagenesCatalogo[0].startsWith('/images') 
-                ? selectedProduct.imagenesCatalogo[0] 
-                : `/api/storage/view?key=${encodeURIComponent(selectedProduct.imagenesCatalogo[0])}`)
+            ? resolveStorageUrl(selectedProduct.imagenesCatalogo[0])
             : (selectedProduct.mockImage || "/images/placeholder.svg")
           }
           alt={selectedProduct.model}
@@ -108,9 +107,7 @@ export function CustomGlassesBuilder({ products }: { products: Product[] }) {
           brand: selectedProduct.brand, 
           model: selectedProduct.model, 
           image: selectedProduct.imagenesCatalogo.length > 0 
-            ? (selectedProduct.imagenesCatalogo[0].startsWith('http') || selectedProduct.imagenesCatalogo[0].startsWith('/images')
-                ? selectedProduct.imagenesCatalogo[0]
-                : `/api/storage/view?key=${encodeURIComponent(selectedProduct.imagenesCatalogo[0])}`)
+            ? resolveStorageUrl(selectedProduct.imagenesCatalogo[0])
             : (selectedProduct.mockImage || "/images/placeholder.svg")
         }}
         onStepChange={setConfiguratorStep}
@@ -286,9 +283,7 @@ export function CustomGlassesBuilder({ products }: { products: Product[] }) {
                       <div className={`w-full aspect-[4/3] relative mb-6 flex items-center justify-center transition-all duration-500 isolate ${isSelected ? 'opacity-100 scale-105' : 'opacity-70 group-hover:opacity-100'}`}>
                         <Image 
                           src={p.imagenesCatalogo.length > 0 
-                            ? (p.imagenesCatalogo[0].startsWith('http') || p.imagenesCatalogo[0].startsWith('/images')
-                                ? p.imagenesCatalogo[0]
-                                : `/api/storage/view?key=${encodeURIComponent(p.imagenesCatalogo[0])}`)
+                            ? resolveStorageUrl(p.imagenesCatalogo[0])
                             : (p.mockImage || "/images/placeholder.svg")
                           }
                           alt={p.model}
