@@ -1243,8 +1243,10 @@ export const ContactService = {
                         let methodLabel = method;
                         if (method === 'EFECTIVO' || method === 'CASH') methodLabel = 'en efectivo';
                         else if (method.includes('TRANSFERENCIA')) methodLabel = 'mediante transferencia bancaria';
-                        else if (method.includes('PAY_WAY')) methodLabel = 'mediante tarjeta (PayWay)';
-                        else if (method.includes('NARANJA_Z')) methodLabel = 'mediante tarjeta (Naranja Z)';
+                        else if (method.includes('NARANJA_Z') || method === 'PLAN_Z') methodLabel = 'mediante Tarjeta Naranja (Plan Z)';
+                        else if (method.includes('PAY_WAY_3') || method === 'CREDIT_3') methodLabel = 'mediante Tarjeta de Crédito (3 Cuotas)';
+                        else if (method.includes('PAY_WAY_6') || method === 'CREDIT_6') methodLabel = 'mediante Tarjeta de Crédito (6 Cuotas)';
+                        else if (method.includes('PAY_WAY')) methodLabel = 'mediante Tarjeta de Crédito';
                         else if (method.includes('GO_CUOTAS')) methodLabel = 'mediante Go Cuotas';
                         else methodLabel = `mediante ${method.replace(/_/g, ' ')}`;
                         
