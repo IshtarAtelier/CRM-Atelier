@@ -452,19 +452,31 @@ async function generateOrderPDFWithJsPDF(order: any, contact: any, filename: str
     
     autoTable(doc, {
         startY: y,
-        head: [['Descripcion', 'Cant.', 'Precio Unit.', 'Subtotal']],
+        head: [['Descripción', 'Cant.', 'Precio Unit.', 'Subtotal']],
         body: rows,
-        margin: { left: m, right: m },
-        headStyles: { fillColor: brandSand, textColor: [255, 255, 255], fontSize: 7, fontStyle: 'bold', cellPadding: 3 },
-        bodyStyles: { fontSize: 8, cellPadding: 3, textColor: darkText },
-        columnStyles: {
-            0: { cellWidth: cw * 0.5 },
-            1: { halign: 'center' as const, cellWidth: cw * 0.1 },
-            2: { halign: 'right' as const, cellWidth: cw * 0.2 },
-            3: { halign: 'right' as const, cellWidth: cw * 0.2, fontStyle: 'bold' }
+        theme: 'plain',
+        headStyles: { 
+            fillColor: [255, 255, 255], 
+            textColor: brandSand, 
+            fontStyle: 'bold', 
+            fontSize: 7, 
+            halign: 'left',
+            lineWidth: { bottom: 0.5 },
+            lineColor: brandBeige
         },
-        alternateRowStyles: { fillColor: [255, 252, 249] },
-        theme: 'grid'
+        bodyStyles: { fontSize: 8, textColor: darkText, cellPadding: 8 },
+        alternateRowStyles: { fillColor: [255, 255, 255] },
+        columnStyles: {
+            0: { cellWidth: 100, halign: 'left' },
+            1: { cellWidth: 20, halign: 'center' },
+            2: { cellWidth: 30, halign: 'right' },
+            3: { cellWidth: 30, halign: 'right', fontStyle: 'bold' }
+        },
+        didParseCell: function(data: any) {
+            if (data.section === 'head') {
+                if (data.column.index > 0) data.cell.styles.halign = (data.column.index === 1) ? 'center' : 'right';
+            }
+        }
     });
     
     y = (doc as any).lastAutoTable.finalY + 8;
