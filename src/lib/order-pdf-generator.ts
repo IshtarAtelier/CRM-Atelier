@@ -363,7 +363,7 @@ async function generateOrderPDFWithJsPDF(order: any, contact: any, filename: str
         const logoPath = path.join(process.cwd(), 'public', 'assets', 'logo-atelier-optica.png');
         if (fs.existsSync(logoPath)) {
             const logoB64 = fs.readFileSync(logoPath).toString('base64');
-            doc.addImage(`data:image/png;base64,${logoB64}`, 'PNG', m, y - 3, 40, 14);
+            doc.addImage(`data:image/png;base64,${logoB64}`, 'PNG', m, y - 3, 66, 10);
         } else {
             doc.setFontSize(18); doc.setFont('helvetica', 'bold'); doc.setTextColor(...brandSand);
             doc.text('ATELIER OPTICA', m, y + 5);
