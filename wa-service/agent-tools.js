@@ -75,7 +75,7 @@ const savePrescriptionDataTool = new DynamicStructuredTool({
     func: safeToolRun(async (input) => {
         const { ChatGoogleGenerativeAI } = require("@langchain/google-genai");
         const { HumanMessage } = require("@langchain/core/messages");
-        const { savePrescription, convertIntoLead, addInteraction, isPhrase } = require("./tools");
+        const { savePrescription, convertIntoLead, addInteraction, isPhrase, updateClientData } = require("./tools");
 
         const parsed = safeParse(input, "save_prescription_data");
         const { chatId, clientId, tipoDeLente, odEsf, odCil, odEje, oiEsf, oiCil, oiEje, add, odDip, oiDip, origen, obraSocial, notes, userName, userPhone } = parsed;

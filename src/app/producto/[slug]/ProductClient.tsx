@@ -25,8 +25,14 @@ export function ProductClient({ product }: { product: any }) {
 
   const { addItem, setIsOpen } = useCart();
 
+  const getImageUrl = (img?: string) => {
+    if (!img) return null;
+    if (img.startsWith('http') || img.startsWith('/images')) return img;
+    return `/api/storage/view?key=${encodeURIComponent(img)}`;
+  };
+
   const images = product.imagenesCatalogo && product.imagenesCatalogo.length > 0 
-    ? product.imagenesCatalogo.map((key: string) => `/api/storage/view?key=${encodeURIComponent(key)}`) 
+    ? product.imagenesCatalogo.map((key: string) => getImageUrl(key) as string).filter(Boolean)
     : (product.mockImage ? [product.mockImage] : []);
 
   const getThumbnailLabel = (index: number) => {

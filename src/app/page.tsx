@@ -42,6 +42,12 @@ export default async function Home() {
     take: 40
   });
 
+  const getImageUrl = (img?: string) => {
+    if (!img) return null;
+    if (img.startsWith('http') || img.startsWith('/images')) return img;
+    return `/api/storage/view?key=${encodeURIComponent(img)}`;
+  };
+
   // Formateamos los productos para el carrusel
   const displayProducts = dbWebProducts.length > 0 
     ? dbWebProducts.map(wp => ({
@@ -49,10 +55,10 @@ export default async function Home() {
         name: wp.name,
         price: `$ ${wp.product.price?.toLocaleString()}`,
         img: wp.imageUrl 
-          ? `/api/storage/view?key=${encodeURIComponent(wp.imageUrl)}`
+          ? getImageUrl(wp.imageUrl)
           : (wp.images.length > 0 
-              ? `/api/storage/view?key=${encodeURIComponent(wp.images[0])}` 
-              : (wp.product.imagenesCatalogo.length > 0 ? `/api/storage/view?key=${encodeURIComponent(wp.product.imagenesCatalogo[0])}` : '/images/og-image.jpg')),
+              ? getImageUrl(wp.images[0])
+              : (wp.product.imagenesCatalogo.length > 0 ? getImageUrl(wp.product.imagenesCatalogo[0]) : '/images/og-image.jpg')),
         slug: wp.slug
       }))
     : PRODUCTS;

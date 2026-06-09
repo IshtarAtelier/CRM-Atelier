@@ -35,12 +35,21 @@ export function CategoryGrid({ products, emptyMessage = "Estamos actualizando nu
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-x-6 gap-y-12">
       {products.map((p, index) => {
         const hasSecondImage = p.imagenesCatalogo && p.imagenesCatalogo.length > 1;
+        
+        const getImageUrl = (img?: string) => {
+          if (!img) return null;
+          if (img.startsWith('http') || img.startsWith('/images')) return img;
+          return `/api/storage/view?key=${encodeURIComponent(img)}`;
+        };
+
         const imageUrl = p.imagenesCatalogo && p.imagenesCatalogo.length > 0
-          ? `/api/storage/view?key=${encodeURIComponent(p.imagenesCatalogo[0])}`
+          ? getImageUrl(p.imagenesCatalogo[0])!
           : (p.mockImage || '/images/og-image.jpg');
+          
         const secondImageUrl = hasSecondImage
-          ? `/api/storage/view?key=${encodeURIComponent(p.imagenesCatalogo[1])}`
+          ? getImageUrl(p.imagenesCatalogo[1])
           : null;
+
 
         const isSmallFrame = p.model.toLowerCase().includes('tl3932 c3') || p.model.toLowerCase().includes('diana') || p.id === 'cmq5d11hf002rhy61fhvqs7nj';
         const imagePaddingClass = isSmallFrame ? 'p-0 scale-[1.65]' : 'p-6';

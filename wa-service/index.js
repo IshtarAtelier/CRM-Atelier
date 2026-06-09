@@ -1344,7 +1344,7 @@ const handleMessage = async (msg) => {
             }, 25000); // 25 segundos de debounce para que no sea tan inmediato
 
             botDebounceTimers.set(chat.id, timer);
-        } else if (agentEnabled && !chat.botEnabled && chat.clientId) {
+        } else if (agentEnabled && !chat.botEnabled) {
             console.log(`  🕒 Programando extracción pasiva para ${profileName} en 20s...`);
             
             if (passiveDebounceTimers.has(chat.id)) {

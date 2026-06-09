@@ -861,12 +861,28 @@ export const ContactService = {
                     client: {
                         select: {
                             id: true,
-                            name: true
+                            name: true,
+                            status: true
                         }
                     }
                 }
             });
             if (!order) throw new Error('Orden no encontrada');
+
+            if (order.client?.status === 'CONTACT') {
+                await tx.client.update({
+                    where: { id: order.clientId },
+                    data: { status: 'CONFIRMED' }
+                });
+                
+                await tx.interaction.create({
+                    data: {
+                        clientId: order.clientId,
+                        type: 'SISTEMA',
+                        content: `El estado del cliente cambió automáticamente a CONFIRMADOS al registrar un pago.`
+                    }
+                });
+            }
 
             const newPaid = (order.paid || 0) + amount;
             // Permitir un margen del 100% para cubrir recargos por financiación en cuotas (Argentina)

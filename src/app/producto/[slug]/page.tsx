@@ -105,8 +105,13 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const title = (product as any).seoTitle || `${product.brand} ${product.model} | Atelier Óptica Córdoba`;
   const description = (product as any).seoDescription || product.description || `Llevate los anteojos ${product.category} ${product.brand} ${product.model} en Atelier Óptica Córdoba. Diseño premium. Comprá online con envío a todo el país y 6 cuotas sin interés.`;
   
+  const getImageUrl = (img: string) => {
+    if (img.startsWith('http') || img.startsWith('/images')) return img;
+    return `/api/storage/view?key=${encodeURIComponent(img)}`;
+  };
+
   const imageUrl = product.imagenesCatalogo && product.imagenesCatalogo.length > 0 
-    ? `/api/storage/view?key=${encodeURIComponent(product.imagenesCatalogo[0])}` 
+    ? getImageUrl(product.imagenesCatalogo[0])
     : ((product as any).mockImage || '/images/og-image.jpg');
 
   const absoluteImageUrl = imageUrl.startsWith('http') ? imageUrl : `https://www.atelieroptica.com.ar${imageUrl}`;
@@ -138,13 +143,19 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
     notFound();
   }
 
+  const getJsonImageUrl = (img: string) => {
+    if (img.startsWith('http')) return img;
+    if (img.startsWith('/images')) return `https://www.atelieroptica.com.ar${img}`;
+    return `https://www.atelieroptica.com.ar/api/storage/view?key=${encodeURIComponent(img)}`;
+  };
+
   // Generar JSON-LD (Schema.org para Google Shopping / SEO)
   const jsonLd: any = {
     '@context': 'https://schema.org',
     '@type': 'Product',
     name: (product as any).seoTitle || `${product.brand} ${product.model}`,
     image: product.imagenesCatalogo && product.imagenesCatalogo.length > 0 
-      ? `https://www.atelieroptica.com.ar/api/storage/view?key=${encodeURIComponent(product.imagenesCatalogo[0])}` 
+      ? getJsonImageUrl(product.imagenesCatalogo[0])
       : `https://www.atelieroptica.com.ar${(product as any).mockImage || '/images/og-image.jpg'}`,
     description: (product as any).seoDescription || product.description || `Anteojos ${product.category} ${product.brand} ${product.model}.`,
     brand: {

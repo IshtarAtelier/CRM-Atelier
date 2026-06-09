@@ -139,8 +139,14 @@ export default function TiendaPage() {
               className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-x-6 gap-y-14"
             >
               {filtered.map((p) => {
+                const getImageUrl = (img?: string) => {
+                  if (!img) return null;
+                  if (img.startsWith('http') || img.startsWith('/images')) return img;
+                  return `/api/storage/view?key=${encodeURIComponent(img)}`;
+                };
+
                 const imgUrl = p.imagenesCatalogo?.length > 0
-                  ? `/api/storage/view?key=${encodeURIComponent(p.imagenesCatalogo[0])}`
+                  ? getImageUrl(p.imagenesCatalogo[0])
                   : null;
 
                 return (
