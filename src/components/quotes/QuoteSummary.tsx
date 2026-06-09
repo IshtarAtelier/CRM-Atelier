@@ -158,7 +158,16 @@ export default function QuoteSummary({
 
     const handleWhatsApp = async () => {
         const items = order.items || [];
-        const itemLines = items.map((it: any) => `• ${it.product?.brand || ''} · ${it.product?.name || 'Producto'} x${it.quantity}`).join('\n');
+        const summary: Record<string, { brand: string, name: string, qty: number }> = {};
+        items.forEach((it: any) => {
+            const brand = it.product?.brand || it.productBrandSnapshot || '';
+            const name = it.product?.name || it.productNameSnapshot || 'Producto';
+            const key = `${brand}|${name}`;
+            if (!summary[key]) summary[key] = { brand, name, qty: 0 };
+            summary[key].qty += (it.quantity || 1);
+        });
+        
+        const itemLines = Object.values(summary).map((g) => `• ${g.brand ? g.brand + ' · ' : ''}${g.name} x${g.qty}`).join('\n');
         
         let text = `✨ *${isSale ? 'VENTA' : 'PRESUPUESTO'} — ATELIER ÓPTICA* ✨\n`;
         text += `👤 *Cliente:* ${contact.name}\n\n`;
@@ -208,7 +217,14 @@ export default function QuoteSummary({
 
         setIsSendingPDF(true);
         try {
-            const itemNames = (order.items || []).map((it: any) => it.product?.name || it.productNameSnapshot || 'Artículo').join(', ');
+            const items = order.items || [];
+            const summary: Record<string, string> = {};
+            items.forEach((it: any) => {
+                const name = it.product?.name || it.productNameSnapshot || 'Artículo';
+                summary[name] = name;
+            });
+            const itemNames = Object.values(summary).join(', ');
+            
             const clientName = contact.name?.split(' ')[0] || 'Cliente';
             const text = `Hola ${clientName}, adjunto tu ${isSale ? 'orden' : 'presupuesto'} por: ${itemNames}.\n\nAtelier Óptica, la óptica mejor calificada.`;
             
