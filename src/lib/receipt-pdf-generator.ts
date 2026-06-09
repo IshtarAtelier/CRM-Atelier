@@ -51,9 +51,9 @@ export function getReceiptHtml(payment: any, order: any, client: any): string {
         @page { margin: 0; size: auto; }
         body { padding: 40px 50px; color: #1c1917; font-size: 13px; line-height:1.4; background: white; }
         
-        .letterhead { display:flex; justify-content:space-between; align-items:center; padding-bottom:20px; border-bottom:2px solid ${brandBeige}; margin-bottom: 8px; }
-        .letterhead-logo { height:58px; width:auto; max-width:200px; object-fit:contain; flex-shrink: 0; object-position: left center; }
-        .letterhead-right { text-align:right; font-size:10px; color:#78716c; font-weight: 500; flex-shrink: 0; }
+        .letterhead { padding-bottom:20px; border-bottom:2px solid ${brandBeige}; margin-bottom: 8px; overflow: hidden; }
+        .letterhead-logo { height:58px; float: left; width: auto; }
+        .letterhead-right { float: right; text-align:right; font-size:10px; color:#78716c; font-weight: 500; margin-top: 5px; }
         .address-bold { font-weight:800; color:${brandSand}; text-transform: uppercase; letter-spacing: 1px; }
         
         .tagline { text-align:center; font-size:10px; font-weight:900; text-transform:uppercase; letter-spacing:2.5px; color:${brandSand}; padding:14px 0; border-bottom: 1px solid #f5f5f4; margin-bottom: 25px; }
