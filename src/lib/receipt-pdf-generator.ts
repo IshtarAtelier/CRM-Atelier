@@ -52,7 +52,7 @@ export function getReceiptHtml(payment: any, order: any, client: any): string {
         body { padding: 40px 50px; color: #1c1917; font-size: 13px; line-height:1.4; background: white; }
         
         .letterhead { padding-bottom:20px; border-bottom:2px solid ${brandBeige}; margin-bottom: 8px; overflow: hidden; }
-        .letterhead-logo { height:58px; float: left; width: auto; }
+        .letterhead-logo { width: 363px; height: 55px; float: left; object-fit: contain; }
         .letterhead-right { float: right; text-align:right; font-size:10px; color:#78716c; font-weight: 500; margin-top: 5px; }
         .address-bold { font-weight:800; color:${brandSand}; text-transform: uppercase; letter-spacing: 1px; }
         
