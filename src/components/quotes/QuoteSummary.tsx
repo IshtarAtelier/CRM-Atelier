@@ -158,16 +158,15 @@ export default function QuoteSummary({
 
     const handleWhatsApp = async () => {
         const items = order.items || [];
-        const summary: Record<string, { brand: string, name: string, qty: number }> = {};
+        const summary: Record<string, { brand: string, name: string }> = {};
         items.forEach((it: any) => {
             const brand = it.product?.brand || it.productBrandSnapshot || '';
             const name = it.product?.name || it.productNameSnapshot || 'Producto';
             const key = `${brand}|${name}`;
-            if (!summary[key]) summary[key] = { brand, name, qty: 0 };
-            summary[key].qty += (it.quantity || 1);
+            if (!summary[key]) summary[key] = { brand, name };
         });
         
-        const itemLines = Object.values(summary).map((g) => `• ${g.brand ? g.brand + ' · ' : ''}${g.name} x${g.qty}`).join('\n');
+        const itemLines = Object.values(summary).map((g) => `• ${g.brand ? g.brand + ' · ' : ''}${g.name}`).join('\n');
         
         let text = `✨ *${isSale ? 'VENTA' : 'PRESUPUESTO'} — ATELIER ÓPTICA* ✨\n`;
         text += `👤 *Cliente:* ${contact.name}\n\n`;
