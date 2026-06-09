@@ -431,13 +431,13 @@ async function generateOrderPDFWithJsPDF(order: any, contact: any, filename: str
         else if (it.eye) eyeLabel = it.eye;
         
         let itemName = `${it.product?.brand || it.productBrandSnapshot || ''} ${it.product?.name || it.productNameSnapshot || ''}`.trim();
-        if (eyeLabel) itemName += `\nLado: ${eyeLabel}`;
+        if (eyeLabel) itemName += `\n   Lado: ${eyeLabel}`;
         
         let priceLabel = `$${ip.toLocaleString()}`;
         let totalLabel = `$${(ip * it.quantity).toLocaleString()}`;
         
         if (ip === 0) {
-            itemName += `\n* Bonificado por Promo`;
+            itemName += `\n\n   * Bonificado por Promo`;
             priceLabel = 'SIN CARGO';
             totalLabel = '$0';
         }
