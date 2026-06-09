@@ -1,6 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 import { generateReceiptPDF } from './lib/receipt-pdf-generator';
 import * as fs from 'fs';
+import * as path from 'path';
 
 const prisma = new PrismaClient();
 
@@ -19,8 +20,9 @@ async function run() {
         
         const { base64, filename } = await generateReceiptPDF(payment, payment.order, payment.order.client);
         
-        fs.writeFileSync(filename, Buffer.from(base64, 'base64'));
-        console.log(`PDF guardado como ${filename}`);
+        const finalPath = path.join(process.cwd(), filename);
+        fs.writeFileSync(finalPath, Buffer.from(base64, 'base64'));
+        console.log(`__SUCCESS__:${finalPath}`);
         
     } finally {
         await prisma.$disconnect();

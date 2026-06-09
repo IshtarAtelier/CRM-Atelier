@@ -86,13 +86,10 @@ export function CustomGlassesBuilder({ products }: { products: Product[] }) {
       {/* Selected Product Header */}
       <div className="flex flex-col items-center text-center mb-12">
         <Interactive3DImage 
-          src={selectedProduct.imagenesCatalogo.length > 0 
-            ? resolveStorageUrl(selectedProduct.imagenesCatalogo[0])
-            : (selectedProduct.mockImage || "/images/placeholder.svg")
-          }
-          alt={selectedProduct.model}
+          src={(selectedProduct.imagenesCatalogo.length > 0 ? resolveStorageUrl(selectedProduct.imagenesCatalogo[0]) : "") || selectedProduct.mockImage || "/images/placeholder.svg"}
+          alt={selectedProduct.model || 'Anteojo'}
           className="w-full max-w-[280px] h-40 mb-6"
-          imageClassName={selectedProduct.model?.toLowerCase().includes('tl3932 c3') || selectedProduct.model?.toLowerCase().includes('diana') || selectedProduct.id === 'cmq5d11hf002rhy61fhvqs7nj' ? 'scale-[1.65]' : ''}
+          imageClassName={((selectedProduct.model || '').toLowerCase().includes('tl3932 c3') || (selectedProduct.model || '').toLowerCase().includes('diana') || selectedProduct.id === 'cmq5d11hf002rhy61fhvqs7nj') ? 'scale-[1.65]' : ''}
         />
         <p className="text-[10px] uppercase tracking-[0.3em] text-[#999] font-bold mb-2">{selectedProduct.brand}</p>
         <h4 className="text-3xl font-serif uppercase tracking-tight leading-none mb-4">{selectedProduct.model}</h4>
@@ -106,9 +103,7 @@ export function CustomGlassesBuilder({ products }: { products: Product[] }) {
         productInfo={{ 
           brand: selectedProduct.brand, 
           model: selectedProduct.model, 
-          image: selectedProduct.imagenesCatalogo.length > 0 
-            ? resolveStorageUrl(selectedProduct.imagenesCatalogo[0])
-            : (selectedProduct.mockImage || "/images/placeholder.svg")
+          image: (selectedProduct.imagenesCatalogo.length > 0 ? resolveStorageUrl(selectedProduct.imagenesCatalogo[0]) : "") || selectedProduct.mockImage || "/images/placeholder.svg"
         }}
         onStepChange={setConfiguratorStep}
         onSuccess={() => {
@@ -282,15 +277,12 @@ export function CustomGlassesBuilder({ products }: { products: Product[] }) {
                     >
                       <div className={`w-full aspect-[4/3] relative mb-6 flex items-center justify-center transition-all duration-500 isolate ${isSelected ? 'opacity-100 scale-105' : 'opacity-70 group-hover:opacity-100'}`}>
                         <Image 
-                          src={p.imagenesCatalogo.length > 0 
-                            ? resolveStorageUrl(p.imagenesCatalogo[0])
-                            : (p.mockImage || "/images/placeholder.svg")
-                          }
-                          alt={p.model}
+                          src={(p.imagenesCatalogo.length > 0 ? resolveStorageUrl(p.imagenesCatalogo[0]) : "") || p.mockImage || "/images/placeholder.svg"}
+                          alt={p.model || 'Anteojo'}
                           fill
                           unoptimized
                           style={{ objectFit: "contain", transform: "translateZ(0)" }}
-                          className={`mix-blend-multiply ${(p.model?.toLowerCase().includes('tl3932 c3') || p.model?.toLowerCase().includes('diana') || p.id === 'cmq5d11hf002rhy61fhvqs7nj') ? 'scale-[1.65]' : ''}`}
+                          className={`mix-blend-multiply ${((p.model || '').toLowerCase().includes('tl3932 c3') || (p.model || '').toLowerCase().includes('diana') || p.id === 'cmq5d11hf002rhy61fhvqs7nj') ? 'scale-[1.65]' : ''}`}
                           sizes="(max-width: 768px) 50vw, 33vw"
                         />
                       </div>

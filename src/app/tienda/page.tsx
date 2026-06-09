@@ -149,8 +149,6 @@ export default function TiendaPage() {
                     key={p.id}
                     href={`/producto/${p.id}`}
                     className="group block"
-                    onMouseEnter={() => setHoveredId(p.id)}
-                    onMouseLeave={() => setHoveredId(null)}
                   >
                     {/* Imagen */}
                     <div className="bg-[#f5f5f5] aspect-square overflow-hidden mb-4 relative">
@@ -159,12 +157,11 @@ export default function TiendaPage() {
                           <img
                             src={imgUrl}
                             alt={`${p.brand} ${p.model}`}
-                            className="w-full h-full object-contain mix-blend-multiply transition-transform duration-700"
-                            style={{ 
-                              transform: hoveredId === p.id 
-                                ? ((p.model?.toLowerCase().includes('tl3932 c3') || p.model?.toLowerCase().includes('diana') || p.id === 'cmq5d11hf002rhy61fhvqs7nj') ? "scale(1.8)" : "scale(1.08)")
-                                : ((p.model?.toLowerCase().includes('tl3932 c3') || p.model?.toLowerCase().includes('diana') || p.id === 'cmq5d11hf002rhy61fhvqs7nj') ? "scale(1.65)" : "scale(1)")
-                            }}
+                            className={`w-full h-full object-contain mix-blend-multiply transition-transform duration-700 ${
+                              ((p.model || '').toLowerCase().includes('tl3932 c3') || (p.model || '').toLowerCase().includes('diana') || p.id === 'cmq5d11hf002rhy61fhvqs7nj')
+                                ? "scale-[1.65] md:group-hover:scale-[1.8]"
+                                : "scale-100 md:group-hover:scale-[1.08]"
+                            }`}
                           />
                         </div>
                       ) : (

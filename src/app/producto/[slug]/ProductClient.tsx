@@ -92,7 +92,7 @@ export function ProductClient({ product }: { product: any }) {
                     unoptimized
                     sizes="(max-width: 1024px) 100vw, 85vw"
                     style={{ objectFit: activeImageIndex === 0 ? "contain" : "cover", transform: "translateZ(0)" }}
-                    className={activeImageIndex === 0 ? (product.model?.toLowerCase().includes('tl3932 c3') || product.model?.toLowerCase().includes('diana') || product.id === 'cmq5d11hf002rhy61fhvqs7nj' ? "p-0 scale-[1.65]" : "p-8 lg:p-12") : ""}
+                    className={activeImageIndex === 0 ? (((product.model || '').toLowerCase().includes('tl3932 c3') || (product.model || '').toLowerCase().includes('diana') || product.id === 'cmq5d11hf002rhy61fhvqs7nj') ? "p-0 scale-[1.65]" : "p-8 lg:p-12") : ""}
                   />
                 </motion.div>
               ) : (

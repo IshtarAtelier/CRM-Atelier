@@ -44,7 +44,8 @@ export function CategoryGrid({ products, emptyMessage = "Estamos actualizando nu
         const secondImageUrl = rawSecondImageUrl || null;
 
 
-        const isSmallFrame = p.model.toLowerCase().includes('tl3932 c3') || p.model.toLowerCase().includes('diana') || p.id === 'cmq5d11hf002rhy61fhvqs7nj';
+        const modelLower = (p.model || "").toLowerCase();
+        const isSmallFrame = modelLower.includes('tl3932 c3') || modelLower.includes('diana') || p.id === 'cmq5d11hf002rhy61fhvqs7nj';
         const imagePaddingClass = isSmallFrame ? 'p-0 scale-[1.65]' : 'p-6';
 
         return (
@@ -64,7 +65,7 @@ export function CategoryGrid({ products, emptyMessage = "Estamos actualizando nu
                   unoptimized
                   style={{ transform: "translateZ(0)" }}
                   sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                  className={`object-contain mix-blend-multiply transition-all duration-700 ease-in-out ${imagePaddingClass} ${hasSecondImage ? 'group-hover:opacity-0 group-hover:scale-105' : 'group-hover:scale-105'}`}
+                  className={`object-contain mix-blend-multiply transition-all duration-700 ease-in-out ${imagePaddingClass} ${hasSecondImage ? 'md:group-hover:opacity-0 md:group-hover:scale-105' : 'md:group-hover:scale-105'}`}
                 />
 
                 {hasSecondImage && secondImageUrl && (
@@ -75,7 +76,7 @@ export function CategoryGrid({ products, emptyMessage = "Estamos actualizando nu
                     unoptimized
                     style={{ transform: "translateZ(0)" }}
                     sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                    className="object-cover opacity-0 group-hover:opacity-100 transition-all duration-700 ease-in-out group-hover:scale-105"
+                    className="object-cover opacity-0 md:group-hover:opacity-100 transition-all duration-700 ease-in-out md:group-hover:scale-105"
                   />
                 )}
                 
