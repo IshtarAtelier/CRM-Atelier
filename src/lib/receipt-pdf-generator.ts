@@ -33,8 +33,10 @@ export function getReceiptHtml(payment: any, order: any, client: any): string {
     let methodLabel = payment?.method || 'Desconocido';
     if (methodLabel === 'EFECTIVO' || methodLabel === 'CASH') methodLabel = 'Efectivo';
     else if (methodLabel.includes('TRANSFERENCIA')) methodLabel = 'Transferencia Bancaria';
-    else if (methodLabel.includes('PAY_WAY')) methodLabel = 'Tarjeta (PayWay)';
-    else if (methodLabel.includes('NARANJA_Z')) methodLabel = 'Tarjeta (Naranja Z)';
+    else if (methodLabel.includes('NARANJA_Z') || methodLabel === 'PLAN_Z') methodLabel = 'Tarjeta Naranja (Plan Z)';
+    else if (methodLabel.includes('PAY_WAY_3') || methodLabel === 'CREDIT_3') methodLabel = 'Tarjeta de Crédito (3 Cuotas)';
+    else if (methodLabel.includes('PAY_WAY_6') || methodLabel === 'CREDIT_6') methodLabel = 'Tarjeta de Crédito (6 Cuotas)';
+    else if (methodLabel.includes('PAY_WAY')) methodLabel = 'Tarjeta de Crédito';
     else if (methodLabel.includes('GO_CUOTAS')) methodLabel = 'Go Cuotas';
     else methodLabel = methodLabel.replace(/_/g, ' ');
 
@@ -254,8 +256,10 @@ async function generateReceiptPDFWithJsPDF(payment: any, order: any, contact: an
     let methodLabel2 = payment?.method || 'Desconocido';
     if (methodLabel2 === 'EFECTIVO' || methodLabel2 === 'CASH') methodLabel2 = 'Efectivo';
     else if (methodLabel2.includes('TRANSFERENCIA')) methodLabel2 = 'Transferencia Bancaria';
-    else if (methodLabel2.includes('PAY_WAY')) methodLabel2 = 'Tarjeta (PayWay)';
-    else if (methodLabel2.includes('NARANJA_Z')) methodLabel2 = 'Tarjeta (Naranja Z)';
+    else if (methodLabel2.includes('NARANJA_Z') || methodLabel2 === 'PLAN_Z') methodLabel2 = 'Tarjeta Naranja (Plan Z)';
+    else if (methodLabel2.includes('PAY_WAY_3') || methodLabel2 === 'CREDIT_3') methodLabel2 = 'Tarjeta de Crédito (3 Cuotas)';
+    else if (methodLabel2.includes('PAY_WAY_6') || methodLabel2 === 'CREDIT_6') methodLabel2 = 'Tarjeta de Crédito (6 Cuotas)';
+    else if (methodLabel2.includes('PAY_WAY')) methodLabel2 = 'Tarjeta de Crédito';
     else if (methodLabel2.includes('GO_CUOTAS')) methodLabel2 = 'Go Cuotas';
     else methodLabel2 = methodLabel2.replace(/_/g, ' ');
 
