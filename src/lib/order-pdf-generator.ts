@@ -286,16 +286,18 @@ export async function generateOrderPDF(order: any, contact: any): Promise<{ base
 
     const html = getOrderHtml(order, contact);
     
-    // Usar @sparticuz/chromium (Chromium ligero para serverless/Railway)
-    let lastError = '';
     try {
-        const chromium = (await import('@sparticuz/chromium')).default;
         const puppeteer = (await import('puppeteer-core')).default;
-        
+        // En producción (Railway) usamos el Chromium instalado por Nixpacks vía Env Var
+        // En local, apuntamos al Chrome/Chromium del sistema o el que instala puppeteer
+        const executablePath = process.env.PUPPETEER_EXECUTABLE_PATH || 
+            (process.platform === 'win32' ? 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe' : 
+             process.platform === 'darwin' ? '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome' : 
+             '/usr/bin/google-chrome-stable');
+
         const browser = await puppeteer.launch({
-            args: chromium.args,
-            defaultViewport: (chromium as any).defaultViewport,
-            executablePath: await chromium.executablePath(),
+            executablePath,
+            args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu'],
             headless: true,
         });
         
@@ -311,33 +313,11 @@ export async function generateOrderPDF(order: any, contact: any): Promise<{ base
         await browser.close();
         
         const base64String = Buffer.from(pdfBuffer).toString('base64');
-        console.log('[generateOrderPDF] Generated with @sparticuz/chromium successfully');
+        console.log('[generateOrderPDF] Generated with native Puppeteer successfully');
         return { base64: base64String, filename };
-    } catch (chromiumError: any) {
-        lastError = chromiumError.message;
-        console.warn('[generateOrderPDF] @sparticuz/chromium failed:', chromiumError.message);
-    }
-    
-    // Fallback: intentar con playwright si está disponible
-    try {
-        const { chromium: pwChromium } = await import('playwright');
-        const browser = await pwChromium.launch({ headless: true });
-        const context = await browser.newContext();
-        const page = await context.newPage();
-        await page.setContent(html, { waitUntil: 'networkidle' });
-        
-        const pdfBuffer = await page.pdf({
-            format: 'A4',
-            margin: { top: '0mm', right: '0mm', bottom: '0mm', left: '0mm' },
-            printBackground: true
-        });
-        
-        await browser.close();
-        const base64String = pdfBuffer.toString('base64');
-        console.log('[generateOrderPDF] Generated with Playwright successfully');
-        return { base64: base64String, filename };
-    } catch (playwrightError: any) {
-        console.warn('[generateOrderPDF] All browser-based PDF generation failed, falling back to jsPDF');
+    } catch (browserError: any) {
+        console.error('[generateOrderPDF] Browser PDF generation failed:', browserError.message);
+        console.warn('[generateOrderPDF] Falling back to jsPDF');
         return generateOrderPDFWithJsPDF(order, contact, filename);
     }
 }

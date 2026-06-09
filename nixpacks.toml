@@ -1,16 +1,7 @@
+providers = ["node"]
+
 [phases.setup]
-nixPkgs = [
-  "nodejs_20",
-  "mesa",
-  "libdrm",
-  "libxkbcommon",
-  "at-spi2-core",
-  "alsa-lib",
-  "atk",
-  "cups",
-  "dbus",
-  "expat",
-  "gtk3",
-  "nspr",
-  "nss"
-]
+nixPkgs = ["...", "chromium", "nss", "freetype", "harfbuzz", "pango", "atk", "cairo", "gdk_pixbuf", "glib", "gtk3", "alsa-lib"]
+
+[phases.build]
+cmds = ["npm install", "npx prisma generate", "npm run build"]
