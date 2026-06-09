@@ -76,7 +76,6 @@ export function Interactive3DImage({ src, alt, className = "", imageClassName = 
             src={src}
             alt={alt}
             fill
-            unoptimized
             sizes="(max-width: 768px) 100vw, 50vw"
             style={{ objectFit: "contain", transform: "translateZ(0)" }}
             className={`mix-blend-multiply ${imageClassName}`}

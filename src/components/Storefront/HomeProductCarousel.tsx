@@ -85,7 +85,7 @@ export function HomeProductCarousel({ products }: Props) {
     <section className="w-full bg-white pb-20">
       <div 
         ref={carouselRef}
-        className="flex w-full overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        className="flex w-full overflow-hidden [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       >
         {/* Quadruplicamos para el loop infinito suave */}
         {[...products, ...products, ...products, ...products].map((item, i) => (
@@ -101,7 +101,8 @@ export function HomeProductCarousel({ products }: Props) {
                   src={item.img}
                   alt={item.name}
                   fill
-                  unoptimized
+                  unoptimized={true}
+                  loading="eager"
                   style={{ transform: "translateZ(0)" }}
                   sizes="(max-width: 768px) 45vw, (max-width: 1024px) 33vw, 25vw"
                   className="object-contain p-6 mix-blend-multiply group-hover:scale-110 transition-transform duration-500 ease-out"

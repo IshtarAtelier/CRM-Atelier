@@ -280,7 +280,6 @@ export function CustomGlassesBuilder({ products }: { products: Product[] }) {
                           src={(p.imagenesCatalogo.length > 0 ? resolveStorageUrl(p.imagenesCatalogo[0]) : "") || p.mockImage || "/images/placeholder.svg"}
                           alt={p.model || 'Anteojo'}
                           fill
-                          unoptimized
                           style={{ objectFit: "contain", transform: "translateZ(0)" }}
                           className={`mix-blend-multiply ${((p.model || '').toLowerCase().includes('tl3932 c3') || (p.model || '').toLowerCase().includes('diana') || p.id === 'cmq5d11hf002rhy61fhvqs7nj') ? 'scale-125' : ''}`}
                           sizes="(max-width: 768px) 50vw, 33vw"

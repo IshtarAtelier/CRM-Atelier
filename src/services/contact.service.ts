@@ -1175,7 +1175,7 @@ export const ContactService = {
             if (method === 'EFECTIVO' || method === 'CASH') {
                 CashService.checkBalanceAndAlert().catch(err => console.error('Error in cash alert:', err));
                 
-                import('@/lib/email').then(({ sendEmail }) => {
+                try {
                     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://crm-atelier-production-ae72.up.railway.app';
                     const clientLink = `${appUrl}/admin/contactos?id=${result.clientId}`;
                     sendEmail({
@@ -1183,7 +1183,9 @@ export const ContactService = {
                         subject: `💵 Ingreso de Efectivo: $${amount.toLocaleString('es-AR')}`,
                         text: `Se ha registrado un nuevo pago en EFECTIVO en el sistema.\n\n👤 Cliente: ${result.clientName}\n💰 Monto: $${amount.toLocaleString('es-AR')}\n\nFicha del cliente: ${clientLink}`
                     });
-                }).catch(console.error);
+                } catch (e) {
+                    console.error('Error sending cash email alert:', e);
+                }
             }
             // FIRE BACKGROUND AI VERIFICATION IF RECEIPT EXISTS
             if (receiptUrl) {
