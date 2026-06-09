@@ -1732,10 +1732,13 @@ server.listen(PORT, '0.0.0.0', async () => {
     setInterval(async () => {
         try {
             const { generateFollowUpTasks } = require('./followups/task-generator');
+            const { checkAndSendSmartTasks } = require('./followups/smart-task-executor');
+            
             await generateFollowUpTasks();
             await checkAndSendSalesFollowUps(cronDeps);
+            await checkAndSendSmartTasks(cronDeps);
         } catch (e) {
-            console.error("❌ Error en follow-ups de ventas:", e.message);
+            console.error("❌ Error en follow-ups de ventas/tareas:", e.message);
         }
     }, 30 * 60 * 1000);
     
