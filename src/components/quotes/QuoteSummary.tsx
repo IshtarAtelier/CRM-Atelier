@@ -225,7 +225,7 @@ export default function QuoteSummary({
             const itemNames = Object.values(summary).join(', ');
             
             const clientName = contact.name?.split(' ')[0] || 'Cliente';
-            const text = `Hola ${clientName}, adjunto tu ${isSale ? 'orden' : 'presupuesto'} por: ${itemNames}.\n\nAtelier Óptica, la óptica mejor calificada.`;
+            const text = `Hola ${clientName}, adjunto tu ${isSale ? 'orden' : 'presupuesto'} por: ${itemNames}.\n\nAtelier Óptica, la óptica mejor calificada en Córdoba ⭐⭐⭐⭐⭐.`;
             
             const sendRes = await fetch(`/api/orders/${order.id}/send-pdf`, {
                 method: 'POST',
