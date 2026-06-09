@@ -37,7 +37,10 @@ export async function GET(
         return new Response(pdfBuffer, {
             headers: {
                 'Content-Type': 'application/pdf',
-                'Content-Disposition': `inline; filename="${filename}"`
+                'Content-Disposition': `inline; filename="${filename}"`,
+                'Cache-Control': 'no-cache, no-store, must-revalidate',
+                'Pragma': 'no-cache',
+                'Expires': '0'
             }
         });
     } catch (error: any) {

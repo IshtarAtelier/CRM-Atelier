@@ -29,7 +29,10 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
             status: 200,
             headers: {
                 'Content-Type': 'application/pdf',
-                'Content-Disposition': `inline; filename="${filename}"`
+                'Content-Disposition': `inline; filename="${filename}"`,
+                'Cache-Control': 'no-cache, no-store, must-revalidate',
+                'Pragma': 'no-cache',
+                'Expires': '0'
             }
         });
 
