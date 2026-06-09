@@ -1198,8 +1198,13 @@ export const ContactService = {
                         if (!phoneTo.endsWith('@c.us')) phoneTo = `${phoneTo}@c.us`;
 
                         const today = new Date().toLocaleDateString('es-AR');
-                        const isCash = method === 'EFECTIVO' || method === 'CASH';
-                        const methodLabel = isCash ? 'en efectivo' : `mediante ${method.replace(/_/g, ' ')}`;
+                        let methodLabel = method;
+                        if (method === 'EFECTIVO' || method === 'CASH') methodLabel = 'en efectivo';
+                        else if (method.includes('TRANSFERENCIA')) methodLabel = 'mediante transferencia bancaria';
+                        else if (method.includes('PAY_WAY')) methodLabel = 'mediante tarjeta (PayWay)';
+                        else if (method.includes('NARANJA_Z')) methodLabel = 'mediante tarjeta (Naranja Z)';
+                        else if (method.includes('GO_CUOTAS')) methodLabel = 'mediante Go Cuotas';
+                        else methodLabel = `mediante ${method.replace(/_/g, ' ')}`;
                         
                         const clientMsgText = `Hola *${result.clientName}*, desde Atelier te informamos que hemos recibido tu pago ${methodLabel} por *$${amount.toLocaleString('es-AR')}* con fecha *${today}*. ¡Muchas gracias!`;
 

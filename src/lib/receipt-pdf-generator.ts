@@ -30,8 +30,13 @@ export function getReceiptHtml(payment: any, order: any, client: any): string {
     const brandSand = '#A68B7C';
     const systemEmerald = '#10b981';
     
-    const isCash = payment.method === 'EFECTIVO' || payment.method === 'CASH';
-    const methodLabel = isCash ? 'Efectivo' : payment.method.replace(/_/g, ' ');
+    let methodLabel = payment.method;
+    if (payment.method === 'EFECTIVO' || payment.method === 'CASH') methodLabel = 'Efectivo';
+    else if (payment.method.includes('TRANSFERENCIA')) methodLabel = 'Transferencia Bancaria';
+    else if (payment.method.includes('PAY_WAY')) methodLabel = 'Tarjeta (PayWay)';
+    else if (payment.method.includes('NARANJA_Z')) methodLabel = 'Tarjeta (Naranja Z)';
+    else if (payment.method.includes('GO_CUOTAS')) methodLabel = 'Go Cuotas';
+    else methodLabel = payment.method.replace(/_/g, ' ');
 
     return `<!DOCTYPE html>
 <html lang="es">
@@ -246,8 +251,13 @@ async function generateReceiptPDFWithJsPDF(payment: any, order: any, contact: an
         doc.text(val, pw - m - 5, ly, { align: 'right' });
     };
 
-    const isCash = payment.method === 'EFECTIVO' || payment.method === 'CASH';
-    const methodLabel = isCash ? 'Efectivo' : payment.method.replace(/_/g, ' ');
+    let methodLabel = payment.method;
+    if (payment.method === 'EFECTIVO' || payment.method === 'CASH') methodLabel = 'Efectivo';
+    else if (payment.method.includes('TRANSFERENCIA')) methodLabel = 'Transferencia Bancaria';
+    else if (payment.method.includes('PAY_WAY')) methodLabel = 'Tarjeta (PayWay)';
+    else if (payment.method.includes('NARANJA_Z')) methodLabel = 'Tarjeta (Naranja Z)';
+    else if (payment.method.includes('GO_CUOTAS')) methodLabel = 'Go Cuotas';
+    else methodLabel = payment.method.replace(/_/g, ' ');
 
     drawRow(y + 8, 'RECIBIMOS DE', contact?.name || 'Cliente Final');
     drawRow(y + 18, 'EN CONCEPTO DE', `Pago a cuenta / Orden #${order.id.slice(-6).toUpperCase()}`);

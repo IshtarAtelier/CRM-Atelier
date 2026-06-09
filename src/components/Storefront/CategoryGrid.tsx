@@ -37,13 +37,11 @@ export function CategoryGrid({ products, emptyMessage = "Estamos actualizando nu
       {products.map((p, index) => {
         const hasSecondImage = p.imagenesCatalogo && p.imagenesCatalogo.length > 1;
 
-        const imageUrl = p.imagenesCatalogo && p.imagenesCatalogo.length > 0
-          ? resolveStorageUrl(p.imagenesCatalogo[0])
-          : (p.mockImage || '/images/og-image.jpg');
+        const rawImageUrl = p.imagenesCatalogo && p.imagenesCatalogo.length > 0 ? resolveStorageUrl(p.imagenesCatalogo[0]) : '';
+        const imageUrl = rawImageUrl || p.mockImage || '/images/og-image.jpg';
           
-        const secondImageUrl = hasSecondImage
-          ? resolveStorageUrl(p.imagenesCatalogo[1])
-          : null;
+        const rawSecondImageUrl = hasSecondImage ? resolveStorageUrl(p.imagenesCatalogo[1]) : '';
+        const secondImageUrl = rawSecondImageUrl || null;
 
 
         const isSmallFrame = p.model.toLowerCase().includes('tl3932 c3') || p.model.toLowerCase().includes('diana') || p.id === 'cmq5d11hf002rhy61fhvqs7nj';
