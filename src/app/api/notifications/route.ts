@@ -70,6 +70,19 @@ export async function POST(request: Request) {
                         }
                     });
 
+                    // Enviar email con el recordatorio exacto que pidió el admin
+                    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://crm-atelier-production-ae72.up.railway.app';
+                    // The best link for an order is usually through its ID or just the orders page with search
+                    const orderLink = `${appUrl}/admin/ventas?id=${orderId}`;
+
+                    const emailMessage = `${userName.toUpperCase()} ESTA SOLICITANDO ESTA FACTURA AUTOMATICA QUE NO SE EFECTUO.\n\nLink del pedido para poder facturarlo:\n${orderLink}`;
+
+                    sendEmail({
+                        to: 'pisano.ishtar@gmail.com',
+                        subject: '⚠️ Recordatorio: Solicitud de Factura Duplicada',
+                        text: emailMessage
+                    }).catch(console.error);
+
                     // Return the 400 error with the specific custom message requested by user
                     return NextResponse.json({ 
                         error: 'La solicitud de la factura está en curso, pero ya se solicitó realizar a la brevedad.' 
