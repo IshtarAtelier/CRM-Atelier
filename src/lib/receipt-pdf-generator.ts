@@ -52,7 +52,7 @@ export function getReceiptHtml(payment: any, order: any, client: any): string {
         body { padding: 40px 50px; color: #1c1917; font-size: 13px; line-height:1.4; background: white; }
         
         .letterhead { padding-bottom:20px; border-bottom:2px solid ${brandBeige}; margin-bottom: 8px; overflow: hidden; }
-        .letterhead-logo { width: 297px; height: 45px; float: left; }
+        .letterhead-logo { height: 35px; width: auto; max-width: 220px; float: left; object-fit: contain; }
         .letterhead-right { float: right; text-align:right; font-size:10px; color:#78716c; font-weight: 500; margin-top: 5px; }
         .address-bold { font-weight:800; color:${brandSand}; text-transform: uppercase; letter-spacing: 1px; }
         
@@ -201,7 +201,7 @@ async function generateReceiptPDFWithJsPDF(payment: any, order: any, contact: an
         const logoPath = path.join(process.cwd(), 'public', 'assets', 'logo-atelier-optica.png');
         if (fs.existsSync(logoPath)) {
             const logoB64 = fs.readFileSync(logoPath).toString('base64');
-            doc.addImage(`data:image/png;base64,${logoB64}`, 'PNG', m, y - 3, 66, 10);
+            doc.addImage(`data:image/png;base64,${logoB64}`, 'PNG', m, y - 3, 45, 6.8);
         } else {
             doc.setFontSize(18); doc.setFont('helvetica', 'bold'); doc.setTextColor(...brandSand);
             doc.text('ATELIER OPTICA', m, y + 5);

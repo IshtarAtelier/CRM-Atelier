@@ -1,4 +1,5 @@
 const axios = require('axios');
+const nodemailer = require('nodemailer');
 const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '.env') });
 
@@ -684,10 +685,69 @@ async function updateChatSummary({ chatId, summaryText }) {
     }
 }
 
+/**
+ * Envía alerta urgente de solicitud de factura por WA y Mail
+ */
+async function reportInvoiceRequest({ clientId }) {
+    if (!clientId || clientId === 'none') return { success: false, error: 'Falta clientId' };
+    
+    try {
+        const client = await prisma.client.findUnique({ where: { id: clientId } });
+        if (!client) return { success: false, error: 'Cliente no encontrado' };
+
+        const adminPhone = '3541215971@c.us';
+        const baseUrl = process.env.CRM_API_URL ? process.env.CRM_API_URL.replace('/api/bot', '') : 'http://localhost:3000';
+        const crmLink = `${baseUrl}/admin/contactos?id=${client.id}`;
+        
+        // 1. WhatsApp a Administración
+        const waText = `🚨 *URGENCIA: Solicitud de factura* 🚨\nEl cliente *${client.name || 'Desconocido'}* acaba de solicitar su factura.\n\nFicha: ${crmLink}`;
+        
+        const { sendMessage } = require('./whatsapp-client');
+        await sendMessage(adminPhone, waText).catch(e => console.error("Error enviando alerta WA de factura:", e.message));
+
+        // 2. Email a Administración
+        const emailDest = 'pisano.ishtar@gmail.com';
+        if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
+            const transporter = nodemailer.createTransport({
+                service: 'gmail',
+                auth: {
+                    user: process.env.EMAIL_USER,
+                    pass: process.env.EMAIL_PASS
+                }
+            });
+
+            await transporter.sendMail({
+                from: `"Sistema Atelier" <${process.env.EMAIL_USER}>`,
+                to: emailDest,
+                subject: `URGENCIA: Solicitud de Factura - ${client.name || 'Desconocido'}`,
+                text: `El cliente ${client.name || 'Desconocido'} (Tel: ${client.phone}) acaba de solicitar su factura o ticket fiscal.\n\nFicha en CRM: ${crmLink}`
+            }).catch(e => console.error("Error enviando email de factura:", e.message));
+        }
+
+        // 3. Registrar Nota en CRM
+        await prisma.interaction.create({
+            data: {
+                clientId: client.id,
+                type: 'NOTE',
+                content: `🚨 [SISTEMA] El cliente solicitó Factura. Alerta de urgencia enviada a Administración.`
+            }
+        });
+
+        // 4. Agregar Etiqueta
+        await addTagToClient({ clientId: client.id, tagName: 'Factura' }).catch(e => {});
+
+        return { success: true, message: '[INSTRUCCIÓN INTERNA] Notificación enviada con éxito. Dile al cliente que ya derivaste su pedido al área contable y se la enviarán a la brevedad.' };
+
+    } catch (e) {
+        console.error('Error reportInvoiceRequest:', e.message);
+        return { success: false, error: 'Error interno al reportar factura' };
+    }
+}
+
 module.exports = {
     checkExistingClient, convertIntoLead, updateClientData,
     getPriceList, getOrderStatus, createTask,
     addInteraction, savePrescription, logBotMessage, createQuote,
     cancelBot, addTagToClient, disableBotForChat, reportComplaint,
-    isPhrase, generateAndSaveHandoffSummary, updateChatSummary
+    isPhrase, generateAndSaveHandoffSummary, updateChatSummary, reportInvoiceRequest
 };

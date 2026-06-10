@@ -6,7 +6,7 @@ const {
     checkExistingClient, convertIntoLead, updateClientData,
     getPriceList, getOrderStatus, createTask,
     addInteraction, savePrescription, createQuote, cancelBot, addTagToClient, disableBotForChat,
-    isPhrase
+    isPhrase, reportInvoiceRequest
 } = require("./tools");
 
 // Helper para parsear JSON de forma segura en todas las herramientas
@@ -268,6 +268,13 @@ const createTaskTool = new DynamicStructuredTool({
     func: safeToolRun(async (input) => await createTask(safeParse(input, "create_task"))),
 });
 
+const requestInvoiceTool = new DynamicStructuredTool({
+    schema: z.object({ clientId: z.string().optional() }).catchall(z.any()),
+    name: "request_invoice",
+    description: "Úsala EXCLUSIVAMENTE cuando el cliente pida explícitamente que se le envíe la factura, comprobante fiscal o ticket de su compra. Esta herramienta envía una alerta de urgencia a administración para que la emitan. Usa JSON con 'clientId' (SOLO si clientData.id existe).",
+    func: safeToolRun(async (input) => await reportInvoiceRequest(safeParse(input, "request_invoice"))),
+});
+
 const addInteractionTool = new DynamicStructuredTool({
     schema: z.object({ clientId: z.string(), type: z.string().optional(), content: z.string() }).catchall(z.any()),
     name: "add_interaction",
@@ -342,7 +349,8 @@ const salesToolsList = [
     createQuoteTool,
     disableBotForChatTool,
     reportComplaintTool,
-    updateChatSummaryTool
+    updateChatSummaryTool,
+    requestInvoiceTool
 ];
 
 const executiveToolsList = [
@@ -358,7 +366,8 @@ const executiveToolsList = [
     addTagToClientTool,
     disableBotForChatTool,
     reportComplaintTool,
-    updateChatSummaryTool
+    updateChatSummaryTool,
+    requestInvoiceTool
 ];
 module.exports = {
     salesToolsList,

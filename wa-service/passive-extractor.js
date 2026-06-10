@@ -1,7 +1,7 @@
 const { ChatGoogleGenerativeAI } = require("@langchain/google-genai");
 const { HumanMessage } = require("@langchain/core/messages");
 const { prisma } = require('./db');
-const { addTagToClient, convertIntoLead, updateClientData } = require('./tools');
+const { addTagToClient, convertIntoLead, updateClientData, reportInvoiceRequest } = require('./tools');
 const { withTimeout } = require('./utils');
 const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '.env') });
@@ -68,6 +68,7 @@ Tu tarea es devolver un JSON estrictamente válido con los siguientes campos:
 3. "insurance": string o null. (Si mencionó su obra social o prepaga, ej: "OSDE", "Galeno", "PAMI").
 4. "summary": string o null. (Un breve resumen de 1 o 2 oraciones sobre lo que el cliente quiere o el estado actual de la charla, para actualizar el historial. Si no hay nada relevante, null).
 5. "suggestedTask": objeto o null. Si el cliente o el vendedor se comprometen a una acción futura concreta (ej: "paso el lunes", "escribime la semana que viene"), devuelve un objeto {"description": "Breve descripción de la tarea", "dueDate": "YYYY-MM-DD"}. Si es una visita al local, la descripción DEBE incluir "Visita programada. Recordar ubicación y horarios". Si la fecha es incierta o no hay compromiso, null.
+6. "invoiceRequested": boolean. (True SOLO si el cliente pide explícitamente que se le envíe la factura, ticket fiscal o comprobante oficial de compra).
 
 Responde ÚNICAMENTE con el JSON puro. Sin markdown.
 `;
@@ -170,7 +171,13 @@ Responde ÚNICAMENTE con el JSON puro. Sin markdown.
             }
         }
 
-        // 3. Actualizar el chatSummary
+        // 3. Evaluar si pidió Factura
+        if (parsed.invoiceRequested) {
+            console.log(`  🚨 [Ficha Inteligente] Solicitud de Factura detectada para ${currentClientId}`);
+            await reportInvoiceRequest({ clientId: currentClientId });
+        }
+
+        // 4. Actualizar el chatSummary
         if (parsed.summary) {
             console.log(`  📝 [Ficha Inteligente] Actualizando resumen del chat.`);
             await prisma.whatsAppChat.update({

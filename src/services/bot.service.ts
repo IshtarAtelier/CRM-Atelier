@@ -147,12 +147,17 @@ export class BotService {
             message += `¡Te esperamos! Muchas gracias.\n`;
             message += `\n_La óptica mejor calificada en Google Business 5/5_`;
 
+            let formattedPhone = clientPhone.replace(/\D/g, '');
+            if (formattedPhone.length === 10) formattedPhone = '549' + formattedPhone;
+            else if (!formattedPhone.startsWith('549') && formattedPhone.startsWith('54')) formattedPhone = formattedPhone.replace(/^54/, '549');
+            else if (!formattedPhone.startsWith('549')) formattedPhone = `549${formattedPhone}`;
+
             // Send via internal WA server proxy
             const res = await fetchWa('/api/send', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ 
-                    chatId: `${clientPhone.replace(/\D/g, '')}@c.us`, 
+                    chatId: `${formattedPhone}@c.us`, 
                     message 
                 }),
             });
