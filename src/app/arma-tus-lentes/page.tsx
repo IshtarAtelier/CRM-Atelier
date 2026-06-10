@@ -12,7 +12,7 @@ export const metadata: Metadata = {
 };
 
 export default async function ArmaTusLentesPage() {
-  let dbProducts = [];
+  let dbProducts: any[] = [];
   try {
     dbProducts = await prisma.webProduct.findMany({
       where: { 

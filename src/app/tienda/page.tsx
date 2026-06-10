@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 };
 
 export default async function TiendaPage() {
-  let products = [];
+  let products: any[] = [];
   try {
     products = await prisma.product.findMany({
         where: {

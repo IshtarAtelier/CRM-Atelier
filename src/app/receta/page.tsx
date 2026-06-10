@@ -47,8 +47,8 @@ export default async function RecetaPage({ searchParams }: { searchParams: Promi
   }
 
   // Execute Queries in parallel
-  let dbProducts = [];
-  let uniqueBrandsResult = [];
+  let dbProducts: any[] = [];
+  let uniqueBrandsResult: any[] = [];
   try {
     const [pRes, bRes] = await Promise.all([
       prisma.webProduct.findMany({

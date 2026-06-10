@@ -722,6 +722,8 @@ async function reportInvoiceRequest({ clientId }) {
                 subject: `URGENCIA: Solicitud de Factura - ${client.name || 'Desconocido'}`,
                 text: `El cliente ${client.name || 'Desconocido'} (Tel: ${client.phone}) acaba de solicitar su factura o ticket fiscal.\n\nFicha en CRM: ${crmLink}`
             }).catch(e => console.error("Error enviando email de factura:", e.message));
+        } else {
+            console.warn("⚠️ Advertencia: No se pudo enviar el email de factura porque faltan las credenciales EMAIL_USER y EMAIL_PASS en el entorno (.env).");
         }
 
         // 3. Registrar Nota en CRM

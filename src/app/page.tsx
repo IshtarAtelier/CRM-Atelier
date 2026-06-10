@@ -28,7 +28,7 @@ const PRODUCTS = [
 
 export default async function Home() {
   // 1. Server-Side Data Fetching from WebProduct to get Goddess names and slugs
-  let dbWebProducts = [];
+  let dbWebProducts: any[] = [];
   try {
     dbWebProducts = await prisma.webProduct.findMany({
       where: {
