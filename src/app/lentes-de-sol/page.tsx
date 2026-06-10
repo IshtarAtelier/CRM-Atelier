@@ -48,18 +48,26 @@ export default async function LentesDeSolPage({ searchParams }: { searchParams: 
   }
 
   // Execute Queries in parallel
-  const [dbProducts, uniqueBrandsResult] = await Promise.all([
-    prisma.webProduct.findMany({
-      where: whereClause,
-      include: { product: true },
-      orderBy: orderBy
-    }),
-    // Prisma doesn't support distinct easily on nested relations, so we fetch all active sol products to extract brands
-    prisma.webProduct.findMany({
-      where: { category: { contains: "Sol", mode: "insensitive" }, isActive: true },
-      include: { product: { select: { brand: true, model: true } } }
-    })
-  ]);
+  let dbProducts = [];
+  let uniqueBrandsResult = [];
+  try {
+    const [pRes, bRes] = await Promise.all([
+      prisma.webProduct.findMany({
+        where: whereClause,
+        include: { product: true },
+        orderBy: orderBy
+      }),
+      // Prisma doesn't support distinct easily on nested relations, so we fetch all active sol products to extract brands
+      prisma.webProduct.findMany({
+        where: { category: { contains: "Sol", mode: "insensitive" }, isActive: true },
+        include: { product: { select: { brand: true, model: true } } }
+      })
+    ]);
+    dbProducts = pRes;
+    uniqueBrandsResult = bRes;
+  } catch (error) {
+    console.error("Prerendering warning: Database not reachable at build time on Lentes de Sol page.", error);
+  }
 
   // Extract distinct brands
   const brandsSet = new Set<string>();

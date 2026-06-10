@@ -10,28 +10,33 @@ export const metadata: Metadata = {
 };
 
 export default async function TiendaPage() {
-  const products = await prisma.product.findMany({
-      where: {
-          publishToWeb: true,
-          category: { not: 'Cristal' }
-      },
-      select: {
-          id: true,
-          name: true,
-          brand: true,
-          model: true,
-          category: true,
-          price: true,
-          stock: true,
-          imagenesCatalogo: true,
-          lensWidth: true,
-          bridgeWidth: true,
-          templeLength: true,
-          frameHeight: true,
-      },
-      orderBy: { createdAt: 'desc' },
-      take: 40
-  });
+  let products = [];
+  try {
+    products = await prisma.product.findMany({
+        where: {
+            publishToWeb: true,
+            category: { not: 'Cristal' }
+        },
+        select: {
+            id: true,
+            name: true,
+            brand: true,
+            model: true,
+            category: true,
+            price: true,
+            stock: true,
+            imagenesCatalogo: true,
+            lensWidth: true,
+            bridgeWidth: true,
+            templeLength: true,
+            frameHeight: true,
+        },
+        orderBy: { createdAt: 'desc' },
+        take: 40
+    });
+  } catch (error) {
+    console.error("Prerendering warning: Database not reachable at build time. Using empty list.", error);
+  }
 
   return <TiendaClient initialProducts={products as any} />;
 }

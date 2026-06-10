@@ -12,15 +12,20 @@ export const metadata: Metadata = {
 };
 
 export default async function ArmaTusLentesPage() {
-  const dbProducts = await prisma.webProduct.findMany({
-    where: { 
-      category: { contains: "Receta", mode: "insensitive" },
-      isActive: true,
-      product: { stock: { gt: 0 } }
-    },
-    include: { product: true },
-    orderBy: [{ isFeatured: 'desc' }, { createdAt: 'desc' }]
-  });
+  let dbProducts = [];
+  try {
+    dbProducts = await prisma.webProduct.findMany({
+      where: { 
+        category: { contains: "Receta", mode: "insensitive" },
+        isActive: true,
+        product: { stock: { gt: 0 } }
+      },
+      include: { product: true },
+      orderBy: [{ isFeatured: 'desc' }, { createdAt: 'desc' }]
+    });
+  } catch (error) {
+    console.error("Prerendering warning: Database not reachable at build time on Arma Tus Lentes page.", error);
+  }
 
   const products = dbProducts.map(wp => ({
     id: wp.product.id,

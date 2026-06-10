@@ -28,20 +28,25 @@ const PRODUCTS = [
 
 export default async function Home() {
   // 1. Server-Side Data Fetching from WebProduct to get Goddess names and slugs
-  const dbWebProducts = await prisma.webProduct.findMany({
-    where: {
-      isActive: true,
-      product: {
-        publishToWeb: true,
-        category: { not: 'Cristal' }
-      }
-    },
-    include: {
-      product: true
-    },
-    orderBy: { createdAt: 'desc' },
-    take: 40
-  });
+  let dbWebProducts = [];
+  try {
+    dbWebProducts = await prisma.webProduct.findMany({
+      where: {
+        isActive: true,
+        product: {
+          publishToWeb: true,
+          category: { not: 'Cristal' }
+        }
+      },
+      include: {
+        product: true
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 40
+    });
+  } catch (error) {
+    console.error("Prerendering warning: Database not reachable at build time. Using fallbacks.", error);
+  }
 
   // Formateamos los productos para el carrusel
   const displayProducts = dbWebProducts.length > 0 

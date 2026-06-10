@@ -47,17 +47,25 @@ export default async function RecetaPage({ searchParams }: { searchParams: Promi
   }
 
   // Execute Queries in parallel
-  const [dbProducts, uniqueBrandsResult] = await Promise.all([
-    prisma.webProduct.findMany({
-      where: whereClause,
-      include: { product: true },
-      orderBy: orderBy
-    }),
-    prisma.webProduct.findMany({
-      where: { category: { contains: "Receta", mode: "insensitive" }, isActive: true },
-      include: { product: { select: { brand: true, model: true } } }
-    })
-  ]);
+  let dbProducts = [];
+  let uniqueBrandsResult = [];
+  try {
+    const [pRes, bRes] = await Promise.all([
+      prisma.webProduct.findMany({
+        where: whereClause,
+        include: { product: true },
+        orderBy: orderBy
+      }),
+      prisma.webProduct.findMany({
+        where: { category: { contains: "Receta", mode: "insensitive" }, isActive: true },
+        include: { product: { select: { brand: true, model: true } } }
+      })
+    ]);
+    dbProducts = pRes;
+    uniqueBrandsResult = bRes;
+  } catch (error) {
+    console.error("Prerendering warning: Database not reachable at build time on Receta page.", error);
+  }
 
   // Extract distinct brands
   const brandsSet = new Set<string>();

@@ -25,71 +25,76 @@ async function getProduct(slug: string) {
     return DEMO_PRODUCT;
   }
 
-  // 1) Intentar por WebProduct.slug o productId
-  const webProduct = await prisma.webProduct.findFirst({
-    where: { 
-      OR: [
-        { slug },
-        { productId: slug }
-      ]
-    },
-    include: { product: true }
-  });
+  try {
+    // 1) Intentar por WebProduct.slug o productId
+    const webProduct = await prisma.webProduct.findFirst({
+      where: { 
+        OR: [
+          { slug },
+          { productId: slug }
+        ]
+      },
+      include: { product: true }
+    });
 
-  if (webProduct && webProduct.isActive) {
+    if (webProduct && webProduct.isActive) {
+      return {
+        id: webProduct.product.id,
+        brand: webProduct.product.brand || 'Atelier',
+        model: webProduct.name || webProduct.product.model || '',
+        modelCode: webProduct.product.model,
+        price: webProduct.product.price,
+        stock: webProduct.product.stock,
+        imagenesCatalogo: webProduct.images.length > 0 ? webProduct.images : webProduct.product.imagenesCatalogo,
+        category: webProduct.category,
+        description: webProduct.description,
+        slug: webProduct.slug,
+        lensWidth: webProduct.product.lensWidth,
+        bridgeWidth: webProduct.product.bridgeWidth,
+        templeLength: webProduct.product.templeLength,
+        frameHeight: webProduct.product.frameHeight,
+        seoTitle: webProduct.product.seoTitle,
+        seoDescription: webProduct.product.seoDescription,
+        seoTags: webProduct.product.seoTags,
+        mpn: webProduct.product.mpn,
+        gender: webProduct.product.gender,
+        ageGroup: webProduct.product.ageGroup,
+      };
+    }
+
+    // 2) Fallback: buscar directamente por Product.id (para links del catálogo que usan el id)
+    const product = await prisma.product.findUnique({
+      where: { id: slug },
+    });
+
+    if (!product) return null;
+
     return {
-      id: webProduct.product.id,
-      brand: webProduct.product.brand || 'Atelier',
-      model: webProduct.name || webProduct.product.model || '',
-      modelCode: webProduct.product.model,
-      price: webProduct.product.price,
-      stock: webProduct.product.stock,
-      imagenesCatalogo: webProduct.images.length > 0 ? webProduct.images : webProduct.product.imagenesCatalogo,
-      category: webProduct.category,
-      description: webProduct.description,
-      slug: webProduct.slug,
-      lensWidth: webProduct.product.lensWidth,
-      bridgeWidth: webProduct.product.bridgeWidth,
-      templeLength: webProduct.product.templeLength,
-      frameHeight: webProduct.product.frameHeight,
-      seoTitle: webProduct.product.seoTitle,
-      seoDescription: webProduct.product.seoDescription,
-      seoTags: webProduct.product.seoTags,
-      mpn: webProduct.product.mpn,
-      gender: webProduct.product.gender,
-      ageGroup: webProduct.product.ageGroup,
+      id: product.id,
+      brand: product.brand || 'Atelier',
+      model: product.model || 'Sin modelo',
+      modelCode: product.model,
+      price: product.price,
+      stock: product.stock,
+      imagenesCatalogo: product.imagenesCatalogo,
+      category: product.category || 'Receta',
+      description: null,
+      slug: product.id,
+      lensWidth: product.lensWidth,
+      bridgeWidth: product.bridgeWidth,
+      templeLength: product.templeLength,
+      frameHeight: product.frameHeight,
+      seoTitle: product.seoTitle,
+      seoDescription: product.seoDescription,
+      seoTags: product.seoTags,
+      mpn: product.mpn,
+      gender: product.gender,
+      ageGroup: product.ageGroup,
     };
+  } catch (error) {
+    console.error("Prerendering warning: Database not reachable at build time inside getProduct.", error);
+    return null;
   }
-
-  // 2) Fallback: buscar directamente por Product.id (para links del catálogo que usan el id)
-  const product = await prisma.product.findUnique({
-    where: { id: slug },
-  });
-
-  if (!product) return null;
-
-  return {
-    id: product.id,
-    brand: product.brand || 'Atelier',
-    model: product.model || 'Sin modelo',
-    modelCode: product.model,
-    price: product.price,
-    stock: product.stock,
-    imagenesCatalogo: product.imagenesCatalogo,
-    category: product.category || 'Receta',
-    description: null,
-    slug: product.id,
-    lensWidth: product.lensWidth,
-    bridgeWidth: product.bridgeWidth,
-    templeLength: product.templeLength,
-    frameHeight: product.frameHeight,
-    seoTitle: product.seoTitle,
-    seoDescription: product.seoDescription,
-    seoTags: product.seoTags,
-    mpn: product.mpn,
-    gender: product.gender,
-    ageGroup: product.ageGroup,
-  };
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
