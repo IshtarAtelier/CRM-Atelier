@@ -161,16 +161,33 @@ export function TiendaClient({ initialProducts }: { initialProducts: any[] }) {
                     </div>
 
                     {/* Info */}
-                    <div className="flex items-start justify-between gap-2">
-                      <div>
-                        <h3 className="text-[12px] font-bold text-stone-900 leading-tight group-hover:text-black transition-colors">
-                          {p.brand}
-                        </h3>
-                        <p className="text-[12px] text-stone-500 leading-tight">{p.model}</p>
+                    <div className="flex flex-col gap-2 mt-4 px-1">
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <h3 className="text-[12px] font-bold text-stone-900 leading-tight group-hover:text-black transition-colors">
+                            {p.name || p.model}
+                          </h3>
+                          <p className="text-[10px] text-stone-400 font-semibold uppercase tracking-wider mt-0.5">{p.model}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-[13px] font-bold text-stone-900 shrink-0">
+                            ${p.price?.toLocaleString("es-AR")}
+                          </p>
+                          <p className="text-[9px] text-stone-455 font-semibold uppercase leading-tight">Lista</p>
+                        </div>
                       </div>
-                      <p className="text-[12px] font-bold text-stone-900 shrink-0">
-                        ${p.price?.toLocaleString("es-AR")}
-                      </p>
+
+                      {/* Payment Options compact list */}
+                      <div className="border-t border-stone-100/80 pt-2 flex flex-col gap-1 text-[10px]">
+                        <div className="flex justify-between items-center">
+                          <span className="text-stone-400 font-medium">Efectivo / Transf. (-15%)</span>
+                          <span className="font-extrabold text-stone-800">${Math.round(p.price * 0.85).toLocaleString("es-AR")}</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-stone-400 font-medium">6 cuotas sin interés de</span>
+                          <span className="font-extrabold text-violet-700">${Math.round(p.price / 6).toLocaleString("es-AR")}</span>
+                        </div>
+                      </div>
                     </div>
                   </Link>
                 );

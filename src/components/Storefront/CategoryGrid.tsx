@@ -93,12 +93,25 @@ export function CategoryGrid({ products, emptyMessage = "Estamos actualizando nu
 
               <div className="flex flex-col flex-1 px-1">
                 <h3 className="text-xs text-stone-500 font-bold uppercase tracking-widest mb-1">{p.brand}</h3>
-                <h2 className="text-lg font-serif tracking-tight text-stone-900 dark:text-white mb-2 leading-tight flex-1">{p.model}</h2>
+                <h2 className="text-lg font-serif tracking-tight text-stone-900 dark:text-white mb-1 leading-tight flex-1">{p.model}</h2>
+                <p className="text-[10px] text-stone-400 font-semibold uppercase tracking-wider mb-2">{p.modelCode || ''}</p>
                 <div className="flex items-end justify-between mt-auto">
-                  <p className="text-base font-light tracking-tight text-black dark:text-white">
-                    ${(p.price || 0).toLocaleString()}
+                  <p className="text-sm font-bold text-stone-900 dark:text-white">
+                    ${(p.price || 0).toLocaleString("es-AR")} <span className="text-[9px] text-stone-400 font-medium uppercase">Lista</span>
                   </p>
-                  <span className="text-[10px] text-stone-400 uppercase tracking-wider font-medium">Ver detalles</span>
+                  <span className="text-[10px] text-stone-450 uppercase tracking-wider font-medium">Ver detalles</span>
+                </div>
+
+                {/* Payment Options compact list */}
+                <div className="border-t border-stone-100 dark:border-stone-850 pt-2 mt-2 flex flex-col gap-1 text-[10px]">
+                  <div className="flex justify-between items-center">
+                    <span className="text-stone-400 font-medium">Efectivo / Transf. (-15%)</span>
+                    <span className="font-extrabold text-stone-800 dark:text-stone-200">${Math.round((p.price || 0) * 0.85).toLocaleString("es-AR")}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-stone-400 font-medium">6 cuotas sin interés de</span>
+                    <span className="font-extrabold text-violet-750 dark:text-violet-400">${Math.round((p.price || 0) / 6).toLocaleString("es-AR")}</span>
+                  </div>
                 </div>
               </div>
             </Link>
