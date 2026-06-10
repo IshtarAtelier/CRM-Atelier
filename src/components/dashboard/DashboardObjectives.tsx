@@ -12,6 +12,63 @@ interface DashboardObjectivesProps {
   periodLabel: string;
 }
 
+// Helper functions for business days calculation
+function countBusinessDays(startDate: Date, endDate: Date): number {
+  let count = 0;
+  const curDate = new Date(startDate.getTime());
+  curDate.setHours(0, 0, 0, 0);
+  const normalizedEnd = new Date(endDate.getTime());
+  normalizedEnd.setHours(0, 0, 0, 0);
+
+  while (curDate <= normalizedEnd) {
+    const dayOfWeek = curDate.getDay();
+    if (dayOfWeek !== 0 && dayOfWeek !== 6) { // 0 is Sunday, 6 is Saturday
+      count++;
+    }
+    curDate.setDate(curDate.getDate() + 1);
+  }
+  return count;
+}
+
+function getPeriodMonthAndYear(periodLabel: string): { year: number; month: number; isCurrent: boolean; day: number } {
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth(); // 0-indexed
+  const currentDay = now.getDate();
+
+  if (!periodLabel || periodLabel === 'Este Mes') {
+    return { year: currentYear, month: currentMonth, isCurrent: true, day: currentDay };
+  }
+
+  if (periodLabel === 'Mes Anterior') {
+    const prevMonthDate = new Date(currentYear, currentMonth - 1, 1);
+    const lastDayOfPrevMonth = new Date(currentYear, currentMonth, 0).getDate();
+    return {
+      year: prevMonthDate.getFullYear(),
+      month: prevMonthDate.getMonth(),
+      isCurrent: false,
+      day: lastDayOfPrevMonth
+    };
+  }
+
+  // Handle case where it might be a date range string or format like "YYYY-MM-DD"
+  const rangeMatch = periodLabel.match(/(\d{4})-(\d{2})-(\d{2})/);
+  if (rangeMatch) {
+    const year = parseInt(rangeMatch[1], 10);
+    const month = parseInt(rangeMatch[2], 10) - 1; // 0-indexed
+    const isCurrent = (year === currentYear && month === currentMonth);
+    const lastDay = new Date(year, month + 1, 0).getDate();
+    return {
+      year,
+      month,
+      isCurrent,
+      day: isCurrent ? currentDay : lastDay
+    };
+  }
+
+  return { year: currentYear, month: currentMonth, isCurrent: true, day: currentDay };
+}
+
 export default function DashboardObjectives({
   currentTotal,
   targets,
@@ -55,20 +112,25 @@ export default function DashboardObjectives({
 
   const toUSD = (ars: number) => (dolarBlue && ars) ? (ars / dolarBlue) : null;
 
-  // Pace / Projection Logic
-  const now = new Date();
-  const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-  const currentDay = Math.max(now.getDate(), 1);
-  const daysRemaining = Math.max(daysInMonth - currentDay, 0);
-  
-  const paceTotal = (currentTotal / currentDay) * daysInMonth;
-  const expectedPacePct = (currentDay / daysInMonth) * 100;
+  // Pace / Projection Logic using Business Days
+  const { year, month, isCurrent, day } = getPeriodMonthAndYear(periodLabel);
+  const totalBusinessDays = countBusinessDays(
+    new Date(year, month, 1),
+    new Date(year, month + 1, 0)
+  );
+  const elapsedBusinessDays = isCurrent
+    ? Math.max(countBusinessDays(new Date(year, month, 1), new Date(year, month, day)), 1)
+    : totalBusinessDays;
+  const remainingBusinessDays = Math.max(totalBusinessDays - elapsedBusinessDays, 0);
+
+  const paceTotal = (currentTotal / elapsedBusinessDays) * totalBusinessDays;
+  const expectedPacePct = (elapsedBusinessDays / totalBusinessDays) * 100;
   const paceStatus = paceTotal >= t1 ? 'EXCELENTE' : paceTotal >= (t1 * 0.8) ? 'EN CAMINO' : 'CONSTRUYENDO';
 
   const getDailyRequired = (target: number) => {
     const remaining = target - currentTotal;
     if (remaining <= 0) return 0;
-    return remaining / Math.max(daysRemaining, 1);
+    return remaining / Math.max(remainingBusinessDays, 1);
   };
 
   const formatCurrency = (val: number) => val.toLocaleString('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 });
@@ -124,8 +186,8 @@ export default function DashboardObjectives({
               </div>
             )}
             <div className="bg-primary/10 backdrop-blur-md px-5 py-3 rounded-2xl border border-primary/20 flex flex-col">
-              <span className="text-[9px] font-black uppercase tracking-widest text-primary/70">Días Restantes</span>
-              <span className="text-xl font-black text-white leading-none mt-1">{daysRemaining} <span className="text-[10px] text-white/50">/ {daysInMonth}</span></span>
+              <span className="text-[9px] font-black uppercase tracking-widest text-primary/70">Días Hábiles Restantes</span>
+              <span className="text-xl font-black text-white leading-none mt-1">{remainingBusinessDays} <span className="text-[10px] text-white/50">/ {totalBusinessDays}</span></span>
             </div>
             {isAdmin && (
               <button 
@@ -209,6 +271,8 @@ export default function DashboardObjectives({
             color="base"
             expected={expectedPacePct}
             isAdmin={isAdmin}
+            totalBusinessDays={totalBusinessDays}
+            elapsedBusinessDays={elapsedBusinessDays}
           />
 
           {/* Stretch Goal */}
@@ -224,6 +288,8 @@ export default function DashboardObjectives({
             color="stretch"
             expected={expectedPacePct}
             isAdmin={isAdmin}
+            totalBusinessDays={totalBusinessDays}
+            elapsedBusinessDays={elapsedBusinessDays}
           />
 
           {/* Elite Goal */}
@@ -240,6 +306,8 @@ export default function DashboardObjectives({
             expected={expectedPacePct}
             isAdmin={isAdmin}
             isElite
+            totalBusinessDays={totalBusinessDays}
+            elapsedBusinessDays={elapsedBusinessDays}
           />
         </div>
       </div>
@@ -299,7 +367,22 @@ export default function DashboardObjectives({
   );
 }
 
-function ObjectiveCard({ title, subtitle, target, progress, current, dolar, daily, icon: Icon, color, expected, isAdmin, isElite }: any) {
+function ObjectiveCard({ 
+  title, 
+  subtitle, 
+  target, 
+  progress, 
+  current, 
+  dolar, 
+  daily, 
+  icon: Icon, 
+  color, 
+  expected, 
+  isAdmin, 
+  isElite,
+  totalBusinessDays,
+  elapsedBusinessDays
+}: any) {
   const isAhead = progress >= expected;
   
   const colorClasses: any = {
@@ -321,6 +404,9 @@ function ObjectiveCard({ title, subtitle, target, progress, current, dolar, dail
     e.currentTarget.style.setProperty('--mouse-x', `${x}px`);
     e.currentTarget.style.setProperty('--mouse-y', `${y}px`);
   };
+
+  const dailyTarget = target / totalBusinessDays;
+  const weeklyTarget = dailyTarget * 5;
 
   return (
     <motion.div 
@@ -370,6 +456,22 @@ function ObjectiveCard({ title, subtitle, target, progress, current, dolar, dail
         )}
       </div>
 
+      {/* Reference Targets */}
+      <div className="grid grid-cols-2 gap-4 mb-6 p-3.5 bg-white/[0.02] border border-white/5 rounded-2xl">
+        <div className="space-y-0.5">
+          <span className="text-[9px] font-black uppercase tracking-widest text-stone-500 block">Objetivo del Día</span>
+          <span className="text-sm font-black text-stone-200">
+            ${Math.round(dailyTarget).toLocaleString()}
+          </span>
+        </div>
+        <div className="space-y-0.5">
+          <span className="text-[9px] font-black uppercase tracking-widest text-stone-500 block">Objetivo de la Semana</span>
+          <span className="text-sm font-black text-stone-200">
+            ${Math.round(weeklyTarget).toLocaleString()}
+          </span>
+        </div>
+      </div>
+
       {/* Progress Section */}
       <div className="space-y-3 mb-8">
         <div className="flex justify-between items-end">
@@ -401,6 +503,93 @@ function ObjectiveCard({ title, subtitle, target, progress, current, dolar, dail
           </div>
         </div>
       </div>
+
+      {/* Weekly Milestones Progress Timeline */}
+      {(() => {
+        const milestones = [
+          { label: 'Sem 1', days: 5 },
+          { label: 'Sem 2', days: 10 },
+          { label: 'Sem 3', days: 15 },
+          { label: 'Sem 4', days: 20 },
+        ];
+        if (totalBusinessDays > 20) {
+          milestones.push({ label: 'Sem 5', days: totalBusinessDays });
+        }
+
+        // Find active milestone index in terms of days elapsed
+        let activeIndex = -1;
+        for (let i = 0; i < milestones.length; i++) {
+          const prevDays = i === 0 ? 0 : milestones[i - 1].days;
+          if (elapsedBusinessDays > prevDays && elapsedBusinessDays <= milestones[i].days) {
+            activeIndex = i;
+            break;
+          }
+        }
+        if (activeIndex === -1 && elapsedBusinessDays > 0) {
+          activeIndex = milestones.length - 1;
+        }
+
+        return (
+          <div className="mt-4 pt-4 border-t border-white/5 space-y-3">
+            <div className="flex justify-between items-center">
+              <span className="text-[9px] font-black uppercase tracking-widest text-stone-500">Hitos Semanales</span>
+              <span className="text-[9px] font-bold text-stone-500 uppercase">Progreso Acumulado</span>
+            </div>
+            
+            <div className="relative py-2 flex items-center justify-between">
+              {/* Timeline Connector Line */}
+              <div className="absolute left-3 right-3 top-[18px] h-[3px] bg-white/5 rounded-full z-0">
+                <div 
+                  className={`h-full rounded-full transition-all duration-500 ${
+                    progress >= 100 
+                      ? 'bg-emerald-500/50' 
+                      : color === 'elite' 
+                        ? 'bg-[#e8dccf]/30' 
+                        : color === 'stretch' 
+                          ? 'bg-[#d4bca6]/30' 
+                          : 'bg-[#c2a38a]/30'
+                  }`}
+                  style={{ width: `${progress}%` }}
+                />
+              </div>
+              
+              {/* Milestones Dots */}
+              {milestones.map((ms, idx) => {
+                const msTarget = dailyTarget * ms.days;
+                const isCompleted = current >= msTarget;
+                const isActiveWeek = idx === activeIndex;
+                
+                return (
+                  <div key={ms.label} className="relative flex flex-col items-center z-10 group/ms">
+                    {/* Circle */}
+                    <div 
+                      className={`w-6 h-6 rounded-full flex items-center justify-center transition-all duration-300 text-[9px] font-black cursor-pointer ${
+                        isCompleted 
+                          ? 'bg-emerald-500 text-white shadow-[0_0_10px_rgba(52,211,153,0.5)] border border-emerald-400' 
+                          : isActiveWeek 
+                            ? 'bg-stone-900 border-2 border-[#c2a38a] text-[#c2a38a] animate-pulse shadow-[0_0_8px_rgba(194,163,138,0.3)]' 
+                            : 'bg-stone-900 border border-white/10 text-stone-500 hover:border-white/20'
+                      }`}
+                    >
+                      {isCompleted ? '✓' : idx + 1}
+                    </div>
+                    
+                    {/* Week Label */}
+                    <span className="text-[8px] font-black uppercase tracking-wider text-stone-500 mt-1.5">
+                      {ms.label}
+                    </span>
+
+                    {/* Hover Tooltip */}
+                    <div className="absolute bottom-8 scale-75 group-hover/ms:scale-100 opacity-0 pointer-events-none group-hover/ms:opacity-100 transition-all duration-300 bg-stone-950 text-white text-[9px] font-bold py-1.5 px-2.5 rounded-xl shadow-xl border border-white/10 whitespace-nowrap z-30">
+                      Meta acum.: ${Math.round(msTarget).toLocaleString()}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Footer Info */}
       <div className="pt-6 border-t border-white/5 space-y-4">
