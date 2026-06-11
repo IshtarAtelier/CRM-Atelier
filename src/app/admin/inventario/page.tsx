@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { Plus, Search, Package, Loader2, AlertCircle, ArrowUpRight, Trash2, ShoppingBag, CheckSquare, Square, X, Pencil, Save, Download, Upload, CheckCircle2, Zap, Camera, Clock, Palette } from "lucide-react";
 import { Product } from '@/hooks/useProducts';
 import ProductForm from '@/components/inventory/ProductForm';
+import { resolveStorageUrl } from '@/lib/utils/storage';
 import LabPriceImporter from '@/components/inventory/LabPriceImporter';
 import AIImageUploader from '@/components/inventory/AIImageUploader';
 import PhotoStudio from '@/components/inventory/PhotoStudio';
@@ -678,7 +679,7 @@ export default function InventarioPage() {
                                     </div>
                                     <div className="flex items-center gap-3 min-w-0 py-1">
                                         {(() => {
-                                            const imgUrl = p.imagenesCatalogo?.[0] || p.rawImageUrls?.[0];
+                                            const imgUrl = resolveStorageUrl(p.imagenesCatalogo?.[0] || p.rawImageUrls?.[0] || null);
                                             if (imgUrl) {
                                                 return (
                                                     <img 

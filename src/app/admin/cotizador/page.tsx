@@ -29,6 +29,7 @@ import {
 import { useRouter, useSearchParams } from 'next/navigation';
 // import { toast } from 'sonner';
 import CotizadorCart from '@/components/quotes/CotizadorCart';
+import { resolveStorageUrl } from '@/lib/utils/storage';
 import QuoteSummary from '@/components/quotes/QuoteSummary';
 import { 
     isCrystal, 
@@ -721,7 +722,7 @@ function CotizadorPageContent() {
                                                     >
                                                         <div className="flex items-center gap-3 min-w-0 flex-1">
                                                             {(() => {
-                                                                 const imgUrl = product.imagenesCatalogo?.[0] || product.rawImageUrls?.[0];
+                                                                 const imgUrl = resolveStorageUrl(product.imagenesCatalogo?.[0] || product.rawImageUrls?.[0] || null);
                                                                  if (imgUrl) {
                                                                      return (
                                                                          <img 

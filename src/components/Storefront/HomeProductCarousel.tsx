@@ -101,8 +101,8 @@ export function HomeProductCarousel({ products }: Props) {
                   src={item.img}
                   alt={item.name}
                   fill
-                  unoptimized={true}
-                  loading="eager"
+                  priority={i < 2}
+                  loading={i < 4 ? 'eager' : 'lazy'}
                   style={{ transform: "translateZ(0)" }}
                   sizes="(max-width: 768px) 45vw, (max-width: 1024px) 33vw, 25vw"
                   className="object-contain p-6 mix-blend-multiply "

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
-import { headers } from "next/headers";
+import { Geist } from "next/font/google";
+import Script from "next/script";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -8,10 +8,7 @@ const geistSans = Geist({
   subsets: ["latin"],
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://www.atelieroptica.com.ar'),
@@ -37,6 +34,12 @@ export const metadata: Metadata = {
       },
     ],
   },
+  twitter: {
+    card: "summary_large_image",
+    title: "Atelier Óptica Córdoba | Cuidado Visual Personalizado",
+    description: "Somos ópticos creativos con una sola pasión: Cuidar tu salud visual ofreciendo los mejores diseños de anteojos.",
+    images: ["/images/og-image.jpg"],
+  },
   manifest: "/manifest.json",
   icons: {
     icon: "/assets/logo-pwa-192.png",
@@ -55,18 +58,17 @@ export default function RootLayout({
   return (
     <html lang="es">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased selection:bg-primary/30`}
+        className={`${geistSans.variable} antialiased selection:bg-primary/30`}
       >
         <div className="min-h-screen bg-background text-foreground">
           {children}
         </div>
         <TrackingScripts />
-        <script dangerouslySetInnerHTML={{
-          __html: `
+        <Script strategy="afterInteractive" id="sw-register">{`
           if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('/sw.js').catch(() => {});
           }
-        `}} />
+        `}</Script>
       </body>
     </html>
   );
