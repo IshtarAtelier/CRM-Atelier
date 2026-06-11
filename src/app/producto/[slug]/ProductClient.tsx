@@ -46,7 +46,7 @@ export function ProductClient({ product }: { product: any }) {
         <div className="w-full lg:w-[60%] bg-white relative flex items-center justify-center p-0 lg:p-12 min-h-[50vh] lg:h-screen lg:sticky lg:top-0 border-r border-[#e5e5e5] overflow-hidden group">
           
           <div className="absolute inset-0 flex flex-col justify-center items-center opacity-[0.03] pointer-events-none overflow-hidden select-none">
-            <h1 className="text-[15vw] leading-none font-bold tracking-tighter whitespace-nowrap">{product.brand}</h1>
+            <div className="text-[15vw] leading-none font-bold tracking-tighter whitespace-nowrap">{product.brand}</div>
             <h2 className="text-[10vw] leading-none font-medium tracking-tight whitespace-nowrap">{product.model}</h2>
           </div>
 

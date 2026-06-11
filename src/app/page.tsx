@@ -63,8 +63,92 @@ export default async function Home() {
       }))
     : PRODUCTS;
 
+  const organizationSchema = {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    "name": "Atelier Óptica",
+    "url": "https://www.atelieroptica.com.ar",
+    "logo": "https://www.atelieroptica.com.ar/assets/logo-pwa-512.png",
+    "sameAs": [
+      "https://www.instagram.com/atelier.optica/",
+      "https://maps.app.goo.gl/atelieroptica"
+    ],
+    "contactPoint": {
+      "@type": "ContactPoint",
+      "telephone": "+54-351-574-2741",
+      "contactType": "customer service",
+      "availableLanguage": "Spanish"
+    }
+  };
+
+  const localBusinessSchema = {
+    "@context": "https://schema.org",
+    "@type": "Optician",
+    "name": "Atelier Óptica",
+    "image": "https://www.atelieroptica.com.ar/assets/logo-pwa-512.png",
+    "url": "https://www.atelieroptica.com.ar",
+    "telephone": "+54-351-574-2741",
+    "address": {
+      "@type": "PostalAddress",
+      "streetAddress": "Rafael Núñez 4566",
+      "addressLocality": "Cerro de las Rosas, Córdoba",
+      "addressRegion": "Córdoba",
+      "postalCode": "5009",
+      "addressCountry": "AR"
+    },
+    "geo": {
+      "@type": "GeoCoordinates",
+      "latitude": -31.3796,
+      "longitude": -64.2443
+    },
+    "openingHoursSpecification": [
+      {
+        "@type": "OpeningHoursSpecification",
+        "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
+        "opens": "09:30",
+        "closes": "13:00"
+      },
+      {
+        "@type": "OpeningHoursSpecification",
+        "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
+        "opens": "16:30",
+        "closes": "20:30"
+      },
+      {
+        "@type": "OpeningHoursSpecification",
+        "dayOfWeek": "Saturday",
+        "opens": "09:30",
+        "closes": "13:00"
+      }
+    ],
+    "aggregateRating": {
+      "@type": "AggregateRating",
+      "ratingValue": "5.0",
+      "reviewCount": "89"
+    },
+    "sameAs": [
+      "https://www.instagram.com/atelier.optica/",
+      "https://maps.app.goo.gl/atelieroptica"
+    ]
+  };
+
+  const webSiteSchema = {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "name": "Atelier Óptica",
+    "url": "https://www.atelieroptica.com.ar",
+    "potentialAction": {
+      "@type": "SearchAction",
+      "target": "https://www.atelieroptica.com.ar/tienda?q={search_term}",
+      "query-input": "required name=search_term"
+    }
+  };
+
   return (
     <div className="bg-white text-black selection:bg-black selection:text-white overflow-x-hidden" style={{ fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif" }}>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationSchema) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(localBusinessSchema) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(webSiteSchema) }} />
       
       {/* ═══════════════════════════════════════════════ */}
       {/* NAV — Replica exacta de Gentle Monster          */}
@@ -75,6 +159,8 @@ export default async function Home() {
       {/* FILMMAKER REEL — Hero principal cinematográfico   */}
       {/* ═══════════════════════════════════════════════ */}
       <FilmmakerReel />
+
+      <h1 className="sr-only">Atelier Óptica Córdoba — Anteojos de Receta, Lentes de Sol y Multifocales</h1>
 
       {/* ═══════════════════════════════════════════════ */}
       {/* MARQUEE — Texto deslizante entre secciones      */}

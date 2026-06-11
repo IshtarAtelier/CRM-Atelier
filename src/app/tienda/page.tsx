@@ -7,6 +7,15 @@ export const revalidate = 300;
 export const metadata: Metadata = {
   title: 'Colección de Anteojos | Atelier Óptica',
   description: 'Descubrí nuestra colección completa de anteojos de diseño. Marcos premium seleccionados a mano.',
+  alternates: {
+    canonical: 'https://www.atelieroptica.com.ar/tienda',
+  },
+  openGraph: {
+    title: 'Colección de Anteojos | Atelier Óptica',
+    description: 'Descubrí nuestra colección completa de anteojos de diseño. Marcos premium seleccionados a mano.',
+    url: 'https://www.atelieroptica.com.ar/tienda',
+    type: 'website',
+  },
 };
 
 export default async function TiendaPage() {

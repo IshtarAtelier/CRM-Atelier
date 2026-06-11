@@ -1,6 +1,7 @@
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { prisma } from '@/lib/db';
+import { getProductAttributes } from '@/utils/product-controllers';
 
 export const revalidate = 300;
 import { ProductClient } from './ProductClient';
@@ -120,6 +121,9 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   return {
     title,
     description,
+    alternates: {
+      canonical: `https://www.atelieroptica.com.ar/producto/${product.slug}`,
+    },
     openGraph: {
       title,
       description,
@@ -131,7 +135,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
           alt: `${product.brand} ${product.model}`,
         },
       ],
-      type: 'website',
+      type: 'product' as const as any,
     },
     twitter: {
       card: "summary_large_image",
@@ -150,19 +154,37 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
     notFound();
   }
 
+  // Resolve all product images to absolute URLs
+  const resolveAbsolute = (url: string) => {
+    const resolved = resolveStorageUrl(url);
+    return resolved.startsWith('http') ? resolved : `https://www.atelieroptica.com.ar${resolved}`;
+  };
+
+  const allImages = product.imagenesCatalogo && product.imagenesCatalogo.length > 0
+    ? product.imagenesCatalogo.map(resolveAbsolute)
+    : [`https://www.atelieroptica.com.ar${(product as any).mockImage || '/images/og-image.jpg'}`];
+
+  // Extract color code from model name (e.g., "C1", "C2", "GLD")
+  const colorMatch = product.model?.match(/\(([^)]+)\)/) || product.model?.match(/\b(C\d+)\b/i);
+  const colorCode = colorMatch ? colorMatch[1] : undefined;
+
+  // Get material from product attributes
+  const { material } = getProductAttributes((product as any).modelCode || product.model);
+
   // Generar JSON-LD (Schema.org para Google Shopping / SEO)
   const jsonLd: any = {
     '@context': 'https://schema.org',
     '@type': 'Product',
     name: (product as any).seoTitle || `${product.brand} ${product.model}`,
-    image: product.imagenesCatalogo && product.imagenesCatalogo.length > 0 
-      ? (resolveStorageUrl(product.imagenesCatalogo[0]).startsWith('http') ? resolveStorageUrl(product.imagenesCatalogo[0]) : `https://www.atelieroptica.com.ar${resolveStorageUrl(product.imagenesCatalogo[0])}`)
-      : `https://www.atelieroptica.com.ar${(product as any).mockImage || '/images/og-image.jpg'}`,
+    image: allImages,
     description: (product as any).seoDescription || product.description || `Anteojos ${product.category} ${product.brand} ${product.model}.`,
+    sku: (product as any).id?.substring(0, 8).toUpperCase(),
     brand: {
       '@type': 'Brand',
       name: product.brand,
     },
+    category: product.category,
+    material: material,
     offers: {
       '@type': 'Offer',
       url: `https://www.atelieroptica.com.ar/producto/${product.slug}`,
@@ -177,6 +199,26 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
     },
   };
 
+  // Add color if extracted
+  if (colorCode) {
+    jsonLd.color = colorCode;
+  }
+
+  // Add measurement properties
+  const additionalProperty: any[] = [];
+  if ((product as any).lensWidth) {
+    additionalProperty.push({ '@type': 'PropertyValue', name: 'Ancho de lente', value: `${(product as any).lensWidth}mm` });
+  }
+  if ((product as any).bridgeWidth) {
+    additionalProperty.push({ '@type': 'PropertyValue', name: 'Ancho de puente', value: `${(product as any).bridgeWidth}mm` });
+  }
+  if ((product as any).templeLength) {
+    additionalProperty.push({ '@type': 'PropertyValue', name: 'Largo de patilla', value: `${(product as any).templeLength}mm` });
+  }
+  if (additionalProperty.length > 0) {
+    jsonLd.additionalProperty = additionalProperty;
+  }
+
   if ((product as any).mpn) {
     jsonLd.mpn = (product as any).mpn;
   }
@@ -188,11 +230,31 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
     };
   }
 
+  // BreadcrumbList JSON-LD
+  const categorySlugMap: Record<string, { name: string; path: string }> = {
+    'Receta': { name: 'Receta', path: '/receta' },
+    'Sol': { name: 'Lentes de Sol', path: '/lentes-de-sol' },
+  };
+  const catInfo = categorySlugMap[product.category || 'Receta'] || categorySlugMap['Receta'];
+  const breadcrumbLd = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Inicio', item: 'https://www.atelieroptica.com.ar' },
+      { '@type': 'ListItem', position: 2, name: catInfo.name, item: `https://www.atelieroptica.com.ar${catInfo.path}` },
+      { '@type': 'ListItem', position: 3, name: product.model },
+    ],
+  };
+
   return (
     <>
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }}
       />
       <ProductClient product={product} />
     </>

@@ -46,6 +46,14 @@ export const metadata: Metadata = {
     apple: "/assets/logo-pwa-512.png",
   },
   other: { "theme-color": "#c8a55c" },
+  alternates: {
+    canonical: 'https://www.atelieroptica.com.ar',
+  },
+  formatDetection: {
+    email: false,
+    address: false,
+    telephone: false,
+  },
 };
 
 import { TrackingScripts } from "@/components/Storefront/TrackingScripts";

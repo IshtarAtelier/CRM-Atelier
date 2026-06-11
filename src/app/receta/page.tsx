@@ -9,10 +9,20 @@ export const revalidate = 300;
 import { Glasses } from 'lucide-react';
 import { Suspense } from 'react';
 import { getProductAttributes } from '@/utils/product-controllers';
+import { resolveStorageUrl } from '@/lib/utils/storage';
 
 export const metadata: Metadata = {
   title: "Anteojos de Receta | Atelier Óptica Córdoba",
   description: "Armazones de receta de diseño. Encontrá el modelo perfecto para tus cristales monofocales o multifocales.",
+  alternates: {
+    canonical: 'https://www.atelieroptica.com.ar/receta',
+  },
+  openGraph: {
+    title: 'Anteojos de Receta | Atelier Óptica Córdoba',
+    description: 'Armazones de receta de diseño. Encontrá el modelo perfecto para tus cristales monofocales o multifocales.',
+    url: 'https://www.atelieroptica.com.ar/receta',
+    type: 'website',
+  },
 };
 
 export default async function RecetaPage({ searchParams }: { searchParams: Promise<{ [key: string]: string | string[] | undefined }> }) {
@@ -158,8 +168,38 @@ export default async function RecetaPage({ searchParams }: { searchParams: Promi
     filteredProducts = filteredProducts.filter(p => p.material.toLowerCase() === filterMaterial.toLowerCase());
   }
 
+  // CollectionPage JSON-LD
+  const collectionJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'CollectionPage',
+    name: 'Anteojos de Receta',
+    description: 'Armazones de receta de diseño. Encontrá el modelo perfecto para tus cristales monofocales o multifocales.',
+    url: 'https://www.atelieroptica.com.ar/receta',
+    mainEntity: {
+      '@type': 'ItemList',
+      numberOfItems: filteredProducts.length,
+      itemListElement: filteredProducts.slice(0, 20).map((p, i) => {
+        const img = p.imagenesCatalogo && p.imagenesCatalogo.length > 0
+          ? resolveStorageUrl(p.imagenesCatalogo[0])
+          : undefined;
+        const absoluteImg = img ? (img.startsWith('http') ? img : `https://www.atelieroptica.com.ar${img}`) : undefined;
+        return {
+          '@type': 'ListItem',
+          position: i + 1,
+          url: `https://www.atelieroptica.com.ar/producto/${p.slug}`,
+          name: `${p.brand} ${p.model}`,
+          ...(absoluteImg ? { image: absoluteImg } : {}),
+        };
+      }),
+    },
+  };
+
   return (
     <div className="min-h-screen bg-stone-50 dark:bg-stone-950 pb-20 flex flex-col">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(collectionJsonLd) }}
+      />
       <StorefrontNavbar theme="light" />
       
       <main className="flex-1 flex flex-col px-4 pt-32 pb-16 max-w-[1400px] mx-auto w-full">

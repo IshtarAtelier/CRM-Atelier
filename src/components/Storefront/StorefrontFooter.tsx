@@ -46,16 +46,16 @@ export function StorefrontFooter() {
           {/* Políticas Legales */}
           <div className="flex flex-col gap-3">
             <p className="text-[10px] uppercase tracking-widest font-bold text-stone-400 mb-2">Legales</p>
-            <Link href="/politicas" className="text-[13px] font-medium hover:opacity-60 transition-opacity">Cambios y Devoluciones</Link>
-            <Link href="/politicas" className="text-[13px] font-medium hover:opacity-60 transition-opacity">Términos y Condiciones</Link>
-            <Link href="/politicas" className="text-[13px] font-medium hover:opacity-60 transition-opacity">Políticas de Privacidad</Link>
+            <Link href="/politicas-de-cambio" className="text-[13px] font-medium hover:opacity-60 transition-opacity">Cambios y Devoluciones</Link>
+            <Link href="/politicas-de-cambio" className="text-[13px] font-medium hover:opacity-60 transition-opacity">Términos y Condiciones</Link>
+            <Link href="/politicas-de-cambio" className="text-[13px] font-medium hover:opacity-60 transition-opacity">Políticas de Privacidad</Link>
           </div>
 
           {/* Redes sociales */}
           <div className="flex flex-col gap-3">
             <p className="text-[10px] uppercase tracking-widest font-bold text-stone-400 mb-2">Social</p>
             <a href="https://instagram.com/atelieroptica_" target="_blank" rel="noopener noreferrer" className="text-[13px] font-medium hover:opacity-60 transition-opacity">Instagram</a>
-            <a href="https://youtube.com/@atelieroptica_" target="_blank" rel="noopener noreferrer" className="text-[13px] font-medium hover:opacity-60 transition-opacity">YouTube</a>
+            <a href="https://www.youtube.com/@atelieroptica" target="_blank" rel="noopener noreferrer" className="text-[13px] font-medium hover:opacity-60 transition-opacity">YouTube</a>
             <a href={`https://wa.me/${WHATSAPP_PHONE}`} target="_blank" rel="noopener noreferrer" className="text-[13px] font-medium hover:opacity-60 transition-opacity">WhatsApp</a>
           </div>
           

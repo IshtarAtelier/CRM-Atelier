@@ -8,6 +8,7 @@ import { WHATSAPP_PHONE } from '@/lib/constants';
 export const metadata: Metadata = {
   title: "Cristales Ópticos | Atelier Óptica Córdoba",
   description: "Especialistas en cristales multifocales, bifocales y monofocales. Trabajamos con Varilux, Novar, Crizal y Transitions.",
+  alternates: { canonical: 'https://www.atelieroptica.com.ar/cristales-opticos' },
 };
 
 export default function CristalesOpticosPage() {

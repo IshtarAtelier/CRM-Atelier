@@ -8,6 +8,7 @@ import { WHATSAPP_PHONE } from '@/lib/constants';
 export const metadata: Metadata = {
   title: "Lentes de Contacto | Atelier Óptica Córdoba",
   description: "Lentes de contacto descartables, anuales y cosméticas. Trabajamos con Acuvue, Bausch + Lomb y Alcon.",
+  alternates: { canonical: 'https://www.atelieroptica.com.ar/lentes-de-contacto' },
 };
 
 export default function LentesDeContactoPage() {

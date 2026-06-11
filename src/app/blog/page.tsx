@@ -9,6 +9,7 @@ import { staticPosts } from '@/lib/static-blog-posts';
 export const metadata: Metadata = {
   title: "Blog de Salud Visual y Novedades",
   description: "Descubrí consejos sobre salud visual, multifocales, anteojos recetados y lo último en tendencias de gafas de sol en Córdoba.",
+  alternates: { canonical: 'https://www.atelieroptica.com.ar/blog' },
   openGraph: {
     title: "Blog de Salud Visual y Novedades",
     description: "Descubrí consejos sobre salud visual, multifocales, anteojos recetados y lo último en tendencias de gafas de sol en Córdoba.",

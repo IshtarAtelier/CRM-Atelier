@@ -10,6 +10,7 @@ import { WHATSAPP_PHONE } from '@/lib/constants';
 export const metadata: Metadata = {
   title: "Nuestro Local | Óptica Boutique en Cerro de las Rosas, Córdoba",
   description: "Visitá Atelier Óptica en el corazón del Cerro de las Rosas. Somos especialistas en asesoramiento estético y técnico, cristales multifocales y anteojos de diseño exclusivo.",
+  alternates: { canonical: 'https://www.atelieroptica.com.ar/nuestro-local' },
   openGraph: {
     title: "Nuestro Local | Óptica Boutique en Cerro de las Rosas, Córdoba",
     description: "Visitá Atelier Óptica en el corazón del Cerro de las Rosas. Somos especialistas en asesoramiento estético y técnico, cristales multifocales y anteojos de diseño exclusivo.",
@@ -26,9 +27,64 @@ export const metadata: Metadata = {
   }
 };
 
+const localBusinessJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'LocalBusiness',
+  'name': 'Atelier Óptica',
+  'image': 'https://www.atelieroptica.com.ar/images/og-image.jpg',
+  '@id': 'https://www.google.com/maps?cid=14830223812501661125',
+  'url': 'https://www.atelieroptica.com.ar',
+  'telephone': '+54 351 574-2741',
+  'priceRange': '$$',
+  'address': {
+    '@type': 'PostalAddress',
+    'streetAddress': 'Rafael Núñez 4566',
+    'addressLocality': 'Cerro de las Rosas, Córdoba',
+    'addressRegion': 'Córdoba',
+    'postalCode': '5009',
+    'addressCountry': 'AR',
+  },
+  'geo': {
+    '@type': 'GeoCoordinates',
+    'latitude': -31.3796,
+    'longitude': -64.2443,
+  },
+  'openingHoursSpecification': [
+    {
+      '@type': 'OpeningHoursSpecification',
+      'dayOfWeek': ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
+      'opens': '09:30',
+      'closes': '13:00',
+    },
+    {
+      '@type': 'OpeningHoursSpecification',
+      'dayOfWeek': ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
+      'opens': '16:30',
+      'closes': '20:30',
+    },
+    {
+      '@type': 'OpeningHoursSpecification',
+      'dayOfWeek': ['Saturday'],
+      'opens': '09:30',
+      'closes': '13:00',
+    }
+  ],
+  'aggregateRating': {
+    '@type': 'AggregateRating',
+    'ratingValue': '5.0',
+    'bestRating': '5',
+    'worstRating': '1',
+    'ratingCount': '89',
+  }
+};
+
 export default function NuestroLocalPage() {
   return (
     <div className="bg-white min-h-screen text-black font-sans selection:bg-black selection:text-white">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(localBusinessJsonLd) }}
+      />
       <StorefrontNavbar theme="light" />
 
       {/* ── HERO ── */}

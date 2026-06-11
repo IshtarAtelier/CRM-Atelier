@@ -33,6 +33,11 @@ const nextConfig: NextConfig = {
   async redirects() {
     return [
       {
+        source: '/politicas',
+        destination: '/politicas-de-cambio',
+        permanent: true,
+      },
+      {
         source: '/blog/posts/lentes-filtro-luz-azul-home-office-cordoba-atelier-optica-85679646df21',
         destination: '/blog/filtro-azul-pantallas',
         permanent: true,
