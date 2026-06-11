@@ -9,9 +9,10 @@ export function StorefrontFooter() {
       {/* Cinematic Background Image */}
       <div className="absolute inset-0 z-0">
         <Image 
-          src="/footer-hands.png" 
+          src="/footer-hands-compressed.jpg" 
           alt="Atelier Creation" 
           fill 
+          loading="lazy"
           className="object-cover object-center"
         />
       </div>

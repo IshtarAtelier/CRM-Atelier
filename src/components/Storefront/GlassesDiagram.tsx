@@ -51,50 +51,50 @@ export function GlassesDiagram({ productId, measures: initialMeasures, editable 
   const fh = measures.frameHeight ?? 42;
   const tl = measures.templeLength ?? 145;
 
-  // Render SVG Diagram - Technical Blueprint Style
+  // Render SVG Diagram - Delicate Minimalist Silhouette Style
   const renderBlueprint = () => (
-    <div className="w-full flex flex-col items-center justify-center py-8 opacity-80 mix-blend-multiply">
+    <div className="w-full flex flex-col items-center justify-center py-6 opacity-90 mix-blend-multiply dark:mix-blend-normal">
       <svg
         viewBox="0 0 200 80"
         className="w-full max-w-[280px] lg:max-w-[320px] overflow-visible"
         style={{ vectorEffect: "non-scaling-stroke" }}
       >
-        <g stroke="#000" strokeWidth="0.7" fill="none" strokeLinecap="round" strokeLinejoin="round">
-          {/* Lenses */}
-          <rect x="25" y="20" width="60" height="40" rx="8" />
-          <rect x="115" y="20" width="60" height="40" rx="8" />
+        <g stroke="currentColor" className="text-stone-800 dark:text-stone-300" strokeWidth="0.5" fill="none" strokeLinecap="round" strokeLinejoin="round">
+          {/* Left Rim - Delicate Panto/Soft Rounded Silhouette */}
+          <path d="M 35,24 C 35,21 44,19 60,19 C 76,19 85,21 85,24 C 85,34 83,53 60,53 C 37,53 35,34 35,24 Z" />
           
-          {/* Bridge */}
-          <path d="M 85 30 Q 100 20 115 30" />
+          {/* Right Rim - Delicate Panto/Soft Rounded Silhouette */}
+          <path d="M 115,24 C 115,21 124,19 140,19 C 156,19 165,21 165,24 C 165,34 163,53 140,53 C 117,53 115,34 115,24 Z" />
           
-          {/* Temples (Straight tech line) */}
-          <line x1="25" y1="25" x2="-5" y2="25" />
-          <line x1="175" y1="25" x2="205" y2="25" />
+          {/* Delicate Bridge Curve */}
+          <path d="M 85,25 C 93,20 107,20 115,25" />
           
-          {/* Hinge details */}
-          <circle cx="25" cy="25" r="1.5" fill="#000" />
-          <circle cx="175" cy="25" r="1.5" fill="#000" />
+          {/* Left Endpiece / Temple Start */}
+          <path d="M 35,24 C 32,24 30,25 28,27 L 12,27" />
+          
+          {/* Right Endpiece / Temple Start */}
+          <path d="M 165,24 C 168,24 170,25 172,27 L 188,27" />
         </g>
 
         {/* Dimension Lines & Labels */}
-        <g stroke="#999" strokeWidth="0.5" strokeDasharray="2 2" fill="none">
-          {/* Lens Width */}
-          <line x1="25" y1="12" x2="85" y2="12" />
-          <line x1="25" y1="10" x2="25" y2="18" strokeDasharray="none" />
-          <line x1="85" y1="10" x2="85" y2="18" strokeDasharray="none" />
-          <text x="55" y="8" textAnchor="middle" fill="#666" fontSize="6" stroke="none" className="font-mono tracking-widest">{lw}mm</text>
+        <g stroke="#b5b5b5" strokeWidth="0.4" strokeDasharray="1.5 1.5" fill="none">
+          {/* Lens Width (35 to 85) */}
+          <line x1="35" y1="12" x2="85" y2="12" />
+          <line x1="35" y1="10" x2="35" y2="16" strokeDasharray="none" />
+          <line x1="85" y1="10" x2="85" y2="16" strokeDasharray="none" />
+          <text x="60" y="8" textAnchor="middle" fill="currentColor" className="text-stone-500 dark:text-stone-400 font-sans font-medium text-[6px] tracking-wider" stroke="none">{lw}mm</text>
 
-          {/* Bridge Width */}
-          <line x1="85" y1="35" x2="115" y2="35" />
-          <line x1="85" y1="30" x2="85" y2="38" strokeDasharray="none" />
-          <line x1="115" y1="30" x2="115" y2="38" strokeDasharray="none" />
-          <text x="100" y="44" textAnchor="middle" fill="#666" fontSize="6" stroke="none" className="font-mono tracking-widest">{bw}mm</text>
+          {/* Bridge Width (85 to 115) */}
+          <line x1="85" y1="36" x2="115" y2="36" />
+          <line x1="85" y1="32" x2="85" y2="40" strokeDasharray="none" />
+          <line x1="115" y1="32" x2="115" y2="40" strokeDasharray="none" />
+          <text x="100" y="44" textAnchor="middle" fill="currentColor" className="text-stone-500 dark:text-stone-400 font-sans font-medium text-[6px] tracking-wider" stroke="none">{bw}mm</text>
 
-          {/* Frame Height */}
-          <line x1="185" y1="20" x2="185" y2="60" />
-          <line x1="180" y1="20" x2="188" y2="20" strokeDasharray="none" />
-          <line x1="180" y1="60" x2="188" y2="60" strokeDasharray="none" />
-          <text x="192" y="42" textAnchor="start" fill="#666" fontSize="6" stroke="none" className="font-mono tracking-widest">{fh}mm</text>
+          {/* Frame Height (19 to 53) */}
+          <line x1="178" y1="19" x2="178" y2="53" />
+          <line x1="174" y1="19" x2="182" y2="19" strokeDasharray="none" />
+          <line x1="174" y1="53" x2="182" y2="53" strokeDasharray="none" />
+          <text x="186" y="38" textAnchor="start" fill="currentColor" className="text-stone-500 dark:text-stone-400 font-sans font-medium text-[6px] tracking-wider" stroke="none">{fh}mm</text>
         </g>
       </svg>
     </div>

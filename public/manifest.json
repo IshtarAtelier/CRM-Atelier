@@ -1,7 +1,7 @@
 {
-    "name": "Atelier Óptica CRM",
+    "name": "Atelier Óptica",
     "short_name": "Atelier",
-    "description": "Sistema de gestión para Atelier Óptica",
+    "description": "Óptica en Córdoba especializada en anteojos de receta, lentes de sol y multifocales.",
     "start_url": "/",
     "display": "standalone",
     "background_color": "#faf9f7",

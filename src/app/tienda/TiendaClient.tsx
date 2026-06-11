@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import { SlidersHorizontal, X } from "lucide-react";
 import { StorefrontNavbar } from "@/components/Storefront/StorefrontNavbar";
@@ -133,10 +134,12 @@ export function TiendaClient({ initialProducts }: { initialProducts: any[] }) {
                     <div className="bg-[#f5f5f5] aspect-square overflow-hidden mb-4 relative">
                       {imgUrl ? (
                         <div className="absolute inset-0 flex items-center justify-center">
-                          <img
+                          <Image
                             src={imgUrl}
                             alt={`${p.brand} ${p.model}`}
-                            className={`w-full h-full object-contain mix-blend-multiply  ${
+                            fill
+                            sizes="(max-width: 768px) 50vw, (max-width: 1280px) 33vw, 25vw"
+                            className={`object-contain mix-blend-multiply  ${
                               ((p.model || '').toLowerCase().includes('tl3932 c3') || (p.model || '').toLowerCase().includes('diana') || p.id === 'cmq5d11hf002rhy61fhvqs7nj')
                                 ? "scale-125 "
                                 : "scale-100 "

@@ -20,7 +20,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     '/cristales-opticos',
     '/clip-on',
     '/resenas',
-    '/blog'
+    '/blog',
+    '/arma-tus-lentes',
+    '/varilux',
   ].map((route) => ({
     url: `${baseUrl}${route}`,
     lastModified: new Date(),
