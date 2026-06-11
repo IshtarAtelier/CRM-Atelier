@@ -19,11 +19,11 @@ export const revalidate = 300;
 // ==========================================
 
 const PRODUCTS = [
-  { id: 1, name: "Atelier 9030(GLD)", price: "$ 55.000", img: "/images/products/atelier-9030-gold.png", slug: "atelier-carey-vintage" },
-  { id: 2, name: "Rosé Cat Eye(PNK)", price: "$ 48.000", img: "/images/products/cateye-rose.png", slug: "atelier-carey-vintage" },
-  { id: 3, name: "Pantos Blush(RSE)", price: "$ 45.000", img: "/images/products/pantos-pink.png", slug: "atelier-carey-vintage" },
-  { id: 4, name: "Mistral Manglares(BRD)", price: "$ 52.000", img: "/images/products/mistral-manglares.png", slug: "atelier-carey-vintage" },
-  { id: 5, name: "Cima Dreamy(CRL)", price: "$ 58.000", img: "/images/products/cima-dreamy.png", slug: "atelier-carey-vintage" },
+  { id: 1, name: "Atelier 9030(GLD)", price: "6 cuotas de $9.167", img: "/images/products/atelier-9030-gold.png", slug: "atelier-carey-vintage" },
+  { id: 2, name: "Rosé Cat Eye(PNK)", price: "6 cuotas de $8.000", img: "/images/products/cateye-rose.png", slug: "atelier-carey-vintage" },
+  { id: 3, name: "Pantos Blush(RSE)", price: "6 cuotas de $7.500", img: "/images/products/pantos-pink.png", slug: "atelier-carey-vintage" },
+  { id: 4, name: "Mistral Manglares(BRD)", price: "6 cuotas de $8.667", img: "/images/products/mistral-manglares.png", slug: "atelier-carey-vintage" },
+  { id: 5, name: "Cima Dreamy(CRL)", price: "6 cuotas de $9.667", img: "/images/products/cima-dreamy.png", slug: "atelier-carey-vintage" },
 ];
 
 export default async function Home() {
@@ -53,7 +53,7 @@ export default async function Home() {
     ? dbWebProducts.map(wp => ({
         id: wp.product.id,
         name: wp.name,
-        price: `$ ${wp.product.price?.toLocaleString()}`,
+        price: wp.product.price ? `6 cuotas de $${Math.round(wp.product.price / 6).toLocaleString("es-AR")}` : "",
         img: wp.imageUrl 
           ? resolveStorageUrl(wp.imageUrl)
           : (wp.images.length > 0 
