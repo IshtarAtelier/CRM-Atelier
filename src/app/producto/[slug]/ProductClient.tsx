@@ -155,7 +155,7 @@ export function ProductClient({ product }: { product: any }) {
               transition={{ delay: 0.4, duration: 0.8 }}
               className="text-2xl font-light tracking-tight text-black mb-6"
             >
-              ${(product.price || 0).toLocaleString()}
+              ${(product.price || 0).toLocaleString("es-AR")}
             </motion.p>
             
             <PaymentOptions variant="inline" price={product.price || 0} />

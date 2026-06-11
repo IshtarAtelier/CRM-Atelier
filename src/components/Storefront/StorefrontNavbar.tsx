@@ -3,9 +3,10 @@
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronDown, Search, User, ShoppingBag } from "lucide-react";
+import { ChevronDown, Search, User, ShoppingBag, X } from "lucide-react";
 import { useCart } from "@/store/useCart";
 import { CartSidebar } from "./CartSidebar";
+import { resolveStorageUrl } from "@/lib/utils/storage";
 
 interface StorefrontNavbarProps {
   theme?: "light" | "dark"; // dark = dark background (needs white text), light = light background (needs black text)
@@ -17,6 +18,34 @@ export function StorefrontNavbar({ theme = "dark", mixBlend = false }: Storefron
   const [isExploreOpen, setIsExploreOpen] = useState(false);
   const { items, setIsOpen: setCartOpen } = useCart();
   const cartCount = items.reduce((acc, item) => acc + item.quantity, 0);
+
+  // Search states
+  const [searchQuery, setSearchQuery] = useState("");
+  const [allProducts, setAllProducts] = useState<any[]>([]);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+
+  useEffect(() => {
+    if (isSearchOpen && allProducts.length === 0) {
+      fetch('/api/store/products')
+        .then(res => res.json())
+        .then(data => {
+          if (Array.isArray(data)) {
+            setAllProducts(data);
+          }
+        })
+        .catch(err => console.error("Error loading products for search:", err));
+    }
+  }, [isSearchOpen, allProducts]);
+
+  const searchResults = searchQuery.trim().length >= 2
+    ? allProducts.filter(p => {
+        const term = searchQuery.toLowerCase();
+        return (p.brand || '').toLowerCase().includes(term) ||
+               (p.name || '').toLowerCase().includes(term) ||
+               (p.model || '').toLowerCase().includes(term) ||
+               (p.category || '').toLowerCase().includes(term);
+      })
+    : [];
 
   useEffect(() => {
     const handleScroll = () => {
@@ -112,7 +141,11 @@ export function StorefrontNavbar({ theme = "dark", mixBlend = false }: Storefron
 
         {/* Derecha: Iconos */}
         <div className={`flex items-center gap-3 sm:gap-5 ${activeTextColorClass}`}>
-          <button className="hover:opacity-60 transition-opacity" aria-label="Buscar">
+          <button 
+            onClick={() => setIsSearchOpen(true)} 
+            className="hover:opacity-60 transition-opacity" 
+            aria-label="Buscar"
+          >
             <Search className="w-4 h-4 sm:w-5 sm:h-5" strokeWidth={1.5} />
           </button>
           <Link href="/admin" className="hover:opacity-60 transition-opacity" aria-label="Mi cuenta">
@@ -133,6 +166,103 @@ export function StorefrontNavbar({ theme = "dark", mixBlend = false }: Storefron
       
       {/* Sidebar de Carrito */}
       <CartSidebar />
+
+      {/* Luxury Search Overlay */}
+      <AnimatePresence>
+        {isSearchOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] bg-[#faf8f5]/98 dark:bg-stone-950/98 backdrop-blur-lg flex flex-col p-6 md:p-16 text-black dark:text-white"
+          >
+            {/* Close button */}
+            <div className="flex justify-between items-center mb-12">
+              <span className="text-[10px] font-black uppercase tracking-[0.25em] text-stone-400">Buscar en Atelier</span>
+              <button 
+                onClick={() => {
+                  setIsSearchOpen(false);
+                  setSearchQuery("");
+                }}
+                className="p-2 hover:bg-stone-100 dark:hover:bg-stone-800 rounded-full transition-colors"
+                aria-label="Cerrar búsqueda"
+              >
+                <X className="w-6 h-6 text-stone-600 dark:text-stone-300" />
+              </button>
+            </div>
+
+            {/* Input field */}
+            <div className="max-w-4xl mx-auto w-full mb-10">
+              <input
+                type="text"
+                autoFocus
+                placeholder="Buscar por modelo, marca o categoría..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full text-2xl md:text-4xl font-light tracking-tight border-b border-stone-200 dark:border-stone-850 pb-4 outline-none bg-transparent placeholder-stone-300 dark:placeholder-stone-700 text-stone-900 dark:text-stone-100 focus:border-black dark:focus:border-white transition-colors"
+              />
+            </div>
+
+            {/* Results */}
+            <div className="max-w-4xl mx-auto w-full flex-1 overflow-y-auto pr-2">
+              {searchQuery.trim().length < 2 ? (
+                <div className="flex flex-col gap-4">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-stone-400">Sugerencias</p>
+                  <div className="flex flex-wrap gap-2">
+                    {["Receta", "Sol", "XL", "Clip-On"].map(term => (
+                      <button
+                        key={term}
+                        onClick={() => setSearchQuery(term)}
+                        className="px-4 py-2 border border-stone-200 dark:border-stone-800 rounded-full text-xs font-medium hover:border-black dark:hover:border-white transition-colors"
+                      >
+                        {term}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ) : searchResults.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-12">
+                  {searchResults.map(p => {
+                    const imgUrl = p.imagenesCatalogo?.length > 0
+                      ? resolveStorageUrl(p.imagenesCatalogo[0])
+                      : null;
+                    return (
+                      <Link
+                        key={p.id}
+                        href={`/producto/${p.id}`}
+                        onClick={() => {
+                          setIsSearchOpen(false);
+                          setSearchQuery("");
+                        }}
+                        className="flex gap-4 p-3 border border-stone-100 dark:border-stone-900 bg-white dark:bg-stone-950 rounded-2xl hover:shadow-md transition-shadow group"
+                      >
+                        <div className="w-16 h-16 bg-[#f5f5f5] dark:bg-stone-900 rounded-xl flex items-center justify-center overflow-hidden shrink-0 relative">
+                          {imgUrl ? (
+                            <img src={imgUrl} alt={p.model} className="w-full h-full object-contain mix-blend-multiply dark:mix-blend-normal" />
+                          ) : (
+                            <Search className="w-6 h-6 text-stone-300" />
+                          )}
+                        </div>
+                        <div className="flex flex-col justify-center">
+                          <span className="text-[9px] font-black uppercase tracking-widest text-stone-400">{p.brand || 'ATELIER'}</span>
+                          <span className="text-sm font-medium text-stone-850 dark:text-stone-100 leading-tight group-hover:text-black dark:group-hover:text-white transition-colors">
+                            {p.name || p.model}
+                          </span>
+                          <span className="text-xs text-[#b08f4c] dark:text-[#c8a55c] font-bold mt-1">
+                            ${(p.price || 0).toLocaleString("es-AR")}
+                          </span>
+                        </div>
+                      </Link>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className="text-stone-400 dark:text-stone-500 text-sm italic">No se encontraron productos que coincidan con &quot;{searchQuery}&quot;.</p>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </>
   );
 }
