@@ -64,11 +64,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="es" className="overflow-x-hidden">
+    <html lang="es">
       <body
-        className={`${geistSans.variable} antialiased selection:bg-primary/30 overflow-x-hidden`}
+        className={`${geistSans.variable} antialiased selection:bg-primary/30`}
       >
-        <div className="min-h-screen bg-background text-foreground overflow-x-hidden w-full max-w-[100vw]">
+        <div className="min-h-screen bg-background text-foreground">
           {children}
         </div>
         <TrackingScripts />
