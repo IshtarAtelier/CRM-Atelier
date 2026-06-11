@@ -65,23 +65,23 @@ ${conversation}
 
 DATOS CONOCIDOS:
 - Nombre de perfil de WhatsApp: "${profileName}"
-- Teléfono extraído del WhatsApp ID: "${rawPhone}" ${isLid ? '(ATENCIÓN: este chat llegó por anuncio de Meta, el número puede ser falso. Busca si el cliente mencionó su teléfono en la conversación.)' : ''}
+- Teléfono extraído del WhatsApp ID: "${rawPhone}" ${isLid ? '(ATENCIÓN: este chat llegó por anuncio de Meta/Click-to-WhatsApp, el número puede ser falso. Busca si el cliente mencionó su teléfono en la conversación.)' : ''}
+- Tipo de chat: ${isLid ? 'ANUNCIO META (Click-to-WhatsApp Ad) — el contactSource DEBE ser "Meta"' : 'CHAT DIRECTO (el cliente escribió directamente al número de WhatsApp)'}
 
 INSTRUCCIONES:
 1. Extrae el nombre real del cliente. Si no se menciona un nombre en la conversación, usa el nombre del perfil de WhatsApp.
 2. Extrae el teléfono. Si el waId es @lid y el cliente mencionó un número en la charla, usa ese. Si no, deja vacío.
 3. Deduce el interés principal (ej: "Multifocal", "Monofocal", "Lentes de contacto", "Armazones", "Gafas de sol", etc.)
 4. Detecta si mencionó obra social/seguro médico (ej: "OSDE", "Swiss Medical", "PAMI", "Apross", etc.)
-5. Detecta la fuente de contacto. Debe ser exactamente uno de estos valores:
-   - "Google Ads" (si menciona Google, Maps, búsqueda, o un anuncio de Google)
-   - "Meta" (si menciona Instagram, Facebook, o un anuncio/publicidad de redes sociales sin mencionar Google)
-   - "Referido" (si es recomendado por un amigo, conocido o familiar)
-   - "Calle" (si vio el local al pasar)
-   - "Ya es Cliente"
-   - "Tienda nube"
-   - "Wave"
-   - "Salida"
-   - "Otros" (si no se especifica o no encaja en los anteriores)
+5. Detecta la fuente de contacto (contactSource). REGLAS ESTRICTAS:
+   ${isLid ? '- Este chat es de tipo ANUNCIO META (@lid), por lo tanto contactSource DEBE ser "Meta".' : `- Este chat es DIRECTO. Solo asigna un origen si hay EVIDENCIA CLARA en la conversación:
+   - "Google Ads": SOLO si el cliente dice explícitamente que los encontró por Google, Maps o búsqueda de Google.
+   - "Meta": SOLO si el cliente dice explícitamente que vio un anuncio en Instagram o Facebook.
+   - "Referido": Si menciona que alguien lo recomendó, un amigo, conocido o familiar.
+   - "Calle": Si dice que vio el local al pasar o pasó por la puerta.
+   - "Ya es Cliente": Si se identifica como cliente existente.
+   - "Otros": EN CASO DE DUDA o si no hay evidencia clara del origen, USA "Otros". Este es el valor por defecto.
+   IMPORTANTE: No asumas "Meta" solo porque la conversación menciona palabras como "publicidad", "anuncio" o "vi esto". Solo usa "Meta" si el cliente dice EXPLÍCITAMENTE que vio algo en Instagram o Facebook.`}
 6. Extrae cualquier nota relevante (ej: preferencias, urgencia, comentarios importantes)
 
 Responde ÚNICAMENTE con un JSON válido con estos campos:

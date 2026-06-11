@@ -10,6 +10,8 @@ interface DashboardObjectivesProps {
   dolarBlue: number | null;
   isAdmin: boolean;
   periodLabel: string;
+  todaySold?: number;
+  weekSold?: number;
 }
 
 // Helper functions for business days calculation
@@ -74,7 +76,9 @@ export default function DashboardObjectives({
   targets,
   dolarBlue,
   isAdmin,
-  periodLabel
+  periodLabel,
+  todaySold = 0,
+  weekSold = 0
 }: DashboardObjectivesProps) {
   const [isMounted, setIsMounted] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -273,6 +277,8 @@ export default function DashboardObjectives({
             isAdmin={isAdmin}
             totalBusinessDays={totalBusinessDays}
             elapsedBusinessDays={elapsedBusinessDays}
+            todaySold={todaySold}
+            weekSold={weekSold}
           />
 
           {/* Stretch Goal */}
@@ -290,6 +296,8 @@ export default function DashboardObjectives({
             isAdmin={isAdmin}
             totalBusinessDays={totalBusinessDays}
             elapsedBusinessDays={elapsedBusinessDays}
+            todaySold={todaySold}
+            weekSold={weekSold}
           />
 
           {/* Elite Goal */}
@@ -308,6 +316,8 @@ export default function DashboardObjectives({
             isElite
             totalBusinessDays={totalBusinessDays}
             elapsedBusinessDays={elapsedBusinessDays}
+            todaySold={todaySold}
+            weekSold={weekSold}
           />
         </div>
       </div>
@@ -381,7 +391,9 @@ function ObjectiveCard({
   isAdmin, 
   isElite,
   totalBusinessDays,
-  elapsedBusinessDays
+  elapsedBusinessDays,
+  todaySold,
+  weekSold
 }: any) {
   const isAhead = progress >= expected;
   
@@ -458,17 +470,34 @@ function ObjectiveCard({
 
       {/* Reference Targets */}
       <div className="grid grid-cols-2 gap-4 mb-6 p-3.5 bg-white/[0.02] border border-white/5 rounded-2xl">
-        <div className="space-y-0.5">
-          <span className="text-[9px] font-black uppercase tracking-widest text-stone-500 block">Objetivo del Día</span>
-          <span className="text-sm font-black text-stone-200">
-            ${Math.round(dailyTarget).toLocaleString()}
-          </span>
+        <div className="space-y-1.5">
+          <div className="flex justify-between items-center">
+            <span className="text-[9px] font-black uppercase tracking-widest text-stone-500">Obj. Diario</span>
+            <span className="text-[9px] font-bold text-stone-400">{Math.min((todaySold / dailyTarget) * 100, 100).toFixed(0)}%</span>
+          </div>
+          <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
+            <div className={`h-full ${colorClasses[color]}`} style={{ width: `${Math.min((todaySold / dailyTarget) * 100, 100)}%` }} />
+          </div>
+          {isAdmin && (
+            <span className="text-sm font-black text-stone-200 mt-1 block">
+              ${Math.round(todaySold).toLocaleString()} <span className="text-[10px] text-stone-500 font-normal">/ ${Math.round(dailyTarget).toLocaleString()}</span>
+            </span>
+          )}
         </div>
-        <div className="space-y-0.5">
-          <span className="text-[9px] font-black uppercase tracking-widest text-stone-500 block">Objetivo de la Semana</span>
-          <span className="text-sm font-black text-stone-200">
-            ${Math.round(weeklyTarget).toLocaleString()}
-          </span>
+        
+        <div className="space-y-1.5">
+          <div className="flex justify-between items-center">
+            <span className="text-[9px] font-black uppercase tracking-widest text-stone-500">Obj. Semanal</span>
+            <span className="text-[9px] font-bold text-stone-400">{Math.min((weekSold / weeklyTarget) * 100, 100).toFixed(0)}%</span>
+          </div>
+          <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
+            <div className={`h-full ${colorClasses[color]}`} style={{ width: `${Math.min((weekSold / weeklyTarget) * 100, 100)}%` }} />
+          </div>
+          {isAdmin && (
+            <span className="text-sm font-black text-stone-200 mt-1 block">
+              ${Math.round(weekSold).toLocaleString()} <span className="text-[10px] text-stone-500 font-normal">/ ${Math.round(weeklyTarget).toLocaleString()}</span>
+            </span>
+          )}
         </div>
       </div>
 

@@ -109,7 +109,7 @@ async function checkAndSendSmartTasks({ isAgentEnabled, botReplyingTo, broadcast
 
     const now = new Date();
     if (!isBusinessHours(now)) return;
-    if (!isAgentEnabled()) return;
+    // Las tareas inteligentes se ejecutan incluso con el asistente global apagado.
 
     isTaskExecutorRunning = true;
     console.log('\n[Smart Task Executor] Buscando tareas conversacionales atrasadas...');

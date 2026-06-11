@@ -93,8 +93,22 @@ export async function GET(request: Request) {
             orderBy: { labSentAt: 'asc' },
         });
 
+        const startOfToday = new Date();
+        startOfToday.setHours(0,0,0,0);
+        const startOfWeek = new Date();
+        const dayOfWeek = startOfWeek.getDay();
+        const diffToMonday = startOfWeek.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
+        startOfWeek.setDate(diffToMonday);
+        startOfWeek.setHours(0,0,0,0);
+
+        let todaySold = 0;
+        let weekSold = 0;
+
         const totalSoldMonth = currentMonthOrders.reduce((acc: number, order: any) => {
             const price = order.total || order.subtotalWithMarkup || 0;
+            const orderDate = new Date(order.labSentAt || order.createdAt);
+            if (orderDate >= startOfToday) todaySold += price;
+            if (orderDate >= startOfWeek) weekSold += price;
             return acc + price;
         }, 0);
         const totalPaidMonth = currentMonthOrders.reduce((acc: number, order: any) => acc + (order.paid || 0), 0);
@@ -512,6 +526,8 @@ export async function GET(request: Request) {
             typeStats: Object.entries(typeStats).map(([name, data]) => ({ name, ...data })),
             personalSoldMonth,
             personalConfirmedCount,
+            todaySold,
+            weekSold,
         });
     } catch (error: any) {
         console.error('Error fetching dashboard data:', error);

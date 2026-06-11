@@ -30,7 +30,8 @@ async function checkAndSendInactivityFollowUps({ isAgentEnabled, botReplyingTo, 
         return;
     }
 
-    if (!isAgentEnabled()) return;
+    // Las tareas de inactividad se ejecutan incluso con el asistente global apagado
+    // porque representan compromisos comerciales que no deben detenerse.
 
     const activeChats = await prisma.whatsAppChat.findMany({
         where: { botEnabled: true, archived: false },

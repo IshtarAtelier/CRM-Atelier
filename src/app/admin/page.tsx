@@ -38,6 +38,8 @@ interface DashboardData {
   suggestedFollowUps: any[];
   personalSoldMonth?: number;
   personalConfirmedCount?: number;
+  todaySold?: number;
+  weekSold?: number;
 }
 
 export default function Home() {
@@ -136,6 +138,8 @@ export default function Home() {
     suggestedFollowUps: [],
     personalSoldMonth: 0,
     personalConfirmedCount: 0,
+    todaySold: 0,
+    weekSold: 0,
   };
 
   const currentTotal = d.totalSoldMonth || 0;
@@ -225,21 +229,21 @@ export default function Home() {
           <div className={`flex gap-6 overflow-x-auto pb-4 no-scrollbar transition-opacity duration-300 ${loading ? 'opacity-50' : 'opacity-100'}`}>
             <div className="min-w-[260px] flex-1">
               <StatsCard
-                title="Mis Ventas"
-                value={`${d.personalSoldMonth || 0}`}
+                title="Pedidos del Mes"
+                value={`${d.ordersCountMonth || 0}`}
                 icon={ShoppingCart}
                 trend="Este Mes"
-                sub="Pedidos entregados/vendidos"
+                sub="Pedidos totales de la empresa"
                 highlight={true}
               />
             </div>
             <div className="min-w-[260px] flex-1">
               <StatsCard
-                title="Mis Pedidos Confirmados"
-                value={`${d.personalConfirmedCount || 0}`}
+                title="Presupuestos Confirmados"
+                value={`${d.confirmedCount || 0}`}
                 icon={CheckCircle2}
                 trend="Activos"
-                sub="Presupuestos aprobados"
+                sub="Totales de la empresa"
                 highlight={false}
               />
             </div>
@@ -254,6 +258,8 @@ export default function Home() {
         dolarBlue={dolarBlue}
         isAdmin={isAdmin}
         periodLabel={periodLabel}
+        todaySold={d.todaySold || 0}
+        weekSold={d.weekSold || 0}
       />
 
 

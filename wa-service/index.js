@@ -196,6 +196,20 @@ const handleMessageCreate = async (msg) => {
                     create: createData
                 });
                 broadcastChatUpdate(chat.id);
+
+                // ── Portero: Activar extracción pasiva cuando el HUMANO chatea (no el bot) ──
+                // Crea fichas automáticamente mientras el vendedor está conversando manualmente
+                if (agentEnabled && !isBotReplying && !chat.clientId) {
+                    if (passiveDebounceTimers.has(chat.id)) {
+                        clearTimeout(passiveDebounceTimers.get(chat.id));
+                    }
+                    const timer = setTimeout(() => {
+                        passiveDebounceTimers.delete(chat.id);
+                        processPassiveExtraction(chat.id, waId, chat.profileName || '')
+                            .catch(e => console.error("❌ Error en passiveExtraction (outbound humano):", e.message));
+                    }, 20000);
+                    passiveDebounceTimers.set(chat.id, timer);
+                }
             }
         } catch (e) {
             console.error("Error on message_create sync:", e);

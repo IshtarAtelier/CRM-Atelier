@@ -53,10 +53,21 @@ async function checkExistingClient({ phone, name }) {
 }
 
 /**
- * Detect contact source based on the first inbound message in the chat history.
+ * Detect contact source based on the chat's waId and the first inbound message.
+ * Priority: @lid (definitive Meta) > keywords in first message > fallback 'Otros'
  */
 async function detectContactSourceFromChat(chatId) {
     if (!chatId) return 'Otros';
+
+    // 0. Check if this is a @lid chat (Click-to-WhatsApp ad from Meta) — definitive indicator
+    const chat = await prisma.whatsAppChat.findUnique({
+        where: { id: chatId },
+        select: { waId: true }
+    });
+
+    if (chat?.waId?.includes('@lid')) {
+        return 'Meta';
+    }
     
     // Find the earliest inbound message
     const firstMessage = await prisma.whatsAppMessage.findFirst({
@@ -73,21 +84,24 @@ async function detectContactSourceFromChat(chatId) {
     // 1. Google (Google, Maps, Búsqueda)
     if (
         text.includes('google') ||
-        text.includes('maps') ||
         text.includes('busqueda') ||
         text.includes('búsqueda')
     ) {
         return 'Google Ads';
     }
 
-    // 2. Meta (Instagram, Facebook, Anuncio, Publicidad, Ads)
+    // 2. Meta — solo con menciones explícitas de la plataforma (sin regex agresivos)
     if (
         text.includes('instagram') ||
         text.includes('facebook') ||
-        text.includes('anuncio') ||
-        text.includes('publicidad') ||
-        text.includes('vi esto en') ||
-        /\bads?\b/i.test(text)
+        text.includes('vi su publicacion') ||
+        text.includes('vi tu publicacion') ||
+        text.includes('vi su publicación') ||
+        text.includes('vi tu publicación') ||
+        text.includes('vi el anuncio') ||
+        text.includes('vi un anuncio') ||
+        text.includes('los vi en instagram') ||
+        text.includes('los vi en facebook')
     ) {
         return 'Meta';
     }
@@ -98,6 +112,7 @@ async function detectContactSourceFromChat(chatId) {
         text.includes('recomendo') ||
         text.includes('recomendada') ||
         text.includes('recomendado') ||
+        text.includes('me recomendaron') ||
         text.includes('amiga') ||
         text.includes('amigo') ||
         text.includes('contacto de') ||

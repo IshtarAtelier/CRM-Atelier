@@ -20,7 +20,7 @@ async function checkAndSendSalesFollowUps({ isAgentEnabled, botReplyingTo, broad
     const now = new Date();
 
     if (!isBusinessHours(now)) return;
-    if (!isAgentEnabled()) return;
+    // Las tareas de seguimiento de ventas se ejecutan incluso con el asistente global apagado.
 
     isFollowUpRunning = true;
     console.log('\n[Bot Executor] Buscando tareas de seguimiento pendientes y vencidas...');

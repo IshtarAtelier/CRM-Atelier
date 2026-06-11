@@ -98,7 +98,7 @@ Responde ÚNICAMENTE con el JSON puro. Sin markdown.
             const leadResult = await convertIntoLead({
                 phone: chatInfo.realPhone || waId.split('@')[0],
                 name: parsed.clientName,
-                contactSource: 'WhatsApp',
+                contactSource: null, // Dejar que detectContactSourceFromChat lo detecte (usa @lid para Meta)
                 interest: parsed.interestTag || 'Otros',
                 insurance: parsed.insurance || null,
                 chatId: chatId
