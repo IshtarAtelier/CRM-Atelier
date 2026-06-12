@@ -45,7 +45,9 @@ export default function CheckoutPage() {
       setPaywayConfig(data);
       // Load Decidir SDK
       const script = document.createElement('script');
-      script.src = 'https://live.decidir.com/static/v2/decidir.js';
+      script.src = data.environment === 'production' 
+        ? 'https://live.decidir.com/static/v2/decidir.js'
+        : 'https://developers.decidir.com/static/v2/decidir.js';
       script.async = true;
       document.body.appendChild(script);
     });
