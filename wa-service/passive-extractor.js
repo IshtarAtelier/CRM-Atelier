@@ -92,12 +92,20 @@ Responde ÚNICAMENTE con el JSON puro. Sin markdown.
 
         let currentClientId = chatInfo.clientId;
 
-        // 1. Crear Lead si no existe y detectó nombre
-        if (!currentClientId && parsed.clientName) {
-            console.log(`  👤 [Ficha Inteligente] Creando nuevo cliente: ${parsed.clientName}`);
+        // 1. Crear Lead si no existe y detectó alguna intención accionable (nombre, interés, tarea, etc.)
+        const hasActionableIntent = parsed.clientName || parsed.interestTag || parsed.suggestedTask || parsed.insurance || parsed.summary || parsed.invoiceRequested;
+
+        if (!currentClientId && hasActionableIntent) {
+            let extractedName = parsed.clientName;
+            if (!extractedName) {
+                // Evitar pasar null. Usar profileName o un genérico.
+                extractedName = profileName && profileName.trim() !== '' ? profileName : "Contacto Nuevo WA";
+            }
+            
+            console.log(`  👤 [Ficha Inteligente] Creando nuevo cliente: ${extractedName}`);
             const leadResult = await convertIntoLead({
                 phone: chatInfo.realPhone || waId.split('@')[0],
-                name: parsed.clientName,
+                name: extractedName,
                 contactSource: null, // Dejar que detectContactSourceFromChat lo detecte (usa @lid para Meta)
                 interest: parsed.interestTag || 'Otros',
                 insurance: parsed.insurance || null,
@@ -110,7 +118,7 @@ Responde ÚNICAMENTE con el JSON puro. Sin markdown.
                 if (global.io) {
                     global.io.emit('lead_created', {
                         id: currentClientId,
-                        name: parsed.clientName,
+                        name: extractedName,
                         phone: chatInfo.realPhone || waId.split('@')[0],
                         interest: parsed.interestTag || 'No especificado',
                         source: 'WhatsApp'
