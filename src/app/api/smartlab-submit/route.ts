@@ -56,17 +56,22 @@ export async function POST(request: Request) {
             throw new Error('No se encontraron los campos de login en SmartLab.');
         }
 
+        // Llenar datos de login de forma humana (lenta)
+        await page.waitForTimeout(1000);
         await inputs[0].fill('pisano.ishtar@gmail.com');
+        await page.waitForTimeout(800);
         await inputs[1].fill('atelier');
-        
+        await page.waitForTimeout(1000);
+
         const buttons = await page.$$('button');
         let loginClicked = false;
         for (const btn of buttons) {
             const text = await btn.innerText();
             if (text.toLowerCase().includes('iniciar') || text.toLowerCase().includes('ingresar') || text.toLowerCase().includes('login')) {
+                await page.waitForTimeout(500);
                 await Promise.all([
                     page.waitForNavigation({ waitUntil: 'networkidle' }),
-                    btn.click()
+                    btn.click({ delay: 200 })
                 ]);
                 loginClicked = true;
                 break;
@@ -76,7 +81,7 @@ export async function POST(request: Request) {
         if (!loginClicked) {
             await Promise.all([
                 page.waitForNavigation({ waitUntil: 'networkidle' }),
-                inputs[1].press('Enter')
+                inputs[1].press('Enter', { delay: 200 })
             ]);
         }
         
