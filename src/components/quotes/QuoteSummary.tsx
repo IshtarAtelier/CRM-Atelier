@@ -279,28 +279,6 @@ export default function QuoteSummary({
                             {order.labOrderNumber ? ` · Pedido: ${order.labOrderNumber}` : ''}
                             {` · ${dateStr} · ${order.items?.length || 0} items`}
                         </span>
-                        {/* SmartLab Info - Collapsed View */}
-                        {isSale && order.smartLabProgress != null && order.smartLabProgress > 0 && (
-                            <div className="flex items-center gap-2 mt-1.5">
-                                <Factory className="w-3 h-3 text-blue-500 shrink-0" />
-                                <div className="flex-1 max-w-[180px]">
-                                    <div className="h-1.5 bg-stone-100 dark:bg-stone-700 rounded-full overflow-hidden">
-                                        <div 
-                                            className={`h-full rounded-full transition-all duration-500 ${order.smartLabProgress >= 100 ? 'bg-emerald-500' : 'bg-blue-500'}`}
-                                            style={{ width: `${Math.min(100, order.smartLabProgress)}%` }}
-                                        />
-                                    </div>
-                                </div>
-                                <span className={`text-[9px] font-black ${order.smartLabProgress >= 100 ? 'text-emerald-500' : 'text-blue-500'}`}>
-                                    {order.smartLabProgress}%
-                                </span>
-                                {order.smartLabSector && (
-                                    <span className="text-[8px] font-bold text-stone-400 truncate max-w-[120px]">
-                                        {order.smartLabSector}
-                                    </span>
-                                )}
-                            </div>
-                        )}
                     </div>
                 </div>
 
@@ -329,6 +307,39 @@ export default function QuoteSummary({
                             <div className="bg-orange-50 dark:bg-orange-950/30 px-2 py-1 rounded-lg flex items-center gap-1 border border-orange-100 dark:border-orange-900/50">
                                 <CreditCard className="w-2.5 h-2.5 text-orange-500" />
                                 <span className="text-[9px] font-black text-orange-600">${financials.remainingCard.toLocaleString()}</span>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* SmartLab Info - Bloque separado */}
+                {isSale && order.smartLabProgress != null && order.smartLabProgress > 0 && (
+                    <div className="hidden md:flex items-center px-3 border-l border-stone-100 dark:border-stone-700 ml-2">
+                        <div className="bg-blue-50/80 dark:bg-blue-950/30 rounded-xl px-3 py-2 border border-blue-100 dark:border-blue-800/50 min-w-[140px]">
+                            <div className="flex items-center justify-between mb-1">
+                                <div className="flex items-center gap-1.5">
+                                    <Factory className="w-3 h-3 text-blue-500" />
+                                    <span className="text-[7px] font-black text-blue-500 uppercase tracking-widest">SmartLab</span>
+                                </div>
+                                <span className={`text-[9px] font-black ${order.smartLabProgress >= 100 ? 'text-emerald-500' : 'text-blue-600'}`}>
+                                    {order.smartLabProgress}%
+                                </span>
+                            </div>
+                            <div className="h-1.5 bg-blue-100 dark:bg-blue-900/50 rounded-full overflow-hidden mb-1">
+                                <div 
+                                    className={`h-full rounded-full transition-all duration-500 ${order.smartLabProgress >= 100 ? 'bg-emerald-500' : 'bg-blue-500'}`}
+                                    style={{ width: `${Math.min(100, order.smartLabProgress)}%` }}
+                                />
+                            </div>
+                            <div className="flex items-center justify-between">
+                                <span className="text-[7px] font-bold text-stone-500 truncate max-w-[80px]">
+                                    {order.smartLabSector || '\u2014'}
+                                </span>
+                                {order.smartLabDays != null && (
+                                    <span className="text-[7px] font-black text-amber-500">
+                                        {order.smartLabDays}d
+                                    </span>
+                                )}
                             </div>
                         </div>
                     </div>
