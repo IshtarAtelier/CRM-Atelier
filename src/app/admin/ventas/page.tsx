@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { ShoppingCart, Download, Search, Package, Clock, CheckCircle2, Truck, Eye, Pencil, Save, X, AlertTriangle, FileText, Banknote, ArrowRightLeft, CreditCard, ChevronRight, ExternalLink, Clipboard, CheckCheck, Copy, Loader2, ArrowRight, FlaskConical, Calendar } from 'lucide-react';
+import { ShoppingCart, Download, Search, Package, Clock, CheckCircle2, Truck, Eye, Pencil, Save, X, AlertTriangle, FileText, Banknote, ArrowRightLeft, CreditCard, ChevronRight, ExternalLink, Clipboard, CheckCheck, Copy, Loader2, ArrowRight, FlaskConical, Calendar, Factory } from 'lucide-react';
 import { WhatsAppIcon } from '@/components/icons/WhatsAppIcon';
 import { PricingService } from '@/services/PricingService';
 import { format } from 'date-fns';
@@ -198,6 +198,21 @@ export default function VentasPage() {
     useEffect(() => {
         fetchOrders(search);
     }, [filterLab, filterBalance, filterLaboratory, dateFrom, dateTo]);
+
+    // Auto-sync SmartLab una sola vez al cargar la página
+    useEffect(() => {
+        const autoSync = async () => {
+            try {
+                const res = await fetch('/api/smartlab-sync', { method: 'POST' });
+                if (res.ok) {
+                    fetchOrders(search); // Refrescar con datos de SmartLab
+                }
+            } catch (err) {
+                console.error('Error auto-sync SmartLab:', err);
+            }
+        };
+        autoSync();
+    }, []);
 
     const fetchOrders = async (searchTerm?: string, loadAll?: boolean) => {
         setLoading(true);
@@ -907,6 +922,42 @@ export default function VentasPage() {
                                         })()}
                                     </div>
                                 </div>
+
+                                    {/* SmartLab Info */}
+                                    {order.smartLabProgress != null && order.smartLabProgress > 0 && (
+                                        <div className="mt-3 bg-blue-50/80 dark:bg-blue-950/30 rounded-xl p-3 border border-blue-100 dark:border-blue-800/50">
+                                            <div className="flex items-center gap-2 mb-2">
+                                                <Factory className="w-3.5 h-3.5 text-blue-500" />
+                                                <span className="text-[8px] font-black text-blue-500 uppercase tracking-widest">SmartLab</span>
+                                                <span className={`ml-auto text-[10px] font-black ${order.smartLabProgress >= 100 ? 'text-emerald-500' : 'text-blue-600'}`}>
+                                                    {order.smartLabProgress}%
+                                                </span>
+                                            </div>
+                                            <div className="h-2 bg-blue-100 dark:bg-blue-900/50 rounded-full overflow-hidden mb-2">
+                                                <div 
+                                                    className={`h-full rounded-full transition-all duration-500 ${order.smartLabProgress >= 100 ? 'bg-emerald-500' : 'bg-gradient-to-r from-blue-500 to-indigo-500'}`}
+                                                    style={{ width: `${Math.min(100, order.smartLabProgress)}%` }}
+                                                />
+                                            </div>
+                                            <div className="flex items-center justify-between gap-2">
+                                                <span className="text-[9px] font-bold text-stone-600 dark:text-stone-300">
+                                                    {order.smartLabSector || '\u2014'}
+                                                </span>
+                                                <div className="flex items-center gap-3">
+                                                    {order.smartLabEntryDate && (
+                                                        <span className="text-[8px] font-bold text-stone-400">
+                                                            Ingreso: {order.smartLabEntryDate}
+                                                        </span>
+                                                    )}
+                                                    {order.smartLabDays != null && (
+                                                        <span className="text-[9px] font-black text-amber-500">
+                                                            {order.smartLabDays}d en lab
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
 
                                 {/* Lab Order Number & Actions */}
                                 <div className="flex flex-col lg:flex-row items-center gap-4 mt-4 pt-4 border-t border-stone-100 dark:border-stone-700">

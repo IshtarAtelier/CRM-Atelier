@@ -55,6 +55,24 @@ export default function PedidosPage() {
 
     useEffect(() => {
         fetchOrders();
+        // Auto-sync SmartLab en segundo plano al cargar la página
+        const autoSync = async () => {
+            setIsSyncing(true);
+            try {
+                const res = await fetch('/api/smartlab-sync', { method: 'POST' });
+                if (res.ok) {
+                    const data = await res.json();
+                    setSyncResult(data);
+                    await fetchOrders(); // Refrescar con datos actualizados
+                    setTimeout(() => setSyncResult(null), 5000);
+                }
+            } catch (err) {
+                console.error('Error auto-sync SmartLab:', err);
+            } finally {
+                setIsSyncing(false);
+            }
+        };
+        autoSync();
     }, []);
 
     const fetchOrders = async () => {
