@@ -10,6 +10,7 @@ import { CheckoutContactForm } from "@/components/checkout/CheckoutContactForm";
 import { CheckoutShippingForm } from "@/components/checkout/CheckoutShippingForm";
 import { CheckoutPaymentOptions } from "@/components/checkout/CheckoutPaymentOptions";
 import { CheckoutSummarySidebar } from "@/components/checkout/CheckoutSummarySidebar";
+import { WHATSAPP_PHONE } from "@/lib/constants";
 
 export default function CheckoutPage() {
   const { items, getCartTotal, clearCart } = useCart();
@@ -291,6 +292,13 @@ export default function CheckoutPage() {
             <br/><br/>
             <strong>Tiempo de entrega estimado:</strong> {hasCrystals ? '5 días hábiles por trabajo de laboratorio a medida.' : 'Despacho rápido dentro de los 2 días hábiles.'}
           </p>
+          <div className="bg-green-50 text-green-900 border border-green-200 rounded-lg p-4 mb-8 text-sm">
+            <p className="font-medium mb-1">¿Tenés alguna duda con tu pedido?</p>
+            <p className="text-green-700/80 mb-2">Escribinos directamente a nuestro canal de soporte.</p>
+            <a href={`https://wa.me/${WHATSAPP_PHONE}`} target="_blank" rel="noopener noreferrer" className="font-bold underline underline-offset-4 hover:text-green-600 transition-colors">
+              Contactar por WhatsApp ({WHATSAPP_PHONE})
+            </a>
+          </div>
           <Link href="/tienda" className="inline-block bg-black text-white px-8 py-4 text-[11px] font-bold uppercase tracking-widest hover:bg-stone-800 transition-colors">
             Volver a la Tienda
           </Link>
