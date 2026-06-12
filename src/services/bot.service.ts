@@ -3,6 +3,7 @@ import { ChatVertexAI } from "@langchain/google-vertexai-web";
 import { SystemMessage, HumanMessage } from "@langchain/core/messages";
 import { fetchWa } from '@/lib/wa-config';
 import { PricingService } from './PricingService';
+import { normalizeArgentinePhone } from './contact.service';
 
 export class BotService {
     /**
@@ -147,10 +148,8 @@ export class BotService {
             message += `¡Te esperamos! Muchas gracias.\n`;
             message += `\n_La óptica mejor calificada en Google Business 5/5_`;
 
-            let formattedPhone = clientPhone.replace(/\D/g, '');
-            if (formattedPhone.length === 10) formattedPhone = '549' + formattedPhone;
-            else if (!formattedPhone.startsWith('549') && formattedPhone.startsWith('54')) formattedPhone = formattedPhone.replace(/^54/, '549');
-            else if (!formattedPhone.startsWith('549')) formattedPhone = `549${formattedPhone}`;
+            let formattedPhone = normalizeArgentinePhone(clientPhone);
+            if (!formattedPhone) return false;
 
             // Send via internal WA server proxy
             const res = await fetchWa('/api/send', {
