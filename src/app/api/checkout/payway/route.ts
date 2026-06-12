@@ -109,7 +109,7 @@ export async function POST(req: Request) {
         <p style="text-align: right; font-weight: bold; font-size: 16px; margin-top: 20px;">Total: $${emailTotal.toLocaleString("es-AR")}</p>
         <div style="background: #f9f9f9; border-left: 4px solid #000; padding: 15px; margin: 20px 0;">
           <strong>Tiempo de entrega estimado:</strong><br/>
-          ${hasCrystals ? '7 a 10 días hábiles por trabajo de laboratorio.' : 'Despacho rápido dentro de las 24/48hs hábiles.'}
+          ${hasCrystals ? '5 días hábiles por trabajo de laboratorio a medida.' : 'Despacho rápido dentro de los 2 días hábiles.'}
         </div>
         <p style="text-align: center; color: #666; font-size: 12px; margin-top: 30px; border-top: 1px solid #eee; padding-top: 20px;">
           Atelier Óptica - Cerro de las Rosas, Córdoba.<br/>
@@ -125,16 +125,39 @@ export async function POST(req: Request) {
       html: confirmationHtml
     }).catch(err => console.error("Error confirmation email:", err));
 
-    // Email de notificación al administrador
-    const adminEmail = process.env.ADMIN_EMAIL || 'pisano.ishtar@gmail.com';
+    // Email de notificación a los administradores
+    const adminEmails = 'pisano.ishtar@gmail.com, atelier.optica.cerro@gmail.com';
+    
+    const adminHtml = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd;">
+        <h2 style="color: #333; border-bottom: 2px solid #000; padding-bottom: 10px;">🚨 NUEVA VENTA WEB 🚨</h2>
+        <p><strong>Orden ID:</strong> #${order.id}</p>
+        <p><strong>Total:</strong> $${emailTotal.toLocaleString('es-AR')} (${isTransfer ? 'Transferencia' : 'Tarjeta'})</p>
+        
+        <h3 style="background: #f4f4f4; padding: 10px; margin-top: 20px;">Datos del Cliente</h3>
+        <ul style="list-style: none; padding: 0;">
+          <li><strong>Nombre:</strong> ${customer.firstName} ${customer.lastName}</li>
+          <li><strong>Email:</strong> ${customer.email}</li>
+          <li><strong>WhatsApp:</strong> ${customer.phone}</li>
+          <li><strong>DNI:</strong> ${customer.dni}</li>
+          <li><strong>Dirección:</strong> ${customer.address}, ${customer.city}, ${customer.state} ${customer.zip}</li>
+        </ul>
+
+        <h3 style="background: #f4f4f4; padding: 10px; margin-top: 20px;">Productos Comprados</h3>
+        <table width="100%" cellpadding="10" cellspacing="0" style="border-collapse: collapse;">
+          ${itemsHtml}
+        </table>
+        
+        <div style="margin-top: 30px; padding: 15px; background: #e8f5e9; border-left: 5px solid #4caf50;">
+          <p style="margin: 0;"><strong>Ingresá al CRM</strong> para ver y gestionar la ficha completa.</p>
+        </div>
+      </div>
+    `;
+
     sendEmail({
-      to: adminEmail,
-      subject: `🛒 Nueva Compra Web - $${emailTotal.toLocaleString('es-AR')}`,
-      text: `Se ha registrado una nueva venta en la web.\n\n` +
-            `Cliente: ${customer.firstName} ${customer.lastName} (${customer.email})\n` +
-            `Total: $${emailTotal.toLocaleString('es-AR')} (${isTransfer ? 'Transferencia' : 'Tarjeta'})\n` +
-            `Items: ${items.length} producto(s)\n\n` +
-            `Ingresá al CRM para ver el detalle de la Ficha #${order.id.slice(-4).toUpperCase()}`
+      to: adminEmails,
+      subject: `🛒 Nueva Compra Web - $${emailTotal.toLocaleString('es-AR')} - ${customer.firstName} ${customer.lastName}`,
+      html: adminHtml
     }).catch(err => console.error("Error admin email:", err));
 
     // Función para descontar stock (ignorando cristales a medida o productos sin ID válido)

@@ -16,8 +16,8 @@ export function CheckoutShippingForm({ formData, handleChange, isLocalCity, hasC
               </p>
               <p className="text-[11px] text-stone-500 uppercase tracking-widest mt-1">
                 {isLocalCity 
-                  ? `Envíos dentro de Cba / Carlos Paz · ${hasCrystals ? 'Lab: 7 a 10 días hábiles' : 'Despacho en 24hs'}` 
-                  : `A todo el país vía Andreani · ${hasCrystals ? 'Lab: 7 a 10 días hábiles' : 'Despacho en 24hs'}`}
+                  ? `Envíos dentro de Cba / Carlos Paz · ${hasCrystals ? 'Lab: 5 días hábiles' : 'Despacho en 2 días hábiles'}` 
+                  : `A todo el país vía Andreani · ${hasCrystals ? 'Lab: 5 días hábiles' : 'Despacho en 2 días hábiles'}`}
               </p>
             </div>
           </div>

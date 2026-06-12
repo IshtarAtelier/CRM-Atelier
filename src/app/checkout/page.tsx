@@ -270,7 +270,7 @@ export default function CheckoutPage() {
               ? "Hemos registrado tu pedido. Te enviamos un correo con los datos bancarios para realizar la transferencia del monto total con descuento."
               : "Hemos registrado tu pedido de forma exitosa. Te enviamos un correo con la confirmación."}
             <br/><br/>
-            <strong>Tiempo de entrega estimado:</strong> {hasCrystals ? '7 a 10 días hábiles por trabajo de laboratorio.' : 'Despacho rápido dentro de las 24/48hs.'}
+            <strong>Tiempo de entrega estimado:</strong> {hasCrystals ? '5 días hábiles por trabajo de laboratorio a medida.' : 'Despacho rápido dentro de los 2 días hábiles.'}
           </p>
           <Link href="/tienda" className="inline-block bg-black text-white px-8 py-4 text-[11px] font-bold uppercase tracking-widest hover:bg-stone-800 transition-colors">
             Volver a la Tienda
