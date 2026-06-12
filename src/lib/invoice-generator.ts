@@ -1,7 +1,3 @@
-import { jsPDF } from 'jspdf';
-import autoTable from 'jspdf-autotable';
-import QRCode from 'qrcode';
-
 export interface InvoiceData {
     invoice: any;
     issuer: {
@@ -15,6 +11,10 @@ export interface InvoiceData {
 }
 
 export async function generateInvoicePDF(data: InvoiceData, returnBase64: boolean = false): Promise<{ base64: string, fileName: string } | void> {
+    const { jsPDF } = await import('jspdf');
+    const autoTable = (await import('jspdf-autotable')).default;
+    const QRCode = (await import('qrcode')).default;
+
     const { invoice, issuer, logo } = data;
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.getWidth();
