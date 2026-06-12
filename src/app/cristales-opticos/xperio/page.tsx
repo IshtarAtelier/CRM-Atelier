@@ -1,184 +1,135 @@
 import Link from "next/link";
 import { Metadata } from "next";
+import { AccordionItem } from "@/components/Storefront/Accordion";
 
 export const metadata: Metadata = {
-  title: "Xperio Polarizados | Atelier Óptica",
-  description: "Lentes polarizados que reducen reflejos y mejoran el confort al aire libre. Ideales para manejo diurno, playa y actividades outdoor.",
+  title: "Xperio Polarizados Premium | Atelier Óptica",
+  description: "Lentes polarizadas Xperio para confort total al sol. Cortan los reflejos cegadores de la ruta, la nieve y el agua. Categoría 3.",
   keywords: "Xperio, Polarizados, Lentes de Sol, Reflejos, Conducción, Óptica, Atelier, Córdoba",
 };
-
-const CARDS = [
-  {
-    category: "MANEJO",
-    title: "Polarizado para Conducción",
-    description: "Pensado para reducir reflejos del asfalto y mejorar confort en días brillantes.",
-    features: [
-      "Ideal si manejás seguido de día.",
-      "Ayuda con el deslumbramiento en ruta.",
-      "Se arma con tu receta médica."
-    ],
-    bg: "bg-white",
-  },
-  {
-    category: "OUTDOOR",
-    title: "Playa y Actividades",
-    description: "Reflejos fuertes en agua/arena: polarizado recomendado para confort prolongado.",
-    features: [
-      "Mejora la 'calma visual'.",
-      "Útil en náutica y deportes al aire libre.",
-      "Definimos el color según tu preferencia."
-    ],
-    bg: "bg-white"
-  },
-  {
-    category: "ASESORAMIENTO",
-    title: "¿Cuál te conviene?",
-    description: "Te lo definimos con 4 preguntas + tu receta (si la tenés).",
-    features: [
-      "¿Manejás seguido?",
-      "¿Exterior frecuente?",
-      "¿Playa, agua o deporte?",
-      "¿Preferís color más suave o más oscuro?"
-    ],
-    bg: "bg-[#f8fafc]",
-    buttonText: "Iniciar consulta"
-  }
-];
 
 export default function XperioPage() {
   return (
     <div className="bg-[#faf8f5]">
-      {/* HERO SECTION */}
       <section className="relative w-full pt-10 pb-20 px-6 md:pt-16 md:pb-28 bg-[#faf8f5]">
         <div className="max-w-5xl mx-auto text-center">
-          <p className="text-[11px] font-bold tracking-[0.2em] uppercase text-black/50 mb-6">Confort al aire libre</p>
+          <p className="text-[11px] font-bold tracking-[0.2em] uppercase text-black/50 mb-6">Performance Outdoor</p>
           <h1 className="text-4xl md:text-6xl font-black tracking-tight mb-8">
             Xperio · Polarizados
           </h1>
           <p className="text-lg md:text-xl text-black/70 max-w-3xl mx-auto leading-relaxed font-light">
-            Polarizados que reducen reflejos y mejoran el confort al aire libre.
+            Mucho más que un &quot;lente oscuro&quot;.
             <br className="hidden md:block" />
-            Xperio® es una familia de lentes pensados para exterior: ayudan a reducir reflejos molestos (ruta, agua, superficies brillantes) y aportan una visión más limpia y confortable.
+            Mientras los lentes de sol normales solo oscurecen tu vista, la tecnología Xperio® actúa como una <strong>persiana óptica</strong> bloqueando los destellos peligrosos y cegadores de la luz reflejada.
           </p>
         </div>
       </section>
 
-      {/* VALUE PROPOSITION STRIP */}
       <div className="w-full bg-black py-4 overflow-hidden border-y border-white/10">
         <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-6 text-center md:text-left">
           <div className="flex items-center gap-3">
             <span className="text-white text-xl">☀️</span>
             <div>
-              <h4 className="text-white font-bold text-sm">Menos reflejos</h4>
-              <p className="text-white/60 text-xs mt-0.5">Ayuda en agua/ruta/superficies</p>
+              <h4 className="text-white font-bold text-sm">Polarización Categ. 3</h4>
+              <p className="text-white/60 text-xs mt-0.5">Eliminación total del resplandor</p>
+            </div>
+          </div>
+          <div className="hidden md:block w-px h-10 bg-white/20"></div>
+          <div className="flex items-center gap-3">
+            <span className="text-white text-xl">🚘</span>
+            <div>
+              <h4 className="text-white font-bold text-sm">Seguridad Vial</h4>
+              <p className="text-white/60 text-xs mt-0.5">Recorta los destellos del asfalto húmedo</p>
             </div>
           </div>
           <div className="hidden md:block w-px h-10 bg-white/20"></div>
           <div className="flex items-center gap-3">
             <span className="text-white text-xl">👓</span>
             <div>
-              <h4 className="text-white font-bold text-sm">Con Receta</h4>
-              <p className="text-white/60 text-xs mt-0.5">Se arma con tu graduación</p>
-            </div>
-          </div>
-          <div className="hidden md:block w-px h-10 bg-white/20"></div>
-          <div className="flex items-center gap-3">
-            <span className="text-white text-xl">🎨</span>
-            <div>
-              <h4 className="text-white font-bold text-sm">Estética</h4>
-              <p className="text-white/60 text-xs mt-0.5">Opciones de color disponibles</p>
+              <h4 className="text-white font-bold text-sm">Alta Prescripción</h4>
+              <p className="text-white/60 text-xs mt-0.5">Disponibles en multifocales y altos aumentos</p>
             </div>
           </div>
         </div>
       </div>
 
-      {/* PRODUCT GRID SECTION */}
       <section className="w-full py-24 px-6">
-        <div className="max-w-7xl mx-auto">
+        <div className="max-w-4xl mx-auto">
           <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">Opciones recomendadas</h2>
-            <p className="text-black/60 max-w-2xl mx-auto text-lg">
-              Te sugerimos la opción ideal según rutina + receta.
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">El Poder del Polarizado</h2>
+            <p className="text-black/60 text-lg">
+              Entendé cómo adaptar tu lente de sol a la actividad exacta que vas a realizar.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {CARDS.map((card, idx) => (
-              <div 
-                key={idx} 
-                className={`border border-[#e8e2db] rounded-2xl p-8 flex flex-col h-full transition-all hover:shadow-xl hover:-translate-y-1 duration-300 ${card.bg}`}
-              >
-                <div className="mb-6">
-                  {card.category && (
-                    <p className="text-[11px] font-bold tracking-[0.1em] text-black/50 uppercase mb-3">
-                      {card.category}
-                    </p>
-                  )}
-                  <h3 className="text-2xl font-bold text-black mb-3">{card.title}</h3>
-                  <p className="text-sm text-black/70 leading-relaxed min-h-[40px]">
-                    {card.description}
-                  </p>
-                </div>
-                
-                <ul className="space-y-4 mb-10 flex-grow">
-                  {card.features.map((f, i) => (
-                    <li key={i} className="text-[14px] text-black/70 flex items-start gap-3">
-                      <span className="text-black/40 mt-[2px] text-[10px]">●</span>
-                      <span className="leading-tight">{f}</span>
-                    </li>
-                  ))}
-                </ul>
+          <AccordionItem 
+            title="¿Cómo funciona el efecto persiana?" 
+            subtitle="La física detrás de la visión nítida al sol."
+            defaultOpen={true}
+          >
+            <p className="mb-4">
+              La luz del sol se propaga en todas las direcciones. Cuando choca contra una superficie plana (como el agua, la ruta, la nieve o el capó de otro auto), la luz se concentra y se refleja de forma horizontal. Esto genera el &quot;destello cegador&quot; o resplandor.
+            </p>
+            <ul className="list-disc pl-5 mb-4 space-y-2">
+              <li>Un lente de sol común (solo teñido) oscurece todo por igual, pero el destello horizontal sigue encandilando.</li>
+              <li>El film interno de los cristales <strong>Xperio</strong> actúa como una matriz vertical (como si fueran los barrotes de una persiana) que absorbe y bloquea esa luz horizontal.</li>
+              <li>El resultado: lográs ver &quot;a través&quot; del reflejo (por ejemplo, podés ver el fondo del agua en vez del destello del sol sobre la superficie).</li>
+            </ul>
+          </AccordionItem>
 
-                <div className="mt-auto flex flex-col sm:flex-row items-center gap-3">
-                  <Link 
-                    href={`/contacto?motivo=${encodeURIComponent(`Consulta por Xperio - ${card.title}`)}`}
-                    className="inline-flex items-center justify-center bg-[#283f5a] hover:bg-[#1e3047] text-white px-8 py-3 rounded-full text-[13px] font-bold transition-all w-full sm:w-auto flex-1"
-                  >
-                    {card.buttonText || "Consultar por mi caso"}
-                  </Link>
-                </div>
-              </div>
-            ))}
-          </div>
+          <AccordionItem 
+            title="Especialización: Ruta y Asfalto" 
+            subtitle="Conducción profesional y segura."
+          >
+            <p className="mb-4">
+              Para los viajes por ruta, los reflejos del asfalto mojado o las horas del atardecer son críticos. El polarizado mejora notablemente tu tiempo de reacción.
+            </p>
+            <ul className="list-disc pl-5 mb-4 space-y-2">
+              <li>Mejora la agudeza visual al no obligarte a entrecerrar los ojos.</li>
+              <li>Color recomendado: <strong>Gris o Verde G15</strong>. El gris mantiene los colores de las señales de tránsito neutros y puros, mientras que el verde alivia la fatiga ocular a lo largo de las horas.</li>
+            </ul>
+          </AccordionItem>
+
+          <AccordionItem 
+            title="Especialización: Náutica, Pesca y Nieve" 
+            subtitle="Contraste máximo en superficies extremas."
+          >
+            <p className="mb-4">
+              El agua y la nieve son las superficies más reflectantes del mundo natural. Estar horas sin protección adecuada puede causar &quot;ceguera de nieve&quot; (fotokeratitis).
+            </p>
+            <ul className="list-disc pl-5 mb-4 space-y-2">
+              <li>Elimina por completo el &quot;velo&quot; blanco del agua, permitiendo ver a los peces o el relieve de las olas con máxima precisión.</li>
+              <li>Color recomendado: <strong>Marrón</strong>. El lente marrón filtra un porcentaje alto de luz azul ambiental, lo que realza los contrastes dramáticamente, permitiendo distinguir hundimientos en la nieve o en la arena con muchísima más facilidad que un cristal gris.</li>
+            </ul>
+          </AccordionItem>
+
+          <AccordionItem 
+            title="Recetas Complejas (Multifocales y Curvos)" 
+            subtitle="Polarizados a medida."
+          >
+            <p className="mb-4">
+              Históricamente, si tenías aumento alto o usabas multifocales, no podías acceder a anteojos de sol deportivos o envolventes. Hoy la tecnología Xperio se talla a medida:
+            </p>
+            <ul className="list-disc pl-5 space-y-2">
+              <li>Se pueden hacer en diseños progresivos (Varilux Xperio).</li>
+              <li>Se pueden adaptar a armazones envolventes o curvados (curva base especial) manteniendo la óptica impecable en los bordes.</li>
+            </ul>
+          </AccordionItem>
         </div>
       </section>
 
-      {/* WHY CHOOSE US / SEO CONTENT */}
-      <section className="w-full bg-[#faf8f5] py-24 px-6 border-t border-[#e8e2db]">
-        <div className="max-w-4xl mx-auto">
-          <div className="grid md:grid-cols-2 gap-16">
-            <div>
-              <h3 className="text-2xl font-bold mb-6">¿Qué te resuelve un polarizado?</h3>
-              <p className="text-black/70 mb-6 leading-relaxed">
-                Si te molestan los reflejos del sol o terminás &quot;forzando&quot; la vista en exterior, el polarizado suele ser el salto más notorio. Especialmente para manejo diurno, playa, náutica y actividades al aire libre.
-              </p>
-              <ul className="space-y-3">
-                <li className="flex items-center gap-3 text-black/80 font-medium">
-                  <svg className="w-5 h-5 text-[#283f5a]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg>
-                  Filtra reflejos intensos horizontales (ruta/agua).
-                </li>
-                <li className="flex items-center gap-3 text-black/80 font-medium">
-                  <svg className="w-5 h-5 text-[#283f5a]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg>
-                  Visión más relajada en días brillantes.
-                </li>
-                <li className="flex items-center gap-3 text-black/80 font-medium">
-                  <svg className="w-5 h-5 text-[#283f5a]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg>
-                  Mejor lectura de contrastes al aire libre.
-                </li>
-              </ul>
-            </div>
-            <div>
-              <h3 className="text-2xl font-bold mb-6">¿Se puede hacer con mi receta?</h3>
-              <p className="text-black/70 mb-6 leading-relaxed">
-                Sí. Lo armamos con tu graduación y lo ajustamos al armazón para un buen centrado y confort.
-                Te sugerimos el armado correcto y opciones de color disponibles según el stock.
-              </p>
-              <div className="bg-white p-6 rounded-xl border border-[#e8e2db]">
-                <h4 className="font-bold text-sm mb-2">Tip de Atelier</h4>
-                <p className="text-sm text-black/70">Si tu prioridad es la ruta o la ciudad, buscamos confort y claridad en condiciones reales. Consideramos tus horarios y exposición a la hora de armar tu polarizado Xperio.</p>
-              </div>
-            </div>
-          </div>
+      <section className="w-full bg-white py-24 px-6 border-t border-[#e8e2db]">
+        <div className="max-w-3xl mx-auto text-center">
+          <h2 className="text-3xl font-bold mb-6">Armá tu lente de sol ideal</h2>
+          <p className="text-lg text-black/70 mb-10 leading-relaxed">
+            Elegí un buen armazón estilo aviador, deportivo o clásico grueso, y decinos tu receta. En Atelier transformamos cualquier gafa en el mejor lente de sol con aumento polarizado que hayas usado.
+          </p>
+          <Link 
+            href={`/contacto?motivo=${encodeURIComponent("Asesoramiento para armado de Lentes de Sol Polarizados Xperio")}`}
+            className="inline-block bg-[#283f5a] hover:bg-[#1e3047] text-white px-10 py-4 rounded-full font-bold transition-all shadow-lg hover:shadow-xl hover:-translate-y-1"
+          >
+            Armar mis lentes de Sol Xperio
+          </Link>
         </div>
       </section>
     </div>

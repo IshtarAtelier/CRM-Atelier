@@ -6,6 +6,7 @@ import { MapPin, Clock, Phone } from "lucide-react";
 import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon";
 import { GoogleReviews } from "@/components/Storefront/GoogleReviews";
 import { WHATSAPP_PHONE } from '@/lib/constants';
+import { getWebSettings } from '@/lib/web-settings';
 
 export const metadata: Metadata = {
   title: "Nuestro Local | Óptica Boutique en Cerro de las Rosas, Córdoba",
@@ -27,58 +28,66 @@ export const metadata: Metadata = {
   }
 };
 
-const localBusinessJsonLd = {
-  '@context': 'https://schema.org',
-  '@type': 'LocalBusiness',
-  'name': 'Atelier Óptica',
-  'image': 'https://www.atelieroptica.com.ar/images/og-image.jpg',
-  '@id': 'https://www.google.com/maps?cid=14830223812501661125',
-  'url': 'https://www.atelieroptica.com.ar',
-  'telephone': '+54 9 354 121 5971',
-  'priceRange': '$$',
-  'address': {
-    '@type': 'PostalAddress',
-    'streetAddress': 'José Luis de Tejeda 4380',
-    'addressLocality': 'Cerro de las Rosas, Córdoba',
-    'addressRegion': 'Córdoba',
-    'postalCode': '5009',
-    'addressCountry': 'AR',
-  },
-  'geo': {
-    '@type': 'GeoCoordinates',
-    'latitude': -31.3831,
-    'longitude': -64.24005,
-  },
-  'openingHoursSpecification': [
-    {
-      '@type': 'OpeningHoursSpecification',
-      'dayOfWeek': ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
-      'opens': '09:30',
-      'closes': '13:00',
-    },
-    {
-      '@type': 'OpeningHoursSpecification',
-      'dayOfWeek': ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
-      'opens': '16:30',
-      'closes': '20:30',
-    },
-    {
-      '@type': 'OpeningHoursSpecification',
-      'dayOfWeek': ['Saturday'],
-      'opens': '09:30',
-      'closes': '13:00',
-    }
-  ],
-  'aggregateRating': {
-    '@type': 'AggregateRating',
-    'ratingValue': '5.0',
-    'bestRating': '5',
-    'worstRating': '1',
-    'ratingCount': '89',
-  }
-};
+export default async function NuestroLocalPage() {
+  const settings = await getWebSettings();
 
-export default function NuestroLocalPage() {
+  const addressLine = settings.web_store_address;
+  const localityLine = settings.web_store_locality;
+  const mapsUrl = settings.web_store_maps_url;
+  const phone = settings.web_store_phone;
+  const whatsappPhoneId = settings.web_store_whatsapp_id;
+
+  const localBusinessJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'LocalBusiness',
+    'name': 'Atelier Óptica',
+    'image': 'https://www.atelieroptica.com.ar/images/og-image.jpg',
+    '@id': mapsUrl,
+    'url': 'https://www.atelieroptica.com.ar',
+    'telephone': phone,
+    'priceRange': '$$',
+    'address': {
+      '@type': 'PostalAddress',
+      'streetAddress': addressLine,
+      'addressLocality': localityLine,
+      'addressRegion': 'Córdoba',
+      'postalCode': '5009',
+      'addressCountry': 'AR',
+    },
+    'geo': {
+      '@type': 'GeoCoordinates',
+      'latitude': -31.3831,
+      'longitude': -64.24005,
+    },
+    'openingHoursSpecification': [
+      {
+        '@type': 'OpeningHoursSpecification',
+        'dayOfWeek': ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
+        'opens': '09:30',
+        'closes': '13:00',
+      },
+      {
+        '@type': 'OpeningHoursSpecification',
+        'dayOfWeek': ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
+        'opens': '16:30',
+        'closes': '20:30',
+      },
+      {
+        '@type': 'OpeningHoursSpecification',
+        'dayOfWeek': ['Saturday'],
+        'opens': '09:30',
+        'closes': '13:00',
+      }
+    ],
+    'aggregateRating': {
+      '@type': 'AggregateRating',
+      'ratingValue': '5.0',
+      'bestRating': '5',
+      'worstRating': '1',
+      'ratingCount': '89',
+    }
+  };
+
   return (
     <div className="bg-white min-h-screen text-black font-sans selection:bg-black selection:text-white">
       <script
@@ -169,8 +178,8 @@ export default function NuestroLocalPage() {
                 </div>
                 <div>
                   <p className="text-[10px] font-black uppercase tracking-widest text-stone-400 mb-1">Dirección</p>
-                  <p className="text-sm font-medium text-stone-800">José Luis de Tejeda 4380</p>
-                  <p className="text-sm text-stone-500">Cerro de las Rosas, Córdoba Capital</p>
+                  <p className="text-sm font-medium text-stone-800">{addressLine}</p>
+                  <p className="text-sm text-stone-500">{localityLine}</p>
                 </div>
               </div>
 
@@ -193,7 +202,7 @@ export default function NuestroLocalPage() {
                 </div>
                 <div>
                   <p className="text-[10px] font-black uppercase tracking-widest text-stone-400 mb-1">Contacto</p>
-                  <p className="text-sm font-medium text-stone-800">+54 9 354 121 5971</p>
+                  <p className="text-sm font-medium text-stone-800">{phone}</p>
                 </div>
               </div>
             </div>
@@ -201,7 +210,7 @@ export default function NuestroLocalPage() {
             {/* CTA */}
             <div className="flex flex-col sm:flex-row gap-3">
               <a
-                href={`https://wa.me/${WHATSAPP_PHONE}?text=Hola%20Atelier%2C%20quiero%20hacer%20una%20consulta`}
+                href={`https://wa.me/${whatsappPhoneId}?text=Hola%20Atelier%2C%20quiero%20hacer%20una%20consulta`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 justify-center px-6 py-3 bg-black text-white text-xs font-black uppercase tracking-widest hover:bg-stone-800 transition-colors"
@@ -209,7 +218,7 @@ export default function NuestroLocalPage() {
                 <WhatsAppIcon className="w-4 h-4" /> Escribinos
               </a>
               <a
-                href="https://www.google.com/maps?cid=14830223812501661125"
+                href={mapsUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 justify-center px-6 py-3 border border-stone-300 text-stone-700 text-xs font-black uppercase tracking-widest hover:border-black hover:text-black transition-colors"

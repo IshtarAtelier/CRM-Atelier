@@ -173,31 +173,42 @@ export async function GET(request: Request) {
             let orderCMV = 0;
             const orderItems: any[] = [];
             const orderProductTypes = new Set<string>();
+            let paidCrystalsCount = 0;
 
             for (const item of order.items) {
                 const product = item.product;
                 if (!product) continue; // Skip if product was deleted
 
-                let itemCost = (product.cost || 0) * item.quantity;
-                
-                // Si el producto es por PAR (Cristales) y tiene especificado el ojo (OD/OI pero no AMBOS),
-                // el costo en el inventario suele ser del par, por lo que cada línea (ojo)
-                // debe sumar solo el 50% del costo para no duplicar el gasto total en reportes.
-                if (product.unitType === 'PAR' && (item.eye === 'OD' || item.eye === 'OI') && (product.cost || 0) > 0) {
-                    itemCost = ((product.cost || 0) / 2) * item.quantity;
-                }
-
-                // Promo 2x1: el segundo cristal multifocal bonificado tiene costo $0
-                // (el laboratorio lo regala). Se detecta porque su precio de venta es $0.
-                // Los armazones siempre cuentan ambos costos (la óptica los paga).
-                const has2x1Tag = order.tags?.some((t: any) => t.name.toLowerCase().includes('2x1')) || false;
-                const is2x1Order = (order.appliedPromoName || '').toLowerCase().includes('2x1') || has2x1Tag;
                 const isCrystalItem = (product.category || '').toUpperCase().includes('CRISTAL')
                     || (product.type || '').includes('Cristal')
                     || (product.type || '').includes('Multifocal')
                     || (product.type || '').includes('Monofocal');
-                if (is2x1Order && isCrystalItem && item.price === 0) {
-                    itemCost = 0;
+
+                let itemCost = (product.cost || 0) * item.quantity;
+                
+                // Si es Cristal, asumimos que el costo de inventario es por el PAR (salvo explícito UNIDAD).
+                // Por ende, si la línea es para un ojo (OD/OI), dividimos por 2 para no duplicar.
+                if (isCrystalItem && product.unitType !== 'UNIDAD' && (item.eye === 'OD' || item.eye === 'OI') && (product.cost || 0) > 0) {
+                    itemCost = ((product.cost || 0) / 2) * item.quantity;
+                }
+
+                // Promo 2x1: el laboratorio regala el segundo par. 
+                const has2x1Tag = order.tags?.some((t: any) => t.name.toLowerCase().includes('2x1')) || false;
+                const is2x1Order = (order.appliedPromoName || '').toLowerCase().includes('2x1') || has2x1Tag;
+                
+                if (is2x1Order && isCrystalItem) {
+                    if (item.price === 0) {
+                        itemCost = 0;
+                    } else {
+                        // Si no lo pusieron en $0, limitamos el costo a 1 solo par (2 ojos) por pedido
+                        if (paidCrystalsCount >= 2) {
+                            itemCost = 0;
+                        } else if (paidCrystalsCount + item.quantity > 2) {
+                            const payableQty = 2 - paidCrystalsCount;
+                            itemCost = (itemCost / item.quantity) * payableQty;
+                        }
+                        paidCrystalsCount += item.quantity;
+                    }
                 }
                 
                 const itemRevenue = item.price * item.quantity;

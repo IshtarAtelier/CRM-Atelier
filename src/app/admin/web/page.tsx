@@ -60,7 +60,7 @@ interface BlogPost {
 }
 
 export default function WebManagementPage() {
-  const [activeTab, setActiveTab] = useState<'products' | 'blog'>('products');
+  const [activeTab, setActiveTab] = useState<'products' | 'blog' | 'config'>('products');
   
   // Products states
   const [products, setProducts] = useState<WebProduct[]>([]);
@@ -98,10 +98,80 @@ export default function WebManagementPage() {
     metaDescription: ""
   });
 
+  // Web Config states
+  const [loadingConfig, setLoadingConfig] = useState(false);
+  const [savingConfig, setSavingConfig] = useState(false);
+  const [configForm, setConfigForm] = useState({
+    web_announcement_text: "",
+    web_announcement_active: true,
+    web_announcement_link: "",
+    web_store_address: "",
+    web_store_locality: "",
+    web_store_maps_url: "",
+    web_store_phone: "",
+    web_store_whatsapp_id: "",
+    web_promo_installments: "",
+    web_promo_cash_discount: 15
+  });
+
   useEffect(() => {
     loadProducts();
     loadPosts();
+    loadWebConfig();
   }, []);
+
+  const loadWebConfig = async () => {
+    setLoadingConfig(true);
+    try {
+      const res = await fetch('/api/settings');
+      if (res.ok) {
+        const data = await res.json();
+        setConfigForm({
+          web_announcement_text: data.web_announcement_text || "6 Cuotas Sin Interés • 15% OFF en Efectivo o Transferencia • Envío Gratis",
+          web_announcement_active: data.web_announcement_active !== undefined ? data.web_announcement_active : true,
+          web_announcement_link: data.web_announcement_link || "/tienda",
+          web_store_address: data.web_store_address || "José Luis de Tejeda 4380",
+          web_store_locality: data.web_store_locality || "Cerro de las Rosas, Córdoba",
+          web_store_maps_url: data.web_store_maps_url || "https://www.google.com/maps?cid=14830223812501661125",
+          web_store_phone: data.web_store_phone || "+54 9 354 121 5971",
+          web_store_whatsapp_id: data.web_store_whatsapp_id || "5493541215971",
+          web_promo_installments: data.web_promo_installments || "6 cuotas sin interés",
+          web_promo_cash_discount: data.web_promo_cash_discount !== undefined ? Number(data.web_promo_cash_discount) : 15
+        });
+      }
+    } catch (error) {
+      console.error("Error loading web config:", error);
+    } finally {
+      setLoadingConfig(false);
+    }
+  };
+
+  const handleSaveConfig = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSavingConfig(true);
+    try {
+      const promises = Object.entries(configForm).map(([key, value]) => {
+        return fetch('/api/settings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ key, value })
+        });
+      });
+      
+      const results = await Promise.all(promises);
+      const allOk = results.every(res => res.ok);
+      if (allOk) {
+        alert("¡Configuración y promociones web guardadas exitosamente!");
+        loadWebConfig();
+      } else {
+        alert("Ocurrió un error al guardar algunas configuraciones.");
+      }
+    } catch (error) {
+      alert("Error de conexión al guardar los ajustes.");
+    } finally {
+      setSavingConfig(false);
+    }
+  };
 
   const loadProducts = async () => {
     setLoadingProducts(true);
@@ -345,6 +415,16 @@ export default function WebManagementPage() {
         >
           <BookOpen className="w-4 h-4" /> Artículos del Blog
         </button>
+        <button
+          onClick={() => setActiveTab('config')}
+          className={`flex items-center gap-2 px-6 py-3 border-b-2 text-xs font-bold uppercase tracking-widest transition-all ${
+            activeTab === 'config'
+              ? 'border-primary text-primary'
+              : 'border-transparent text-stone-400 hover:text-stone-700 dark:hover:text-stone-200'
+          }`}
+        >
+          <Settings className="w-4 h-4" /> Configuración y Promos
+        </button>
       </div>
 
       {/* TAB 1: PRODUCTS LIST */}
@@ -540,6 +620,185 @@ export default function WebManagementPage() {
                 </div>
               ))}
             </div>
+          )}
+        </div>
+      )}
+
+      {/* TAB 3: WEB CONFIGURATION */}
+      {activeTab === 'config' && (
+        <div className="bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-3xl p-6 sm:p-8 shadow-sm space-y-8 animate-in fade-in duration-300">
+          <div className="border-b border-stone-100 dark:border-stone-800 pb-4">
+            <h2 className="text-lg font-black text-stone-900 dark:text-white uppercase tracking-wider">Ajustes Generales del Sitio y Promos</h2>
+            <p className="text-xs text-stone-500 mt-1">Configurá las promociones globales, banner de anuncio y los datos de contacto/dirección del local.</p>
+          </div>
+
+          {loadingConfig ? (
+            <div className="py-24 text-center">
+              <Loader2 className="w-8 h-8 animate-spin mx-auto text-primary mb-4" />
+              <p className="text-xs text-stone-500 font-bold uppercase tracking-widest">Cargando configuración...</p>
+            </div>
+          ) : (
+            <form onSubmit={handleSaveConfig} className="space-y-8">
+              {/* SECCIÓN 1: BANNER DE ANUNCIO */}
+              <div className="space-y-4">
+                <h3 className="text-xs font-black text-primary uppercase tracking-widest flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-primary" /> Barra de Anuncios Superior (Storefront)
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 p-5 bg-stone-50 dark:bg-stone-800/25 rounded-2xl border border-stone-100 dark:border-stone-800">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest block">Barra Activa</label>
+                    <label className="flex items-center gap-2 cursor-pointer select-none mt-2">
+                      <input
+                        type="checkbox"
+                        checked={configForm.web_announcement_active}
+                        onChange={e => setConfigForm({ ...configForm, web_announcement_active: e.target.checked })}
+                        className="w-4 h-4 rounded border-stone-300 text-primary focus:ring-primary accent-black"
+                      />
+                      <span className="text-xs font-bold text-stone-700 dark:text-stone-300">Mostrar Banner</span>
+                    </label>
+                  </div>
+                  
+                  <div className="md:col-span-2 space-y-2">
+                    <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest block">Texto del Anuncio</label>
+                    <input
+                      type="text"
+                      className="w-full px-3 py-2.5 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl text-xs outline-none focus:border-primary transition-all font-medium"
+                      placeholder="Ej: 6 Cuotas Sin Interés • 15% de Descuento por Transferencia • Envío Gratis"
+                      value={configForm.web_announcement_text}
+                      onChange={e => setConfigForm({ ...configForm, web_announcement_text: e.target.value })}
+                    />
+                  </div>
+
+                  <div className="md:col-span-3 space-y-2">
+                    <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest block">Enlace de Redirección (Opcional)</label>
+                    <input
+                      type="text"
+                      className="w-full px-3 py-2.5 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl text-xs outline-none focus:border-primary transition-all font-mono"
+                      placeholder="Ej: /tienda o /arma-tus-lentes"
+                      value={configForm.web_announcement_link}
+                      onChange={e => setConfigForm({ ...configForm, web_announcement_link: e.target.value })}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* SECCIÓN 2: PROMOS FINANCIERAS */}
+              <div className="space-y-4">
+                <h3 className="text-xs font-black text-primary uppercase tracking-widest flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-primary" /> Promociones y Descuentos Globales
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-5 bg-stone-50 dark:bg-stone-800/25 rounded-2xl border border-stone-100 dark:border-stone-800">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest block">Texto de Cuotas (Storefront)</label>
+                    <input
+                      type="text"
+                      className="w-full px-3 py-2.5 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl text-xs outline-none focus:border-primary transition-all font-medium"
+                      placeholder="Ej: 6 cuotas sin interés"
+                      value={configForm.web_promo_installments}
+                      onChange={e => setConfigForm({ ...configForm, web_promo_installments: e.target.value })}
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest block">Porcentaje de Descuento Efectivo / Transferencia</label>
+                    <div className="relative">
+                      <input
+                        type="number"
+                        min="0"
+                        max="90"
+                        className="w-full pl-3 pr-8 py-2.5 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl text-xs outline-none focus:border-primary transition-all font-medium"
+                        placeholder="Ej: 15"
+                        value={configForm.web_promo_cash_discount}
+                        onChange={e => setConfigForm({ ...configForm, web_promo_cash_discount: Number(e.target.value) })}
+                      />
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-black text-stone-400">%</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* SECCIÓN 3: SUCURSAL Y CONTACTO */}
+              <div className="space-y-4">
+                <h3 className="text-xs font-black text-primary uppercase tracking-widest flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-primary" /> Datos de la Sucursal y Contacto
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-5 bg-stone-50 dark:bg-stone-800/25 rounded-2xl border border-stone-100 dark:border-stone-800">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest block">Dirección Física</label>
+                    <input
+                      type="text"
+                      className="w-full px-3 py-2.5 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl text-xs outline-none focus:border-primary transition-all font-medium"
+                      placeholder="Ej: José Luis de Tejeda 4380"
+                      value={configForm.web_store_address}
+                      onChange={e => setConfigForm({ ...configForm, web_store_address: e.target.value })}
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest block">Localidad y Provincia</label>
+                    <input
+                      type="text"
+                      className="w-full px-3 py-2.5 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl text-xs outline-none focus:border-primary transition-all font-medium"
+                      placeholder="Ej: Cerro de las Rosas, Córdoba"
+                      value={configForm.web_store_locality}
+                      onChange={e => setConfigForm({ ...configForm, web_store_locality: e.target.value })}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest block">Teléfono / WhatsApp Visible</label>
+                    <input
+                      type="text"
+                      className="w-full px-3 py-2.5 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl text-xs outline-none focus:border-primary transition-all font-medium"
+                      placeholder="Ej: +54 9 354 121 5971"
+                      value={configForm.web_store_phone}
+                      onChange={e => setConfigForm({ ...configForm, web_store_phone: e.target.value })}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest block">ID de WhatsApp para Enlaces (Solo Números)</label>
+                    <input
+                      type="text"
+                      className="w-full px-3 py-2.5 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl text-xs outline-none focus:border-primary transition-all font-mono"
+                      placeholder="Ej: 5493541215971"
+                      value={configForm.web_store_whatsapp_id}
+                      onChange={e => setConfigForm({ ...configForm, web_store_whatsapp_id: e.target.value.replace(/\D/g, '') })}
+                    />
+                  </div>
+
+                  <div className="md:col-span-2 space-y-2">
+                    <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest block">URL de Enlace de Google Maps</label>
+                    <input
+                      type="text"
+                      className="w-full px-3 py-2.5 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl text-xs outline-none focus:border-primary transition-all font-mono"
+                      placeholder="https://..."
+                      value={configForm.web_store_maps_url}
+                      onChange={e => setConfigForm({ ...configForm, web_store_maps_url: e.target.value })}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* ACCIONES DEL FORMULARIO */}
+              <div className="flex justify-end gap-3 pt-6 border-t border-stone-150 dark:border-stone-800">
+                <button
+                  type="button"
+                  onClick={loadWebConfig}
+                  className="px-6 py-3 border border-stone-200 dark:border-stone-700 hover:bg-stone-50 dark:hover:bg-stone-800 text-stone-500 rounded-xl text-xs font-bold transition-colors"
+                >
+                  Restaurar Valores
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingConfig}
+                  className="px-6 py-3 bg-black dark:bg-white text-white dark:text-black hover:opacity-90 disabled:opacity-50 rounded-xl text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2"
+                >
+                  {savingConfig ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+                  Guardar Configuración
+                </button>
+              </div>
+            </form>
           )}
         </div>
       )}

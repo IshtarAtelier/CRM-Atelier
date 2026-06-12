@@ -1,11 +1,25 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { StorefrontNavbar } from "@/components/Storefront/StorefrontNavbar";
 import { StorefrontFooter } from "@/components/Storefront/StorefrontFooter";
 import { FloatingWhatsApp } from "@/components/Storefront/FloatingWhatsApp";
 import { WHATSAPP_PHONE } from "@/lib/constants";
 
 export default function ContactoPage() {
+  const [settings, setSettings] = useState<any>(null);
+
+  useEffect(() => {
+    fetch('/api/settings')
+      .then(res => res.json())
+      .then(data => setSettings(data))
+      .catch(err => console.error("Error loading settings in contacto page:", err));
+  }, []);
+
+  const whatsappPhoneId = settings ? settings.web_store_whatsapp_id : WHATSAPP_PHONE;
+  const phone = settings ? settings.web_store_phone : "+54 9 354 121 5971";
+  const locality = settings ? settings.web_store_locality : "Cerro de las Rosas, Córdoba Capital.";
+
   return (
     <div className="bg-white min-h-screen text-black font-sans selection:bg-black selection:text-white">
       <StorefrontNavbar theme="light" />
@@ -24,7 +38,7 @@ export default function ContactoPage() {
           <div className="space-y-8">
             <div>
               <p className="text-xs uppercase tracking-widest font-bold text-stone-400 mb-2">WhatsApp Directo</p>
-              <a href={`https://wa.me/${WHATSAPP_PHONE}`} className="text-lg font-medium hover:underline decoration-1 underline-offset-4">+54 9 3541 21-5971</a>
+              <a href={`https://wa.me/${whatsappPhoneId}`} className="text-lg font-medium hover:underline decoration-1 underline-offset-4">{phone}</a>
             </div>
             
             <div>
@@ -34,7 +48,7 @@ export default function ContactoPage() {
 
             <div>
               <p className="text-xs uppercase tracking-widest font-bold text-stone-400 mb-2">Ubicación</p>
-              <p className="text-lg font-medium">Cerro de las Rosas, Córdoba Capital.</p>
+              <p className="text-lg font-medium">{locality}</p>
             </div>
           </div>
         </div>

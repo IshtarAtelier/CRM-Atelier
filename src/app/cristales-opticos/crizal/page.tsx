@@ -1,74 +1,26 @@
 import Link from "next/link";
 import { Metadata } from "next";
+import { AccordionItem } from "@/components/Storefront/Accordion";
 
 export const metadata: Metadata = {
-  title: "Crizal Tratamientos | Atelier Óptica",
-  description: "Tratamientos antirreflejo Crizal para mayor claridad. Lentes más fáciles de limpiar, resistentes a marcas y reflejos molestos.",
-  keywords: "Crizal, Antirreflejo, Cristales, Lentes Limpias, Protección, Óptica, Atelier, Córdoba",
+  title: "Crizal Tratamientos Antirreflejo | Atelier Óptica",
+  description: "Descubrí la familia Crizal de Essilor: Sapphire HR, Rock, Prevencia. Tratamientos antirreflejo para mayor claridad y extrema resistencia.",
+  keywords: "Crizal, Antirreflejo, Sapphire, Rock, Prevencia, Cristales, Lentes Limpias, Protección, Óptica, Atelier",
 };
-
-const CARDS = [
-  {
-    category: "TRANSPARENCIA",
-    title: "Claridad y Confort",
-    description: "Menos reflejos molestos y mejor visión en todas las situaciones.",
-    features: [
-      "Reduce reflejos de luces y pantallas.",
-      "Mejor estética (lente 'más invisible').",
-      "Ideal para uso intensivo de pantallas y manejo nocturno."
-    ],
-    bg: "bg-white",
-  },
-  {
-    category: "MANTENIMIENTO",
-    title: "Fácil de Limpiar",
-    description: "Tratamientos pensados para resistir manchas y huellas en tu día a día.",
-    features: [
-      "Menos 'marcas' en el cristal.",
-      "Mayor limpieza con menos esfuerzo.",
-      "Excelente opción para uso continuo."
-    ],
-    bg: "bg-white"
-  },
-  {
-    category: "DURABILIDAD",
-    title: "Resistencia Diaria",
-    description: "Soporta el ritmo de la vida real con una durabilidad excepcional.",
-    features: [
-      "Protección contra rayas ligeras del uso.",
-      "Repele el agua y el polvo.",
-      "Alarga la vida útil de tus cristales."
-    ],
-    bg: "bg-white"
-  },
-  {
-    category: "ASESORAMIENTO",
-    title: "¿Cuál es ideal para mí?",
-    description: "Encontramos el tratamiento adecuado según tu rutina.",
-    features: [
-      "¿Trabajás con pantallas?",
-      "¿Manejás de noche?",
-      "¿Buscás la máxima resistencia?",
-      "Evaluamos tu receta y armazón."
-    ],
-    bg: "bg-[#f8fafc]",
-    buttonText: "Iniciar consulta"
-  }
-];
 
 export default function CrizalPage() {
   return (
     <div className="bg-[#faf8f5]">
       <section className="relative w-full pt-10 pb-20 px-6 md:pt-16 md:pb-28 bg-[#faf8f5]">
         <div className="max-w-5xl mx-auto text-center">
-          <p className="text-[11px] font-bold tracking-[0.2em] uppercase text-black/50 mb-6">Tratamientos Premium</p>
+          <p className="text-[11px] font-bold tracking-[0.2em] uppercase text-black/50 mb-6">Tratamientos Premium Essilor</p>
           <h1 className="text-4xl md:text-6xl font-black tracking-tight mb-8">
             Crizal · Tratamientos
           </h1>
           <p className="text-lg md:text-xl text-black/70 max-w-3xl mx-auto leading-relaxed font-light">
-            Más claridad. Menos reflejos. Lentes que se mantienen impecables.
+            El escudo invisible para tus ojos y tus lentes.
             <br className="hidden md:block" />
-            Crizal® es la línea de tratamientos antirreflejo pensada para mejorar la transparencia y sumar una "capa de protección" frente al uso real: manchas, rayas, agua y polvo.
+            La tecnología Crizal® no es solo un &quot;antirreflejo&quot;. Es un sistema integral que actúa contra los 5 enemigos de la claridad: <strong>reflejos, rayas, suciedad, polvo y agua</strong>.
           </p>
         </div>
       </section>
@@ -78,113 +30,114 @@ export default function CrizalPage() {
           <div className="flex items-center gap-3">
             <span className="text-white text-xl">✨</span>
             <div>
-              <h4 className="text-white font-bold text-sm">Antirreflejo</h4>
-              <p className="text-white/60 text-xs mt-0.5">Más transparencia y confort visual</p>
-            </div>
-          </div>
-          <div className="hidden md:block w-px h-10 bg-white/20"></div>
-          <div className="flex items-center gap-3">
-            <span className="text-white text-xl">💧</span>
-            <div>
-              <h4 className="text-white font-bold text-sm">Fácil Limpieza</h4>
-              <p className="text-white/60 text-xs mt-0.5">Menos marcas, huellas y polvo</p>
+              <h4 className="text-white font-bold text-sm">Transparencia</h4>
+              <p className="text-white/60 text-xs mt-0.5">Visión sin reflejos parásitos</p>
             </div>
           </div>
           <div className="hidden md:block w-px h-10 bg-white/20"></div>
           <div className="flex items-center gap-3">
             <span className="text-white text-xl">🛡️</span>
             <div>
-              <h4 className="text-white font-bold text-sm">Resistencia</h4>
-              <p className="text-white/60 text-xs mt-0.5">Protección frente al uso diario</p>
+              <h4 className="text-white font-bold text-sm">Resistencia Rock</h4>
+              <p className="text-white/60 text-xs mt-0.5">Soporta el rigor del uso diario</p>
+            </div>
+          </div>
+          <div className="hidden md:block w-px h-10 bg-white/20"></div>
+          <div className="flex items-center gap-3">
+            <span className="text-white text-xl">💦</span>
+            <div>
+              <h4 className="text-white font-bold text-sm">Hidrofóbico</h4>
+              <p className="text-white/60 text-xs mt-0.5">Repele el agua y la grasa facial</p>
             </div>
           </div>
         </div>
       </div>
 
       <section className="w-full py-24 px-6">
-        <div className="max-w-7xl mx-auto">
+        <div className="max-w-4xl mx-auto">
           <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">La solución para tu rutina</h2>
-            <p className="text-black/60 max-w-2xl mx-auto text-lg">
-              Lo definimos como solución (receta + uso + armazón) para que el resultado sea cómodo y duradero.
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">Conocé la Familia Crizal</h2>
+            <p className="text-black/60 text-lg">
+              Dependiendo de tu ritmo de vida y exigencias visuales, existe una tecnología Crizal específica para vos.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {CARDS.map((card, idx) => (
-              <div 
-                key={idx} 
-                className={`border border-[#e8e2db] rounded-2xl p-8 flex flex-col h-full transition-all hover:shadow-xl hover:-translate-y-1 duration-300 ${card.bg}`}
-              >
-                <div className="mb-6">
-                  {card.category && (
-                    <p className="text-[11px] font-bold tracking-[0.1em] text-black/50 uppercase mb-3">
-                      {card.category}
-                    </p>
-                  )}
-                  <h3 className="text-2xl font-bold text-black mb-3">{card.title}</h3>
-                  <p className="text-sm text-black/70 leading-relaxed min-h-[40px]">
-                    {card.description}
-                  </p>
-                </div>
-                
-                <ul className="space-y-4 mb-10 flex-grow">
-                  {card.features.map((f, i) => (
-                    <li key={i} className="text-[14px] text-black/70 flex items-start gap-3">
-                      <span className="text-black/40 mt-[2px] text-[10px]">●</span>
-                      <span className="leading-tight">{f}</span>
-                    </li>
-                  ))}
-                </ul>
+          <AccordionItem 
+            title="Crizal Sapphire™ HR" 
+            subtitle="La mayor transparencia. Invisible desde todos los ángulos."
+            defaultOpen={true}
+          >
+            <p className="mb-4">
+              <strong>Crizal Sapphire HR</strong> es la joya de la corona en antirreflejos. Utiliza tecnología de mitigación de luz Multi-Angular para reducir los reflejos sin importar de dónde venga la luz (frente, laterales o por detrás).
+            </p>
+            <ul className="list-disc pl-5 mb-4 space-y-2">
+              <li><strong>Invisibilidad:</strong> El cristal parece desaparecer del armazón, resaltando tus ojos.</li>
+              <li><strong>High Resistance (HR):</strong> Combina la transparencia absoluta con una capa ultra-resistente contra rayas (derivada de la industria aeroespacial).</li>
+              <li><strong>Visión nocturna:</strong> Elimina dramáticamente los halos de luz de los faros de los autos al conducir de noche.</li>
+            </ul>
+            <p className="text-sm bg-[#faf8f5] p-4 rounded-lg border border-[#e8e2db]">
+              <strong>Recomendación Atelier:</strong> Ideal para creadores de contenido, conductores nocturnos y personas que buscan estética premium sin compromisos.
+            </p>
+          </AccordionItem>
 
-                <div className="mt-auto flex flex-col sm:flex-row items-center gap-3">
-                  <Link 
-                    href={`/contacto?motivo=${encodeURIComponent(`Consulta por Crizal - ${card.title}`)}`}
-                    className="inline-flex items-center justify-center bg-[#283f5a] hover:bg-[#1e3047] text-white px-8 py-3 rounded-full text-[13px] font-bold transition-all w-full flex-1"
-                  >
-                    {card.buttonText || "Consultar opciones"}
-                  </Link>
-                </div>
-              </div>
-            ))}
-          </div>
+          <AccordionItem 
+            title="Crizal Rock™" 
+            subtitle="Extrema resistencia a rayas y manchas."
+          >
+            <p className="mb-4">
+              La vida real está llena de accidentes: limpiar los anteojos con la remera, que se caigan sobre la mesa o que los toquen los niños. <strong>Crizal Rock</strong> está diseñado específicamente para ser la lente de Essilor más resistente a los rasguños y las manchas.
+            </p>
+            <ul className="list-disc pl-5 mb-4 space-y-2">
+              <li>Sometido a rigurosos &quot;Torture Tests&quot; (test de arena, test de sacudidas, test de lavado intenso).</li>
+              <li>Posee óxidos específicos en sus capas que triplican la durabilidad frente al desgaste diario.</li>
+              <li>Capacidad superior de repelencia de suciedad y grasa (dedos).</li>
+            </ul>
+          </AccordionItem>
+
+          <AccordionItem 
+            title="Crizal Prevencia®" 
+            subtitle="Protección avanzada contra la luz azul-violeta."
+          >
+            <p className="mb-4">
+              El pionero en filtrado selectivo. <strong>Crizal Prevencia</strong> utiliza tecnología <em>Light Scan</em> para bloquear la luz azul-violeta nociva (emitida por el sol y las pantallas LED) mientras deja pasar la luz azul-turquesa esencial para el ciclo del sueño y el bienestar.
+            </p>
+            <ul className="list-disc pl-5 mb-4 space-y-2">
+              <li>Reduce el índice de muerte celular retiniana en un 25%.</li>
+              <li>Reflejo característico púrpura/violeta suave en el frente del cristal.</li>
+              <li>Excelente opción para protección integral en oficinas iluminadas.</li>
+            </ul>
+          </AccordionItem>
+
+          <AccordionItem 
+            title="Crizal Easy Pro" 
+            subtitle="El estándar de limpieza y protección."
+          >
+            <p className="mb-4">
+              <strong>Crizal Easy Pro</strong> es la base de la línea premium. Un excelente tratamiento antirreflejo que se destaca por su recubrimiento &quot;Top Coat&quot; hidrofóbico y oleofóbico superior.
+            </p>
+            <ul className="list-disc pl-5 space-y-2">
+              <li>Las gotas de agua resbalan en forma esférica sin dejar rastros.</li>
+              <li>Facilita enormemente el proceso de limpieza diaria.</li>
+              <li>Elimina los molestos reflejos frontales básicos.</li>
+            </ul>
+          </AccordionItem>
         </div>
       </section>
 
-      <section className="w-full bg-[#faf8f5] py-24 px-6 border-t border-[#e8e2db]">
-        <div className="max-w-4xl mx-auto">
-          <div className="grid md:grid-cols-2 gap-16">
-            <div>
-              <h3 className="text-2xl font-bold mb-6">¿Qué te aporta Crizal en el día a día?</h3>
-              <p className="text-black/70 mb-6 leading-relaxed">
-                El objetivo es simple: que veas más claro y que tus lentes se mantengan mejor con el uso real (pantallas, luces, polvo, lluvia, huellas). La elección final depende de tu rutina.
-              </p>
-              <ul className="space-y-3">
-                <li className="flex items-center gap-3 text-black/80 font-medium">
-                  <svg className="w-5 h-5 text-[#283f5a]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg>
-                  Reducción de fatiga visual nocturna.
-                </li>
-                <li className="flex items-center gap-3 text-black/80 font-medium">
-                  <svg className="w-5 h-5 text-[#283f5a]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg>
-                  Visión estética: parece que no tuvieras cristales.
-                </li>
-                <li className="flex items-center gap-3 text-black/80 font-medium">
-                  <svg className="w-5 h-5 text-[#283f5a]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg>
-                  Tratamiento que cuida tu inversión a largo plazo.
-                </li>
-              </ul>
-            </div>
-            <div>
-              <h3 className="text-2xl font-bold mb-6">Compatible con tu graduación</h3>
-              <p className="text-black/70 mb-6 leading-relaxed">
-                El tratamiento Crizal se puede aplicar sobre casi cualquier receta y armazón. Es el complemento perfecto para cristales monofocales o multifocales.
-              </p>
-              <div className="bg-white p-6 rounded-xl border border-[#e8e2db]">
-                <h4 className="font-bold text-sm mb-2">Tip de Atelier</h4>
-                <p className="text-sm text-black/70">Si nunca usaste un tratamiento antirreflejo premium, te sugerimos empezar por Crizal. La diferencia en la nitidez y la facilidad de limpieza es un antes y un después.</p>
-              </div>
-            </div>
-          </div>
+      <section className="w-full bg-white py-24 px-6 border-t border-[#e8e2db]">
+        <div className="max-w-3xl mx-auto text-center">
+          <h2 className="text-3xl font-bold mb-6">¿Por qué rechazar un Antirreflejo Genérico?</h2>
+          <p className="text-lg text-black/70 mb-10 leading-relaxed">
+            Los antirreflejos baratos suelen rayarse en pocos meses, descascararse o ensuciarse constantemente (dejando una película grasosa difícil de quitar). 
+            <br className="mt-4" />
+            Un tratamiento <strong>Crizal Original</strong> se fusiona a nivel molecular con el cristal y viene con su <strong>Certificado de Autenticidad</strong>. Es una inversión que preserva tus cristales recetados durante años.
+          </p>
+          <Link 
+            href={`/contacto?motivo=${encodeURIComponent("Consulta técnica Tratamiento Crizal")}`}
+            className="inline-block bg-[#283f5a] hover:bg-[#1e3047] text-white px-10 py-4 rounded-full font-bold transition-all shadow-lg hover:shadow-xl hover:-translate-y-1"
+          >
+            Cotizar tratamiento Crizal
+          </Link>
         </div>
       </section>
     </div>

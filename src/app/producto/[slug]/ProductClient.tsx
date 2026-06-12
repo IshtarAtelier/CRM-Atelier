@@ -8,9 +8,9 @@ import { StorefrontNavbar } from "@/components/Storefront/StorefrontNavbar";
 import { StorefrontFooter } from "@/components/Storefront/StorefrontFooter";
 import { FloatingWhatsApp } from "@/components/Storefront/FloatingWhatsApp";
 import { PaymentOptions } from "@/components/Storefront/PaymentOptions";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Camera, User, UserPlus, Share2, ChevronDown, Truck, Package, MapPin } from "lucide-react";
+import { Camera, User, UserPlus, Share2, ChevronDown, Truck, Package, MapPin, ShieldCheck, FileText } from "lucide-react";
 import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon";
 import { useCart } from "@/store/useCart";
 import { resolveStorageUrl } from "@/lib/utils/storage";
@@ -25,6 +25,19 @@ export function ProductClient({ product }: { product: any }) {
   const [shippingResult, setShippingResult] = useState<string | null>(null);
 
   const { addItem, setIsOpen } = useCart();
+
+  const [settings, setSettings] = useState<any>(null);
+
+  useEffect(() => {
+    fetch('/api/settings')
+      .then(res => res.json())
+      .then(data => setSettings(data))
+      .catch(err => console.error("Error loading settings in product client:", err));
+  }, []);
+
+  const whatsappPhoneId = settings ? settings.web_store_whatsapp_id : WHATSAPP_PHONE;
+  const cashDiscount = settings ? Number(settings.web_promo_cash_discount) : 15;
+  const installmentsText = settings ? settings.web_promo_installments : "6 cuotas sin interés";
 
   const images = product.imagenesCatalogo && product.imagenesCatalogo.length > 0 
     ? product.imagenesCatalogo.map((key: string) => resolveStorageUrl(key)).filter(Boolean)
@@ -158,7 +171,12 @@ export function ProductClient({ product }: { product: any }) {
               ${(product.price || 0).toLocaleString("es-AR")}
             </motion.p>
             
-            <PaymentOptions variant="inline" price={product.price || 0} />
+            <PaymentOptions 
+              variant="inline" 
+              price={product.price || 0} 
+              cashDiscount={cashDiscount} 
+              installmentsText={installmentsText} 
+            />
             
               {/* E-Commerce Accordions */}
             <motion.div
@@ -350,15 +368,41 @@ export function ProductClient({ product }: { product: any }) {
             )}
 
             <a 
-              href={`https://wa.me/${WHATSAPP_PHONE}?text=${encodeURIComponent(`¡Hola! Tengo una consulta sobre el modelo ${product.brand || ''} ${product.model || ''}`)}`}
+              href={`https://wa.me/${whatsappPhoneId}?text=${encodeURIComponent(`¡Hola! Quiero comprar el anteojo ${product.brand || ''} ${product.model || ''} por $${(product.price || 0).toLocaleString("es-AR")}. ¿Me pasarían los datos para transferencia/link de pago?`)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full bg-[#1b4332] text-white hover:bg-[#0f2a1f] px-8 py-4 text-[11px] font-bold uppercase tracking-widest transition-colors flex items-center justify-center gap-2 rounded-sm shadow-sm"
+            >
+              <WhatsAppIcon className="w-4 h-4 fill-white" /> Comprar directo por WhatsApp
+            </a>
+
+            <a 
+              href={`https://wa.me/${whatsappPhoneId}?text=${encodeURIComponent(`¡Hola! Tengo una consulta sobre el modelo ${product.brand || ''} ${product.model || ''}`)}`}
               target="_blank"
               rel="noopener noreferrer"
               className="w-full border border-[#e5e5e5] bg-[#f9f9f9] text-[#666] px-8 py-4 text-[11px] font-bold uppercase tracking-widest hover:border-black hover:text-black transition-colors flex items-center justify-center gap-2"
             >
               <WhatsAppIcon className="w-4 h-4" /> Consultar por WhatsApp
             </a>
-            
-            <p className="text-[10px] uppercase font-bold tracking-widest text-[#999] mt-2 text-center">Envío sin cargo a todo el país</p>
+
+            {/* Sellos de Confianza (Trust Badges) */}
+            <div className="mt-6 pt-6 border-t border-[#e5e5e5] grid grid-cols-3 gap-2">
+              <div className="flex flex-col items-center text-center p-1">
+                <ShieldCheck className="w-5 h-5 text-stone-700 mb-1.5" />
+                <span className="text-[9px] font-black uppercase tracking-wider text-stone-800">Garantía total</span>
+                <span className="text-[9px] text-stone-400 mt-0.5 leading-tight">Adaptación asegurada en tus cristales</span>
+              </div>
+              <div className="flex flex-col items-center text-center p-1">
+                <Truck className="w-5 h-5 text-stone-700 mb-1.5" />
+                <span className="text-[9px] font-black uppercase tracking-wider text-stone-800">Envío Gratis</span>
+                <span className="text-[9px] text-stone-400 mt-0.5 leading-tight">Asegurado a todo el país</span>
+              </div>
+              <div className="flex flex-col items-center text-center p-1">
+                <FileText className="w-5 h-5 text-stone-700 mb-1.5" />
+                <span className="text-[9px] font-black uppercase tracking-wider text-stone-800">Recetas Oficiales</span>
+                <span className="text-[9px] text-stone-400 mt-0.5 leading-tight">Aceptamos todas las coberturas</span>
+              </div>
+            </div>
           </div>
           
           <StorefrontFooter />

@@ -1,8 +1,27 @@
+"use client";
+
 import Link from "next/link";
 import Image from "next/image";
 import { WHATSAPP_PHONE } from "@/lib/constants";
+import { useState, useEffect } from "react";
 
 export function StorefrontFooter() {
+  const [webSettings, setWebSettings] = useState<any>(null);
+
+  useEffect(() => {
+    fetch('/api/settings')
+      .then(res => res.json())
+      .then(data => {
+        setWebSettings(data);
+      })
+      .catch(err => console.error("Error loading web settings for footer:", err));
+  }, []);
+
+  const addressLine = webSettings ? webSettings.web_store_address : "José Luis de Tejeda 4380";
+  const localityLine = webSettings ? webSettings.web_store_locality : "Cerro de las Rosas, Córdoba";
+  const mapsUrl = webSettings ? webSettings.web_store_maps_url : "https://www.google.com/maps?cid=14830223812501661125";
+  const whatsappPhoneId = webSettings ? webSettings.web_store_whatsapp_id : WHATSAPP_PHONE;
+
   return (
     <footer className="w-full relative z-10 overflow-hidden">
       
@@ -35,10 +54,10 @@ export function StorefrontFooter() {
           <div className="flex flex-col gap-3">
             <p className="text-[10px] uppercase tracking-widest font-bold text-stone-400 mb-2">Visitanos</p>
             <p className="text-[13px] font-medium leading-relaxed dark:text-stone-300">
-              José Luis de Tejeda 4380<br />
-              Cerro de las Rosas, Córdoba
+              {addressLine}<br />
+              {localityLine}
             </p>
-            <a href="https://www.google.com/maps?cid=14830223812501661125" target="_blank" rel="noopener noreferrer" className="text-[12px] font-medium hover:opacity-60 transition-opacity underline decoration-stone-300 underline-offset-4 mt-1">
+            <a href={mapsUrl} target="_blank" rel="noopener noreferrer" className="text-[12px] font-medium hover:opacity-60 transition-opacity underline decoration-stone-300 underline-offset-4 mt-1">
               Ver en Google Maps
             </a>
           </div>
@@ -56,7 +75,7 @@ export function StorefrontFooter() {
             <p className="text-[10px] uppercase tracking-widest font-bold text-stone-400 mb-2">Social</p>
             <a href="https://instagram.com/atelieroptica_" target="_blank" rel="noopener noreferrer" className="text-[13px] font-medium hover:opacity-60 transition-opacity">Instagram</a>
             <a href="https://www.youtube.com/@atelieroptica" target="_blank" rel="noopener noreferrer" className="text-[13px] font-medium hover:opacity-60 transition-opacity">YouTube</a>
-            <a href={`https://wa.me/${WHATSAPP_PHONE}`} target="_blank" rel="noopener noreferrer" className="text-[13px] font-medium hover:opacity-60 transition-opacity">WhatsApp</a>
+            <a href={`https://wa.me/${whatsappPhoneId}`} target="_blank" rel="noopener noreferrer" className="text-[13px] font-medium hover:opacity-60 transition-opacity">WhatsApp</a>
           </div>
           
         </div>

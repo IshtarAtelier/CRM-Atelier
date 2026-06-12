@@ -199,7 +199,7 @@ const handleMessageCreate = async (msg) => {
 
                 // ── Portero: Activar extracción pasiva cuando el HUMANO chatea (no el bot) ──
                 // Crea fichas automáticamente mientras el vendedor está conversando manualmente
-                if (agentEnabled && !isBotReplying && !chat.clientId) {
+                if (!isBotReplying && !chat.clientId) {
                     if (passiveDebounceTimers.has(chat.id)) {
                         clearTimeout(passiveDebounceTimers.get(chat.id));
                     }
@@ -1398,7 +1398,7 @@ const handleMessage = async (msg) => {
             }, 25000); // 25 segundos de debounce para que no sea tan inmediato
 
             botDebounceTimers.set(chat.id, timer);
-        } else if (agentEnabled && !chat.botEnabled) {
+        } else if (!chat.botEnabled) {
             console.log(`  🕒 Programando extracción pasiva para ${profileName} en 20s...`);
             
             if (passiveDebounceTimers.has(chat.id)) {

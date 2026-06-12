@@ -1,3 +1,5 @@
+"use client";
+
 /**
  * PaymentOptions — Medios de pago de Atelier Óptica
  * Se usa en la página de producto y en la tienda.
@@ -5,16 +7,42 @@
  * variant "strip": barra horizontal ancha (tienda, home)
  */
 
+import { useState, useEffect } from "react";
+
 interface PaymentOptionsProps {
   variant?: "inline" | "strip";
   price?: number;
+  cashDiscount?: number;
+  installmentsText?: string;
 }
 
-export function PaymentOptions({ variant = "inline", price }: PaymentOptionsProps) {
+export function PaymentOptions({ variant = "inline", price, cashDiscount, installmentsText }: PaymentOptionsProps) {
+  const [settings, setSettings] = useState<any>(null);
+
+  useEffect(() => {
+    if (cashDiscount === undefined || installmentsText === undefined) {
+      fetch('/api/settings')
+        .then(res => res.json())
+        .then(data => setSettings(data))
+        .catch(err => console.error("Error fetching settings in PaymentOptions:", err));
+    }
+  }, [cashDiscount, installmentsText]);
+
   const showCalculated = price && price > 0;
   
-  const installmentValue = showCalculated ? Math.round(price / 6) : 0;
-  const cashPriceValue = showCalculated ? Math.round(price * 0.85) : 0;
+  const discountPercent = cashDiscount !== undefined 
+    ? cashDiscount 
+    : (settings ? Number(settings.web_promo_cash_discount) : 15);
+
+  const instText = installmentsText !== undefined
+    ? installmentsText
+    : (settings ? settings.web_promo_installments : "6 cuotas sin interés");
+
+  const matchInstallments = instText ? instText.match(/\d+/) : null;
+  const numInstallments = matchInstallments ? parseInt(matchInstallments[0], 10) : 6;
+
+  const installmentValue = showCalculated ? Math.round(price / numInstallments) : 0;
+  const cashPriceValue = showCalculated ? Math.round(price * (1 - discountPercent / 100)) : 0;
 
   const options = [
     {
@@ -24,8 +52,8 @@ export function PaymentOptions({ variant = "inline", price }: PaymentOptionsProp
         </svg>
       ),
       label: showCalculated 
-        ? `6 cuotas sin interés de $${installmentValue.toLocaleString('es-AR')}`
-        : "6 cuotas sin interés",
+        ? `${instText} de $${installmentValue.toLocaleString('es-AR')}`
+        : instText,
       sub: "con tarjetas de crédito",
       highlight: false,
     },
@@ -37,8 +65,8 @@ export function PaymentOptions({ variant = "inline", price }: PaymentOptionsProp
       ),
       label: showCalculated
         ? `$${cashPriceValue.toLocaleString('es-AR')} en efectivo / transferencia`
-        : "15% de descuento",
-      sub: showCalculated ? "ahorrás 15% pagando al contado" : "transferencia bancaria o efectivo",
+        : `${discountPercent}% de descuento`,
+      sub: showCalculated ? `ahorrás ${discountPercent}% pagando al contado` : "transferencia bancaria o efectivo",
       highlight: true,
     },
   ];
