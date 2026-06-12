@@ -64,18 +64,22 @@ export async function POST(request: Request) {
         for (const btn of buttons) {
             const text = await btn.innerText();
             if (text.toLowerCase().includes('iniciar') || text.toLowerCase().includes('ingresar') || text.toLowerCase().includes('login')) {
-                await btn.click();
+                await Promise.all([
+                    page.waitForNavigation({ waitUntil: 'networkidle' }),
+                    btn.click()
+                ]);
                 loginClicked = true;
                 break;
             }
         }
 
         if (!loginClicked) {
-            await inputs[1].press('Enter');
+            await Promise.all([
+                page.waitForNavigation({ waitUntil: 'networkidle' }),
+                inputs[1].press('Enter')
+            ]);
         }
         
-        // Esperar a estar logueado
-        await page.waitForURL('**/smartlab**', { timeout: 15000 });
         console.log('Login exitoso. Generando borrador...');
 
         // 4. Preparar Payload para su API interna (smartlab-api-v2)

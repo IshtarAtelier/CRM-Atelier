@@ -32,13 +32,20 @@ export async function POST() {
         for (const btn of buttons) {
             const text = await btn.innerText();
             if (text.toLowerCase().includes('iniciar') || text.toLowerCase().includes('ingresar') || text.toLowerCase().includes('login')) {
-                await btn.click();
+                await Promise.all([
+                    page.waitForNavigation({ waitUntil: 'networkidle' }),
+                    btn.click()
+                ]);
                 loginClicked = true;
                 break;
             }
         }
-        if (!loginClicked) await inputs[1].press('Enter');
-        await page.waitForURL('**/smartlab**', { timeout: 15000 });
+        if (!loginClicked) {
+            await Promise.all([
+                page.waitForNavigation({ waitUntil: 'networkidle' }),
+                inputs[1].press('Enter')
+            ]);
+        }
         console.log('[SmartLab Sync] Login exitoso');
 
         // ── Navegar a lista ──────────────────────────
