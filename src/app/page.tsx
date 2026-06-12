@@ -170,7 +170,7 @@ export default async function Home() {
           className="flex w-max gap-0"
           style={{ animation: "marquee 30s linear infinite" }}
         >
-          {[...Array(4)].map((_, i) => (
+          {[...Array(2)].map((_, i) => (
             <span key={i} className="flex items-center gap-8 pr-8 text-[11px] font-bold uppercase tracking-[0.2em] text-white/60 whitespace-nowrap">
               <span>Acetato Italiano</span>
               <span className="text-white/20">·</span>

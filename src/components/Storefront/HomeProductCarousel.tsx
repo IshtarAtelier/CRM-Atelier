@@ -87,8 +87,8 @@ export function HomeProductCarousel({ products }: Props) {
         ref={carouselRef}
         className="flex w-full overflow-hidden [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       >
-        {/* Quadruplicamos para el loop infinito suave */}
-        {[...products, ...products, ...products, ...products].map((item, i) => (
+        {/* Duplicamos para el loop infinito suave */}
+        {[...products, ...products].map((item, i) => (
           <Link 
             href={`/producto/${item.slug}`} 
             key={`${item.id}-${i}`} 

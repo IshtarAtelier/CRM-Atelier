@@ -148,7 +148,7 @@ export class BotService {
             message += `¡Te esperamos! Muchas gracias.\n`;
             message += `\n_La óptica mejor calificada en Google Business 5/5_`;
 
-            let formattedPhone = normalizeArgentinePhone(clientPhone);
+            const formattedPhone = normalizeArgentinePhone(clientPhone);
             if (!formattedPhone) return false;
 
             // Send via internal WA server proxy

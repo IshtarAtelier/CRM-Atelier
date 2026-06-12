@@ -177,9 +177,6 @@ export function StorefrontNavbar({ theme = "dark", mixBlend = false }: Storefron
             >
               <Search className="w-4 h-4 sm:w-5 sm:h-5" strokeWidth={1.5} />
             </button>
-            <Link href="/admin" className="hover:opacity-60 transition-opacity" aria-label="Mi cuenta">
-              <User className="w-4 h-4 sm:w-5 sm:h-5" strokeWidth={1.5} />
-            </Link>
             <button 
               className="hover:opacity-60 transition-opacity relative" 
               aria-label="Carrito"

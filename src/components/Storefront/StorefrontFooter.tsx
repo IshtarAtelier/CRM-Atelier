@@ -31,6 +31,8 @@ export function StorefrontFooter() {
           src="/footer-hands-compressed.jpg" 
           alt="Atelier Creation" 
           fill 
+          sizes="(max-width: 768px) 100vw, 1200px"
+          quality={60}
           loading="lazy"
           className="object-cover object-center"
         />
@@ -66,8 +68,8 @@ export function StorefrontFooter() {
           <div className="flex flex-col gap-3">
             <p className="text-[10px] uppercase tracking-widest font-bold text-stone-400 mb-2">Legales</p>
             <Link href="/politicas-de-cambio" className="text-[13px] font-medium hover:opacity-60 transition-opacity">Cambios y Devoluciones</Link>
-            <Link href="/politicas-de-cambio" className="text-[13px] font-medium hover:opacity-60 transition-opacity">Términos y Condiciones</Link>
-            <Link href="/politicas-de-cambio" className="text-[13px] font-medium hover:opacity-60 transition-opacity">Políticas de Privacidad</Link>
+            <Link href="/terminos-y-condiciones" className="text-[13px] font-medium hover:opacity-60 transition-opacity">Términos y Condiciones</Link>
+            <Link href="/politicas-de-privacidad" className="text-[13px] font-medium hover:opacity-60 transition-opacity">Políticas de Privacidad</Link>
           </div>
 
           {/* Redes sociales */}
