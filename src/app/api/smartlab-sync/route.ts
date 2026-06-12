@@ -25,21 +25,21 @@ export async function POST() {
         if (inputs.length < 2) throw new Error('No se encontraron los campos de login en SmartLab.');
 
         // Llenar datos de login de forma humana (lenta)
-        await page.waitForTimeout(1000);
+        await page.waitForTimeout(2000);
         await inputs[0].fill('pisano.ishtar@gmail.com');
-        await page.waitForTimeout(800);
+        await page.waitForTimeout(1500);
         await inputs[1].fill('atelier');
-        await page.waitForTimeout(1000);
+        await page.waitForTimeout(2000);
 
         const buttons = await page.$$('button');
         let loginClicked = false;
         for (const btn of buttons) {
             const text = await btn.innerText();
             if (text.toLowerCase().includes('iniciar') || text.toLowerCase().includes('ingresar') || text.toLowerCase().includes('login')) {
-                await page.waitForTimeout(500);
+                await page.waitForTimeout(1000);
                 await Promise.all([
                     page.waitForNavigation({ waitUntil: 'networkidle' }),
-                    btn.click({ delay: 200 })
+                    btn.click({ delay: 300 })
                 ]);
                 loginClicked = true;
                 break;
@@ -121,22 +121,22 @@ export async function POST() {
                 if (!searchInput) searchInput = allInputs[0] || null;
                 if (searchInput) {
                     console.log(`[SmartLab Sync] Buscando pedido ${num}...`);
-                    await searchInput.click({ clickCount: 3, delay: 50 });
-                    await page.waitForTimeout(500);
-                    await searchInput.fill(num);
+                    await searchInput.click({ clickCount: 3, delay: 150 });
                     await page.waitForTimeout(1000);
+                    await searchInput.fill(num);
+                    await page.waitForTimeout(2000);
                 }
 
                 // Click "Aplicar filtros"
                 const applyBtn = await page.$('button:has-text("Aplicar"), button:has-text("filtros"), a:has-text("Aplicar")');
                 if (applyBtn) {
-                    await applyBtn.click({ delay: 100 });
+                    await applyBtn.click({ delay: 300 });
                 } else {
-                    await searchInput?.press('Enter', { delay: 100 });
+                    await searchInput?.press('Enter', { delay: 300 });
                 }
                 
                 // Simular tiempo humano de espera a que cargue la tabla
-                await page.waitForTimeout(4000);
+                await page.waitForTimeout(7000);
 
                 // Scrapear primera fila de resultados
                 const rows = await page.$$('table tbody tr');
