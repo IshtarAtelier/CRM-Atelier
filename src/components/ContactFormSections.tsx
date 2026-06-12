@@ -8,9 +8,10 @@ interface ContactFormSectionsProps {
     setFormData: (val: any) => void;
     doctors: any[];
     sources: string[];
+    hasOrdersInFactory?: boolean;
 }
 
-export function PersonalDataSection({ formData, setFormData, doctors, sources }: ContactFormSectionsProps) {
+export function PersonalDataSection({ formData, setFormData, doctors, sources, hasOrdersInFactory }: ContactFormSectionsProps) {
     return (
         <div className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -53,7 +54,13 @@ export function PersonalDataSection({ formData, setFormData, doctors, sources }:
                     <div className="relative group">
                         <Stethoscope className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-stone-300 group-focus-within:text-primary transition-colors z-10" />
                         <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400 pointer-events-none" />
-                        <select className="w-full pl-12 pr-10 py-4 bg-stone-50 dark:bg-stone-800 border-2 rounded-2xl font-bold text-sm appearance-none cursor-pointer outline-none focus:border-primary" value={formData.doctor} onChange={(e) => setFormData({ ...formData, doctor: e.target.value })}>
+                        <select 
+                            className="w-full pl-12 pr-10 py-4 bg-stone-50 dark:bg-stone-800 border-2 rounded-2xl font-bold text-sm appearance-none cursor-pointer outline-none focus:border-primary disabled:opacity-50 disabled:cursor-not-allowed" 
+                            value={formData.doctor} 
+                            onChange={(e) => setFormData({ ...formData, doctor: e.target.value })}
+                            disabled={hasOrdersInFactory}
+                            title={hasOrdersInFactory ? "No se puede cambiar el médico de un cliente con pedidos ya enviados a fábrica" : undefined}
+                        >
                             <option value="">— Sin médico —</option>
                             {doctors.map((doc, idx) => <option key={doc.id || `doc-${idx}`} value={doc.name}>{doc.name}</option>)}
                         </select>

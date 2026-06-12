@@ -209,6 +209,9 @@ export default function CotizadorCart({
             });
         } else {
             setItems(prev => [...prev, { product, quantity: 1, customPrice: safePrice(product.price), uid: Date.now() }]);
+            if (isFrame(product)) {
+                setFrameSource('OPTICA');
+            }
         }
         setFullSearch('');
     };
@@ -259,10 +262,28 @@ export default function CotizadorCart({
 
             {items.some(i => isCrystal(i.product)) && (
                 <div className="p-4 bg-amber-50/50 dark:bg-amber-950/20 rounded-2xl border border-amber-200/50 mb-6">
-                    <div className="flex gap-3 mb-4">
-                        <button onClick={() => setFrameSource('OPTICA')} className={`flex-1 py-3 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all border ${frameSource === 'OPTICA' ? 'bg-amber-500 text-white border-amber-500 shadow-lg shadow-amber-500/20' : 'bg-white dark:bg-stone-850 text-stone-500 border-stone-200 dark:border-stone-750'}`}>DE LA ÓPTICA</button>
-                        <button onClick={() => setFrameSource('USUARIO')} className={`flex-1 py-3 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all border ${frameSource === 'USUARIO' ? 'bg-amber-500 text-white border-amber-500 shadow-lg shadow-amber-500/20' : 'bg-white dark:bg-stone-850 text-stone-500 border-stone-200 dark:border-stone-750'}`}>DEL USUARIO</button>
-                    </div>
+                    {framesInQuote.length === 0 ? (
+                        <div className="flex gap-3 mb-4">
+                            <button onClick={() => setFrameSource('OPTICA')} className={`flex-1 py-3 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all border ${frameSource === 'OPTICA' ? 'bg-amber-500 text-white border-amber-500 shadow-lg shadow-amber-500/20' : 'bg-white dark:bg-stone-850 text-stone-500 border-stone-200 dark:border-stone-750'}`}>DE LA ÓPTICA</button>
+                            <button onClick={() => setFrameSource('USUARIO')} className={`flex-1 py-3 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all border ${frameSource === 'USUARIO' ? 'bg-amber-500 text-white border-amber-500 shadow-lg shadow-amber-500/20' : 'bg-white dark:bg-stone-850 text-stone-500 border-stone-200 dark:border-stone-750'}`}>DEL USUARIO</button>
+                        </div>
+                    ) : (
+                        <div className="mb-4">
+                            <p className="text-[10px] font-black text-amber-600 uppercase tracking-widest flex items-center gap-2">
+                                <CheckCircle2 className="w-4 h-4" /> Armazón de óptica seleccionado
+                            </p>
+                            {frameSource !== 'USUARIO' && (
+                                <button onClick={() => setFrameSource('USUARIO')} className="mt-2 text-[10px] font-bold text-stone-500 hover:text-amber-600 underline text-left block">
+                                    ¿Agregar también armazón del usuario?
+                                </button>
+                            )}
+                            {frameSource === 'USUARIO' && (
+                                <button onClick={() => setFrameSource('OPTICA')} className="mt-2 text-[10px] font-bold text-stone-500 hover:text-amber-600 underline text-left block">
+                                    Cancelar armazón del usuario adicional
+                                </button>
+                            )}
+                        </div>
+                    )}
                     {frameSource === 'OPTICA' && framesInQuote.length < 2 && (
                         <div className="relative mb-1">
                             <Search className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-stone-400 dark:text-stone-500" />

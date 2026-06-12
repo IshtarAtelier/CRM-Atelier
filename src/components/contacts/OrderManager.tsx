@@ -66,10 +66,14 @@ export default function OrderManager({
     };
 
     const handleSaveQuote = async () => {
+        if (savingQuote) return;
         setSavingQuote(true);
         try {
             const hasCrystals = quoteItems.some(i => i.product.type === 'Cristal' || i.product.category === 'Cristal');
-            const hasFramesInCart = quoteItems.some(i => i.product.category === 'FRAME' || i.product.category === 'ATELIER');
+            const hasFramesInCart = quoteItems.some(i => {
+                const cat = (i.product.category || '').toLowerCase();
+                return cat === 'frame' || cat === 'atelier' || cat === 'armazón de receta' || cat.includes('armazon') || cat.includes('armazón');
+            });
             
             // BUG FIX 4: Auto-detect frameSource if frames are in cart
             let effectiveFrameSource: "OPTICA" | "USUARIO" | null = quoteFrameSource as any;

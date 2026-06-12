@@ -107,6 +107,7 @@ export default function CotizadorPopup({ clientName, clientId, onClose }: Cotiza
 
     const handleSaveQuote = async () => {
         if (quoteItems.length === 0) return;
+        if (saving) return;
         setSaving(true);
         try {
             const url = editingQuoteId ? `/api/orders/${editingQuoteId}` : '/api/orders';

@@ -56,6 +56,9 @@ export default function ContactForm({ onClose, onSubmit, onUnify, onGoToOriginal
     const [followUpDate, setFollowUpDate] = useState('');
     const [visitedStore, setVisitedStore] = useState(false);
     const [doctors, setDoctors] = useState<any[]>([]);
+    const hasOrdersInFactory = (initialData as any)?.orders?.some(
+        (o: any) => !o.isDeleted && ['SENT', 'IN_PROGRESS', 'READY', 'DELIVERED'].includes(o.labStatus || '')
+    ) || false;
 
     useEffect(() => {
         fetch('/api/doctors').then(res => res.json()).then(data => { if (Array.isArray(data)) setDoctors(data); });
@@ -109,7 +112,7 @@ export default function ContactForm({ onClose, onSubmit, onUnify, onGoToOriginal
                 </header>
 
                 <form onSubmit={handleSubmit} className="p-8 space-y-8 max-h-[70vh] overflow-y-auto custom-scrollbar">
-                    <PersonalDataSection formData={formData} setFormData={setFormData} doctors={doctors} sources={CONTACT_SOURCES} />
+                    <PersonalDataSection formData={formData} setFormData={setFormData} doctors={doctors} sources={CONTACT_SOURCES} hasOrdersInFactory={hasOrdersInFactory} />
                     
                     <InterestSection formData={formData} setFormData={setFormData} productTypes={PRODUCT_TYPES} />
 

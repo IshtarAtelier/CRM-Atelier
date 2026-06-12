@@ -34,11 +34,11 @@ const localBusinessJsonLd = {
   'image': 'https://www.atelieroptica.com.ar/images/og-image.jpg',
   '@id': 'https://www.google.com/maps?cid=14830223812501661125',
   'url': 'https://www.atelieroptica.com.ar',
-  'telephone': '+54 351 574-2741',
+  'telephone': '+54 9 354 121 5971',
   'priceRange': '$$',
   'address': {
     '@type': 'PostalAddress',
-    'streetAddress': 'Rafael Núñez 4566',
+    'streetAddress': 'José Luis de Tejeda 4380',
     'addressLocality': 'Cerro de las Rosas, Córdoba',
     'addressRegion': 'Córdoba',
     'postalCode': '5009',
@@ -46,8 +46,8 @@ const localBusinessJsonLd = {
   },
   'geo': {
     '@type': 'GeoCoordinates',
-    'latitude': -31.3796,
-    'longitude': -64.2443,
+    'latitude': -31.3831,
+    'longitude': -64.24005,
   },
   'openingHoursSpecification': [
     {

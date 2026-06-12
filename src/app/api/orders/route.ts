@@ -70,9 +70,10 @@ export async function POST(request: Request) {
         const finalDiscount = discountCash || 0;
         
         // Auto-detect frame source if frames are in cart
-        const hasFramesInCart = cartItems.some((it: any) => 
-            it.product?.category === 'FRAME' || it.product?.category === 'ATELIER'
-        );
+        const hasFramesInCart = cartItems.some((it: any) => {
+            const cat = (it.product?.category || '').toLowerCase();
+            return cat === 'frame' || cat === 'atelier' || cat === 'armazón de receta' || cat.includes('armazon') || cat.includes('armazón');
+        });
         
         const effectiveFrameSource = frameSource || (hasFramesInCart ? 'OPTICA' : null);
         const calcPromoName = totals.appliedPromoName;

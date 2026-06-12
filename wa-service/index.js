@@ -1223,6 +1223,46 @@ const handleMessage = async (msg) => {
             });
         }
 
+        // ── Detección de solicitud de Factura ──
+        if (body && messageType === 'TEXT') {
+            const normalizedBody = body.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+            const invoiceKeywords = ['factura', 'facturar', 'facturacion', 'boleta', 'comprobante a', 'comprobante b', 'comprobante fiscal', 'afip'];
+            const isRequestingInvoice = invoiceKeywords.some(keyword => normalizedBody.includes(keyword));
+            
+            if (isRequestingInvoice) {
+                console.log(`🧾 Solicitud de factura detectada en chat ${chat.id} (${profileName || realPhone}). Notificando al administrador...`);
+                
+                try {
+                    const axios = require('axios');
+                    let notifyUrl = process.env.CRM_API_URL;
+                    if (notifyUrl.endsWith('/api/bot')) {
+                        notifyUrl = notifyUrl + '/notify-invoice';
+                    } else if (notifyUrl.endsWith('/api')) {
+                        notifyUrl = notifyUrl + '/bot/notify-invoice';
+                    } else {
+                        notifyUrl = notifyUrl + '/api/bot/notify-invoice';
+                    }
+                    
+                    axios.post(notifyUrl, {
+                        clientId: chat.clientId || null,
+                        profileName: profileName || chat.profileName || 'Cliente Desconocido',
+                        realPhone: realPhone || chat.realPhone || waId.split('@')[0],
+                        messageContent: body
+                    }, {
+                        headers: {
+                            'x-api-key': process.env.BOT_API_KEY
+                        }
+                    }).then(res => {
+                        console.log('  ✅ Notificación de factura enviada al CRM:', res.data);
+                    }).catch(err => {
+                        console.error('  ❌ Error enviando notificación de factura al CRM:', err.message, err.response?.data);
+                    });
+                } catch (notifyErr) {
+                    console.error('  ❌ Error al preparar petición de notificación de factura:', notifyErr.message);
+                }
+            }
+        }
+
 
         // ── Filtros de Seguridad y Resiliencia (Mensajes Largos / Audios / Hostilidad) ──
         let triggerSecurityFilter = false;

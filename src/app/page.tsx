@@ -75,7 +75,7 @@ export default async function Home() {
     ],
     "contactPoint": {
       "@type": "ContactPoint",
-      "telephone": "+54-351-574-2741",
+      "telephone": "+54 9 354 121 5971",
       "contactType": "customer service",
       "availableLanguage": "Spanish"
     }
@@ -87,10 +87,10 @@ export default async function Home() {
     "name": "Atelier Óptica",
     "image": "https://www.atelieroptica.com.ar/assets/logo-pwa-512.png",
     "url": "https://www.atelieroptica.com.ar",
-    "telephone": "+54-351-574-2741",
+    "telephone": "+54 9 354 121 5971",
     "address": {
       "@type": "PostalAddress",
-      "streetAddress": "Rafael Núñez 4566",
+      "streetAddress": "José Luis de Tejeda 4380",
       "addressLocality": "Cerro de las Rosas, Córdoba",
       "addressRegion": "Córdoba",
       "postalCode": "5009",
@@ -98,8 +98,8 @@ export default async function Home() {
     },
     "geo": {
       "@type": "GeoCoordinates",
-      "latitude": -31.3796,
-      "longitude": -64.2443
+      "latitude": -31.3831,
+      "longitude": -64.24005
     },
     "openingHoursSpecification": [
       {

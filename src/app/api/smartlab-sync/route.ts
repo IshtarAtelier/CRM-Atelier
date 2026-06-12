@@ -170,7 +170,7 @@ export async function POST() {
         };
 
         // ── Buscar cada pedido ──
-        let matchResults: any[] = [];
+        const matchResults: any[] = [];
         let updatedCount = 0;
         let newlyFinished = 0;
 

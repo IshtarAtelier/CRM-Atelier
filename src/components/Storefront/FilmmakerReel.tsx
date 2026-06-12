@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import Link from "next/link";
+import { WHATSAPP_PHONE } from "@/lib/constants";
 
 const FRAMES = [
   {
@@ -152,6 +154,24 @@ export function FilmmakerReel() {
             <p className="text-white/60 text-sm font-light tracking-[0.15em] uppercase">
               {frame.subtitle}
             </p>
+
+            {/* Subtle CTA Buttons */}
+            <div className="flex flex-wrap gap-3 mt-6">
+              <Link
+                href="/tienda"
+                className="px-6 py-2.5 bg-white text-black text-[10px] font-black uppercase tracking-widest hover:bg-white/95 transition-all rounded-full shadow-lg"
+              >
+                Comprar Colección
+              </Link>
+              <a
+                href={`https://wa.me/${WHATSAPP_PHONE}?text=${encodeURIComponent(`Hola, vi los anteojos de diseño "${frame.title}" en su web y me gustaría recibir asesoramiento.`)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-6 py-2.5 border border-white/30 hover:border-white text-white text-[10px] font-black uppercase tracking-widest transition-all rounded-full flex items-center gap-1.5 backdrop-blur-sm bg-black/10"
+              >
+                Asesorarme
+              </a>
+            </div>
           </motion.div>
         </AnimatePresence>
       </div>

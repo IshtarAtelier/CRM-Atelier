@@ -84,6 +84,7 @@ export default function CheckoutModal({
     };
 
     const handleConfirm = async () => {
+        if (loading) return;
         setLoading(true);
         setError(null);
         try {

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { motion } from "framer-motion";
+import { WHATSAPP_PHONE } from "@/lib/constants";
 
 export function HomeConfiguratorSection() {
   return (
@@ -51,13 +52,22 @@ export function HomeConfiguratorSection() {
         whileInView={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.8, duration: 0.5 }}
         viewport={{ once: true }}
+        className="flex flex-col items-center gap-4"
       >
         <Link 
           href="/arma-tus-lentes" 
-          className="px-10 py-4 text-[11px] font-bold uppercase tracking-[0.2em] text-white bg-black border border-black rounded-full hover:bg-transparent hover:text-black transition-all duration-300 inline-block"
+          className="px-10 py-4 text-[11px] font-bold uppercase tracking-[0.2em] text-white bg-black border border-black rounded-full hover:bg-transparent hover:text-black transition-all duration-300 inline-block shadow-lg"
         >
-          Comenzar ahora
+          Cotizá tus lentes en 60 segundos
         </Link>
+        <a
+          href={`https://wa.me/${WHATSAPP_PHONE}?text=${encodeURIComponent("Hola, me gustaría recibir asesoramiento para elegir mis lentes graduados.")}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-[10px] font-bold uppercase tracking-[0.15em] text-stone-500 hover:text-black transition-colors underline underline-offset-4"
+        >
+          ¿No sabés qué lentes elegir? Te ayudamos
+        </a>
       </motion.div>
     </section>
   );

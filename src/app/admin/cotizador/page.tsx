@@ -339,6 +339,7 @@ function CotizadorPageContent() {
     };
 
     const saveQuoteToContact = async (contactId: string, contactName: string) => {
+        if (savingQuote) return;
         setSavingQuote(true);
         try {
             const method = editingQuoteId ? 'PATCH' : 'POST';
@@ -394,6 +395,7 @@ function CotizadorPageContent() {
             alert('Por favor completá los campos obligatorios: Nombre, Teléfono, Etiqueta y Tipo de Producto.');
             return;
         }
+        if (savingQuote) return;
         setDuplicateError(null);
         setSavingQuote(true);
         try {

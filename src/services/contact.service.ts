@@ -303,6 +303,29 @@ export const ContactService = {
     },
 
     async update(id: string, data: Partial<ContactCreateData>) {
+        // Validation: Block doctor changes if client has orders sent to the factory
+        if (data.doctor !== undefined) {
+            const existingClient = await prisma.client.findUnique({
+                where: { id },
+                select: { doctor: true }
+            });
+            
+            if (existingClient && (existingClient.doctor || '') !== (data.doctor || '')) {
+                const activeFactoryOrders = await prisma.order.findMany({
+                    where: {
+                        clientId: id,
+                        isDeleted: false,
+                        labStatus: { in: ['SENT', 'IN_PROGRESS', 'READY', 'DELIVERED'] }
+                    },
+                    select: { id: true }
+                });
+                
+                if (activeFactoryOrders.length > 0) {
+                    throw new Error('No se puede cambiar el médico de un cliente con pedidos ya enviados a fábrica.');
+                }
+            }
+        }
+
         const updateData: any = {};
 
         if (data.name !== undefined) updateData.name = data.name;
@@ -600,6 +623,11 @@ export const ContactService = {
                         labFrameType: true,
                         labBevelPosition: true,
                         smartLabScreenshot: true,
+                        smartLabSector: true,
+                        smartLabProgress: true,
+                        smartLabLastSync: true,
+                        smartLabEntryDate: true,
+                        smartLabDays: true,
                         labOrderNumber: true,
                         labNotes: true,
                         discount: true,

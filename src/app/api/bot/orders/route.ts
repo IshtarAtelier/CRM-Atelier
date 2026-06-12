@@ -70,6 +70,26 @@ export async function POST(request: Request) {
 
         const fallbackUserId = systemUser ? systemUser.id : 'SYSTEM';
 
+        // DEDUPLICATION GATE: Check for duplicate order creation (double click) within last 10 seconds
+        const tenSecondsAgo = new Date(Date.now() - 10000);
+        const duplicateOrder = await prisma.order.findFirst({
+            where: {
+                clientId,
+                total: Math.round(total || 0),
+                createdAt: { gte: tenSecondsAgo },
+                isDeleted: false
+            },
+            include: {
+                items: {
+                    include: { product: true }
+                }
+            }
+        });
+        if (duplicateOrder) {
+            console.log(`[DEDUPLICATION GATE BOT] Duplicate order detected for client ${clientId}. Returning existing order: ${duplicateOrder.id}`);
+            return NextResponse.json(duplicateOrder);
+        }
+
         // Create the Budget (Quote)
         const order = await prisma.order.create({
             data: {

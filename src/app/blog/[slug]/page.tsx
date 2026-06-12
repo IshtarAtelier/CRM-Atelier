@@ -6,6 +6,80 @@ import { ArrowLeft, Calendar, Tag, ArrowRight, ShoppingBag } from 'lucide-react'
 import { StorefrontNavbar } from '@/components/Storefront/StorefrontNavbar';
 import { StorefrontFooter } from '@/components/Storefront/StorefrontFooter';
 import { FloatingWhatsApp } from '@/components/Storefront/FloatingWhatsApp';
+import { prisma } from '@/lib/db';
+
+async function getPostBySlug(slug: string) {
+  try {
+    const dbPost = await prisma.blogPost.findUnique({
+      where: { slug }
+    });
+    if (dbPost && dbPost.status === 'PUBLISHED') {
+      return {
+        slug: dbPost.slug,
+        title: dbPost.title,
+        excerpt: dbPost.excerpt,
+        content: dbPost.content, // HTML string
+        isDb: true,
+        date: dbPost.date.toISOString(),
+        category: dbPost.category,
+        metaTitle: dbPost.metaTitle || dbPost.title,
+        metaDescription: dbPost.metaDescription || dbPost.excerpt || '',
+        imageUrl: dbPost.imageUrl || '/images/blog/blog1_header.png'
+      };
+    }
+  } catch (error) {
+    console.error("Error loading blog post from DB:", error);
+  }
+
+  // Fallback to static
+  const staticPost = posts[slug];
+  if (staticPost) {
+    return {
+      ...staticPost,
+      isDb: false,
+      metaTitle: staticPost.metaTitle || staticPost.title,
+      metaDescription: staticPost.metaDescription || staticPost.excerpt || '',
+    };
+  }
+
+  return null;
+}
+
+async function getRelatedPosts(currentSlug: string) {
+  let dbPosts: any[] = [];
+  try {
+    dbPosts = await prisma.blogPost.findMany({
+      where: { status: 'PUBLISHED', slug: { not: currentSlug } },
+      orderBy: { date: 'desc' },
+      take: 3
+    });
+  } catch (error) {
+    console.error("Error loading related blog posts from DB:", error);
+  }
+
+  const mappedDbPosts = dbPosts.map(p => ({
+    slug: p.slug,
+    title: p.title,
+    category: p.category,
+    imageUrl: p.imageUrl || '/images/blog/blog1_header.png',
+  }));
+
+  const staticList = Object.values(posts)
+    .filter(p => p.slug !== currentSlug)
+    .map(p => ({
+      slug: p.slug,
+      title: p.title,
+      category: p.category,
+      imageUrl: p.imageUrl,
+    }));
+
+  const allRelated = [
+    ...mappedDbPosts,
+    ...staticList.filter(sp => !mappedDbPosts.some(dp => dp.slug === sp.slug))
+  ];
+
+  return allRelated.slice(0, 3);
+}
 
 interface Post {
   slug: string;
@@ -1108,7 +1182,7 @@ const posts: Record<string, Post> = {
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const resolvedParams = await params;
-  const post = posts[resolvedParams.slug];
+  const post = await getPostBySlug(resolvedParams.slug);
   
   if (!post) {
     return {
@@ -1126,23 +1200,21 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
       description: post.metaDescription,
       type: 'article',
       publishedTime: post.date,
-      images: [post.imageUrl]
+      images: [post.imageUrl || '/images/blog/blog1_header.png']
     }
   };
 }
 
 export default async function BlogPostPage({ params }: { params: Promise<{ slug: string }> }) {
   const resolvedParams = await params;
-  const post = posts[resolvedParams.slug];
+  const post = await getPostBySlug(resolvedParams.slug);
 
   if (!post) {
     notFound();
   }
 
   // Get 3 other posts to suggest
-  const otherPosts = Object.values(posts)
-    .filter(p => p.slug !== post.slug)
-    .slice(0, 3);
+  const otherPosts = await getRelatedPosts(post.slug);
 
   return (
     <div className="min-h-screen bg-stone-50 dark:bg-stone-950 pb-20">
@@ -1178,7 +1250,11 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
         </div>
 
         <article className="prose prose-stone dark:prose-invert prose-lg max-w-none prose-headings:font-black prose-a:text-primary hover:prose-a:text-primary/80 prose-p:leading-relaxed prose-li:my-1">
-          {post.content}
+          {post.isDb ? (
+            <div dangerouslySetInnerHTML={{ __html: post.content as string }} />
+          ) : (
+            post.content
+          )}
         </article>
         
         {/* CTA WhatsApp */}

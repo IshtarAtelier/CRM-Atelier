@@ -629,9 +629,10 @@ export async function PATCH(
                     }
                 }
 
-                const hasFramesInCart = existingOrder.items?.some((item: any) =>
-                    item.product?.category === 'FRAME' || item.product?.category === 'ATELIER'
-                );
+                const hasFramesInCart = existingOrder.items?.some((item: any) => {
+                    const cat = (item.product?.category || '').toLowerCase();
+                    return cat === 'frame' || cat === 'atelier' || cat === 'armazón de receta' || cat.includes('armazon') || cat.includes('armazón');
+                });
 
                 const effectiveFrameSource = frameSource || existingOrder.frameSource || (hasFramesInCart ? 'OPTICA' : null);
                 if (hasCrystals && !effectiveFrameSource) {

@@ -5,6 +5,9 @@ import { StorefrontNavbar } from '@/components/Storefront/StorefrontNavbar';
 import { StorefrontFooter } from '@/components/Storefront/StorefrontFooter';
 import { FloatingWhatsApp } from '@/components/Storefront/FloatingWhatsApp';
 import { staticPosts } from '@/lib/static-blog-posts';
+import { prisma } from '@/lib/db';
+
+export const revalidate = 300;
 
 export const metadata: Metadata = {
   title: "Blog de Salud Visual y Novedades",
@@ -26,9 +29,30 @@ export const metadata: Metadata = {
   }
 };
 
-const posts = staticPosts;
+export default async function BlogPage() {
+  let dbPosts: any[] = [];
+  try {
+    dbPosts = await prisma.blogPost.findMany({
+      where: { status: 'PUBLISHED' },
+      orderBy: { date: 'desc' },
+    });
+  } catch (error) {
+    console.error("Error loading blog posts from database:", error);
+  }
 
-export default function BlogPage() {
+  const mappedDbPosts = dbPosts.map(p => ({
+    slug: p.slug,
+    title: p.title,
+    excerpt: p.excerpt,
+    imageUrl: p.imageUrl || '/images/blog/blog1_header.png',
+    category: p.category,
+    date: p.date.toISOString(),
+  }));
+
+  const posts = [
+    ...mappedDbPosts,
+    ...staticPosts.filter(sp => !mappedDbPosts.some(dp => dp.slug === sp.slug))
+  ];
   return (
     <div className="min-h-screen bg-stone-50 dark:bg-stone-950 pb-20">
       <StorefrontNavbar theme="light" />

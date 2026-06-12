@@ -114,10 +114,20 @@ export function HomeProductCarousel({ products }: Props) {
               )}
             </div>
             
-            {/* Nombre y precio — tipografía GM exacta */}
-            <div className="px-3 pt-6 pb-4 border-r border-[#e5e5e5] h-full">
-              <h3 className="text-[13px] font-medium">{item.name}</h3>
-              <p className="text-[13px] text-[#999] mt-0.5">{item.price}</p>
+            {/* Nombre, precio y botones de acción */}
+            <div className="px-3 pt-6 pb-4 border-r border-[#e5e5e5] flex flex-col justify-between h-[110px]">
+              <div>
+                <h3 className="text-[12px] font-medium text-stone-800 line-clamp-1">{item.name}</h3>
+                <p className="text-[12px] text-[#999] mt-0.5">{item.price}</p>
+              </div>
+              <div className="mt-3 flex items-center gap-2">
+                <span className="text-[8px] font-black uppercase tracking-widest px-3.5 py-2 bg-black text-white hover:bg-stone-800 transition-colors rounded-full text-center">
+                  Comprar
+                </span>
+                <span className="text-[8px] font-black uppercase tracking-widest px-3.5 py-2 border border-stone-200 text-stone-600 hover:border-black hover:text-black transition-colors rounded-full text-center">
+                  Consultar
+                </span>
+              </div>
             </div>
           </Link>
         ))}

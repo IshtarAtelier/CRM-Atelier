@@ -135,7 +135,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
           alt: `${product.brand} ${product.model}`,
         },
       ],
-      type: 'product' as const as any,
+      type: 'website',
     },
     twitter: {
       card: "summary_large_image",
