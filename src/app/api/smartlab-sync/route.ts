@@ -49,8 +49,13 @@ export async function POST() {
         console.log('[SmartLab Sync] Login exitoso');
 
         // ── Navegar a lista ──────────────────────────
+        console.log('[SmartLab Sync] Navegando a lista de pedidos...');
         await page.goto('https://grupooptico.dyndns.info/smartlab/laboratory/list', { waitUntil: 'networkidle' });
-        await page.waitForTimeout(2000);
+        
+        // Esperar a que la SPA renderice los campos de búsqueda
+        console.log('[SmartLab Sync] Esperando a que carguen los campos de búsqueda...');
+        await page.waitForSelector('input[type="text"]', { timeout: 15000 }).catch(() => console.log('Timeout esperando inputs'));
+        await page.waitForTimeout(2000); // Dar un extra de tiempo para que termine de armar el DOM
 
         // ── Obtener pedidos del CRM que son de Grupo Óptico y activos ──
         const crmOrders = await prisma.order.findMany({
