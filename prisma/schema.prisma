@@ -234,6 +234,7 @@ model Order {
   smartLabLastSync     DateTime?
   smartLabEntryDate    String?
   smartLabDays         Int?
+  smartLabDetails      String?         // JSON: [{num, sector, progress, entryDate, days}]
   prescriptionSnapshot String?
   appliedPromoName     String?
   appliedPromoDiscount Float?

@@ -830,6 +830,11 @@ export default function VentasPage() {
                         const isUpdating = updatingId === order.id;
                         const financials = getFinancials(order.id);
                         const isGrupoOptico = (order.items || []).some((i: any) => i.product?.category === 'Cristal' && /grupo[\s\-]?ó?o?ptico/i.test((i.product as any)?.laboratory || ''));
+                        const orderLabs = Array.from(new Set(
+                            (order.items || [])
+                                .filter((i: any) => i.product?.category === 'Cristal' && (i.product as any)?.laboratory)
+                                .map((i: any) => (i.product as any).laboratory as string)
+                        ));
 
                         return (
                             <div key={order.id} className={`border-2 rounded-2xl p-4 lg:p-6 hover:shadow-lg transition-all ${financials.hasBalance
@@ -859,6 +864,12 @@ export default function VentasPage() {
                                                 {financials.progress >= 100 && (
                                                     <span className="px-2 py-0.5 rounded-lg text-[8px] lg:text-[9px] font-black uppercase tracking-widest bg-emerald-100 text-emerald-600">PAGADO</span>
                                                 )}
+                                                {orderLabs.length > 0 && orderLabs.map(lab => (
+                                                    <span key={lab} className="px-2 py-0.5 rounded-lg text-[8px] lg:text-[9px] font-black uppercase tracking-widest bg-violet-100 dark:bg-violet-950/40 text-violet-600 dark:text-violet-400 border border-violet-200 dark:border-violet-800/50 flex items-center gap-1">
+                                                        <FlaskConical className="w-2.5 h-2.5" />
+                                                        {lab}
+                                                    </span>
+                                                ))}
                                             </div>
                                         </div>
                                         {/* Total on Mobile Header */}
@@ -923,41 +934,63 @@ export default function VentasPage() {
                                     </div>
                                 </div>
 
-                                    {/* SmartLab Info */}
-                                    {order.smartLabProgress != null && order.smartLabProgress > 0 && (
-                                        <div className="mt-3 bg-blue-50/80 dark:bg-blue-950/30 rounded-xl p-3 border border-blue-100 dark:border-blue-800/50">
-                                            <div className="flex items-center gap-2 mb-2">
-                                                <Factory className="w-3.5 h-3.5 text-blue-500" />
-                                                <span className="text-[8px] font-black text-blue-500 uppercase tracking-widest">SmartLab</span>
-                                                <span className={`ml-auto text-[10px] font-black ${order.smartLabProgress >= 100 ? 'text-emerald-500' : 'text-blue-600'}`}>
-                                                    {order.smartLabProgress}%
-                                                </span>
-                                            </div>
-                                            <div className="h-2 bg-blue-100 dark:bg-blue-900/50 rounded-full overflow-hidden mb-2">
-                                                <div 
-                                                    className={`h-full rounded-full transition-all duration-500 ${order.smartLabProgress >= 100 ? 'bg-emerald-500' : 'bg-gradient-to-r from-blue-500 to-indigo-500'}`}
-                                                    style={{ width: `${Math.min(100, order.smartLabProgress)}%` }}
-                                                />
-                                            </div>
-                                            <div className="flex items-center justify-between gap-2">
-                                                <span className="text-[9px] font-bold text-stone-600 dark:text-stone-300">
-                                                    {order.smartLabSector || '\u2014'}
-                                                </span>
-                                                <div className="flex items-center gap-3">
-                                                    {order.smartLabEntryDate && (
-                                                        <span className="text-[8px] font-bold text-stone-400">
-                                                            Ingreso: {order.smartLabEntryDate}
-                                                        </span>
-                                                    )}
+                                    {/* SmartLab Info — Multi-cristal */}
+                                    {order.smartLabProgress != null && order.smartLabProgress > 0 && (() => {
+                                        let details: any[] = [];
+                                        try { details = order.smartLabDetails ? JSON.parse(order.smartLabDetails) : []; } catch {}
+                                        
+                                        return (
+                                            <div className="mt-3 bg-blue-50/80 dark:bg-blue-950/30 rounded-xl p-3 border border-blue-100 dark:border-blue-800/50">
+                                                <div className="flex items-center gap-2 mb-2">
+                                                    <Factory className="w-3.5 h-3.5 text-blue-500" />
+                                                    <span className="text-[8px] font-black text-blue-500 uppercase tracking-widest">SmartLab</span>
                                                     {order.smartLabDays != null && (
-                                                        <span className="text-[9px] font-black text-amber-500">
-                                                            {order.smartLabDays}d en lab
-                                                        </span>
+                                                        <span className="ml-auto text-[8px] font-black text-amber-500">{order.smartLabDays}d en lab</span>
                                                     )}
                                                 </div>
+                                                {details.length > 1 ? (
+                                                    <div className="space-y-2">
+                                                        {details.map((d: any, i: number) => (
+                                                            <div key={i}>
+                                                                <div className="flex items-center justify-between mb-0.5">
+                                                                    <span className="text-[8px] font-bold text-stone-500">
+                                                                        🔹 {d.num}
+                                                                    </span>
+                                                                    <span className={`text-[9px] font-black ${d.progress >= 100 ? 'text-emerald-500' : 'text-blue-600'}`}>
+                                                                        {d.progress}%
+                                                                    </span>
+                                                                </div>
+                                                                <div className="h-1.5 bg-blue-100 dark:bg-blue-900/50 rounded-full overflow-hidden mb-0.5">
+                                                                    <div 
+                                                                        className={`h-full rounded-full transition-all ${d.progress >= 100 ? 'bg-emerald-500' : 'bg-blue-500'}`}
+                                                                        style={{ width: `${Math.min(100, d.progress)}%` }}
+                                                                    />
+                                                                </div>
+                                                                <span className="text-[7px] font-bold text-stone-400">{d.sector}</span>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                ) : (
+                                                    <>
+                                                        <div className="flex items-center justify-between mb-1">
+                                                            <span className="text-[9px] font-bold text-stone-600 dark:text-stone-300">
+                                                                {order.smartLabSector || '\u2014'}
+                                                            </span>
+                                                            <span className={`text-[10px] font-black ${order.smartLabProgress >= 100 ? 'text-emerald-500' : 'text-blue-600'}`}>
+                                                                {order.smartLabProgress}%
+                                                            </span>
+                                                        </div>
+                                                        <div className="h-2 bg-blue-100 dark:bg-blue-900/50 rounded-full overflow-hidden">
+                                                            <div 
+                                                                className={`h-full rounded-full transition-all ${order.smartLabProgress >= 100 ? 'bg-emerald-500' : 'bg-gradient-to-r from-blue-500 to-indigo-500'}`}
+                                                                style={{ width: `${Math.min(100, order.smartLabProgress)}%` }}
+                                                            />
+                                                        </div>
+                                                    </>
+                                                )}
                                             </div>
-                                        </div>
-                                    )}
+                                        );
+                                    })()}
 
                                 {/* Lab Order Number & Actions */}
                                 <div className="flex flex-col lg:flex-row items-center gap-4 mt-4 pt-4 border-t border-stone-100 dark:border-stone-700">

@@ -312,38 +312,53 @@ export default function QuoteSummary({
                     </div>
                 )}
 
-                {/* SmartLab Info - Bloque separado */}
-                {isSale && order.smartLabProgress != null && order.smartLabProgress > 0 && (
-                    <div className="hidden md:flex items-center px-3 border-l border-stone-100 dark:border-stone-700 ml-2">
-                        <div className="bg-blue-50/80 dark:bg-blue-950/30 rounded-xl px-3 py-2 border border-blue-100 dark:border-blue-800/50 min-w-[140px]">
-                            <div className="flex items-center justify-between mb-1">
-                                <div className="flex items-center gap-1.5">
-                                    <Factory className="w-3 h-3 text-blue-500" />
-                                    <span className="text-[7px] font-black text-blue-500 uppercase tracking-widest">SmartLab</span>
+                {/* SmartLab Info - Bloque separado multi-cristal */}
+                {isSale && order.smartLabProgress != null && order.smartLabProgress > 0 && (() => {
+                    let details: any[] = [];
+                    try { details = order.smartLabDetails ? JSON.parse(order.smartLabDetails) : []; } catch {}
+                    
+                    return (
+                        <div className="hidden md:flex items-center px-3 border-l border-stone-100 dark:border-stone-700 ml-2">
+                            <div className="bg-blue-50/80 dark:bg-blue-950/30 rounded-xl px-3 py-2 border border-blue-100 dark:border-blue-800/50 min-w-[140px]">
+                                <div className="flex items-center justify-between mb-1">
+                                    <div className="flex items-center gap-1.5">
+                                        <Factory className="w-3 h-3 text-blue-500" />
+                                        <span className="text-[7px] font-black text-blue-500 uppercase tracking-widest">SmartLab</span>
+                                    </div>
+                                    {order.smartLabDays != null && (
+                                        <span className="text-[7px] font-black text-amber-500">{order.smartLabDays}d</span>
+                                    )}
                                 </div>
-                                <span className={`text-[9px] font-black ${order.smartLabProgress >= 100 ? 'text-emerald-500' : 'text-blue-600'}`}>
-                                    {order.smartLabProgress}%
-                                </span>
-                            </div>
-                            <div className="h-1.5 bg-blue-100 dark:bg-blue-900/50 rounded-full overflow-hidden mb-1">
-                                <div 
-                                    className={`h-full rounded-full transition-all duration-500 ${order.smartLabProgress >= 100 ? 'bg-emerald-500' : 'bg-blue-500'}`}
-                                    style={{ width: `${Math.min(100, order.smartLabProgress)}%` }}
-                                />
-                            </div>
-                            <div className="flex items-center justify-between">
-                                <span className="text-[7px] font-bold text-stone-500 truncate max-w-[80px]">
-                                    {order.smartLabSector || '\u2014'}
-                                </span>
-                                {order.smartLabDays != null && (
-                                    <span className="text-[7px] font-black text-amber-500">
-                                        {order.smartLabDays}d
-                                    </span>
+                                {details.length > 1 ? (
+                                    <div className="space-y-1.5">
+                                        {details.map((d: any, i: number) => (
+                                            <div key={i}>
+                                                <div className="flex items-center justify-between">
+                                                    <span className="text-[7px] font-bold text-stone-500">🔹 {d.num?.slice(-5)}</span>
+                                                    <span className={`text-[8px] font-black ${d.progress >= 100 ? 'text-emerald-500' : 'text-blue-600'}`}>{d.progress}%</span>
+                                                </div>
+                                                <div className="h-1 bg-blue-100 dark:bg-blue-900/50 rounded-full overflow-hidden">
+                                                    <div className={`h-full rounded-full ${d.progress >= 100 ? 'bg-emerald-500' : 'bg-blue-500'}`} style={{ width: `${Math.min(100, d.progress)}%` }} />
+                                                </div>
+                                                <span className="text-[6px] font-bold text-stone-400 truncate block max-w-[120px]">{d.sector}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <>
+                                        <div className="flex items-center justify-between mb-0.5">
+                                            <span className="text-[7px] font-bold text-stone-500 truncate max-w-[80px]">{order.smartLabSector || '\u2014'}</span>
+                                            <span className={`text-[9px] font-black ${order.smartLabProgress >= 100 ? 'text-emerald-500' : 'text-blue-600'}`}>{order.smartLabProgress}%</span>
+                                        </div>
+                                        <div className="h-1.5 bg-blue-100 dark:bg-blue-900/50 rounded-full overflow-hidden">
+                                            <div className={`h-full rounded-full ${order.smartLabProgress >= 100 ? 'bg-emerald-500' : 'bg-blue-500'}`} style={{ width: `${Math.min(100, order.smartLabProgress)}%` }} />
+                                        </div>
+                                    </>
                                 )}
                             </div>
                         </div>
-                    </div>
-                )}
+                    );
+                })()}
 
                 <div className="flex items-center gap-4 mt-2 sm:mt-0">
                     <div className="text-right sr-only sm:not-sr-only">

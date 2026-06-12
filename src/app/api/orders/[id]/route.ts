@@ -137,6 +137,12 @@ export async function GET(
                 labFrameType: true,
                 labBevelPosition: true,
                 smartLabScreenshot: true,
+                smartLabSector: true,
+                smartLabProgress: true,
+                smartLabLastSync: true,
+                smartLabEntryDate: true,
+                smartLabDays: true,
+            smartLabDetails: true,
             }
         });
 
@@ -555,6 +561,12 @@ export async function PATCH(
 
                 if (!existingOrder) {
                     return NextResponse.json({ error: 'Pedido no encontrado' }, { status: 404 });
+                }
+
+                if (existingOrder.orderType === 'SALE') {
+                    return NextResponse.json({
+                        error: 'Esta operación ya fue confirmada como venta anteriormente.'
+                    }, { status: 400 });
                 }
 
                 // Check: client must have name and phone at minimum

@@ -1,26 +1,12 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 
-interface ScrapedOrder {
-    pedido: string;
-    codigoOptica: string;
-    fechaCarga: string;
-    sectorActual: string;
-    progreso: number;
-    factura: string;
-    tratamiento: string;
-    fechaIngreso: string;
-    diasEnLab: number;
-}
-
-interface MatchResult {
-    smartLabPedido: string;
-    crmOrderId: string;
-    labOrderNumber: string;
+interface ScrapedDetail {
+    num: string;
     sector: string;
     progress: number;
-    statusChanged: boolean;
-    newLabStatus?: string;
+    entryDate: string;
+    days: number;
 }
 
 export async function POST() {
@@ -34,13 +20,12 @@ export async function POST() {
         const context = await browser.newContext();
         const page = await context.newPage();
 
+        // ── Login ──────────────────────────────────
         await page.goto('https://grupooptico.dyndns.info/smartlab/auth/authSmartlab/login', { waitUntil: 'networkidle' });
         await page.waitForSelector('input', { timeout: 10000 });
 
         const inputs = await page.$$('input');
-        if (inputs.length < 2) {
-            throw new Error('No se encontraron los campos de login en SmartLab.');
-        }
+        if (inputs.length < 2) throw new Error('No se encontraron los campos de login en SmartLab.');
 
         await inputs[0].fill('pisano.ishtar@gmail.com');
         await inputs[1].fill('atelier');
@@ -55,125 +40,21 @@ export async function POST() {
                 break;
             }
         }
-
-        if (!loginClicked) {
-            await inputs[1].press('Enter');
-        }
-
+        if (!loginClicked) await inputs[1].press('Enter');
         await page.waitForURL('**/smartlab**', { timeout: 15000 });
-        console.log('SmartLab Sync: Login exitoso. Navegando a lista de pedidos...');
+        console.log('[SmartLab Sync] Login exitoso');
 
+        // ── Navegar a lista ──────────────────────────
         await page.goto('https://grupooptico.dyndns.info/smartlab/laboratory/list', { waitUntil: 'networkidle' });
+        await page.waitForTimeout(2000);
 
-        const allScrapedOrders: ScrapedOrder[] = [];
-
-        const scrapeCurrentPage = async (): Promise<ScrapedOrder[]> => {
-            try {
-                await page.waitForSelector('table tbody tr', { timeout: 15000 });
-            } catch {
-                console.log('SmartLab Sync: No se encontró tabla con pedidos.');
-                return [];
-            }
-
-            const rows = await page.$$eval('table tbody tr', (trs) => {
-                return trs.map(tr => {
-                    const cells = tr.querySelectorAll('td');
-                    if (cells.length < 5) return null;
-
-                    // Extract progress %
-                    let progreso = 0;
-                    const progressCol = cells[4];
-                    const progressBar = progressCol?.querySelector('.progress-bar, [role="progressbar"], [class*="progress"]');
-                    if (progressBar) {
-                        const widthStyle = progressBar.getAttribute('style') || '';
-                        const widthMatch = widthStyle.match(/width:\s*([\d.]+)%/);
-                        if (widthMatch) {
-                            progreso = Math.round(parseFloat(widthMatch[1]));
-                        } else {
-                            const ariaValue = progressBar.getAttribute('aria-valuenow');
-                            if (ariaValue) progreso = Math.round(parseFloat(ariaValue));
-                        }
-                    }
-                    if (progreso === 0) {
-                        const progressText = progressCol?.textContent?.trim() || '';
-                        const percentMatch = progressText.match(/([\d.]+)\s*%/);
-                        if (percentMatch) {
-                            progreso = Math.round(parseFloat(percentMatch[1]));
-                        }
-                    }
-
-                    // Extract entry date ("Ingreso: 12-06-26 14:09") from the progress column
-                    const progressFullText = progressCol?.textContent || '';
-                    let fechaIngreso = '';
-                    const ingresoMatch = progressFullText.match(/[Ii]ngreso:?\s*([\d\-\/]+\s*[\d:]*)/);
-                    if (ingresoMatch) {
-                        fechaIngreso = ingresoMatch[1].trim();
-                    }
-
-                    // Extract days count ("1 dias", "3 días")
-                    let diasEnLab = 0;
-                    const diasMatch = progressFullText.match(/(\d+)\s*d[ií]as?/i);
-                    if (diasMatch) {
-                        diasEnLab = parseInt(diasMatch[1]);
-                    }
-
-                    // Try pedido number from first cell - might have icons/badges, extract just the number
-                    const pedidoText = cells[0]?.textContent?.trim() || '';
-                    const pedidoMatch = pedidoText.match(/(\d{6,})/);
-                    const pedido = pedidoMatch ? pedidoMatch[1] : pedidoText;
-
-                    return {
-                        pedido,
-                        codigoOptica: cells[1]?.textContent?.trim() || '',
-                        fechaCarga: cells[2]?.textContent?.trim() || '',
-                        sectorActual: cells[3]?.textContent?.trim() || '',
-                        progreso,
-                        factura: cells[5]?.textContent?.trim() || '',
-                        tratamiento: cells[6]?.textContent?.trim() || '',
-                        fechaIngreso,
-                        diasEnLab,
-                    };
-                }).filter(Boolean);
-            }) as ScrapedOrder[];
-
-            return rows;
-        };
-
-        const firstPageOrders = await scrapeCurrentPage();
-        allScrapedOrders.push(...firstPageOrders);
-
-        let hasNextPage = true;
-        while (hasNextPage) {
-            const nextButton = await page.$('a.next:not(.disabled), li.next:not(.disabled) a, [aria-label="Next"]:not([disabled]), .pagination .next a');
-            if (nextButton) {
-                const isDisabled = await nextButton.evaluate(el => {
-                    const li = el.closest('li');
-                    return el.classList.contains('disabled') || el.hasAttribute('disabled') || (li?.classList.contains('disabled') ?? false);
-                });
-
-                if (isDisabled) {
-                    hasNextPage = false;
-                } else {
-                    await nextButton.click();
-                    await page.waitForTimeout(2000);
-                    const pageOrders = await scrapeCurrentPage();
-                    if (pageOrders.length === 0) {
-                        hasNextPage = false;
-                    } else {
-                        allScrapedOrders.push(...pageOrders);
-                    }
-                }
-            } else {
-                hasNextPage = false;
-            }
-        }
-
-        console.log(`SmartLab Sync: ${allScrapedOrders.length} pedidos scrapeados.`);
-
+        // ── Obtener pedidos del CRM que son de Grupo Óptico y activos ──
         const crmOrders = await prisma.order.findMany({
             where: {
                 labOrderNumber: { not: null },
                 isDeleted: false,
+                orderType: 'SALE',
+                labStatus: { in: ['SENT', 'IN_PROGRESS'] },
             },
             select: {
                 id: true,
@@ -181,53 +62,161 @@ export async function POST() {
                 labStatus: true,
                 smartLabProgress: true,
                 client: { select: { name: true } },
-                user: { select: { name: true } },
+                items: {
+                    select: {
+                        product: { select: { category: true, laboratory: true } }
+                    }
+                },
             },
         });
 
-        const matchResults: MatchResult[] = [];
+        // Filtrar solo pedidos de Grupo Óptico con números válidos
+        const grupoOpticoOrders = crmOrders.filter(order => {
+            const isGO = order.items.some((i: any) =>
+                i.product?.category === 'Cristal' &&
+                /grupo[\s\-]?[oó]ptico/i.test(i.product?.laboratory || '')
+            );
+            return isGO && order.labOrderNumber && !/sin\s+(lab|numero|laboratorio)/i.test(order.labOrderNumber);
+        });
+
+        console.log(`[SmartLab Sync] ${grupoOpticoOrders.length} pedidos Grupo Óptico activos`);
+
+        // ── Extraer números individuales ──
+        const ordersToSearch: { crmOrder: typeof grupoOpticoOrders[0]; numbers: string[] }[] = [];
+        for (const order of grupoOpticoOrders) {
+            const nums = order.labOrderNumber!.match(/\d{6,}/g) || [];
+            if (nums.length > 0) ordersToSearch.push({ crmOrder: order, numbers: nums });
+        }
+
+        // ── Función: buscar UN número en SmartLab ──
+        const searchAndScrape = async (num: string): Promise<ScrapedDetail | null> => {
+            try {
+                // Encontrar el campo "NRO. PEDIDO / CÓD. INTERNO"
+                const allInputs = await page.$$('input[type="text"], input[type="search"], input:not([type])');
+                let searchInput = null;
+                for (const inp of allInputs) {
+                    const parentText = await inp.evaluate(el => {
+                        const parent = el.closest('.form-group, .filter-group, div, .col, .col-md-3, .col-sm-6');
+                        return parent?.textContent || '';
+                    });
+                    if (parentText.includes('PEDIDO') || parentText.includes('INTERNO') || parentText.includes('NRO')) {
+                        searchInput = inp;
+                        break;
+                    }
+                }
+                if (!searchInput) searchInput = allInputs[0] || null;
+                if (!searchInput) return null;
+
+                // Escribir el número
+                await searchInput.click({ clickCount: 3 });
+                await searchInput.fill(num);
+
+                // Click "Aplicar filtros"
+                const applyBtn = await page.$('button:has-text("Aplicar"), button:has-text("filtros"), a:has-text("Aplicar")');
+                if (applyBtn) {
+                    await applyBtn.click();
+                } else {
+                    await searchInput.press('Enter');
+                }
+                await page.waitForTimeout(2500);
+
+                // Scrapear primera fila de resultados
+                const rows = await page.$$('table tbody tr');
+                for (const row of rows) {
+                    const cells = await row.$$('td');
+                    if (cells.length < 5) continue;
+
+                    const pedidoText = await cells[0].textContent() || '';
+                    if (!pedidoText.includes(num)) continue;
+
+                    // Sector
+                    const sector = (await cells[3].textContent() || '').trim();
+
+                    // Progreso
+                    let progress = 0;
+                    const progressCol = cells[4];
+                    const progressBar = await progressCol.$('.progress-bar, [role="progressbar"], [class*="progress"]');
+                    if (progressBar) {
+                        const style = await progressBar.getAttribute('style') || '';
+                        const wm = style.match(/width:\s*([\d.]+)%/);
+                        if (wm) progress = Math.round(parseFloat(wm[1]));
+                        if (progress === 0) {
+                            const av = await progressBar.getAttribute('aria-valuenow');
+                            if (av) progress = Math.round(parseFloat(av));
+                        }
+                    }
+                    if (progress === 0) {
+                        const ptxt = (await progressCol.textContent() || '').trim();
+                        const pm = ptxt.match(/([\d.]+)\s*%/);
+                        if (pm) progress = Math.round(parseFloat(pm[1]));
+                    }
+
+                    // Fecha ingreso y días
+                    const fullText = await progressCol.textContent() || '';
+                    let entryDate = '';
+                    const im = fullText.match(/[Ii]ngreso:?\s*([\d\-\/]+\s*[\d:]*)/);
+                    if (im) entryDate = im[1].trim();
+
+                    let days = 0;
+                    const dm = fullText.match(/(\d+)\s*d[ií]as?/i);
+                    if (dm) days = parseInt(dm[1]);
+
+                    return { num, sector, progress, entryDate, days };
+                }
+            } catch (err) {
+                console.error(`[SmartLab Sync] Error scraping ${num}:`, err);
+            }
+            return null;
+        };
+
+        // ── Buscar cada pedido ──
+        let matchResults: any[] = [];
         let updatedCount = 0;
         let newlyFinished = 0;
 
-        for (const scraped of allScrapedOrders) {
-            if (!scraped.pedido) continue;
+        for (const { crmOrder, numbers } of ordersToSearch) {
+            const details: ScrapedDetail[] = [];
 
-            const matchedOrder = crmOrders.find(crm => {
-                if (!crm.labOrderNumber) return false;
-                const crmNum = crm.labOrderNumber.replace('SML-', '');
-                return crmNum === scraped.pedido || crm.labOrderNumber === scraped.pedido;
-            });
+            for (const num of numbers) {
+                const scraped = await searchAndScrape(num);
+                if (scraped) {
+                    details.push(scraped);
+                    console.log(`[SmartLab Sync] ✓ ${num}: ${scraped.progress}% - ${scraped.sector}`);
+                } else {
+                    console.log(`[SmartLab Sync] ✗ ${num}: no encontrado`);
+                }
+            }
 
-            if (!matchedOrder) continue;
+            if (details.length === 0) continue;
+
+            // Calcular resumen: progreso mínimo (orden no está lista hasta que TODOS los cristales estén)
+            const minProgress = Math.min(...details.map(d => d.progress));
+            const maxDays = Math.max(...details.map(d => d.days));
+            const earliestEntry = details.map(d => d.entryDate).filter(Boolean)[0] || '';
+            const sectorSummary = details.length === 1 
+                ? details[0].sector 
+                : details.map(d => `${d.num.slice(-4)}: ${d.sector}`).join(' | ');
 
             const updateData: Record<string, unknown> = {
-                smartLabSector: scraped.sectorActual || null,
-                smartLabProgress: scraped.progreso,
+                smartLabSector: sectorSummary,
+                smartLabProgress: minProgress,
                 smartLabLastSync: new Date(),
-                smartLabEntryDate: scraped.fechaIngreso || null,
-                smartLabDays: scraped.diasEnLab || null,
+                smartLabEntryDate: earliestEntry,
+                smartLabDays: maxDays,
+                smartLabDetails: JSON.stringify(details),
             };
 
-            let statusChanged = false;
-            let newLabStatus: string | undefined;
+            // Si TODOS llegan al 100% y antes no estaba → notificar
+            const wasNotFinished = (crmOrder.smartLabProgress || 0) < 100;
+            const allFinished = details.every(d => d.progress >= 100);
 
-            // Si el progreso llega al 100% y antes no estaba al 100%, notificar al vendedor
-            // NO auto-avanzar a READY para no disparar WhatsApp al cliente
-            const wasNotFinished = (matchedOrder.smartLabProgress || 0) < 100;
-            const isNowFinished = scraped.progreso >= 100;
-            const isActiveInLab = matchedOrder.labStatus === 'SENT' || matchedOrder.labStatus === 'IN_PROGRESS';
-
-            if (isNowFinished && wasNotFinished && isActiveInLab) {
-                statusChanged = true;
-                newLabStatus = 'FABRICADO';
+            if (allFinished && wasNotFinished) {
                 newlyFinished++;
-
-                // Crear notificación interna para el vendedor
                 await prisma.notification.create({
                     data: {
                         type: 'LAB_READY',
-                        message: `🏭 Pedido finalizado en laboratorio — ${matchedOrder.client.name} (N° ${scraped.pedido}). Sector: ${scraped.sectorActual}`,
-                        orderId: matchedOrder.id,
+                        message: `🏭 Pedido finalizado en laboratorio — ${crmOrder.client.name} (${numbers.join(', ')})`,
+                        orderId: crmOrder.id,
                         requestedBy: 'SmartLab Sync',
                         status: 'PENDING',
                     },
@@ -235,42 +224,37 @@ export async function POST() {
             }
 
             await prisma.order.update({
-                where: { id: matchedOrder.id },
+                where: { id: crmOrder.id },
                 data: updateData,
             });
 
             updatedCount++;
             matchResults.push({
-                smartLabPedido: scraped.pedido,
-                crmOrderId: matchedOrder.id,
-                labOrderNumber: matchedOrder.labOrderNumber!,
-                sector: scraped.sectorActual,
-                progress: scraped.progreso,
-                statusChanged,
-                newLabStatus,
+                client: crmOrder.client.name,
+                numbers,
+                details: details.map(d => ({ num: d.num, progress: d.progress, sector: d.sector })),
+                overallProgress: minProgress,
+                isNew: allFinished && wasNotFinished,
             });
         }
 
-        console.log(`SmartLab Sync: ${matchResults.length} coincidencias, ${updatedCount} actualizados, ${newlyFinished} nuevos finalizados.`);
+        console.log(`[SmartLab Sync] Resultado: ${updatedCount} actualizados, ${newlyFinished} nuevos fabricados`);
 
         return NextResponse.json({
             success: true,
-            totalScraped: allScrapedOrders.length,
-            matched: matchResults.length,
-            updated: updatedCount,
+            totalCrmOrders: grupoOpticoOrders.length,
+            matched: updatedCount,
             newlyFinished,
             details: matchResults,
         });
 
     } catch (error: any) {
-        console.error('Error en SmartLab Sync:', error);
+        console.error('[SmartLab Sync] Error:', error);
         return NextResponse.json(
             { error: error.message || 'Error interno al sincronizar con SmartLab.' },
             { status: 500 }
         );
     } finally {
-        if (browser) {
-            await browser.close();
-        }
+        if (browser) await browser.close();
     }
 }

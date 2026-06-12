@@ -376,6 +376,7 @@ export async function GET(request: Request) {
             smartLabLastSync: true,
             smartLabEntryDate: true,
             smartLabDays: true,
+            smartLabDetails: true,
         };
         const orderBy: any = [
             { labSentAt: { sort: 'desc', nulls: 'first' } },

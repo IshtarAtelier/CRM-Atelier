@@ -139,6 +139,7 @@ export interface Order {
     smartLabLastSync?: string | null;
     smartLabEntryDate?: string | null;
     smartLabDays?: number | null;
+    smartLabDetails?: string | null;
     prescriptionId?: string | null;
     prescriptionSnapshot?: string | null;
     prescription?: OrderPrescription | null;

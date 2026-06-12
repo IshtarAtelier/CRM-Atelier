@@ -22,6 +22,7 @@ export async function GET() {
                 smartLabLastSync: true,
                 smartLabEntryDate: true,
                 smartLabDays: true,
+            smartLabDetails: true,
                 labSentAt: true,
                 createdAt: true,
                 client: { select: { id: true, name: true, phone: true } },
