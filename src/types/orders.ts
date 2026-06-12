@@ -134,6 +134,11 @@ export interface Order {
     labFrameType?: string | null;
     labBevelPosition?: string | null;
     smartLabScreenshot?: string | null;
+    smartLabSector?: string | null;
+    smartLabProgress?: number | null;
+    smartLabLastSync?: string | null;
+    smartLabEntryDate?: string | null;
+    smartLabDays?: number | null;
     prescriptionId?: string | null;
     prescriptionSnapshot?: string | null;
     prescription?: OrderPrescription | null;

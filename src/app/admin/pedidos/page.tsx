@@ -5,7 +5,8 @@ import {
     Package, Clock, CheckCircle2, Truck, Search, Download, Pencil,
     Save, X, ChevronRight, AlertCircle, Eye, ArrowRight, Hash,
     Calendar, User, ShoppingBag, Loader2, Filter,
-    TrendingUp, DollarSign, Glasses, ExternalLink, Copy, CheckCheck, Clipboard
+    TrendingUp, DollarSign, Glasses, ExternalLink, Copy, CheckCheck, Clipboard,
+    Factory, RefreshCw
 } from 'lucide-react';
 import { WhatsAppIcon } from '@/components/icons/WhatsAppIcon';
 import { PricingService } from '@/services/PricingService';
@@ -49,6 +50,8 @@ export default function PedidosPage() {
     const [labFields, setLabFields] = useState<Record<string, string>>({});
     const [savingField, setSavingField] = useState<string | null>(null);
     const [isAutoSubmitting, setIsAutoSubmitting] = useState(false);
+    const [isSyncing, setIsSyncing] = useState(false);
+    const [syncResult, setSyncResult] = useState<any>(null);
 
     useEffect(() => {
         fetchOrders();
@@ -562,9 +565,50 @@ export default function PedidosPage() {
                         Gestión y seguimiento de pedidos enviados a fábrica
                     </p>
                 </div>
-                <div className="text-right">
-                    <p className="text-3xl font-black text-blue-500">{orders.length}</p>
-                    <p className="text-[10px] font-black text-stone-400 uppercase tracking-widest">Pedidos activos</p>
+                <div className="flex items-center gap-4">
+                    <button
+                        onClick={async () => {
+                            setIsSyncing(true);
+                            setSyncResult(null);
+                            try {
+                                const res = await fetch('/api/smartlab-sync', { method: 'POST' });
+                                const data = await res.json();
+                                if (res.ok) {
+                                    setSyncResult(data);
+                                    fetchOrders();
+                                    setTimeout(() => setSyncResult(null), 8000);
+                                } else {
+                                    alert(`❌ Error sync: ${data.error}`);
+                                }
+                            } catch (err) {
+                                alert('❌ Error de red al sincronizar');
+                            } finally {
+                                setIsSyncing(false);
+                            }
+                        }}
+                        disabled={isSyncing}
+                        className={`px-5 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 transition-all hover:scale-105 active:scale-95 disabled:opacity-50 border-2 ${
+                            isSyncing 
+                                ? 'bg-blue-50 border-blue-200 text-blue-500'
+                                : syncResult 
+                                    ? 'bg-emerald-50 border-emerald-200 text-emerald-600' 
+                                    : 'bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900'
+                        }`}
+                        title="Sincronizar estados con SmartLab"
+                    >
+                        {isSyncing ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : syncResult ? (
+                            <CheckCircle2 className="w-4 h-4" />
+                        ) : (
+                            <Factory className="w-4 h-4" />
+                        )}
+                        {isSyncing ? 'Sincronizando...' : syncResult ? `${syncResult.matched} sync · ${syncResult.newlyFinished || 0} nuevos` : 'Sync SmartLab'}
+                    </button>
+                    <div className="text-right">
+                        <p className="text-3xl font-black text-blue-500">{orders.length}</p>
+                        <p className="text-[10px] font-black text-stone-400 uppercase tracking-widest">Pedidos activos</p>
+                    </div>
                 </div>
             </div>
 
@@ -854,6 +898,36 @@ export default function PedidosPage() {
                                             </button>
                                         )}
                                     </div>
+
+                                    {/* SmartLab Progress Info */}
+                                    {order.smartLabProgress != null && order.smartLabProgress > 0 && (
+                                        <div className="flex-shrink-0 w-48">
+                                            <div className="bg-blue-50/80 dark:bg-blue-950/30 rounded-xl px-3 py-2 border border-blue-100 dark:border-blue-800/50">
+                                                <div className="flex items-center justify-between mb-1.5">
+                                                    <span className="text-[8px] font-black text-blue-500 uppercase tracking-widest">SmartLab</span>
+                                                    <span className={`text-[10px] font-black ${order.smartLabProgress >= 100 ? 'text-emerald-500' : 'text-blue-600'}`}>
+                                                        {order.smartLabProgress}%
+                                                    </span>
+                                                </div>
+                                                <div className="h-1.5 bg-blue-100 dark:bg-blue-900/50 rounded-full overflow-hidden mb-1.5">
+                                                    <div 
+                                                        className={`h-full rounded-full transition-all duration-500 ${order.smartLabProgress >= 100 ? 'bg-emerald-500' : 'bg-blue-500'}`}
+                                                        style={{ width: `${Math.min(100, order.smartLabProgress)}%` }}
+                                                    />
+                                                </div>
+                                                <div className="flex items-center justify-between">
+                                                    <span className="text-[8px] font-bold text-stone-500 dark:text-stone-400 truncate max-w-[100px]">
+                                                        {order.smartLabSector || '—'}
+                                                    </span>
+                                                    {order.smartLabDays != null && (
+                                                        <span className="text-[8px] font-black text-amber-500">
+                                                            {order.smartLabDays}d
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
 
                                     {/* Total */}
                                     <div className="flex-shrink-0 text-right w-28">

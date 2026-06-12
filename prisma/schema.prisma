@@ -229,6 +229,11 @@ model Order {
   labFrameType         String?
   labBevelPosition     String?
   smartLabScreenshot   String?
+  smartLabSector       String?
+  smartLabProgress     Int?
+  smartLabLastSync     DateTime?
+  smartLabEntryDate    String?
+  smartLabDays         Int?
   prescriptionSnapshot String?
   appliedPromoName     String?
   appliedPromoDiscount Float?

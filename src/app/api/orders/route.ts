@@ -78,6 +78,50 @@ export async function POST(request: Request) {
         const calcPromoName = totals.appliedPromoName;
         const calcPromoDiscount = totals.promoFrameDiscount;
 
+        // DEDUPLICATION GATE: Check for duplicate order creation (double click) within last 10 seconds
+        const tenSecondsAgo = new Date(Date.now() - 10000);
+        const duplicateOrder = await prisma.order.findFirst({
+            where: {
+                clientId,
+                total: Math.round(finalTotal),
+                createdAt: { gte: tenSecondsAgo },
+                isDeleted: false
+            },
+            select: {
+                id: true,
+                total: true,
+                paid: true,
+                status: true,
+                orderType: true,
+                createdAt: true,
+                labStatus: true,
+                clientId: true,
+                userId: true,
+                discount: true,
+                markup: true,
+                discountCash: true,
+                discountTransfer: true,
+                discountCard: true,
+                specialDiscount: true,
+                subtotalWithMarkup: true,
+                frameSource: true,
+                prescriptionId: true,
+                items: {
+                    select: {
+                        id: true, price: true, quantity: true, eye: true,
+                        sphereVal: true, cylinderVal: true, axisVal: true, additionVal: true,
+                        crystalColor: true, crystalColorType: true,
+                        productNameSnapshot: true, productBrandSnapshot: true, productCategorySnapshot: true,
+                        product: { select: { id: true, name: true, brand: true, model: true, category: true, type: true, price: true, unitType: true } }
+                    }
+                },
+            }
+        });
+        if (duplicateOrder) {
+            console.log(`[DEDUPLICATION GATE] Duplicate order detected for client ${clientId}. Returning existing order: ${duplicateOrder.id}`);
+            return NextResponse.json(duplicateOrder);
+        }
+
         const order = await prisma.order.create({
             data: {
                 clientId,
@@ -327,6 +371,11 @@ export async function GET(request: Request) {
             labFrameType: true,
             labBevelPosition: true,
             smartLabScreenshot: true,
+            smartLabSector: true,
+            smartLabProgress: true,
+            smartLabLastSync: true,
+            smartLabEntryDate: true,
+            smartLabDays: true,
         };
         const orderBy: any = [
             { labSentAt: { sort: 'desc', nulls: 'first' } },

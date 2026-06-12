@@ -7,6 +7,7 @@ import { GlobalOpportunities } from './GlobalOpportunities';
 import { GlobalBalanceReminders } from './GlobalBalanceReminders';
 import { GlobalReviewRequests } from './GlobalReviewRequests';
 import { GlobalTasks } from './GlobalTasks';
+import { GlobalLabReady } from './GlobalLabReady';
 
 export function FloatingDock() {
     const pathname = usePathname();
@@ -40,7 +41,7 @@ export function FloatingDock() {
             <div 
                 className="flex items-center gap-1 transition-all duration-300 overflow-hidden"
                 style={{
-                    maxWidth: isCollapsed ? '0px' : '500px',
+                    maxWidth: isCollapsed ? '0px' : '600px',
                     opacity: isCollapsed ? 0 : 1,
                     pointerEvents: isCollapsed ? 'none' : 'auto',
                     paddingRight: isCollapsed ? '0px' : '4px'
@@ -48,6 +49,7 @@ export function FloatingDock() {
             >
                 <GlobalOpportunities />
                 <GlobalBalanceReminders />
+                <GlobalLabReady />
                 <GlobalReviewRequests />
                 <GlobalTasks />
             </div>

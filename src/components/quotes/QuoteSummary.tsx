@@ -6,7 +6,7 @@ import {
     CheckCircle2, X, Plus, Clock, Glasses, 
     Banknote, ArrowRightLeft, CreditCard,
     Lock, ChevronRight, ChevronUp, Pencil,
-    History, Trash2, Eye, AlertCircle, MessageSquare
+    History, Trash2, Eye, AlertCircle, MessageSquare, Factory
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -275,8 +275,32 @@ export default function QuoteSummary({
                             )}
                         </div>
                         <span className="text-[9px] font-bold text-stone-400 block">
-                            Venta #{order.id.slice(-4).toUpperCase()} · {dateStr} · {order.items?.length || 0} items
+                            Venta #{order.id.slice(-4).toUpperCase()}
+                            {order.labOrderNumber ? ` · Pedido: ${order.labOrderNumber}` : ''}
+                            {` · ${dateStr} · ${order.items?.length || 0} items`}
                         </span>
+                        {/* SmartLab Info - Collapsed View */}
+                        {isSale && order.smartLabProgress != null && order.smartLabProgress > 0 && (
+                            <div className="flex items-center gap-2 mt-1.5">
+                                <Factory className="w-3 h-3 text-blue-500 shrink-0" />
+                                <div className="flex-1 max-w-[180px]">
+                                    <div className="h-1.5 bg-stone-100 dark:bg-stone-700 rounded-full overflow-hidden">
+                                        <div 
+                                            className={`h-full rounded-full transition-all duration-500 ${order.smartLabProgress >= 100 ? 'bg-emerald-500' : 'bg-blue-500'}`}
+                                            style={{ width: `${Math.min(100, order.smartLabProgress)}%` }}
+                                        />
+                                    </div>
+                                </div>
+                                <span className={`text-[9px] font-black ${order.smartLabProgress >= 100 ? 'text-emerald-500' : 'text-blue-500'}`}>
+                                    {order.smartLabProgress}%
+                                </span>
+                                {order.smartLabSector && (
+                                    <span className="text-[8px] font-bold text-stone-400 truncate max-w-[120px]">
+                                        {order.smartLabSector}
+                                    </span>
+                                )}
+                            </div>
+                        )}
                     </div>
                 </div>
 
@@ -336,6 +360,11 @@ export default function QuoteSummary({
                             <span className={`text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-lg ${isSale ? 'bg-emerald-500 text-white' : 'bg-amber-100 text-amber-700'}`}>
                                 {isSale ? 'VENTA' : 'PRESUPUESTO'} #{order.id.slice(-4).toUpperCase()}
                             </span>
+                            {isSale && order.labOrderNumber && (
+                                <span className="text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-lg bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
+                                    Pedido: {order.labOrderNumber}
+                                </span>
+                            )}
                             {order.isDeleted && <span className="text-[10px] font-black bg-red-500 text-white px-2 py-0.5 rounded-lg">ELIMINADO</span>}
                         </div>
                         <h3 className="text-2xl sm:text-3xl font-black text-stone-800 dark:text-white tracking-tighter">
@@ -380,6 +409,45 @@ export default function QuoteSummary({
                 />
 
                 <PrescriptionDetails prescription={order.prescription} />
+
+                {/* SmartLab Info Block - Expanded View */}
+                {isSale && order.smartLabProgress != null && order.smartLabProgress > 0 && (
+                    <div className="bg-gradient-to-br from-blue-50/80 to-indigo-50/50 dark:from-blue-950/30 dark:to-indigo-950/20 rounded-[2rem] p-5 border-2 border-blue-200/50 dark:border-blue-800/30">
+                        <div className="flex items-center gap-2 mb-4">
+                            <Factory className="w-5 h-5 text-blue-500" />
+                            <h4 className="text-[10px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest">Estado en Laboratorio (SmartLab)</h4>
+                        </div>
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+                            <div className="bg-white/60 dark:bg-stone-800/60 rounded-xl p-3 text-center">
+                                <span className="text-[8px] font-black text-stone-400 uppercase tracking-widest block mb-1">Progreso</span>
+                                <span className={`text-lg font-black ${order.smartLabProgress >= 100 ? 'text-emerald-500' : 'text-blue-600'}`}>{order.smartLabProgress}%</span>
+                            </div>
+                            <div className="bg-white/60 dark:bg-stone-800/60 rounded-xl p-3 text-center">
+                                <span className="text-[8px] font-black text-stone-400 uppercase tracking-widest block mb-1">Sector</span>
+                                <span className="text-[11px] font-black text-stone-700 dark:text-stone-200 leading-tight">{order.smartLabSector || '—'}</span>
+                            </div>
+                            <div className="bg-white/60 dark:bg-stone-800/60 rounded-xl p-3 text-center">
+                                <span className="text-[8px] font-black text-stone-400 uppercase tracking-widest block mb-1">Ingreso Lab</span>
+                                <span className="text-[11px] font-black text-stone-700 dark:text-stone-200">{order.smartLabEntryDate || '—'}</span>
+                            </div>
+                            <div className="bg-white/60 dark:bg-stone-800/60 rounded-xl p-3 text-center">
+                                <span className="text-[8px] font-black text-stone-400 uppercase tracking-widest block mb-1">Días en Lab</span>
+                                <span className="text-lg font-black text-amber-500">{order.smartLabDays ?? '—'}</span>
+                            </div>
+                        </div>
+                        <div className="h-2.5 bg-white/60 dark:bg-stone-800/60 rounded-full overflow-hidden border border-blue-100 dark:border-blue-900/50">
+                            <div 
+                                className={`h-full rounded-full transition-all duration-700 ${order.smartLabProgress >= 100 ? 'bg-emerald-500' : 'bg-gradient-to-r from-blue-500 to-indigo-500'}`}
+                                style={{ width: `${Math.min(100, order.smartLabProgress)}%` }}
+                            />
+                        </div>
+                        {order.smartLabLastSync && (
+                            <p className="text-[8px] font-bold text-stone-400 text-right mt-2">
+                                Última sync: {new Date(order.smartLabLastSync).toLocaleString('es-AR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                            </p>
+                        )}
+                    </div>
+                )}
 
                 {order.frameSource && (
                     <div className="flex items-center gap-4 p-5 bg-amber-50/50 dark:bg-amber-950/20 border-2 border-amber-200/50 dark:border-amber-900/50 rounded-[2rem]">

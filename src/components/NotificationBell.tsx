@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Bell, Check, X, Trash2, FileText, Loader2, ExternalLink, AlertTriangle } from "lucide-react";
+import { Bell, Check, X, Trash2, FileText, Loader2, ExternalLink, AlertTriangle, Factory } from "lucide-react";
 
 interface Notification {
     id: string;
@@ -90,6 +90,7 @@ export function NotificationBell() {
         if (type === "DELETE_REQUEST") return <Trash2 className="w-4 h-4 text-red-500" />;
         if (type === "INVOICE_REQUEST") return <FileText className="w-4 h-4 text-indigo-500" />;
         if (type === "RECEIPT_ERROR") return <AlertTriangle className="w-4 h-4 text-orange-500" />;
+        if (type === "LAB_READY") return <Factory className="w-4 h-4 text-emerald-500" />;
         return <Bell className="w-4 h-4" />;
     };
 
@@ -97,6 +98,7 @@ export function NotificationBell() {
         if (type === "DELETE_REQUEST") return "Solicitud de Eliminación";
         if (type === "INVOICE_REQUEST") return "Solicitud de Factura";
         if (type === "RECEIPT_ERROR") return "Error en Comprobante";
+        if (type === "LAB_READY") return "Pedido Fabricado";
         return "Notificación";
     };
 
@@ -145,12 +147,12 @@ export function NotificationBell() {
                                     <div className="flex gap-2 mt-2 ml-11">
                                         {n.orderId && (
                                             <a
-                                                href={n.type === "INVOICE_REQUEST" ? `/admin/facturacion?search=${n.orderId}` : `/admin/ventas?id=${n.orderId}`}
+                                                href={n.type === "INVOICE_REQUEST" ? `/admin/facturacion?search=${n.orderId}` : n.type === "LAB_READY" ? `/admin/pedidos` : `/admin/ventas?id=${n.orderId}`}
                                                 className="flex flex-1 items-center justify-center gap-1.5 px-3 py-2 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-blue-100 transition-all border border-blue-100 dark:border-blue-800"
-                                                title={n.type === "INVOICE_REQUEST" ? "Ir a Facturar" : "Ir a la Ficha"}
+                                                title={n.type === "INVOICE_REQUEST" ? "Ir a Facturar" : n.type === "LAB_READY" ? "Ver en Pedidos" : "Ir a la Ficha"}
                                             >
                                                 <ExternalLink className="w-3 h-3" />
-                                                {n.type === "INVOICE_REQUEST" ? "Ir a Facturar" : "Ver Ficha"}
+                                                {n.type === "INVOICE_REQUEST" ? "Ir a Facturar" : n.type === "LAB_READY" ? "Ver Pedidos" : "Ver Ficha"}
                                             </a>
                                         )}
                                         <button
