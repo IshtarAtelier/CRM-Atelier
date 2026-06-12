@@ -1019,13 +1019,17 @@ export default function VentasPage() {
                                             >
                                                 {order.labOrderNumber ? (
                                                     <div>
-                                                        <span className="text-[8px] lg:text-[9px] font-black text-stone-400 uppercase tracking-widest block">N° Op. Lab</span>
+                                                        <span className="text-[8px] lg:text-[9px] font-black text-stone-400 uppercase tracking-widest block">
+                                                            N° Op. Lab {orderLabs.length > 0 ? `(${orderLabs.join(', ')})` : ''}
+                                                        </span>
                                                         <span className="text-xs lg:text-sm font-black text-stone-800 dark:text-white">{order.labOrderNumber}</span>
                                                     </div>
                                                 ) : (
                                                     <div className="flex items-center gap-2 text-stone-400 group-hover:text-emerald-500">
                                                         <Pencil className="w-3.5 h-3.5" />
-                                                        <span className="text-[9px] lg:text-[10px] font-black uppercase tracking-widest">Agregar N° Op.</span>
+                                                        <span className="text-[9px] lg:text-[10px] font-black uppercase tracking-widest">
+                                                            Agregar N° Op. {orderLabs.length > 0 ? `(${orderLabs.join(', ')})` : ''}
+                                                        </span>
                                                     </div>
                                                 )}
                                             </button>
