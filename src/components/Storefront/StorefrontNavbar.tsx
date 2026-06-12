@@ -109,6 +109,13 @@ export function StorefrontNavbar({ theme = "dark", mixBlend = false }: Storefron
                 Shop
               </Link>
               <Link 
+                href="/cristales-opticos" 
+                className={`text-[11px] sm:text-[13px] font-medium ${activeTextColorClass} hover:opacity-60 transition-opacity`} 
+                style={activeTextShadowStyle}
+              >
+                Cristales
+              </Link>
+              <Link 
                 href="/arma-tus-lentes" 
                 className={`text-[13px] font-bold ${activeTextColorClass} hover:opacity-60 transition-opacity border-b-2 border-primary pb-0.5 hidden sm:block`} 
                 style={activeTextShadowStyle}
