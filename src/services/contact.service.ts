@@ -8,6 +8,31 @@ import { sendEmail } from '@/lib/email';
 import { fetchWa } from '@/lib/wa-config';
 
 
+export function normalizeArgentinePhone(phone: string | null | undefined): string {
+    if (!phone) return '';
+    let base = phone.replace(/\D/g, '');
+    if (!base) return '';
+
+    if (base.startsWith('549')) {
+        base = base.substring(3);
+    } else if (base.startsWith('54')) {
+        base = base.substring(2);
+    }
+    
+    if (base.startsWith('0')) {
+        base = base.substring(1);
+    }
+    
+    // Remove mobile prefix '15' if it's placed after an area code
+    const regex15 = /^([1-3]\d{1,3})15(\d{6,8})$/;
+    const match = base.match(regex15);
+    if (match) {
+        base = match[1] + match[2];
+    }
+    
+    return '549' + base;
+}
+
 export interface ContactCreateData {
     name: string;
     email?: string | null;
@@ -158,7 +183,7 @@ export const ContactService = {
         if (data.phone) {
             const hasLetters = /[a-zA-Z]/.test(data.phone);
             const hasAt = data.phone.includes('@');
-            normalizedIncomingPhone = data.phone.replace(/\D/g, '');
+            normalizedIncomingPhone = normalizeArgentinePhone(data.phone);
             
             if (hasLetters || hasAt || normalizedIncomingPhone.length < 8) {
                 throw new Error(JSON.stringify({ isBlocked: true, message: `Bloqueo de seguridad: El dato ingresado ("${data.phone}") no es un celular válido. Única y exclusivamente se permiten números de celular reales para crear una ficha.` }));
@@ -330,7 +355,7 @@ export const ContactService = {
 
         if (data.name !== undefined) updateData.name = data.name;
         if (data.email !== undefined) updateData.email = data.email?.trim() === "" ? null : data.email;
-        if (data.phone !== undefined) updateData.phone = data.phone?.replace(/\D/g, '') || null;
+        if (data.phone !== undefined) updateData.phone = data.phone ? normalizeArgentinePhone(data.phone) : null;
         if (data.dni !== undefined) updateData.dni = data.dni;
         if (data.status !== undefined) {
             updateData.status = data.status;
