@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { ContactService, normalizeArgentinePhone } from '@/services/contact.service';
 
 export async function POST(req: Request) {
     try {
@@ -11,20 +12,35 @@ export async function POST(req: Request) {
         }
 
         // 1. Buscar o Crear Cliente
+        const normalizedPhone = normalizeArgentinePhone(whatsapp);
+
         let client = await prisma.client.findFirst({
-            where: { phone: whatsapp }
+            where: { phone: normalizedPhone }
         });
 
         if (!client) {
-            client = await prisma.client.create({
-                data: {
+            try {
+                client = await ContactService.create({
                     name: customerName,
-                    phone: whatsapp,
-                    status: 'CONTACT',
+                    phone: normalizedPhone,
                     contactSource: 'WEB',
                     interest: 'Lentes Receta Web'
+                });
+            } catch (error: any) {
+                try {
+                    const parsedError = JSON.parse(error.message);
+                    if (parsedError.isDuplicate && parsedError.existingClient) {
+                        client = await ContactService.update(parsedError.existingClient.id, {
+                            contactSource: 'WEB',
+                            interest: 'Lentes Receta Web'
+                        });
+                    } else {
+                        throw error;
+                    }
+                } catch (e) {
+                    throw error;
                 }
-            });
+            }
         }
 
         // 2. Obtener un Usuario Vendedor (Admin)

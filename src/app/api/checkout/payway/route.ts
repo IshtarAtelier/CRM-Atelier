@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { sendEmail } from '@/lib/email';
 import { WHATSAPP_PHONE } from '@/lib/constants';
+import { ContactService, normalizeArgentinePhone } from '@/services/contact.service';
 
 export async function POST(req: Request) {
   try {
@@ -12,27 +13,43 @@ export async function POST(req: Request) {
     console.log("[PAYWAY CHECKOUT] Total a procesar: $", total);
 
     // 1. Encontrar o crear cliente
+    const normalizedPhone = normalizeArgentinePhone(customer.phone);
+    
     let client = await prisma.client.findFirst({
       where: {
         OR: [
+          { phone: normalizedPhone },
           { email: customer.email },
-          { dni: customer.dni }
+          ...(customer.dni ? [{ dni: customer.dni }] : [])
         ]
       }
     });
 
     if (!client) {
-      client = await prisma.client.create({
-        data: {
+      try {
+        client = await ContactService.create({
           name: `${customer.firstName} ${customer.lastName}`,
           email: customer.email,
-          phone: customer.phone,
+          phone: normalizedPhone,
           dni: customer.dni,
           address: `${customer.address}, ${customer.city}, ${customer.state} ${customer.zip}`,
           contactSource: "WEB_STOREFRONT",
-          status: "CONTACT"
+        });
+      } catch (error: any) {
+        try {
+          const parsedError = JSON.parse(error.message);
+          if (parsedError.isDuplicate && parsedError.existingClient) {
+            client = await ContactService.update(parsedError.existingClient.id, {
+              address: `${customer.address}, ${customer.city}, ${customer.state} ${customer.zip}`,
+              contactSource: "WEB_STOREFRONT"
+            });
+          } else {
+            throw error;
+          }
+        } catch (e) {
+          throw error;
         }
-      });
+      }
     }
 
     // 2. Encontrar usuario de sistema (o el primer admin disponible) para asignar la venta
