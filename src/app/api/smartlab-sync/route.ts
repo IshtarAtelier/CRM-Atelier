@@ -12,9 +12,6 @@ interface ScrapedDetail {
 export async function POST() {
     let browser;
     try {
-        const path = await import('path');
-        const browsersPath = path.join(process.cwd(), '.playwright-browsers');
-        process.env.PLAYWRIGHT_BROWSERS_PATH = browsersPath;
         const { chromium } = await import('playwright');
         browser = await chromium.launch({ headless: true });
         const context = await browser.newContext();

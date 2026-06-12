@@ -43,8 +43,6 @@ export async function POST(request: Request) {
         // 3. Lanzar navegador oculto para autenticación
         console.log('Iniciando sesión en SmartLab vía Headless Browser...');
         const path = await import('path');
-        const browsersPath = path.join(process.cwd(), '.playwright-browsers');
-        process.env.PLAYWRIGHT_BROWSERS_PATH = browsersPath;
         const { chromium } = await import('playwright');
         browser = await chromium.launch({ headless: true });
         const context = await browser.newContext();
