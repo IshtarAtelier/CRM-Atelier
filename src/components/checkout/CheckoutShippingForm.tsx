@@ -1,29 +1,119 @@
 import React from "react";
-import { Truck } from "lucide-react";
+import { Truck, Home, MapPin } from "lucide-react";
 
 export function CheckoutShippingForm({ formData, handleChange, isLocalCity, hasCrystals }: { formData: any, handleChange: any, isLocalCity: boolean, hasCrystals: boolean }) {
+  const selectedMethod = formData.shippingMethod;
+
+  // Dispatch times
+  const dispatchText = hasCrystals 
+    ? "Laboratorio y calibrado: 5 días hábiles para el despacho" 
+    : "Despacho en 2 días hábiles (solo armazón)";
+
   return (
     <section>
       <h2 className="text-[11px] font-black uppercase tracking-widest border-b border-stone-200 pb-2 mb-4">2. Envío</h2>
       
-      <div className="mb-4">
-        <label className="flex items-center justify-between border border-black p-4 cursor-pointer bg-stone-50 transition-colors hover:bg-stone-100">
-          <div className="flex items-center gap-3">
-            <input type="radio" name="shippingMethod" value="FREE" checked className="accent-black" readOnly />
-            <div>
-              <p className="text-sm font-bold">
-                {isLocalCity ? 'Envío por Cadetería Local (Gratis)' : 'Envío a Domicilio (Gratis)'}
+      <div className="flex flex-col gap-3 mb-6">
+        {isLocalCity && (
+          <label className={`flex items-start justify-between border p-4 cursor-pointer transition-all duration-300 rounded-lg ${selectedMethod === 'LOCAL' ? 'border-black bg-stone-50' : 'border-stone-200 bg-white hover:bg-stone-50/50'}`}>
+            <div className="flex items-start gap-3">
+              <input 
+                type="radio" 
+                name="shippingMethod" 
+                value="LOCAL" 
+                checked={selectedMethod === 'LOCAL'} 
+                onChange={handleChange}
+                className="accent-black mt-1" 
+              />
+              <div className="-mt-0.5">
+                <div className="flex items-center gap-2">
+                  <p className="text-sm font-bold text-black">Cadetería Local Express</p>
+                  <span className="text-[9px] font-bold text-[#1b4332] bg-green-50 px-1.5 py-0.5 rounded-sm uppercase">Gratis</span>
+                </div>
+                <p className="text-[11px] text-stone-500 mt-1 leading-relaxed">
+                  Entrega a domicilio dentro de Córdoba / Carlos Paz. Coordinamos el horario de entrega con vos por WhatsApp.
+                </p>
+                <p className="text-[10px] font-bold text-stone-700 mt-1.5 uppercase tracking-wider">
+                  {hasCrystals ? "Listo en 5 días hábiles" : "Listo para entrega en 24-48hs hábiles"}
+                </p>
+              </div>
+            </div>
+            <Truck className={`w-5 h-5 transition-colors ${selectedMethod === 'LOCAL' ? 'text-black' : 'text-stone-400'}`} />
+          </label>
+        )}
+
+        <label className={`flex items-start justify-between border p-4 cursor-pointer transition-all duration-300 rounded-lg ${selectedMethod === 'CORREO_DOMICILIO' ? 'border-black bg-stone-50' : 'border-stone-200 bg-white hover:bg-stone-50/50'}`}>
+          <div className="flex items-start gap-3">
+            <input 
+              type="radio" 
+              name="shippingMethod" 
+              value="CORREO_DOMICILIO" 
+              checked={selectedMethod === 'CORREO_DOMICILIO'} 
+              onChange={handleChange}
+              className="accent-black mt-1" 
+            />
+            <div className="-mt-0.5">
+              <div className="flex items-center gap-2">
+                <p className="text-sm font-bold text-black">Envío a Domicilio (Correo Argentino)</p>
+                <span className="text-[9px] font-bold text-[#1b4332] bg-green-50 px-1.5 py-0.5 rounded-sm uppercase">Gratis</span>
+              </div>
+              <p className="text-[11px] text-stone-500 mt-1 leading-relaxed">
+                Envío bonificado a cualquier punto del país. Llega directo a tu puerta.
               </p>
-              <p className="text-[11px] text-stone-500 uppercase tracking-widest mt-1">
-                {isLocalCity 
-                  ? `Envíos dentro de Cba / Carlos Paz · ${hasCrystals ? 'Lab: 5 días hábiles' : 'Despacho en 2 días hábiles'}` 
-                  : `A todo el país vía Andreani · ${hasCrystals ? 'Lab: 5 días hábiles' : 'Despacho en 2 días hábiles'}`}
+              <p className="text-[11.5px] text-stone-800 mt-2 font-medium">
+                🕒 Tránsito: <strong>3 a 5 días hábiles</strong> desde que se despacha.
+              </p>
+              <p className="text-[10.5px] text-amber-700 bg-amber-50/50 border border-amber-100 px-2.5 py-1 rounded-md mt-2 font-medium">
+                ⚙️ {dispatchText}
               </p>
             </div>
           </div>
-          <Truck className="w-5 h-5 text-stone-400" />
+          <Home className={`w-5 h-5 transition-colors ${selectedMethod === 'CORREO_DOMICILIO' ? 'text-black' : 'text-stone-400'}`} />
+        </label>
+
+        <label className={`flex items-start justify-between border p-4 cursor-pointer transition-all duration-300 rounded-lg ${selectedMethod === 'CORREO_SUCURSAL' ? 'border-black bg-stone-50' : 'border-stone-200 bg-white hover:bg-stone-50/50'}`}>
+          <div className="flex items-start gap-3">
+            <input 
+              type="radio" 
+              name="shippingMethod" 
+              value="CORREO_SUCURSAL" 
+              checked={selectedMethod === 'CORREO_SUCURSAL'} 
+              onChange={handleChange}
+              className="accent-black mt-1" 
+            />
+            <div className="-mt-0.5">
+              <div className="flex items-center gap-2">
+                <p className="text-sm font-bold text-black">Envío a Sucursal (Correo Argentino)</p>
+                <span className="text-[9px] font-bold text-[#1b4332] bg-green-50 px-1.5 py-0.5 rounded-sm uppercase">Gratis</span>
+              </div>
+              <p className="text-[11px] text-stone-500 mt-1 leading-relaxed">
+                Retirá en la sucursal oficial de Correo Argentino de tu localidad.
+              </p>
+              <p className="text-[11.5px] text-stone-800 mt-2 font-medium">
+                🕒 Tránsito: <strong>3 a 5 días hábiles</strong> desde que se despacha.
+              </p>
+              <p className="text-[10.5px] text-amber-700 bg-amber-50/50 border border-amber-100 px-2.5 py-1 rounded-md mt-2 font-medium">
+                ⚙️ {dispatchText}
+              </p>
+            </div>
+          </div>
+          <MapPin className={`w-5 h-5 transition-colors ${selectedMethod === 'CORREO_SUCURSAL' ? 'text-black' : 'text-stone-400'}`} />
         </label>
       </div>
+
+      {selectedMethod === 'CORREO_SUCURSAL' && (
+        <div className="mb-6 animate-fade-in">
+          <label className="block text-[11px] text-stone-500 font-bold uppercase tracking-wider mb-2">Sucursal de Correo Argentino de preferencia (Opcional)</label>
+          <input 
+            type="text" 
+            name="shippingBranch" 
+            value={formData.shippingBranch || ""}
+            placeholder="Ej: Sucursal Cerro de las Rosas (Av. Rafael Núñez 4200) o dejas vacío y coordinamos por WhatsApp" 
+            className="w-full border border-stone-200 p-3 text-sm focus:border-black focus:outline-none transition-colors rounded-lg bg-stone-50/30" 
+            onChange={handleChange} 
+          />
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="col-span-full">

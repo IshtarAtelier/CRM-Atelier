@@ -9,6 +9,15 @@ export async function POST(req: Request) {
     const body = await req.json();
     const { customer, items, total } = body;
 
+    const shippingMethodLabel = (() => {
+      switch (customer.shippingMethod) {
+        case 'LOCAL': return 'Cadetería Local (Cba/Carlos Paz)';
+        case 'CORREO_DOMICILIO': return 'Envío a Domicilio (Correo Argentino)';
+        case 'CORREO_SUCURSAL': return 'Envío a Sucursal (Correo Argentino)';
+        default: return customer.shippingMethod || 'No especificado';
+      }
+    })();
+
     console.log("[PAYWAY CHECKOUT] Recibido pedido de:", customer.email);
     console.log("[PAYWAY CHECKOUT] Total a procesar: $", total);
 
@@ -64,7 +73,7 @@ export async function POST(req: Request) {
         status: "WEB_PENDING",
         orderType: "WEB",
         total: customer.paymentMethod === 'TRANSFER' ? total * 0.85 : total,
-        labNotes: `Método de envío: ${customer.shippingMethod}. Método de pago: ${customer.paymentMethod}. Dirección: ${customer.address}, ${customer.city}, ${customer.state} ${customer.zip}`,
+        labNotes: `Método de envío: ${shippingMethodLabel}${customer.shippingBranch ? ` (Sucursal: ${customer.shippingBranch})` : ''}. Método de pago: ${customer.paymentMethod}. Dirección: ${customer.address}, ${customer.city}, ${customer.state} ${customer.zip}`,
         items: {
           create: items.map((item: any) => ({
             productId: item.productId !== "unknown" ? item.productId : undefined,
@@ -108,8 +117,10 @@ export async function POST(req: Request) {
         <table width="100%" cellpadding="0" cellspacing="0">${itemsHtml}</table>
         <p style="text-align: right; font-weight: bold; font-size: 16px; margin-top: 20px;">Total: $${emailTotal.toLocaleString("es-AR")}</p>
         <div style="background: #f9f9f9; border-left: 4px solid #000; padding: 15px; margin: 20px 0;">
-          <strong>Tiempo de entrega estimado:</strong><br/>
-          ${hasCrystals ? '5 días hábiles por trabajo de laboratorio a medida.' : 'Despacho rápido dentro de los 2 días hábiles.'}
+          <strong>Método de envío:</strong> ${shippingMethodLabel} ${customer.shippingBranch ? `(Sucursal: ${customer.shippingBranch})` : ''}<br/>
+          <strong>Tiempo de tránsito:</strong> ${customer.shippingMethod === 'LOCAL' ? 'Entrega express 24-48hs hábiles' : '3 a 5 días hábiles desde que se despacha.'}<br/>
+          <strong>Tiempo de preparación / despacho:</strong><br/>
+          ${hasCrystals ? '5 días hábiles por calibración y trabajo de laboratorio a medida.' : 'Despacho rápido dentro de los 2 días hábiles.'}
         </div>
         <p style="text-align: center; color: #666; font-size: 12px; margin-top: 30px; border-top: 1px solid #eee; padding-top: 20px;">
           Atelier Óptica - Cerro de las Rosas, Córdoba.<br/>
@@ -140,6 +151,7 @@ export async function POST(req: Request) {
           <li><strong>Email:</strong> ${customer.email}</li>
           <li><strong>WhatsApp:</strong> ${customer.phone}</li>
           <li><strong>DNI:</strong> ${customer.dni}</li>
+          <li><strong>Método de Envío:</strong> ${shippingMethodLabel} ${customer.shippingBranch ? `(Sucursal: ${customer.shippingBranch})` : ''}</li>
           <li><strong>Dirección:</strong> ${customer.address}, ${customer.city}, ${customer.state} ${customer.zip}</li>
         </ul>
 

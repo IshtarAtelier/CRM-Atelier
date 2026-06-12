@@ -29,7 +29,8 @@ export default function CheckoutPage() {
     city: "",
     state: "",
     zip: "",
-    shippingMethod: "FREE",
+    shippingMethod: "CORREO_DOMICILIO",
+    shippingBranch: "",
     paymentMethod: "PAYWAY",
     cardNumber: "",
     cardExp: "",
@@ -37,6 +38,16 @@ export default function CheckoutPage() {
     cardName: "",
     installments: "1"
   });
+
+  const isLocalCity = (() => {
+    const city = formData.city.toLowerCase().trim();
+    return city === "cordoba" || 
+           city === "córdoba" || 
+           city === "cordoba capital" || 
+           city === "córdoba capital" || 
+           city === "carlos paz" || 
+           city === "villa carlos paz";
+  })();
 
   const [paywayConfig, setPaywayConfig] = useState<{publicKey: string, environment: string} | null>(null);
 
@@ -63,6 +74,19 @@ export default function CheckoutPage() {
     setMounted(true);
   }, []);
 
+  // Auto-adjust shipping method when local/national city transitions
+  useEffect(() => {
+    if (isLocalCity) {
+      if (formData.shippingMethod !== "LOCAL" && formData.shippingMethod !== "CORREO_DOMICILIO" && formData.shippingMethod !== "CORREO_SUCURSAL") {
+        setFormData(prev => ({ ...prev, shippingMethod: "LOCAL" }));
+      }
+    } else {
+      if (formData.shippingMethod === "LOCAL") {
+        setFormData(prev => ({ ...prev, shippingMethod: "CORREO_DOMICILIO" }));
+      }
+    }
+  }, [isLocalCity, formData.shippingMethod]);
+
   useEffect(() => {
     if (mounted) {
       localStorage.setItem("atelier-checkout-form", JSON.stringify(formData));
@@ -83,7 +107,8 @@ export default function CheckoutPage() {
               city: formData.city,
               state: formData.state,
               zip: formData.zip,
-              shippingMethod: formData.shippingMethod
+              shippingMethod: formData.shippingMethod,
+              shippingBranch: formData.shippingBranch
             },
             total: getCartTotal()
           };
@@ -112,15 +137,7 @@ export default function CheckoutPage() {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const isLocalCity = (() => {
-    const city = formData.city.toLowerCase().trim();
-    return city === "cordoba" || 
-           city === "córdoba" || 
-           city === "cordoba capital" || 
-           city === "córdoba capital" || 
-           city === "carlos paz" || 
-           city === "villa carlos paz";
-  })();
+
 
   const handlePaywaySubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -134,7 +151,8 @@ export default function CheckoutPage() {
           body: JSON.stringify({
             customer: {
               ...formData,
-              shippingMethod: isLocalCity ? 'CADETERIA' : 'ANDREANI'
+              shippingMethod: formData.shippingMethod,
+              shippingBranch: formData.shippingBranch
             },
             items: items,
             total: getCartTotal(),
@@ -215,7 +233,8 @@ export default function CheckoutPage() {
           body: JSON.stringify({
             customer: {
               ...formData,
-              shippingMethod: isLocalCity ? 'CADETERIA' : 'ANDREANI'
+              shippingMethod: formData.shippingMethod,
+              shippingBranch: formData.shippingBranch
             },
             items: items,
             total: getCartTotal(),
