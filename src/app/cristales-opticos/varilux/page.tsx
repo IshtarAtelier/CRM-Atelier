@@ -1,7 +1,4 @@
 import Link from "next/link";
-import { StorefrontNavbar } from "@/components/Storefront/StorefrontNavbar";
-import { StorefrontFooter } from "@/components/Storefront/StorefrontFooter";
-import { FloatingWhatsApp } from "@/components/Storefront/FloatingWhatsApp";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -85,12 +82,9 @@ const CARDS = [
 
 export default function VariluxPage() {
   return (
-    <div className="bg-white text-black selection:bg-black selection:text-white overflow-x-hidden" style={{ fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif" }}>
-      {/* ATELIER NAVBAR */}
-      <StorefrontNavbar theme="dark" />
-
+    <div className="bg-[#faf8f5]">
       {/* HERO SECTION */}
-      <section className="relative w-full pt-32 pb-20 px-6 md:pt-40 md:pb-28 bg-[#faf8f5]">
+      <section className="relative w-full pt-10 pb-20 px-6 md:pt-16 md:pb-28 bg-[#faf8f5]">
         <div className="max-w-5xl mx-auto text-center">
           <p className="text-[11px] font-bold tracking-[0.2em] uppercase text-black/50 mb-6">Cristales Premium</p>
           <h1 className="text-4xl md:text-6xl font-black tracking-tight mb-8">
@@ -242,9 +236,6 @@ export default function VariluxPage() {
         </div>
       </section>
 
-      {/* FOOTER */}
-      <StorefrontFooter />
-      <FloatingWhatsApp />
     </div>
   );
 }
