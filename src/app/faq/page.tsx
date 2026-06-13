@@ -19,7 +19,7 @@ const FAQS = [
   },
   {
     question: "¿Tienen garantía los cristales multifocales?",
-    answer: "Absolutamente. Todos nuestros cristales multifocales (Varilux, Novar, Zeiss) cuentan con garantía de adaptación. Si no te adaptás en los primeros 30 días, te cambiamos los cristales sin costo (es requisito presentar una nueva receta emitida por tu oftalmólogo)."
+    answer: "Absolutamente. Todos nuestros cristales multifocales Varilux cuentan con garantía de adaptación. Si no te adaptás en los primeros 30 días, te cambiamos los cristales sin costo (es requisito presentar una nueva receta emitida por tu oftalmólogo, y entre ambas recetas no deben transcurrir más de 90 días)."
   },
   {
     question: "¿Puedo probarme los anteojos antes de comprarlos?",

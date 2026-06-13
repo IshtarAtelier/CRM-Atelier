@@ -7,6 +7,7 @@ import { StorefrontNavbar } from '@/components/Storefront/StorefrontNavbar';
 import { StorefrontFooter } from '@/components/Storefront/StorefrontFooter';
 import { FloatingWhatsApp } from '@/components/Storefront/FloatingWhatsApp';
 import { prisma } from '@/lib/db';
+import { resolveStorageUrl } from '@/lib/utils/storage';
 
 async function getPostBySlug(slug: string) {
   try {
@@ -672,12 +673,138 @@ const posts: Record<string, Post> = {
 
         <h3>Rostro Redondo</h3>
         <p>Si tu cara es circular, sin ángulos fuertes, te beneficiarán los anteojos cuadrados o rectangulares. Estos añadirán líneas definidas y harán que tu rostro parezca más largo y delgado.</p>
+        
+        <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="bg-stone-50 dark:bg-stone-850 p-6 rounded-3xl border border-stone-200 dark:border-stone-800 flex flex-col justify-between hover:shadow-lg transition-all duration-300">
+            <div>
+              <div className="aspect-[4/3] rounded-2xl overflow-hidden mb-4 bg-stone-100 relative shadow-sm border border-stone-150 dark:border-stone-750">
+                <img src={resolveStorageUrl("/assets/products/acetato/57202LJH-c1.avif")} alt="Anteojo de diseño modelo Aurora" className="w-full h-full object-cover" />
+              </div>
+              <h4 className="font-black text-lg text-stone-800 dark:text-stone-100 mb-1">Aurora</h4>
+              <p className="text-[10px] text-primary font-black uppercase tracking-widest mb-3">Material: Acetato | Color: Rosa cristal translúcido con patillas carey oscuro</p>
+              <p className="text-stone-600 dark:text-stone-400 text-xs leading-relaxed mb-4">Este modelo Aurora destaca por su elegante frontal en rosa cristal translúcido que aporta ligereza y sofisticación, combinado con patillas en un clásico carey oscuro. Su diseño de suave forma cuadrada favorece la mayoría de los rostros, añadiendo un toque chic y moderno a cualquier look.</p>
+            </div>
+            <Link href="/producto/aurora-c1" className="inline-flex items-center text-xs font-bold text-primary hover:gap-1.5 transition-all mt-2">
+              Ver en tienda <ShoppingBag className="w-4 h-4 ml-1.5 shrink-0" />
+            </Link>
+          </div>
+          <div className="bg-stone-50 dark:bg-stone-850 p-6 rounded-3xl border border-stone-200 dark:border-stone-800 flex flex-col justify-between hover:shadow-lg transition-all duration-300">
+            <div>
+              <div className="aspect-[4/3] rounded-2xl overflow-hidden mb-4 bg-stone-100 relative shadow-sm border border-stone-150 dark:border-stone-750">
+                <img src={resolveStorageUrl("1780932146269_HY238014-c4-1.avif")} alt="Anteojo de diseño modelo Hera" className="w-full h-full object-cover" />
+              </div>
+              <h4 className="font-black text-lg text-stone-800 dark:text-stone-100 mb-1">Hera</h4>
+              <p className="text-[10px] text-primary font-black uppercase tracking-widest mb-3">Material: Metal | Color: Marrón oscuro con varillas plateadas y terminales marrones</p>
+              <p className="text-stone-600 dark:text-stone-400 text-xs leading-relaxed mb-4">El modelo Hera fusiona una estética moderna y sofisticada con un diseño cuadrado suavizado que incorpora un sutil levantamiento en los ángulos exteriores. Este estilo favorece especialmente a rostros redondos u ovalados, aportando definición y un toque chic.</p>
+            </div>
+            <Link href="/producto/atelier-hera-dwcn" className="inline-flex items-center text-xs font-bold text-primary hover:gap-1.5 transition-all mt-2">
+              Ver en tienda <ShoppingBag className="w-4 h-4 ml-1.5 shrink-0" />
+            </Link>
+          </div>
+          <div className="bg-stone-50 dark:bg-stone-850 p-6 rounded-3xl border border-stone-200 dark:border-stone-800 flex flex-col justify-between hover:shadow-lg transition-all duration-300">
+            <div>
+              <div className="aspect-[4/3] rounded-2xl overflow-hidden mb-4 bg-stone-100 relative shadow-sm border border-stone-150 dark:border-stone-750">
+                <img src={resolveStorageUrl("1780932170075_TL5217-c2.avif")} alt="Anteojo de diseño modelo Leda" className="w-full h-full object-cover" />
+              </div>
+              <h4 className="font-black text-lg text-stone-800 dark:text-stone-100 mb-1">Leda</h4>
+              <p className="text-[10px] text-primary font-black uppercase tracking-widest mb-3">Material: Combinado | Color: Dorado pálido con detalles superiores y patillas en marrón mate</p>
+              <p className="text-stone-600 dark:text-stone-400 text-xs leading-relaxed mb-4">Este modelo Leda fusiona elegancia minimalista con un toque moderno, destacando por su fina montura metálica y una barra superior en contraste. Su silueta cuadrada y ligeramente oversized es perfecta para aportar estructura y sofisticación a rostros redondos u ovalados.</p>
+            </div>
+            <Link href="/producto/atelier-leda-1yn2" className="inline-flex items-center text-xs font-bold text-primary hover:gap-1.5 transition-all mt-2">
+              Ver en tienda <ShoppingBag className="w-4 h-4 ml-1.5 shrink-0" />
+            </Link>
+          </div>
+        </div>
 
         <h3>Rostro Cuadrado</h3>
         <p>Las mandíbulas fuertes y frentes anchas se suavizan con anteojos redondos u ovalados. Los marcos delgados y curvos son tu mejor opción.</p>
+        
+        <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="bg-stone-50 dark:bg-stone-850 p-6 rounded-3xl border border-stone-200 dark:border-stone-800 flex flex-col justify-between hover:shadow-lg transition-all duration-300">
+            <div>
+              <div className="aspect-[4/3] rounded-2xl overflow-hidden mb-4 bg-stone-100 relative shadow-sm border border-stone-150 dark:border-stone-750">
+                <img src={resolveStorageUrl("1780932122264_GS7015-C3.avif")} alt="Anteojo de diseño modelo Iris" className="w-full h-full object-cover" />
+              </div>
+              <h4 className="font-black text-lg text-stone-800 dark:text-stone-100 mb-1">Iris</h4>
+              <p className="text-[10px] text-primary font-black uppercase tracking-widest mb-3">Material: Metal | Color: Plateado con terminales negros</p>
+              <p className="text-stone-600 dark:text-stone-400 text-xs leading-relaxed mb-4">El modelo Iris se distingue por su diseño minimalista y elegante en metal plateado, que aporta un toque de sofisticación discreta. Su forma ovalada es ideal para suavizar los rasgos y complementar una amplia variedad de tipos de rostro.</p>
+            </div>
+            <Link href="/producto/atelier-iris-8u55" className="inline-flex items-center text-xs font-bold text-primary hover:gap-1.5 transition-all mt-2">
+              Ver en tienda <ShoppingBag className="w-4 h-4 ml-1.5 shrink-0" />
+            </Link>
+          </div>
+          <div className="bg-stone-50 dark:bg-stone-850 p-6 rounded-3xl border border-stone-200 dark:border-stone-800 flex flex-col justify-between hover:shadow-lg transition-all duration-300">
+            <div>
+              <div className="aspect-[4/3] rounded-2xl overflow-hidden mb-4 bg-stone-100 relative shadow-sm border border-stone-150 dark:border-stone-750">
+                <img src={resolveStorageUrl("/assets/products/acetato/BC3063-c1.avif")} alt="Anteojo de diseño modelo Julieta" className="w-full h-full object-cover" />
+              </div>
+              <h4 className="font-black text-lg text-stone-800 dark:text-stone-100 mb-1">Julieta</h4>
+              <p className="text-[10px] text-primary font-black uppercase tracking-widest mb-3">Material: Acetato | Color: Negro pulido clásico</p>
+              <p className="text-stone-600 dark:text-stone-400 text-xs leading-relaxed mb-4">El modelo 'Julieta' redefine la elegancia cotidiana con su silueta redondeada y sofisticado acabado en acetato negro. Los sutiles remaches plateados en los frontales aportan un toque distintivo, haciéndolo ideal para suavizar rasgos en rostros cuadrados u ovalados, o complementar armoniosamente un rostro en forma de corazón.</p>
+            </div>
+            <Link href="/producto/julieta-c1" className="inline-flex items-center text-xs font-bold text-primary hover:gap-1.5 transition-all mt-2">
+              Ver en tienda <ShoppingBag className="w-4 h-4 ml-1.5 shrink-0" />
+            </Link>
+          </div>
+          <div className="bg-stone-50 dark:bg-stone-850 p-6 rounded-3xl border border-stone-200 dark:border-stone-800 flex flex-col justify-between hover:shadow-lg transition-all duration-300">
+            <div>
+              <div className="aspect-[4/3] rounded-2xl overflow-hidden mb-4 bg-stone-100 relative shadow-sm border border-stone-150 dark:border-stone-750">
+                <img src={resolveStorageUrl("1780932129076_HK011-c3.avif")} alt="Anteojo de diseño modelo Pandora" className="w-full h-full object-cover" />
+              </div>
+              <h4 className="font-black text-lg text-stone-800 dark:text-stone-100 mb-1">Pandora</h4>
+              <p className="text-[10px] text-primary font-black uppercase tracking-widest mb-3">Material: Metal | Color: Plateado satinado con terminales negras</p>
+              <p className="text-stone-600 dark:text-stone-400 text-xs leading-relaxed mb-4">Este modelo Pandora destaca por su diseño de metal fino en tono plateado, combinando una forma ovalada clásica con sutiles toques angulares en la parte superior para un estilo moderno y elegante. Favorece a la mayoría de los rostros, aportando un toque de sofisticación discreta y contemporánea.</p>
+            </div>
+            <Link href="/producto/atelier-pandora-my5d" className="inline-flex items-center text-xs font-bold text-primary hover:gap-1.5 transition-all mt-2">
+              Ver en tienda <ShoppingBag className="w-4 h-4 ml-1.5 shrink-0" />
+            </Link>
+          </div>
+        </div>
 
         <h3>Rostro Ovalado</h3>
         <p>¡Tienen suerte! Casi cualquier forma les queda bien. Animate a probar armazones grandes, de estilo aviador o marcos geométricos modernos.</p>
+        
+        <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="bg-stone-50 dark:bg-stone-850 p-6 rounded-3xl border border-stone-200 dark:border-stone-800 flex flex-col justify-between hover:shadow-lg transition-all duration-300">
+            <div>
+              <div className="aspect-[4/3] rounded-2xl overflow-hidden mb-4 bg-stone-100 relative shadow-sm border border-stone-150 dark:border-stone-750">
+                <img src={resolveStorageUrl("1780932162871_TL3932-c3.avif")} alt="Anteojo de diseño modelo Diana" className="w-full h-full object-cover" />
+              </div>
+              <h4 className="font-black text-lg text-stone-800 dark:text-stone-100 mb-1">Diana</h4>
+              <p className="text-[10px] text-primary font-black uppercase tracking-widest mb-3">Material: Combinado | Color: Dorado satinado con patillas blancas</p>
+              <p className="text-stone-600 dark:text-stone-400 text-xs leading-relaxed mb-4">El modelo Diana irradia elegancia con su delicada montura Cat-Eye en un sofisticado dorado satinado. Las patillas blancas, adornadas con sutiles detalles incrustados, añaden un contraste chic que favorece especialmente a rostros ovalados y redondos, aportando un toque de glamour distintivo.</p>
+            </div>
+            <Link href="/producto/atelier-diana-k0k7" className="inline-flex items-center text-xs font-bold text-primary hover:gap-1.5 transition-all mt-2">
+              Ver en tienda <ShoppingBag className="w-4 h-4 ml-1.5 shrink-0" />
+            </Link>
+          </div>
+          <div className="bg-stone-50 dark:bg-stone-850 p-6 rounded-3xl border border-stone-200 dark:border-stone-800 flex flex-col justify-between hover:shadow-lg transition-all duration-300">
+            <div>
+              <div className="aspect-[4/3] rounded-2xl overflow-hidden mb-4 bg-stone-100 relative shadow-sm border border-stone-150 dark:border-stone-750">
+                <img src={resolveStorageUrl("1780932106867__91501-c6.avif")} alt="Anteojo de diseño modelo Athena" className="w-full h-full object-cover" />
+              </div>
+              <h4 className="font-black text-lg text-stone-800 dark:text-stone-100 mb-1">Athena</h4>
+              <p className="text-[10px] text-primary font-black uppercase tracking-widest mb-3">Material: Metal | Color: Dorado satinado con borde rosa palo</p>
+              <p className="text-stone-600 dark:text-stone-400 text-xs leading-relaxed mb-4">Estas monturas Athena, de diseño Cat-Eye sutilmente anguloso, combinan la sofisticación del dorado satinado con un delicado borde interior rosa palo. Su forma audaz y ligera es ideal para estilizar rostros redondos u ovalados, aportando un toque de elegancia contemporánea.</p>
+            </div>
+            <Link href="/producto/atelier-athena-906p" className="inline-flex items-center text-xs font-bold text-primary hover:gap-1.5 transition-all mt-2">
+              Ver en tienda <ShoppingBag className="w-4 h-4 ml-1.5 shrink-0" />
+            </Link>
+          </div>
+          <div className="bg-stone-50 dark:bg-stone-850 p-6 rounded-3xl border border-stone-200 dark:border-stone-800 flex flex-col justify-between hover:shadow-lg transition-all duration-300">
+            <div>
+              <div className="aspect-[4/3] rounded-2xl overflow-hidden mb-4 bg-stone-100 relative shadow-sm border border-stone-150 dark:border-stone-750">
+                <img src={resolveStorageUrl("1780932166781_TL3932-c4.avif")} alt="Anteojo de diseño modelo Ceres" className="w-full h-full object-cover" />
+              </div>
+              <h4 className="font-black text-lg text-stone-800 dark:text-stone-100 mb-1">Ceres</h4>
+              <p className="text-[10px] text-primary font-black uppercase tracking-widest mb-3">Material: Metal | Color: Gris plomo satinado con detalles metálicos</p>
+              <p className="text-stone-600 dark:text-stone-400 text-xs leading-relaxed mb-4">El modelo Ceres ofrece una reinterpretación moderna y chic del clásico Cat-Eye, con un sofisticado acabado gris plomo satinado que aporta elegancia. Sus patillas, adornadas con un delicado patrón geométrico y un sutil emblema, realzan la mirada y estilizan rostros de forma redonda u ovalada.</p>
+            </div>
+            <Link href="/producto/atelier-ceres-rpg5" className="inline-flex items-center text-xs font-bold text-primary hover:gap-1.5 transition-all mt-2">
+              Ver en tienda <ShoppingBag className="w-4 h-4 ml-1.5 shrink-0" />
+            </Link>
+          </div>
+        </div>
 
         <h2>El cristal también importa</h2>
         <p>Dependiendo de tu graduación (esfera y cilindro), algunos armazones pueden ser mejores que otros. Por ejemplo, miopías altas requieren cristales de alto índice (más delgados) y armazones de acetato (plástico) con bordes un poco más gruesos para disimular el grosor del lente.</p>

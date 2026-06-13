@@ -56,10 +56,10 @@ export default function PoliticasDeCambioPage() {
               <h2 className="text-2xl font-bold text-stone-900 dark:text-white">Garantía de Adaptación en Multifocales</h2>
             </div>
             <p className="mb-4">
-              A pesar de no admitir devoluciones, ofrecemos una garantía total de adaptación para todos nuestros cristales multifocales de marcas premium (Varilux, Novar, Zeiss).
+              A pesar de no admitir devoluciones, ofrecemos una garantía total de adaptación para todos nuestros cristales multifocales de la marca premium Varilux.
             </p>
             <p>
-              Si el paciente no logra adaptarse dentro de los primeros 30 días, nos comprometemos a reemplazar los cristales sin costo adicional. Para hacer efectiva esta garantía, será indispensable la presentación de una nueva receta emitida por el médico oftalmólogo tratante.
+              Si el paciente no logra adaptarse dentro de los primeros 30 días, nos comprometemos a reemplazar los cristales sin costo adicional. Para hacer efectiva esta garantía, será indispensable la presentación de una nueva receta emitida por el médico oftalmólogo tratante (no deben transcurrir más de 90 días entre ambas recetas).
             </p>
           </section>
 

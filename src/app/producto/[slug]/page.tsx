@@ -155,6 +155,9 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
     notFound();
   }
 
+  // Get material from product attributes
+  const { material } = getProductAttributes((product as any).modelCode || product.model);
+
   // 1) Sibling variants query
   let variants: any[] = [];
   try {
@@ -174,16 +177,21 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
         include: { product: true }
       });
       
-      variants = siblings.map(s => {
-        const modelName = s.product.model || '';
-        const colorMatch = modelName.match(/\b(C\d+[-]?\d*)\b/i) || modelName.match(/\(([^)]+)\)/);
-        const colorName = colorMatch ? colorMatch[1] : modelName.replace(baseModel, '').trim();
-        return {
-          slug: s.slug,
-          colorCode: colorName || 'Default',
-          imageUrl: s.images.length > 0 ? s.images[0] : (s.product.imagenesCatalogo?.[0] || null)
-        };
-      });
+      variants = siblings
+        .filter(s => {
+          const { material: siblingMaterial } = getProductAttributes(s.product.model);
+          return siblingMaterial === material;
+        })
+        .map(s => {
+          const modelName = s.product.model || '';
+          const colorMatch = modelName.match(/\b(C\d+[-]?\d*)\b/i) || modelName.match(/\(([^)]+)\)/);
+          const colorName = colorMatch ? colorMatch[1] : modelName.replace(baseModel, '').trim();
+          return {
+            slug: s.slug,
+            colorCode: colorName || 'Default',
+            imageUrl: s.images.length > 0 ? s.images[0] : (s.product.imagenesCatalogo?.[0] || null)
+          };
+        });
     }
   } catch (err) {
     console.error("Error fetching variants:", err);
@@ -227,8 +235,6 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
   const colorMatch = product.model?.match(/\(([^)]+)\)/) || product.model?.match(/\b(C\d+)\b/i);
   const colorCode = colorMatch ? colorMatch[1] : undefined;
 
-  // Get material from product attributes
-  const { material } = getProductAttributes((product as any).modelCode || product.model);
 
   // Generar JSON-LD (Schema.org para Google Shopping / SEO)
   const jsonLd: any = {

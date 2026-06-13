@@ -58,7 +58,7 @@ export function getProductAttributes(modelName: string | null | undefined): { sh
     
     // Material
     let material = 'Metal';
-    if (modelUpper.includes('ACETATO') || modelUpper.includes('WJ5022') || modelUpper.includes('CAREY') || modelUpper.includes('VINTAGE') || ["57201LJH", "57202LJH", "BC3059", "FD88810", "FD88821", "P5783", "P5786", "P5787", "Q5005", "Q5205", "Q6013", "Q8013", "YF3090", "BC3063"].some(code => modelUpper.includes(code))) {
+    if (modelUpper.includes('ACETATO') || modelUpper.includes('WJ5022') || modelUpper.includes('CAREY') || modelUpper.includes('VINTAGE') || ["57201LJH", "57202LJH", "BC3059", "FD88810", "FD88821", "P5783", "P5786", "P5787", "Q5005", "Q5205", "Q6013", "Q8013", "YF3090", "BC3063", "JYB238015 C2-1"].some(code => modelUpper.includes(code))) {
         material = 'Acetato';
     }
     

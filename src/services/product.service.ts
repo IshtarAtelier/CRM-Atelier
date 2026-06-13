@@ -162,12 +162,17 @@ async function syncToWebProduct(p: any) {
     
     const images = p.imagenesCatalogo?.length > 0 ? p.imagenesCatalogo : (p.rawImageUrls?.length > 0 ? p.rawImageUrls : []);
     
+    const isAtelierBrand = p.brand?.toLowerCase() === 'atelier';
+    const displayName = isAtelierBrand 
+        ? (p.name || p.model || '').trim() 
+        : `${p.brand || ''} ${p.model || p.name}`.trim();
+
     const existing = await prisma.webProduct.findFirst({ where: { productId: p.id } });
     if (existing) {
         await prisma.webProduct.update({
             where: { id: existing.id },
             data: {
-                name: `${p.brand || ''} ${p.model || p.name}`.trim(),
+                name: displayName,
                 slug: slug,
                 category: category,
                 imageUrl: images[0] || null,
@@ -179,7 +184,7 @@ async function syncToWebProduct(p: any) {
         await prisma.webProduct.create({
             data: {
                 productId: p.id,
-                name: `${p.brand || ''} ${p.model || p.name}`.trim(),
+                name: displayName,
                 slug: slug,
                 category: category,
                 imageUrl: images[0] || null,

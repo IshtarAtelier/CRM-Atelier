@@ -6,7 +6,7 @@ import { FilmmakerReel } from "@/components/Storefront/FilmmakerReel";
 import { GoogleReviews } from "@/components/Storefront/GoogleReviews";
 import { HomeProductCarousel } from "@/components/Storefront/HomeProductCarousel";
 import { HomeConfiguratorSection } from "@/components/Storefront/HomeConfiguratorSection";
-import { HomeVideoSection } from "@/components/Storefront/HomeVideoSection";
+import { HomeMacroFilm } from "@/components/Storefront/HomeMacroFilm";
 import { prisma } from "@/lib/db";
 import { resolveStorageUrl } from "@/lib/utils/storage";
 
@@ -33,6 +33,7 @@ export default async function Home() {
     dbWebProducts = await prisma.webProduct.findMany({
       where: {
         isActive: true,
+        isFeatured: true, // Only display featured products in the homepage carousel
         product: {
           publishToWeb: true,
           category: { not: 'Cristal' }
@@ -42,7 +43,7 @@ export default async function Home() {
         product: true
       },
       orderBy: { createdAt: 'desc' },
-      take: 8
+      take: 12 // Maximum of 12 featured products for best PageSpeed score and clean visual presentation
     });
   } catch (error) {
     console.error("Prerendering warning: Database not reachable at build time. Using fallbacks.", error);
@@ -61,7 +62,7 @@ export default async function Home() {
               : (wp.product.imagenesCatalogo.length > 0 ? resolveStorageUrl(wp.product.imagenesCatalogo[0]) : '/images/og-image.jpg')),
         slug: wp.slug
       }))
-    : PRODUCTS;
+    : [];
 
   const organizationSchema = {
     "@context": "https://schema.org",
@@ -210,7 +211,7 @@ export default async function Home() {
       {/* ═══════════════════════════════════════════════ */}
       {/* CINEMATIC MACRO FILM LOOP (HOME)                */}
       {/* ═══════════════════════════════════════════════ */}
-      <HomeVideoSection youtubeVideoId="L_LUpnjgPso" />
+      <HomeMacroFilm />
 
       {/* ═══════════════════════════════════════════════ */}
       {/* GOOGLE REVIEWS (REAL TIME - Server Component)   */}
