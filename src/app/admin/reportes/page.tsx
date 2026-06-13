@@ -14,7 +14,7 @@ import { SalesDetailSection } from '@/components/admin/reports/SalesDetailSectio
 import { TopPerformersSection } from '@/components/admin/reports/TopPerformersSection';
 import { LaboratoryStats } from '@/components/admin/reports/LaboratoryStats';
 import { VendorMetrics } from '@/components/admin/reports/VendorMetrics';
-import { DoctorCommissions } from '@/components/admin/reports/DoctorCommissions';
+import DoctorCommissions from '@/components/DoctorCommissions';
 
 // ── Types ─────────────────────────────────────
 

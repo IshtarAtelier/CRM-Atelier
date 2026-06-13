@@ -24,8 +24,11 @@ const eslintConfig = [
         "tmp/**",
         "scripts/**",
         "prisma/generated/**",
+        "backups/**",
+        "scratch/**",
         "*.js",
-        "*.mjs"
+        "*.mjs",
+        "*.ts"
     ],
   },
   ...compat.extends("next/core-web-vitals", "next/typescript"),

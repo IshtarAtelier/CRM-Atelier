@@ -7,7 +7,7 @@
  * EXCLUSIÓN MUTUA: Respeta etiquetas de sales-followups.
  */
 const { prisma } = require('../db');
-const { sendMessage, sendTypingState } = require('../whatsapp-client');
+const { sendMessage, sendTypingState } = require('../whatsapp/client');
 const { isBusinessHours } = require('../shared/business-hours');
 const { ALL_FOLLOWUP_LABELS } = require('../followups/config');
 

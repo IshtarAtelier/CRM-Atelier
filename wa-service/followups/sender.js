@@ -4,7 +4,7 @@
  */
 
 const { prisma } = require('../db');
-const { sendMessage, sendTypingState } = require('../whatsapp-client');
+const { sendMessage, sendTypingState } = require('../whatsapp/client');
 const {
     TEST_MODE,
     TEST_PHONE,

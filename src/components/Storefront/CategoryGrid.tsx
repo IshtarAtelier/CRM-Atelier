@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { WHATSAPP_PHONE } from "@/lib/constants";
@@ -14,6 +15,33 @@ interface CategoryGridProps {
 }
 
 export function CategoryGrid({ products, emptyMessage = "Estamos actualizando nuestro catálogo.", categoryName }: CategoryGridProps) {
+  const [webSettings, setWebSettings] = useState({
+    web_promo_cash_discount: 15,
+    web_promo_installments: "6 cuotas sin interés"
+  });
+
+  useEffect(() => {
+    fetch('/api/settings')
+      .then(res => res.json())
+      .then(data => {
+        if (data) {
+          setWebSettings({
+            web_promo_cash_discount: data.web_promo_cash_discount !== undefined ? Number(data.web_promo_cash_discount) : 15,
+            web_promo_installments: data.web_promo_installments || "6 cuotas sin interés"
+          });
+        }
+      })
+      .catch(err => console.error("Error loading web settings for category grid:", err));
+  }, []);
+
+  const getInstallmentsCount = (text: string) => {
+    const match = text.match(/\d+/);
+    return match ? parseInt(match[0], 10) : 6;
+  };
+
+  const installmentsCount = getInstallmentsCount(webSettings.web_promo_installments);
+  const discountRate = webSettings.web_promo_cash_discount / 100;
+
   if (products.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-center">
@@ -98,13 +126,13 @@ export function CategoryGrid({ products, emptyMessage = "Estamos actualizando nu
                 <div className="mt-auto pt-2 border-t border-stone-100/60 dark:border-stone-800/40 flex flex-col gap-1">
                   <div className="flex items-baseline justify-between">
                     <p className="text-sm font-medium text-stone-900 dark:text-stone-100">
-                      6 cuotas sin interés de <span className="font-extrabold text-[#b08f4c] dark:text-[#c8a55c]">${Math.round((p.price || 0) / 6).toLocaleString("es-AR")}</span>
+                      {webSettings.web_promo_installments} de <span className="font-extrabold text-[#b08f4c] dark:text-[#c8a55c]">${Math.round((p.price || 0) / installmentsCount).toLocaleString("es-AR")}</span>
                     </p>
                     <span className="text-[9px] text-stone-400 uppercase tracking-wider font-medium hover:text-black dark:hover:text-white transition-colors shrink-0">Ver detalles</span>
                   </div>
                   
                   <p className="text-[11px] text-stone-500 dark:text-stone-400 font-medium">
-                    ${Math.round((p.price || 0) * 0.85).toLocaleString("es-AR")} en efectivo/transferencia <span className="text-emerald-600 dark:text-emerald-500 font-bold text-[9px] uppercase tracking-wider">(15% OFF)</span>
+                    ${Math.round((p.price || 0) * (1 - discountRate)).toLocaleString("es-AR")} en efectivo/transferencia <span className="text-emerald-600 dark:text-emerald-500 font-bold text-[9px] uppercase tracking-wider">({webSettings.web_promo_cash_discount}% OFF)</span>
                   </p>
                   
                   <p className="text-[9px] text-stone-350 dark:text-stone-600">

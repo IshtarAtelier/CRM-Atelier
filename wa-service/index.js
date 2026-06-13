@@ -19,7 +19,7 @@ const os = require('os');
 
 require('dotenv').config({ path: path.join(__dirname, '.env') });
 
-const { initWhatsApp, getStatus, getClient, sendMessage, sendTypingState } = require('./whatsapp-client');
+const { initWhatsApp, getStatus, getClient, sendMessage, sendTypingState } = require('./whatsapp/client');
 const { processPassiveExtraction } = require('./passive-extractor');
 const { transcribeAudio } = require('./transcriber');
 const { checkAndSendSalesFollowUps } = require('./sales-followups');

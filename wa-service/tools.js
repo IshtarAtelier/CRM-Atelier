@@ -17,7 +17,7 @@ const apiClient = axios.create({
     timeout: 15000 // 15 second timeout
 });
 
-const { sendMessage } = require('./whatsapp-client');
+const { sendMessage } = require('./whatsapp/client');
 
 // Helper: Request retry mechanism for transient network or database errors.
 // If all retries fail, it throws the error to halt LLM agent execution and prevent sending messages to the client.
@@ -717,7 +717,7 @@ async function reportInvoiceRequest({ clientId }) {
         // 1. WhatsApp a Administración
         const waText = `🚨 *URGENCIA: Solicitud de factura* 🚨\nEl cliente *${client.name || 'Desconocido'}* acaba de solicitar su factura.\n\nFicha: ${crmLink}`;
         
-        const { sendMessage } = require('./whatsapp-client');
+        const { sendMessage } = require('./whatsapp/client');
         await sendMessage(adminPhone, waText).catch(e => console.error("Error enviando alerta WA de factura:", e.message));
 
         // 2. Email a Administración

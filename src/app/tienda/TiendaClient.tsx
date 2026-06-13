@@ -42,6 +42,33 @@ export function TiendaClient({
 }) {
   const [activeCategory, setActiveCategory] = useState("Todo");
 
+  const [webSettings, setWebSettings] = useState({
+    web_promo_cash_discount: 15,
+    web_promo_installments: "6 cuotas sin interés"
+  });
+
+  useEffect(() => {
+    fetch('/api/settings')
+      .then(res => res.json())
+      .then(data => {
+        if (data) {
+          setWebSettings({
+            web_promo_cash_discount: data.web_promo_cash_discount !== undefined ? Number(data.web_promo_cash_discount) : 15,
+            web_promo_installments: data.web_promo_installments || "6 cuotas sin interés"
+          });
+        }
+      })
+      .catch(err => console.error("Error loading web settings for tienda client:", err));
+  }, []);
+
+  const getInstallmentsCount = (text: string) => {
+    const match = text.match(/\d+/);
+    return match ? parseInt(match[0], 10) : 6;
+  };
+
+  const installmentsCount = getInstallmentsCount(webSettings.web_promo_installments);
+  const discountRate = webSettings.web_promo_cash_discount / 100;
+
   // Removed loading state and fetch since products are passed as props
   const products = initialProducts || [];
 
@@ -193,12 +220,12 @@ export function TiendaClient({
                       <div className="pt-2 border-t border-stone-100/80 dark:border-stone-800/40 flex flex-col gap-1">
                         <div className="flex justify-between items-baseline">
                           <p className="text-sm font-medium text-stone-900 dark:text-stone-100">
-                            6 cuotas sin interés de <span className="font-extrabold text-[#b08f4c] dark:text-[#c8a55c]">${Math.round((p.price || 0) / 6).toLocaleString("es-AR")}</span>
+                            {webSettings.web_promo_installments} de <span className="font-extrabold text-[#b08f4c] dark:text-[#c8a55c]">${Math.round((p.price || 0) / installmentsCount).toLocaleString("es-AR")}</span>
                           </p>
                         </div>
                         
                         <p className="text-[11px] text-stone-500 dark:text-stone-400 font-medium">
-                          ${Math.round((p.price || 0) * 0.85).toLocaleString("es-AR")} en efectivo/transf. <span className="text-emerald-600 dark:text-emerald-500 font-bold text-[9px] uppercase tracking-wider">(15% OFF)</span>
+                          ${Math.round((p.price || 0) * (1 - discountRate)).toLocaleString("es-AR")} en efectivo/transf. <span className="text-emerald-600 dark:text-emerald-500 font-bold text-[9px] uppercase tracking-wider">({webSettings.web_promo_cash_discount}% OFF)</span>
                         </p>
                         
                         <p className="text-[9px] text-stone-350 dark:text-stone-600">

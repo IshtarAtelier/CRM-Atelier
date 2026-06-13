@@ -19,12 +19,12 @@ export const metadata: Metadata = {
   },
 };
 
-export default async function TiendaPage({ searchParams }: { searchParams: Promise<any> }) {
-  const resolvedParams = await searchParams;
-  const filterBrand = typeof resolvedParams.marca === 'string' ? resolvedParams.marca : undefined;
-  const sortParam = typeof resolvedParams.orden === 'string' ? resolvedParams.orden : 'recientes';
-  const filterShape = typeof resolvedParams.forma === 'string' ? resolvedParams.forma : undefined;
-  const filterMaterial = typeof resolvedParams.material === 'string' ? resolvedParams.material : undefined;
+export default async function TiendaPage({ searchParams }: { searchParams?: Promise<any> }) {
+  const resolvedParams = searchParams ? (await searchParams) : {};
+  const filterBrand = resolvedParams?.marca && typeof resolvedParams.marca === 'string' ? resolvedParams.marca : undefined;
+  const sortParam = resolvedParams?.orden && typeof resolvedParams.orden === 'string' ? resolvedParams.orden : 'recientes';
+  const filterShape = resolvedParams?.forma && typeof resolvedParams.forma === 'string' ? resolvedParams.forma : undefined;
+  const filterMaterial = resolvedParams?.material && typeof resolvedParams.material === 'string' ? resolvedParams.material : undefined;
   
   // We query all active web products to extract distinct filters and then apply filter criteria
   let dbProducts: any[] = [];

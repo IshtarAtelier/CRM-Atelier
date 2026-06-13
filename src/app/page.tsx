@@ -6,7 +6,7 @@ import { FilmmakerReel } from "@/components/Storefront/FilmmakerReel";
 import { GoogleReviews } from "@/components/Storefront/GoogleReviews";
 import { HomeProductCarousel } from "@/components/Storefront/HomeProductCarousel";
 import { HomeConfiguratorSection } from "@/components/Storefront/HomeConfiguratorSection";
-import { HomeMacroFilm } from "@/components/Storefront/HomeMacroFilm";
+import { HomeVideoSection } from "@/components/Storefront/HomeVideoSection";
 import { prisma } from "@/lib/db";
 import { resolveStorageUrl } from "@/lib/utils/storage";
 
@@ -210,7 +210,7 @@ export default async function Home() {
       {/* ═══════════════════════════════════════════════ */}
       {/* CINEMATIC MACRO FILM LOOP (HOME)                */}
       {/* ═══════════════════════════════════════════════ */}
-      <HomeMacroFilm />
+      <HomeVideoSection youtubeVideoId="L_LUpnjgPso" />
 
       {/* ═══════════════════════════════════════════════ */}
       {/* GOOGLE REVIEWS (REAL TIME - Server Component)   */}

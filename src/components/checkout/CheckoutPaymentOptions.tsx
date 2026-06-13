@@ -1,7 +1,7 @@
 import React from "react";
 import { CreditCard, ShieldCheck } from "lucide-react";
 
-export function CheckoutPaymentOptions({ formData, handleChange, isProcessing }: { formData: any, handleChange: any, isProcessing: boolean }) {
+export function CheckoutPaymentOptions({ formData, handleChange, isProcessing, webSettings }: { formData: any, handleChange: any, isProcessing: boolean, webSettings?: { web_promo_cash_discount: number, web_promo_installments: string } }) {
   return (
     <section>
       <h2 className="text-[11px] font-black uppercase tracking-widest border-b border-stone-200 pb-2 mb-4">3. Pago Seguro</h2>
@@ -14,7 +14,7 @@ export function CheckoutPaymentOptions({ formData, handleChange, isProcessing }:
               <p className="text-sm font-bold">Tarjeta de Crédito / Débito</p>
               <CreditCard className="w-4 h-4 text-stone-400" />
             </div>
-            <p className="text-[11px] text-stone-500 leading-relaxed mb-2">Procesado de forma segura por Payway. Hasta 6 cuotas sin interés con tarjetas bancarias.</p>
+            <p className="text-[11px] text-stone-500 leading-relaxed mb-2">Procesado de forma segura por Payway. {webSettings?.web_promo_installments ? `Promo: ${webSettings.web_promo_installments}` : "Hasta 6 cuotas sin interés"} con tarjetas bancarias.</p>
             
             <div className="flex flex-wrap items-center gap-2 mt-2">
               <span className="text-[9px] font-black uppercase tracking-wider text-stone-400 mr-1">Aceptamos:</span>
@@ -79,7 +79,7 @@ export function CheckoutPaymentOptions({ formData, handleChange, isProcessing }:
         <label className={`flex items-start gap-3 border p-4 cursor-pointer transition-colors ${formData.paymentMethod === 'TRANSFER' ? 'border-black bg-stone-50' : 'border-stone-200 hover:border-stone-300'}`}>
           <input type="radio" name="paymentMethod" value="TRANSFER" checked={formData.paymentMethod === 'TRANSFER'} onChange={handleChange} className="accent-black mt-1" />
           <div className="flex-1">
-            <p className="text-sm font-bold">Transferencia Bancaria (15% OFF)</p>
+            <p className="text-sm font-bold">Transferencia Bancaria ({webSettings?.web_promo_cash_discount || 15}% OFF)</p>
             <p className="text-[11px] text-stone-500 leading-relaxed mt-1">Recibirás los datos bancarios al confirmar el pedido. El descuento se aplica sobre el total.</p>
           </div>
         </label>

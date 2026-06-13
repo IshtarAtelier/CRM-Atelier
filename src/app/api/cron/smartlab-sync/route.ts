@@ -1,4 +1,6 @@
 import { NextResponse } from 'next/server';
+import { SmartLabService } from '@/services/smartlab.service';
+import { env } from '@/env';
 
 // Cron endpoint para sincronizar SmartLab automáticamente
 // Se llama desde un servicio externo (cron-job.org) cada 4 horas
@@ -6,26 +8,20 @@ export async function GET(req: Request) {
     const { searchParams } = new URL(req.url);
     const secret = searchParams.get('secret');
     
-    // Validar secret para evitar llamadas no autorizadas
-    if (secret !== process.env.CRON_SECRET && secret !== 'atelier-smartlab-2026') {
+    // Validar secret para evitar llamadas no autorizadas usando variables validadas
+    if (secret !== env.CRON_SECRET && secret !== 'atelier-smartlab-2026') {
         return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
 
     try {
-        // Llamar al endpoint de sync internamente
-        const baseUrl = process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_URL || 'http://localhost:3000';
+        const result = await SmartLabService.syncOrders();
         
-        // Importar directamente la lógica del sync
-        const syncModule = await import('@/app/api/smartlab-sync/route');
-        const result = await syncModule.POST();
-        const data = await result.json();
-        
-        console.log(`[CRON SmartLab] Sync completado: ${data.matched || 0} actualizados, ${data.newlyFinished || 0} nuevos fabricados`);
+        console.log(`[CRON SmartLab] Sync completado: ${result.matched || 0} actualizados, ${result.newlyFinished || 0} nuevos fabricados`);
         
         return NextResponse.json({
             success: true,
             timestamp: new Date().toISOString(),
-            ...data
+            ...result
         });
     } catch (error: any) {
         console.error('[CRON SmartLab] Error:', error);

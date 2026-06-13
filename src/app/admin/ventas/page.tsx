@@ -14,6 +14,7 @@ const LAB_STATUS: Record<string, { key: string, label: string; color: string; ic
     'NONE': { key: 'NONE', label: 'Sin enviar', color: 'bg-stone-100 text-stone-500', bg: 'bg-stone-100 dark:bg-stone-800', text: 'text-stone-500 dark:text-stone-400', ring: 'ring-stone-200 dark:ring-stone-700', icon: Clock },
     'SENT': { key: 'SENT', label: 'Falta procesar', color: 'bg-amber-100 text-amber-600', bg: 'bg-amber-50 dark:bg-amber-950', text: 'text-amber-600 dark:text-amber-400', ring: 'ring-amber-200 dark:ring-amber-800', icon: Clock },
     'IN_PROGRESS': { key: 'IN_PROGRESS', label: 'Procesado', color: 'bg-blue-100 text-blue-600', bg: 'bg-blue-50 dark:bg-blue-950', text: 'text-blue-600 dark:text-blue-400', ring: 'ring-blue-200 dark:ring-blue-800', icon: Package },
+    'FINISHED': { key: 'FINISHED', label: 'Finalizado (Lab)', color: 'bg-fuchsia-100 text-fuchsia-600', bg: 'bg-fuchsia-50 dark:bg-fuchsia-950', text: 'text-fuchsia-600 dark:text-fuchsia-400', ring: 'ring-fuchsia-200 dark:ring-fuchsia-800', icon: Factory },
     'READY': { key: 'READY', label: 'Listo p/ Retirar', color: 'bg-emerald-100 text-emerald-600', bg: 'bg-emerald-50 dark:bg-emerald-950', text: 'text-emerald-600 dark:text-emerald-400', ring: 'ring-emerald-200 dark:ring-emerald-800', icon: CheckCircle2 },
     'DELIVERED': { key: 'DELIVERED', label: 'Entregado', color: 'bg-indigo-100 text-indigo-600', bg: 'bg-indigo-50 dark:bg-indigo-950', text: 'text-indigo-600 dark:text-indigo-400', ring: 'ring-indigo-200 dark:ring-indigo-800', icon: Truck },
 };
@@ -639,6 +640,7 @@ export default function VentasPage() {
         total: totalOrders,
         sent: orders.filter(o => o.labStatus === 'SENT').length,
         inProgress: orders.filter(o => o.labStatus === 'IN_PROGRESS').length,
+        finished: orders.filter(o => o.labStatus === 'FINISHED').length,
         ready: orders.filter(o => o.labStatus === 'READY').length,
         delivered: orders.filter(o => o.labStatus === 'DELIVERED').length,
         revenue: totalRevenue,
@@ -664,11 +666,12 @@ export default function VentasPage() {
             </div>
 
             {/* Stats */}
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-8">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
                 {[
                     { label: 'Total Ventas', value: stats.total, color: 'bg-stone-900 text-white' },
                     { label: 'Falta Procesar', value: stats.sent, color: 'bg-amber-100 text-amber-600' },
                     { label: 'Procesados', value: stats.inProgress, color: 'bg-blue-100 text-blue-600' },
+                    { label: 'Finalizados (Lab)', value: stats.finished, color: 'bg-fuchsia-100 text-fuchsia-600' },
                     { label: 'Listas', value: stats.ready, color: 'bg-emerald-100 text-emerald-600' },
                     { label: 'Entregadas', value: stats.delivered, color: 'bg-indigo-100 text-indigo-600' },
                 ].map(s => (
@@ -702,9 +705,8 @@ export default function VentasPage() {
                         />
                     </div>
                     
-                    {/* Status Toggles - Pill style */}
                     <div className="flex gap-2 overflow-x-auto pb-2 lg:pb-0 no-scrollbar inline-flex items-center bg-stone-100/50 dark:bg-stone-800/50 backdrop-blur-md p-1.5 rounded-full border border-stone-200/50 dark:border-stone-700/50 w-max">
-                        {['ALL', 'SENT', 'IN_PROGRESS', 'READY', 'DELIVERED'].map(f => {
+                        {['ALL', 'SENT', 'IN_PROGRESS', 'FINISHED', 'READY', 'DELIVERED'].map(f => {
                             const isActive = filterLab === f && !filterBalance;
                             return (
                                 <button
@@ -1055,9 +1057,11 @@ export default function VentasPage() {
                                                     ? 'bg-blue-500 text-white shadow-blue-500/20 hover:shadow-blue-500/30'
                                                     : nextStepInfo.key === 'IN_PROGRESS'
                                                         ? 'bg-amber-500 text-white shadow-amber-500/20'
-                                                        : nextStepInfo.key === 'READY'
-                                                            ? 'bg-emerald-500 text-white shadow-emerald-500/20'
-                                                            : 'bg-indigo-500 text-white shadow-indigo-500/20'
+                                                        : nextStepInfo.key === 'FINISHED'
+                                                            ? 'bg-fuchsia-500 text-white shadow-fuchsia-500/20'
+                                                            : nextStepInfo.key === 'READY'
+                                                                ? 'bg-emerald-500 text-white shadow-emerald-500/20'
+                                                                : 'bg-indigo-500 text-white shadow-indigo-500/20'
                                                     }`}
                                             >
                                                 {isUpdating ? (

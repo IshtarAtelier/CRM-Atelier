@@ -1,6 +1,8 @@
 import React from "react";
 
-export function CheckoutSummarySidebar({ items, getCartTotal, formData }: { items: any[], getCartTotal: any, formData: any }) {
+export function CheckoutSummarySidebar({ items, getCartTotal, formData, webSettings }: { items: any[], getCartTotal: any, formData: any, webSettings?: { web_promo_cash_discount: number, web_promo_installments: string } }) {
+  const discountRate = (webSettings?.web_promo_cash_discount || 15) / 100;
+
   return (
     <div className="lg:col-span-5 bg-[#fafafa] p-8 lg:p-10 border border-stone-200 sticky top-32">
       <h2 className="text-[11px] font-black uppercase tracking-widest border-b border-stone-200 pb-4 mb-6">Resumen de Compra</h2>
@@ -38,8 +40,8 @@ export function CheckoutSummarySidebar({ items, getCartTotal, formData }: { item
         
         {formData.paymentMethod === 'TRANSFER' && (
           <div className="flex justify-between text-sm text-green-600 font-medium animate-in fade-in">
-            <span>Descuento (15% OFF Transferencia)</span>
-            <span>-${(getCartTotal() * 0.15).toLocaleString("es-AR")}</span>
+            <span>Descuento ({Math.round(discountRate * 100)}% OFF Transferencia)</span>
+            <span>-${(getCartTotal() * discountRate).toLocaleString("es-AR")}</span>
           </div>
         )}
 
@@ -48,7 +50,7 @@ export function CheckoutSummarySidebar({ items, getCartTotal, formData }: { item
           <div className="text-right">
             <span className="text-xs text-stone-400 block mb-1">ARS</span>
             <span className="text-2xl font-light transition-all">
-              ${(formData.paymentMethod === 'TRANSFER' ? getCartTotal() * 0.85 : getCartTotal()).toLocaleString("es-AR")}
+              ${(formData.paymentMethod === 'TRANSFER' ? getCartTotal() * (1 - discountRate) : getCartTotal()).toLocaleString("es-AR")}
             </span>
           </div>
         </div>

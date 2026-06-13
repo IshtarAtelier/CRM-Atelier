@@ -40,6 +40,11 @@ export default function CheckoutPage() {
     installments: "1"
   });
 
+  const [webSettings, setWebSettings] = useState({
+    web_promo_cash_discount: 15,
+    web_promo_installments: "6 cuotas sin interés"
+  });
+
   const isLocalCity = (() => {
     const city = formData.city.toLowerCase().trim();
     return city === "cordoba" || 
@@ -63,6 +68,18 @@ export default function CheckoutPage() {
       script.async = true;
       document.body.appendChild(script);
     });
+
+    fetch('/api/settings')
+      .then(r => r.json())
+      .then(data => {
+        if (data) {
+          setWebSettings({
+            web_promo_cash_discount: data.web_promo_cash_discount !== undefined ? Number(data.web_promo_cash_discount) : 15,
+            web_promo_installments: data.web_promo_installments || "6 cuotas sin interés"
+          });
+        }
+      })
+      .catch(err => console.error("Error loading web settings in checkout:", err));
   }, []);
 
   useEffect(() => {
@@ -343,13 +360,13 @@ export default function CheckoutPage() {
             
             <CheckoutShippingForm formData={formData} handleChange={handleChange} isLocalCity={isLocalCity} hasCrystals={hasCrystals} />
             
-            <CheckoutPaymentOptions formData={formData} handleChange={handleChange} isProcessing={isProcessing} />
+            <CheckoutPaymentOptions formData={formData} handleChange={handleChange} isProcessing={isProcessing} webSettings={webSettings} />
 
           </form>
         </div>
 
         {/* DERECHA: Resumen de Compra */}
-        <CheckoutSummarySidebar items={items} getCartTotal={getCartTotal} formData={formData} />
+        <CheckoutSummarySidebar items={items} getCartTotal={getCartTotal} formData={formData} webSettings={webSettings} />
       </main>
       
       <StorefrontFooter />

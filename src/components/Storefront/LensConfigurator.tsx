@@ -21,6 +21,33 @@ interface ConfiguratorProps {
 }
 
 export function LensConfigurator({ basePrice, productId, category, onColorChange, productInfo, cartItemId, onSuccess, onStepChange }: ConfiguratorProps) {
+  const [webSettings, setWebSettings] = useState({
+    web_promo_cash_discount: 15,
+    web_promo_installments: "6 cuotas sin interés"
+  });
+
+  useEffect(() => {
+    fetch('/api/settings')
+      .then(res => res.json())
+      .then(data => {
+        if (data) {
+          setWebSettings({
+            web_promo_cash_discount: data.web_promo_cash_discount !== undefined ? Number(data.web_promo_cash_discount) : 15,
+            web_promo_installments: data.web_promo_installments || "6 cuotas sin interés"
+          });
+        }
+      })
+      .catch(err => console.error("Error loading web settings for configurator:", err));
+  }, []);
+
+  const getInstallmentsCount = (text: string) => {
+    const match = text.match(/\d+/);
+    return match ? parseInt(match[0], 10) : 6;
+  };
+
+  const installmentsCount = getInstallmentsCount(webSettings.web_promo_installments);
+  const discountRate = webSettings.web_promo_cash_discount / 100;
+
   const [step, setStep] = useState<number>(1);
   const [lensType, setLensType] = useState<LensType>(null);
   const [treatment, setTreatment] = useState<Treatment>(null);
@@ -435,10 +462,10 @@ export function LensConfigurator({ basePrice, productId, category, onColorChange
           </motion.p>
           <div className="flex flex-col items-center gap-1 mt-3.5 text-center">
             <p className="text-[11px] font-bold text-stone-700">
-              💳 6 cuotas sin interés de <span className="underline">${Math.round(calculateTotal() / 6).toLocaleString('es-AR')}</span>
+              💳 {webSettings.web_promo_installments} de <span className="underline">${Math.round(calculateTotal() / installmentsCount).toLocaleString('es-AR')}</span>
             </p>
             <p className="text-[11px] font-bold text-[#9e7f65] bg-[#faf8f5] px-3.5 py-1 rounded-full border border-[#e8e2db] mt-0.5 shadow-sm">
-              💵 ${Math.round(calculateTotal() * 0.85).toLocaleString('es-AR')} en efectivo / transferencia <span className="text-[10px] font-black uppercase text-primary ml-1">(15% OFF)</span>
+              💵 ${Math.round(calculateTotal() * (1 - discountRate)).toLocaleString('es-AR')} en efectivo / transferencia <span className="text-[10px] font-black uppercase text-primary ml-1">({webSettings.web_promo_cash_discount}% OFF)</span>
             </p>
           </div>
         </div>
