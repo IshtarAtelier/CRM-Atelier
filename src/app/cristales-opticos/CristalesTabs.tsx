@@ -13,6 +13,7 @@ export function CristalesTabs() {
     { name: "Transitions", path: "/cristales-opticos/transitions" },
     { name: "Blue UV", path: "/cristales-opticos/blue-uv" },
     { name: "Stellest", path: "/cristales-opticos/stellest" },
+    { name: "MyoFix", path: "/cristales-opticos/myofix" },
   ];
 
   return (
