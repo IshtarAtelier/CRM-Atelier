@@ -82,6 +82,15 @@ export default function WebManagementPage() {
   const [flyerContact, setFlyerContact] = useState('rrhh@opticaatelier.com');
   const [flyerInstagram, setFlyerInstagram] = useState('@optica.atelier');
   const [isFullscreenFlyer, setIsFullscreenFlyer] = useState(false);
+
+  // New Flyer States for Generalization & Catalog Interactivity
+  const [flyerType, setFlyerType] = useState<'hiring' | 'promo' | 'announcement' | 'quote'>('hiring');
+  const [selectedProductId, setSelectedProductId] = useState<string>('');
+  const [showProductPrice, setShowProductPrice] = useState<boolean>(true);
+  const [flyerPromoBadge, setFlyerPromoBadge] = useState<string>('15% OFF');
+  const [flyerQuoteText, setFlyerQuoteText] = useState<string>('El estilo es una forma de decir quién eres sin tener que hablar.');
+  const [flyerQuoteAuthor, setFlyerQuoteAuthor] = useState<string>('Rachel Zoe');
+  const [productSearchQuery, setProductSearchQuery] = useState<string>('');
   
   // Products states
   const [products, setProducts] = useState<WebProduct[]>([]);
@@ -97,6 +106,276 @@ export default function WebManagementPage() {
     description: "",
     slug: ""
   });
+
+  const renderStoryContent = (isFullscreen = false) => {
+    const p = products.find(prod => prod.id === selectedProductId);
+    const img = p ? (p.product.imagenesCatalogo?.length > 0 ? resolveStorageUrl(p.product.imagenesCatalogo[0]) : (p.imageUrl || "/images/placeholder.svg")) : null;
+
+    // Theme values
+    const isDark = flyerTheme === 'obsidian';
+    const textColor = isDark ? '#fff' : '#3c352d';
+    const subtextColor = isDark ? '#e2c5a2' : '#6b5947';
+    const badgeColor = isDark ? '#b08f62' : '#9e7f65';
+    const panelBg = isDark ? 'rgba(30, 26, 24, 0.55)' : 'rgba(255, 255, 255, 0.45)';
+    const panelBorder = isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(255, 255, 255, 0.35)';
+
+    return (
+      <div 
+        className="w-full h-full flex flex-col justify-between absolute inset-0 select-none overflow-hidden"
+        style={{
+          background: flyerTheme === 'cream' 
+            ? 'linear-gradient(135deg, #f5f2eb 0%, #e8e2db 50%, #dfd8cf 100%)' 
+            : isDark 
+            ? 'linear-gradient(135deg, #181514 0%, #0d0c0b 50%, #000000 100%)'
+            : 'linear-gradient(135deg, #f7f1eb 0%, #efe1d8 50%, #e2cdbe 100%)',
+          fontFamily: 'Playfair Display, Georgia, "Times New Roman", serif',
+        }}
+      >
+        {/* Background light flares */}
+        <div 
+          className="absolute w-80 h-80 rounded-full filter blur-[90px] pointer-events-none opacity-25 z-0"
+          style={{ top: '-10%', right: '-10%', background: isDark ? '#b08f62' : '#ffffff' }}
+        />
+        <div 
+          className="absolute w-64 h-64 rounded-full filter blur-[70px] pointer-events-none opacity-15 z-0"
+          style={{ bottom: '-10%', left: '-10%', background: isDark ? '#3d2b1f' : '#e2d3c5' }}
+        />
+
+        {/* Story Header */}
+        <div className="relative z-10 pt-10 px-6 flex flex-col items-center shrink-0">
+          <img 
+            src={isDark ? '/images/logo-blanco.png' : '/images/logo-negro.png'} 
+            alt="Atelier Logo" 
+            className="h-8 object-contain opacity-90"
+            onError={(e) => {
+              (e.target as any).style.display = 'none';
+              const id = `fallback-${isFullscreen ? 'fs' : 'pr'}`;
+              const el = document.getElementById(id);
+              if (el) el.style.display = 'block';
+            }}
+          />
+          <div 
+            id={`fallback-${isFullscreen ? 'fs' : 'pr'}`}
+            className="hidden text-center text-xs font-black uppercase tracking-[0.3em] font-sans"
+            style={{ color: subtextColor }}
+          >
+            Atelier Óptica
+          </div>
+          <div 
+            className="w-12 h-[1px] mt-4 opacity-20" 
+            style={{ backgroundColor: isDark ? '#fff' : '#000' }}
+          />
+        </div>
+
+        {/* Main Content Area */}
+        <div className="relative z-10 px-6 py-4 flex-1 flex flex-col justify-center">
+          <div 
+            className="rounded-2xl p-5 border shadow-xl flex flex-col justify-center gap-3 backdrop-blur-md overflow-hidden relative"
+            style={{ backgroundColor: panelBg, borderColor: panelBorder }}
+          >
+            {/* 1. HIRING TEMPLATE */}
+            {flyerType === 'hiring' && (
+              <div className="space-y-3 flex flex-col justify-center">
+                <div className="text-center space-y-1">
+                  <p className="text-[9px] font-black uppercase tracking-[0.2em] font-sans" style={{ color: badgeColor }}>
+                    {flyerDescription}
+                  </p>
+                  <h2 className="text-2xl font-black tracking-wider leading-none" style={{ color: textColor }}>
+                    {flyerTitle}
+                  </h2>
+                  <h3 className="text-lg font-bold tracking-[0.15em] italic opacity-90" style={{ color: subtextColor }}>
+                    {flyerSubtitle}
+                  </h3>
+                </div>
+
+                <div 
+                  className="py-2.5 px-3 rounded-lg text-center border font-sans font-bold shadow-sm"
+                  style={{
+                    backgroundColor: isDark ? 'rgba(0, 0, 0, 0.2)' : 'rgba(255, 255, 255, 0.65)',
+                    borderColor: isDark ? 'rgba(176, 143, 98, 0.25)' : 'rgba(158, 127, 101, 0.2)',
+                  }}
+                >
+                  <p className="text-[8px] font-black uppercase tracking-widest opacity-60 text-stone-500">PUESTO A CUBRIR</p>
+                  <p className="text-xs uppercase tracking-wide mt-0.5" style={{ color: isDark ? '#f5e8d8' : '#3c352d' }}>
+                    {flyerPosition || 'Personal de Óptica'}
+                  </p>
+                </div>
+
+                {img ? (
+                  <div className="relative flex flex-col items-center justify-center pt-2">
+                    <div className="relative w-40 h-20 flex items-center justify-center overflow-hidden">
+                      <div className="absolute inset-0 bg-white/20 dark:bg-black/20 blur-md rounded-full" />
+                      <img src={img} alt="Glasses highlight" className="object-contain w-full h-full relative z-10 drop-shadow-md scale-110" />
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-1.5 py-1">
+                    <p className="text-[8px] font-black uppercase tracking-widest font-sans" style={{ color: badgeColor }}>
+                      Requisitos:
+                    </p>
+                    <ul className="space-y-1 font-sans">
+                      {flyerRequirements.filter(Boolean).map((req, idx) => (
+                        <li key={idx} className="text-[9px] font-medium leading-tight flex items-start gap-2" style={{ color: isDark ? '#e2e0db' : '#4e453c' }}>
+                          <span className="w-1 h-1 rounded-full shrink-0 mt-1.5" style={{ backgroundColor: badgeColor }} />
+                          <span>{req}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* 2. PROMO TEMPLATE */}
+            {flyerType === 'promo' && (
+              <div className="space-y-3 flex flex-col justify-center">
+                <div className="text-center space-y-1">
+                  <p className="text-[9px] font-black uppercase tracking-[0.25em] font-sans" style={{ color: badgeColor }}>
+                    {flyerDescription}
+                  </p>
+                  <span className="inline-block px-2.5 py-1 text-[8px] font-black tracking-widest uppercase rounded-full bg-primary/10 border border-primary/20 text-primary">
+                    PROMO EXCLUSIVA
+                  </span>
+                </div>
+
+                <div className="text-center py-1">
+                  <h2 className="text-3xl font-black tracking-wider leading-none" style={{ color: textColor, fontFamily: 'Georgia, serif' }}>
+                    {flyerPromoBadge || '15% OFF'}
+                  </h2>
+                  <p className="text-[10px] font-bold tracking-widest uppercase mt-1 opacity-80" style={{ color: subtextColor }}>
+                    {flyerSubtitle}
+                  </p>
+                </div>
+
+                {img ? (
+                  <div className="space-y-2 flex flex-col items-center">
+                    <div className="relative w-40 h-20 flex items-center justify-center">
+                      <div className="absolute w-24 h-24 rounded-full bg-primary/10 filter blur-xl" />
+                      <img src={img} alt="Product promo" className="object-contain w-full h-full relative z-10 drop-shadow-md" />
+                    </div>
+                    <div className="text-center font-sans">
+                      <p className="text-[9px] font-bold uppercase tracking-wider text-stone-500">{p?.product.model}</p>
+                      {showProductPrice && (
+                        <p className="text-xs font-black text-primary mt-0.5">${p?.product.price?.toLocaleString()}</p>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-1 py-1 text-center font-sans">
+                    {flyerRequirements.filter(Boolean).slice(0, 3).map((req, idx) => (
+                      <p key={idx} className="text-[10px] font-bold leading-tight" style={{ color: isDark ? '#e2e0db' : '#4e453c' }}>
+                        ✨ {req}
+                      </p>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* 3. ANNOUNCEMENT TEMPLATE */}
+            {flyerType === 'announcement' && (
+              <div className="space-y-3 flex flex-col justify-center">
+                <div className="text-center space-y-1">
+                  <p className="text-[9px] font-black uppercase tracking-[0.25em] font-sans text-stone-500" style={{ color: badgeColor }}>
+                    {flyerDescription}
+                  </p>
+                  <h2 className="text-2xl font-black tracking-wider leading-none" style={{ color: textColor }}>
+                    {flyerTitle}
+                  </h2>
+                </div>
+
+                {img ? (
+                  <div className="space-y-3 flex flex-col items-center">
+                    <div className="relative w-44 h-20 flex items-center justify-center p-1 rounded-xl bg-white/20 dark:bg-black/10 border border-white/10 shadow-inner">
+                      <img src={img} alt="New glasses arrival" className="object-contain w-full h-full drop-shadow-md scale-110" />
+                    </div>
+                    <div className="text-center font-sans">
+                      <p className="text-[8px] font-black uppercase tracking-widest text-primary">{p?.product.brand || 'ATELIER'}</p>
+                      <h4 className="text-xs font-black uppercase tracking-wide mt-0.5" style={{ color: textColor }}>
+                        {p?.product.model}
+                      </h4>
+                      {showProductPrice && (
+                        <p className="text-xs font-black text-stone-700 dark:text-stone-300 mt-1">${p?.product.price?.toLocaleString()}</p>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    <div className="py-2 px-3 rounded-lg text-center border font-sans font-bold shadow-sm" style={{
+                      backgroundColor: isDark ? 'rgba(0, 0, 0, 0.2)' : 'rgba(255, 255, 255, 0.65)',
+                      borderColor: isDark ? 'rgba(176, 143, 98, 0.25)' : 'rgba(158, 127, 101, 0.2)',
+                    }}>
+                      <p className="text-xs uppercase tracking-wide" style={{ color: isDark ? '#f5e8d8' : '#3c352d' }}>
+                        {flyerPosition || 'Nuevos Modelos'}
+                      </p>
+                    </div>
+                    <div className="space-y-1.5 py-1">
+                      <ul className="space-y-1 font-sans">
+                        {flyerRequirements.filter(Boolean).map((req, idx) => (
+                          <li key={idx} className="text-[9px] font-medium leading-tight flex items-start gap-2" style={{ color: isDark ? '#e2e0db' : '#4e453c' }}>
+                            <span className="w-1 h-1 rounded-full shrink-0 mt-1.5" style={{ backgroundColor: badgeColor }} />
+                            <span>{req}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                )}
+
+                <div className="text-center mt-1">
+                  <p className="text-[9px] font-bold tracking-widest uppercase opacity-75" style={{ color: subtextColor }}>
+                    {flyerSubtitle}
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* 4. QUOTE TEMPLATE */}
+            {flyerType === 'quote' && (
+              <div className="space-y-3 flex flex-col justify-center text-center">
+                <div className="text-3xl font-serif text-primary leading-none h-4 opacity-50 select-none">“</div>
+                <p 
+                  className="text-xs sm:text-sm font-medium leading-relaxed px-2 italic"
+                  style={{ color: textColor, fontFamily: 'Georgia, serif' }}
+                >
+                  {flyerQuoteText || 'El estilo es una forma de decir quién eres sin tener que hablar.'}
+                </p>
+                <p className="text-[8px] font-black uppercase tracking-widest font-sans opacity-70" style={{ color: badgeColor }}>
+                  — {flyerQuoteAuthor || 'Rachel Zoe'}
+                </p>
+
+                {img && (
+                  <div className="flex flex-col items-center justify-center pt-3 mt-1 border-t border-stone-200/10 shrink-0">
+                    <div className="w-24 h-8 flex items-center justify-center overflow-hidden">
+                      <img src={img} alt="Quote glasses" className="object-contain w-full h-full drop-shadow-sm" />
+                    </div>
+                    <p className="text-[7px] font-black uppercase tracking-widest opacity-60 text-stone-400 mt-1">
+                      {p?.product.brand} {p?.product.model}
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Story Footer */}
+        <div className="relative z-10 pt-4 pb-8 px-6 text-center shrink-0 space-y-2">
+          <div className="space-y-0.5">
+            <p className="text-[9px] font-black uppercase tracking-[0.2em] font-sans" style={{ color: badgeColor }}>
+              {flyerAction}
+            </p>
+            <p className="text-xs font-bold font-mono tracking-tight" style={{ color: textColor }}>
+              {flyerContact}
+            </p>
+          </div>
+          <div className="text-[8px] font-bold tracking-widest font-sans opacity-50 uppercase" style={{ color: subtextColor }}>
+            {flyerInstagram}
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   // Blog states
   const [posts, setPosts] = useState<BlogPost[]>([]);
@@ -845,68 +1124,74 @@ export default function WebManagementPage() {
                 <span className="inline-flex items-center gap-1.5 px-3 py-1 text-[9px] font-black uppercase tracking-widest bg-primary/20 text-primary rounded-full border border-primary/25">
                   <Sparkles className="w-3 h-3" /> Kit de Difusión Atelier
                 </span>
-                <h2 className="text-xl sm:text-2xl font-black italic tracking-tight">Diseño de Story & Búsqueda de Personal</h2>
+                <h2 className="text-xl sm:text-2xl font-black italic tracking-tight">Creador de Contenido & Stories</h2>
                 <p className="text-stone-300 text-xs sm:text-sm font-medium leading-relaxed">
-                  Descargá el flyer oficial de alta gama diseñado por Inteligencia Artificial para redes sociales, o personalizá un flyer interactivo en tiempo real con los requisitos específicos del puesto.
+                  Crea historias y flyers premium para Instagram y WhatsApp. Personalizá búsquedas laborales, promociones, novedades de la marca o frases inspiradoras, e integra tus anteojos del catálogo web al instante.
                 </p>
               </div>
             </div>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-            {/* EDITOR PANEL / SHOWCASE (COLUMNS 1-7) */}
+            {/* EDITOR PANEL (COLUMNS 1-7) */}
             <div className="lg:col-span-7 space-y-8">
               
-              {/* SECCIÓN 1: FLYER OFICIAL */}
+              {/* SECCIÓN 1: TIPO DE PUBLICACIÓN Y TEMA */}
               <div className="bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-3xl p-6 shadow-sm space-y-6">
                 <div>
                   <h3 className="text-xs font-black text-stone-900 dark:text-white uppercase tracking-widest flex items-center gap-2">
-                    <span className="w-1.5 h-1.5 rounded-full bg-primary" /> Flyer Oficial (Pre-diseñado por IA)
+                    <span className="w-1.5 h-1.5 rounded-full bg-primary" /> 1. Tipo de Story y Estilo
                   </h3>
-                  <p className="text-[10px] text-stone-400 mt-1">Flyer en formato story de alta definición listo para publicar en Instagram o WhatsApp.</p>
-                </div>
-
-                <div className="flex flex-col sm:flex-row items-center gap-6 p-4 bg-stone-50 dark:bg-stone-800/40 rounded-2xl border border-stone-200/50 dark:border-stone-700/50">
-                  <div className="w-36 h-64 bg-stone-200 dark:bg-stone-800 rounded-xl overflow-hidden shadow-md shrink-0 border border-stone-200 dark:border-stone-700 relative group">
-                    <img 
-                      src="/images/buscamos_personal_story.png" 
-                      alt="Flyer Oficial Buscamos Personal" 
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                    />
-                  </div>
-                  <div className="flex-1 space-y-4">
-                    <div>
-                      <h4 className="text-sm font-black text-stone-800 dark:text-stone-100">Flyer Editorial &quot;Atelier&quot;</h4>
-                      <p className="text-xs text-stone-500 dark:text-stone-400 mt-1 leading-relaxed">
-                        Un diseño sofisticado y minimalista que incluye una montura de acetato transparente sobre mármol travertino con tipografía serif de alta moda. Ideal para mantener la identidad premium de la marca.
-                      </p>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      <a 
-                        href="/images/buscamos_personal_story.png" 
-                        download="buscamos_personal_story.png"
-                        className="px-4 py-2.5 bg-black dark:bg-white text-white dark:text-black hover:opacity-90 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 transition-all shadow-sm"
-                      >
-                        <Download className="w-3.5 h-3.5" /> Descargar Flyer PNG
-                      </a>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* SECCIÓN 2: CREADOR DE FLYER DINÁMICO */}
-              <div className="bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-3xl p-6 shadow-sm space-y-6">
-                <div>
-                  <h3 className="text-xs font-black text-stone-900 dark:text-white uppercase tracking-widest flex items-center gap-2">
-                    <span className="w-1.5 h-1.5 rounded-full bg-primary" /> Creador de Flyer Interactivo
-                  </h3>
-                  <p className="text-[10px] text-stone-400 mt-1">Escribí los detalles de la búsqueda laboral para actualizar el diseño en la previsualización.</p>
+                  <p className="text-[10px] text-stone-400 mt-1">Configurá el tema visual y la plantilla de contenido.</p>
                 </div>
 
                 <div className="space-y-6">
-                  {/* Selector de Temas */}
+                  {/* Selector de Tipo */}
                   <div className="space-y-2">
-                    <label className="text-[9px] font-black text-stone-400 uppercase tracking-widest">Tema Visual del Story</label>
+                    <label className="text-[9px] font-black text-stone-400 uppercase tracking-widest block">Plantilla de Contenido</label>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                      {[
+                        { id: 'hiring', name: 'Búsqueda Laboral', desc: 'Personal' },
+                        { id: 'promo', name: 'Promoción', desc: 'Descuentos' },
+                        { id: 'announcement', name: 'Novedades', desc: 'Lanzamientos' },
+                        { id: 'quote', name: 'Frase', desc: 'Inspiración' }
+                      ].map((type) => (
+                        <button
+                          key={type.id}
+                          type="button"
+                          onClick={() => {
+                            setFlyerType(type.id as any);
+                            // Load defaults to help start
+                            if (type.id === 'promo') {
+                              setFlyerTitle('PROMO ESPECIAL');
+                              setFlyerSubtitle('15% OFF TRANSFERENCIA');
+                              setFlyerDescription('Descuentos exclusivos en Atelier');
+                            } else if (type.id === 'announcement') {
+                              setFlyerTitle('NUEVA COLECCIÓN');
+                              setFlyerSubtitle('EDICIÓN LIMITADA');
+                              setFlyerDescription('Exclusivos de temporada');
+                            } else if (type.id === 'hiring') {
+                              setFlyerTitle('BUSCAMOS');
+                              setFlyerSubtitle('PERSONAL');
+                              setFlyerDescription('Únete a nuestro equipo de Óptica Atelier');
+                            }
+                          }}
+                          className={`p-2.5 rounded-xl border text-center transition-all cursor-pointer ${
+                            flyerType === type.id
+                              ? 'border-primary bg-primary/5 shadow-sm scale-102 font-black'
+                              : 'border-stone-200 dark:border-stone-850 hover:bg-stone-50 dark:hover:bg-stone-850 text-stone-500'
+                          }`}
+                        >
+                          <p className="text-xs font-bold">{type.name}</p>
+                          <p className="text-[8px] text-stone-400 mt-0.5 uppercase tracking-wide">{type.desc}</p>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Selector de Tema */}
+                  <div className="space-y-2">
+                    <label className="text-[9px] font-black text-stone-400 uppercase tracking-widest block">Tema Visual del Story</label>
                     <div className="grid grid-cols-3 gap-3">
                       {[
                         { id: 'cream', name: 'Cream Elegant', desc: 'Minimalista Beige', bg: 'bg-[#faf8f5]' },
@@ -917,7 +1202,7 @@ export default function WebManagementPage() {
                           key={t.id}
                           type="button"
                           onClick={() => setFlyerTheme(t.id as any)}
-                          className={`p-3 rounded-xl border text-left transition-all ${
+                          className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
                             flyerTheme === t.id
                               ? 'border-primary bg-primary/5 shadow-md scale-102'
                               : 'border-stone-200 dark:border-stone-850 hover:bg-stone-50 dark:hover:bg-stone-850'
@@ -930,38 +1215,141 @@ export default function WebManagementPage() {
                       ))}
                     </div>
                   </div>
+                </div>
+              </div>
 
-                  {/* Inputs de Texto */}
+              {/* SECCIÓN 2: ANTEOJOS INTERACTIVOS DEL CATÁLOGO */}
+              <div className="bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-3xl p-6 shadow-sm space-y-6">
+                <div>
+                  <h3 className="text-xs font-black text-stone-900 dark:text-white uppercase tracking-widest flex items-center gap-2">
+                    <span className="w-1.5 h-1.5 rounded-full bg-indigo-500" /> 2. Integración de Anteojos
+                  </h3>
+                  <p className="text-[10px] text-stone-400 mt-1">Vinculá fotos y precios de tus anteojos cargados en la web.</p>
+                </div>
+
+                <div className="space-y-4">
+                  {/* Buscador */}
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400" />
+                    <input
+                      type="text"
+                      className="w-full pl-10 pr-10 py-2.5 bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl text-xs outline-none focus:border-primary transition-all font-medium animate-in fade-in"
+                      placeholder="Buscar por marca o modelo (ej: Ray-Ban, Dior, Acetato...)"
+                      value={productSearchQuery}
+                      onChange={(e) => setProductSearchQuery(e.target.value)}
+                    />
+                    {productSearchQuery && (
+                      <button 
+                        onClick={() => setProductSearchQuery('')}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 p-1 hover:bg-stone-200 dark:hover:bg-stone-700 text-stone-400 hover:text-black dark:hover:text-white rounded-full transition-colors text-xs"
+                      >
+                        Limpiar
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Dropdown de Resultados */}
+                  {productSearchQuery && (
+                    <div className="max-h-52 overflow-y-auto border border-stone-250 dark:border-stone-800 rounded-xl divide-y divide-stone-100 dark:divide-stone-800 bg-white dark:bg-stone-900 shadow-lg custom-scrollbar relative z-30">
+                      {products.filter(p => {
+                        const term = productSearchQuery.toLowerCase();
+                        return p.name.toLowerCase().includes(term) || 
+                               (p.product.brand || '').toLowerCase().includes(term) ||
+                               (p.product.model || '').toLowerCase().includes(term);
+                      }).slice(0, 6).map(p => {
+                        const img = p.product.imagenesCatalogo?.length > 0 
+                          ? resolveStorageUrl(p.product.imagenesCatalogo[0]) 
+                          : (p.imageUrl || "/images/placeholder.svg");
+                        return (
+                          <button
+                            key={p.id}
+                            type="button"
+                            onClick={() => {
+                              setSelectedProductId(p.id);
+                              setProductSearchQuery('');
+                              if (flyerType === 'announcement') {
+                                setFlyerPosition(`${p.product.brand || 'ATELIER'} ${p.product.model || ''}`.trim());
+                              }
+                            }}
+                            className="w-full px-4 py-2 flex items-center justify-between text-left hover:bg-stone-50 dark:hover:bg-stone-850 text-xs cursor-pointer"
+                          >
+                            <div className="flex items-center gap-3">
+                              <div className="w-8 h-8 bg-stone-50 border border-stone-200 dark:border-stone-800 rounded-lg overflow-hidden shrink-0 flex items-center justify-center p-0.5">
+                                <img src={img} alt={p.name} className="object-contain w-full h-full mix-blend-multiply dark:mix-blend-normal" />
+                              </div>
+                              <div>
+                                <p className="font-bold text-stone-800 dark:text-stone-100 leading-none">{p.product.model || p.name}</p>
+                                <span className="text-[8px] text-stone-400 font-bold uppercase tracking-wider mt-1 block">{p.product.brand || 'ATELIER'}</span>
+                              </div>
+                            </div>
+                            <span className="font-black text-stone-800 dark:text-stone-200">${p.product.price?.toLocaleString()}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {/* Detalle de Selección */}
+                  {selectedProductId ? (
+                    (() => {
+                      const p = products.find(prod => prod.id === selectedProductId);
+                      if (!p) return null;
+                      const img = p.product.imagenesCatalogo?.length > 0 
+                        ? resolveStorageUrl(p.product.imagenesCatalogo[0]) 
+                        : (p.imageUrl || "/images/placeholder.svg");
+                      return (
+                        <div className="flex items-center justify-between p-3.5 bg-indigo-50/40 dark:bg-indigo-950/20 border border-indigo-200/50 dark:border-indigo-900/50 rounded-2xl">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-white border border-stone-200 dark:border-stone-800 rounded-lg overflow-hidden shrink-0 flex items-center justify-center p-0.5">
+                              <img src={img} alt={p.name} className="object-contain w-full h-full mix-blend-multiply dark:mix-blend-normal" />
+                            </div>
+                            <div>
+                              <p className="font-black text-xs text-stone-800 dark:text-stone-100">{p.product.model}</p>
+                              <p className="text-[9px] text-stone-400 font-bold uppercase tracking-wider">{p.product.brand || 'ATELIER'}</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <label className="flex items-center gap-1.5 cursor-pointer">
+                              <input 
+                                type="checkbox"
+                                checked={showProductPrice}
+                                onChange={(e) => setShowProductPrice(e.target.checked)}
+                                className="w-3.5 h-3.5 rounded border-stone-300 text-indigo-500 focus:ring-indigo-500 accent-indigo-500"
+                              />
+                              <span className="text-[9px] font-black text-stone-600 dark:text-stone-400">Mostrar Precio (${p.product.price?.toLocaleString()})</span>
+                            </label>
+                            <button
+                              type="button"
+                              onClick={() => setSelectedProductId('')}
+                              className="px-2.5 py-1.5 border border-red-200 hover:bg-red-50 text-red-500 rounded-lg text-[9px] font-bold transition-colors cursor-pointer"
+                            >
+                              Quitar
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })()
+                  ) : (
+                    <div className="p-3 text-center border-2 border-dashed border-stone-200 dark:border-stone-850 rounded-2xl text-[9px] text-stone-400 font-bold uppercase tracking-wider">
+                      Ningún anteojo vinculado (Se usará diseño de solo texto/requisitos)
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* SECCIÓN 3: TEXTOS PERSONALIZADOS */}
+              <div className="bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-3xl p-6 shadow-sm space-y-6">
+                <div>
+                  <h3 className="text-xs font-black text-stone-900 dark:text-white uppercase tracking-widest flex items-center gap-2">
+                    <span className="w-1.5 h-1.5 rounded-full bg-primary" /> 3. Textos del Contenido
+                  </h3>
+                  <p className="text-[10px] text-stone-400 mt-1">Personalizá las leyendas visibles del flyer.</p>
+                </div>
+
+                <div className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-1.5">
-                      <label className="text-[9px] font-black text-stone-400 uppercase tracking-widest">Título Principal</label>
-                      <input
-                        type="text"
-                        className="w-full px-3 py-2.5 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl text-xs outline-none focus:border-primary transition-all font-semibold"
-                        value={flyerTitle}
-                        onChange={(e) => setFlyerTitle(e.target.value.toUpperCase())}
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <label className="text-[9px] font-black text-stone-400 uppercase tracking-widest">Subtítulo</label>
-                      <input
-                        type="text"
-                        className="w-full px-3 py-2.5 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl text-xs outline-none focus:border-primary transition-all font-semibold"
-                        value={flyerSubtitle}
-                        onChange={(e) => setFlyerSubtitle(e.target.value.toUpperCase())}
-                      />
-                    </div>
-                    <div className="space-y-1.5 md:col-span-2">
-                      <label className="text-[9px] font-black text-stone-400 uppercase tracking-widest">Puesto a Cubrir</label>
-                      <input
-                        type="text"
-                        className="w-full px-3 py-2.5 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl text-xs outline-none focus:border-primary transition-all font-bold"
-                        value={flyerPosition}
-                        onChange={(e) => setFlyerPosition(e.target.value)}
-                      />
-                    </div>
-                    <div className="space-y-1.5 md:col-span-2">
-                      <label className="text-[9px] font-black text-stone-400 uppercase tracking-widest">Descripción Breve</label>
+                      <label className="text-[9px] font-black text-stone-400 uppercase tracking-widest block">Categoría / Texto Superior</label>
                       <input
                         type="text"
                         className="w-full px-3 py-2.5 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl text-xs outline-none focus:border-primary transition-all font-medium"
@@ -969,35 +1357,131 @@ export default function WebManagementPage() {
                         onChange={(e) => setFlyerDescription(e.target.value)}
                       />
                     </div>
+                    {flyerType !== 'quote' && (
+                      <div className="space-y-1.5">
+                        <label className="text-[9px] font-black text-stone-400 uppercase tracking-widest block">Título Principal</label>
+                        <input
+                          type="text"
+                          className="w-full px-3 py-2.5 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl text-xs outline-none focus:border-primary transition-all font-semibold"
+                          value={flyerTitle}
+                          onChange={(e) => setFlyerTitle(e.target.value.toUpperCase())}
+                        />
+                      </div>
+                    )}
+                    {flyerType === 'promo' && (
+                      <div className="space-y-1.5">
+                        <label className="text-[9px] font-black text-stone-400 uppercase tracking-widest block">Badge / Descuento</label>
+                        <input
+                          type="text"
+                          className="w-full px-3 py-2.5 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl text-xs outline-none focus:border-primary transition-all font-bold text-primary"
+                          value={flyerPromoBadge}
+                          onChange={(e) => setFlyerPromoBadge(e.target.value.toUpperCase())}
+                        />
+                      </div>
+                    )}
+                    {flyerType !== 'quote' && (
+                      <div className="space-y-1.5">
+                        <label className="text-[9px] font-black text-stone-400 uppercase tracking-widest block">Subtítulo / Bajada</label>
+                        <input
+                          type="text"
+                          className="w-full px-3 py-2.5 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl text-xs outline-none focus:border-primary transition-all font-semibold"
+                          value={flyerSubtitle}
+                          onChange={(e) => setFlyerSubtitle(e.target.value.toUpperCase())}
+                        />
+                      </div>
+                    )}
                   </div>
 
-                  {/* Requisitos */}
-                  <div className="space-y-2">
-                    <label className="text-[9px] font-black text-stone-400 uppercase tracking-widest block">Requisitos del Puesto (Hasta 4)</label>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      {flyerRequirements.map((req, i) => (
-                        <div key={i} className="relative">
-                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[10px] font-black text-stone-400">{i + 1}</span>
+                  {/* Contenidos de Búsqueda Laboral y Anuncios */}
+                  {(flyerType === 'hiring' || flyerType === 'announcement') && (
+                    <div className="space-y-4 pt-3 border-t border-stone-100 dark:border-stone-800">
+                      <div className="space-y-1.5">
+                        <label className="text-[9px] font-black text-stone-400 uppercase tracking-widest block">
+                          {flyerType === 'hiring' ? 'Puesto a Cubrir' : 'Nombre del Anuncio'}
+                        </label>
+                        <input
+                          type="text"
+                          className="w-full px-3 py-2.5 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl text-xs outline-none focus:border-primary transition-all font-bold"
+                          value={flyerPosition}
+                          onChange={(e) => setFlyerPosition(e.target.value)}
+                        />
+                      </div>
+
+                      {!selectedProductId && (
+                        <div className="space-y-2">
+                          <label className="text-[9px] font-black text-stone-400 uppercase tracking-widest block">Detalles / Requisitos (Hasta 4)</label>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            {flyerRequirements.map((req, i) => (
+                              <input
+                                key={i}
+                                type="text"
+                                className="w-full px-3 py-2 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl text-xs outline-none focus:border-primary transition-all font-medium text-stone-750"
+                                placeholder={`Línea ${i + 1}`}
+                                value={req}
+                                onChange={(e) => {
+                                  const nr = [...flyerRequirements];
+                                  nr[i] = e.target.value;
+                                  setFlyerRequirements(nr);
+                                }}
+                              />
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Requisitos Promo sin anteojo */}
+                  {flyerType === 'promo' && !selectedProductId && (
+                    <div className="space-y-2 pt-3 border-t border-stone-100 dark:border-stone-800">
+                      <label className="text-[9px] font-black text-stone-400 uppercase tracking-widest block">Detalles de la Promoción (Hasta 4)</label>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        {flyerRequirements.map((req, i) => (
                           <input
+                            key={i}
                             type="text"
-                            className="w-full pl-8 pr-3 py-2.5 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl text-xs outline-none focus:border-primary transition-all font-medium"
-                            placeholder={`Requisito ${i + 1}`}
+                            className="w-full px-3 py-2 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl text-xs outline-none focus:border-primary transition-all font-medium text-stone-750"
+                            placeholder={`Línea ${i + 1}`}
                             value={req}
                             onChange={(e) => {
-                              const newReqs = [...flyerRequirements];
-                              newReqs[i] = e.target.value;
-                              setFlyerRequirements(newReqs);
+                              const nr = [...flyerRequirements];
+                              nr[i] = e.target.value;
+                              setFlyerRequirements(nr);
                             }}
                           />
-                        </div>
-                      ))}
+                        ))}
+                      </div>
                     </div>
-                  </div>
+                  )}
 
-                  {/* Información de contacto */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {/* Frases */}
+                  {flyerType === 'quote' && (
+                    <div className="space-y-4 pt-3 border-t border-stone-100 dark:border-stone-800">
+                      <div className="space-y-1.5">
+                        <label className="text-[9px] font-black text-stone-400 uppercase tracking-widest block">Frase Célebre o Cita</label>
+                        <textarea
+                          rows={3}
+                          className="w-full px-3 py-2.5 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl text-xs outline-none focus:border-primary transition-all resize-none font-medium italic text-stone-700 dark:text-stone-300"
+                          value={flyerQuoteText}
+                          onChange={(e) => setFlyerQuoteText(e.target.value)}
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-[9px] font-black text-stone-400 uppercase tracking-widest block">Autor</label>
+                        <input
+                          type="text"
+                          className="w-full px-3 py-2.5 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl text-xs outline-none focus:border-primary transition-all font-bold"
+                          value={flyerQuoteAuthor}
+                          onChange={(e) => setFlyerQuoteAuthor(e.target.value)}
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Datos del pie de página */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 border-t border-stone-100 dark:border-stone-800 pt-4">
                     <div className="space-y-1.5">
-                      <label className="text-[9px] font-black text-stone-400 uppercase tracking-widest">Llamado a la Acción</label>
+                      <label className="text-[9px] font-black text-stone-400 uppercase tracking-widest block">Llamado a la Acción</label>
                       <input
                         type="text"
                         className="w-full px-3 py-2.5 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl text-xs outline-none focus:border-primary transition-all font-semibold"
@@ -1006,7 +1490,7 @@ export default function WebManagementPage() {
                       />
                     </div>
                     <div className="space-y-1.5">
-                      <label className="text-[9px] font-black text-stone-400 uppercase tracking-widest">Email de Envío</label>
+                      <label className="text-[9px] font-black text-stone-400 uppercase tracking-widest block">Email / Contacto</label>
                       <input
                         type="text"
                         className="w-full px-3 py-2.5 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl text-xs outline-none focus:border-primary transition-all font-mono"
@@ -1015,17 +1499,16 @@ export default function WebManagementPage() {
                       />
                     </div>
                     <div className="space-y-1.5">
-                      <label className="text-[9px] font-black text-stone-400 uppercase tracking-widest">Instagram</label>
+                      <label className="text-[9px] font-black text-stone-400 uppercase tracking-widest block">Instagram</label>
                       <input
                         type="text"
-                        className="w-full px-3 py-2.5 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl text-xs outline-none focus:border-primary transition-all font-medium"
+                        className="w-full px-3 py-2.5 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl text-xs outline-none focus:border-primary transition-all font-semibold text-stone-700 dark:text-stone-300"
                         value={flyerInstagram}
                         onChange={(e) => setFlyerInstagram(e.target.value)}
                       />
                     </div>
                   </div>
 
-                  {/* Botones de acción del creador */}
                   <div className="pt-4 flex gap-3 border-t border-stone-100 dark:border-stone-800">
                     <button
                       type="button"
@@ -1038,7 +1521,7 @@ export default function WebManagementPage() {
                       type="button"
                       onClick={() => {
                         navigator.clipboard.writeText(flyerContact);
-                        alert('¡Email de contacto copiado al portapapeles!');
+                        alert('¡Email de contacto copiado!');
                       }}
                       className="py-3 px-5 border border-stone-200 dark:border-stone-750 hover:bg-stone-50 dark:hover:bg-stone-850 text-stone-500 rounded-xl text-xs font-bold transition-all flex items-center gap-2"
                     >
@@ -1049,179 +1532,20 @@ export default function WebManagementPage() {
               </div>
             </div>
 
-            {/* PREVIEW CONTAINER (COLUMNS 8-12) */}
+            {/* PREVIEW STORY CANVAS */}
             <div className="lg:col-span-5 flex flex-col items-center justify-center sticky top-8">
               <span className="text-[9px] font-black uppercase tracking-widest text-stone-400 mb-2">Vista Previa 9:16 (Instagram Story)</span>
               
-              {/* Story Canvas Container */}
               <div className="relative border-4 border-stone-250 dark:border-stone-800 rounded-[2.5rem] p-3 shadow-2xl bg-white dark:bg-[#141211] w-full max-w-[340px] overflow-hidden">
                 <div className="absolute top-6 left-1/2 -translate-x-1/2 w-28 h-5 bg-stone-250 dark:bg-stone-800 rounded-full z-30 flex items-center justify-center">
                   <div className="w-3 h-3 rounded-full bg-stone-300 dark:bg-stone-950 ml-auto mr-4" />
                 </div>
-
-                <div 
-                  id="flyer-story-preview"
-                  className="relative rounded-[1.8rem] w-full aspect-[9/16] overflow-hidden select-none"
-                  style={{
-                    background: flyerTheme === 'cream' 
-                      ? 'linear-gradient(135deg, #f5f2eb 0%, #e8e2db 50%, #dfd8cf 100%)' 
-                      : flyerTheme === 'obsidian' 
-                      ? 'linear-gradient(135deg, #181514 0%, #0d0c0b 50%, #000000 100%)'
-                      : 'linear-gradient(135deg, #f7f1eb 0%, #efe1d8 50%, #e2cdbe 100%)',
-                    fontFamily: 'Playfair Display, Georgia, "Times New Roman", serif',
-                  }}
-                >
-                  {/* Decorative background light flares */}
-                  <div 
-                    className="absolute w-64 h-64 rounded-full filter blur-[80px] pointer-events-none opacity-30 z-0"
-                    style={{
-                      top: '-50px',
-                      right: '-50px',
-                      background: flyerTheme === 'obsidian' ? '#b08f62' : '#ffffff',
-                    }}
-                  />
-                  <div 
-                    className="absolute w-48 h-48 rounded-full filter blur-[60px] pointer-events-none opacity-20 z-0"
-                    style={{
-                      bottom: '-30px',
-                      left: '-30px',
-                      background: flyerTheme === 'obsidian' ? '#3d2b1f' : '#e2d3c5',
-                    }}
-                  />
-
-                  {/* Story Header (Brand & Logo) */}
-                  <div className="relative z-10 pt-10 px-6 flex flex-col items-center">
-                    <img 
-                      src={flyerTheme === 'obsidian' ? '/images/logo-blanco.png' : '/images/logo-negro.png'} 
-                      alt="Atelier Logo" 
-                      className="h-7 object-contain opacity-90"
-                      onError={(e) => {
-                        // Fallback text if logo doesn't exist yet
-                        (e.target as any).style.display = 'none';
-                        const fallbackEl = document.getElementById('flyer-logo-fallback');
-                        if (fallbackEl) fallbackEl.style.display = 'block';
-                      }}
-                    />
-                    <div 
-                      id="flyer-logo-fallback" 
-                      className="hidden text-center text-sm font-black uppercase tracking-[0.3em] font-sans"
-                      style={{ color: flyerTheme === 'obsidian' ? '#e2c5a2' : '#4a3f35' }}
-                    >
-                      Atelier Óptica
-                    </div>
-                    <div 
-                      className="w-10 h-[1px] mt-4 opacity-30" 
-                      style={{ backgroundColor: flyerTheme === 'obsidian' ? '#fff' : '#000' }}
-                    />
-                  </div>
-
-                  {/* Main Content Area */}
-                  <div className="relative z-10 px-5 pt-8 pb-10 flex flex-col h-[calc(100%-100px)] justify-between">
-                    
-                    {/* Glassmorphic Flyer Panel */}
-                    <div 
-                      className="rounded-2xl p-5 border shadow-xl flex-1 flex flex-col justify-center gap-3 backdrop-blur-md"
-                      style={{
-                        backgroundColor: flyerTheme === 'obsidian' ? 'rgba(30, 26, 24, 0.55)' : 'rgba(255, 255, 255, 0.45)',
-                        borderColor: flyerTheme === 'obsidian' ? 'rgba(255, 255, 255, 0.08)' : 'rgba(255, 255, 255, 0.35)',
-                      }}
-                    >
-                      {/* Title block */}
-                      <div className="text-center space-y-1">
-                        <p 
-                          className="text-[9px] font-black uppercase tracking-[0.2em] font-sans"
-                          style={{ color: flyerTheme === 'obsidian' ? '#b08f62' : '#9e7f65' }}
-                        >
-                          {flyerDescription}
-                        </p>
-                        <h2 
-                          className="text-2xl font-black tracking-wider leading-none"
-                          style={{ color: flyerTheme === 'obsidian' ? '#fff' : '#3c352d' }}
-                        >
-                          {flyerTitle}
-                        </h2>
-                        <h3 
-                          className="text-xl font-bold tracking-[0.15em] italic opacity-95"
-                          style={{ color: flyerTheme === 'obsidian' ? '#e2c5a2' : '#6b5947' }}
-                        >
-                          {flyerSubtitle}
-                        </h3>
-                      </div>
-
-                      {/* Job Position display */}
-                      <div 
-                        className="py-2.5 px-3 rounded-lg text-center border font-sans font-bold"
-                        style={{
-                          backgroundColor: flyerTheme === 'obsidian' ? 'rgba(0, 0, 0, 0.2)' : 'rgba(255, 255, 255, 0.6)',
-                          borderColor: flyerTheme === 'obsidian' ? 'rgba(176, 143, 98, 0.25)' : 'rgba(158, 127, 101, 0.2)',
-                        }}
-                      >
-                        <p className="text-[8px] font-black uppercase tracking-widest opacity-60 text-stone-500">PUESTO A CUBRIR</p>
-                        <p 
-                          className="text-xs uppercase tracking-wide mt-0.5"
-                          style={{ color: flyerTheme === 'obsidian' ? '#f5e8d8' : '#3c352d' }}
-                        >
-                          {flyerPosition || 'Personal de Óptica'}
-                        </p>
-                      </div>
-
-                      {/* Requirements checklist */}
-                      <div className="space-y-2 py-1">
-                        <p 
-                          className="text-[8px] font-black uppercase tracking-widest font-sans"
-                          style={{ color: flyerTheme === 'obsidian' ? '#b08f62' : '#9e7f65' }}
-                        >
-                          Requisitos:
-                        </p>
-                        <ul className="space-y-1.5 font-sans">
-                          {flyerRequirements.filter(Boolean).map((req, idx) => (
-                            <li 
-                              key={idx} 
-                              className="text-[10px] font-medium leading-tight flex items-start gap-2"
-                              style={{ color: flyerTheme === 'obsidian' ? '#e2e0db' : '#4e453c' }}
-                            >
-                              <span 
-                                className="w-1 h-1 rounded-full shrink-0 mt-1.5"
-                                style={{ backgroundColor: flyerTheme === 'obsidian' ? '#b08f62' : '#9e7f65' }}
-                              />
-                              <span>{req}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    </div>
-
-                    {/* Story Footer */}
-                    <div className="text-center pt-5 space-y-2.5">
-                      <div className="space-y-0.5">
-                        <p 
-                          className="text-[9px] font-black uppercase tracking-[0.25em] font-sans"
-                          style={{ color: flyerTheme === 'obsidian' ? '#b08f62' : '#9e7f65' }}
-                        >
-                          {flyerAction}
-                        </p>
-                        <p 
-                          className="text-xs font-bold font-mono tracking-tight"
-                          style={{ color: flyerTheme === 'obsidian' ? '#fff' : '#3c352d' }}
-                        >
-                          {flyerContact}
-                        </p>
-                      </div>
-                      
-                      <div 
-                        className="text-[9px] font-bold tracking-widest font-sans opacity-60 uppercase"
-                        style={{ color: flyerTheme === 'obsidian' ? '#a39b94' : '#6b5947' }}
-                      >
-                        {flyerInstagram}
-                      </div>
-                    </div>
-
-                  </div>
+                <div className="relative rounded-[1.8rem] w-full aspect-[9/16] overflow-hidden select-none">
+                  {renderStoryContent(false)}
                 </div>
               </div>
 
-              {/* Instructions below story */}
-              <div className="mt-4 p-4 max-w-[340px] bg-stone-50 dark:bg-stone-850 rounded-2xl border border-stone-200/50 dark:border-stone-750 text-[10px] text-stone-500 space-y-1 leading-relaxed text-center">
+              <div className="mt-4 p-4 max-w-[340px] bg-stone-50 dark:bg-stone-850 rounded-2xl border border-stone-200/50 dark:border-stone-750 text-[10px] text-stone-505 space-y-1 leading-relaxed text-center">
                 <p className="font-bold uppercase tracking-wider text-stone-700 dark:text-stone-300">💡 ¿Cómo capturar este flyer?</p>
                 <p>Hacé click en &quot;Ver en Pantalla Completa&quot;, y sacale una captura de pantalla desde tu celular o computadora para subirlo directamente a tus historias de Instagram o estados de WhatsApp.</p>
               </div>
@@ -1230,7 +1554,7 @@ export default function WebManagementPage() {
         </div>
       )}
 
-      {/* FULLSCREEN FLYER MODAL PREVIEW FOR SCREENSHOTTING */}
+      {/* FULLSCREEN FLYER MODAL PREVIEW */}
       {isFullscreenFlyer && (
         <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-black/95 backdrop-blur-md animate-in fade-in duration-300">
           <div className="absolute top-4 right-4 z-50 flex items-center gap-3">
@@ -1245,160 +1569,8 @@ export default function WebManagementPage() {
             </button>
           </div>
 
-          {/* Actual 9:16 Canvas sized perfectly for high-resolution screenshots */}
-          <div 
-            className="relative w-full max-w-[450px] aspect-[9/16] shadow-2xl overflow-hidden select-none"
-            style={{
-              background: flyerTheme === 'cream' 
-                ? 'linear-gradient(135deg, #f5f2eb 0%, #e8e2db 50%, #dfd8cf 100%)' 
-                : flyerTheme === 'obsidian' 
-                ? 'linear-gradient(135deg, #181514 0%, #0d0c0b 50%, #000000 100%)'
-                : 'linear-gradient(135deg, #f7f1eb 0%, #efe1d8 50%, #e2cdbe 100%)',
-              fontFamily: 'Playfair Display, Georgia, "Times New Roman", serif',
-            }}
-          >
-            {/* Background lights */}
-            <div 
-              className="absolute w-[400px] h-[400px] rounded-full filter blur-[100px] pointer-events-none opacity-30 z-0"
-              style={{
-                top: '-100px',
-                right: '-100px',
-                background: flyerTheme === 'obsidian' ? '#b08f62' : '#ffffff',
-              }}
-            />
-            <div 
-              className="absolute w-[300px] h-[300px] rounded-full filter blur-[80px] pointer-events-none opacity-20 z-0"
-              style={{
-                bottom: '-50px',
-                left: '-50px',
-                background: flyerTheme === 'obsidian' ? '#3d2b1f' : '#e2d3c5',
-              }}
-            />
-
-            {/* Story Header */}
-            <div className="relative z-10 pt-16 px-10 flex flex-col items-center">
-              <img 
-                src={flyerTheme === 'obsidian' ? '/images/logo-blanco.png' : '/images/logo-negro.png'} 
-                alt="Atelier Logo" 
-                className="h-10 object-contain opacity-95"
-                onError={(e) => {
-                  (e.target as any).style.display = 'none';
-                  const fallbackEl = document.getElementById('flyer-fullscreen-logo-fallback');
-                  if (fallbackEl) fallbackEl.style.display = 'block';
-                }}
-              />
-              <div 
-                id="flyer-fullscreen-logo-fallback" 
-                className="hidden text-center text-lg font-black uppercase tracking-[0.3em] font-sans"
-                style={{ color: flyerTheme === 'obsidian' ? '#e2c5a2' : '#4a3f35' }}
-              >
-                Atelier Óptica
-              </div>
-              <div 
-                className="w-14 h-[1px] mt-6 opacity-30" 
-                style={{ backgroundColor: flyerTheme === 'obsidian' ? '#fff' : '#000' }}
-              />
-            </div>
-
-            {/* Main Content Area */}
-            <div className="relative z-10 px-8 pt-10 pb-16 flex flex-col h-[calc(100%-150px)] justify-between">
-              
-              {/* Glassmorphic Panel */}
-              <div 
-                className="rounded-3xl p-8 border shadow-2xl flex-1 flex flex-col justify-center gap-6 backdrop-blur-md"
-                style={{
-                  backgroundColor: flyerTheme === 'obsidian' ? 'rgba(30, 26, 24, 0.55)' : 'rgba(255, 255, 255, 0.45)',
-                  borderColor: flyerTheme === 'obsidian' ? 'rgba(255, 255, 255, 0.08)' : 'rgba(255, 255, 255, 0.35)',
-                }}
-              >
-                <div className="text-center space-y-2">
-                  <p 
-                    className="text-[11px] font-black uppercase tracking-[0.25em] font-sans"
-                    style={{ color: flyerTheme === 'obsidian' ? '#b08f62' : '#9e7f65' }}
-                  >
-                    {flyerDescription}
-                  </p>
-                  <h2 
-                    className="text-4xl font-black tracking-wider leading-none"
-                    style={{ color: flyerTheme === 'obsidian' ? '#fff' : '#3c352d' }}
-                  >
-                    {flyerTitle}
-                  </h2>
-                  <h3 
-                    className="text-3xl font-bold tracking-[0.15em] italic opacity-95"
-                    style={{ color: flyerTheme === 'obsidian' ? '#e2c5a2' : '#6b5947' }}
-                  >
-                    {flyerSubtitle}
-                  </h3>
-                </div>
-
-                <div 
-                  className="py-4 px-5 rounded-xl text-center border font-sans font-bold shadow-sm"
-                  style={{
-                    backgroundColor: flyerTheme === 'obsidian' ? 'rgba(0, 0, 0, 0.25)' : 'rgba(255, 255, 255, 0.65)',
-                    borderColor: flyerTheme === 'obsidian' ? 'rgba(176, 143, 98, 0.35)' : 'rgba(158, 127, 101, 0.25)',
-                  }}
-                >
-                  <p className="text-[10px] font-black uppercase tracking-widest opacity-60 text-stone-500">PUESTO A CUBRIR</p>
-                  <p 
-                    className="text-lg uppercase tracking-wide mt-1.5"
-                    style={{ color: flyerTheme === 'obsidian' ? '#f5e8d8' : '#3c352d' }}
-                  >
-                    {flyerPosition}
-                  </p>
-                </div>
-
-                <div className="space-y-3 py-2">
-                  <p 
-                    className="text-[10px] font-black uppercase tracking-widest font-sans"
-                    style={{ color: flyerTheme === 'obsidian' ? '#b08f62' : '#9e7f65' }}
-                  >
-                    Requisitos:
-                  </p>
-                  <ul className="space-y-2.5 font-sans">
-                    {flyerRequirements.filter(Boolean).map((req, idx) => (
-                      <li 
-                        key={idx} 
-                        className="text-sm font-medium leading-relaxed flex items-start gap-3.5"
-                        style={{ color: flyerTheme === 'obsidian' ? '#e2e0db' : '#4e453c' }}
-                      >
-                        <span 
-                          className="w-1.5 h-1.5 rounded-full shrink-0 mt-2"
-                          style={{ backgroundColor: flyerTheme === 'obsidian' ? '#b08f62' : '#9e7f65' }}
-                        />
-                        <span>{req}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              </div>
-
-              {/* Story Footer */}
-              <div className="text-center pt-8 space-y-3.5">
-                <div className="space-y-1">
-                  <p 
-                    className="text-[11px] font-black uppercase tracking-[0.25em] font-sans"
-                    style={{ color: flyerTheme === 'obsidian' ? '#b08f62' : '#9e7f65' }}
-                  >
-                    {flyerAction}
-                  </p>
-                  <p 
-                    className="text-lg font-bold font-mono tracking-tight"
-                    style={{ color: flyerTheme === 'obsidian' ? '#fff' : '#3c352d' }}
-                  >
-                    {flyerContact}
-                  </p>
-                </div>
-                
-                <div 
-                  className="text-[10px] font-bold tracking-widest font-sans opacity-60 uppercase"
-                  style={{ color: flyerTheme === 'obsidian' ? '#a39b94' : '#6b5947' }}
-                >
-                  {flyerInstagram}
-                </div>
-              </div>
-
-            </div>
+          <div className="relative w-full max-w-[450px] aspect-[9/16] shadow-2xl overflow-hidden select-none">
+            {renderStoryContent(true)}
           </div>
         </div>
       )}
