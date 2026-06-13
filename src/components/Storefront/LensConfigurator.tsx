@@ -96,8 +96,8 @@ export function LensConfigurator({ basePrice, productId, category, onColorChange
       if (lensType === "BIFOCAL") total += (PRICING.BIFOCAL.ORGANICO_BLANCO || 0);
       if (lensType === "MULTIFOCAL") total += (PRICING.MULTIFOCAL.SMART_FREE || 0);
       
-      // Teñido applies to Monofocal, Bifocal, None. Free for Multifocal.
-      if (lensType !== "MULTIFOCAL" && lensType !== null) {
+      // Teñido applies to all configured vision options in the sun flow
+      if (lensType !== null) {
         total += PRICING.EXTRAS.TINT;
       }
     } else {
@@ -258,8 +258,8 @@ export function LensConfigurator({ basePrice, productId, category, onColorChange
                         selected={lensType === "MULTIFOCAL"} 
                         onClick={() => { setLensType("MULTIFOCAL"); setTreatment("SMART_FREE"); setStep(4); }} 
                         title="Multifocal Teñido" 
-                        desc="Digital Smart Free (Teñido Bonificado)." 
-                        price={`+$${(PRICING.MULTIFOCAL.SMART_FREE).toLocaleString()}`} 
+                        desc="Digital Smart Free + Teñido." 
+                        price={`+$${(PRICING.MULTIFOCAL.SMART_FREE + PRICING.EXTRAS.TINT).toLocaleString()}`} 
                       />
                     </div>
                   </>
@@ -429,19 +429,38 @@ export function LensConfigurator({ basePrice, productId, category, onColorChange
               <span className="font-mono font-bold">${basePrice.toLocaleString('es-AR')}</span>
             </div>
             
-            {lensType && lensType !== "NONE" && (
+            {flowType === "SUN" && tintColor && tintStyle && lensType ? (
+              <>
+                <div className="flex justify-between text-stone-600">
+                  <span>
+                    Cristales de Sol ({lensType === "NONE" ? "Sin Aumento" : lensType}):
+                  </span>
+                  <span className="font-mono font-bold">
+                    ${(() => {
+                      if (lensType === "NONE" || lensType === "MONOFOCAL") return (PRICING.MONOFOCAL.ORGANICO_BLANCO || 0);
+                      if (lensType === "BIFOCAL") return (PRICING.BIFOCAL.ORGANICO_BLANCO || 0);
+                      if (lensType === "MULTIFOCAL") return (PRICING.MULTIFOCAL.SMART_FREE || 0);
+                      return 0;
+                    })().toLocaleString('es-AR')}
+                  </span>
+                </div>
+                <div className="flex justify-between text-stone-600">
+                  <span>Teñido de Cristal ({tintColor} - {tintStyle}):</span>
+                  <span className="font-mono font-bold">
+                    ${(PRICING.EXTRAS.TINT || 0).toLocaleString('es-AR')}
+                  </span>
+                </div>
+              </>
+            ) : null}
+
+            {flowType === "CLEAR" && lensType && lensType !== "NONE" && (
               <div className="flex justify-between text-stone-600">
                 <span>
-                  Cristales {flowType === "SUN" ? "de Sol" : ""} ({lensType} {treatment ? `- ${treatment.replace('_', ' ')}` : ''}):
+                  Cristales ({lensType} {treatment ? `- ${treatment.replace(/_/g, ' ')}` : ''}):
                 </span>
-                <span className="font-mono font-bold">${(calculateTotal() - basePrice).toLocaleString('es-AR')}</span>
-              </div>
-            )}
-
-            {flowType === "SUN" && tintColor && (
-              <div className="flex justify-between text-stone-600">
-                <span>Tinte de Color ({tintColor} {tintStyle ? `- ${tintStyle}` : ''}):</span>
-                <span className="text-[#1b4332] font-bold">Bonificado</span>
+                <span className="font-mono font-bold">
+                  ${(calculateTotal() - basePrice).toLocaleString('es-AR')}
+                </span>
               </div>
             )}
             

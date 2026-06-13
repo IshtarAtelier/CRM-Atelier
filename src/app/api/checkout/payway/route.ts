@@ -93,7 +93,7 @@ export async function POST(req: Request) {
     // 4. Enviar email de confirmación (asincrónico, usando sendEmail centralizado)
     const isTransfer = customer.paymentMethod === 'TRANSFER';
     const emailTotal = isTransfer ? total * 0.85 : total;
-    const hasCrystals = items.some((item: any) => item.lensConfig?.lensType && item.lensConfig.lensType !== "NONE");
+    const hasCrystals = items.some((item: any) => item.lensConfig && (item.lensConfig.lensType !== "NONE" || item.lensConfig.color));
     const whatsappPhone = WHATSAPP_PHONE;
     
     const itemsHtml = items.map((item: any) => `
@@ -101,7 +101,14 @@ export async function POST(req: Request) {
         <td style="padding: 15px 0; border-bottom: 1px solid #eeeeee;">
           <p style="margin: 0; font-size: 14px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; color: #333;">${item.brand || 'ATELIER'}</p>
           <p style="margin: 5px 0 0; font-size: 16px; color: #000;">${item.model}</p>
-          ${item.lensConfig ? `<p style="margin: 5px 0 0; font-size: 12px; color: #666;">Cristales: ${item.lensConfig.lensType} - ${item.lensConfig.treatment}</p>` : ''}
+          ${item.lensConfig && (item.lensConfig.lensType !== "NONE" || item.lensConfig.color) ? `
+            <p style="margin: 5px 0 0; font-size: 12px; color: #666;">
+              Cristales: ${item.lensConfig.lensType === "NONE" ? "Sin Aumento" : item.lensConfig.lensType} 
+              ${item.lensConfig.treatment ? `- ${item.lensConfig.treatment.replace(/_/g, ' ')}` : ''}
+              ${item.lensConfig.color ? `<br/>Tinte: ${item.lensConfig.color}` : ''}
+              ${item.lensConfig.prescriptionFile ? `<br/>Receta: ${item.lensConfig.prescriptionFile}` : ''}
+            </p>
+          ` : ''}
         </td>
         <td style="padding: 15px 0; border-bottom: 1px solid #eeeeee; text-align: right; font-size: 14px;">
           $${(item.price * item.quantity).toLocaleString("es-AR")}

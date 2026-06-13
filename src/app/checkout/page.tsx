@@ -18,7 +18,7 @@ export default function CheckoutPage() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
 
-  const hasCrystals = items.some(item => item.lensConfig?.lensType && item.lensConfig.lensType !== "NONE");
+  const hasCrystals = items.some(item => item.lensConfig && (item.lensConfig.lensType !== "NONE" || item.lensConfig.color));
 
   const [formData, setFormData] = useState({
     email: "",

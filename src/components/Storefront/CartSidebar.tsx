@@ -79,20 +79,22 @@ export function CartSidebar() {
                             <Trash2 className="w-4 h-4" />
                           </button>
                         </div>
-                        {item.lensConfig && item.lensConfig.lensType !== "NONE" && (
+                        {item.lensConfig && (item.lensConfig.lensType !== "NONE" || item.lensConfig.color) && (
                           <div className="mt-2 flex flex-col gap-1">
                             <p className="text-[10px] text-stone-600 uppercase tracking-widest font-bold">
-                              {item.lensConfig.lensType} {item.lensConfig.treatment && `+ ${item.lensConfig.treatment.replace(/_/g, ' ')}`}
+                              {item.lensConfig.lensType === "NONE" ? "SIN AUMENTO" : item.lensConfig.lensType} {item.lensConfig.treatment && `+ ${item.lensConfig.treatment.replace(/_/g, ' ')}`}
                             </p>
-                            {item.lensColor && (
+                            {item.lensConfig.color && (
                               <p className="text-[9px] text-stone-500 uppercase tracking-widest flex items-center gap-1">
-                                <span className="w-2 h-2 rounded-full border border-stone-300" style={{ backgroundColor: item.lensColor }} />
-                                Color de Tinte
+                                {item.lensColor && (
+                                  <span className="w-2 h-2 rounded-full border border-stone-300" style={{ backgroundColor: item.lensColor }} />
+                                )}
+                                Tinte: {item.lensConfig.color}
                               </p>
                             )}
                             {item.lensConfig.prescriptionFile && (
                               <p className="text-[9px] text-green-600 uppercase tracking-widest flex items-center gap-1">
-                                ✓ Receta Adjunta
+                                ✓ Receta: {item.lensConfig.prescriptionFile}
                               </p>
                             )}
                           </div>
@@ -118,7 +120,7 @@ export function CartSidebar() {
                         </div>
                         <div className="text-right">
                           <p className="text-sm font-bold">${(item.price * item.quantity).toLocaleString("es-AR")}</p>
-                          {(!item.lensConfig || item.lensConfig.lensType === "NONE") && (
+                          {(!item.lensConfig || (item.lensConfig.lensType === "NONE" && !item.lensConfig.color)) && (
                             <button
                               onClick={() => setConfiguringItemId(item.id)}
                               className="text-[9px] uppercase tracking-widest font-bold text-blue-600 hover:text-blue-800 underline mt-1"

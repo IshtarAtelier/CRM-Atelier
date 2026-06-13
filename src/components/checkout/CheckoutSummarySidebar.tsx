@@ -19,8 +19,19 @@ export function CheckoutSummarySidebar({ items, getCartTotal, formData, webSetti
             <div className="flex-1">
               <p className="text-[11px] font-bold uppercase tracking-widest text-stone-500 mb-0.5">{item.brand}</p>
               <p className="text-sm font-medium leading-tight mb-1">{item.model}</p>
-              {item.lensConfig?.lensType && item.lensConfig.lensType !== "NONE" && (
-                 <p className="text-[10px] text-stone-400">Cristales: {item.lensConfig.lensType} {item.lensConfig.treatment}</p>
+              {item.lensConfig && (item.lensConfig.lensType !== "NONE" || item.lensConfig.color) && (
+                <div className="mt-1 flex flex-col gap-0.5 text-[10px] text-stone-400">
+                  <p>
+                    Cristales: {item.lensConfig.lensType === "NONE" ? "Sin Aumento" : item.lensConfig.lensType}
+                    {item.lensConfig.treatment && ` + ${item.lensConfig.treatment.replace(/_/g, ' ')}`}
+                  </p>
+                  {item.lensConfig.color && (
+                    <p>Tinte: {item.lensConfig.color}</p>
+                  )}
+                  {item.lensConfig.prescriptionFile && (
+                    <p className="text-green-600 font-medium">✓ Receta: {item.lensConfig.prescriptionFile}</p>
+                  )}
+                </div>
               )}
               <p className="text-sm font-bold mt-1">${(item.price * item.quantity).toLocaleString("es-AR")}</p>
             </div>
