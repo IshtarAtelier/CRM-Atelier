@@ -11,6 +11,7 @@ import { FloatingWhatsApp } from "@/components/Storefront/FloatingWhatsApp";
 import { PaymentOptions } from "@/components/Storefront/PaymentOptions";
 import { ProductFilters } from "@/components/Storefront/ProductFilters";
 import { resolveStorageUrl } from "@/lib/utils/storage";
+import { WHATSAPP_PHONE } from "@/lib/constants";
 
 const CATEGORIES = ["Todo", "Receta", "Sol", "XL", "Clip-On", "Contacto"];
 
@@ -179,6 +180,13 @@ export function TiendaClient({
                   >
                     {/* Imagen */}
                     <div className="bg-[#f5f5f5] aspect-square overflow-hidden mb-4 relative">
+                      {/* Badge Urgencia / Escasez */}
+                      {p.stock !== undefined && p.stock > 0 && p.stock <= 3 && (
+                        <span className="absolute top-3 right-3 z-10 bg-red-650 text-white text-[7.5px] font-black uppercase tracking-[0.15em] px-2.5 py-1 rounded shadow-md animate-pulse">
+                          Últimas {p.stock} u.
+                        </span>
+                      )}
+
                       {imgUrl ? (
                         <div className="absolute inset-0 flex items-center justify-center">
                           <Image
@@ -231,6 +239,33 @@ export function TiendaClient({
                         <p className="text-[9px] text-stone-350 dark:text-stone-600">
                           Precio de lista: ${(p.price || 0).toLocaleString("es-AR")}
                         </p>
+
+                        {/* Sellos de Confianza (Trust Badges) */}
+                        <div className="flex flex-wrap gap-1 mt-2">
+                          <span className="text-[6.5px] md:text-[7.5px] font-black uppercase tracking-wider bg-stone-50 border border-stone-200/50 text-stone-500 px-1.5 py-0.5 rounded-sm">6 Cuotas</span>
+                          <span className="text-[6.5px] md:text-[7.5px] font-black uppercase tracking-wider bg-stone-50 border border-stone-200/50 text-stone-500 px-1.5 py-0.5 rounded-sm">Envío Gratis</span>
+                          <span className="text-[6.5px] md:text-[7.5px] font-black uppercase tracking-wider bg-amber-50/50 border border-amber-500/20 text-[#b08f4c] px-1.5 py-0.5 rounded-sm font-semibold">Garantía</span>
+                          <span className="text-[6.5px] md:text-[7.5px] font-black uppercase tracking-wider bg-emerald-50/50 border border-emerald-500/20 text-emerald-700 px-1.5 py-0.5 rounded-sm font-semibold">15% OFF</span>
+                        </div>
+
+                        {/* Botones de acción */}
+                        <div className="mt-4 flex items-center gap-2">
+                          <span className="flex-1 text-[8px] font-black uppercase tracking-widest py-2 bg-black text-white hover:bg-stone-800 transition-colors rounded-full text-center">
+                            Ver detalles
+                          </span>
+                          <button
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              const productModelName = `${p.brand || ''} ${p.model || p.name}`.trim();
+                              const text = `Hola Atelier! Me interesa el modelo ${productModelName} y me gustaría recibir asesoramiento.`;
+                              window.open(`https://wa.me/${WHATSAPP_PHONE}?text=${encodeURIComponent(text)}`, "_blank");
+                            }}
+                            className="flex-1 text-[8px] font-black uppercase tracking-widest py-2 border border-stone-200 text-stone-600 hover:border-black hover:text-black transition-colors rounded-full text-center cursor-pointer bg-white"
+                          >
+                            Consultar
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </Link>
@@ -256,7 +291,7 @@ export function TiendaClient({
       </main>
 
       <StorefrontFooter />
-      <FloatingWhatsApp />
+      <FloatingWhatsApp message="¡Hola Atelier! Estoy recorriendo la tienda online y me gustaría recibir asesoramiento personalizado." />
     </div>
   );
 }

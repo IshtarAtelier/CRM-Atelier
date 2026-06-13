@@ -10,6 +10,8 @@ import { HomeConfiguratorSection } from "@/components/Storefront/HomeConfigurato
 import { HomeMacroFilm } from "@/components/Storefront/HomeMacroFilm";
 import { HomeStorePreview } from "@/components/Storefront/HomeStorePreview";
 import { HomeWhyChooseUs } from "@/components/Storefront/HomeWhyChooseUs";
+import { HomeRecommendationQuiz } from "@/components/Storefront/HomeRecommendationQuiz";
+import { ExitIntentPopup } from "@/components/Storefront/ExitIntentPopup";
 import { prisma } from "@/lib/db";
 import { resolveStorageUrl } from "@/lib/utils/storage";
 
@@ -77,7 +79,10 @@ export default async function Home() {
           : (wp.images.length > 0 
               ? resolveStorageUrl(wp.images[0])
               : (wp.product.imagenesCatalogo.length > 0 ? resolveStorageUrl(wp.product.imagenesCatalogo[0]) : '/images/og-image.jpg')),
-        slug: wp.slug
+        slug: wp.slug,
+        stock: wp.product.stock,
+        brand: wp.product.brand,
+        model: wp.product.model
       }))
     : [];
 
@@ -240,6 +245,9 @@ export default async function Home() {
       {/* ═══════════════════════════════════════════════ */}
       <HomeMacroFilm />
 
+      {/* ASISTENTE RECOMENDADOR / QUIZ */}
+      <HomeRecommendationQuiz />
+
       {/* ═══════════════════════════════════════════════ */}
       {/* LOCAL PREVIEW — Boutique Cerro de las Rosas     */}
       {/* ═══════════════════════════════════════════════ */}
@@ -250,6 +258,7 @@ export default async function Home() {
       {/* ═══════════════════════════════════════════════ */}
       <StorefrontFooter />
       <FloatingWhatsApp />
+      <ExitIntentPopup />
     </div>
   );
 }

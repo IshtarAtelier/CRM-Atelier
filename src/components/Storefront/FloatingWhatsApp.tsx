@@ -5,7 +5,7 @@ import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon";
 import { useState, useEffect } from "react";
 import { WHATSAPP_PHONE } from "@/lib/constants";
 
-export function FloatingWhatsApp() {
+export function FloatingWhatsApp({ message, productName }: { message?: string; productName?: string } = {}) {
   const [isVisible, setIsVisible] = useState(false);
 
   // Solo mostrar después de un par de segundos para que no sea intrusivo al cargar la página
@@ -16,7 +16,14 @@ export function FloatingWhatsApp() {
     return () => clearTimeout(timer);
   }, []);
 
-  const WHATSAPP_MESSAGE = encodeURIComponent("¡Hola Atelier! Me gustaría hacer una consulta.");
+  let defaultText = "¡Hola Atelier! Me gustaría hacer una consulta.";
+  if (productName) {
+    defaultText = `¡Hola! Tengo dudas sobre el modelo ${productName} y me gustaría recibir asesoramiento.`;
+  } else if (message) {
+    defaultText = message;
+  }
+
+  const WHATSAPP_MESSAGE = encodeURIComponent(defaultText);
   const WHATSAPP_URL = `https://wa.me/${WHATSAPP_PHONE}?text=${WHATSAPP_MESSAGE}`;
 
   if (!isVisible) return null;

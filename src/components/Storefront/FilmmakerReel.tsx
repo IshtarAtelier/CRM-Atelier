@@ -147,11 +147,19 @@ export function FilmmakerReel() {
             exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.8, delay: 0.3 }}
           >
-            {/* Local SEO Badge */}
-            <div className="flex items-center gap-1.5 mb-3 select-none">
+            {/* Local SEO & Google Review Badges */}
+            <div className="flex flex-wrap items-center gap-2 mb-3 select-none">
               <span className="text-[9px] font-black uppercase tracking-[0.2em] bg-white/10 text-white px-2.5 py-1.5 backdrop-blur-md rounded-full flex items-center gap-1">
                 <span className="text-amber-500 text-[10px]">📍</span> Cerro de las Rosas, Córdoba
               </span>
+              <a 
+                href="https://www.google.com/maps?cid=14830223812501661125"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[9px] font-black uppercase tracking-[0.2em] bg-white/10 hover:bg-white/20 text-white px-2.5 py-1.5 backdrop-blur-md rounded-full flex items-center gap-1 transition-colors"
+              >
+                <span className="text-amber-500">★</span> 5.0 Google (89+ reseñas) · Verificada
+              </a>
             </div>
 
             {/* Credit line */}

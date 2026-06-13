@@ -11,7 +11,7 @@ import { FloatingWhatsApp } from "@/components/Storefront/FloatingWhatsApp";
 import { PaymentOptions } from "@/components/Storefront/PaymentOptions";
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Camera, User, UserPlus, Share2, ChevronDown, Truck, Package, MapPin, ShieldCheck, FileText, Star } from "lucide-react";
+import { Camera, User, UserPlus, Share2, ChevronDown, Truck, Package, MapPin, ShieldCheck, FileText, Star, CreditCard, Percent } from "lucide-react";
 import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon";
 import { useCart } from "@/store/useCart";
 import { resolveStorageUrl } from "@/lib/utils/storage";
@@ -165,10 +165,34 @@ export function ProductClient({
               <span className="text-[10px] text-stone-400 font-mono bg-stone-100 px-2 py-1 rounded-sm">
                 SKU: {product.id?.substring(0, 8).toUpperCase() || 'ATELIER'}
               </span>
-              <span className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-green-600 bg-green-50 px-2 py-1 rounded-sm">
-                <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
-                En Stock
-              </span>
+              {product.stock !== undefined && product.stock !== null ? (
+                product.stock <= 0 ? (
+                  <span className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-red-650 bg-red-50 px-2 py-1 rounded-sm">
+                    <span className="w-1.5 h-1.5 rounded-full bg-red-600"></span>
+                    Agotado
+                  </span>
+                ) : product.stock <= 3 ? (
+                  <span className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-red-655 bg-red-50 px-2.5 py-1 rounded-sm animate-pulse font-extrabold">
+                    <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-ping"></span>
+                    ¡Últimas {product.stock} unidades!
+                  </span>
+                ) : product.stock <= 6 ? (
+                  <span className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-amber-600 bg-amber-50 px-2 py-1 rounded-sm">
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                    Stock Limitado ({product.stock} u.)
+                  </span>
+                ) : (
+                  <span className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-green-600 bg-green-50 px-2 py-1 rounded-sm">
+                    <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
+                    En Stock
+                  </span>
+                )
+              ) : (
+                <span className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-green-600 bg-green-50 px-2 py-1 rounded-sm">
+                  <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
+                  En Stock
+                </span>
+              )}
             </motion.div>
 
             {variants && variants.length > 1 && (
@@ -497,21 +521,26 @@ export function ProductClient({
             </a>
 
             {/* Sellos de Confianza (Trust Badges) */}
-            <div className="mt-6 pt-6 border-t border-[#e5e5e5] grid grid-cols-3 gap-2">
+            <div className="mt-6 pt-6 border-t border-[#e5e5e5] grid grid-cols-2 sm:grid-cols-4 gap-4">
               <div className="flex flex-col items-center text-center p-1">
                 <ShieldCheck className="w-5 h-5 text-stone-700 mb-1.5" />
-                <span className="text-[9px] font-black uppercase tracking-wider text-stone-800">Garantía total</span>
-                <span className="text-[9px] text-stone-400 mt-0.5 leading-tight">Adaptación asegurada en tus cristales</span>
+                <span className="text-[9px] font-black uppercase tracking-wider text-stone-800">Garantía</span>
+                <span className="text-[9px] text-stone-400 mt-0.5 leading-tight text-center">Adaptación en cristales</span>
+              </div>
+              <div className="flex flex-col items-center text-center p-1">
+                <CreditCard className="w-5 h-5 text-stone-700 mb-1.5" />
+                <span className="text-[9px] font-black uppercase tracking-wider text-stone-800">6 Cuotas</span>
+                <span className="text-[9px] text-stone-400 mt-0.5 leading-tight text-center">Sin interés en la web</span>
               </div>
               <div className="flex flex-col items-center text-center p-1">
                 <Truck className="w-5 h-5 text-stone-700 mb-1.5" />
                 <span className="text-[9px] font-black uppercase tracking-wider text-stone-800">Envío Gratis</span>
-                <span className="text-[9px] text-stone-400 mt-0.5 leading-tight">Asegurado a todo el país</span>
+                <span className="text-[9px] text-stone-400 mt-0.5 leading-tight text-center">A todo el país sin cargo</span>
               </div>
               <div className="flex flex-col items-center text-center p-1">
-                <FileText className="w-5 h-5 text-stone-700 mb-1.5" />
-                <span className="text-[9px] font-black uppercase tracking-wider text-stone-800">Recetas Oficiales</span>
-                <span className="text-[9px] text-stone-400 mt-0.5 leading-tight">Aceptamos todas las coberturas</span>
+                <Percent className="w-5 h-5 text-stone-700 mb-1.5" />
+                <span className="text-[9px] font-black uppercase tracking-wider text-stone-800">15% OFF</span>
+                <span className="text-[9px] text-stone-400 mt-0.5 leading-tight text-center">Efectivo/Transferencia</span>
               </div>
             </div>
           </div>
@@ -552,7 +581,7 @@ export function ProductClient({
 
       <StorefrontFooter />
 
-      <FloatingWhatsApp />
+      <FloatingWhatsApp productName={`${product.brand} ${product.model}`} />
 
       {/* Modal Configurador de Cristales para la vista de producto */}
       {showConfigurator && (
