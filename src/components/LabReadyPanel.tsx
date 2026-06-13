@@ -47,7 +47,7 @@ export default function LabReadyPanel({ orders, onClose, onRefresh }: LabReadyPa
                     <Factory className="w-6 h-6 animate-pulse" />
                     <div>
                         <h3 className="font-black text-stone-800 dark:text-white uppercase tracking-tighter italic text-xl">
-                            Fabricados
+                            Finalizados
                         </h3>
                         <p className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">
                             Listos en laboratorio · Pendientes de retirar
@@ -84,9 +84,13 @@ export default function LabReadyPanel({ orders, onClose, onRefresh }: LabReadyPa
 
                                     <div className="flex-1 min-w-0 pr-24 md:pr-40">
                                         <div className="flex items-center gap-2 mb-1">
-                                            <p className="font-black text-stone-800 dark:text-stone-200 text-sm tracking-tight uppercase truncate">
+                                            <Link 
+                                                href={`/admin/contactos/${order.client?.id}`}
+                                                onClick={onClose}
+                                                className="font-black text-stone-800 dark:text-stone-200 text-sm tracking-tight uppercase truncate hover:text-emerald-500 hover:underline transition-colors"
+                                            >
                                                 {order.client?.name || 'Cliente'}
-                                            </p>
+                                            </Link>
                                             {order.labOrderNumber && (
                                                 <span className="px-2 py-0.5 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-[9px] font-black rounded-lg shrink-0">
                                                     #{order.labOrderNumber}
