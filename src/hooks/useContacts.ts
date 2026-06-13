@@ -172,13 +172,26 @@ export function useContacts(activeTab: ContactStatus, searchQuery: string, favor
 
     const addInteraction = async (id: string, type: string, content: string) => {
         try {
+            if (type === 'STORE_VISIT') {
+                setContacts(prev => prev.map(c => c.id === id ? { ...c, hasVisitedStore: true } : c));
+            }
             const res = await fetch(`/api/contacts/${id}/interactions`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ type, content })
             });
+            if (res.ok) {
+                await fetchContacts();
+            } else {
+                if (type === 'STORE_VISIT') {
+                    await fetchContacts();
+                }
+            }
             return res.ok;
         } catch (err) {
+            if (type === 'STORE_VISIT') {
+                await fetchContacts();
+            }
             return false;
         }
     };
