@@ -1,6 +1,8 @@
-import Link from "next/link";
 import { Metadata } from "next";
 import { AccordionItem } from "@/components/Storefront/Accordion";
+import { CristalHero } from "@/components/cristales/CristalHero";
+import { CristalFeatures } from "@/components/cristales/CristalFeatures";
+import { CristalCTA } from "@/components/cristales/CristalCTA";
 
 export const metadata: Metadata = {
   title: "Blue UV Filter System | Atelier Óptica",
@@ -11,47 +13,25 @@ export const metadata: Metadata = {
 export default function BlueUvPage() {
   return (
     <div className="bg-[#faf8f5]">
-      <section className="relative w-full pt-10 pb-20 px-6 md:pt-16 md:pb-28 bg-[#faf8f5]">
-        <div className="max-w-5xl mx-auto text-center">
-          <p className="text-[11px] font-bold tracking-[0.2em] uppercase text-black/50 mb-6">Higiene Visual Digital</p>
-          <h1 className="text-4xl md:text-6xl font-black tracking-tight mb-8">
-            Blue UV Filter System
-          </h1>
-          <p className="text-lg md:text-xl text-black/70 max-w-3xl mx-auto leading-relaxed font-light">
+      <CristalHero 
+        preTitle="Higiene Visual Digital"
+        title="Blue UV Filter System"
+        description={
+          <>
             El fin de los reflejos azules antiestéticos.
             <br className="hidden md:block" />
             Atrás quedaron los antiguos filtros &quot;Blue Cut&quot; que hacían que tus cristales se vieran azules y el mundo amarillento. La nueva tecnología <strong>Blue UV Capture</strong> de Essilor protege tu retina manteniendo el lente estéticamente translúcido.
-          </p>
-        </div>
-      </section>
+          </>
+        }
+      />
 
-      <div className="w-full bg-black py-4 overflow-hidden border-y border-white/10">
-        <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-6 text-center md:text-left">
-          <div className="flex items-center gap-3">
-            <span className="text-white text-xl">📱</span>
-            <div>
-              <h4 className="text-white font-bold text-sm">Filtro Selectivo</h4>
-              <p className="text-white/60 text-xs mt-0.5">Bloquea solo la luz nociva azul-violeta</p>
-            </div>
-          </div>
-          <div className="hidden md:block w-px h-10 bg-white/20"></div>
-          <div className="flex items-center gap-3">
-            <span className="text-white text-xl">🌙</span>
-            <div>
-              <h4 className="text-white font-bold text-sm">Ciclo Circadiano</h4>
-              <p className="text-white/60 text-xs mt-0.5">Deja pasar la luz azul-turquesa beneficiosa</p>
-            </div>
-          </div>
-          <div className="hidden md:block w-px h-10 bg-white/20"></div>
-          <div className="flex items-center gap-3">
-            <span className="text-white text-xl">💎</span>
-            <div>
-              <h4 className="text-white font-bold text-sm">Transparencia</h4>
-              <p className="text-white/60 text-xs mt-0.5">Sin el molesto tono azul superficial</p>
-            </div>
-          </div>
-        </div>
-      </div>
+      <CristalFeatures 
+        features={[
+          { icon: "📱", title: "Filtro Selectivo", subtitle: "Bloquea solo la luz nociva azul-violeta" },
+          { icon: "🌙", title: "Ciclo Circadiano", subtitle: "Deja pasar la luz azul-turquesa beneficiosa" },
+          { icon: "💎", title: "Transparencia", subtitle: "Sin el molesto tono azul superficial" },
+        ]}
+      />
 
       <section className="w-full py-24 px-6">
         <div className="max-w-4xl mx-auto">
@@ -105,20 +85,16 @@ export default function BlueUvPage() {
         </div>
       </section>
 
-      <section className="w-full bg-white py-24 px-6 border-t border-[#e8e2db]">
-        <div className="max-w-3xl mx-auto text-center">
-          <h2 className="text-3xl font-bold mb-6">Terminá tu día de trabajo sin agotamiento</h2>
-          <p className="text-lg text-black/70 mb-10 leading-relaxed">
+      <CristalCTA 
+        title="Terminá tu día de trabajo sin agotamiento"
+        description={
+          <>
             Sentir los ojos ardientes o pesados después de la jornada laboral no es normal, es fatiga inducida. Al filtrar la parte nociva del espectro y relajar la acomodación ocular, tu rendimiento cambiará por completo.
-          </p>
-          <Link 
-            href={`/contacto?motivo=${encodeURIComponent("Consulta por cristales Blue UV para pantallas")}`}
-            className="inline-block bg-[#283f5a] hover:bg-[#1e3047] text-white px-10 py-4 rounded-full font-bold transition-all shadow-lg hover:shadow-xl hover:-translate-y-1"
-          >
-            Proteger mis ojos hoy
-          </Link>
-        </div>
-      </section>
+          </>
+        }
+        buttonText="Proteger mis ojos hoy"
+        whatsappMotivo="Consulta por cristales Blue UV para pantallas"
+      />
     </div>
   );
 }

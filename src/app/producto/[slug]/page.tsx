@@ -12,6 +12,7 @@ const DEMO_PRODUCT = {
   id: "atelier-carey-vintage",
   brand: "ATELIER",
   model: "9030 (GLD)",
+  modelCode: "9030 (GLD)",
   price: 55000,
   stock: 5,
   imagenesCatalogo: null,
@@ -154,6 +155,64 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
     notFound();
   }
 
+  // 1) Sibling variants query
+  let variants: any[] = [];
+  try {
+    const baseModel = product.modelCode 
+      ? product.modelCode.split(/[\s-]/)[0] 
+      : product.model?.split(/[\s-]/)[0];
+      
+    if (baseModel && baseModel.length > 2) {
+      const siblings = await prisma.webProduct.findMany({
+        where: {
+          isActive: true,
+          product: {
+            publishToWeb: true,
+            model: { startsWith: baseModel, mode: 'insensitive' }
+          }
+        },
+        include: { product: true }
+      });
+      
+      variants = siblings.map(s => {
+        const modelName = s.product.model || '';
+        const colorMatch = modelName.match(/\b(C\d+[-]?\d*)\b/i) || modelName.match(/\(([^)]+)\)/);
+        const colorName = colorMatch ? colorMatch[1] : modelName.replace(baseModel, '').trim();
+        return {
+          slug: s.slug,
+          colorCode: colorName || 'Default',
+          imageUrl: s.images.length > 0 ? s.images[0] : (s.product.imagenesCatalogo?.[0] || null)
+        };
+      });
+    }
+  } catch (err) {
+    console.error("Error fetching variants:", err);
+  }
+
+  // 2) Related products query
+  let relatedProducts: any[] = [];
+  try {
+    const siblings = await prisma.webProduct.findMany({
+      where: {
+        isActive: true,
+        category: product.category,
+        productId: { not: product.id }
+      },
+      include: { product: true },
+      take: 4
+    });
+    relatedProducts = siblings.map(wp => ({
+      id: wp.product.id,
+      brand: wp.product.brand || 'Atelier',
+      model: wp.name || wp.product.model || '',
+      price: wp.product.price,
+      slug: wp.slug,
+      imageUrl: wp.images.length > 0 ? wp.images[0] : (wp.product.imagenesCatalogo?.[0] || '/images/placeholder.svg')
+    }));
+  } catch (err) {
+    console.error("Error fetching related products:", err);
+  }
+
   // Resolve all product images to absolute URLs
   const resolveAbsolute = (url: string) => {
     const resolved = resolveStorageUrl(url);
@@ -256,7 +315,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }}
       />
-      <ProductClient product={product} />
+      <ProductClient product={product} variants={variants} relatedProducts={relatedProducts} />
     </>
   );
 }

@@ -172,7 +172,7 @@ const posts: Record<string, Post> = {
     metaDescription: 'La miopía infantil avanza rápidamente. Conocé la tecnología de desenfoque periférico y los lentes Stellest para frenar el avance de la miopía en Córdoba.',
     date: '2026-05-19',
     category: 'Pediatría',
-    imageUrl: '/images/blog/vidriera-atelier.jpg',
+    imageUrl: '/images/blog/vidriera-atelier.webp',
     content: (
       <>
         <p className="lead">Hasta hace poco tiempo, cuando a un niño se le diagnosticaba miopía, la única solución era recetar anteojos convencionales. El problema de esta solución clásica es que solo corrige el síntoma (la visión borrosa), pero no ataca la causa: el crecimiento desmedido del globo ocular.</p>
@@ -206,7 +206,7 @@ const posts: Record<string, Post> = {
     metaDescription: 'Conocé los tratamientos Crizal de Essilor. Antirreflex premium que repele polvo, agua y rayaduras. Encontralos en Atelier Óptica Córdoba.',
     date: '2026-05-20',
     category: 'Cristales',
-    imageUrl: '/images/blog/mostrador-marmol.jpg',
+    imageUrl: '/images/blog/mostrador-marmol.webp',
     content: (
       <>
         <p className="lead">Cuando te comprás un par de anteojos nuevos, el oftalmólogo o el óptico siempre te pregunta: <em>"¿Los querés con antirreflex?"</em>. La respuesta corta es siempre <strong>SÍ</strong>. Pero la respuesta larga es que no todos los antirreflejos son iguales. Hoy te contamos por qué la tecnología <strong>Crizal de Essilor</strong> es el estándar de oro en protección visual.</p>
@@ -239,7 +239,7 @@ const posts: Record<string, Post> = {
     metaDescription: 'Cansancio visual, ojos secos o dolor de cabeza por usar pantallas. Conocé los lentes Essilor Eyezen con boost de lectura. Atelier Óptica Córdoba.',
     date: '2026-05-19',
     category: 'Tecnología Essilor',
-    imageUrl: '/images/blog/muestrario-smart-lens.jpg',
+    imageUrl: '/images/blog/muestrario-smart-lens.webp',
     content: (
       <>
         <p className="lead">Si tenés entre 20 y 45 años, es muy probable que pases más de 8 horas al día mirando la pantalla del celular, la notebook o el televisor. Todo este esfuerzo de enfoque cercano genera fatiga visual, ojos secos y dolor de cabeza. Muchos buscan "lentes de descanso", pero <strong>Essilor Eyezen</strong> redefine por completo este concepto.</p>
@@ -269,7 +269,7 @@ const posts: Record<string, Post> = {
     metaDescription: 'Evitá que la miopía de tus hijos avance. Lentes Stellest de Essilor en Córdoba. Tecnología comprobada clínicamente para frenar la miopía infantil.',
     date: '2026-05-18',
     category: 'Pediatría',
-    imageUrl: '/images/blog/vidriera-atelier.jpg',
+    imageUrl: '/images/blog/vidriera-atelier.webp',
     content: (
       <>
         <p className="lead">La miopía infantil es hoy en día una epidemia mundial. Debido al uso excesivo de pantallas y la falta de luz solar natural, los niños desarrollan miopía cada vez más temprano, y sus graduaciones empeoran año tras año. Afortunadamente, Essilor desarrolló una solución médica revolucionaria: los lentes <strong>Stellest</strong>.</p>
@@ -304,7 +304,7 @@ const posts: Record<string, Post> = {
     metaDescription: 'Conocé el Varilux XR Series en Atelier Óptica Córdoba. El primer lente multifocal con inteligencia artificial que predice el comportamiento visual.',
     date: '2026-05-20',
     category: 'Tecnología Varilux',
-    imageUrl: '/images/blog/local-varilux.jpg',
+    imageUrl: '/images/blog/local-varilux.webp',
     content: (
       <>
         <p className="lead">El mundo de la óptica acaba de dar el salto tecnológico más grande de la última década. Essilor, el creador del lente multifocal, acaba de lanzar su obra maestra: <strong>Varilux XR Series</strong>. En <strong>Atelier Óptica Córdoba</strong> ya somos Centro Experto y te contamos por qué este cristal va a cambiar tu vida.</p>
@@ -340,7 +340,7 @@ const posts: Record<string, Post> = {
     metaDescription: 'Eliminá el dolor de cuello en la oficina con los multifocales Varilux Comfort Max. Ergonomía visual comprobada. Conseguilos en Atelier Óptica.',
     date: '2026-05-19',
     category: 'Salud Visual',
-    imageUrl: '/images/blog/mostrador-marmol.jpg',
+    imageUrl: '/images/blog/mostrador-marmol.webp',
     content: (
       <>
         <p className="lead">Terminás tu jornada de trabajo en la oficina y el dolor en las cervicales es insoportable. Vas al kinesiólogo, cambiás la silla, pero el problema persiste. Si usás lentes multifocales, la causa de tu dolor de cuello podría estar, literalmente, frente a tus ojos.</p>
@@ -373,7 +373,7 @@ const posts: Record<string, Post> = {
     metaDescription: 'Comparativa real entre lentes multifocales genéricos económicos y la línea Varilux de Essilor. Por qué el campo visual lo cambia todo.',
     date: '2026-05-18',
     category: 'Cristales',
-    imageUrl: '/images/blog/muestrario-smart-lens.jpg',
+    imageUrl: '/images/blog/muestrario-smart-lens.webp',
     content: (
       <>
         <p className="lead">Llegás a la óptica con tu receta de presbicia y te pasan dos presupuestos. Uno por un multifocal genérico "promoción" y otro por un <strong>Varilux original</strong>. La diferencia de precio es notable. La primera pregunta que se te viene a la mente es: <em>¿No son todos vidrios con aumento? ¿Vale la pena pagar más?</em></p>
@@ -662,7 +662,7 @@ const posts: Record<string, Post> = {
     metaDescription: 'Encontrá los mejores anteojos recetados en Córdoba. Asesoramiento estético y técnico para elegir marcos y cristales a medida.',
     date: '2026-04-15',
     category: 'Tendencias',
-    imageUrl: '/images/blog/arte-venus.jpg',
+    imageUrl: '/images/blog/arte-venus.webp',
     content: (
       <>
         <p className="lead">Los <strong>anteojos recetados</strong> ya no son solo una necesidad médica; son un accesorio clave en tu estilo diario. Encontrar el armazón ideal puede resaltar tus facciones y darte una apariencia renovada.</p>
@@ -694,7 +694,7 @@ const posts: Record<string, Post> = {
     metaDescription: 'Tu óptica de confianza en Cerro de las Rosas, Córdoba. Anteojos de sol, multifocales, lentes de contacto y reparación de armazones.',
     date: '2026-04-10',
     category: 'Nuestra Óptica',
-    imageUrl: '/images/blog/fachada-ladrillo.jpg',
+    imageUrl: '/images/blog/fachada-ladrillo.webp',
     content: (
       <>
         <p className="lead">Ubicados en el corazón de Cerro de las Rosas, <strong>Atelier Óptica Córdoba</strong> nació con la misión de transformar la experiencia de ir a la óptica. Creemos que cada paciente merece tiempo, escucha y soluciones a medida.</p>
@@ -723,7 +723,7 @@ const posts: Record<string, Post> = {
     metaDescription: 'Encontrá los lentes de sol más buscados del 2026 en Córdoba. Te contamos qué armazones son tendencia y por qué elegir cristales con protección UV400.',
     date: '2026-04-25',
     category: 'Tendencias',
-    imageUrl: '/images/blog/local-varilux.jpg',
+    imageUrl: '/images/blog/local-varilux.webp',
     content: (
       <>
         <p className="lead">Llegó el momento de renovar tus <strong>lentes de sol</strong>, pero la moda no lo es todo. En esta nota te contamos qué se usa en 2026 y por qué la salud de tus ojos debe ser siempre la prioridad.</p>
@@ -754,7 +754,7 @@ const posts: Record<string, Post> = {
     metaDescription: 'Aprendé a leer tu receta oftalmológica. Explicación fácil de qué es la esfera (miopía/hipermetropía), el cilindro (astigmatismo) y la adición.',
     date: '2026-04-22',
     category: 'Salud Visual',
-    imageUrl: '/images/blog/muestrario-smart-lens.jpg',
+    imageUrl: '/images/blog/muestrario-smart-lens.webp',
     content: (
       <>
         <p className="lead">Salís del consultorio del oftalmólogo, mirás el papel y parece que está escrito en otro idioma: <em>OD, OI, Esf -1.25, Cil -0.50, Eje 180°</em>. No te preocupes, en Atelier Óptica te enseñamos a <strong>leer tu receta oftalmológica</strong> en simples pasos.</p>
@@ -788,7 +788,7 @@ const posts: Record<string, Post> = {
     metaDescription: 'Evitá el cansancio visual, ojos secos y dolores de cabeza con cristales Blue Light Cut. Anteojos de descanso para la computadora en Córdoba.',
     date: '2026-04-26',
     category: 'Tecnología',
-    imageUrl: '/images/blog/mostrador-marmol.jpg',
+    imageUrl: '/images/blog/mostrador-marmol.webp',
     content: (
       <>
         <p className="lead">Si pasás más de 6 horas al día frente a la computadora, el celular o la tablet, es probable que hayas experimentado dolores de cabeza, ardor en los ojos o problemas para dormir. ¿La solución? Los lentes con <strong>Filtro Azul (Blue Light Cut)</strong>.</p>
@@ -816,7 +816,7 @@ const posts: Record<string, Post> = {
     metaDescription: 'Lentes que se oscurecen al sol. Especialistas en cristales Transitions en Córdoba. 2 en 1: anteojos recetados y de sol al mismo tiempo.',
     date: '2026-04-27',
     category: 'Cristales',
-    imageUrl: '/images/blog/muestrario-smart-lens.jpg',
+    imageUrl: '/images/blog/muestrario-smart-lens.webp',
     content: (
       <>
         <p className="lead">¿Estás cansado de tener que cambiarte de anteojos cada vez que salís a la calle y vuelve a salir el sol? Los cristales <strong>Fotocromáticos (Transitions)</strong> son la respuesta definitiva a este problema.</p>
@@ -844,7 +844,7 @@ const posts: Record<string, Post> = {
     metaDescription: 'Óptica infantil en Córdoba. Armazones flexibles, irrompibles y livianos para niños. Consejos sobre el primer control oftalmológico pediátrico.',
     date: '2026-04-28',
     category: 'Pediatría',
-    imageUrl: '/images/blog/vidriera-atelier.jpg',
+    imageUrl: '/images/blog/vidriera-atelier.webp',
     content: (
       <>
         <p className="lead">Cuidar la visión de los más chicos es vital para su desarrollo, su rendimiento escolar y su autoestima. En Atelier Óptica te contamos cuáles son las señales de alerta y cómo elegir sus primeros lentes.</p>
@@ -878,7 +878,7 @@ const posts: Record<string, Post> = {
     metaDescription: 'Paso a paso para limpiar tus lentes sin dañar el antirreflex. No uses servilletas de papel ni alcohol. Consejos de óptica.',
     date: '2026-04-29',
     category: 'Mantenimiento',
-    imageUrl: '/images/blog/mostrador-marmol.jpg',
+    imageUrl: '/images/blog/mostrador-marmol.webp',
     content: (
       <>
         <p className="lead">Hiciste una gran inversión en tus anteojos y en cristales con antirreflex de alta calidad. Sin embargo, limpiarlos con la punta de la remera o con papel higiénico es el camino más rápido para arruinarlos. Te enseñamos a cuidarlos.</p>
@@ -911,7 +911,7 @@ const posts: Record<string, Post> = {
     metaDescription: '¿Qué multifocal comprar? Diferencias entre lentes progresivos Varilux, Novar y opciones genéricas. Campos visuales y tecnología de tallado explicada.',
     date: '2026-05-02',
     category: 'Cristales',
-    imageUrl: '/images/blog/local-varilux.jpg',
+    imageUrl: '/images/blog/local-varilux.webp',
     content: (
       <>
         <p className="lead">Si fuiste a una óptica a averiguar por lentes multifocales (progresivos), seguramente te topaste con presupuestos que van desde opciones muy económicas hasta valores premium. La pregunta del millón es: <strong>¿Vale la pena pagar más por una marca reconocida?</strong></p>
@@ -941,7 +941,7 @@ const posts: Record<string, Post> = {
     metaDescription: '¿Te marean tus lentes progresivos? Explicamos las causas comunes (altura mal tomada, error de adaptación) y cómo re-calibrarlos para ver perfecto.',
     date: '2026-05-04',
     category: 'Salud Visual',
-    imageUrl: '/images/blog/fachada-ladrillo.jpg',
+    imageUrl: '/images/blog/fachada-ladrillo.webp',
     content: (
       <>
         <p className="lead">Hacerse lentes multifocales es un gran paso, pero muchas personas los abandonan en un cajón tras la primera semana porque sienten que "el piso se mueve", los escalones parecen más altos de lo normal o sienten mareos al mirar de reojo.</p>
@@ -974,7 +974,7 @@ const posts: Record<string, Post> = {
     metaDescription: 'En Atelier Óptica garantizamos la adaptación de tus multifocales gracias a nuestra toma de medidas profesional, keratometría y prueba de probines en Cerro de las Rosas.',
     date: '2026-05-06',
     category: 'Nuestra Óptica',
-    imageUrl: '/images/blog/arte-monalisa.jpg',
+    imageUrl: '/images/blog/arte-monalisa.webp',
     content: (
       <>
         <p className="lead">Uno de los mayores miedos al invertir en lentes multifocales es que no sirvan o terminen guardados en un estuche. En <strong>Atelier Óptica</strong> sabemos que el secreto del éxito no está solo en la marca del cristal, sino en un proceso de calibración clínica exhaustiva. Te contamos por qué nuestra tasa de adaptación es increíblemente superior.</p>
@@ -1009,7 +1009,7 @@ const posts: Record<string, Post> = {
     metaDescription: 'Perdele el miedo a los lentes multifocales. Te damos 3 consejos prácticos y relajados para acostumbrar tus ojos al lente progresivo en tiempo récord.',
     date: '2026-05-08',
     category: 'Salud Visual',
-    imageUrl: '/images/blog/anteojos-rosa-pastel.jpg',
+    imageUrl: '/images/blog/anteojos-rosa-pastel.webp',
     content: (
       <>
         <p className="lead">Es súper común que el primer día que te ponés unos lentes multifocales sientas que todo está un poco "raro". ¡Tranquilo! Tu cerebro es increíblemente inteligente y solo necesita un par de días para descifrar el nuevo mapa. No hace falta que te estreses, la adaptación es un proceso súper natural.</p>
@@ -1038,7 +1038,7 @@ const posts: Record<string, Post> = {
     metaDescription: '¿Qué es mejor, bifocal o multifocal? Explicamos por qué los lentes progresivos reemplazaron al bifocal: mejor estética, visión intermedia y adaptación.',
     date: '2026-05-10',
     category: 'Cristales',
-    imageUrl: '/images/blog/arte-monalisa.jpg',
+    imageUrl: '/images/blog/arte-monalisa.webp',
     content: (
       <>
         <p className="lead">Durante décadas, cuando a alguien le costaba leer de cerca, la única solución era usar lentes <strong>bifocales</strong>. Seguramente los recuerdes: esos anteojos con una "ventanita" o rayita visible en la parte de abajo. Hoy, la tecnología ha avanzado tanto que los lentes <strong>multifocales (progresivos)</strong> los han reemplazado casi por completo. ¿Por qué deberías hacer el cambio?</p>
@@ -1103,20 +1103,20 @@ const posts: Record<string, Post> = {
     metaDescription: 'Descubrí Atelier Óptica, la óptica boutique del Cerro de las Rosas. Armazones de diseño exclusivo en un ambiente cálido que respira arte y estilo.',
     date: '2026-05-15',
     category: 'Nuestra Óptica',
-    imageUrl: '/images/blog/vidriera-atelier.jpg',
+    imageUrl: '/images/blog/vidriera-atelier.webp',
     content: (
       <>
         <p className="lead">Ir a la óptica siempre fue un trámite clínico, aburrido y rodeado de mostradores fríos. Cuando fundamos <strong>Atelier Óptica</strong> en el Cerro de las Rosas, decidimos romper con esa tradición. Queríamos crear un espacio donde elegir tus anteojos se sienta como visitar una galería de arte o un café boutique.</p>
 
         <div className="my-10 rounded-3xl overflow-hidden shadow-xl border border-stone-100 dark:border-stone-800">
-          <img src="/images/blog/fachada-ladrillo.jpg" alt="Fachada de ladrillo de Atelier Óptica en Córdoba con farol y plantas" className="w-full h-auto object-cover" />
+          <img src="/images/blog/fachada-ladrillo.webp" alt="Fachada de ladrillo de Atelier Óptica en Córdoba con farol y plantas" className="w-full h-auto object-cover" />
         </div>
 
         <h2>Un espacio pensado para inspirar</h2>
         <p>Desde el momento en que cruzás nuestra fachada de ladrillo visto, rodeada de plantas y luz cálida, te das cuenta de que no estás en una óptica tradicional. En nuestro salón, los típicos exhibidores blancos fueron reemplazados por cálidas estanterías de madera, luces indirectas y detalles de interiorismo que invitan a relajarse.</p>
 
         <div className="my-10 rounded-3xl overflow-hidden shadow-xl border border-stone-100 dark:border-stone-800">
-          <img src="/images/blog/mostrador-marmol.jpg" alt="Mostrador de mármol y estanterías iluminadas con anteojos" className="w-full h-auto object-cover" />
+          <img src="/images/blog/mostrador-marmol.webp" alt="Mostrador de mármol y estanterías iluminadas con anteojos" className="w-full h-auto object-cover" />
         </div>
 
         <p>Nuestro gran mostrador de mármol y el hermoso espejo circular dorado (uno de los favoritos de nuestros clientes) son el escenario perfecto para que te pruebes colecciones enteras sin ningún apuro. Creemos que un anteojo no es solo una prótesis médica; es el accesorio de diseño más importante que vas a llevar en tu rostro todos los días.</p>
@@ -1126,10 +1126,10 @@ const posts: Record<string, Post> = {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 my-10">
           <div className="rounded-3xl overflow-hidden shadow-lg border border-stone-100 dark:border-stone-800">
-            <img src="/images/blog/arte-monalisa.jpg" alt="Cuadro de la Mona Lisa con lentes de sol y armazones Mistral" className="w-full h-full object-cover" />
+            <img src="/images/blog/arte-monalisa.webp" alt="Cuadro de la Mona Lisa con lentes de sol y armazones Mistral" className="w-full h-full object-cover" />
           </div>
           <div className="rounded-3xl overflow-hidden shadow-lg border border-stone-100 dark:border-stone-800">
-            <img src="/images/blog/arte-venus.jpg" alt="Cuadro del Nacimiento de Venus con lentes rojos y armazones Hanover" className="w-full h-full object-cover" />
+            <img src="/images/blog/arte-venus.webp" alt="Cuadro del Nacimiento de Venus con lentes rojos y armazones Hanover" className="w-full h-full object-cover" />
           </div>
         </div>
 
@@ -1148,27 +1148,27 @@ const posts: Record<string, Post> = {
     metaDescription: 'Encontrá armazones de diseño exclusivo en Atelier Óptica Córdoba. Colecciones de autor, lentes de sol de moda y tecnología Smart Lens.',
     date: '2026-05-18',
     category: 'Tendencias',
-    imageUrl: '/images/blog/anteojos-rosa-pastel.jpg',
+    imageUrl: '/images/blog/anteojos-rosa-pastel.webp',
     content: (
       <>
         <p className="lead">Cuando decimos que somos una óptica boutique, lo decimos en serio. En Atelier Óptica no vas a encontrar paredes interminables de armazones genéricos. Nuestro equipo realiza una <strong>curaduría de diseño</strong>, seleccionando cuidadosamente cada marco que ingresa a nuestro local.</p>
 
         <div className="my-10 rounded-3xl overflow-hidden shadow-xl border border-stone-100 dark:border-stone-800">
-          <img src="/images/blog/local-varilux.jpg" alt="Fachada exterior de Atelier Óptica mostrando el neón y el gran banner de Varilux" className="w-full h-auto object-cover" />
+          <img src="/images/blog/local-varilux.webp" alt="Fachada exterior de Atelier Óptica mostrando el neón y el gran banner de Varilux" className="w-full h-auto object-cover" />
         </div>
 
         <h2>Más que un anteojo, una declaración de estilo</h2>
         <p>Entendemos que tus anteojos son lo primero que la gente mira cuando te habla. Por eso, trabajamos con marcas que entienden de moda tanto como nosotros. Desde los clásicos metálicos geométricos (como los de la línea <strong>Hanover</strong> o <strong>Mistral</strong>) hasta los atrevidos acetatos de colores vibrantes y formas envolventes de <strong>Vulk</strong> o <strong>Rusty</strong>.</p>
 
         <div className="my-10 rounded-3xl overflow-hidden shadow-xl border border-stone-100 dark:border-stone-800">
-          <img src="/images/blog/anteojos-rosa-pastel.jpg" alt="Detalle de armazones color rosa pastel sobre estantería de madera clara" className="w-full h-auto object-cover" />
+          <img src="/images/blog/anteojos-rosa-pastel.webp" alt="Detalle de armazones color rosa pastel sobre estantería de madera clara" className="w-full h-auto object-cover" />
         </div>
 
         <h2>Color y Tecnología: La revolución Smart Lens</h2>
         <p>Pero el armazón es solo la mitad de la estética. Los cristales también juegan un papel visual fundamental. En nuestro mostrador vas a encontrar muestrarios reales de colores y tonalidades de cristales, como la línea <strong>Smart Lens</strong> y tecnología de <strong>Varilux</strong>. ¿Querés unos lentes de descanso con un tinte ámbar o lila súper sutil? Nosotros te lo armamos a medida.</p>
 
         <div className="my-10 rounded-3xl overflow-hidden shadow-xl border border-stone-100 dark:border-stone-800">
-          <img src="/images/blog/muestrario-smart-lens.jpg" alt="Muestrario de cristales de colores Smart Lens sobre el mostrador de mármol" className="w-full h-auto object-cover" />
+          <img src="/images/blog/muestrario-smart-lens.webp" alt="Muestrario de cristales de colores Smart Lens sobre el mostrador de mármol" className="w-full h-auto object-cover" />
         </div>
 
         <h2>Asesoramiento Estético Personalizado</h2>

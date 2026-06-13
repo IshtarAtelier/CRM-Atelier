@@ -1,5 +1,6 @@
 "use client";
 import Image from "next/image";
+import Link from "next/link";
 import { WHATSAPP_PHONE } from "@/lib/constants";
 
 import { LensConfigurator } from "@/components/Storefront/LensConfigurator";
@@ -10,12 +11,20 @@ import { FloatingWhatsApp } from "@/components/Storefront/FloatingWhatsApp";
 import { PaymentOptions } from "@/components/Storefront/PaymentOptions";
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Camera, User, UserPlus, Share2, ChevronDown, Truck, Package, MapPin, ShieldCheck, FileText } from "lucide-react";
+import { Camera, User, UserPlus, Share2, ChevronDown, Truck, Package, MapPin, ShieldCheck, FileText, Star } from "lucide-react";
 import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon";
 import { useCart } from "@/store/useCart";
 import { resolveStorageUrl } from "@/lib/utils/storage";
 
-export function ProductClient({ product }: { product: any }) {
+export function ProductClient({ 
+  product, 
+  variants = [], 
+  relatedProducts = [] 
+}: { 
+  product: any; 
+  variants?: any[]; 
+  relatedProducts?: any[]; 
+}) {
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [showConfigurator, setShowConfigurator] = useState(false);
   
@@ -161,6 +170,54 @@ export function ProductClient({ product }: { product: any }) {
                 En Stock
               </span>
             </motion.div>
+
+            {variants && variants.length > 1 && (
+              <div className="mb-6">
+                <span className="text-[10px] text-stone-500 font-bold uppercase tracking-wider block mb-2.5">
+                  Variantes de Color:
+                </span>
+                <div className="flex flex-wrap gap-2.5">
+                  {variants.map((v) => {
+                    const isActive = v.slug === product.slug;
+                    return (
+                      <Link
+                        key={v.slug}
+                        href={`/producto/${v.slug}`}
+                        className={`group relative flex items-center justify-center rounded-full border p-1 transition-all duration-300 ${
+                          isActive 
+                            ? 'border-black scale-110 shadow-sm bg-white' 
+                            : 'border-stone-200 hover:border-black bg-stone-50'
+                        }`}
+                        title={`Color: ${v.colorCode}`}
+                      >
+                        {v.imageUrl ? (
+                          <div className="w-8 h-8 rounded-full overflow-hidden relative bg-white">
+                            <Image
+                              src={resolveStorageUrl(v.imageUrl)}
+                              alt={v.colorCode}
+                              fill
+                              sizes="32px"
+                              style={{ objectFit: 'contain' }}
+                              className="transition-transform duration-300 group-hover:scale-110"
+                            />
+                          </div>
+                        ) : (
+                          <span className="text-[9px] font-mono font-bold uppercase px-2 py-1">
+                            {v.colorCode}
+                          </span>
+                        )}
+                        {isActive && (
+                          <span className="absolute -bottom-5 left-1/2 -translate-x-1/2 text-[8px] font-black uppercase tracking-wider text-black bg-white px-1.5 py-0.5 rounded shadow-sm border border-stone-100 whitespace-nowrap z-20 pointer-events-none">
+                            {v.colorCode}
+                          </span>
+                        )}
+                      </Link>
+                    );
+                  })}
+                </div>
+                <div className="h-4"></div>
+              </div>
+            )}
             
             <motion.p 
               initial={{ y: 20, opacity: 0 }}
@@ -177,6 +234,21 @@ export function ProductClient({ product }: { product: any }) {
               cashDiscount={cashDiscount} 
               installmentsText={installmentsText} 
             />
+
+            {/* Envío gratis badge/banner con tiempo estimado */}
+            <div className="flex items-center gap-3.5 px-4 py-3 bg-[#eefaf4] border border-[#d2f4e1] rounded-xl mb-6 shadow-sm animate-fade-in">
+              <div className="p-2 bg-white rounded-full text-[#1b4332] shadow-sm">
+                <Truck className="w-4 h-4" />
+              </div>
+              <div>
+                <span className="text-[11px] font-bold text-[#1b4332] block uppercase tracking-wider">
+                  Envío Gratis a todo el país
+                </span>
+                <span className="text-[11px] text-[#2c6e49] block">
+                  Llega gratis a tu domicilio o sucursal de correo en <strong>3 a 5 días hábiles</strong>.
+                </span>
+              </div>
+            </div>
             
               {/* E-Commerce Accordions */}
             <motion.div
@@ -265,9 +337,9 @@ export function ProductClient({ product }: { product: any }) {
                           <button 
                             onClick={() => {
                               if (zipCode.length > 2) {
-                                setShippingResult(`¡Envío Gratis vía Correo Argentino! Llega en aprox. 3 a 5 días hábiles a tu domicilio.`);
+                                setShippingResult("calculated");
                               } else {
-                                setShippingResult("Ingresá un código postal válido.");
+                                setShippingResult("invalid");
                               }
                             }}
                             className="bg-black text-white px-4 py-2 text-[10px] font-bold uppercase tracking-widest hover:bg-stone-800 transition-colors"
@@ -275,10 +347,49 @@ export function ProductClient({ product }: { product: any }) {
                             Calcular
                           </button>
                         </div>
-                        {shippingResult && (
-                          <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} className="mt-3 p-3 bg-green-50 border border-green-200 text-green-800 text-xs flex gap-2 items-start">
-                            <MapPin className="w-4 h-4 shrink-0 mt-0.5" />
-                            <p>{shippingResult}</p>
+                        {shippingResult === "calculated" && (
+                          <motion.div 
+                            initial={{ opacity: 0, y: 5 }} 
+                            animate={{ opacity: 1, y: 0 }} 
+                            className="mt-4 p-4 bg-stone-50 border border-stone-200 text-stone-800 text-xs flex flex-col gap-3 rounded-lg"
+                          >
+                            <div className="flex gap-2 items-center font-bold text-black border-b border-stone-200 pb-2">
+                              <Truck className="w-4 h-4 text-[#1b4332]" />
+                              <span>Opciones de Envío Correo Argentino (Sin Cargo)</span>
+                            </div>
+                            
+                            <div className="space-y-3.5 divide-y divide-stone-100">
+                              <div className="flex flex-col gap-1 pt-1.5 first:pt-0">
+                                <div className="flex justify-between items-baseline">
+                                  <span className="font-bold text-stone-900">1. Envío a Domicilio</span>
+                                  <span className="text-[10px] font-bold text-[#1b4332] bg-green-50 px-2 py-0.5 rounded-sm">GRATIS</span>
+                                </div>
+                                <p className="text-[11px] text-stone-600 mt-1">
+                                  Llega a tu domicilio en <strong>3 a 5 días hábiles</strong> desde que se despacha.
+                                </p>
+                              </div>
+
+                              <div className="flex flex-col gap-1 pt-3">
+                                <div className="flex justify-between items-baseline">
+                                  <span className="font-bold text-stone-900">2. Envío a Sucursal Oficial</span>
+                                  <span className="text-[10px] font-bold text-[#1b4332] bg-green-50 px-2 py-0.5 rounded-sm">GRATIS</span>
+                                </div>
+                                <p className="text-[11px] text-stone-600 mt-1">
+                                  Retirás en la sucursal de Correo Argentino en <strong>3 a 5 días hábiles</strong> desde que se despacha.
+                                </p>
+                              </div>
+                            </div>
+
+                            <div className="mt-2 bg-[#fdfaf2] border border-[#f5ecd5] p-3 rounded text-[11px] text-[#856404] leading-relaxed">
+                              <p className="font-bold mb-1">⏰ Tiempos de preparación / despacho:</p>
+                              <p>• <strong>Solo Armazón / Anteojo de sol:</strong> Despacho en <strong>2 días hábiles</strong>.</p>
+                              <p>• <strong>Con Cristales Recetados:</strong> Calibrado y laboratorio en <strong>5 días hábiles</strong>.</p>
+                            </div>
+                          </motion.div>
+                        )}
+                        {shippingResult === "invalid" && (
+                          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mt-3 text-red-500 text-xs">
+                            Por favor, ingresá un código postal válido.
                           </motion.div>
                         )}
                         <p className="text-[10px] text-stone-500 mt-4 leading-relaxed">
@@ -371,9 +482,9 @@ export function ProductClient({ product }: { product: any }) {
               href={`https://wa.me/${whatsappPhoneId}?text=${encodeURIComponent(`¡Hola! Quiero comprar el anteojo ${product.brand || ''} ${product.model || ''} por $${(product.price || 0).toLocaleString("es-AR")}. ¿Me pasarían los datos para transferencia/link de pago?`)}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="w-full bg-[#1b4332] text-white hover:bg-[#0f2a1f] px-8 py-4 text-[11px] font-bold uppercase tracking-widest transition-colors flex items-center justify-center gap-2 rounded-sm shadow-sm"
+              className="w-full border border-[#1b4332] text-[#1b4332] bg-white hover:bg-[#1b4332]/5 px-8 py-4 text-[11px] font-bold uppercase tracking-widest transition-colors flex items-center justify-center gap-2 rounded-sm"
             >
-              <WhatsAppIcon className="w-4 h-4 fill-white" /> Comprar directo por WhatsApp
+              <WhatsAppIcon className="w-4 h-4 fill-[#1b4332]" /> Comprar directo por WhatsApp
             </a>
 
             <a 
@@ -404,10 +515,42 @@ export function ProductClient({ product }: { product: any }) {
               </div>
             </div>
           </div>
-          
-          <StorefrontFooter />
         </div>
       </div>
+
+      {relatedProducts && relatedProducts.length > 0 && (
+        <div className="px-8 lg:px-14 pb-12 bg-white">
+          <div className="border-t border-[#e5e5e5] pt-12">
+            <h3 className="text-[10px] font-black uppercase tracking-widest text-black mb-6">Productos que te pueden interesar</h3>
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              {relatedProducts.map((p, idx) => (
+                <Link 
+                  key={idx} 
+                  href={`/producto/${p.slug}`}
+                  className="group block bg-white border border-[#f0f0f0] hover:border-stone-300 p-4 transition-all duration-300 rounded-lg"
+                >
+                  <div className="aspect-square relative overflow-hidden bg-stone-50 mb-3 rounded-md">
+                    <Image 
+                      src={resolveStorageUrl(p.imageUrl)} 
+                      alt={`${p.brand} ${p.model}`} 
+                      fill 
+                      sizes="(max-width: 768px) 50vw, 20vw"
+                      className="object-contain p-2 group-hover:scale-105 transition-transform duration-500" 
+                    />
+                  </div>
+                  <p className="text-[9px] text-stone-400 font-bold uppercase tracking-wider">{p.brand}</p>
+                  <h4 className="text-xs font-bold text-stone-900 truncate uppercase mt-0.5">{p.model}</h4>
+                  <p className="text-xs text-stone-600 font-medium mt-1">
+                    ${(p.price || 0).toLocaleString("es-AR")}
+                  </p>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      <StorefrontFooter />
 
       <FloatingWhatsApp />
 

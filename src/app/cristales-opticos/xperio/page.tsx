@@ -1,6 +1,8 @@
-import Link from "next/link";
 import { Metadata } from "next";
 import { AccordionItem } from "@/components/Storefront/Accordion";
+import { CristalHero } from "@/components/cristales/CristalHero";
+import { CristalFeatures } from "@/components/cristales/CristalFeatures";
+import { CristalCTA } from "@/components/cristales/CristalCTA";
 
 export const metadata: Metadata = {
   title: "Xperio Polarizados Premium | Atelier Óptica",
@@ -11,47 +13,25 @@ export const metadata: Metadata = {
 export default function XperioPage() {
   return (
     <div className="bg-[#faf8f5]">
-      <section className="relative w-full pt-10 pb-20 px-6 md:pt-16 md:pb-28 bg-[#faf8f5]">
-        <div className="max-w-5xl mx-auto text-center">
-          <p className="text-[11px] font-bold tracking-[0.2em] uppercase text-black/50 mb-6">Performance Outdoor</p>
-          <h1 className="text-4xl md:text-6xl font-black tracking-tight mb-8">
-            Xperio · Polarizados
-          </h1>
-          <p className="text-lg md:text-xl text-black/70 max-w-3xl mx-auto leading-relaxed font-light">
+      <CristalHero 
+        preTitle="Performance Outdoor"
+        title="Xperio · Polarizados"
+        description={
+          <>
             Mucho más que un &quot;lente oscuro&quot;.
             <br className="hidden md:block" />
             Mientras los lentes de sol normales solo oscurecen tu vista, la tecnología Xperio® actúa como una <strong>persiana óptica</strong> bloqueando los destellos peligrosos y cegadores de la luz reflejada.
-          </p>
-        </div>
-      </section>
+          </>
+        }
+      />
 
-      <div className="w-full bg-black py-4 overflow-hidden border-y border-white/10">
-        <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-6 text-center md:text-left">
-          <div className="flex items-center gap-3">
-            <span className="text-white text-xl">☀️</span>
-            <div>
-              <h4 className="text-white font-bold text-sm">Polarización Categ. 3</h4>
-              <p className="text-white/60 text-xs mt-0.5">Eliminación total del resplandor</p>
-            </div>
-          </div>
-          <div className="hidden md:block w-px h-10 bg-white/20"></div>
-          <div className="flex items-center gap-3">
-            <span className="text-white text-xl">🚘</span>
-            <div>
-              <h4 className="text-white font-bold text-sm">Seguridad Vial</h4>
-              <p className="text-white/60 text-xs mt-0.5">Recorta los destellos del asfalto húmedo</p>
-            </div>
-          </div>
-          <div className="hidden md:block w-px h-10 bg-white/20"></div>
-          <div className="flex items-center gap-3">
-            <span className="text-white text-xl">👓</span>
-            <div>
-              <h4 className="text-white font-bold text-sm">Alta Prescripción</h4>
-              <p className="text-white/60 text-xs mt-0.5">Disponibles en multifocales y altos aumentos</p>
-            </div>
-          </div>
-        </div>
-      </div>
+      <CristalFeatures 
+        features={[
+          { icon: "☀️", title: "Polarización Categ. 3", subtitle: "Eliminación total del resplandor" },
+          { icon: "🚘", title: "Seguridad Vial", subtitle: "Recorta los destellos del asfalto húmedo" },
+          { icon: "👓", title: "Alta Prescripción", subtitle: "Disponibles en multifocales y altos aumentos" },
+        ]}
+      />
 
       <section className="w-full py-24 px-6">
         <div className="max-w-4xl mx-auto">
@@ -118,20 +98,16 @@ export default function XperioPage() {
         </div>
       </section>
 
-      <section className="w-full bg-white py-24 px-6 border-t border-[#e8e2db]">
-        <div className="max-w-3xl mx-auto text-center">
-          <h2 className="text-3xl font-bold mb-6">Armá tu lente de sol ideal</h2>
-          <p className="text-lg text-black/70 mb-10 leading-relaxed">
+      <CristalCTA 
+        title="Armá tu lente de sol ideal"
+        description={
+          <>
             Elegí un buen armazón estilo aviador, deportivo o clásico grueso, y decinos tu receta. En Atelier transformamos cualquier gafa en el mejor lente de sol con aumento polarizado que hayas usado.
-          </p>
-          <Link 
-            href={`/contacto?motivo=${encodeURIComponent("Asesoramiento para armado de Lentes de Sol Polarizados Xperio")}`}
-            className="inline-block bg-[#283f5a] hover:bg-[#1e3047] text-white px-10 py-4 rounded-full font-bold transition-all shadow-lg hover:shadow-xl hover:-translate-y-1"
-          >
-            Armar mis lentes de Sol Xperio
-          </Link>
-        </div>
-      </section>
+          </>
+        }
+        buttonText="Armar mis lentes de Sol Xperio"
+        whatsappMotivo="Asesoramiento para armado de Lentes de Sol Polarizados Xperio"
+      />
     </div>
   );
 }

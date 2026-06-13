@@ -1,6 +1,8 @@
-import Link from "next/link";
 import { Metadata } from "next";
 import { AccordionItem } from "@/components/Storefront/Accordion";
+import { CristalHero } from "@/components/cristales/CristalHero";
+import { CristalFeatures } from "@/components/cristales/CristalFeatures";
+import { CristalCTA } from "@/components/cristales/CristalCTA";
 
 export const metadata: Metadata = {
   title: "Transitions Inteligentes | Atelier Óptica",
@@ -11,47 +13,25 @@ export const metadata: Metadata = {
 export default function TransitionsPage() {
   return (
     <div className="bg-[#faf8f5]">
-      <section className="relative w-full pt-10 pb-20 px-6 md:pt-16 md:pb-28 bg-[#faf8f5]">
-        <div className="max-w-5xl mx-auto text-center">
-          <p className="text-[11px] font-bold tracking-[0.2em] uppercase text-black/50 mb-6">Lentes Inteligentes a la Luz</p>
-          <h1 className="text-4xl md:text-6xl font-black tracking-tight mb-8">
-            Transitions · Fotocromáticos
-          </h1>
-          <p className="text-lg md:text-xl text-black/70 max-w-3xl mx-auto leading-relaxed font-light">
+      <CristalHero 
+        preTitle="Lentes Inteligentes a la Luz"
+        title="Transitions · Fotocromáticos"
+        description={
+          <>
             Más que un cristal oscuro. Una gestión inteligente de la luz.
             <br className="hidden md:block" />
             No todos los fotocromáticos son iguales. Con tecnología matricial a nano-escala, la familia Transitions® se adapta a tu entorno de vida brindando protección y estética vibrante.
-          </p>
-        </div>
-      </section>
+          </>
+        }
+      />
 
-      <div className="w-full bg-black py-4 overflow-hidden border-y border-white/10">
-        <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-6 text-center md:text-left">
-          <div className="flex items-center gap-3">
-            <span className="text-white text-xl">⚡</span>
-            <div>
-              <h4 className="text-white font-bold text-sm">Velocidad Extrema</h4>
-              <p className="text-white/60 text-xs mt-0.5">Aclaramiento y oscurecimiento en segundos</p>
-            </div>
-          </div>
-          <div className="hidden md:block w-px h-10 bg-white/20"></div>
-          <div className="flex items-center gap-3">
-            <span className="text-white text-xl">🕶️</span>
-            <div>
-              <h4 className="text-white font-bold text-sm">Bloqueo UV 100%</h4>
-              <p className="text-white/60 text-xs mt-0.5">Incluso estando transparentes</p>
-            </div>
-          </div>
-          <div className="hidden md:block w-px h-10 bg-white/20"></div>
-          <div className="flex items-center gap-3">
-            <span className="text-white text-xl">🎨</span>
-            <div>
-              <h4 className="text-white font-bold text-sm">Style Colors</h4>
-              <p className="text-white/60 text-xs mt-0.5">8 colores vibrantes y de tendencia</p>
-            </div>
-          </div>
-        </div>
-      </div>
+      <CristalFeatures 
+        features={[
+          { icon: "⚡", title: "Velocidad Extrema", subtitle: "Aclaramiento y oscurecimiento en segundos" },
+          { icon: "🕶️", title: "Bloqueo UV 100%", subtitle: "Incluso estando transparentes" },
+          { icon: "🎨", title: "Style Colors", subtitle: "8 colores vibrantes y de tendencia" },
+        ]}
+      />
 
       <section className="w-full py-24 px-6">
         <div className="max-w-4xl mx-auto">
@@ -107,20 +87,16 @@ export default function TransitionsPage() {
         </div>
       </section>
 
-      <section className="w-full bg-white py-24 px-6 border-t border-[#e8e2db]">
-        <div className="max-w-3xl mx-auto text-center">
-          <h2 className="text-3xl font-bold mb-6">El fin de cargar con dos anteojos</h2>
-          <p className="text-lg text-black/70 mb-10 leading-relaxed">
+      <CristalCTA 
+        title="El fin de cargar con dos anteojos"
+        description={
+          <>
             Combinar tu receta multifocal o monofocal con tecnología Transitions te permite tener un anteojo &quot;Todo Terreno&quot;. Ya sea que salgas apurado de casa o cambies de ambiente de trabajo, tu visión siempre estará protegida sin esfuerzo.
-          </p>
-          <Link 
-            href={`/contacto?motivo=${encodeURIComponent("Asesoramiento tecnología Transitions")}`}
-            className="inline-block bg-[#283f5a] hover:bg-[#1e3047] text-white px-10 py-4 rounded-full font-bold transition-all shadow-lg hover:shadow-xl hover:-translate-y-1"
-          >
-            Quiero elegir mi color Transitions
-          </Link>
-        </div>
-      </section>
+          </>
+        }
+        buttonText="Quiero elegir mi color Transitions"
+        whatsappMotivo="Asesoramiento tecnología Transitions"
+      />
     </div>
   );
 }

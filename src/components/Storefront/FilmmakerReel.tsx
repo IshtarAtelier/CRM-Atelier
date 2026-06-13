@@ -3,12 +3,13 @@
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
+import Image from "next/image";
 import { WHATSAPP_PHONE } from "@/lib/constants";
 
 const FRAMES = [
   {
     id: "monalisa",
-    src: "/images/editorial/monalisa.png",
+    src: "/images/editorial/monalisa.webp",
     title: "La Gioconda",
     subtitle: "Acetato Negro · Edición Limitada",
     year: "S. XVI",
@@ -16,7 +17,7 @@ const FRAMES = [
   },
   {
     id: "venus",
-    src: "/images/editorial/filmmaker-venus.png",
+    src: "/images/editorial/filmmaker-venus.webp",
     title: "El Nacimiento",
     subtitle: "Montura Dorada · Geométrica",
     year: "S. XV",
@@ -24,7 +25,7 @@ const FRAMES = [
   },
   {
     id: "dali",
-    src: "/images/editorial/filmmaker-dali.png",
+    src: "/images/editorial/filmmaker-dali.webp",
     title: "La Persistencia",
     subtitle: "Marco Carei · Detalles en Oro",
     year: "S. XX",
@@ -32,7 +33,7 @@ const FRAMES = [
   },
   {
     id: "pearl",
-    src: "/images/editorial/filmmaker-pearl.png",
+    src: "/images/editorial/filmmaker-pearl.webp",
     title: "La Chica de la Perla",
     subtitle: "Wire Frame · Redondo",
     year: "S. XVII",
@@ -40,7 +41,7 @@ const FRAMES = [
   },
   {
     id: "frida",
-    src: "/images/editorial/filmmaker-frida.png",
+    src: "/images/editorial/filmmaker-frida.webp",
     title: "La Frida",
     subtitle: "Carey · Oversized",
     year: "S. XX",
@@ -104,14 +105,21 @@ export function FilmmakerReel() {
           transition={{ duration: 1.4, ease: [0.25, 0.1, 0.25, 1] }}
         >
           {/* Ken Burns slow zoom */}
-          <motion.img
-            src={frame.src}
-            alt={frame.title}
-            className="w-full h-full object-cover"
+          <motion.div
+            className="w-full h-full relative"
             initial={{ scale: 1 }}
             animate={{ scale: 1.06 }}
             transition={{ duration: 5, ease: "linear" }}
-          />
+          >
+            <Image
+              src={frame.src}
+              alt={frame.title}
+              fill
+              priority={current === 0}
+              className="object-cover"
+              sizes="100vw"
+            />
+          </motion.div>
           {/* Gradient overlays — cinematic vignette */}
           <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/10 to-black/40" />
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/30" />
@@ -225,12 +233,17 @@ export function FilmmakerReel() {
           <button
             key={f.id}
             onClick={() => goTo(idx)}
-            className={`w-14 h-10 rounded overflow-hidden border-2 transition-all duration-300 ${
+            className={`w-14 h-10 rounded overflow-hidden border-2 transition-all duration-300 relative ${
               idx === current ? "border-white opacity-100 scale-105" : "border-white/20 opacity-40 hover:opacity-70"
             }`}
           >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={f.src} alt={f.title} className="w-full h-full object-cover" />
+            <Image 
+              src={f.src} 
+              alt={f.title} 
+              fill
+              sizes="56px"
+              className="object-cover" 
+            />
           </button>
         ))}
       </div>

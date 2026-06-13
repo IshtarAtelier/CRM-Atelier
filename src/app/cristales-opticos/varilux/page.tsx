@@ -1,6 +1,8 @@
-import Link from "next/link";
 import { Metadata } from "next";
 import { AccordionItem } from "@/components/Storefront/Accordion";
+import { CristalHero } from "@/components/cristales/CristalHero";
+import { CristalFeatures } from "@/components/cristales/CristalFeatures";
+import { CristalCTA } from "@/components/cristales/CristalCTA";
 
 export const metadata: Metadata = {
   title: "Varilux Multifocales Avanzados | Atelier Óptica",
@@ -11,51 +13,26 @@ export const metadata: Metadata = {
 export default function VariluxPage() {
   return (
     <div className="bg-[#faf8f5]">
-      {/* HERO SECTION */}
-      <section className="relative w-full pt-10 pb-20 px-6 md:pt-16 md:pb-28 bg-[#faf8f5]">
-        <div className="max-w-5xl mx-auto text-center">
-          <p className="text-[11px] font-bold tracking-[0.2em] uppercase text-black/50 mb-6">Cristales Premium Essilor</p>
-          <h1 className="text-4xl md:text-6xl font-black tracking-tight mb-8">
-            Varilux · Multifocales
-          </h1>
-          <p className="text-lg md:text-xl text-black/70 max-w-3xl mx-auto leading-relaxed font-light">
+      <CristalHero 
+        preTitle="Cristales Premium Essilor"
+        title="Varilux · Multifocales"
+        description={
+          <>
             La lente progresiva #1 a nivel mundial.
             <br className="hidden md:block" />
             En Atelier no vendemos simplemente un cristal, diseñamos una <strong>solución visual personalizada</strong> utilizando la tecnología más avanzada de Essilor para que tu transición entre lejos y cerca sea invisible.
-          </p>
-        </div>
-      </section>
+          </>
+        }
+      />
 
-      {/* VALUE PROPOSITION STRIP */}
-      <div className="w-full bg-black py-4 overflow-hidden border-y border-white/10">
-        <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-6 text-center md:text-left">
-          <div className="flex items-center gap-3">
-            <span className="text-white text-xl">🧠</span>
-            <div>
-              <h4 className="text-white font-bold text-sm">IA Conductual</h4>
-              <p className="text-white/60 text-xs mt-0.5">Predicción de movimientos oculares</p>
-            </div>
-          </div>
-          <div className="hidden md:block w-px h-10 bg-white/20"></div>
-          <div className="flex items-center gap-3">
-            <span className="text-white text-xl">📐</span>
-            <div>
-              <h4 className="text-white font-bold text-sm">Medición Fina</h4>
-              <p className="text-white/60 text-xs mt-0.5">Centrados y alturas milimétricas</p>
-            </div>
-          </div>
-          <div className="hidden md:block w-px h-10 bg-white/20"></div>
-          <div className="flex items-center gap-3">
-            <span className="text-white text-xl">🤝</span>
-            <div>
-              <h4 className="text-white font-bold text-sm">Garantía Essilor</h4>
-              <p className="text-white/60 text-xs mt-0.5">Acompañamiento y adaptación asegurada</p>
-            </div>
-          </div>
-        </div>
-      </div>
+      <CristalFeatures 
+        features={[
+          { icon: "🧠", title: "IA Conductual", subtitle: "Predicción de movimientos oculares" },
+          { icon: "📐", title: "Medición Fina", subtitle: "Centrados y alturas milimétricas" },
+          { icon: "🤝", title: "Garantía Essilor", subtitle: "Acompañamiento y adaptación asegurada" },
+        ]}
+      />
 
-      {/* DEEP DIVE ACCORDION SECTION */}
       <section className="w-full py-24 px-6">
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-16">
@@ -127,23 +104,18 @@ export default function VariluxPage() {
         </div>
       </section>
 
-      {/* CALL TO ACTION */}
-      <section className="w-full bg-white py-24 px-6 border-t border-[#e8e2db]">
-        <div className="max-w-3xl mx-auto text-center">
-          <h2 className="text-3xl font-bold mb-6">El éxito está en la toma de medidas</h2>
-          <p className="text-lg text-black/70 mb-10 leading-relaxed">
+      <CristalCTA 
+        title="El éxito está en la toma de medidas"
+        description={
+          <>
             Podés tener el mejor cristal del mundo (Varilux XR), pero si la altura pupilar, la distancia nasopupilar o el ángulo pantoscópico del armazón no están calculados a la perfección por un profesional, no verás bien. 
             <br className="mt-4" />
             En <strong>Atelier</strong>, nuestro proceso de consulta asegura que tu inversión rinda al 100%.
-          </p>
-          <Link 
-            href={`/contacto?motivo=${encodeURIComponent("Asesoramiento experto para Multifocales Varilux")}`}
-            className="inline-block bg-[#283f5a] hover:bg-[#1e3047] text-white px-10 py-4 rounded-full font-bold transition-all shadow-lg hover:shadow-xl hover:-translate-y-1"
-          >
-            Reservar Asesoramiento Visual
-          </Link>
-        </div>
-      </section>
+          </>
+        }
+        buttonText="Reservar Asesoramiento Visual"
+        whatsappMotivo="Asesoramiento experto para Multifocales Varilux"
+      />
     </div>
   );
 }

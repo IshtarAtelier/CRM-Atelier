@@ -2,19 +2,23 @@
 
 import { useState, useEffect } from 'react';
 import {
-    FileText, TrendingUp, DollarSign, ShoppingBag, Users, Package,
-    Calendar, ArrowDown, ArrowUp, Minus, Loader2, CreditCard, Banknote,
-    PieChart, BarChart3, Printer, RefreshCw, ChevronDown, ChevronRight, Award, FlaskConical,
-    Plus, Trash2, Building2, Receipt, List, AlertCircle
+    FileText, TrendingUp, DollarSign, Package,
+    Calendar, ArrowDown, ArrowUp, RefreshCw, AlertCircle
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import DoctorCommissions from '@/components/DoctorCommissions';
-import { METHOD_LABELS } from '@/lib/constants';
+
+import { KPICard } from '@/components/admin/reports/KPICard';
+import { CostRow as ProfitLossChart } from '@/components/admin/reports/ProfitLossChart';
+import { SalesDetailSection } from '@/components/admin/reports/SalesDetailSection';
+import { TopPerformersSection } from '@/components/admin/reports/TopPerformersSection';
+import { LaboratoryStats } from '@/components/admin/reports/LaboratoryStats';
+import { VendorMetrics } from '@/components/admin/reports/VendorMetrics';
+import { DoctorCommissions } from '@/components/admin/reports/DoctorCommissions';
 
 // ── Types ─────────────────────────────────────
 
-interface FixedCost {
+export interface FixedCost {
     id: string;
     name: string;
     amount: number;
@@ -25,17 +29,17 @@ interface FixedCost {
     type?: string;
 }
 
-interface SaleDetailItem {
+export interface SaleDetailItem {
     name: string;
     type: string;
-    eye: string | null;
+    eye?: string;
     price: number;
     cost: number;
-    lab: string | null;
-    is2x1Free: boolean;
+    lab?: string;
+    is2x1Free?: boolean;
 }
 
-interface SaleDetail {
+export interface SaleDetail {
     id: string;
     fullId: string;
     date: string;
@@ -49,7 +53,7 @@ interface SaleDetail {
     platformFee: number;
     doctorFee: number;
     specialDiscount: number;
-    appliedPromo: string | null;
+    appliedPromo?: string;
     discounts: { cash: number; transfer: number; card: number; general: number };
     markup: number;
     netProfit: number;
@@ -89,18 +93,6 @@ interface ReportData {
     salesDetail: SaleDetail[];
 }
 
-const FIXED_COST_CATEGORIES = [
-    { id: 'CONTADORA', label: 'Contadora' },
-    { id: 'SUELDOS', label: 'Sueldos' },
-    { id: 'LIMPIEZA', label: 'Limpieza' },
-    { id: 'ALQUILER', label: 'Alquiler' },
-    { id: 'SERVICIOS', label: 'Servicios' },
-    { id: 'IMPUESTOS', label: 'Impuestos' },
-    { id: 'OTRO', label: 'Otro' },
-];
-
-
-
 // ── Helpers ────────────────────────────────────
 
 function getPresetDates(preset: string): { from: string; to: string } {
@@ -132,7 +124,7 @@ function getPresetDates(preset: string): { from: string; to: string } {
 
 // ── Page ──────────────────────────────────
 
-export default function ReportesPage() {
+export default function ReportsDashboard() {
     const [data, setData] = useState<ReportData | null>(null);
     const [loading, setLoading] = useState(true);
     const [dateFrom, setDateFrom] = useState('');
@@ -149,1225 +141,229 @@ export default function ReportesPage() {
     const fetchReport = async (from?: string, to?: string) => {
         setLoading(true);
         try {
+            const f = from || dateFrom;
+            const t = to || dateTo;
             const params = new URLSearchParams();
-            if (from) params.set('from', from);
-            if (to) params.set('to', to);
+            if (f) params.append('from', f);
+            if (t) params.append('to', t);
+
             const res = await fetch(`/api/reports?${params.toString()}`);
-            const json = await res.json();
-            
-            if (json.error) {
-                console.error('API Error fetching reports:', json.error);
-                setData(null);
-            } else {
-                setData(json);
+            if (res.ok) {
+                const report = await res.json();
+                setData(report);
             }
-        } catch (error) {
-            console.error('Error fetching report:', error);
-            setData(null);
+        } catch (err) {
+            console.error('Error fetching report', err);
+        } finally {
+            setLoading(false);
         }
-        setLoading(false);
     };
 
-    const applyPreset = (preset: string) => {
+    const handleApplyFilter = () => {
+        setActivePreset('');
+        fetchReport();
+    };
+
+    const handlePreset = (preset: string) => {
         setActivePreset(preset);
-        if (preset === 'all') {
-            setDateFrom('');
-            setDateTo('');
-            fetchReport();
-        } else {
-            const { from, to } = getPresetDates(preset);
-            setDateFrom(from);
-            setDateTo(to);
-            fetchReport(from, to);
-        }
+        const { from, to } = getPresetDates(preset);
+        setDateFrom(from);
+        setDateTo(to);
+        fetchReport(from, to);
     };
 
-    const applyCustomDates = () => {
-        setActivePreset('custom');
-        fetchReport(dateFrom, dateTo);
+    const formatCurrency = (val: number) => {
+        return new Intl.NumberFormat('es-AR', {
+            style: 'currency',
+            currency: 'ARS',
+            maximumFractionDigits: 0
+        }).format(val || 0);
     };
-
-    const handlePrint = () => {
-        window.print();
-    };
-
-    if (loading && !data) {
-        return (
-            <main className="p-4 lg:p-8 max-w-7xl mx-auto flex items-center justify-center min-h-[60vh]">
-                <div className="text-center">
-                    <Loader2 className="w-10 h-10 text-primary animate-spin mx-auto mb-4" />
-                    <p className="text-sm font-bold text-stone-400">Generando reporte...</p>
-                </div>
-            </main>
-        );
-    }
-
-    const s = data?.summary;
 
     return (
-        <main className="p-4 lg:p-8 max-w-7xl mx-auto animate-in fade-in duration-500 pb-20 print:p-4">
-            {/* Header */}
-            <div className="flex items-center justify-between mb-6 flex-wrap gap-4">
+        <main className="p-4 lg:p-8 max-w-7xl mx-auto space-y-8 pb-32">
+            {/* ── Header & Filters ── */}
+            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 mb-8 print:hidden">
                 <div>
-                    <h1 className="text-2xl lg:text-4xl font-black text-stone-800 dark:text-white tracking-tight flex items-center gap-3">
-                        <FileText className="w-9 h-9 text-primary" /> Reportes
-                    </h1>
-                    <p className="text-stone-400 text-sm mt-1 font-medium">
-                        Análisis de costos, ganancias y rentabilidad
-                    </p>
+                    <h1 className="text-3xl font-black text-stone-800 dark:text-white tracking-tight">Reporte Financiero</h1>
+                    <p className="text-stone-500 dark:text-stone-400 mt-2 font-medium">Análisis de rentabilidad, P&L y métricas operativas.</p>
                 </div>
-                <div className="flex items-center gap-3 print:hidden">
-                    <button
-                        onClick={() => fetchReport(dateFrom || undefined, dateTo || undefined)}
-                        className="p-3 bg-stone-100 dark:bg-stone-800 rounded-xl text-stone-500 hover:bg-stone-200 dark:hover:bg-stone-700 transition-all hover:scale-105"
-                        title="Actualizar"
-                    >
-                        <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-                    </button>
-                    <button
-                        onClick={handlePrint}
-                        className="px-5 py-3 bg-stone-900 dark:bg-white text-white dark:text-stone-900 rounded-xl text-xs font-black uppercase tracking-widest hover:scale-105 transition-all flex items-center gap-2"
-                    >
-                        <Printer className="w-4 h-4" /> Imprimir
-                    </button>
-                </div>
-            </div>
 
-            {/* Date Filters */}
-            <div className="bg-white dark:bg-stone-800 border-2 border-stone-100 dark:border-stone-700 rounded-2xl p-5 mb-8 print:hidden">
-                <div className="flex items-center gap-3 flex-wrap">
-                    <span className="text-[10px] font-black text-stone-400 uppercase tracking-widest mr-2">Período:</span>
-                    {[
-                        { key: 'all', label: 'Todo' },
-                        { key: 'month', label: 'Este Mes' },
-                        { key: 'last_month', label: 'Mes Anterior' },
-                        { key: 'quarter', label: 'Último Trimestre' },
-                        { key: 'year', label: 'Este Año' },
-                    ].map(p => (
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 bg-white/80 dark:bg-stone-800/80 p-3 rounded-2xl border border-stone-200/60 dark:border-stone-700/60 backdrop-blur-xl shadow-lg shadow-stone-200/20 dark:shadow-none">
+                    <div className="flex items-center gap-2 bg-stone-100/50 dark:bg-stone-900/50 p-1.5 rounded-xl">
                         <button
-                            key={p.key}
-                            onClick={() => applyPreset(p.key)}
-                            className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activePreset === p.key
-                                ? 'bg-stone-900 dark:bg-white text-white dark:text-stone-900 shadow-lg'
-                                : 'bg-stone-50 dark:bg-stone-700 text-stone-500 hover:bg-stone-100 dark:hover:bg-stone-600'
-                                }`}
+                            onClick={() => handlePreset('month')}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${activePreset === 'month' ? 'bg-white dark:bg-stone-700 text-stone-900 dark:text-white shadow-sm' : 'text-stone-500 hover:text-stone-700 dark:hover:text-stone-300'}`}
                         >
-                            {p.label}
+                            Mes
                         </button>
-                    ))}
-
-                    <div className="h-6 w-px bg-stone-200 dark:bg-stone-600 mx-2" />
+                        <button
+                            onClick={() => handlePreset('last_month')}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${activePreset === 'last_month' ? 'bg-white dark:bg-stone-700 text-stone-900 dark:text-white shadow-sm' : 'text-stone-500 hover:text-stone-700 dark:hover:text-stone-300'}`}
+                        >
+                            Mes Ant.
+                        </button>
+                        <button
+                            onClick={() => handlePreset('quarter')}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${activePreset === 'quarter' ? 'bg-white dark:bg-stone-700 text-stone-900 dark:text-white shadow-sm' : 'text-stone-500 hover:text-stone-700 dark:hover:text-stone-300'}`}
+                        >
+                            Trimestre
+                        </button>
+                    </div>
 
                     <div className="flex items-center gap-2">
                         <input
                             type="date"
                             value={dateFrom}
-                            onChange={e => setDateFrom(e.target.value)}
-                            className="px-3 py-2 border-2 border-stone-100 dark:border-stone-600 rounded-xl text-xs font-bold bg-white dark:bg-stone-900 text-stone-700 dark:text-stone-300 outline-none focus:border-primary"
+                            onChange={(e) => { setDateFrom(e.target.value); setActivePreset(''); }}
+                            className="px-3 py-2 bg-stone-50 dark:bg-stone-900 border border-stone-200 dark:border-stone-700 rounded-xl text-xs font-bold text-stone-800 dark:text-white outline-none focus:ring-2 focus:ring-primary/20"
                         />
-                        <span className="text-stone-400 text-xs font-bold">a</span>
+                        <span className="text-stone-400 font-bold">-</span>
                         <input
                             type="date"
                             value={dateTo}
-                            onChange={e => setDateTo(e.target.value)}
-                            className="px-3 py-2 border-2 border-stone-100 dark:border-stone-600 rounded-xl text-xs font-bold bg-white dark:bg-stone-900 text-stone-700 dark:text-stone-300 outline-none focus:border-primary"
+                            onChange={(e) => { setDateTo(e.target.value); setActivePreset(''); }}
+                            className="px-3 py-2 bg-stone-50 dark:bg-stone-900 border border-stone-200 dark:border-stone-700 rounded-xl text-xs font-bold text-stone-800 dark:text-white outline-none focus:ring-2 focus:ring-primary/20"
                         />
                         <button
-                            onClick={applyCustomDates}
-                            className="px-4 py-2 bg-primary text-primary-foreground rounded-xl text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-all"
+                            onClick={handleApplyFilter}
+                            disabled={loading}
+                            className="p-2 bg-primary text-primary-foreground rounded-xl hover:bg-primary/90 transition-all shadow-sm shadow-primary/20 hover:shadow-primary/40"
                         >
-                            Aplicar
+                            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
                         </button>
                     </div>
                 </div>
             </div>
 
-            {/* Payway Ishtar Limit Warning */}
-            {(() => {
-                const paywayIshTotal = data?.paymentMethods
-                    ?.filter(m => m.method === 'PAY_WAY_3_ISH' || m.method === 'PAY_WAY_6_ISH')
-                    ?.reduce((acc, curr) => acc + curr.total, 0) || 0;
-                
-                if (paywayIshTotal > 5000000) {
-                    return (
-                        <div className="mb-8 p-5 bg-red-50 dark:bg-red-950/20 border-2 border-red-200 dark:border-red-900/30 rounded-3xl flex items-start gap-4 animate-in fade-in duration-300">
-                            <div className="w-10 h-10 rounded-xl bg-red-500 flex items-center justify-center text-white flex-shrink-0">
-                                <AlertCircle className="w-6 h-6" />
+            {loading && !data ? (
+                <div className="flex items-center justify-center h-64">
+                    <div className="w-10 h-10 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
+                </div>
+            ) : !data ? (
+                <div className="flex flex-col items-center justify-center h-64 text-stone-400 gap-3">
+                    <AlertCircle className="w-10 h-10 text-stone-300" />
+                    <p className="font-bold text-sm tracking-widest uppercase">Sin datos para mostrar</p>
+                </div>
+            ) : (
+                <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 ease-out fill-mode-both space-y-8">
+                    
+                    {/* ── KPIs Principales ── */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                        <KPICard
+                            title="Ingreso Real (Cobrado)"
+                            value={formatCurrency(data.summary.totalRevenue)}
+                            sub={`Pendiente de cobro: ${formatCurrency(data.summary.totalPending)}`}
+                            icon={DollarSign}
+                            color="blue"
+                        />
+                        <KPICard
+                            title="Costos y Gastos Totales"
+                            value={formatCurrency(data.summary.totalCosts)}
+                            sub="Operativos, Proveedores, Comisiones"
+                            icon={ArrowDown}
+                            color="red"
+                        />
+                        <KPICard
+                            title="Resultado Neto"
+                            value={formatCurrency(data.summary.netProfit)}
+                            sub={`Margen: ${data.summary.profitMargin.toFixed(1)}%`}
+                            icon={data.summary.netProfit >= 0 ? TrendingUp : ArrowDown}
+                            color={data.summary.netProfit >= 0 ? 'emerald' : 'red'}
+                            highlight={data.summary.netProfit >= 0}
+                        />
+                        <KPICard
+                            title="Operaciones"
+                            value={data.summary.ordersCount}
+                            sub={`Ticket prom: ${formatCurrency(data.summary.ordersCount > 0 ? data.summary.totalRevenue / data.summary.ordersCount : 0)}`}
+                            icon={Package}
+                            color="purple"
+                        />
+                    </div>
+
+                    {/* ── Estado de Resultados (P&L Breakdown) ── */}
+                    <div className="bg-white/80 dark:bg-stone-800/80 backdrop-blur-xl border border-stone-200/60 dark:border-stone-700/60 rounded-3xl p-6 lg:p-8 shadow-xl shadow-stone-200/20 dark:shadow-none">
+                        <div className="flex items-center gap-3 mb-8">
+                            <div className="p-3 rounded-xl bg-stone-100 dark:bg-stone-700 text-stone-600 dark:text-stone-300">
+                                <FileText className="w-5 h-5" />
                             </div>
                             <div>
-                                <h4 className="text-sm font-black text-red-800 dark:text-red-300 uppercase tracking-wider">Límite de PayWay Ishtar Superado</h4>
-                                <p className="text-xs text-red-700 dark:text-red-400 mt-1 font-bold">
-                                    ¡Atención! La suma de pagos por PayWay Ishtar (3 y 6 cuotas) en este período es de <span className="underline">${paywayIshTotal.toLocaleString('es-AR')}</span>, superando el límite establecido de $5,000,050.
-                                </p>
+                                <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-stone-400">P&L Breakdown</h2>
+                                <p className="text-xl font-black text-stone-800 dark:text-white tracking-tight">Estado de Resultados</p>
                             </div>
                         </div>
-                    );
-                }
-                return null;
-            })()}
 
-            {/* KPI Cards — Simple overview */}
-            {s && (
-                <>
-                    <div className="flex gap-4 overflow-x-auto pb-4 no-scrollbar">
-                        <div className="min-w-[280px] flex-1">
-                            <KPICard
-                                title="Ingreso Real"
-                                value={`$${(s?.totalRevenue ?? 0).toLocaleString()}`}
-                                sub={`${s.ordersCount} ventas · $${(s?.totalPending ?? 0).toLocaleString()} pdte`}
-                                icon={DollarSign}
-                                color="stone"
+                        <div className="space-y-6">
+                            <ProfitLossChart 
+                                label="Costo Cristales / Lentes" 
+                                value={data.summary.totalCostLenses} 
+                                total={data.summary.totalRevenue} 
+                                color="bg-cyan-500" 
                             />
-                        </div>
-                        <div className="min-w-[280px] flex-1">
-                            <KPICard
-                                title="Resultado Neto"
-                                value={`$${(s?.netProfit ?? 0).toLocaleString()}`}
-                                sub={`${s.profitMargin.toFixed(1)}% margen sobre ingreso`}
-                                icon={TrendingUp}
-                                color="emerald"
-                                highlight
+                            <ProfitLossChart 
+                                label="Costo Armazones / Sol" 
+                                value={data.summary.totalCostFrames} 
+                                total={data.summary.totalRevenue} 
+                                color="bg-amber-500" 
                             />
-                        </div>
-                        <div className="min-w-[280px] flex-1">
-                            <KPICard
-                                title="Pendiente de Cobro"
-                                value={`$${(s?.totalPending ?? 0).toLocaleString()}`}
-                                sub={`Pagado: $${(s?.totalPaid ?? 0).toLocaleString()}`}
-                                icon={CreditCard}
-                                color="blue"
+                            <ProfitLossChart 
+                                label="Costos Operativos Fijos" 
+                                value={data.summary.totalFixedCosts} 
+                                total={data.summary.totalRevenue} 
+                                color="bg-orange-500" 
+                            />
+                            {data.summary.totalMarketingCosts ? (
+                                <ProfitLossChart 
+                                    label="Gastos de Marketing / Ads" 
+                                    value={data.summary.totalMarketingCosts} 
+                                    total={data.summary.totalRevenue} 
+                                    color="bg-pink-500" 
+                                />
+                            ) : null}
+                            <ProfitLossChart 
+                                label="Comisiones Médicos" 
+                                value={data.summary.totalDoctorFees} 
+                                total={data.summary.totalRevenue} 
+                                color="bg-rose-500" 
+                            />
+                            <ProfitLossChart 
+                                label="Comisiones Plataforma" 
+                                value={data.summary.totalPlatformFees} 
+                                total={data.summary.totalRevenue} 
+                                color="bg-purple-500" 
+                                tooltip="Comisiones PayWay, GoCuotas, etc." 
                             />
                         </div>
                     </div>
 
-                    {/* ── Estado de Resultados ────────────────────── */}
-                    <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 mb-6">
-                        <div className="bg-white dark:bg-stone-800 border-2 border-stone-100 dark:border-stone-700 rounded-2xl p-6">
-                            <div className="flex items-center gap-2 mb-6">
-                                <Receipt className="w-5 h-5 text-primary" />
-                                <h2 className="text-xs font-black uppercase tracking-widest text-stone-400">Estado de Resultados</h2>
-                            </div>
-
-                            {/* ─ Ingresos ─ */}
-                            <PLRow label="Ingresos (Cobrado)" value={s.totalRevenue} bold accent="text-stone-800 dark:text-white" />
-
-                            {/* ─ Costos Variables ─ */}
-                            <div className="mt-4 mb-1">
-                                <span className="text-[9px] font-black text-stone-400 uppercase tracking-widest">Costos Variables</span>
-                            </div>
-                            <PLRow label="Costo Armazones / Sol" value={-s.totalCostFrames} color="text-red-400" />
-                            <PLRow label="Costo Cristales / Lentes" value={-s.totalCostLenses} color="text-red-400" />
-                            {s.totalCostOther > 0 && <PLRow label="Costo Otros" value={-s.totalCostOther} color="text-red-400" />}
-                            <PLRow label="Comisiones Plataforma" value={-s.totalPlatformFees} color="text-purple-400" sub="PayWay / Go Cuotas" />
-                            <PLRow label="Comisiones Médicos" value={-s.totalDoctorFees} color="text-pink-400" sub="15% sobre neto" />
-                            {s.totalSpecialDiscounts > 0 && <PLRow label="Envío / Desc. Especiales" value={-s.totalSpecialDiscounts} color="text-teal-500" />}
-
-                            {/* ─ Margen de Contribución ─ */}
-                            {(() => {
-                                const variableCosts = s.totalCosts + s.totalPlatformFees + s.totalDoctorFees + (s.totalSpecialDiscounts || 0);
-                                const margenContribucion = s.totalRevenue - variableCosts;
-                                const margenPct = s.totalRevenue > 0 ? (margenContribucion / s.totalRevenue * 100) : 0;
-                                return (
-                                    <div className="border-t-2 border-dashed border-stone-200 dark:border-stone-600 mt-4 pt-3">
-                                        <PLRow label={`Margen de Contribución (${margenPct.toFixed(0)}%)`} value={margenContribucion} bold accent={margenContribucion >= 0 ? 'text-blue-500' : 'text-red-500'} />
-                                    </div>
-                                );
-                            })()}
-
-                            {/* ─ Gastos Fijos y Marketing ─ */}
-                            <div className="mt-4 mb-1">
-                                <span className="text-[9px] font-black text-stone-400 uppercase tracking-widest">Gastos Operativos y Marketing</span>
-                            </div>
-                            {(data?.fixedCosts && data.fixedCosts.length > 0) ? (
-                                <>
-                                    {/* Group by category for Fijos & Marketing only */}
-                                    {Object.entries(
-                                        data.fixedCosts
-                                        .filter(fc => !fc.type || fc.type === 'FIJO' || fc.type === 'MARKETING' || fc.type === 'OTRO')
-                                        .reduce<Record<string, number>>((acc, fc) => {
-                                            const cat = fc.name || FIXED_COST_CATEGORIES.find(c => c.id === fc.category)?.label || fc.category;
-                                            acc[cat] = (acc[cat] || 0) + fc.amount;
-                                            return acc;
-                                        }, {})
-                                    ).map(([cat, amount]) => (
-                                        <PLRow key={cat} label={cat} value={-amount} color="text-orange-400" />
-                                    ))}
-                                </>
-                            ) : (
-                                <p className="text-[10px] text-stone-400 font-medium py-2 pl-2">Sin gastos operativos cargados</p>
-                            )}
-
-                            {/* ─ Resultado Neto ─ */}
-                            <div className="border-t-2 border-stone-200 dark:border-stone-600 mt-4 pt-4">
-                                <div className="flex flex-wrap justify-between items-center gap-2">
-                                    <span className="text-sm font-black text-stone-800 dark:text-white uppercase tracking-tight">Resultado Neto</span>
-                                    <span className={`text-xl md:text-2xl font-black truncate ${(s?.netProfit ?? 0) >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
-                                        ${(s?.netProfit ?? 0).toLocaleString()}
-                                    </span>
-                                </div>
-                                {s.totalRevenue > 0 && (
-                                    <div className="flex h-3 rounded-full overflow-hidden mt-3 bg-stone-100 dark:bg-stone-700">
-                                        <div className="bg-red-400 transition-all" style={{ width: `${(s.totalCosts / s.totalRevenue) * 100}%` }} title="Costo" />
-                                        <div className="bg-purple-400 transition-all" style={{ width: `${(s.totalPlatformFees / s.totalRevenue) * 100}%` }} title="Plataforma" />
-                                        <div className="bg-pink-400 transition-all" style={{ width: `${(s.totalDoctorFees / s.totalRevenue) * 100}%` }} title="Médicos" />
-                                        <div className="bg-orange-400 transition-all" style={{ width: `${((s.totalFixedCosts + (s.totalMarketingCosts || 0)) / s.totalRevenue) * 100}%` }} title="G. Op." />
-                                        <div className="bg-emerald-500 transition-all" style={{ width: `${Math.max(0, (s.netProfit / s.totalRevenue) * 100)}%` }} title="Ganancia" />
-                                    </div>
-                                )}
-                                <div className="flex gap-4 mt-2 flex-wrap">
-                                    {[
-                                        { color: 'bg-red-400', label: 'Costo' },
-                                        { color: 'bg-purple-400', label: 'Plataforma' },
-                                        { color: 'bg-pink-400', label: 'Médicos' },
-                                        { color: 'bg-orange-400', label: 'Operativos' },
-                                        { color: 'bg-emerald-500', label: 'Ganancia' },
-                                    ].map(l => (
-                                        <div key={l.label} className="flex items-center gap-1.5">
-                                            <div className={`w-2 h-2 rounded-full ${l.color}`} />
-                                            <span className="text-[8px] font-bold text-stone-400 uppercase tracking-widest">{l.label}</span>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Billing Summary / Facturación AFIP */}
-                        <div className="bg-white dark:bg-stone-800 border-2 border-stone-100 dark:border-stone-700 rounded-3xl p-6 shadow-xl shadow-stone-200/20 dark:shadow-none print:shadow-none print:border-stone-200 col-span-1 border-t-4 border-t-indigo-500">
-                            <div className="flex items-center gap-3 mb-6">
-                                <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center print:border print:border-indigo-100">
-                                    <Receipt className="w-5 h-5 text-indigo-500" />
-                                </div>
-                                <div>
-                                    <h3 className="text-lg font-black text-stone-800 dark:text-white leading-tight">Facturación AFIP</h3>
-                                    <p className="text-[10px] font-black uppercase tracking-widest text-stone-400">Total comprobantes C</p>
-                                </div>
-                            </div>
-
-                            <div className="space-y-3">
-                                {data?.billingStats?.map(b => (
-                                    <div key={b.account} className="flex flex-col p-4 bg-stone-50 dark:bg-stone-900/50 rounded-2xl border-2 border-transparent hover:border-indigo-100 dark:hover:border-indigo-900/50 transition-all">
-                                        <div className="flex justify-between items-center mb-1">
-                                            <span className="text-xs font-black text-stone-600 dark:text-stone-300 uppercase tracking-widest">{b.account}</span>
-                                            <span className="text-lg font-black text-indigo-600">${b.total.toLocaleString()}</span>
-                                        </div>
-                                        <span className="text-[9px] font-bold text-stone-400 capitalize">{b.count} comprobante{b.count !== 1 ? 's' : ''} emitido{b.count !== 1 ? 's' : ''}</span>
-                                    </div>
-                                ))}
-                                {(!data?.billingStats || data.billingStats.length === 0) && (
-                                    <div className="text-center py-6 text-stone-400 text-xs font-bold bg-stone-50 dark:bg-stone-900/50 rounded-2xl">
-                                        No hay facturas emitidas en este período
-                                    </div>
-                                )}
-                                <div className="mt-4 pt-4 border-t-2 border-dashed border-stone-200 dark:border-stone-700 flex flex-wrap justify-between items-center gap-2">
-                                    <span className="text-[10px] font-black uppercase tracking-widest text-stone-400">Suma Total Facturada</span>
-                                    <span className="text-lg lg:text-xl font-black text-stone-800 dark:text-white truncate">
-                                        ${((data?.billingStats || []).reduce((acc, curr) => acc + curr.total, 0)).toLocaleString()}
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Formas de Pago */}
-                        <div className="bg-white dark:bg-stone-800 border-2 border-stone-100 dark:border-stone-700 rounded-2xl p-6">
-                            <div className="flex items-center gap-2 mb-6">
-                                <CreditCard className="w-5 h-5 text-blue-500" />
-                                <h2 className="text-xs font-black uppercase tracking-widest text-stone-400">Formas de Pago</h2>
-                            </div>
-
-                            {data?.paymentMethods && data.paymentMethods.length > 0 ? (
-                                <div className="space-y-3">
-                                    {data.paymentMethods.map(pm => (
-                                        <div key={pm.method} className="flex items-center justify-between p-4 bg-stone-50 dark:bg-stone-900 rounded-xl hover:bg-stone-100 dark:hover:bg-stone-800 transition-all group">
-                                            <div className="flex items-center gap-3">
-                                                {pm.method.includes('CREDIT') || pm.method === 'PLAN_Z' ? (
-                                                    <CreditCard className="w-5 h-5 text-purple-500" />
-                                                ) : pm.method === 'CASH' ? (
-                                                    <Banknote className="w-5 h-5 text-emerald-500" />
-                                                ) : (
-                                                    <CreditCard className="w-5 h-5 text-blue-500" />
-                                                )}
-                                                <div className="min-w-0">
-                                                    <span className="text-sm font-black text-stone-800 dark:text-white block truncate">
-                                                        {METHOD_LABELS[pm.method] || pm.method}
-                                                    </span>
-                                                    <span className="text-[9px] text-stone-400 font-bold block tracking-widest uppercase">
-                                                        {pm.count} pago{pm.count !== 1 ? 's' : ''}
-                                                    </span>
-                                                </div>
-                                            </div>
-                                            <div className="text-right flex-shrink-0 ml-2 min-w-0">
-                                                <p className="text-sm font-black text-stone-800 dark:text-white truncate">${pm.total.toLocaleString()}</p>
-                                                {pm.commission > 0 && (
-                                                    <p className="text-[9px] font-bold text-purple-500 tracking-widest uppercase">
-                                                        -{' '}${pm.commission.toLocaleString()} comisión
-                                                    </p>
-                                                )}
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            ) : (
-                                <div className="text-center py-10 text-stone-300">
-                                    <CreditCard className="w-10 h-10 mx-auto mb-3" />
-                                    <p className="text-xs font-black uppercase tracking-widest">Sin pagos registrados</p>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-
-                    {/* Monthly Chart */}
-                    {data?.monthlyStats && data.monthlyStats.length > 0 && (
-                        <div className="bg-white dark:bg-stone-800 border-2 border-stone-100 dark:border-stone-700 rounded-2xl p-4 lg:p-6 mb-6">
-                            <div className="flex items-center gap-2 mb-8">
-                                <BarChart3 className="w-5 h-5 text-primary" />
-                                <h2 className="text-xs font-black uppercase tracking-widest text-stone-400">Facturación vs Costos (Mensual)</h2>
-                            </div>
-                            <div className="flex items-end gap-2 lg:gap-4 h-44 lg:h-56 px-1 lg:px-2">
-                                {data.monthlyStats.map(m => {
-                                    const maxVal = Math.max(...data.monthlyStats.map(x => x.revenue));
-                                    const revenueH = maxVal > 0 ? (m.revenue / maxVal) * 100 : 0;
-                                    const costH = maxVal > 0 ? (m.cost / maxVal) * 100 : 0;
-                                    return (
-                                        <div key={m.month} className="flex-1 flex flex-col items-center gap-2 group">
-                                            {/* Tooltip */}
-                                            <div className="bg-stone-900 text-white text-[9px] font-bold py-1.5 px-3 rounded-lg opacity-0 group-hover:opacity-100 transition-all scale-75 group-hover:scale-100 whitespace-nowrap z-20 shadow-xl text-center">
-                                                <p>💰 ${m.revenue.toLocaleString()}</p>
-                                                <p>📉 Costo: ${m.cost.toLocaleString()}</p>
-                                                <p className="text-emerald-400">✅ Ganancia: ${m.profit.toLocaleString()}</p>
-                                            </div>
-                                            {/* Bars */}
-                                            <div className="relative w-full flex justify-center flex-1 items-end gap-1">
-                                                <div
-                                                    className="w-[45%] bg-primary/20 group-hover:bg-primary/40 rounded-t-lg transition-all cursor-pointer"
-                                                    style={{ height: `${Math.max(revenueH, 3)}%` }}
-                                                    title={`Facturación: $${m.revenue.toLocaleString()}`}
-                                                />
-                                                <div
-                                                    className="w-[45%] bg-red-200 dark:bg-red-900 group-hover:bg-red-300 dark:group-hover:bg-red-800 rounded-t-lg transition-all cursor-pointer"
-                                                    style={{ height: `${Math.max(costH, 3)}%` }}
-                                                    title={`Costos: $${m.cost.toLocaleString()}`}
-                                                />
-                                            </div>
-                                            <span className="text-[9px] font-black text-stone-400 uppercase tracking-widest group-hover:text-primary transition-colors">{m.month}</span>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                            <div className="flex gap-6 mt-4 justify-center">
-                                <div className="flex items-center gap-1.5">
-                                    <div className="w-3 h-3 rounded bg-primary/30" />
-                                    <span className="text-[9px] font-bold text-stone-400 uppercase tracking-widest">Facturación</span>
-                                </div>
-                                <div className="flex items-center gap-1.5">
-                                    <div className="w-3 h-3 rounded bg-red-200 dark:bg-red-900" />
-                                    <span className="text-[9px] font-bold text-stone-400 uppercase tracking-widest">Costos</span>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
-                    {/* Sales Detail by Month */}
-                    {data?.salesDetail && data.salesDetail.length > 0 && (
+                    {/* ── Tablas Expandibles de Ventas ── */}
+                    {data.salesDetail && data.salesDetail.length > 0 && (
                         <SalesDetailSection salesDetail={data.salesDetail} />
                     )}
 
-                    {/* Lab Profit Report */}
-                    {data?.labStats && data.labStats.length > 0 && (
-                        <div className="bg-white dark:bg-stone-800 border-2 border-stone-100 dark:border-stone-700 rounded-2xl p-4 lg:p-6 mb-6">
-                            <div className="flex items-center gap-2 mb-6">
-                                <FlaskConical className="w-5 h-5 text-cyan-500" />
-                                <h2 className="text-xs font-black uppercase tracking-widest text-stone-400">Rentabilidad por Laboratorio</h2>
-                            </div>
+                    {/* ── Top Clientes & Top Productos ── */}
+                    <TopPerformersSection topClients={data.topClients} topProducts={data.topProducts} />
 
-                            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-                                {data.labStats.map((lab, i) => {
-                                    const margin = lab.revenue > 0 ? ((lab.revenue - lab.cost) / lab.revenue) * 100 : 0;
-                                    const maxRevenue = Math.max(...data.labStats.map(l => l.revenue));
-                                    const barPct = maxRevenue > 0 ? (lab.revenue / maxRevenue) * 100 : 0;
-                                    return (
-                                        <div key={lab.laboratory} className="relative p-5 bg-gradient-to-br from-stone-50 to-stone-100/50 dark:from-stone-900 dark:to-stone-800/50 rounded-2xl border border-stone-100 dark:border-stone-700 hover:shadow-md transition-all group overflow-hidden">
-                                            {/* Background bar */}
-                                            <div className="absolute bottom-0 left-0 h-1 bg-cyan-500/20 rounded-full transition-all" style={{ width: `${barPct}%` }} />
-
-                                            <div className="flex items-center justify-between mb-4">
-                                                <div className="flex items-center gap-3">
-                                                    <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${i === 0 ? 'bg-cyan-500 text-white' : 'bg-stone-200 dark:bg-stone-700 text-stone-500'}`}>
-                                                        <FlaskConical className="w-4 h-4" />
-                                                    </div>
-                                                    <div>
-                                                        <span className="font-black text-stone-800 dark:text-white text-sm block">{lab.laboratory}</span>
-                                                        <span className="text-[9px] font-bold text-stone-400 uppercase tracking-widest">{lab.ordersCount} venta{lab.ordersCount !== 1 ? 's' : ''}</span>
-                                                    </div>
-                                                </div>
-                                                <div className={`px-2.5 py-1 rounded-lg text-[10px] font-black ${margin > 30 ? 'bg-emerald-100 dark:bg-emerald-950 text-emerald-600' : margin > 0 ? 'bg-amber-100 dark:bg-amber-950 text-amber-600' : 'bg-red-100 dark:bg-red-950 text-red-600'}`}>
-                                                    {margin.toFixed(0)}%
-                                                </div>
-                                            </div>
-
-                                            <div className="grid grid-cols-3 gap-3">
-                                                <div>
-                                                    <p className="text-[9px] font-black text-stone-400 uppercase tracking-widest">Costo</p>
-                                                    <p className="text-base font-black text-red-500">${lab.cost.toLocaleString()}</p>
-                                                </div>
-                                                <div>
-                                                    <p className="text-[9px] font-black text-stone-400 uppercase tracking-widest">Facturación</p>
-                                                    <p className="text-base font-black text-stone-800 dark:text-white">${lab.revenue.toLocaleString()}</p>
-                                                </div>
-                                                <div>
-                                                    <p className="text-[9px] font-black text-stone-400 uppercase tracking-widest">Ganancia</p>
-                                                    <p className={`text-base font-black ${lab.profit >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>${lab.profit.toLocaleString()}</p>
-                                                </div>
-                                            </div>
-
-                                            {/* Margin bar */}
-                                            <div className="mt-3 w-full bg-stone-200 dark:bg-stone-700 h-2 rounded-full overflow-hidden">
-                                                <div className={`h-full rounded-full transition-all duration-700 ${margin > 30 ? 'bg-emerald-500' : margin > 0 ? 'bg-amber-500' : 'bg-red-500'}`} style={{ width: `${Math.min(Math.max(margin, 0), 100)}%` }} />
-                                            </div>
-
-                                            {/* Clients Breakdown */}
-                                            {lab.clients && lab.clients.length > 0 && (
-                                                <div className="mt-4 pt-4 border-t border-stone-200 dark:border-stone-700/50 max-h-48 overflow-y-auto custom-scrollbar">
-                                                    <table className="w-full text-left">
-                                                        <thead>
-                                                            <tr>
-                                                                <th className="text-[8px] font-black text-stone-400 uppercase tracking-widest pb-2">Cliente / Producto</th>
-                                                                <th className="text-[8px] font-black text-stone-400 uppercase tracking-widest pb-2 text-right">Costo</th>
-                                                            </tr>
-                                                        </thead>
-                                                        <tbody>
-                                                            {lab.clients.map((c, idx) => (
-                                                                <tr key={idx} className="border-t border-stone-100 dark:border-stone-800/50 hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors">
-                                                                    <td className="py-1.5 pr-2">
-                                                                        <div className="text-[10px] font-bold text-stone-700 dark:text-stone-300 truncate max-w-[150px]">{c.name}</div>
-                                                                        <div className="text-[8px] text-stone-400 truncate max-w-[150px]" title={c.product}>{c.product}</div>
-                                                                    </td>
-                                                                    <td className="py-1.5 text-[10px] font-black text-red-500 text-right">
-                                                                        ${c.cost.toLocaleString()}
-                                                                    </td>
-                                                                </tr>
-                                                            ))}
-                                                        </tbody>
-                                                    </table>
-                                                </div>
-                                            )}
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        </div>
+                    {/* ── Laboratorios ── */}
+                    {data.labStats && data.labStats.length > 0 && (
+                        <LaboratoryStats data={data.labStats.map(lab => ({
+                            name: lab.laboratory,
+                            cost: lab.cost,
+                            revenue: lab.revenue,
+                            profit: lab.profit,
+                            clients: lab.clients || []
+                        }))} />
                     )}
 
-                    {/* Top Clients & Top Products */}
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        {/* Top Clients */}
-                        <div className="bg-white dark:bg-stone-800 border-2 border-stone-100 dark:border-stone-700 rounded-2xl p-6">
-                            <div className="flex items-center gap-2 mb-6">
-                                <Users className="w-5 h-5 text-amber-500" />
-                                <h2 className="text-xs font-black uppercase tracking-widest text-stone-400">Top Clientes</h2>
-                            </div>
-                            {data?.topClients && data.topClients.length > 0 ? (
-                                <div className="space-y-2">
-                                    {data.topClients.map((client, i) => (
-                                        <div key={i} className="flex items-center justify-between p-3 rounded-xl hover:bg-stone-50 dark:hover:bg-stone-900 transition-all">
-                                            <div className="flex items-center gap-3">
-                                                <span className={`w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-black ${i < 3 ? 'bg-amber-100 dark:bg-amber-950 text-amber-600 dark:text-amber-400' : 'bg-stone-100 dark:bg-stone-700 text-stone-400'}`}>
-                                                    {i + 1}
-                                                </span>
-                                                <div>
-                                                    <p className="text-sm font-bold text-stone-800 dark:text-white">{client.name}</p>
-                                                    <p className="text-[9px] text-stone-400 font-bold uppercase tracking-widest">{client.orders} compra{client.orders !== 1 ? 's' : ''}</p>
-                                                </div>
-                                            </div>
-                                            <span className="text-sm font-black text-stone-800 dark:text-white">${client.total.toLocaleString()}</span>
-                                        </div>
-                                    ))}
-                                </div>
-                            ) : (
-                                <EmptySection message="Sin datos de clientes" />
-                            )}
-                        </div>
-
-                        {/* Top Products */}
-                        <div className="bg-white dark:bg-stone-800 border-2 border-stone-100 dark:border-stone-700 rounded-2xl p-6">
-                            <div className="flex items-center gap-2 mb-6">
-                                <ShoppingBag className="w-5 h-5 text-blue-500" />
-                                <h2 className="text-xs font-black uppercase tracking-widest text-stone-400">Productos Más Vendidos</h2>
-                            </div>
-                            {data?.topProducts && data.topProducts.length > 0 ? (
-                                <div className="space-y-2">
-                                    {data.topProducts.map((product, i) => {
-                                        const margin = product.revenue > 0 ? ((product.revenue - product.cost) / product.revenue) * 100 : 0;
-                                        return (
-                                            <div key={i} className="flex items-center justify-between p-3 rounded-xl hover:bg-stone-50 dark:hover:bg-stone-900 transition-all">
-                                                <div className="flex-1 min-w-0">
-                                                    <p className="text-sm font-bold text-stone-800 dark:text-white truncate">{product.name}</p>
-                                                    <div className="flex items-center gap-2">
-                                                        <span className="text-[9px] text-stone-400 font-bold uppercase tracking-widest">{product.type}</span>
-                                                        <span className="text-[9px] text-stone-300">·</span>
-                                                        <span className="text-[9px] text-stone-400 font-bold">{product.qty} u.</span>
-                                                    </div>
-                                                </div>
-                                                <div className="text-right flex-shrink-0 ml-4">
-                                                    <p className="text-sm font-black text-stone-800 dark:text-white">${product.revenue.toLocaleString()}</p>
-                                                    <p className={`text-[9px] font-bold uppercase tracking-widest ${margin > 30 ? 'text-emerald-500' : margin > 0 ? 'text-amber-500' : 'text-red-500'}`}>
-                                                        {margin.toFixed(0)}% margen
-                                                    </p>
-                                                </div>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            ) : (
-                                <EmptySection message="Sin datos de productos" />
-                            )}
-                        </div>
-                    </div>
-
-                    {/* Fixed Costs Section has been replaced by Gastos Page */}
-
-
-                    {/* Doctor Commissions */}
+                    {/* ── Honorarios Médicos Pendientes ── */}
                     <DoctorCommissions />
 
-                    {/* Vendor Metrics */}
-                    {data?.vendorStats && data.vendorStats.length > 0 && (
-                        <div className="bg-white dark:bg-stone-800 border-2 border-stone-100 dark:border-stone-700 rounded-2xl p-6 mt-8">
-                            <div className="flex items-center gap-2 mb-6">
-                                <Award className="w-5 h-5 text-violet-500" />
-                                <h2 className="text-xs font-black uppercase tracking-widest text-stone-400">Rendimiento por Vendedor</h2>
-                            </div>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-                                {data.vendorStats.map((v, i) => {
-                                    const maxRev = Math.max(...data.vendorStats.map(x => x.revenue));
-                                    const pct = maxRev > 0 ? (v.revenue / maxRev) * 100 : 0;
-                                    return (
-                                        <div key={i} className="relative p-5 bg-gradient-to-br from-stone-50 to-stone-100/50 dark:from-stone-900 dark:to-stone-800/50 rounded-2xl border border-stone-100 dark:border-stone-700 hover:shadow-md transition-all group overflow-hidden">
-                                            {/* Background bar */}
-                                            <div className="absolute bottom-0 left-0 h-1 bg-violet-500/20 rounded-full transition-all" style={{ width: `${pct}%` }} />
-                                            <div className="flex items-center justify-between mb-3">
-                                                <div className="flex items-center gap-3">
-                                                    <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-sm font-black ${i === 0 ? 'bg-violet-500 text-white' : 'bg-stone-200 dark:bg-stone-700 text-stone-500'}`}>
-                                                        {i + 1}
-                                                    </div>
-                                                    <span className="font-black text-stone-800 dark:text-white text-sm">{v.name}</span>
-                                                </div>
-                                                {i === 0 && <span className="text-[9px] font-black text-violet-500 uppercase tracking-widest">Top</span>}
-                                            </div>
-                                            <div className="grid grid-cols-3 gap-3">
-                                                <div>
-                                                    <p className="text-[9px] font-black text-stone-400 uppercase tracking-widest">Facturación</p>
-                                                    <p className="text-lg font-black text-stone-800 dark:text-white">${v.revenue.toLocaleString()}</p>
-                                                </div>
-                                                <div>
-                                                    <p className="text-[9px] font-black text-stone-400 uppercase tracking-widest">Ventas</p>
-                                                    <p className="text-lg font-black text-stone-800 dark:text-white">{v.orders}</p>
-                                                </div>
-                                                <div>
-                                                    <p className="text-[9px] font-black text-stone-400 uppercase tracking-widest">Ticket Prom</p>
-                                                    <p className="text-lg font-black text-stone-800 dark:text-white">${v.avgTicket.toLocaleString()}</p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        </div>
+                    {/* ── Rendimiento Vendedores ── */}
+                    {data.vendorStats && data.vendorStats.length > 0 && (
+                        <VendorMetrics data={data.vendorStats} />
                     )}
-                </>
+                </div>
             )}
         </main>
-    );
-}
-
-// ── Sub-components ─────────────────────────
-
-function KPICard({ title, value, sub, icon: Icon, color, highlight }: any) {
-    const colorMap: Record<string, string> = {
-        stone: 'bg-stone-50 dark:bg-stone-700 text-stone-500',
-        red: 'bg-red-50 dark:bg-red-950 text-red-500',
-        emerald: 'bg-emerald-50 dark:bg-emerald-950 text-emerald-500',
-        blue: 'bg-blue-50 dark:bg-blue-950 text-blue-500',
-    };
-
-    return (
-        <div className={`bg-white dark:bg-stone-800 border-2 rounded-2xl p-6 transition-all hover:shadow-lg ${highlight
-            ? 'border-emerald-200 dark:border-emerald-800 ring-2 ring-emerald-100 dark:ring-emerald-900'
-            : 'border-stone-100 dark:border-stone-700'
-            }`}>
-            <div className="flex items-center gap-3 mb-3">
-                <div className={`p-2.5 rounded-xl ${colorMap[color] || colorMap.stone}`}>
-                    <Icon className="w-5 h-5" />
-                </div>
-                <span className="text-[9px] font-black text-stone-400 uppercase tracking-widest">{title}</span>
-            </div>
-            <p className={`text-xl lg:text-2xl font-black tracking-tight truncate ${highlight ? 'text-emerald-600 dark:text-emerald-400' : 'text-stone-800 dark:text-white'}`}>
-                {value}
-            </p>
-            <p className="text-[10px] font-bold text-stone-400 mt-1">{sub}</p>
-        </div>
-    );
-}
-
-function CostRow({ label, value, total, color, tooltip }: { label: string; value: number; total: number; color: string; tooltip?: string }) {
-    const pct = total > 0 ? (value / total) * 100 : 0;
-    return (
-        <div className="group" title={tooltip}>
-            <div className="flex justify-between items-center mb-1.5">
-                <div className="flex items-center gap-2">
-                    <div className={`w-2.5 h-2.5 rounded-full ${color}`} />
-                    <span className="text-xs font-bold text-stone-600 dark:text-stone-300">{label}</span>
-                    {tooltip && (
-                        <span className="text-[8px] font-bold text-purple-400 opacity-0 group-hover:opacity-100 transition-opacity">{tooltip}</span>
-                    )}
-                </div>
-                <div className="flex items-center gap-3">
-                    <span className="text-xs font-black text-stone-800 dark:text-white">${value.toLocaleString()}</span>
-                    <span className="text-[9px] font-bold text-stone-400 w-12 text-right">{pct.toFixed(1)}%</span>
-                </div>
-            </div>
-            <div className="w-full bg-stone-100 dark:bg-stone-700 h-2 rounded-full overflow-hidden">
-                <div className={`h-full rounded-full ${color} transition-all duration-700`} style={{ width: `${Math.min(pct, 100)}%` }} />
-            </div>
-        </div>
-    );
-}
-
-// ── Sales Detail by Month ─────────────────────
-
-const ORDER_TYPE_COLORS: Record<string, string> = {
-    'ARM+CRIS': 'bg-indigo-100 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400',
-    'CRISTAL': 'bg-cyan-100 dark:bg-cyan-950 text-cyan-600 dark:text-cyan-400',
-    'ARMAZÓN': 'bg-amber-100 dark:bg-amber-950 text-amber-600 dark:text-amber-400',
-    'OTRO': 'bg-stone-100 dark:bg-stone-700 text-stone-500',
-};
-
-const ORDER_TYPE_SORT: Record<string, number> = {
-    'ARM+CRIS': 0,
-    'CRISTAL': 1,
-    'ARMAZÓN': 2,
-    'OTRO': 3,
-};
-
-function SalesDetailSection({ salesDetail }: { salesDetail: SaleDetail[] }) {
-    const [expandedMonths, setExpandedMonths] = useState<Record<string, boolean>>({});
-    const [expandedRows, setExpandedRows] = useState<Record<string, boolean>>({});
-    const [sortBy, setSortBy] = useState<'type' | 'date' | 'profit'>('type');
-
-    // Group by month
-    const months = salesDetail.reduce<Record<string, SaleDetail[]>>((acc, sale) => {
-        if (!acc[sale.month]) acc[sale.month] = [];
-        acc[sale.month].push(sale);
-        return acc;
-    }, {});
-
-    // Initialize first month as expanded
-    useEffect(() => {
-        const keys = Object.keys(months);
-        if (keys.length > 0 && Object.keys(expandedMonths).length === 0) {
-            setExpandedMonths({ [keys[0]]: true });
-        }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [salesDetail]);
-
-    const toggleMonth = (month: string) => {
-        setExpandedMonths(prev => ({ ...prev, [month]: !prev[month] }));
-    };
-
-    const toggleRow = (id: string) => {
-        setExpandedRows(prev => ({ ...prev, [id]: !prev[id] }));
-    };
-
-    const sortSales = (sales: SaleDetail[]) => {
-        return [...sales].sort((a, b) => {
-            if (sortBy === 'type') return (ORDER_TYPE_SORT[a.orderType] ?? 9) - (ORDER_TYPE_SORT[b.orderType] ?? 9);
-            if (sortBy === 'profit') return b.netProfit - a.netProfit;
-            return new Date(b.date).getTime() - new Date(a.date).getTime();
-        });
-    };
-
-    const formatDate = (d: string) => {
-        try { return new Date(d).toLocaleDateString('es-AR', { day: '2-digit', month: 'short' }); }
-        catch { return d; }
-    };
-
-    const getDiscountLabel = (sale: SaleDetail): string => {
-        const parts: string[] = [];
-        if (sale.discounts.cash > 0) parts.push(`${sale.discounts.cash}% ef.`);
-        if (sale.discounts.transfer > 0) parts.push(`${sale.discounts.transfer}% tr.`);
-        if (sale.discounts.card > 0) parts.push(`${sale.discounts.card}% tarj.`);
-        if (sale.discounts.general > 0) parts.push(`${sale.discounts.general}% gral.`);
-        if (sale.appliedPromo) parts.push(sale.appliedPromo);
-        if (sale.markup > 0) parts.push(`+${sale.markup}% rec.`);
-        if (sale.specialDiscount > 0) parts.push(`-$${sale.specialDiscount.toLocaleString()} esp.`);
-        return parts.join(' · ') || '—';
-    };
-
-    return (
-        <div className="bg-white dark:bg-stone-800 border-2 border-stone-100 dark:border-stone-700 rounded-2xl p-4 lg:p-6 mb-6 print:break-before-page">
-            <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
-                <div className="flex items-center gap-2">
-                    <List className="w-5 h-5 text-primary" />
-                    <h2 className="text-xs font-black uppercase tracking-widest text-stone-400">Detalle de Ventas por Mes</h2>
-                </div>
-                <div className="flex items-center gap-2 print:hidden">
-                    <span className="text-[9px] font-black text-stone-400 uppercase tracking-widest">Ordenar:</span>
-                    {([
-                        { key: 'type' as const, label: 'Tipo' },
-                        { key: 'date' as const, label: 'Fecha' },
-                        { key: 'profit' as const, label: 'Ganancia' },
-                    ]).map(opt => (
-                        <button
-                            key={opt.key}
-                            onClick={() => setSortBy(opt.key)}
-                            className={`px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${
-                                sortBy === opt.key
-                                    ? 'bg-stone-900 dark:bg-white text-white dark:text-stone-900'
-                                    : 'bg-stone-50 dark:bg-stone-700 text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-600'
-                            }`}
-                        >
-                            {opt.label}
-                        </button>
-                    ))}
-                </div>
-            </div>
-
-            <div className="space-y-4">
-                {Object.entries(months).map(([month, sales]) => {
-                    const isOpen = expandedMonths[month];
-                    const sorted = sortSales(sales);
-                    const monthRevenue = sales.reduce((s, sale) => s + sale.totalPaid, 0);
-                    const monthProfit = sales.reduce((s, sale) => s + sale.netProfit, 0);
-                    const monthCMV = sales.reduce((s, sale) => s + sale.cmv, 0);
-
-                    return (
-                        <div key={month} className="border border-stone-100 dark:border-stone-700 rounded-2xl overflow-hidden">
-                            {/* Month Header */}
-                            <button
-                                onClick={() => toggleMonth(month)}
-                                className="w-full flex items-center justify-between p-4 bg-stone-50 dark:bg-stone-900 hover:bg-stone-100 dark:hover:bg-stone-800 transition-all text-left"
-                            >
-                                <div className="flex items-center gap-3">
-                                    <ChevronRight className={`w-4 h-4 text-stone-400 transition-transform ${isOpen ? 'rotate-90' : ''}`} />
-                                    <span className="text-sm font-black text-stone-800 dark:text-white">{month}</span>
-                                    <span className="text-[9px] font-bold text-stone-400 uppercase tracking-widest">{sales.length} venta{sales.length !== 1 ? 's' : ''}</span>
-                                </div>
-                                <div className="flex items-center gap-4 text-right">
-                                    <div>
-                                        <p className="text-[8px] font-black text-stone-400 uppercase tracking-widest">Ingreso</p>
-                                        <p className="text-sm font-black text-stone-800 dark:text-white">${monthRevenue.toLocaleString()}</p>
-                                    </div>
-                                    <div>
-                                        <p className="text-[8px] font-black text-stone-400 uppercase tracking-widest">Costo</p>
-                                        <p className="text-sm font-black text-red-500">${monthCMV.toLocaleString()}</p>
-                                    </div>
-                                    <div>
-                                        <p className="text-[8px] font-black text-stone-400 uppercase tracking-widest">Ganancia</p>
-                                        <p className={`text-sm font-black ${monthProfit >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>${monthProfit.toLocaleString()}</p>
-                                    </div>
-                                </div>
-                            </button>
-
-                            {/* Sales Table */}
-                            {isOpen && (
-                                <div className="overflow-x-auto">
-                                    <table className="w-full text-left min-w-[780px]">
-                                        <thead>
-                                            <tr className="border-b border-stone-100 dark:border-stone-700">
-                                                <th className="pl-3 pr-1 py-2.5 text-[8px] font-black text-stone-400 uppercase tracking-widest w-6"></th>
-                                                <th className="px-2 py-2.5 text-[8px] font-black text-stone-400 uppercase tracking-widest">Fecha</th>
-                                                <th className="px-2 py-2.5 text-[8px] font-black text-stone-400 uppercase tracking-widest"># Op</th>
-                                                <th className="px-2 py-2.5 text-[8px] font-black text-stone-400 uppercase tracking-widest">Cliente</th>
-                                                <th className="px-2 py-2.5 text-[8px] font-black text-stone-400 uppercase tracking-widest">Tipo</th>
-                                                <th className="px-2 py-2.5 text-[8px] font-black text-stone-400 uppercase tracking-widest text-right">Pagado</th>
-                                                <th className="px-2 py-2.5 text-[8px] font-black text-stone-400 uppercase tracking-widest text-right">Costo</th>
-                                                <th className="px-2 py-2.5 text-[8px] font-black text-stone-400 uppercase tracking-widest text-right">Com.Plat</th>
-                                                <th className="px-2 py-2.5 text-[8px] font-black text-stone-400 uppercase tracking-widest text-right">Com.Méd</th>
-                                                <th className="px-2 py-2.5 text-[8px] font-black text-stone-400 uppercase tracking-widest">Desc.</th>
-                                                <th className="px-2 py-2.5 text-[8px] font-black text-stone-400 uppercase tracking-widest text-right">Ganancia</th>
-                                                <th className="px-2 py-2.5 text-[8px] font-black text-stone-400 uppercase tracking-widest text-right">%</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {sorted.map(sale => {
-                                                const isExpanded = expandedRows[sale.fullId];
-                                                return (
-                                                    <SaleRow
-                                                        key={sale.fullId}
-                                                        sale={sale}
-                                                        isExpanded={isExpanded}
-                                                        onToggle={() => toggleRow(sale.fullId)}
-                                                        formatDate={formatDate}
-                                                        getDiscountLabel={getDiscountLabel}
-                                                    />
-                                                );
-                                            })}
-                                        </tbody>
-                                        {/* Month Totals */}
-                                        <tfoot>
-                                            <tr className="border-t-2 border-stone-200 dark:border-stone-600 bg-stone-50 dark:bg-stone-900">
-                                                <td colSpan={5} className="px-3 py-2.5 text-[11px] font-black text-stone-800 dark:text-white uppercase tracking-widest">
-                                                    Total {month}
-                                                </td>
-                                                <td className="px-2 py-2.5 text-[11px] font-black text-stone-800 dark:text-white text-right">${monthRevenue.toLocaleString()}</td>
-                                                <td className="px-2 py-2.5 text-[11px] font-black text-red-500 text-right">${monthCMV.toLocaleString()}</td>
-                                                <td className="px-2 py-2.5 text-[11px] font-black text-purple-500 text-right">
-                                                    ${sales.reduce((s, sale) => s + sale.platformFee, 0).toLocaleString()}
-                                                </td>
-                                                <td className="px-2 py-2.5 text-[11px] font-black text-pink-500 text-right">
-                                                    ${sales.reduce((s, sale) => s + sale.doctorFee, 0).toLocaleString()}
-                                                </td>
-                                                <td className="px-2 py-2.5"></td>
-                                                <td className="px-2 py-2.5 text-[11px] font-black text-right">
-                                                    <span className={monthProfit >= 0 ? 'text-emerald-500' : 'text-red-500'}>
-                                                        ${monthProfit.toLocaleString()}
-                                                    </span>
-                                                </td>
-                                                <td className="px-2 py-2.5 text-[11px] font-black text-right">
-                                                    <span className={monthProfit >= 0 ? 'text-emerald-500' : 'text-red-500'}>
-                                                        {monthRevenue > 0 ? ((monthProfit / monthRevenue) * 100).toFixed(1) : 0}%
-                                                    </span>
-                                                </td>
-                                            </tr>
-                                        </tfoot>
-                                    </table>
-                                </div>
-                            )}
-                        </div>
-                    );
-                })}
-            </div>
-        </div>
-    );
-}
-
-function SaleRow({ sale, isExpanded, onToggle, formatDate, getDiscountLabel }: {
-    sale: SaleDetail;
-    isExpanded: boolean;
-    onToggle: () => void;
-    formatDate: (d: string) => string;
-    getDiscountLabel: (s: SaleDetail) => string;
-}) {
-    return (
-        <>
-            <tr
-                onClick={onToggle}
-                className="border-b border-stone-50 dark:border-stone-800 hover:bg-stone-50 dark:hover:bg-stone-900/50 cursor-pointer transition-colors group"
-            >
-                <td className="pl-3 pr-1 py-2.5">
-                    <ChevronRight className={`w-3 h-3 text-stone-300 group-hover:text-stone-500 transition-all ${isExpanded ? 'rotate-90 text-primary' : ''}`} />
-                </td>
-                <td className="px-2 py-2.5 text-[10px] font-bold text-stone-500 whitespace-nowrap">{formatDate(sale.date)}</td>
-                <td className="px-2 py-2.5 text-[10px] font-mono font-bold text-stone-400">#{sale.id}</td>
-                <td className="px-2 py-2.5">
-                    <div className="text-[11px] font-bold text-stone-800 dark:text-white truncate max-w-[120px]">{sale.clientName}</div>
-                    <div className="text-[9px] font-medium text-stone-400 truncate max-w-[120px]">{sale.vendorName}</div>
-                </td>
-                <td className="px-2 py-2.5">
-                    <span className={`px-1.5 py-0.5 rounded-md text-[7px] font-black uppercase tracking-widest whitespace-nowrap ${ORDER_TYPE_COLORS[sale.orderType] || ORDER_TYPE_COLORS['OTRO']}`}>
-                        {sale.orderType}
-                    </span>
-                </td>
-                <td className="px-2 py-2.5 text-[11px] font-black text-stone-800 dark:text-white text-right tabular-nums">
-                    ${sale.totalPaid.toLocaleString()}
-                </td>
-                <td className="px-2 py-2.5 text-[11px] font-bold text-red-500 text-right tabular-nums">
-                    ${sale.cmv.toLocaleString()}
-                </td>
-                <td className="px-2 py-2.5 text-[11px] font-bold text-purple-500 text-right tabular-nums">
-                    {sale.platformFee > 0 ? `$${sale.platformFee.toLocaleString()}` : '—'}
-                </td>
-                <td className="px-2 py-2.5 text-[11px] font-bold text-pink-500 text-right tabular-nums">
-                    {sale.doctorFee > 0 ? `$${sale.doctorFee.toLocaleString()}` : '—'}
-                </td>
-                <td className="px-2 py-2.5 text-[8px] font-medium text-stone-400 max-w-[90px] truncate" title={getDiscountLabel(sale)}>
-                    {getDiscountLabel(sale)}
-                </td>
-                <td className={`px-2 py-2.5 text-[11px] font-black text-right tabular-nums ${sale.netProfit >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
-                    ${sale.netProfit.toLocaleString()}
-                </td>
-                <td className="px-2 py-2.5 text-right">
-                    <span className={`text-[9px] font-black px-1.5 py-0.5 rounded ${
-                        sale.profitMargin > 50 ? 'bg-emerald-100 dark:bg-emerald-950 text-emerald-600' :
-                        sale.profitMargin > 30 ? 'bg-blue-100 dark:bg-blue-950 text-blue-600' :
-                        sale.profitMargin > 0 ? 'bg-amber-100 dark:bg-amber-950 text-amber-600' :
-                        'bg-red-100 dark:bg-red-950 text-red-600'
-                    }`}>
-                        {sale.profitMargin.toFixed(0)}%
-                    </span>
-                </td>
-            </tr>
-            {/* Expanded item detail */}
-            {isExpanded && (
-                <tr>
-                    <td colSpan={12} className="px-0 py-0">
-                        <div className="mx-4 mb-3 bg-stone-50 dark:bg-stone-900/70 rounded-xl border border-stone-100 dark:border-stone-700 overflow-hidden animate-in slide-in-from-top-1 duration-200">
-                            <table className="w-full text-left">
-                                <thead>
-                                    <tr className="border-b border-stone-100 dark:border-stone-700">
-                                        <th className="px-4 py-2 text-[8px] font-black text-stone-400 uppercase tracking-widest">Producto</th>
-                                        <th className="px-3 py-2 text-[8px] font-black text-stone-400 uppercase tracking-widest">Tipo</th>
-                                        <th className="px-3 py-2 text-[8px] font-black text-stone-400 uppercase tracking-widest">Ojo</th>
-                                        <th className="px-3 py-2 text-[8px] font-black text-stone-400 uppercase tracking-widest">Lab</th>
-                                        <th className="px-3 py-2 text-[8px] font-black text-stone-400 uppercase tracking-widest text-right">Precio</th>
-                                        <th className="px-3 py-2 text-[8px] font-black text-stone-400 uppercase tracking-widest text-right">Costo</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {sale.items.map((item, idx) => (
-                                        <tr key={idx} className="border-b border-stone-100/50 dark:border-stone-800/50 last:border-0">
-                                            <td className="px-4 py-2 text-[10px] font-bold text-stone-700 dark:text-stone-300 max-w-[200px] truncate">
-                                                {item.name}
-                                                {item.is2x1Free && <span className="ml-1.5 px-1.5 py-0.5 bg-teal-100 dark:bg-teal-950 text-teal-600 dark:text-teal-400 rounded text-[7px] font-black uppercase">2x1 bonif.</span>}
-                                            </td>
-                                            <td className="px-3 py-2 text-[9px] font-medium text-stone-400">{item.type}</td>
-                                            <td className="px-3 py-2 text-[9px] font-bold text-stone-500">{item.eye || '—'}</td>
-                                            <td className="px-3 py-2 text-[9px] font-medium text-stone-400">{item.lab || '—'}</td>
-                                            <td className="px-3 py-2 text-[10px] font-bold text-stone-700 dark:text-stone-300 text-right tabular-nums">
-                                                {item.price > 0 ? `$${item.price.toLocaleString()}` : <span className="text-teal-500">$0</span>}
-                                            </td>
-                                            <td className="px-3 py-2 text-[10px] font-bold text-red-500 text-right tabular-nums">
-                                                ${item.cost.toLocaleString()}
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                            {/* Payment methods */}
-                            <div className="px-4 py-2 border-t border-stone-100 dark:border-stone-700 flex items-center gap-2 flex-wrap">
-                                <span className="text-[8px] font-black text-stone-400 uppercase tracking-widest">Pagos:</span>
-                                {[...new Set(sale.paymentMethods)].map((m, i) => (
-                                    <span key={i} className="px-2 py-0.5 bg-stone-200 dark:bg-stone-700 rounded text-[8px] font-bold text-stone-500 dark:text-stone-400 uppercase tracking-wider">
-                                        {METHOD_LABELS[m] || m}
-                                    </span>
-                                ))}
-                                {sale.hasInvoice && (
-                                    <span className="px-2 py-0.5 bg-indigo-100 dark:bg-indigo-950 rounded text-[8px] font-bold text-indigo-500 uppercase tracking-wider">
-                                        Facturada ✓
-                                    </span>
-                                )}
-                            </div>
-                        </div>
-                    </td>
-                </tr>
-            )}
-        </>
-    );
-}
-
-function EmptySection({ message }: { message: string }) {
-    return (
-        <div className="text-center py-10 text-stone-300 dark:text-stone-600">
-            <Minus className="w-8 h-8 mx-auto mb-2" />
-            <p className="text-xs font-black uppercase tracking-widest">{message}</p>
-        </div>
-    );
-}
-
-function FixedCostsSection({ fixedCosts, onRefresh }: { fixedCosts: FixedCost[]; onRefresh: () => void }) {
-    const [showForm, setShowForm] = useState(false);
-    const [loading, setLoading] = useState(false);
-    const [form, setForm] = useState({
-        name: '',
-        amount: '',
-        category: 'OTRO',
-        month: new Date().getMonth() + 1,
-        year: new Date().getFullYear(),
-        notes: '',
-    });
-
-    const handleAdd = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!form.name || !form.amount) return;
-        setLoading(true);
-        try {
-            const res = await fetch('/api/fixed-costs', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    ...form,
-                    amount: Number(form.amount),
-                }),
-            });
-            if (res.ok) {
-                setForm({ name: '', amount: '', category: 'OTRO', month: new Date().getMonth() + 1, year: new Date().getFullYear(), notes: '' });
-                setShowForm(false);
-                onRefresh();
-            }
-        } catch (err) {
-            console.error('Error adding fixed cost:', err);
-        }
-        setLoading(false);
-    };
-
-    const handleDelete = async (id: string) => {
-        if (!confirm('¿Eliminar este gasto fijo?')) return;
-        try {
-            await fetch(`/api/fixed-costs/${id}`, { method: 'DELETE' });
-            onRefresh();
-        } catch (err) {
-            console.error('Error deleting fixed cost:', err);
-        }
-    };
-
-    const total = fixedCosts.reduce((s, fc) => s + fc.amount, 0);
-    const monthNames = ["", "Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
-
-    return (
-        <div className="bg-white dark:bg-stone-800 border-2 border-stone-100 dark:border-stone-700 rounded-2xl p-6 mt-8">
-            <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center gap-2">
-                    <Building2 className="w-5 h-5 text-orange-500" />
-                    <h2 className="text-xs font-black uppercase tracking-widest text-stone-400">Gastos Fijos del Período</h2>
-                </div>
-                <div className="flex items-center gap-3">
-                    <span className="text-sm font-black text-orange-500">Total: ${total.toLocaleString()}</span>
-                    <button
-                        onClick={() => setShowForm(!showForm)}
-                        className="p-2 bg-orange-500 text-white rounded-xl hover:bg-orange-600 transition-all hover:scale-105"
-                    >
-                        <Plus className="w-4 h-4" />
-                    </button>
-                </div>
-            </div>
-
-            {/* Add Form */}
-            {showForm && (
-                <form onSubmit={handleAdd} className="mb-6 p-5 bg-stone-50 dark:bg-stone-900 rounded-2xl border border-stone-100 dark:border-stone-700 animate-in slide-in-from-top-2 duration-300">
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-                        <div className="space-y-1">
-                            <label className="text-[9px] font-black text-stone-400 uppercase tracking-widest">Nombre *</label>
-                            <input
-                                type="text"
-                                value={form.name}
-                                onChange={e => setForm({ ...form, name: e.target.value })}
-                                placeholder="Ej: Alquiler"
-                                className="w-full px-3 py-2.5 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-600 rounded-xl text-sm font-bold text-stone-800 dark:text-white outline-none focus:ring-2 focus:ring-orange-500/20"
-                                required
-                            />
-                        </div>
-                        <div className="space-y-1">
-                            <label className="text-[9px] font-black text-stone-400 uppercase tracking-widest">Monto *</label>
-                            <input
-                                type="number"
-                                value={form.amount}
-                                onChange={e => setForm({ ...form, amount: e.target.value })}
-                                placeholder="0"
-                                className="w-full px-3 py-2.5 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-600 rounded-xl text-sm font-bold text-stone-800 dark:text-white outline-none focus:ring-2 focus:ring-orange-500/20"
-                                required
-                            />
-                        </div>
-                        <div className="space-y-1">
-                            <label className="text-[9px] font-black text-stone-400 uppercase tracking-widest">Categoría</label>
-                            <select
-                                value={form.category}
-                                onChange={e => setForm({ ...form, category: e.target.value })}
-                                className="w-full px-3 py-2.5 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-600 rounded-xl text-sm font-bold text-stone-800 dark:text-white outline-none focus:ring-2 focus:ring-orange-500/20"
-                            >
-                                {FIXED_COST_CATEGORIES.map(c => (
-                                    <option key={c.id} value={c.id}>{c.label}</option>
-                                ))}
-                            </select>
-                        </div>
-                        <div className="space-y-1">
-                            <label className="text-[9px] font-black text-stone-400 uppercase tracking-widest">Mes / Año</label>
-                            <div className="flex gap-2">
-                                <select
-                                    value={form.month}
-                                    onChange={e => setForm({ ...form, month: Number(e.target.value) })}
-                                    className="flex-1 px-2 py-2.5 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-600 rounded-xl text-sm font-bold text-stone-800 dark:text-white outline-none"
-                                >
-                                    {monthNames.slice(1).map((m, i) => (
-                                        <option key={i+1} value={i+1}>{m}</option>
-                                    ))}
-                                </select>
-                                <input
-                                    type="number"
-                                    value={form.year}
-                                    onChange={e => setForm({ ...form, year: Number(e.target.value) })}
-                                    className="w-20 px-2 py-2.5 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-600 rounded-xl text-sm font-bold text-stone-800 dark:text-white outline-none"
-                                />
-                            </div>
-                        </div>
-                    </div>
-                    <div className="flex items-center gap-3">
-                        <input
-                            type="text"
-                            value={form.notes}
-                            onChange={e => setForm({ ...form, notes: e.target.value })}
-                            placeholder="Notas (opcional)"
-                            className="flex-1 px-3 py-2.5 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-600 rounded-xl text-sm font-bold text-stone-800 dark:text-white outline-none"
-                        />
-                        <button
-                            type="submit"
-                            disabled={loading}
-                            className="px-5 py-2.5 bg-orange-500 text-white rounded-xl text-xs font-black uppercase tracking-widest hover:bg-orange-600 transition-all disabled:opacity-50"
-                        >
-                            {loading ? 'Guardando...' : 'Agregar'}
-                        </button>
-                    </div>
-                </form>
-            )}
-
-            {/* List */}
-            {fixedCosts.length > 0 ? (
-                <div className="space-y-2">
-                    {fixedCosts.map(fc => (
-                        <div key={fc.id} className="flex items-center justify-between p-4 bg-stone-50 dark:bg-stone-900 rounded-xl hover:bg-stone-100 dark:hover:bg-stone-800 transition-all group">
-                            <div className="flex items-center gap-3">
-                                <div className="w-8 h-8 bg-orange-100 dark:bg-orange-950 rounded-lg flex items-center justify-center">
-                                    <Receipt className="w-4 h-4 text-orange-500" />
-                                </div>
-                                <div>
-                                    <p className="text-sm font-black text-stone-800 dark:text-white">{fc.name}</p>
-                                    <p className="text-[9px] text-stone-400 font-bold uppercase tracking-widest">
-                                        {FIXED_COST_CATEGORIES.find(c => c.id === fc.category)?.label || fc.category} · {monthNames[fc.month]} {fc.year}
-                                        {fc.notes ? ` · ${fc.notes}` : ''}
-                                    </p>
-                                </div>
-                            </div>
-                            <div className="flex items-center gap-3">
-                                <span className="text-sm font-black text-orange-500">${fc.amount.toLocaleString()}</span>
-                                <button
-                                    onClick={() => handleDelete(fc.id)}
-                                    className="p-1.5 text-stone-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"
-                                >
-                                    <Trash2 className="w-3.5 h-3.5" />
-                                </button>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            ) : (
-                <div className="text-center py-8 text-stone-300 dark:text-stone-600">
-                    <Building2 className="w-8 h-8 mx-auto mb-2" />
-                    <p className="text-xs font-black uppercase tracking-widest">Sin gastos fijos cargados</p>
-                    <p className="text-[9px] text-stone-400 mt-1">Agregá contadora, alquiler, sueldos, etc.</p>
-                </div>
-            )}
-        </div>
-    );
-}
-
-function PLRow({ label, value, bold, accent, color, sub }: {
-    label: string;
-    value: number;
-    bold?: boolean;
-    accent?: string;
-    color?: string;
-    sub?: string;
-}) {
-    const textColor = accent || color || 'text-stone-600 dark:text-stone-300';
-    return (
-        <div className={`flex justify-between items-center py-1.5 ${bold ? '' : 'pl-3'}`}>
-            <div className="flex items-center gap-2">
-                <span className={`text-xs ${bold ? 'font-black' : 'font-medium'} ${bold ? (accent || 'text-stone-800 dark:text-white') : 'text-stone-500 dark:text-stone-400'}`}>
-                    {label}
-                </span>
-                {sub && <span className="text-[8px] text-stone-400 font-medium">{sub}</span>}
-            </div>
-            <span className={`text-sm ${bold ? 'font-black' : 'font-bold'} ${textColor} tabular-nums truncate max-w-[120px] text-right`}>
-                {value < 0 ? '-' : ''}${Math.abs(value).toLocaleString()}
-            </span>
-        </div>
     );
 }

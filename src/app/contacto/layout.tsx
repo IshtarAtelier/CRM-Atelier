@@ -11,7 +11,7 @@ export const metadata: Metadata = {
     url: "https://www.atelieroptica.com.ar/contacto",
     images: [
       {
-        url: "/images/blog/fachada-ladrillo.jpg",
+        url: "/images/blog/fachada-ladrillo.webp",
         width: 1200,
         height: 630,
         alt: "Atelier Óptica Contacto",

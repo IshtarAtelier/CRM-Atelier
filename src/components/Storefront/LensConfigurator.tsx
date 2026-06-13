@@ -27,6 +27,7 @@ export function LensConfigurator({ basePrice, productId, category, onColorChange
   const [tintColor, setTintColor] = useState<string | null>(null);
   const [tintStyle, setTintStyle] = useState<"COMPACTO" | "DEGRADÉ" | "SEGÚN MUESTRA" | null>(null);
   const [prescriptionFile, setPrescriptionFile] = useState<File | null>(null);
+  const [sendLater, setSendLater] = useState<boolean>(false);
   const [dynamicPricing, setDynamicPricing] = useState<any>(null);
   const { addItem, updateItemLensConfig } = useCart();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -360,6 +361,28 @@ export function LensConfigurator({ basePrice, productId, category, onColorChange
                 </div>
               )}
             </div>
+
+            {/* Checkbox: Enviar por WhatsApp luego */}
+            <div className="mt-4 flex items-start gap-3 bg-stone-50 border border-stone-200/60 p-4 rounded-xl hover:bg-stone-100/50 transition-colors">
+              <input
+                type="checkbox"
+                id="sendPrescriptionLater"
+                checked={sendLater}
+                onChange={(e) => {
+                  setSendLater(e.target.checked);
+                  if (e.target.checked) {
+                    setPrescriptionFile(null); // Clear file if sending later
+                  }
+                }}
+                className="mt-1 h-4 w-4 rounded border-[#e5e5e5] text-black focus:ring-black cursor-pointer"
+              />
+              <label htmlFor="sendPrescriptionLater" className="text-xs text-stone-700 cursor-pointer select-none leading-relaxed text-left">
+                <strong>Prefiero enviar mi receta por WhatsApp luego.</strong>
+                <span className="block text-[11px] text-stone-500 mt-0.5">
+                  Podés finalizar la compra ahora y un asesor te contactará para pedirte la receta.
+                </span>
+              </label>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
@@ -368,6 +391,40 @@ export function LensConfigurator({ basePrice, productId, category, onColorChange
 
       {/* TOTAL Y ACCIÓN */}
       <motion.div layout className="flex flex-col gap-6">
+        {/* Resumen del Presupuesto / Desglose */}
+        <div className="w-full bg-[#faf8f5] border border-[#e8e2db] rounded-2xl p-5 mb-2 shadow-sm text-left">
+          <span className="text-[10px] text-stone-500 font-bold uppercase tracking-wider block mb-3 border-b border-[#e8e2db] pb-2">
+            Desglose del Presupuesto
+          </span>
+          <div className="space-y-2 text-xs">
+            <div className="flex justify-between text-stone-600">
+              <span>Armazón de Diseño ({productInfo?.model || 'Modelo Seleccionado'}):</span>
+              <span className="font-mono font-bold">${basePrice.toLocaleString('es-AR')}</span>
+            </div>
+            
+            {lensType && lensType !== "NONE" && (
+              <div className="flex justify-between text-stone-600">
+                <span>
+                  Cristales {flowType === "SUN" ? "de Sol" : ""} ({lensType} {treatment ? `- ${treatment.replace('_', ' ')}` : ''}):
+                </span>
+                <span className="font-mono font-bold">${(calculateTotal() - basePrice).toLocaleString('es-AR')}</span>
+              </div>
+            )}
+
+            {flowType === "SUN" && tintColor && (
+              <div className="flex justify-between text-stone-600">
+                <span>Tinte de Color ({tintColor} {tintStyle ? `- ${tintStyle}` : ''}):</span>
+                <span className="text-[#1b4332] font-bold">Bonificado</span>
+              </div>
+            )}
+            
+            <div className="border-t border-[#e8e2db] pt-3 mt-1 flex justify-between font-bold text-stone-900 text-sm">
+              <span>Total Estimado:</span>
+              <span className="font-mono">${calculateTotal().toLocaleString('es-AR')}</span>
+            </div>
+          </div>
+        </div>
+
         <div className="w-full flex flex-col items-center mb-2">
           <p className="text-[10px] uppercase tracking-[0.3em] font-bold text-[#999] mb-2">Inversión Final</p>
           <motion.p 
@@ -387,7 +444,7 @@ export function LensConfigurator({ basePrice, productId, category, onColorChange
         </div>
         
         <button 
-          disabled={lensType !== "NONE" && step < 4}
+          disabled={lensType !== "NONE" && step < 4 && !sendLater}
           onClick={() => {
             const finalColorStr = flowType === "SUN" && tintColor && tintStyle 
               ? `${tintColor} (${tintStyle})` 
@@ -399,7 +456,7 @@ export function LensConfigurator({ basePrice, productId, category, onColorChange
                 lensType,
                 treatment,
                 color: finalColorStr,
-                prescriptionFile: prescriptionFile ? prescriptionFile.name : null
+                prescriptionFile: prescriptionFile ? prescriptionFile.name : (sendLater ? "Enviar luego por WhatsApp" : null)
               }, additionalPrice);
               
               if (onSuccess) onSuccess();
@@ -416,7 +473,7 @@ export function LensConfigurator({ basePrice, productId, category, onColorChange
                   lensType,
                   treatment,
                   color: finalColorStr,
-                  prescriptionFile: prescriptionFile ? prescriptionFile.name : null
+                  prescriptionFile: prescriptionFile ? prescriptionFile.name : (sendLater ? "Enviar luego por WhatsApp" : null)
                 },
                 quantity: 1
               });

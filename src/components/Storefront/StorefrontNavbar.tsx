@@ -261,7 +261,7 @@ export function StorefrontNavbar({ theme = "dark", mixBlend = false }: Storefron
                     return (
                       <Link
                         key={p.id}
-                        href={`/producto/${p.id}`}
+                        href={`/producto/${p.slug || p.id}`}
                         onClick={() => {
                           setIsSearchOpen(false);
                           setSearchQuery("");

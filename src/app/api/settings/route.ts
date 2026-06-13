@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { headers } from 'next/headers';
+import { defaultWebSettings } from '@/lib/web-settings';
 
 export async function GET(request: Request) {
     try {
@@ -9,16 +10,33 @@ export async function GET(request: Request) {
 
         if (key) {
             const setting = await prisma.systemSetting.findUnique({ where: { key } });
-            return NextResponse.json(setting ? { value: JSON.parse(setting.value) } : { value: null });
+            if (!setting) {
+                const defaultValue = defaultWebSettings[key as keyof typeof defaultWebSettings];
+                return NextResponse.json({ value: defaultValue !== undefined ? defaultValue : null });
+            }
+            try {
+                return NextResponse.json({ value: JSON.parse(setting.value) });
+            } catch {
+                return NextResponse.json({ value: setting.value });
+            }
         }
 
         const settings = await prisma.systemSetting.findMany();
         const formatted = settings.reduce((acc, curr) => {
-            acc[curr.key] = JSON.parse(curr.value);
+            try {
+                acc[curr.key] = JSON.parse(curr.value);
+            } catch {
+                acc[curr.key] = curr.value;
+            }
             return acc;
         }, {} as Record<string, any>);
 
-        return NextResponse.json(formatted);
+        const responseData = {
+            ...defaultWebSettings,
+            ...formatted
+        };
+
+        return NextResponse.json(responseData);
     } catch (error: any) {
         return NextResponse.json({ error: error.message }, { status: 500 });
     }

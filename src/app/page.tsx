@@ -42,7 +42,7 @@ export default async function Home() {
         product: true
       },
       orderBy: { createdAt: 'desc' },
-      take: 40
+      take: 8
     });
   } catch (error) {
     console.error("Prerendering warning: Database not reachable at build time. Using fallbacks.", error);
@@ -171,18 +171,14 @@ export default async function Home() {
           style={{ animation: "marquee 30s linear infinite" }}
         >
           {[...Array(2)].map((_, i) => (
-            <span key={i} className="flex items-center gap-8 pr-8 text-[11px] font-bold uppercase tracking-[0.2em] text-white/60 whitespace-nowrap">
+            <span key={i} className="flex items-center gap-8 pr-8 text-[11px] font-bold uppercase tracking-[0.25em] text-white/60 whitespace-nowrap">
+              <span>Colección de Diseño</span>
+              <span className="text-white/20">·</span>
               <span>Acetato Italiano</span>
               <span className="text-white/20">·</span>
-              <span>Cristales Premium</span>
+              <span>Hechos para destacar tu mirada</span>
               <span className="text-white/20">·</span>
-              <span>Envío a Todo el País</span>
-              <span className="text-white/20">·</span>
-              <span>Garantía de Adaptación</span>
-              <span className="text-white/20">·</span>
-              <span>6 Cuotas Sin Interés</span>
-              <span className="text-white/20">·</span>
-              <span>Armazones de Diseño</span>
+              <span>Curaduría Exclusiva</span>
               <span className="text-white/20">·</span>
             </span>
           ))}

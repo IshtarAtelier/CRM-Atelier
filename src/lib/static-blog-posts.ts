@@ -38,7 +38,7 @@ export const staticPosts: StaticBlogPost[] = [
     excerpt: 'La miopía ya no es solo un problema de corrección visual; es un desafío global. Descubrí cómo la tecnología Essilor Stellest frena su avance.',
     date: '2026-05-19',
     category: 'Pediatría',
-    imageUrl: '/images/blog/vidriera-atelier.jpg'
+    imageUrl: '/images/blog/vidriera-atelier.webp'
   },
   {
     slug: 'tratamiento-antirreflex-crizal-sapphire',
@@ -46,7 +46,7 @@ export const staticPosts: StaticBlogPost[] = [
     excerpt: 'No todos los antirreflejos son iguales. Descubrí cómo la tecnología Crizal Sapphire y Prevencia protegen tus ojos y hacen que tus lentes duren años.',
     date: '2026-05-20',
     category: 'Cristales',
-    imageUrl: '/images/blog/mostrador-marmol.jpg'
+    imageUrl: '/images/blog/mostrador-marmol.webp'
   },
   {
     slug: 'lentes-eyezen-descanso-pantallas-essilor',
@@ -54,7 +54,7 @@ export const staticPosts: StaticBlogPost[] = [
     excerpt: 'No son simples lentes de descanso. Eyezen es un cristal de visión sencilla con un "boost" de potencia diseñado para relajar tus ojos frente al celular.',
     date: '2026-05-19',
     category: 'Tecnología Essilor',
-    imageUrl: '/images/blog/muestrario-smart-lens.jpg'
+    imageUrl: '/images/blog/muestrario-smart-lens.webp'
   },
   {
     slug: 'lentes-stellest-control-miopia-infantil',
@@ -62,7 +62,7 @@ export const staticPosts: StaticBlogPost[] = [
     excerpt: 'La miopía infantil avanza rápido. Conocé la tecnología de Essilor que no solo corrige la visión de tu hijo, sino que ralentiza su empeoramiento.',
     date: '2026-05-18',
     category: 'Pediatría',
-    imageUrl: '/images/blog/vidriera-atelier.jpg'
+    imageUrl: '/images/blog/vidriera-atelier.webp'
   },
   {
     slug: 'varilux-xr-series-inteligencia-artificial',
@@ -70,7 +70,7 @@ export const staticPosts: StaticBlogPost[] = [
     excerpt: 'Descubrí la revolución de Essilor. Lentes progresivos que entienden cómo movés tus ojos y garantizan un campo visual inmenso sin mareos.',
     date: '2026-05-20',
     category: 'Tecnología Varilux',
-    imageUrl: '/images/blog/local-varilux.jpg'
+    imageUrl: '/images/blog/local-varilux.webp'
   },
   {
     slug: 'varilux-comfort-max-dolor-de-cuello',
@@ -78,7 +78,7 @@ export const staticPosts: StaticBlogPost[] = [
     excerpt: 'Si trabajás 8 horas frente a una pantalla, tu postura sufre. Conocé cómo el diseño ergonómico de Varilux te permite ver bien sin levantar la barbilla.',
     date: '2026-05-19',
     category: 'Salud Visual',
-    imageUrl: '/images/blog/mostrador-marmol.jpg'
+    imageUrl: '/images/blog/mostrador-marmol.webp'
   },
   {
     slug: 'varilux-vs-genericos-diferencias',
@@ -86,7 +86,7 @@ export const staticPosts: StaticBlogPost[] = [
     excerpt: 'Derribamos mitos. Te mostramos exactamente qué cambia entre un lente progresivo de alta gama y uno económico (con esquemas de campo visual reales).',
     date: '2026-05-18',
     category: 'Cristales',
-    imageUrl: '/images/blog/muestrario-smart-lens.jpg'
+    imageUrl: '/images/blog/muestrario-smart-lens.webp'
   },
   {
     slug: 'mejor-optica-multifocales-cordoba',
@@ -142,7 +142,7 @@ export const staticPosts: StaticBlogPost[] = [
     excerpt: 'Guía definitiva para comprar anteojos recetados que combinen con tu estilo y te brinden la mejor comodidad óptica.',
     date: '2026-04-15',
     category: 'Tendencias',
-    imageUrl: '/images/blog/arte-venus.jpg'
+    imageUrl: '/images/blog/arte-venus.webp'
   },
   {
     slug: 'optica-cordoba-cerro-de-las-rosas',
@@ -150,7 +150,7 @@ export const staticPosts: StaticBlogPost[] = [
     excerpt: 'Conocé Atelier Óptica, especialistas en atención personalizada, armazones de diseño y cristales de alta precisión en Córdoba.',
     date: '2026-04-10',
     category: 'Nuestra Óptica',
-    imageUrl: '/images/blog/fachada-ladrillo.jpg'
+    imageUrl: '/images/blog/fachada-ladrillo.webp'
   },
   {
     slug: 'lentes-de-sol-tendencias-2026',
@@ -158,7 +158,7 @@ export const staticPosts: StaticBlogPost[] = [
     excerpt: 'Descubrí los armazones que son furor este año y por qué el filtro UV400 es innegociable para cuidar tu vista.',
     date: '2026-04-25',
     category: 'Tendencias',
-    imageUrl: '/images/blog/local-varilux.jpg'
+    imageUrl: '/images/blog/local-varilux.webp'
   },
   {
     slug: 'como-leer-tu-receta-oftalmologica',
@@ -166,7 +166,7 @@ export const staticPosts: StaticBlogPost[] = [
     excerpt: '¿Qué significan Esfera, Cilindro, Eje y Adición? Te explicamos de forma sencilla cómo interpretar lo que te recetó el oftalmólogo.',
     date: '2026-04-22',
     category: 'Salud Visual',
-    imageUrl: '/images/blog/muestrario-smart-lens.jpg'
+    imageUrl: '/images/blog/muestrario-smart-lens.webp'
   },
   {
     slug: 'filtro-azul-pantallas',
@@ -174,7 +174,7 @@ export const staticPosts: StaticBlogPost[] = [
     excerpt: 'Si sentís fatiga visual o dolores de cabeza después de tu jornada de trabajo, enterate por qué los cristales con filtro azul son fundamentales.',
     date: '2026-04-26',
     category: 'Tecnología',
-    imageUrl: '/images/blog/mostrador-marmol.jpg'
+    imageUrl: '/images/blog/mostrador-marmol.webp'
   },
   {
     slug: 'cristales-fotocromaticos-transitions',
@@ -182,7 +182,7 @@ export const staticPosts: StaticBlogPost[] = [
     excerpt: 'Comodidad total: lentes recetados en el interior y lentes de sol en el exterior. Descubrí cómo funciona la tecnología fotocromática.',
     date: '2026-04-27',
     category: 'Cristales',
-    imageUrl: '/images/blog/muestrario-smart-lens.jpg'
+    imageUrl: '/images/blog/muestrario-smart-lens.webp'
   },
   {
     slug: 'anteojos-para-ninos',
@@ -190,7 +190,7 @@ export const staticPosts: StaticBlogPost[] = [
     excerpt: 'Señales de alerta de que tu hijo necesita lentes y qué armazones infantiles (flexibles e irrompibles) son los más recomendados.',
     date: '2026-04-28',
     category: 'Pediatría',
-    imageUrl: '/images/blog/vidriera-atelier.jpg'
+    imageUrl: '/images/blog/vidriera-atelier.webp'
   },
   {
     slug: 'como-limpiar-tus-anteojos',
@@ -198,7 +198,7 @@ export const staticPosts: StaticBlogPost[] = [
     excerpt: 'El error más común es usar la remera o servilletas de papel. Aprendé los pasos correctos para que tus cristales duren años como nuevos.',
     date: '2026-04-29',
     category: 'Mantenimiento',
-    imageUrl: '/images/blog/mostrador-marmol.jpg'
+    imageUrl: '/images/blog/mostrador-marmol.webp'
   },
   {
     slug: 'multifocales-marcas-precios-varilux-novar',
@@ -206,7 +206,7 @@ export const staticPosts: StaticBlogPost[] = [
     excerpt: 'Comparativa definitiva sobre campos visuales, tecnologías de tallado digital y por qué el precio de un multifocal varía tanto.',
     date: '2026-05-02',
     category: 'Cristales',
-    imageUrl: '/images/blog/local-varilux.jpg'
+    imageUrl: '/images/blog/local-varilux.webp'
   },
   {
     slug: 'mareos-con-multifocales-soluciones',
@@ -214,7 +214,7 @@ export const staticPosts: StaticBlogPost[] = [
     excerpt: 'Si sentís que el piso se mueve o te duele la cabeza al usar progresivos, te contamos por qué pasa y cómo lo calibramos para solucionarlo.',
     date: '2026-05-04',
     category: 'Salud Visual',
-    imageUrl: '/images/blog/fachada-ladrillo.jpg'
+    imageUrl: '/images/blog/fachada-ladrillo.webp'
   },
   {
     slug: 'por-que-nuestros-multifocales-no-fallan-tecnologia-cordoba',
@@ -222,7 +222,7 @@ export const staticPosts: StaticBlogPost[] = [
     excerpt: 'Hacer un lente progresivo perfecto requiere mucho más que una receta. Conocé nuestro proceso de toma de medidas de alta precisión para una adaptación garantizada.',
     date: '2026-05-06',
     category: 'Nuestra Óptica',
-    imageUrl: '/images/blog/arte-monalisa.jpg'
+    imageUrl: '/images/blog/arte-monalisa.webp'
   },
   {
     slug: 'pasos-faciles-adaptacion-multifocales',
@@ -230,7 +230,7 @@ export const staticPosts: StaticBlogPost[] = [
     excerpt: 'Acostumbrarse a los lentes progresivos es mucho más natural de lo que parece. Seguí estos 3 simples pasos y empezá a disfrutar de una visión perfecta.',
     date: '2026-05-08',
     category: 'Salud Visual',
-    imageUrl: '/images/blog/anteojos-rosa-pastel.jpg'
+    imageUrl: '/images/blog/anteojos-rosa-pastel.webp'
   },
   {
     slug: 'bifocales-vs-multifocales-diferencias',
@@ -238,7 +238,7 @@ export const staticPosts: StaticBlogPost[] = [
     excerpt: '¿Seguís usando lentes divididos en dos? Te explicamos por qué la tecnología progresiva es estéticamente superior y mucho más cómoda para tu vista.',
     date: '2026-05-10',
     category: 'Cristales',
-    imageUrl: '/images/blog/arte-monalisa.jpg'
+    imageUrl: '/images/blog/arte-monalisa.webp'
   },
   {
     slug: 'multifocales-ocupacionales-para-computadora',
@@ -254,7 +254,7 @@ export const staticPosts: StaticBlogPost[] = [
     excerpt: 'Lejos de los fríos mostradores clínicos. Conocé cómo fusionamos la precisión visual con el arte, el diseño y un servicio cálido y personalizado.',
     date: '2026-05-15',
     category: 'Nuestra Óptica',
-    imageUrl: '/images/blog/vidriera-atelier.jpg'
+    imageUrl: '/images/blog/vidriera-atelier.webp'
   },
   {
     slug: 'diseno-y-marcas-armazones-cordoba',
@@ -262,6 +262,6 @@ export const staticPosts: StaticBlogPost[] = [
     excerpt: 'No vendemos cualquier marco. Cada anteojo en nuestras estanterías fue elegido por su diseño, calidad y capacidad para resaltar tus facciones.',
     date: '2026-05-18',
     category: 'Tendencias',
-    imageUrl: '/images/blog/anteojos-rosa-pastel.jpg'
+    imageUrl: '/images/blog/anteojos-rosa-pastel.webp'
   }
 ];

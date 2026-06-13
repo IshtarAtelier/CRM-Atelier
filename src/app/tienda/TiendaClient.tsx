@@ -9,6 +9,7 @@ import { StorefrontNavbar } from "@/components/Storefront/StorefrontNavbar";
 import { StorefrontFooter } from "@/components/Storefront/StorefrontFooter";
 import { FloatingWhatsApp } from "@/components/Storefront/FloatingWhatsApp";
 import { PaymentOptions } from "@/components/Storefront/PaymentOptions";
+import { ProductFilters } from "@/components/Storefront/ProductFilters";
 import { resolveStorageUrl } from "@/lib/utils/storage";
 
 const CATEGORIES = ["Todo", "Receta", "Sol", "XL", "Clip-On", "Contacto"];
@@ -28,7 +29,17 @@ const isXlProduct = (p: any) => {
          modelLower.includes("g7013");
 };
 
-export function TiendaClient({ initialProducts }: { initialProducts: any[] }) {
+export function TiendaClient({ 
+  initialProducts,
+  availableBrands = [],
+  availableShapes = [],
+  availableMaterials = []
+}: { 
+  initialProducts: any[];
+  availableBrands?: string[];
+  availableShapes?: string[];
+  availableMaterials?: string[];
+}) {
   const [activeCategory, setActiveCategory] = useState("Todo");
 
   // Removed loading state and fetch since products are passed as props
@@ -107,7 +118,16 @@ export function TiendaClient({ initialProducts }: { initialProducts: any[] }) {
       {/* ── MEDIOS DE PAGO STRIP ── */}
       <PaymentOptions variant="strip" />
 
-      <main className="max-w-[1600px] mx-auto px-5 py-12 pb-20">
+      <main className="max-w-[1600px] mx-auto px-5 py-12 pb-20 flex flex-col lg:flex-row gap-8 lg:gap-12 relative">
+        <aside className="w-full lg:w-64 flex-shrink-0">
+          <ProductFilters 
+            availableBrands={availableBrands} 
+            availableShapes={availableShapes}
+            availableMaterials={availableMaterials}
+          />
+        </aside>
+
+        <div className="flex-1">
 
         {/* The skeleton is no longer needed since data is preloaded */}
           <AnimatePresence mode="wait">
@@ -127,7 +147,7 @@ export function TiendaClient({ initialProducts }: { initialProducts: any[] }) {
                 return (
                   <Link
                     key={p.id}
-                    href={`/producto/${p.id}`}
+                    href={`/producto/${p.slug || p.id}`}
                     className="group block"
                   >
                     {/* Imagen */}
@@ -205,6 +225,7 @@ export function TiendaClient({ initialProducts }: { initialProducts: any[] }) {
             {filtered.length} {filtered.length === 1 ? "modelo" : "modelos"} · Atelier Óptica
           </p>
         )}
+        </div>
       </main>
 
       <StorefrontFooter />

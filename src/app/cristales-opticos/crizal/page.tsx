@@ -1,6 +1,8 @@
-import Link from "next/link";
 import { Metadata } from "next";
 import { AccordionItem } from "@/components/Storefront/Accordion";
+import { CristalHero } from "@/components/cristales/CristalHero";
+import { CristalFeatures } from "@/components/cristales/CristalFeatures";
+import { CristalCTA } from "@/components/cristales/CristalCTA";
 
 export const metadata: Metadata = {
   title: "Crizal Tratamientos Antirreflejo | Atelier Óptica",
@@ -11,47 +13,25 @@ export const metadata: Metadata = {
 export default function CrizalPage() {
   return (
     <div className="bg-[#faf8f5]">
-      <section className="relative w-full pt-10 pb-20 px-6 md:pt-16 md:pb-28 bg-[#faf8f5]">
-        <div className="max-w-5xl mx-auto text-center">
-          <p className="text-[11px] font-bold tracking-[0.2em] uppercase text-black/50 mb-6">Tratamientos Premium Essilor</p>
-          <h1 className="text-4xl md:text-6xl font-black tracking-tight mb-8">
-            Crizal · Tratamientos
-          </h1>
-          <p className="text-lg md:text-xl text-black/70 max-w-3xl mx-auto leading-relaxed font-light">
+      <CristalHero 
+        preTitle="Tratamientos Premium Essilor"
+        title="Crizal · Tratamientos"
+        description={
+          <>
             El escudo invisible para tus ojos y tus lentes.
             <br className="hidden md:block" />
             La tecnología Crizal® no es solo un &quot;antirreflejo&quot;. Es un sistema integral que actúa contra los 5 enemigos de la claridad: <strong>reflejos, rayas, suciedad, polvo y agua</strong>.
-          </p>
-        </div>
-      </section>
+          </>
+        }
+      />
 
-      <div className="w-full bg-black py-4 overflow-hidden border-y border-white/10">
-        <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-6 text-center md:text-left">
-          <div className="flex items-center gap-3">
-            <span className="text-white text-xl">✨</span>
-            <div>
-              <h4 className="text-white font-bold text-sm">Transparencia</h4>
-              <p className="text-white/60 text-xs mt-0.5">Visión sin reflejos parásitos</p>
-            </div>
-          </div>
-          <div className="hidden md:block w-px h-10 bg-white/20"></div>
-          <div className="flex items-center gap-3">
-            <span className="text-white text-xl">🛡️</span>
-            <div>
-              <h4 className="text-white font-bold text-sm">Resistencia Rock</h4>
-              <p className="text-white/60 text-xs mt-0.5">Soporta el rigor del uso diario</p>
-            </div>
-          </div>
-          <div className="hidden md:block w-px h-10 bg-white/20"></div>
-          <div className="flex items-center gap-3">
-            <span className="text-white text-xl">💦</span>
-            <div>
-              <h4 className="text-white font-bold text-sm">Hidrofóbico</h4>
-              <p className="text-white/60 text-xs mt-0.5">Repele el agua y la grasa facial</p>
-            </div>
-          </div>
-        </div>
-      </div>
+      <CristalFeatures 
+        features={[
+          { icon: "✨", title: "Transparencia", subtitle: "Visión sin reflejos parásitos" },
+          { icon: "🛡️", title: "Resistencia Rock", subtitle: "Soporta el rigor del uso diario" },
+          { icon: "💦", title: "Hidrofóbico", subtitle: "Repele el agua y la grasa facial" },
+        ]}
+      />
 
       <section className="w-full py-24 px-6">
         <div className="max-w-4xl mx-auto">
@@ -124,22 +104,18 @@ export default function CrizalPage() {
         </div>
       </section>
 
-      <section className="w-full bg-white py-24 px-6 border-t border-[#e8e2db]">
-        <div className="max-w-3xl mx-auto text-center">
-          <h2 className="text-3xl font-bold mb-6">¿Por qué rechazar un Antirreflejo Genérico?</h2>
-          <p className="text-lg text-black/70 mb-10 leading-relaxed">
+      <CristalCTA 
+        title="¿Por qué rechazar un Antirreflejo Genérico?"
+        description={
+          <>
             Los antirreflejos baratos suelen rayarse en pocos meses, descascararse o ensuciarse constantemente (dejando una película grasosa difícil de quitar). 
             <br className="mt-4" />
             Un tratamiento <strong>Crizal Original</strong> se fusiona a nivel molecular con el cristal y viene con su <strong>Certificado de Autenticidad</strong>. Es una inversión que preserva tus cristales recetados durante años.
-          </p>
-          <Link 
-            href={`/contacto?motivo=${encodeURIComponent("Consulta técnica Tratamiento Crizal")}`}
-            className="inline-block bg-[#283f5a] hover:bg-[#1e3047] text-white px-10 py-4 rounded-full font-bold transition-all shadow-lg hover:shadow-xl hover:-translate-y-1"
-          >
-            Cotizar tratamiento Crizal
-          </Link>
-        </div>
-      </section>
+          </>
+        }
+        buttonText="Cotizar tratamiento Crizal"
+        whatsappMotivo="Consulta técnica Tratamiento Crizal"
+      />
     </div>
   );
 }

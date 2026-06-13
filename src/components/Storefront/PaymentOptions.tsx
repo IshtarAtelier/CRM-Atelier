@@ -32,11 +32,13 @@ export function PaymentOptions({ variant = "inline", price, cashDiscount, instal
   
   const discountPercent = cashDiscount !== undefined 
     ? cashDiscount 
-    : (settings ? Number(settings.web_promo_cash_discount) : 15);
+    : (settings && settings.web_promo_cash_discount !== undefined && !isNaN(Number(settings.web_promo_cash_discount))
+        ? Number(settings.web_promo_cash_discount) 
+        : 15);
 
   const instText = installmentsText !== undefined
     ? installmentsText
-    : (settings ? settings.web_promo_installments : "6 cuotas sin interés");
+    : (settings && settings.web_promo_installments ? settings.web_promo_installments : "6 cuotas sin interés");
 
   const matchInstallments = instText ? instText.match(/\d+/) : null;
   const numInstallments = matchInstallments ? parseInt(matchInstallments[0], 10) : 6;

@@ -15,10 +15,35 @@ export function CheckoutPaymentOptions({ formData, handleChange, isProcessing }:
               <CreditCard className="w-4 h-4 text-stone-400" />
             </div>
             <p className="text-[11px] text-stone-500 leading-relaxed mb-2">Procesado de forma segura por Payway. Hasta 6 cuotas sin interés con tarjetas bancarias.</p>
-            <div className="flex gap-1">
-              <div className="h-4 w-6 bg-[#1434CB] rounded-[2px] opacity-80" /> {/* Visa Mock */}
-              <div className="h-4 w-6 bg-[#EB001B] rounded-[2px] opacity-80" /> {/* MC Mock */}
-              <div className="h-4 w-6 bg-[#00AEEF] rounded-[2px] opacity-80" /> {/* Amex Mock */}
+            
+            <div className="flex flex-wrap items-center gap-2 mt-2">
+              <span className="text-[9px] font-black uppercase tracking-wider text-stone-400 mr-1">Aceptamos:</span>
+              <div className="h-6 px-2.5 bg-[#1434CB] text-white rounded font-mono font-bold text-[9px] flex items-center justify-center tracking-tighter shadow-sm select-none">
+                VISA
+              </div>
+              <div className="h-6 px-2.5 bg-stone-900 text-white rounded flex items-center gap-1 font-mono font-bold text-[9px] shadow-sm select-none">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#EB001B] -mr-1" />
+                <span className="w-1.5 h-1.5 rounded-full bg-[#FF5F00]" />
+                MC
+              </div>
+              <div className="h-6 px-2 bg-[#005B94] text-white rounded font-mono font-bold text-[9.5px] flex items-center justify-center uppercase tracking-tight shadow-sm select-none">
+                Cabal
+              </div>
+              <div className="h-6 px-2 bg-[#5d2e8c] text-white rounded font-sans font-black text-[9px] flex items-center justify-center uppercase tracking-widest shadow-sm select-none">
+                Payway
+              </div>
+            </div>
+
+            <div className="mt-4 p-3.5 bg-stone-50 border border-stone-200 rounded-xl flex items-start gap-3 select-none">
+              <ShieldCheck className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
+              <div>
+                <span className="text-[11px] font-black uppercase tracking-wider text-stone-900 block">
+                  Conexión 100% Encriptada
+                </span>
+                <span className="text-[10px] text-stone-500 block leading-relaxed">
+                  Tus datos se procesan mediante la pasarela segura oficial de <strong>Payway (Prisma Medios de Pago)</strong> con cifrado SSL.
+                </span>
+              </div>
             </div>
             
             {formData.paymentMethod === 'PAYWAY' && (

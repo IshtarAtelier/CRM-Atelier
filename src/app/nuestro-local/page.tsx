@@ -7,6 +7,7 @@ import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon";
 import { GoogleReviews } from "@/components/Storefront/GoogleReviews";
 import { WHATSAPP_PHONE } from '@/lib/constants';
 import { getWebSettings } from '@/lib/web-settings';
+import Image from 'next/image';
 
 export const metadata: Metadata = {
   title: "Nuestro Local | Óptica Boutique en Cerro de las Rosas, Córdoba",
@@ -19,7 +20,7 @@ export const metadata: Metadata = {
     url: "https://www.atelieroptica.com.ar/nuestro-local",
     images: [
       {
-        url: "/images/blog/fachada-ladrillo.jpg",
+        url: "/images/blog/fachada-ladrillo.webp",
         width: 1200,
         height: 630,
         alt: "Fachada de Atelier Óptica",
@@ -117,7 +118,7 @@ export default async function NuestroLocalPage() {
               loop 
               playsInline
               className="absolute inset-0 w-full h-full object-cover opacity-90 group-hover:scale-105 transition-transform duration-1000"
-              poster="/images/atelier-macro-film.png"
+              poster="/images/atelier-macro-film.webp"
             >
               <source src="https://cdn.pixabay.com/video/2021/08/04/83863-584742614_large.mp4" type="video/mp4" />
               {/* Nota: Reemplazar el src anterior con "/videos/local-atelier.mp4" cuando tengas tu propio video filmado */}
@@ -130,12 +131,22 @@ export default async function NuestroLocalPage() {
           </div>
           <div className="flex flex-col gap-4">
             <div className="aspect-[4/3] md:aspect-auto md:flex-1 relative overflow-hidden bg-stone-100 rounded-2xl group">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/images/blog/mostrador-marmol.jpg" alt="Interior Atelier Óptica" className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
+              <Image 
+                src="/images/blog/mostrador-marmol.webp" 
+                alt="Interior Atelier Óptica" 
+                fill
+                sizes="(max-width: 768px) 100vw, 33vw"
+                className="object-cover group-hover:scale-105 transition-transform duration-700" 
+              />
             </div>
             <div className="aspect-[4/3] md:aspect-auto md:flex-1 relative overflow-hidden bg-stone-100 rounded-2xl group">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/images/blog/muestrario-smart-lens.jpg" alt="Muestrario Atelier" className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
+              <Image 
+                src="/images/blog/muestrario-smart-lens.webp" 
+                alt="Muestrario Atelier" 
+                fill
+                sizes="(max-width: 768px) 100vw, 33vw"
+                className="object-cover group-hover:scale-105 transition-transform duration-700" 
+              />
             </div>
           </div>
         </div>
