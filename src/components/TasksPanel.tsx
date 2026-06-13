@@ -152,6 +152,9 @@ export default function TasksPanel({ tasks, onClose }: TasksPanelProps) {
                                         });
                                         if (res.ok) {
                                             setCompletedTasks(prev => new Set(prev).add(task.id));
+                                            if (typeof window !== 'undefined') {
+                                                window.dispatchEvent(new Event('tasks-updated'));
+                                            }
                                         } else {
                                             alert('❌ Error al completar la tarea.');
                                         }

@@ -15,8 +15,19 @@ export function GlobalReviewRequests() {
         setMounted(true);
         setPortalTarget(document.body);
         fetchRequests();
+        
+        const handleTasksUpdated = () => fetchRequests();
+        if (typeof window !== 'undefined') {
+            window.addEventListener('tasks-updated', handleTasksUpdated);
+        }
+        
         const interval = setInterval(fetchRequests, 60000);
-        return () => clearInterval(interval);
+        return () => {
+            clearInterval(interval);
+            if (typeof window !== 'undefined') {
+                window.removeEventListener('tasks-updated', handleTasksUpdated);
+            }
+        };
     }, []);
 
     const fetchRequests = async () => {

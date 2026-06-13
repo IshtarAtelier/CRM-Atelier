@@ -16,8 +16,19 @@ export function GlobalTasks() {
         setMounted(true);
         setPortalTarget(document.body);
         fetchTasks();
+        
+        const handleTasksUpdated = () => fetchTasks();
+        if (typeof window !== 'undefined') {
+            window.addEventListener('tasks-updated', handleTasksUpdated);
+        }
+        
         const interval = setInterval(fetchTasks, 60000); // Actualizar cada minuto
-        return () => clearInterval(interval);
+        return () => {
+            clearInterval(interval);
+            if (typeof window !== 'undefined') {
+                window.removeEventListener('tasks-updated', handleTasksUpdated);
+            }
+        };
     }, []);
 
     const fetchTasks = async () => {

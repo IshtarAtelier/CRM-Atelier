@@ -203,6 +203,9 @@ export function useContacts(activeTab: ContactStatus, searchQuery: string, favor
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ description, dueDate })
             });
+            if (res.ok && typeof window !== 'undefined') {
+                window.dispatchEvent(new Event('tasks-updated'));
+            }
             return res.ok;
         } catch (err) {
             return false;
@@ -216,6 +219,9 @@ export function useContacts(activeTab: ContactStatus, searchQuery: string, favor
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ taskId, status })
             });
+            if (res.ok && typeof window !== 'undefined') {
+                window.dispatchEvent(new Event('tasks-updated'));
+            }
             return res.ok;
         } catch (err) {
             return false;
