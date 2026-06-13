@@ -147,6 +147,13 @@ export function FilmmakerReel() {
             exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.8, delay: 0.3 }}
           >
+            {/* Local SEO Badge */}
+            <div className="flex items-center gap-1.5 mb-3 select-none">
+              <span className="text-[9px] font-black uppercase tracking-[0.2em] bg-white/10 text-white px-2.5 py-1.5 backdrop-blur-md rounded-full flex items-center gap-1">
+                <span className="text-amber-500 text-[10px]">📍</span> Cerro de las Rosas, Córdoba
+              </span>
+            </div>
+
             {/* Credit line */}
             <p className="text-white/40 font-mono text-[10px] tracking-[0.25em] uppercase mb-3">
               {frame.credit} &nbsp;·&nbsp; {frame.year}

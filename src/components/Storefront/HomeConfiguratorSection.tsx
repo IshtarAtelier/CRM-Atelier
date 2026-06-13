@@ -28,7 +28,7 @@ export function HomeConfiguratorSection() {
           { num: 1, title: "Elegí tu armazón", desc: "Explorá la colección" },
           { num: 2, title: "Elegí tus cristales", desc: "A medida exacta" },
           { num: 3, title: "Enviá tu receta", desc: "Cargala en el checkout" },
-          { num: 4, title: "Recibí tus lentes", desc: "Envío a tu hogar" }
+          { num: 4, title: "Recibí tus lentes", desc: "En el local o a domicilio" }
         ].map((step, i) => (
           <motion.div 
             key={step.num}
@@ -68,6 +68,9 @@ export function HomeConfiguratorSection() {
         >
           ¿No sabés qué lentes elegir? Te ayudamos
         </a>
+        <span className="text-[10px] text-stone-400 font-medium tracking-wide max-w-xs sm:max-w-md text-center mt-2">
+          📍 Retirá gratis en nuestro local en Cerro de las Rosas o recibilo a domicilio en todo el país.
+        </span>
       </motion.div>
     </section>
   );

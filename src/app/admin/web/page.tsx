@@ -84,7 +84,7 @@ export default function WebManagementPage() {
   const [isFullscreenFlyer, setIsFullscreenFlyer] = useState(false);
 
   // New Flyer States for Generalization & Catalog Interactivity
-  const [flyerType, setFlyerType] = useState<'hiring' | 'promo' | 'announcement' | 'quote'>('hiring');
+  const [flyerType, setFlyerType] = useState<'hiring' | 'promo' | 'announcement' | 'quote' | 'holiday'>('hiring');
   const [selectedProductId, setSelectedProductId] = useState<string>('');
   const [showProductPrice, setShowProductPrice] = useState<boolean>(true);
   const [flyerPromoBadge, setFlyerPromoBadge] = useState<string>('15% OFF');
@@ -352,6 +352,41 @@ export default function WebManagementPage() {
                     <p className="text-[7px] font-black uppercase tracking-widest opacity-60 text-stone-400 mt-1">
                       {p?.product.brand} {p?.product.model}
                     </p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* 5. HOLIDAY TEMPLATE */}
+            {flyerType === 'holiday' && (
+              <div className="space-y-3 flex flex-col justify-center text-center">
+                <div className="text-center space-y-1">
+                  <span className="inline-block px-3 py-1 text-[8px] font-black tracking-widest uppercase rounded-full bg-red-500/10 border border-red-500/20 text-red-500 dark:text-red-400">
+                    {flyerDescription || 'AVISO IMPORTANTE'}
+                  </span>
+                  <h2 className="text-2xl font-black tracking-wider leading-none mt-2" style={{ color: textColor }}>
+                    {flyerTitle || 'FERIADO'}
+                  </h2>
+                  <h3 className="text-sm font-bold tracking-[0.1em] uppercase opacity-90" style={{ color: subtextColor }}>
+                    {flyerSubtitle || 'LUNES 15 DE JUNIO'}
+                  </h3>
+                </div>
+
+                {img ? (
+                  <div className="space-y-2 flex flex-col items-center">
+                    <div className="relative w-40 h-20 flex items-center justify-center">
+                      <div className="absolute w-24 h-24 rounded-full bg-primary/10 filter blur-xl" />
+                      <img src={img} alt="Holiday product highlight" className="object-contain w-full h-full relative z-10 drop-shadow-md" />
+                    </div>
+                    <p className="text-[9px] font-bold uppercase tracking-wider text-stone-500 mt-1">{p?.product.model}</p>
+                  </div>
+                ) : (
+                  <div className="space-y-1.5 py-1 text-center font-sans">
+                    {flyerRequirements.filter(Boolean).map((req, idx) => (
+                      <p key={idx} className="text-[10px] font-medium leading-tight" style={{ color: isDark ? '#e2e0db' : '#4e453c' }}>
+                        {req}
+                      </p>
+                    ))}
                   </div>
                 )}
               </div>
@@ -1149,12 +1184,13 @@ export default function WebManagementPage() {
                   {/* Selector de Tipo */}
                   <div className="space-y-2">
                     <label className="text-[9px] font-black text-stone-400 uppercase tracking-widest block">Plantilla de Contenido</label>
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
                       {[
-                        { id: 'hiring', name: 'Búsqueda Laboral', desc: 'Personal' },
+                        { id: 'hiring', name: 'Búsqueda', desc: 'Personal' },
                         { id: 'promo', name: 'Promoción', desc: 'Descuentos' },
                         { id: 'announcement', name: 'Novedades', desc: 'Lanzamientos' },
-                        { id: 'quote', name: 'Frase', desc: 'Inspiración' }
+                        { id: 'quote', name: 'Frase', desc: 'Inspiración' },
+                        { id: 'holiday', name: 'Feriados', desc: 'Horarios' }
                       ].map((type) => (
                         <button
                           key={type.id}
@@ -1174,6 +1210,16 @@ export default function WebManagementPage() {
                               setFlyerTitle('BUSCAMOS');
                               setFlyerSubtitle('PERSONAL');
                               setFlyerDescription('Únete a nuestro equipo de Óptica Atelier');
+                            } else if (type.id === 'holiday') {
+                              setFlyerTitle('FERIADO');
+                              setFlyerSubtitle('LUNES 15 DE JUNIO');
+                              setFlyerDescription('AVISO IMPORTANTE');
+                              setFlyerRequirements([
+                                'Mañana lunes el local permanecerá cerrado.',
+                                'Atención online activa en nuestra web.',
+                                'Reabrimos el martes de 09:00 a 19:00 hs.',
+                                '¡Que disfruten el fin de semana!'
+                              ]);
                             }
                           }}
                           className={`p-2.5 rounded-xl border text-center transition-all cursor-pointer ${
@@ -1435,6 +1481,29 @@ export default function WebManagementPage() {
                   {flyerType === 'promo' && !selectedProductId && (
                     <div className="space-y-2 pt-3 border-t border-stone-100 dark:border-stone-800">
                       <label className="text-[9px] font-black text-stone-400 uppercase tracking-widest block">Detalles de la Promoción (Hasta 4)</label>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        {flyerRequirements.map((req, i) => (
+                          <input
+                            key={i}
+                            type="text"
+                            className="w-full px-3 py-2 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl text-xs outline-none focus:border-primary transition-all font-medium text-stone-750"
+                            placeholder={`Línea ${i + 1}`}
+                            value={req}
+                            onChange={(e) => {
+                              const nr = [...flyerRequirements];
+                              nr[i] = e.target.value;
+                              setFlyerRequirements(nr);
+                            }}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Detalles Feriado sin anteojo */}
+                  {flyerType === 'holiday' && !selectedProductId && (
+                    <div className="space-y-2 pt-3 border-t border-stone-100 dark:border-stone-800">
+                      <label className="text-[9px] font-black text-stone-400 uppercase tracking-widest block">Detalles del Feriado / Horarios (Hasta 4)</label>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                         {flyerRequirements.map((req, i) => (
                           <input

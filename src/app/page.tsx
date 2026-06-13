@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Metadata } from "next";
 import { StorefrontNavbar } from "@/components/Storefront/StorefrontNavbar";
 import { StorefrontFooter } from "@/components/Storefront/StorefrontFooter";
 import { FloatingWhatsApp } from "@/components/Storefront/FloatingWhatsApp";
@@ -7,10 +8,26 @@ import { GoogleReviews } from "@/components/Storefront/GoogleReviews";
 import { HomeProductCarousel } from "@/components/Storefront/HomeProductCarousel";
 import { HomeConfiguratorSection } from "@/components/Storefront/HomeConfiguratorSection";
 import { HomeMacroFilm } from "@/components/Storefront/HomeMacroFilm";
+import { HomeStorePreview } from "@/components/Storefront/HomeStorePreview";
+import { HomeWhyChooseUs } from "@/components/Storefront/HomeWhyChooseUs";
 import { prisma } from "@/lib/db";
 import { resolveStorageUrl } from "@/lib/utils/storage";
 
 export const revalidate = 300;
+
+export const metadata: Metadata = {
+  title: "Atelier Óptica | Óptica en Cerro de las Rosas, Córdoba",
+  description: "Boutique óptica en Cerro de las Rosas, Córdoba. Especialistas en multifocales Varilux, anteojos de sol y receta de diseño exclusivo. 6 cuotas sin interés.",
+  alternates: {
+    canonical: 'https://www.atelieroptica.com.ar',
+  },
+  openGraph: {
+    title: "Atelier Óptica | Óptica en Cerro de las Rosas, Córdoba",
+    description: "Boutique óptica en Cerro de las Rosas, Córdoba. Especialistas en multifocales Varilux, anteojos de sol y receta de diseño exclusivo.",
+    url: 'https://www.atelieroptica.com.ar',
+    type: 'website',
+  },
+};
 
 // ==========================================
 // ATELIER ÓPTICA — GENTLE MONSTER REPLICA
@@ -164,6 +181,11 @@ export default async function Home() {
       <h1 className="sr-only">Atelier Óptica Córdoba — Anteojos de Receta, Lentes de Sol y Multifocales</h1>
 
       {/* ═══════════════════════════════════════════════ */}
+      {/* GOOGLE REVIEWS (REAL TIME - Server Component)   */}
+      {/* ═══════════════════════════════════════════════ */}
+      <GoogleReviews />
+
+      {/* ═══════════════════════════════════════════════ */}
       {/* MARQUEE — Texto deslizante entre secciones      */}
       {/* ═══════════════════════════════════════════════ */}
       <div className="w-full bg-black border-y border-white/10 py-3 overflow-hidden">
@@ -204,6 +226,11 @@ export default async function Home() {
       <HomeProductCarousel products={displayProducts} />
 
       {/* ═══════════════════════════════════════════════ */}
+      {/* POR QUÉ ELEGIRNOS — Pilares de Confianza         */}
+      {/* ═══════════════════════════════════════════════ */}
+      <HomeWhyChooseUs />
+
+      {/* ═══════════════════════════════════════════════ */}
       {/* CONFIGURADOR CTA — Nuestra diferencia vs GM     */}
       {/* ═══════════════════════════════════════════════ */}
       <HomeConfiguratorSection />
@@ -214,9 +241,9 @@ export default async function Home() {
       <HomeMacroFilm />
 
       {/* ═══════════════════════════════════════════════ */}
-      {/* GOOGLE REVIEWS (REAL TIME - Server Component)   */}
+      {/* LOCAL PREVIEW — Boutique Cerro de las Rosas     */}
       {/* ═══════════════════════════════════════════════ */}
-      <GoogleReviews />
+      <HomeStorePreview />
 
       {/* ═══════════════════════════════════════════════ */}
       {/* FOOTER Y WIDGETS                               */}
