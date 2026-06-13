@@ -28,60 +28,60 @@ export default function PromoLanding() {
         <div className="glide__track" data-glide-el="track">
             <ul className="glide__slides">
                 <li className="glide__slide glide__slide--active"><picture>
-<source media="(max-width: 480px)" srcSet="img/slider/mobile/01_varilux-kodak-smart-lens_especialistas-en-multifocales.webp 480w, img/slider/mobile/01_varilux-kodak-smart-lens_especialistas-en-multifocales.jpg 480w" type="image/webp" />
-<source media="(max-width: 768px)" srcSet="img/slider/tablet/01_varilux-kodak-smart-lens_especialistas-en-multifocales.webp 768w, img/slider/tablet/01_varilux-kodak-smart-lens_especialistas-en-multifocales.jpg 768w" type="image/webp" />
-<source media="(min-width: 769px)" srcSet="img/slider/desktop/01_varilux-kodak-smart-lens_especialistas-en-multifocales.webp 1920w, img/slider/desktop/01_varilux-kodak-smart-lens_especialistas-en-multifocales.jpg 1920w" type="image/webp" />
-<img src='img/slider/mobile/01_varilux-kodak-smart-lens_especialistas-en-multifocales.jpg' alt='Varilux, Kodak, Smart Lens - Especialistas en Multifocales' width='1920' height='800'  />
+<source media="(max-width: 480px)" srcSet="https://promo.atelieroptica.com.ar/img/slider/mobile/01_varilux-kodak-smart-lens_especialistas-en-multifocales.webp 480w, https://promo.atelieroptica.com.ar/img/slider/mobile/01_varilux-kodak-smart-lens_especialistas-en-multifocales.jpg 480w" type="image/webp" />
+<source media="(max-width: 768px)" srcSet="https://promo.atelieroptica.com.ar/img/slider/tablet/01_varilux-kodak-smart-lens_especialistas-en-multifocales.webp 768w, https://promo.atelieroptica.com.ar/img/slider/tablet/01_varilux-kodak-smart-lens_especialistas-en-multifocales.jpg 768w" type="image/webp" />
+<source media="(min-width: 769px)" srcSet="https://promo.atelieroptica.com.ar/img/slider/desktop/01_varilux-kodak-smart-lens_especialistas-en-multifocales.webp 1920w, https://promo.atelieroptica.com.ar/img/slider/desktop/01_varilux-kodak-smart-lens_especialistas-en-multifocales.jpg 1920w" type="image/webp" />
+<img src='https://promo.atelieroptica.com.ar/img/slider/mobile/01_varilux-kodak-smart-lens_especialistas-en-multifocales.jpg' alt='Varilux, Kodak, Smart Lens - Especialistas en Multifocales' width='1920' height='800'  />
 </picture>
 <div className='caption'>
 <h3>Varilux, Kodak, Smart Lens</h3>
 <h2>Especialistas en Multifocales</h2>
 </div>
 </li><li className="glide__slide"><picture>
-<source media="(max-width: 480px)" srcSet="img/slider/mobile/02_envo-gratis_6-cuotas-sin-inters.webp 480w, img/slider/mobile/02_envo-gratis_6-cuotas-sin-inters.jpg 480w" type="image/webp" />
-<source media="(max-width: 768px)" srcSet="img/slider/tablet/02_envo-gratis_6-cuotas-sin-inters.webp 768w, img/slider/tablet/02_envo-gratis_6-cuotas-sin-inters.jpg 768w" type="image/webp" />
-<source media="(min-width: 769px)" srcSet="img/slider/desktop/02_envo-gratis_6-cuotas-sin-inters.webp 1920w, img/slider/desktop/02_envo-gratis_6-cuotas-sin-inters.jpg 1920w" type="image/webp" />
-<img src='img/slider/mobile/02_envo-gratis_6-cuotas-sin-inters.jpg' alt='Envío Gratis - 6 Cuotas sin interés' width='1920' height='800' loading="lazy" />
+<source media="(max-width: 480px)" srcSet="https://promo.atelieroptica.com.ar/img/slider/mobile/02_envo-gratis_6-cuotas-sin-inters.webp 480w, https://promo.atelieroptica.com.ar/img/slider/mobile/02_envo-gratis_6-cuotas-sin-inters.jpg 480w" type="image/webp" />
+<source media="(max-width: 768px)" srcSet="https://promo.atelieroptica.com.ar/img/slider/tablet/02_envo-gratis_6-cuotas-sin-inters.webp 768w, https://promo.atelieroptica.com.ar/img/slider/tablet/02_envo-gratis_6-cuotas-sin-inters.jpg 768w" type="image/webp" />
+<source media="(min-width: 769px)" srcSet="https://promo.atelieroptica.com.ar/img/slider/desktop/02_envo-gratis_6-cuotas-sin-inters.webp 1920w, https://promo.atelieroptica.com.ar/img/slider/desktop/02_envo-gratis_6-cuotas-sin-inters.jpg 1920w" type="image/webp" />
+<img src='https://promo.atelieroptica.com.ar/img/slider/mobile/02_envo-gratis_6-cuotas-sin-inters.jpg' alt='Envío Gratis - 6 Cuotas sin interés' width='1920' height='800' loading="lazy" />
 </picture>
 <div className='caption'>
 <h3>Envío Gratis</h3>
 <h2>6 Cuotas sin interés</h2>
 </div>
 </li><li className="glide__slide"><picture>
-<source media="(max-width: 480px)" srcSet="img/slider/mobile/03_temporada-2025_anteojos-de-sol.webp 480w, img/slider/mobile/03_temporada-2025_anteojos-de-sol.jpg 480w" type="image/webp" />
-<source media="(max-width: 768px)" srcSet="img/slider/tablet/03_temporada-2025_anteojos-de-sol.webp 768w, img/slider/tablet/03_temporada-2025_anteojos-de-sol.jpg 768w" type="image/webp" />
-<source media="(min-width: 769px)" srcSet="img/slider/desktop/03_temporada-2025_anteojos-de-sol.webp 1920w, img/slider/desktop/03_temporada-2025_anteojos-de-sol.jpg 1920w" type="image/webp" />
-<img src='img/slider/mobile/03_temporada-2025_anteojos-de-sol.jpg' alt='Temporada 2025 - Anteojos de Sol' width='1920' height='800' loading="lazy" />
+<source media="(max-width: 480px)" srcSet="https://promo.atelieroptica.com.ar/img/slider/mobile/03_temporada-2025_anteojos-de-sol.webp 480w, https://promo.atelieroptica.com.ar/img/slider/mobile/03_temporada-2025_anteojos-de-sol.jpg 480w" type="image/webp" />
+<source media="(max-width: 768px)" srcSet="https://promo.atelieroptica.com.ar/img/slider/tablet/03_temporada-2025_anteojos-de-sol.webp 768w, https://promo.atelieroptica.com.ar/img/slider/tablet/03_temporada-2025_anteojos-de-sol.jpg 768w" type="image/webp" />
+<source media="(min-width: 769px)" srcSet="https://promo.atelieroptica.com.ar/img/slider/desktop/03_temporada-2025_anteojos-de-sol.webp 1920w, https://promo.atelieroptica.com.ar/img/slider/desktop/03_temporada-2025_anteojos-de-sol.jpg 1920w" type="image/webp" />
+<img src='https://promo.atelieroptica.com.ar/img/slider/mobile/03_temporada-2025_anteojos-de-sol.jpg' alt='Temporada 2025 - Anteojos de Sol' width='1920' height='800' loading="lazy" />
 </picture>
 <div className='caption'>
 <h3>Temporada 2025</h3>
 <h2>Anteojos de Sol</h2>
 </div>
 </li><li className="glide__slide"><picture>
-<source media="(max-width: 480px)" srcSet="img/slider/mobile/04_pura-inspiracin_coleccin-lentes-de-receta.webp 480w, img/slider/mobile/04_pura-inspiracin_coleccin-lentes-de-receta.jpg 480w" type="image/webp" />
-<source media="(max-width: 768px)" srcSet="img/slider/tablet/04_pura-inspiracin_coleccin-lentes-de-receta.webp 768w, img/slider/tablet/04_pura-inspiracin_coleccin-lentes-de-receta.jpg 768w" type="image/webp" />
-<source media="(min-width: 769px)" srcSet="img/slider/desktop/04_pura-inspiracin_coleccin-lentes-de-receta.webp 1920w, img/slider/desktop/04_pura-inspiracin_coleccin-lentes-de-receta.jpg 1920w" type="image/webp" />
-<img src='img/slider/mobile/04_pura-inspiracin_coleccin-lentes-de-receta.jpg' alt='Pura Inspiración - Colección Lentes de receta' width='1920' height='800' loading="lazy" />
+<source media="(max-width: 480px)" srcSet="https://promo.atelieroptica.com.ar/img/slider/mobile/04_pura-inspiracin_coleccin-lentes-de-receta.webp 480w, https://promo.atelieroptica.com.ar/img/slider/mobile/04_pura-inspiracin_coleccin-lentes-de-receta.jpg 480w" type="image/webp" />
+<source media="(max-width: 768px)" srcSet="https://promo.atelieroptica.com.ar/img/slider/tablet/04_pura-inspiracin_coleccin-lentes-de-receta.webp 768w, https://promo.atelieroptica.com.ar/img/slider/tablet/04_pura-inspiracin_coleccin-lentes-de-receta.jpg 768w" type="image/webp" />
+<source media="(min-width: 769px)" srcSet="https://promo.atelieroptica.com.ar/img/slider/desktop/04_pura-inspiracin_coleccin-lentes-de-receta.webp 1920w, https://promo.atelieroptica.com.ar/img/slider/desktop/04_pura-inspiracin_coleccin-lentes-de-receta.jpg 1920w" type="image/webp" />
+<img src='https://promo.atelieroptica.com.ar/img/slider/mobile/04_pura-inspiracin_coleccin-lentes-de-receta.jpg' alt='Pura Inspiración - Colección Lentes de receta' width='1920' height='800' loading="lazy" />
 </picture>
 <div className='caption'>
 <h3>Pura Inspiración</h3>
 <h2>Colección Lentes de receta</h2>
 </div>
 </li><li className="glide__slide"><picture>
-<source media="(max-width: 480px)" srcSet="img/slider/mobile/05_ptica-boutique-en-crdoba_cerro-de-las-rosas.webp 480w, img/slider/mobile/05_ptica-boutique-en-crdoba_cerro-de-las-rosas.jpg 480w" type="image/webp" />
-<source media="(max-width: 768px)" srcSet="img/slider/tablet/05_ptica-boutique-en-crdoba_cerro-de-las-rosas.webp 768w, img/slider/tablet/05_ptica-boutique-en-crdoba_cerro-de-las-rosas.jpg 768w" type="image/webp" />
-<source media="(min-width: 769px)" srcSet="img/slider/desktop/05_ptica-boutique-en-crdoba_cerro-de-las-rosas.webp 1920w, img/slider/desktop/05_ptica-boutique-en-crdoba_cerro-de-las-rosas.jpg 1920w" type="image/webp" />
-<img src='img/slider/mobile/05_ptica-boutique-en-crdoba_cerro-de-las-rosas.jpg' alt='Óptica Boutique en Córdoba - Cerro de las Rosas' width='1920' height='800' loading="lazy" />
+<source media="(max-width: 480px)" srcSet="https://promo.atelieroptica.com.ar/img/slider/mobile/05_ptica-boutique-en-crdoba_cerro-de-las-rosas.webp 480w, https://promo.atelieroptica.com.ar/img/slider/mobile/05_ptica-boutique-en-crdoba_cerro-de-las-rosas.jpg 480w" type="image/webp" />
+<source media="(max-width: 768px)" srcSet="https://promo.atelieroptica.com.ar/img/slider/tablet/05_ptica-boutique-en-crdoba_cerro-de-las-rosas.webp 768w, https://promo.atelieroptica.com.ar/img/slider/tablet/05_ptica-boutique-en-crdoba_cerro-de-las-rosas.jpg 768w" type="image/webp" />
+<source media="(min-width: 769px)" srcSet="https://promo.atelieroptica.com.ar/img/slider/desktop/05_ptica-boutique-en-crdoba_cerro-de-las-rosas.webp 1920w, https://promo.atelieroptica.com.ar/img/slider/desktop/05_ptica-boutique-en-crdoba_cerro-de-las-rosas.jpg 1920w" type="image/webp" />
+<img src='https://promo.atelieroptica.com.ar/img/slider/mobile/05_ptica-boutique-en-crdoba_cerro-de-las-rosas.jpg' alt='Óptica Boutique en Córdoba - Cerro de las Rosas' width='1920' height='800' loading="lazy" />
 </picture>
 <div className='caption'>
 <h3>Óptica Boutique en Córdoba</h3>
 <h2>Cerro de las Rosas</h2>
 </div>
 </li><li className="glide__slide"><picture>
-<source media="(max-width: 480px)" srcSet="img/slider/mobile/06_tu-visin-nuestra-obra-maestra_atelier-ptica.webp 480w, img/slider/mobile/06_tu-visin-nuestra-obra-maestra_atelier-ptica.jpg 480w" type="image/webp" />
-<source media="(max-width: 768px)" srcSet="img/slider/tablet/06_tu-visin-nuestra-obra-maestra_atelier-ptica.webp 768w, img/slider/tablet/06_tu-visin-nuestra-obra-maestra_atelier-ptica.jpg 768w" type="image/webp" />
-<source media="(min-width: 769px)" srcSet="img/slider/desktop/06_tu-visin-nuestra-obra-maestra_atelier-ptica.webp 1920w, img/slider/desktop/06_tu-visin-nuestra-obra-maestra_atelier-ptica.jpg 1920w" type="image/webp" />
-<img src='img/slider/mobile/06_tu-visin-nuestra-obra-maestra_atelier-ptica.jpg' alt='Tu Visión, Nuestra Obra Maestra - Atelier Óptica' width='1920' height='800' loading="lazy" />
+<source media="(max-width: 480px)" srcSet="https://promo.atelieroptica.com.ar/img/slider/mobile/06_tu-visin-nuestra-obra-maestra_atelier-ptica.webp 480w, https://promo.atelieroptica.com.ar/img/slider/mobile/06_tu-visin-nuestra-obra-maestra_atelier-ptica.jpg 480w" type="image/webp" />
+<source media="(max-width: 768px)" srcSet="https://promo.atelieroptica.com.ar/img/slider/tablet/06_tu-visin-nuestra-obra-maestra_atelier-ptica.webp 768w, https://promo.atelieroptica.com.ar/img/slider/tablet/06_tu-visin-nuestra-obra-maestra_atelier-ptica.jpg 768w" type="image/webp" />
+<source media="(min-width: 769px)" srcSet="https://promo.atelieroptica.com.ar/img/slider/desktop/06_tu-visin-nuestra-obra-maestra_atelier-ptica.webp 1920w, https://promo.atelieroptica.com.ar/img/slider/desktop/06_tu-visin-nuestra-obra-maestra_atelier-ptica.jpg 1920w" type="image/webp" />
+<img src='https://promo.atelieroptica.com.ar/img/slider/mobile/06_tu-visin-nuestra-obra-maestra_atelier-ptica.jpg' alt='Tu Visión, Nuestra Obra Maestra - Atelier Óptica' width='1920' height='800' loading="lazy" />
 </picture>
 <div className='caption'>
 <h3>Tu Visión, Nuestra Obra Maestra</h3>
@@ -161,16 +161,16 @@ export default function PromoLanding() {
         <div className="container">
             <div className="categories-content row">
                 <div className="category col"><picture>
-<source srcSet="img/categories/desktop/01_lentes-de-sol.webp" type="image/webp" />
-<img src='img/categories/desktop/01_lentes-de-sol.jpg' alt='Lentes de sol' width='371' height='479' loading='lazy' />
+<source srcSet="https://promo.atelieroptica.com.ar/img/categories/desktop/01_lentes-de-sol.webp" type="image/webp" />
+<img src='https://promo.atelieroptica.com.ar/img/categories/desktop/01_lentes-de-sol.jpg' alt='Lentes de sol' width='371' height='479' loading='lazy' />
 </picture>
 <h3>Lentes de sol</h3></div><div className="category col"><picture>
-<source srcSet="img/categories/desktop/02_lentes-multifocales.webp" type="image/webp" />
-<img src='img/categories/desktop/02_lentes-multifocales.jpg' alt='Lentes multifocales' width='371' height='479' loading='lazy' />
+<source srcSet="https://promo.atelieroptica.com.ar/img/categories/desktop/02_lentes-multifocales.webp" type="image/webp" />
+<img src='https://promo.atelieroptica.com.ar/img/categories/desktop/02_lentes-multifocales.jpg' alt='Lentes multifocales' width='371' height='479' loading='lazy' />
 </picture>
 <h3>Lentes multifocales</h3></div><div className="category col"><picture>
-<source srcSet="img/categories/desktop/03_lentes-recetados.webp" type="image/webp" />
-<img src='img/categories/desktop/03_lentes-recetados.jpg' alt='Lentes recetados' width='371' height='479' loading='lazy' />
+<source srcSet="https://promo.atelieroptica.com.ar/img/categories/desktop/03_lentes-recetados.webp" type="image/webp" />
+<img src='https://promo.atelieroptica.com.ar/img/categories/desktop/03_lentes-recetados.jpg' alt='Lentes recetados' width='371' height='479' loading='lazy' />
 </picture>
 <h3>Lentes recetados</h3></div>            </div>
         </div>
@@ -244,36 +244,36 @@ Si querés comprar anteojos con asesoramiento profesional y una amplia variedad 
                     <div className="glide__track" data-glide-el="track">
                         <ul className="glide__slides">
                             <li className="glide__slide"><picture>
-<source srcSet="img/products/desktop/02_mistral-malta.webp" type="image/webp" />
-<img src='img/products/desktop/02_mistral-malta.jpg' alt='Mistral Malta' width='300' height='190' loading='lazy' />
+<source srcSet="https://promo.atelieroptica.com.ar/img/products/desktop/02_mistral-malta.webp" type="image/webp" />
+<img src='https://promo.atelieroptica.com.ar/img/products/desktop/02_mistral-malta.jpg' alt='Mistral Malta' width='300' height='190' loading='lazy' />
 </picture>
 </li><li className="glide__slide"><picture>
-<source srcSet="img/products/desktop/03_mistral-palermo-2.webp" type="image/webp" />
-<img src='img/products/desktop/03_mistral-palermo-2.jpg' alt='Mistral Palermo 2' width='300' height='190' loading='lazy' />
+<source srcSet="https://promo.atelieroptica.com.ar/img/products/desktop/03_mistral-palermo-2.webp" type="image/webp" />
+<img src='https://promo.atelieroptica.com.ar/img/products/desktop/03_mistral-palermo-2.jpg' alt='Mistral Palermo 2' width='300' height='190' loading='lazy' />
 </picture>
 </li><li className="glide__slide"><picture>
-<source srcSet="img/products/desktop/prototype-kevin.webp" type="image/webp" />
-<img src='img/products/desktop/prototype-kevin.jpg' alt='Prototype Kevin' width='300' height='190' loading='lazy' />
+<source srcSet="https://promo.atelieroptica.com.ar/img/products/desktop/prototype-kevin.webp" type="image/webp" />
+<img src='https://promo.atelieroptica.com.ar/img/products/desktop/prototype-kevin.jpg' alt='Prototype Kevin' width='300' height='190' loading='lazy' />
 </picture>
 </li><li className="glide__slide"><picture>
-<source srcSet="img/products/desktop/prototype-nazareno.webp" type="image/webp" />
-<img src='img/products/desktop/prototype-nazareno.jpg' alt='Prototype Nazareno' width='300' height='190' loading='lazy' />
+<source srcSet="https://promo.atelieroptica.com.ar/img/products/desktop/prototype-nazareno.webp" type="image/webp" />
+<img src='https://promo.atelieroptica.com.ar/img/products/desktop/prototype-nazareno.jpg' alt='Prototype Nazareno' width='300' height='190' loading='lazy' />
 </picture>
 </li><li className="glide__slide"><picture>
-<source srcSet="img/products/desktop/vulk-korna-sblk-056.webp" type="image/webp" />
-<img src='img/products/desktop/vulk-korna-sblk-056.jpg' alt='Vulk Korna SBLK 056' width='300' height='190' loading='lazy' />
+<source srcSet="https://promo.atelieroptica.com.ar/img/products/desktop/vulk-korna-sblk-056.webp" type="image/webp" />
+<img src='https://promo.atelieroptica.com.ar/img/products/desktop/vulk-korna-sblk-056.jpg' alt='Vulk Korna SBLK 056' width='300' height='190' loading='lazy' />
 </picture>
 </li><li className="glide__slide"><picture>
-<source srcSet="img/products/desktop/vulk-numb-1-1.webp" type="image/webp" />
-<img src='img/products/desktop/vulk-numb-1-1.jpg' alt='Vulk Numb 1 (1)' width='300' height='190' loading='lazy' />
+<source srcSet="https://promo.atelieroptica.com.ar/img/products/desktop/vulk-numb-1-1.webp" type="image/webp" />
+<img src='https://promo.atelieroptica.com.ar/img/products/desktop/vulk-numb-1-1.jpg' alt='Vulk Numb 1 (1)' width='300' height='190' loading='lazy' />
 </picture>
 </li><li className="glide__slide"><picture>
-<source srcSet="img/products/desktop/vulkl-feci-1.webp" type="image/webp" />
-<img src='img/products/desktop/vulkl-feci-1.jpg' alt='Vulkl Feci 1' width='300' height='190' loading='lazy' />
+<source srcSet="https://promo.atelieroptica.com.ar/img/products/desktop/vulkl-feci-1.webp" type="image/webp" />
+<img src='https://promo.atelieroptica.com.ar/img/products/desktop/vulkl-feci-1.jpg' alt='Vulkl Feci 1' width='300' height='190' loading='lazy' />
 </picture>
 </li><li className="glide__slide"><picture>
-<source srcSet="img/products/desktop/pierre-cardin-estrella.webp" type="image/webp" />
-<img src='img/products/desktop/pierre-cardin-estrella.jpg' alt='Pierre cardin estrella' width='300' height='190' loading='lazy' />
+<source srcSet="https://promo.atelieroptica.com.ar/img/products/desktop/pierre-cardin-estrella.webp" type="image/webp" />
+<img src='https://promo.atelieroptica.com.ar/img/products/desktop/pierre-cardin-estrella.jpg' alt='Pierre cardin estrella' width='300' height='190' loading='lazy' />
 </picture>
 </li>                        </ul>
                     </div>
