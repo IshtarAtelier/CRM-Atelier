@@ -10,8 +10,7 @@ export async function GET() {
             where: {
                 isDeleted: false,
                 orderType: 'SALE',
-                smartLabProgress: { gte: 100 },
-                labStatus: { in: ['SENT', 'IN_PROGRESS'] },
+                labStatus: { in: ['FINISHED', 'IN_PROGRESS'] },
             },
             select: {
                 id: true,
@@ -22,7 +21,7 @@ export async function GET() {
                 smartLabLastSync: true,
                 smartLabEntryDate: true,
                 smartLabDays: true,
-            smartLabDetails: true,
+                smartLabDetails: true,
                 labSentAt: true,
                 createdAt: true,
                 client: { select: { id: true, name: true, phone: true } },
@@ -39,7 +38,20 @@ export async function GET() {
             orderBy: { smartLabLastSync: 'desc' },
         });
 
-        return NextResponse.json(orders);
+        const readyOrders = orders.filter(order => {
+            if (order.labStatus === 'FINISHED') return true;
+            if (order.labStatus === 'IN_PROGRESS' && order.smartLabDetails) {
+                try {
+                    const details = JSON.parse(order.smartLabDetails as string);
+                    if (Array.isArray(details) && details.length > 1) {
+                        return details.some((d: any) => d.progress >= 100);
+                    }
+                } catch { }
+            }
+            return false;
+        });
+
+        return NextResponse.json(readyOrders);
     } catch (error: any) {
         console.error('Error fetching lab-ready orders:', error);
         return NextResponse.json({ error: error.message }, { status: 500 });

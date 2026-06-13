@@ -3,8 +3,9 @@ const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
 
+const dbUrl = process.env.DATABASE_URL || 'postgresql://postgres:JqNVkEgwNDmTidZHmZdmlxLTnlxrBsYT@crossover.proxy.rlwy.net:16284/railway';
 const prisma = new PrismaClient({
-  datasources: { db: { url: 'postgresql://postgres:JqNVkEgwNDmTidZHmZdmlxLTnlxrBsYT@crossover.proxy.rlwy.net:16284/railway' } }
+  datasources: { db: { url: dbUrl } }
 });
 
 const sourceDir = '/Users/ishtarpissano/Pagina web atelier/Receta Fem/Metal';

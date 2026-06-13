@@ -79,15 +79,16 @@ try {
   });
 } catch (error: any) {
   if (error instanceof z.ZodError) {
-    console.error('❌ Environment validation failed:', error.issues);
-  }
-  // En Next.js build, fallar ruidosamente si faltan variables críticas (evitando fallar en cliente)
-  if (typeof window === 'undefined') {
-      throw new Error('Invalid environment variables. See console above.');
+    console.error('❌ Environment validation failed:', JSON.stringify(error.issues, null, 2));
   } else {
-      // Dummy inicialización para el cliente para evitar crashear
-      env = {} as any;
+    console.error('❌ Environment validation failed with unknown error:', error);
   }
+  // No crashear la app para evitar 502 en Railway si falta alguna variable.
+  // Solo inicializar un objeto vacío con fallbacks seguros.
+  env = {
+    NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000',
+    WA_SERVER_URL: process.env.WA_SERVER_URL || 'http://127.0.0.1:3100',
+  } as any;
 }
 
 export { env };

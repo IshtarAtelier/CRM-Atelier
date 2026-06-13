@@ -58,7 +58,7 @@ export function GlobalLabReady() {
                         )}
                     </div>
                     <span className={`text-[10px] font-bold uppercase tracking-widest hidden md:block transition-colors ${isOpen ? 'text-white' : count > 0 ? 'text-emerald-700 dark:text-emerald-400' : 'text-stone-500 dark:text-stone-400'}`}>
-                        Fabricados
+                        Finalizados
                     </span>
                 </button>
             </div>

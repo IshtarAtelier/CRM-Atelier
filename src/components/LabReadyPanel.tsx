@@ -82,7 +82,7 @@ export default function LabReadyPanel({ orders, onClose, onRefresh }: LabReadyPa
                                         <Factory className="w-5 h-5 md:w-6 md:h-6" />
                                     </div>
 
-                                    <div className="flex-1 min-w-0 pr-14 md:pr-16">
+                                    <div className="flex-1 min-w-0 pr-24 md:pr-40">
                                         <div className="flex items-center gap-2 mb-1">
                                             <p className="font-black text-stone-800 dark:text-stone-200 text-sm tracking-tight uppercase truncate">
                                                 {order.client?.name || 'Cliente'}
@@ -96,6 +96,13 @@ export default function LabReadyPanel({ orders, onClose, onRefresh }: LabReadyPa
                                         <p className="text-[11px] font-bold text-stone-500 dark:text-stone-400 line-clamp-1 leading-tight mb-1">
                                             {crystalDesc}
                                         </p>
+                                        
+                                        {order.labStatus === 'IN_PROGRESS' && (
+                                            <div className="mb-2 mt-1 inline-flex items-center gap-1.5 px-2 py-1 bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 text-[9px] font-black uppercase tracking-widest rounded-lg border border-amber-200/50 dark:border-amber-800/50">
+                                                <span>⚠️ Terminado Parcial</span>
+                                            </div>
+                                        )}
+
                                         <div className="flex items-center gap-3 text-[10px] font-bold text-stone-400">
                                             {order.smartLabSector && (
                                                 <span className="text-emerald-600 dark:text-emerald-400">
@@ -122,14 +129,26 @@ export default function LabReadyPanel({ orders, onClose, onRefresh }: LabReadyPa
                                     {/* Mark as READY button */}
                                     <button
                                         onClick={() => advanceToReady(order.id)}
-                                        disabled={advancingId === order.id}
-                                        className="absolute right-3 md:right-4 top-1/2 -translate-y-1/2 p-2.5 md:p-3 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl md:rounded-2xl shadow-lg hover:scale-110 active:scale-95 transition-all z-10 disabled:opacity-50 disabled:cursor-not-allowed"
-                                        title="Marcar como Listo para Retirar (avisa al cliente)"
+                                        disabled={advancingId === order.id || order.labStatus === 'IN_PROGRESS'}
+                                        className={`absolute right-3 md:right-4 top-1/2 -translate-y-1/2 px-3 py-2 md:px-4 md:py-2.5 rounded-xl md:rounded-2xl shadow-lg transition-all z-10 flex flex-col md:flex-row items-center justify-center gap-1 md:gap-2 ${
+                                            order.labStatus === 'IN_PROGRESS' 
+                                                ? 'bg-stone-200 dark:bg-stone-800 text-stone-400 cursor-not-allowed'
+                                                : 'bg-emerald-500 hover:bg-emerald-600 text-white hover:scale-105 active:scale-95 disabled:opacity-50'
+                                        }`}
+                                        title={order.labStatus === 'IN_PROGRESS' ? 'No se puede avisar aún. Faltan cristales en el laboratorio.' : 'Avisar que llegó al local'}
                                     >
                                         {advancingId === order.id ? (
-                                            <span className="w-4 h-4 md:w-5 md:h-5 block rounded-full border-2 border-white border-t-transparent animate-spin" />
+                                            <>
+                                                <span className="w-4 h-4 md:w-5 md:h-5 block rounded-full border-2 border-current border-t-transparent animate-spin" />
+                                                <span className="text-[8px] md:text-[9px] font-black uppercase tracking-widest hidden md:inline">Avisando...</span>
+                                            </>
                                         ) : (
-                                            <CheckCircle2 className="w-4 h-4 md:w-5 md:h-5" />
+                                            <>
+                                                <CheckCircle2 className="w-4 h-4 md:w-5 md:h-5" />
+                                                <span className="text-[8px] md:text-[9px] font-black uppercase tracking-widest text-center leading-[1.2] whitespace-nowrap">
+                                                    Avisar que<br className="md:hidden" /> llegó al local
+                                                </span>
+                                            </>
                                         )}
                                     </button>
                                 </div>
@@ -141,7 +160,7 @@ export default function LabReadyPanel({ orders, onClose, onRefresh }: LabReadyPa
                         <div className="w-20 h-20 bg-white dark:bg-stone-800 rounded-full flex items-center justify-center shadow-xl mb-6">
                             <Factory className="w-10 h-10 text-stone-200" />
                         </div>
-                        <p className="text-sm font-black text-stone-400 uppercase tracking-widest leading-relaxed">No hay pedidos fabricados pendientes</p>
+                        <p className="text-sm font-black text-stone-400 uppercase tracking-widest leading-relaxed">No hay pedidos finalizados pendientes</p>
                         <p className="text-xs text-stone-300 mt-2">Los pedidos completados en SmartLab aparecerán acá</p>
                     </div>
                 )}
@@ -149,7 +168,7 @@ export default function LabReadyPanel({ orders, onClose, onRefresh }: LabReadyPa
 
             <footer className="p-4 md:p-6 bg-stone-50/50 dark:bg-stone-800/30 border-t border-stone-100 dark:border-stone-800 flex items-center justify-between">
                 <p className="text-[10px] font-black text-stone-400 uppercase tracking-[0.2em]">
-                    {displayedOrders.length > 0 ? `${displayedOrders.length} pedido${displayedOrders.length !== 1 ? 's' : ''} fabricado${displayedOrders.length !== 1 ? 's' : ''}` : ''}
+                    {displayedOrders.length > 0 ? `${displayedOrders.length} pedido${displayedOrders.length !== 1 ? 's' : ''} finalizado${displayedOrders.length !== 1 ? 's' : ''}` : ''}
                 </p>
                 <button
                     onClick={onRefresh}
