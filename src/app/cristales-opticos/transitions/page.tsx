@@ -87,6 +87,55 @@ export default function TransitionsPage() {
         </div>
       </section>
 
+      <section className="w-full py-24 px-6 bg-stone-50">
+        <div className="max-w-4xl mx-auto">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">Preguntas Frecuentes sobre Transitions</h2>
+            <p className="text-black/60 text-lg">
+              Resolvemos las dudas más comunes basadas en la guía oficial de Essilor.
+            </p>
+          </div>
+
+          <AccordionItem 
+            title="¿Las lentes Transitions protegen contra los rayos UV y la luz azul?" 
+            subtitle="Protección integral."
+          >
+            <p className="mb-4">
+              Sí. Todas las lentes Transitions bloquean el <strong>100% de los rayos UVA y UVB</strong>. Además, ayudan a proteger contra la <strong>luz azul-violeta nociva</strong> tanto en interiores (emitida por pantallas y luces LED) como en exteriores (emitida por el sol).
+            </p>
+          </AccordionItem>
+
+          <AccordionItem 
+            title="¿Son adecuadas para conducir?" 
+            subtitle="El desafío del parabrisas."
+          >
+            <p className="mb-4">
+              Las lentes Transitions estándar (GEN 8 o GEN S) se oscurecen al reaccionar a la luz UV directa. Como los parabrisas de los autos bloquean los rayos UV, estas lentes no se oscurecen dentro del vehículo.
+              <br/><br/>
+              Si pasás mucho tiempo al volante, te recomendamos <strong>Transitions XTRActive</strong> o <strong>Transitions XTRActive Polarized</strong>, que están diseñadas específicamente para reaccionar a la luz visible y oscurecerse dentro del auto.
+            </p>
+          </AccordionItem>
+
+          <AccordionItem 
+            title="¿Se pueden hacer con mi aumento?" 
+            subtitle="Compatibilidad total."
+          >
+            <p className="mb-4">
+              ¡Totalmente! La tecnología Transitions es un <em>tratamiento</em> que se aplica al material del cristal. Esto significa que podemos fabricarlos para <strong>cualquier tipo de receta</strong>: monofocales (lejos o cerca), bifocales y, por supuesto, multifocales (como la línea Varilux).
+            </p>
+          </AccordionItem>
+
+          <AccordionItem 
+            title="¿Cuánto tardan en aclararse cuando entro a un lugar cerrado?" 
+            subtitle="Velocidad de adaptación."
+          >
+            <p className="mb-4">
+              La nueva generación <strong>Transitions GEN S</strong> ha revolucionado la velocidad de aclaramiento. Atrás quedaron los años donde los lentes fotocromáticos quedaban oscuros por minutos. Hoy, en cuestión de segundos, la lente vuelve a ser completamente transparente en interiores.
+            </p>
+          </AccordionItem>
+        </div>
+      </section>
+
       <CristalCTA 
         title="El fin de cargar con dos anteojos"
         description={
