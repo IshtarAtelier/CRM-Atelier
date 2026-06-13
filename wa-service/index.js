@@ -219,109 +219,45 @@ const handleMessageCreate = async (msg) => {
 
 const { runOutputGuardrail, detectPaymentReceipt } = require('./services/ai.service');
 const { isBusinessHours, getNextBusinessMorning, getNextWeekdayDate } = require('./services/helper.service');
+const { BotService } = require('./services/bot.service');
+
+// Initialize BotService globally so functions can use it
+const botService = new BotService({
+    prisma,
+    io,
+    botReplyingTo: global.botReplyingTo,
+    passiveDebounceTimers,
+    graph,
+    agentState: {
+        get agentEnabled() { return agentEnabled; },
+        get agentPrompt() { return agentPrompt; },
+        get dailyContext() { return dailyContext; }
+    },
+    broadcastChatUpdate,
+    generateAndSaveHandoffSummary,
+    sendMessage,
+    sendTypingState,
+    TAGS_SIN_BOT,
+    processPassiveExtraction
+});
+// Re-bind original global botDebounceTimers and chatErrorCounts to the botService so we don't break existing globals
+botService.botDebounceTimers = botDebounceTimers;
+botService.chatErrorCounts = chatErrorCounts;
 
 /**
  * Desactiva el bot para un chat específico y genera el resumen de handoff.
  */
-async function disableBotForChatById(chatId, reason) {
-    try {
-        const chat = await prisma.whatsAppChat.findUnique({ where: { id: chatId } });
-        if (chat && chat.botEnabled) {
-            await prisma.whatsAppChat.update({
-                where: { id: chatId },
-                data: { botEnabled: false }
-            });
-            console.log(`  ⏹️ Bot desactivado para chat ${chatId}. Razón: ${reason}`);
-            broadcastChatUpdate(chatId);
-            
-            // Generar resumen de handoff
-            await generateAndSaveHandoffSummary(chatId).catch(e => console.error("Error generando resumen de handoff:", e.message));
-        }
-
-        // Cancelar timer de debounce si existe
-        if (botDebounceTimers.has(chatId)) {
-            clearTimeout(botDebounceTimers.get(chatId));
-            botDebounceTimers.delete(chatId);
-            console.log(`  🕒 Timer de debounce cancelado para chat ${chatId}`);
-        }
-    } catch (e) {
-        console.error('Error disabling bot for chat ID:', e.message);
-    }
-}
+const disableBotForChatById = (chatId, reason) => botService.disableBotForChatById(chatId, reason);
 
 /**
  * Desactiva el bot usando waId y genera el resumen de handoff.
  */
-async function disableBotForWaId(waId, reason) {
-    try {
-        const chat = await prisma.whatsAppChat.findUnique({ where: { waId } });
-        if (chat && chat.botEnabled) {
-            await disableBotForChatById(chat.id, reason);
-        }
-    } catch (e) {
-        console.error('Error disabling bot for waId:', e.message);
-    }
-}
-
-
+const disableBotForWaId = (waId, reason) => botService.disableBotForWaId(waId, reason);
 
 /**
  * Detecta promesas de visita en el local y crea automáticamente una tarea de seguimiento.
  */
-async function detectAndCreateVisitTask(clientId, text) {
-    if (!text || typeof text !== 'string') return;
-
-    // Normalizar texto (pasar a minúsculas y quitar acentos)
-    const normalizedText = text.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-
-    // Buscar si indica intención de pasar/visitar y un día de la semana
-    const triggerWords = /\b(pas[ao]|pasar[eé]?|ir[eé]?|voy|visitar|visito|vuelta)\b/i;
-    const daysRegex = /\b(lunes|martes|miercoles|jueves|viernes|sabado|domingo)\b/i;
-
-    const hasTrigger = triggerWords.test(normalizedText);
-    const dayMatch = normalizedText.match(daysRegex);
-
-    if (hasTrigger && dayMatch) {
-        const dayName = dayMatch[1];
-        const targetDate = getNextWeekdayDate(dayName);
-
-        if (targetDate) {
-            // Evitar crear tareas duplicadas para el mismo día, cliente y descripción
-            const startOfDay = new Date(targetDate);
-            startOfDay.setHours(0, 0, 0, 0);
-            const endOfDay = new Date(targetDate);
-            endOfDay.setHours(23, 59, 59, 999);
-
-            const existingTask = await prisma.clientTask.findFirst({
-                where: {
-                    clientId: clientId,
-                    description: "Quedó que pasaba por el local.",
-                    status: "PENDING",
-                    dueDate: {
-                        gte: startOfDay,
-                        lte: endOfDay
-                    }
-                }
-            });
-
-            if (!existingTask) {
-                console.log(`  📝 [Auto-Task] Creando tarea para el cliente ${clientId} el día ${dayName} (${targetDate.toISOString()})`);
-                await prisma.clientTask.create({
-                    data: {
-                        clientId: clientId,
-                        description: "Quedó que pasaba por el local.",
-                        status: "PENDING",
-                        type: "TASK",
-                        dueDate: targetDate
-                    }
-                });
-            } else {
-                console.log(`  📝 [Auto-Task] Tarea ya existente para el día ${dayName}. Omitiendo duplicado.`);
-            }
-        }
-    }
-}
-
+const detectAndCreateVisitTask = (clientId, text) => botService.detectAndCreateVisitTask(clientId, text);
 
 
 // ── Bot Orchestrator (Extraído para Modularidad) ─
