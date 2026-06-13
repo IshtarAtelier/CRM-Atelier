@@ -14,13 +14,13 @@ export default function VariluxPage() {
   return (
     <div className="bg-[#faf8f5]">
       <CristalHero 
-        preTitle="Cristales Premium Essilor"
+        preTitle="Centro Certificado: Varilux Expert"
         title="Varilux · Multifocales"
         description={
           <>
             La lente progresiva #1 a nivel mundial.
             <br className="hidden md:block" />
-            En Atelier no vendemos simplemente un cristal, diseñamos una <strong>solución visual personalizada</strong> utilizando la tecnología más avanzada de Essilor para que tu transición entre lejos y cerca sea invisible.
+            Como <strong>Especialistas Varilux Expert</strong>, en Atelier no vendemos simplemente un cristal. Diseñamos una <strong>solución visual de precisión</strong> con tecnología de medición avanzada para garantizar que tu adaptación sea inmediata y perfecta.
           </>
         }
       />
@@ -108,9 +108,9 @@ export default function VariluxPage() {
         title="El éxito está en la toma de medidas"
         description={
           <>
-            Podés tener el mejor cristal del mundo (Varilux XR), pero si la altura pupilar, la distancia nasopupilar o el ángulo pantoscópico del armazón no están calculados a la perfección por un profesional, no verás bien. 
+            Podés tener el mejor cristal del mundo (Varilux XR), pero si la altura pupilar o la distancia nasopupilar no están calculadas a la perfección, no verás bien. 
             <br className="mt-4" />
-            En <strong>Atelier</strong>, nuestro proceso de consulta asegura que tu inversión rinda al 100%.
+            Al ser un <strong>Centro Varilux Expert</strong>, en Atelier contamos con instrumental de precisión y profesionales avalados por Essilor para asegurar que tu inversión rinda al 100%.
           </>
         }
         buttonText="Reservar Asesoramiento Visual"
