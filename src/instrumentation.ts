@@ -1,13 +1,13 @@
-// Cron automático SmartLab — corre cada 2 horas de 7am a 18pm (Argentina, UTC-3)
+// Cron automático SmartLab — corre cada 15 minutos de 8am a 18pm (Argentina, UTC-3)
 export async function register() {
     if (process.env.NEXT_RUNTIME === 'nodejs') {
-        const INTERVAL_MS = 2 * 60 * 60 * 1000; // 2 horas
+        const INTERVAL_MS = 15 * 60 * 1000; // 15 minutos
 
         const isBusinessHours = () => {
             const now = new Date();
             // Argentina es UTC-3
             const argHour = (now.getUTCHours() - 3 + 24) % 24;
-            return argHour >= 7 && argHour <= 18;
+            return argHour >= 8 && argHour <= 18;
         };
 
         const runSync = async () => {
@@ -35,6 +35,6 @@ export async function register() {
             setInterval(runSync, INTERVAL_MS);
         }, 30000);
 
-        console.log('[CRON SmartLab] Programado: cada 2 horas, 7am-18pm ARG');
+        console.log('[CRON SmartLab] Programado: cada 15 minutos, 8am-18pm ARG');
     }
 }
