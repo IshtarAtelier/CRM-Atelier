@@ -57,7 +57,17 @@ async function checkExistingClient({ phone, name }) {
  * Priority: @lid (definitive Meta) > keywords in first message > fallback 'Otros'
  */
 async function detectContactSourceFromChat(chatId) {
-    if (!chatId) return 'Otros';
+    if (!chatId) return null;
+
+    // Check if the chat was outbound-initiated (first message overall was sent by us)
+    const absoluteFirstMessage = await prisma.whatsAppMessage.findFirst({
+        where: { chatId },
+        orderBy: { createdAt: 'asc' }
+    });
+
+    if (absoluteFirstMessage && absoluteFirstMessage.direction === 'OUTBOUND') {
+        return null;
+    }
 
     // 0. Check if this is a @lid chat (Click-to-WhatsApp ad from Meta) — definitive indicator
     const chat = await prisma.whatsAppChat.findUnique({
@@ -76,7 +86,7 @@ async function detectContactSourceFromChat(chatId) {
     });
 
     if (!firstMessage || !firstMessage.content) {
-        return 'Otros';
+        return null;
     }
 
     const text = firstMessage.content.toLowerCase();
@@ -122,7 +132,7 @@ async function detectContactSourceFromChat(chatId) {
         return 'Referido';
     }
 
-    return 'Otros';
+    return null;
 }
 
 /**

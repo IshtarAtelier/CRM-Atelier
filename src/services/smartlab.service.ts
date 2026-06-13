@@ -8,12 +8,34 @@ export interface ScrapedDetail {
     days: number;
 }
 
+let isSyncing = false;
+
 export class SmartLabService {
     /**
      * Sincroniza los pedidos de Grupo Óptico con el sistema SmartLab.
      * Retorna el número de pedidos actualizados y recién finalizados.
      */
     static async syncOrders() {
+        if (isSyncing) {
+            console.log('[SmartLab Sync] Ya hay una sincronización en curso. Omitiendo.');
+            return { skipped: true, reason: 'already_running' };
+        }
+
+        const lastSyncOrder = await prisma.order.findFirst({
+            where: { smartLabLastSync: { not: null } },
+            orderBy: { smartLabLastSync: 'desc' },
+            select: { smartLabLastSync: true }
+        });
+        
+        if (lastSyncOrder?.smartLabLastSync) {
+            const minsSinceLastSync = (Date.now() - lastSyncOrder.smartLabLastSync.getTime()) / 60000;
+            if (minsSinceLastSync < 14) { // Use 14 just in case to allow 15m intervals safely
+                console.log(`[SmartLab Sync] Omitido. La última sincronización fue hace ${Math.round(minsSinceLastSync)} mins.`);
+                return { skipped: true, reason: 'too_soon' };
+            }
+        }
+
+        isSyncing = true;
         let browser;
         try {
             const { chromium } = await import('playwright');
@@ -260,8 +282,12 @@ export class SmartLabService {
                 details: matchResults,
             };
 
+        } catch (error) {
+            console.error('[SmartLab Sync] Error general:', error);
+            throw error;
         } finally {
             if (browser) await browser.close();
+            isSyncing = false;
         }
     }
 }

@@ -57,7 +57,6 @@ export const metadata: Metadata = {
 };
 
 import { TrackingScripts } from "@/components/Storefront/TrackingScripts";
-import { ExitIntentPopup } from "@/components/Storefront/ExitIntentPopup";
 
 export default function RootLayout({
   children,
@@ -73,7 +72,6 @@ export default function RootLayout({
           {children}
         </div>
         <TrackingScripts />
-        <ExitIntentPopup />
         <Script strategy="afterInteractive" id="sw-register">{`
           if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('/sw.js').catch(() => {});

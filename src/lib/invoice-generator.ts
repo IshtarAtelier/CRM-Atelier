@@ -162,6 +162,19 @@ export async function generateInvoicePDF(data: InvoiceData, returnBase64: boolea
     doc.text('TOTAL:', pageWidth - 85, finalY + 1.5);
     doc.text(`$ ${invoice.totalAmount.toLocaleString('es-AR', { minimumFractionDigits: 2 })}`, pageWidth - 15, finalY + 1.5, { align: 'right' });
 
+    // Observaciones (a la izquierda de los totales)
+    if (invoice.observations) {
+        doc.setFontSize(8);
+        doc.setTextColor(120, 120, 120);
+        doc.setFont('helvetica', 'bold');
+        doc.text('OBSERVACIONES:', 12, finalY - 3);
+        
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(textColor[0], textColor[1], textColor[2]);
+        const obsLines = doc.splitTextToSize(invoice.observations, pageWidth - 110);
+        doc.text(obsLines, 12, finalY + 2);
+    }
+
     // --- 5. QR CODE Y CAE (Footer) ---
     const footerY = doc.internal.pageSize.getHeight() - 45;
     

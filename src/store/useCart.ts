@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { trackAddToCart } from '@/lib/tracking';
 
 export interface CartItem {
   id: string; // unique ID for cart line item
@@ -32,28 +33,41 @@ export const useCart = create<CartState>()(
       items: [],
       isOpen: false,
       
-      addItem: (item) => set((state) => {
-        // If exact same product and config exists, just increase quantity
-        const existingItem = state.items.find(
-          i => i.productId === item.productId && i.lensColor === item.lensColor
-        );
-        
-        if (existingItem) {
-          return {
-            items: state.items.map(i => 
-              i.id === existingItem.id 
-                ? { ...i, quantity: i.quantity + item.quantity } 
-                : i
-            ),
-            isOpen: true,
-          };
+      addItem: (item) => {
+        try {
+          trackAddToCart({
+            id: item.productId,
+            name: `${item.brand || ''} ${item.model || ''}`.trim() || 'Anteojos',
+            price: item.price,
+            quantity: item.quantity
+          });
+        } catch (e) {
+          console.error("AddToCart tracking error:", e);
         }
 
-        return {
-          items: [...state.items, { ...item, id: crypto.randomUUID(), basePrice: item.basePrice ?? item.price }],
-          isOpen: true,
-        };
-      }),
+        set((state) => {
+          // If exact same product and config exists, just increase quantity
+          const existingItem = state.items.find(
+            i => i.productId === item.productId && i.lensColor === item.lensColor
+          );
+          
+          if (existingItem) {
+            return {
+              items: state.items.map(i => 
+                i.id === existingItem.id 
+                  ? { ...i, quantity: i.quantity + item.quantity } 
+                  : i
+              ),
+              isOpen: true,
+            };
+          }
+
+          return {
+            items: [...state.items, { ...item, id: crypto.randomUUID(), basePrice: item.basePrice ?? item.price }],
+            isOpen: true,
+          };
+        });
+      },
       
       removeItem: (id) => set((state) => ({
         items: state.items.filter((i) => i.id !== id),

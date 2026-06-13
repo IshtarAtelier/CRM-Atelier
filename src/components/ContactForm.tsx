@@ -40,7 +40,7 @@ export default function ContactForm({ onClose, onSubmit, onUnify, onGoToOriginal
         email: initialData?.email || '',
         phone: initialData?.phone || '',
         dni: initialData?.dni || '',
-        contactSource: initialData?.contactSource || 'Otros',
+        contactSource: initialData?.contactSource || '',
         interest: initialData?.interest || 'Otros',
         expectedValue: initialData?.expectedValue || 0,
         priority: initialData?.priority || 0,

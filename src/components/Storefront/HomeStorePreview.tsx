@@ -1,7 +1,6 @@
 import { getWebSettings } from '@/lib/web-settings';
 import { MapPin, Clock, Phone } from "lucide-react";
 import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon";
-import Image from "next/image";
 
 export async function HomeStorePreview() {
   const settings = await getWebSettings();
@@ -89,37 +88,18 @@ export async function HomeStorePreview() {
             </div>
           </div>
 
-          {/* Map & Photos Column (Right 7 cols on lg) */}
-          <div className="lg:col-span-7 grid grid-cols-1 md:grid-cols-2 gap-4 h-full w-full">
-            {/* Store Photo */}
-            <div className="w-full h-[300px] md:h-[420px] overflow-hidden rounded-3xl border border-[#e8e2db]/40 shadow-sm relative group">
-              <Image
-                src="/images/blog/fachada-ladrillo.webp"
-                alt="Fachada Atelier Óptica"
-                fill
-                sizes="(max-width: 1024px) 100vw, 35vw"
-                className="object-cover group-hover:scale-105 transition-transform duration-700"
-              />
-              <div className="absolute inset-0 bg-black/25 flex items-end p-6">
-                <span className="text-white text-[10px] font-black uppercase tracking-widest bg-black/50 backdrop-blur-md px-4 py-2 rounded-full">
-                  Showroom Cerro de las Rosas
-                </span>
-              </div>
-            </div>
-
-            {/* Google Map iframe */}
-            <div className="w-full h-[300px] md:h-[420px] overflow-hidden rounded-3xl border border-[#e8e2db]/40 shadow-sm relative">
-              <iframe
-                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3406.126442657476!2d-64.2400508!3d-31.3831!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x943299c0da27ea09%3A0xcdd93bb53ab437c5!2sAtelier%20Optica!5e0!3m2!1sen!2sar!4v1716162356789!5m2!1sen!2sar"
-                width="100%"
-                height="100%"
-                style={{ border: 0, filter: "grayscale(80%) contrast(110%)" }}
-                allowFullScreen
-                loading="lazy"
-                referrerPolicy="no-referrer-when-downgrade"
-                title="Atelier Óptica - Cerro de las Rosas Córdoba"
-              />
-            </div>
+          {/* Map Column (Right 7 cols on lg) */}
+          <div className="lg:col-span-7 w-full h-[320px] md:h-[420px] overflow-hidden rounded-3xl border border-[#e8e2db]/40 shadow-sm relative">
+            <iframe
+              src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3406.126442657476!2d-64.2400508!3d-31.3831!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x943299c0da27ea09%3A0xcdd93bb53ab437c5!2sAtelier%20Optica!5e0!3m2!1sen!2sar!4v1716162356789!5m2!1sen!2sar"
+              width="100%"
+              height="100%"
+              style={{ border: 0, filter: "grayscale(80%) contrast(110%)" }}
+              allowFullScreen
+              loading="lazy"
+              referrerPolicy="no-referrer-when-downgrade"
+              title="Atelier Óptica - Cerro de las Rosas Córdoba"
+            />
           </div>
 
         </div>

@@ -10,7 +10,6 @@ import { HomeConfiguratorSection } from "@/components/Storefront/HomeConfigurato
 import { HomeMacroFilm } from "@/components/Storefront/HomeMacroFilm";
 import { HomeStorePreview } from "@/components/Storefront/HomeStorePreview";
 import { HomeWhyChooseUs } from "@/components/Storefront/HomeWhyChooseUs";
-import { HomeQuizRecomendador } from "@/components/Storefront/HomeQuizRecomendador";
 import { prisma } from "@/lib/db";
 import { resolveStorageUrl } from "@/lib/utils/storage";
 
@@ -235,11 +234,6 @@ export default async function Home() {
       {/* CONFIGURADOR CTA — Nuestra diferencia vs GM     */}
       {/* ═══════════════════════════════════════════════ */}
       <HomeConfiguratorSection />
-
-      {/* ═══════════════════════════════════════════════ */}
-      {/* ASISTENTE RECOMENDADOR / QUIZ                    */}
-      {/* ═══════════════════════════════════════════════ */}
-      <HomeQuizRecomendador />
 
       {/* ═══════════════════════════════════════════════ */}
       {/* CINEMATIC MACRO FILM LOOP (HOME)                */}

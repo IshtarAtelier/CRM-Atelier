@@ -66,6 +66,7 @@ export interface CreateInvoiceParams {
     amount?: number;       // Nuevo: monto exacto enviado desde el frontend
     items?: CreateInvoiceItem[]; // Nuevo: ítems ya validados (ej: divididos por el tope de 500k)
     issueDate?: string;    // Nuevo: Fecha de emisión de la factura (YYYY-MM-DD)
+    observations?: string; // Nuevo: Observaciones opcionales
 }
 
 export const BillingService = {
@@ -74,7 +75,7 @@ export const BillingService = {
      * Emite una Factura C electrónica para una orden de tipo SALE.
      */
     async createInvoice(params: CreateInvoiceParams) {
-        const { orderId, account = 'ISH', docTipo = 99, docNro = '0', puntoDeVenta, amount, items, issueDate } = params;
+        const { orderId, account = 'ISH', docTipo = 99, docNro = '0', puntoDeVenta, amount, items, issueDate, observations } = params;
  
         // 1. Validar orden
         const order = await prisma.order.findUnique({
@@ -219,6 +220,7 @@ export const BillingService = {
                     docNumber: docNro || '0',
                     billingAccount: account,
                     status: 'COMPLETED',
+                    observations: observations || null,
                 },
             });
 
@@ -405,6 +407,8 @@ export const BillingService = {
                         net_amount_taxed: 0,
                         net_amount_untaxed: 0,
                         exempt_amount: invoice.totalAmount,
+                        // Observaciones para el PDF oficial de AFIP
+                        invoice_footer_note: invoice.observations || '',
                     }
                 }
             };

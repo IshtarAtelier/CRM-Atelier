@@ -1008,7 +1008,7 @@ export default function WhatsAppPage() {
                     phone: extractedClient.phone || null,
                     interest: extractedClient.interest || null,
                     insurance: extractedClient.insurance || null,
-                    contactSource: extractedClient.contactSource || 'WhatsApp',
+                    contactSource: extractedClient.contactSource || null,
                     status: 'CONTACT',
                 }),
             });
@@ -2272,7 +2272,7 @@ export default function WhatsAppPage() {
                             </button>
                             <button
                                 onClick={confirmCreateClient}
-                                disabled={creatingClient || !extractedClient.name.trim()}
+                                disabled={creatingClient || !extractedClient.name.trim() || !extractedClient.contactSource}
                                 className="flex-1 px-4 py-2.5 bg-gradient-to-r from-violet-500 to-indigo-500 hover:from-violet-600 hover:to-indigo-600 text-white rounded-xl text-xs font-black uppercase tracking-widest transition-all shadow-lg hover:shadow-xl disabled:opacity-50 flex items-center justify-center gap-1.5"
                             >
                                 {creatingClient ? (

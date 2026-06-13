@@ -16,7 +16,21 @@ export function GlobalLabReady() {
         setPortalTarget(document.body);
         fetchLabReady();
         const interval = setInterval(fetchLabReady, 60000);
-        return () => clearInterval(interval);
+
+        // Background auto-sync trigger
+        const triggerBackgroundSync = async () => {
+            try {
+                await fetch('/api/smartlab-sync', { method: 'POST' });
+            } catch (e) { }
+        };
+        // Run immediately after 1 minute just in case, then every 15 mins
+        setTimeout(triggerBackgroundSync, 60000);
+        const syncInterval = setInterval(triggerBackgroundSync, 900000);
+
+        return () => {
+            clearInterval(interval);
+            clearInterval(syncInterval);
+        };
     }, []);
 
     const fetchLabReady = async () => {

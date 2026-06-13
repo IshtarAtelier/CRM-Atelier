@@ -45,11 +45,11 @@ export async function POST(
         const conversation = chat.messages.map(m => {
             const role = m.direction === 'INBOUND' ? 'Cliente' : 'Óptica';
             return `${role}: ${m.content}`;
-        }).join('\n');
-
+        }).join('\n');        const absoluteFirstMessage = chat.messages[0];
+        const isOutboundInitiated = absoluteFirstMessage?.direction === 'OUTBOUND';
         const profileName = chat.profileName || '';
         const waId = chat.waId || '';
-        const isLid = waId.includes('@lid');
+        const isLid = waId.includes('@lid') && !isOutboundInitiated;
         // Priorizar realPhone (resuelto por el wa-service) sobre el waId crudo
         const rawPhone = chat.realPhone || (isLid ? '' : waId.replace('@c.us', '').replace('@s.whatsapp.net', ''));
 
@@ -66,7 +66,7 @@ ${conversation}
 DATOS CONOCIDOS:
 - Nombre de perfil de WhatsApp: "${profileName}"
 - Teléfono extraído del WhatsApp ID: "${rawPhone}" ${isLid ? '(ATENCIÓN: este chat llegó por anuncio de Meta/Click-to-WhatsApp, el número puede ser falso. Busca si el cliente mencionó su teléfono en la conversación.)' : ''}
-- Tipo de chat: ${isLid ? 'ANUNCIO META (Click-to-WhatsApp Ad) — el contactSource DEBE ser "Meta"' : 'CHAT DIRECTO (el cliente escribió directamente al número de WhatsApp)'}
+- Tipo de chat: ${isOutboundInitiated ? 'INICIADO POR NOSOTROS (Outbound chat iniciado por la óptica) — el contactSource DEBE ser null salvo evidencia explícita.' : (isLid ? 'ANUNCIO META (Click-to-WhatsApp Ad) — el contactSource DEBE ser "Meta"' : 'CHAT DIRECTO ENTRANTE (el cliente escribió directamente al número de WhatsApp)')}
 
 INSTRUCCIONES:
 1. Extrae el nombre real del cliente. Si no se menciona un nombre en la conversación, usa el nombre del perfil de WhatsApp.
@@ -74,15 +74,15 @@ INSTRUCCIONES:
 3. Deduce el interés principal (ej: "Multifocal", "Monofocal", "Lentes de contacto", "Armazones", "Gafas de sol", etc.)
 4. Detecta si mencionó obra social/seguro médico (ej: "OSDE", "Swiss Medical", "PAMI", "Apross", etc.)
 5. Detecta la fuente de contacto (contactSource). REGLAS ESTRICTAS:
-   ${isLid ? '- Este chat es de tipo ANUNCIO META (@lid), por lo tanto contactSource DEBE ser "Meta".' : `- Este chat es DIRECTO. Solo asigna un origen si hay EVIDENCIA CLARA en la conversación:
+   ${isLid ? '- Este chat es de tipo ANUNCIO META (@lid) iniciado por el cliente, por lo tanto contactSource DEBE ser "Meta".' : `- Este chat es DIRECTO o fue INICIADO POR NOSOTROS. Solo asigna un origen si hay EVIDENCIA CLARA en la conversación:
    - "Google Ads": SOLO si el cliente dice explícitamente que los encontró por Google, Maps o búsqueda de Google.
    - "Meta": SOLO si el cliente dice explícitamente que vio un anuncio en Instagram o Facebook.
    - "Referido": Si menciona que alguien lo recomendó, un amigo, conocido o familiar.
    - "Calle": Si dice que vio el local al pasar o pasó por la puerta.
    - "Ya es Cliente": Si se identifica como cliente existente.
-   - "Otros": EN CASO DE DUDA o si no hay evidencia clara del origen, USA "Otros". Este es el valor por defecto.
-   IMPORTANTE: No asumas "Meta" solo porque la conversación menciona palabras como "publicidad", "anuncio" o "vi esto". Solo usa "Meta" si el cliente dice EXPLÍCITAMENTE que vio algo en Instagram o Facebook.`}
-6. Extrae cualquier nota relevante (ej: preferencias, urgencia, comentarios importantes)
+   - null: EN CASO DE DUDA o si no hay evidencia clara del origen, DEBE ser null. Este es el valor por defecto.
+   IMPORTANTE: No asumas "Meta" solo porque la conversación menciona palabras como "publicidad", "anuncio" o "vi esto". Solo usa "Meta" si el cliente dice EXPLÍCIPAMENTE que vio algo en Instagram o Facebook. Si la conversación la iniciamos nosotros, el default es obligatoriamente null.`}
+6. Extrae cualquier nota relevante (ej: preferences, urgencia, comentarios importantes)
 
 Responde ÚNICAMENTE con un JSON válido con estos campos:
 {
@@ -90,7 +90,7 @@ Responde ÚNICAMENTE con un JSON válido con estos campos:
   "phone": "string o null",
   "interest": "string o null",
   "insurance": "string o null",
-  "contactSource": "Google Ads" | "Meta" | "Calle" | "Jemima" | "Ya es Cliente" | "Tienda nube" | "Referido" | "Wave" | "Salida" | "Otros",
+  "contactSource": "Google Ads" | "Meta" | "Calle" | "Jemima" | "Ya es Cliente" | "Tienda nube" | "Referido" | "Wave" | "Salida" | "Otros" | null,
   "notes": "string o null"
 }`;
 

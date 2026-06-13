@@ -64,6 +64,7 @@ export default function InvoiceModal({ order, initialAccount, initialAmount, onC
     const [targetAmount, setTargetAmount] = useState(initialAmount || paidReal || order.total);
     const [items, setItems] = useState<InvoiceItem[]>([]);
     const [issueDate, setIssueDate] = useState<string>(new Date().toISOString().split('T')[0]);
+    const [observations, setObservations] = useState('');
 
     useEffect(() => {
         // Initialize items from order — prices must include the order's markup
@@ -138,7 +139,8 @@ export default function InvoiceModal({ order, initialAccount, initialAmount, onC
                     docNro: docTipo === 99 ? '0' : docNro.replace(/\D/g, ''),
                     amount: targetAmount,
                     issueDate: issueDate,
-                    items: items.map(({ description, quantity, price }) => ({ description, quantity, price }))
+                    items: items.map(({ description, quantity, price }) => ({ description, quantity, price })),
+                    observations: observations
                 }),
             });
 
@@ -387,6 +389,18 @@ export default function InvoiceModal({ order, initialAccount, initialAmount, onC
                                     />
                                 )}
                             </div>
+                        </div>
+
+                        {/* Observations Panel */}
+                        <div className="bg-stone-50 dark:bg-stone-800/40 p-5 rounded-2xl border-2 border-stone-100 dark:border-stone-800">
+                            <label className="block text-[10px] font-black text-stone-400 uppercase tracking-widest mb-2">Observaciones de la Factura</label>
+                            <textarea 
+                                value={observations}
+                                onChange={(e) => setObservations(e.target.value)}
+                                rows={2}
+                                className="w-full px-5 py-3 bg-white dark:bg-stone-800 border-2 border-transparent focus:border-indigo-500 rounded-2xl text-xs font-bold outline-none transition-all placeholder:text-stone-300 resize-none text-stone-800 dark:text-white"
+                                placeholder="Escribí aquí observaciones que se imprimirán en el PDF (ej. detalles de garantía, promociones aplicadas, etc.)..."
+                            />
                         </div>
 
                         {/* Error & Action */}

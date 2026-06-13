@@ -283,7 +283,7 @@ export const ContactService = {
             phone: normalizedIncomingPhone, // Se guarda normalizado (solo números)
             dni: data.dni,
             status: data.status || 'CONTACT',
-            contactSource: data.contactSource || 'Otros',
+            contactSource: data.contactSource || null,
             interest: data.interest || 'Otros',
             expectedValue: Number(data.expectedValue) || 0,
             priority: Number(data.priority) || 0,

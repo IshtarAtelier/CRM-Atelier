@@ -269,6 +269,7 @@ model Invoice {
   billingAccount String   @default("ISH")
   status         String   @default("COMPLETED")
   createdAt      DateTime @default(now())
+  observations   String?
   order          Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
   @@index([orderId])
