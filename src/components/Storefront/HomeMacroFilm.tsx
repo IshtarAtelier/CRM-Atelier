@@ -21,39 +21,39 @@ export function HomeMacroFilm() {
   // 3D rotation angles for left and right panels
   const leftRotate = useTransform(
     scrollYProgress,
-    [0.15, 0.35, 0.7, 0.9],
+    [0.4, 0.6, 0.8, 0.95],
     [0, -82, -82, 0]
   );
 
   const rightRotate = useTransform(
     scrollYProgress,
-    [0.15, 0.35, 0.7, 0.9],
+    [0.4, 0.6, 0.8, 0.95],
     [0, 82, 82, 0]
   );
 
   // X translation to shift panels apart, creating a wider viewing gap in the center
   const leftX = useTransform(
     scrollYProgress,
-    [0.15, 0.35, 0.7, 0.9],
+    [0.4, 0.6, 0.8, 0.95],
     ["0%", "-25%", "-25%", "0%"]
   );
 
   const rightX = useTransform(
     scrollYProgress,
-    [0.15, 0.35, 0.7, 0.9],
+    [0.4, 0.6, 0.8, 0.95],
     ["0%", "25%", "25%", "0%"]
   );
 
   // Opacity and scale for the text inside the core
   const textOpacity = useTransform(
     scrollYProgress,
-    [0.2, 0.35, 0.7, 0.85],
+    [0.45, 0.6, 0.8, 0.9],
     [0, 1, 1, 0]
   );
 
   const textScale = useTransform(
     scrollYProgress,
-    [0.2, 0.35, 0.7, 0.85],
+    [0.45, 0.6, 0.8, 0.9],
     [0.9, 1, 1, 0.9]
   );
 
