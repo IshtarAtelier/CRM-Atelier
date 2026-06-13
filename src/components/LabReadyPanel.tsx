@@ -85,9 +85,9 @@ export default function LabReadyPanel({ orders, onClose, onRefresh }: LabReadyPa
                                     <div className="flex-1 min-w-0 pr-24 md:pr-40">
                                         <div className="flex items-center gap-2 mb-1">
                                             <Link 
-                                                href={`/admin/contactos/${order.client?.id}`}
+                                                href={`/admin/contactos?id=${order.client?.id}`}
                                                 onClick={onClose}
-                                                className="font-black text-stone-800 dark:text-stone-200 text-sm tracking-tight uppercase truncate hover:text-emerald-500 hover:underline transition-colors"
+                                                className="font-black text-stone-800 dark:text-stone-200 text-sm tracking-tight uppercase truncate hover:text-emerald-500 hover:underline transition-colors cursor-pointer"
                                             >
                                                 {order.client?.name || 'Cliente'}
                                             </Link>
