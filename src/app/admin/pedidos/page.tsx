@@ -8,6 +8,7 @@ import {
     TrendingUp, DollarSign, Glasses, ExternalLink, Copy, CheckCheck, Clipboard,
     Factory, RefreshCw
 } from 'lucide-react';
+import { OrderDetailPanel } from '@/components/orders/OrderDetailPanel';
 import { WhatsAppIcon } from '@/components/icons/WhatsAppIcon';
 import { PricingService } from '@/services/PricingService';
 import { format } from 'date-fns';
@@ -1025,123 +1026,11 @@ export default function PedidosPage() {
 
                                 {/* Expanded Detail */}
                                 {isExpanded && (
-                                    <div className="border-t-2 border-stone-100 dark:border-stone-700 px-6 pb-6 pt-5 bg-stone-50/50 dark:bg-stone-900/50">
-                                        {/* Progress Pipeline */}
-                                        <div className="flex items-center gap-2 mb-6 p-4 bg-white dark:bg-stone-800 rounded-2xl border border-stone-100 dark:border-stone-700">
-                                            {LAB_STEPS.map((s, i) => {
-                                                const currentIdx = LAB_STEPS.findIndex(x => x.key === (order.labStatus || 'NONE'));
-                                                const isPast = i <= currentIdx;
-                                                const isCurrent = i === currentIdx;
-                                                const SIcon = s.icon;
-                                                return (
-                                                    <div key={s.key} className="flex items-center flex-1">
-                                                        <div className={`flex items-center gap-2 px-3 py-2 rounded-xl transition-all ${isCurrent
-                                                            ? `${s.bg} ${s.text} font-black ring-2 ${s.ring}`
-                                                            : isPast
-                                                                ? `${s.text} opacity-60`
-                                                                : 'text-stone-300 dark:text-stone-600'
-                                                            }`}>
-                                                            <SIcon className="w-4 h-4" />
-                                                            <span className="text-[9px] font-black uppercase tracking-widest whitespace-nowrap">{s.label}</span>
-                                                        </div>
-                                                        {i < LAB_STEPS.length - 1 && (
-                                                            <ChevronRight className={`w-4 h-4 mx-1 flex-shrink-0 ${isPast ? 'text-stone-400' : 'text-stone-200 dark:text-stone-700'}`} />
-                                                        )}
-                                                    </div>
-                                                );
-                                            })}
-                                        </div>
-
-                                        {/* Items Table */}
-                                        <div className="bg-white dark:bg-stone-800 rounded-2xl border border-stone-100 dark:border-stone-700 overflow-hidden">
-                                            <div className="px-5 py-3 border-b border-stone-100 dark:border-stone-700">
-                                                <h4 className="text-[10px] font-black text-stone-400 uppercase tracking-widest">Productos del pedido</h4>
-                                            </div>
-                                            <table className="w-full">
-                                                <thead>
-                                                    <tr className="border-b border-stone-100 dark:border-stone-700">
-                                                        <th className="text-left text-[9px] font-black text-stone-400 uppercase tracking-widest px-5 py-3">Producto</th>
-                                                        <th className="text-left text-[9px] font-black text-stone-400 uppercase tracking-widest px-5 py-3">Tipo</th>
-                                                        <th className="text-center text-[9px] font-black text-stone-400 uppercase tracking-widest px-5 py-3">Cant.</th>
-                                                        <th className="text-right text-[9px] font-black text-stone-400 uppercase tracking-widest px-5 py-3">Precio</th>
-                                                        <th className="text-right text-[9px] font-black text-stone-400 uppercase tracking-widest px-5 py-3">Subtotal</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody>
-                                                    {order.items.map(item => (
-                                                        <tr key={item.id} className="border-b border-stone-50 dark:border-stone-700/50 last:border-0">
-                                                            <td className="px-5 py-3 text-sm font-bold text-stone-800 dark:text-white">
-                                                                {item.product?.brand || item.productBrandSnapshot || '—'} · {item.product?.name || item.productNameSnapshot || '—'}
-                                                            </td>
-                                                            <td className="px-5 py-3 text-xs text-stone-500">
-                                                                {item.product?.type || item.product?.category || item.productCategorySnapshot || '—'}
-                                                            </td>
-                                                            <td className="px-5 py-3 text-sm font-bold text-stone-600 dark:text-stone-300 text-center">
-                                                                {item.quantity}
-                                                            </td>
-                                                            <td className="px-5 py-3 text-sm font-bold text-stone-600 dark:text-stone-300 text-right">
-                                                                ${item.price?.toLocaleString()}
-                                                            </td>
-                                                            <td className="px-5 py-3 text-sm font-black text-stone-800 dark:text-white text-right">
-                                                                ${(item.price * item.quantity).toLocaleString()}
-                                                            </td>
-                                                        </tr>
-                                                    ))}
-                                                </tbody>
-                                            </table>
-                                            <div className="px-5 py-4 bg-stone-50 dark:bg-stone-900 flex justify-between items-center">
-                                                <div className="flex items-center gap-4">
-                                                    {order.client.phone && (
-                                                        <span className="text-xs text-stone-400">
-                                                            📞 {order.client.phone}
-                                                        </span>
-                                                    )}
-                                                    {order.labNotes && (
-                                                        <span className="text-xs text-stone-400 italic">
-                                                            📝 {order.labNotes}
-                                                        </span>
-                                                    )}
-                                                </div>
-                                            {/* Financial Summary (Standardized) */}
-                                            <div className="mt-5 p-6 rounded-[2rem] bg-stone-900 dark:bg-black text-white border-2 border-stone-800 flex justify-between items-center shadow-xl">
-                                                <div className="flex gap-8">
-                                                    <div className="text-center">
-                                                        <span className="text-[8px] font-black text-emerald-400 uppercase tracking-widest block mb-1">Efectivo</span>
-                                                        <span className="text-xl font-black text-emerald-400">${financials.totalCash.toLocaleString()}</span>
-                                                    </div>
-                                                    <div className="text-center">
-                                                        <span className="text-[8px] font-black text-purple-400 uppercase tracking-widest block mb-1">Transferencia</span>
-                                                        <span className="text-xl font-black text-purple-400">${financials.totalTransfer.toLocaleString()}</span>
-                                                    </div>
-                                                    <div className="text-center">
-                                                        <span className="text-[8px] font-black text-orange-400 uppercase tracking-widest block mb-1">Tarjeta</span>
-                                                        <span className="text-xl font-black text-orange-400">${financials.totalCard.toLocaleString()}</span>
-                                                    </div>
-                                                </div>
-                                                <div className="text-right border-l border-stone-800 pl-8 ml-4">
-                                                    <span className="text-[10px] font-black text-stone-400 uppercase tracking-widest block mb-1">Abonado Real</span>
-                                                    <span className="text-3xl font-black text-amber-400">${financials.paidReal.toLocaleString()}</span>
-                                                </div>
-                                            </div>
-                                            </div>
-                                        </div>
-
-                                        {/* Frame Info Badge */}
-                                        {order.frameSource && (
-                                            <div className="mt-3 flex items-center gap-3 p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-2xl">
-                                                <span className="text-lg">🕶️</span>
-                                                <div>
-                                                    <p className="text-[9px] font-black text-amber-700 dark:text-amber-400 uppercase tracking-widest">Armazón</p>
-                                                    <p className="text-xs font-bold text-amber-900 dark:text-amber-300">
-                                                        {order.frameSource === 'OPTICA'
-                                                            ? 'De la óptica (incluido en el pedido)'
-                                                            : `Del cliente — ${order.userFrameBrand || ''} ${order.userFrameModel || ''}${order.userFrameNotes ? ' · ' + order.userFrameNotes : ''}`
-                                                        }
-                                                    </p>
-                                                </div>
-                                            </div>
-                                        )}
-                                    </div>
+                                    <OrderDetailPanel 
+                                        order={order as any} 
+                                        context="pedidos"
+                                        financials={financials}
+                                    />
                                 )}
                             </div>
                         );
