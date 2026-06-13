@@ -256,7 +256,7 @@ export function TiendaClient({
       </main>
 
       <StorefrontFooter />
-      <FloatingWhatsApp />
+      <FloatingWhatsApp message="¡Hola Atelier! Estoy recorriendo la tienda online y me gustaría recibir asesoramiento personalizado." />
     </div>
   );
 }

@@ -11,12 +11,26 @@ import { CheckoutShippingForm } from "@/components/checkout/CheckoutShippingForm
 import { CheckoutPaymentOptions } from "@/components/checkout/CheckoutPaymentOptions";
 import { CheckoutSummarySidebar } from "@/components/checkout/CheckoutSummarySidebar";
 import { WHATSAPP_PHONE } from "@/lib/constants";
+import { trackEvent } from "@/lib/tracking";
 
 export default function CheckoutPage() {
   const { items, getCartTotal, clearCart } = useCart();
   const [mounted, setMounted] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const hasInitiatedCheckout = useRef(false);
+
+  useEffect(() => {
+    if (mounted && items.length > 0 && !hasInitiatedCheckout.current) {
+      hasInitiatedCheckout.current = true;
+      trackEvent("InitiateCheckout", {
+        content_ids: items.map(item => item.productId),
+        num_items: items.reduce((acc, item) => acc + item.quantity, 0),
+        value: getCartTotal(),
+        currency: "ARS"
+      });
+    }
+  }, [mounted, items, getCartTotal]);
 
   const hasCrystals = items.some(item => item.lensConfig && (item.lensConfig.lensType !== "NONE" || item.lensConfig.color));
 
@@ -188,6 +202,13 @@ export default function CheckoutPage() {
             }).catch(console.error);
             localStorage.removeItem("atelier-checkout-session-id");
           }
+          trackEvent("Purchase", {
+            content_ids: items.map(item => item.productId),
+            num_items: items.reduce((acc, item) => acc + item.quantity, 0),
+            value: getCartTotal(),
+            currency: "ARS",
+            payment_method: 'TRANSFER'
+          });
           clearCart();
           setIsSuccess(true);
         } else {
@@ -273,6 +294,13 @@ export default function CheckoutPage() {
               }).catch(console.error);
               localStorage.removeItem("atelier-checkout-session-id");
             }
+            trackEvent("Purchase", {
+              content_ids: items.map(item => item.productId),
+              num_items: items.reduce((acc, item) => acc + item.quantity, 0),
+              value: getCartTotal(),
+              currency: "ARS",
+              payment_method: 'PAYWAY'
+            });
             clearCart();
             setIsSuccess(true);
           } else {
