@@ -62,7 +62,7 @@ export default function KodakPage() {
             subtitle="La transición más suave del mercado."
           >
             <p className="mb-4">
-              Reconocido mundialmente por ser uno de los multifocales más fáciles para adaptarse. Utiliza la tecnología <em>Vision First Design™</em>, la cual calcula las propiedades ópticas ideales para cada punto del cristal, eliminando el clásico "efecto de balanceo" o mareo que causan los multifocales antiguos.
+              Reconocido mundialmente por ser uno de los multifocales más fáciles para adaptarse. Utiliza la tecnología <em>Vision First Design™</em>, la cual calcula las propiedades ópticas ideales para cada punto del cristal, eliminando el clásico &quot;efecto de balanceo&quot; o mareo que causan los multifocales antiguos.
             </p>
             <ul className="list-disc pl-5 mb-4 space-y-2">
               <li><strong>Kodak Precise:</strong> Diseñado para armazones estándar o grandes.</li>

@@ -54,7 +54,7 @@ export async function GET(req: Request) {
         }
 
         return NextResponse.json({ 
-            error: error.message,
+            error: errorMessage,
             timestamp: new Date().toISOString()
         }, { status: 500 });
     }

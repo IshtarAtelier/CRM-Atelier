@@ -9,7 +9,7 @@ import { WHATSAPP_PHONE } from "@/lib/constants";
 const FRAMES = [
   {
     id: "monalisa",
-    src: "/images/editorial/monalisa.webp",
+    src: "/images/editorial/filmmaker-monalisa.webp",
     title: "La Gioconda",
     subtitle: "Acetato Negro · Edición Limitada",
     year: "S. XVI",
@@ -50,9 +50,14 @@ const FRAMES = [
 ];
 
 export function FilmmakerReel() {
+  const [mounted, setMounted] = useState(false);
   const [current, setCurrent] = useState(0);
   const [isPlaying, setIsPlaying] = useState(true);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     if (isPlaying) {
@@ -95,36 +100,54 @@ export function FilmmakerReel() {
       <div className="absolute bottom-0 left-0 right-0 h-[6%] bg-black z-20" />
 
       {/* ─── IMAGES ─── */}
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={frame.id}
-          className="absolute inset-0"
-          initial={{ opacity: 0, scale: 1.05 }}
-          animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0, scale: 0.97 }}
-          transition={{ duration: 1.4, ease: [0.25, 0.1, 0.25, 1] }}
-        >
-          {/* Ken Burns slow zoom */}
-          <motion.div
-            className="w-full h-full relative"
-            initial={{ scale: 1 }}
-            animate={{ scale: 1.06 }}
-            transition={{ duration: 5, ease: "linear" }}
-          >
+      {!mounted ? (
+        <div className="absolute inset-0">
+          <div className="w-full h-full relative">
             <Image
-              src={frame.src}
-              alt={frame.title}
+              src="/images/editorial/filmmaker-monalisa.webp"
+              alt="La Gioconda"
               fill
-              priority={current === 0}
+              priority
               className="object-cover"
               sizes="100vw"
             />
-          </motion.div>
+          </div>
           {/* Gradient overlays — cinematic vignette */}
           <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/10 to-black/40" />
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/30" />
-        </motion.div>
-      </AnimatePresence>
+        </div>
+      ) : (
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={frame.id}
+            className="absolute inset-0"
+            initial={{ opacity: 0, scale: 1.05 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.97 }}
+            transition={{ duration: 1.4, ease: [0.25, 0.1, 0.25, 1] }}
+          >
+            {/* Ken Burns slow zoom */}
+            <motion.div
+              className="w-full h-full relative"
+              initial={{ scale: 1 }}
+              animate={{ scale: 1.06 }}
+              transition={{ duration: 5, ease: "linear" }}
+            >
+              <Image
+                src={frame.src}
+                alt={frame.title}
+                fill
+                priority={current === 0}
+                className="object-cover"
+                sizes="100vw"
+              />
+            </motion.div>
+            {/* Gradient overlays — cinematic vignette */}
+            <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/10 to-black/40" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/30" />
+          </motion.div>
+        </AnimatePresence>
+      )}
 
       {/* ─── FILM COUNTER / TIMECODE ─── */}
       <div className="absolute top-[8%] left-6 z-30 font-mono text-[10px] text-white/40 tracking-widest select-none">
