@@ -82,7 +82,10 @@ export default async function Home() {
         slug: wp.slug,
         stock: wp.product.stock,
         brand: wp.product.brand,
-        model: wp.product.model
+        model: wp.product.model,
+        secondImg: wp.images.length > 1 
+          ? resolveStorageUrl(wp.images[1])
+          : (wp.product.imagenesCatalogo.length > 1 ? resolveStorageUrl(wp.product.imagenesCatalogo[1]) : null),
       }))
     : [];
 

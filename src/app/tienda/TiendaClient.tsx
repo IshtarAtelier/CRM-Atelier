@@ -168,8 +168,12 @@ export function TiendaClient({
               className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-x-6 gap-y-14"
             >
               {filtered.map((p) => {
+                const hasSecondImage = p.imagenesCatalogo && p.imagenesCatalogo.length > 1;
                 const imgUrl = p.imagenesCatalogo?.length > 0
                   ? resolveStorageUrl(p.imagenesCatalogo[0])
+                  : null;
+                const secondImgUrl = hasSecondImage
+                  ? resolveStorageUrl(p.imagenesCatalogo[1])
                   : null;
 
                 return (
@@ -194,11 +198,11 @@ export function TiendaClient({
                             alt={`${p.brand} ${p.model}`}
                             fill
                             sizes="(max-width: 768px) 50vw, (max-width: 1280px) 33vw, 25vw"
-                            className={`object-contain mix-blend-multiply  ${
+                            className={`object-contain mix-blend-multiply transition-opacity duration-500 ease-in-out ${
                               ((p.model || '').toLowerCase().includes('tl3932 c3') || (p.model || '').toLowerCase().includes('diana') || p.id === 'cmq5d11hf002rhy61fhvqs7nj')
-                                ? "scale-125 "
-                                : "scale-100 "
-                            }`}
+                                ? "scale-125"
+                                : "scale-100"
+                            } ${hasSecondImage ? 'md:group-hover:opacity-0' : ''}`}
                           />
                         </div>
                       ) : (
@@ -208,6 +212,16 @@ export function TiendaClient({
                           </svg>
                           <span className="text-[9px] uppercase tracking-widest">Sin foto</span>
                         </div>
+                      )}
+
+                      {hasSecondImage && secondImgUrl && (
+                        <Image
+                          src={secondImgUrl}
+                          alt={`${p.brand} ${p.model} Try-On`}
+                          fill
+                          sizes="(max-width: 768px) 50vw, (max-width: 1280px) 33vw, 25vw"
+                          className="object-cover opacity-0 md:group-hover:opacity-100 transition-opacity duration-500 ease-in-out"
+                        />
                       )}
 
                       {/* Badge categoría */}

@@ -15,6 +15,7 @@ interface CarouselProduct {
   stock?: number;
   brand?: string | null;
   model?: string | null;
+  secondImg?: string | null;
 }
 
 interface Props {
@@ -117,12 +118,24 @@ export function HomeProductCarousel({ products }: Props) {
                   loading={i < 2 ? undefined : 'lazy'}
                   style={{ transform: "translateZ(0)" }}
                   sizes="(max-width: 768px) 45vw, (max-width: 1024px) 33vw, 25vw"
-                  className="object-contain p-6 mix-blend-multiply "
+                  className={`object-contain p-6 mix-blend-multiply transition-opacity duration-500 ease-in-out ${item.secondImg ? 'md:group-hover:opacity-0' : ''}`}
                 />
               ) : (
                 <div className="absolute inset-0 w-full h-full flex items-center justify-center text-stone-400 text-[10px] font-black uppercase tracking-widest text-center">
                   Sin<br/>Imagen
                 </div>
+              )}
+
+              {item.secondImg && (
+                <Image 
+                  src={item.secondImg}
+                  alt={`${item.name} Try-On`}
+                  fill
+                  loading="lazy"
+                  style={{ transform: "translateZ(0)" }}
+                  sizes="(max-width: 768px) 45vw, (max-width: 1024px) 33vw, 25vw"
+                  className="object-cover opacity-0 md:group-hover:opacity-100 transition-opacity duration-500 ease-in-out"
+                />
               )}
             </div>
             

@@ -73,7 +73,7 @@ export function ProductClient({
           </div>
 
           {images.length > 1 && (
-            <div className="absolute left-6 top-1/2 -translate-y-1/2 z-20 flex flex-col gap-3">
+            <div className="absolute left-1/2 -translate-x-1/2 bottom-4 lg:bottom-auto lg:left-6 lg:top-1/2 lg:-translate-y-1/2 lg:-translate-x-0 z-20 flex flex-row lg:flex-col gap-3">
               {images.map((_: any, idx: number) => (
                 <button
                   key={idx}
@@ -489,17 +489,46 @@ export function ProductClient({
             </button>
 
             {images.length > 1 && (
-              <button
-                onClick={() => setActiveImageIndex(activeImageIndex === 0 ? 1 : 0)}
-                className={`w-full py-4 text-[11px] font-bold uppercase tracking-widest transition-all duration-300 flex items-center justify-center gap-2 rounded-sm border ${
-                  activeImageIndex > 0 
-                    ? 'bg-[#c8a55c] text-white border-[#c8a55c] hover:bg-[#b08f4c]' 
-                    : 'border-[#c8a55c] text-[#c8a55c] bg-white hover:bg-[#c8a55c]/5'
-                }`}
-              >
-                <User className="w-4 h-4" /> 
-                {activeImageIndex > 0 ? "Ver Foto de Producto" : "✨ Probar con IA (Virtual Try-On)"}
-              </button>
+              <div className="flex gap-2 w-full">
+                {images.length === 2 ? (
+                  <button
+                    onClick={() => setActiveImageIndex(activeImageIndex === 0 ? 1 : 0)}
+                    className={`w-full py-4 text-[11px] font-bold uppercase tracking-widest transition-all duration-300 flex items-center justify-center gap-2 rounded-sm border ${
+                      activeImageIndex > 0 
+                        ? 'bg-[#c8a55c] text-white border-[#c8a55c] hover:bg-[#b08f4c]' 
+                        : 'border-[#c8a55c] text-[#c8a55c] bg-white hover:bg-[#c8a55c]/5'
+                    }`}
+                  >
+                    <User className="w-4 h-4" /> 
+                    {activeImageIndex > 0 ? "Ver Foto de Producto" : "✨ Probar con IA (Virtual Try-On)"}
+                  </button>
+                ) : (
+                  <>
+                    <button
+                      onClick={() => setActiveImageIndex(activeImageIndex === 1 ? 0 : 1)}
+                      className={`flex-1 py-4 text-[10px] font-bold uppercase tracking-widest transition-all duration-300 flex items-center justify-center gap-1.5 rounded-sm border ${
+                        activeImageIndex === 1 
+                          ? 'bg-[#c8a55c] text-white border-[#c8a55c] hover:bg-[#b08f4c]' 
+                          : 'border-stone-200 text-stone-700 bg-white hover:border-[#c8a55c] hover:text-[#c8a55c]'
+                      }`}
+                    >
+                      <User className="w-3.5 h-3.5" />
+                      {activeImageIndex === 1 ? "Ver Foto" : "✨ Probar Hombre"}
+                    </button>
+                    <button
+                      onClick={() => setActiveImageIndex(activeImageIndex === 2 ? 0 : 2)}
+                      className={`flex-1 py-4 text-[10px] font-bold uppercase tracking-widest transition-all duration-300 flex items-center justify-center gap-1.5 rounded-sm border ${
+                        activeImageIndex === 2 
+                          ? 'bg-[#c8a55c] text-white border-[#c8a55c] hover:bg-[#b08f4c]' 
+                          : 'border-stone-200 text-stone-700 bg-white hover:border-[#c8a55c] hover:text-[#c8a55c]'
+                      }`}
+                    >
+                      <UserPlus className="w-3.5 h-3.5" />
+                      {activeImageIndex === 2 ? "Ver Foto" : "✨ Probar Mujer"}
+                    </button>
+                  </>
+                )}
+              </div>
             )}
 
             <a 
