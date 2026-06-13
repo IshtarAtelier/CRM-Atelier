@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { SmartLabService } from '@/services/smartlab.service';
 import { env } from '@/env';
+import { sendEmail } from '@/lib/email';
+import { fetchWa } from '@/lib/wa-config';
 
 // Cron endpoint para sincronizar SmartLab automáticamente
 // Se llama desde un servicio externo (cron-job.org) cada 4 horas
@@ -25,6 +27,32 @@ export async function GET(req: Request) {
         });
     } catch (error: any) {
         console.error('[CRON SmartLab] Error:', error);
+        
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        
+        try {
+            // Enviar alerta por Email
+            await sendEmail({
+                to: 'pisano.ishtar@gmail.com',
+                subject: '🚨 Error en Sincronización Automática SmartLab',
+                text: `Atelier Óptica\n\nSe detectó un error al sincronizar con el laboratorio Grupo Óptico.\n\nError: ${errorMessage}\nFecha: ${new Date().toLocaleString('es-AR')}`,
+                html: `<h3 style="color: #d32f2f;">🚨 Error en Sincronización SmartLab</h3><p>Se detectó un error al intentar sincronizar los pedidos con el laboratorio (Grupo Óptico).</p><p><b>Error:</b> ${errorMessage}</p><p><b>Fecha:</b> ${new Date().toLocaleString('es-AR')}</p>`
+            });
+
+            // Enviar alerta por WhatsApp
+            await fetchWa('/api/send', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    chatId: '5493541215971@c.us',
+                    message: `🚨 *Atelier Alerta - SmartLab*\n\nHubo un error al intentar sincronizar los estados con el laboratorio (Grupo Óptico).\n\n*Error:* ${errorMessage}`
+                })
+            });
+            console.log('[CRON SmartLab] Alertas enviadas a Ishtar.');
+        } catch (alertError) {
+            console.error('[CRON SmartLab] No se pudieron enviar las alertas:', alertError);
+        }
+
         return NextResponse.json({ 
             error: error.message,
             timestamp: new Date().toISOString()
