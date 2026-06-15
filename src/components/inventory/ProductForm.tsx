@@ -61,7 +61,7 @@ export default function ProductForm({ onClose, onSuccess, isAdmin = false, uniqu
         name: '', brand: '', model: '', stock: 0, price: 0, cost: 0, 
         lensIndex: '', laboratory: '', sphereMin: '', sphereMax: '', 
         cylinderMin: '', cylinderMax: '', additionMin: '', additionMax: '',
-        is2x1: false, publishToWeb: true,
+        is2x1: false, publishToWeb: true, origin: 'LABORATORIO',
         seoTitle: '', seoDescription: '', seoTags: '', customSlug: '',
         mpn: '', gender: '', ageGroup: ''
     });
@@ -97,7 +97,7 @@ export default function ProductForm({ onClose, onSuccess, isAdmin = false, uniqu
     const activeCategory = PRODUCT_CATEGORIES.find(c => c.id === selectedCategory);
     const hasSubtypes = !!(activeCategory?.subtypes?.length);
     const isCristal = selectedCategory === 'Cristal';
-    const isRequestedToLab = selectedCategory === 'Cristal' || selectedCategory === 'Tratamiento';
+    const isRequestedToLab = (selectedCategory === 'Cristal' && formData.origin === 'LABORATORIO') || selectedCategory === 'Tratamiento';
     const finalType = hasSubtypes && selectedSubtype
         ? `${selectedCategory} ${selectedSubtype}`
         : selectedCategory;
@@ -146,7 +146,8 @@ export default function ProductForm({ onClose, onSuccess, isAdmin = false, uniqu
                     mpn: formData.mpn || null,
                     gender: formData.gender || null,
                     ageGroup: formData.ageGroup || null,
-                } : {})
+                } : {}),
+                origin: isCristal ? formData.origin : null,
             };
             const res = await fetch('/api/products', {
                 method: 'POST',
@@ -249,6 +250,7 @@ export default function ProductForm({ onClose, onSuccess, isAdmin = false, uniqu
                     cylinderMax: item.cylinderMax !== '' ? Number(item.cylinderMax) : null,
                     additionMin: null,
                     additionMax: null,
+                    origin: 'LABORATORIO',
                 };
             }
             return {
@@ -376,7 +378,20 @@ export default function ProductForm({ onClose, onSuccess, isAdmin = false, uniqu
                 <div className="grid grid-cols-2 gap-6">
                     {isCristal ? (
                         <>
-                            {/* CRISTALES: Marca → Nombre → Laboratorio → Índice → Precio → Costo */}
+                            {/* Stock (Si es Stock) */}
+                            {formData.origin === 'STOCK' && (
+                                <div className="space-y-2 col-span-2">
+                                    <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest ml-4">Stock Inicial (Pares)</label>
+                                    <div className="relative group">
+                                        <Layers className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-300 group-focus-within:text-primary transition-colors" />
+                                        <input type="number" min={0}
+                                            className="w-full pl-12 pr-6 py-4 bg-stone-50/50 dark:bg-stone-800/30 border border-stone-200 dark:border-stone-700 rounded-[1.5rem] font-bold text-sm outline-none focus:border-primary transition-all"
+                                            value={formData.stock}
+                                            onChange={e => setFormData({ ...formData, stock: parseInt(e.target.value) || 0 })}
+                                        />
+                                    </div>
+                                </div>
+                            )}
 
                             {/* Marca */}
                             <div className="space-y-2">
@@ -413,6 +428,21 @@ export default function ProductForm({ onClose, onSuccess, isAdmin = false, uniqu
                                 />
                                 {!formData.laboratory && <p className="text-[9px] font-bold text-red-400 ml-4">El laboratorio es obligatorio para cristales</p>}
                             </div>
+
+                            {/* Origen (Solo Monofocales de GRUPO OPTICO) */}
+                            {finalType === 'Cristal Monofocal' && formData.laboratory === 'GRUPO OPTICO' && (
+                                <div className="space-y-3 col-span-2 pb-2 mt-4">
+                                    <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest ml-4">Origen del Cristal (Solo SmartLab)</label>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <button type="button" onClick={() => setFormData({ ...formData, origin: 'LABORATORIO' })} className={`py-4 px-4 rounded-2xl border-2 font-black text-xs uppercase tracking-tight flex items-center justify-center gap-2 transition-all ${formData.origin === 'LABORATORIO' ? 'bg-primary/10 border-primary text-primary shadow-sm' : 'bg-white dark:bg-stone-800 border-stone-200 dark:border-stone-700 text-stone-500 hover:border-stone-300'}`}>
+                                            <Database className="w-4 h-4" /> Laboratorio (Bajo Pedido)
+                                        </button>
+                                        <button type="button" onClick={() => setFormData({ ...formData, origin: 'STOCK' })} className={`py-4 px-4 rounded-2xl border-2 font-black text-xs uppercase tracking-tight flex items-center justify-center gap-2 transition-all ${formData.origin === 'STOCK' ? 'bg-emerald-50 border-emerald-500 text-emerald-600 shadow-sm' : 'bg-white dark:bg-stone-800 border-stone-200 dark:border-stone-700 text-stone-500 hover:border-stone-300'}`}>
+                                            <Layers className="w-4 h-4" /> Stock / Rango Extendido
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
 
                             {/* Índice de refracción */}
                             <div className="space-y-2 col-span-2">

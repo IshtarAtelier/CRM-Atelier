@@ -165,6 +165,7 @@ model Product {
   is2x1                 Boolean  @default(false)
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
+  labType               String?  // STOCK o LABORATORY
   botLabel              String?
   botRecommended        Boolean  @default(false)
   imageProcessingStatus String?  @default("IDLE")
@@ -176,6 +177,8 @@ model Product {
   bridgeWidth           Int?
   templeLength          Int?
   frameHeight           Int?
+
+  origin                String? // "STOCK" or "LABORATORIO"
 
   // SEO & E-Commerce (TiendaNube Style)
   seoTitle       String?
@@ -217,7 +220,9 @@ model Order {
   userFrameBrand       String?
   userFrameModel       String?
   userFrameNotes       String?
+  labType              String? // STOCK o LABORATORY
   labColor             String?
+  labMaterial          String? // Material para el lab (ej: Orgánico, Poli)
   labTreatment         String?
   labDiameter          String?
   labPdOd              Float?
@@ -226,6 +231,7 @@ model Order {
   labNearPdOi          Float?
   labHeightOD          Float?
   labHeightOI          Float?
+  labEdgeInStore       Boolean  @default(false) // Si es TRUE, el lab solo manda los cristales tallados ("Calibra en óptica")
   frameA               String?
   frameB               String?
   frameDbl             String?

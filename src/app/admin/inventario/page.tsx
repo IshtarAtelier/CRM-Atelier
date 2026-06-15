@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Plus, Search, Package, Loader2, AlertCircle, ArrowUpRight, Trash2, ShoppingBag, CheckSquare, Square, X, Pencil, Save, Download, Upload, CheckCircle2, Zap, Camera, Clock, Palette } from "lucide-react";
+import { Plus, Search, Package, Loader2, AlertCircle, ArrowUpRight, Trash2, ShoppingBag, CheckSquare, Square, X, Pencil, Save, Download, Upload, CheckCircle2, Zap, Camera, Clock, Palette, Database, Layers } from "lucide-react";
 import { Product } from '@/hooks/useProducts';
 import ProductForm from '@/components/inventory/ProductForm';
 import { resolveStorageUrl } from '@/lib/utils/storage';
@@ -30,10 +30,11 @@ export default function InventarioPage() {
     const [selectedCategory, setSelectedCategory] = useState('ALL');
     const [onlyWeb, setOnlyWeb] = useState(false);
     const [selectedSubtype, setSelectedSubtype] = useState('');
+    const [selectedOrigin, setSelectedOrigin] = useState('');
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
     const [isDeleting, setIsDeleting] = useState(false);
     const [editingProduct, setEditingProduct] = useState<Product | null>(null);
-    const [editForm, setEditForm] = useState({ name: '', brand: '', model: '', type: '', stock: 0, cost: 0, price: 0, lensIndex: '', laboratory: '', sphereMin: '' as string, sphereMax: '' as string, cylinderMin: '' as string, cylinderMax: '' as string, additionMin: '' as string, additionMax: '' as string, is2x1: false, publishToWeb: false, lensWidth: '' as string, bridgeWidth: '' as string, templeLength: '' as string, frameHeight: '' as string, seoTitle: '', seoDescription: '', seoTags: '', customSlug: '', mpn: '', gender: '', ageGroup: '' });
+    const [editForm, setEditForm] = useState({ name: '', brand: '', model: '', type: '', stock: 0, cost: 0, price: 0, lensIndex: '', laboratory: '', sphereMin: '' as string, sphereMax: '' as string, cylinderMin: '' as string, cylinderMax: '' as string, additionMin: '' as string, additionMax: '' as string, is2x1: false, publishToWeb: false, lensWidth: '' as string, bridgeWidth: '' as string, templeLength: '' as string, frameHeight: '' as string, seoTitle: '', seoDescription: '', seoTags: '', customSlug: '', mpn: '', gender: '', ageGroup: '', origin: '' });
     const [savingEdit, setSavingEdit] = useState(false);
     const [selectedBrand, setSelectedBrand] = useState('');
     const [showAllBrands, setShowAllBrands] = useState(false);
@@ -152,6 +153,9 @@ export default function InventarioPage() {
     if (onlyWeb) {
         products = products.filter(p => p.publishToWeb === true);
     }
+    if (selectedOrigin) {
+        products = products.filter(p => (p as any).origin === selectedOrigin);
+    }
 
     // Helper: detecta cristales (incluye valores legacy LENS/MULTIFOCAL/etc)
     const checkCristal = (p: { category?: string; type?: string | null }) =>
@@ -160,7 +164,8 @@ export default function InventarioPage() {
         || ['MONOFOCAL','MULTIFOCAL','BIFOCAL','OCUPACIONAL'].includes(p.type?.toUpperCase() || '');
 
     // Helper: determinar si el producto maneja stock propio o se pide a laboratorio
-    const isRequestedToLab = (p: { category?: string; type?: string | null }) => checkCristal(p) || p.category === 'Tratamiento';
+    const isRequestedToLab = (p: { category?: string; type?: string | null; origin?: string | null }) => 
+        (checkCristal(p) && p.origin !== 'STOCK') || p.category === 'Tratamiento';
 
     // Excluir cristales y tratamientos del cálculo de stock (se compran bajo demanda)
     const nonCrystalProducts = products.filter(p => !isRequestedToLab(p));
@@ -245,6 +250,7 @@ export default function InventarioPage() {
             mpn: (p as any).mpn || '',
             gender: (p as any).gender || '',
             ageGroup: (p as any).ageGroup || '',
+            origin: (p as any).origin || 'LABORATORIO',
         });
         setShowEditRanges(false);
     };
@@ -488,6 +494,7 @@ export default function InventarioPage() {
                                 onClick={() => {
                                     setSelectedCategory(cat.id);
                                     setSelectedSubtype('');
+                                    setSelectedOrigin('');
                                     setSelectedBrand('');
                                     setShowAllBrands(false);
                                 }}
@@ -539,6 +546,30 @@ export default function InventarioPage() {
                                 >
                                     {isActive && <div className="absolute inset-0 bg-white dark:bg-stone-600 rounded-full shadow-sm -z-10" />}
                                     {sub}
+                                </button>
+                            );
+                        })}
+                    </div>
+                )}
+
+                {/* Origin filter — only for Cristal */}
+                {selectedCategory === 'Cristal' && (
+                    <div className="inline-flex flex-wrap items-center gap-2 bg-stone-100/50 dark:bg-stone-800/50 backdrop-blur-md p-1.5 rounded-full border border-stone-200/50 dark:border-stone-700/50 w-max animate-in fade-in slide-in-from-top-2 duration-300">
+                        <span className="text-[9px] font-black text-stone-400 uppercase tracking-widest px-2">Origen:</span>
+                        {['', 'LABORATORIO', 'STOCK'].map(origin => {
+                            const isActive = selectedOrigin === origin;
+                            const label = origin === '' ? 'Todos' : origin === 'LABORATORIO' ? 'Laboratorio' : 'Stock y Rango Extendido';
+                            return (
+                                <button
+                                    key={origin}
+                                    onClick={() => setSelectedOrigin(origin)}
+                                    className={`relative px-4 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all duration-300 ${isActive
+                                        ? 'text-stone-900 dark:text-white'
+                                        : 'text-stone-500 hover:text-stone-700 dark:hover:text-stone-300'
+                                        }`}
+                                >
+                                    {isActive && <div className="absolute inset-0 bg-white dark:bg-stone-600 rounded-full shadow-sm -z-10" />}
+                                    {label}
                                 </button>
                             );
                         })}
@@ -853,8 +884,23 @@ export default function InventarioPage() {
                                     <input type="text" value={editForm.brand} onChange={e => setEditForm({ ...editForm, brand: e.target.value })} className="w-full px-5 py-4 bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-2xl font-bold text-sm outline-none focus:border-primary" />
                                 </div>
                                 {checkCristal(editingProduct) && (
-                                    <div className="space-y-1">
-                                        <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest ml-3">Tipo de Cristal</label>
+                                    <>
+                                        {/* Origen del Cristal - Solo para Monofocales (SmartLab / Grupo Optico) */}
+                                        {editForm.type === 'Cristal Monofocal' && (
+                                            <div className="col-span-2 space-y-3 pb-2">
+                                                <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest ml-3">Origen del Cristal</label>
+                                            <div className="grid grid-cols-2 gap-3">
+                                                <button type="button" onClick={() => setEditForm({ ...editForm, origin: 'LABORATORIO' })} className={`py-4 px-4 rounded-2xl border-2 font-black text-xs uppercase tracking-tight flex items-center justify-center gap-2 transition-all ${editForm.origin === 'LABORATORIO' ? 'bg-primary/10 border-primary text-primary shadow-sm' : 'bg-stone-50 dark:bg-stone-800 border-stone-200 dark:border-stone-700 text-stone-500 hover:border-stone-300'}`}>
+                                                    <Database className="w-4 h-4" /> Laboratorio
+                                                </button>
+                                                <button type="button" onClick={() => setEditForm({ ...editForm, origin: 'STOCK' })} className={`py-4 px-4 rounded-2xl border-2 font-black text-xs uppercase tracking-tight flex items-center justify-center gap-2 transition-all ${editForm.origin === 'STOCK' ? 'bg-emerald-50 border-emerald-500 text-emerald-600 shadow-sm' : 'bg-stone-50 dark:bg-stone-800 border-stone-200 dark:border-stone-700 text-stone-500 hover:border-stone-300'}`}>
+                                                    <Layers className="w-4 h-4" /> Stock / Rango
+                                                </button>
+                                            </div>
+                                            </div>
+                                        )}
+                                        <div className="space-y-1">
+                                            <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest ml-3">Tipo de Cristal</label>
                                         <select value={editForm.type} onChange={e => setEditForm({ ...editForm, type: e.target.value })} className="w-full px-5 py-4 bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-2xl font-bold text-sm outline-none focus:border-primary cursor-pointer">
                                             <option value="">Seleccionar tipo...</option>
                                             <option value="Cristal Monofocal">Cristal Monofocal</option>
@@ -864,6 +910,7 @@ export default function InventarioPage() {
                                             <option value="Cristal Coquil">Cristal Coquil</option>
                                         </select>
                                     </div>
+                                    </>
                                 )}
                                 {!checkCristal(editingProduct) && (
                                     <div className="space-y-1">
@@ -872,7 +919,7 @@ export default function InventarioPage() {
                                     </div>
                                 )}
                                 {/* Ocultar stock para cristales y tratamientos — se piden bajo demanda */}
-                                {!isRequestedToLab(editingProduct) && (
+                                {!isRequestedToLab({ ...editingProduct, origin: editForm.origin } as any) && (
                                     <div className="space-y-1">
                                         <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest ml-3">Stock</label>
                                         <input type="number" min={0} value={editForm.stock} onChange={e => setEditForm({ ...editForm, stock: parseInt(e.target.value) || 0 })} className="w-full px-5 py-4 bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-2xl font-bold text-sm outline-none focus:border-primary" />
