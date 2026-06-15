@@ -150,12 +150,12 @@ export function FilmmakerReel() {
       )}
 
       {/* ─── FILM COUNTER / TIMECODE ─── */}
-      <div className="absolute top-[8%] left-6 z-30 font-mono text-[10px] text-white/40 tracking-widest select-none">
+      <div className="absolute top-[15%] left-6 z-30 font-mono text-[10px] text-white/40 tracking-widest select-none">
         {String(current + 1).padStart(2, "0")} / {String(FRAMES.length).padStart(2, "0")} &nbsp;·&nbsp; ATELIER FILMS
       </div>
 
       {/* ─── PLAY INDICATOR DOT ─── */}
-      <div className="absolute top-[8%] right-6 z-30 flex items-center gap-2">
+      <div className="absolute top-[15%] right-6 z-30 flex items-center gap-2">
         <span className={`w-1.5 h-1.5 rounded-full ${isPlaying ? "bg-red-500 animate-pulse" : "bg-white/40"}`} />
         <span className="font-mono text-[9px] text-white/40 tracking-widest">{isPlaying ? "REC" : "PAUSED"}</span>
       </div>
