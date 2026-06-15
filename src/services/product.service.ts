@@ -51,6 +51,7 @@ export const ProductService = {
                 mpn: data.mpn,
                 gender: data.gender,
                 ageGroup: data.ageGroup,
+                origin: data.origin,
             }
         });
         
@@ -94,6 +95,7 @@ export const ProductService = {
                 mpn: data.mpn !== undefined ? data.mpn : undefined,
                 gender: data.gender !== undefined ? data.gender : undefined,
                 ageGroup: data.ageGroup !== undefined ? data.ageGroup : undefined,
+                origin: data.origin !== undefined ? data.origin : undefined,
             }
         });
         
@@ -130,6 +132,7 @@ export const ProductService = {
                     additionMax: item.additionMax != null ? parseFloat(item.additionMax) : null,
                     is2x1: item.is2x1 === true,
                     publishToWeb: item.publishToWeb === true,
+                    origin: item.origin,
                 }
             }))
         );

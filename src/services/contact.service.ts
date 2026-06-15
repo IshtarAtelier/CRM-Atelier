@@ -1365,7 +1365,31 @@ export const ContactService = {
                         });
 
                         if (!resClient.ok) {
-                            console.error('[Payment Notification] Failed to send WhatsApp to Client:', await resClient.text());
+                            const errText = await resClient.text();
+                            console.error('[Payment Notification] Failed to send WhatsApp to Client:', errText);
+                            
+                            try {
+                                await prisma.interaction.create({
+                                    data: {
+                                        clientId: result.clientId,
+                                        type: 'ERROR',
+                                        content: `⚠️ Falló el envío automático del recibo por WhatsApp. Verificá que el número cargado sea correcto y esté registrado en WhatsApp.`
+                                    }
+                                });
+
+                                // Notificar a Ishtar por WhatsApp
+                                await fetchWa('/api/send', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({
+                                        chatId: '5493541215971@c.us',
+                                        message: `🚨 *Alerta de Envío Fallido*\n\nNo se pudo enviar el recibo automático a *${result.clientName}* porque su número parece ser falso o no tener WhatsApp activo.\n\n🔗 *Corregir Ficha:* ${clientLink}`,
+                                        senderName: 'Sistema Atelier'
+                                    })
+                                });
+                            } catch(e) {
+                                console.error('[Payment Notification] Error saving failure alert:', e);
+                            }
                         }
 
                         // Enviar copia a Ishtar
