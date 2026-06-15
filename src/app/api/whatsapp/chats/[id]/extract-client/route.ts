@@ -90,7 +90,7 @@ export async function POST(
                 insurance: {
                     type: Type.STRING,
                     nullable: true,
-                    description: "Obra social o seguro médico mencionado (ej: 'OSDE', 'Swiss Medical', 'PAMI', 'Apross', etc.) o null si no se menciona."
+                    description: "Obra social o seguro médico mencionado (ej: 'OSDE', 'Swiss Medical', 'Galeno', 'Apross', etc.) o null si no se menciona."
                 },
                 contactSource: {
                     type: Type.STRING,
@@ -121,7 +121,7 @@ INSTRUCCIONES:
 1. Extrae el nombre real del cliente. Si no se menciona un nombre en la conversación, usa el nombre del perfil de WhatsApp.
 2. Extrae el teléfono. Si el waId es @lid y el cliente mencionó un número en la charla, usa ese. Si no, deja vacío (null).
 3. Deduce el interés principal (ej: "Multifocal", "Monofocal", "Lentes de contacto", "Armazones", "Gafas de sol", etc.)
-4. Detecta si mencionó obra social/seguro médico (ej: "OSDE", "Swiss Medical", "PAMI", "Apross", etc.)
+4. Detecta si mencionó obra social/seguro médico (ej: "OSDE", "Swiss Medical", "Galeno", "Apross", etc.)
 5. Detecta la fuente de contacto (contactSource). REGLAS ESTRICTAS:
    ${isLid ? '- Este chat es de tipo ANUNCIO META (@lid) iniciado por el cliente, por lo tanto contactSource DEBE ser "Meta".' : `- Este chat es DIRECTO o fue INICIADO POR NOSOTROS. Solo asigna un origen si hay EVIDENCIA CLARA en la conversación:
    - "Google Ads": SOLO si el cliente dice explícitamente que los encontró por Google, Maps o búsqueda de Google.

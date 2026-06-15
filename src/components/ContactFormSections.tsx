@@ -45,7 +45,7 @@ export function PersonalDataSection({ formData, setFormData, doctors, sources, h
                     <label className="text-[10px] font-black uppercase tracking-widest text-stone-500 ml-1">Obra Social</label>
                     <div className="relative group">
                         <Building2 className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-stone-300 group-focus-within:text-primary transition-colors" />
-                        <input type="text" className="w-full pl-12 pr-4 py-4 bg-stone-50 dark:bg-stone-800 border-2 rounded-2xl font-bold text-sm outline-none focus:border-primary" placeholder="PAMI, OSDE, etc." value={formData.insurance} onChange={(e) => setFormData({ ...formData, insurance: e.target.value })} />
+                        <input type="text" className="w-full pl-12 pr-4 py-4 bg-stone-50 dark:bg-stone-800 border-2 rounded-2xl font-bold text-sm outline-none focus:border-primary" placeholder="Jerárquicos, OSDE, etc." value={formData.insurance} onChange={(e) => setFormData({ ...formData, insurance: e.target.value })} />
                     </div>
                 </div>
 

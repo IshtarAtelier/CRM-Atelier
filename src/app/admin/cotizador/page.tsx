@@ -1199,7 +1199,7 @@ function CotizadorPageContent() {
                                     <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest ml-2">Obra Social</label>
                                     <div className="relative group">
                                         <Building2 className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-300 group-focus-within:text-primary transition-colors" />
-                                        <input type="text" placeholder="PAMI, OSDE, etc." value={newContactInsurance} onChange={e => setNewContactInsurance(e.target.value)} className="w-full pl-11 pr-4 py-4 bg-white border-2 border-stone-100 rounded-2xl text-xs font-bold outline-none focus:border-primary transition-all" />
+                                        <input type="text" placeholder="Apross, OSDE, etc." value={newContactInsurance} onChange={e => setNewContactInsurance(e.target.value)} className="w-full pl-11 pr-4 py-4 bg-white border-2 border-stone-100 rounded-2xl text-xs font-bold outline-none focus:border-primary transition-all" />
                                     </div>
                                 </div>
                             </div>
