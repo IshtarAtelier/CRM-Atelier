@@ -378,20 +378,7 @@ export default function ProductForm({ onClose, onSuccess, isAdmin = false, uniqu
                 <div className="grid grid-cols-2 gap-6">
                     {isCristal ? (
                         <>
-                            {/* Stock (Si es Stock) */}
-                            {formData.origin === 'STOCK' && (
-                                <div className="space-y-2 col-span-2">
-                                    <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest ml-4">Stock Inicial (Pares)</label>
-                                    <div className="relative group">
-                                        <Layers className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-300 group-focus-within:text-primary transition-colors" />
-                                        <input type="number" min={0}
-                                            className="w-full pl-12 pr-6 py-4 bg-stone-50/50 dark:bg-stone-800/30 border border-stone-200 dark:border-stone-700 rounded-[1.5rem] font-bold text-sm outline-none focus:border-primary transition-all"
-                                            value={formData.stock}
-                                            onChange={e => setFormData({ ...formData, stock: parseInt(e.target.value) || 0 })}
-                                        />
-                                    </div>
-                                </div>
-                            )}
+
 
                             {/* Marca */}
                             <div className="space-y-2">

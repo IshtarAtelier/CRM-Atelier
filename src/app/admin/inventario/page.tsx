@@ -166,9 +166,9 @@ export default function InventarioPage() {
         || p.type?.startsWith('Cristal')
         || ['MONOFOCAL','MULTIFOCAL','BIFOCAL','OCUPACIONAL'].includes(p.type?.toUpperCase() || '');
 
-    // Helper: determinar si el producto maneja stock propio o se pide a laboratorio
+    // Helper: determinar si el producto maneja stock propio o se pide a laboratorio (Todos los cristales son de lab)
     const isRequestedToLab = (p: { category?: string; type?: string | null; origin?: string | null }) => 
-        (checkCristal(p) && p.origin !== 'STOCK') || p.category === 'Tratamiento';
+        checkCristal(p) || p.category === 'Tratamiento';
 
     // Excluir cristales y tratamientos del cálculo de stock (se compran bajo demanda)
     const nonCrystalProducts = products.filter(p => !isRequestedToLab(p));
