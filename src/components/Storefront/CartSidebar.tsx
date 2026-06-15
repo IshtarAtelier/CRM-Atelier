@@ -2,7 +2,7 @@
 
 import { useCart } from "@/store/useCart";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Trash2, ChevronRight } from "lucide-react";
+import { X, Trash2, ChevronRight, ShieldCheck, Truck, CreditCard } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Modal } from "@/components/ui/Modal";
@@ -152,9 +152,20 @@ export function CartSidebar() {
                   Checkout Seguro <ChevronRight className="w-4 h-4" />
                 </Link>
                 
-                <p className="text-center text-[9px] text-stone-400 mt-4 uppercase tracking-widest">
-                  Envío calculado en el siguiente paso
-                </p>
+                <div className="mt-4 grid grid-cols-3 gap-2 border-t border-stone-200 pt-4">
+                  <div className="flex flex-col items-center text-center">
+                    <ShieldCheck className="w-4 h-4 text-emerald-600 mb-1" />
+                    <span className="text-[8px] uppercase tracking-widest font-bold text-stone-500">Pago Seguro</span>
+                  </div>
+                  <div className="flex flex-col items-center text-center">
+                    <Truck className="w-4 h-4 text-stone-700 mb-1" />
+                    <span className="text-[8px] uppercase tracking-widest font-bold text-stone-500">Envío Gratis</span>
+                  </div>
+                  <div className="flex flex-col items-center text-center">
+                    <CreditCard className="w-4 h-4 text-stone-700 mb-1" />
+                    <span className="text-[8px] uppercase tracking-widest font-bold text-stone-500">6 Cuotas</span>
+                  </div>
+                </div>
               </div>
             )}
           </motion.div>

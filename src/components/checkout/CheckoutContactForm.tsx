@@ -44,8 +44,8 @@ export function CheckoutContactForm({ formData, handleChange }: { formData: any,
             name="dni" 
             value={formData.dni}
             required 
-            pattern="[0-9]{7,8}"
-            title="Ingresá un DNI válido (7 u 8 números sin puntos)"
+            pattern="[0-9]{7,11}"
+            title="Ingresá un DNI o CUIL válido (7 a 11 números sin puntos ni guiones)"
             placeholder="DNI / CUIL (Ej: 35123456)" 
             className="w-full border border-stone-200 p-3 text-sm focus:border-black focus:outline-none transition-colors" 
             onChange={handleChange} 

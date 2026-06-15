@@ -9,6 +9,7 @@ import { StorefrontFooter } from '@/components/Storefront/StorefrontFooter';
 import { FloatingWhatsApp } from '@/components/Storefront/FloatingWhatsApp';
 import { prisma } from '@/lib/db';
 import { resolveStorageUrl } from '@/lib/utils/storage';
+import { WHATSAPP_PHONE } from '@/lib/constants';
 
 async function getPostBySlug(slug: string) {
   try {
@@ -676,42 +677,42 @@ const posts: Record<string, Post> = {
         <p>Si tu cara es circular, sin ángulos fuertes, te beneficiarán los anteojos cuadrados o rectangulares. Estos añadirán líneas definidas y harán que tu rostro parezca más largo y delgado.</p>
         
         <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-stone-50 dark:bg-stone-850 p-6 rounded-3xl border border-stone-200 dark:border-stone-800 flex flex-col justify-between hover:shadow-lg transition-all duration-300">
+          <div className="bg-[#faf8f5] dark:bg-stone-850 p-6 rounded-3xl border border-black/5  flex flex-col justify-between hover:shadow-lg transition-all duration-300">
             <div>
-              <div className="aspect-[4/3] rounded-2xl overflow-hidden mb-4 bg-stone-100 relative shadow-sm border border-stone-150 dark:border-stone-750">
+              <div className="aspect-[4/3] rounded-2xl overflow-hidden mb-4 bg-stone-100 relative shadow-[0_2px_10px_rgba(0,0,0,0.02)] border border-stone-150 dark:border-stone-750">
                 <img src={resolveStorageUrl("/assets/products/acetato/57202LJH-c1.avif")} alt="Anteojo de diseño modelo Aurora" className="w-full h-full object-cover" />
               </div>
-              <h4 className="font-black text-lg text-stone-800 dark:text-stone-100 mb-1">Aurora</h4>
-              <p className="text-[10px] text-primary font-black uppercase tracking-widest mb-3">Material: Acetato | Color: Rosa cristal translúcido con patillas carey oscuro</p>
-              <p className="text-stone-600 dark:text-stone-400 text-xs leading-relaxed mb-4">Este modelo Aurora destaca por su elegante frontal en rosa cristal translúcido que aporta ligereza y sofisticación, combinado con patillas en un clásico carey oscuro. Su diseño de suave forma cuadrada favorece la mayoría de los rostros, añadiendo un toque chic y moderno a cualquier look.</p>
+              <h4 className="font-medium tracking-tight text-lg text-[#222]  mb-1">Aurora</h4>
+              <p className="text-[10px] text-[#111] font-medium tracking-tight uppercase tracking-widest mb-3">Material: Acetato | Color: Rosa cristal translúcido con patillas carey oscuro</p>
+              <p className="text-[#444]  text-xs leading-relaxed mb-4">Este modelo Aurora destaca por su elegante frontal en rosa cristal translúcido que aporta ligereza y sofisticación, combinado con patillas en un clásico carey oscuro. Su diseño de suave forma cuadrada favorece la mayoría de los rostros, añadiendo un toque chic y moderno a cualquier look.</p>
             </div>
-            <Link href="/producto/aurora-c1" className="inline-flex items-center text-xs font-bold text-primary hover:gap-1.5 transition-all mt-2">
+            <Link href="/producto/aurora-c1" className="inline-flex items-center text-xs font-medium tracking-tight text-[#111] hover:gap-1.5 transition-all mt-2">
               Ver en tienda <ShoppingBag className="w-4 h-4 ml-1.5 shrink-0" />
             </Link>
           </div>
-          <div className="bg-stone-50 dark:bg-stone-850 p-6 rounded-3xl border border-stone-200 dark:border-stone-800 flex flex-col justify-between hover:shadow-lg transition-all duration-300">
+          <div className="bg-[#faf8f5] dark:bg-stone-850 p-6 rounded-3xl border border-black/5  flex flex-col justify-between hover:shadow-lg transition-all duration-300">
             <div>
-              <div className="aspect-[4/3] rounded-2xl overflow-hidden mb-4 bg-stone-100 relative shadow-sm border border-stone-150 dark:border-stone-750">
+              <div className="aspect-[4/3] rounded-2xl overflow-hidden mb-4 bg-stone-100 relative shadow-[0_2px_10px_rgba(0,0,0,0.02)] border border-stone-150 dark:border-stone-750">
                 <img src={resolveStorageUrl("1780932146269_HY238014-c4-1.avif")} alt="Anteojo de diseño modelo Hera" className="w-full h-full object-cover" />
               </div>
-              <h4 className="font-black text-lg text-stone-800 dark:text-stone-100 mb-1">Hera</h4>
-              <p className="text-[10px] text-primary font-black uppercase tracking-widest mb-3">Material: Metal | Color: Marrón oscuro con varillas plateadas y terminales marrones</p>
-              <p className="text-stone-600 dark:text-stone-400 text-xs leading-relaxed mb-4">El modelo Hera fusiona una estética moderna y sofisticada con un diseño cuadrado suavizado que incorpora un sutil levantamiento en los ángulos exteriores. Este estilo favorece especialmente a rostros redondos u ovalados, aportando definición y un toque chic.</p>
+              <h4 className="font-medium tracking-tight text-lg text-[#222]  mb-1">Hera</h4>
+              <p className="text-[10px] text-[#111] font-medium tracking-tight uppercase tracking-widest mb-3">Material: Metal | Color: Marrón oscuro con varillas plateadas y terminales marrones</p>
+              <p className="text-[#444]  text-xs leading-relaxed mb-4">El modelo Hera fusiona una estética moderna y sofisticada con un diseño cuadrado suavizado que incorpora un sutil levantamiento en los ángulos exteriores. Este estilo favorece especialmente a rostros redondos u ovalados, aportando definición y un toque chic.</p>
             </div>
-            <Link href="/producto/atelier-hera-dwcn" className="inline-flex items-center text-xs font-bold text-primary hover:gap-1.5 transition-all mt-2">
+            <Link href="/producto/atelier-hera-dwcn" className="inline-flex items-center text-xs font-medium tracking-tight text-[#111] hover:gap-1.5 transition-all mt-2">
               Ver en tienda <ShoppingBag className="w-4 h-4 ml-1.5 shrink-0" />
             </Link>
           </div>
-          <div className="bg-stone-50 dark:bg-stone-850 p-6 rounded-3xl border border-stone-200 dark:border-stone-800 flex flex-col justify-between hover:shadow-lg transition-all duration-300">
+          <div className="bg-[#faf8f5] dark:bg-stone-850 p-6 rounded-3xl border border-black/5  flex flex-col justify-between hover:shadow-lg transition-all duration-300">
             <div>
-              <div className="aspect-[4/3] rounded-2xl overflow-hidden mb-4 bg-stone-100 relative shadow-sm border border-stone-150 dark:border-stone-750">
+              <div className="aspect-[4/3] rounded-2xl overflow-hidden mb-4 bg-stone-100 relative shadow-[0_2px_10px_rgba(0,0,0,0.02)] border border-stone-150 dark:border-stone-750">
                 <img src={resolveStorageUrl("1780932170075_TL5217-c2.avif")} alt="Anteojo de diseño modelo Leda" className="w-full h-full object-cover" />
               </div>
-              <h4 className="font-black text-lg text-stone-800 dark:text-stone-100 mb-1">Leda</h4>
-              <p className="text-[10px] text-primary font-black uppercase tracking-widest mb-3">Material: Combinado | Color: Dorado pálido con detalles superiores y patillas en marrón mate</p>
-              <p className="text-stone-600 dark:text-stone-400 text-xs leading-relaxed mb-4">Este modelo Leda fusiona elegancia minimalista con un toque moderno, destacando por su fina montura metálica y una barra superior en contraste. Su silueta cuadrada y ligeramente oversized es perfecta para aportar estructura y sofisticación a rostros redondos u ovalados.</p>
+              <h4 className="font-medium tracking-tight text-lg text-[#222]  mb-1">Leda</h4>
+              <p className="text-[10px] text-[#111] font-medium tracking-tight uppercase tracking-widest mb-3">Material: Combinado | Color: Dorado pálido con detalles superiores y patillas en marrón mate</p>
+              <p className="text-[#444]  text-xs leading-relaxed mb-4">Este modelo Leda fusiona elegancia minimalista con un toque moderno, destacando por su fina montura metálica y una barra superior en contraste. Su silueta cuadrada y ligeramente oversized es perfecta para aportar estructura y sofisticación a rostros redondos u ovalados.</p>
             </div>
-            <Link href="/producto/atelier-leda-1yn2" className="inline-flex items-center text-xs font-bold text-primary hover:gap-1.5 transition-all mt-2">
+            <Link href="/producto/atelier-leda-1yn2" className="inline-flex items-center text-xs font-medium tracking-tight text-[#111] hover:gap-1.5 transition-all mt-2">
               Ver en tienda <ShoppingBag className="w-4 h-4 ml-1.5 shrink-0" />
             </Link>
           </div>
@@ -721,42 +722,42 @@ const posts: Record<string, Post> = {
         <p>Las mandíbulas fuertes y frentes anchas se suavizan con anteojos redondos u ovalados. Los marcos delgados y curvos son tu mejor opción.</p>
         
         <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-stone-50 dark:bg-stone-850 p-6 rounded-3xl border border-stone-200 dark:border-stone-800 flex flex-col justify-between hover:shadow-lg transition-all duration-300">
+          <div className="bg-[#faf8f5] dark:bg-stone-850 p-6 rounded-3xl border border-black/5  flex flex-col justify-between hover:shadow-lg transition-all duration-300">
             <div>
-              <div className="aspect-[4/3] rounded-2xl overflow-hidden mb-4 bg-stone-100 relative shadow-sm border border-stone-150 dark:border-stone-750">
+              <div className="aspect-[4/3] rounded-2xl overflow-hidden mb-4 bg-stone-100 relative shadow-[0_2px_10px_rgba(0,0,0,0.02)] border border-stone-150 dark:border-stone-750">
                 <img src={resolveStorageUrl("1780932122264_GS7015-C3.avif")} alt="Anteojo de diseño modelo Iris" className="w-full h-full object-cover" />
               </div>
-              <h4 className="font-black text-lg text-stone-800 dark:text-stone-100 mb-1">Iris</h4>
-              <p className="text-[10px] text-primary font-black uppercase tracking-widest mb-3">Material: Metal | Color: Plateado con terminales negros</p>
-              <p className="text-stone-600 dark:text-stone-400 text-xs leading-relaxed mb-4">El modelo Iris se distingue por su diseño minimalista y elegante en metal plateado, que aporta un toque de sofisticación discreta. Su forma ovalada es ideal para suavizar los rasgos y complementar una amplia variedad de tipos de rostro.</p>
+              <h4 className="font-medium tracking-tight text-lg text-[#222]  mb-1">Iris</h4>
+              <p className="text-[10px] text-[#111] font-medium tracking-tight uppercase tracking-widest mb-3">Material: Metal | Color: Plateado con terminales negros</p>
+              <p className="text-[#444]  text-xs leading-relaxed mb-4">El modelo Iris se distingue por su diseño minimalista y elegante en metal plateado, que aporta un toque de sofisticación discreta. Su forma ovalada es ideal para suavizar los rasgos y complementar una amplia variedad de tipos de rostro.</p>
             </div>
-            <Link href="/producto/atelier-iris-8u55" className="inline-flex items-center text-xs font-bold text-primary hover:gap-1.5 transition-all mt-2">
+            <Link href="/producto/atelier-iris-8u55" className="inline-flex items-center text-xs font-medium tracking-tight text-[#111] hover:gap-1.5 transition-all mt-2">
               Ver en tienda <ShoppingBag className="w-4 h-4 ml-1.5 shrink-0" />
             </Link>
           </div>
-          <div className="bg-stone-50 dark:bg-stone-850 p-6 rounded-3xl border border-stone-200 dark:border-stone-800 flex flex-col justify-between hover:shadow-lg transition-all duration-300">
+          <div className="bg-[#faf8f5] dark:bg-stone-850 p-6 rounded-3xl border border-black/5  flex flex-col justify-between hover:shadow-lg transition-all duration-300">
             <div>
-              <div className="aspect-[4/3] rounded-2xl overflow-hidden mb-4 bg-stone-100 relative shadow-sm border border-stone-150 dark:border-stone-750">
+              <div className="aspect-[4/3] rounded-2xl overflow-hidden mb-4 bg-stone-100 relative shadow-[0_2px_10px_rgba(0,0,0,0.02)] border border-stone-150 dark:border-stone-750">
                 <img src={resolveStorageUrl("/assets/products/acetato/BC3063-c1.avif")} alt="Anteojo de diseño modelo Julieta" className="w-full h-full object-cover" />
               </div>
-              <h4 className="font-black text-lg text-stone-800 dark:text-stone-100 mb-1">Julieta</h4>
-              <p className="text-[10px] text-primary font-black uppercase tracking-widest mb-3">Material: Acetato | Color: Negro pulido clásico</p>
-              <p className="text-stone-600 dark:text-stone-400 text-xs leading-relaxed mb-4">El modelo 'Julieta' redefine la elegancia cotidiana con su silueta redondeada y sofisticado acabado en acetato negro. Los sutiles remaches plateados en los frontales aportan un toque distintivo, haciéndolo ideal para suavizar rasgos en rostros cuadrados u ovalados, o complementar armoniosamente un rostro en forma de corazón.</p>
+              <h4 className="font-medium tracking-tight text-lg text-[#222]  mb-1">Julieta</h4>
+              <p className="text-[10px] text-[#111] font-medium tracking-tight uppercase tracking-widest mb-3">Material: Acetato | Color: Negro pulido clásico</p>
+              <p className="text-[#444]  text-xs leading-relaxed mb-4">El modelo 'Julieta' redefine la elegancia cotidiana con su silueta redondeada y sofisticado acabado en acetato negro. Los sutiles remaches plateados en los frontales aportan un toque distintivo, haciéndolo ideal para suavizar rasgos en rostros cuadrados u ovalados, o complementar armoniosamente un rostro en forma de corazón.</p>
             </div>
-            <Link href="/producto/julieta-c1" className="inline-flex items-center text-xs font-bold text-primary hover:gap-1.5 transition-all mt-2">
+            <Link href="/producto/julieta-c1" className="inline-flex items-center text-xs font-medium tracking-tight text-[#111] hover:gap-1.5 transition-all mt-2">
               Ver en tienda <ShoppingBag className="w-4 h-4 ml-1.5 shrink-0" />
             </Link>
           </div>
-          <div className="bg-stone-50 dark:bg-stone-850 p-6 rounded-3xl border border-stone-200 dark:border-stone-800 flex flex-col justify-between hover:shadow-lg transition-all duration-300">
+          <div className="bg-[#faf8f5] dark:bg-stone-850 p-6 rounded-3xl border border-black/5  flex flex-col justify-between hover:shadow-lg transition-all duration-300">
             <div>
-              <div className="aspect-[4/3] rounded-2xl overflow-hidden mb-4 bg-stone-100 relative shadow-sm border border-stone-150 dark:border-stone-750">
+              <div className="aspect-[4/3] rounded-2xl overflow-hidden mb-4 bg-stone-100 relative shadow-[0_2px_10px_rgba(0,0,0,0.02)] border border-stone-150 dark:border-stone-750">
                 <img src={resolveStorageUrl("1780932129076_HK011-c3.avif")} alt="Anteojo de diseño modelo Pandora" className="w-full h-full object-cover" />
               </div>
-              <h4 className="font-black text-lg text-stone-800 dark:text-stone-100 mb-1">Pandora</h4>
-              <p className="text-[10px] text-primary font-black uppercase tracking-widest mb-3">Material: Metal | Color: Plateado satinado con terminales negras</p>
-              <p className="text-stone-600 dark:text-stone-400 text-xs leading-relaxed mb-4">Este modelo Pandora destaca por su diseño de metal fino en tono plateado, combinando una forma ovalada clásica con sutiles toques angulares en la parte superior para un estilo moderno y elegante. Favorece a la mayoría de los rostros, aportando un toque de sofisticación discreta y contemporánea.</p>
+              <h4 className="font-medium tracking-tight text-lg text-[#222]  mb-1">Pandora</h4>
+              <p className="text-[10px] text-[#111] font-medium tracking-tight uppercase tracking-widest mb-3">Material: Metal | Color: Plateado satinado con terminales negras</p>
+              <p className="text-[#444]  text-xs leading-relaxed mb-4">Este modelo Pandora destaca por su diseño de metal fino en tono plateado, combinando una forma ovalada clásica con sutiles toques angulares en la parte superior para un estilo moderno y elegante. Favorece a la mayoría de los rostros, aportando un toque de sofisticación discreta y contemporánea.</p>
             </div>
-            <Link href="/producto/atelier-pandora-my5d" className="inline-flex items-center text-xs font-bold text-primary hover:gap-1.5 transition-all mt-2">
+            <Link href="/producto/atelier-pandora-my5d" className="inline-flex items-center text-xs font-medium tracking-tight text-[#111] hover:gap-1.5 transition-all mt-2">
               Ver en tienda <ShoppingBag className="w-4 h-4 ml-1.5 shrink-0" />
             </Link>
           </div>
@@ -766,42 +767,42 @@ const posts: Record<string, Post> = {
         <p>¡Tienen suerte! Casi cualquier forma les queda bien. Animate a probar armazones grandes, de estilo aviador o marcos geométricos modernos.</p>
         
         <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-stone-50 dark:bg-stone-850 p-6 rounded-3xl border border-stone-200 dark:border-stone-800 flex flex-col justify-between hover:shadow-lg transition-all duration-300">
+          <div className="bg-[#faf8f5] dark:bg-stone-850 p-6 rounded-3xl border border-black/5  flex flex-col justify-between hover:shadow-lg transition-all duration-300">
             <div>
-              <div className="aspect-[4/3] rounded-2xl overflow-hidden mb-4 bg-stone-100 relative shadow-sm border border-stone-150 dark:border-stone-750">
+              <div className="aspect-[4/3] rounded-2xl overflow-hidden mb-4 bg-stone-100 relative shadow-[0_2px_10px_rgba(0,0,0,0.02)] border border-stone-150 dark:border-stone-750">
                 <img src={resolveStorageUrl("1780932162871_TL3932-c3.avif")} alt="Anteojo de diseño modelo Diana" className="w-full h-full object-cover" />
               </div>
-              <h4 className="font-black text-lg text-stone-800 dark:text-stone-100 mb-1">Diana</h4>
-              <p className="text-[10px] text-primary font-black uppercase tracking-widest mb-3">Material: Combinado | Color: Dorado satinado con patillas blancas</p>
-              <p className="text-stone-600 dark:text-stone-400 text-xs leading-relaxed mb-4">El modelo Diana irradia elegancia con su delicada montura Cat-Eye en un sofisticado dorado satinado. Las patillas blancas, adornadas con sutiles detalles incrustados, añaden un contraste chic que favorece especialmente a rostros ovalados y redondos, aportando un toque de glamour distintivo.</p>
+              <h4 className="font-medium tracking-tight text-lg text-[#222]  mb-1">Diana</h4>
+              <p className="text-[10px] text-[#111] font-medium tracking-tight uppercase tracking-widest mb-3">Material: Combinado | Color: Dorado satinado con patillas blancas</p>
+              <p className="text-[#444]  text-xs leading-relaxed mb-4">El modelo Diana irradia elegancia con su delicada montura Cat-Eye en un sofisticado dorado satinado. Las patillas blancas, adornadas con sutiles detalles incrustados, añaden un contraste chic que favorece especialmente a rostros ovalados y redondos, aportando un toque de glamour distintivo.</p>
             </div>
-            <Link href="/producto/atelier-diana-k0k7" className="inline-flex items-center text-xs font-bold text-primary hover:gap-1.5 transition-all mt-2">
+            <Link href="/producto/atelier-diana-k0k7" className="inline-flex items-center text-xs font-medium tracking-tight text-[#111] hover:gap-1.5 transition-all mt-2">
               Ver en tienda <ShoppingBag className="w-4 h-4 ml-1.5 shrink-0" />
             </Link>
           </div>
-          <div className="bg-stone-50 dark:bg-stone-850 p-6 rounded-3xl border border-stone-200 dark:border-stone-800 flex flex-col justify-between hover:shadow-lg transition-all duration-300">
+          <div className="bg-[#faf8f5] dark:bg-stone-850 p-6 rounded-3xl border border-black/5  flex flex-col justify-between hover:shadow-lg transition-all duration-300">
             <div>
-              <div className="aspect-[4/3] rounded-2xl overflow-hidden mb-4 bg-stone-100 relative shadow-sm border border-stone-150 dark:border-stone-750">
+              <div className="aspect-[4/3] rounded-2xl overflow-hidden mb-4 bg-stone-100 relative shadow-[0_2px_10px_rgba(0,0,0,0.02)] border border-stone-150 dark:border-stone-750">
                 <img src={resolveStorageUrl("1780932106867__91501-c6.avif")} alt="Anteojo de diseño modelo Athena" className="w-full h-full object-cover" />
               </div>
-              <h4 className="font-black text-lg text-stone-800 dark:text-stone-100 mb-1">Athena</h4>
-              <p className="text-[10px] text-primary font-black uppercase tracking-widest mb-3">Material: Metal | Color: Dorado satinado con borde rosa palo</p>
-              <p className="text-stone-600 dark:text-stone-400 text-xs leading-relaxed mb-4">Estas monturas Athena, de diseño Cat-Eye sutilmente anguloso, combinan la sofisticación del dorado satinado con un delicado borde interior rosa palo. Su forma audaz y ligera es ideal para estilizar rostros redondos u ovalados, aportando un toque de elegancia contemporánea.</p>
+              <h4 className="font-medium tracking-tight text-lg text-[#222]  mb-1">Athena</h4>
+              <p className="text-[10px] text-[#111] font-medium tracking-tight uppercase tracking-widest mb-3">Material: Metal | Color: Dorado satinado con borde rosa palo</p>
+              <p className="text-[#444]  text-xs leading-relaxed mb-4">Estas monturas Athena, de diseño Cat-Eye sutilmente anguloso, combinan la sofisticación del dorado satinado con un delicado borde interior rosa palo. Su forma audaz y ligera es ideal para estilizar rostros redondos u ovalados, aportando un toque de elegancia contemporánea.</p>
             </div>
-            <Link href="/producto/atelier-athena-906p" className="inline-flex items-center text-xs font-bold text-primary hover:gap-1.5 transition-all mt-2">
+            <Link href="/producto/atelier-athena-906p" className="inline-flex items-center text-xs font-medium tracking-tight text-[#111] hover:gap-1.5 transition-all mt-2">
               Ver en tienda <ShoppingBag className="w-4 h-4 ml-1.5 shrink-0" />
             </Link>
           </div>
-          <div className="bg-stone-50 dark:bg-stone-850 p-6 rounded-3xl border border-stone-200 dark:border-stone-800 flex flex-col justify-between hover:shadow-lg transition-all duration-300">
+          <div className="bg-[#faf8f5] dark:bg-stone-850 p-6 rounded-3xl border border-black/5  flex flex-col justify-between hover:shadow-lg transition-all duration-300">
             <div>
-              <div className="aspect-[4/3] rounded-2xl overflow-hidden mb-4 bg-stone-100 relative shadow-sm border border-stone-150 dark:border-stone-750">
+              <div className="aspect-[4/3] rounded-2xl overflow-hidden mb-4 bg-stone-100 relative shadow-[0_2px_10px_rgba(0,0,0,0.02)] border border-stone-150 dark:border-stone-750">
                 <img src={resolveStorageUrl("1780932166781_TL3932-c4.avif")} alt="Anteojo de diseño modelo Ceres" className="w-full h-full object-cover" />
               </div>
-              <h4 className="font-black text-lg text-stone-800 dark:text-stone-100 mb-1">Ceres</h4>
-              <p className="text-[10px] text-primary font-black uppercase tracking-widest mb-3">Material: Metal | Color: Gris plomo satinado con detalles metálicos</p>
-              <p className="text-stone-600 dark:text-stone-400 text-xs leading-relaxed mb-4">El modelo Ceres ofrece una reinterpretación moderna y chic del clásico Cat-Eye, con un sofisticado acabado gris plomo satinado que aporta elegancia. Sus patillas, adornadas con un delicado patrón geométrico y un sutil emblema, realzan la mirada y estilizan rostros de forma redonda u ovalada.</p>
+              <h4 className="font-medium tracking-tight text-lg text-[#222]  mb-1">Ceres</h4>
+              <p className="text-[10px] text-[#111] font-medium tracking-tight uppercase tracking-widest mb-3">Material: Metal | Color: Gris plomo satinado con detalles metálicos</p>
+              <p className="text-[#444]  text-xs leading-relaxed mb-4">El modelo Ceres ofrece una reinterpretación moderna y chic del clásico Cat-Eye, con un sofisticado acabado gris plomo satinado que aporta elegancia. Sus patillas, adornadas con un delicado patrón geométrico y un sutil emblema, realzan la mirada y estilizan rostros de forma redonda u ovalada.</p>
             </div>
-            <Link href="/producto/atelier-ceres-rpg5" className="inline-flex items-center text-xs font-bold text-primary hover:gap-1.5 transition-all mt-2">
+            <Link href="/producto/atelier-ceres-rpg5" className="inline-flex items-center text-xs font-medium tracking-tight text-[#111] hover:gap-1.5 transition-all mt-2">
               Ver en tienda <ShoppingBag className="w-4 h-4 ml-1.5 shrink-0" />
             </Link>
           </div>
@@ -1236,14 +1237,14 @@ const posts: Record<string, Post> = {
       <>
         <p className="lead">Ir a la óptica siempre fue un trámite clínico, aburrido y rodeado de mostradores fríos. Cuando fundamos <strong>Atelier Óptica</strong> en el Cerro de las Rosas, decidimos romper con esa tradición. Queríamos crear un espacio donde elegir tus anteojos se sienta como visitar una galería de arte o un café boutique.</p>
 
-        <div className="my-10 rounded-3xl overflow-hidden shadow-xl border border-stone-100 dark:border-stone-800">
+        <div className="my-10 rounded-3xl overflow-hidden shadow-xl border border-black/5 ">
           <img src="/images/blog/fachada-ladrillo.webp" alt="Fachada de ladrillo de Atelier Óptica en Córdoba con farol y plantas" className="w-full h-auto object-cover" />
         </div>
 
         <h2>Un espacio pensado para inspirar</h2>
         <p>Desde el momento en que cruzás nuestra fachada de ladrillo visto, rodeada de plantas y luz cálida, te das cuenta de que no estás en una óptica tradicional. En nuestro salón, los típicos exhibidores blancos fueron reemplazados por cálidas estanterías de madera, luces indirectas y detalles de interiorismo que invitan a relajarse.</p>
 
-        <div className="my-10 rounded-3xl overflow-hidden shadow-xl border border-stone-100 dark:border-stone-800">
+        <div className="my-10 rounded-3xl overflow-hidden shadow-xl border border-black/5 ">
           <img src="/images/blog/mostrador-marmol.webp" alt="Mostrador de mármol y estanterías iluminadas con anteojos" className="w-full h-auto object-cover" />
         </div>
 
@@ -1253,10 +1254,10 @@ const posts: Record<string, Post> = {
         <p>En las paredes de Atelier Óptica, los armazones conviven con intervenciones artísticas que reflejan nuestra filosofía. Cuadros de la Mona Lisa o de <em>El Nacimiento de Venus</em> de Botticelli, luciendo irreverentes anteojos de sol, te recuerdan que la visión no tiene por qué ser aburrida ni rígida.</p>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 my-10">
-          <div className="rounded-3xl overflow-hidden shadow-lg border border-stone-100 dark:border-stone-800">
+          <div className="rounded-3xl overflow-hidden shadow-lg border border-black/5 ">
             <img src="/images/blog/arte-monalisa.webp" alt="Cuadro de la Mona Lisa con lentes de sol y armazones Mistral" className="w-full h-full object-cover" />
           </div>
-          <div className="rounded-3xl overflow-hidden shadow-lg border border-stone-100 dark:border-stone-800">
+          <div className="rounded-3xl overflow-hidden shadow-lg border border-black/5 ">
             <img src="/images/blog/arte-venus.webp" alt="Cuadro del Nacimiento de Venus con lentes rojos y armazones Hanover" className="w-full h-full object-cover" />
           </div>
         </div>
@@ -1281,21 +1282,21 @@ const posts: Record<string, Post> = {
       <>
         <p className="lead">Cuando decimos que somos una óptica boutique, lo decimos en serio. En Atelier Óptica no vas a encontrar paredes interminables de armazones genéricos. Nuestro equipo realiza una <strong>curaduría de diseño</strong>, seleccionando cuidadosamente cada marco que ingresa a nuestro local.</p>
 
-        <div className="my-10 rounded-3xl overflow-hidden shadow-xl border border-stone-100 dark:border-stone-800">
+        <div className="my-10 rounded-3xl overflow-hidden shadow-xl border border-black/5 ">
           <img src="/images/blog/local-varilux.webp" alt="Fachada exterior de Atelier Óptica mostrando el neón y el gran banner de Varilux" className="w-full h-auto object-cover" />
         </div>
 
         <h2>Más que un anteojo, una declaración de estilo</h2>
         <p>Entendemos que tus anteojos son lo primero que la gente mira cuando te habla. Por eso, trabajamos con marcas que entienden de moda tanto como nosotros. Desde los clásicos metálicos geométricos (como los de la línea <strong>Hanover</strong> o <strong>Mistral</strong>) hasta los atrevidos acetatos de colores vibrantes y formas envolventes de <strong>Vulk</strong> o <strong>Rusty</strong>.</p>
 
-        <div className="my-10 rounded-3xl overflow-hidden shadow-xl border border-stone-100 dark:border-stone-800">
+        <div className="my-10 rounded-3xl overflow-hidden shadow-xl border border-black/5 ">
           <img src="/images/blog/anteojos-rosa-pastel.webp" alt="Detalle de armazones color rosa pastel sobre estantería de madera clara" className="w-full h-auto object-cover" />
         </div>
 
         <h2>Color y Tecnología: La revolución Smart Lens</h2>
         <p>Pero el armazón es solo la mitad de la estética. Los cristales también juegan un papel visual fundamental. En nuestro mostrador vas a encontrar muestrarios reales de colores y tonalidades de cristales, como la línea <strong>Smart Lens</strong> y tecnología de <strong>Varilux</strong>. ¿Querés unos lentes de descanso con un tinte ámbar o lila súper sutil? Nosotros te lo armamos a medida.</p>
 
-        <div className="my-10 rounded-3xl overflow-hidden shadow-xl border border-stone-100 dark:border-stone-800">
+        <div className="my-10 rounded-3xl overflow-hidden shadow-xl border border-black/5 ">
           <img src="/images/blog/muestrario-smart-lens.webp" alt="Muestrario de cristales de colores Smart Lens sobre el mostrador de mármol" className="w-full h-auto object-cover" />
         </div>
 
@@ -1345,39 +1346,39 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
   const otherPosts = await getRelatedPosts(post.slug);
 
   return (
-    <div className="min-h-screen bg-stone-50 dark:bg-stone-950 pb-20">
+    <div className="min-h-screen bg-[#faf8f5] dark:bg-stone-950 pb-20">
       <StorefrontNavbar theme="light" />
 
-      <div className="bg-white dark:bg-stone-900 border-b border-stone-200 dark:border-stone-800 pt-16">
+      <div className="bg-[#faf8f5] border-b border-black/5  pt-16">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-12">
-          <Link href="/blog" className="inline-flex items-center text-sm font-bold text-stone-500 hover:text-primary transition-colors mb-8 group">
+          <Link href="/blog" className="inline-flex items-center text-sm font-medium tracking-tight text-[#555] hover:text-[#111] transition-colors mb-8 group">
             <ArrowLeft className="w-4 h-4 mr-2 group-hover:-translate-x-1 transition-transform" />
             Volver al blog
           </Link>
           
           <div className="flex items-center gap-4 mb-6">
-            <span className="flex items-center text-xs font-bold uppercase tracking-widest text-primary bg-primary/10 px-3 py-1 rounded-full">
+            <span className="flex items-center text-xs font-bold uppercase tracking-widest text-[#111] bg-[#111]/10 px-3 py-1 rounded-full">
               <Tag className="w-3 h-3 mr-1" /> {post.category}
             </span>
-            <span className="flex items-center text-xs text-stone-400 font-medium">
+            <span className="flex items-center text-xs text-[#777] font-medium">
               <Calendar className="w-3 h-3 mr-1" />
               {new Date(post.date).toLocaleDateString('es-AR', { day: 'numeric', month: 'long', year: 'numeric' })}
             </span>
           </div>
           
-          <h1 className="text-3xl lg:text-5xl font-black text-stone-900 dark:text-white tracking-tight mb-6 leading-tight">
+          <h1 className="text-3xl lg:text-5xl font-medium tracking-tight text-[#111]  tracking-tight mb-6 leading-tight">
             {post.title}
           </h1>
         </div>
       </div>
 
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="rounded-3xl overflow-hidden mb-12 shadow-lg border border-stone-100 dark:border-stone-800 h-64 md:h-96 w-full relative">
+        <div className="rounded-3xl overflow-hidden mb-12 shadow-lg border border-black/5  h-64 md:h-96 w-full relative">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={post.imageUrl || undefined} alt={post.title} className="w-full h-full object-cover" />
         </div>
 
-        <article className="prose prose-stone dark:prose-invert prose-lg max-w-none prose-headings:font-black prose-a:text-primary hover:prose-a:text-primary/80 prose-p:leading-relaxed prose-li:my-1">
+        <article className="prose prose-stone dark:prose-invert prose-lg max-w-none prose-headings:font-medium tracking-tight prose-a:text-[#111] hover:prose-a:text-[#111]/80 prose-p:leading-relaxed prose-li:my-1">
           {post.isDb ? (
             <div dangerouslySetInnerHTML={{ __html: post.content as string }} />
           ) : (
@@ -1386,10 +1387,10 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
         </article>
         
         {/* CTA WhatsApp */}
-        <div className="mt-16 pt-8 border-t border-stone-200 dark:border-stone-800 text-center">
-          <h3 className="text-2xl font-black mb-4 dark:text-white">¿Necesitás asesoramiento personalizado?</h3>
-          <p className="text-stone-600 dark:text-stone-400 mb-8">Te esperamos en Atelier Óptica para encontrar tus anteojos ideales.</p>
-          <a href="https://wa.me/5493518685644" target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center px-8 py-4 text-sm font-black text-white bg-primary hover:bg-primary/90 rounded-full transition-colors">
+        <div className="mt-16 pt-8 border-t border-black/5  text-center">
+          <h3 className="text-2xl font-medium tracking-tight mb-4 ">¿Necesitás asesoramiento personalizado?</h3>
+          <p className="text-[#444]  mb-8">Te esperamos en Atelier Óptica para encontrar tus anteojos ideales.</p>
+          <a href="https://wa.me/5493518685644" target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center px-8 py-4 text-sm font-medium tracking-tight text-white bg-[#111] hover:bg-[#111]/90 rounded-full transition-colors">
             Contactanos por WhatsApp
           </a>
         </div>
@@ -1398,25 +1399,25 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
         <div className="mt-20">
           <div className="flex items-center justify-between mb-8">
             <div>
-              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-stone-400 mb-1">Seguir leyendo</p>
-              <h2 className="text-2xl font-black text-stone-900 dark:text-white">Más artículos</h2>
+              <p className="text-[10px] font-medium tracking-tight uppercase tracking-[0.2em] text-[#777] mb-1">Seguir leyendo</p>
+              <h2 className="text-2xl font-medium tracking-tight text-[#111] ">Más artículos</h2>
             </div>
-            <Link href="/blog" className="flex items-center gap-2 text-sm font-bold text-primary hover:gap-3 transition-all">
+            <Link href="/blog" className="flex items-center gap-2 text-sm font-medium tracking-tight text-[#111] hover:gap-3 transition-all">
               Ver todos <ArrowRight className="w-4 h-4" />
             </Link>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {otherPosts.map(related => (
-              <Link key={related.slug} href={`/blog/${related.slug}`} className="group bg-white dark:bg-stone-900 rounded-2xl border border-stone-200 dark:border-stone-800 overflow-hidden hover:shadow-lg hover:border-primary/30 transition-all duration-300">
+              <Link key={related.slug} href={`/blog/${related.slug}`} className="group bg-white  rounded-2xl border border-black/5  overflow-hidden hover:shadow-lg hover:border-black/30 transition-all duration-300">
                 <div className="h-40 overflow-hidden bg-stone-100">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={related.imageUrl || undefined} alt={related.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
                 </div>
                 <div className="p-5">
-                  <span className="text-[9px] font-black uppercase tracking-widest text-primary">{related.category}</span>
-                  <h3 className="mt-1 text-sm font-black text-stone-800 dark:text-stone-100 line-clamp-2 group-hover:text-primary transition-colors">{related.title}</h3>
-                  <span className="mt-3 inline-flex items-center text-xs font-bold text-primary gap-1 group-hover:gap-2 transition-all">Leer <ArrowRight className="w-3 h-3" /></span>
+                  <span className="text-[9px] font-medium tracking-tight uppercase tracking-widest text-[#111]">{related.category}</span>
+                  <h3 className="mt-1 text-sm font-medium tracking-tight text-[#222]  line-clamp-2 group-hover:text-[#111] transition-colors">{related.title}</h3>
+                  <span className="mt-3 inline-flex items-center text-xs font-medium tracking-tight text-[#111] gap-1 group-hover:gap-2 transition-all">Leer <ArrowRight className="w-3 h-3" /></span>
                 </div>
               </Link>
             ))}
@@ -1426,15 +1427,15 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
         {/* ═══ BARRA EXPLORAR TIENDA ═══ */}
         <div className="mt-12 bg-stone-900 dark:bg-stone-800 rounded-3xl p-8 flex flex-col sm:flex-row items-center justify-between gap-6">
           <div>
-            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-stone-400 mb-1">Atelier Óptica</p>
-            <h3 className="text-xl font-black text-white">Explorá nuestra colección de armazones</h3>
-            <p className="text-stone-400 text-sm mt-1">Diseños exclusivos con tu graduación incluida</p>
+            <p className="text-[10px] font-medium tracking-tight uppercase tracking-[0.2em] text-[#777] mb-1">Atelier Óptica</p>
+            <h3 className="text-xl font-medium tracking-tight text-white">Explorá nuestra colección de armazones</h3>
+            <p className="text-[#777] text-sm mt-1">Diseños exclusivos con tu graduación incluida</p>
           </div>
           <div className="flex gap-3 shrink-0">
-            <Link href="/" className="inline-flex items-center gap-2 px-6 py-3 bg-white text-stone-900 rounded-full text-sm font-black hover:bg-stone-100 transition-colors">
+            <Link href="/" className="inline-flex items-center gap-2 px-6 py-3 bg-white text-[#111] rounded-full text-sm font-medium tracking-tight hover:bg-stone-100 transition-colors">
               <ShoppingBag className="w-4 h-4" /> Ver tienda
             </Link>
-            <Link href="/blog" className="inline-flex items-center gap-2 px-6 py-3 border border-stone-600 text-white rounded-full text-sm font-bold hover:border-white transition-colors">
+            <Link href="/blog" className="inline-flex items-center gap-2 px-6 py-3 border border-stone-600 text-white rounded-full text-sm font-medium tracking-tight hover:border-white transition-colors">
               Más artículos
             </Link>
           </div>

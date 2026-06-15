@@ -1,0 +1,406 @@
+{
+  "https://grupooptico.dyndns.info/smartlab/laboratory/new": [
+    {
+      "tag": "input",
+      "name": "",
+      "id": "client-autocomplete",
+      "type": "text",
+      "labelText": "​",
+      "options": []
+    },
+    {
+      "tag": "input",
+      "name": "",
+      "id": "client-autocomplete",
+      "type": "text",
+      "labelText": "​",
+      "options": []
+    },
+    {
+      "tag": "input",
+      "name": "",
+      "id": "optical-code-text",
+      "type": "text",
+      "labelText": "​",
+      "options": []
+    },
+    {
+      "tag": "input",
+      "name": "",
+      "id": "right-eye-far-spherical-autocomplete",
+      "type": "text",
+      "labelText": "​",
+      "options": []
+    },
+    {
+      "tag": "input",
+      "name": "",
+      "id": "left-eye-far-spherical-autocomplete",
+      "type": "text",
+      "labelText": "​",
+      "options": []
+    },
+    {
+      "tag": "input",
+      "name": "",
+      "id": "right-eye-far-cylindrical-autocomplete",
+      "type": "text",
+      "labelText": "​",
+      "options": []
+    },
+    {
+      "tag": "input",
+      "name": "",
+      "id": "left-eye-far-cylindrical-autocomplete",
+      "type": "text",
+      "labelText": "​",
+      "options": []
+    },
+    {
+      "tag": "input",
+      "name": "",
+      "id": "right-eye-far-axis-autocomplete",
+      "type": "text",
+      "labelText": "​",
+      "options": []
+    },
+    {
+      "tag": "input",
+      "name": "",
+      "id": "left-eye-far-axis-autocomplete",
+      "type": "text",
+      "labelText": "​",
+      "options": []
+    },
+    {
+      "tag": "input",
+      "name": "",
+      "id": "switch-is-laboratory",
+      "type": "checkbox",
+      "labelText": "Lentes Laboratorio",
+      "options": []
+    },
+    {
+      "tag": "input",
+      "name": "",
+      "id": "switch-is-stock",
+      "type": "checkbox",
+      "labelText": "Lentes Stock/Rango Ext",
+      "options": []
+    },
+    {
+      "tag": "input",
+      "name": "",
+      "id": "diameter-autocomplete",
+      "type": "text",
+      "labelText": "​",
+      "options": []
+    },
+    {
+      "tag": "input",
+      "name": "",
+      "id": "right-eye-interpupillary-distance-autocomplete",
+      "type": "text",
+      "labelText": "​",
+      "options": []
+    },
+    {
+      "tag": "input",
+      "name": "",
+      "id": "left-eye-interpupillary-distance-autocomplete",
+      "type": "text",
+      "labelText": "​",
+      "options": []
+    },
+    {
+      "tag": "input",
+      "name": "",
+      "id": "material-autocomplete",
+      "type": "text",
+      "labelText": "​",
+      "options": []
+    },
+    {
+      "tag": "input",
+      "name": "",
+      "id": "color-autocomplete",
+      "type": "text",
+      "labelText": "​",
+      "options": []
+    },
+    {
+      "tag": "input",
+      "name": "",
+      "id": "color-autocomplete",
+      "type": "text",
+      "labelText": "​",
+      "options": []
+    },
+    {
+      "tag": "input",
+      "name": "",
+      "id": "",
+      "type": "checkbox",
+      "labelText": "Cristal propio",
+      "options": []
+    },
+    {
+      "tag": "input",
+      "name": "",
+      "id": "",
+      "type": "text",
+      "labelText": "​\n​",
+      "options": []
+    },
+    {
+      "tag": "input",
+      "name": "",
+      "id": "",
+      "type": "checkbox",
+      "labelText": "Cristal propio",
+      "options": []
+    },
+    {
+      "tag": "input",
+      "name": "",
+      "id": "",
+      "type": "text",
+      "labelText": "​\n​",
+      "options": []
+    },
+    {
+      "tag": "input",
+      "name": "treatment",
+      "id": "",
+      "type": "radio",
+      "labelText": "Ninguno",
+      "options": []
+    },
+    {
+      "tag": "input",
+      "name": "",
+      "id": "",
+      "type": "checkbox",
+      "labelText": "Activar Prisma",
+      "options": []
+    },
+    {
+      "tag": "input",
+      "name": "",
+      "id": "right-eye-prism-autocomplete",
+      "type": "text",
+      "labelText": "​",
+      "options": []
+    },
+    {
+      "tag": "input",
+      "name": "",
+      "id": "left-eye-prism-autocomplete",
+      "type": "text",
+      "labelText": "​",
+      "options": []
+    },
+    {
+      "tag": "input",
+      "name": "",
+      "id": "right-eye-base-autocomplete",
+      "type": "text",
+      "labelText": "​",
+      "options": []
+    },
+    {
+      "tag": "input",
+      "name": "",
+      "id": "left-eye-base-autocomplete",
+      "type": "text",
+      "labelText": "​",
+      "options": []
+    },
+    {
+      "tag": "input",
+      "name": "",
+      "id": "right-eye-axis-select",
+      "type": "text",
+      "labelText": "​",
+      "options": []
+    },
+    {
+      "tag": "input",
+      "name": "",
+      "id": "left-eye-axis-select",
+      "type": "text",
+      "labelText": "​",
+      "options": []
+    },
+    {
+      "tag": "input",
+      "name": "",
+      "id": "",
+      "type": "text",
+      "labelText": "​\n​",
+      "options": []
+    },
+    {
+      "tag": "input",
+      "name": "",
+      "id": "",
+      "type": "text",
+      "labelText": "​\n​",
+      "options": []
+    },
+    {
+      "tag": "input",
+      "name": "",
+      "id": "",
+      "type": "checkbox",
+      "labelText": "Calibra en óptica",
+      "options": []
+    },
+    {
+      "tag": "textarea",
+      "name": "",
+      "id": "comment-textarea",
+      "type": "textarea",
+      "labelText": "​",
+      "options": []
+    },
+    {
+      "tag": "textarea",
+      "name": "",
+      "id": "",
+      "type": "textarea",
+      "labelText": "​",
+      "options": []
+    },
+    {
+      "tag": "textarea",
+      "name": "",
+      "id": "frame-and-model-textarea",
+      "type": "textarea",
+      "labelText": "​",
+      "options": []
+    },
+    {
+      "tag": "textarea",
+      "name": "",
+      "id": "",
+      "type": "textarea",
+      "labelText": "​",
+      "options": []
+    },
+    {
+      "tag": "input",
+      "name": "",
+      "id": "",
+      "type": "text",
+      "labelText": "​\n​",
+      "options": []
+    },
+    {
+      "tag": "input",
+      "name": "",
+      "id": "",
+      "type": "text",
+      "labelText": "​\n​",
+      "options": []
+    },
+    {
+      "tag": "input",
+      "name": "",
+      "id": "",
+      "type": "text",
+      "labelText": "​\n​",
+      "options": []
+    },
+    {
+      "tag": "input",
+      "name": "",
+      "id": "right-eye-pupillary-height-autocomplete",
+      "type": "text",
+      "labelText": "​",
+      "options": []
+    },
+    {
+      "tag": "input",
+      "name": "",
+      "id": "left-eye-pupillary-height-autocomplete",
+      "type": "text",
+      "labelText": "​",
+      "options": []
+    }
+  ],
+  "https://grupooptico.dyndns.info/smartlab/crystal/new": [
+    {
+      "tag": "input",
+      "name": "",
+      "id": "",
+      "type": "text",
+      "labelText": "​\n​",
+      "options": []
+    },
+    {
+      "tag": "input",
+      "name": "material-select",
+      "id": "",
+      "type": "text",
+      "labelText": "​\n​",
+      "options": []
+    },
+    {
+      "tag": "input",
+      "name": "",
+      "id": "spherical-autocomplete",
+      "type": "text",
+      "labelText": "​",
+      "options": []
+    },
+    {
+      "tag": "input",
+      "name": "",
+      "id": "cylindrical-autocomplete",
+      "type": "text",
+      "labelText": "​",
+      "options": []
+    },
+    {
+      "tag": "input",
+      "name": "",
+      "id": "count-text",
+      "type": "number",
+      "labelText": "​",
+      "options": []
+    },
+    {
+      "tag": "input",
+      "name": "",
+      "id": "articles-autocomplete",
+      "type": "text",
+      "labelText": "​",
+      "options": []
+    },
+    {
+      "tag": "input",
+      "name": "",
+      "id": "code-text",
+      "type": "text",
+      "labelText": "​",
+      "options": []
+    },
+    {
+      "tag": "textarea",
+      "name": "",
+      "id": "comment-textarea",
+      "type": "textarea",
+      "labelText": "​",
+      "options": []
+    },
+    {
+      "tag": "textarea",
+      "name": "",
+      "id": "",
+      "type": "textarea",
+      "labelText": "​",
+      "options": []
+    }
+  ]
+}

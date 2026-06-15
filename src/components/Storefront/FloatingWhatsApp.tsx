@@ -12,7 +12,7 @@ export function FloatingWhatsApp({ message, productName }: { message?: string; p
   useEffect(() => {
     const timer = setTimeout(() => {
       setIsVisible(true);
-    }, 2000);
+    }, 10000);
     return () => clearTimeout(timer);
   }, []);
 
@@ -57,7 +57,7 @@ export function FloatingWhatsApp({ message, productName }: { message?: string; p
         aria-label="Contactar por WhatsApp"
       >
         {/* Anillo exterior que hace pulso */}
-        <div className="absolute inset-0 bg-green-500 rounded-full opacity-30 animate-ping group-hover:animate-none" />
+        <div className="absolute inset-0 bg-green-500 rounded-full opacity-30 animate-pulse group-hover:animate-none" />
         
         {/* Botón principal (con logo oficial SVG de WhatsApp) */}
         <div className="relative bg-gradient-to-tr from-green-600 to-green-500 text-white w-14 h-14 rounded-full flex items-center justify-center shadow-2xl hover:scale-110 hover:shadow-green-500/30 transition-all duration-300">

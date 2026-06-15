@@ -123,8 +123,8 @@ export default function PedidosPage() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     orderId: order.id,
-                    clientPhone: order.client.phone,
-                    clientName: order.client.name,
+                    clientPhone: order.client?.phone,
+                    clientName: order.client?.name,
                     status: status || order.labStatus || 'NONE',
                     orderNumber: order.id.slice(-4).toUpperCase(),
                 }),

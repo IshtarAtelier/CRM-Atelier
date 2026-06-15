@@ -1,7 +1,20 @@
 import React from "react";
 import { CreditCard, ShieldCheck } from "lucide-react";
 
-export function CheckoutPaymentOptions({ formData, handleChange, isProcessing, webSettings }: { formData: any, handleChange: any, isProcessing: boolean, webSettings?: { web_promo_cash_discount: number, web_promo_installments: string } }) {
+export function CheckoutPaymentOptions({ formData, handleChange, isProcessing, webSettings, paywayLoaded }: { formData: any, handleChange: any, isProcessing: boolean, webSettings?: { web_promo_cash_discount: number, web_promo_installments: string }, paywayLoaded?: boolean }) {
+  const handleCardNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value.replace(/\D/g, '');
+    const formatted = val.match(/.{1,4}/g)?.join(' ') || val;
+    handleChange({ target: { name: 'cardNumber', value: formatted } });
+  };
+
+  const handleCardExpChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let val = e.target.value.replace(/\D/g, '');
+    if (val.length >= 3) {
+      val = val.substring(0, 2) + '/' + val.substring(2, 4);
+    }
+    handleChange({ target: { name: 'cardExp', value: val } });
+  };
   return (
     <section>
       <h2 className="text-[11px] font-black uppercase tracking-widest border-b border-stone-200 pb-2 mb-4">3. Pago Seguro</h2>
@@ -49,11 +62,11 @@ export function CheckoutPaymentOptions({ formData, handleChange, isProcessing, w
             {formData.paymentMethod === 'PAYWAY' && (
               <div className="mt-6 flex flex-col gap-4 p-5 border border-stone-100 bg-white" onClick={(e) => e.preventDefault()}>
                 <div>
-                  <input type="text" name="cardNumber" value={formData.cardNumber} onChange={handleChange} placeholder="Número de Tarjeta (Ej: 4500 1234 5678 9000)" maxLength={19} className="w-full border border-stone-200 p-3 text-sm focus:border-black focus:outline-none transition-colors font-mono tracking-widest" />
+                  <input type="text" name="cardNumber" value={formData.cardNumber} onChange={handleCardNumberChange} placeholder="Número de Tarjeta (Ej: 4500 1234 5678 9000)" maxLength={19} className="w-full border border-stone-200 p-3 text-sm focus:border-black focus:outline-none transition-colors font-mono tracking-widest" />
                 </div>
                 <div className="flex gap-4">
                   <div className="flex-1">
-                    <input type="text" name="cardExp" value={formData.cardExp} onChange={handleChange} placeholder="Vencimiento (MM/AA)" maxLength={5} className="w-full border border-stone-200 p-3 text-sm focus:border-black focus:outline-none transition-colors font-mono tracking-widest text-center" />
+                    <input type="text" name="cardExp" value={formData.cardExp} onChange={handleCardExpChange} placeholder="Vencimiento (MM/AA)" maxLength={5} className="w-full border border-stone-200 p-3 text-sm focus:border-black focus:outline-none transition-colors font-mono tracking-widest text-center" />
                   </div>
                   <div className="flex-1">
                     <input type="password" name="cardCvc" value={formData.cardCvc} onChange={handleChange} placeholder="CVC (Ej: 123)" maxLength={4} className="w-full border border-stone-200 p-3 text-sm focus:border-black focus:outline-none transition-colors font-mono tracking-widest text-center" />
@@ -87,7 +100,7 @@ export function CheckoutPaymentOptions({ formData, handleChange, isProcessing, w
 
       <button 
         type="submit" 
-        disabled={isProcessing}
+        disabled={isProcessing || (formData.paymentMethod === 'PAYWAY' && paywayLoaded === false)}
         className="relative w-full bg-black text-white font-bold uppercase tracking-widest text-[11px] py-5 flex items-center justify-center gap-2 hover:bg-stone-800 transition-colors disabled:bg-stone-800 disabled:opacity-80 overflow-hidden"
       >
         {isProcessing ? (

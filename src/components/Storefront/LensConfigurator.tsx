@@ -309,11 +309,43 @@ export function LensConfigurator({ basePrice, productId, category, onColorChange
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-6">
                       {lensType === "MONOFOCAL" && (
                         <>
-                          <OptionCard selected={treatment === "ORGANICO_BLANCO"} onClick={() => { setTreatment("ORGANICO_BLANCO"); setStep(4); }} title="Orgánico Estándar (Índice 1.50)" desc="Cristal transparente básico de alta calidad." price={`+$${PRICING.MONOFOCAL.ORGANICO_BLANCO?.toLocaleString() || '0'}`} />
-                          <OptionCard selected={treatment === "ORGANICO_AR"} onClick={() => { setTreatment("ORGANICO_AR"); setStep(4); }} title="Antirreflex (Índice 1.50)" desc="Elimina los reflejos para una visión más nítida." price={`+$${PRICING.MONOFOCAL.ORGANICO_AR?.toLocaleString() || '0'}`} />
-                          <OptionCard selected={treatment === "ORGANICO_BLUE"} onClick={() => { setTreatment("ORGANICO_BLUE"); setStep(4); }} title="Filtro Azul / Super Blue (Índice 1.56)" desc="Protege tus ojos de las pantallas digitales." price={`+$${PRICING.MONOFOCAL.ORGANICO_BLUE?.toLocaleString() || '0'}`} />
-                          <OptionCard selected={treatment === "POLI_BLUE"} onClick={() => { setTreatment("POLI_BLUE"); setStep(4); }} title="Policarbonato Antirreflex (Índice 1.59)" desc="Cristal ultra resistente a impactos con antirreflex." price={`+$${PRICING.MONOFOCAL.POLI_BLUE?.toLocaleString() || '0'}`} />
-                          <OptionCard selected={treatment === "ORGANICO_FOTOCROMATICO"} onClick={() => { setTreatment("ORGANICO_FOTOCROMATICO"); setStep(4); }} title="Fotocromático (Índice 1.56)" desc="Se oscurece automáticamente con el sol." price={`+$${PRICING.MONOFOCAL.ORGANICO_FOTOCROMATICO?.toLocaleString() || '0'}`} />
+                          <OptionCard 
+                            selected={treatment === "ORGANICO_BLANCO"} 
+                            onClick={() => { setTreatment("ORGANICO_BLANCO"); setStep(4); }} 
+                            title="Básico (Sin Protección)" 
+                            features={["Visión estándar", "Sin Antirreflex", "Grosor normal"]} 
+                            price={`+$${PRICING.MONOFOCAL.ORGANICO_BLANCO?.toLocaleString() || '0'}`} 
+                          />
+                          <OptionCard 
+                            selected={treatment === "ORGANICO_AR"} 
+                            onClick={() => { setTreatment("ORGANICO_AR"); setStep(4); }} 
+                            title="Antirreflex (Evita Brillos)" 
+                            features={["Visión más nítida", "Sin reflejos molestos", "Mayor estética"]} 
+                            price={`+$${PRICING.MONOFOCAL.ORGANICO_AR?.toLocaleString() || '0'}`} 
+                          />
+                          <OptionCard 
+                            selected={treatment === "ORGANICO_BLUE"} 
+                            onClick={() => { setTreatment("ORGANICO_BLUE"); setStep(4); }} 
+                            title="Super Blue" 
+                            badge="MÁS ELEGIDO ⭐"
+                            features={["Antirreflex Premium", "Filtro luz azul (Pantallas)", "20% más delgado"]} 
+                            price={`+$${PRICING.MONOFOCAL.ORGANICO_BLUE?.toLocaleString() || '0'}`} 
+                          />
+                          <OptionCard 
+                            selected={treatment === "POLI_BLUE"} 
+                            onClick={() => { setTreatment("POLI_BLUE"); setStep(4); }} 
+                            title="Extra Fino y Resistente" 
+                            badge="PREMIUM 👑"
+                            features={["Policarbonato irrompible", "Filtro luz azul", "Ultra liviano"]} 
+                            price={`+$${PRICING.MONOFOCAL.POLI_BLUE?.toLocaleString() || '0'}`} 
+                          />
+                          <OptionCard 
+                            selected={treatment === "ORGANICO_FOTOCROMATICO"} 
+                            onClick={() => { setTreatment("ORGANICO_FOTOCROMATICO"); setStep(4); }} 
+                            title="Fotocromático" 
+                            features={["Se oscurece al sol", "Protección UV 100%", "Uso interior/exterior"]} 
+                            price={`+$${PRICING.MONOFOCAL.ORGANICO_FOTOCROMATICO?.toLocaleString() || '0'}`} 
+                          />
                         </>
                       )}
                       
@@ -339,7 +371,7 @@ export function LensConfigurator({ basePrice, productId, category, onColorChange
 
       {/* PASO 4: RECETA E IA */}
       <AnimatePresence>
-        {step >= 4 && (
+        {step >= 4 && lensType !== "NONE" && (
           <motion.div 
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
@@ -490,7 +522,7 @@ export function LensConfigurator({ basePrice, productId, category, onColorChange
         </div>
         
         <button 
-          disabled={lensType !== "NONE" && step < 4 && !sendLater}
+          disabled={lensType !== "NONE" && !prescriptionFile && !sendLater}
           onClick={() => {
             const finalColorStr = flowType === "SUN" && tintColor && tintStyle 
               ? `${tintColor} (${tintStyle})` 
@@ -536,24 +568,39 @@ export function LensConfigurator({ basePrice, productId, category, onColorChange
   );
 }
 
-function OptionCard({ selected, onClick, title, desc, price }: any) {
+function OptionCard({ selected, onClick, title, desc, price, badge, features }: any) {
   return (
     <motion.div 
       whileTap={{ scale: 0.98 }}
       onClick={onClick}
-      className={`cursor-pointer border p-6 flex flex-col justify-between transition-all duration-500 min-h-[140px] rounded-[1rem] ${
+      className={`cursor-pointer border p-6 flex flex-col justify-between transition-all duration-500 min-h-[160px] rounded-[1rem] relative ${
         selected 
-          ? 'bg-black border-black text-white shadow-2xl scale-[1.02] z-10 relative' 
+          ? 'bg-black border-black text-white shadow-2xl scale-[1.02] z-10' 
           : 'bg-white border-black/10 text-black hover:border-black/30 shadow-sm'
-      }`}
+      } ${badge ? 'pt-8' : ''}`}
     >
-      <div className="flex flex-col gap-2">
+      {badge && (
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-[#d4af37] text-white text-[9px] font-bold uppercase tracking-widest px-3 py-1 rounded-full shadow-md whitespace-nowrap z-20">
+          {badge}
+        </div>
+      )}
+      <div className="flex flex-col gap-3">
         <h4 className={`text-[12px] uppercase tracking-[0.15em] font-bold ${selected ? 'text-white' : 'text-black'}`}>
           {title}
         </h4>
-        <p className={`text-[11px] font-serif italic leading-relaxed ${selected ? 'text-white/80' : 'text-[#888]'}`}>
-          {desc}
-        </p>
+        {features ? (
+           <ul className="text-[11px] space-y-1.5 mt-2">
+             {features.map((f: string, i: number) => (
+               <li key={i} className={`flex items-center gap-1.5 ${selected ? 'text-white/90' : 'text-stone-600'}`}>
+                 <span className="text-[10px]">✓</span> {f}
+               </li>
+             ))}
+           </ul>
+        ) : (
+          <p className={`text-[11px] font-serif italic leading-relaxed ${selected ? 'text-white/80' : 'text-[#888]'}`}>
+            {desc}
+          </p>
+        )}
       </div>
       {price && (
         <p className={`text-[12px] font-bold tracking-widest mt-6 ${selected ? 'text-white' : 'text-black'}`}>

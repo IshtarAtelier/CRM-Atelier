@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Por qué ahorrar en anteojos baratos es el peor error de tu carrera universitaria</title>
+<style>
+  /* CSS Variables */
+  :root {
+    --primary: #FF3366; /* Vibrant pink/red for student vibe */
+    --secondary: #2A2D34; /* Dark gray */
+    --bg-color: #F8F9FA;
+    --text-color: #333333;
+    --accent: #FFD166; /* Bright yellow */
+    --font-heading: 'Poppins', sans-serif;
+    --font-body: 'Lora', serif;
+  }
+
+  body {
+    margin: 0;
+    padding: 0;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    font-family: var(--font-body);
+    line-height: 1.8;
+  }
+
+  @import url('https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;1,400&family=Poppins:wght@400;700;900&display=swap');
+
+  /* Header */
+  header {
+    background-color: var(--secondary);
+    color: white;
+    padding: 1rem 0;
+    text-align: center;
+    border-bottom: 5px solid var(--primary);
+  }
+  header h1 {
+    font-family: var(--font-heading);
+    font-weight: 900;
+    font-size: 2.5rem;
+    margin: 0;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+  header p {
+    font-family: 'Poppins', sans-serif;
+    font-size: 0.9rem;
+    color: var(--accent);
+    margin: 5px 0 0 0;
+    letter-spacing: 1px;
+  }
+
+  /* Navigation */
+  nav {
+    background: white;
+    display: flex;
+    justify-content: center;
+    padding: 15px 0;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    margin-bottom: 40px;
+    flex-wrap: wrap;
+  }
+  nav a {
+    font-family: var(--font-heading);
+    color: var(--secondary);
+    text-decoration: none;
+    margin: 5px 15px;
+    font-weight: 700;
+    text-transform: uppercase;
+    font-size: 0.9rem;
+    transition: color 0.3s;
+  }
+  nav a:hover {
+    color: var(--primary);
+  }
+
+  /* Main Container */
+  .container {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 0 20px;
+    display: flex;
+    gap: 40px;
+  }
+
+  /* Article Area */
+  .article-content {
+    flex: 3;
+    background: white;
+    padding: 40px;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.03);
+    margin-bottom: 50px;
+  }
+
+  /* Sidebar */
+  .sidebar {
+    flex: 1;
+  }
+  
+  .widget {
+    background: white;
+    padding: 25px;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.03);
+    margin-bottom: 30px;
+  }
+  .widget h3 {
+    font-family: var(--font-heading);
+    color: var(--secondary);
+    font-size: 1.2rem;
+    margin-top: 0;
+    border-bottom: 2px solid var(--accent);
+    padding-bottom: 10px;
+    margin-bottom: 20px;
+  }
+  .widget ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+  .widget ul li {
+    margin-bottom: 15px;
+  }
+  .widget ul li a {
+    color: var(--text-color);
+    text-decoration: none;
+    font-family: 'Poppins', sans-serif;
+    font-size: 0.9rem;
+    transition: color 0.3s;
+  }
+  .widget ul li a:hover {
+    color: var(--primary);
+  }
+
+  /* Article Typography */
+  .category-tag {
+    display: inline-block;
+    background: var(--accent);
+    color: var(--secondary);
+    font-family: var(--font-heading);
+    font-size: 0.8rem;
+    font-weight: 700;
+    padding: 5px 12px;
+    border-radius: 20px;
+    text-transform: uppercase;
+    margin-bottom: 15px;
+  }
+
+  .article-title {
+    font-family: var(--font-heading);
+    font-size: 2.5rem;
+    color: var(--secondary);
+    line-height: 1.2;
+    margin: 0 0 20px 0;
+  }
+
+  .article-meta {
+    font-family: 'Poppins', sans-serif;
+    font-size: 0.9rem;
+    color: #888;
+    margin-bottom: 30px;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 20px;
+  }
+
+  .article-content h2 {
+    font-family: var(--font-heading);
+    color: var(--primary);
+    font-size: 1.6rem;
+    margin-top: 40px;
+    margin-bottom: 15px;
+  }
+
+  .article-content p {
+    margin-bottom: 20px;
+    font-size: 1.1rem;
+  }
+
+  .highlight-box {
+    background-color: #fff0f3;
+    border-left: 5px solid var(--primary);
+    padding: 20px;
+    margin: 30px 0;
+    border-radius: 0 8px 8px 0;
+  }
+  .highlight-box h3 {
+    margin-top: 0;
+    font-family: var(--font-heading);
+    color: var(--secondary);
+  }
+  .highlight-box p {
+    margin: 0;
+    font-size: 1.05rem;
+  }
+
+  .atelier-promo {
+    background: linear-gradient(135deg, var(--secondary), #1a1c20);
+    color: white;
+    padding: 35px;
+    border-radius: 12px;
+    margin: 40px 0;
+    text-align: center;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+    border: 2px solid var(--accent);
+  }
+  .atelier-promo h3 {
+    font-family: var(--font-heading);
+    color: var(--accent);
+    font-size: 1.8rem;
+    margin-top: 0;
+    margin-bottom: 15px;
+  }
+  .atelier-promo p {
+    color: #e0e0e0;
+    margin-bottom: 20px;
+    font-size: 1.1rem;
+    font-family: var(--font-body);
+  }
+  .atelier-promo strong {
+    color: white;
+  }
+
+  /* Footer */
+  footer {
+    background-color: var(--secondary);
+    color: white;
+    text-align: center;
+    padding: 30px 0;
+    font-family: 'Poppins', sans-serif;
+    font-size: 0.9rem;
+    margin-top: 50px;
+  }
+
+  /* Responsive */
+  @media (max-width: 850px) {
+    .container {
+      flex-direction: column;
+    }
+    .article-title {
+      font-size: 2rem;
+    }
+    .article-content {
+      padding: 20px;
+    }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Campus Vibe</h1>
+  <p>La revista de la vida universitaria</p>
+</header>
+
+<nav>
+  <a href="#">Inicio</a>
+  <a href="#">Sobrevivir a Parciales</a>
+  <a href="#">Economía Estudiantil</a>
+  <a href="#">Salud y Bienestar</a>
+  <a href="#">Vida Universitaria</a>
+</nav>
+
+<div class="container">
+  <main class="article-content">
+    <span class="category-tag">Salud y Economía</span>
+    <h1 class="article-title">Por qué ahorrar en anteojos baratos es el peor error de tu carrera universitaria (y cómo solucionarlo sin quebrar)</h1>
+    <div class="article-meta">
+      Por <strong>Redacción Campus Vibe</strong> | Publicado el 15 de Junio, 2026 | Tiempo de lectura: 6 min
+    </div>
+
+    <p>La vida universitaria es una etapa increíble. Está llena de descubrimientos, nuevas amistades, noches interminables de estudio, debates filosóficos en los pasillos de la facultad y, por supuesto, la constante y abrumadora necesidad de administrar un presupuesto que parece desvanecerse en el aire. Como estudiantes, nos convertimos en verdaderos maestros de la supervivencia económica. Aprendemos a hacer malabares con el dinero, a descubrir qué días hay descuentos en la fotocopiadora, a sobrevivir a base de fideos instantáneos durante la semana de parciales y a encontrar las versiones más económicas de absolutamente todo, desde los libros de texto hasta el café que nos mantiene despiertos.</p>
+    
+    <p>Ahorrar se convierte en un estilo de vida. Nos enorgullece encontrar la oferta más barata y el descuento más escondido. Sin embargo, en esta búsqueda implacable por cuidar cada centavo, a menudo tomamos decisiones que, a largo plazo, terminan costándonos mucho más caro. Hay ciertos artículos en los que el ahorro extremo es, francamente, una pésima idea. Uno de los ejemplos más claros, y del que menos se habla en los pasillos universitarios, es la salud visual. Específicamente, el peligroso hábito de comprar anteojos baratos.</p>
+
+    <h2>El mito del ahorro en la visión</h2>
+    
+    <p>Todos lo hemos hecho o hemos estado tentados a hacerlo. Pasamos por un kiosco, una farmacia o un puesto en la calle y vemos esos anteojos de lectura o armazones con "aumento estándar" por una fracción del precio que nos cobrarían en una óptica profesional. O tal vez navegamos por internet y encontramos una página de dudosa procedencia que nos promete anteojos recetados por el equivalente a unas cuantas cervezas. Pensamos: "¡Qué gran oferta! Al final del día, son solo dos pedazos de plástico o vidrio y un armazón, ¿qué tanta diferencia puede haber?".</p>
+    
+    <p>La respuesta corta es: muchísima. La respuesta larga es la que estás a punto de leer, porque entender la diferencia entre un lente de calidad y uno desechable puede salvarte no solo de dolores de cabeza literales, sino de comprometer uno de tus sentidos más importantes durante la etapa de tu vida en la que más lo necesitas.</p>
+
+    <h2>Cómo los anteojos baratos sabotean tu rendimiento académico</h2>
+
+    <p>Piénsalo por un momento. Como estudiante, tus ojos son tu herramienta de trabajo número uno. Ya sea que estés estudiando Derecho y tengas que devorar tomos interminables de jurisprudencia, que estudies Arquitectura y pases horas frente a planos y pantallas, o que estés en salud visual intentando descifrar las intrincadas ilustraciones de anatomía, tus ojos están bajo una presión constante.</p>
+    
+    <p>Cuando compras anteojos de mala calidad, estás sometiendo a tus ojos a un esfuerzo extra innecesario. Los lentes baratos rara vez tienen el centro óptico alineado correctamente con tus pupilas. Esto significa que tus ojos tienen que hacer un microesfuerzo constante para enfocar. Además, los materiales de bajo costo suelen tener aberraciones ópticas —pequeñas distorsiones en los bordes del lente— que hacen que la imagen no sea perfectamente nítida.</p>
+
+    <div class="highlight-box">
+      <h3>El precio oculto de lo barato</h3>
+      <p>¿Cuál es el resultado de usar estos anteojos durante una sesión de estudio de cuatro horas? Fatiga visual extrema, sequedad ocular, visión borrosa temporal y, lo más incapacitante de todo: dolores de cabeza tensionales. Esos dolores de cabeza que te obligan a cerrar los libros y tomar un analgésico cuando deberías estar repasando para el examen de mañana.</p>
+    </div>
+
+    <p>Básicamente, por ahorrarte unos pesos en los anteojos, estás sacrificando horas de estudio productivo y tu bienestar general.</p>
+
+    <h2>El costo real de lo desechable</h2>
+
+    <p>Otro aspecto a considerar es la durabilidad. Los anteojos ultra económicos están fabricados con materiales de la más baja calidad. Las bisagras se aflojan a la primera de cambio, el plástico se resquebraja con los cambios de temperatura, y los cristales se rayan con solo mirarlos. En el ajetreo de la vida universitaria —donde los anteojos terminan en el fondo de la mochila, aplastados bajo un libro de Cálculo o cayéndose del pupitre— un armazón barato no tiene ninguna posibilidad de sobrevivir.</p>
+    
+    <p>Terminarás comprando dos, tres o cuatro pares de anteojos baratos a lo largo del año. Si sumas lo que gastaste en esos reemplazos constantes de emergencia, te darás cuenta de que podrías haber invertido en un par de excelente calidad desde el principio. Lo barato sale caro, y esta frase nunca es tan cierta como cuando hablamos de salud visual.</p>
+
+    <div class="atelier-promo">
+      <h3>La Solución Inteligente: Atelier Óptica</h3>
+      <p>Entendemos el dilema. Sabes que necesitas buenos anteojos, pero tu presupuesto mensual sigue siendo de estudiante. ¿Y si existiera un punto medio donde puedes obtener la máxima calidad óptica, asesoramiento profesional y facilidades de pago que se adaptan a tu economía?</p>
+      <p>Nuestra recomendación indiscutida en Córdoba es <strong>Atelier Óptica</strong>. Están ubicados en <strong>José Luis de Tejeda 4380, en el corazón del Cerro de las Rosas</strong>. Son verdaderos expertos que entienden las necesidades de una persona que pasa ocho horas al día frente a una pantalla o leyendo apuntes.</p>
+      <p>Lo mejor de todo: <strong>sus planes de financiación y facilidades de pago</strong>. En lugar de gastar en tres pares de lentes malos que te arruinen la vista, en Atelier Óptica podés invertir en unos de primera línea pagándolos poco a poco, en cuotas que tu presupuesto de estudiante puede manejar. Tu vista es tu mejor herramienta académica, invierte en ella inteligentemente.</p>
+    </div>
+
+    <h2>Consejos para cuidar tus ojos durante las épocas de finales</h2>
+
+    <p>Mientras planificas tu visita a Atelier Óptica para solucionar tu problema de anteojos de una vez por todas, aquí te dejamos algunos consejos para sobrevivir a la época de parciales sin dejar la vista en el intento:</p>
+
+    <ul>
+      <li><strong>La regla 20-20-20:</strong> Esta es una regla de oro recomendada por especialista en salud visuals. Cada 20 minutos de estudio o de estar frente a una pantalla, aparta la mirada hacia un objeto que esté a unos 20 pies (aproximadamente 6 metros) de distancia, durante al menos 20 segundos. Esto relaja el músculo ciliar del ojo y previene la fatiga visual.</li>
+      <li><strong>Iluminación adecuada:</strong> Estudiar a oscuras con la única luz de la pantalla es un crimen contra tus córneas. Asegúrate de tener una buena fuente de luz ambiental y una lámpara de escritorio que ilumine directamente tus apuntes para evitar el contraste extremo y la fatiga ocular.</li>
+      <li><strong>Parpadeo consciente:</strong> Cuando estamos concentrados, nuestra frecuencia de parpadeo disminuye hasta un tercio de lo normal. Esto provoca que la lágrima se evapore más rápido. Haz un esfuerzo consciente por parpadear de manera frecuente, y si el ambiente es muy seco, usa lágrimas artificiales sin conservantes.</li>
+      <li><strong>Ajuste de pantallas:</strong> Ajusta el brillo de tu pantalla para que coincida con la iluminación de tu entorno. Utiliza los modos "noche" o "lectura" que reducen la emisión de luz azul, lo que no solo ayudará a tus ojos, sino que también mejorará tu calidad de sueño y descanso mental.</li>
+      <li><strong>Postura y distancia:</strong> Mantén la pantalla a una distancia de al menos un brazo extendido y ligeramente por debajo de la línea de los ojos. Una mala postura afecta la distancia focal y aumenta drásticamente la fatiga muscular y visual.</li>
+    </ul>
+
+    <h2>Conclusión</h2>
+
+    <p>Tu paso por la universidad es una inversión en tu futuro. Inviertes tiempo, esfuerzo, dinero en matrículas y libros, y sobre todo, mucha energía mental. No dejes que algo tan fundamental como tu capacidad para ver claramente y sin dolor se convierta en un obstáculo. Los anteojos baratos pueden parecer una victoria económica a corto plazo, pero son una derrota asegurada para tu bienestar a largo plazo.</p>
+
+    <p>Hazte un favor y cuida de tus ojos. Son los únicos que tienes y te tienen que durar toda la vida. Date una vuelta por <strong>Atelier Óptica en el Cerro de las Rosas (José Luis de Tejeda 4380)</strong> y aprovecha sus increíbles planes de pago pensados para cuidar tanto tu vista como tu bolsillo. Tu promedio académico, tu salud y, definitivamente, tu futuro profesional te lo agradecerán enormemente. ¡No escatimes en tu salud visual y mucho éxito en los exámenes que se avecinan!</p>
+  </main>
+
+  <aside class="sidebar">
+    <div class="widget">
+      <h3>Lo más leído</h3>
+      <ul>
+        <li><a href="#">Cómo organizar tu calendario de exámenes sin enloquecer</a></li>
+        <li><a href="#">Top 5 bibliotecas más silenciosas del campus</a></li>
+        <li><a href="#">Recetas baratas y nutritivas para la semana de parciales</a></li>
+        <li><a href="#">El impacto de la falta de sueño en la memoria a corto plazo</a></li>
+      </ul>
+    </div>
+    <div class="widget">
+      <h3>Secciones</h3>
+      <ul>
+        <li><a href="#">Becas y Finanzas</a></li>
+        <li><a href="#">Salud Mental y Física</a></li>
+        <li><a href="#">Vida Social</a></li>
+        <li><a href="#">Herramientas de Estudio</a></li>
+      </ul>
+    </div>
+    <div class="widget" style="background-color: #f1f8ff; border: 1px solid #cce5ff;">
+      <h3 style="color: #004085; border-bottom: 2px solid #b8daff;">Descuentos para Estudiantes</h3>
+      <p style="font-size: 0.9rem; font-family: 'Poppins', sans-serif;">Presenta tu libreta universitaria en los comercios adheridos y consigue hasta un 20% off en fotocopias, cafeterías, librerías y más. ¡Cuidemos el bolsillo!</p>
+    </div>
+  </aside>
+</div>
+
+<footer>
+  <p>&copy; 2026 Campus Vibe - La revista de los estudiantes. Todos los derechos reservados.</p>
+</footer>
+
+</body>
+</html>

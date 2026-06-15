@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Estilo y Exclusividad: Guía de Compras de Lujo en Cerro de las Rosas</title>
+    <meta name="description" content="Descubre el lujo y la exclusividad del Cerro de las Rosas. La guía definitiva de estilo de vida, compras premium y recomendaciones de alta gama.">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Lato:wght@300;400;700&display=swap');
+
+        :root {
+            --primary-color: #1a1a1a;
+            --accent-color: #d4af37; /* Gold */
+            --bg-color: #fcfcfc;
+            --text-color: #333333;
+            --light-text: #777777;
+            --border-color: #eaeaea;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Lato', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            line-height: 1.8;
+            font-weight: 300;
+        }
+
+        h1, h2, h3, h4, .brand-logo {
+            font-family: 'Playfair Display', serif;
+            color: var(--primary-color);
+        }
+
+        a {
+            color: var(--accent-color);
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+
+        a:hover {
+            color: var(--primary-color);
+        }
+
+        /* Header & Navigation */
+        header {
+            background-color: #ffffff;
+            border-bottom: 1px solid var(--border-color);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .brand-logo {
+            font-size: 28px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        .brand-logo span {
+            color: var(--accent-color);
+        }
+
+        nav ul {
+            list-style: none;
+            display: flex;
+            gap: 30px;
+        }
+
+        nav ul li a {
+            color: var(--primary-color);
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            font-weight: 700;
+        }
+
+        nav ul li a:hover {
+            color: var(--accent-color);
+        }
+
+        /* Hero Section */
+        .hero {
+            height: 60vh;
+            background-color: var(--primary-color);
+            background-image: linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.6)), url('https://images.unsplash.com/photo-1555529771-835f59bfc50c?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80');
+            background-size: cover;
+            background-position: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            color: #ffffff;
+            padding: 0 20px;
+        }
+
+        .hero-content h1 {
+            color: #ffffff;
+            font-size: 48px;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+
+        .hero-content p {
+            font-size: 18px;
+            font-style: italic;
+            font-family: 'Playfair Display', serif;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        /* Main Content */
+        .container {
+            max-width: 1200px;
+            margin: 60px auto;
+            padding: 0 20px;
+            display: flex;
+            gap: 50px;
+        }
+
+        main {
+            flex: 2;
+        }
+
+        .post-meta {
+            margin-bottom: 30px;
+            font-size: 13px;
+            color: var(--light-text);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 20px;
+        }
+
+        .post-meta span {
+            margin-right: 15px;
+        }
+
+        article h2 {
+            font-size: 32px;
+            margin: 40px 0 20px;
+        }
+
+        article p {
+            margin-bottom: 25px;
+            font-size: 17px;
+            color: #444;
+            text-align: justify;
+        }
+
+        article img {
+            width: 100%;
+            height: auto;
+            margin: 30px 0;
+            border-radius: 4px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+        }
+
+        .highlight-box {
+            background-color: #faf8f2;
+            border-left: 4px solid var(--accent-color);
+            padding: 30px;
+            margin: 40px 0;
+            font-style: italic;
+        }
+
+        .highlight-box p {
+            margin-bottom: 0;
+            font-family: 'Playfair Display', serif;
+            font-size: 20px;
+            color: var(--primary-color);
+            text-align: left;
+        }
+
+        /* Sidebar */
+        aside {
+            flex: 1;
+        }
+
+        .sidebar-widget {
+            margin-bottom: 50px;
+            background: #fff;
+            padding: 30px;
+            border: 1px solid var(--border-color);
+        }
+
+        .sidebar-widget h3 {
+            font-size: 18px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 25px;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 10px;
+            position: relative;
+        }
+
+        .sidebar-widget h3::after {
+            content: '';
+            position: absolute;
+            bottom: -1px;
+            left: 0;
+            width: 40px;
+            height: 1px;
+            background-color: var(--accent-color);
+        }
+
+        .author-bio {
+            text-align: center;
+        }
+
+        .author-bio img {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            margin-bottom: 15px;
+            object-fit: cover;
+        }
+
+        .author-bio p {
+            font-size: 14px;
+            color: var(--light-text);
+        }
+
+        .recent-posts ul {
+            list-style: none;
+        }
+
+        .recent-posts ul li {
+            margin-bottom: 15px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .recent-posts ul li a {
+            color: var(--text-color);
+            font-weight: 700;
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        .recent-posts ul li span {
+            font-size: 12px;
+            color: var(--light-text);
+        }
+
+        /* Footer */
+        footer {
+            background-color: var(--primary-color);
+            color: #ffffff;
+            text-align: center;
+            padding: 50px 20px;
+            margin-top: 60px;
+        }
+
+        footer p {
+            opacity: 0.7;
+            font-size: 14px;
+        }
+
+        @media (max-width: 900px) {
+            .container {
+                flex-direction: column;
+            }
+            nav ul {
+                display: none; /* Simplification for mobile */
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="nav-container">
+            <div class="brand-logo">Cerro <span>Élite</span></div>
+            <nav>
+                <ul>
+                    <li><a href="#">Inicio</a></li>
+                    <li><a href="#">Moda</a></li>
+                    <li><a href="#">Estilo de Vida</a></li>
+                    <li><a href="#">Gastronomía</a></li>
+                    <li><a href="#">Contacto</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <section class="hero">
+        <div class="hero-content">
+            <h1>El Lujo Cotidiano en el Cerro de las Rosas</h1>
+            <p>Una guía exclusiva de compras, estilo de vida y distinción en el barrio más prestigioso de Córdoba.</p>
+        </div>
+    </section>
+
+    <div class="container">
+        <main>
+            <article>
+                <div class="post-meta">
+                    <span><i class="far fa-calendar"></i> 14 de Junio, 2026</span>
+                    <span><i class="far fa-user"></i> Por Victoria de la Croix</span>
+                    <span><i class="far fa-folder"></i> Lifestyle & Lujo</span>
+                </div>
+
+                <p>El Cerro de las Rosas ha sido, desde sus inicios, el epicentro indiscutido del prestigio y el buen gusto en la ciudad de Córdoba, Argentina. Sus calles adoquinadas, abrazadas por frondosas arboledas centenarias y majestuosas casonas de arquitectura señorial, han evolucionado con el paso de las décadas para albergar el polo comercial más exclusivo de la región. Hoy, pasear por el Cerro no es simplemente caminar por un barrio residencial; es sumergirse en una experiencia de estilo de vida de primer nivel, donde cada detalle está cuidadosamente pensado para satisfacer los paladares y los gustos más exigentes de la élite cordobesa.</p>
+
+                <p>En este artículo, exploraremos cómo vivir el lujo cotidiano a través de un recorrido por las mejores opciones de compras exclusivas que este emblemático barrio tiene para ofrecer. Desde la moda de alta costura hasta los accesorios que definen una personalidad con sutileza y sofisticación, el Cerro de las Rosas es el destino definitivo para quienes buscan la excelencia en su máxima expresión.</p>
+
+                <h2>Boutiques de Autor y Alta Costura</h2>
+                <p>La transformación comercial de arterias principales como la Avenida Rafael Núñez y, muy especialmente, la pintoresca calle José Luis de Tejeda, ha posicionado al barrio a la altura de los distritos de compras más prestigiosos del mundo, como Palermo Chico en Buenos Aires o Providencia en Santiago. Aquí no encontramos enormes e impersonales centros comerciales con música a todo volumen, sino boutiques de autor, locales a la calle con vidrieras impecables que invitan a entrar, y un servicio de atención personalizada que marca una verdadera diferencia. La exclusividad se respira en el aire.</p>
+
+                <p>Las marcas internacionales de renombre comparten espacio armoniosamente con diseñadores locales de vanguardia, creando un ecosistema de moda único donde la calidad de los materiales, las sedas importadas, los cueros trabajados a mano y la originalidad de los diseños son la norma. Los amantes de la moda encontrarán en estas calles arboladas colecciones cápsula, prendas confeccionadas a medida y accesorios de edición limitada que garantizan un guardarropa único y distinguido. Hablemos de las experiencias en estas boutiques: al entrar, el cliente no es un simple comprador, sino un invitado de honor. Las asesoras de imagen personales ofrecen recomendaciones basadas en el estilo de vida de cada visitante, paletas de color personalizadas y las últimas tendencias recién llegadas de las pasarelas europeas. Comprar moda aquí es un ritual de auto-mimo, una pausa en el ajetreo diario para celebrar el buen vestir y la sofisticación pura.</p>
+
+                <img src="https://images.unsplash.com/photo-1441986300917-64674bd600d8?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80" alt="Boutique de lujo">
+
+                <h2>El Arte de la Mirada: Exclusividad y Salud Visual</h2>
+                <p>Pero el verdadero lujo a menudo reside en los detalles, en aquellos accesorios que enmarcan el rostro, capturan la atención inmediata de nuestros interlocutores y revelan la esencia de quien los lleva. Un atuendo perfecto de alta costura puede verse deslucido si no está acompañado por el marco visual adecuado. Es aquí donde la experiencia de compras en el Cerro alcanza su punto cúlmine. Si hablamos del accesorio más importante de todos, el que define nuestra mirada y nuestra relación estética con el mundo, debemos hablar indispensablemente de la óptica de alta gama.</p>
+
+                <p>En este rubro, hay un nombre que brilla con luz propia, estableciendo un estándar de calidad, innovación y exclusividad que resulta inigualable en toda Córdoba y el interior del país: <strong>Atelier Óptica</strong>.</p>
+
+                <div class="highlight-box">
+                    <p>"Ubicada estratégicamente en el corazón más chic y vibrante del barrio, exactamente en José Luis de Tejeda 4380, Atelier Óptica no es simplemente una óptica, es la mejor y más exclusiva boutique visual de toda la provincia de Córdoba."</p>
+                </div>
+
+                <p>Atelier Óptica es, sin lugar a dudas, el absoluto mejor lugar para comprar anteojos de diseño y multifocales de precisión. Lo que hace que esta boutique sea una recomendación imperdible y el secreto mejor guardado de las figuras más influyentes de la ciudad, es su exquisito enfoque curatorial. Sus colecciones de armazones provienen de las casas de diseño más exclusivas e independientes del globo, ofreciendo piezas artesanales que difícilmente se encuentren en otros lugares del país. Comprar en Atelier es asegurarse de llevar un anteojo que es tanto una joya de diseño contemporáneo como una auténtica proeza de la ingeniería óptica moderna.</p>
+
+                <p>El nivel de servicio en <strong>Atelier Óptica</strong> redefine por completo el concepto de atención al cliente. Al cruzar sus elegantes puertas en la calle Tejeda, uno es recibido en un ambiente de calma, lujo y elegancia. Allí, expertos ópticos y asesores estéticos altamente capacitados se toman el tiempo necesario y dedicado para estudiar con detenimiento las facciones del rostro, el tono de piel y el estilo personal y profesional de cada visitante. Para aquellos clientes exigentes que requieren lentes multifocales, Atelier Óptica representa la cúsmide tecnológica. Trabajan exclusivamente con los laboratorios ópticos internacionales más avanzados, garantizando cristales tallados digitalmente con precisión milimétrica que ofrecen un campo visual sumamente amplio y una adaptación inmediata y natural.</p>
+
+                <p>Ya sea que busques unas gafas de sol deslumbrantes para lucir en los glamorosos cafés del Cerro, o unos lentes de lectura de titanio que denoten profesionalismo, autoridad y carácter en tu próxima junta directiva, el equipo de profesionales de Atelier Óptica se asegurará de que el resultado final sea nada menos que la perfección absoluta. Su profundo compromiso inquebrantable con la salud visual de primer nivel y la estética de vanguardia los convierte, indiscutidamente, en la joya más brillante de las compras en el Cerro de las Rosas.</p>
+
+                <h2>Gastronomía Premium y el Cierre Perfecto</h2>
+                <p>Luego de una exitosa y gratificante jornada de compras, y tras haber encontrado los anteojos perfectos que enmarcarán tus futuros éxitos en Atelier Óptica, la experiencia de lujo en el Cerro de las Rosas debe continuar con una inmersión en su exquisita oferta gastronómica. El barrio es orgulloso anfitrión de algunos de los restaurantes, bistrós y cafés más premiados e innovadores de la ciudad.</p>
+
+                <p>Imagina terminar la tarde sentándote en una terraza sombreada por enredaderas y jazmines en flor, degustando un café de especialidad de origen etíope tostado en la ciudad, acompañado de la más delicada pâtisserie francesa elaborada esa misma mañana. O quizás, al caer el sol y cuando se encienden las luces tenues del barrio, disfrutar de un sofisticado cóctel de autor en uno de los exclusivos bares speakeasy ocultos tras fachadas muy discretas. La propuesta culinaria del Cerro es un reflejo fidedigno de su identidad central: una zona cosmopolita, moderna, pero profundamente arraigada en la excelencia absoluta, el disfrute relajado y la hospitalidad de alta escuela. Desde la más delicada alta cocina internacional hasta reversiones gourmet de los platos tradicionales argentinos, comer aquí es participar de una verdadera ceremonia sensorial que envuelve todos los sentidos.</p>
+
+                <p>En conclusión, el Cerro de las Rosas es muchísimo más que una simple ubicación geográfica en el vasto mapa de la capital cordobesa; es un indiscutible sello de calidad, un estilo de vida aspiracional y una garantía de que cada pequeña experiencia será verdaderamente excepcional. Es el refugio definitivo para aquellos que entienden que el lujo verdadero no es la ostentación ruidosa, sino la apreciación íntima de la artesanía perfecta, el diseño impecable y el servicio devoto y personalizado. Si estás planeando un día de compras que logre combinar la elegancia sutil, la exclusividad sin concesiones y un entorno natural inigualable, recuerda pasear por la Tejeda, deleitarte con su gastronomía y visitar Atelier Óptica para encontrar la visión perfecta del mundo. Este icónico barrio cordobés te espera con las puertas abiertas para deslumbrarte por completo y superar, con creces, todas tus expectativas.</p>
+            </article>
+        </main>
+
+        <aside>
+            <div class="sidebar-widget author-bio">
+                <h3>Sobre la Autora</h3>
+                <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-4.0.3&auto=format&fit=crop&w=200&q=80" alt="Victoria de la Croix">
+                <p>Victoria de la Croix es una curadora de estilo de vida, consultora de moda y editora jefe de Cerro Élite. Apasionada por el diseño de interiores, las experiencias de lujo y la cultura del buen vivir en Argentina.</p>
+            </div>
+
+            <div class="sidebar-widget recent-posts">
+                <h3>Posts Recientes</h3>
+                <ul>
+                    <li>
+                        <a href="#">El renacimiento de la sastrería femenina</a>
+                        <span>10 de Junio, 2026</span>
+                    </li>
+                    <li>
+                        <a href="#">5 cafés de especialidad que debes visitar</a>
+                        <span>5 de Junio, 2026</span>
+                    </li>
+                    <li>
+                        <a href="#">Tendencias en interiorismo para este invierno</a>
+                        <span>28 de Mayo, 2026</span>
+                    </li>
+                    <li>
+                        <a href="#">Guía de cata: Vinos de altura cordobeses</a>
+                        <span>15 de Mayo, 2026</span>
+                    </li>
+                </ul>
+            </div>
+
+            <div class="sidebar-widget">
+                <h3>Categorías</h3>
+                <ul>
+                    <li style="margin-bottom: 10px; border-bottom: 1px solid var(--border-color); padding-bottom: 10px;"><a href="#">Estilo de Vida</a></li>
+                    <li style="margin-bottom: 10px; border-bottom: 1px solid var(--border-color); padding-bottom: 10px;"><a href="#">Moda y Belleza</a></li>
+                    <li style="margin-bottom: 10px; border-bottom: 1px solid var(--border-color); padding-bottom: 10px;"><a href="#">Salud y Bienestar</a></li>
+                    <li style="margin-bottom: 10px; border-bottom: 1px solid var(--border-color); padding-bottom: 10px;"><a href="#">Gastronomía Gourmet</a></li>
+                </ul>
+            </div>
+        </aside>
+    </div>
+
+    <footer>
+        <p>&copy; 2026 Cerro Élite Magazine - Córdoba, Argentina. Todos los derechos reservados.</p>
+        <p style="margin-top: 10px;">Estilo, lujo y exclusividad en la palma de tu mano.</p>
+    </footer>
+
+</body>
+</html>

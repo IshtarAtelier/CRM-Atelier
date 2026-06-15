@@ -1,16 +1,24 @@
+import { Metadata } from 'next';
 import Link from "next/link";
 import { WHATSAPP_PHONE } from '@/lib/constants';
 
+
+export const metadata: Metadata = {
+  title: "control miopia | Atelier Óptica",
+  description: "Descubrí todo sobre control miopia en Atelier Óptica. Envíos a toda Argentina, cuotas sin interés y atención personalizada.",
+  keywords: ["óptica Argentina", "envíos a toda Argentina", "cuotas", "atención personalizada", "anteojos de receta", "control miopia"],
+};
+
 export default function MyopiaControlPage() {
   return (
-    <div className="min-h-screen bg-white text-black font-sans selection:bg-black selection:text-white pb-20">
+    <div className="min-h-screen bg-[#faf8f5] text-black font-sans selection:bg-black selection:text-white pb-20">
       
       {/* HEADER MINIMALISTA ESTILO GM */}
       <header className="fixed top-0 w-full z-50 px-5 py-4 flex justify-between items-center bg-transparent mix-blend-difference text-white">
         <Link href="/blog" className="text-[13px] font-medium hover:opacity-60 transition-opacity" style={{ textShadow: "0 1px 3px rgba(0,0,0,0.3)" }}>
           Back
         </Link>
-        <Link href="/" className="absolute left-1/2 -translate-x-1/2 text-[16px] font-bold tracking-[0.15em] drop-shadow-md" style={{ fontFamily: "'Georgia', 'Times New Roman', serif" }}>
+        <Link href="/" className="absolute left-1/2 -translate-x-1/2 text-[16px] font-medium tracking-tight tracking-[0.15em] drop-shadow-md" style={{ fontFamily: "'Georgia', 'Times New Roman', serif" }}>
           ATELIER ÓPTICA
         </Link>
         <div className="flex gap-5">
@@ -39,9 +47,9 @@ export default function MyopiaControlPage() {
 
         <div className="space-y-12 lg:space-y-16">
           {/* Secciones del artículo */}
-          <section className="border-t border-[#e5e5e5] pt-12">
+          <section className="border-t border-black/10 pt-12">
             <h2 className="text-xl font-medium mb-6 lg:mb-8 text-center">¿Qué es el Desenfoque Periférico?</h2>
-            <div className="p-6 lg:p-8 border border-[#e5e5e5] relative overflow-hidden">
+            <div className="p-6 lg:p-8 border border-black/10 relative overflow-hidden">
                 <p className="text-[14px] lg:text-[15px] text-[#666] leading-relaxed mb-6">
                 Históricamente, los cristales monofocales tradicionales se han limitado a corregir la visión central, enfocando la luz directamente en la retina. Sin embargo, esto puede generar un &quot;desenfoque hipermetrópico&quot; en la periferia del ojo, lo que paradójicamente estimula su elongación y el aumento de la miopía.
                 </p>
@@ -51,7 +59,7 @@ export default function MyopiaControlPage() {
             </div>
           </section>
 
-          <section className="border-t border-[#e5e5e5] pt-12">
+          <section className="border-t border-black/10 pt-12">
             <h2 className="text-xl font-medium mb-6 lg:mb-8 text-center">Eficacia Clínica en Niños</h2>
             <div className="p-6 lg:p-8 bg-[#f9f9f9] relative overflow-hidden">
                 <p className="text-[14px] lg:text-[15px] text-[#666] leading-relaxed mb-6">
@@ -65,9 +73,9 @@ export default function MyopiaControlPage() {
             </div>
           </section>
 
-          <section className="border-t border-[#e5e5e5] pt-12">
+          <section className="border-t border-black/10 pt-12">
             <h2 className="text-xl font-medium mb-6 lg:mb-8 text-center">¿El tratamiento es válido para adultos?</h2>
-            <div className="p-6 lg:p-8 border border-[#e5e5e5] relative overflow-hidden">
+            <div className="p-6 lg:p-8 border border-black/10 relative overflow-hidden">
                 <p className="text-[14px] lg:text-[15px] text-[#666] leading-relaxed mb-6">
                 Si bien el objetivo principal de la tecnología H.A.L.T. es intervenir durante la etapa de crecimiento ocular infantil (entre los 6 y 14 años), el concepto de control de miopía ha despertado un gran interés en la población adulta joven.
                 </p>
@@ -81,8 +89,8 @@ export default function MyopiaControlPage() {
 
         <div className="mt-16 lg:mt-20 p-8 lg:p-12 border border-black text-center">
           <h3 className="text-xl font-medium mb-3">Evaluación Especializada en Atelier</h3>
-          <p className="text-[14px] text-[#666] mb-8">La gestión de la miopía requiere de un diagnóstico preciso y seguimiento constante. Agendá una consulta con nuestro equipo para evaluar si la tecnología Essilor es la indicada para vos o para tu hijo.</p>
-          <a href={`https://wa.me/${WHATSAPP_PHONE}`} target="_blank" rel="noopener noreferrer" className="inline-block bg-black text-white px-8 py-4 text-[11px] font-bold uppercase tracking-widest hover:opacity-80 transition-opacity">Coordinar Asesoramiento</a>
+          <p className="text-[14px] text-[#666] mb-8">El control de la miopía requiere seguimiento oftalmológico. Acercate con tu receta médica a Atelier Óptica y nuestro equipo evaluará, mediante toma de medidas, si los cristales de control de miopía son la opción indicada que tu médico recetó para vos o para tu hijo.</p>
+          <a href={`https://wa.me/${WHATSAPP_PHONE}`} target="_blank" rel="noopener noreferrer" className="inline-block bg-black text-white px-8 py-4 text-[11px] font-bold uppercase tracking-widest hover:opacity-70 transition-all duration-300 transition-opacity">Coordinar Asesoramiento</a>
         </div>
       </main>
     </div>

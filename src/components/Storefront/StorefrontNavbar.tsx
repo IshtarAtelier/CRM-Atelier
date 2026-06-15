@@ -100,17 +100,17 @@ export function StorefrontNavbar({ theme = "dark", mixBlend = false }: Storefron
         {/* Navbar Inner Row */}
         <div className={`px-3 sm:px-5 flex justify-between items-center transition-all duration-300 ${headerBgClass} ${mixBlend && !isHeaderScrolled ? 'mix-blend-difference text-white' : ''}`}>
           {/* Izquierda: Links de navegación */}
-          <nav className="flex gap-3 sm:gap-6 items-center">
+          <nav className="flex gap-2 sm:gap-6 items-center">
               <Link 
                 href="/tienda" 
-                className={`text-[11px] sm:text-[13px] font-medium ${activeTextColorClass} hover:opacity-60 transition-opacity`} 
+                className={`text-[11px] sm:text-[13px] font-medium ${activeTextColorClass} hover:opacity-60 transition-opacity p-2 sm:p-0`} 
                 style={activeTextShadowStyle}
               >
                 Shop
               </Link>
               <Link 
                 href="/cristales-opticos" 
-                className={`text-[11px] sm:text-[13px] font-medium ${activeTextColorClass} hover:opacity-60 transition-opacity`} 
+                className={`text-[11px] sm:text-[13px] font-medium ${activeTextColorClass} hover:opacity-60 transition-opacity p-2 sm:p-0`} 
                 style={activeTextShadowStyle}
               >
                 Cristales
@@ -120,17 +120,16 @@ export function StorefrontNavbar({ theme = "dark", mixBlend = false }: Storefron
                 className={`text-[13px] font-bold ${activeTextColorClass} hover:opacity-60 transition-opacity border-b-2 border-primary pb-0.5 hidden sm:block`} 
                 style={activeTextShadowStyle}
               >
-                Armá tus Lentes
+                Lentes a Medida
               </Link>
   
-            {/* Explore Dropdown */}
             <div 
               className="relative"
               onMouseEnter={() => setIsExploreOpen(true)}
               onMouseLeave={() => setIsExploreOpen(false)}
             >
               <button 
-                className={`flex items-center gap-0.5 sm:gap-1 text-[11px] sm:text-[13px] font-medium ${activeTextColorClass} hover:opacity-60 transition-opacity`}
+                className={`flex items-center gap-0.5 sm:gap-1 text-[11px] sm:text-[13px] font-medium ${activeTextColorClass} hover:opacity-60 transition-opacity p-2 sm:p-0`}
                 style={activeTextShadowStyle}
               >
                 Explore <ChevronDown className="w-3 h-3 opacity-70" />
@@ -176,21 +175,21 @@ export function StorefrontNavbar({ theme = "dark", mixBlend = false }: Storefron
           </Link>
   
           {/* Derecha: Iconos */}
-          <div className={`flex items-center gap-3 sm:gap-5 ${activeTextColorClass}`}>
+          <div className={`flex items-center gap-1 sm:gap-5 ${activeTextColorClass}`}>
             <button 
               onClick={() => setIsSearchOpen(true)} 
-              className="hover:opacity-60 transition-opacity" 
+              className="hover:opacity-60 transition-opacity p-2 sm:p-0" 
               aria-label="Buscar"
             >
               <Search className="w-4 h-4 sm:w-5 sm:h-5" strokeWidth={1.5} />
             </button>
             <button 
-              className="hover:opacity-60 transition-opacity relative" 
+              className="hover:opacity-60 transition-opacity relative p-2 sm:p-0" 
               aria-label="Carrito"
               onClick={() => setCartOpen(true)}
             >
               <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5" strokeWidth={1.5} />
-              <span className={`absolute -top-1.5 -right-1.5 text-[8px] sm:text-[9px] font-bold ${isDark && !isHeaderScrolled ? 'text-white bg-black/50' : 'text-[#433831] bg-stone-200'} rounded-full w-3.5 h-3.5 sm:w-4 sm:h-4 flex items-center justify-center backdrop-blur-sm`}>
+              <span className={`absolute top-0.5 right-0.5 sm:-top-1.5 sm:-right-1.5 text-[8px] sm:text-[9px] font-bold ${isDark && !isHeaderScrolled ? 'text-white bg-black/50' : 'text-[#433831] bg-stone-200'} rounded-full w-3.5 h-3.5 sm:w-4 sm:h-4 flex items-center justify-center backdrop-blur-sm pointer-events-none`}>
                 {cartCount}
               </span>
             </button>

@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cuidando la visión de nuestros peques: Mi experiencia con la miopía y Stellest - Foro de Madres Córdoba</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #f28ab2; /* Pastel pink */
+            --primary-dark: #d96a93;
+            --secondary: #90d4c8; /* Pastel teal */
+            --background: #fffafb;
+            --text-dark: #4a4a4a;
+            --text-light: #7a7a7a;
+            --white: #ffffff;
+            --border: #f0e6ea;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Nunito', sans-serif;
+            background-color: var(--background);
+            color: var(--text-dark);
+            line-height: 1.6;
+        }
+
+        header {
+            background-color: var(--white);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.03);
+            padding: 20px 0;
+            text-align: center;
+            border-bottom: 3px solid var(--primary);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .logo {
+            font-family: 'Playfair Display', serif;
+            font-size: 32px;
+            color: var(--primary-dark);
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .nav-links {
+            margin-top: 15px;
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+        }
+
+        .nav-links a {
+            text-decoration: none;
+            color: var(--text-dark);
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 14px;
+            letter-spacing: 1px;
+            transition: color 0.3s;
+        }
+
+        .nav-links a:hover {
+            color: var(--primary);
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 40px auto;
+            padding: 0 20px;
+            display: flex;
+            gap: 40px;
+        }
+
+        main {
+            flex: 1;
+            background: var(--white);
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.03);
+            border: 1px solid var(--border);
+        }
+
+        sidebar {
+            width: 300px;
+            flex-shrink: 0;
+        }
+
+        .post-header {
+            margin-bottom: 30px;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 20px;
+        }
+
+        .category {
+            background-color: var(--secondary);
+            color: var(--white);
+            padding: 5px 12px;
+            border-radius: 15px;
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            display: inline-block;
+            margin-bottom: 15px;
+        }
+
+        h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 36px;
+            color: var(--text-dark);
+            margin: 0 0 15px 0;
+            line-height: 1.2;
+        }
+
+        .meta {
+            color: var(--text-light);
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .content p {
+            font-size: 17px;
+            margin-bottom: 20px;
+        }
+
+        .content h2 {
+            font-family: 'Playfair Display', serif;
+            color: var(--primary-dark);
+            margin-top: 40px;
+            font-size: 26px;
+        }
+
+        .content strong {
+            color: var(--primary-dark);
+        }
+
+        .highlight-box {
+            background-color: #fff0f5;
+            border-left: 4px solid var(--primary);
+            padding: 20px;
+            border-radius: 0 10px 10px 0;
+            margin: 30px 0;
+            font-style: italic;
+        }
+
+        .author-box {
+            background: var(--white);
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.03);
+            text-align: center;
+            margin-bottom: 30px;
+            border: 1px solid var(--border);
+        }
+
+        .author-box img {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            border: 3px solid var(--primary);
+            margin-bottom: 15px;
+            object-fit: cover;
+        }
+
+        .author-box h3 {
+            margin: 0 0 10px 0;
+            color: var(--primary-dark);
+            font-family: 'Playfair Display', serif;
+        }
+
+        .author-box p {
+            font-size: 14px;
+            color: var(--text-light);
+            margin-bottom: 0;
+        }
+
+        .widget {
+            background: var(--white);
+            padding: 25px;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.03);
+            border: 1px solid var(--border);
+            margin-bottom: 30px;
+        }
+
+        .widget h4 {
+            margin: 0 0 20px 0;
+            color: var(--text-dark);
+            font-family: 'Playfair Display', serif;
+            font-size: 20px;
+            border-bottom: 2px solid var(--secondary);
+            display: inline-block;
+            padding-bottom: 5px;
+        }
+
+        .widget ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .widget li {
+            margin-bottom: 12px;
+            padding-bottom: 12px;
+            border-bottom: 1px dashed var(--border);
+        }
+
+        .widget li:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+
+        .widget a {
+            color: var(--text-dark);
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+
+        .widget a:hover {
+            color: var(--primary);
+        }
+
+        .comments {
+            margin-top: 50px;
+            border-top: 2px solid var(--border);
+            padding-top: 30px;
+        }
+
+        .comment {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 25px;
+            background: #fafafa;
+            padding: 20px;
+            border-radius: 15px;
+        }
+
+        .comment-avatar {
+            width: 50px;
+            height: 50px;
+            background-color: var(--secondary);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 20px;
+            flex-shrink: 0;
+        }
+
+        .comment-content h5 {
+            margin: 0 0 5px 0;
+            font-size: 16px;
+            color: var(--text-dark);
+        }
+
+        .comment-content span {
+            font-size: 12px;
+            color: var(--text-light);
+        }
+
+        .comment-content p {
+            margin: 10px 0 0 0;
+            font-size: 15px;
+        }
+
+        footer {
+            background-color: var(--white);
+            text-align: center;
+            padding: 30px 0;
+            border-top: 1px solid var(--border);
+            color: var(--text-light);
+            font-size: 14px;
+            margin-top: 50px;
+        }
+
+        @media (max-width: 900px) {
+            .container {
+                flex-direction: column;
+            }
+            sidebar {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <a href="#" class="logo">💖 Foro de Madres Córdoba</a>
+    <div class="nav-links">
+        <a href="#">Inicio</a>
+        <a href="#">Maternidad</a>
+        <a href="#">Salud Infantil</a>
+        <a href="#">Educación</a>
+        <a href="#">Comunidad</a>
+    </div>
+</header>
+
+<div class="container">
+    <main>
+        <article>
+            <div class="post-header">
+                <span class="category">Salud Infantil</span>
+                <h1>Cuidando la visión de nuestros peques: Mi experiencia con la miopía infantil y las lentes Stellest</h1>
+                <div class="meta">
+                    <span>Por <strong>Valeria M.</strong></span>
+                    <span>•</span>
+                    <span>14 de Junio, 2026</span>
+                    <span>•</span>
+                    <span>12 Comentarios</span>
+                </div>
+            </div>
+
+            <div class="content">
+                <p>¡Hola, mamis de Córdoba! Bienvenidas una vez más a nuestro rincón, el lugar donde compartimos las alegrías, los desafíos y esos pequeños grandes sustos que nos da la maternidad. Hoy quiero hablarles de un tema que me tuvo bastante preocupada en los últimos meses y que, conversando con otras mamás en la puerta del colegio, me di cuenta de que es una preocupación súper común: la visión de nuestros chicos, específicamente, la miopía infantil.</p>
+
+                <p>Como muchas de ustedes saben, soy mamá de dos terremotos, pero esta historia tiene como protagonista a mi hijo mayor, Mateo, que acaba de cumplir 8 años. Hace un tiempo, empecé a notar algunas cosas raras. Mateo siempre fue de los primeros en la fila, pero de repente la seño me mandó una notita diciendo que le costaba copiar del pizarrón. En casa, me di cuenta de que se acercaba muchísimo a la pantalla de la tablet y achinaba los ojitos cuando intentaba leer los carteles en la calle. Y ni hablar de los dolores de cabeza; al principio pensé que era cansancio, pero se volvieron muy frecuentes después de hacer la tarea.</p>
+
+                <p>Como mamá precavida (o exagerada, según mi marido), saqué turno con el especialista en salud visual pediatra de inmediato. El diagnóstico fue claro: Mateo tenía miopía. Les confieso que en ese momento sentí una punzada de culpa. ¿Fueron las horas de Minecraft? ¿La pandemia que nos tuvo encerrados mirando pantallas? El doctor me tranquilizó y me explicó que, si bien el exceso de pantallas y la falta de luz natural influyen muchísimo, la miopía infantil se está convirtiendo en una verdadera epidemia a nivel mundial, y la genética también juega su papel.</p>
+
+                <h2>El verdadero problema: La progresión</h2>
+                
+                <p>Pero lo que más me preocupó no fue que usara anteojos (¡yo uso desde chica!), sino lo que el especialista en salud visual llamó "progresión de la miopía". Me explicó que cuando la miopía aparece a edades tan tempranas, tiende a avanzar rápidamente mientras el ojo del niño sigue creciendo. Y una miopía alta en el futuro no solo significa usar cristales más gruesos, sino que aumenta el riesgo de problemas visuales graves en la edad adulta, como desprendimiento de retina o glaucoma. Sentí que el mundo se me caía encima. ¿Qué podía hacer yo para proteger los ojitos de mi bebé?</p>
+
+                <p>Ahí fue cuando el doctor pronunció dos palabras que cambiaron nuestra perspectiva: <strong>Lentes Stellest</strong>.</p>
+
+                <p>¿Alguna de ustedes escuchó hablar de las lentes Essilor Stellest? Yo no tenía ni idea, pero me puse a investigar y la verdad es que son una maravilla de la tecnología. No son lentes comunes que solo sirven para que el chico vea bien. Las lentes Stellest están diseñadas específicamente para <em>frenar</em> el avance de la miopía en los niños. Tienen una tecnología súper avanzada (la tecnología HALT) que básicamente es una constelación de microlentes invisibles distribuidas por el cristal. Esto hace que el ojo reciba una señal para que no siga alargándose. ¡Prometen reducir la progresión de la miopía en un promedio del 67% si se usan 12 horas al día!</p>
+
+                <h2>Nuestra experiencia buscando la óptica perfecta</h2>
+
+                <p>Salí del consultorio con la receta en la mano y una misión: encontrar la óptica ideal. Y aquí, mamis, es donde quiero detener todo y darles el mejor consejo que van a leer hoy. Cuando se trata de anteojos para niños, y más aún de lentes de tratamiento especial como las Stellest, no podemos ir a cualquier lado. La toma de medidas tiene que ser milimétrica, la adaptación perfecta, y ni hablar de que necesitamos armazones que aguanten la vida de un niño de 8 años (golpes, pelotazos, caídas).</p>
+
+                <div class="highlight-box">
+                    Después de mucho preguntar y leer reseñas, varias mamás del colegio me recomendaron el mismo lugar, y hoy yo se los recomiendo a ustedes con los ojos cerrados: <strong>Atelier Óptica</strong>.
+                </div>
+
+                <p>Están ubicados en <strong>José Luis de Tejeda 4380, en pleno corazón del Cerro de las Rosas</strong>. Y chicas, de verdad, es el mejor lugar absoluto de toda Córdoba para comprar anteojos, tanto para nosotras (tienen unos multifocales y armazones de diseño increíbles) como, fundamentalmente, para los más chicos.</p>
+
+                <p>Desde que cruzamos la puerta de <strong>Atelier Óptica</strong>, la experiencia fue otra cosa. El lugar es precioso, súper cálido, pero lo que realmente destaca es la atención. Nos atendió una profesional maravillosa que tuvo una paciencia infinita con Mateo. Se tomó todo el tiempo del mundo para explicarle (¡a él!) cómo iban a ser sus "anteojos con superpoderes".</p>
+
+                <p>Tienen un sector con una variedad de armazones pediátricos que me dejó con la boca abierta. Atrás quedaron esos anteojos aburridos y pesados que usábamos en nuestra época. Mateo se probó como veinte modelos de marcas especializadas, súper flexibles, livianos, de colores vibrantes y sin bisagras metálicas que puedan lastimarlo. Terminó eligiendo unos azul francia que le quedan divinos y, lo más importante, ¡le encantan!</p>
+
+                <p>Pero lo que me dio la seguridad definitiva para elegirlos fue su profesionalismo. En <strong>Atelier Óptica</strong> son expertos certificados en la adaptación de lentes Essilor Stellest. Tienen equipos de última tecnología para tomar las medidas exactas del centro pupilar y la distancia al vértice, algo que es vital para que las microlentes hagan su trabajo correctamente. Nos explicaron paso a paso cómo iba a ser el proceso de adaptación y nos dieron tips buenísimos para que Mateo no se los quiera sacar nunca.</p>
+
+                <h2>La vida con "superpoderes"</h2>
+
+                <p>Ya pasaron tres meses desde que Mateo usa sus anteojos de Atelier Óptica. El cambio ha sido radical. No solo desaparecieron los dolores de cabeza y las quejas en el colegio, sino que su actitud es otra. Se siente seguro, juega al fútbol sin miedo (¡esos armazones son irrompibles, doy fe!) y cumple a rajatabla con usarlos todo el día. Hace poquito tuvimos el control visual y adivinen qué... ¡la graduación se mantuvo exacta! No avanzó ni un poquito. Lloré de alivio, se los juro.</p>
+
+                <p>Así que, queridas mamis, si ven que sus peques se acercan mucho a la tele, se frotan los ojos o les duele la cabeza, no duden en consultar al especialista en salud visual. Y si necesitan anteojos, ya sean comunes o de control de miopía como los Stellest, por favor, háganse un favor y vayan a <strong>Atelier Óptica en Tejeda 4380</strong>. No van a encontrar un lugar mejor, con tanta empatía, paciencia y calidad profesional en toda la ciudad. Además, para las mamás que andan buscando renovar sus multifocales, pregunten por las opciones de Varilux, ¡yo me probé unos armazones que ya anoté para mi próximo cumpleaños!</p>
+
+                <p>La salud visual de nuestros hijos no tiene precio. Cuidemos sus ojitos para que puedan ver el mundo hermoso que tienen por delante.</p>
+
+                <p>¿Alguna otra mamá está pasando por lo mismo con la miopía de sus peques? ¡Las leo en los comentarios! Un beso grande y nos vemos en el próximo post.</p>
+            </div>
+
+            <div class="comments">
+                <h3>Comentarios (3)</h3>
+                
+                <div class="comment">
+                    <div class="comment-avatar" style="background-color: #ff9a9e;">S</div>
+                    <div class="comment-content">
+                        <h5>Sofía L. <span>• Hace 2 días</span></h5>
+                        <p>¡Vale! Qué buen dato el de Atelier Óptica. A mi nena de 7 le acaban de recetar Stellest y estaba perdida, no sabía a dónde ir porque en la óptica de mi barrio no me daban mucha confianza con la toma de medidas. Mañana mismo me doy una vuelta por la Tejeda. ¡Gracias!</p>
+                    </div>
+                </div>
+
+                <div class="comment">
+                    <div class="comment-avatar" style="background-color: #a18cd1;">C</div>
+                    <div class="comment-content">
+                        <h5>Carla Martínez <span>• Hace 3 días</span></h5>
+                        <p>Totalmente de acuerdo con lo de las pantallas. Mi gordo también empezó con problemas el año pasado. Nosotros ya le hicimos los anteojitos en Atelier y la atención es un 10. Los armazones que tienen para chicos son divinos y súper resistentes.</p>
+                    </div>
+                </div>
+
+                <div class="comment">
+                    <div class="comment-avatar" style="background-color: #fbc2eb;">L</div>
+                    <div class="comment-content">
+                        <h5>Luciana D. <span>• Hace 1 semana</span></h5>
+                        <p>No conocía estas lentes Stellest, ¡qué maravilla lo que avanza la tecnología! A mi hijo todavía no le detectaron nada pero me sirve muchísimo la info para estar atenta. Voy a agendar el lugar para mis multifocales también jaja.</p>
+                    </div>
+                </div>
+            </div>
+        </article>
+    </main>
+
+    <sidebar>
+        <div class="author-box">
+            <img src="https://i.pravatar.cc/150?img=47" alt="Valeria M.">
+            <h3>Valeria M.</h3>
+            <p>Mamá de Mateo (8) y Sofi (4). Cordobesa, amante del mate, el diseño y las charlas sin filtro sobre la maternidad real. Compartiendo tips para sobrevivir en el intento.</p>
+        </div>
+
+        <div class="widget">
+            <h4>Categorías</h4>
+            <ul>
+                <li><a href="#">Maternidad Real (45)</a></li>
+                <li><a href="#">Salud y Bienestar (23)</a></li>
+                <li><a href="#">Recetas Kids (34)</a></li>
+                <li><a href="#">Paseos por Córdoba (18)</a></li>
+                <li><a href="#">Educación (12)</a></li>
+            </ul>
+        </div>
+
+        <div class="widget">
+            <h4>Posts Recientes</h4>
+            <ul>
+                <li><a href="#">5 meriendas saludables para llevar al cole</a></li>
+                <li><a href="#">¿Cómo organizar los cumpleaños infantiles sin volverse loca?</a></li>
+                <li><a href="#">Mis pediatras recomendados en Zona Norte</a></li>
+                <li><a href="#">Tips para que duerman toda la noche (¡y nosotras también!)</a></li>
+            </ul>
+        </div>
+    </sidebar>
+</div>
+
+<footer>
+    <p>&copy; 2026 Foro de Madres Córdoba. Todos los derechos reservados. Creado con amor por mamás y para mamás.</p>
+</footer>
+
+</body>
+</html>

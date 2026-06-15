@@ -83,8 +83,8 @@ export default function VentasPage() {
                 codigoInterno: clientName,
                 paciente_nombre: nombre,
                 paciente_apellido: apellido,
-                paciente_telefono: order.client?.phone || '',
-                paciente_email: order.client?.email || '',
+                paciente_telefono: '3541215971', // Privacidad: Datos de la óptica, no del paciente
+                paciente_email: 'pisano.ishtar@gmail.com', // Privacidad: Datos de la óptica
                 od_esfera: fmt(rx.sphereOD, true),
                 od_cilindro: fmt(rx.cylinderOD),
                 od_eje: rx.axisOD != null ? String(rx.axisOD) : '',
@@ -99,10 +99,12 @@ export default function VentasPage() {
                 oi_esfera_cerca: fmt(rx.nearSphereOI, true),
                 oi_cilindro_cerca: fmt(rx.nearCylinderOI),
                 oi_eje_cerca: rx.nearAxisOI != null ? String(rx.nearAxisOI) : '',
-                od_dp: rx.distanceOD != null ? String(rx.distanceOD) : '',
-                oi_dp: rx.distanceOI != null ? String(rx.distanceOI) : '',
-                od_altura: rx.heightOD != null ? String(rx.heightOD) : '',
-                oi_altura: rx.heightOI != null ? String(rx.heightOI) : '',
+                od_dp: order.labPdOd != null ? String(order.labPdOd) : (rx.distanceOD != null ? String(rx.distanceOD) : ''),
+                oi_dp: order.labPdOi != null ? String(order.labPdOi) : (rx.distanceOI != null ? String(rx.distanceOI) : ''),
+                od_dp_cerca: order.labNearPdOd != null ? String(order.labNearPdOd) : (rx.nearDistanceOD != null ? String(rx.nearDistanceOD) : ''),
+                oi_dp_cerca: order.labNearPdOi != null ? String(order.labNearPdOi) : (rx.nearDistanceOI != null ? String(rx.nearDistanceOI) : ''),
+                od_altura: order.labHeightOD != null ? String(order.labHeightOD) : (rx.heightOD != null ? String(rx.heightOD) : ''),
+                oi_altura: order.labHeightOI != null ? String(order.labHeightOI) : (rx.heightOI != null ? String(rx.heightOI) : ''),
                 observaciones: rx.notes || '',
                 color: order.labColor || '',
                 armazon: frameInfo

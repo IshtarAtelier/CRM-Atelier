@@ -1,16 +1,24 @@
+import { Metadata } from 'next';
 import Link from "next/link";
 import { WHATSAPP_PHONE } from '@/lib/constants';
 
+
+export const metadata: Metadata = {
+  title: "colores cristales | Atelier Óptica",
+  description: "Descubrí todo sobre colores cristales en Atelier Óptica. Envíos a toda Argentina, cuotas sin interés y atención personalizada.",
+  keywords: ["óptica Argentina", "envíos a toda Argentina", "cuotas", "atención personalizada", "anteojos de receta", "colores cristales"],
+};
+
 export default function ColorsGuidePage() {
   return (
-    <div className="min-h-screen bg-white text-black font-sans selection:bg-black selection:text-white pb-20">
+    <div className="min-h-screen bg-[#faf8f5] text-black font-sans selection:bg-black selection:text-white pb-20">
       
       {/* HEADER MINIMALISTA ESTILO GM */}
       <header className="fixed top-0 w-full z-50 px-5 py-4 flex justify-between items-center bg-transparent mix-blend-difference text-white">
         <Link href="/" className="text-[13px] font-medium hover:opacity-60 transition-opacity" style={{ textShadow: "0 1px 3px rgba(0,0,0,0.3)" }}>
           Back
         </Link>
-        <Link href="/" className="absolute left-1/2 -translate-x-1/2 text-[16px] font-bold tracking-[0.15em] drop-shadow-md" style={{ fontFamily: "'Georgia', 'Times New Roman', serif" }}>
+        <Link href="/" className="absolute left-1/2 -translate-x-1/2 text-[16px] font-medium tracking-tight tracking-[0.15em] drop-shadow-md" style={{ fontFamily: "'Georgia', 'Times New Roman', serif" }}>
           ATELIER ÓPTICA
         </Link>
         <div className="flex gap-5">
@@ -28,24 +36,24 @@ export default function ColorsGuidePage() {
         </div>
 
         <div className="space-y-12 lg:space-y-16">
-          <section className="border-t border-[#e5e5e5] pt-12">
+          <section className="border-t border-black/10 pt-12">
             <h2 className="text-xl font-medium mb-6 lg:mb-8 text-center">Tonos Clásicos Neutros</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 lg:gap-8">
-               <div className="border border-[#e5e5e5] p-6 lg:p-8 relative overflow-hidden group hover:border-black transition-colors">
+               <div className="border border-black/10 p-6 lg:p-8 relative overflow-hidden group hover:border-black/30 transition-all duration-300 hover:shadow-md transition-colors">
                   <div className="absolute top-0 right-0 w-24 h-24 bg-[#555555] opacity-10 rounded-bl-full transition-transform group-hover:scale-110" />
                   <div className="w-8 h-8 rounded-full shadow-inner mb-4 bg-[#555555] opacity-85" />
                   <h3 className="text-[13px] font-bold uppercase tracking-widest mb-3">Gris</h3>
                   <p className="text-[13px] text-[#666] leading-relaxed">Transmite toda la gama de colores de forma fiel, reduciendo el brillo de forma neutra y equilibrada. Ideal para uso general, conducción y días soleados muy brillantes.</p>
                </div>
                
-               <div className="border border-[#e5e5e5] p-6 lg:p-8 relative overflow-hidden group hover:border-black transition-colors">
+               <div className="border border-black/10 p-6 lg:p-8 relative overflow-hidden group hover:border-black/30 transition-all duration-300 hover:shadow-md transition-colors">
                   <div className="absolute top-0 right-0 w-24 h-24 bg-[#2c4c3b] opacity-10 rounded-bl-full transition-transform group-hover:scale-110" />
                   <div className="w-8 h-8 rounded-full shadow-inner mb-4 bg-[#2c4c3b] opacity-85" />
                   <h3 className="text-[13px] font-bold uppercase tracking-widest mb-3">Verde G15</h3>
                   <p className="text-[13px] text-[#666] leading-relaxed">El tono originario de los clásicos Aviadores. Ofrece una visión muy relajante y natural. Bloquea ligeramente el azul, aumentando un poco el contraste visual general.</p>
                </div>
                
-               <div className="sm:col-span-2 border border-[#e5e5e5] p-6 lg:p-8 relative overflow-hidden group hover:border-black transition-colors">
+               <div className="sm:col-span-2 border border-black/10 p-6 lg:p-8 relative overflow-hidden group hover:border-black/30 transition-all duration-300 hover:shadow-md transition-colors">
                   <div className="absolute top-0 right-0 w-32 h-32 bg-[#6b4c3a] opacity-10 rounded-bl-full transition-transform group-hover:scale-110" />
                   <div className="w-8 h-8 rounded-full shadow-inner mb-4 bg-[#6b4c3a] opacity-85" />
                   <h3 className="text-[13px] font-bold uppercase tracking-widest mb-3">Marrón</h3>
@@ -54,7 +62,7 @@ export default function ColorsGuidePage() {
             </div>
           </section>
 
-          <section className="border-t border-[#e5e5e5] pt-12">
+          <section className="border-t border-black/10 pt-12">
             <h2 className="text-xl font-medium mb-6 lg:mb-8 text-center">Tonos Especiales de Alto Contraste</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 lg:gap-6">
                <div className="p-6 lg:p-8 bg-[#f9f9f9] relative overflow-hidden">
@@ -91,7 +99,7 @@ export default function ColorsGuidePage() {
         <div className="mt-16 lg:mt-20 p-8 lg:p-12 border border-black text-center">
           <h3 className="text-xl font-medium mb-3">¿Necesitás asesoramiento?</h3>
           <p className="text-[14px] text-[#666] mb-8">Si vas a realizar actividades específicas y no estás seguro qué cristal es el ideal para vos, te ayudamos a elegir.</p>
-          <a href={`https://wa.me/${WHATSAPP_PHONE}`} target="_blank" rel="noopener noreferrer" className="inline-block bg-black text-white px-8 py-4 text-[11px] font-bold uppercase tracking-widest hover:opacity-80 transition-opacity">Hablar con Asesor Técnico</a>
+          <a href={`https://wa.me/${WHATSAPP_PHONE}`} target="_blank" rel="noopener noreferrer" className="inline-block bg-black text-white px-8 py-4 text-[11px] font-bold uppercase tracking-widest hover:opacity-70 transition-all duration-300 transition-opacity">Hablar con Asesor Técnico</a>
         </div>
       </main>
     </div>

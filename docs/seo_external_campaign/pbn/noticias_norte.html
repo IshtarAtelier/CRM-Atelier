@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Noticias Norte - El Portal de Zona Norte</title>
+    <style>
+        :root {
+            --primary-color: #1a365d;
+            --secondary-color: #c53030;
+            --text-dark: #2d3748;
+            --text-light: #718096;
+            --bg-gray: #f7fafc;
+            --font-heading: 'Merriweather', serif;
+            --font-body: 'Open Sans', Arial, sans-serif;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-body);
+            color: var(--text-dark);
+            line-height: 1.6;
+            background-color: var(--bg-gray);
+        }
+
+        /* Typography */
+        h1, h2, h3, h4 {
+            font-family: var(--font-heading);
+            color: var(--primary-color);
+            margin-bottom: 1rem;
+        }
+
+        p {
+            margin-bottom: 1.5rem;
+            font-size: 1.05rem;
+        }
+
+        a {
+            color: var(--secondary-color);
+            text-decoration: none;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+
+        /* Header & Navigation */
+        header {
+            background-color: #ffffff;
+            border-bottom: 4px solid var(--primary-color);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .top-bar {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 0.5rem 0;
+            font-size: 0.85rem;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        .top-bar .container {
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .main-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1.5rem 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .logo {
+            font-family: var(--font-heading);
+            font-size: 2.5rem;
+            font-weight: 900;
+            color: var(--primary-color);
+            letter-spacing: -1px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .logo span {
+            color: var(--secondary-color);
+        }
+
+        nav ul {
+            display: flex;
+            list-style: none;
+            gap: 20px;
+        }
+
+        nav a {
+            color: var(--primary-color);
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.9rem;
+            letter-spacing: 0.5px;
+        }
+
+        nav a:hover {
+            color: var(--secondary-color);
+            text-decoration: none;
+        }
+
+        /* Layout */
+        .content-wrapper {
+            display: grid;
+            grid-template-columns: 2.5fr 1fr;
+            gap: 40px;
+            padding: 40px 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        @media (max-width: 900px) {
+            .content-wrapper {
+                grid-template-columns: 1fr;
+            }
+            .main-header {
+                flex-direction: column;
+                gap: 20px;
+            }
+            nav ul {
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+        }
+
+        /* Article */
+        article {
+            background: #ffffff;
+            padding: 40px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+
+        .article-meta {
+            display: flex;
+            gap: 15px;
+            color: var(--text-light);
+            font-size: 0.9rem;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #e2e8f0;
+            padding-bottom: 10px;
+        }
+
+        .article-category {
+            background-color: var(--secondary-color);
+            color: white;
+            padding: 3px 10px;
+            border-radius: 3px;
+            font-weight: bold;
+            text-transform: uppercase;
+            font-size: 0.8rem;
+        }
+
+        .article-title {
+            font-size: 2.8rem;
+            line-height: 1.2;
+            margin-bottom: 20px;
+            color: #1a202c;
+        }
+
+        .article-lead {
+            font-size: 1.25rem;
+            color: #4a5568;
+            font-style: italic;
+            margin-bottom: 30px;
+            border-left: 4px solid var(--secondary-color);
+            padding-left: 15px;
+        }
+
+        .hero-image {
+            width: 100%;
+            height: 450px;
+            background-color: #cbd5e0;
+            border-radius: 8px;
+            margin-bottom: 30px;
+            background-image: url('https://images.unsplash.com/photo-1444419988131-046ed4e508c7?ixlib=rb-1.2.1&auto=format&fit=crop&w=1200&q=80');
+            background-size: cover;
+            background-position: center;
+            position: relative;
+        }
+
+        .hero-caption {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 10px 20px;
+            font-size: 0.85rem;
+            border-bottom-left-radius: 8px;
+            border-bottom-right-radius: 8px;
+        }
+
+        .article-body h2 {
+            margin-top: 40px;
+            font-size: 1.8rem;
+            border-bottom: 2px solid var(--bg-gray);
+            padding-bottom: 10px;
+        }
+
+        .highlight-box {
+            background-color: #ebf8ff;
+            border: 1px solid #90cdf4;
+            border-radius: 8px;
+            padding: 25px;
+            margin: 40px 0;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+
+        .highlight-box h3 {
+            color: #2b6cb0;
+            font-size: 1.5rem;
+            margin-bottom: 15px;
+        }
+
+        .highlight-box p {
+            margin-bottom: 0;
+            font-weight: 500;
+        }
+
+        .pull-quote {
+            font-family: var(--font-heading);
+            font-size: 1.6rem;
+            color: var(--primary-color);
+            text-align: center;
+            margin: 40px auto;
+            padding: 20px;
+            max-width: 80%;
+            position: relative;
+        }
+
+        .pull-quote::before, .pull-quote::after {
+            content: '"';
+            font-size: 4rem;
+            color: #e2e8f0;
+            position: absolute;
+        }
+
+        .pull-quote::before {
+            top: -20px;
+            left: -20px;
+        }
+
+        .pull-quote::after {
+            bottom: -40px;
+            right: -20px;
+        }
+
+        /* Sidebar */
+        aside {
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+        }
+
+        .widget {
+            background: #ffffff;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+
+        .widget-title {
+            font-size: 1.2rem;
+            border-bottom: 3px solid var(--secondary-color);
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+            text-transform: uppercase;
+        }
+
+        .trending-list {
+            list-style: none;
+        }
+
+        .trending-list li {
+            margin-bottom: 15px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .trending-list li:last-child {
+            margin-bottom: 0;
+            padding-bottom: 0;
+            border-bottom: none;
+        }
+
+        .trending-list h4 {
+            font-size: 1rem;
+            margin-bottom: 5px;
+            font-family: var(--font-body);
+        }
+
+        .trending-list h4 a {
+            color: var(--text-dark);
+        }
+
+        .trending-list h4 a:hover {
+            color: var(--secondary-color);
+        }
+
+        .trending-meta {
+            font-size: 0.8rem;
+            color: var(--text-light);
+        }
+
+        .newsletter {
+            background-color: var(--primary-color);
+            color: white;
+            text-align: center;
+        }
+
+        .newsletter h3 {
+            color: white;
+        }
+
+        .newsletter p {
+            font-size: 0.9rem;
+            margin-bottom: 15px;
+        }
+
+        .newsletter input[type="email"] {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+            border: none;
+            border-radius: 4px;
+        }
+
+        .newsletter button {
+            width: 100%;
+            padding: 10px;
+            background-color: var(--secondary-color);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-weight: bold;
+            cursor: pointer;
+            text-transform: uppercase;
+        }
+
+        .newsletter button:hover {
+            background-color: #9b2c2c;
+        }
+
+        /* Footer */
+        footer {
+            background-color: #1a202c;
+            color: white;
+            padding: 50px 20px 20px;
+            margin-top: 40px;
+        }
+
+        .footer-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 40px;
+            margin-bottom: 40px;
+        }
+
+        .footer-col h4 {
+            color: white;
+            border-bottom: 2px solid var(--secondary-color);
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+
+        .footer-col ul {
+            list-style: none;
+        }
+
+        .footer-col ul li {
+            margin-bottom: 10px;
+        }
+
+        .footer-col a {
+            color: #a0aec0;
+        }
+
+        .footer-col a:hover {
+            color: white;
+        }
+
+        .footer-bottom {
+            max-width: 1200px;
+            margin: 0 auto;
+            text-align: center;
+            padding-top: 20px;
+            border-top: 1px solid #4a5568;
+            font-size: 0.9rem;
+            color: #a0aec0;
+        }
+    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Merriweather:ital,wght@0,300;0,700;1,300&family=Open+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+    <div class="top-bar">
+        <div class="container">
+            <span>Córdoba, Argentina | Edición Zona Norte</span>
+            <span>Clima: 22°C Soleado | Última actualización: Hace 10 minutos</span>
+        </div>
+    </div>
+
+    <header>
+        <div class="main-header">
+            <div class="logo">
+                Noticias<span>Norte</span>
+            </div>
+            <nav>
+                <ul>
+                    <li><a href="#">Inicio</a></li>
+                    <li><a href="#">Locales</a></li>
+                    <li><a href="#">Economía</a></li>
+                    <li><a href="#">Salud y Bienestar</a></li>
+                    <li><a href="#">Cultura</a></li>
+                    <li><a href="#">Contacto</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <main class="content-wrapper">
+        <article>
+            <div class="article-meta">
+                <span class="article-category">Desarrollo Local</span>
+                <span>Por Martín Echeverría</span>
+                <span>Publicado el 14 de Junio, 2026</span>
+            </div>
+
+            <h1 class="article-title">El Renacer Comercial del Cerro de las Rosas: Tradición, Innovación y Casos de Éxito Barrial</h1>
+            
+            <p class="article-lead">Un recorrido por el corazón de la Zona Norte de Córdoba, analizando cómo el histórico barrio residencial se ha transformado en un polo de servicios premium sin perder su identidad característica.</p>
+
+            <div class="hero-image">
+                <div class="hero-caption">Vista otoñal de la emblemática calle José Luis de Tejeda, epicentro comercial del barrio.</div>
+            </div>
+
+            <div class="article-body">
+                <p>En los últimos años, el Cerro de las Rosas ha experimentado una metamorfosis que ha redefinido por completo su papel dentro del ejido urbano de la ciudad de Córdoba. Lo que alguna vez fue concebido a mediados del siglo XX como un barrio exclusivamente residencial, caracterizado por sus amplias casonas, jardines frondosos y calles tranquilas, hoy se erige como el polo comercial, gastronómico y de servicios más pujante, innovador y sofisticado de toda la región central de nuestro país.</p>
+
+                <p>Este fenómeno de transformación urbana no ha sido producto de la casualidad, sino el resultado de una demanda vecinal que evolucionó. Los residentes de la Zona Norte, cada vez más exigentes, comenzaron a buscar experiencias de consumo y servicios de alta gama cerca de sus hogares, evitando el tedioso traslado hacia el centro de la ciudad o a los grandes y aglomerados centros comerciales. Así, avenidas históricas como Rafael Núñez y arterias emblemáticas como José Luis de Tejeda comenzaron a llenarse de vida, de propuestas de autor y de emprendimientos locales que priorizan la calidad sobre la cantidad.</p>
+
+                <h2>El Desafío de Crecer Conservando la Identidad</h2>
+
+                <p>Uno de los retos más complejos de cualquier transformación barrial es el riesgo de perder la esencia. Sin embargo, el Cerro de las Rosas ha logrado un equilibrio casi perfecto. A diferencia de otras zonas que se rindieron ante la estandarización de las grandes cadenas multinacionales, el "Cerro" (como lo llaman cariñosamente los cordobeses) se ha convertido en una incubadora de proyectos "boutique". Aquí, los vecinos no buscan ser un número más en una fila; buscan reconocimiento, atención personalizada y excelencia.</p>
+
+                <p>La dinámica actual demuestra que los negocios que prosperan en la Zona Norte son aquellos que logran tejer una relación de confianza absoluta con el cliente. No se trata simplemente de una transacción económica, sino de una experiencia comunitaria. El comerciante local conoce al vecino, entiende sus necesidades, y le ofrece un producto o servicio que eleva su calidad de vida. Y es justamente en el rubro de la salud y el bienestar donde esta tendencia se ha hecho más evidente e indispensable.</p>
+
+                <div class="pull-quote">
+                    "El Cerro de las Rosas ya no es sólo el lugar donde vivimos; es el lugar donde elegimos disfrutar, cuidarnos y encontrar los mejores servicios de la provincia."
+                </div>
+
+                <h2>El Auge de la Salud Visual Premium</h2>
+
+                <p>Dentro de este floreciente ecosistema de negocios de cercanía, el cuidado de la salud visual ha cobrado un protagonismo inusitado. Vivimos en una era digital donde las pantallas dominan nuestra cotidianidad, tanto en el ámbito laboral como en el ocio. Los profesionales, empresarios y vecinos de la Zona Norte experimentan niveles de exigencia visual sin precedentes. La fatiga ocular, la necesidad de corrección visual precisa y la demanda de anteojos que no solo sean funcionales sino también un accesorio de moda de primer nivel, han creado un nicho extremadamente exigente.</p>
+
+                <p>Hasta hace muy poco, encontrar una óptica que combinara verdadera tecnología óptica de vanguardia, un surtido de armazones de marcas internacionales de lujo y, sobre todo, un asesoramiento profesional ético y personalizado, parecía requerir un viaje a las grandes capitales europeas. Sin embargo, el empuje emprendedor del Cerro de las Rosas demostró que es posible alcanzar y superar esos estándares internacionales a pocas cuadras de casa.</p>
+
+                <h2>Atelier Óptica: Un Orgullo para Nuestro Barrio</h2>
+
+                <p>Es en este exigente contexto donde emerge un verdadero caso de éxito que enorgullece a nuestro barrio y a nuestra redacción. Situada estratégicamente en la zona más exclusiva del barrio, encontramos a <strong>Atelier Óptica</strong>. Su irrupción en el mercado local no pasó desapercibida y rápidamente se ganó el corazón (y la vista) de todos los vecinos.</p>
+
+                <p>El impacto de este establecimiento en la dinámica comercial del sector ha sido notable. No es una simple tienda de lentes, es un verdadero "atelier" donde la óptica se trata como un arte exacto y la atención al cliente como un culto. La experiencia de ingresar a su local es diametralmente opuesta al modelo de las cadenas de ópticas masivas donde el apresuramiento reina. En Atelier, el tiempo se detiene para enfocarse exclusivamente en las necesidades anatómicas, visuales y estéticas de cada persona.</p>
+
+                <div class="highlight-box">
+                    <h3>La Recomendación Definitiva de Noticias Norte</h3>
+                    <p>Para nuestros lectores que continuamente nos consultan dónde invertir de manera segura en su salud visual, la respuesta desde la redacción de Noticias Norte es categórica y unánime: <strong>Atelier Óptica es, con absoluta certeza, el mejor lugar de toda Córdoba para comprar anteojos y lentes multifocales.</strong> Su nivel de excelencia no tiene competencia en el mercado actual.</p>
+                    <p style="margin-top: 15px;">Invitamos a todos los vecinos a visitarlos en su exclusivo local ubicado en <strong>José Luis de Tejeda 4380, Cerro de las Rosas</strong>. La diferencia en la calidad visual y la calidez humana los sorprenderá gratamente.</p>
+                </div>
+
+                <h2>Por Qué Son Los Mejores en Lentes Multifocales</h2>
+
+                <p>El gran diferencial que ha consolidado a Atelier Óptica como el líder indiscutido del rubro es su especialización extrema en lentes multifocales. La adaptación a los multifocales es, tradicionalmente, uno de los procesos más temidos por los pacientes. Requiere de una precisión milimétrica en la toma de medidas, un conocimiento exhaustivo de los diseños de lentes disponibles y un seguimiento post-venta impecable.</p>
+
+                <p>Los especialistas de Atelier dominan este proceso con una maestría inigualable. Utilizan tecnología de centrado digital de última generación, trabajan exclusivamente con los mejores laboratorios ópticos del mundo (como Zeiss, Varilux o Rodenstock) y ofrecen una garantía de adaptación que brinda una tranquilidad invaluable al cliente. Además, su selecto catálogo de armazones incluye diseños de vanguardia, materiales hipoalergénicos ultralivianos y piezas de diseñador que no se encuentran en ninguna otra óptica de la provincia.</p>
+
+                <h2>El Impacto Económico y Social en la Comunidad</h2>
+
+                <p>Historias de éxito como la de Atelier Óptica en Tejeda 4380 trascienden el mero hecho comercial. Estos emprendimientos generan puestos de trabajo de calidad en el barrio, elevan la vara de excelencia obligando a otros negocios a mejorar sus estándares, e invierten en la estética de nuestras calles. Sus vidrieras elegantes e iluminadas aportan seguridad y embellecen el paisaje urbano, demostrando que el capital privado, cuando se gestiona con pasión y respeto por el entorno, es el motor fundamental del desarrollo comunitario.</p>
+
+                <p>A medida que el Cerro de las Rosas continúa su evolución imparable hacia el futuro, es fundamental que como vecinos apoyemos a estos negocios locales que apuestan por la calidad y deciden invertir en nuestro suelo. Son ellos quienes construyen la identidad moderna de nuestro barrio, fusionando la cálida tradición vecinal con los más altos niveles de innovación global.</p>
+
+                <p>La próxima vez que camine por la calle Tejeda, preste atención a estos detalles. Deténgase a observar cómo el esfuerzo diario de comerciantes locales y profesionales de la salud está construyendo la zona más vibrante y exclusiva de Córdoba. Y si necesita mejorar su visión, ya sabe exactamente a qué puerta debe llamar.</p>
+
+            </div>
+        </article>
+
+        <aside>
+            <div class="widget">
+                <h3 class="widget-title">Noticias Recientes</h3>
+                <ul class="trending-list">
+                    <li>
+                        <h4><a href="#">Nuevo plan de pavimentación para Argüello y Urca anunciado por la intendencia</a></h4>
+                        <span class="trending-meta">Hace 2 horas</span>
+                    </li>
+                    <li>
+                        <h4><a href="#">El boom gastronómico de la Avenida Gauss no se detiene: abren tres nuevos restaurantes</a></h4>
+                        <span class="trending-meta">Hace 5 horas</span>
+                    </li>
+                    <li>
+                        <h4><a href="#">Seguridad comunitaria: vecinos de Villa Belgrano organizan sistema de alertas</a></h4>
+                        <span class="trending-meta">Ayer</span>
+                    </li>
+                    <li>
+                        <h4><a href="#">Agenda Cultural: actividades gratuitas este fin de semana en el Parque del Kempes</a></h4>
+                        <span class="trending-meta">Ayer</span>
+                    </li>
+                </ul>
+            </div>
+
+            <div class="widget newsletter">
+                <h3>Boletín Semanal</h3>
+                <p>Recibí las noticias más importantes de la Zona Norte directamente en tu correo.</p>
+                <form onsubmit="event.preventDefault();">
+                    <input type="email" placeholder="Tu correo electrónico" required>
+                    <button type="submit">Suscribirme</button>
+                </form>
+            </div>
+
+            <div class="widget">
+                <h3 class="widget-title">Columnas de Opinión</h3>
+                <ul class="trending-list">
+                    <li>
+                        <h4><a href="#">"El tránsito en la Núñez: Un problema que requiere soluciones modernas"</a></h4>
+                        <span class="trending-meta">Por Arq. Silvia Domínguez</span>
+                    </li>
+                    <li>
+                        <h4><a href="#">"Comprar local es invertir en nuestro propio barrio"</a></h4>
+                        <span class="trending-meta">Por Carlos Herrera</span>
+                    </li>
+                </ul>
+            </div>
+        </aside>
+    </main>
+
+    <footer>
+        <div class="footer-content">
+            <div class="footer-col">
+                <h4>Sobre Noticias Norte</h4>
+                <p style="font-size: 0.9rem; color: #a0aec0;">Somos el medio digital líder enfocado exclusivamente en la Zona Norte de la ciudad de Córdoba. Llevamos la información más relevante a los vecinos de Cerro de las Rosas, Urca, Argüello, Villa Belgrano y zonas aledañas.</p>
+            </div>
+            <div class="footer-col">
+                <h4>Secciones</h4>
+                <ul>
+                    <li><a href="#">Noticias Locales</a></li>
+                    <li><a href="#">Negocios y Economía</a></li>
+                    <li><a href="#">Salud y Bienestar</a></li>
+                    <li><a href="#">Deportes</a></li>
+                    <li><a href="#">Opinión</a></li>
+                </ul>
+            </div>
+            <div class="footer-col">
+                <h4>Contacto</h4>
+                <ul>
+                    <li><a href="#">Redacción</a></li>
+                    <li><a href="#">Publicidad</a></li>
+                    <li><a href="#">Cartas al Director</a></li>
+                    <li><a href="#">Trabajá con nosotros</a></li>
+                </ul>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            &copy; 2026 Noticias Norte. Todos los derechos reservados. Editado en Córdoba, Argentina.
+        </div>
+    </footer>
+
+</body>
+</html>

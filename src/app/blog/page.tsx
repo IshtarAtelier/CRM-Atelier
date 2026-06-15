@@ -49,10 +49,10 @@ export default function BlogIndexPage() {
       <main className="flex-grow pt-32 pb-16">
         <section className="px-6 mb-16">
           <div className="max-w-4xl mx-auto text-center">
-            <span className="inline-block py-1 px-3 rounded-full bg-[#e8e2db] text-black/60 text-sm font-bold tracking-widest uppercase mb-4">
+            <span className="inline-block py-1 px-3 rounded-full bg-[#e8e2db] text-black/60 text-sm font-medium tracking-tight tracking-widest uppercase mb-4">
               Atelier Journal
             </span>
-            <h1 className="text-4xl md:text-6xl font-bold tracking-tight mb-6">
+            <h1 className="text-4xl md:text-6xl font-medium tracking-tight tracking-tight mb-6">
               Educación y Salud Visual
             </h1>
             <p className="text-lg text-black/60 md:text-xl max-w-2xl mx-auto">
@@ -64,21 +64,21 @@ export default function BlogIndexPage() {
         <section className="max-w-5xl mx-auto px-6 mb-24">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             {ARTICULOS.map((post) => (
-              <div key={post.slug} className="group flex flex-col bg-white rounded-2xl p-8 shadow-sm border border-[#e8e2db] hover:border-black/30 transition-colors">
+              <div key={post.slug} className="group flex flex-col bg-white rounded-2xl p-8 shadow-[0_2px_10px_rgba(0,0,0,0.02)] border border-[#e8e2db] hover:border-black/30 transition-colors">
                 <div className="flex items-center gap-3 mb-4">
-                  <span className="text-xs font-bold uppercase tracking-wider text-[#283f5a]">
+                  <span className="text-xs font-medium tracking-tight uppercase tracking-wider text-[#111]">
                     {post.category}
                   </span>
                   <span className="text-xs text-black/40">·</span>
                   <span className="text-xs text-black/40">{post.date}</span>
                 </div>
-                <h2 className="text-xl font-bold mb-3 group-hover:text-[#283f5a] transition-colors line-clamp-2">
+                <h2 className="text-xl font-medium tracking-tight mb-3 group-hover:text-[#111] transition-colors line-clamp-2">
                   {post.title}
                 </h2>
                 <p className="text-black/60 mb-6 flex-grow line-clamp-3">
                   {post.excerpt}
                 </p>
-                <Link href="#" className="inline-flex items-center text-sm font-bold text-black opacity-50 cursor-not-allowed">
+                <Link href="#" className="inline-flex items-center text-sm font-medium tracking-tight text-black opacity-50 cursor-not-allowed">
                   Próximamente →
                 </Link>
               </div>

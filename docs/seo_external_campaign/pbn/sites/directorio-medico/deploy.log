@@ -1,0 +1,42 @@
+Vercel CLI 54.14.0 (Node.js 22.22.3)
+
+  Set up "~/proyectos/atelier/docs/seo_external_campaign/pbn/sites/directorio-medico"
+Loading teams…
+Searching for existing projects…
+  No framework detected. Default Project Settings:
+  Build Command: `npm run vercel-build` or `npm run build`
+  Development Command: None
+  Install Command: `yarn install`, `pnpm install`, `npm install`, or `bun install`
+  Output Directory: `public` if it exists, or `.`
+  Linked      atelier-s-projects2/directorio-medico
+Deploying atelier-s-projects2/directorio-medico
+Uploading [--------------------] (0.0B/547B)
+Uploading [====================] (547.0B/547B)
+  Inspect     https://vercel.com/atelier-s-projects2/directorio-medico/9L1q1NdAnjMmXEuGtcSW6cRHMuhX
+▲ Production  https://directorio-medico-axkcseggm-atelier-s-projects2.vercel.app
+Building…
+[2K[1A[2K[G▲ Production  https://directorio-medico-axkcseggm-atelier-s-projects2.vercel.app
+Completing…
+▲ Aliased     https://directorio-medico-topaz.vercel.app
+{
+  "status": "ok",
+  "deployment": {
+    "id": "dpl_9L1q1NdAnjMmXEuGtcSW6cRHMuhX",
+    "url": "https://directorio-medico-axkcseggm-atelier-s-projects2.vercel.app",
+    "inspectorUrl": "https://vercel.com/atelier-s-projects2/directorio-medico/9L1q1NdAnjMmXEuGtcSW6cRHMuhX",
+    "readyState": "READY",
+    "target": "production",
+    "deploymentApiUrl": "https://api.vercel.com/v13/deployments/dpl_9L1q1NdAnjMmXEuGtcSW6cRHMuhX"
+  },
+  "message": "Deployment directorio-medico-axkcseggm-atelier-s-projects2.vercel.app ready.",
+  "next": [
+    {
+      "command": "vercel inspect directorio-medico-axkcseggm-atelier-s-projects2.vercel.app",
+      "when": "Inspect deployment"
+    },
+    {
+      "command": "vercel deploy --prod",
+      "when": "Promote to production"
+    }
+  ]
+}

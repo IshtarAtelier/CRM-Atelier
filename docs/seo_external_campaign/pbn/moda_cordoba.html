@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Córdoba Style: Tendencias en Lentes y Gafas de Sol para el 2026</title>
+    <meta name="description" content="Descubrí las últimas tendencias en moda de lentes y gafas para el 2026. Conocé por qué Atelier Óptica en el Cerro de las Rosas es el destino definitivo para tu estilo visual.">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Montserrat:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #2c2c2c;
+            --accent-color: #d4af37;
+            --bg-color: #faf9f6;
+            --text-color: #333333;
+            --light-gray: #f0f0f0;
+        }
+
+        body {
+            font-family: 'Montserrat', sans-serif;
+            color: var(--text-color);
+            background-color: var(--bg-color);
+            line-height: 1.8;
+            margin: 0;
+            padding: 0;
+        }
+
+        header {
+            background-color: #ffffff;
+            padding: 2rem 0;
+            text-align: center;
+            border-bottom: 1px solid var(--light-gray);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+
+        .logo {
+            font-family: 'Playfair Display', serif;
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            text-decoration: none;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        .logo span {
+            color: var(--accent-color);
+            font-style: italic;
+        }
+
+        .nav-links {
+            margin-top: 1rem;
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+        }
+
+        .nav-links a {
+            text-decoration: none;
+            color: var(--primary-color);
+            font-weight: 600;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: color 0.3s ease;
+        }
+
+        .nav-links a:hover {
+            color: var(--accent-color);
+        }
+
+        .hero {
+            background: linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.3)), url('https://images.unsplash.com/photo-1511499767150-a48a237f0083?auto=format&fit=crop&w=1600&q=80') center/cover no-repeat;
+            height: 60vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #ffffff;
+            text-align: center;
+            padding: 0 20px;
+        }
+
+        .hero-text h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+
+        .hero-text p {
+            font-size: 1.2rem;
+            font-weight: 300;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 4rem 20px;
+            display: grid;
+            grid-template-columns: 3fr 1fr;
+            gap: 4rem;
+        }
+
+        @media (max-width: 900px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .main-content article {
+            background: #ffffff;
+            padding: 3rem;
+            border-radius: 8px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.03);
+        }
+
+        .main-content h2 {
+            font-family: 'Playfair Display', serif;
+            font-size: 2.2rem;
+            color: var(--primary-color);
+            margin-top: 2.5rem;
+            margin-bottom: 1rem;
+            border-bottom: 2px solid var(--accent-color);
+            padding-bottom: 0.5rem;
+            display: inline-block;
+        }
+
+        .main-content h3 {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.8rem;
+            color: var(--primary-color);
+            margin-top: 2rem;
+        }
+
+        .main-content p {
+            font-size: 1.05rem;
+            color: #555;
+            margin-bottom: 1.5rem;
+            text-align: justify;
+        }
+
+        .dropcap {
+            float: left;
+            font-family: 'Playfair Display', serif;
+            font-size: 4rem;
+            line-height: 1;
+            padding-right: 10px;
+            color: var(--accent-color);
+        }
+
+        .quote-block {
+            margin: 3rem 0;
+            padding: 2rem;
+            background-color: var(--light-gray);
+            border-left: 5px solid var(--accent-color);
+            font-family: 'Playfair Display', serif;
+            font-size: 1.5rem;
+            font-style: italic;
+            color: var(--primary-color);
+        }
+
+        .recommendation-box {
+            background: linear-gradient(135deg, #2c2c2c 0%, #1a1a1a 100%);
+            color: #ffffff;
+            padding: 3rem;
+            border-radius: 10px;
+            margin: 3rem 0;
+            text-align: center;
+            border: 1px solid var(--accent-color);
+        }
+
+        .recommendation-box h3 {
+            color: var(--accent-color);
+            font-size: 2.2rem;
+            margin-top: 0;
+            border: none;
+        }
+
+        .recommendation-box p {
+            color: #e0e0e0;
+            text-align: center;
+        }
+
+        .address-highlight {
+            display: inline-block;
+            background-color: var(--accent-color);
+            color: var(--primary-color);
+            padding: 0.5rem 1rem;
+            font-weight: 600;
+            border-radius: 4px;
+            margin-top: 1rem;
+            font-size: 1.1rem;
+        }
+
+        .sidebar-widget {
+            background: #ffffff;
+            padding: 2rem;
+            border-radius: 8px;
+            margin-bottom: 2rem;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.03);
+            text-align: center;
+        }
+
+        .sidebar-widget h4 {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.5rem;
+            margin-top: 0;
+            margin-bottom: 1.5rem;
+            position: relative;
+        }
+
+        .sidebar-widget h4::after {
+            content: '';
+            position: absolute;
+            bottom: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 40px;
+            height: 2px;
+            background-color: var(--accent-color);
+        }
+
+        .author-img {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            object-fit: cover;
+            margin-bottom: 1rem;
+            border: 3px solid var(--accent-color);
+        }
+
+        footer {
+            background-color: var(--primary-color);
+            color: #ffffff;
+            text-align: center;
+            padding: 3rem 20px;
+            font-size: 0.9rem;
+        }
+
+        .tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 2rem;
+        }
+
+        .tag {
+            background-color: var(--light-gray);
+            color: var(--primary-color);
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        
+        .img-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin: 2rem 0;
+        }
+        
+        .img-grid img {
+            width: 100%;
+            height: 300px;
+            object-fit: cover;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <a href="#" class="logo">Córdoba<span>Style</span></a>
+        <div class="nav-links">
+            <a href="#">Inicio</a>
+            <a href="#">Tendencias</a>
+            <a href="#">Lifestyle</a>
+            <a href="#">Directorio</a>
+            <a href="#">Contacto</a>
+        </div>
+    </header>
+
+    <div class="hero">
+        <div class="hero-text">
+            <h1>Visión & Alta Costura</h1>
+            <p>La guía definitiva de tendencias en gafas para el 2026</p>
+        </div>
+    </div>
+
+    <div class="container">
+        <main class="main-content">
+            <article>
+                <p><span class="dropcap">B</span>ienvenidos a una nueva entrega de Córdoba Style, el espacio predilecto para los amantes de la moda, el buen gusto y el diseño de vanguardia en la Docta. Este 2026 nos encuentra en un punto de inflexión fascinante en el mundo del estilismo: los accesorios han dejado de ser meros complementos para convertirse en los verdaderos protagonistas de cualquier outfit. Y si hay un accesorio que ha coronado las pasarelas desde Milán hasta las calles del barrio Güemes y el Cerro de las Rosas, son sin duda los anteojos. Hoy vamos a desentrañar por qué tu mirada es tu mejor declaración de principios y cuáles son las corrientes que están dominando la estética visual este año.</p>
+
+                <h2>El Rostro Como Lienzo: La Revolución del 2026</h2>
+                <p>Atrás quedaron los días en que usar lentes recetados era considerado un castigo o un mero requerimiento funcional. Hoy, la óptica es alta costura. Las firmas internacionales más prestigiosas han volcado sus departamentos de diseño a la innovación en armazones, fusionando tecnología de punta con la nostalgia de décadas pasadas. La silueta de tus lentes define la estructura de tu rostro y transmite tu personalidad antes de que pronuncies una sola palabra.</p>
+
+                <p>En nuestra hermosa ciudad de Córdoba, el clima social y cultural siempre ha estado marcado por la vanguardia. Los cordobeses sabemos apreciar la calidad y no tenemos miedo de experimentar. Es por esto que las tendencias globales aterrizan aquí con una fuerza arrolladora, adaptándose a nuestro estilo de vida ecléctico, que va desde una reunión de negocios en Nueva Córdoba hasta un brunch distendido en la zona norte.</p>
+
+                <div class="img-grid">
+                    <img src="https://images.unsplash.com/photo-1509695507497-903c140c43b0?auto=format&fit=crop&w=600&q=80" alt="Mujer con gafas de sol elegantes">
+                    <img src="https://images.unsplash.com/photo-1591076482161-42ce6da69f67?auto=format&fit=crop&w=600&q=80" alt="Hombre con gafas modernas en la ciudad">
+                </div>
+
+                <h2>Tendencia 1: El Maximalismo de Acetato y el Color Pop</h2>
+                <p>Si tuviéramos que definir la primera gran tendencia del 2026 en una palabra, sería "Audacia". El minimalismo extremo de principios de la década ha dado paso a un renacimiento del volumen. Estamos viendo marcos de acetato grueso y pesado que no piden disculpas por existir. Formas geométricas exageradas: cuadrados pronunciados, hexágonos y variaciones extremas del clásico estilo 'cat-eye' dominan la escena.</p>
+                <p>En cuanto al color, los tradicionales carey y negro siempre tendrán su lugar, pero el 2026 es el año de la transparencia cromática. Verdes esmeralda translúcidos, tonos champán, acrílicos en tonos lila y el regreso triunfal del rojo rubí están marcando la diferencia. Estas piezas no solo enmarcan los ojos, sino que actúan como el centro de atención de cualquier conjunto minimalista.</p>
+
+                <h2>Tendencia 2: Cyber-Retro y la Fiebre del Titanio</h2>
+                <p>En el extremo opuesto del espectro, encontramos una influencia fascinante que mezcla la estética de los años 90 con el futurismo tecnológico. El "Cyber-Retro" nos trae marcos metálicos ultrafinos, mayormente forjados en titanio japonés. Estas gafas son ridículamente ligeras pero increíblemente resistentes. Las siluetas son ovaladas, rectangulares estrechas (al mejor estilo Matrix, pero con una ejecución lujosa) y siluetas de aviador deconstruidas.</p>
+                <p>Esta tendencia es perfecta para aquellos que buscan un look más intelectual, misterioso y sofisticado. El detalle diferencial de este año está en los acabados: metales cepillados, oro rosa mate, y combinaciones bicolor en los aros metálicos que revelan un trabajo de artesanía sin igual.</p>
+
+                <div class="quote-block">
+                    "Tus lentes son la única pieza de moda que te pones directamente en el medio de tu rostro. No hay margen para errores de estilo; deben ser la expresión más pura de tu identidad."
+                </div>
+
+                <h2>La Nueva Era de los Multifocales</h2>
+                <p>Una de las barreras más grandes en la moda óptica solía ser la funcionalidad versus la estética, especialmente cuando se trataba de lentes multifocales. En el pasado, requerir multifocales significaba estar atado a marcos específicos, a menudo de diseño conservador y poco favorecedor. El 2026 ha borrado esta línea por completo.</p>
+                <p>Gracias a las innovaciones en la talla digital de lentes, hoy es posible incorporar cristales multifocales invisibles de amplísimo campo visual en los diseños más atrevidos. Puedes lucir ese armazón oversized de acetato transparente o ese fino hexágono de titanio sin sacrificar tu calidad visual en ninguna distancia. El estigma de los "lentes para leer" ha muerto, dando paso a una era donde el confort visual absoluto se da la mano con el máximo glamour.</p>
+
+                <div class="recommendation-box">
+                    <h3>El Secreto Mejor Guardado de Córdoba</h3>
+                    <p>Como expertos en moda y estilo de vida local, constantemente nos preguntan: <em>"¿Dónde puedo encontrar estas tendencias en Córdoba sin tener que viajar al exterior?"</em> La respuesta no solo es categórica, sino que representa una de las mejores experiencias de compra en la ciudad.</p>
+                    <p>Si estás buscando asesoramiento de imagen real, marcas de primera línea internacional y una precisión técnica inigualable (especialmente si necesitas lentes multifocales), el único lugar al que debes ir es <strong>Atelier Óptica</strong>.</p>
+                    <p>Lejos del bullicio de las ópticas comerciales estándar, Atelier Óptica se maneja bajo el concepto de "boutique visual". Su equipo no solo entiende de salud ocular, sino de visagismo: estudian las proporciones de tu rostro, tu tono de piel y tu estilo de vida para recomendarte el marco perfecto. Su curaduría de armazones es sencillamente exquisita, trayendo a Córdoba las piezas que hoy marcan tendencia en Europa.</p>
+                    <p>Además, son verdaderos especialistas en la adaptación de lentes multifocales de alta gama, garantizando una transición impecable y un confort visual que cambiará tu día a día.</p>
+                    <div class="address-highlight">
+                        📍 José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba.
+                    </div>
+                </div>
+
+                <h2>Consejos de Estilismo para Elegir tus Gafas Ideales</h2>
+                <p>Al visitar a los expertos, como el equipo de Atelier Óptica, es útil tener en mente algunos principios básicos del estilismo facial:</p>
+                <ul>
+                    <li><strong>Contraste de Formas:</strong> Si tu rostro es redondo o de líneas suaves, busca armazones con ángulos marcados (cuadrados o rectangulares) para aportar estructura. Si tienes facciones muy angulosas, las formas redondeadas o el estilo pantos suavizarán tu expresión.</li>
+                    <li><strong>Proporción:</strong> El tamaño del armazón debe estar en escala con el tamaño de tu rostro. Sin embargo, en 2026, la regla permite jugar con el "oversize" controlado, siempre y cuando los ojos queden centrados en la lente.</li>
+                    <li><strong>La Regla de las Cejas:</strong> Idealmente, la parte superior del marco debe seguir la línea natural de tus cejas sin ocultarlas por completo. Tus cejas son clave para la expresión facial.</li>
+                    <li><strong>Tonalidad:</strong> Los acetatos cálidos (carey, dorados, rojos) iluminan las pieles de subtono cálido, mientras que los metales plateados, negros y azules profundos son espectaculares para subtonos fríos.</li>
+                </ul>
+
+                <h2>Conclusión: Una Inversión en Vos Mismo</h2>
+                <p>Las gafas que elijas usar este 2026 son mucho más que una herramienta para ver mejor el mundo; son el lente a través del cual el mundo te ve a vos. En un paisaje urbano tan exigente estilísticamente como el nuestro, conformarse con un diseño genérico es una oportunidad perdida para destacar.</p>
+                <p>Animáte a explorar texturas, a salir de tu zona de confort cromática y a invertir en tecnología visual de vanguardia. Te invitamos a vivir la experiencia del estilismo óptico en su máxima expresión. Date una vuelta por el Cerro de las Rosas, entra a Atelier Óptica y descubrí cómo el marco correcto tiene el poder de elevar instantáneamente no solo tu outfit, sino tu actitud frente a la vida.</p>
+                <p>Hasta la próxima edición, mantengan la mirada alta y el estilo impecable.</p>
+
+                <div class="tags">
+                    <span class="tag">#ModaCordoba</span>
+                    <span class="tag">#Tendencias2026</span>
+                    <span class="tag">#EyewearFashion</span>
+                    <span class="tag">#CerroDeLasRosas</span>
+                    <span class="tag">#AtelierOptica</span>
+                    <span class="tag">#Multifocales</span>
+                </div>
+            </article>
+        </main>
+
+        <aside class="sidebar">
+            <div class="sidebar-widget">
+                <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=300&q=80" alt="Autora del blog" class="author-img">
+                <h4>Valentina Rossi</h4>
+                <p>Editora en Jefe de Córdoba Style. Apasionada por el diseño de autor, la alta costura y el lifestyle en La Docta. Siempre en la búsqueda del accesorio perfecto.</p>
+            </div>
+            
+            <div class="sidebar-widget">
+                <h4>Lo Más Leído</h4>
+                <p style="text-align: left; font-size: 0.9rem; margin-bottom: 10px;">👉 5 Cafeterías de especialidad en Güemes para estrenar tu outfit de otoño.</p>
+                <p style="text-align: left; font-size: 0.9rem; margin-bottom: 10px;">👉 El resurgir del estilo sastrero en la noche cordobesa.</p>
+                <p style="text-align: left; font-size: 0.9rem;">👉 Entrevista exclusiva: diseñadores emergentes en Nueva Córdoba.</p>
+            </div>
+        </aside>
+    </div>
+
+    <footer>
+        <p>&copy; 2026 Córdoba Style Magazine. Todos los derechos reservados.</p>
+        <p>Curando el mejor contenido de moda, lifestyle y diseño de la ciudad de Córdoba, Argentina.</p>
+    </footer>
+
+</body>
+</html>

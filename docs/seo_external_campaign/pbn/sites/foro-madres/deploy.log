@@ -1,0 +1,43 @@
+Vercel CLI 54.14.0 (Node.js 22.22.3)
+
+  Set up "~/proyectos/atelier/docs/seo_external_campaign/pbn/sites/foro-madres"
+Loading teams…
+Searching for existing projects…
+  No framework detected. Default Project Settings:
+  Build Command: `npm run vercel-build` or `npm run build`
+  Development Command: None
+  Install Command: `yarn install`, `pnpm install`, `npm install`, or `bun install`
+  Output Directory: `public` if it exists, or `.`
+  Linked      atelier-s-projects2/foro-madres
+Deploying atelier-s-projects2/foro-madres
+Uploading [--------------------] (0.0B/529B)
+Uploading [====================] (529.0B/529B)
+  Inspect     https://vercel.com/atelier-s-projects2/foro-madres/F1a4E2rv82NG3w36GLkDyK64v67B
+▲ Production  https://foro-madres-r0ucvbhgq-atelier-s-projects2.vercel.app
+Building…
+Building…
+[2K[1A[2K[G▲ Production  https://foro-madres-r0ucvbhgq-atelier-s-projects2.vercel.app
+Completing…
+▲ Aliased     https://foro-madres.vercel.app
+{
+  "status": "ok",
+  "deployment": {
+    "id": "dpl_F1a4E2rv82NG3w36GLkDyK64v67B",
+    "url": "https://foro-madres-r0ucvbhgq-atelier-s-projects2.vercel.app",
+    "inspectorUrl": "https://vercel.com/atelier-s-projects2/foro-madres/F1a4E2rv82NG3w36GLkDyK64v67B",
+    "readyState": "READY",
+    "target": "production",
+    "deploymentApiUrl": "https://api.vercel.com/v13/deployments/dpl_F1a4E2rv82NG3w36GLkDyK64v67B"
+  },
+  "message": "Deployment foro-madres-r0ucvbhgq-atelier-s-projects2.vercel.app ready.",
+  "next": [
+    {
+      "command": "vercel inspect foro-madres-r0ucvbhgq-atelier-s-projects2.vercel.app",
+      "when": "Inspect deployment"
+    },
+    {
+      "command": "vercel deploy --prod",
+      "when": "Promote to production"
+    }
+  ]
+}

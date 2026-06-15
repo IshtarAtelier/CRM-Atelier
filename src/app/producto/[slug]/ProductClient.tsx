@@ -27,6 +27,7 @@ export function ProductClient({
 }) {
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [showConfigurator, setShowConfigurator] = useState(false);
+  const [isAdded, setIsAdded] = useState(false);
   
   // E-commerce states
   const [activeAccordion, setActiveAccordion] = useState<string | null>("description");
@@ -53,9 +54,16 @@ export function ProductClient({
     : (product.mockImage ? [product.mockImage] : []);
 
   const getThumbnailLabel = (index: number) => {
-    if (index === 0) return <Camera className="w-4 h-4" />;
-    if (index === 1) return <User className="w-4 h-4" />;
-    if (index === 2) return <UserPlus className="w-4 h-4" />; 
+    if (images[index]) {
+      return (
+        <Image 
+          src={images[index]} 
+          alt={`Vista ${index + 1}`} 
+          fill 
+          className="object-cover p-1 rounded-full" 
+        />
+      );
+    }
     return <Camera className="w-4 h-4" />;
   };
 
@@ -78,10 +86,10 @@ export function ProductClient({
                 <button
                   key={idx}
                   onClick={() => setActiveImageIndex(idx)}
-                  className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 backdrop-blur-md border ${
+                  className={`w-12 h-12 rounded-full relative overflow-hidden flex items-center justify-center transition-all duration-300 backdrop-blur-md border ${
                     activeImageIndex === idx 
-                      ? 'bg-black text-white border-black scale-110' 
-                      : 'bg-white/50 text-stone-600 border-stone-200 hover:bg-white'
+                      ? 'border-black scale-110 shadow-md ring-2 ring-black/20 ring-offset-1' 
+                      : 'border-stone-200 hover:border-black/50 hover:scale-105'
                   }`}
                   title={idx === 0 ? "Ver producto" : "Virtual Try-On"}
                 >
@@ -105,7 +113,7 @@ export function ProductClient({
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
                   transition={{ duration: 0.4 }}
-                  className={`absolute inset-0 z-10 isolate ${activeImageIndex === 0 ? 'mix-blend-multiply' : ''}`}
+                  className={`absolute inset-0 z-10 isolate group-hover:scale-[1.3] group-hover:cursor-zoom-in transition-transform duration-700 ease-out origin-center ${activeImageIndex === 0 ? 'mix-blend-multiply' : ''}`}
                 >
                   <Image 
                     src={images[activeImageIndex]} 
@@ -155,43 +163,20 @@ export function ProductClient({
               initial={{ y: 20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ delay: 0.35, duration: 0.8 }}
-              className="flex flex-wrap items-center gap-3 mb-6"
+              className="flex flex-wrap items-center gap-2 mb-6 text-[11px] text-stone-500"
             >
-              {product.modelCode && (
-                <span className="text-[10px] text-stone-500 font-bold bg-amber-50 border border-amber-200/50 px-2 py-1 rounded-sm">
-                  Código Interno: {product.modelCode}
-                </span>
-              )}
-              <span className="text-[10px] text-stone-400 font-mono bg-stone-100 px-2 py-1 rounded-sm">
-                SKU: {product.id?.substring(0, 8).toUpperCase() || 'ATELIER'}
-              </span>
+              <span className="uppercase tracking-widest font-bold">SKU: {product.id?.substring(0, 8).toUpperCase() || 'ATELIER'}</span>
+              <span className="mx-1">•</span>
               {product.stock !== undefined && product.stock !== null ? (
                 product.stock <= 0 ? (
-                  <span className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-red-650 bg-red-50 px-2 py-1 rounded-sm">
-                    <span className="w-1.5 h-1.5 rounded-full bg-red-600"></span>
-                    Agotado
-                  </span>
+                  <span className="text-red-500 font-bold uppercase tracking-widest">Agotado</span>
                 ) : product.stock <= 3 ? (
-                  <span className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-red-655 bg-red-50 px-2.5 py-1 rounded-sm animate-pulse font-extrabold">
-                    <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-ping"></span>
-                    ¡Últimas {product.stock} unidades!
-                  </span>
-                ) : product.stock <= 6 ? (
-                  <span className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-amber-600 bg-amber-50 px-2 py-1 rounded-sm">
-                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
-                    Stock Limitado ({product.stock} u.)
-                  </span>
+                  <span className="text-stone-800 font-bold uppercase tracking-widest">¡Últimas {product.stock} u.!</span>
                 ) : (
-                  <span className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-green-600 bg-green-50 px-2 py-1 rounded-sm">
-                    <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
-                    En Stock
-                  </span>
+                  <span className="text-stone-500 uppercase tracking-widest">En Stock</span>
                 )
               ) : (
-                <span className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-green-600 bg-green-50 px-2 py-1 rounded-sm">
-                  <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
-                  En Stock
-                </span>
+                <span className="text-stone-500 uppercase tracking-widest">En Stock</span>
               )}
             </motion.div>
 
@@ -458,7 +443,7 @@ export function ProductClient({
 
           <div className="p-8 lg:p-14 flex-1 flex flex-col justify-end gap-3">
             <button
-              disabled={product.stock !== undefined && product.stock <= 0 && product.category !== "Cristal"}
+              disabled={product.stock !== undefined && product.stock <= 0 && product.category !== "Cristal" || isAdded}
               onClick={() => {
                 addItem({
                   productId: product.id,
@@ -475,21 +460,46 @@ export function ProductClient({
                   },
                   quantity: 1
                 });
+                setIsAdded(true);
+                setTimeout(() => {
+                  setIsOpen(true);
+                  setTimeout(() => setIsAdded(false), 2000);
+                }, 500);
               }}
-              className="w-full bg-black text-white px-8 py-5 text-[13px] font-bold uppercase tracking-widest hover:bg-[#222] transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-stone-400"
+              className={`w-full px-8 py-5 text-[13px] font-bold uppercase tracking-widest transition-colors disabled:cursor-not-allowed ${isAdded ? 'bg-green-600 text-white' : 'bg-black text-white hover:bg-[#222] disabled:opacity-50 disabled:bg-stone-400'}`}
             >
-              {(product.stock !== undefined && product.stock <= 0 && product.category !== "Cristal") ? "Agotado" : "Agregar al Carrito"}
+              {isAdded ? "¡Agregado con éxito!" : ((product.stock !== undefined && product.stock <= 0 && product.category !== "Cristal") ? "Agotado" : "Agregar al Carrito")}
             </button>
+            
+            {/* Sellos de Confianza (Trust Badges) - Movidos debajo del carrito */}
+            <div className="my-2 py-3 border-y border-[#e5e5e5]/50 grid grid-cols-4 gap-2">
+              <div className="flex flex-col items-center text-center p-1">
+                <ShieldCheck className="w-4 h-4 text-stone-700 mb-1" />
+                <span className="text-[8px] font-black uppercase tracking-wider text-stone-800">Garantía</span>
+              </div>
+              <div className="flex flex-col items-center text-center p-1">
+                <CreditCard className="w-4 h-4 text-stone-700 mb-1" />
+                <span className="text-[8px] font-black uppercase tracking-wider text-stone-800">6 Cuotas</span>
+              </div>
+              <div className="flex flex-col items-center text-center p-1">
+                <Truck className="w-4 h-4 text-stone-700 mb-1" />
+                <span className="text-[8px] font-black uppercase tracking-wider text-stone-800">Envío Gratis</span>
+              </div>
+              <div className="flex flex-col items-center text-center p-1">
+                <Percent className="w-4 h-4 text-stone-700 mb-1" />
+                <span className="text-[8px] font-black uppercase tracking-wider text-stone-800">15% OFF</span>
+              </div>
+            </div>
             
             <button
               onClick={() => setShowConfigurator(true)}
-              className="w-full border border-[#e5e5e5] bg-white text-black px-8 py-4 text-[11px] font-bold uppercase tracking-widest hover:border-black transition-colors"
+              className="w-full border border-[#e5e5e5] bg-white text-black px-8 py-4 text-[11px] font-bold uppercase tracking-widest hover:border-black transition-colors shadow-sm"
             >
               + Agregar Cristales Con Receta
             </button>
 
             {images.length > 1 && (
-              <div className="flex gap-2 w-full">
+              <div className="flex gap-2 w-full mt-2">
                 {images.length === 2 ? (
                   <button
                     onClick={() => setActiveImageIndex(activeImageIndex === 0 ? 1 : 0)}
@@ -531,46 +541,24 @@ export function ProductClient({
               </div>
             )}
 
-            <a 
-              href={`https://wa.me/${whatsappPhoneId}?text=${encodeURIComponent(`¡Hola! Quiero comprar el anteojo ${product.brand || ''} ${product.model || ''} por $${(product.price || 0).toLocaleString("es-AR")}. ¿Me pasarían los datos para transferencia/link de pago?`)}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="w-full border border-[#1b4332] text-[#1b4332] bg-white hover:bg-[#1b4332]/5 px-8 py-4 text-[11px] font-bold uppercase tracking-widest transition-colors flex items-center justify-center gap-2 rounded-sm"
-            >
-              <WhatsAppIcon className="w-4 h-4 fill-[#1b4332]" /> Comprar directo por WhatsApp
-            </a>
+            <div className="mt-4 flex flex-col items-center gap-3">
+              <a 
+                href={`https://wa.me/${whatsappPhoneId}?text=${encodeURIComponent(`¡Hola! Quiero comprar el anteojo ${product.brand || ''} ${product.model || ''} por $${(product.price || 0).toLocaleString("es-AR")}. ¿Me pasarían los datos para transferencia/link de pago?`)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[10px] text-stone-500 font-bold uppercase tracking-widest hover:text-[#1b4332] transition-colors flex items-center justify-center gap-1.5 underline underline-offset-4"
+              >
+                <WhatsAppIcon className="w-3.5 h-3.5 fill-current" /> Comprar directo por WhatsApp
+              </a>
 
-            <a 
-              href={`https://wa.me/${whatsappPhoneId}?text=${encodeURIComponent(`¡Hola! Tengo una consulta sobre el modelo ${product.brand || ''} ${product.model || ''}`)}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="w-full border border-[#e5e5e5] bg-[#f9f9f9] text-[#666] px-8 py-4 text-[11px] font-bold uppercase tracking-widest hover:border-black hover:text-black transition-colors flex items-center justify-center gap-2"
-            >
-              <WhatsAppIcon className="w-4 h-4" /> Consultar por WhatsApp
-            </a>
-
-            {/* Sellos de Confianza (Trust Badges) */}
-            <div className="mt-6 pt-6 border-t border-[#e5e5e5] grid grid-cols-2 sm:grid-cols-4 gap-4">
-              <div className="flex flex-col items-center text-center p-1">
-                <ShieldCheck className="w-5 h-5 text-stone-700 mb-1.5" />
-                <span className="text-[9px] font-black uppercase tracking-wider text-stone-800">Garantía</span>
-                <span className="text-[9px] text-stone-400 mt-0.5 leading-tight text-center">Adaptación en cristales</span>
-              </div>
-              <div className="flex flex-col items-center text-center p-1">
-                <CreditCard className="w-5 h-5 text-stone-700 mb-1.5" />
-                <span className="text-[9px] font-black uppercase tracking-wider text-stone-800">6 Cuotas</span>
-                <span className="text-[9px] text-stone-400 mt-0.5 leading-tight text-center">Sin interés en la web</span>
-              </div>
-              <div className="flex flex-col items-center text-center p-1">
-                <Truck className="w-5 h-5 text-stone-700 mb-1.5" />
-                <span className="text-[9px] font-black uppercase tracking-wider text-stone-800">Envío Gratis</span>
-                <span className="text-[9px] text-stone-400 mt-0.5 leading-tight text-center">A todo el país sin cargo</span>
-              </div>
-              <div className="flex flex-col items-center text-center p-1">
-                <Percent className="w-5 h-5 text-stone-700 mb-1.5" />
-                <span className="text-[9px] font-black uppercase tracking-wider text-stone-800">15% OFF</span>
-                <span className="text-[9px] text-stone-400 mt-0.5 leading-tight text-center">Efectivo/Transferencia</span>
-              </div>
+              <a 
+                href={`https://wa.me/${whatsappPhoneId}?text=${encodeURIComponent(`¡Hola! Tengo una consulta sobre el modelo ${product.brand || ''} ${product.model || ''}`)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[10px] text-stone-400 font-bold uppercase tracking-widest hover:text-black transition-colors flex items-center justify-center gap-1.5"
+              >
+                Consultar dudas por WhatsApp
+              </a>
             </div>
           </div>
         </div>

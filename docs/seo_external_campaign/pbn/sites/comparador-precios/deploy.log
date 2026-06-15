@@ -1,0 +1,52 @@
+Vercel CLI 54.14.0 (Node.js 22.22.3)
+
+  Set up "~/proyectos/atelier/docs/seo_external_campaign/pbn/sites/comparador-precios"
+Loading teams…
+Searching for existing projects…
+  No framework detected. Default Project Settings:
+  Build Command: `npm run vercel-build` or `npm run build`
+  Development Command: None
+  Install Command: `yarn install`, `pnpm install`, `npm install`, or `bun install`
+  Output Directory: `public` if it exists, or `.`
+  Linked      atelier-s-projects2/comparador-precios
+Deploying atelier-s-projects2/comparador-precios
+Uploading [--------------------] (0.0B/550B)
+Uploading [====================] (550.0B/550B)
+  Inspect     https://vercel.com/atelier-s-projects2/comparador-precios/EHyL6VnhSuGZzcHEESxhQuxUwfAY
+▲ Production  https://comparador-precios-j6zyuakpr-atelier-s-projects2.vercel.app
+Building…
+Running build in Washington, D.C., USA (East) – iad1
+Build machine configuration: 2 cores, 8 GB
+Retrieving list of deployment files...
+Previous build caches not available.
+Previous build caches not available.
+Downloading 2 deployment files...
+Running "vercel build"
+Vercel CLI 54.12.2
+Build Completed in /vercel/output [18ms]
+Deploying outputs...
+[2K[1A[2K[G▲ Production  https://comparador-precios-j6zyuakpr-atelier-s-projects2.vercel.app
+Completing…
+▲ Aliased     https://comparador-precios-one.vercel.app
+{
+  "status": "ok",
+  "deployment": {
+    "id": "dpl_EHyL6VnhSuGZzcHEESxhQuxUwfAY",
+    "url": "https://comparador-precios-j6zyuakpr-atelier-s-projects2.vercel.app",
+    "inspectorUrl": "https://vercel.com/atelier-s-projects2/comparador-precios/EHyL6VnhSuGZzcHEESxhQuxUwfAY",
+    "readyState": "READY",
+    "target": "production",
+    "deploymentApiUrl": "https://api.vercel.com/v13/deployments/dpl_EHyL6VnhSuGZzcHEESxhQuxUwfAY"
+  },
+  "message": "Deployment comparador-precios-j6zyuakpr-atelier-s-projects2.vercel.app ready.",
+  "next": [
+    {
+      "command": "vercel inspect comparador-precios-j6zyuakpr-atelier-s-projects2.vercel.app",
+      "when": "Inspect deployment"
+    },
+    {
+      "command": "vercel deploy --prod",
+      "when": "Promote to production"
+    }
+  ]
+}

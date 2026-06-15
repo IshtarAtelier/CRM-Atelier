@@ -18,6 +18,7 @@ export default function CheckoutPage() {
   const [mounted, setMounted] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [paywayLoaded, setPaywayLoaded] = useState(false);
 
   const initiatedRef = useRef(false);
 
@@ -80,6 +81,7 @@ export default function CheckoutPage() {
         ? 'https://live.decidir.com/static/v2/decidir.js'
         : 'https://developers.decidir.com/static/v2/decidir.js';
       script.async = true;
+      script.onload = () => setPaywayLoaded(true);
       document.body.appendChild(script);
     });
 
@@ -384,7 +386,7 @@ export default function CheckoutPage() {
             
             <CheckoutShippingForm formData={formData} handleChange={handleChange} isLocalCity={isLocalCity} hasCrystals={hasCrystals} />
             
-            <CheckoutPaymentOptions formData={formData} handleChange={handleChange} isProcessing={isProcessing} webSettings={webSettings} />
+            <CheckoutPaymentOptions formData={formData} handleChange={handleChange} isProcessing={isProcessing} webSettings={webSettings} paywayLoaded={paywayLoaded} />
 
           </form>
         </div>

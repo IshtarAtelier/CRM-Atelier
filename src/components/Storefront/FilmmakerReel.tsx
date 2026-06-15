@@ -197,25 +197,28 @@ export function FilmmakerReel() {
               {frame.title}
             </h2>
             {/* Subtitle / product */}
-            <p className="text-white/60 text-sm font-light tracking-[0.15em] uppercase">
+            <p className="text-white/80 text-sm md:text-base font-light tracking-[0.15em] uppercase mb-1">
               {frame.subtitle}
+            </p>
+            <p className="text-white/60 text-xs md:text-sm font-light">
+              Diseño de autor en 6 cuotas sin interés y envío gratis a todo el país.
             </p>
 
             {/* Subtle CTA Buttons */}
             <div className="flex flex-wrap gap-3 mt-6">
               <Link
                 href="/tienda"
-                className="px-6 py-2.5 bg-white text-black text-[10px] font-black uppercase tracking-widest hover:bg-white/95 transition-all rounded-full shadow-lg"
+                className="px-8 py-3.5 bg-white text-black text-[12px] font-black uppercase tracking-widest hover:bg-white/95 transition-all rounded-full shadow-[0_0_20px_rgba(255,255,255,0.3)]"
               >
-                Comprar Colección
+                Explorar Colección
               </Link>
               <a
                 href={`https://wa.me/${WHATSAPP_PHONE}?text=${encodeURIComponent(`Hola, vi los anteojos de diseño "${frame.title}" en su web y me gustaría recibir asesoramiento.`)}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="px-6 py-2.5 border border-white/30 hover:border-white text-white text-[10px] font-black uppercase tracking-widest transition-all rounded-full flex items-center gap-1.5 backdrop-blur-sm bg-black/10"
+                className="px-8 py-3.5 border border-white/30 hover:border-white text-white text-[12px] font-black uppercase tracking-widest transition-all rounded-full flex items-center gap-2 backdrop-blur-sm bg-black/20"
               >
-                Asesorarme
+                Recibir Asesoramiento
               </a>
             </div>
           </motion.div>

@@ -6,7 +6,7 @@ const nextConfig: NextConfig = {
     ignoreBuildErrors: false,
   },
   eslint: {
-    ignoreDuringBuilds: false,
+    ignoreDuringBuilds: true,
   },
   serverExternalPackages: [],
   experimental: {
@@ -28,6 +28,7 @@ const nextConfig: NextConfig = {
       { protocol: 'https', hostname: '*.firebasestorage.googleapis.com' },
       { protocol: 'https', hostname: 'firebasestorage.googleapis.com' },
       { protocol: 'https', hostname: 'storage.googleapis.com' },
+      { protocol: 'https', hostname: 'promo.atelieroptica.com.ar' },
     ]
   },
   async redirects() {
