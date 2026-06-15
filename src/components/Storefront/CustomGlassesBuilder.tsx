@@ -113,22 +113,45 @@ export function CustomGlassesBuilder({ products }: { products: Product[] }) {
       />
     </motion.div>
   ) : (
-    <motion.div 
-      key="placeholder"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.8 }}
-      className="w-full h-full flex flex-col items-center justify-center text-center px-10"
-    >
-      <div className="w-[1px] h-24 bg-black/20 mb-12"></div>
-      <h3 className="text-4xl lg:text-5xl font-serif uppercase tracking-tight mb-6 text-black/90 leading-tight">
-        Comenzá por el<br/><i className="text-black/50">armazón</i>
-      </h3>
-      <p className="text-[11px] uppercase tracking-[0.2em] text-[#999] max-w-sm font-bold">
-        Seleccioná un modelo del catálogo para iniciar la configuración de tus cristales.
-      </p>
-    </motion.div>
+    <div className="w-full h-full flex flex-col items-center justify-center bg-[#fafafa] px-6">
+      <div className="w-full max-w-sm flex flex-col gap-4">
+        {/* Chat Bubble 1 */}
+        <motion.div 
+          initial={{ opacity: 0, y: 10, scale: 0.95 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{ duration: 0.4, delay: 0.2 }}
+          className="bg-white border border-stone-200 text-stone-800 p-5 rounded-2xl rounded-tl-sm shadow-sm w-[85%] self-start"
+        >
+          <p className="text-[13px] font-medium leading-relaxed">
+            ¡Hola! 👋 Te voy a guiar paso a paso en el diseño de tus nuevos lentes a medida.
+          </p>
+        </motion.div>
+
+        {/* Chat Bubble 2 */}
+        <motion.div 
+          initial={{ opacity: 0, y: 10, scale: 0.95 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{ duration: 0.4, delay: 1.5 }}
+          className="bg-white border border-stone-200 text-stone-800 p-5 rounded-2xl rounded-tl-sm shadow-sm w-[92%] self-start"
+        >
+          <p className="text-[13px] font-medium leading-relaxed">
+            El primer paso es elegir tu armazón. En el catálogo vas a encontrar nuestras opciones exclusivas en metal y acetato.
+          </p>
+        </motion.div>
+
+        {/* Chat Bubble 3 */}
+        <motion.div 
+          initial={{ opacity: 0, y: 10, scale: 0.95 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{ duration: 0.4, delay: 2.8 }}
+          className="bg-stone-900 text-white p-4 rounded-2xl rounded-br-sm shadow-md w-[80%] self-end mt-4 text-center"
+        >
+          <p className="text-[12px] font-bold tracking-wide uppercase">
+            👉 Seleccioná un modelo para comenzar
+          </p>
+        </motion.div>
+      </div>
+    </div>
   );
 
   return (
@@ -254,6 +277,45 @@ export function CustomGlassesBuilder({ products }: { products: Product[] }) {
           </div>
           
           <div className="flex-1 overflow-y-auto px-6 lg:px-10 pb-20 no-scrollbar">
+            
+            {/* Chat Bubbles (Mobile Only) */}
+            {!selectedProduct && (
+              <div className="lg:hidden w-full flex flex-col gap-3 mb-8">
+                <motion.div 
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.4, delay: 0.2 }}
+                  className="bg-white border border-stone-200 text-stone-800 p-4 rounded-2xl rounded-tl-sm shadow-sm w-[90%] self-start"
+                >
+                  <p className="text-[12px] font-medium leading-relaxed">
+                    ¡Hola! 👋 Te voy a guiar paso a paso en el diseño de tus nuevos lentes a medida.
+                  </p>
+                </motion.div>
+
+                <motion.div 
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.4, delay: 1.5 }}
+                  className="bg-white border border-stone-200 text-stone-800 p-4 rounded-2xl rounded-tl-sm shadow-sm w-[95%] self-start"
+                >
+                  <p className="text-[12px] font-medium leading-relaxed">
+                    El primer paso es elegir tu armazón. Abajo vas a encontrar nuestras opciones exclusivas en metal y acetato.
+                  </p>
+                </motion.div>
+
+                <motion.div 
+                  initial={{ opacity: 0, x: 10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.4, delay: 2.8 }}
+                  className="bg-stone-900 text-white p-3 rounded-2xl rounded-br-sm shadow-md w-[85%] self-end mt-2 text-center"
+                >
+                  <p className="text-[11px] font-bold tracking-wide uppercase">
+                    👉 Seleccioná un modelo
+                  </p>
+                </motion.div>
+              </div>
+            )}
+
             {filteredProducts.length === 0 ? (
               <div className="flex flex-col items-center justify-center text-center py-24 px-4 bg-[#fafafa]">
                 <p className="text-stone-400 text-[11px] uppercase tracking-widest mb-4">No se encontraron armazones</p>

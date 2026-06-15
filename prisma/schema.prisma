@@ -122,6 +122,9 @@ model Prescription {
   distanceOI       Float?
   heightOD         Float?
   heightOI         Float?
+  nearPd           Float?
+  nearDistanceOD   Float?
+  nearDistanceOI   Float?
   imageUrl         String?
   notes            String?
   date             DateTime @default(now())
@@ -217,8 +220,12 @@ model Order {
   labColor             String?
   labTreatment         String?
   labDiameter          String?
-  labPdOd              String?
-  labPdOi              String?
+  labPdOd              Float?
+  labPdOi              Float?
+  labNearPdOd          Float?
+  labNearPdOi          Float?
+  labHeightOD          Float?
+  labHeightOI          Float?
   frameA               String?
   frameB               String?
   frameDbl             String?
