@@ -91,7 +91,7 @@ export function HomeProductCarousel({ products }: Props) {
     <section className="w-full bg-white pb-20">
       <div 
         ref={carouselRef}
-        className="flex w-full overflow-hidden [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        className="flex w-full overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       >
         {/* Duplicamos para el loop infinito suave */}
         {[...products, ...products].map((item, i) => (
