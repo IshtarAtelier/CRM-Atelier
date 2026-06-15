@@ -79,7 +79,17 @@ export default function VentasPage() {
                     ? `Armazón del cliente ${order.userFrameBrand || ''} ${order.userFrameModel || ''}`.trim()
                     : '';
 
+            const lensItems = order.items?.filter((i: any) => i.product?.category === 'LENS' || i.productCategorySnapshot === 'LENS') || [];
+            const lensName = lensItems.length > 0 ? (lensItems[0]?.product?.name || lensItems[0]?.productNameSnapshot || '').toLowerCase() : '';
+            let tipo_lente = 'Monofocal';
+            if (lensName.includes('multi') || lensName.includes('progresivo')) tipo_lente = 'Multifocal';
+            else if (lensName.includes('bifo') && lensName.includes('kri')) tipo_lente = 'Bifocal Kri';
+            else if (lensName.includes('bifo')) tipo_lente = 'Bifocal Ft';
+            else if (lensName.includes('ocupa') || lensName.includes('intermedio')) tipo_lente = 'Ocupacional';
+
             const payload = {
+                tipo_lente,
+                labType: order.labType || '',
                 codigoInterno: clientName,
                 paciente_nombre: nombre,
                 paciente_apellido: apellido,

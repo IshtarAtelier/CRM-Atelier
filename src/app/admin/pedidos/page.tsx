@@ -423,14 +423,24 @@ export default function PedidosPage() {
             const odItem = lensItems.find((i: any) => i.eye === 'OD');
             const oiItem = lensItems.find((i: any) => i.eye === 'OI');
 
-            const frameItems = order.items?.filter((i: any) => i.product?.category === 'FRAME' || i.product?.category === 'SUNGLASS') || [];
+            const frameItems = order.items?.filter((i: any) => i.product?.category === 'FRAME' || i.product?.category === 'SUNGLASS' || i.productCategorySnapshot === 'FRAME' || i.productCategorySnapshot === 'SUNGLASS') || [];
             const frameInfo = frameItems.length > 0
                 ? `Armazón ${frameItems[0]?.product?.brand || frameItems[0]?.productBrandSnapshot || ''} ${frameItems[0]?.product?.name || frameItems[0]?.productNameSnapshot || ''}`.trim()
                 : order.frameSource === 'USUARIO'
                     ? `Armazón del cliente ${order.userFrameBrand || ''} ${order.userFrameModel || ''}`.trim()
                     : '';
 
+            const lensList = order.items?.filter((i: any) => i.product?.category === 'LENS' || i.productCategorySnapshot === 'LENS') || [];
+            const lensName = lensList.length > 0 ? (lensList[0]?.product?.name || lensList[0]?.productNameSnapshot || '').toLowerCase() : '';
+            let tipo_lente = 'Monofocal';
+            if (lensName.includes('multi') || lensName.includes('progresivo')) tipo_lente = 'Multifocal';
+            else if (lensName.includes('bifo') && lensName.includes('kri')) tipo_lente = 'Bifocal Kri';
+            else if (lensName.includes('bifo')) tipo_lente = 'Bifocal Ft';
+            else if (lensName.includes('ocupa') || lensName.includes('intermedio')) tipo_lente = 'Ocupacional';
+
             const payload = {
+                tipo_lente,
+                labType: order.labType || '',
                 codigoInterno: order.client.name, // Requested by user: en codigo interno va el nombre del cliente
                 paciente: order.client.name,
                 od_esfera: odItem?.sphereVal || '',
@@ -476,6 +486,7 @@ export default function PedidosPage() {
                 diameter: 'labDiameter',
                 pdOd: 'labPdOd',
                 pdOi: 'labPdOi',
+                type: 'labType',
             };
             await fetch(`/api/orders/${orderId}`, {
                 method: 'PATCH',
@@ -1285,9 +1296,30 @@ export default function PedidosPage() {
                                     const diameterVal = getVal('diameter') || '';
                                     const pdOdVal = getVal('pdOd') || '';
                                     const pdOiVal = getVal('pdOi') || '';
+                                    const typeVal = getVal('type') || '';
 
                                     return (
                                         <div className="space-y-4">
+                                            {/* Tipo: Stock vs Lab */}
+                                            <div className="border-2 border-stone-100 dark:border-stone-700 rounded-2xl p-4">
+                                                <label className="text-[9px] font-black text-stone-400 uppercase tracking-widest block mb-2">Origen del Lente (SmartLab)</label>
+                                                <div className="flex items-center gap-2">
+                                                    {['STOCK', 'LABORATORY'].map(t => (
+                                                        <button
+                                                            key={t}
+                                                            onClick={() => saveLabField(order.id, 'type', t)}
+                                                            className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all hover:scale-105 ${typeVal === t
+                                                                    ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20'
+                                                                    : 'bg-stone-100 dark:bg-stone-700 text-stone-500 dark:text-stone-400 hover:bg-stone-200 dark:hover:bg-stone-600'
+                                                                }`}
+                                                        >
+                                                            {t === 'STOCK' ? '📦 Stock / Rango Ext' : '🧪 Laboratorio'}
+                                                        </button>
+                                                    ))}
+                                                    {savingField === `${order.id}_type` && <Loader2 className="w-4 h-4 text-blue-500 animate-spin" />}
+                                                </div>
+                                            </div>
+
                                             {/* Color */}
                                             <div className="border-2 border-stone-100 dark:border-stone-700 rounded-2xl p-4">
                                                 <label className="text-[9px] font-black text-stone-400 uppercase tracking-widest block mb-2">Color</label>
