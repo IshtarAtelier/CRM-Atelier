@@ -18,14 +18,14 @@ import { resolveStorageUrl } from "@/lib/utils/storage";
 export const revalidate = 300;
 
 export const metadata: Metadata = {
-  title: "Atelier Óptica | Óptica en Cerro de las Rosas, Córdoba",
-  description: "Boutique óptica en Cerro de las Rosas, Córdoba. Especialistas en multifocales Varilux, anteojos de sol y receta de diseño exclusivo. 6 cuotas sin interés.",
+  title: "Atelier Óptica | Anteojos, Cristales y Multifocales en Cuotas",
+  description: "Atelier Óptica en Córdoba. Especialistas en anteojos de receta, lentes de sol, y multifocales Varilux. Envíos a todo el país y presupuestos rápidos por WhatsApp.",
   alternates: {
     canonical: 'https://www.atelieroptica.com.ar',
   },
   openGraph: {
-    title: "Atelier Óptica | Óptica en Cerro de las Rosas, Córdoba",
-    description: "Boutique óptica en Cerro de las Rosas, Córdoba. Especialistas en multifocales Varilux, anteojos de sol y receta de diseño exclusivo.",
+    title: "Atelier Óptica | Anteojos, Cristales y Multifocales en Cuotas",
+    description: "Especialistas en anteojos de receta, lentes de sol, y multifocales Varilux. Envíos a todo el país y presupuestos por WhatsApp.",
     url: 'https://www.atelieroptica.com.ar',
     type: 'website',
   },

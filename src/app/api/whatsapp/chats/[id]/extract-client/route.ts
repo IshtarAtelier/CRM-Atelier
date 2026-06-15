@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenAI, Type } from '@google/genai';
 import { decrypt } from '@/lib/auth';
 
 // POST /api/whatsapp/chats/[id]/extract-client
@@ -25,7 +25,6 @@ export async function POST(
         const chat = await prisma.whatsAppChat.findUnique({
             where: { id: chatId },
             include: {
-                messages: { orderBy: { createdAt: 'asc' }, take: 30 },
                 client: true,
             }
         });
@@ -41,22 +40,72 @@ export async function POST(
             }, { status: 409 });
         }
 
-        // Construir contexto de la conversación
-        const conversation = chat.messages.map(m => {
+        // Obtener el primer mensaje absoluto del chat para determinar si fue iniciado por nosotros
+        const firstMessage = await prisma.whatsAppMessage.findFirst({
+            where: { chatId },
+            orderBy: { createdAt: 'asc' },
+        });
+
+        // Obtener los últimos 40 mensajes para construir el contexto de la conversación
+        const messages = await prisma.whatsAppMessage.findMany({
+            where: { chatId },
+            orderBy: { createdAt: 'desc' },
+            take: 40,
+        });
+
+        const sortedMessages = [...messages].reverse();
+        const conversation = sortedMessages.map(m => {
             const role = m.direction === 'INBOUND' ? 'Cliente' : 'Óptica';
             return `${role}: ${m.content}`;
-        }).join('\n');        const absoluteFirstMessage = chat.messages[0];
-        const isOutboundInitiated = absoluteFirstMessage?.direction === 'OUTBOUND';
+        }).join('\n');
+
+        const isOutboundInitiated = firstMessage?.direction === 'OUTBOUND';
         const profileName = chat.profileName || '';
         const waId = chat.waId || '';
         const isLid = waId.includes('@lid') && !isOutboundInitiated;
         // Priorizar realPhone (resuelto por el wa-service) sobre el waId crudo
         const rawPhone = chat.realPhone || (isLid ? '' : waId.replace('@c.us', '').replace('@s.whatsapp.net', ''));
 
-        // Llamar a Gemini para extraer datos
+        // Llamar a Gemini para extraer datos con el SDK oficial modernizado
         const apiKey = process.env.GOOGLE_GENAI_API_KEY || process.env.GOOGLE_API_KEY || '';
-        const genAI = new GoogleGenerativeAI(apiKey);
-        const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+        const ai = new GoogleGenAI({ apiKey });
+
+        const clientExtractionSchema = {
+            type: Type.OBJECT,
+            properties: {
+                name: {
+                    type: Type.STRING,
+                    description: "Nombre real del cliente. Si no se menciona un nombre en la conversación, usa el nombre del perfil de WhatsApp. No puede estar vacío."
+                },
+                phone: {
+                    type: Type.STRING,
+                    nullable: true,
+                    description: "Número de teléfono celular/WhatsApp del cliente (solo dígitos). Si el waId es @lid y el cliente mencionó un número en la charla, usa ese. Si no hay evidencia clara, retorna null."
+                },
+                interest: {
+                    type: Type.STRING,
+                    nullable: true,
+                    description: "Interés principal deducido de la conversación (ej: 'Multifocal', 'Monofocal', 'Lentes de contacto', 'Armazones', 'Gafas de sol', etc.) o null si no se menciona."
+                },
+                insurance: {
+                    type: Type.STRING,
+                    nullable: true,
+                    description: "Obra social o seguro médico mencionado (ej: 'OSDE', 'Swiss Medical', 'PAMI', 'Apross', etc.) o null si no se menciona."
+                },
+                contactSource: {
+                    type: Type.STRING,
+                    nullable: true,
+                    enum: ["Google Ads", "Meta", "Calle", "Jemima", "Ya es Cliente", "Tienda nube", "Referido", "Wave", "Salida", "Otros"],
+                    description: "Fuente de contacto del cliente. Si es un chat de ANUNCIO META (@lid) iniciado por el cliente, DEBE ser 'Meta'. Si es DIRECTO o INICIADO POR NOSOTROS (Outbound), DEBE ser null a menos que haya EVIDENCIA CLARA en la conversación (Google Ads, Meta, Referido, Calle, Ya es Cliente)."
+                },
+                notes: {
+                    type: Type.STRING,
+                    nullable: true,
+                    description: "Cualquier nota relevante, preferencias, urgencia o comentarios importantes de la conversación o null si no hay."
+                }
+            },
+            required: ["name", "phone", "interest", "insurance", "contactSource", "notes"]
+        };
 
         const prompt = `Analiza esta conversación de WhatsApp de una óptica y extrae los datos del cliente potencial.
 
@@ -70,7 +119,7 @@ DATOS CONOCIDOS:
 
 INSTRUCCIONES:
 1. Extrae el nombre real del cliente. Si no se menciona un nombre en la conversación, usa el nombre del perfil de WhatsApp.
-2. Extrae el teléfono. Si el waId es @lid y el cliente mencionó un número en la charla, usa ese. Si no, deja vacío.
+2. Extrae el teléfono. Si el waId es @lid y el cliente mencionó un número en la charla, usa ese. Si no, deja vacío (null).
 3. Deduce el interés principal (ej: "Multifocal", "Monofocal", "Lentes de contacto", "Armazones", "Gafas de sol", etc.)
 4. Detecta si mencionó obra social/seguro médico (ej: "OSDE", "Swiss Medical", "PAMI", "Apross", etc.)
 5. Detecta la fuente de contacto (contactSource). REGLAS ESTRICTAS:
@@ -83,52 +132,71 @@ INSTRUCCIONES:
    - null: EN CASO DE DUDA o si no hay evidencia clara del origen, DEBE ser null. Este es el valor por defecto.
    IMPORTANTE: No asumas "Meta" solo porque la conversación menciona palabras como "publicidad", "anuncio" o "vi esto". Solo usa "Meta" si el cliente dice EXPLÍCIPAMENTE que vio algo en Instagram o Facebook. Si la conversación la iniciamos nosotros, el default es obligatoriamente null.`}
 6. Extrae cualquier nota relevante (ej: preferences, urgencia, comentarios importantes)
+`;
 
-Responde ÚNICAMENTE con un JSON válido con estos campos:
-{
-  "name": "string",
-  "phone": "string o null",
-  "interest": "string o null",
-  "insurance": "string o null",
-  "contactSource": "Google Ads" | "Meta" | "Calle" | "Jemima" | "Ya es Cliente" | "Tienda nube" | "Referido" | "Wave" | "Salida" | "Otros" | null,
-  "notes": "string o null"
-}`;
+        const response = await ai.models.generateContent({
+            model: 'gemini-3-flash-preview',
+            contents: [{ role: 'user', parts: [{ text: prompt }] }],
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: clientExtractionSchema,
+                temperature: 0.2,
+            }
+        });
 
-        const result = await model.generateContent(prompt);
-        const text = result.response.text();
-
-        // Parsear JSON robusto
-        const jsonMatch = text.match(/\{[\s\S]*\}/);
-        if (!jsonMatch) {
+        const responseText = response.text;
+        if (!responseText) {
             return NextResponse.json({ 
-                error: 'No se pudo extraer datos de la conversación',
-                raw: text 
+                error: 'No se pudo extraer datos de la conversación (respuesta vacía de la IA)' 
             }, { status: 422 });
         }
 
-        const extracted = JSON.parse(jsonMatch[0]);
+        let parsedData: any;
+        try {
+            parsedData = JSON.parse(responseText);
+        } catch (parseError: any) {
+            console.error('Error parsing Gemini response:', responseText, parseError);
+            return NextResponse.json({ 
+                error: 'La IA no devolvió un JSON válido',
+                raw: responseText 
+            }, { status: 422 });
+        }
+
+        // Type safety & Sanitization
+        const resultData = {
+            name: (typeof parsedData.name === 'string' && parsedData.name.trim() !== '') ? parsedData.name.trim() : (profileName || 'Cliente WhatsApp'),
+            phone: typeof parsedData.phone === 'string' ? parsedData.phone : null,
+            interest: typeof parsedData.interest === 'string' ? parsedData.interest : null,
+            insurance: typeof parsedData.insurance === 'string' ? parsedData.insurance : null,
+            contactSource: (typeof parsedData.contactSource === 'string' && ["Google Ads", "Meta", "Calle", "Jemima", "Ya es Cliente", "Tienda nube", "Referido", "Wave", "Salida", "Otros"].includes(parsedData.contactSource)) ? parsedData.contactSource : null,
+            notes: typeof parsedData.notes === 'string' ? parsedData.notes : null
+        };
 
         // Sanitizar teléfono
-        if (extracted.phone) {
-            const digits = extracted.phone.replace(/\D/g, '');
+        let phone = resultData.phone;
+        if (phone) {
+            const digits = phone.replace(/\D/g, '');
             if (digits.length > 15 || digits.length < 8) {
-                extracted.phone = null;
+                phone = null;
+            } else {
+                phone = digits;
             }
         }
 
-        // Fallbacks
-        if (!extracted.name || extracted.name.trim() === '') {
-            extracted.name = profileName || 'Cliente WhatsApp';
+        // Fallback para el teléfono si no se extrajo y el waId crudo es válido
+        if (!phone && rawPhone) {
+            const digits = rawPhone.replace(/\D/g, '');
+            if (digits.length >= 8 && digits.length <= 15) {
+                phone = digits;
+            }
         }
-        if (!extracted.phone && rawPhone && rawPhone.length >= 8 && rawPhone.length <= 15) {
-            extracted.phone = rawPhone;
-        }
+        resultData.phone = phone;
 
         return NextResponse.json({
-            extracted,
+            extracted: resultData,
             chatId,
             profileName,
-            messageCount: chat.messages.length,
+            messageCount: messages.length,
         });
 
     } catch (error: any) {

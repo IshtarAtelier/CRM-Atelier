@@ -281,16 +281,16 @@ export const ContactService = {
             name: data.name,
             email: data.email?.trim() === "" ? null : data.email,
             phone: normalizedIncomingPhone, // Se guarda normalizado (solo números)
-            dni: data.dni,
+            dni: data.dni?.trim() === "" ? null : data.dni,
             status: data.status || 'CONTACT',
-            contactSource: data.contactSource || null,
-            interest: data.interest || 'Otros',
+            contactSource: data.contactSource?.trim() === "" ? null : data.contactSource,
+            interest: data.interest?.trim() === "" ? 'Otros' : data.interest,
             expectedValue: Number(data.expectedValue) || 0,
             priority: Number(data.priority) || 0,
-            address: data.address,
-            insurance: data.insurance,
-            doctor: data.doctor,
-            metaLid: data.metaLid,
+            address: data.address?.trim() === "" ? null : data.address,
+            insurance: data.insurance?.trim() === "" ? null : data.insurance,
+            doctor: data.doctor?.trim() === "" ? null : data.doctor,
+            metaLid: data.metaLid?.trim() === "" ? null : data.metaLid,
             createdBy: (data as any).createdBy || 'Sistema'
         };
 
@@ -355,22 +355,34 @@ export const ContactService = {
 
         if (data.name !== undefined) updateData.name = data.name;
         if (data.email !== undefined) updateData.email = data.email?.trim() === "" ? null : data.email;
-        if (data.phone !== undefined) updateData.phone = data.phone ? normalizeArgentinePhone(data.phone) : null;
-        if (data.dni !== undefined) updateData.dni = data.dni;
+        if (data.phone !== undefined) {
+            if (!data.phone || !data.phone.trim()) {
+                throw new Error(JSON.stringify({ isBlocked: true, message: `Bloqueo de seguridad: Es obligatorio ingresar un número de celular.` }));
+            }
+            const hasLetters = /[a-zA-Z]/.test(data.phone);
+            const hasAt = data.phone.includes('@');
+            const normalizedPhone = normalizeArgentinePhone(data.phone);
+            
+            if (hasLetters || hasAt || normalizedPhone.length < 8) {
+                throw new Error(JSON.stringify({ isBlocked: true, message: `Bloqueo de seguridad: El dato ingresado ("${data.phone}") no es un celular válido. Única y exclusivamente se permiten números de celular reales.` }));
+            }
+            updateData.phone = normalizedPhone;
+        }
+        if (data.dni !== undefined) updateData.dni = data.dni?.trim() === "" ? null : data.dni;
         if (data.status !== undefined) {
             updateData.status = data.status;
             if (data.status === 'CLIENT') {
                 updateData.isFavorite = false;
             }
         }
-        if (data.contactSource !== undefined) updateData.contactSource = data.contactSource;
-        if (data.interest !== undefined) updateData.interest = data.interest;
+        if (data.contactSource !== undefined) updateData.contactSource = data.contactSource?.trim() === "" ? null : data.contactSource;
+        if (data.interest !== undefined) updateData.interest = data.interest?.trim() === "" ? 'Otros' : data.interest;
         if (data.expectedValue !== undefined) updateData.expectedValue = Number(data.expectedValue) || 0;
         if (data.priority !== undefined) updateData.priority = Number(data.priority) || 0;
-        if (data.address !== undefined) updateData.address = data.address;
-        if (data.insurance !== undefined) updateData.insurance = data.insurance;
-        if (data.doctor !== undefined) updateData.doctor = data.doctor;
-        if (data.metaLid !== undefined) updateData.metaLid = data.metaLid;
+        if (data.address !== undefined) updateData.address = data.address?.trim() === "" ? null : data.address;
+        if (data.insurance !== undefined) updateData.insurance = data.insurance?.trim() === "" ? null : data.insurance;
+        if (data.doctor !== undefined) updateData.doctor = data.doctor?.trim() === "" ? null : data.doctor;
+        if (data.metaLid !== undefined) updateData.metaLid = data.metaLid?.trim() === "" ? null : data.metaLid;
 
         let oldClient = null;
         if (data.phone !== undefined) {

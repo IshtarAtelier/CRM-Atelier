@@ -121,7 +121,8 @@ Responde ÚNICAMENTE con el JSON puro. Sin markdown.
                         name: extractedName,
                         phone: chatInfo.realPhone || waId.split('@')[0],
                         interest: parsed.interestTag || 'No especificado',
-                        source: 'WhatsApp'
+                        source: 'WhatsApp',
+                        isLinked: leadResult.action === 'UPDATED'
                     });
                 }
             }

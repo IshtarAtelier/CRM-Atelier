@@ -166,7 +166,8 @@ const savePrescriptionDataTool = new DynamicStructuredTool({
                         name: resolvedName,
                         phone: userPhone,
                         interest: tipoDeLente || 'No especificado',
-                        source: leadResult.contact.contactSource || 'Calle'
+                        source: leadResult.contact.contactSource || 'Calle',
+                        isLinked: leadResult.action === 'UPDATED'
                     });
                 }
             } else {
@@ -232,6 +233,7 @@ const convertIntoLeadTool = new DynamicStructuredTool({
                 source: result.contact.contactSource || 'Calle',
                 hasPrescription: false,
                 timestamp: new Date().toISOString(),
+                isLinked: result.action === 'UPDATED'
             });
         }
         return JSON.stringify(result);

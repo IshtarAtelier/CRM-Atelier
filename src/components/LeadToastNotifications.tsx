@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { io as SocketIOClient } from 'socket.io-client';
-import { UserPlus, FileText, X, ExternalLink, AlertTriangle } from 'lucide-react';
+import { UserPlus, FileText, X, ExternalLink, AlertTriangle, Link2 } from 'lucide-react';
 
 interface LeadNotification {
     id: string;
@@ -13,6 +13,7 @@ interface LeadNotification {
     hasPrescription: boolean;
     prescriptionType?: string;
     timestamp: string;
+    isLinked?: boolean;
 }
 
 interface BotErrorNotification {
@@ -60,9 +61,15 @@ export function LeadToastNotifications() {
 
             // Browser notification
             if ("Notification" in window && Notification.permission === "granted") {
-                new Notification(`🌟 Nuevo Lead: ${data.name}`, {
-                    body: `Interés: ${data.interest}${data.hasPrescription ? ' · Envió receta ✅' : ''}`,
-                    icon: "https://cdn-icons-png.flaticon.com/512/4712/4712139.png",
+                const title = data.isLinked ? `🔗 Ficha Vinculada: ${data.name}` : `🌟 Nuevo Lead: ${data.name}`;
+                const body = data.isLinked 
+                    ? `Se vinculó la conversación a la ficha existente.` 
+                    : `Interés: ${data.interest}${data.hasPrescription ? ' · Envió receta ✅' : ''}`;
+                new Notification(title, {
+                    body,
+                    icon: data.isLinked 
+                        ? "https://cdn-icons-png.flaticon.com/512/3256/3256114.png" 
+                        : "https://cdn-icons-png.flaticon.com/512/4712/4712139.png",
                 });
             }
         });
@@ -87,13 +94,8 @@ export function LeadToastNotifications() {
         });
 
         socket.on('new_message_received', (data: { chatId: string, name: string, phone: string, content: string, botEnabled: boolean }) => {
-            // Solo notificar si el bot está apagado (requiere atención humana) o si prefieren todo, notificamos todo.
-            // Para emular WhatsApp, lanzamos notificación nativa.
+            // Solo notificar si el bot está apagado o si el usuario quiere recibir todo
             if ("Notification" in window && Notification.permission === "granted") {
-                // Prevenir spam: si tenemos foco en la ventana actual, quizás no notificar?
-                // if (document.hasFocus()) return;
-                
-                // Mostrar siempre como pidió el usuario "toda nueva conversacion/mensaje"
                 const notification = new Notification(`Mensaje de ${data.name} (${data.phone})`, {
                     body: data.content,
                     icon: "https://cdn-icons-png.flaticon.com/512/124/124034.png", // WhatsApp-like icon
@@ -129,7 +131,9 @@ export function LeadToastNotifications() {
                         <div className={`h-1 animate-shrink-width ${
                             isBotError 
                                 ? 'bg-gradient-to-r from-red-500 to-orange-500' 
-                                : 'bg-gradient-to-r from-emerald-400 via-teal-400 to-cyan-400'
+                                : toast.data.isLinked
+                                    ? 'bg-gradient-to-r from-blue-400 via-indigo-400 to-violet-400'
+                                    : 'bg-gradient-to-r from-emerald-400 via-teal-400 to-cyan-400'
                         }`} />
 
                         <div className="p-4">
@@ -138,15 +142,19 @@ export function LeadToastNotifications() {
                                 <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 shadow-lg ${
                                     isBotError
                                         ? 'bg-gradient-to-br from-red-500 to-orange-600 shadow-red-500/30'
-                                        : toast.data.hasPrescription
-                                            ? 'bg-gradient-to-br from-violet-500 to-indigo-600 shadow-violet-500/30'
-                                            : 'bg-gradient-to-br from-emerald-500 to-teal-600 shadow-emerald-500/30'
+                                        : toast.data.isLinked
+                                            ? 'bg-gradient-to-br from-blue-500 to-indigo-600 shadow-blue-500/30'
+                                            : toast.data.hasPrescription
+                                                ? 'bg-gradient-to-br from-violet-500 to-indigo-600 shadow-violet-500/30'
+                                                : 'bg-gradient-to-br from-emerald-500 to-teal-600 shadow-emerald-500/30'
                                 }`}>
                                     {isBotError
                                         ? <AlertTriangle className="w-5 h-5 text-white" />
-                                        : toast.data.hasPrescription 
-                                            ? <FileText className="w-5 h-5 text-white" />
-                                            : <UserPlus className="w-5 h-5 text-white" />
+                                        : toast.data.isLinked
+                                            ? <Link2 className="w-5 h-5 text-white" />
+                                            : toast.data.hasPrescription 
+                                                ? <FileText className="w-5 h-5 text-white" />
+                                                : <UserPlus className="w-5 h-5 text-white" />
                                     }
                                 </div>
 
@@ -154,7 +162,12 @@ export function LeadToastNotifications() {
                                 <div className="flex-1 min-w-0">
                                     <div className="flex items-center justify-between">
                                         <h4 className="text-sm font-black text-stone-800 dark:text-white truncate">
-                                            {isBotError ? '⚠️ Bot Desactivado' : toast.data.name}
+                                            {isBotError 
+                                                ? '⚠️ Bot Desactivado' 
+                                                : toast.data.isLinked
+                                                    ? `🔗 ${toast.data.name}`
+                                                    : toast.data.name
+                                            }
                                         </h4>
                                         <button 
                                             onClick={() => removeToast(toast.id)}
@@ -175,9 +188,15 @@ export function LeadToastNotifications() {
                                         </>
                                     ) : (
                                         <>
-                                            <p className="text-xs text-stone-500 dark:text-stone-400 font-medium mt-0.5">
-                                                Interés: <span className="font-bold text-stone-700 dark:text-stone-200">{toast.data.interest}</span>
-                                            </p>
+                                            {toast.data.isLinked ? (
+                                                <p className="text-xs text-stone-500 dark:text-stone-400 font-bold mt-0.5">
+                                                    Conversación vinculada a ficha existente.
+                                                </p>
+                                            ) : (
+                                                <p className="text-xs text-stone-500 dark:text-stone-400 font-medium mt-0.5">
+                                                    Interés: <span className="font-bold text-stone-700 dark:text-stone-200">{toast.data.interest}</span>
+                                                </p>
+                                            )}
 
                                             <div className="flex items-center gap-2 mt-2">
                                                 {toast.data.hasPrescription && (

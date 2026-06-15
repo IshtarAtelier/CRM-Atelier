@@ -41,6 +41,19 @@
     "prisma.config.ts",
     "backups",
     "scripts",
-    "scratch"
+    "scratch",
+    "check.ts",
+    "check_db*.ts",
+    "check_interactions.ts",
+    "check_orders.ts",
+    "check_real_sync.ts",
+    "get_smartlab_fields.ts",
+    "send_vanesa.ts",
+    "test_jspdf.ts",
+    "test_pdf_send.ts",
+    "extract_pedidos.ts",
+    "fix_jeferson.ts",
+    "investigate_smartlab.ts",
+    "check_db9.ts"
   ]
 }

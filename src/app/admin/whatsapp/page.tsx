@@ -997,6 +997,10 @@ export default function WhatsAppPage() {
 
     const confirmCreateClient = async () => {
         if (!extractedClient || !selectedChat) return;
+        if (!extractedClient.name?.trim() || !extractedClient.contactSource?.trim()) {
+            alert('El nombre y el origen de contacto son obligatorios.');
+            return;
+        }
         setCreatingClient(true);
         try {
             // 1. Crear cliente en el CRM
@@ -2209,7 +2213,7 @@ export default function WhatsAppPage() {
                                 />
                             </div>
                             <div>
-                                <label className="text-[10px] font-black uppercase tracking-widest text-stone-400 mb-1 block">Teléfono</label>
+                                <label className="text-[10px] font-black uppercase tracking-widest text-stone-400 mb-1 block">Teléfono *</label>
                                 <input
                                     value={extractedClient.phone || ''}
                                     onChange={e => setExtractedClient({ ...extractedClient, phone: e.target.value || null })}
@@ -2272,7 +2276,7 @@ export default function WhatsAppPage() {
                             </button>
                             <button
                                 onClick={confirmCreateClient}
-                                disabled={creatingClient || !extractedClient.name.trim() || !extractedClient.contactSource}
+                                disabled={creatingClient || !extractedClient.name.trim() || !extractedClient.contactSource?.trim() || !extractedClient.phone?.trim()}
                                 className="flex-1 px-4 py-2.5 bg-gradient-to-r from-violet-500 to-indigo-500 hover:from-violet-600 hover:to-indigo-600 text-white rounded-xl text-xs font-black uppercase tracking-widest transition-all shadow-lg hover:shadow-xl disabled:opacity-50 flex items-center justify-center gap-1.5"
                             >
                                 {creatingClient ? (

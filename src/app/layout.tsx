@@ -13,11 +13,11 @@ const geistSans = Geist({
 export const metadata: Metadata = {
   metadataBase: new URL('https://www.atelieroptica.com.ar'),
   title: {
-    default: "Atelier Óptica Córdoba | Multifocales, Anteojos y Lentes de Contacto",
-    template: "%s | Atelier Óptica Córdoba"
+    default: "Atelier Óptica | Armazones, Cristales y Multifocales en Cuotas",
+    template: "%s | Atelier Óptica"
   },
-  description: "Óptica en Córdoba especializada en multifocales, anteojos recetados, de sol y lentes de contacto. Atención personalizada y armazones de diseño.",
-  keywords: ["optica cordoba", "multifocales", "anteojos de sol", "lentes de contacto", "anteojos recetados", "armazones", "salud visual", "optica cerro de las rosas"],
+  description: "Óptica especializada en salud visual. Promociones en lentes multifocales, cuotas sin interés y envíos a todo el país. Presupuestamos tu receta por WhatsApp.",
+  keywords: ["optica cordoba", "multifocales en cuotas", "precio multifocales", "anteojos de sol", "lentes de contacto con envio", "anteojos recetados", "armazones", "salud visual", "reparacion de anteojos", "optica con obra social"],
   openGraph: {
     type: "website",
     locale: "es_AR",

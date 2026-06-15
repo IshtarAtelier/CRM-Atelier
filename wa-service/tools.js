@@ -147,8 +147,6 @@ async function convertIntoLead({ phone, name, contactSource, interest, chatId, i
     if (cleanPhone.length > 15 || cleanPhone.length < 8) {
         console.log(`  ⚠️ Teléfono sospechoso descartado: "${phone}" (${cleanPhone.length} dígitos)`);
         cleanPhone = null;
-    } else {
-        cleanPhone = phone; // Mantener formato original si es válido
     }
 
     if (!cleanPhone) {
@@ -199,7 +197,7 @@ async function convertIntoLead({ phone, name, contactSource, interest, chatId, i
             await addTagToClient({ clientId: newContact.id, tagName: 'Google Ads' });
         }
 
-        return { success: true, contact: newContact };
+        return { success: true, contact: newContact, action: response.data.action || 'CREATED' };
     } catch (e) {
         console.error('Error en convertIntoLead:', e.message);
         throw new Error('No se pudo registrar al prospecto debido a un error de base de datos.');
