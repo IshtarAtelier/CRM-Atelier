@@ -37,7 +37,7 @@ export default function InventarioPage() {
     const [editForm, setEditForm] = useState({ name: '', brand: '', model: '', type: '', stock: 0, cost: 0, price: 0, lensIndex: '', laboratory: '', sphereMin: '' as string, sphereMax: '' as string, cylinderMin: '' as string, cylinderMax: '' as string, additionMin: '' as string, additionMax: '' as string, is2x1: false, publishToWeb: false, lensWidth: '' as string, bridgeWidth: '' as string, templeLength: '' as string, frameHeight: '' as string, seoTitle: '', seoDescription: '', seoTags: '', customSlug: '', mpn: '', gender: '', ageGroup: '', origin: '' });
     const [savingEdit, setSavingEdit] = useState(false);
     const [selectedBrand, setSelectedBrand] = useState('');
-    const [showAllBrands, setShowAllBrands] = useState(false);
+    const [selectedLab, setSelectedLab] = useState('');
     const [importing, setImporting] = useState(false);
     const [importResult, setImportResult] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
     const [userRole, setUserRole] = useState('STAFF');
@@ -150,6 +150,9 @@ export default function InventarioPage() {
     uniqueLabs.sort();
 
     let products = selectedBrand ? rawProducts.filter(p => p.brand?.toLowerCase() === selectedBrand.toLowerCase()) : rawProducts;
+    if (selectedLab) {
+        products = products.filter(p => p.laboratory?.toLowerCase() === selectedLab.toLowerCase());
+    }
     if (onlyWeb) {
         products = products.filter(p => p.publishToWeb === true);
     }
@@ -496,7 +499,7 @@ export default function InventarioPage() {
                                     setSelectedSubtype('');
                                     setSelectedOrigin('');
                                     setSelectedBrand('');
-                                    setShowAllBrands(false);
+                                    setSelectedLab('');
                                 }}
                                 className={`px-5 py-2.5 rounded-full text-[11px] font-black uppercase tracking-[0.15em] transition-all duration-300 ${
                                     isActive
@@ -576,43 +579,40 @@ export default function InventarioPage() {
                     </div>
                 )}
 
-            {/* Brand filters — compact collapsible */}
-            {uniqueBrands.length > 1 && (
-                <div className="animate-in fade-in slide-in-from-top-2 duration-300">
-                    <div className="flex flex-wrap gap-1.5 items-center">
-                        <span className="text-[9px] font-black text-stone-300 uppercase tracking-widest mr-1">Marca:</span>
-                        <button
-                            onClick={() => setSelectedBrand('')}
-                            className={`px-3 py-1.5 rounded-lg text-[9px] font-bold uppercase tracking-wider transition-all border ${!selectedBrand
-                                ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-300 text-amber-700 dark:text-amber-400'
-                                : 'bg-transparent border-stone-200 dark:border-stone-700 text-stone-400 hover:border-stone-300'
-                                }`}
+            {/* Advanced Filters: Brand and Lab */}
+            <div className="flex flex-wrap gap-3 items-center animate-in fade-in slide-in-from-top-2 duration-300">
+                {uniqueBrands.length > 1 && (
+                    <div className="flex items-center gap-2 bg-stone-50 dark:bg-stone-800/50 p-1.5 rounded-2xl border border-stone-200/50 dark:border-stone-700/50">
+                        <span className="text-[9px] font-black text-stone-400 uppercase tracking-widest pl-2">Marca:</span>
+                        <select 
+                            value={selectedBrand} 
+                            onChange={(e) => setSelectedBrand(e.target.value)}
+                            className="bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-700 text-xs font-bold px-3 py-1.5 rounded-xl outline-none focus:border-primary cursor-pointer text-stone-700 dark:text-stone-300"
                         >
-                            Todas
-                        </button>
-                        {(showAllBrands ? uniqueBrands : uniqueBrands.slice(0, 10)).map(brand => (
-                            <button
-                                key={brand}
-                                onClick={() => setSelectedBrand(brand)}
-                                className={`px-3 py-1.5 rounded-lg text-[9px] font-bold uppercase tracking-wider transition-all border ${selectedBrand === brand
-                                    ? 'bg-amber-500 border-transparent text-white shadow-md'
-                                    : 'bg-transparent border-stone-200 dark:border-stone-700 text-stone-400 hover:border-stone-300 hover:text-stone-600'
-                                    }`}
-                            >
-                                {brand}
-                            </button>
-                        ))}
-                        {uniqueBrands.length > 10 && (
-                            <button
-                                onClick={() => setShowAllBrands(!showAllBrands)}
-                                className="px-3 py-1.5 rounded-lg text-[9px] font-bold uppercase tracking-wider transition-all text-primary hover:bg-primary/10 border border-primary/20"
-                            >
-                                {showAllBrands ? '▲ Menos' : `+${uniqueBrands.length - 10} más ▼`}
-                            </button>
-                        )}
+                            <option value="">Todas</option>
+                            {uniqueBrands.map(brand => (
+                                <option key={brand} value={brand}>{brand}</option>
+                            ))}
+                        </select>
                     </div>
-                </div>
-            )}
+                )}
+
+                {uniqueLabs.length > 1 && (
+                    <div className="flex items-center gap-2 bg-stone-50 dark:bg-stone-800/50 p-1.5 rounded-2xl border border-stone-200/50 dark:border-stone-700/50">
+                        <span className="text-[9px] font-black text-stone-400 uppercase tracking-widest pl-2">Laboratorio:</span>
+                        <select 
+                            value={selectedLab} 
+                            onChange={(e) => setSelectedLab(e.target.value)}
+                            className="bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-700 text-xs font-bold px-3 py-1.5 rounded-xl outline-none focus:border-primary cursor-pointer text-stone-700 dark:text-stone-300"
+                        >
+                            <option value="">Todos</option>
+                            {uniqueLabs.map(lab => (
+                                <option key={lab} value={lab}>{lab}</option>
+                            ))}
+                        </select>
+                    </div>
+                )}
+            </div>
 
             </div>
 
