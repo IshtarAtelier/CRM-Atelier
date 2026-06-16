@@ -16,8 +16,11 @@ export function ExitIntentPopup() {
     const handleMouseLeave = (e: MouseEvent) => {
       // Trigger when mouse moves near the top address bar (clientY < 15)
       if (e.clientY < 15) {
-        setIsOpen(true);
-        sessionStorage.setItem("atelier-exit-intent-shown", "true");
+        const alreadyShown = sessionStorage.getItem("atelier-exit-intent-shown");
+        if (!alreadyShown) {
+          setIsOpen(true);
+          sessionStorage.setItem("atelier-exit-intent-shown", "true");
+        }
       }
     };
 
@@ -69,16 +72,16 @@ export function ExitIntentPopup() {
 
             {/* Icon */}
             <div className="w-16 h-16 bg-[#faf8f5] dark:bg-stone-900 text-[#b08f4c] rounded-full flex items-center justify-center mx-auto text-2xl">
-              ☕
+              🎁
             </div>
 
             {/* Text */}
             <div className="space-y-2.5">
               <h2 className="text-2xl font-serif text-stone-900 dark:text-stone-100 font-light leading-tight">
-                ¿Te quedaste con alguna duda?
+                ¡Esperá! Tenemos un regalo para vos.
               </h2>
               <p className="text-xs text-stone-500 leading-relaxed font-light">
-                Antes de irte, contanos qué estás buscando. Un asesor óptico está disponible para ayudarte con tu receta o a elegir el marco perfecto por WhatsApp, sin compromiso.
+                Terminá tu compra hoy y llevate <strong>Envío Gratis a todo el país</strong>. Si tenés dudas con tu receta o qué marco elegir, un asesor óptico está disponible ahora mismo por WhatsApp.
               </p>
             </div>
 
