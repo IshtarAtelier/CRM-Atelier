@@ -104,22 +104,22 @@ export async function getGoogleReviews() {
   }
 
   try {
-    console.log('Intentando obtener reseñas con la API de Places Legacy...');
-    const resData = await fetchLegacyReviews(placeId, apiKey);
+    console.log('Intentando obtener reseñas con la API de Places (New)...');
+    const resData = await fetchNewReviews(placeId, apiKey);
     if (resData && resData.reviews && resData.reviews.length > 0) {
       return resData;
     }
-  } catch (legacyError: any) {
-    console.warn('Fallo la API Legacy:', legacyError.message);
+  } catch (newApiError: any) {
+    console.warn('Fallo la API (New):', newApiError.message);
     
     try {
-      console.log('Intentando obtener reseñas con la API de Places (New)...');
-      const resData = await fetchNewReviews(placeId, apiKey);
+      console.log('Intentando obtener reseñas con la API de Places Legacy...');
+      const resData = await fetchLegacyReviews(placeId, apiKey);
       if (resData && resData.reviews && resData.reviews.length > 0) {
         return resData;
       }
-    } catch (newApiError: any) {
-      console.error('Fallo también la API de Places (New):', newApiError.message);
+    } catch (legacyError: any) {
+      console.error('Fallo también la API Legacy:', legacyError.message);
     }
   }
 
