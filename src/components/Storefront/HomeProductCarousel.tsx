@@ -40,6 +40,7 @@ export function HomeProductCarousel({ products }: Props) {
     container.addEventListener('touchend', onStopInteract, { passive: true });
     container.addEventListener('mousedown', onInteract, { passive: true });
     container.addEventListener('mouseup', onStopInteract, { passive: true });
+    container.addEventListener('mouseenter', onInteract, { passive: true });
     container.addEventListener('mouseleave', onStopInteract, { passive: true });
 
     let wheelTimeout: any;
@@ -77,6 +78,7 @@ export function HomeProductCarousel({ products }: Props) {
       container.removeEventListener('touchend', onStopInteract);
       container.removeEventListener('mousedown', onInteract);
       container.removeEventListener('mouseup', onStopInteract);
+      container.removeEventListener('mouseenter', onInteract);
       container.removeEventListener('mouseleave', onStopInteract);
       container.removeEventListener('wheel', onWheel);
       clearTimeout(wheelTimeout);
