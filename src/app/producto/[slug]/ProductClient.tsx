@@ -46,7 +46,7 @@ export function ProductClient({
   }, []);
 
   const whatsappPhoneId = settings ? settings.web_store_whatsapp_id : WHATSAPP_PHONE;
-  const cashDiscount = settings ? Number(settings.web_promo_cash_discount) : 15;
+  const cashDiscount = settings && settings.web_promo_cash_discount && !isNaN(Number(settings.web_promo_cash_discount)) ? Number(settings.web_promo_cash_discount) : 15;
   const installmentsText = settings ? settings.web_promo_installments : "6 cuotas sin interés";
 
   const images = product.imagenesCatalogo && product.imagenesCatalogo.length > 0 
@@ -244,17 +244,49 @@ export function ProductClient({
               installmentsText={installmentsText} 
             />
 
+            <div className="flex flex-col gap-3 mb-6 mt-4">
+              <button
+                disabled={product.stock !== undefined && product.stock <= 0 && product.category !== "Cristal" || isAdded}
+                onClick={() => {
+                  addItem({
+                    productId: product.id,
+                    brand: product.brand,
+                    model: product.model,
+                    price: product.price || 0,
+                    image: images[0] || "/images/placeholder.svg",
+                    lensColor: null,
+                    lensConfig: {
+                      lensType: "NONE",
+                      treatment: null,
+                      color: null,
+                      prescriptionFile: null
+                    },
+                    quantity: 1
+                  });
+                  setIsAdded(true);
+                  setTimeout(() => {
+                    setIsOpen(true);
+                    setTimeout(() => setIsAdded(false), 2000);
+                  }, 500);
+                }}
+                className={`w-full px-8 py-5 text-[15px] font-black uppercase tracking-[0.2em] transition-all disabled:cursor-not-allowed shadow-xl hover:scale-[1.02] ${isAdded ? 'bg-green-600 text-white' : 'bg-black text-white hover:bg-stone-900 disabled:opacity-50 disabled:bg-stone-400 disabled:hover:scale-100 disabled:shadow-none'}`}
+              >
+                {isAdded ? "¡Ya son tuyos! 🎉" : ((product.stock !== undefined && product.stock <= 0 && product.category !== "Cristal") ? "Agotado" : "¡Los Quiero!")}
+              </button>
+            </div>
+
             {/* Envío gratis badge/banner con tiempo estimado */}
             <div className="flex items-center gap-3.5 px-4 py-3 bg-[#eefaf4] border border-[#d2f4e1] rounded-xl mb-6 shadow-sm animate-fade-in">
               <div className="p-2 bg-white rounded-full text-[#1b4332] shadow-sm">
                 <Truck className="w-4 h-4" />
               </div>
-              <div>
-                <span className="text-[11px] font-bold text-[#1b4332] block uppercase tracking-wider">
-                  Envío Gratis a todo el país
+              <div className="flex flex-col gap-0.5">
+                <span className="text-[14px] font-black text-[#1b4332] uppercase tracking-widest">
+                  ENVÍO SIN CARGO
                 </span>
-                <span className="text-[11px] text-[#2c6e49] block">
-                  Llega gratis a tu domicilio o sucursal de correo en <strong>3 a 5 días hábiles</strong>.
+                <span className="text-[11px] text-[#2c6e49] leading-tight">
+                  En Córdoba: <strong>Retiro por local</strong><br/>
+                  Fuera de CBA: <strong>Envío sin cargo</strong> a todo el país.
                 </span>
               </div>
             </div>
@@ -442,34 +474,6 @@ export function ProductClient({
           </div>
 
           <div className="p-8 lg:p-14 flex-1 flex flex-col justify-end gap-3">
-            <button
-              disabled={product.stock !== undefined && product.stock <= 0 && product.category !== "Cristal" || isAdded}
-              onClick={() => {
-                addItem({
-                  productId: product.id,
-                  brand: product.brand,
-                  model: product.model,
-                  price: product.price || 0,
-                  image: images[0] || "/images/placeholder.svg",
-                  lensColor: null,
-                  lensConfig: {
-                    lensType: "NONE",
-                    treatment: null,
-                    color: null,
-                    prescriptionFile: null
-                  },
-                  quantity: 1
-                });
-                setIsAdded(true);
-                setTimeout(() => {
-                  setIsOpen(true);
-                  setTimeout(() => setIsAdded(false), 2000);
-                }, 500);
-              }}
-              className={`w-full px-8 py-5 text-[13px] font-bold uppercase tracking-widest transition-colors disabled:cursor-not-allowed ${isAdded ? 'bg-green-600 text-white' : 'bg-black text-white hover:bg-[#222] disabled:opacity-50 disabled:bg-stone-400'}`}
-            >
-              {isAdded ? "¡Agregado con éxito!" : ((product.stock !== undefined && product.stock <= 0 && product.category !== "Cristal") ? "Agotado" : "Agregar al Carrito")}
-            </button>
             
             {/* Sellos de Confianza (Trust Badges) - Movidos debajo del carrito */}
             <div className="my-2 py-3 border-y border-[#e5e5e5]/50 grid grid-cols-4 gap-2">
