@@ -216,11 +216,28 @@ export default async function Home() {
     }
   };
 
+  const itemListSchema = {
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    "itemListElement": dbWebProducts.map((wp, index) => ({
+      "@type": "ListItem",
+      "position": index + 1,
+      "url": `https://www.atelieroptica.com.ar/producto/${wp.slug}`,
+      "name": wp.name,
+      "image": wp.imageUrl 
+        ? resolveStorageUrl(wp.imageUrl) 
+        : (wp.images?.length > 0 ? resolveStorageUrl(wp.images[0]) : "https://www.atelieroptica.com.ar/assets/logo-pwa-512.png")
+    }))
+  };
+
   return (
     <div className="bg-white text-black selection:bg-black selection:text-white overflow-x-hidden" style={{ fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif" }}>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationSchema) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(localBusinessSchema) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(webSiteSchema) }} />
+      {dbWebProducts.length > 0 && (
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListSchema) }} />
+      )}
       
       {/* ═══════════════════════════════════════════════ */}
       {/* NAV — Replica exacta de Gentle Monster          */}
