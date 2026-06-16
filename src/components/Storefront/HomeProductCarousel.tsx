@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 
@@ -19,11 +19,22 @@ interface CarouselProduct {
 }
 
 interface Props {
-  products: CarouselProduct[];
+  collections: {
+    destacados: CarouselProduct[];
+    sol: CarouselProduct[];
+    receta: CarouselProduct[];
+    nuevos: CarouselProduct[];
+  };
+  totalCount: number;
 }
 
-export function HomeProductCarousel({ products }: Props) {
+type TabKey = 'destacados' | 'sol' | 'receta' | 'nuevos';
+
+export function HomeProductCarousel({ collections, totalCount }: Props) {
+  const [activeTab, setActiveTab] = useState<TabKey>('destacados');
   const carouselRef = useRef<HTMLDivElement>(null);
+  
+  const products = collections[activeTab] || [];
 
   // Hybrid Marquee Logic
   useEffect(() => {
@@ -85,12 +96,40 @@ export function HomeProductCarousel({ products }: Props) {
     };
   }, [products]);
 
-  // Si la lista está vacía, no mostramos nada o manejamos fallback,
-  // pero asumimos que el componente de servidor ya preparó los productos.
-  if (!products || products.length === 0) return null;
+  // Reset scroll when tab changes
+  useEffect(() => {
+    if (carouselRef.current) {
+      carouselRef.current.scrollLeft = 0;
+    }
+  }, [activeTab]);
+
+  if (!collections || !products) return null;
 
   return (
-    <section className="w-full bg-white pb-20">
+    <section className="w-full bg-white pb-12 flex flex-col items-center">
+      
+      {/* TABS DE FILTRO */}
+      <div className="flex gap-4 px-5 mb-8 w-full max-w-7xl mx-auto overflow-x-auto no-scrollbar">
+        {[
+          { key: 'destacados', label: 'Destacados' },
+          { key: 'sol', label: 'Sol' },
+          { key: 'receta', label: 'Receta' },
+          { key: 'nuevos', label: 'Nuevos' }
+        ].map(tab => (
+          <button
+            key={tab.key}
+            onClick={() => setActiveTab(tab.key as TabKey)}
+            className={`px-4 py-2 text-[11px] font-bold uppercase tracking-widest transition-all whitespace-nowrap rounded-full border ${
+              activeTab === tab.key 
+                ? 'bg-black text-white border-black' 
+                : 'bg-white text-stone-500 border-stone-200 hover:border-black hover:text-black'
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
       <div 
         ref={carouselRef}
         className="flex w-full overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
@@ -176,6 +215,20 @@ export function HomeProductCarousel({ products }: Props) {
             </div>
           </Link>
         ))}
+      </div>
+
+      {/* FIXED FOOTER CTA */}
+      <div className="w-full max-w-7xl mx-auto px-5 mt-10 flex flex-col md:flex-row items-center justify-between gap-6">
+        <p className="text-[11px] text-stone-500 tracking-wider text-center md:text-left">
+          <span className="font-bold text-black">{totalCount} modelos disponibles</span> — sol, receta y ediciones limitadas
+        </p>
+        
+        <Link 
+          href="/tienda" 
+          className="w-full md:w-auto px-8 py-4 bg-black text-white text-[11px] font-bold uppercase tracking-[0.2em] hover:bg-stone-800 transition-colors text-center rounded-sm"
+        >
+          Ver todos los modelos →
+        </Link>
       </div>
     </section>
   );

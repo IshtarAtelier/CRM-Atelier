@@ -50,29 +50,63 @@ const PRODUCTS = [
 export default async function Home() {
   // 1. Server-Side Data Fetching from WebProduct to get Goddess names and slugs
   let dbWebProducts: any[] = [];
+  let solProducts: any[] = [];
+  let recetaProducts: any[] = [];
+  let nuevosProducts: any[] = [];
+  let totalCatalogCount: number = 120;
+
   try {
-    dbWebProducts = await prisma.webProduct.findMany({
-      where: {
-        isActive: true,
-        isFeatured: true, // Only display featured products in the homepage carousel
-        product: {
-          publishToWeb: true,
-          category: { not: 'Cristal' }
-        }
-      },
-      include: {
-        product: true
-      },
-      orderBy: { createdAt: 'desc' },
-      take: 12 // Maximum of 12 featured products for best PageSpeed score and clean visual presentation
-    });
+      dbWebProducts = await prisma.webProduct.findMany({
+        where: {
+          isActive: true,
+          isFeatured: true, // Only display featured products in the homepage carousel
+          product: {
+            publishToWeb: true,
+            category: { not: 'Cristal' }
+          }
+        },
+        include: {
+          product: true
+        },
+        orderBy: { createdAt: 'desc' },
+        take: 12 // Maximum of 12 featured products for best PageSpeed score and clean visual presentation
+      });
+      
+      const [dbSol, dbReceta, dbNuevos, count] = await Promise.all([
+        prisma.webProduct.findMany({
+          where: { isActive: true, product: { publishToWeb: true, category: 'Lentes de Sol' } },
+          include: { product: true },
+          orderBy: { createdAt: 'desc' },
+          take: 12
+        }),
+        prisma.webProduct.findMany({
+          where: { isActive: true, product: { publishToWeb: true, category: 'Armazón de Receta' } },
+          include: { product: true },
+          orderBy: { createdAt: 'desc' },
+          take: 12
+        }),
+        prisma.webProduct.findMany({
+          where: { isActive: true, product: { publishToWeb: true, category: { not: 'Cristal' } } },
+          include: { product: true },
+          orderBy: { createdAt: 'desc' },
+          take: 12
+        }),
+        prisma.webProduct.count({
+          where: { isActive: true, product: { publishToWeb: true, category: { not: 'Cristal' } } }
+        })
+      ]);
+
+      solProducts = dbSol;
+      recetaProducts = dbReceta;
+      nuevosProducts = dbNuevos;
+      totalCatalogCount = count;
   } catch (error) {
     console.error("Prerendering warning: Database not reachable at build time. Using fallbacks.", error);
   }
 
   // Formateamos los productos para el carrusel
-  const displayProducts = dbWebProducts.length > 0 
-    ? dbWebProducts.map(wp => ({
+  const formatProducts = (list: any[]) => list.length > 0 
+    ? list.map(wp => ({
         id: wp.product.id,
         name: wp.name,
         price: wp.product.price ? `6 cuotas de $${Math.round(wp.product.price / 6).toLocaleString("es-AR")}` : "",
@@ -88,8 +122,18 @@ export default async function Home() {
         secondImg: wp.images.length > 1 
           ? resolveStorageUrl(wp.images[1])
           : (wp.product.imagenesCatalogo.length > 1 ? resolveStorageUrl(wp.product.imagenesCatalogo[1]) : null),
+        category: wp.product.category
       }))
     : [];
+
+  const carouselData = {
+    destacados: formatProducts(dbWebProducts),
+    sol: formatProducts(solProducts),
+    receta: formatProducts(recetaProducts),
+    nuevos: formatProducts(nuevosProducts),
+  };
+  
+  const catalogCount = totalCatalogCount;
 
   const organizationSchema = {
     "@context": "https://schema.org",
@@ -233,7 +277,7 @@ export default async function Home() {
       </section>
 
       {/* PRODUCT GRID — Scroll horizontal infinito en Cliente */}
-      <HomeProductCarousel products={displayProducts} />
+      <HomeProductCarousel collections={carouselData} totalCount={catalogCount} />
 
       {/* ═══════════════════════════════════════════════ */}
       {/* POR QUÉ ELEGIRNOS — Pilares de Confianza         */}
