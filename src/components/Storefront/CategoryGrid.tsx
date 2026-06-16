@@ -90,6 +90,7 @@ export function CategoryGrid({ products, emptyMessage = "Estamos actualizando nu
                   src={imageUrl} 
                   alt={`${p.brand} ${p.model}`}
                   fill
+                  priority={index < 4}
                   style={{ transform: "translateZ(0)" }}
                   sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                   className={`object-contain mix-blend-multiply transition-opacity duration-500 ease-in-out ${imagePaddingClass} ${hasSecondImage ? 'md:group-hover:opacity-0 ' : ''}`}

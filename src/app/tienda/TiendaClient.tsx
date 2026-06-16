@@ -166,7 +166,7 @@ export function TiendaClient({
               transition={{ duration: 0.3 }}
               className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-x-6 gap-y-14"
             >
-              {filtered.map((p) => {
+              {filtered.map((p, index) => {
                 const hasSecondImage = p.imagenesCatalogo && p.imagenesCatalogo.length > 1;
                 const imgUrl = p.imagenesCatalogo?.length > 0
                   ? resolveStorageUrl(p.imagenesCatalogo[0])
@@ -196,6 +196,7 @@ export function TiendaClient({
                             src={imgUrl}
                             alt={`${p.brand} ${p.model}`}
                             fill
+                            priority={index < 4}
                             sizes="(max-width: 768px) 50vw, (max-width: 1280px) 33vw, 25vw"
                             className={`object-contain mix-blend-multiply transition-opacity duration-500 ease-in-out ${
                               ((p.model || '').toLowerCase().includes('tl3932 c3') || (p.model || '').toLowerCase().includes('diana') || p.id === 'cmq5d11hf002rhy61fhvqs7nj')

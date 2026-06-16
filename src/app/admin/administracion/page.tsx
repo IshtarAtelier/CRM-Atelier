@@ -11,6 +11,7 @@ import { es } from 'date-fns/locale';
 import { resolveStorageUrl, fileToBase64 } from '@/lib/utils/storage';
 import FileDropZone from '@/components/FileDropZone';
 import type { CashMovement } from '@/types/orders';
+import Image from "next/image";
 
 // ── Types ─────────────────────────────────────
 
@@ -363,7 +364,7 @@ export default function AdministracionPage() {
             const reader = new FileReader();
             reader.readAsDataURL(file);
             reader.onload = (event) => {
-                const img = new Image();
+                const img = document.createElement('img');
                 img.src = event.target?.result as string;
                 img.onload = () => {
                     const canvas = document.createElement('canvas');
@@ -894,7 +895,7 @@ export default function AdministracionPage() {
                         <h3 className="text-sm font-black uppercase tracking-widest text-stone-400 mb-6 flex items-center gap-2 px-2"><ImageIcon className="w-4 h-4"/> Comprobante de Pago</h3>
                         <div className="rounded-xl overflow-hidden bg-stone-50 dark:bg-stone-800 flex items-center justify-center min-h-[300px]">
                             {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img src={viewingReceipt} alt="Comprobante" className="max-h-[70vh] object-contain" />
+                            <Image src={viewingReceipt} alt="Comprobante" className="max-h-[70vh] object-contain" />
                         </div>
                     </div>
                 </div>

@@ -113,7 +113,6 @@ export function HomeMacroFilm() {
             fill
             sizes="100vw"
             className="object-cover"
-            priority
           />
         </div>
         {/* Soft shadow vignette to emphasize depth */}
@@ -144,7 +143,6 @@ export function HomeMacroFilm() {
             fill
             sizes="100vw"
             className="object-cover"
-            priority
           />
         </div>
         {/* Soft shadow vignette to emphasize depth */}

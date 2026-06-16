@@ -7,6 +7,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Modal } from "@/components/ui/Modal";
 import { LensConfigurator } from "@/components/Storefront/LensConfigurator";
+import Image from "next/image";
 
 export function CartSidebar() {
   const { items, isOpen, setIsOpen, removeItem, updateQuantity, getCartTotal } = useCart();
@@ -64,7 +65,7 @@ export function CartSidebar() {
                   <div key={item.id} className="flex gap-4 group">
                     {/* Imagen */}
                     <div className="w-24 h-24 bg-stone-100 flex items-center justify-center overflow-hidden relative rounded-sm shrink-0">
-                      <img src={item.image || undefined} alt={item.model} className="w-full h-full object-contain mix-blend-multiply" />
+                      <Image src={item.image || '/images/og-image.jpg'} alt={item.model} fill className="w-full h-full object-contain mix-blend-multiply" />
                     </div>
 
                     {/* Info */}

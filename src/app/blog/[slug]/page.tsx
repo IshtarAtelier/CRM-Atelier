@@ -9,6 +9,7 @@ import { StorefrontFooter } from '@/components/Storefront/StorefrontFooter';
 import { FloatingWhatsApp } from '@/components/Storefront/FloatingWhatsApp';
 import { prisma } from '@/lib/db';
 import { resolveStorageUrl } from '@/lib/utils/storage';
+import Image from "next/image";
 
 async function getPostBySlug(slug: string) {
   try {
@@ -679,7 +680,7 @@ const posts: Record<string, Post> = {
           <div className="bg-[#faf8f5] dark:bg-stone-850 p-6 rounded-3xl border border-black/5  flex flex-col justify-between hover:shadow-lg transition-all duration-300">
             <div>
               <div className="aspect-[4/3] rounded-2xl overflow-hidden mb-4 bg-stone-100 relative shadow-[0_2px_10px_rgba(0,0,0,0.02)] border border-stone-150 dark:border-stone-750">
-                <img src={resolveStorageUrl("/assets/products/acetato/57202LJH-c1.avif")} alt="Anteojo de diseño modelo Aurora" className="w-full h-full object-cover" />
+                <Image src={resolveStorageUrl("/assets/products/acetato/57202LJH-c1.avif")} alt="Anteojo de diseño modelo Aurora" className="w-full h-full object-cover" />
               </div>
               <h4 className="font-medium tracking-tight text-lg text-[#222]  mb-1">Aurora</h4>
               <p className="text-[10px] text-[#111] font-medium tracking-tight uppercase tracking-widest mb-3">Material: Acetato | Color: Rosa cristal translúcido con patillas carey oscuro</p>
@@ -692,7 +693,7 @@ const posts: Record<string, Post> = {
           <div className="bg-[#faf8f5] dark:bg-stone-850 p-6 rounded-3xl border border-black/5  flex flex-col justify-between hover:shadow-lg transition-all duration-300">
             <div>
               <div className="aspect-[4/3] rounded-2xl overflow-hidden mb-4 bg-stone-100 relative shadow-[0_2px_10px_rgba(0,0,0,0.02)] border border-stone-150 dark:border-stone-750">
-                <img src={resolveStorageUrl("1780932146269_HY238014-c4-1.avif")} alt="Anteojo de diseño modelo Hera" className="w-full h-full object-cover" />
+                <Image src={resolveStorageUrl("1780932146269_HY238014-c4-1.avif")} alt="Anteojo de diseño modelo Hera" className="w-full h-full object-cover" />
               </div>
               <h4 className="font-medium tracking-tight text-lg text-[#222]  mb-1">Hera</h4>
               <p className="text-[10px] text-[#111] font-medium tracking-tight uppercase tracking-widest mb-3">Material: Metal | Color: Marrón oscuro con varillas plateadas y terminales marrones</p>
@@ -705,7 +706,7 @@ const posts: Record<string, Post> = {
           <div className="bg-[#faf8f5] dark:bg-stone-850 p-6 rounded-3xl border border-black/5  flex flex-col justify-between hover:shadow-lg transition-all duration-300">
             <div>
               <div className="aspect-[4/3] rounded-2xl overflow-hidden mb-4 bg-stone-100 relative shadow-[0_2px_10px_rgba(0,0,0,0.02)] border border-stone-150 dark:border-stone-750">
-                <img src={resolveStorageUrl("1780932170075_TL5217-c2.avif")} alt="Anteojo de diseño modelo Leda" className="w-full h-full object-cover" />
+                <Image src={resolveStorageUrl("1780932170075_TL5217-c2.avif")} alt="Anteojo de diseño modelo Leda" className="w-full h-full object-cover" />
               </div>
               <h4 className="font-medium tracking-tight text-lg text-[#222]  mb-1">Leda</h4>
               <p className="text-[10px] text-[#111] font-medium tracking-tight uppercase tracking-widest mb-3">Material: Combinado | Color: Dorado pálido con detalles superiores y patillas en marrón mate</p>
@@ -724,7 +725,7 @@ const posts: Record<string, Post> = {
           <div className="bg-[#faf8f5] dark:bg-stone-850 p-6 rounded-3xl border border-black/5  flex flex-col justify-between hover:shadow-lg transition-all duration-300">
             <div>
               <div className="aspect-[4/3] rounded-2xl overflow-hidden mb-4 bg-stone-100 relative shadow-[0_2px_10px_rgba(0,0,0,0.02)] border border-stone-150 dark:border-stone-750">
-                <img src={resolveStorageUrl("1780932122264_GS7015-C3.avif")} alt="Anteojo de diseño modelo Iris" className="w-full h-full object-cover" />
+                <Image src={resolveStorageUrl("1780932122264_GS7015-C3.avif")} alt="Anteojo de diseño modelo Iris" className="w-full h-full object-cover" />
               </div>
               <h4 className="font-medium tracking-tight text-lg text-[#222]  mb-1">Iris</h4>
               <p className="text-[10px] text-[#111] font-medium tracking-tight uppercase tracking-widest mb-3">Material: Metal | Color: Plateado con terminales negros</p>
@@ -737,7 +738,7 @@ const posts: Record<string, Post> = {
           <div className="bg-[#faf8f5] dark:bg-stone-850 p-6 rounded-3xl border border-black/5  flex flex-col justify-between hover:shadow-lg transition-all duration-300">
             <div>
               <div className="aspect-[4/3] rounded-2xl overflow-hidden mb-4 bg-stone-100 relative shadow-[0_2px_10px_rgba(0,0,0,0.02)] border border-stone-150 dark:border-stone-750">
-                <img src={resolveStorageUrl("/assets/products/acetato/BC3063-c1.avif")} alt="Anteojo de diseño modelo Julieta" className="w-full h-full object-cover" />
+                <Image src={resolveStorageUrl("/assets/products/acetato/BC3063-c1.avif")} alt="Anteojo de diseño modelo Julieta" className="w-full h-full object-cover" />
               </div>
               <h4 className="font-medium tracking-tight text-lg text-[#222]  mb-1">Julieta</h4>
               <p className="text-[10px] text-[#111] font-medium tracking-tight uppercase tracking-widest mb-3">Material: Acetato | Color: Negro pulido clásico</p>
@@ -750,7 +751,7 @@ const posts: Record<string, Post> = {
           <div className="bg-[#faf8f5] dark:bg-stone-850 p-6 rounded-3xl border border-black/5  flex flex-col justify-between hover:shadow-lg transition-all duration-300">
             <div>
               <div className="aspect-[4/3] rounded-2xl overflow-hidden mb-4 bg-stone-100 relative shadow-[0_2px_10px_rgba(0,0,0,0.02)] border border-stone-150 dark:border-stone-750">
-                <img src={resolveStorageUrl("1780932129076_HK011-c3.avif")} alt="Anteojo de diseño modelo Pandora" className="w-full h-full object-cover" />
+                <Image src={resolveStorageUrl("1780932129076_HK011-c3.avif")} alt="Anteojo de diseño modelo Pandora" className="w-full h-full object-cover" />
               </div>
               <h4 className="font-medium tracking-tight text-lg text-[#222]  mb-1">Pandora</h4>
               <p className="text-[10px] text-[#111] font-medium tracking-tight uppercase tracking-widest mb-3">Material: Metal | Color: Plateado satinado con terminales negras</p>
@@ -769,7 +770,7 @@ const posts: Record<string, Post> = {
           <div className="bg-[#faf8f5] dark:bg-stone-850 p-6 rounded-3xl border border-black/5  flex flex-col justify-between hover:shadow-lg transition-all duration-300">
             <div>
               <div className="aspect-[4/3] rounded-2xl overflow-hidden mb-4 bg-stone-100 relative shadow-[0_2px_10px_rgba(0,0,0,0.02)] border border-stone-150 dark:border-stone-750">
-                <img src={resolveStorageUrl("1780932162871_TL3932-c3.avif")} alt="Anteojo de diseño modelo Diana" className="w-full h-full object-cover" />
+                <Image src={resolveStorageUrl("1780932162871_TL3932-c3.avif")} alt="Anteojo de diseño modelo Diana" className="w-full h-full object-cover" />
               </div>
               <h4 className="font-medium tracking-tight text-lg text-[#222]  mb-1">Diana</h4>
               <p className="text-[10px] text-[#111] font-medium tracking-tight uppercase tracking-widest mb-3">Material: Combinado | Color: Dorado satinado con patillas blancas</p>
@@ -782,7 +783,7 @@ const posts: Record<string, Post> = {
           <div className="bg-[#faf8f5] dark:bg-stone-850 p-6 rounded-3xl border border-black/5  flex flex-col justify-between hover:shadow-lg transition-all duration-300">
             <div>
               <div className="aspect-[4/3] rounded-2xl overflow-hidden mb-4 bg-stone-100 relative shadow-[0_2px_10px_rgba(0,0,0,0.02)] border border-stone-150 dark:border-stone-750">
-                <img src={resolveStorageUrl("1780932106867__91501-c6.avif")} alt="Anteojo de diseño modelo Athena" className="w-full h-full object-cover" />
+                <Image src={resolveStorageUrl("1780932106867__91501-c6.avif")} alt="Anteojo de diseño modelo Athena" className="w-full h-full object-cover" />
               </div>
               <h4 className="font-medium tracking-tight text-lg text-[#222]  mb-1">Athena</h4>
               <p className="text-[10px] text-[#111] font-medium tracking-tight uppercase tracking-widest mb-3">Material: Metal | Color: Dorado satinado con borde rosa palo</p>
@@ -795,7 +796,7 @@ const posts: Record<string, Post> = {
           <div className="bg-[#faf8f5] dark:bg-stone-850 p-6 rounded-3xl border border-black/5  flex flex-col justify-between hover:shadow-lg transition-all duration-300">
             <div>
               <div className="aspect-[4/3] rounded-2xl overflow-hidden mb-4 bg-stone-100 relative shadow-[0_2px_10px_rgba(0,0,0,0.02)] border border-stone-150 dark:border-stone-750">
-                <img src={resolveStorageUrl("1780932166781_TL3932-c4.avif")} alt="Anteojo de diseño modelo Ceres" className="w-full h-full object-cover" />
+                <Image src={resolveStorageUrl("1780932166781_TL3932-c4.avif")} alt="Anteojo de diseño modelo Ceres" className="w-full h-full object-cover" />
               </div>
               <h4 className="font-medium tracking-tight text-lg text-[#222]  mb-1">Ceres</h4>
               <p className="text-[10px] text-[#111] font-medium tracking-tight uppercase tracking-widest mb-3">Material: Metal | Color: Gris plomo satinado con detalles metálicos</p>
@@ -1237,14 +1238,14 @@ const posts: Record<string, Post> = {
         <p className="lead">Ir a la óptica siempre fue un trámite clínico, aburrido y rodeado de mostradores fríos. Cuando fundamos <strong>Atelier Óptica</strong> en el Cerro de las Rosas, decidimos romper con esa tradición. Queríamos crear un espacio donde elegir tus anteojos se sienta como visitar una galería de arte o un café boutique.</p>
 
         <div className="my-10 rounded-3xl overflow-hidden shadow-xl border border-black/5 ">
-          <img src="/images/blog/fachada-ladrillo.webp" alt="Fachada de ladrillo de Atelier Óptica en Córdoba con farol y plantas" className="w-full h-auto object-cover" />
+          <Image src="/images/blog/fachada-ladrillo.webp" alt="Fachada de ladrillo de Atelier Óptica en Córdoba con farol y plantas" className="w-full h-auto object-cover" />
         </div>
 
         <h2>Un espacio pensado para inspirar</h2>
         <p>Desde el momento en que cruzás nuestra fachada de ladrillo visto, rodeada de plantas y luz cálida, te das cuenta de que no estás en una óptica tradicional. En nuestro salón, los típicos exhibidores blancos fueron reemplazados por cálidas estanterías de madera, luces indirectas y detalles de interiorismo que invitan a relajarse.</p>
 
         <div className="my-10 rounded-3xl overflow-hidden shadow-xl border border-black/5 ">
-          <img src="/images/blog/mostrador-marmol.webp" alt="Mostrador de mármol y estanterías iluminadas con anteojos" className="w-full h-auto object-cover" />
+          <Image src="/images/blog/mostrador-marmol.webp" alt="Mostrador de mármol y estanterías iluminadas con anteojos" className="w-full h-auto object-cover" />
         </div>
 
         <p>Nuestro gran mostrador de mármol y el hermoso espejo circular dorado (uno de los favoritos de nuestros clientes) son el escenario perfecto para que te pruebes colecciones enteras sin ningún apuro. Creemos que un anteojo no es solo una prótesis médica; es el accesorio de diseño más importante que vas a llevar en tu rostro todos los días.</p>
@@ -1254,10 +1255,10 @@ const posts: Record<string, Post> = {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 my-10">
           <div className="rounded-3xl overflow-hidden shadow-lg border border-black/5 ">
-            <img src="/images/blog/arte-monalisa.webp" alt="Cuadro de la Mona Lisa con lentes de sol y armazones Mistral" className="w-full h-full object-cover" />
+            <Image src="/images/blog/arte-monalisa.webp" alt="Cuadro de la Mona Lisa con lentes de sol y armazones Mistral" className="w-full h-full object-cover" />
           </div>
           <div className="rounded-3xl overflow-hidden shadow-lg border border-black/5 ">
-            <img src="/images/blog/arte-venus.webp" alt="Cuadro del Nacimiento de Venus con lentes rojos y armazones Hanover" className="w-full h-full object-cover" />
+            <Image src="/images/blog/arte-venus.webp" alt="Cuadro del Nacimiento de Venus con lentes rojos y armazones Hanover" className="w-full h-full object-cover" />
           </div>
         </div>
 
@@ -1282,21 +1283,21 @@ const posts: Record<string, Post> = {
         <p className="lead">Cuando decimos que somos una óptica boutique, lo decimos en serio. En Atelier Óptica no vas a encontrar paredes interminables de armazones genéricos. Nuestro equipo realiza una <strong>curaduría de diseño</strong>, seleccionando cuidadosamente cada marco que ingresa a nuestro local.</p>
 
         <div className="my-10 rounded-3xl overflow-hidden shadow-xl border border-black/5 ">
-          <img src="/images/blog/local-varilux.webp" alt="Fachada exterior de Atelier Óptica mostrando el neón y el gran banner de Varilux" className="w-full h-auto object-cover" />
+          <Image src="/images/blog/local-varilux.webp" alt="Fachada exterior de Atelier Óptica mostrando el neón y el gran banner de Varilux" className="w-full h-auto object-cover" />
         </div>
 
         <h2>Más que un anteojo, una declaración de estilo</h2>
         <p>Entendemos que tus anteojos son lo primero que la gente mira cuando te habla. Por eso, trabajamos con marcas que entienden de moda tanto como nosotros. Desde los clásicos metálicos geométricos (como los de la línea <strong>Hanover</strong> o <strong>Mistral</strong>) hasta los atrevidos acetatos de colores vibrantes y formas envolventes de <strong>Vulk</strong> o <strong>Rusty</strong>.</p>
 
         <div className="my-10 rounded-3xl overflow-hidden shadow-xl border border-black/5 ">
-          <img src="/images/blog/anteojos-rosa-pastel.webp" alt="Detalle de armazones color rosa pastel sobre estantería de madera clara" className="w-full h-auto object-cover" />
+          <Image src="/images/blog/anteojos-rosa-pastel.webp" alt="Detalle de armazones color rosa pastel sobre estantería de madera clara" className="w-full h-auto object-cover" />
         </div>
 
         <h2>Color y Tecnología: La revolución Smart Lens</h2>
         <p>Pero el armazón es solo la mitad de la estética. Los cristales también juegan un papel visual fundamental. En nuestro mostrador vas a encontrar muestrarios reales de colores y tonalidades de cristales, como la línea <strong>Smart Lens</strong> y tecnología de <strong>Varilux</strong>. ¿Querés unos lentes de descanso con un tinte ámbar o lila súper sutil? Nosotros te lo armamos a medida.</p>
 
         <div className="my-10 rounded-3xl overflow-hidden shadow-xl border border-black/5 ">
-          <img src="/images/blog/muestrario-smart-lens.webp" alt="Muestrario de cristales de colores Smart Lens sobre el mostrador de mármol" className="w-full h-auto object-cover" />
+          <Image src="/images/blog/muestrario-smart-lens.webp" alt="Muestrario de cristales de colores Smart Lens sobre el mostrador de mármol" className="w-full h-auto object-cover" />
         </div>
 
         <h2>Asesoramiento Estético Personalizado</h2>
@@ -1374,7 +1375,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="rounded-3xl overflow-hidden mb-12 shadow-lg border border-black/5  h-64 md:h-96 w-full relative">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={post.imageUrl || undefined} alt={post.title} className="w-full h-full object-cover" />
+          <Image src={post.imageUrl || '/images/og-image.jpg'} alt={post.title} fill className="w-full h-full object-cover" />
         </div>
 
         <article className="prose prose-stone dark:prose-invert prose-lg max-w-none prose-headings:font-medium tracking-tight prose-a:text-[#111] hover:prose-a:text-[#111]/80 prose-p:leading-relaxed prose-li:my-1">
@@ -1411,7 +1412,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
               <Link key={related.slug} href={`/blog/${related.slug}`} className="group bg-white  rounded-2xl border border-black/5  overflow-hidden hover:shadow-lg hover:border-black/30 transition-all duration-300">
                 <div className="h-40 overflow-hidden bg-stone-100">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={related.imageUrl || undefined} alt={related.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
+                  <Image src={related.imageUrl || undefined} alt={related.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
                 </div>
                 <div className="p-5">
                   <span className="text-[9px] font-medium tracking-tight uppercase tracking-widest text-[#111]">{related.category}</span>
