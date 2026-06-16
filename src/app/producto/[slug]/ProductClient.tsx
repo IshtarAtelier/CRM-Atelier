@@ -69,7 +69,7 @@ export function ProductClient({
 
   return (
     <div className="min-h-screen bg-white text-black selection:bg-black selection:text-white font-sans">
-      <StorefrontNavbar mixBlend={true} />
+      <StorefrontNavbar theme="light" />
       
       <div className="flex flex-col lg:flex-row min-h-screen pt-16 lg:pt-0">
         
