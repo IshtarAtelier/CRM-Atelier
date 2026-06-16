@@ -16,6 +16,7 @@ interface CarouselProduct {
   stock?: number;
   brand?: string | null;
   model?: string | null;
+  category?: string | null;
   secondImg?: string | null;
 }
 

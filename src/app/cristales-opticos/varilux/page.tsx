@@ -3,6 +3,8 @@ import { AccordionItem } from "@/components/Storefront/Accordion";
 import { CristalHero } from "@/components/cristales/CristalHero";
 import { CristalFeatures } from "@/components/cristales/CristalFeatures";
 import { CristalCTA } from "@/components/cristales/CristalCTA";
+import { VariluxLensVisualizer } from "@/components/cristales/VariluxLensVisualizer";
+import { VariluxQuiz } from "@/components/cristales/VariluxQuiz";
 
 export const metadata: Metadata = {
   title: "Varilux Multifocales Avanzados | Atelier Óptica",
@@ -58,6 +60,7 @@ export default function VariluxPage() {
             <p className="text-sm bg-[#faf8f5] p-4 rounded-lg border border-[#e8e2db]">
               <strong>Tip de Especialista:</strong> Es la lente ideal si sos un usuario hiper-conectado, pasás de la computadora al celular constantemente o conducís y necesitás reaccionar rápido con tu visión periférica.
             </p>
+            <VariluxLensVisualizer type="xr" />
           </AccordionItem>
 
           <AccordionItem 
@@ -72,6 +75,7 @@ export default function VariluxPage() {
               <li>Menor distorsión lateral (&quot;efecto balanceo&quot;).</li>
               <li>Transición fluida sin el salto de imagen abrupto de multifocales convencionales.</li>
             </ul>
+            <VariluxLensVisualizer type="physio" />
           </AccordionItem>
 
           <AccordionItem 
@@ -86,6 +90,7 @@ export default function VariluxPage() {
               <li>Reduce drásticamente la tensión en el cuello y hombros al final de la jornada.</li>
               <li>Ideal para usuarios que buscan su primer lente multifocal premium sin miedos a la adaptación.</li>
             </ul>
+            <VariluxLensVisualizer type="comfort" />
           </AccordionItem>
 
           <AccordionItem 
@@ -100,9 +105,12 @@ export default function VariluxPage() {
               <li>Diseño optimizado para una adaptación sencilla.</li>
               <li>Excelente relación costo-beneficio para el día a día.</li>
             </ul>
+            <VariluxLensVisualizer type="liberty" />
           </AccordionItem>
         </div>
       </section>
+
+      <VariluxQuiz />
 
       <CristalCTA 
         title="El éxito está en la toma de medidas"
