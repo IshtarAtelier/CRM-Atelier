@@ -107,9 +107,8 @@ export function HomeMacroFilm() {
         className="border-r border-black/40 shadow-[10px_0_30px_rgba(0,0,0,0.6)]"
       >
         <div className="absolute inset-0 w-[200%] h-full left-0">
-          {/* WARNING: Do NOT change this image. The Gioconda (Mona Lisa) is a critical brand asset requested by the owner. */}
           <Image
-            src="/images/editorial/filmmaker-monalisa.webp"
+            src="/images/atelier-macro-film.webp"
             alt="Atelier Macro Detail Left"
             fill
             sizes="100vw"
@@ -139,9 +138,8 @@ export function HomeMacroFilm() {
         className="border-l border-black/40 shadow-[-10px_0_30px_rgba(0,0,0,0.6)]"
       >
         <div className="absolute inset-0 w-[200%] h-full left-[-100%]">
-          {/* WARNING: Do NOT change this image. The Gioconda (Mona Lisa) is a critical brand asset requested by the owner. */}
           <Image
-            src="/images/editorial/filmmaker-monalisa.webp"
+            src="/images/atelier-macro-film.webp"
             alt="Atelier Macro Detail Right"
             fill
             sizes="100vw"
