@@ -69,7 +69,7 @@ export function UserProfile({ name, role, userId }: { name: string, role: string
             <div className="p-4 border-t border-sidebar-border bg-sidebar">
                 <div className="flex items-center justify-between px-2 py-2">
                     <div className="flex items-center gap-3 overflow-hidden">
-                        <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-xsrimary font-bold flex-shrink-0">
+                        <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold flex-shrink-0">
                             {initial}
                         </div>
                         <div className="flex flex-col overflow-hidden">

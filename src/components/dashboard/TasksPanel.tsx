@@ -38,7 +38,7 @@ export default function TasksPanel({ tasks, onClose }: TasksPanelProps) {
     return (
         <div className="fixed top-16 right-4 bottom-20 w-[calc(100vw-2rem)] max-w-[28rem] md:top-24 md:right-8 md:bottom-24 md:max-w-[34rem] bg-white/80 dark:bg-stone-900/80 backdrop-blur-2xl z-[100] rounded-[3rem] shadow-huge border border-stone-200/50 dark:border-stone-800/50 flex flex-col overflow-hidden animate-in slide-in-from-right-8 duration-500">
             <header className="p-6 md:p-8 border-b border-stone-100 dark:border-stone-800 flex justify-between items-center bg-stone-50/50 dark:bg-stone-800/30">
-                <div className="flex items-center gap-3 text-xsrimary">
+                <div className="flex items-center gap-3 text-primary">
                     <Bell className="w-6 h-6 animate-pulse" />
                     <h3 className="font-black text-stone-800 dark:text-white uppercase tracking-tighter italic text-xsl">
                         {showFuture ? 'Todas las Tareas' : 'Tareas Urgentes'}
@@ -60,7 +60,7 @@ export default function TasksPanel({ tasks, onClose }: TasksPanelProps) {
                             >
                                 <div className="absolute top-0 left-0 w-1.5 h-full bg-primary/20 group-hover:bg-primary transition-colors" />
 
-                                <div className="w-10 h-10 md:w-12 md:h-12 bg-stone-50 dark:bg-stone-900 rounded-xl md:rounded-2xl flex items-center justify-center text-stone-600 group-hover:text-xsrimary group-hover:bg-primary/5 transition-all shrink-0">
+                                <div className="w-10 h-10 md:w-12 md:h-12 bg-stone-50 dark:bg-stone-900 rounded-xl md:rounded-2xl flex items-center justify-center text-stone-600 group-hover:text-primary group-hover:bg-primary/5 transition-all shrink-0">
                                     <User className="w-5 h-5 md:w-6 md:h-6" />
                                 </div>
 
@@ -84,13 +84,13 @@ export default function TasksPanel({ tasks, onClose }: TasksPanelProps) {
                                         {task.description}
                                     </p>
                                     {task.dueDate && (
-                                        <div className="flex items-center gap-1.5 mt-2 text-xs font-black text-xsrimary uppercase tracking-widest">
+                                        <div className="flex items-center gap-1.5 mt-2 text-xs font-black text-primary uppercase tracking-widest">
                                             <Clock className="w-3 h-3" />
                                             <span>vence {format(new Date(task.dueDate), "d 'de' MMM", { locale: es })}</span>
                                         </div>
                                     )}
                                 </div>
-                                <ChevronRight className="w-5 h-5 text-stone-200 group-hover:text-xsrimary transition-all group-hover:translate-x-1" />
+                                <ChevronRight className="w-5 h-5 text-stone-200 group-hover:text-primary transition-all group-hover:translate-x-1" />
                             </Link>
 
                             {/* WhatsApp Action */}
@@ -192,7 +192,7 @@ export default function TasksPanel({ tasks, onClose }: TasksPanelProps) {
                 {futureTasks.length > 0 && (
                     <button
                         onClick={() => setShowFuture(!showFuture)}
-                        className="w-full py-4 bg-white dark:bg-stone-800 border-2 border-primary/20 text-xsrimary rounded-[1.5rem] text-xs font-black uppercase tracking-widest hover:bg-primary hover:text-white transition-all shadow-lg"
+                        className="w-full py-4 bg-white dark:bg-stone-800 border-2 border-primary/20 text-primary rounded-[1.5rem] text-xs font-black uppercase tracking-widest hover:bg-primary hover:text-white transition-all shadow-lg"
                     >
                         {showFuture ? 'Ver solo urgentes' : `Ver tareas futuras (${futureTasks.length})`}
                     </button>

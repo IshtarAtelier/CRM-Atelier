@@ -105,7 +105,7 @@ export default function ContactForm({ onClose, onSubmit, onUnify, onGoToOriginal
             <div className="bg-white dark:bg-stone-900 w-full max-w-2xl rounded-[2.5rem] shadow-2xl border border-stone-200 dark:border-stone-800 overflow-hidden">
                 <header className="p-8 border-b flex justify-between items-center bg-stone-50/50 dark:bg-stone-800/30">
                     <div>
-                        <h2 className="text-2xl font-black text-stone-800 dark:text-stone-100 tracking-tight italic">{initialData ? 'Editar' : 'Nuevo'} <span className="text-xsrimary not-italic">Contacto</span></h2>
+                        <h2 className="text-2xl font-black text-stone-800 dark:text-stone-100 tracking-tight italic">{initialData ? 'Editar' : 'Nuevo'} <span className="text-primary not-italic">Contacto</span></h2>
                         <p className="text-xs font-black uppercase tracking-widest text-stone-600 mt-1">Completa los datos esenciales</p>
                     </div>
                     <button onClick={onClose} className="p-3 hover:bg-stone-100 dark:hover:bg-stone-800 rounded-2xl"><X className="w-6 h-6 text-stone-600" /></button>
@@ -137,7 +137,7 @@ export default function ContactForm({ onClose, onSubmit, onUnify, onGoToOriginal
                     <div className="space-y-4">
                         <label className="text-xs font-black uppercase tracking-widest text-stone-500 ml-1">Prioridad</label>
                         <div className="flex gap-4 p-5 bg-stone-50 dark:bg-stone-800/50 border-2 rounded-2xl justify-center">
-                            {[1, 2, 3, 4, 5].map(s => <button key={s} type="button" onClick={() => setFormData({ ...formData, priority: s })} className="transition-transform hover:scale-125"><Star className={`w-8 h-8 ${s <= formData.priority ? 'fill-primary text-xsrimary' : 'text-stone-500'}`} strokeWidth={3} /></button>)}
+                            {[1, 2, 3, 4, 5].map(s => <button key={s} type="button" onClick={() => setFormData({ ...formData, priority: s })} className="transition-transform hover:scale-125"><Star className={`w-8 h-8 ${s <= formData.priority ? 'fill-primary text-primary' : 'text-stone-500'}`} strokeWidth={3} /></button>)}
                         </div>
                     </div>
 
@@ -158,7 +158,7 @@ export default function ContactForm({ onClose, onSubmit, onUnify, onGoToOriginal
                             name="save_and_quote"
                             disabled={saving}
                             onClick={() => setSubmitAction('quote')}
-                            className="flex-[1.5] py-5 bg-stone-900 text-white dark:bg-primary dark:text-xsrimary-foreground rounded-2xl text-sm font-black shadow-xl shadow-stone-400/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-3 uppercase tracking-widest disabled:opacity-50 disabled:cursor-not-allowed border-2 border-transparent hover:border-primary/50"
+                            className="flex-[1.5] py-5 bg-stone-900 text-white dark:bg-primary dark:text-primary-foreground rounded-2xl text-sm font-black shadow-xl shadow-stone-400/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-3 uppercase tracking-widest disabled:opacity-50 disabled:cursor-not-allowed border-2 border-transparent hover:border-primary/50"
                         >
                             {saving && submitAction === 'quote' ? (
                                 <>
@@ -192,7 +192,7 @@ export default function ContactForm({ onClose, onSubmit, onUnify, onGoToOriginal
                                 <button
                                     autoFocus
                                     onClick={() => onGoToOriginal(duplicateWarning.existingClient.id)}
-                                    className="flex-1 py-4 bg-primary text-xsrimary-foreground rounded-xl font-bold shadow-lg hover:scale-105 active:scale-95 transition-all outline-none focus:ring-4 focus:ring-primary/50"
+                                    className="flex-1 py-4 bg-primary text-primary-foreground rounded-xl font-bold shadow-lg hover:scale-105 active:scale-95 transition-all outline-none focus:ring-4 focus:ring-primary/50"
                                 >
                                     IR A LA FICHA ORIGINAL
                                 </button>

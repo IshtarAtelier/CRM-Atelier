@@ -110,7 +110,7 @@ export function Sidebar({ userName = "Usuario", userRole = "STAFF", userId = "" 
                   transition={{ type: "spring", stiffness: 300, damping: 30 }}
                 />
               )}
-              <div className={`relative z-10 flex items-center gap-3 ${isActive ? 'text-xsrimary' : 'group-hover:scale-105 transition-transform duration-300'}`}>
+              <div className={`relative z-10 flex items-center gap-3 ${isActive ? 'text-primary' : 'group-hover:scale-105 transition-transform duration-300'}`}>
                 <Icon size={20} />
                 {!isCollapsed && <span className="text-sm font-medium">{link.label}</span>}
               </div>

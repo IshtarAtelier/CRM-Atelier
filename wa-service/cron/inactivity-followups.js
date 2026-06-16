@@ -44,6 +44,10 @@ async function checkAndSendInactivityFollowUps({ isAgentEnabled, botReplyingTo, 
     });
 
     for (const chat of activeChats) {
+        if (botReplyingTo && botReplyingTo.has(chat.waId)) {
+            console.log(`  ⚠️ [Follow-Up] Bot ya respondiendo a ${chat.waId}. Omitiendo.`);
+            continue;
+        }
         if (chat.messages.length === 0) continue;
         const lastMsg = chat.messages[0];
 
@@ -91,6 +95,25 @@ async function checkAndSendInactivityFollowUps({ isAgentEnabled, botReplyingTo, 
             const diffHours = diffMs / (1000 * 60 * 60);
 
             if (diffHours >= 24) {
+                // Atomic database lock using updateMany to prevent concurrent delivery
+                const updateRes = await prisma.whatsAppChat.updateMany({
+                    where: {
+                        id: chat.id,
+                        OR: [
+                            { lastFollowUpAt: null },
+                            { lastFollowUpAt: { lt: new Date(now.getTime() - FOLLOW_UP_COOLDOWN_MS) } }
+                        ]
+                    },
+                    data: {
+                        lastFollowUpAt: now
+                    }
+                });
+
+                if (updateRes.count === 0) {
+                    console.log(`  ⚠️ [Follow-Up] WhatsAppChat ${chat.id} ya fue procesado por otro hilo de follow-up.`);
+                    continue;
+                }
+
                 console.log(`  ✉️ [Follow-Up] Enviando recordatorio por inactividad de ${diffHours.toFixed(1)}hs a ${chat.profileName || chat.waId}`);
                 
                 try {
@@ -126,18 +149,22 @@ async function checkAndSendInactivityFollowUps({ isAgentEnabled, botReplyingTo, 
                         });
                     }
 
-                    // Actualizar timestamps
+                    // Actualizar timestamps (lastFollowUpAt ya se guardó)
                     await prisma.whatsAppChat.update({
                         where: { id: chat.id },
                         data: { 
-                            lastMessageAt: new Date(),
-                            lastFollowUpAt: new Date()
+                            lastMessageAt: new Date()
                         }
                     });
                     
                     broadcastChatUpdate(chat.id);
                 } catch (err) {
                     console.error(`Error enviando follow-up a ${chat.waId}:`, err.message);
+                    // Revertir lastFollowUpAt si falló
+                    await prisma.whatsAppChat.update({
+                        where: { id: chat.id },
+                        data: { lastFollowUpAt: chat.lastFollowUpAt }
+                    }).catch(() => {});
                 } finally {
                     setTimeout(() => botReplyingTo.delete(chat.waId), 3000);
                 }

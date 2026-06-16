@@ -138,7 +138,7 @@ export default function CommandPalette() {
                         onKeyDown={handleKeyDown}
                         className="flex-1 text-sm font-medium bg-transparent outline-none placeholder:text-stone-500 dark:placeholder:text-stone-600"
                     />
-                    {loading && <Loader2 className="w-4 h-4 text-xsrimary animate-spin flex-shrink-0" />}
+                    {loading && <Loader2 className="w-4 h-4 text-primary animate-spin flex-shrink-0" />}
                     <kbd className="hidden md:flex items-center gap-1 px-2 py-1 bg-stone-100 dark:bg-stone-800 rounded-lg text-xs font-bold text-stone-600 border border-stone-200 dark:border-stone-700">
                         ESC
                     </kbd>
@@ -186,7 +186,7 @@ export default function CommandPalette() {
                                                 key={c.id}
                                                 onClick={() => { router.push(`/admin/contactos?id=${c.id}`); setOpen(false); }}
                                                 className={`w-full flex items-center gap-3 px-5 py-3 text-left transition-all ${idx === selectedIndex
-                                                    ? 'bg-primary/10 text-xsrimary'
+                                                    ? 'bg-primary/10 text-primary'
                                                     : 'hover:bg-stone-50 dark:hover:bg-stone-800'
                                                     }`}
                                             >
@@ -224,7 +224,7 @@ export default function CommandPalette() {
                                                 key={p.id}
                                                 onClick={() => { router.push('/admin/inventario'); setOpen(false); }}
                                                 className={`w-full flex items-center gap-3 px-5 py-3 text-left transition-all ${idx === selectedIndex
-                                                    ? 'bg-primary/10 text-xsrimary'
+                                                    ? 'bg-primary/10 text-primary'
                                                     : 'hover:bg-stone-50 dark:hover:bg-stone-800'
                                                     }`}
                                             >
@@ -262,7 +262,7 @@ export default function CommandPalette() {
                                                 key={o.id}
                                                 onClick={() => { router.push('/admin/ventas'); setOpen(false); }}
                                                 className={`w-full flex items-center gap-3 px-5 py-3 text-left transition-all ${idx === selectedIndex
-                                                    ? 'bg-primary/10 text-xsrimary'
+                                                    ? 'bg-primary/10 text-primary'
                                                     : 'hover:bg-stone-50 dark:hover:bg-stone-800'
                                                     }`}
                                             >

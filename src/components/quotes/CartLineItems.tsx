@@ -34,6 +34,7 @@ export default function CartLineItems({
     crystalColors = []
 }: CartLineItemsProps) {
     const [expandedColorIdx, setExpandedColorIdx] = React.useState<number | null>(null);
+    const [selectedStyle, setSelectedStyle] = React.useState<string | null>(null);
 
     if (items.length === 0) {
         return (
@@ -45,11 +46,10 @@ export default function CartLineItems({
         );
     }
 
-    // Group colors by category
-    const colorsByCategory = COLOR_CATEGORIES.map(cat => ({
-        ...cat,
-        colors: crystalColors.filter(c => c.category === cat.key),
-    })).filter(cat => cat.colors.length > 0);
+    // Get unique colors for the selected style
+    const colorsForStyle = selectedStyle
+        ? crystalColors.filter(c => c.category === selectedStyle)
+        : [];
 
     return (
         <div className="space-y-3 mb-6">
@@ -93,7 +93,7 @@ export default function CartLineItems({
                             {/* Color toggle button for crystals needing color */}
                             {showColorSelector && crystalColors.length > 0 && (
                                 <button
-                                    onClick={() => setExpandedColorIdx(isColorExpanded ? null : idx)}
+                                    onClick={() => { setExpandedColorIdx(isColorExpanded ? null : idx); setSelectedStyle(null); }}
                                     className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[9px] font-bold uppercase tracking-wider transition-all border ${
                                         hasColor
                                             ? 'bg-violet-50 dark:bg-violet-900/20 text-violet-600 dark:text-violet-400 border-violet-200 dark:border-violet-800 hover:bg-violet-100'
@@ -135,38 +135,64 @@ export default function CartLineItems({
                             <button onClick={() => onRemoveItem(idx)} className="text-stone-300 hover:text-red-500 transition-colors p-1"><X className="w-4 h-4" /></button>
                         </div>
 
-                        {/* Inline Color Selector */}
+                        {/* Inline Color Selector — Two-step: Style → Color */}
                         {showColorSelector && isColorExpanded && crystalColors.length > 0 && (
                             <div className="bg-violet-50/50 dark:bg-violet-950/20 border-x border-b border-stone-200/60 dark:border-stone-800 rounded-b-2xl p-4 animate-in slide-in-from-top-1 duration-300">
+                                {/* Step 1: Select Style */}
                                 <div className="flex items-center gap-2 mb-3">
                                     <Palette className="w-3.5 h-3.5 text-violet-500" />
                                     <span className="text-[10px] font-bold text-violet-600 dark:text-violet-400 uppercase tracking-wider">
-                                        Seleccionar Color — Teñido
+                                        {selectedStyle ? '← Estilo' : '1. Elegí el estilo de teñido'}
                                     </span>
                                 </div>
 
-                                {colorsByCategory.map(cat => (
-                                    <div key={cat.key} className="mb-3 last:mb-0">
-                                        <p className="text-[9px] font-bold text-stone-400 uppercase tracking-wider mb-1.5 ml-1">{cat.label}</p>
-                                        <div className="flex flex-wrap gap-1.5">
-                                            {cat.colors.map(color => {
-                                                const isSelected = item.crystalColor === color.name && item.crystalColorType === cat.key;
+                                <div className="flex flex-wrap gap-2 mb-3">
+                                    {COLOR_CATEGORIES.map(cat => {
+                                        const isActive = selectedStyle === cat.key;
+                                        const hasColorsInCat = crystalColors.some(c => c.category === cat.key);
+                                        if (!hasColorsInCat) return null;
+                                        return (
+                                            <button
+                                                key={cat.key}
+                                                onClick={() => setSelectedStyle(isActive ? null : cat.key)}
+                                                className={`px-4 py-2.5 rounded-xl text-[11px] font-bold uppercase tracking-wider transition-all border ${
+                                                    isActive
+                                                        ? 'bg-violet-600 text-white border-violet-700 shadow-md shadow-violet-500/20 scale-105'
+                                                        : 'bg-white dark:bg-stone-800 text-stone-600 dark:text-stone-300 border-stone-200 dark:border-stone-700 hover:border-violet-300 hover:bg-violet-50'
+                                                }`}
+                                            >
+                                                {cat.label}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+
+                                {/* Step 2: Select Color (only shown after style is picked) */}
+                                {selectedStyle && colorsForStyle.length > 0 && (
+                                    <div className="animate-in slide-in-from-top-1 duration-200">
+                                        <p className="text-[10px] font-bold text-violet-600 dark:text-violet-400 uppercase tracking-wider mb-2">
+                                            2. Elegí el color
+                                        </p>
+                                        <div className="flex flex-wrap gap-2">
+                                            {colorsForStyle.map(color => {
+                                                const isSelected = item.crystalColor === color.name && item.crystalColorType === selectedStyle;
                                                 return (
                                                     <button
                                                         key={color.id}
                                                         onClick={() => {
-                                                            onUpdateItemColor?.(idx, color.name, cat.key);
+                                                            onUpdateItemColor?.(idx, color.name, selectedStyle);
                                                             setExpandedColorIdx(null);
+                                                            setSelectedStyle(null);
                                                         }}
-                                                        className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold transition-all hover:scale-105 active:scale-95 border ${
+                                                        className={`flex items-center gap-2 px-3 py-2 rounded-xl text-[11px] font-semibold transition-all hover:scale-105 active:scale-95 border ${
                                                             isSelected
-                                                                ? 'bg-violet-600 text-white border-violet-650 shadow-md shadow-violet-550/20'
-                                                                : 'bg-white dark:bg-stone-850 text-stone-650 dark:text-stone-300 border-stone-200 dark:border-stone-750 hover:border-violet-300 dark:hover:border-violet-700 hover:bg-violet-50 dark:hover:bg-violet-900/20'
+                                                                ? 'bg-violet-600 text-white border-violet-700 shadow-md shadow-violet-500/20'
+                                                                : 'bg-white dark:bg-stone-800 text-stone-600 dark:text-stone-300 border-stone-200 dark:border-stone-700 hover:border-violet-300 hover:bg-violet-50'
                                                         }`}
                                                     >
                                                         {color.hexColor && (
                                                             <span
-                                                                className="w-3 h-3 rounded-full border border-white/30 shadow-sm flex-shrink-0"
+                                                                className="w-4 h-4 rounded-full border border-white/30 shadow-sm flex-shrink-0"
                                                                 style={{ backgroundColor: color.hexColor }}
                                                             />
                                                         )}
@@ -176,7 +202,7 @@ export default function CartLineItems({
                                             })}
                                         </div>
                                     </div>
-                                ))}
+                                )}
                             </div>
                         )}
                     </div>

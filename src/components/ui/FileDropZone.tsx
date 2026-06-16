@@ -201,7 +201,7 @@ export default function FileDropZone({
                         
                         {/* Centered Loading Badge */}
                         <div className="absolute inset-0 flex items-center justify-center z-20">
-                            <span className="bg-stone-900/80 text-xsrimary px-4 py-2 rounded-full text-xs font-black uppercase tracking-widest backdrop-blur-md border border-primary/50 shadow-[0_0_30px_rgba(52,211,153,0.3)] animate-pulse">
+                            <span className="bg-stone-900/80 text-primary px-4 py-2 rounded-full text-xs font-black uppercase tracking-widest backdrop-blur-md border border-primary/50 shadow-[0_0_30px_rgba(52,211,153,0.3)] animate-pulse">
                                 {loadingLabel || 'Escaneando...'}
                             </span>
                         </div>
@@ -256,25 +256,25 @@ export default function FileDropZone({
                 {loading ? (
                     <>
                         <div className="w-8 h-8 border-3 border-primary/30 border-t-primary rounded-full animate-spin mb-3 relative z-10" />
-                        <span className="text-xs font-black text-xsrimary uppercase tracking-widest animate-pulse relative z-10">
+                        <span className="text-xs font-black text-primary uppercase tracking-widest animate-pulse relative z-10">
                             {loadingLabel}
                         </span>
                     </>
                 ) : isDragging ? (
                     <>
                         <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mb-3 animate-bounce relative z-10">
-                            <Upload className="w-6 h-6 text-xsrimary" />
+                            <Upload className="w-6 h-6 text-primary" />
                         </div>
-                        <span className="text-xs font-black text-xsrimary uppercase tracking-widest relative z-10">
+                        <span className="text-xs font-black text-primary uppercase tracking-widest relative z-10">
                             Soltá el archivo aquí
                         </span>
                     </>
                 ) : pasteFlash ? (
                     <>
                         <div className="w-12 h-12 bg-primary/20 rounded-full flex items-center justify-center mb-3 scale-110 transition-transform relative z-10">
-                            <Clipboard className="w-6 h-6 text-xsrimary" />
+                            <Clipboard className="w-6 h-6 text-primary" />
                         </div>
-                        <span className="text-xs font-black text-xsrimary uppercase tracking-widest relative z-10">
+                        <span className="text-xs font-black text-primary uppercase tracking-widest relative z-10">
                             ¡Imagen Pegada!
                         </span>
                     </>
@@ -282,12 +282,12 @@ export default function FileDropZone({
                     <>
                         <div className="w-10 h-10 bg-stone-100 dark:bg-stone-800 rounded-full flex items-center justify-center mb-2 group-hover:bg-primary/10 group-hover:scale-110 transition-all duration-300 relative z-10">
                             {accept?.includes('image') ? (
-                                <FileImage className="w-5 h-5 text-stone-500 group-hover:text-xsrimary transition-colors duration-300" />
+                                <FileImage className="w-5 h-5 text-stone-500 group-hover:text-primary transition-colors duration-300" />
                             ) : (
-                                <FileIcon className="w-5 h-5 text-stone-500 group-hover:text-xsrimary transition-colors duration-300" />
+                                <FileIcon className="w-5 h-5 text-stone-500 group-hover:text-primary transition-colors duration-300" />
                             )}
                         </div>
-                        <span className="text-xs font-black text-stone-600 group-hover:text-xsrimary/70 uppercase tracking-widest transition-colors duration-300 text-center px-4 relative z-10">
+                        <span className="text-xs font-black text-stone-600 group-hover:text-primary/70 uppercase tracking-widest transition-colors duration-300 text-center px-4 relative z-10">
                             {label}
                         </span>
                         

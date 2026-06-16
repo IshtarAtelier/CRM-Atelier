@@ -718,7 +718,7 @@ async function reportInvoiceRequest({ clientId }) {
         const client = await prisma.client.findUnique({ where: { id: clientId } });
         if (!client) return { success: false, error: 'Cliente no encontrado' };
 
-        const adminPhone = '3541215971@c.us';
+        const adminPhone = getAdminWaId();
         const baseUrl = process.env.CRM_API_URL ? process.env.CRM_API_URL.replace('/api/bot', '') : 'http://localhost:3000';
         const crmLink = `${baseUrl}/admin/contactos?id=${client.id}`;
         

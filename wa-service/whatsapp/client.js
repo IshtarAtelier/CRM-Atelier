@@ -36,7 +36,22 @@ async function initWhatsApp({ onMessage, onMessageCreate, onStatusChange }) {
     await startClient();
 }
 
+let isStarting = false;
+
 async function startClient(attempt = 1) {
+    if (isStarting && attempt === 1) {
+        console.warn('⚠️ startClient ya se está ejecutando. Evitando ejecución concurrente.');
+        return;
+    }
+    isStarting = true;
+    try {
+        await startClientInternal(attempt);
+    } finally {
+        isStarting = false;
+    }
+}
+
+async function startClientInternal(attempt = 1) {
     console.log(`📱 Iniciando WhatsApp client (intento ${attempt}/${MAX_RETRIES})...`);
 
     // Destroy previous client if exists
@@ -243,7 +258,7 @@ async function startClient(attempt = 1) {
         if (attempt < MAX_RETRIES) {
             console.log(`⏳ Reintentando en ${RETRY_DELAY_MS / 1000}s...`);
             await new Promise(r => setTimeout(r, RETRY_DELAY_MS));
-            return startClient(attempt + 1);
+            return startClientInternal(attempt + 1);
         } else {
             console.error('🛑 Se agotaron los reintentos. El servicio seguirá corriendo pero WhatsApp no está conectado.');
             console.error('   Reinicie el servicio manualmente si el problema persiste.');
