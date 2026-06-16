@@ -17,10 +17,10 @@ export function StorefrontFooter() {
       .catch(err => console.error("Error loading web settings for footer:", err));
   }, []);
 
-  const addressLine = webSettings ? webSettings.web_store_address : "José Luis de Tejeda 4380";
-  const localityLine = webSettings ? webSettings.web_store_locality : "Cerro de las Rosas, Córdoba";
-  const mapsUrl = webSettings ? webSettings.web_store_maps_url : "https://www.google.com/maps?cid=14830223812501661125";
-  const whatsappPhoneId = webSettings ? webSettings.web_store_whatsapp_id : WHATSAPP_PHONE;
+  const addressLine = webSettings?.web_store_address || "José Luis de Tejeda 4380";
+  const localityLine = webSettings?.web_store_locality || "Cerro de las Rosas, Córdoba";
+  const mapsUrl = webSettings?.web_store_maps_url || "https://www.google.com/maps?cid=14830223812501661125";
+  const whatsappPhoneId = webSettings?.web_store_whatsapp_id || WHATSAPP_PHONE;
 
   return (
     <footer className="w-full relative z-10 overflow-hidden">
@@ -38,8 +38,8 @@ export function StorefrontFooter() {
         />
       </div>
 
-      {/* Footer Content Overlay (Frosted Glass Nude effect) */}
-      <div className="relative z-10 w-full h-full bg-white/70 backdrop-blur-2xl dark:bg-stone-900/80 border-t border-black/5 dark:border-white/5">
+      {/* Footer Content Overlay (Frosted Dark Glass effect) */}
+      <div className="relative z-10 w-full h-full bg-stone-950/85 backdrop-blur-2xl border-t border-white/5 text-stone-300">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-10 px-5 py-12">
           
           {/* Links principales */}
@@ -55,11 +55,11 @@ export function StorefrontFooter() {
           {/* Ubicación */}
           <div className="flex flex-col gap-3">
             <p className="text-[10px] uppercase tracking-widest font-bold text-stone-400 mb-2">Visitanos</p>
-            <p className="text-[13px] font-medium leading-relaxed dark:text-stone-300">
+            <p className="text-[13px] font-medium leading-relaxed text-white">
               {addressLine}<br />
               {localityLine}
             </p>
-            <a href={mapsUrl} target="_blank" rel="noopener noreferrer" className="text-[12px] font-medium hover:opacity-60 transition-opacity underline decoration-stone-300 underline-offset-4 mt-1">
+            <a href={mapsUrl} target="_blank" rel="noopener noreferrer" className="text-[12px] text-white font-medium hover:text-[#b08f4c] transition-colors underline decoration-stone-500 underline-offset-4 mt-1">
               Ver en Google Maps
             </a>
           </div>
@@ -83,7 +83,7 @@ export function StorefrontFooter() {
         </div>
 
         {/* Info extra (Pagos y AFIP) */}
-        <div className="border-t border-black/5 dark:border-white/5 px-5 py-6 flex flex-col md:flex-row justify-between items-center gap-4">
+        <div className="border-t border-white/10 px-5 py-6 flex flex-col md:flex-row justify-between items-center gap-4">
           <div className="flex flex-wrap gap-4 items-center">
             <div className="flex items-center gap-1.5 opacity-50 grayscale hover:grayscale-0 transition-all">
               <svg className="w-8 h-5" viewBox="0 0 38 24" fill="none"><rect width="38" height="24" rx="4" fill="#222"/><path d="M12.062 15.938L15.344 6H17.813L14.531 15.938H12.062ZM24.625 6H26.375C27.063 6 27.656 6.438 27.844 7.094L31.313 15.938H28.719L28.188 14.438H25.031L24.719 15.938H22.375L24.625 6ZM26.719 9.875L25.563 12.875H27.563L26.719 9.875ZM20.406 6.188C19.063 6.188 17.875 6.813 17.875 8.125C17.875 10.438 21.094 10.563 21.094 11.625C21.094 12.188 20.5 12.625 19.5 12.625C18.406 12.625 17.656 12 17.063 11.5L16.594 13.563C17.188 14.125 18.281 14.5 19.5 14.5C21.031 14.5 22.344 13.688 22.344 12.188C22.344 9.688 19.094 9.563 19.094 8.625C19.094 8.125 19.656 7.75 20.5 7.75C21.344 7.75 21.906 8.063 22.344 8.438L22.781 6.438C22.188 6.063 21.281 5.813 20.406 5.813V6.188ZM11.188 6H8.25L7.906 7.625C8.938 7.938 9.969 8.5 10.594 9.313L9.031 15.938H11.5L13.156 6H11.188Z" fill="white"/></svg>
@@ -97,7 +97,7 @@ export function StorefrontFooter() {
         </div>
 
         {/* Copyright */}
-        <div className="border-t border-black/5 dark:border-white/5 px-5 py-6">
+        <div className="border-t border-white/10 px-5 py-6">
           <p className="text-[12px] text-stone-500 font-medium">© 2026 ATELIER ÓPTICA. Todos los derechos reservados.</p>
         </div>
       </div>
