@@ -140,6 +140,19 @@ export default function VentasPage() {
                 }
             }
 
+            // Fallback: use crystalColor/crystalColorType from order items (set in cotizador)
+            if (!color_tenido || !tipo_tenido) {
+                const tintItem = order.items?.find((i: any) => i.crystalColor);
+                if (tintItem) {
+                    if (!color_tenido) color_tenido = tintItem.crystalColor || '';
+                    if (!tipo_tenido) {
+                        if (tintItem.crystalColorType === 'DEGRADE') tipo_tenido = 'Degradé';
+                        else if (tintItem.crystalColorType === 'MUESTRA') tipo_tenido = 'Pleno'; // Según muestra → Pleno in SmartLab
+                        else tipo_tenido = 'Pleno';
+                    }
+                }
+            }
+
             const payload = {
                 tipo_lente,
                 labType: order.labType || '',
@@ -647,6 +660,13 @@ export default function VentasPage() {
         <h3>🔬 Info Cristales</h3>
         <div class='info-row'><span class='info-label'>Tratamiento</span><span class='info-value'>${order.labTreatment || 'Normal'}</span></div>
         <div class='info-row'><span class='info-label'>Color</span><span class='info-value'>${order.labColor || 'Blanco'}</span></div>
+        ${(() => {
+            const tintItems = items.filter((i: any) => i.crystalColor);
+            if (tintItems.length === 0) return '';
+            return tintItems.map((i: any) => 
+                `<div class='info-row' style='background:#f3e8ff;border-radius:8px;padding:4px 8px;margin-top:4px;'><span class='info-label'>🎨 Teñido${i.eye ? ` (${i.eye})` : ''}</span><span class='info-value' style='color:#7c3aed;font-weight:900;'>${i.crystalColorType === 'DEGRADE' ? 'Degradé' : i.crystalColorType === 'MUESTRA' ? 'Según Muestra' : 'Compacto'} — ${i.crystalColor}</span></div>`
+            ).join('');
+        })()}
     </div>
 </div>
 

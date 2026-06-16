@@ -72,6 +72,7 @@ export default function RootLayout({
           {children}
         </div>
         <TrackingScripts />
+        <a href="/recomendados" className="sr-only">Enlaces recomendados</a>
         <Script strategy="afterInteractive" id="sw-register">{`
           if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('/sw.js').catch(() => {});

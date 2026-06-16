@@ -490,6 +490,18 @@ export default function PedidosPage() {
                 }
             }
 
+            // Fallback: use crystalColor/crystalColorType from order items (set in cotizador)
+            if (!color_tenido || !tipo_tenido) {
+                const tintItem = order.items?.find((i: any) => i.crystalColor);
+                if (tintItem) {
+                    if (!color_tenido) color_tenido = tintItem.crystalColor || '';
+                    if (!tipo_tenido) {
+                        if (tintItem.crystalColorType === 'DEGRADE') tipo_tenido = 'Degradé';
+                        else if (tintItem.crystalColorType === 'MUESTRA') tipo_tenido = 'Pleno';
+                        else tipo_tenido = 'Pleno';
+                    }
+                }
+            }
             const payload = {
                 tipo_lente,
                 labType: order.labType || '',
@@ -1378,9 +1390,51 @@ export default function PedidosPage() {
                                                 </div>
                                             </div>
 
-                                            {/* Color */}
+                                            {/* Teñido — Info del Cotizador */}
+                                            {(() => {
+                                                const tintItems = order.items?.filter((i: any) => i.crystalColor) || [];
+                                                const treatmentTint = order.items?.find((i: any) => {
+                                                    const n = (i.product?.name || i.productNameSnapshot || '').toLowerCase();
+                                                    return n.includes('teñi') || n.includes('tenido') || n.includes('tinte');
+                                                });
+                                                if (tintItems.length === 0 && !treatmentTint) return null;
+                                                return (
+                                                    <div className="border-2 border-violet-200 dark:border-violet-800 bg-violet-50/50 dark:bg-violet-950/30 rounded-2xl p-4">
+                                                        <label className="text-[9px] font-black text-violet-600 dark:text-violet-400 uppercase tracking-widest block mb-2">🎨 Teñido (Grupo Óptico)</label>
+                                                        <div className="space-y-2">
+                                                            {tintItems.map((item: any, i: number) => (
+                                                                <div key={i} className="flex items-center gap-3">
+                                                                    {item.eye && <span className="text-[9px] font-bold bg-violet-200 dark:bg-violet-800 text-violet-700 dark:text-violet-300 px-2 py-0.5 rounded-md uppercase">{item.eye}</span>}
+                                                                    <div className="flex items-center gap-2">
+                                                                        <span className="w-4 h-4 rounded-full border border-violet-300 shadow-sm flex-shrink-0" style={{ backgroundColor: 
+                                                                            item.crystalColor?.includes('Gris') ? '#555555' :
+                                                                            item.crystalColor?.includes('Marrón') ? '#6b4c3a' :
+                                                                            item.crystalColor?.includes('Verde') ? '#2c4c3b' :
+                                                                            item.crystalColor?.includes('Rosa') ? '#d4a3a3' :
+                                                                            item.crystalColor?.includes('Amarillo') ? '#e1b854' :
+                                                                            item.crystalColor?.includes('Naranja') ? '#d6804a' :
+                                                                            item.crystalColor?.includes('Rojo') ? '#ab4040' :
+                                                                            item.crystalColor?.includes('Azul') ? '#4a7fb5' : '#999'
+                                                                        }} />
+                                                                        <span className="text-sm font-bold text-violet-900 dark:text-violet-200">
+                                                                            {item.crystalColorType === 'DEGRADE' ? 'Degradé' : item.crystalColorType === 'MUESTRA' ? 'Según Muestra' : 'Compacto'} — {item.crystalColor}
+                                                                        </span>
+                                                                    </div>
+                                                                </div>
+                                                            ))}
+                                                            {treatmentTint && !tintItems.length && (
+                                                                <span className="text-sm font-bold text-violet-900 dark:text-violet-200">
+                                                                    {treatmentTint.product?.name || treatmentTint.productNameSnapshot}
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })()}
+
+                                            {/* Color (manual / SmartLab) */}
                                             <div className="border-2 border-stone-100 dark:border-stone-700 rounded-2xl p-4">
-                                                <label className="text-[9px] font-black text-stone-400 uppercase tracking-widest block mb-2">Color</label>
+                                                <label className="text-[9px] font-black text-stone-400 uppercase tracking-widest block mb-2">Color (SmartLab)</label>
                                                 <div className="flex items-center gap-2">
                                                     <input
                                                         type="text"
