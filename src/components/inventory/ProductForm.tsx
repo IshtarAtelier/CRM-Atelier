@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { X, Save, Package, Layers, DollarSign, Plus, Upload, Database, ChevronDown, CheckCircle2, ArrowRight, ChevronRight, Info } from 'lucide-react';
+import { X, Save, Package, Layers, DollarSign, Plus, Upload, Database, ChevronDown, CheckCircle2, ArrowRight, ChevronRight, Info, UploadCloud, Trash2, Camera, Download, Activity, FileDown } from 'lucide-react';
+import { PRODUCT_CATEGORIES } from '@/lib/constants';
 
 import { autoCorrectLab } from '@/utils/product-controllers';
 
@@ -31,7 +32,7 @@ interface BulkItem {
 
 const LENS_INDICES = ['1.49', '1.50', '1.53', '1.56', '1.59', '1.60', '1.67', '1.74', 'Foto'];
 
-import { PRODUCT_CATEGORIES } from '@/lib/constants';
+
 
 export default function ProductForm({ onClose, onSuccess, isAdmin = false, uniqueBrands = [], uniqueLabs = [] }: ProductFormProps) {
     const [mode, setMode] = useState<'single' | 'bulk'>('single');
