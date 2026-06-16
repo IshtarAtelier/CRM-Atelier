@@ -252,11 +252,6 @@ export default async function Home() {
       <h1 className="sr-only">Atelier Óptica Córdoba — Anteojos de Receta, Lentes de Sol y Multifocales</h1>
 
       {/* ═══════════════════════════════════════════════ */}
-      {/* GOOGLE REVIEWS (REAL TIME - Server Component)   */}
-      {/* ═══════════════════════════════════════════════ */}
-      <GoogleReviews />
-
-      {/* ═══════════════════════════════════════════════ */}
       {/* MARQUEE — Texto deslizante entre secciones      */}
       {/* ═══════════════════════════════════════════════ */}
       <div className="w-full bg-black border-y border-white/10 py-3 overflow-hidden">
@@ -295,6 +290,11 @@ export default async function Home() {
 
       {/* PRODUCT GRID — Scroll horizontal infinito en Cliente */}
       <HomeProductCarousel collections={carouselData} totalCount={catalogCount} />
+
+      {/* ═══════════════════════════════════════════════ */}
+      {/* GOOGLE REVIEWS (REAL TIME - Server Component)   */}
+      {/* ═══════════════════════════════════════════════ */}
+      <GoogleReviews />
 
       {/* ═══════════════════════════════════════════════ */}
       {/* POR QUÉ ELEGIRNOS — Pilares de Confianza         */}
