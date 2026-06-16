@@ -11,7 +11,7 @@ export async function GET(req: Request) {
     const secret = searchParams.get('secret');
     
     // Validar secret para evitar llamadas no autorizadas usando variables validadas
-    if (secret !== env.CRON_SECRET && secret !== 'atelier-smartlab-2026') {
+    if (secret !== env.CRON_SECRET) {
         return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
 

@@ -22,11 +22,12 @@ export async function GET(request: Request) {
 
             let phoneMatchIds: string[] = [];
             if (searchStr.length >= 4) {
-                const rawSearch: any[] = await prisma.$queryRawUnsafe(`
+                const searchParam = `%${searchStr}%`;
+                const rawSearch: any[] = await prisma.$queryRaw`
                     SELECT id 
                     FROM "Client" 
-                    WHERE REGEXP_REPLACE(COALESCE(phone, ''), '\\D', '', 'g') LIKE '%${searchStr}%'
-                `);
+                    WHERE REGEXP_REPLACE(COALESCE(phone, ''), '\\D', '', 'g') LIKE ${searchParam}
+                `;
                 phoneMatchIds = rawSearch.map(d => d.id);
             }
 
@@ -81,8 +82,26 @@ export async function POST(request: Request) {
                 try {
                     const parsedError = JSON.parse(error.message);
                     if (parsedError.isDuplicate && parsedError.existingClient) {
+                        const existingName = parsedError.existingClient.name || '';
+                        const newName = data.name || '';
+                        
+                        const cleanStr = (s: string) => s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]/g, "");
+                        const cleanExisting = cleanStr(existingName);
+                        const cleanNew = cleanStr(newName);
+                        
+                        // Si los nombres son distintos, forzar la creación de la nueva ficha en lugar de sobrescribir
+                        if (cleanExisting !== cleanNew && !cleanExisting.includes(cleanNew) && !cleanNew.includes(cleanExisting)) {
+                            console.log(`[Bot Bridge] Shared phone but different names: "${existingName}" vs "${newName}". Force creating new client.`);
+                            const created = await ContactService.create({
+                                createdBy: 'Agente Bot',
+                                ...data,
+                                forceCreate: true,
+                                status: data.status || 'CONTACT'
+                            });
+                            return NextResponse.json({ action: 'CREATED', client: created });
+                        }
+
                         console.log(`[Bot Bridge] Duplicate intercepted. Linking to existing client: ${parsedError.existingClient.id}`);
-                        // Optionally update some data on the existing client
                         const updated = await ContactService.update(parsedError.existingClient.id, data);
                         return NextResponse.json({ action: 'UPDATED', client: updated });
                     }

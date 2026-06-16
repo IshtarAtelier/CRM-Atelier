@@ -196,6 +196,12 @@ async function checkAndSendSmartTasks({ isAgentEnabled, botReplyingTo, broadcast
             queueDelay += randomDelayMinutes * 60 * 1000;
 
             console.log(`  🕒 [Smart Task Executor] Envío a ${client.name} en ${(queueDelay / 60000).toFixed(1)} min.`);
+ 
+            // Transition status to QUEUED immediately to avoid race condition/duplication
+            await prisma.clientTask.update({
+                where: { id: task.id },
+                data: { status: 'QUEUED', updatedAt: new Date() }
+            }).catch(err => console.error(`Error transitioning smart task ${task.id} to QUEUED:`, err.message));
 
             setTimeout(() => {
                 executeSmartTaskAndSend(task.id, client.id, chat.waId, chat.id, generated.text, client.name, task.description)

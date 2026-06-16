@@ -577,6 +577,10 @@ async function processBotTurn(chat, waId, profileName, realPhone) {
             axios.post(alertUrl, {
                 subject: '🚨 ALERTA: Crédito Agotado en Bot de WhatsApp (Gemini)',
                 message: 'El bot de WhatsApp intentó procesar un mensaje pero la solicitud fue rechazada por falta de créditos (Error 429: RESOURCE_EXHAUSTED).\n\nPor favor, recargá saldo en tu cuenta de Google Cloud / AI Studio para que el bot y el sistema vuelvan a funcionar.\n\nLink: https://aistudio.google.com/app/billing'
+            }, {
+                headers: {
+                    'x-api-key': process.env.BOT_API_KEY
+                }
             }).catch(e => console.error('Error enviando alerta de email:', e.message));
         }
     }
@@ -758,12 +762,13 @@ const handleMessage = async (msg) => {
         if (!chat.clientId && realPhone && realPhone.length >= 8) {
             const searchPhoneStr = realPhone.slice(-8).replace(/\D/g, '');
             if (searchPhoneStr.length >= 8) {
-                const rawDuplicates = await prisma.$queryRawUnsafe(`
+                const searchParam = `%${searchPhoneStr}%`;
+                const rawDuplicates = await prisma.$queryRaw`
                     SELECT id 
                     FROM "Client" 
-                    WHERE REGEXP_REPLACE(COALESCE(phone, ''), '\\D', '', 'g') LIKE '%${searchPhoneStr}%'
+                    WHERE REGEXP_REPLACE(COALESCE(phone, ''), '\\D', '', 'g') LIKE ${searchParam}
                     LIMIT 1
-                `);
+                `;
                 
                 if (rawDuplicates && rawDuplicates.length > 0) {
                     const client = await prisma.client.findUnique({

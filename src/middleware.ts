@@ -54,7 +54,7 @@ export async function middleware(request: NextRequest) {
     }
 
     // Proteger rutas internas de bot (wa-service) o admin panel
-    if (pathname.startsWith('/api/bot/')) {
+    if (pathname.startsWith('/api/bot/') || pathname.startsWith('/api/whatsapp/')) {
         const apiKey = request.headers.get('x-api-key');
         const validKey = process.env.BOT_API_KEY;
         

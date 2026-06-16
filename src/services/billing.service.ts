@@ -102,8 +102,8 @@ export const BillingService = {
         const totalAmount = amount !== undefined ? amount : (order.total || 0);
 
         // 1.5 Validar doble facturación (ahora con totalAmount real)
-        if (totalInvoiced > 0 && (totalInvoiced + totalAmount) > maximumInvoiceable) {
-            throw new Error(`Esta venta ya tiene un saldo facturado ($${totalInvoiced}). No podés facturar este nuevo monto porque superaría el saldo total pagado de $${maximumInvoiceable}.`);
+        if ((totalInvoiced + totalAmount) > maximumInvoiceable) {
+            throw new Error(`No podés facturar este monto ($${totalAmount}) porque el total facturado ($${totalInvoiced + totalAmount}) superaría el saldo total pagado de $${maximumInvoiceable}.`);
         }
         const UNIT_PRICE_LIMIT = 499000;
         

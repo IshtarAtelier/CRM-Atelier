@@ -101,11 +101,12 @@ export const ContactService = {
                 const searchDigits = search.replace(/\D/g, '');
                 if (searchDigits.length >= 4) {
                     const searchStr = searchDigits.length > 8 ? searchDigits.slice(-8) : searchDigits;
-                    const rawSearch: any[] = await prisma.$queryRawUnsafe(`
+                    const searchParam = `%${searchStr}%`;
+                    const rawSearch: any[] = await prisma.$queryRaw`
                         SELECT id 
                         FROM "Client" 
-                        WHERE REGEXP_REPLACE(COALESCE(phone, ''), '\\D', '', 'g') LIKE '%${searchStr}%'
-                    `);
+                        WHERE REGEXP_REPLACE(COALESCE(phone, ''), '\\D', '', 'g') LIKE ${searchParam}
+                    `;
                     const phoneMatchIds = rawSearch.map(d => d.id);
                     where.OR = [
                         { name: { contains: search, mode: 'insensitive' } },
@@ -239,12 +240,13 @@ export const ContactService = {
             // Buscamos coincidencia usando los ultimos 8 digitos del telefono ingresado
             // (8 dígitos es suficiente para evitar colisiones con el 15 y códigos de área, y reduce falsos positivos)
             const searchPhoneStr = normalizedIncomingPhone.slice(-8);
+            const searchParam = `%${searchPhoneStr}%`;
 
-            const rawDuplicates: any[] = await prisma.$queryRawUnsafe(`
+            const rawDuplicates: any[] = await prisma.$queryRaw`
                 SELECT id 
                 FROM "Client" 
-                WHERE REGEXP_REPLACE(COALESCE(phone, ''), '\\D', '', 'g') LIKE '%${searchPhoneStr}%'
-            `);
+                WHERE REGEXP_REPLACE(COALESCE(phone, ''), '\\D', '', 'g') LIKE ${searchParam}
+            `;
             const duplicateIds = rawDuplicates.map(d => d.id);
 
             let phoneDuplicatesClient: any[] = [];

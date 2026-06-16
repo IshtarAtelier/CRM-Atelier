@@ -48,16 +48,17 @@ async function startClient(attempt = 1) {
 
     const fs = require('fs');
     const path = require('path');
-    
-    // Determinar el directorio de sesión (Railway volume o local)
+       // Determinar el directorio de sesión (Railway volume o local)
     const sessionDataPath = process.env.RAILWAY_VOLUME_MOUNT_PATH 
         ? path.join(process.env.RAILWAY_VOLUME_MOUNT_PATH, 'wwebjs_auth')
-        : path.join(__dirname, '.wwebjs_auth');
+        : path.join(process.cwd(), '.wwebjs_auth');
     
     // Matar procesos Chromium zombi (aplica en Linux/Railway)
-    try {
-        require('child_process').execSync('pkill -9 -f chromium || pkill -9 -f chrome || true', { stdio: 'ignore', timeout: 3000 });
-    } catch (e) { /* ignore */ }
+    if (process.env.NODE_ENV === 'production') {
+        try {
+            require('child_process').execSync('pkill -9 -f chromium || pkill -9 -f chrome || true', { stdio: 'ignore', timeout: 3000 });
+        } catch (e) { /* ignore */ }
+    }
     
     // Limpiar SOLO los archivos SingletonLock
     // OJO: fs.existsSync devuelve false para symlinks rotos (que es lo que es SingletonLock 
@@ -66,9 +67,6 @@ async function startClient(attempt = 1) {
         path.join(sessionDataPath, 'session', 'SingletonLock'),
         path.join(sessionDataPath, 'session', 'SingletonCookie'),
         path.join(sessionDataPath, 'session', 'SingletonSocket'),
-        path.join(__dirname, '.wwebjs_auth', 'session', 'SingletonLock'),
-        path.join(__dirname, '.wwebjs_auth', 'session', 'SingletonCookie'),
-        path.join(__dirname, '.wwebjs_auth', 'session', 'SingletonSocket'),
     ];
     for (const lp of lockPaths) {
         try { 
@@ -78,9 +76,9 @@ async function startClient(attempt = 1) {
             console.error(`⚠️ Error al borrar lock en ${lp}:`, e.message);
         }
     }
-
+ 
     // Validar integridad del archivo de sesión antes de iniciar
-    const sessionPath = path.join(__dirname, '.wwebjs_auth', 'session');
+    const sessionPath = path.join(sessionDataPath, 'session');
     try {
         if (fs.existsSync(sessionPath)) {
             const defaultFile = path.join(sessionPath, 'Default', 'Preferences');
@@ -94,8 +92,6 @@ async function startClient(attempt = 1) {
         try {
             fs.rmSync(sessionPath, { recursive: true, force: true });
             console.log('🗑️ Archivos de sesión eliminados.');
-        } catch (cleanErr) {
-            console.error('Error eliminando sesión corrupta:', cleanErr.message);
         }
     }
 

@@ -65,6 +65,90 @@ export async function POST(req: Request) {
     const systemUser = await prisma.user.findFirst();
     if (!systemUser) throw new Error("No system user found to assign order.");
 
+    // 2.5 Preparar items de la orden desglosando cristales OD/OI si aplica
+    const orderItemsToCreate: any[] = [];
+    for (const item of items) {
+      const isCustomLens = item.lensConfig && (item.lensConfig.lensType !== "NONE" || item.lensConfig.color);
+      
+      if (isCustomLens) {
+        // Consultar el precio base del producto en la base de datos
+        let dbProduct = null;
+        if (item.productId && item.productId !== "unknown") {
+          dbProduct = await prisma.product.findUnique({
+            where: { id: item.productId }
+          });
+        }
+        
+        const framePrice = dbProduct ? dbProduct.price : item.price;
+        const totalLensPrice = Math.max(0, item.price - framePrice);
+        const lensPricePerEye = Math.round(totalLensPrice / 2);
+        
+        // 1. Agregar el armazón
+        orderItemsToCreate.push({
+          productId: item.productId !== "unknown" ? item.productId : undefined,
+          productNameSnapshot: item.model,
+          productBrandSnapshot: item.brand,
+          productCategorySnapshot: dbProduct?.category || "Armazón",
+          quantity: item.quantity,
+          price: framePrice,
+          eye: null
+        });
+        
+        // Describir el cristal
+        const lensTypeDesc = item.lensConfig.lensType === "NONE" || !item.lensConfig.lensType
+          ? "Cristal Neutro" 
+          : `Cristal ${item.lensConfig.lensType}`;
+        const treatmentDesc = item.lensConfig.treatment 
+          ? ` - ${item.lensConfig.treatment.replace(/_/g, ' ')}` 
+          : '';
+        const lensName = `${lensTypeDesc}${treatmentDesc}`;
+        
+        // 2. Agregar cristal Ojo Derecho (OD)
+        orderItemsToCreate.push({
+          productId: undefined,
+          productNameSnapshot: lensName,
+          productBrandSnapshot: "Laboratorio",
+          productCategorySnapshot: "Cristal",
+          quantity: item.quantity,
+          price: lensPricePerEye,
+          eye: "OD",
+          prismVal: item.lensConfig.prescriptionFile || null,
+          crystalColor: item.lensConfig.color || null
+        });
+        
+        // 3. Agregar cristal Ojo Izquierdo (OI)
+        orderItemsToCreate.push({
+          productId: undefined,
+          productNameSnapshot: lensName,
+          productBrandSnapshot: "Laboratorio",
+          productCategorySnapshot: "Cristal",
+          quantity: item.quantity,
+          price: lensPricePerEye,
+          eye: "OI",
+          prismVal: item.lensConfig.prescriptionFile || null,
+          crystalColor: item.lensConfig.color || null
+        });
+      } else {
+        // Producto estándar sin cristales customizados
+        let dbProduct = null;
+        if (item.productId && item.productId !== "unknown") {
+          dbProduct = await prisma.product.findUnique({
+            where: { id: item.productId }
+          });
+        }
+        
+        orderItemsToCreate.push({
+          productId: item.productId !== "unknown" ? item.productId : undefined,
+          productNameSnapshot: item.model,
+          productBrandSnapshot: item.brand,
+          productCategorySnapshot: dbProduct?.category || null,
+          quantity: item.quantity,
+          price: item.price,
+          eye: null
+        });
+      }
+    }
+
     // 3. Crear la Orden (Ficha)
     const order = await prisma.order.create({
       data: {
@@ -75,15 +159,7 @@ export async function POST(req: Request) {
         total: customer.paymentMethod === 'TRANSFER' ? total * 0.85 : total,
         labNotes: `Método de envío: ${shippingMethodLabel}${customer.shippingBranch ? ` (Sucursal: ${customer.shippingBranch})` : ''}. Método de pago: ${customer.paymentMethod}. Dirección: ${customer.address}, ${customer.city}, ${customer.state} ${customer.zip}`,
         items: {
-          create: items.map((item: any) => ({
-            productId: item.productId !== "unknown" ? item.productId : undefined,
-            productNameSnapshot: item.model,
-            productBrandSnapshot: item.brand,
-            quantity: item.quantity,
-            price: item.price,
-            // Guardamos la info del cristal en notas si tiene config
-            prismVal: item.lensConfig ? JSON.stringify(item.lensConfig) : null
-          }))
+          create: orderItemsToCreate
         }
       }
     });

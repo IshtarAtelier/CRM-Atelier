@@ -130,6 +130,12 @@ async function checkAndSendSalesFollowUps({ isAgentEnabled, botReplyingTo, broad
 
             console.log(`  🕒 [Bot Executor] Programando envío a ${client.name} en ${(queueDelay / 60000).toFixed(1)} minutos.`);
 
+            // Transition status to QUEUED immediately to avoid race condition/duplication
+            await prisma.clientTask.update({
+                where: { id: task.id },
+                data: { status: 'QUEUED', updatedAt: new Date() }
+            }).catch(err => console.error(`Error transitioning task ${task.id} to QUEUED:`, err.message));
+
             setTimeout(() => {
                 executeTaskAndSend(task.id, client.id, chat.waId, chat.id, generated.text, label, client.name, followUpType)
                     .then(() => { if (broadcastChatUpdate) broadcastChatUpdate(chat.id); })
