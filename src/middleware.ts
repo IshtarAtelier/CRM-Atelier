@@ -36,7 +36,9 @@ export async function middleware(request: NextRequest) {
     // Proteger rutas API (excepto auth, cron, upload y whatsapp proxy)
     // Las rutas de bot (/api/bot/) tienen su propia validación de API KEY abajo
     // Las rutas públicas del e-commerce (store, web, checkout) no requieren auth
-    if (isApiRoute && !isAuthRoute && !pathname.startsWith('/api/cron/') && !pathname.startsWith('/api/bot/') && !pathname.startsWith('/api/whatsapp/') && !pathname.startsWith('/api/upload') && !pathname.startsWith('/api/store/') && !pathname.startsWith('/api/web/') && !pathname.startsWith('/api/checkout/') && !pathname.startsWith('/api/storage/view')) {
+    const isCheckoutBypass = pathname.startsWith('/api/checkout/') && !(pathname === '/api/checkout/session' && request.method === 'GET');
+    
+    if (isApiRoute && !isAuthRoute && !pathname.startsWith('/api/cron/') && !pathname.startsWith('/api/bot/') && !pathname.startsWith('/api/whatsapp/') && !pathname.startsWith('/api/upload') && !pathname.startsWith('/api/store/') && !pathname.startsWith('/api/web/') && !isCheckoutBypass && !pathname.startsWith('/api/storage/view') && !pathname.startsWith('/api/admin/alert')) {
         if (!token) {
             return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
         }
@@ -53,8 +55,8 @@ export async function middleware(request: NextRequest) {
         return NextResponse.next({ request: { headers: requestHeaders } });
     }
 
-    // Proteger rutas internas de bot (wa-service) o admin panel
-    if (pathname.startsWith('/api/bot/') || pathname.startsWith('/api/whatsapp/')) {
+    // Proteger rutas internas de bot (wa-service) o admin panel (incluyendo alertas de admin)
+    if (pathname.startsWith('/api/bot/') || pathname.startsWith('/api/whatsapp/') || pathname.startsWith('/api/admin/alert')) {
         const apiKey = request.headers.get('x-api-key');
         const validKey = process.env.BOT_API_KEY;
         

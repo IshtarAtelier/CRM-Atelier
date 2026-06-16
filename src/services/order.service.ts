@@ -187,7 +187,7 @@ export class OrderService {
     }
 }
 
-    static async updateOrder(id: string, body: any) {
+    static async updateOrder(id: string, body: any, userId?: string | null, userName?: string | null, role?: string | null) {
         try {
         
         // Validation Layer (Bouncer)
@@ -196,14 +196,25 @@ export class OrderService {
             throw new Error('Datos inválidos');
         }
 
-        // ── Guard: prevent editing items/pricing on SALE orders ──
-        // Lab status, notes, and frame measurements can still be updated on sales.
+        // ── Guard: prevent editing items/pricing on SALE orders for non-admin users ──
+        const existingForGuard = await prisma.order.findUnique({
+            where: { id },
+            select: { orderType: true }
+        });
+        if (existingForGuard?.orderType === 'SALE' && role !== 'ADMIN') {
+            const financialFields = [
+                'items', 'markup', 'discountCash', 'discountTransfer', 
+                'discountCard', 'specialDiscount', 'total', 'subtotalWithMarkup',
+                'clientId', 'userId', 'orderType'
+            ];
+            const hasFinancialEdits = Object.keys(body).some(key => financialFields.includes(key));
+            if (hasFinancialEdits) {
+                throw new Error('Solo el administrador puede modificar detalles financieros o ítems de una venta confirmada.');
+            }
+        }
+
         if (body.items) {
-            const existing = await prisma.order.findUnique({
-                where: { id },
-                select: { orderType: true }
-            });
-            if (existing?.orderType === 'SALE') {
+            if (existingForGuard?.orderType === 'SALE') {
                 throw new Error('No se pueden modificar los ítems de una venta confirmada. Solicitá reapertura al administrador.');
             }
         }
@@ -224,7 +235,7 @@ export class OrderService {
         let finalMarkup = markup;
         let finalDiscountCash = discountCash;
 
-        if (items || markup !== undefined || discountCash !== undefined) {
+        if (items || markup !== undefined || discountCash !== undefined || specialDiscount !== undefined) {
             const currentOrder = await prisma.order.findUnique({
                 where: { id },
                 select: {
@@ -282,10 +293,6 @@ export class OrderService {
                 data.appliedPromoDiscount = totals.promoFrameDiscount;
             }
         }
-
-        // Override with explicit body values if they were provided and we want to trust them
-        if (total !== undefined) data.total = Math.round(total);
-        if (subtotalWithMarkup !== undefined) data.subtotalWithMarkup = Math.round(subtotalWithMarkup);
         
         if (markup !== undefined) data.markup = Math.max(0, markup);
         if (discountCash !== undefined) data.discountCash = discountCash;
@@ -826,6 +833,22 @@ export class OrderService {
             // Note: In Next.js App Router, we avoid awaiting background non-critical tasks 
             // if we don't want to delay the API response, but for DB consistency it's fine.
             await BotService.notifyOrderReady(order);
+        }
+
+        // Log Audit for update
+        if (userId) {
+            await logAudit({
+                userId,
+                userName,
+                action: 'UPDATE',
+                entityType: 'ORDER',
+                entityId: id,
+                details: {
+                    changes: Object.keys(data),
+                    orderType: order.orderType,
+                    total: order.total
+                }
+            }).catch(err => console.error('Error logging audit for order update:', err));
         }
 
         return order;

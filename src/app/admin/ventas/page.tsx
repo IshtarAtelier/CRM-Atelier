@@ -129,6 +129,8 @@ export default function VentasPage() {
                     else if (tName.includes('rosa') || tName.includes('pink')) color_tenido = 'Rosa';
                     else if (tName.includes('azul') || tName.includes('blue')) color_tenido = 'Azul';
                     else if (tName.includes('ama')) color_tenido = 'Amarillo';
+                    else if (tName.includes('naran')) color_tenido = 'Naranja';
+                    else if (tName.includes('rojo') || tName.includes('red')) color_tenido = 'Rojo';
 
                     if (tName.includes('10')) intensidad_tenido = '10%';
                     else if (tName.includes('25')) intensidad_tenido = '25%';

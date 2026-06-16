@@ -21,7 +21,7 @@ export async function GET() {
         }
 
         const findTintPrice = () => {
-            const tintProduct = treatments.find(p => p.name?.toLowerCase() === 'teñido' || p.name?.toLowerCase() === 'tenido');
+            const tintProduct = treatments.find(p => p.name?.toLowerCase().includes('teñido') || p.name?.toLowerCase().includes('tenido'));
             if (tintProduct && tintProduct.price) return tintProduct.price;
             return CrystalMapping.EXTRAS.TINT; // fallback to hardcoded if deleted
         };

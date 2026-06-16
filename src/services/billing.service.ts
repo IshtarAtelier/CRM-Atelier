@@ -385,9 +385,9 @@ export const BillingService = {
                         // Datos del emisor
                         issuer_cuit: accountConfig.cuit,
                         issuer_business_name: accountConfig.label,
-                        issuer_address: 'Jose Luis de Tejeda 4380',
+                        issuer_address: accountConfig.address,
                         issuer_iva_condition: 'Monotributista',
-                        issuer_activity_start_date: '01/01/2020',
+                        issuer_activity_start_date: accountConfig.activityStart,
                         // Datos del receptor
                         receiver_name: invoice.order.client?.name || 'Consumidor Final',
                         receiver_address: '-',

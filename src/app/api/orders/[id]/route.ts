@@ -49,7 +49,12 @@ export async function PATCH(
         const { id } = await params;
         const body = await request.json();
         
-        const order = await OrderService.updateOrder(id, body);
+        const headersList = await headers();
+        const role = headersList.get('x-user-role') || 'STAFF';
+        const userId = headersList.get('x-user-id');
+        const userName = headersList.get('x-user-name');
+
+        const order = await OrderService.updateOrder(id, body, userId, userName, role);
         return NextResponse.json(order);
     } catch (error: any) {
         console.error('Error updating order:', error);

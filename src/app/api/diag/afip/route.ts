@@ -34,7 +34,7 @@ export async function GET() {
 
             if (cert) {
                 certInfo = "LOADED";
-                if (cert.includes('----BEGIN CERTIFICATE----')) {
+                if (cert.includes('-----BEGIN CERTIFICATE-----')) {
                     if (cert.includes('AFIP')) {
                         certType = "PRODUCTION (Likely - AFIP Issued)";
                     } else if (cert.includes('Testing')) {

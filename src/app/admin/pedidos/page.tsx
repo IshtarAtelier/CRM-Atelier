@@ -431,12 +431,65 @@ export default function PedidosPage() {
                     : '';
 
             const lensList = order.items?.filter((i: any) => i.product?.category === 'LENS' || i.productCategorySnapshot === 'LENS') || [];
-            const lensName = lensList.length > 0 ? (lensList[0]?.product?.name || lensList[0]?.productNameSnapshot || '').toLowerCase() : '';
+            const lensProduct = lensList.length > 0 ? lensList[0]?.product : null;
+            const lensName = lensProduct?.name?.toLowerCase() || lensList[0]?.productNameSnapshot?.toLowerCase() || '';
+            const lensIndex = lensProduct?.lensIndex || '';
+
             let tipo_lente = 'Monofocal';
             if (lensName.includes('multi') || lensName.includes('progresivo')) tipo_lente = 'Multifocal';
             else if (lensName.includes('bifo') && lensName.includes('kri')) tipo_lente = 'Bifocal Kri';
             else if (lensName.includes('bifo')) tipo_lente = 'Bifocal Ft';
             else if (lensName.includes('ocupa') || lensName.includes('intermedio')) tipo_lente = 'Ocupacional';
+
+            let material = order.labMaterial || '';
+            if (!material && lensName) {
+                if (lensName.includes('poli')) material = 'Policarbonato';
+                else if (lensName.includes('orga') || lensName.includes('orgá')) material = 'Orgánico';
+                else if (lensName.includes('alto') || lensName.includes('1.6') || lensName.includes('1.7')) material = 'Alto Índice';
+                else if (lensName.includes('vidrio') || lensName.includes('mineral')) material = 'Mineral';
+            }
+
+            let tratamiento = order.labTreatment || '';
+            if (!tratamiento && lensName) {
+                if (lensName.includes('blue') || lensName.includes('block') || lensName.includes('filtro')) tratamiento = 'Filtro Azul';
+                else if (lensName.includes('anti') || lensName.includes('ar')) tratamiento = 'Antirreflejo';
+                else if (lensName.includes('foto') || lensName.includes('transition')) tratamiento = 'Fotocromático';
+            }
+
+            const treatmentItems = order.items?.filter((i: any) => i.product?.category === 'Tratamiento' || i.productCategorySnapshot === 'Tratamiento') || [];
+            let tipo_tenido = '';
+            let color_tenido = '';
+            let intensidad_tenido = '';
+
+            for (const item of treatmentItems) {
+                const tName = (item.product?.name || item.productNameSnapshot || '').toLowerCase();
+                if (!tratamiento) {
+                    if (tName.includes('blue') || tName.includes('block') || tName.includes('filtro')) tratamiento = 'Filtro Azul';
+                    else if (tName.includes('anti') || tName.includes('ar')) tratamiento = 'Antirreflejo';
+                    else if (tName.includes('foto') || tName.includes('transition')) tratamiento = 'Fotocromático';
+                }
+                
+                if (tName.includes('teñi') || tName.includes('tinte') || tName.includes('color')) {
+                    if (tName.includes('degrade') || tName.includes('degradé') || tName.includes('bicolor') || tName.includes('fume')) tipo_tenido = 'Degradé';
+                    else if (tName.includes('doble')) tipo_tenido = 'Doble Degradé';
+                    else tipo_tenido = 'Pleno';
+
+                    if (tName.includes('gris')) color_tenido = 'Gris';
+                    else if (tName.includes('marr') || tName.includes('cafe')) color_tenido = 'Marrón';
+                    else if (tName.includes('verde') || tName.includes('g15') || tName.includes('g-15')) color_tenido = 'Verde G15';
+                    else if (tName.includes('rosa') || tName.includes('pink')) color_tenido = 'Rosa';
+                    else if (tName.includes('azul') || tName.includes('blue')) color_tenido = 'Azul';
+                    else if (tName.includes('ama')) color_tenido = 'Amarillo';
+                    else if (tName.includes('naran')) color_tenido = 'Naranja';
+                    else if (tName.includes('rojo') || tName.includes('red')) color_tenido = 'Rojo';
+
+                    if (tName.includes('10')) intensidad_tenido = '10%';
+                    else if (tName.includes('25')) intensidad_tenido = '25%';
+                    else if (tName.includes('50')) intensidad_tenido = '50%';
+                    else if (tName.includes('75')) intensidad_tenido = '75%';
+                    else if (tName.includes('85')) intensidad_tenido = '85%';
+                }
+            }
 
             const payload = {
                 tipo_lente,
@@ -454,9 +507,15 @@ export default function PedidosPage() {
                 od_dp: order.labPdOd || '',
                 oi_dp: order.labPdOi || '',
                 diametro: order.labDiameter || '',
+                indice: lensIndex,
+                material,
+                tratamiento,
                 color: order.labColor || '',
                 observaciones: order.labNotes || '',
-                armazon: frameInfo
+                armazon: frameInfo,
+                tipo_tenido,
+                color_tenido,
+                intensidad_tenido
             };
 
             const dataString = `ATELIER_SMARTLAB_DATA:${JSON.stringify(payload)}`;
