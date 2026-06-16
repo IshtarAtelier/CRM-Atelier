@@ -3,6 +3,10 @@ import Link from "next/link";
 import { StorefrontNavbar } from "@/components/Storefront/StorefrontNavbar";
 import { StorefrontFooter } from "@/components/Storefront/StorefrontFooter";
 import { FloatingWhatsApp } from "@/components/Storefront/FloatingWhatsApp";
+import { staticPosts } from "@/lib/static-blog-posts";
+import { prisma } from "@/lib/db";
+
+export const revalidate = 300;
 
 export const metadata: Metadata = {
   title: "Blog de Salud Visual | Atelier Óptica Córdoba",
@@ -10,41 +14,41 @@ export const metadata: Metadata = {
   keywords: ["blog salud visual", "como leer receta anteojos", "que es el filtro azul", "miopia infantil", "optica cordoba blog"],
 };
 
-const ARTICULOS = [
-  {
-    slug: "como-leer-receta-oftalmologica",
-    title: "Guía para leer tu receta oftalmológica (OD, OI, Esfera y Cilindro)",
-    excerpt: "Aprendé a descifrar los números que escribió tu oftalmólogo y entendé qué tipo de cristal y tecnología vas a necesitar.",
-    category: "Guías",
-    date: "Proximamente"
-  },
-  {
-    slug: "filtro-azul-vs-antirreflejo",
-    title: "Filtro Azul (Blue Cut) vs Antirreflejo: ¿Qué sirve realmente?",
-    excerpt: "Derribamos los mitos sobre la fatiga visual, las pantallas y los cristales. La verdad clínica sobre lo que tus ojos necesitan.",
-    category: "Cristales",
-    date: "Proximamente"
-  },
-  {
-    slug: "guia-precios-multifocales-argentina",
-    title: "¿Cuánto cuesta un lente multifocal en Argentina? (Guía de Precios)",
-    excerpt: "Desde opciones económicas hasta la línea Varilux XR y Zeiss. Todo lo que define el precio de un multifocal y cómo evitar sorpresas.",
-    category: "Presupuestos",
-    date: "Proximamente"
-  },
-  {
-    slug: "control-miopia-infantil-lentes",
-    title: "Control de Miopía Infantil: La revolución de Stellest y MyoFix",
-    excerpt: "Por qué los niños de hoy desarrollan más miopía por el uso de pantallas y cómo estas nuevas lentes terapéuticas pueden frenarla.",
-    category: "Salud Infantil",
-    date: "Proximamente"
+export default async function BlogIndexPage() {
+  let dbPosts: any[] = [];
+  try {
+    dbPosts = await prisma.blogPost.findMany({
+      where: { status: 'PUBLISHED' },
+      orderBy: { date: 'desc' },
+    });
+  } catch (error) {
+    console.error("Error loading blog posts from database:", error);
   }
-];
 
-export default function BlogIndexPage() {
+  const mappedDbPosts = dbPosts.map(p => ({
+    slug: p.slug,
+    title: p.title,
+    excerpt: p.excerpt,
+    category: p.category || "Guías",
+    date: new Date(p.date).toLocaleDateString('es-AR', { day: 'numeric', month: 'long', year: 'numeric' })
+  }));
+
+  const mappedStaticPosts = staticPosts.map(p => ({
+    slug: p.slug,
+    title: p.title,
+    excerpt: p.excerpt,
+    category: p.category || "Artículos",
+    date: new Date(p.date).toLocaleDateString('es-AR', { day: 'numeric', month: 'long', year: 'numeric' })
+  }));
+
+  const allPosts = [
+    ...mappedDbPosts,
+    ...mappedStaticPosts.filter(sp => !mappedDbPosts.some(dp => dp.slug === sp.slug))
+  ];
+
   return (
     <div className="bg-[#faf8f5] text-black min-h-screen flex flex-col">
-      <StorefrontNavbar theme="dark" />
+      <StorefrontNavbar theme="light" />
       
       <main className="flex-grow pt-32 pb-16">
         <section className="px-6 mb-16">
@@ -63,7 +67,7 @@ export default function BlogIndexPage() {
 
         <section className="max-w-5xl mx-auto px-6 mb-24">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {ARTICULOS.map((post) => (
+            {allPosts.map((post) => (
               <div key={post.slug} className="group flex flex-col bg-white rounded-2xl p-8 shadow-[0_2px_10px_rgba(0,0,0,0.02)] border border-[#e8e2db] hover:border-black/30 transition-colors">
                 <div className="flex items-center gap-3 mb-4">
                   <span className="text-xs font-medium tracking-tight uppercase tracking-wider text-[#111]">
@@ -78,8 +82,8 @@ export default function BlogIndexPage() {
                 <p className="text-black/60 mb-6 flex-grow line-clamp-3">
                   {post.excerpt}
                 </p>
-                <Link href="#" className="inline-flex items-center text-sm font-medium tracking-tight text-black opacity-50 cursor-not-allowed">
-                  Próximamente →
+                <Link href={`/blog/${post.slug}`} className="inline-flex items-center text-sm font-medium tracking-tight text-black hover:opacity-60 transition-opacity">
+                  Leer artículo →
                 </Link>
               </div>
             ))}
