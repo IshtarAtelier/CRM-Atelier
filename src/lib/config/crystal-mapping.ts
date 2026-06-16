@@ -53,17 +53,17 @@ export const CrystalMapping = {
     SMART_FREE: {
       type: "Cristal Multifocal",
       matchKeywords: ["one", "estandar", "orma"], 
-      exactMatchName: "Multifocal Smart NEW Organico Blanco"
+      exactMatchName: "SMART FREE - Organico Blue Ligth con Ar essential, 2x1"
     },
     VARILUX: {
       type: "Cristal Multifocal",
       matchKeywords: ["varilux", "physio", "comfort max", "stylis"], 
-      exactMatchName: "Multifocal Smart NEW Organico BLUE LIGHT ESSENTIAL"
+      exactMatchName: "SMART FREE - Stylis Blanco 2x1"
     },
     FOTOCROMATICO: {
       type: "Cristal Multifocal",
       matchKeywords: ["foto", "transitions", "gen s"],
-      exactMatchName: "Multifocal Smart NEW Organico Fotocromatico Smart Color"
+      exactMatchName: "SMART FREE - Oraganico Blue Ligth con Ar essential Fotocoromatico  Gris 2x1"
     }
   },
   EXTRAS: {

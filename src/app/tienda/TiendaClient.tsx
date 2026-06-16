@@ -116,16 +116,15 @@ export function TiendaClient({
         </div>
 
         {/* ── FILTROS ── */}
-        <div className="max-w-[1600px] mx-auto px-5 pb-0 flex items-center gap-1 overflow-x-auto scrollbar-none">
-          <SlidersHorizontal className="w-3.5 h-3.5 text-stone-400 mr-2 shrink-0" />
+        <div className="max-w-[1600px] mx-auto px-5 pb-5 pt-2 flex flex-wrap items-center gap-2">
           {CATEGORIES.map(cat => (
             <button
               key={cat}
               onClick={() => setActiveCategory(cat)}
-              className={`shrink-0 text-[11px] font-bold uppercase tracking-widest px-4 py-3 border-b-2 transition-all duration-200 ${
+              className={`shrink-0 text-[12px] font-extrabold uppercase tracking-widest px-6 py-2.5 rounded-full transition-all duration-300 ${
                 activeCategory === cat
-                  ? "border-black text-black"
-                  : "border-transparent text-stone-400 hover:text-black hover:border-stone-300"
+                  ? "bg-black text-white shadow-md scale-105"
+                  : "bg-stone-100 text-stone-500 hover:bg-stone-200 hover:text-black"
               }`}
             >
               {cat}
@@ -233,26 +232,25 @@ export function TiendaClient({
                     </div>
 
                     {/* Info */}
-                    <div className="flex flex-col gap-1 mt-4 px-1">
-                      <h3 className="text-[10px] text-stone-400 font-bold uppercase tracking-[0.20em] mb-0.5">{p.brand || 'ATELIER'}</h3>
-                      <h2 className="text-base font-serif tracking-tight text-stone-900 leading-tight mb-2 group-hover:text-black transition-colors">
+                    <div className="flex flex-col gap-1 mt-4 px-1 pb-4">
+                      <h3 className="text-xs text-stone-500 font-black uppercase tracking-[0.20em] mb-0.5">{p.brand || 'ATELIER'}</h3>
+                      <h2 className="text-xl font-serif tracking-tight text-black leading-tight mb-3 group-hover:text-stone-600 transition-colors">
                         {p.name || p.model}
                       </h2>
                       
-                      <div className="pt-2 border-t border-stone-100/80 dark:border-stone-800/40 flex flex-col gap-1">
-                        <div className="flex justify-between items-baseline">
-                          <p className="text-sm font-medium text-stone-900 dark:text-stone-100">
-                            {webSettings.web_promo_installments} de <span className="font-extrabold text-[#b08f4c] dark:text-[#c8a55c]">${Math.round((p.price || 0) / installmentsCount).toLocaleString("es-AR")}</span>
-                          </p>
-                        </div>
-                        
-                        <p className="text-[11px] text-stone-500 dark:text-stone-400 font-medium">
-                          ${Math.round((p.price || 0) * (1 - discountRate)).toLocaleString("es-AR")} en efectivo/transf. <span className="text-emerald-600 dark:text-emerald-500 font-bold text-[9px] uppercase tracking-wider">({webSettings.web_promo_cash_discount}% OFF)</span>
+                      <div className="pt-3 border-t border-stone-200/60 flex flex-col gap-1.5">
+                        <p className="text-base font-bold text-stone-900">
+                          {webSettings.web_promo_installments} de <span className="font-black text-[#b08f4c] text-lg">${Math.round((p.price || 0) / installmentsCount).toLocaleString("es-AR")}</span>
                         </p>
                         
-                        <p className="text-[9px] text-stone-350 dark:text-stone-600">
-                          Precio de lista: ${(p.price || 0).toLocaleString("es-AR")}
+                        <p className="text-xs text-stone-500 font-medium mt-1">
+                          <span className="line-through opacity-60 mr-1">${(p.price || 0).toLocaleString("es-AR")}</span>
+                          ${Math.round((p.price || 0) * (1 - discountRate)).toLocaleString("es-AR")} efvo/transf. <span className="text-emerald-600 font-bold ml-1">(-{webSettings.web_promo_cash_discount}%)</span>
                         </p>
+                      </div>
+
+                      <div className="mt-4 w-full border-2 border-stone-900 text-stone-900 group-hover:bg-stone-900 group-hover:text-white text-[11px] font-black uppercase tracking-[0.2em] py-3 text-center rounded-xl transition-all duration-300">
+                        Ver Anteojo
                       </div>
                     </div>
                   </Link>

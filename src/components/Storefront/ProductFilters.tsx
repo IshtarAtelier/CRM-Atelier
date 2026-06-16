@@ -292,7 +292,7 @@ export function ProductFilters({
                         onChange={() => handleFilterChange('marca', '')}
                         className="hidden" 
                       />
-                      <span className={`text-sm ${!currentBrand ? 'font-medium text-black dark:text-white' : 'text-stone-500 dark:text-stone-400 group-hover:text-stone-800 dark:group-hover:text-stone-200'}`}>
+                      <span className={`text-base tracking-wide ${!currentBrand ? 'font-bold text-black dark:text-white' : 'text-stone-500 dark:text-stone-400 group-hover:text-stone-800 dark:group-hover:text-stone-200'}`}>
                         Todas las Marcas
                       </span>
                     </label>
@@ -300,18 +300,18 @@ export function ProductFilters({
                     {/* Lista de Marcas */}
                     {availableBrands.map((brand) => (
                       <label key={brand} className="flex items-center gap-3 cursor-pointer group">
-                        <div className={`w-4 h-4 rounded border border-stone-300 dark:border-stone-700 flex items-center justify-center transition-colors ${currentBrand === brand ? 'bg-black border-black text-white dark:bg-white dark:border-white dark:text-stone-950' : 'group-hover:border-stone-500'}`}>
-                          {currentBrand === brand && <svg viewBox="0 0 14 14" fill="none" className="w-3 h-3"><path d="M3 7.5L5.5 10L11 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+                        <div className={`w-5 h-5 rounded border border-stone-300 dark:border-stone-700 flex items-center justify-center transition-colors ${currentBrand === brand ? 'bg-black border-black text-white dark:bg-white dark:border-white dark:text-stone-950' : 'group-hover:border-stone-500'}`}>
+                          {currentBrand === brand && <svg viewBox="0 0 14 14" fill="none" className="w-3.5 h-3.5"><path d="M3 7.5L5.5 10L11 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>}
                         </div>
                         <input 
                           type="radio" 
                           name="brand" 
                           value={brand} 
                           checked={currentBrand === brand}
-                          onChange={(e) => handleFilterChange('marca', e.target.value)}
+                          onChange={() => handleFilterChange('marca', brand)}
                           className="hidden" 
                         />
-                        <span className={`text-sm ${currentBrand === brand ? 'font-medium text-black dark:text-white' : 'text-stone-500 dark:text-stone-400 group-hover:text-stone-800 dark:group-hover:text-stone-200'}`}>
+                        <span className={`text-base tracking-wide ${currentBrand === brand ? 'font-bold text-black dark:text-white' : 'text-stone-500 dark:text-stone-400 group-hover:text-stone-800 dark:group-hover:text-stone-200'}`}>
                           {brand}
                         </span>
                       </label>

@@ -4,6 +4,10 @@ import { env } from '@/env';
 import { sendEmail } from '@/lib/email';
 import { fetchWa } from '@/lib/wa-config';
 
+// Cooldown para alertas de timeout/red: avisar máximo 1 vez cada 2 horas
+let lastTimeoutAlertAt: number | null = null;
+const TIMEOUT_ALERT_COOLDOWN_MS = 2 * 60 * 60 * 1000; // 2 horas
+
 // Cron endpoint para sincronizar SmartLab automáticamente
 // Se llama desde un servicio externo (cron-job.org) cada 4 horas
 export async function GET(req: Request) {
@@ -20,6 +24,9 @@ export async function GET(req: Request) {
         
         console.log(`[CRON SmartLab] Sync completado: ${result.matched || 0} actualizados, ${result.newlyFinished || 0} nuevos fabricados`);
         
+        // Si sincronizó bien, resetear el cooldown de timeout para que la próxima caída avise de nuevo
+        lastTimeoutAlertAt = null;
+
         return NextResponse.json({
             success: true,
             timestamp: new Date().toISOString(),
@@ -31,16 +38,24 @@ export async function GET(req: Request) {
         const errorMessage = error instanceof Error ? error.message : String(error);
         
         try {
-            // No enviar spam si es simplemente que la página del laboratorio está caída o lenta
             const isTimeout = errorMessage.toLowerCase().includes('timeout') || errorMessage.toLowerCase().includes('network') || errorMessage.toLowerCase().includes('navigation');
             
-            if (!isTimeout) {
+            // Para errores de timeout/red: alertar solo si pasaron más de 2 horas desde la última alerta
+            // Para otros errores: alertar siempre
+            const shouldAlert = !isTimeout || !lastTimeoutAlertAt || (Date.now() - lastTimeoutAlertAt) >= TIMEOUT_ALERT_COOLDOWN_MS;
+
+            if (shouldAlert) {
+                const subject = isTimeout
+                    ? '⚠️ SmartLab no responde — Grupo Óptico caído'
+                    : '🚨 Error en Sincronización Automática SmartLab';
+                const waEmoji = isTimeout ? '⚠️' : '🚨';
+
                 // Enviar alerta por Email
                 await sendEmail({
                     to: 'pisano.ishtar@gmail.com',
-                    subject: '🚨 Error en Sincronización Automática SmartLab',
+                    subject,
                     text: `Atelier Óptica\n\nSe detectó un error al sincronizar con el laboratorio Grupo Óptico.\n\nError: ${errorMessage}\nFecha: ${new Date().toLocaleString('es-AR')}`,
-                    html: `<h3 style="color: #d32f2f;">🚨 Error en Sincronización SmartLab</h3><p>Se detectó un error al intentar sincronizar los pedidos con el laboratorio (Grupo Óptico).</p><p><b>Error:</b> ${errorMessage}</p><p><b>Fecha:</b> ${new Date().toLocaleString('es-AR')}</p>`
+                    html: `<h3 style="color: #d32f2f;">${subject}</h3><p>Se detectó un error al intentar sincronizar los pedidos con el laboratorio (Grupo Óptico).</p><p><b>Error:</b> ${errorMessage}</p><p><b>Fecha:</b> ${new Date().toLocaleString('es-AR')}</p>${isTimeout ? '<p style="color:#888;font-size:12px;">Si el problema persiste, recibirás otra alerta en 2 horas.</p>' : ''}`
                 });
 
                 // Enviar alerta por WhatsApp
@@ -49,12 +64,15 @@ export async function GET(req: Request) {
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         chatId: '5493541215971@c.us',
-                        message: `🚨 *Atelier Alerta - SmartLab*\n\nHubo un error al intentar sincronizar los estados con el laboratorio (Grupo Óptico).\n\n*Error:* ${errorMessage}`
+                        message: `${waEmoji} *Atelier Alerta - SmartLab*\n\nHubo un error al intentar sincronizar los estados con el laboratorio (Grupo Óptico).\n\n*Error:* ${errorMessage}${isTimeout ? '\n\n_Si sigue caído, te aviso de nuevo en 2hs._' : ''}`
                     })
                 });
                 console.log('[CRON SmartLab] Alertas enviadas a Ishtar.');
+
+                if (isTimeout) lastTimeoutAlertAt = Date.now();
             } else {
-                console.log('[CRON SmartLab] Error de Timeout/Red. Omitiendo alertas por WhatsApp para no hacer spam.');
+                const minsLeft = Math.round((TIMEOUT_ALERT_COOLDOWN_MS - (Date.now() - lastTimeoutAlertAt!)) / 60000);
+                console.log(`[CRON SmartLab] Timeout/Red — alerta en cooldown (próxima en ~${minsLeft} min).`);
             }
         } catch (alertError) {
             console.error('[CRON SmartLab] No se pudieron enviar las alertas:', alertError);

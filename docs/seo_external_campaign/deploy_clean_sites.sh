@@ -19,6 +19,7 @@ ACTIVE_DOMAINS=(
     "anteojosdesolcba.com.ar"
     "anteojosonline.com.ar"
     "opticascordoba.com.ar"
+    "variluxargentina.com.ar"
 )
 
 # Function to check if domain is in active list

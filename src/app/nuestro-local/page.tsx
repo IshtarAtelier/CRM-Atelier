@@ -241,10 +241,10 @@ export default async function NuestroLocalPage() {
           {/* Google Maps embed */}
           <div className="w-full overflow-hidden" style={{ height: 420 }}>
             <iframe
-              src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3406.126442657476!2d-64.2400508!3d-31.3831!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x943299c0da27ea09%3A0xcdd93bb53ab437c5!2sAtelier%20Optica!5e0!3m2!1sen!2sar!4v1716162356789!5m2!1sen!2sar"
+              src="https://maps.google.com/maps?q=Atelier+Optica+Jose+Luis+de+Tejeda+4380+Cordoba&t=&z=15&ie=UTF8&iwloc=&output=embed"
               width="100%"
               height="100%"
-              style={{ border: 0, filter: "grayscale(80%) contrast(110%)" }}
+              style={{ border: 0, filter: "grayscale(20%) contrast(110%)" }}
               allowFullScreen
               loading="lazy"
               referrerPolicy="no-referrer-when-downgrade"

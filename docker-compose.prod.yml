@@ -1,0 +1,98 @@
+version: '3.8'
+
+services:
+  # 1. Reverse Proxy (Puerta de entrada)
+  nginx-proxy-manager:
+    image: 'jc21/nginx-proxy-manager:latest'
+    container_name: nginx-proxy-manager
+    restart: unless-stopped
+    ports:
+      - '80:80'
+      - '443:443'
+      - '81:81' # Panel de administración
+    volumes:
+      - npm_data:/data
+      - npm_letsencrypt:/etc/letsencrypt
+    depends_on:
+      - main-web
+      - pbn-server
+    networks:
+      - external_net
+
+  # 2. Web Principal (Next.js)
+  main-web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: atelier-web-prod
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-atelier}?schema=public
+    networks:
+      - external_net
+      - internal_net
+    depends_on:
+      - db
+
+  # 3. Base de Datos (Aislada, no accesible desde proxy ni PBN)
+  db:
+    image: postgres:15-alpine
+    container_name: atelier-postgres-prod
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-atelier}
+    volumes:
+      - postgres_data_prod:/var/lib/postgresql/data
+    networks:
+      - internal_net
+
+  # 4. WhatsApp Bot Service
+  wa-service:
+    build:
+      context: .
+      dockerfile: wa-service/Dockerfile
+    container_name: wa-service-prod
+    restart: unless-stopped
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-atelier}?schema=public
+      - GOOGLE_GENAI_API_KEY=${GOOGLE_GENAI_API_KEY}
+      - CRM_API_URL=http://main-web:3000/api/bot
+      - PORT=3100
+      - PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
+      - PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
+    volumes:
+      - wa_auth_data_prod:/app/.wwebjs_auth
+    shm_size: '512mb'
+    networks:
+      - external_net
+      - internal_net
+    depends_on:
+      - db
+      - main-web
+
+  # 5. Servidor de la PBN (Satélites Estáticos)
+  pbn-server:
+    image: nginx:alpine
+    container_name: pbn-server-prod
+    restart: unless-stopped
+    volumes:
+      - ./docs/seo_external_campaign/deploy_sites:/usr/share/nginx/html:ro
+      - ./docs/seo_external_campaign/pbn_nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    networks:
+      - external_net
+
+networks:
+  external_net:
+    driver: bridge
+  internal_net:
+    driver: bridge
+    internal: true
+
+volumes:
+  npm_data:
+  npm_letsencrypt:
+  postgres_data_prod:
+  wa_auth_data_prod:

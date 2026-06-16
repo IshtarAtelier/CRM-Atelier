@@ -1349,11 +1349,16 @@ export default function PedidosPage() {
                                 {/* Observaciones */}
                                 <div className="border-2 border-stone-100 dark:border-stone-700 rounded-2xl p-4">
                                     <label className="text-[9px] font-black text-stone-400 uppercase tracking-widest block mb-2">Observaciones</label>
-                                    <div className="flex items-start justify-between gap-2">
-                                        <span className={`text-sm ${order.labNotes ? 'text-stone-800 dark:text-white' : 'text-stone-300 dark:text-stone-600 italic'}`}>
-                                            {order.labNotes || 'Sin observaciones'}
-                                        </span>
-                                        {order.labNotes && <CopyBtn value={order.labNotes} field="obs" />}
+                                    <div className="flex items-start gap-2">
+                                        <textarea
+                                            value={labFields[`${order.id}_notes`] ?? order.labNotes ?? ''}
+                                            onChange={e => setLabFields(prev => ({ ...prev, [`${order.id}_notes`]: e.target.value }))}
+                                            onBlur={e => saveLabField(order.id, 'notes', e.target.value)}
+                                            placeholder="Aclaraciones o notas para el laboratorio (opcional)..."
+                                            className="flex-1 px-3 py-2 border-2 border-stone-200 dark:border-stone-600 rounded-xl text-sm font-medium focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none bg-white dark:bg-stone-900 transition-all min-h-[60px] resize-y"
+                                        />
+                                        {(labFields[`${order.id}_notes`] ?? order.labNotes) ? <CopyBtn value={labFields[`${order.id}_notes`] ?? order.labNotes ?? ''} field="obs" /> : null}
+                                        {savingField === `${order.id}_notes` && <Loader2 className="w-4 h-4 text-blue-500 animate-spin mt-2" />}
                                     </div>
                                 </div>
 

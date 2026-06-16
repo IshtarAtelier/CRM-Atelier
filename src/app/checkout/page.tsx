@@ -61,7 +61,7 @@ export default function CheckoutPage() {
   });
 
   const isLocalCity = (() => {
-    const city = formData.city.toLowerCase().trim();
+    const city = (formData.city || "").toLowerCase().trim();
     return city === "cordoba" || 
            city === "córdoba" || 
            city === "cordoba capital" || 

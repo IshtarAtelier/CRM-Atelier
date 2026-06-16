@@ -167,6 +167,8 @@ model Product {
   cylinderMax           Float?
   additionMin           Float?
   additionMax           Float?
+  diameterMin           Float?
+  diameterMax           Float?
   is2x1                 Boolean  @default(false)
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt

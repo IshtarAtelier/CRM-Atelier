@@ -28,6 +28,8 @@ interface BulkItem {
     sphereMax: string | number;
     cylinderMin: string | number;
     cylinderMax: string | number;
+    diameterMin: string | number;
+    diameterMax: string | number;
 }
 
 const LENS_INDICES = ['1.49', '1.50', '1.53', '1.56', '1.59', '1.60', '1.67', '1.74', 'Foto'];
@@ -49,6 +51,7 @@ export default function ProductForm({ onClose, onSuccess, isAdmin = false, uniqu
         name: '', brand: '', model: '', stock: 0, price: 0, cost: 0, 
         lensIndex: '', laboratory: '', sphereMin: '', sphereMax: '', 
         cylinderMin: '', cylinderMax: '', additionMin: '', additionMax: '',
+        diameterMin: '', diameterMax: '',
         is2x1: false, publishToWeb: true, origin: 'LABORATORIO',
         seoTitle: '', seoDescription: '', seoTags: '', customSlug: '',
         mpn: '', gender: '', ageGroup: ''
@@ -59,7 +62,8 @@ export default function ProductForm({ onClose, onSuccess, isAdmin = false, uniqu
         id: Math.random().toString(36).substring(2, 9),
         brand: '', name: '', laboratory: '', lensIndex: '',
         price: '', cost: '', stock: '', model: '',
-        sphereMin: '', sphereMax: '', cylinderMin: '', cylinderMax: ''
+        sphereMin: '', sphereMax: '', cylinderMin: '', cylinderMax: '',
+        diameterMin: '', diameterMax: ''
     }]);
     const [showRanges, setShowRanges] = useState(false);
     const [labConfigs, setLabConfigs] = useState<any[]>([]);
@@ -118,12 +122,14 @@ export default function ProductForm({ onClose, onSuccess, isAdmin = false, uniqu
                 lensIndex: isCristal ? formData.lensIndex : null,
                 unitType: isCristal ? 'PAR' : 'UNIDAD',
                 laboratory: isCristal && formData.laboratory ? formData.laboratory : null,
-                sphereMin: isCristal && formData.sphereMin !== '' ? parseFloat(formData.sphereMin) : null,
-                sphereMax: isCristal && formData.sphereMax !== '' ? parseFloat(formData.sphereMax) : null,
-                cylinderMin: isCristal && formData.cylinderMin !== '' ? parseFloat(formData.cylinderMin) : null,
-                cylinderMax: isCristal && formData.cylinderMax !== '' ? parseFloat(formData.cylinderMax) : null,
-                additionMin: isCristal && formData.additionMin !== '' ? parseFloat(formData.additionMin) : null,
-                additionMax: isCristal && formData.additionMax !== '' ? parseFloat(formData.additionMax) : null,
+                sphereMin: isCristal && formData.sphereMin !== '' ? parseFloat(formData.sphereMin as string) : null,
+                sphereMax: isCristal && formData.sphereMax !== '' ? parseFloat(formData.sphereMax as string) : null,
+                cylinderMin: isCristal && formData.cylinderMin !== '' ? parseFloat(formData.cylinderMin as string) : null,
+                cylinderMax: isCristal && formData.cylinderMax !== '' ? parseFloat(formData.cylinderMax as string) : null,
+                additionMin: isCristal && formData.additionMin !== '' ? parseFloat(formData.additionMin as string) : null,
+                additionMax: isCristal && formData.additionMax !== '' ? parseFloat(formData.additionMax as string) : null,
+                diameterMin: isCristal && formData.diameterMin !== '' ? parseFloat(formData.diameterMin as string) : null,
+                diameterMax: isCristal && formData.diameterMax !== '' ? parseFloat(formData.diameterMax as string) : null,
                 is2x1: formData.is2x1,
                 publishToWeb: formData.publishToWeb,
                 ...(formData.publishToWeb ? {
@@ -238,6 +244,8 @@ export default function ProductForm({ onClose, onSuccess, isAdmin = false, uniqu
                     cylinderMax: item.cylinderMax !== '' ? Number(item.cylinderMax) : null,
                     additionMin: null,
                     additionMax: null,
+                    diameterMin: item.diameterMin !== '' ? Number(item.diameterMin) : null,
+                    diameterMax: item.diameterMax !== '' ? Number(item.diameterMax) : null,
                     origin: 'LABORATORIO',
                 };
             }
@@ -540,6 +548,24 @@ export default function ProductForm({ onClose, onSuccess, isAdmin = false, uniqu
                                         />
                                     </div>
                                 )}
+
+                                {/* Diámetro */}
+                                {(selectedSubtype === 'Multifocal' || formData.laboratory?.toUpperCase() === 'GRUPO OPTICO') && (
+                                    <div className="grid grid-cols-[auto_1fr_auto_1fr] items-center gap-2">
+                                        <span className="text-[9px] font-black text-stone-400 uppercase tracking-widest">Diámetro</span>
+                                        <input type="number" placeholder="Mín (ej: 65)"
+                                            className="px-4 py-3 bg-stone-50/50 dark:bg-stone-800/30 border border-stone-200 dark:border-stone-700 rounded-xl font-bold text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none focus:border-primary transition-all"
+                                            value={formData.diameterMin}
+                                            onChange={e => setFormData({ ...formData, diameterMin: e.target.value })}
+                                        />
+                                        <span className="text-[9px] font-black text-stone-300 uppercase">a</span>
+                                        <input type="number" placeholder="Máx (ej: 75)"
+                                            className="px-4 py-3 bg-stone-50/50 dark:bg-stone-800/30 border border-stone-200 dark:border-stone-700 rounded-xl font-bold text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none focus:border-primary transition-all"
+                                            value={formData.diameterMax}
+                                            onChange={e => setFormData({ ...formData, diameterMax: e.target.value })}
+                                        />
+                                    </div>
+                                )}
                             </div>
 
                             {/* Promo 2x1 */}
@@ -773,7 +799,8 @@ export default function ProductForm({ onClose, onSuccess, isAdmin = false, uniqu
                 id: Math.random().toString(36).substring(2, 9),
                 brand: '', name: '', laboratory: '', lensIndex: '',
                 price: '', cost: '', stock: '', model: '',
-                sphereMin: '', sphereMax: '', cylinderMin: '', cylinderMax: ''
+                sphereMin: '', sphereMax: '', cylinderMin: '', cylinderMax: '',
+                diameterMin: '', diameterMax: ''
             }]);
         };
         const removeBulkRow = (id: string) => {

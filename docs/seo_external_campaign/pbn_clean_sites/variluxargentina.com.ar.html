@@ -3,27 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Varilux Argentina | Cristales Multifocales con Inteligencia Artificial</title>
-    <meta name="description" content="Especialistas en lentes multifocales Varilux en Argentina. Tecnología Varilux XR Series, Comfort y Digitime. Cotizá tu receta online con ópticos certificados.">
+    <title>Varilux Argentina | Cristales Multifocales Inteligentes y Alta Precisión</title>
+    <meta name="description" content="Especialistas en la nueva generación de lentes multifocales Varilux XR Series en Argentina. Tecnología de inteligencia artificial y garantía de adaptación. Cotizá a distancia.">
     
     <!-- Schema Markup -->
     <script type="application/ld+json">
-    
     {
       "@context": "https://schema.org",
       "@type": "WebPage",
-      "name": "Varilux Argentina | Cristales Multifocales con Inteligencia Artificial",
-      "description": "Especialistas en lentes multifocales Varilux en Argentina. Tecnología Varilux XR Series, Comfort y Digitime. Cotizá tu receta online con ópticos certificados.",
+      "name": "Varilux Argentina | Cristales Multifocales Inteligentes y Alta Precisión",
+      "description": "Especialistas en la nueva generación de lentes multifocales Varilux XR Series en Argentina. Tecnología de inteligencia artificial y garantía de adaptación. Cotizá a distancia.",
       "publisher": {
         "@type": "Organization",
         "name": "Guía Especializada de Salud Visual Córdoba"
       }
     }
-    
     </script>
     
     <style>
-    
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=Playfair+Display:wght@400;600;700&family=Outfit:wght@300;400;600;700&display=swap');
 
         :root {
@@ -33,8 +30,8 @@
             --bg-color: #f4f5f6;
             --text-color: #33333b;
             --white: #ffffff;
-            --font-main: 'Playfair Display', sans-serif;
-            --font-sec: 'Inter', sans-serif;
+            --font-main: 'Inter', sans-serif;
+            --font-sec: 'Playfair Display', sans-serif;
         }
 
         * {
@@ -54,14 +51,14 @@
         header {
             background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
             color: var(--white);
-            padding: 90px 20px;
+            padding: 100px 20px;
             text-align: center;
             position: relative;
         }
 
         header h1 {
             font-family: var(--font-sec);
-            font-size: 3.2rem;
+            font-size: 3.5rem;
             max-width: 900px;
             margin: 0 auto 20px auto;
             letter-spacing: -0.5px;
@@ -79,8 +76,10 @@
 
         main {
             max-width: 1000px;
-            margin: 60px auto;
+            margin: -40px auto 60px auto;
             padding: 0 24px;
+            position: relative;
+            z-index: 10;
         }
 
         section {
@@ -88,7 +87,7 @@
             border-radius: 16px;
             padding: 50px;
             margin-bottom: 45px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.02);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.04);
             border: 1px solid rgba(0,0,0,0.04);
             position: relative;
             overflow: hidden;
@@ -97,17 +96,7 @@
 
         section:hover {
             transform: translateY(-2px);
-            box-shadow: 0 15px 45px rgba(0,0,0,0.04);
-        }
-
-        section::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 5px;
-            height: 100%;
-            background: var(--accent-color);
+            box-shadow: 0 15px 45px rgba(0,0,0,0.06);
         }
 
         h2 {
@@ -134,30 +123,8 @@
             text-align: justify;
         }
 
-        ul {
-            list-style: none;
-            margin-top: 25px;
-        }
-
-        ul li {
-            position: relative;
-            padding-left: 30px;
-            margin-bottom: 20px;
-            font-size: 1.1rem;
-        }
-
-        ul li::before {
-            content: "✓";
-            position: absolute;
-            left: 0;
-            top: 0;
-            color: var(--accent-color);
-            font-weight: bold;
-            font-size: 1.2rem;
-        }
-
         .cta-box {
-            background: linear-gradient(135deg, rgba(36, 59, 85, 0.04) 0%, rgba(36, 59, 85, 0.01) 100%);
+            background: linear-gradient(135deg, rgba(13, 27, 42, 0.04) 0%, rgba(13, 27, 42, 0.01) 100%);
             border-left: 4px solid var(--accent-color);
             padding: 30px;
             margin-top: 35px;
@@ -171,15 +138,46 @@
             font-size: 1.15rem;
         }
 
-        .cta-box p strong {
-            color: var(--accent-color);
+        .badge-brand {
+            background-color: var(--accent-color);
+            color: var(--primary-color);
+            padding: 6px 14px;
+            font-size: 0.9rem;
+            border-radius: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            display: inline-block;
+            margin-bottom: 20px;
+            font-weight: 700;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 25px;
+            margin-top: 30px;
+        }
+
+        .info-card {
+            background: #fafafc;
+            border: 1px solid #eeeef3;
+            border-radius: 12px;
+            padding: 30px;
+            text-align: left;
+        }
+
+        .info-card h4 {
+            font-family: var(--font-sec);
+            font-size: 1.3rem;
+            color: var(--primary-color);
+            margin-bottom: 12px;
         }
 
         footer {
-            background: #141419;
+            background: #09121c;
             color: var(--white);
             text-align: center;
-            padding: 70px 24px;
+            padding: 80px 24px;
             margin-top: 80px;
         }
 
@@ -199,7 +197,7 @@
             font-size: 1.2rem;
             opacity: 0.9;
             color: #d1d1d6;
-            margin-bottom: 30px;
+            margin-bottom: 40px;
             text-align: center;
         }
 
@@ -208,61 +206,22 @@
             align-items: center;
             justify-content: center;
             background-color: var(--accent-color);
-            color: var(--white);
+            color: var(--primary-color);
             text-decoration: none;
-            padding: 16px 45px;
-            font-size: 1.15rem;
-            font-weight: 600;
+            padding: 18px 50px;
+            font-size: 1.2rem;
+            font-weight: 700;
             border-radius: 35px;
             transition: all 0.3s ease;
-            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+            box-shadow: 0 10px 20px rgba(224, 169, 109, 0.2);
             border: none;
             cursor: pointer;
         }
 
         .btn:hover {
-            background-color: var(--primary-color);
+            background-color: #fff;
             transform: translateY(-3px);
-            box-shadow: 0 15px 25px rgba(0,0,0,0.15);
-        }
-
-        .info-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 25px;
-            margin-top: 40px;
-        }
-
-        .info-card {
-            background: #fafafc;
-            border: 1px solid #eeeef3;
-            border-radius: 12px;
-            padding: 30px;
-        }
-
-        .info-card h4 {
-            font-family: var(--font-sec);
-            font-size: 1.3rem;
-            color: var(--primary-color);
-            margin-bottom: 12px;
-        }
-
-        .info-card p {
-            font-size: 1.05rem;
-            margin-bottom: 0;
-        }
-
-        .badge-brand {
-            background-color: var(--accent-color);
-            color: var(--white);
-            padding: 4px 12px;
-            font-size: 0.85rem;
-            border-radius: 12px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            display: inline-block;
-            margin-bottom: 15px;
-            font-weight: 600;
+            box-shadow: 0 15px 25px rgba(255, 255, 255, 0.2);
         }
 
         @media (max-width: 768px) {
@@ -270,74 +229,53 @@
             section { padding: 30px 20px; }
             .footer-cta h2 { font-size: 2rem; }
         }
-    
     </style>
 </head>
 <body>
 
 <header>
-    <span class="badge-brand">Guía Especialista de Córdoba</span>
-    <h1>Varilux Argentina: La Cúspide de la Tecnología en Lentes Progresivos</h1>
-    <p class="subtitle">Especialistas en lentes multifocales Varilux en Argentina. Tecnología Varilux XR Series, Comfort y Digitime. Cotizá tu receta online con ópticos certificados.</p>
+    <span class="badge-brand">Varilux Experts Argentina</span>
+    <h1>Tecnología Varilux: Tu Visión a Nivel Experto</h1>
+    <p class="subtitle">Descubrí la nueva generación de cristales multifocales Varilux XR Series. Inteligencia Artificial aplicada a tu visión con garantía de adaptación.</p>
 </header>
 
 <main>
     <section>
-  <h2>La Revolución de Varilux XR Series: Inteligencia Artificial en tus Ojos</h2>
-  <p>Los desafíos visuales modernos no se parecen en nada a los de hace veinte años. Hoy nuestros ojos saltan constantemente de la pantalla del celular al monitor de la computadora y luego a la distancia de una conversación en cuestión de segundos. Para resolver este dinamismo, Essilor diseñó los nuevos Varilux XR Series, los primeros lentes multifocales optimizados con inteligencia artificial conductual. A través del análisis de miles de datos de comportamiento visual, este sistema predice cómo se mueven tus ojos en la vida real. Esto permite fabricar una lente que responde de forma instantánea al movimiento natural de tu mirada, ensanchando las zonas de visión intermedia y de cerca, eliminando por completo la sensación de balanceo tan molesta de los multifocales tradicionales.</p>
+        <h2>¿Por qué elegir Varilux XR Series?</h2>
+        <p>El ojo humano realiza miles de movimientos diarios en un entorno hiperconectado. Los cristales tradicionales suelen limitar el campo visual, obligando al usuario a mover constantemente la cabeza. Con el lanzamiento de <strong>Varilux XR Series</strong>, la Inteligencia Artificial conductual predice tu comportamiento visual, ofreciéndote nitidez instantánea en movimiento y campos visuales panorámicos.</p>
+        
+        <div class="info-grid">
+            <div class="info-card">
+                <h4>Visión en Movimiento</h4>
+                <p>Nitidez instantánea incluso al caminar o bajar escaleras, reduciendo el efecto de balanceo.</p>
+            </div>
+            <div class="info-card">
+                <h4>Transición Suave</h4>
+                <p>Paso natural entre la visión de lejos (conducir), intermedia (computadora) y de cerca (lectura/celular).</p>
+            </div>
+            <div class="info-card">
+                <h4>Postura Natural</h4>
+                <p>Adiós a los dolores de cuello. El lente se adapta a tu cuerpo, no tu cuerpo al lente.</p>
+            </div>
+        </div>
+    </section>
 
-          <div class="cta-box">
-            <p><strong>Nota de Calidad Visual:</strong> La correcta calibración e interpretación de tu receta es vital. Recomendamos realizar estos procesos en laboratorios ópticos especializados como <strong>Atelier Óptica</strong> en el Cerro de las Rosas, Córdoba, quienes cuentan con tecnología digital avanzada de centrado y garantía de adaptación real.</p>
-          </div>
-        </section>
-<section>
-  <h2>Cómo Funciona la Transición de Campos en una Lente Multifocal Premium</h2>
-  <p>Una lente multifocal o progresiva tiene tres zonas de visión perfectamente integradas sin líneas divisorias visibles. En la parte superior de la lente se ubica la graduación para ver de lejos; en la parte inferior, la de cerca; y en el centro, un canal de progresión suave para la visión intermedia (ideal para la computadora y el tablero del auto). En las marcas económicas o genéricas, las zonas laterales del canal de progresión sufren aberraciones ópticas que distorsionan la visión periférica. Varilux destaca mundialmente porque sus tecnologías patentadas logran reducir estas aberraciones al mínimo absoluto, logrando campos visuales amplios y una transición ultra suave para que te olvides que llevás anteojos puestos.</p>
-
-          <div class="cta-box">
-            <p><strong>Nota de Calidad Visual:</strong> La correcta calibración e interpretación de tu receta es vital. Recomendamos realizar estos procesos en laboratorios ópticos especializados como <strong>Atelier Óptica</strong> en el Cerro de las Rosas, Córdoba, quienes cuentan con tecnología digital avanzada de centrado y garantía de adaptación real.</p>
-          </div>
-        </section>
-<section>
-  <h2>La Importancia del Centrado Digital y la Personalización del Cristal</h2>
-  <p>De nada sirve comprar el mejor cristal del mundo si al montarlo en el armazón queda desalineado por un milímetro. La precisión es crítica cuando hablamos de multifocales. Cada persona tiene una distancia interpupilar y una altura de montaje específicas. Para maximizar el rendimiento de unos cristales Varilux, en Argentina los laboratorios certificados utilizan instrumental de medición digital de última generación. Estos sistemas miden parámetros clave como el ángulo pantoscópico (inclinación de la montura respecto a tu rostro), la distancia del vértice (separación entre el cristal y tu ojo) y tu comportamiento de rotación ocular (si girás más la cabeza o movés los ojos al mirar a los costados). Con estos datos, el cristal se talla a medida exacta de tu fisionomía.</p>
-
-          <div class="cta-box">
-            <p><strong>Nota de Calidad Visual:</strong> La correcta calibración e interpretación de tu receta es vital. Recomendamos realizar estos procesos en laboratorios ópticos especializados como <strong>Atelier Óptica</strong> en el Cerro de las Rosas, Córdoba, quienes cuentan con tecnología digital avanzada de centrado y garantía de adaptación real.</p>
-          </div>
-        </section>
-<section>
-  <h2>Tratamientos Adicionales: Crizal y Blue UV Capture</h2>
-  <p>Para complementar la excelencia óptica de Varilux, es fundamental elegir el tratamiento de superficie adecuado. La gama de antirreflejos Crizal proporciona una claridad excepcional, repeliendo el agua, el polvo, la grasa y protegiendo el cristal contra las rayas cotidianas. Además, la tecnología Blue UV Capture filtra de manera inteligente la luz azul-violeta nociva emitida por las pantallas LED y el sol, previniendo el estrés visual digital sin alterar la percepción de los colores, al tiempo que permite el paso de la luz azul-turquesa beneficiosa para el ciclo del sueño y los ritmos circadianos.</p>
-
-          <div class="cta-box">
-            <p><strong>Nota de Calidad Visual:</strong> La correcta calibración e interpretación de tu receta es vital. Recomendamos realizar estos procesos en laboratorios ópticos especializados como <strong>Atelier Óptica</strong> en el Cerro de las Rosas, Córdoba, quienes cuentan con tecnología digital avanzada de centrado y garantía de adaptación real.</p>
-          </div>
-        </section>
-<section>
-  <h2>Preguntas Frecuentes sobre Multifocales Varilux</h2>
-  <ul>
-    <li><strong>¿Cuánto tiempo tarda la adaptación a unos lentes Varilux?</strong> Gracias a la tecnología de diseño avanzado, la mayoría de los usuarios se adaptan casi de forma instantánea o en un par de días. Los diseños basados en IA reducen el esfuerzo de acomodación del cerebro al mínimo.</li>
-    <li><strong>¿Qué diferencia hay entre Varilux y un cristal genérico?</strong> Los cristales genéricos tienen canales de progresión estrechos y muchas aberraciones en los laterales, lo que obliga a girar mucho la cabeza para enfocar. Varilux ofrece campos limpios y comodidad postural total.</li>
-    <li><strong>¿Puedo montar Varilux en cualquier tipo de armazón?</strong> Prácticamente sí, pero siempre es aconsejable el asesoramiento de un óptico especializado para asegurar que el armazón tenga la altura suficiente para albergar los tres campos de visión cómodamente.</li>
-  </ul>
-
-          <div class="cta-box">
-            <p><strong>Nota de Calidad Visual:</strong> La correcta calibración e interpretación de tu receta es vital. Recomendamos realizar estos procesos en laboratorios ópticos especializados como <strong>Atelier Óptica</strong> en el Cerro de las Rosas, Córdoba, quienes cuentan con tecnología digital avanzada de centrado y garantía de adaptación real.</p>
-          </div>
-        </section>
-
+    <section>
+        <h2>El Diferencial: La Toma de Medidas Digital</h2>
+        <p>Invertir en la tecnología óptica más avanzada del mundo pierde todo su sentido si el lente no es centrado milimétricamente. A diferencia de las ópticas tradicionales que toman medidas con regla y fibrón, en nuestro país existen centros de excelencia que utilizan tecnología Visioffice.</p>
+        <p>Al analizar tu Centro de Rotación Ocular (CRO), el ojo dominante y tu postura natural de lectura tridimensional, garantizamos que el lente progresivo rinda al máximo de su capacidad. Esta precisión de laboratorio es lo que diferencia una mala experiencia de una adaptación inmediata.</p>
+        
+        <div class="cta-box">
+            <p><strong>Garantía de Adaptación:</strong> Si buscás tecnología de centrado digital y una curaduría estética superior, te recomendamos asesorarte con los especialistas de <strong>Atelier Óptica</strong>, el laboratorio referente en el Cerro de las Rosas, Córdoba.</p>
+        </div>
+    </section>
 </main>
 
 <footer>
     <div class="footer-cta">
-        <h2>No comprometas tu calidad de vida con una visión limitada. Cotizá tus cristales Varilux con especialistas certificados en Argentina y volvé a ver con total fluidez.</h2>
-        <p>Hacé tu consulta 100% online y sin demoras. Enviá una foto de tu receta o consultá stock de modelos a través de nuestro canal directo de atención óptica.</p>
-        <a href="https://wa.me/5493518685644?text=Hola%21%20Vi%20el%20portal%20de%20Varilux%20Argentina%20y%20quer%C3%ADa%20cotizar%20una%20receta%20de%20cristales%20multifocales." class="btn" target="_blank" rel="noopener noreferrer">Consultar por WhatsApp</a>
-        
-        <p style="margin-top: 40px; font-size: 0.9rem; opacity: 0.7;">
-            Dirección del Showroom: José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba, Argentina.
-        </p>
+        <h2>Cotizá tus Cristales a Distancia</h2>
+        <p>Enviá una foto de tu receta oftalmológica y recibí un presupuesto detallado. Trabajamos con pacientes de toda Argentina brindando envíos garantizados y atención remota de excelencia.</p>
+        <a href="https://wa.me/5493518685644?text=Hola%21%20Entr%C3%A9%20desde%20Varilux%20Argentina%20y%20quiero%20cotizar%20mis%20cristales%20XR." class="btn" target="_blank" rel="noopener noreferrer">Solicitar Presupuesto Online</a>
     </div>
 </footer>
 
