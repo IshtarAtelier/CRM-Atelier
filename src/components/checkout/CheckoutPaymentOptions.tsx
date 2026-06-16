@@ -60,7 +60,7 @@ export function CheckoutPaymentOptions({ formData, handleChange, isProcessing, w
             </div>
             
             {formData.paymentMethod === 'PAYWAY' && (
-              <div className="mt-6 flex flex-col gap-4 p-5 border border-stone-100 bg-white" onClick={(e) => e.preventDefault()}>
+              <div className="mt-6 flex flex-col gap-4 p-5 border border-stone-100 bg-white" onClick={(e) => e.stopPropagation()}>
                 <div>
                   <input type="text" name="cardNumber" value={formData.cardNumber} onChange={handleCardNumberChange} placeholder="Número de Tarjeta (Ej: 4500 1234 5678 9000)" maxLength={19} className="w-full border border-stone-200 p-3 text-sm focus:border-black focus:outline-none transition-colors font-mono tracking-widest" />
                 </div>

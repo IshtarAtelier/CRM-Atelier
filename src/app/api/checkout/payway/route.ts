@@ -3,6 +3,8 @@ import { prisma } from '@/lib/db';
 import { sendEmail } from '@/lib/email';
 import { WHATSAPP_PHONE } from '@/lib/constants';
 import { ContactService, normalizeArgentinePhone } from '@/services/contact.service';
+import { getWebSettings } from '@/lib/web-settings';
+import { CrystalMapping } from '@/lib/config/crystal-mapping';
 
 export async function POST(req: Request) {
   try {
@@ -20,6 +22,129 @@ export async function POST(req: Request) {
 
     console.log("[PAYWAY CHECKOUT] Recibido pedido de:", customer.email);
     console.log("[PAYWAY CHECKOUT] Total a procesar: $", total);
+
+    // Fetch web settings for dynamic discount rate
+    const webSettings = await getWebSettings();
+    const cashDiscountRate = (webSettings.web_promo_cash_discount ?? 15) / 100;
+    const transferMultiplier = 1 - cashDiscountRate;
+
+    // Fetch all crystals and treatments from DB to recalculate pricing on backend
+    const crystals = await prisma.product.findMany({
+      where: { category: 'Cristal' }
+    });
+    const treatments = await prisma.product.findMany({
+      where: { category: 'Tratamientos y Accesorios' }
+    });
+
+    const findTintPrice = () => {
+      const tintProduct = treatments.find(p => p.name?.toLowerCase().includes('teñido') || p.name?.toLowerCase().includes('tenido'));
+      if (tintProduct && tintProduct.price) return tintProduct.price;
+      return CrystalMapping.EXTRAS.TINT;
+    };
+
+    const findPrice = (config: any) => {
+      let matches = crystals;
+      if (config.type) {
+        matches = matches.filter(p => p.type === config.type);
+      }
+      if (config.exactMatchName) {
+        const exactMatch = matches.find(p => p.name?.toLowerCase() === config.exactMatchName.toLowerCase());
+        if (exactMatch && exactMatch.price) return exactMatch.price;
+      }
+      if (config.matchKeywords && config.matchKeywords.length > 0) {
+        matches = matches.filter(p => 
+          config.matchKeywords.some((kw: string) => p.name?.toLowerCase().includes(kw))
+        );
+      } else if (config.matchKeywords && config.matchKeywords.length === 0 && config.type === "Cristal Monofocal") {
+        matches = matches.filter(p => 
+          !p.name?.toLowerCase().includes('blue') && 
+          !p.name?.toLowerCase().includes('foto') &&
+          !p.name?.toLowerCase().includes('transitions')
+        );
+      }
+      if (matches.length === 0) return 0;
+      return Math.min(...matches.map(p => p.price || 0));
+    };
+
+    const PRICING = {
+      MONOFOCAL: {
+        ORGANICO_BLANCO: findPrice(CrystalMapping.MONOFOCAL.ORGANICO_BLANCO) || 20000,
+        ORGANICO_AR: findPrice(CrystalMapping.MONOFOCAL.ORGANICO_AR) || 45000,
+        ORGANICO_BLUE: findPrice(CrystalMapping.MONOFOCAL.ORGANICO_BLUE) || 68000,
+        POLI_BLUE: findPrice(CrystalMapping.MONOFOCAL.POLI_BLUE) || 120000,
+        ORGANICO_FOTOCROMATICO: findPrice(CrystalMapping.MONOFOCAL.ORGANICO_FOTOCROMATICO) || 105000,
+        ORGANICO_BLANCO_TENIDO: findPrice(CrystalMapping.MONOFOCAL.ORGANICO_BLANCO_TENIDO) || 68000,
+      },
+      BIFOCAL: {
+        ORGANICO_BLANCO: findPrice(CrystalMapping.BIFOCAL.ORGANICO_BLANCO) || 45000,
+      },
+      MULTIFOCAL: {
+        SMART_FREE: findPrice(CrystalMapping.MULTIFOCAL.SMART_FREE) || 120000,
+        VARILUX: findPrice(CrystalMapping.MULTIFOCAL.VARILUX) || 350000,
+        FOTOCROMATICO: findPrice(CrystalMapping.MULTIFOCAL.FOTOCROMATICO) || 180000,
+      },
+      EXTRAS: {
+        TINT: findTintPrice()
+      }
+    };
+
+    // Recalculate prices and verify total
+    let recalculatedItemsTotal = 0;
+    const sanitizedItems = [];
+
+    for (const item of items) {
+      const safeProductId = item.productId && item.productId !== "unknown"
+        ? item.productId.replace(/[^a-zA-Z0-9_-]/g, '')
+        : undefined;
+
+      let dbProduct = null;
+      if (safeProductId) {
+        dbProduct = await prisma.product.findUnique({
+          where: { id: safeProductId }
+        });
+      }
+
+      const framePrice = dbProduct ? dbProduct.price : item.price;
+      let calculatedPrice = framePrice;
+      const isCustomLens = item.lensConfig && (item.lensConfig.lensType !== "NONE" || item.lensConfig.color);
+
+      if (isCustomLens) {
+        const { lensType, treatment, color } = item.lensConfig;
+        if (color) {
+          // SUN FLOW
+          if (lensType === "NONE" || lensType === "MONOFOCAL") calculatedPrice += (PRICING.MONOFOCAL.ORGANICO_BLANCO || 0);
+          else if (lensType === "BIFOCAL") calculatedPrice += (PRICING.BIFOCAL.ORGANICO_BLANCO || 0);
+          else if (lensType === "MULTIFOCAL") calculatedPrice += (PRICING.MULTIFOCAL.SMART_FREE || 0);
+          
+          if (lensType !== null && lensType !== "NONE") {
+            calculatedPrice += PRICING.EXTRAS.TINT;
+          }
+        } else {
+          // CLEAR FLOW
+          if (lensType === "MONOFOCAL" && treatment) {
+            calculatedPrice += PRICING.MONOFOCAL[treatment as keyof typeof PRICING.MONOFOCAL] || 0;
+          }
+          else if (lensType === "BIFOCAL" && treatment) {
+            calculatedPrice += PRICING.BIFOCAL.ORGANICO_BLANCO;
+          }
+          else if (lensType === "MULTIFOCAL" && treatment) {
+            calculatedPrice += PRICING.MULTIFOCAL[treatment as keyof typeof PRICING.MULTIFOCAL] || 0;
+          }
+        }
+      }
+
+      recalculatedItemsTotal += calculatedPrice * item.quantity;
+
+      sanitizedItems.push({
+        ...item,
+        productId: safeProductId,
+        price: calculatedPrice
+      });
+    }
+
+    if (Math.abs(recalculatedItemsTotal - total) > 5) {
+      return NextResponse.json({ error: "Discrepancia de precio detectada. Por favor, reintente." }, { status: 400 });
+    }
 
     // 1. Encontrar o crear cliente
     const normalizedPhone = normalizeArgentinePhone(customer.phone);
@@ -45,35 +170,90 @@ export async function POST(req: Request) {
           contactSource: "WEB_STOREFRONT",
         });
       } catch (error: any) {
+        let isHandled = false;
         try {
-          const parsedError = JSON.parse(error.message);
-          if (parsedError.isDuplicate && parsedError.existingClient) {
-            client = await ContactService.update(parsedError.existingClient.id, {
-              address: `${customer.address}, ${customer.city}, ${customer.state} ${customer.zip}`,
-              contactSource: "WEB_STOREFRONT"
-            });
-          } else {
-            throw error;
+          if (error?.message && (error.message.trim().startsWith('{') || error.message.trim().startsWith('['))) {
+            const parsedError = JSON.parse(error.message);
+            if (parsedError?.isDuplicate && parsedError?.existingClient?.id) {
+              client = await ContactService.update(parsedError.existingClient.id, {
+                address: `${customer.address}, ${customer.city}, ${customer.state} ${customer.zip}`,
+                contactSource: "WEB_STOREFRONT"
+              });
+              isHandled = true;
+            }
           }
         } catch (e) {
+          console.error("[DUPLICATE PARSE ERROR]", e);
+        }
+        if (!isHandled) {
           throw error;
         }
       }
+    }
+
+    if (!client) {
+      throw new Error("No se pudo obtener o crear el cliente.");
     }
 
     // 2. Encontrar usuario de sistema (o el primer admin disponible) para asignar la venta
     const systemUser = await prisma.user.findFirst();
     if (!systemUser) throw new Error("No system user found to assign order.");
 
+    // Perform stock check before creating anything or charging card
+    for (const item of sanitizedItems) {
+      if (item.productId) {
+        const dbProduct = await prisma.product.findUnique({
+          where: { id: item.productId }
+        });
+        if (dbProduct && dbProduct.category !== "Cristal" && dbProduct.stock < item.quantity) {
+          return NextResponse.json({ error: `Stock insuficiente para ${item.model}. Disponible: ${dbProduct.stock}` }, { status: 400 });
+        }
+      }
+    }
+
+    // Decrement stock in preparation
+    const decrementedProducts: { id: string, quantity: number }[] = [];
+    const restoreStock = async () => {
+      for (const dp of decrementedProducts) {
+        try {
+          await prisma.product.update({
+            where: { id: dp.id },
+            data: { stock: { increment: dp.quantity } }
+          });
+        } catch (err) {
+          console.error(`Error restoring stock for product ${dp.id}:`, err);
+        }
+      }
+    };
+
+    try {
+      for (const item of sanitizedItems) {
+        if (item.productId) {
+          const dbProduct = await prisma.product.findUnique({
+            where: { id: item.productId }
+          });
+          if (dbProduct && dbProduct.category !== "Cristal") {
+            await prisma.product.update({
+              where: { id: item.productId },
+              data: { stock: { decrement: item.quantity } }
+            });
+            decrementedProducts.push({ id: item.productId, quantity: item.quantity });
+          }
+        }
+      }
+    } catch (err) {
+      await restoreStock();
+      throw err;
+    }
+
     // 2.5 Preparar items de la orden desglosando cristales OD/OI si aplica
     const orderItemsToCreate: any[] = [];
-    for (const item of items) {
+    for (const item of sanitizedItems) {
       const isCustomLens = item.lensConfig && (item.lensConfig.lensType !== "NONE" || item.lensConfig.color);
       
       if (isCustomLens) {
-        // Consultar el precio base del producto en la base de datos
         let dbProduct = null;
-        if (item.productId && item.productId !== "unknown") {
+        if (item.productId) {
           dbProduct = await prisma.product.findUnique({
             where: { id: item.productId }
           });
@@ -85,7 +265,7 @@ export async function POST(req: Request) {
         
         // 1. Agregar el armazón
         orderItemsToCreate.push({
-          productId: item.productId !== "unknown" ? item.productId : undefined,
+          productId: item.productId || undefined,
           productNameSnapshot: item.model,
           productBrandSnapshot: item.brand,
           productCategorySnapshot: dbProduct?.category || "Armazón",
@@ -131,14 +311,14 @@ export async function POST(req: Request) {
       } else {
         // Producto estándar sin cristales customizados
         let dbProduct = null;
-        if (item.productId && item.productId !== "unknown") {
+        if (item.productId) {
           dbProduct = await prisma.product.findUnique({
             where: { id: item.productId }
           });
         }
         
         orderItemsToCreate.push({
-          productId: item.productId !== "unknown" ? item.productId : undefined,
+          productId: item.productId || undefined,
           productNameSnapshot: item.model,
           productBrandSnapshot: item.brand,
           productCategorySnapshot: dbProduct?.category || null,
@@ -150,29 +330,35 @@ export async function POST(req: Request) {
     }
 
     // 3. Crear la Orden (Ficha)
-    const order = await prisma.order.create({
-      data: {
-        clientId: client.id,
-        userId: systemUser.id,
-        status: "WEB_PENDING",
-        orderType: "WEB",
-        total: customer.paymentMethod === 'TRANSFER' ? total * 0.85 : total,
-        labNotes: `Método de envío: ${shippingMethodLabel}${customer.shippingBranch ? ` (Sucursal: ${customer.shippingBranch})` : ''}. Método de pago: ${customer.paymentMethod}. Dirección: ${customer.address}, ${customer.city}, ${customer.state} ${customer.zip}`,
-        items: {
-          create: orderItemsToCreate
+    let order;
+    try {
+      order = await prisma.order.create({
+        data: {
+          clientId: client.id,
+          userId: systemUser.id,
+          status: "WEB_PENDING",
+          orderType: "WEB",
+          total: customer.paymentMethod === 'TRANSFER' ? recalculatedItemsTotal * transferMultiplier : recalculatedItemsTotal,
+          labNotes: `Método de envío: ${shippingMethodLabel}${customer.shippingBranch ? ` (Sucursal: ${customer.shippingBranch})` : ''}. Método de pago: ${customer.paymentMethod}. Dirección: ${customer.address}, ${customer.city}, ${customer.state} ${customer.zip}`,
+          items: {
+            create: orderItemsToCreate
+          }
         }
-      }
-    });
+      });
+    } catch (createErr) {
+      await restoreStock();
+      throw createErr;
+    }
 
     console.log("[PAYWAY CHECKOUT] Ficha de venta creada en CRM:", order.id);
 
     // 4. Enviar email de confirmación (asincrónico, usando sendEmail centralizado)
     const isTransfer = customer.paymentMethod === 'TRANSFER';
-    const emailTotal = isTransfer ? total * 0.85 : total;
-    const hasCrystals = items.some((item: any) => item.lensConfig && (item.lensConfig.lensType !== "NONE" || item.lensConfig.color));
+    const emailTotal = isTransfer ? recalculatedItemsTotal * transferMultiplier : recalculatedItemsTotal;
+    const hasCrystals = sanitizedItems.some((item: any) => item.lensConfig && (item.lensConfig.lensType !== "NONE" || item.lensConfig.color));
     const whatsappPhone = WHATSAPP_PHONE;
     
-    const itemsHtml = items.map((item: any) => `
+    const itemsHtml = sanitizedItems.map((item: any) => `
       <tr>
         <td style="padding: 15px 0; border-bottom: 1px solid #eeeeee;">
           <p style="margin: 0; font-size: 14px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; color: #333;">${item.brand || 'ATELIER'}</p>
@@ -212,16 +398,13 @@ export async function POST(req: Request) {
       </div>
     `;
 
-    // No usamos await acá para no demorar la respuesta de la API al cliente web
     sendEmail({
       to: customer.email,
       subject: `Confirmación de Orden #${order.id} - Atelier Óptica`,
       html: confirmationHtml
     }).catch(err => console.error("Error confirmation email:", err));
 
-    // Email de notificación a los administradores
     const adminEmails = 'pisano.ishtar@gmail.com, atelier.optica.cerro@gmail.com';
-    
     const adminHtml = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd;">
         <h2 style="color: #333; border-bottom: 2px solid #000; padding-bottom: 10px;">🚨 NUEVA VENTA WEB 🚨</h2>
@@ -255,29 +438,8 @@ export async function POST(req: Request) {
       html: adminHtml
     }).catch(err => console.error("Error admin email:", err));
 
-    // Función para descontar stock (ignorando cristales a medida o productos sin ID válido)
-    const decrementStock = async () => {
-      for (const item of items) {
-        if (item.productId && item.productId !== "unknown") {
-          try {
-            await prisma.product.update({
-              where: {
-                id: item.productId,
-                category: { not: "Cristal" },
-                stock: { gte: item.quantity || 1 }
-              },
-              data: { stock: { decrement: item.quantity || 1 } }
-            });
-          } catch (err) {
-            console.warn(`[STOCK DECREMENT FAILED] Atomic stock decrement failed for product ${item.productId}:`, err);
-          }
-        }
-      }
-    };
-
     // Si eligió transferencia bancaria, procesar como orden pendiente y devolver exito
     if (isTransfer) {
-       await decrementStock(); // Reservar stock para la transferencia
        return NextResponse.json({ 
          success: true, 
          message: "Orden de transferencia generada",
@@ -290,15 +452,14 @@ export async function POST(req: Request) {
     const bin = body.bin;
     
     if (!paymentToken || !bin) {
+      await restoreStock();
       throw new Error("Token de pago o BIN no proporcionado.");
     }
 
-    // Determinar la marca de la tarjeta (Visa=1, Mastercard=15, Amex=39) basándonos en el BIN
     let paymentMethodId = 1; // Default Visa
     if (bin.startsWith("5") || bin.startsWith("2")) paymentMethodId = 15; // Mastercard
     if (bin.startsWith("34") || bin.startsWith("37")) paymentMethodId = 39; // Amex
 
-    const siteId = process.env.PAYWAY_SITE_ID;
     const privateKey = process.env.PAYWAY_PRIVATE_KEY;
     const isProd = process.env.PAYWAY_ENVIRONMENT === 'production';
     
@@ -307,7 +468,7 @@ export async function POST(req: Request) {
       : 'https://developers.decidir.com/api/v2/payments';
 
     const paywayRequest = {
-      site_transaction_id: `WEB-${order.id}-${Date.now()}`,
+      site_transaction_id: `WEB-${order.id}`,
       token: paymentToken,
       payment_method_id: paymentMethodId,
       bin: bin,
@@ -334,6 +495,9 @@ export async function POST(req: Request) {
     if (!paywayRes.ok || paywayData.status !== 'approved') {
       console.error("[PAYWAY DECLINED]", paywayData);
       
+      // Restore reserved stock on payment failure
+      await restoreStock();
+
       // Actualizar orden a fallida/rechazada
       await prisma.order.update({
         where: { id: order.id },
@@ -349,13 +513,38 @@ export async function POST(req: Request) {
     // PAGO APROBADO
     console.log("[PAYWAY APPROVED] Transacción exitosa:", paywayData.id);
 
-    // Actualizamos la orden a pagada
-    await prisma.order.update({
-      where: { id: order.id },
-      data: { status: "PAID" }
-    });
+    // Wrap approved card payments in a Prisma transaction
+    await prisma.$transaction(async (tx) => {
+      // 1. Update order status and paid amount
+      await tx.order.update({
+        where: { id: order.id },
+        data: {
+          status: "PAID",
+          paid: total
+        }
+      });
 
-    await decrementStock(); // Descontar stock tras pago exitoso con tarjeta
+      // 2. Create the payment record
+      await tx.payment.create({
+        data: {
+          orderId: order.id,
+          amount: total,
+          method: "TARJETA",
+          notes: `Pago aprobado por Payway. Transacción ID: ${paywayData.id}`
+        }
+      });
+
+      // 3. Create the notification request
+      await tx.notification.create({
+        data: {
+          type: "INVOICE_REQUEST",
+          message: `Factura solicitada automáticamente para la Venta #${order.id.slice(-4).toUpperCase()} por un total de $${total.toLocaleString('es-AR')}`,
+          orderId: order.id,
+          requestedBy: "Sistema (Payway)",
+          status: "PENDING"
+        }
+      });
+    });
 
     return NextResponse.json({ 
       success: true, 
@@ -364,10 +553,10 @@ export async function POST(req: Request) {
       orderId: order.id
     });
 
-  } catch (error) {
+  } catch (error: any) {
     console.error("[PAYWAY API ERROR]", error);
     return NextResponse.json(
-      { error: 'Error procesando solicitud de pago o creando la ficha' },
+      { error: error?.message || 'Error procesando solicitud de pago o creando la ficha' },
       { status: 500 }
     );
   }

@@ -123,7 +123,8 @@ export default function CheckoutPage() {
 
   useEffect(() => {
     if (mounted) {
-      localStorage.setItem("atelier-checkout-form", JSON.stringify(formData));
+      const { cardNumber, cardExp, cardCvc, cardName, ...safeFormData } = formData;
+      localStorage.setItem("atelier-checkout-form", JSON.stringify(safeFormData));
       
       // Debounce session tracking to avoid spamming the API
       const timeoutId = setTimeout(async () => {

@@ -274,7 +274,7 @@ export async function GET(request: Request) {
             // Fees are only real for card payments; cash/transfer have 0 commission
             let orderPlatformFee = 0;
             for (const payment of order.payments) {
-                const method = payment.method || 'CASH';
+                const method = (payment.method || 'CASH').trim().toUpperCase();
                 if (!paymentMethodStats[method]) paymentMethodStats[method] = { total: 0, count: 0, commission: 0 };
                 paymentMethodStats[method].total += payment.amount;
                 paymentMethodStats[method].count += 1;

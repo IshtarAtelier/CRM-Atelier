@@ -1,12 +1,9 @@
-import { PrismaClient } from '@prisma/client';
+import { prisma } from './db';
 import { uploadFile, listFiles, deleteFile } from './storage';
 import { gzip } from 'zlib';
 import { promisify } from 'util';
 
 const gzipAsync = promisify(gzip);
-
-// Instancia global de prisma para evitar conexiones múltiples
-const prisma = new PrismaClient();
 
 export const BACKUP_PREFIX = 'db-backups/';
 
@@ -17,7 +14,7 @@ export class BackupService {
     static async createBackup(): Promise<Buffer> {
         console.log('🔄 Iniciando creación de backup...');
         
-        // Ejecutamos todo en una transacción Serializable para garantizar consistencia
+        // Ejecutamos todo en una transacción RepeatableRead para garantizar consistencia sin bloquear escrituras
         const data = await prisma.$transaction(async (tx: any) => {
             return {
                 timestamp: new Date().toISOString(),
@@ -41,9 +38,24 @@ export class BackupService {
                     MonthlyTarget: await tx.monthlyTarget.findMany(),
                     FixedCost: await tx.fixedCost.findMany(),
                     WhatsAppChat: await tx.whatsAppChat.findMany(),
-                    WhatsAppMessage: await tx.whatsAppMessage.findMany({
-                        // Paginación si fuera necesario en el futuro, por ahora leemos todo
-                    }),
+                    WhatsAppMessage: await (async () => {
+                        const messages: any[] = [];
+                        let skip = 0;
+                        const take = 5000;
+                        while (true) {
+                            const chunk = await tx.whatsAppMessage.findMany({
+                                skip,
+                                take,
+                                orderBy: { id: 'asc' }
+                            });
+                            if (chunk.length === 0) break;
+                            messages.push(...chunk);
+                            skip += take;
+                            // Ceder control al event loop
+                            await new Promise(resolve => setTimeout(resolve, 0));
+                        }
+                        return messages;
+                    })(),
                     // Notas: Las tablas junction de Prisma (_ClientToTag, _OrderToTag) no son 
                     // accesibles directamente por prismaClient. Las relaciones implícitas de Prisma 
                     // no se pueden dumpear directamente con findMany() de forma plana sin queries custom.
@@ -53,7 +65,7 @@ export class BackupService {
                 }
             };
         }, {
-            isolationLevel: 'Serializable',
+            isolationLevel: 'RepeatableRead',
             timeout: 120000 // 2 minutos máximo para extraer todo
         });
 

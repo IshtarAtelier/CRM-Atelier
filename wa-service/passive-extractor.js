@@ -40,6 +40,11 @@ async function processPassiveExtraction(chatId, waId, profileName) {
 
         if (!chatInfo) return; 
 
+        if (chatInfo.botEnabled) {
+            console.log(`  🕵️ [Extractor Pasivo] Abortando extracción pasiva para ${profileName || waId} porque el bot está activo.`);
+            return;
+        }
+
         // Reconstruimos el texto
         const conversationText = recentMessages.reverse().map(m => {
             const role = m.direction === 'OUTBOUND' ? 'Óptica:' : 'Cliente:';

@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/db';
 import { BillingAccount, getAfipInstance, formatAfipDate, getBillingAccountConfig } from '@/lib/afip';
 import { PricingService } from '@/services/PricingService';
+import { uploadFile, getSignedUrl } from '@/lib/storage';
 import fs from 'fs';
 import path from 'path';
 
@@ -91,6 +92,19 @@ export const BillingService = {
         if (order.orderType !== 'SALE') throw new Error('Solo se pueden facturar ventas confirmadas.');
         if (order.isDeleted) throw new Error('La orden ha sido eliminada y no puede facturarse.');
  
+        // Clean DNI/CUIT non-digits before determining document type or parsing
+        const cleanDocNro = (docNro || '0').replace(/\D/g, '') || '0';
+        let finalDocTipo = docTipo;
+        if (cleanDocNro === '0') {
+            finalDocTipo = 99;
+        } else if (docTipo === 99) {
+            if (cleanDocNro.length === 11) {
+                finalDocTipo = 80;
+            } else {
+                finalDocTipo = 96;
+            }
+        }
+
         // 1.5 Validar doble facturación
         const totalInvoiced = order.invoices
             .filter((i) => i.status === 'COMPLETED')
@@ -101,8 +115,10 @@ export const BillingService = {
         // 2. Calcular importes e ítems
         const totalAmount = amount !== undefined ? amount : (order.total || 0);
 
-        // 1.5 Validar doble facturación (ahora con totalAmount real)
-        if ((totalInvoiced + totalAmount) > maximumInvoiceable) {
+        // 1.5 Validar doble facturación (ahora con totalAmount real y redondeado a 2 decimales)
+        const roundedTotalToInvoice = Math.round((totalInvoiced + totalAmount) * 100) / 100;
+        const roundedMaximum = Math.round(maximumInvoiceable * 100) / 100;
+        if (roundedTotalToInvoice > roundedMaximum) {
             throw new Error(`No podés facturar este monto ($${totalAmount}) porque el total facturado ($${totalInvoiced + totalAmount}) superaría el saldo total pagado de $${maximumInvoiceable}.`);
         }
         const UNIT_PRICE_LIMIT = 499000;
@@ -132,8 +148,8 @@ export const BillingService = {
             'PtoVta': ptoVta,
             'CbteTipo': VOUCHER_TYPE_FC,
             'Concepto': 1,
-            'DocTipo': docTipo,
-            'DocNro': docTipo === 99 ? 0 : parseInt(docNro || '0'),
+            'DocTipo': finalDocTipo,
+            'DocNro': finalDocTipo === 99 ? 0 : parseInt(cleanDocNro || '0'),
             'CbteFch': cbteFch,
             'ImpTotal': totalAmount,
             'ImpTotConc': 0,
@@ -164,7 +180,8 @@ export const BillingService = {
 
             let recoveredFromAfip = false;
 
-            if (!existingInvoiceInDb && lastVoucherNumber > 0) {
+            const isAnonymous = finalDocTipo === 99 || cleanDocNro === '0' || !cleanDocNro;
+            if (!existingInvoiceInDb && lastVoucherNumber > 0 && !isAnonymous) {
                 // If it is NOT in our DB, query AFIP to see if it matches our request details
                 try {
                     const voucherInfo = await retryWithBackoff<any>(() => afip.ElectronicBilling.getVoucherInfo(lastVoucherNumber, ptoVta, VOUCHER_TYPE_FC));
@@ -216,8 +233,8 @@ export const BillingService = {
                     pointOfSale: ptoVta,
                     concept: 1,
                     totalAmount,
-                    docType: docTipo,
-                    docNumber: docNro || '0',
+                    docType: finalDocTipo,
+                    docNumber: cleanDocNro,
                     billingAccount: account,
                     status: 'COMPLETED',
                     observations: observations || null,
@@ -327,7 +344,9 @@ export const BillingService = {
         });
         if (!invoice) throw new Error('Factura no encontrada');
 
-        if (invoice.pdfUrl) return invoice.pdfUrl;
+        if (invoice.pdfUrl) {
+            return await getSignedUrl(invoice.pdfUrl);
+        }
 
         try {
             const afip = getAfipInstance(invoice.billingAccount as BillingAccount);
@@ -431,25 +450,26 @@ export const BillingService = {
                 file_name: pdfInfo?.file_name,
             }));
 
-            // El SDK retorna { file, file_name }
-            let pdfUrl: string | null = null;
-
+            let key: string | null = null;
             if (pdfInfo?.file) {
                 if (pdfInfo.file.startsWith('http')) {
-                    pdfUrl = pdfInfo.file;
+                    key = pdfInfo.file; // already uploaded?
                 } else {
-                    pdfUrl = `data:application/pdf;base64,${pdfInfo.file}`;
+                    const pdfBuffer = Buffer.from(pdfInfo.file, 'base64');
+                    const filename = `invoices/FC-${invoice.pointOfSale.toString().padStart(4,'0')}-${invoice.voucherNumber.toString().padStart(8,'0')}.pdf`;
+                    key = await uploadFile(pdfBuffer, filename, 'application/pdf');
                 }
             }
 
-            if (pdfUrl && !pdfUrl.startsWith('data:')) {
+            if (key) {
                 await prisma.invoice.update({
                     where: { id: invoiceId },
-                    data: { pdfUrl },
+                    data: { pdfUrl: key },
                 });
+                return await getSignedUrl(key);
             }
 
-            return pdfUrl;
+            return null;
         } catch (error: any) {
             console.error('Error generando PDF de factura:', error);
             

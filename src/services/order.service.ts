@@ -577,8 +577,19 @@ export class OrderService {
                         if (!rx.imageUrl) {
                             saleErrors.push('Falta la foto de la receta adjunta.');
                         }
-                        if (rx.heightOD == null && rx.heightOI == null) {
-                            saleErrors.push('Falta cargar la Altura en la receta (OD y/o OI).');
+                        const hasProgressiveOrMultifocal = existingOrder.items?.some((item: any) => {
+                            const name = (item.product?.name || '').toLowerCase();
+                            const type = (item.product?.type || '').toLowerCase();
+                            const cat = (item.product?.category || '').toLowerCase();
+                            return name.includes('multifocal') || name.includes('progresivo') || name.includes('ocupacional') ||
+                                   type.includes('multifocal') || type.includes('progresivo') || type.includes('ocupacional') ||
+                                   cat.includes('multifocal') || cat.includes('progresivo') || cat.includes('ocupacional');
+                        });
+
+                        if (hasProgressiveOrMultifocal) {
+                            if (rx.heightOD == null && rx.heightOI == null) {
+                                saleErrors.push('Falta cargar la Altura en la receta (OD y/o OI) para cristales progresivos/ocupacionales.');
+                            }
                         }
                         const hasDP = rx.distanceOD != null || rx.distanceOI != null || rx.pd != null;
                         if (!hasDP) {
@@ -666,8 +677,24 @@ export class OrderService {
                     })
                 );
 
-                const [updatedOrder] = await prisma.$transaction([
-                    prisma.order.update({
+                const updatedOrder = await prisma.$transaction(async (tx) => {
+                    // 1. Decrement stock
+                    for (const item of stockItems) {
+                        if (!item.productId) continue;
+                        await tx.product.update({
+                            where: { id: item.productId, stock: { gte: item.quantity } },
+                            data: { stock: { decrement: item.quantity } },
+                        });
+                    }
+
+                    // 2. Update client
+                    await tx.client.update({
+                        where: { id: existingOrder.client.id },
+                        data: { status: 'CLIENT', isFavorite: false }
+                    });
+
+                    // 3. Update order
+                    const ord = await tx.order.update({
                         where: { id },
                         data,
                         select: {
@@ -689,28 +716,22 @@ export class OrderService {
                             payments: true,
                             prescription: true,
                         },
-                    }),
-                    prisma.client.update({
-                        where: { id: existingOrder.client.id },
-                        data: { status: 'CLIENT', isFavorite: false }
-                    }),
-                    ...stockUpdates,
-                ]);
+                    });
 
-                // Populate per-eye prescription values on crystal OrderItems
-                if (updatedOrder.prescription) {
-                    const rx = updatedOrder.prescription;
-                    const crystalItemUpdates = updatedOrder.items
-                        .filter((item: any) => {
+                    // 4. Update crystal order items prescription details
+                    if (ord.prescription) {
+                        const rx = ord.prescription;
+                        const crystalItems = ord.items.filter((item: any) => {
                             const cat = item.product?.category;
                             const type = item.product?.type;
                             return cat === 'Cristal' || (type || '').includes('Cristal');
-                        })
-                        .map((item: any) => {
+                        });
+
+                        for (const item of crystalItems) {
                             const isOD = item.eye === 'OD';
                             const isOI = item.eye === 'OI';
-                            if (!isOD && !isOI) return null;
-                            return prisma.orderItem.update({
+                            if (!isOD && !isOI) continue;
+                            await tx.orderItem.update({
                                 where: { id: item.id },
                                 data: {
                                     sphereVal: isOD ? rx.sphereOD : rx.sphereOI,
@@ -719,12 +740,11 @@ export class OrderService {
                                     additionVal: isOD ? (rx.additionOD ?? rx.addition) : (rx.additionOI ?? rx.addition),
                                 },
                             });
-                        })
-                        .filter(Boolean);
-                    if (crystalItemUpdates.length > 0) {
-                        await prisma.$transaction(crystalItemUpdates as any[]);
+                        }
                     }
-                }
+
+                    return ord;
+                });
 
                 // Enviar conversión offline a Meta/Google de forma asíncrona (fire and forget)
                 AdsService.sendOfflineConversion(updatedOrder as any).catch(err => {

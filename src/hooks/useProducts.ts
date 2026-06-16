@@ -34,10 +34,10 @@ export function useProducts(searchQuery: string = '', selectedType: string = 'AL
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    const fetchProducts = useCallback(async () => {
+    const fetchProducts = useCallback(async (signal?: AbortSignal) => {
         try {
             setLoading(true);
-            const res = await fetch(`/api/products?_cb=${Date.now()}`);
+            const res = await fetch(`/api/products?_cb=${Date.now()}`, { signal });
             if (res.ok) {
                 let data: Product[] = await res.json();
 
@@ -78,6 +78,7 @@ export function useProducts(searchQuery: string = '', selectedType: string = 'AL
                 throw new Error('Error al cargar productos');
             }
         } catch (err: any) {
+            if (err.name === 'AbortError') return;
             setError(err.message);
         } finally {
             setLoading(false);
@@ -85,7 +86,11 @@ export function useProducts(searchQuery: string = '', selectedType: string = 'AL
     }, [searchQuery, selectedType]);
 
     useEffect(() => {
-        fetchProducts();
+        const controller = new AbortController();
+        fetchProducts(controller.signal);
+        return () => {
+            controller.abort();
+        };
     }, [fetchProducts]);
 
     const deleteProduct = async (id: string) => {

@@ -195,6 +195,10 @@ async function executeTaskAndSend(taskId, clientId, waId, chatId, text, label, c
         console.log(`  ✅ [Bot Executor] Ejecución completa para ${clientName} (${funnelTag})`);
     } else {
         console.error(`  ❌ [Bot Executor] Falló envío a ${clientName}: ${reason}`);
+        await prisma.clientTask.update({
+            where: { id: taskId },
+            data: { status: 'PENDING', updatedAt: new Date() }
+        }).catch(e => {});
     }
 }
 

@@ -101,11 +101,14 @@ export const ContactService = {
                 if (searchDigits.length >= 4) {
                     const searchStr = searchDigits.length > 8 ? searchDigits.slice(-8) : searchDigits;
                     const searchParam = `%${searchStr}%`;
-                    const rawSearch: any[] = await prisma.$queryRaw`
-                        SELECT id 
-                        FROM "Client" 
-                        WHERE REGEXP_REPLACE(COALESCE(phone, ''), '\\D', '', 'g') LIKE ${searchParam}
-                    `;
+                    const rawSearch = await prisma.client.findMany({
+                        where: {
+                            phone: {
+                                contains: searchStr
+                            }
+                        },
+                        select: { id: true }
+                    });
                     const phoneMatchIds = rawSearch.map(d => d.id);
                     where.OR = [
                         { name: { contains: search, mode: 'insensitive' } },
@@ -241,11 +244,14 @@ export const ContactService = {
             const searchPhoneStr = normalizedIncomingPhone.slice(-8);
             const searchParam = `%${searchPhoneStr}%`;
 
-            const rawDuplicates: any[] = await prisma.$queryRaw`
-                SELECT id 
-                FROM "Client" 
-                WHERE REGEXP_REPLACE(COALESCE(phone, ''), '\\D', '', 'g') LIKE ${searchParam}
-            `;
+            const rawDuplicates = await prisma.client.findMany({
+                where: {
+                    phone: {
+                        contains: searchPhoneStr
+                    }
+                },
+                select: { id: true }
+            });
             const duplicateIds = rawDuplicates.map(d => d.id);
 
             let phoneDuplicatesClient: any[] = [];

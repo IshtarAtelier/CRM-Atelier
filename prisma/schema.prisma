@@ -51,6 +51,10 @@ model Client {
   @@index([status])
   @@index([doctor])
   @@index([isFavorite])
+  @@index([name])
+  @@index([phone])
+  @@index([createdAt])
+  @@index([dni])
 }
 
 model CashMovement {
@@ -191,6 +195,11 @@ model Product {
 
   orderItems  OrderItem[]
   webProducts WebProduct[]
+
+  @@index([name])
+  @@index([brand])
+  @@index([model])
+  @@index([updatedAt])
 }
 
 model Order {
@@ -264,6 +273,7 @@ model Order {
   @@index([clientId])
   @@index([orderType, isDeleted])
   @@index([createdAt])
+  @@index([userId])
 }
 
 model Invoice {
@@ -370,7 +380,7 @@ model WhatsAppMessage {
   createdAt   DateTime     @default(now())
   chat        WhatsAppChat @relation(fields: [chatId], references: [id], onDelete: Cascade)
 
-  @@index([chatId])
+  @@index([chatId, createdAt(sort: Desc)])
 }
 
 model DoctorPayment {
@@ -385,6 +395,7 @@ model DoctorPayment {
   doctor     Doctor?  @relation(fields: [doctorId], references: [id], onDelete: SetNull)
 
   @@index([doctorName])
+  @@index([doctorId])
 }
 
 model Notification {
@@ -496,6 +507,8 @@ model CheckoutSession {
   total        Float    @default(0.0)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+
+  @@index([status])
 }
 
 model BlogPost {

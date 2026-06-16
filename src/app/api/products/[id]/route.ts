@@ -62,6 +62,11 @@ export async function PATCH(
     { params }: { params: Promise<{ id: string }> }
 ) {
     try {
+        const headersList = await headers();
+        const role = headersList.get('x-user-role') || 'STAFF';
+        if (role !== 'ADMIN' && role !== 'MANAGER') {
+            return NextResponse.json({ error: 'No autorizado para editar medidas del producto' }, { status: 403 });
+        }
         const { id } = await params;
         const body = await request.json();
 

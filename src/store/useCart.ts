@@ -48,7 +48,9 @@ export const useCart = create<CartState>()(
         set((state) => {
           // If exact same product and config exists, just increase quantity
           const existingItem = state.items.find(
-            i => i.productId === item.productId && i.lensColor === item.lensColor
+            i => i.productId === item.productId && 
+                 i.lensColor === item.lensColor &&
+                 JSON.stringify(i.lensConfig) === JSON.stringify(item.lensConfig)
           );
           
           if (existingItem) {

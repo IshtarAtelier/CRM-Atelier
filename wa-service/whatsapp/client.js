@@ -9,6 +9,7 @@ let _onMessage = null;
 let keepAliveFailCount = 0;
 const MAX_KEEPALIVE_FAILS = 2; // Tolerar 2 fallos antes de reiniciar
 let _onMessageCreate = null;
+let reconnectTimeout = null;
 
 let _onStatusChange = null;
 
@@ -196,10 +197,12 @@ async function startClientInternal(attempt = 1) {
     waClient.on('disconnected', (reason) => {
         isReady = false;
         clearKeepAlive();
+        isStarting = false; // Release initialization lock
         console.log('❌ WhatsApp desconectado:', reason);
         if (_onStatusChange) _onStatusChange(getStatus());
         // Auto-restart after disconnect con delay más largo para no saturar
-        setTimeout(() => startClient(1).catch(err => console.error('Error auto-reconnecting after disconnect:', err)), RETRY_DELAY_MS * 2);
+        if (reconnectTimeout) clearTimeout(reconnectTimeout);
+        reconnectTimeout = setTimeout(() => startClient(1).catch(err => console.error('Error auto-reconnecting after disconnect:', err)), RETRY_DELAY_MS * 2);
     });
 
     // Detectar cambios de estado intermedios (OPENING, PAIRING, UNPAIRED, etc.)
@@ -215,6 +218,7 @@ async function startClientInternal(attempt = 1) {
         console.error('❌ Fallo de autenticación de WhatsApp:', msg);
         isReady = false;
         clearKeepAlive();
+        isStarting = false; // Release initialization lock
         // Eliminar datos de sesión corruptos para forzar re-escaneo de QR
         const authSessionPath = path.join(sessionDataPath, 'session');
         try {
@@ -224,7 +228,8 @@ async function startClientInternal(attempt = 1) {
             console.error('Error eliminando sesión tras auth_failure:', e.message);
         }
         if (_onStatusChange) _onStatusChange(getStatus());
-        setTimeout(() => startClient(1).catch(err => console.error('Error auto-reconnecting after auth_failure:', err)), RETRY_DELAY_MS);
+        if (reconnectTimeout) clearTimeout(reconnectTimeout);
+        reconnectTimeout = setTimeout(() => startClient(1).catch(err => console.error('Error auto-reconnecting after auth_failure:', err)), RETRY_DELAY_MS);
     });
 
     // Limpiar listeners previos para evitar duplicados en reconexiones
@@ -284,7 +289,15 @@ async function sendMessage(waId, content, media = null) {
         return await withTimeout(waClient.sendMessage(waId, mediaObj, options), 30000);
     } else if (media && media.url) {
         try {
-            const mediaObj = await withTimeout(MessageMedia.fromUrl(media.url, { unsafeMime: true }), 15000);
+            let url = media.url;
+            if (!url.startsWith('http://') && !url.startsWith('https://')) {
+                const baseUrl = process.env.CRM_API_URL 
+                    ? process.env.CRM_API_URL.replace(/\/api(\/.*)?$/, '') 
+                    : 'http://localhost:3000';
+                url = baseUrl + (url.startsWith('/') ? '' : '/') + url;
+                console.log(`Prepend CRM base URL to relative media path: ${media.url} -> ${url}`);
+            }
+            const mediaObj = await withTimeout(MessageMedia.fromUrl(url, { unsafeMime: true }), 15000);
             const options = { caption: content || '' };
             return await withTimeout(waClient.sendMessage(waId, mediaObj, options), 30000);
         } catch (e) {

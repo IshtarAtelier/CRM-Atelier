@@ -8,6 +8,11 @@ export async function POST(req: Request) {
         
         if (!key) return NextResponse.json({ error: 'Missing key' }, { status: 400 });
 
+        // Sanitize key to prevent path traversal
+        if (key.includes('..') || key.includes('\\') || key.startsWith('/') || key.startsWith('.')) {
+            return NextResponse.json({ error: 'Invalid key: path traversal detected' }, { status: 400 });
+        }
+
         const arrayBuffer = await req.arrayBuffer();
         const buffer = Buffer.from(arrayBuffer);
         

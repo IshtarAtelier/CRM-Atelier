@@ -588,6 +588,7 @@ async function processBotTurn(chat, waId, profileName, realPhone) {
 
 // ── Recepción de mensajes ──────────────────────
 const handleMessage = async (msg) => {
+    let bypassBot = false;
     if (msg.from.includes('@g.us') || msg.from === 'status@broadcast') return;
 
     let oldLastMessageAt = null;
@@ -762,13 +763,15 @@ const handleMessage = async (msg) => {
         if (!chat.clientId && realPhone && realPhone.length >= 8) {
             const searchPhoneStr = realPhone.slice(-8).replace(/\D/g, '');
             if (searchPhoneStr.length >= 8) {
-                const searchParam = `%${searchPhoneStr}%`;
-                const rawDuplicates = await prisma.$queryRaw`
-                    SELECT id 
-                    FROM "Client" 
-                    WHERE REGEXP_REPLACE(COALESCE(phone, ''), '\\D', '', 'g') LIKE ${searchParam}
-                    LIMIT 1
-                `;
+                const rawDuplicates = await prisma.client.findMany({
+                    where: {
+                        phone: {
+                            contains: searchPhoneStr
+                        }
+                    },
+                    select: { id: true },
+                    take: 1
+                });
                 
                 if (rawDuplicates && rawDuplicates.length > 0) {
                     const client = await prisma.client.findUnique({
@@ -916,12 +919,22 @@ const handleMessage = async (msg) => {
                     const buffer = Buffer.from(media.data, 'base64');
                     const ext = getFileExtension(media.mimetype);
 
-                    if (messageType === 'AUDIO' && agentEnabled) {
-                        console.log(`  🎧 Transcribiendo audio de ${profileName}...`);
-                        const text = await transcribeAudio(media.data, media.mimetype);
+                    if (messageType === 'AUDIO') {
+                        let text = null;
+                        if (agentEnabled) {
+                            console.log(`  🎧 Transcribiendo audio de ${profileName}...`);
+                            try {
+                                text = await transcribeAudio(media.data, media.mimetype);
+                            } catch (transcribeError) {
+                                console.error('Error in transcribeAudio:', transcribeError.message);
+                            }
+                        }
                         if (text) {
                             body = `[Audio transcrito]: "${text}"`;
                             console.log(`  ✅ Audio transcrito: ${text}`);
+                        } else {
+                            body = `[Audio no transcrito: error de red o formato]`;
+                            bypassBot = true;
                         }
                     }
 
@@ -981,8 +994,13 @@ const handleMessage = async (msg) => {
             }
         }
 
-        await prisma.whatsAppMessage.create({
-            data: {
+        await prisma.whatsAppMessage.upsert({
+            where: { waMessageId: msg.id._serialized },
+            update: {
+                content: body,
+                mediaUrl: mediaUrl || undefined
+            },
+            create: {
                 chatId: chat.id,
                 direction: 'INBOUND',
                 type: messageType,
@@ -1167,7 +1185,7 @@ const handleMessage = async (msg) => {
         }
 
         // 3. Bot Logic — Llamada DIRECTA al grafo (sin HTTP intermedio) con DEBOUNCE
-        if (agentEnabled && chat.botEnabled && !tieneTagSinBot) {
+        if (agentEnabled && chat.botEnabled && !tieneTagSinBot && !bypassBot) {
             console.log(`  🕒 Programando respuesta del bot para ${profileName} en 25s...`);
             
             if (botDebounceTimers.has(chat.id)) {
@@ -1180,7 +1198,7 @@ const handleMessage = async (msg) => {
             }, 25000); // 25 segundos de debounce para que no sea tan inmediato
 
             botDebounceTimers.set(chat.id, timer);
-        } else if (!chat.botEnabled) {
+        } else if (!chat.botEnabled || bypassBot) {
             console.log(`  🕒 Programando extracción pasiva para ${profileName} en 20s...`);
             
             if (passiveDebounceTimers.has(chat.id)) {
@@ -1332,6 +1350,15 @@ process.on('uncaughtException', (err) => {
 // Graceful Shutdown: Liberar conexiones de Prisma al apagar
 const shutdown = async () => {
     console.log('🛑 Cerrando WA-Service y desconectando Prisma...');
+    try {
+        const client = getClient();
+        if (client) {
+            await client.destroy();
+            console.log('📱 Cliente de WhatsApp destruido.');
+        }
+    } catch (err) {
+        console.error('Error destruyendo cliente de WhatsApp:', err.message);
+    }
     await prisma.$disconnect();
     process.exit(0);
 };

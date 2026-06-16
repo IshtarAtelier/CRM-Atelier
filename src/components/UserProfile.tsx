@@ -19,6 +19,7 @@ export function UserProfile({ name, role, userId }: { name: string, role: string
         setIsLoggingOut(true);
         try {
             await fetch("/api/auth/logout", { method: "POST" });
+            localStorage.removeItem("user");
             router.push("/login");
             router.refresh(); // Force reload to clear middleware state
         } catch (error) {

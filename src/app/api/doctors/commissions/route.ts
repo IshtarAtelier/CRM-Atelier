@@ -57,7 +57,7 @@ export async function GET(request: Request) {
 
             // Sum payments and calculate platform fees
             for (const payment of order.payments) {
-                const method = payment.method || 'CASH';
+                const method = (payment.method || 'CASH').trim().toUpperCase();
                 const rate = PLATFORM_COMMISSIONS[method] || 0;
                 orderPlatformFee += payment.amount * rate;
                 orderPaidTotal += payment.amount;

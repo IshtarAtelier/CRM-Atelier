@@ -20,22 +20,27 @@ export class SmartLabService {
             console.log('[SmartLab Sync] Ya hay una sincronización en curso. Omitiendo.');
             return { skipped: true, reason: 'already_running' };
         }
-
-        const lastSyncOrder = await prisma.order.findFirst({
-            where: { smartLabLastSync: { not: null } },
-            orderBy: { smartLabLastSync: 'desc' },
-            select: { smartLabLastSync: true }
-        });
-        
-        if (lastSyncOrder?.smartLabLastSync) {
-            const minsSinceLastSync = (Date.now() - lastSyncOrder.smartLabLastSync.getTime()) / 60000;
-            if (minsSinceLastSync < 14) { // Use 14 just in case to allow 15m intervals safely
-                console.log(`[SmartLab Sync] Omitido. La última sincronización fue hace ${Math.round(minsSinceLastSync)} mins.`);
-                return { skipped: true, reason: 'too_soon' };
-            }
-        }
-
         isSyncing = true;
+
+        try {
+            const lastSyncOrder = await prisma.order.findFirst({
+                where: { smartLabLastSync: { not: null } },
+                orderBy: { smartLabLastSync: 'desc' },
+                select: { smartLabLastSync: true }
+            });
+            
+            if (lastSyncOrder?.smartLabLastSync) {
+                const minsSinceLastSync = (Date.now() - lastSyncOrder.smartLabLastSync.getTime()) / 60000;
+                if (minsSinceLastSync < 14) { // Use 14 just in case to allow 15m intervals safely
+                    console.log(`[SmartLab Sync] Omitido. La última sincronización fue hace ${Math.round(minsSinceLastSync)} mins.`);
+                    isSyncing = false;
+                    return { skipped: true, reason: 'too_soon' };
+                }
+            }
+        } catch (err) {
+            isSyncing = false;
+            throw err;
+        }
         let browser;
         try {
             const { chromium } = await import('playwright');
@@ -286,7 +291,13 @@ export class SmartLabService {
             console.error('[SmartLab Sync] Error general:', error);
             throw error;
         } finally {
-            if (browser) await browser.close();
+            if (browser) {
+                try {
+                    await browser.close();
+                } catch (closeError) {
+                    console.error('[SmartLab Sync] Error closing browser:', closeError);
+                }
+            }
             isSyncing = false;
         }
     }

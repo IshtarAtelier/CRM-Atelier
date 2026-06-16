@@ -257,6 +257,10 @@ async function executeSmartTaskAndSend(taskId, clientId, waId, chatId, text, cli
         console.log(`  ✅ [Smart Task Executor] Éxito para ${clientName}. Tarea cumplida.`);
     } else {
         console.error(`  ❌ [Smart Task Executor] Falló envío a ${clientName}: ${reason}`);
+        await prisma.clientTask.update({
+            where: { id: taskId },
+            data: { status: 'PENDING', updatedAt: new Date() }
+        }).catch(e => {});
     }
 }
 
