@@ -3,8 +3,7 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { 
-    Calculator, X, Save, Search, 
-    ChevronRight, Info, Plus, Gift,
+    Calculator, X,
     RotateCcw, History, CheckCircle2, User, Loader2
 } from 'lucide-react';
 import CotizadorCart from './quotes/CotizadorCart';

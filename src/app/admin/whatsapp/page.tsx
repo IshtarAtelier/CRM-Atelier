@@ -4,14 +4,12 @@ import QRCode from 'qrcode';
 import Link from 'next/link';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import {
-    Send, Wifi, WifiOff, QrCode, RefreshCw, User,
-    Clock, CheckCircle2, Bot, Settings, X, ChevronLeft, Phone,
-    Tag, Archive, ArchiveRestore, Filter, Plus, Mic, PlaySquare, Image as ImageIcon, Calendar, Search, Play, Paperclip, Smile, Square, Trash2,
+    Send, WifiOff, QrCode, RefreshCw, CheckCircle2, Bot, Settings, X, ChevronLeft, Phone,
+    Tag, Archive, ArchiveRestore, Plus, Mic, PlaySquare, Image as ImageIcon, Calendar, Search, Play, Paperclip, Smile, Trash2,
     UserPlus, Loader2, Sparkles, Pin, Heart
 } from 'lucide-react';
 import { WhatsAppIcon } from '@/components/icons/WhatsAppIcon';
 import { format } from 'date-fns';
-import { es } from 'date-fns/locale';
 import { io as SocketIOClient } from 'socket.io-client';
 import { TestChatModal } from '@/components/TestChatModal';
 import dynamic from 'next/dynamic';
@@ -756,35 +754,51 @@ export default function WhatsAppPage() {
 
     // ── WebSockets & Polling (Fallback) ───────────
     useEffect(() => {
-        fetchStatus();
+        let socket: any;
+
+        const initSocket = async () => {
+            try {
+                const res = await fetch('/api/whatsapp/status');
+                const data = await res.json();
+                setStatus(data);
+                setLoadingStatus(false);
+
+                const token = data.socketToken;
+                socket = SocketIOClient(process.env.NEXT_PUBLIC_WA_URL || 'http://localhost:3100', {
+                    auth: { token }
+                });
+
+                socket.on('bot_status', (statusData: any) => {
+                    setStatus({ connected: statusData.connected, phone: statusData.phone, qr: statusData.qr, agentEnabled: statusData.agentEnabled });
+                    if (statusData.agentEnabled !== undefined) setAgentEnabled(statusData.agentEnabled);
+                    if (statusData.prompt !== undefined) setAgentPrompt(statusData.prompt);
+                    setLoadingStatus(false);
+                });
+
+                socket.on('chat_updated', ({ chatId }: { chatId: string }) => {
+                    fetchChats();
+                    if (selectedChatRef.current?.id === chatId) {
+                        fetchMessages(chatId);
+                    }
+                });
+
+                socket.on('chat_summary_updated', ({ chatId, summary }: { chatId: string, summary: string }) => {
+                    fetchChats();
+                    if (selectedChatRef.current?.id === chatId) {
+                        setSelectedChat(prev => prev ? { ...prev, chatSummary: summary } : null);
+                    }
+                });
+
+                socket.on('task_created', ({ clientId, description }: { clientId: string, description: string }) => {
+                    showInAppNotification('📅 Tarea Programada', `La Ficha Inteligente agendó: ${description}`);
+                });
+            } catch (err) {
+                console.error('Failed to initialize socket connection:', err);
+            }
+        };
+
+        initSocket();
         fetchChats();
-
-        const socket = SocketIOClient(process.env.NEXT_PUBLIC_WA_URL || 'http://localhost:3100');
-
-        socket.on('bot_status', (data) => {
-            setStatus({ connected: data.connected, phone: data.phone, qr: data.qr, agentEnabled: data.agentEnabled });
-            if (data.agentEnabled !== undefined) setAgentEnabled(data.agentEnabled);
-            if (data.prompt !== undefined) setAgentPrompt(data.prompt);
-            setLoadingStatus(false);
-        });
-
-        socket.on('chat_updated', ({ chatId }) => {
-            fetchChats();
-            if (selectedChatRef.current?.id === chatId) {
-                fetchMessages(chatId);
-            }
-        });
-
-        socket.on('chat_summary_updated', ({ chatId, summary }) => {
-            fetchChats();
-            if (selectedChatRef.current?.id === chatId) {
-                setSelectedChat(prev => prev ? { ...prev, chatSummary: summary } : null);
-            }
-        });
-
-        socket.on('task_created', ({ clientId, description }) => {
-            showInAppNotification('📅 Tarea Programada', `La Ficha Inteligente agendó: ${description}`);
-        });
 
         pollRef.current = setInterval(() => {
             fetchStatus();
@@ -793,7 +807,7 @@ export default function WhatsAppPage() {
         }, 15000);
 
         return () => {
-            socket.disconnect();
+            if (socket) socket.disconnect();
             if (pollRef.current) clearInterval(pollRef.current);
         };
     }, [fetchStatus, fetchChats, fetchMessages]);

@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import {
     X, Calculator, ShoppingCart, User, Phone,
     Mail, ArrowRight, Glasses, Layers, Plus,
-    Trash2, CheckCircle2, History
+    Trash2, CheckCircle2
 } from 'lucide-react';
 import { useContacts } from '@/hooks/useContacts';
 

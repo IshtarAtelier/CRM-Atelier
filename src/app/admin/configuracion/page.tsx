@@ -5,7 +5,7 @@ import {
     Cog, Users, Plus, Pencil, Trash2, Save, X, Eye, EyeOff,
     Shield, ShieldCheck, Loader2, Lock, UserPlus, AlertTriangle,
     CheckCircle2, Stethoscope,
-    Sparkles, RotateCcw, Copy, Download, Database, RefreshCw, UploadCloud, Clock, HardDrive, Calendar
+    Sparkles, Download, Database, RefreshCw, UploadCloud, Clock, HardDrive, Calendar
 } from 'lucide-react';
 
 // ── Types ─────────────────────────────────────

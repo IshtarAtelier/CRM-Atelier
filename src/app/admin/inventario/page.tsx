@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Plus, Search, Package, Loader2, AlertCircle, ArrowUpRight, Trash2, ShoppingBag, CheckSquare, Square, X, Pencil, Save, Download, Upload, CheckCircle2, Zap, Camera, Clock, Palette, Database, Layers } from "lucide-react";
+import { Plus, Search, Package, Loader2, AlertCircle, ArrowUpRight, Trash2, ShoppingBag, CheckSquare, Square, X, Pencil, Save, CheckCircle2, Zap, Camera, Clock, Database, Layers } from "lucide-react";
 import { Product } from '@/hooks/useProducts';
 import ProductForm from '@/components/inventory/ProductForm';
 import { resolveStorageUrl } from '@/lib/utils/storage';

@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { ShoppingBag, X, Minus, Plus, Palette, ChevronDown } from 'lucide-react';
-import { isMultifocal2x1, isCrystal, isFrame, getCategoryKey, safePrice } from '@/lib/promo-utils';
+import { isMultifocal2x1, isCrystal, getCategoryKey, safePrice } from '@/lib/promo-utils';
 import { needsColorSelection, COLOR_CATEGORIES } from '@/lib/crystal-color-utils';
 
 interface CrystalColorOption {

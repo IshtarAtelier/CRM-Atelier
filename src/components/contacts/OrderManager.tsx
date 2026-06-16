@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { 
-    Calculator, Receipt, Plus, CheckCircle2, X, AlertCircle
+    Calculator, Receipt, Plus, CheckCircle2
 } from 'lucide-react';
 import CotizadorCart from '@/components/quotes/CotizadorCart';
 import QuoteSummary from '@/components/quotes/QuoteSummary';

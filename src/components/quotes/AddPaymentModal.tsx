@@ -3,12 +3,10 @@
 import React, { useState } from 'react';
 import { 
     X, Banknote, ArrowRightLeft, CreditCard, 
-    Save, Loader2, Upload, AlertCircle, 
-    CheckCircle2, DollarSign, Image as ImageIcon
+    Save, Loader2, AlertCircle, DollarSign
 } from 'lucide-react';
 import { PricingService } from '@/services/PricingService';
 import FileDropZone from '@/components/FileDropZone';
-import { resolveStorageUrl } from '@/lib/utils/storage';
 
 interface AddPaymentModalProps {
     orderId: string;

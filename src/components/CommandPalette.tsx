@@ -3,8 +3,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import {
-    Search, X, User, Package, ShoppingCart, Loader2,
-    ArrowRight, Command, Stethoscope, Phone, Hash
+    Search, User, Package, ShoppingCart, Loader2,
+    ArrowRight, Command, Stethoscope, Phone
 } from 'lucide-react';
 
 interface SearchContact {

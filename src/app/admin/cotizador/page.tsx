@@ -7,7 +7,6 @@ import {
     ShoppingBag, 
     Plus, 
     X, 
-    Save, 
     Loader2, 
     History,
     ChevronDown,
@@ -17,14 +16,10 @@ import {
     FileText,
     ChevronRight,
     RotateCcw,
-    Copy,
-    MessageCircle,
     Phone,
     Building2,
     Stethoscope,
-    Mail,
-    MapPin,
-    FileCheck
+    Mail
 } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 // import { toast } from 'sonner';
@@ -33,7 +28,6 @@ import { resolveStorageUrl } from '@/lib/utils/storage';
 import QuoteSummary from '@/components/quotes/QuoteSummary';
 import { 
     isCrystal, 
-    isMiPrimerVarilux, 
     getCategoryKey,
     isMultifocal2x1,
     safePrice,

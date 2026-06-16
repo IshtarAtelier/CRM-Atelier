@@ -9,7 +9,6 @@ import {
     CheckCircle2,
     Truck,
     Clock,
-    ChevronRight,
     Maximize2,
     X,
     Calendar,

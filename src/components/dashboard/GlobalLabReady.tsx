@@ -21,7 +21,7 @@ export function GlobalLabReady() {
         const triggerBackgroundSync = async () => {
             try {
                 await fetch('/api/smartlab-sync', { method: 'POST' });
-            } catch (_e) { }
+            } catch (e) { }
         };
         // Run immediately after 1 minute just in case, then every 15 mins
         setTimeout(triggerBackgroundSync, 60000);
@@ -40,7 +40,7 @@ export function GlobalLabReady() {
                 const data = await res.json();
                 setOrders(data);
             }
-        } catch (_error) {
+        } catch (error) {
             console.error('Error fetching lab-ready orders:', error);
         }
     };
@@ -86,7 +86,7 @@ export function GlobalLabReady() {
                     />
                     <div
                         className="fixed inset-0 bg-stone-900/20 dark:bg-black/40 backdrop-blur-sm z-50 transition-opacity"
-                        onClick={() => setIsOpen(false)} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.currentTarget.click(); } }} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.currentTarget.click(); } }} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.currentTarget.click(); } }}
+                        onClick={() => setIsOpen(false)} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.currentTarget.click(); } }}
                     />
                 </>,
                 portalTarget

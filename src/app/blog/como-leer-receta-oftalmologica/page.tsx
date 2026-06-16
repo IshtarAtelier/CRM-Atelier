@@ -2,9 +2,7 @@ import React from 'react';
 import { Metadata } from 'next';
 import { StorefrontNavbar } from '@/components/Storefront/StorefrontNavbar';
 import { StorefrontFooter } from '@/components/Storefront/StorefrontFooter';
-import Link from 'next/link';
 import { FileText, Eye, CheckCircle } from 'lucide-react';
-import { WHATSAPP_PHONE } from '@/lib/constants';
 
 export const metadata: Metadata = {
   title: 'Guía para leer tu receta oftalmológica (OD, OI, Esf, Cil) | Atelier Óptica',

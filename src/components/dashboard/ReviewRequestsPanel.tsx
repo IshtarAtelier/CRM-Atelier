@@ -91,7 +91,7 @@ export default function ReviewRequestsPanel({ requests, onClose }: ReviewRequest
                                                     productNames = lastSale.items.map((it: any) => it.product?.name || it.productNameSnapshot).filter(Boolean).join(', ');
                                                 }
                                             }
-                                        } catch (_err) {
+                                        } catch (err) {
                                             console.error('Error fetching orders for review task', err);
                                         }
                                         
@@ -131,7 +131,7 @@ export default function ReviewRequestsPanel({ requests, onClose }: ReviewRequest
                                         } else {
                                             alert('❌ Error al completar la tarea.');
                                         }
-                                    } catch (_err) {
+                                    } catch (err) {
                                         alert('❌ Error de red.');
                                     } finally {
                                         setIsCompleting(null);

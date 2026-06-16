@@ -37,7 +37,7 @@ export default function OpportunitiesPanel({ opportunities, onClose, onRefresh }
                     const data = await res.json();
                     setIsWhatsAppConnected(!!data.connected);
                 }
-            } catch (_err) {
+            } catch (err) {
                 console.error('Error checking WhatsApp status:', err);
             }
         };
@@ -106,7 +106,7 @@ export default function OpportunitiesPanel({ opportunities, onClose, onRefresh }
             // Copy to clipboard for easy pasting in the local WhatsApp chat
             try {
                 await navigator.clipboard.writeText(message);
-            } catch (_err) {
+            } catch (err) {
                 console.warn('Failed to copy to clipboard:', err);
             }
 
@@ -143,7 +143,7 @@ export default function OpportunitiesPanel({ opportunities, onClose, onRefresh }
                 // Fallback to wa.me if api fails
                 window.open(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`, '_blank');
             }
-        } catch (_err) {
+        } catch (err) {
             window.open(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`, '_blank');
         } finally {
             setSendingId(null);
@@ -168,7 +168,7 @@ export default function OpportunitiesPanel({ opportunities, onClose, onRefresh }
                 } else {
                     alert('Error al finalizar el seguimiento');
                 }
-            } catch (_err) {
+            } catch (err) {
                 console.error('Error finalizing opportunity:', err);
                 alert('Error al finalizar el seguimiento');
             } finally {

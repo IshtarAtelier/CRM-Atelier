@@ -118,7 +118,7 @@ export function LeadToastNotifications() {
                         };
                     }
                 });
-            } catch (_err) {
+            } catch (err) {
                 console.error('Failed to initialize socket connection:', err);
             }
         };

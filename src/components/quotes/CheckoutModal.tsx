@@ -4,12 +4,11 @@ import React, { useState, useEffect } from 'react';
 import { 
     X, CheckCircle2, AlertCircle, Banknote, 
     Glasses, User, Receipt, ArrowRight,
-    Loader2, Phone, CreditCard, History, Plus,
+    Loader2, History,
     Image as ImageIcon
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { safePrice } from '@/lib/promo-utils';
 import PrescriptionDetails from '../prescriptions/PrescriptionDetails';
 import { resolveStorageUrl } from '@/lib/utils/storage';
 import { PricingService } from '@/services/PricingService';

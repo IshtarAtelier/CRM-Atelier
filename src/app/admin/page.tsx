@@ -1,11 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { TrendingUp, Tag, Layers, ArrowUpRight, DollarSign, ShoppingCart, Percent, Calendar, Clock, Calculator, User, ArrowRight, Megaphone, MessageCircle, ExternalLink, Mail, Loader2, CheckCircle2 } from "lucide-react";
+import { TrendingUp, Tag, Layers, ArrowUpRight, DollarSign, ShoppingCart, Percent, Calendar, Clock, User, ArrowRight, CheckCircle2 } from "lucide-react";
 import DashboardActions from "@/components/dashboard/DashboardActions";
 import DashboardObjectives from "@/components/dashboard/DashboardObjectives";
-import { formatDistanceToNow } from "date-fns";
-import { es } from "date-fns/locale";
 
 interface AbandonedCart {
   id: string;

@@ -9,9 +9,7 @@ import {
   Sparkles, 
   Trash2, 
   Edit3, 
-  CheckCircle2, 
   X, 
-  ArrowUpRight, 
   Loader2, 
   Eye, 
   Save, 
@@ -19,12 +17,9 @@ import {
   Settings, 
   Star, 
   AlertCircle,
-  Download,
   Maximize2,
-  Minimize2,
   Copy
 } from "lucide-react";
-import Image from "next/image";
 import Link from "next/link";
 import { resolveStorageUrl } from '@/lib/utils/storage';
 

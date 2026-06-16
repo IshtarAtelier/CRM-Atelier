@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Users, Glasses, Package, ClipboardList, LayoutDashboard, Cog, FileText, Contact, Calculator, ShoppingCart, MessageCircle, Wallet, Search, Menu, X, Receipt, Banknote, TrendingDown, ChevronLeft, ChevronRight, Megaphone, Target, Wrench, Droplet } from "lucide-react";
+import { Glasses, ClipboardList, LayoutDashboard, Cog, FileText, Contact, Calculator, ShoppingCart, Wallet, Search, Menu, X, Receipt, Banknote, TrendingDown, ChevronLeft, ChevronRight, Wrench } from "lucide-react";
 import { motion } from "framer-motion";
 import { UserProfile } from "./UserProfile";
 import { NotificationBell } from "./NotificationBell";

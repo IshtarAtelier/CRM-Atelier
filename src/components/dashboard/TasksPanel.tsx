@@ -118,7 +118,7 @@ export default function TasksPanel({ tasks, onClose }: TasksPanelProps) {
                                                         productNames = lastSale.items.map((it: any) => it.product?.name || it.productNameSnapshot).filter(Boolean).join(', ');
                                                     }
                                                 }
-                                            } catch (_err) {
+                                            } catch (err) {
                                                 console.error('Error fetching orders for review task', err);
                                             }
                                             
@@ -158,7 +158,7 @@ export default function TasksPanel({ tasks, onClose }: TasksPanelProps) {
                                         } else {
                                             alert('❌ Error al completar la tarea.');
                                         }
-                                    } catch (_err) {
+                                    } catch (err) {
                                         alert('❌ Error de red.');
                                     } finally {
                                         setIsCompleting(null);

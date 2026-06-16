@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { X, Save, Package, Layers, DollarSign, Plus, Upload, Database, ChevronDown, CheckCircle2, AlertCircle, ArrowRight, ChevronRight, Info } from 'lucide-react';
+import { X, Save, Package, Layers, DollarSign, Plus, Upload, Database, ChevronDown, CheckCircle2, ArrowRight, ChevronRight, Info } from 'lucide-react';
 
 import { autoCorrectLab } from '@/utils/product-controllers';
 

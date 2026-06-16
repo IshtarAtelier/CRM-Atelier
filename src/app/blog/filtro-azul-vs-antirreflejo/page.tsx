@@ -1,8 +1,6 @@
 import { Metadata } from "next";
 import { StorefrontNavbar } from "@/components/Storefront/StorefrontNavbar";
 import { StorefrontFooter } from "@/components/Storefront/StorefrontFooter";
-import Link from "next/link";
-import { WHATSAPP_PHONE } from '@/lib/constants';
 
 export const metadata: Metadata = {
   title: "Filtro Azul vs Antirreflejo: ¿Cuál necesitas realmente? | Atelier Óptica",

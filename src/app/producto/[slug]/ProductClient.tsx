@@ -11,7 +11,7 @@ import { FloatingWhatsApp } from "@/components/Storefront/FloatingWhatsApp";
 import { PaymentOptions } from "@/components/Storefront/PaymentOptions";
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Camera, User, UserPlus, Share2, ChevronDown, Truck, Package, MapPin, ShieldCheck, FileText, Star, CreditCard, Percent } from "lucide-react";
+import { Camera, User, UserPlus, Share2, ChevronDown, Truck, Package, ShieldCheck, CreditCard, Percent } from "lucide-react";
 import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon";
 import { useCart } from "@/store/useCart";
 import { resolveStorageUrl } from "@/lib/utils/storage";

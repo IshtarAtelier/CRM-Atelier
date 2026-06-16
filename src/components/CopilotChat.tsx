@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { Sparkles, X, Send, Loader2, Bot, User, Minimize2 } from 'lucide-react';
+import { Sparkles, Send, Loader2, Bot, User, Minimize2 } from 'lucide-react';
 
 interface CopilotChatProps {
   userName?: string;

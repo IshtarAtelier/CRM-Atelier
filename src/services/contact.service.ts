@@ -3,7 +3,6 @@ import { CashService } from './cash.service';
 import { ISH_POSNET_THRESHOLD, ISH_POSNET_METHODS } from '@/lib/constants';
 import { ReceiptAgentService } from './receipt-agent.service';
 import { PricingService } from './PricingService';
-import { GoogleContactsService } from './google-contacts.service';
 import { sendEmail } from '@/lib/email';
 import { fetchWa } from '@/lib/wa-config';
 
@@ -916,6 +915,9 @@ export const ContactService = {
 
     async addPayment(orderId: string, amount: number, method: string, notes?: string, receiptUrl?: string) {
         return await prisma.$transaction(async (tx) => {
+            // Lock the order row using raw SQL FOR UPDATE to prevent race conditions on concurrent payments
+            await tx.$queryRaw`SELECT id FROM "Order" WHERE id = ${orderId} FOR UPDATE`;
+
             // Verificar que la orden existe y calcular si no se excede el total
             const order = await tx.order.findUnique({ 
                 where: { id: orderId },

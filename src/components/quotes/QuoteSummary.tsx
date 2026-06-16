@@ -3,14 +3,13 @@
 import React from 'react';
 import { 
     Calculator, Receipt, Download,
-    CheckCircle2, X, Plus, Clock, Glasses, 
+    CheckCircle2, X, Clock, Glasses, 
     Banknote, ArrowRightLeft, CreditCard,
     Lock, ChevronRight, ChevronUp, Pencil,
-    History, Trash2, Eye, AlertCircle, MessageSquare, Factory
+    History, Trash2, Eye, AlertCircle, Factory
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { safePrice } from '@/lib/promo-utils';
 import { resolveStorageUrl } from '@/lib/utils/storage';
 import { PricingService } from '@/services/PricingService';
 import { WhatsAppIcon } from '@/components/icons/WhatsAppIcon';

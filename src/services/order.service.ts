@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server';
-import { headers } from 'next/headers';
 import { ContactService } from '@/services/contact.service';
 import { BotService } from '@/services/bot.service';
 import { prisma } from '@/lib/db';
@@ -787,6 +786,7 @@ export class OrderService {
             select: {
                 id: true,
                 clientId: true,
+                orderType: true,
                 total: true,
                 paid: true,
                 subtotalWithMarkup: true,

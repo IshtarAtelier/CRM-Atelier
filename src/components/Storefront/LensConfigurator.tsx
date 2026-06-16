@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import Link from "next/link";
 import { useCart } from "@/store/useCart";
 import { WHATSAPP_PHONE } from "@/lib/constants";
 

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { uploadFile, listFiles, deleteFile, getSignedUrl } from '@/lib/storage';
+import { uploadFile, listFiles, deleteFile } from '@/lib/storage';
 
 const BLOCKED_EXTENSIONS = ['exe', 'sh', 'bat', 'cmd', 'ps1', 'php', 'pl', 'py', 'js', 'html', 'htm'];
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB

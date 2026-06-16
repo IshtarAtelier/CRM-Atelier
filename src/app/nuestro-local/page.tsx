@@ -5,7 +5,6 @@ import { FloatingWhatsApp } from "@/components/Storefront/FloatingWhatsApp";
 import { MapPin, Clock, Phone } from "lucide-react";
 import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon";
 import { GoogleReviews } from "@/components/Storefront/GoogleReviews";
-import { WHATSAPP_PHONE } from '@/lib/constants';
 import { getWebSettings } from '@/lib/web-settings';
 import Image from 'next/image';
 

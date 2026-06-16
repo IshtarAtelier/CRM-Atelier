@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { 
     ArrowLeft, Upload, Trash2, Copy, Check, 
-    Image as ImageIcon, Loader2, Sparkles, AlertCircle, FileText
+    Image as ImageIcon, Loader2, Sparkles, AlertCircle
 } from 'lucide-react';
 
 interface AgentFile {

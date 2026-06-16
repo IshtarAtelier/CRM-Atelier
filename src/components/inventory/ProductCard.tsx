@@ -1,8 +1,7 @@
 'use client';
 
-import { Package, Tag, Layers, DollarSign, Trash2, Edit3, MoreVertical, Star } from 'lucide-react';
+import { Package, Layers, Trash2 } from 'lucide-react';
 import { Product } from '@/hooks/useProducts';
-import { getCategoryKey, isMultifocal2x1 } from '@/lib/promo-utils';
 
 interface ProductCardProps {
     product: Product;

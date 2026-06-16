@@ -3,7 +3,6 @@ import { ChatVertexAI } from "@langchain/google-vertexai-web";
 import { SystemMessage, HumanMessage } from "@langchain/core/messages";
 import { getFileBuffer } from '@/lib/storage';
 import { detectBillingAccount, getBillingAccountConfig } from '@/lib/afip';
-import { format } from 'date-fns';
 
 export class ReceiptAgentService {
     /**

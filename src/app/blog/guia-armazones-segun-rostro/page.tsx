@@ -2,7 +2,7 @@ import { Metadata } from 'next';
 import { StorefrontNavbar } from "@/components/Storefront/StorefrontNavbar";
 import { StorefrontFooter } from "@/components/Storefront/StorefrontFooter";
 import { FloatingWhatsApp } from "@/components/Storefront/FloatingWhatsApp";
-import { User, Square, Heart, Info, Eye, Glasses } from "lucide-react";
+import { User, Square, Heart, Info, Glasses } from "lucide-react";
 import Link from 'next/link';
 import { WHATSAPP_PHONE } from '@/lib/constants';
 

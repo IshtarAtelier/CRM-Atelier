@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, MessageSquare, Send } from "lucide-react";
+import { X, Send } from "lucide-react";
 import { WHATSAPP_PHONE } from "@/lib/constants";
 
 export function ExitIntentPopup() {

@@ -115,7 +115,7 @@ export function TestChatModal({ isOpen, onClose }: TestChatModalProps) {
             } else {
                 setMessages(prev => [...prev, { role: 'ai', content: 'Dejame revisarlo bien y en un ratito te respondo.', blocks: ['Dejame revisarlo bien y en un ratito te respondo.'] }]);
             }
-        } catch (_e) {
+        } catch (e) {
             setMessages(prev => [...prev, { role: 'ai', content: 'Dejame revisarlo bien y en un ratito te respondo.', blocks: ['Dejame revisarlo bien y en un ratito te respondo.'] }]);
         } finally {
             setIsTyping(false);
@@ -124,7 +124,7 @@ export function TestChatModal({ isOpen, onClose }: TestChatModalProps) {
 
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-            <div className="absolute inset-0 bg-stone-900/60 backdrop-blur-sm" onClick={onClose} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.currentTarget.click(); } }} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.currentTarget.click(); } }} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.currentTarget.click(); } }} />
+            <div className="absolute inset-0 bg-stone-900/60 backdrop-blur-sm" onClick={onClose} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.currentTarget.click(); } }} />
             <div className="relative w-full max-w-md h-[600px] max-h-[85vh] bg-stone-100 dark:bg-stone-950 rounded-3xl shadow-2xl overflow-hidden flex flex-col border border-stone-200 dark:border-stone-800 animate-in zoom-in-95 duration-200">
                 
                 {/* Header */}

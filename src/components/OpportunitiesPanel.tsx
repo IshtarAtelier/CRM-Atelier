@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Zap, X, User, ChevronRight, Heart, FileText, ShoppingCart, Loader2, Check } from 'lucide-react';
+import { Zap, X, ChevronRight, Heart, FileText, ShoppingCart, Loader2, Check } from 'lucide-react';
 import { WhatsAppIcon } from '@/components/icons/WhatsAppIcon';
 import Link from 'next/link';
 

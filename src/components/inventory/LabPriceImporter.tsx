@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useCallback, useEffect } from 'react';
-import { X, Upload, Image as ImageIcon, Loader2, Check, AlertCircle, Zap, ClipboardPaste, ArrowRight, Save, ChevronDown, ChevronUp, Edit2 } from 'lucide-react';
+import { X, Image as ImageIcon, Loader2, Check, AlertCircle, Zap, ClipboardPaste, ArrowRight, Save, ChevronDown, ChevronUp } from 'lucide-react';
 
 interface ExtractedItem {
     linea: string;

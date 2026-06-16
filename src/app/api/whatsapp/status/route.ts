@@ -8,8 +8,16 @@ export async function GET() {
     try {
         const res = await fetchWa('/api/status', { cache: 'no-store' });
         const data = await res.json();
-        return NextResponse.json(data);
+        return NextResponse.json({
+            ...data,
+            socketToken: process.env.WA_API_KEY || ''
+        });
     } catch {
-        return NextResponse.json({ connected: false, qr: null, error: 'WhatsApp server no disponible' });
+        return NextResponse.json({
+            connected: false,
+            qr: null,
+            error: 'WhatsApp server no disponible',
+            socketToken: process.env.WA_API_KEY || ''
+        });
     }
 }

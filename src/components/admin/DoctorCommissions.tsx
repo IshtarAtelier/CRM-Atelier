@@ -86,7 +86,7 @@ export default function DoctorCommissions() {
             const res = await fetch(`/api/doctors/commissions?doctor=${encodeURIComponent(doctorName)}`);
             const json = await res.json();
             setData(json);
-        } catch (_err) {
+        } catch (err) {
             console.error('Error fetching commissions:', err);
         }
         setLoading(false);

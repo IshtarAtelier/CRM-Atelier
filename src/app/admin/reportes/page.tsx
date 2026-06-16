@@ -2,11 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import {
-    FileText, TrendingUp, DollarSign, Package,
-    Calendar, ArrowDown, ArrowUp, RefreshCw, AlertCircle
+    FileText, TrendingUp, DollarSign, Package, ArrowDown, RefreshCw, AlertCircle
 } from 'lucide-react';
 import { format } from 'date-fns';
-import { es } from 'date-fns/locale';
 
 import { KPICard } from '@/components/admin/reports/KPICard';
 import { CostRow as ProfitLossChart } from '@/components/admin/reports/ProfitLossChart';

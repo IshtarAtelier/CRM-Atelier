@@ -1,6 +1,6 @@
 'use client';
 
-import { Star, X, User, ChevronRight, Clock } from 'lucide-react';
+import { Star, X, User, ChevronRight } from 'lucide-react';
 import Link from 'next/link';
 
 import { WhatsAppIcon } from '@/components/ui/icons';

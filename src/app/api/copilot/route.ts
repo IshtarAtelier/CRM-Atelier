@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { GoogleGenAI, Type } from '@google/genai';
+import { GoogleGenAI } from '@google/genai';
 import { getToolsForRole, type CopilotTool } from '@/lib/copilot-tools';
 
 export const dynamic = 'force-dynamic';

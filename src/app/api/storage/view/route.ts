@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getFileBuffer, getSignedUrl } from '@/lib/storage';
+import { getFileBuffer } from '@/lib/storage';
 import path from 'path';
 
 export async function GET(req: NextRequest) {

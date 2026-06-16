@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { TrendingUp, Target, Zap, Trophy, ArrowUpRight, Info, Edit3, X, Loader2, Save } from "lucide-react";
+import { TrendingUp, Target, Zap, Trophy, Info, Edit3, X, Loader2, Save } from "lucide-react";
 
 interface DashboardObjectivesProps {
   currentTotal: number;

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { 
     ChevronLeft, ChevronRight, TrendingDown, Plus, 
-    AlertCircle, CheckCircle2, Building2, Megaphone, 
+    AlertCircle, Building2, Megaphone, 
     Truck, Receipt, Loader2, Copy, Trash2
 } from 'lucide-react';
 

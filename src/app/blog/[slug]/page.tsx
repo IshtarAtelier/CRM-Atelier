@@ -9,7 +9,6 @@ import { StorefrontFooter } from '@/components/Storefront/StorefrontFooter';
 import { FloatingWhatsApp } from '@/components/Storefront/FloatingWhatsApp';
 import { prisma } from '@/lib/db';
 import { resolveStorageUrl } from '@/lib/utils/storage';
-import { WHATSAPP_PHONE } from '@/lib/constants';
 
 async function getPostBySlug(slug: string) {
   try {

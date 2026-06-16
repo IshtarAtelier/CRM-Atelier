@@ -1,6 +1,4 @@
 import { NextResponse } from 'next/server';
-import { writeFile, mkdir } from 'fs/promises';
-import path from 'path';
 import { uploadFile } from '@/lib/storage';
 
 const BLOCKED_EXTENSIONS = ['exe', 'sh', 'bat', 'cmd', 'ps1', 'php', 'pl', 'py', 'js', 'html', 'htm'];

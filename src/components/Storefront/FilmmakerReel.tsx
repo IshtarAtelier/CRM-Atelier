@@ -9,7 +9,7 @@ import { WHATSAPP_PHONE } from "@/lib/constants";
 const FRAMES = [
   {
     id: "monalisa",
-    src: "/images/editorial/filmmaker-monalisa.webp",
+    src: "/images/editorial/monalisa.webp",
     title: "La Gioconda",
     subtitle: "Acetato Negro · Edición Limitada",
     year: "S. XVI",

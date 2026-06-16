@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
-import { ShoppingCart, AlertCircle, Clock, Trash2, Mail, CheckCircle2, Loader2 } from "lucide-react";
+import { ShoppingCart, Clock, Mail, CheckCircle2, Loader2 } from "lucide-react";
 import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon";
 
 export default function CarritosAbandonadosPage() {

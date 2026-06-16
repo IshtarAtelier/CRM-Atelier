@@ -1,8 +1,6 @@
 import { StorefrontNavbar } from "@/components/Storefront/StorefrontNavbar";
 import { StorefrontFooter } from "@/components/Storefront/StorefrontFooter";
 import { Metadata } from "next";
-import Link from "next/link";
-import { WHATSAPP_PHONE } from '@/lib/constants';
 
 export const metadata: Metadata = {
   title: "Por qué NUNCA debés pegar tus anteojos rotos con La Gotita | Atelier Óptica",

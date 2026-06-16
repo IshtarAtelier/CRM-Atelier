@@ -3,15 +3,11 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { 
-    Receipt, Search, Filter, Calendar, User, 
-    CreditCard, CheckCircle2, AlertCircle, 
-    ChevronRight, ArrowRight, Download, Eye,
-    Plus, Loader2, X, Image as ImageIcon
+    Receipt, Search, Calendar, CheckCircle2, AlertCircle, ArrowRight, Download, Loader2, X, Image as ImageIcon
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import InvoiceModal from '@/components/InvoiceModal';
-import { BillingAccount, detectBillingAccount } from '@/lib/afip';
 import { resolveStorageUrl } from '@/lib/utils/storage';
 import { generateInvoicePDF } from '@/lib/invoice-generator';
 import { WhatsAppIcon } from '@/components/icons/WhatsAppIcon';

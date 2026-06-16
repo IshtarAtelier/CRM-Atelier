@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import { motion, AnimatePresence, Variants } from "framer-motion";
-import { ChevronDown, MapPin, Star, Diamond, Glasses, ShieldCheck, X, Eye, Layers } from "lucide-react";
+import { ChevronDown, Star, Diamond, Glasses, ShieldCheck, X, Eye, Layers } from "lucide-react";
 
 export default function PromoLandingPage() {
   const [mounted, setMounted] = useState(false);

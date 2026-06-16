@@ -1,6 +1,5 @@
 import { Metadata } from 'next';
 import Image from 'next/image';
-import Link from 'next/link';
 import { StorefrontNavbar } from '@/components/Storefront/StorefrontNavbar';
 import { StorefrontFooter } from '@/components/Storefront/StorefrontFooter';
 import { WHATSAPP_PHONE } from '@/lib/constants';

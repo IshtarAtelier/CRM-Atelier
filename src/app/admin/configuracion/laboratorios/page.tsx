@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Settings, Plus, Loader2, Trash2, Pencil, FlaskConical, AlertCircle, Save, X } from 'lucide-react';
+import { Plus, Loader2, Trash2, Pencil, FlaskConical, AlertCircle, Save, X } from 'lucide-react';
 
 interface LabConfig {
     id: string;

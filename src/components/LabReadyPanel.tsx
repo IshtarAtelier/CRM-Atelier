@@ -1,10 +1,8 @@
 'use client';
 
-import { Factory, X, User, ChevronRight, Clock, CheckCircle2, RefreshCw } from 'lucide-react';
+import { Factory, X, Clock, CheckCircle2, RefreshCw } from 'lucide-react';
 import Link from 'next/link';
 import { useState } from 'react';
-import { formatDistanceToNow } from 'date-fns';
-import { es } from 'date-fns/locale';
 
 interface LabReadyPanelProps {
     orders: any[];

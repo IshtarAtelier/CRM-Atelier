@@ -2,7 +2,6 @@ import { Metadata } from "next";
 import { StorefrontNavbar } from "@/components/Storefront/StorefrontNavbar";
 import { StorefrontFooter } from "@/components/Storefront/StorefrontFooter";
 import Link from "next/link";
-import Image from "next/image";
 import { WHATSAPP_PHONE } from '@/lib/constants';
 
 export const metadata: Metadata = {

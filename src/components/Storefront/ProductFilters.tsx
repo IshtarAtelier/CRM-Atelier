@@ -2,7 +2,7 @@
 
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { useCallback, useState } from 'react';
-import { ChevronDown, Filter, X } from 'lucide-react';
+import { Filter, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface ProductFiltersProps {

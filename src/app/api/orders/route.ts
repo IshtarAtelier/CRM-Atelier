@@ -79,134 +79,141 @@ export async function POST(request: Request) {
         const calcPromoName = totals.appliedPromoName;
         const calcPromoDiscount = totals.promoFrameDiscount;
 
-        // DEDUPLICATION GATE: Check for duplicate order creation (double click) within last 10 seconds
-        const tenSecondsAgo = new Date(Date.now() - 10000);
-        const duplicateOrder = await prisma.order.findFirst({
-            where: {
-                clientId,
-                total: Math.round(finalTotal),
-                createdAt: { gte: tenSecondsAgo },
-                isDeleted: false
-            },
-            select: {
-                id: true,
-                total: true,
-                paid: true,
-                status: true,
-                orderType: true,
-                createdAt: true,
-                labStatus: true,
-                clientId: true,
-                userId: true,
-                discount: true,
-                markup: true,
-                discountCash: true,
-                discountTransfer: true,
-                discountCard: true,
-                specialDiscount: true,
-                subtotalWithMarkup: true,
-                frameSource: true,
-                prescriptionId: true,
-                items: {
-                    select: {
-                        id: true, price: true, quantity: true, eye: true,
-                        sphereVal: true, cylinderVal: true, axisVal: true, additionVal: true,
-                        crystalColor: true, crystalColorType: true,
-                        productNameSnapshot: true, productBrandSnapshot: true, productCategorySnapshot: true,
-                        product: { select: { id: true, name: true, brand: true, model: true, category: true, type: true, price: true, unitType: true } }
-                    }
+        // DEDUPLICATION GATE: Check for duplicate order creation (double click) within last 10 seconds, locking client
+        const order = await prisma.$transaction(async (tx) => {
+            // Lock the client row to serialize concurrent order postings for the same client
+            await tx.$queryRaw`SELECT id FROM "Client" WHERE id = ${clientId} FOR UPDATE`;
+
+            const tenSecondsAgo = new Date(Date.now() - 10000);
+            const duplicateOrder = await tx.order.findFirst({
+                where: {
+                    clientId,
+                    total: Math.round(finalTotal),
+                    createdAt: { gte: tenSecondsAgo },
+                    isDeleted: false
                 },
+                select: {
+                    id: true,
+                    total: true,
+                    paid: true,
+                    status: true,
+                    orderType: true,
+                    createdAt: true,
+                    labStatus: true,
+                    clientId: true,
+                    userId: true,
+                    discount: true,
+                    markup: true,
+                    discountCash: true,
+                    discountTransfer: true,
+                    discountCard: true,
+                    specialDiscount: true,
+                    subtotalWithMarkup: true,
+                    frameSource: true,
+                    prescriptionId: true,
+                    items: {
+                        select: {
+                            id: true, price: true, quantity: true, eye: true,
+                            sphereVal: true, cylinderVal: true, axisVal: true, additionVal: true,
+                            crystalColor: true, crystalColorType: true,
+                            productNameSnapshot: true, productBrandSnapshot: true, productCategorySnapshot: true,
+                            product: { select: { id: true, name: true, brand: true, model: true, category: true, type: true, price: true, unitType: true } }
+                        }
+                    },
+                }
+            });
+            if (duplicateOrder) {
+                console.log(`[DEDUPLICATION GATE] Duplicate order detected for client ${clientId}. Returning existing order: ${duplicateOrder.id}`);
+                return duplicateOrder;
             }
-        });
-        if (duplicateOrder) {
-            console.log(`[DEDUPLICATION GATE] Duplicate order detected for client ${clientId}. Returning existing order: ${duplicateOrder.id}`);
-            return NextResponse.json(duplicateOrder);
-        }
 
-        const order = await prisma.order.create({
-            data: {
-                clientId,
-                userId,
-                status: 'PENDING',
-                total: Math.round(finalTotal),
-                paid: 0,
-                appliedPromoName: calcPromoName || null,
-                appliedPromoDiscount: calcPromoDiscount || 0,
-                discount: finalDiscount || 0,
-                markup: Math.max(0, markup || 0),
-                discountCash: discountCash || 0,
-                discountTransfer: discountTransfer || 0,
-                discountCard: discountCard || 0,
-                specialDiscount: specialDiscount || 0,
-                subtotalWithMarkup: Math.round(finalSubtotalWithMarkup),
-                orderType: 'QUOTE',
-                labStatus: 'NONE',
-                frameSource: effectiveFrameSource || null,
-                userFrameBrand: userFrameBrand || null,
-                userFrameModel: userFrameModel || null,
-                userFrameNotes: userFrameNotes || null,
-                prescriptionId: prescriptionId || null,
-                items: {
-                    create: items.map((item: { productId: string; quantity: number; price: number; eye?: string; sphereVal?: number; cylinderVal?: number; axisVal?: number; additionVal?: number; crystalColor?: string; crystalColorType?: string }) => {
-                        const dbProd = dbProducts.find(p => p.id === item.productId);
-                        return {
-                            productId: item.productId,
-                            quantity: item.quantity,
-                            price: item.price,
-                            eye: item.eye || null,
-                            sphereVal: item.sphereVal ?? null,
-                            cylinderVal: item.cylinderVal ?? null,
-                            axisVal: item.axisVal ?? null,
-                            additionVal: item.additionVal ?? null,
-                            crystalColor: item.crystalColor || null,
-                            crystalColorType: item.crystalColorType || null,
-                            productNameSnapshot: dbProd ? (dbProd.model || dbProd.name || null) : null,
-                            productBrandSnapshot: dbProd ? (dbProd.brand || null) : null,
-                            productCategorySnapshot: dbProd ? (dbProd.category || null) : null,
-                        };
-                    }),
+            const createdOrder = await tx.order.create({
+                data: {
+                    clientId,
+                    userId,
+                    status: 'PENDING',
+                    total: Math.round(finalTotal),
+                    paid: 0,
+                    appliedPromoName: calcPromoName || null,
+                    appliedPromoDiscount: calcPromoDiscount || 0,
+                    discount: finalDiscount || 0,
+                    markup: Math.max(0, markup || 0),
+                    discountCash: discountCash || 0,
+                    discountTransfer: discountTransfer || 0,
+                    discountCard: discountCard || 0,
+                    specialDiscount: specialDiscount || 0,
+                    subtotalWithMarkup: Math.round(finalSubtotalWithMarkup),
+                    orderType: 'QUOTE',
+                    labStatus: 'NONE',
+                    frameSource: effectiveFrameSource || null,
+                    userFrameBrand: userFrameBrand || null,
+                    userFrameModel: userFrameModel || null,
+                    userFrameNotes: userFrameNotes || null,
+                    prescriptionId: prescriptionId || null,
+                    items: {
+                        create: items.map((item: { productId: string; quantity: number; price: number; eye?: string; sphereVal?: number; cylinderVal?: number; axisVal?: number; additionVal?: number; crystalColor?: string; crystalColorType?: string }) => {
+                            const dbProd = dbProducts.find(p => p.id === item.productId);
+                            return {
+                                productId: item.productId,
+                                quantity: item.quantity,
+                                price: item.price,
+                                eye: item.eye || null,
+                                sphereVal: item.sphereVal ?? null,
+                                cylinderVal: item.cylinderVal ?? null,
+                                axisVal: item.axisVal ?? null,
+                                additionVal: item.additionVal ?? null,
+                                crystalColor: item.crystalColor || null,
+                                crystalColorType: item.crystalColorType || null,
+                                productNameSnapshot: dbProd ? (dbProd.model || dbProd.name || null) : null,
+                                productBrandSnapshot: dbProd ? (dbProd.brand || null) : null,
+                                productCategorySnapshot: dbProd ? (dbProd.category || null) : null,
+                            };
+                        }),
+                    },
                 },
-            },
-            select: {
-                id: true,
-                total: true,
-                paid: true,
-                status: true,
-                orderType: true,
-                createdAt: true,
-                labStatus: true,
-                clientId: true,
-                userId: true,
-                discount: true,
-                markup: true,
-                discountCash: true,
-                discountTransfer: true,
-                discountCard: true,
-                specialDiscount: true,
-                subtotalWithMarkup: true,
-                frameSource: true,
-                prescriptionId: true,
-                items: {
-                    select: {
-                        id: true, price: true, quantity: true, eye: true,
-                        sphereVal: true, cylinderVal: true, axisVal: true, additionVal: true,
-                        crystalColor: true, crystalColorType: true,
-                        productNameSnapshot: true, productBrandSnapshot: true, productCategorySnapshot: true,
-                        product: { select: { id: true, name: true, brand: true, model: true, category: true, type: true, price: true, unitType: true } }
-                    }
-                },
-            },
-        });
+                select: {
+                    id: true,
+                    total: true,
+                    paid: true,
+                    status: true,
+                    orderType: true,
+                    createdAt: true,
+                    labStatus: true,
+                    clientId: true,
+                    userId: true,
+                    discount: true,
+                    markup: true,
+                    discountCash: true,
+                    discountTransfer: true,
+                    discountCard: true,
+                    specialDiscount: true,
+                    subtotalWithMarkup: true,
+                    frameSource: true,
+                    prescriptionId: true,
+                    items: {
+                        select: {
+                            id: true, price: true, quantity: true, eye: true,
+                            sphereVal: true, cylinderVal: true, axisVal: true, additionVal: true,
+                            crystalColor: true, crystalColorType: true,
+                            productNameSnapshot: true, productBrandSnapshot: true, productCategorySnapshot: true,
+                            product: { select: { id: true, name: true, brand: true, model: true, category: true, type: true, price: true, unitType: true } }
+                        }
+                    },
+                }
+            });
 
-        // Register quote in client history
-        const itemSummaries = formatOrderItemsSummary(order.items);
-        const historyContent = `📋 Presupuesto #${order.id.slice(-4).toUpperCase()} creado por $${(total || 0).toLocaleString('es-AR')}${discount ? ` (${discount}% desc. efvo)` : ''}${markup ? ` (+${markup}% markup)` : ''}\n\nProductos:\n• ${itemSummaries}`;
-        await prisma.interaction.create({
-            data: {
-                clientId,
-                type: 'BUDGET_SENT',
-                content: historyContent,
-            },
+            // Register quote in client history inside transaction
+            const itemSummaries = formatOrderItemsSummary(createdOrder.items);
+            const historyContent = `📋 Presupuesto #${createdOrder.id.slice(-4).toUpperCase()} creado por $${(total || 0).toLocaleString('es-AR')}${discount ? ` (${discount}% desc. efvo)` : ''}${markup ? ` (+${markup}% markup)` : ''}\n\nProductos:\n• ${itemSummaries}`;
+            await tx.interaction.create({
+                data: {
+                    clientId,
+                    type: 'BUDGET_SENT',
+                    content: historyContent,
+                },
+            });
+
+            return createdOrder;
         });
 
         return NextResponse.json(order);

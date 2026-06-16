@@ -37,7 +37,7 @@ export function GlobalReviewRequests() {
                 const data = await res.json();
                 setRequests(data);
             }
-        } catch (_error) {
+        } catch (error) {
             console.error('Error fetching pending review requests:', error);
         }
     };
@@ -83,7 +83,7 @@ export function GlobalReviewRequests() {
                     />
                     <div
                         className="fixed inset-0 bg-stone-900/20 dark:bg-black/40 backdrop-blur-sm z-50 transition-opacity"
-                        onClick={() => setIsOpen(false)} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.currentTarget.click(); } }} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.currentTarget.click(); } }} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.currentTarget.click(); } }}
+                        onClick={() => setIsOpen(false)} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.currentTarget.click(); } }}
                     />
                 </>,
                 portalTarget

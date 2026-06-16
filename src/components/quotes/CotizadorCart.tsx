@@ -1,17 +1,14 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import { 
-    X, Search, Glasses, User, Banknote, 
-    MessageCircle, Copy, Save, Loader2, 
-    Gift, FileText, CheckCircle2
+import { Search, Save, Loader2, 
+    Gift, CheckCircle2
 } from 'lucide-react';
 import { 
     isMultifocal2x1, isAtelierFrame, isCrystal, 
     isMiPrimerVarilux, getCategoryKey, isFrame, safePrice,
     calculateQuoteTotals
 } from '@/lib/promo-utils';
-import { format } from 'date-fns';
 import { WhatsAppIcon } from '@/components/icons/WhatsAppIcon';
 
 // Modular Components

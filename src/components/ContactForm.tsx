@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { X, Star, Save, Loader2, Calculator, FileCheck } from 'lucide-react';
+import { X, Star, Save, Loader2, Calculator } from 'lucide-react';
 import { PersonalDataSection, InterestSection } from './ContactFormSections';
 
 export interface ContactFormData {

@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/db';
 import { ContactService } from '@/services/contact.service';
 import { z } from 'zod';
 

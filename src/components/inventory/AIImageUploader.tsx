@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { UploadCloud, Loader2, CheckCircle2, Sparkles, X } from 'lucide-react';
+import { UploadCloud, Loader2, Sparkles } from 'lucide-react';
 
 interface AIImageUploaderProps {
   productId: string;

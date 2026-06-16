@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { ShoppingCart, Download, Search, Package, Clock, CheckCircle2, Truck, Eye, Pencil, Save, X, AlertTriangle, FileText, Banknote, ArrowRightLeft, CreditCard, ChevronRight, ExternalLink, Clipboard, CheckCheck, Copy, Loader2, ArrowRight, FlaskConical, Calendar, Factory } from 'lucide-react';
+import { ShoppingCart, Download, Search, Package, Clock, CheckCircle2, Truck, Eye, Pencil, Save, X, AlertTriangle, FileText, Banknote, ArrowRightLeft, CreditCard, ChevronRight, ExternalLink, Loader2, ArrowRight, FlaskConical, Calendar, Factory } from 'lucide-react';
 import { OrderDetailPanel } from '@/components/orders/OrderDetailPanel';
 import { WhatsAppIcon } from '@/components/icons/WhatsAppIcon';
 import { PricingService } from '@/services/PricingService';

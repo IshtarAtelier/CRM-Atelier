@@ -11,7 +11,6 @@ import { FloatingWhatsApp } from "@/components/Storefront/FloatingWhatsApp";
 import { PaymentOptions } from "@/components/Storefront/PaymentOptions";
 import { ProductFilters } from "@/components/Storefront/ProductFilters";
 import { resolveStorageUrl } from "@/lib/utils/storage";
-import { WHATSAPP_PHONE } from "@/lib/constants";
 
 const CATEGORIES = ["Todo", "Receta", "Sol", "XL", "Clip-On", "Contacto"];
 

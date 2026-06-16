@@ -124,7 +124,7 @@ export default function ContactForm({ onClose, onSubmit, onUnify, onGoToOriginal
                         </div>
                     )}
 
-                    <div className="p-5 bg-stone-50 dark:bg-stone-800/30 rounded-[2rem] border border-stone-100 dark:border-stone-800 flex items-center justify-between cursor-pointer transition-all hover:bg-stone-100 dark:hover:bg-stone-800/50" onClick={() => setVisitedStore(!visitedStore)} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.currentTarget.click(); } }} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.currentTarget.click(); } }} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.currentTarget.click(); } }}>
+                    <div className="p-5 bg-stone-50 dark:bg-stone-800/30 rounded-[2rem] border border-stone-100 dark:border-stone-800 flex items-center justify-between cursor-pointer transition-all hover:bg-stone-100 dark:hover:bg-stone-800/50" onClick={() => setVisitedStore(!visitedStore)} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.currentTarget.click(); } }}>
                         <div>
                             <p className="text-sm font-black text-stone-800 dark:text-stone-100 uppercase tracking-widest">📍 Visita al Local</p>
                             <p className="text-xs text-stone-500 font-bold mt-1">El cliente está o estuvo presencialmente en el local hoy.</p>

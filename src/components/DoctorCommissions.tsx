@@ -6,9 +6,8 @@ import { resolveStorageUrl } from '@/lib/utils/storage';
 import { useState, useEffect, useRef } from 'react';
 import {
     Stethoscope, ChevronDown, DollarSign, TrendingUp, Wallet,
-    Loader2, Plus, Trash2, Banknote, ArrowRightLeft, Upload,
-    X, Save, Receipt, AlertCircle, Calendar, User, Image as ImageIcon,
-    CreditCard, CheckCircle2
+    Loader2, Plus, Trash2, Banknote, ArrowRightLeft,
+    X, Save, Receipt, AlertCircle, User, Image as ImageIcon, CheckCircle2
 } from 'lucide-react';
 
 interface Doctor {

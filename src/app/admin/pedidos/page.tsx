@@ -2,11 +2,10 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import {
-    Package, Clock, CheckCircle2, Truck, Search, Download, Pencil,
-    Save, X, ChevronRight, AlertCircle, Eye, ArrowRight, Hash,
-    Calendar, User, ShoppingBag, Loader2, Filter,
-    TrendingUp, DollarSign, Glasses, ExternalLink, Copy, CheckCheck, Clipboard,
-    Factory, RefreshCw
+    Package, Clock, CheckCircle2, Search, Download,
+    Save, X, Eye, ArrowRight, Hash,
+    Calendar, Loader2, ExternalLink, Copy, CheckCheck, Clipboard,
+    Factory
 } from 'lucide-react';
 import { OrderDetailPanel } from '@/components/orders/OrderDetailPanel';
 import { WhatsAppIcon } from '@/components/icons/WhatsAppIcon';

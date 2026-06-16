@@ -21,7 +21,7 @@ export function UserProfile({ name, role, userId }: { name: string, role: string
             await fetch("/api/auth/logout", { method: "POST" });
             router.push("/login");
             router.refresh(); // Force reload to clear middleware state
-        } catch (_error) {
+        } catch (error) {
             console.error("Error logging out", error);
             setIsLoggingOut(false);
         }
@@ -54,7 +54,7 @@ export function UserProfile({ name, role, userId }: { name: string, role: string
                 const data = await res.json();
                 setMessage({ type: 'error', text: data.error || 'Error al cambiar contraseña' });
             }
-        } catch (_error) {
+        } catch (error) {
             setMessage({ type: 'error', text: 'Error de conexión' });
         } finally {
             setIsChangingPass(false);
