@@ -20,20 +20,24 @@ export function CartSidebar() {
   if (!mounted) return null;
 
   return (
-    <AnimatePresence>
-      {isOpen && (
-        <>
-          {/* Overlay oscuro */}
+    <>
+      <AnimatePresence>
+        {isOpen && (
           <motion.div
+            key="overlay"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={() => setIsOpen(false)}
             className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[100]"
           />
-
-          {/* Panel Lateral */}
+        )}
+      </AnimatePresence>
+      
+      <AnimatePresence>
+        {isOpen && (
           <motion.div
+            key="panel"
             initial={{ x: "100%" }}
             animate={{ x: 0 }}
             exit={{ x: "100%" }}
@@ -170,8 +174,8 @@ export function CartSidebar() {
               </div>
             )}
           </motion.div>
-        </>
-      )}
+        )}
+      </AnimatePresence>
       
       {/* Modal Configurador de Cristales */}
       <Modal isOpen={!!configuringItemId} onClose={() => setConfiguringItemId(null)} maxWidth="4xl">
@@ -199,6 +203,6 @@ export function CartSidebar() {
           );
         })()}
       </Modal>
-    </AnimatePresence>
+    </>
   );
 }
