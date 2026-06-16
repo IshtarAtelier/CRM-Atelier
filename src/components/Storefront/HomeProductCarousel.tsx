@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon";
 
 import { WHATSAPP_PHONE } from "@/lib/constants";
 
@@ -207,8 +208,9 @@ export function HomeProductCarousel({ collections, totalCount }: Props) {
                     const text = `Hola Atelier! Me interesa el modelo ${productModelName} y me gustaría recibir asesoramiento.`;
                     window.open(`https://wa.me/${WHATSAPP_PHONE}?text=${encodeURIComponent(text)}`, "_blank");
                   }}
-                  className="text-[8px] font-black uppercase tracking-widest px-3.5 py-2 border border-stone-200 text-stone-600 hover:border-black hover:text-black transition-colors rounded-full text-center cursor-pointer bg-white"
+                  className="flex items-center justify-center gap-1.5 text-[8px] font-black uppercase tracking-widest px-3.5 py-2 border border-stone-200 text-stone-600 hover:border-[#25D366] hover:text-[#25D366] transition-colors rounded-full cursor-pointer bg-white"
                 >
+                  <WhatsAppIcon className="w-3 h-3" />
                   Consultar
                 </button>
               </div>
