@@ -67,6 +67,6 @@ export const CrystalMapping = {
     }
   },
   EXTRAS: {
-    TINT: 15000
+    TINT: 25000
   }
 };

@@ -83,7 +83,7 @@ export function LensConfigurator({ basePrice, productId, category, onColorChange
     MONOFOCAL: { ORGANICO_BLANCO: 20000, ORGANICO_AR: 45000, ORGANICO_BLUE: 68000, POLI_BLUE: 120000, ORGANICO_FOTOCROMATICO: 105000, ORGANICO_BLANCO_TENIDO: 68000 },
     BIFOCAL: { ORGANICO_BLANCO: 45000 },
     MULTIFOCAL: { SMART_FREE: 120000, VARILUX: 350000, FOTOCROMATICO: 180000 },
-    EXTRAS: { TINT: 35000 },
+    EXTRAS: { TINT: 25000 },
   };
 
   const calculateTotal = () => {
@@ -255,11 +255,10 @@ export function LensConfigurator({ basePrice, productId, category, onColorChange
                         price={`+$${(PRICING.BIFOCAL.ORGANICO_BLANCO + PRICING.EXTRAS.TINT).toLocaleString()}`} 
                       />
                       <OptionCard 
-                        selected={lensType === "MULTIFOCAL"} 
-                        onClick={() => { setLensType("MULTIFOCAL"); setTreatment("SMART_FREE"); setStep(4); }} 
+                        selected={false} 
+                        onClick={() => { alert("Los teñidos se pueden hacer solo en cristales orgánicos blancos."); }} 
                         title="Multifocal Teñido" 
-                        desc="Digital Smart Free + Teñido." 
-                        price={`+$${(PRICING.MULTIFOCAL.SMART_FREE + PRICING.EXTRAS.TINT).toLocaleString()}`} 
+                        desc="No disponible (Solo válido para orgánicos blancos)." 
                       />
                     </div>
                   </>
