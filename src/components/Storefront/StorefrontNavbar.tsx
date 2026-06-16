@@ -86,7 +86,7 @@ export function StorefrontNavbar({ theme = "dark", mixBlend = false }: Storefron
       <header className={`fixed top-0 w-full z-50 transition-all duration-300 ${isHeaderScrolled ? 'shadow-sm border-b border-[#e8e2db]/50 bg-[#faf8f5]/90' : 'bg-transparent'}`}>
         {/* Dynamic Announcement Bar */}
         {showAnnouncement && (
-          <div className="w-full bg-[#c8a55c] text-white text-center py-2 px-3 text-[9px] font-black uppercase tracking-[0.25em] relative z-10 transition-all shadow-sm flex items-center justify-center gap-1.5">
+          <div className="w-full bg-black text-white text-center py-2 px-3 text-[9px] font-black uppercase tracking-[0.25em] relative z-10 transition-all shadow-sm flex items-center justify-center gap-1.5">
             {announcementLink ? (
               <Link href={announcementLink} className="hover:underline flex items-center justify-center gap-1 hover:opacity-90">
                 {announcementText}
