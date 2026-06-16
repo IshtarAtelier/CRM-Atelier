@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blog de Tecnología Visual | Novedades Essilor y Varilux</title>
+    <meta name="description" content="Descubrí las últimas novedades en tecnología visual, inteligencia artificial en multifocales Varilux XR y tratamientos Crizal y Transitions.">
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=Playfair+Display:wght@600;800&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg-base: #0a0a0c;
+            --bg-surface: #121216;
+            --accent-gold: #D4AF37;
+            --text-main: #e0e0e0;
+            --text-muted: #a0a0a0;
+            --glass: rgba(20, 20, 25, 0.7);
+            --glass-border: rgba(212, 175, 55, 0.2);
+            --font-display: 'Playfair Display', serif;
+            --font-body: 'Inter', sans-serif;
+        }
+        
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: var(--font-body); background-color: var(--bg-base);
+            color: var(--text-main); line-height: 1.6; overflow-x: hidden;
+        }
+
+        .container { max-width: 1200px; margin: 0 auto; padding: 0 5%; }
+        
+        /* Nav */
+        nav {
+            position: fixed; top: 0; width: 100%; padding: 20px 5%;
+            background: rgba(10,10,12,0.9); backdrop-filter: blur(10px);
+            display: flex; justify-content: space-between; align-items: center;
+            z-index: 1000; border-bottom: 1px solid var(--glass-border);
+        }
+        .logo { font-family: var(--font-display); font-size: 1.5rem; font-weight: 800; letter-spacing: 1px; color: #fff; text-decoration: none; }
+        .gold-gradient {
+            background: linear-gradient(135deg, #F3E5AB 0%, #D4AF37 50%, #AA801E 100%);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        }
+        
+        /* Header */
+        header { padding: 150px 0 80px; text-align: center; border-bottom: 1px solid var(--glass-border); }
+        h1 { font-family: var(--font-display); font-size: 4rem; margin-bottom: 20px; line-height: 1.1; color: #fff; }
+        .subtitle { font-size: 1.2rem; color: var(--text-muted); max-width: 700px; margin: 0 auto; }
+
+        /* Grid */
+        .blog-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 40px; padding: 80px 0; }
+        
+        /* Card */
+        .blog-card {
+            background: var(--bg-surface); border: 1px solid var(--glass-border);
+            border-radius: 20px; overflow: hidden; transition: 0.4s;
+            display: flex; flex-direction: column; text-decoration: none; color: inherit;
+        }
+        .blog-card:hover { transform: translateY(-10px); border-color: var(--accent-gold); box-shadow: 0 10px 40px rgba(212, 175, 55, 0.15); }
+        .blog-img { width: 100%; height: 250px; background: #222; display: flex; align-items: center; justify-content: center; color: var(--text-muted); font-size: 0.9rem; }
+        .blog-content { padding: 30px; display: flex; flex-direction: column; flex-grow: 1; }
+        .blog-tag { color: var(--accent-gold); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 15px; font-weight: 600; }
+        .blog-title { font-family: var(--font-display); font-size: 1.8rem; margin-bottom: 15px; color: #fff; line-height: 1.2; }
+        .blog-excerpt { color: var(--text-muted); font-size: 0.95rem; margin-bottom: 30px; flex-grow: 1; }
+        .read-more { color: var(--accent-gold); font-weight: 600; font-size: 0.9rem; border-bottom: 1px solid transparent; transition: 0.3s; align-self: flex-start; }
+        .blog-card:hover .read-more { border-bottom-color: var(--accent-gold); }
+
+        @media(max-width: 768px) { h1 { font-size: 2.5rem; } .blog-grid { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+
+    <nav>
+        <a href="index.html" class="logo">Varilux <span class="gold-gradient">Argentina</span></a>
+        <a href="index.html" style="color: #fff; text-decoration: none; font-size: 0.9rem;">Volver al Inicio</a>
+    </nav>
+
+    <header class="container">
+        <h1>Enciclopedia <span class="gold-gradient">Visual</span></h1>
+        <p class="subtitle">Descubrí absolutamente todas las novedades tecnológicas, lanzamientos y guías clínicas sobre los productos Essilor en Argentina.</p>
+    </header>
+
+    <main class="container">
+        <div class="blog-grid">
+            
+            <!-- Article 1 -->
+            <a href="articulos/que-es-varilux-xr.html" class="blog-card">
+                <div class="blog-img">Imagen Opcional (Varilux XR)</div>
+                <div class="blog-content">
+                    <span class="blog-tag">Inteligencia Artificial</span>
+                    <h2 class="blog-title">¿Qué es Varilux XR Series y por qué revolucionó el mercado?</h2>
+                    <p class="blog-excerpt">El primer lente multifocal del mundo diseñado con Inteligencia Artificial conductual. Descubrí por qué elimina los mareos y amplía el campo visual un 49%.</p>
+                    <span class="read-more">Leer artículo completo →</span>
+                </div>
+            </a>
+
+            <!-- Placeholder Article 2 -->
+            <a href="#" class="blog-card" style="opacity: 0.6; cursor: not-allowed;">
+                <div class="blog-img">Imagen Opcional (Transitions)</div>
+                <div class="blog-content">
+                    <span class="blog-tag">Lanzamientos</span>
+                    <h2 class="blog-title">Transitions Gen S: El fin de los lentes de sol tradicionales</h2>
+                    <p class="blog-excerpt">La nueva generación de fotocromáticos que oscurecen en 25 segundos y vienen en 7 colores vibrantes. Todo lo que necesitás saber.</p>
+                    <span class="read-more">Próximamente →</span>
+                </div>
+            </a>
+
+            <!-- Placeholder Article 3 -->
+            <a href="#" class="blog-card" style="opacity: 0.6; cursor: not-allowed;">
+                <div class="blog-content" style="padding-top: 50px;">
+                    <span class="blog-tag">Comparativas</span>
+                    <h2 class="blog-title">Comfort Max vs Physio 3.0: ¿Cuál deberías elegir?</h2>
+                    <p class="blog-excerpt">Análisis técnico de ambos diseños progresivos. Cuál se adapta mejor según tu profesión y las horas que pasás frente a la pantalla.</p>
+                    <span class="read-more">Próximamente →</span>
+                </div>
+            </a>
+
+        </div>
+    </main>
+
+    <footer style="background: var(--bg-surface); padding: 40px 0; border-top: 1px solid var(--glass-border); text-align: center;">
+        <p style="font-size: 0.85rem; color: var(--text-muted);">Blog operado por <a href="https://atelieroptica.com.ar" style="color: var(--accent-gold); text-decoration: none;">Atelier Óptica</a> - Córdoba, Argentina.</p>
+    </footer>
+
+</body>
+</html>
