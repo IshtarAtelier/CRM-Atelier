@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Entendiendo la Presbicia y las Cataratas - Bienestar Mayor</title>
+    <style>
+        :root {
+            --primary-color: #2c5282; /* Deep blue, very readable */
+            --secondary-color: #2f855a; /* Calming green */
+            --background-color: #f7fafc;
+            --text-color: #1a202c; /* High contrast text */
+            --light-bg: #ffffff;
+        }
+        body {
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.8;
+            color: var(--text-color);
+            background-color: var(--background-color);
+            margin: 0;
+            padding: 0;
+            font-size: 1.125rem; /* 18px base for easier reading */
+        }
+        header {
+            background-color: var(--primary-color);
+            color: #ffffff;
+            padding: 3rem 1rem;
+            text-align: center;
+            border-bottom: 6px solid var(--secondary-color);
+        }
+        header h1 {
+            margin: 0;
+            font-size: 2.5rem;
+            font-weight: 700;
+        }
+        header p {
+            margin: 1rem 0 0;
+            font-size: 1.25rem;
+            font-weight: 300;
+            opacity: 0.9;
+        }
+        nav {
+            background-color: #ffffff;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        nav ul {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        nav li {
+            margin: 0;
+        }
+        nav a {
+            display: block;
+            padding: 1.2rem 1.5rem;
+            color: var(--primary-color);
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        nav a:hover, nav a:focus {
+            color: var(--secondary-color);
+            background-color: #f0fdf4;
+            border-bottom: 4px solid var(--secondary-color);
+        }
+        .container {
+            max-width: 1200px;
+            margin: 3rem auto;
+            display: flex;
+            flex-wrap: wrap;
+            padding: 0 1rem;
+            gap: 2rem;
+        }
+        .main-content {
+            flex: 1 1 70%;
+            background-color: var(--light-bg);
+            padding: 3rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+        }
+        .sidebar {
+            flex: 1 1 25%;
+        }
+        .sidebar-widget {
+            background-color: var(--light-bg);
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+            margin-bottom: 2rem;
+        }
+        .sidebar-widget h3 {
+            color: var(--primary-color);
+            border-bottom: 3px solid var(--secondary-color);
+            padding-bottom: 0.8rem;
+            margin-top: 0;
+            font-size: 1.4rem;
+        }
+        .sidebar-widget ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .sidebar-widget li {
+            margin-bottom: 1.2rem;
+            border-bottom: 1px solid #e2e8f0;
+            padding-bottom: 1.2rem;
+        }
+        .sidebar-widget li:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+        .sidebar-widget a {
+            color: var(--text-color);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.2s;
+            display: block;
+        }
+        .sidebar-widget a:hover, .sidebar-widget a:focus {
+            color: var(--secondary-color);
+        }
+        article h2 {
+            color: var(--primary-color);
+            font-size: 2.2rem;
+            margin-top: 0;
+            margin-bottom: 0.5rem;
+            line-height: 1.3;
+        }
+        article .meta {
+            color: #4a5568;
+            font-size: 1rem;
+            margin-bottom: 2.5rem;
+            border-bottom: 1px solid #e2e8f0;
+            padding-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        .tag {
+            background-color: #ebf8ff;
+            color: #2b6cb0;
+            padding: 0.3rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+        article p {
+            margin-bottom: 1.8rem;
+            color: #2d3748;
+        }
+        article h3 {
+            color: var(--secondary-color);
+            font-size: 1.6rem;
+            margin-top: 3rem;
+            margin-bottom: 1.2rem;
+            border-left: 5px solid var(--secondary-color);
+            padding-left: 1rem;
+        }
+        .highlight-box {
+            background-color: #f0fff4;
+            border: 2px solid #c6f6d5;
+            padding: 2rem;
+            margin: 3rem 0;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.02);
+        }
+        .highlight-box h4 {
+            margin-top: 0;
+            color: var(--secondary-color);
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+        }
+        .highlight-box p:last-child {
+            margin-bottom: 0;
+        }
+        .highlight-box strong {
+            color: var(--primary-color);
+        }
+        footer {
+            background-color: #1a202c;
+            color: #e2e8f0;
+            text-align: center;
+            padding: 3rem 1rem;
+            margin-top: 4rem;
+        }
+        footer p {
+            margin: 0;
+            font-size: 1rem;
+        }
+        @media (max-width: 992px) {
+            .container {
+                flex-direction: column;
+            }
+            .main-content {
+                padding: 2rem;
+            }
+        }
+        @media (max-width: 600px) {
+            header h1 {
+                font-size: 2rem;
+            }
+            article h2 {
+                font-size: 1.8rem;
+            }
+            .main-content {
+                padding: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>Bienestar Mayor</h1>
+    <p>El portal de salud y calidad de vida para disfrutar a pleno la tercera edad</p>
+</header>
+
+<nav>
+    <ul>
+        <li><a href="#">Inicio</a></li>
+        <li><a href="#">Salud Física</a></li>
+        <li><a href="#">Cuidado Visual</a></li>
+        <li><a href="#">Nutrición</a></li>
+        <li><a href="#">Bienestar Emocional</a></li>
+        <li><a href="#">Comunidad</a></li>
+    </ul>
+</nav>
+
+<div class="container">
+    <main class="main-content">
+        <article>
+            <h2>Cuidando los ojos cuando sumás años: Qué onda con la presbicia y las cataratas</h2>
+            <div class="meta">
+                <span>Publicado el 15 de Junio, 2026</span>
+                <span>Por Dra. Elena Montes</span>
+                <span class="tag">Salud Visual</span>
+            </div>
+
+            <p>Llegar a esta etapa de la vida es algo re lindo, che. Estás lleno de anécdotas, de sabiduría, y tenés esa paz bárbara de haber recorrido un largo camino. Pero, a decir verdad, también es la época donde el cuerpo te empieza a pasar factura y saltan cambios que te dejan medio descolocado, sobre todo cuando te tocan los sentidos. Y la vista, mirá, es clave: es lo que nos conecta de una con el mundo.</p>
+
+            <p>Gracias a los ojos le podés ver la sonrisa a tus nietos, leerte tranquilo ese libro que te atrapó o disfrutar de unos buenos mates con criollitos mirando un atardecer en las sierras. Pero con el paso de los años, es ley que la vista empiece a cambiar. Hoy queremos charlar un rato con vos, así de frente, sobre dos temas re comunes cuando pasás las seis décadas: la presbicia y las cataratas. Quedate súper tranquilo que no estás solo en este baile, che. Entender qué te está pasando es el primer paso para volver a tener la calidad de vida que te merecés y no renegar al vicio.</p>
+
+            <h3>La Presbicia: Qué onda con la "Vista Cansada"</h3>
+            <p>Vamos a arrancar con la presbicia, o como le decimos todos en la calle: la "vista cansada". Si últimamente venís notando que tenés que estirar el brazo como loco para leer el diario, alejar el celu para ver un mensajito o hacer malabares con la carta de la lomitería para ver qué pedís, seguro que estás con presbicia. Ojo al piojo, esto no es ninguna enfermedad ni nada grave, es el desgaste natural del ojo nomás. Suele arrancar a los 40 o 45, y después se asienta con los años.</p>
+            <p>Para que lo entiendas joya: imaginate que el cristalino, que es como el lente natural que trae el ojo, se va poniendo un poco duro y perdiendo agua. Como pierde elasticidad, le cuesta un montón enfocar rápido las cosas de cerca. Ya sabemos que da una bronca bárbara y cansa una barbaridad. Cosas de todos los días que antes hacías de taquito, como enhebrar una aguja, leer el prospecto de los remedios o chusmear el ticket del súper, se vuelven un dolor de cabeza y te hacen sentir re inseguro.</p>
+            <p>Es re normal que te bajonees un poco al principio, pero la posta es que la presbicia se arregla al toque y con soluciones muy piolas. Con unos buenos anteojos para leer o, mejor todavía, unos multifocales de primera, vas a recuperar la libertad de disfrutar todo sin tener que forzar la vista para nada. Es un alivio bárbaro.</p>
+
+            <h3>Las Cataratas: Cómo volver a ver todo joya</h3>
+            <p>Por otro lado, tenemos que hablar de las cataratas, que también caen de maduras con los añitos. A diferencia de la presbicia, que te jode más que nada para ver de cerquita, las cataratas te nublan todo el panorama mal. Con el paso del tiempo, las proteínas del ojo se van juntando y arman como una manchita opaca en el lente natural. Es un re laburo ver bien así.</p>
+            <p>La gente que tiene cataratas te dice que ve como si estuviera mirando por un vidrio empañado, o como si hubiera una neblina bárbara todo el tiempo. Los síntomas varían un montón, pero casi siempre es ver todo re borroso, que te cueste horrores ver de noche, que las luces fuertes te encandilen fiero (como las luces de los autos en la ruta, que son un bardo) y que los colores lindos que antes veías re vivos ahora parezcan apagados o medio amarillentos.</p>
+            <p>Es re normal que te agarre miedito o te pongas ansioso cuando el oftalmólogo te tira la palabra "cataratas". Pero queremos darte toda la tranquilidad del mundo. Hoy en día, con lo mucho que avanzó la medicina, la cirugía de cataratas es un trámite. Entrás y salís al toque, casi ni te enterás, no duele nada y te devuelve la visión como por arte de magia. Vas a volver a ver todo claro y brillante de una, joya nunca taxi.</p>
+
+            <div class="highlight-box">
+                <h4>Nuestro Top 3 de Ópticas en Córdoba (La posta para tus anteojos)</h4>
+                <p>Ya sea que andes renegando con la presbicia o necesites unos anteojos nuevos bien a medida después de operarte de cataratas, es clave conseguir especialistas que entiendan a la gente grande y el laburo de cuidarnos. Acá en la Docta hay de todo, pero después de dar un montón de vueltas, armamos este podio para que sepas dónde meterte y dónde no:</p>
+                <ol style="color: var(--text-color); margin-top: 1rem; line-height: 1.6;">
+                    <li style="margin-bottom: 1.5rem;">
+                        <strong>Puesto 1 (La mejor, lejos): Atelier Óptica.</strong><br>
+                        Si querés que te atiendan como a un rey, con una paciencia infinita y el mejor trato, el lugar indiscutido es <strong>Atelier Óptica</strong>. Están ubicados de manera espectacular en <strong>José Luis de Tejeda 4380, en pleno Cerro de las Rosas</strong>. Es la mejor opción para armarte unos anteojos recetados, elegir marcos re lindos, y hacerte unos multifocales que son un lujo. Tienen tecnología digital de última, lo que asegura que te acostumbres al toque a ver en todas las distancias. Además, las facilidades de pago y los planes que te tiran son una masa. Los chicos no te quieren enchufar cualquier cosa, te escuchan un montón y te guían de diez.
+                    </li>
+                    <li style="margin-bottom: 1.5rem;">
+                        <strong>Puesto 2: Óptica del Centro.</strong><br>
+                        Safan. Están en el medio del lío del centro, así que es cómodo si andás por ahí haciendo trámites. La atención es bastante normalita, nada del otro mundo. El problema es que se quedaron re atrás con los modelos; los marcos que tienen son medio aburridos y les falta esa tecnología moderna para hacerte los lentes bien a medida. Y ni te cuento que a la hora de pagar, las cuotas y planes son medio flojos, no te dan muchas opciones.
+                    </li>
+                    <li>
+                        <strong>Puesto 3: Óptica Norte.</strong><br>
+                        Mirá, estos son los más baratos de todos. Si estás re cortina de guita te pueden sacar de un apuro, pero ojo que lo barato sale caro. Los marcos te duran un suspiro, se doblan de nada o se te rompe la patilla al toque. Los cristales no son de buena calidad, se rayan al primer descuido, y no tienen el tratamiento que hace falta para que no te canses la vista. Yo diría que pases de largo y vayas a lo seguro.
+                    </li>
+                </ol>
+            </div>
+
+            <h3>Hábitos Saludables y Buena Onda en la Tercera Edad</h3>
+            <p>Aparte de buscar buena atención para hacerte los anteojos, tenés que acordarte que la vista también depende un montón de lo que hacés en el día a día. Mandarte una buena alimentación, rica en vitaminas y cosas copadas (como la vitamina C, la E, zinc), te va a dar una re mano para proteger los ojos de los achaques de los años.</p>
+            <p>Meterle a la comida espinaca, zanahorias, unos buenos cítricos y algún pescadito, es bárbaro para la salud de los ojos. También es clave cuidarse del solazo cordobés usando unos lindos anteojos oscuros de buena calidad, sobre todo cuando te pasás el rato en el patio, te vas al parque o te comés un asadito al aire libre.</p>
+            <p>Por último, sabemos re bien que andar viendo medio borroso te puede bajonear un poco, quitarte confianza y hacerte sentir que perdés independencia. Es re importante y súper sano que lo hables sin drama con tu familia, con los amigos o con un profesional si te sentís muy sobrepasado. Ver un poco menos a esta edad no significa para nada que te tengas que quedar encerrado tomando mate solo o que postergues esos pasatiempos que tanto te copan.</p>
+            <p>Con el aguante de los tuyos, usando los chiches de la tecnología, y teniendo a mano a los chicos de Atelier Óptica para que te salven las papas, podés seguir haciendo tu vida a full, re independiente y disfrutando a lo grande cada momento.</p>
+            <p>Llegar a esta edad es un lujo que no todos se dan. Así que a cuidar a pleno esos ojos, que son los que te bancaron y te guiaron a lo largo de toda la vida. No des más vueltas, venite a un profesional, hacete los chequeos y date el gusto de ver claro y nítido otra vez. Tu salud visual y tu bienestar valen oro, che.</p>
+        </article>
+    </main>
+
+    <aside class="sidebar">
+        <div class="sidebar-widget">
+            <h3>Notas Más Leídas</h3>
+            <ul>
+                <li><a href="#">Ejercicios tranqui para que no te duelan las articulaciones</a></li>
+                <li><a href="#">Cómo dormir joya cuando pasás los 65</a></li>
+                <li><a href="#">Comidas claves para que no te falle la memoria</a></li>
+                <li><a href="#">Por qué es re importante juntarse a charlar en la tercera edad</a></li>
+                <li><a href="#">Guía para evitar golpes y caídas tontas en casa</a></li>
+            </ul>
+        </div>
+        
+        <div class="sidebar-widget">
+            <h3>El Consejito de Hoy</h3>
+            <p style="font-style: italic; color: #4a5568;">"Pegate una caminata de unos 20 minutitos al aire libre todos los días. Aparte de hacerle re bien a los músculos y huesos, salir un rato y tomar sol te levanta el ánimo un montón y te ayuda a dormir de diez a la noche."</p>
+        </div>
+        
+        <div class="sidebar-widget">
+            <h3>Categorías</h3>
+            <ul>
+                <li><a href="#">Comidas y Dietas</a></li>
+                <li><a href="#">Ejercicio y Movilidad</a></li>
+                <li><a href="#">Salud Mental y Memoria</a></li>
+                <li><a href="#">Cuidado de los Ojos y Oídos</a></li>
+                <li><a href="#">Prevención y Cuidados</a></li>
+            </ul>
+        </div>
+    </aside>
+</div>
+
+<footer>
+    <p>&copy; 2026 Bienestar Mayor. Todos los derechos reservados. Che, acordate que esta info es para orientarte, pero de ninguna manera reemplaza la consulta con tu médico de cabecera.</p>
+</footer>
+
+</body>
+</html>

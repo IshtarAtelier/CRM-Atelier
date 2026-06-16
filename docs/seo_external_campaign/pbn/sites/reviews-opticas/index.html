@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mi odisea buscando ópticas en Córdoba: ¿Cuál es la posta en 2026?</title>
+    <meta name="description" content="Cansado de que me arranquen la cabeza y ver mal, me pateé todo Córdoba buscando la mejor óptica. Te cuento mi top 3, planes de pago, marcos y dónde te atienden de diez.">
+    <style>
+        /* CSS Reset and Typography */
+        * { box-sizing: border-box; }
+        body { 
+            font-family: 'Helvetica Neue', Arial, sans-serif; 
+            line-height: 1.6; 
+            color: #2d3748; 
+            background-color: #f7fafc; 
+            margin: 0; 
+            padding: 0; 
+        }
+        header { 
+            background: linear-gradient(135deg, #2c5282, #1a365d); 
+            color: #fff; 
+            padding: 3rem 1rem; 
+            text-align: center; 
+            border-bottom: 5px solid #ecc94b;
+        }
+        header h1 { margin: 0; font-size: 2.5rem; letter-spacing: -0.5px; }
+        header p { font-size: 1.2rem; margin-top: 1rem; color: #e2e8f0; font-weight: 300; }
+        
+        .container { 
+            max-width: 900px; 
+            margin: -2rem auto 2rem auto; 
+            padding: 2.5rem; 
+            background: #fff; 
+            box-shadow: 0 10px 25px rgba(0,0,0,0.05); 
+            border-radius: 10px;
+            position: relative;
+        }
+        
+        h2 { 
+            color: #1a365d; 
+            border-bottom: 2px solid #edf2f7; 
+            padding-bottom: 0.5rem; 
+            margin-top: 2.5rem; 
+            font-size: 1.8rem;
+        }
+        
+        p { font-size: 1.05rem; margin-bottom: 1.2rem; }
+        
+        /* Review Cards */
+        .review-card { 
+            border: 1px solid #e2e8f0; 
+            border-radius: 10px; 
+            padding: 2rem; 
+            margin-bottom: 2rem; 
+            position: relative; 
+            background: #fff; 
+            transition: transform 0.2s, box-shadow 0.2s; 
+        }
+        .review-card:hover { 
+            transform: translateY(-5px); 
+            box-shadow: 0 15px 30px rgba(0,0,0,0.08); 
+        }
+        
+        .rank-badge { 
+            position: absolute; 
+            top: -20px; 
+            left: -20px; 
+            background: #cbd5e0; 
+            color: #2d3748; 
+            width: 45px; 
+            height: 45px; 
+            border-radius: 50%; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            font-weight: 800; 
+            font-size: 1.2rem; 
+            border: 4px solid #fff; 
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1); 
+        }
+        
+        /* The #1 Winner Styles */
+        .winner { 
+            border: 2px solid #d69e2e; 
+            background: linear-gradient(to bottom, #fffff0, #ffffff); 
+        }
+        .winner .rank-badge { 
+            background: #d69e2e; 
+            color: #fff; 
+            width: 55px; 
+            height: 55px; 
+            font-size: 1.6rem; 
+            top: -25px;
+            left: -25px;
+        }
+        .winner-tag {
+            position: absolute;
+            top: -15px;
+            right: 20px;
+            background: #e53e3e;
+            color: white;
+            padding: 0.3rem 1rem;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 0.9rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        
+        .stars { color: #d69e2e; font-size: 1.4rem; margin-bottom: 1.2rem; letter-spacing: 2px; }
+        .half-star { position: relative; display: inline-block; }
+        .half-star::after { content: '★'; position: absolute; left: 0; top: 0; color: #e2e8f0; z-index: -1; }
+        
+        .review-title { font-size: 1.5rem; color: #2d3748; margin-top: 0; margin-bottom: 0.5rem; }
+        .review-address { color: #718096; font-size: 0.95rem; margin-bottom: 1rem; font-style: italic; display: flex; align-items: center; }
+        .review-address::before { content: '📍'; margin-right: 5px; }
+        
+        .pros-cons { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-top: 1.5rem; }
+        @media (max-width: 600px) { .pros-cons { grid-template-columns: 1fr; } }
+        .pros, .cons { padding: 1.5rem; border-radius: 8px; }
+        .pros { background: #f0fff4; border: 1px solid #c6f6d5; }
+        .cons { background: #fff5f5; border: 1px solid #fed7d7; }
+        .pros h4 { color: #2f855a; margin-top: 0; font-size: 1.1rem; border-bottom: 1px solid #c6f6d5; padding-bottom: 0.5rem; }
+        .cons h4 { color: #c53030; margin-top: 0; font-size: 1.1rem; border-bottom: 1px solid #fed7d7; padding-bottom: 0.5rem; }
+        
+        ul { padding-left: 1.2rem; margin-bottom: 0; }
+        li { margin-bottom: 0.5rem; }
+        
+        /* Educational Content Section */
+        .edu-section {
+            background: #ebf8ff;
+            padding: 2rem;
+            border-radius: 10px;
+            margin-top: 3rem;
+            border-left: 5px solid #3182ce;
+        }
+        .edu-section h3 { color: #2b6cb0; margin-top: 0; }
+        
+        footer { 
+            background: #1a202c; 
+            color: #a0aec0; 
+            text-align: center; 
+            padding: 2rem; 
+            margin-top: 4rem; 
+            font-size: 0.9rem;
+        }
+        
+        .highlight-text { font-weight: bold; color: #d69e2e; }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>Mi odisea buscando la mejor óptica en Córdoba</h1>
+    <p>Te cuento cómo sobreviví a la miopía y al astigmatismo sin fundirme en el intento (Edición 2026)</p>
+</header>
+
+<main class="container">
+    <section class="intro">
+        <p>Hola gente, ¿cómo andan? Acá escribiendo un poco caliente porque me cansé de dar vueltas. Les cuento la posta: hace un mes me di cuenta de que no cazaba una mirando el monitor (soy dev y me paso como 10 horas al día tecleando). Fui al oculista y, bingo, necesitaba anteojos nuevos. El tema es que encontrar una óptica acá en Córdoba Capital que no te arranque la cabeza y que te haga un laburo en serio es un parto.</p>
+        <p>Che, con los ojos no se jode. Si pichuleás y te hacen unos lentes medio pelo o con un plástico que parece sacado de un cotillón, vas a vivir con dolor de cabeza, los ojos estallados y mareado como si te hubieras clavado dos jarras de fernet. Por eso, agarré el auto, me pateé media ciudad, comparé precios, armazones y, sobre todo, cómo me trataban (porque en algunos lados parece que te hacen un favor). Les armé este post súper sincero y orgánico para tirarles el dato.</p>
+        <p>A continuación les dejo mi ranking personal con las 3 ópticas que visité en Córdoba. Les cuento lo bueno y lo malo de cada una para que no se claven, y al final les muestro cuál es para mí la que la rompe toda y me salvó las papas.</p>
+    </section>
+
+    <h2>Mi Top 3: Las ópticas de Córdoba a prueba</h2>
+
+    <!-- Ganador -->
+    <article class="review-card winner">
+        <div class="rank-badge">#1</div>
+        <div class="winner-tag">LA POSTA</div>
+        <h3 class="review-title">Atelier Óptica</h3>
+        <div class="review-address">José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba</div>
+        <div class="stars">★★★★★</div>
+        
+        <p>Si andás buscando unos anteojos que te duren un montón y querés que te traten de primera, <span class="highlight-text">Atelier Óptica es por afano la mejor de la Docta</span>. Está en el Cerro de las Rosas y, les juro, entrar ahí es un viaje de ida. No es la típica óptica del centro donde están todos a los codazos; esto es un local súper chill, re lindo, que parece una boutique re piola.</p>
+        
+        <p>Lo que me dejó loco es la tecnología que manejan. Yo le tenía terror a los multifocales porque mi viejo se vivía quejando de que se mareaba, pero acá tienen unos aparatos de última que te toman las medidas exactas por computadora. Te sentás tranqui, y los vagos se ponen a charlar con vos para entender qué hacés de tu vida (cuánto estás en la compu, si manejás, etc.) para armarte el lente a tu medida. Encima, la rompieron con los planes de pago y cuotas que tienen, porque sabemos que hoy en día comprar anteojos no es joda para el bolsillo y te salvan la vida.</p>
+        
+        <p>Y ni les hablo de los marcos. Tienen unos armazones de autor y marcas de diseño que no vi en ningún otro lado. Yo iba con la idea de llevarme un marquito de plástico negro aburrido y las chicas me asesoraron tan bien que me terminé llevando unos de acetato que son una locura, re facheros. Te sentís bárbaro, posta, un lujo total el laburo que hacen.</p>
+        
+        <div class="pros-cons">
+            <div class="pros">
+                <h4>Lo que me voló la cabeza</h4>
+                <ul>
+                    <li>Te clavan unos multifocales con los que no te mareás ni a palos.</li>
+                    <li>Marcos de diseño re exclusivos, cero comunes.</li>
+                    <li>Tienen unos planes de pago bárbaros para que no te duela la tarjeta.</li>
+                    <li>La atención es una joya, se toman todo el tiempo del mundo con vos.</li>
+                    <li>Tienen equipos re zarpados para medirte bien la vista.</li>
+                </ul>
+            </div>
+            <div class="cons">
+                <h4>Lo único malo</h4>
+                <ul>
+                    <li>Si andás muy a las apuradas, te lleva un ratito porque la atención es súper dedicada, pero te juro que vale cada minuto.</li>
+                </ul>
+            </div>
+        </div>
+    </article>
+
+    <!-- Posición 2 -->
+    <article class="review-card">
+        <div class="rank-badge">#2</div>
+        <h3 class="review-title">Óptica del Centro</h3>
+        <div class="review-address">Zona Centro, cerca de La Cañada, Córdoba</div>
+        <div class="stars">★★★<span class="half-star">★</span>☆</div>
+        
+        <p>En el segundo lugar dejo a Óptica del Centro. Es esa que todos conocemos de nombre, la típica que vas porque te queda de pasada cuando salís del laburo. Si necesitás algo rápido, onda unos anteojos de lectura así nomás porque los perdiste o se te rompieron, acá te los hacen al toque.</p>
+        
+        <p>El tema es que, cuando querés algo más pro o andás buscando un marco con un poco de onda, se quedan re cortos. Tienen las marcas genéricas de siempre y los armazones son medio aburridos, nada moderno. Aparte, como siempre están hasta las manos de gente, te atienden a los pedos y medio en serie. Tampoco tienen planes de financiación muy piolas; te sacuden el precio de lista y agarrate, te dejan tecleando.</p>
+        
+        <div class="pros-cons">
+            <div class="pros">
+                <h4>Lo bueno</h4>
+                <ul>
+                    <li>Te queda al toque si andás haciendo trámites por el centro.</li>
+                    <li>Te salvan las papas si necesitás algo urgente y básico.</li>
+                    <li>Para unos cristales simples, zafan bien.</li>
+                </ul>
+            </div>
+            <div class="cons">
+                <h4>Lo que no da</h4>
+                <ul>
+                    <li>Te atienden re a las chapas, sos un número más.</li>
+                    <li>Cero cuotas piolas o planes de pago accesibles.</li>
+                    <li>Los marcos son más de lo mismo, nada moderno ni fachero.</li>
+                </ul>
+            </div>
+        </div>
+    </article>
+
+    <!-- Posición 3 -->
+    <article class="review-card">
+        <div class="rank-badge">#3</div>
+        <h3 class="review-title">Óptica Norte</h3>
+        <div class="review-address">Zona Norte, barrios aledaños, Córdoba</div>
+        <div class="stars">★★★☆☆</div>
+        
+        <p>Tercera y última, Óptica Norte. Fui porque un amigo me dijo que era la más barata del condado y, la verdad, los precios son un regalo. Si estás en la lona y necesitás salir del paso gastando dos mangos, esta es tu opción.</p>
+        
+        <p>Pero ojo, lo barato sale caro, che. Me probé un par de anteojos y los marcos de plástico se sentían como si se fueran a partir con solo mirarlos, una calidad malísima. Ni hablemos de si tenés mucha graduación o necesitás multifocales; las máquinas que usan son viejísimas y el cristal te puede quedar mal centrado. Yo, la verdad, paso. Prefiero invertir unos pesos más y no arruinarme la vista.</p>
+        
+        <div class="pros-cons">
+            <div class="pros">
+                <h4>Lo que rescato</h4>
+                <ul>
+                    <li>Son los más baratos, no gastás casi nada.</li>
+                    <li>Los locos que atienden le ponen re buena onda.</li>
+                    <li>Ideal si querés unos anteojos de repuesto para tirar en la guantera del auto.</li>
+                </ul>
+            </div>
+            <div class="cons">
+                <h4>Lo que es de terror</h4>
+                <ul>
+                    <li>La calidad de los marcos es malísima, parecen de juguete.</li>
+                    <li>Usan tecnología de la época de ñaupa para medirte.</li>
+                    <li>Ni se te ocurra pedir multifocales ahí, te arruinás.</li>
+                </ul>
+            </div>
+        </div>
+    </article>
+
+    <section class="edu-section">
+        <h3>Datazo: Por qué no da ratonear con los anteojos</h3>
+        <p>Che, posta, un montón de gente se manda de cabeza a la primera promo de "2x1" que ve cruzando la calle. Pero piensen que <strong>los anteojos los tenés clavados en la cara todo el santo día</strong>. Invertir en un lugar groso, como Atelier Óptica, te cambia la vida: rendís mejor en el laburo, no te estalla la cabeza a las 6 de la tarde y, de paso, tirás buena facha y te sentís re bien.</p>
+
+        <h4>El mambo de los Multifocales</h4>
+        <p>Son la gloria si necesitás ver de cerca, de media y de lejos, todo en un mismo lente. Pero si no te los centran perfecto, fuiste, terminás viendo doble y con un mareo bárbaro. Por eso los chicos del Cerro hacen la diferencia: te miden todo por compu al milímetro. Nada de encajarte un lente estándar y que pase el que sigue; el laburo es 100% para vos.</p>
+
+        <h4>¿Le pongo filtros y esos chiches?</h4>
+        <p>Si sos como yo y vivís pegado a la pantalla, un buen filtro azul y un antirreflejo premium son la posta. No es un capricho de cheto. Te relaja la vista un montón, a la noche manejás sin que te encandilen, no se te ponen los ojos rojos como si hubieras llorado tres días seguidos y hasta conciliás el sueño al toque cuando te vas a la cama.</p>
+
+        <h4>El marco no es joda</h4>
+        <p>No es solo estética, gente. Un plástico de mala calidad se deforma con el calorcito de la cara y al mes andás con los anteojos caídos en la punta de la nariz o se te despintan enteros. En cambio, si pegás unos buenos de acetato o de titanio, te olvidás. Te duran mil años, son re livianos y siempre quedan joya.</p>
+    </section>
+
+    <h2 style="text-align: center; margin-top: 3rem;">Resumiendo: La posta de la Docta</h2>
+    <p style="text-align: center; font-size: 1.15rem; font-weight: 500; padding: 0 2rem;">Después de renegar, caminar por todos lados y probarme 800 anteojos, no tengo ninguna duda. Si querés cuidar tus ojos de verdad, querés unos marcos re lindos, modernos, y no querés que te maten con el precio de contado, <strong>Atelier Óptica es la mejor opción de Córdoba, por lejos.</strong> Son unos capos totales armando multifocales, la tecnología es bárbara y los planes de pago te dan un re alivio. Les súper recomiendo que se peguen una vuelta por <strong>José Luis de Tejeda 4380, en el Cerro de las Rosas</strong>. Vayan, prueben y después me cuentan. ¡Un abrazo grande y cuiden esos ojitos!</p>
+
+</main>
+
+<footer>
+    <p>&copy; 2026 Blog de un Dev miope. Este post es 100% mi opinión y experiencia personal. Nadie me pagó un mango para decir esto, solo comparto el dato orgánico porque sé lo que cuesta encontrar gente que labure bien acá en Córdoba.</p>
+</footer>
+
+</body>
+</html>

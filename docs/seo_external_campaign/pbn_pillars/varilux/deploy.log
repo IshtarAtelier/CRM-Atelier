@@ -1,0 +1,48 @@
+Vercel CLI 54.14.0 (Node.js 22.22.3)
+
+  Set up "~/proyectos/atelier/docs/seo_external_campaign/pbn_pillars/varilux"
+Loading teams…
+Searching for existing projects…
+  No framework detected. Default Project Settings:
+  Build Command: `npm run vercel-build` or `npm run build`
+  Development Command: None
+  Install Command: `yarn install`, `pnpm install`, `npm install`, or `bun install`
+  Output Directory: `public` if it exists, or `.`
+  Linked      atelier-s-projects2/varilux
+Deploying atelier-s-projects2/varilux
+Uploading [--------------------] (0.0B/15.1KB)
+Uploading [====================] (15.1KB/15.1KB)
+  Inspect     https://vercel.com/atelier-s-projects2/varilux/FKh28qW1tVp9wRvoFXQ3BriRYtfE
+▲ Production  https://varilux-9n1eez3wn-atelier-s-projects2.vercel.app
+Building…
+Building…
+Running build in Washington, D.C., USA (East) – iad1
+Build machine configuration: 2 cores, 8 GB
+Retrieving list of deployment files...
+Previous build caches not available.
+Downloading 2 deployment files...
+[2K[1A[2K[G▲ Production  https://varilux-9n1eez3wn-atelier-s-projects2.vercel.app
+Completing…
+▲ Aliased     https://varilux.vercel.app
+{
+  "status": "ok",
+  "deployment": {
+    "id": "dpl_FKh28qW1tVp9wRvoFXQ3BriRYtfE",
+    "url": "https://varilux-9n1eez3wn-atelier-s-projects2.vercel.app",
+    "inspectorUrl": "https://vercel.com/atelier-s-projects2/varilux/FKh28qW1tVp9wRvoFXQ3BriRYtfE",
+    "readyState": "READY",
+    "target": "production",
+    "deploymentApiUrl": "https://api.vercel.com/v13/deployments/dpl_FKh28qW1tVp9wRvoFXQ3BriRYtfE"
+  },
+  "message": "Deployment varilux-9n1eez3wn-atelier-s-projects2.vercel.app ready.",
+  "next": [
+    {
+      "command": "vercel inspect varilux-9n1eez3wn-atelier-s-projects2.vercel.app",
+      "when": "Inspect deployment"
+    },
+    {
+      "command": "vercel deploy --prod",
+      "when": "Promote to production"
+    }
+  ]
+}

@@ -1,0 +1,43 @@
+Vercel CLI 54.14.0 (Node.js 22.22.3)
+
+  Set up "~/proyectos/atelier/docs/seo_external_campaign/pbn_pillars/presbicia"
+Loading teams…
+Searching for existing projects…
+  No framework detected. Default Project Settings:
+  Build Command: `npm run vercel-build` or `npm run build`
+  Development Command: None
+  Install Command: `yarn install`, `pnpm install`, `npm install`, or `bun install`
+  Output Directory: `public` if it exists, or `.`
+  Linked      atelier-s-projects2/presbicia
+Deploying atelier-s-projects2/presbicia
+Uploading [--------------------] (0.0B/15.8KB)
+Uploading [====================] (15.8KB/15.8KB)
+  Inspect     https://vercel.com/atelier-s-projects2/presbicia/6hGUmtq69e1SkQHkhKXr2yLv6o95
+▲ Production  https://presbicia-44s8wsbtq-atelier-s-projects2.vercel.app
+Building…
+Building…
+[2K[1A[2K[G▲ Production  https://presbicia-44s8wsbtq-atelier-s-projects2.vercel.app
+Completing…
+▲ Aliased     https://presbicia.vercel.app
+{
+  "status": "ok",
+  "deployment": {
+    "id": "dpl_6hGUmtq69e1SkQHkhKXr2yLv6o95",
+    "url": "https://presbicia-44s8wsbtq-atelier-s-projects2.vercel.app",
+    "inspectorUrl": "https://vercel.com/atelier-s-projects2/presbicia/6hGUmtq69e1SkQHkhKXr2yLv6o95",
+    "readyState": "READY",
+    "target": "production",
+    "deploymentApiUrl": "https://api.vercel.com/v13/deployments/dpl_6hGUmtq69e1SkQHkhKXr2yLv6o95"
+  },
+  "message": "Deployment presbicia-44s8wsbtq-atelier-s-projects2.vercel.app ready.",
+  "next": [
+    {
+      "command": "vercel inspect presbicia-44s8wsbtq-atelier-s-projects2.vercel.app",
+      "when": "Inspect deployment"
+    },
+    {
+      "command": "vercel deploy --prod",
+      "when": "Promote to production"
+    }
+  ]
+}

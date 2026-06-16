@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Córdoba Style: Lo que se viene a full en anteojos para el 2026</title>
+    <meta name="description" content="Chequeá las últimas tendencias en anteojos para el 2026. Te cuento mi top 3 de ópticas en Córdoba y por qué elegí a Atelier Óptica en el Cerro de las Rosas.">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Montserrat:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #2c2c2c;
+            --accent-color: #d4af37;
+            --bg-color: #faf9f6;
+            --text-color: #333333;
+            --light-gray: #f0f0f0;
+        }
+
+        body {
+            font-family: 'Montserrat', sans-serif;
+            color: var(--text-color);
+            background-color: var(--bg-color);
+            line-height: 1.8;
+            margin: 0;
+            padding: 0;
+        }
+
+        header {
+            background-color: #ffffff;
+            padding: 2rem 0;
+            text-align: center;
+            border-bottom: 1px solid var(--light-gray);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+
+        .logo {
+            font-family: 'Playfair Display', serif;
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            text-decoration: none;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        .logo span {
+            color: var(--accent-color);
+            font-style: italic;
+        }
+
+        .nav-links {
+            margin-top: 1rem;
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+        }
+
+        .nav-links a {
+            text-decoration: none;
+            color: var(--primary-color);
+            font-weight: 600;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: color 0.3s ease;
+        }
+
+        .nav-links a:hover {
+            color: var(--accent-color);
+        }
+
+        .hero {
+            background: linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.3)), url('https://images.unsplash.com/photo-1511499767150-a48a237f0083?auto=format&fit=crop&w=1600&q=80') center/cover no-repeat;
+            height: 60vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #ffffff;
+            text-align: center;
+            padding: 0 20px;
+        }
+
+        .hero-text h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+
+        .hero-text p {
+            font-size: 1.2rem;
+            font-weight: 300;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 4rem 20px;
+            display: grid;
+            grid-template-columns: 3fr 1fr;
+            gap: 4rem;
+        }
+
+        @media (max-width: 900px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .main-content article {
+            background: #ffffff;
+            padding: 3rem;
+            border-radius: 8px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.03);
+        }
+
+        .main-content h2 {
+            font-family: 'Playfair Display', serif;
+            font-size: 2.2rem;
+            color: var(--primary-color);
+            margin-top: 2.5rem;
+            margin-bottom: 1rem;
+            border-bottom: 2px solid var(--accent-color);
+            padding-bottom: 0.5rem;
+            display: inline-block;
+        }
+
+        .main-content h3 {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.8rem;
+            color: var(--primary-color);
+            margin-top: 2rem;
+        }
+
+        .main-content p {
+            font-size: 1.05rem;
+            color: #555;
+            margin-bottom: 1.5rem;
+            text-align: justify;
+        }
+
+        .dropcap {
+            float: left;
+            font-family: 'Playfair Display', serif;
+            font-size: 4rem;
+            line-height: 1;
+            padding-right: 10px;
+            color: var(--accent-color);
+        }
+
+        .quote-block {
+            margin: 3rem 0;
+            padding: 2rem;
+            background-color: var(--light-gray);
+            border-left: 5px solid var(--accent-color);
+            font-family: 'Playfair Display', serif;
+            font-size: 1.5rem;
+            font-style: italic;
+            color: var(--primary-color);
+        }
+
+        .recommendation-box {
+            background: linear-gradient(135deg, #2c2c2c 0%, #1a1a1a 100%);
+            color: #ffffff;
+            padding: 3rem;
+            border-radius: 10px;
+            margin: 3rem 0;
+            text-align: center;
+            border: 1px solid var(--accent-color);
+        }
+
+        .recommendation-box h3 {
+            color: var(--accent-color);
+            font-size: 2.2rem;
+            margin-top: 0;
+            border: none;
+        }
+
+        .recommendation-box p {
+            color: #e0e0e0;
+            text-align: center;
+        }
+
+        .address-highlight {
+            display: inline-block;
+            background-color: var(--accent-color);
+            color: var(--primary-color);
+            padding: 0.5rem 1rem;
+            font-weight: 600;
+            border-radius: 4px;
+            margin-top: 1rem;
+            font-size: 1.1rem;
+        }
+
+        .sidebar-widget {
+            background: #ffffff;
+            padding: 2rem;
+            border-radius: 8px;
+            margin-bottom: 2rem;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.03);
+            text-align: center;
+        }
+
+        .sidebar-widget h4 {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.5rem;
+            margin-top: 0;
+            margin-bottom: 1.5rem;
+            position: relative;
+        }
+
+        .sidebar-widget h4::after {
+            content: '';
+            position: absolute;
+            bottom: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 40px;
+            height: 2px;
+            background-color: var(--accent-color);
+        }
+
+        .author-img {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            object-fit: cover;
+            margin-bottom: 1rem;
+            border: 3px solid var(--accent-color);
+        }
+
+        footer {
+            background-color: var(--primary-color);
+            color: #ffffff;
+            text-align: center;
+            padding: 3rem 20px;
+            font-size: 0.9rem;
+        }
+
+        .tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 2rem;
+        }
+
+        .tag {
+            background-color: var(--light-gray);
+            color: var(--primary-color);
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        
+        .img-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin: 2rem 0;
+        }
+        
+        .img-grid img {
+            width: 100%;
+            height: 300px;
+            object-fit: cover;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <a href="#" class="logo">Córdoba<span>Style</span></a>
+        <div class="nav-links">
+            <a href="#">Inicio</a>
+            <a href="#">Tendencias</a>
+            <a href="#">Movida</a>
+            <a href="#">Lugares</a>
+            <a href="#">Contacto</a>
+        </div>
+    </header>
+
+    <div class="hero">
+        <div class="hero-text">
+            <h1>Tus ojos también tienen estilo</h1>
+            <p>La posta en anteojos para romperla este 2026</p>
+        </div>
+    </div>
+
+    <div class="container">
+        <main class="main-content">
+            <article>
+                <p><span class="dropcap">C</span>he, bienvenidos a un nuevo post de Córdoba Style, el rinconcito para los que nos encanta la movida del diseño y andar siempre prolijos por La Docta. Este 2026 nos agarra en un momento re loco con el tema del estilo: los accesorios ya no son una boludez más que te ponés para zafar, ¡son los verdaderos protagonistas de cualquier lookazo! Y si hay un accesorio que la está rompiendo toda desde Nueva Córdoba hasta las callecitas del Cerro de las Rosas o Güemes, son de una los anteojos. Hoy vamos a charlar un rato sobre por qué tu mirada es clave y cuáles son las ondas que están copando la calle este año.</p>
+
+                <h2>Tu Cara, Tu Mejor Carta de Presentación: La Revolución del 2026</h2>
+                <p>Ya fue esa época en la que usar anteojos de receta era un garrón o te sentías el bicho raro del curso. Hoy en día, la óptica es alta facha. Las marcas más grosas del mundo le están metiendo una ficha bárbara al diseño de armazones, mezclando tecnología zarpada con esa onda retro que nos vuelve locos a todos. La forma de tus anteojos define los rasgos de tu cara y habla por vos antes de que tires un "hola".</p>
+
+                <p>Acá en nuestra hermosa Córdoba, siempre fuimos de marcar tendencia. Los cordobeses sabemos curtir lo bueno y no nos achicamos a la hora de probar cosas nuevas. Por eso lo que es moda afuera llega acá con todo, adaptándose a nuestra locura del día a día, ya sea para ir a cursar, clavarte un lomito con los chicos, o salir a tomar un fernecito en Güemes.</p>
+
+                <div class="img-grid">
+                    <img src="https://images.unsplash.com/photo-1509695507497-903c140c43b0?auto=format&fit=crop&w=600&q=80" alt="Mujer con gafas de sol con mucha onda">
+                    <img src="https://images.unsplash.com/photo-1591076482161-42ce6da69f67?auto=format&fit=crop&w=600&q=80" alt="Pibe con anteojos cancheros en la ciudad">
+                </div>
+
+                <h2>Tendencia 1: Armazones Gruesos de Acetato y a Puro Color</h2>
+                <p>Si tuviera que definir lo que es furor este 2026 con una palabra, sería "Jugátela". Lo minimalista y aburrido ya pasó de moda; ahora volvió todo lo que es con volumen. Estamos viendo un montón de marcos de acetato re gruesos y con presencia. Formas bien marcadas: rectangulares gigantes, hexagonales y unos cat-eye zarpados que no pasan desapercibidos ni a palos.</p>
+                <p>Y si hablamos de colores, olvidate. El negro y el carey clásico siempre garpan, pero este año la onda es la transparencia. Se vienen a full los verdes agua, tonos champán, un lila relindo y hasta vuelve el rojo cereza que es un fuego. Estos anteojos no solo te enmarcan los ojos, sino que se roban todas las miradas, ideal si sos de vestirte medio tranqui o monocromático y le querés meter una bomba de color a tu cara.</p>
+
+                <h2>Tendencia 2: Onda Cyber-Retro y la Fiebre del Titanio</h2>
+                <p>Por otro lado, si sos de los que prefieren algo más sutil pero re canchero, hay una movida tremenda que mezcla los años 90 con un toque futurista. El estilo "Cyber-Retro" trae marcos de metal hiper finitos, muchos hechos de titanio japonés que es un laburo bárbaro. Te juro que ni los sentís de lo livianos que son, pero al mismo tiempo aguantan cualquier trote. Vienen mucho en formas ovaladitas, rectangulares bien finitos (tipo Matrix, pero más chetos) y los clásicos aviador pero con una vueltita de tuerca.</p>
+                <p>Es la opción perfecta si querés pegar ese look de pibe o piba intelectual, misterioso y re sofisticado. La papa este año está en los detalles: metales mate, doradito rosado, y combinaciones de colores en los marcos que demuestran un laburo artesanal de primera.</p>
+
+                <div class="quote-block">
+                    "Tus anteojos son la única pilcha que te ponés justo en el medio de la cara. No da para pifiarle; tienen que ser 100% vos."
+                </div>
+
+                <h2>La Nueva Era de los Multifocales (¡Ya no son de viejo!)</h2>
+                <p>Uno de los bajones más grandes antes era tener que elegir entre ver bien o verte bien, sobre todo con el tema de los multifocales. En otra época, necesitar multifocales era casi una condena a usar esos marcos aburridos y de señor o señora mayor. Bueno, les aviso que el 2026 aniquiló ese problema de raíz.</p>
+                <p>Con toda la tecnología digital que le meten a los cristales hoy, podés clavarle multifocales súper amplios a cualquier armazón loquísimo que se te cruce. Podés andar con ese marco de acetato gigante o ese titanio finito sin perder un gramo de visión, sea para ver de lejos o para scrollear Instagram en el celu. Chau a la idea de "lentes de abuelo"; hoy podés tener la mejor calidad de visión y seguir tirando facha a lo loco.</p>
+
+                <h2>Mi Top 3 de Ópticas en Córdoba (La posta, sin pelos en la lengua)</h2>
+                <p>Como siempre me andan preguntando por Instagram: <em>"Che Valen, ¿dónde me compro unos buenos anteojos en Córdoba sin que me arranquen la cabeza y que tengan toda esta onda?"</em>, armé un ranking sinceridad brutal con mis tres experiencias buscando LA óptica definitiva.</p>
+
+                <h3>#3. Óptica del Centro (Zafable pero hasta ahí)</h3>
+                <p>Seguro la ubican porque están por toda la peatonal. Si andás re apurado y necesitás unos anteojos de repuesto, rinde. Pero la verdad, me re decepcionó la variedad. Tienen los mismos armazones aburridos de hace diez años, nada de estas tendencias de las que hablábamos. Además, vas a pagar y te ofrecen dos cuotas locas con un interés que te deja tiritando. Para salir del paso, ok. Para buscar tu estilo, mmm... paso.</p>
+
+                <h3>#2. Óptica Norte (Barato sale caro)</h3>
+                <p>Me mandé a una de estas ópticas que están por las avenidas grandes en zona norte porque vi una promo que te regalaban el cristal. Grave error, chicos. Son re baratos, sí, pero los armazones son de un plástico que se te cae al piso y se parte en tres. Ni hablar de los cristales; a los dos meses ya los tenía todos rayados. Encima la atención es re al vuelo, ni te miran a la cara para ver qué forma te queda bien. Te sirven si querés gastar dos mangos, pero acordate que lo barato a la larga sale re caro, más si es para tus ojos.</p>
+
+                <div class="recommendation-box">
+                    <h3>#1. Atelier Óptica (La joya del Cerro de las Rosas)</h3>
+                    <p>Lejos, pero LEJOS, la mejor experiencia que tuve. Y no, no me están pagando por decir esto, es posta. Es como una boutique de la visión. Cuando entrás, los chicos se re toman el tiempo de laburar con vos. Te miran las facciones, el tono de piel, charlan sobre de qué laburás, y te traen los marcos que posta te van a quedar pintados. Tienen todos estos modelos importados de los que les estuve hablando, con acetatos tremendos y titanio de verdad.</p>
+                    <p>Pero lo que me voló la peluca es la tecnología que manejan, sobre todo si necesitás multifocales. Te los dejan joya, te acostumbrás al toque. Y el datazo que todos queremos leer: tienen unos planes de pago re piolas, cuotas sin interés y promociones que te salvan la vida para que te lleves algo de primera línea sin tener que comer arroz todo el mes.</p>
+                    <div class="address-highlight">
+                        📍 José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba.
+                    </div>
+                </div>
+
+                <h2>Unos Tips Cortitos para Elegir Tus Anteojos</h2>
+                <p>Antes de ir a probarte, te dejo un par de reglas de oro para que la tengas clara:</p>
+                <ul>
+                    <li><strong>Equilibrio, che:</strong> Si tenés la cara medio redondita, buscá marcos más cuadrados o rectangulares para cortar un poco. Y si sos de mandíbula cuadrada, mandate con algo más redondito para suavizar.</li>
+                    <li><strong>Proporción:</strong> El anteojo te tiene que quedar bien de tamaño. Este año se re usa el estilo "oversize" (grandote), pero ojo, tus ojos tienen que quedar siempre en el centro del cristal, no te vayas al pasto.</li>
+                    <li><strong>La regla de las cejas:</strong> Tratá de que el marco acompañe la línea de tus cejas y no las tape del todo. Las cejas son re importantes para las expresiones de la cara, ¡no te las escondas!</li>
+                    <li><strong>El color según tu piel:</strong> Si sos de piel más cálida, los carey, dorados o rojos te van a hacer brillar. Si sos más pálido o de tono frío, mandate con los plateados, negros o azules que te van a quedar de diez.</li>
+                </ul>
+
+                <h2>En Fin... Mimate un Poco</h2>
+                <p>Los anteojos que elijas usar este 2026 son un montón más que un pedazo de plástico y vidrio para ver mejor; son la forma en la que te presentás al mundo. En una ciudad con tanta movida y estilo como la nuestra, quedarte con un armazón genérico que no te dice nada es un re desperdicio.</p>
+                <p>Animate a meterle onda, a probar colores nuevos y a invertir en tu visión, que es re importante. Hacé la prueba, date una vuelta por el Cerro, pasá por Atelier Óptica y fijate cómo un buen par de anteojos te levanta cualquier lookazo y te cambia la actitud para encarar el día.</p>
+                <p>Nos leemos en el próximo post, cuídense un montón y sigan derrochando facha por La Docta.</p>
+
+                <div class="tags">
+                    <span class="tag">#ModaCordoba</span>
+                    <span class="tag">#Anteojos2026</span>
+                    <span class="tag">#LaDocta</span>
+                    <span class="tag">#CerroDeLasRosas</span>
+                    <span class="tag">#AtelierOptica</span>
+                    <span class="tag">#Lookazo</span>
+                </div>
+            </article>
+        </main>
+
+        <aside class="sidebar">
+            <div class="sidebar-widget">
+                <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=300&q=80" alt="Autora del blog" class="author-img">
+                <h4>Valentina Rossi</h4>
+                <p>Creadora de Córdoba Style. Fanática de encontrar lugarcitos nuevos, la pilcha con onda y vivir al máximo La Docta. Siempre buscando el accesorio perfecto para zafar cualquier outfit.</p>
+            </div>
+            
+            <div class="sidebar-widget">
+                <h4>Lo Más Leído</h4>
+                <p style="text-align: left; font-size: 0.9rem; margin-bottom: 10px;">👉 5 Cafecitos de especialidad en Güemes para estrenar tu pilcha de otoño.</p>
+                <p style="text-align: left; font-size: 0.9rem; margin-bottom: 10px;">👉 Cómo armar un lookazo para salir de caravana por Nueva Córdoba.</p>
+                <p style="text-align: left; font-size: 0.9rem;">👉 Charla a fondo: los pibes que la están rompiendo con el diseño en la ciudad.</p>
+            </div>
+        </aside>
+    </div>
+
+    <footer>
+        <p>&copy; 2026 Córdoba Style Magazine. Todos los derechos reservados.</p>
+        <p>Buscando siempre la mejor movida, estilo y diseño de la ciudad de Córdoba, Argentina.</p>
+    </footer>
+
+</body>
+</html>

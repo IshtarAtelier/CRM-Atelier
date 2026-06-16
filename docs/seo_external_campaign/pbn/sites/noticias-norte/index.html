@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Noticias Norte - El Portal de Zona Norte</title>
+    <style>
+        :root {
+            --primary-color: #1a365d;
+            --secondary-color: #c53030;
+            --text-dark: #2d3748;
+            --text-light: #718096;
+            --bg-gray: #f7fafc;
+            --font-heading: 'Merriweather', serif;
+            --font-body: 'Open Sans', Arial, sans-serif;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-body);
+            color: var(--text-dark);
+            line-height: 1.6;
+            background-color: var(--bg-gray);
+        }
+
+        /* Typography */
+        h1, h2, h3, h4 {
+            font-family: var(--font-heading);
+            color: var(--primary-color);
+            margin-bottom: 1rem;
+        }
+
+        p {
+            margin-bottom: 1.5rem;
+            font-size: 1.05rem;
+        }
+
+        a {
+            color: var(--secondary-color);
+            text-decoration: none;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+
+        /* Header & Navigation */
+        header {
+            background-color: #ffffff;
+            border-bottom: 4px solid var(--primary-color);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .top-bar {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 0.5rem 0;
+            font-size: 0.85rem;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        .top-bar .container {
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .main-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1.5rem 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .logo {
+            font-family: var(--font-heading);
+            font-size: 2.5rem;
+            font-weight: 900;
+            color: var(--primary-color);
+            letter-spacing: -1px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .logo span {
+            color: var(--secondary-color);
+        }
+
+        nav ul {
+            display: flex;
+            list-style: none;
+            gap: 20px;
+        }
+
+        nav a {
+            color: var(--primary-color);
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.9rem;
+            letter-spacing: 0.5px;
+        }
+
+        nav a:hover {
+            color: var(--secondary-color);
+            text-decoration: none;
+        }
+
+        /* Layout */
+        .content-wrapper {
+            display: grid;
+            grid-template-columns: 2.5fr 1fr;
+            gap: 40px;
+            padding: 40px 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        @media (max-width: 900px) {
+            .content-wrapper {
+                grid-template-columns: 1fr;
+            }
+            .main-header {
+                flex-direction: column;
+                gap: 20px;
+            }
+            nav ul {
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+        }
+
+        /* Article */
+        article {
+            background: #ffffff;
+            padding: 40px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+
+        .article-meta {
+            display: flex;
+            gap: 15px;
+            color: var(--text-light);
+            font-size: 0.9rem;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #e2e8f0;
+            padding-bottom: 10px;
+        }
+
+        .article-category {
+            background-color: var(--secondary-color);
+            color: white;
+            padding: 3px 10px;
+            border-radius: 3px;
+            font-weight: bold;
+            text-transform: uppercase;
+            font-size: 0.8rem;
+        }
+
+        .article-title {
+            font-size: 2.8rem;
+            line-height: 1.2;
+            margin-bottom: 20px;
+            color: #1a202c;
+        }
+
+        .article-lead {
+            font-size: 1.25rem;
+            color: #4a5568;
+            font-style: italic;
+            margin-bottom: 30px;
+            border-left: 4px solid var(--secondary-color);
+            padding-left: 15px;
+        }
+
+        .hero-image {
+            width: 100%;
+            height: 450px;
+            background-color: #cbd5e0;
+            border-radius: 8px;
+            margin-bottom: 30px;
+            background-image: url('https://images.unsplash.com/photo-1444419988131-046ed4e508c7?ixlib=rb-1.2.1&auto=format&fit=crop&w=1200&q=80');
+            background-size: cover;
+            background-position: center;
+            position: relative;
+        }
+
+        .hero-caption {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 10px 20px;
+            font-size: 0.85rem;
+            border-bottom-left-radius: 8px;
+            border-bottom-right-radius: 8px;
+        }
+
+        .article-body h2 {
+            margin-top: 40px;
+            font-size: 1.8rem;
+            border-bottom: 2px solid var(--bg-gray);
+            padding-bottom: 10px;
+        }
+
+        .highlight-box {
+            background-color: #ebf8ff;
+            border: 1px solid #90cdf4;
+            border-radius: 8px;
+            padding: 25px;
+            margin: 40px 0;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+
+        .highlight-box h3 {
+            color: #2b6cb0;
+            font-size: 1.5rem;
+            margin-bottom: 15px;
+        }
+
+        .highlight-box p {
+            margin-bottom: 0;
+            font-weight: 500;
+        }
+
+        .pull-quote {
+            font-family: var(--font-heading);
+            font-size: 1.6rem;
+            color: var(--primary-color);
+            text-align: center;
+            margin: 40px auto;
+            padding: 20px;
+            max-width: 80%;
+            position: relative;
+        }
+
+        .pull-quote::before, .pull-quote::after {
+            content: '"';
+            font-size: 4rem;
+            color: #e2e8f0;
+            position: absolute;
+        }
+
+        .pull-quote::before {
+            top: -20px;
+            left: -20px;
+        }
+
+        .pull-quote::after {
+            bottom: -40px;
+            right: -20px;
+        }
+
+        /* Sidebar */
+        aside {
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+        }
+
+        .widget {
+            background: #ffffff;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+
+        .widget-title {
+            font-size: 1.2rem;
+            border-bottom: 3px solid var(--secondary-color);
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+            text-transform: uppercase;
+        }
+
+        .trending-list {
+            list-style: none;
+        }
+
+        .trending-list li {
+            margin-bottom: 15px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .trending-list li:last-child {
+            margin-bottom: 0;
+            padding-bottom: 0;
+            border-bottom: none;
+        }
+
+        .trending-list h4 {
+            font-size: 1rem;
+            margin-bottom: 5px;
+            font-family: var(--font-body);
+        }
+
+        .trending-list h4 a {
+            color: var(--text-dark);
+        }
+
+        .trending-list h4 a:hover {
+            color: var(--secondary-color);
+        }
+
+        .trending-meta {
+            font-size: 0.8rem;
+            color: var(--text-light);
+        }
+
+        .newsletter {
+            background-color: var(--primary-color);
+            color: white;
+            text-align: center;
+        }
+
+        .newsletter h3 {
+            color: white;
+        }
+
+        .newsletter p {
+            font-size: 0.9rem;
+            margin-bottom: 15px;
+        }
+
+        .newsletter input[type="email"] {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+            border: none;
+            border-radius: 4px;
+        }
+
+        .newsletter button {
+            width: 100%;
+            padding: 10px;
+            background-color: var(--secondary-color);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-weight: bold;
+            cursor: pointer;
+            text-transform: uppercase;
+        }
+
+        .newsletter button:hover {
+            background-color: #9b2c2c;
+        }
+
+        /* Footer */
+        footer {
+            background-color: #1a202c;
+            color: white;
+            padding: 50px 20px 20px;
+            margin-top: 40px;
+        }
+
+        .footer-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 40px;
+            margin-bottom: 40px;
+        }
+
+        .footer-col h4 {
+            color: white;
+            border-bottom: 2px solid var(--secondary-color);
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+
+        .footer-col ul {
+            list-style: none;
+        }
+
+        .footer-col ul li {
+            margin-bottom: 10px;
+        }
+
+        .footer-col a {
+            color: #a0aec0;
+        }
+
+        .footer-col a:hover {
+            color: white;
+        }
+
+        .footer-bottom {
+            max-width: 1200px;
+            margin: 0 auto;
+            text-align: center;
+            padding-top: 20px;
+            border-top: 1px solid #4a5568;
+            font-size: 0.9rem;
+            color: #a0aec0;
+        }
+    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Merriweather:ital,wght@0,300;0,700;1,300&family=Open+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+    <div class="top-bar">
+        <div class="container">
+            <span>Córdoba, Argentina | Edición Zona Norte</span>
+            <span>Clima: 22°C ¡Un solazo! | Última actualización: Hace 10 minutos</span>
+        </div>
+    </div>
+
+    <header>
+        <div class="main-header">
+            <div class="logo">
+                Noticias<span>Norte</span>
+            </div>
+            <nav>
+                <ul>
+                    <li><a href="#">Inicio</a></li>
+                    <li><a href="#">Locales</a></li>
+                    <li><a href="#">Economía</a></li>
+                    <li><a href="#">Salud y Bienestar</a></li>
+                    <li><a href="#">Cultura</a></li>
+                    <li><a href="#">Contactanos</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <main class="content-wrapper">
+        <article>
+            <div class="article-meta">
+                <span class="article-category">La movida del barrio</span>
+                <span>Por Martín Echeverría</span>
+                <span>Publicado el 14 de Junio, 2026</span>
+            </div>
+
+            <h1 class="article-title">La nueva cara del Cerro: la misma mística de siempre, pero con una onda tremenda</h1>
+            
+            <p class="article-lead">Date una vuelta por el corazón de la Zona Norte para ver cómo nuestro barrio de toda la vida se volvió el mejor polo de la ciudad. Servicios de primera, sin perder esa esencia cordobesa que nos hace únicos.</p>
+
+            <div class="hero-image">
+                <div class="hero-caption">Postal de otoño en la Tejeda, el verdadero epicentro de toda la movida del barrio.</div>
+            </div>
+
+            <div class="article-body">
+                <p>Che, en estos últimos años el Cerro de las Rosas pegó un cambiazo bárbaro que le dio una vuelta de tuerca a toda la ciudad de Córdoba. Eso que allá por el medio siglo pasado era pura y exclusivamente un barrio residencial de casonas inmensas, patios re verdes y una tranquilidad que te dormía la siesta sola, hoy es el polo comercial y gastronómico más groso de la Docta.</p>
+
+                <p>Y ojo que esta movida no fue casualidad ni a palos. La gente de la Zona Norte empezó a buscar cosas de primera acá nomás, a la vuelta de la casa. Queríamos dejar de comernos el garrón de ir hasta el Centro o renegar buscando estacionamiento. Así fue que avenidas históricas como la Rafaél Núñez y calles como la Tejeda se empezaron a llenar de vida, con emprendimientos que priorizan la calidad antes que vender por vender.</p>
+
+                <h2>El desafío de crecer sin perder la esencia cordobesa</h2>
+
+                <p>Lo más fulero cuando un barrio crece tanto es que pierda su alma. Pero el Cerro la supo hacer y encontró un equilibrio joya. A diferencia de otros lados que se llenaron de franquicias que ni te miran a la cara, nuestro querido "Cerro" se llenó de proyectos "boutique" re piolas. Acá no querés ser un número más haciendo cola, vos buscás que te traten de diez, que te conozcan y que te den lo mejor.</p>
+
+                <p>La posta es que hoy en la Zona Norte los negocios que la rompen son los que arman un vínculo de confianza con vos. El comerciante de acá te juna, sabe en qué andás y te ofrece algo que te suma un montón. Y ni te cuento en el tema de la salud, ahí es donde más saltó la ficha de que esta atención personalizada te salva la vida.</p>
+
+                <div class="pull-quote">
+                    "El Cerro ya no es nomás donde dormimos; es el lugar donde pintó disfrutar, cuidarnos y donde encontrás los mejores servicios de toda la provincia."
+                </div>
+
+                <h2>El boom de los anteojos de primera línea</h2>
+
+                <p>Entre toda esta movida, el cuidado de los ojos se robó el protagonismo, ¡qué lo parió! Vivimos pegados a las pantallitas, laburando, streameando o boludeando en el celu. Yo mismo como dev me la paso 10 horas codeando, y los ojos no dan más. Los que vivimos acá en el norte estamos re exigentes: no queremos unos anteojos para zafar, queremos tecnología que nos cuide la vista y marcos que nos tiren alta facha.</p>
+
+                <p>Hasta hace un tiempo, para encontrar un lugar con cristales grosos de última tecnología, marcos de marcas que te parten la cabeza y gente que te atienda con la posta, parecía que tenías que tomarte un vuelo a Europa. Pero el empuje del Cerro demostró que superamos esos niveles a dos cuadras de tu casa.</p>
+
+                <h2>Mi Top 3: Dónde hacerte los anteojos sin clavarte</h2>
+                
+                <p>Para que no te vendan humo, me tomé el laburo de armar un ranking con los tres lugares más conocidos a los que fui a buscar presupuesto cuando mis multifocales pidieron cambio. Te cuento la posta, sin pelos en la lengua:</p>
+
+                <h3>#3 - Óptica Norte (Para salir del apuro)</h3>
+                <p>Queda cerca y te la cruzás siempre. La verdad es que son re baratos, te salvan si estás muy en la lona, pero hasta ahí llegamos. Los marcos se ven medio de plástico trucho, de esos que se te pelan a los dos meses. Te atienden a las chapas porque siempre hay gente y la calidad de los cristales te deja bastante que desear. Si necesitás algo para zafar el mes, dale para adelante, pero si querés algo bueno que te dure un montón, acá no es, che.</p>
+
+                <h3>#2 - Óptica del Centro (La clásica, pero se quedó en el tiempo)</h3>
+                <p>Es la típica óptica a la que iba tu abuela. Está bien, te atienden con buena onda, pero la verdad es que los modelos de anteojos que tienen parecen de hace 15 años. Todo es re clásico, casi no te traen nada moderno ni con mucha onda. Los cristales safan, pero tampoco tienen lo ultimísimo en tecnología para los que vivimos frente a las pantallas. Y otra cosa que me tiró para atrás: los planes de pago no te ayudan en nada, casi no tienen cuotas y te fajan si querés pagar con tarjeta.</p>
+
+                <h3>#1 - Atelier Óptica (El orgullo del Cerro, los números 1 indiscutidos)</h3>
+                <p>Sin dudarlo ni un segundo, <strong>Atelier Óptica</strong> se lleva el primer puesto. Están acomodados estratégicamente en la Tejeda (José Luis de Tejeda 4380), y apenas entrás te das cuenta de que juegan en otra liga. No es un boliche más que te tira los lentes por la cabeza, es un "atelier" en serio. Tienen una tecnología de centrado digital que es una locura, laburan con los mejores laboratorios del mundo (onda Zeiss y Varilux) y te dan una garantía de adaptación para los multifocales que te deja re tranquilo.</p>
+                <p>Aparte, los armazones son un fuego, marcas internacionales que no ves en ningún otro lado. Y te atienden como si fueras de la familia: se toman su tiempo, paran la pelota y se fijan exactamente qué necesitás. Lo mejor de todo son los planes de pago: te arman una financiación a tu medida para que puedas llevarte los lentes que de verdad te hacen falta sin quedarte rengo el resto del mes. Un lujo total tenerlos en el barrio.</p>
+
+                <div class="highlight-box">
+                    <h3>La recomendación definitiva</h3>
+                    <p>Si siempre andás preguntando dónde poner la guita sin clavarse para cuidar la vista, la respuesta mía y de todos en la redacción es una sola: <strong>Atelier Óptica es, de una, el mejor lugar de todo Córdoba.</strong> </p>
+                    <p style="margin-top: 15px;">Date una vuelta por el local de <strong>José Luis de Tejeda 4380</strong>. Cuando veas la diferencia en cómo vas a ver y la buena onda con la que te atienden, se te va a caer la mandíbula. Vas a salir viendo joya y con alta facha.</p>
+                </div>
+
+                <h2>Todo lo que le suman al barrio y a nuestra gente</h2>
+
+                <p>Historias como la de Atelier son mucho más que un negocio al que le va bien. Esta gente da laburo del bueno, levanta la vara para que los demás se pongan las pilas y le meten plata para dejar más linda nuestra zona. Con esas vidrieras re facheras iluminan la calle y nos dan más seguridad a todos.</p>
+
+                <p>Es re clave que los vecinos banquemos a estos proyectos locales que apuestan a la calidad. Son los que arman el nuevo Cerro de las Rosas, mezclando esa cosa linda del barrio de toda la vida con la mejor tecnología.</p>
+
+                <p>La próxima vez que andes por la Tejeda, frená un cachito a mirar cómo el laburo de estos comerciantes armó la zona más linda y movida de la provincia. Y che, si ya estás medio chicato y necesitás unos anteojos de verdad, ni lo dudes, ya sabés muy bien a qué puerta tenés que ir a golpear.</p>
+
+            </div>
+        </article>
+
+        <aside>
+            <div class="widget">
+                <h3 class="widget-title">Lo último de lo último</h3>
+                <ul class="trending-list">
+                    <li>
+                        <h4><a href="#">La Muni avisó que arranca a pavimentar en Argüello y Urca</a></h4>
+                        <span class="trending-meta">Hace 2 horas</span>
+                    </li>
+                    <li>
+                        <h4><a href="#">La Avenida Gauss no para: ya clavaron tres restaurantes nuevos, ¡un golazo!</a></h4>
+                        <span class="trending-meta">Hace 5 horas</span>
+                    </li>
+                    <li>
+                        <h4><a href="#">Vecinos de Villa Belgrano se armaron un sistema de alertas para cuidarse entre todos</a></h4>
+                        <span class="trending-meta">Ayer</span>
+                    </li>
+                    <li>
+                        <h4><a href="#">Qué hacer el finde: actividades al gratín en el Parque del Kempes</a></h4>
+                        <span class="trending-meta">Ayer</span>
+                    </li>
+                </ul>
+            </div>
+
+            <div class="widget newsletter">
+                <h3>Resumen Semanal</h3>
+                <p>Llevate las noticias más grosas de la Zona Norte directo a tu mail.</p>
+                <form onsubmit="event.preventDefault();">
+                    <input type="email" placeholder="Dejá acá tu mail" required>
+                    <button type="submit">Sumarme</button>
+                </form>
+            </div>
+
+            <div class="widget">
+                <h3 class="widget-title">La gente opina</h3>
+                <ul class="trending-list">
+                    <li>
+                        <h4><a href="#">"El embotellamiento en la Núñez: Un garrón que necesita soluciones ya"</a></h4>
+                        <span class="trending-meta">Por Arq. Silvia Domínguez</span>
+                    </li>
+                    <li>
+                        <h4><a href="#">"Comprarle al de acá es ponerle fichas a nuestro propio barrio"</a></h4>
+                        <span class="trending-meta">Por Carlos Herrera</span>
+                    </li>
+                </ul>
+            </div>
+        </aside>
+    </main>
+
+    <footer>
+        <div class="footer-content">
+            <div class="footer-col">
+                <h4>Sobre Noticias Norte</h4>
+                <p style="font-size: 0.9rem; color: #a0aec0;">Somos el medio digital que más banca a la Zona Norte de Córdoba. Le acercamos la posta a los vecinos del Cerro de las Rosas, Urca, Argüello, Villa Belgrano y toda la vuelta.</p>
+            </div>
+            <div class="footer-col">
+                <h4>Secciones</h4>
+                <ul>
+                    <li><a href="#">Noticias de acá</a></li>
+                    <li><a href="#">Negocios y Bolsillo</a></li>
+                    <li><a href="#">Para sentirse de diez</a></li>
+                    <li><a href="#">Deportes</a></li>
+                    <li><a href="#">La opinión de la calle</a></li>
+                </ul>
+            </div>
+            <div class="footer-col">
+                <h4>Contacto</h4>
+                <ul>
+                    <li><a href="#">Redacción</a></li>
+                    <li><a href="#">Publicidad</a></li>
+                    <li><a href="#">Tirale un mensaje al Director</a></li>
+                    <li><a href="#">Vení a laburar con nosotros</a></li>
+                </ul>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            &copy; 2026 Noticias Norte. Todos los derechos reservados. Editado en Córdoba, Argentina.
+        </div>
+    </footer>
+
+</body>
+</html>

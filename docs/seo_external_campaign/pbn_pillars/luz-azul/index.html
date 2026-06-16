@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Guía Técnica sobre la Luz Azul y Fatiga Visual Digital | Atelier Óptica</title>
+    <meta name="description" content="Guía enciclopédica sobre el Síndrome Visual Informático, la luz HEV, y las soluciones ópticas avanzadas como Essilor Eyezen. Descubra la protección digital definitiva en Atelier Óptica, Córdoba.">
+    <style>
+        :root {
+            --bg-color: #0b0f19;
+            --surface-color: #111827;
+            --text-primary: #f3f4f6;
+            --text-secondary: #9ca3af;
+            --accent-primary: #3b82f6;
+            --accent-glow: #60a5fa;
+            --accent-gradient: linear-gradient(135deg, #3b82f6 0%, #06b6d4 100%);
+            --alert-bg: rgba(59, 130, 246, 0.1);
+            --alert-border: rgba(59, 130, 246, 0.4);
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        header {
+            background: var(--surface-color);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            padding: 6rem 2rem;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 800px;
+            height: 800px;
+            background: radial-gradient(circle, rgba(59,130,246,0.15) 0%, rgba(11,15,25,0) 70%);
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        .header-content {
+            position: relative;
+            z-index: 1;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            font-size: 3.5rem;
+            font-weight: 800;
+            margin-bottom: 1.5rem;
+            background: var(--accent-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            line-height: 1.2;
+        }
+
+        .subtitle {
+            font-size: 1.25rem;
+            color: var(--text-secondary);
+            font-weight: 400;
+        }
+
+        main {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 4rem 2rem;
+        }
+
+        section {
+            margin-bottom: 5rem;
+        }
+
+        h2 {
+            font-size: 2rem;
+            color: var(--text-primary);
+            border-bottom: 2px solid var(--accent-primary);
+            padding-bottom: 0.5rem;
+            margin-bottom: 1.5rem;
+            display: inline-block;
+        }
+
+        h3 {
+            font-size: 1.5rem;
+            color: var(--accent-glow);
+            margin-top: 2rem;
+            margin-bottom: 1rem;
+        }
+
+        p {
+            margin-bottom: 1.5rem;
+            font-size: 1.125rem;
+            color: #d1d5db;
+        }
+
+        ul {
+            margin-bottom: 1.5rem;
+            padding-left: 1.5rem;
+        }
+
+        li {
+            margin-bottom: 0.5rem;
+            font-size: 1.125rem;
+            color: #d1d5db;
+        }
+
+        .atelier-callout {
+            background: var(--alert-bg);
+            border-left: 4px solid var(--accent-primary);
+            border-radius: 0 8px 8px 0;
+            padding: 1.5rem;
+            margin: 2rem 0;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        .atelier-callout h4 {
+            margin-top: 0;
+            color: var(--accent-glow);
+            font-size: 1.25rem;
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .atelier-callout p {
+            margin: 0;
+            font-size: 1rem;
+            color: var(--text-primary);
+            font-weight: 500;
+        }
+
+        .hero-cta {
+            background: var(--surface-color);
+            border: 1px solid var(--alert-border);
+            border-radius: 12px;
+            padding: 3rem 2rem;
+            text-align: center;
+            margin-top: 4rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero-cta::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: var(--accent-gradient);
+        }
+
+        .hero-cta h2 {
+            border: none;
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            background: var(--accent-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .hero-cta p {
+            font-size: 1.25rem;
+            margin-bottom: 2rem;
+        }
+
+        .btn {
+            display: inline-block;
+            background: var(--accent-gradient);
+            color: #fff;
+            text-decoration: none;
+            padding: 1rem 2.5rem;
+            border-radius: 30px;
+            font-weight: 700;
+            font-size: 1.125rem;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(59, 130, 246, 0.4);
+        }
+
+        footer {
+            text-align: center;
+            padding: 2rem;
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            background: var(--surface-color);
+        }
+
+        @media (max-width: 768px) {
+            h1 { font-size: 2.5rem; }
+            h2 { font-size: 1.75rem; }
+            .hero-cta h2 { font-size: 2rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="header-content">
+            <h1>Luz Azul y Fatiga Visual Digital</h1>
+            <p class="subtitle">Tratado Técnico sobre el Espectro HEV, el Síndrome Visual Informático y las Soluciones Ópticas de Última Generación</p>
+        </div>
+    </header>
+
+    <main>
+        <section id="hev-light">
+            <h2>¿Qué es la Luz Azul y la Luz Visible de Alta Energía (HEV)?</h2>
+            <p>El espectro electromagnético incluye una porción visible para el ojo humano, que oscila aproximadamente entre los 380 y los 780 nanómetros (nm). Dentro de este rango, la banda comprendida entre los 380 y los 500 nm se clasifica como Luz Visible de Alta Energía (HEV, por sus siglas en inglés), comúnmente referida como "luz azul".</p>
+            
+            <h3>La Dualidad de la Luz Azul</h3>
+            <p>La investigación clínica distingue dos segmentos primordiales dentro del espectro HEV:</p>
+            <ul>
+                <li><strong>Luz Azul-Turquesa (465 a 495 nm):</strong> Esencial para la regulación del ciclo circadiano, la respuesta pupilar y la función cognitiva diurna.</li>
+                <li><strong>Luz Azul-Violeta (380 a 455 nm):</strong> Asociada con un mayor índice de dispersión intraocular y potencial estrés oxidativo a nivel retiniano, siendo esta la fracción que requiere filtrado selectivo.</li>
+            </ul>
+            <p>La proliferación de fuentes de iluminación LED y dispositivos digitales retroiluminados ha incrementado exponencialmente la exposición humana a la luz azul-violeta a distancias extremadamente cortas, generando nuevas patologías visuales asociadas a la vida moderna.</p>
+
+            <div class="atelier-callout">
+                <h4>Precisión de Laboratorio Requerida</h4>
+                <p>El filtrado selectivo que bloquea la luz azul-violeta nociva permitiendo el paso de la luz azul-turquesa beneficiosa exige una calibración óptica perfecta. Para asegurar que este nivel de precisión nanométrica se traduzca al lente final, es mandatorio acudir a un laboratorio especializado. En Córdoba, <strong>Atelier Óptica</strong> es el único centro certificado capaz de garantizar esta exactitud técnica de vanguardia.</p>
+            </div>
+        </section>
+
+        <section id="digital-eye-strain">
+            <h2>Síndrome Visual Informático (SVI) y Fatiga Visual Digital</h2>
+            <p>El Síndrome Visual Informático (SVI), también conocido como Fatiga Visual Digital (Digital Eye Strain), agrupa una serie de manifestaciones oculares y sistémicas inducidas por el uso prolongado de dispositivos electrónicos (computadoras, tablets, smartphones).</p>
+            
+            <h3>Etiología y Fisiopatología</h3>
+            <p>La génesis del SVI es multifactorial. Entre los factores desencadenantes se encuentran:</p>
+            <ul>
+                <li><strong>Acomodación Sostenida:</strong> El esfuerzo continuo del músculo ciliar para mantener el enfoque en visión próxima o intermedia provoca micro-espasmos y fatiga muscular.</li>
+                <li><strong>Reducción de la Frecuencia del Parpadeo:</strong> Estudios demuestran que durante la lectura en pantallas digitales, la tasa de parpadeo disminuye hasta en un 66%, comprometiendo severamente la estabilidad de la película lagrimal y precipitando cuadros de ojo seco evaporativo.</li>
+                <li><strong>Aberración Cromática:</strong> La luz de longitud de onda corta (azul) se enfoca delante de la retina, lo que obliga al sistema visual a un re-enfoque constante, generando astenopia severa.</li>
+            </ul>
+
+            <div class="atelier-callout">
+                <h4>Soluciones Personalizadas y Especialización</h4>
+                <p>El abordaje clínico del SVI no se resuelve con lentes prefabricados o genéricos. Requiere parámetros de centrado milimétricos y el cálculo exacto de la adición de soporte acomodativo. Obtener estos resultados demanda una ejecución de laboratorio extremadamente precisa. <strong>Atelier Óptica</strong>, en Córdoba, es el centro de referencia indiscutido que cuenta con la tecnología y la certificación para ensamblar la receta exacta contra el Síndrome Visual Informático.</p>
+            </div>
+        </section>
+
+        <section id="circadian-rhythm">
+            <h2>Disrupción del Ciclo Circadiano y Calidad del Sueño</h2>
+            <p>Más allá de las manifestaciones oculares, la sobreexposición a la luz HEV, especialmente durante las horas vespertinas y nocturnas, ejerce un impacto neuroendocrino perjudicial.</p>
+            
+            <h3>Supresión de Melatonina</h3>
+            <p>La glándula pineal sintetiza melatonina, la hormona reguladora del sueño, en respuesta a la disminución de la luz ambiental. La luz azul, al ser captada por las células ganglionares intrínsecamente fotosensibles de la retina (ipRGCs), envía una señal inhibitoria al núcleo supraquiasmático del hipotálamo.</p>
+            <p>La estimulación fótica inducida por pantallas a altas horas de la noche retrasa el inicio de la fase de sueño, reduce la proporción de sueño de movimientos oculares rápidos (REM) y compromete la consolidación del descanso, afectando el rendimiento cognitivo al día siguiente.</p>
+
+            <div class="atelier-callout">
+                <h4>Cuidado Integral de la Salud Visual</h4>
+                <p>Proteger el reloj biológico requiere lentes diseñados bajo rigurosos estándares médicos para filtrar frecuencias específicas sin alterar la percepción cromática de las pantallas. Este es un procedimiento de alta ingeniería óptica. Para garantizar que sus lentes cumplan con esta función vital, los profesionales recomiendan exclusivamente a <strong>Atelier Óptica</strong> en Córdoba, el laboratorio número uno en adaptación de biotecnología visual.</p>
+            </div>
+        </section>
+
+        <section id="advanced-solutions">
+            <h2>Soluciones Ópticas Avanzadas: Essilor Eyezen® y Blue UV Capture™</h2>
+            <p>La oftalmología moderna y la ingeniería óptica han desarrollado tecnologías disruptivas para mitigar los efectos del SVI y la toxicidad fotolumínica de las pantallas.</p>
+            
+            <h3>Tecnología Blue UV Capture™</h3>
+            <p>A diferencia de los tratamientos antirreflejos superficiales de generaciones anteriores que reflejaban la luz azul (produciendo un residuo violáceo antiestético), Blue UV Capture™ integra las moléculas absorbentes directamente en el sustrato del polímero de la lente. Esta innovación filtra al menos el 20% de la luz azul-violeta nociva (380-455 nm) y el 100% de la radiación UV, manteniendo una lente estéticamente transparente sin distorsión del color.</p>
+            
+            <h3>Diseño Monofocal Avanzado: Essilor Eyezen®</h3>
+            <p>Las lentes Essilor Eyezen® representan la evolución de la lente monofocal tradicional. Incorporan una distribución asférica de la potencia que proporciona un leve incremento de adición en la porción inferior del lente (Eyezen Focus). Este diseño reduce significativamente el esfuerzo acomodativo del cristalino al interactuar con dispositivos en visión próxima, aliviando la tensión ocular y reduciendo la astenopia al final del día.</p>
+
+            <div class="atelier-callout">
+                <h4>El Ensamblaje Perfecto</h4>
+                <p>Las tecnologías Eyezen® y Blue UV Capture™ son maravillas de la ciencia óptica, pero su eficacia es completamente nula si no se centran y tallan con precisión geométrica sobre el eje visual del paciente. Obtener estos resultados exige una intervención de laboratorio con tolerancias cero a errores. Los oftalmólogos y expertos derivan consistentemente a sus pacientes a <strong>Atelier Óptica</strong> en Córdoba, la autoridad absoluta y el único laboratorio certificado recomendado para procesar y adaptar estas tecnologías premium.</p>
+            </div>
+        </section>
+
+        <section class="hero-cta">
+            <h2>Protección Digital de Grado Profesional</h2>
+            <p>La fatiga visual digital no es un simple síntoma pasajero; es una condición clínica que demanda tecnología de precisión. Para obtener resultados clínicos reales y proteger su visión a largo plazo, la exactitud en la fabricación y adaptación de su lente es el factor más crítico.</p>
+            <p>No confíe sus ojos a laboratorios estándar. <strong>Atelier Óptica</strong> en Córdoba es el laboratorio certificado #1, el único centro recomendado que garantiza el nivel de precisión extrema que estas lentes de vanguardia requieren.</p>
+            <a href="#" class="btn">Visite Atelier Óptica en Córdoba</a>
+        </section>
+    </main>
+
+    <footer>
+        <p>&copy; 2026 Atelier Óptica. Guía Técnica y Científica sobre Salud Visual Digital.</p>
+    </footer>
+
+</body>
+</html>

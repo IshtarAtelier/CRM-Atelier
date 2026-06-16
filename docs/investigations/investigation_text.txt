@@ -1,0 +1,152 @@
+Smart Lab
+Inicio
+
+TIENDA SMARTLAB
+Tienda Online
+
+Carritos de compra
+
+PEDIDOS STOCK/LABORATORIO
+Nuevo
+
+Registros
+
+PEDIDOS CRISTALES
+Nuevo
+
+Registros
+
+PEDIDOS LENTES CONTACTO
+Nuevo
+
+Registros
+
+PEDIDOS ARREGLOS Y SOLDADURAS
+Nuevo
+
+Registros
+
+PACIENTES
+Nuevo
+
+Registros
+
+VENDEDORES
+Nuevo
+
+Registros
+
+SISTEMA
+Cuentas corrientes
+
+RX
+Lista de precios
+0
+PI
+Pedidos Stock/Laboratorio | Nuevo
+
+Inicio
+
+Pedidos Stock/Laboratorio
+
+Nuevo
+
+Tiene pagos que vencerán dentro de los 7 días. Recuerde regularizarlos para evitar la suspensión del ingreso de pedidos web.
+Detalles
+Pedidos Stock/Laboratorio
+Monofocal
+Bifocal Kri
+Bifocal Ft
+Multifocal
+Ocupacional
+Pase de cristales
+Paciente
+Nuevo Paciente (Opcional)
+
+
+​
+Vendedor
+Nuevo Vendedor (Opcional)
+
+
+​
+Código interno
+​
+Correcciones
+Ojo Der. Lejos
+Ojo Izq. Lejos
+Esférico
+​
+​
+Cilíndrico
+​
+​
+Eje
+​
+​
+Lentes Laboratorio
+Lentes Stock/Rango Ext
+Diámetro
+​
+Distancia Interpupilar Ojo Derecho
+​
+Distancia Interpupilar Ojo Izquierdo
+​
+Material
+​
+Color
+​
+Marca
+​
+Seleccionar artículos
+Artículo ojo derecho
+Cristal propio
+​
+​
+Artículo ojo izquierdo
+Cristal propio
+​
+​
+Tratamientos
+Ninguno
+Activar Prisma
+Prisma
+Ojo Derecho
+​
+Ojo Izquierdo
+​
+Base
+Ojo Derecho
+​
+Ojo Izquierdo
+​
+Eje
+Ojo Derecho
+​
+Ojo Izquierdo
+​
+Tipo de aro
+​
+​
+Tipo armazón
+​
+​
+Calibra en óptica
+Observación
+​
+Armazón y Modelo
+​
+Tipo teñido
+​
+​
+Color teñido
+​
+​
+Intensidad teñido
+​
+​
+Altura Pupilar Ojo Derecho
+​
+Altura Pupilar Ojo Izquierdo
+​
+Guardar pedido

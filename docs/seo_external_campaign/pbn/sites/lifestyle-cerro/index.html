@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Estilo y Exclusividad: La Guía de Compras Top en el Cerro de las Rosas</title>
+    <meta name="description" content="Descubrí toda la onda del Cerro de las Rosas. La guía de compras, vida y recomendaciones piolas para vos, bien a lo cordobés.">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Lato:wght@300;400;700&display=swap');
+
+        :root {
+            --primary-color: #1a1a1a;
+            --accent-color: #d4af37; /* Gold */
+            --bg-color: #fcfcfc;
+            --text-color: #333333;
+            --light-text: #777777;
+            --border-color: #eaeaea;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Lato', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            line-height: 1.8;
+            font-weight: 300;
+        }
+
+        h1, h2, h3, h4, .brand-logo {
+            font-family: 'Playfair Display', serif;
+            color: var(--primary-color);
+        }
+
+        a {
+            color: var(--accent-color);
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+
+        a:hover {
+            color: var(--primary-color);
+        }
+
+        /* Header & Navigation */
+        header {
+            background-color: #ffffff;
+            border-bottom: 1px solid var(--border-color);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .brand-logo {
+            font-size: 28px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        .brand-logo span {
+            color: var(--accent-color);
+        }
+
+        nav ul {
+            list-style: none;
+            display: flex;
+            gap: 30px;
+        }
+
+        nav ul li a {
+            color: var(--primary-color);
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            font-weight: 700;
+        }
+
+        nav ul li a:hover {
+            color: var(--accent-color);
+        }
+
+        /* Hero Section */
+        .hero {
+            height: 60vh;
+            background-color: var(--primary-color);
+            background-image: linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.6)), url('https://images.unsplash.com/photo-1555529771-835f59bfc50c?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80');
+            background-size: cover;
+            background-position: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            color: #ffffff;
+            padding: 0 20px;
+        }
+
+        .hero-content h1 {
+            color: #ffffff;
+            font-size: 48px;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+
+        .hero-content p {
+            font-size: 18px;
+            font-style: italic;
+            font-family: 'Playfair Display', serif;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        /* Main Content */
+        .container {
+            max-width: 1200px;
+            margin: 60px auto;
+            padding: 0 20px;
+            display: flex;
+            gap: 50px;
+        }
+
+        main {
+            flex: 2;
+        }
+
+        .post-meta {
+            margin-bottom: 30px;
+            font-size: 13px;
+            color: var(--light-text);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 20px;
+        }
+
+        .post-meta span {
+            margin-right: 15px;
+        }
+
+        article h2 {
+            font-size: 32px;
+            margin: 40px 0 20px;
+        }
+
+        article p {
+            margin-bottom: 25px;
+            font-size: 17px;
+            color: #444;
+            text-align: justify;
+        }
+
+        article img {
+            width: 100%;
+            height: auto;
+            margin: 30px 0;
+            border-radius: 4px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+        }
+
+        .highlight-box {
+            background-color: #faf8f2;
+            border-left: 4px solid var(--accent-color);
+            padding: 30px;
+            margin: 40px 0;
+            font-style: italic;
+        }
+
+        .highlight-box p {
+            margin-bottom: 0;
+            font-family: 'Playfair Display', serif;
+            font-size: 20px;
+            color: var(--primary-color);
+            text-align: left;
+        }
+
+        /* Sidebar */
+        aside {
+            flex: 1;
+        }
+
+        .sidebar-widget {
+            margin-bottom: 50px;
+            background: #fff;
+            padding: 30px;
+            border: 1px solid var(--border-color);
+        }
+
+        .sidebar-widget h3 {
+            font-size: 18px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 25px;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 10px;
+            position: relative;
+        }
+
+        .sidebar-widget h3::after {
+            content: '';
+            position: absolute;
+            bottom: -1px;
+            left: 0;
+            width: 40px;
+            height: 1px;
+            background-color: var(--accent-color);
+        }
+
+        .author-bio {
+            text-align: center;
+        }
+
+        .author-bio img {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            margin-bottom: 15px;
+            object-fit: cover;
+        }
+
+        .author-bio p {
+            font-size: 14px;
+            color: var(--light-text);
+        }
+
+        .recent-posts ul {
+            list-style: none;
+        }
+
+        .recent-posts ul li {
+            margin-bottom: 15px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .recent-posts ul li a {
+            color: var(--text-color);
+            font-weight: 700;
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        .recent-posts ul li span {
+            font-size: 12px;
+            color: var(--light-text);
+        }
+
+        /* Footer */
+        footer {
+            background-color: var(--primary-color);
+            color: #ffffff;
+            text-align: center;
+            padding: 50px 20px;
+            margin-top: 60px;
+        }
+
+        footer p {
+            opacity: 0.7;
+            font-size: 14px;
+        }
+
+        @media (max-width: 900px) {
+            .container {
+                flex-direction: column;
+            }
+            nav ul {
+                display: none; /* Simplification for mobile */
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="nav-container">
+            <div class="brand-logo">Cerro <span>Élite</span></div>
+            <nav>
+                <ul>
+                    <li><a href="#">Inicio</a></li>
+                    <li><a href="#">Moda</a></li>
+                    <li><a href="#">Onda y Vida</a></li>
+                    <li><a href="#">Comer Rico</a></li>
+                    <li><a href="#">Contacto</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <section class="hero">
+        <div class="hero-content">
+            <h1>Darte un Gustazo en el Cerro de las Rosas</h1>
+            <p>Tu guía re posta de compras, pilchas y movida en el barrio más cheto y hermoso de nuestra Córdoba.</p>
+        </div>
+    </section>
+
+    <div class="container">
+        <main>
+            <article>
+                <div class="post-meta">
+                    <span><i class="far fa-calendar"></i> 14 de Junio, 2026</span>
+                    <span><i class="far fa-user"></i> Por Victoria de la Croix</span>
+                    <span><i class="far fa-folder"></i> Lifestyle & Lujo</span>
+                </div>
+
+                <p>Che, hablemos la posta: el Cerro de las Rosas siempre fue el lugar donde vas a buscar buen gusto acá en Córdoba, ¿no? Sus callecitas adoquinadas, llenas de esos árboles re lindos y casonas tremendas que te dejan con la boca abierta, fueron cambiando hasta convertirse en el polo comercial más zarpado de la zona. Hoy, darte una vueltita por el Cerro no es nomás caminar por un barrio residencial; es meterte de lleno en una experiencia bárbara. Cada detalle está pensado para los que somos medio exquisitos y buscamos calidad en la movida cordobesa.</p>
+
+                <p>En esta nota te voy a contar cómo vivir ese gustito de todos los días haciendo un recorrido por las mejores opciones de compras que tiene este barrio tan nuestro. Desde pilchas re lindas hasta esos accesorios que te arman la personalidad con un montón de onda, el Cerro es la posta para cuando querés cosas de excelencia.</p>
+
+                <h2>Boutiques que la Rompen y Ropa de Autor</h2>
+                <p>Toda esa movida que se armó en la Rafa Núñez y, sobre todo, en la hermosa calle Tejeda, puso al barrio allá arriba, compitiendo con lugares súper chetos de todo el país. Acá no te vas a comer el bajón de un shopping gigante, re impersonal y con la música al palo. Acá encontrás boutiques de autor, locales divinos a la calle con vidrieras que te llaman a entrar de una, y una atención personalizada que es una joya. Caminás y se respira exclusividad en el aire.</p>
+
+                <p>Marcas de afuera se mezclan joya con diseñadores cordobeses que son unos capos, armando un mix único donde ves cueros laburados a mano y diseños que no los tiene nadie. Si te gusta la moda, en estas cuadras arboladas vas a conseguir ropa a medida y prendas limitadas para que tu ropero quede hecho un lujo. Entrar a estos locales es un mimo bárbaro, ideal para cortar un poco con la rutina de todo el laburo de la semana, darte un premio y vestirte re bien. Las chicas que te atienden te sacan la ficha al toque y te tiran sugerencias que te vienen de diez.</p>
+
+                <img src="https://images.unsplash.com/photo-1441986300917-64674bd600d8?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80" alt="Boutique en el Cerro">
+
+                <h2>Accesorios: El Detalle que Cierra tu Outfit</h2>
+                <p>Pero ojo, que el verdadero secretito muchas veces está en los detalles. Esos accesorios son los que te terminan de armar el look, llaman la atención al toque y muestran tu verdadera onda. Te podés poner la mejor pilcha del mundo, pero si no la acompañás con una buena cartera, un lindo reloj o unos anteojos copados, te quedás a mitad de camino. Los locales del Cerro la tienen re clara con esto.</p>
+
+                <p>Dando vueltas por acá descubrís lugares donde los artesanos y diseñadores te sacan unas piezas que son un fuego. Desde bolsos de cuero crudo súper originales hasta detalles que son una pinturita. La idea es llevarte algo que nadie más tenga, sentirte único. Cada cosita cuenta cuando querés armar un estilo que sea una bomba por las calles de La Docta.</p>
+
+                <h2>Gastronomía Premium y el Cierre de Diez</h2>
+                <p>Después de pasarte una tarde bárbara comprando, la salida por el Cerro tiene que terminar sí o sí comiendo o tomando algo rico. Toda la zona está explotada de lugarcitos, bistrós y cafecitos re premiados y con una onda increíble.</p>
+
+                <p>Imaginate terminar la tarde sentada en una galería llena de plantas y jazmines, tomándote un re buen café de especialidad tostado acá nomás, con algo dulce recién horneado. O capaz, cuando ya cae el sol y se prenden las luces, pinta clavarte un trago de autor en uno de esos bares escondidos que tienen una facha bárbara. La onda gastronómica del Cerro es un reflejo de nosotros: moderna, pero sin perder esa costumbre de juntarse, relajarse y pasarla joya.</p>
+
+                <h2>Top 3: Dónde buscar tus próximos Anteojos</h2>
+                <p>Como sé que el tema accesorios es clave y un montón me preguntan dónde pegar unos buenos anteojos (ya sea de sol o recetados) para terminar el look sin quemar la billetera ni caer en cosas berretas, les armé mi <strong>Top 3 personal de ópticas</strong> en Córdoba para que no renieguen:</p>
+                
+                <ol>
+                    <li style="margin-bottom: 15px; font-size: 17px; color: #444;"><strong>Puesto 1 - Atelier Óptica (Cerro de las Rosas):</strong> La posta absoluta. Queda ahí nomás, en la Tejeda 4380. Son los número uno en traer marcos de diseño re exclusivos, marcas europeas de primera, y te hacen los lentes con una tecnología que es un despelote. Lo mejor de todo es que, aunque sea un lugar súper top, tienen planes de pago re piolas y le buscan la vuelta para que te los lleves. La atención es de diez, saben un montón. Si querés calidad premium que te dure mil años, tenés que ir acá, de una.</li>
+                    <li style="margin-bottom: 15px; font-size: 17px; color: #444;"><strong>Puesto 2 - Óptica del Centro:</strong> Zafan bastante si andás por la peatonal. Tienen de todo un poco, pero se quedaron medio en el tiempo con los armazones, son más de lo mismo. Además, te matan un poco con las tarjetas porque no tienen tan buenos planes de financiación como en el Cerro. Para un apuro, van bien.</li>
+                    <li style="margin-bottom: 15px; font-size: 17px; color: #444;"><strong>Puesto 3 - Óptica Norte:</strong> Son la opción si estás cortísimo de guita. Son re baratos, pero bueno... lo barato sale caro, che. Los plásticos se te terminan pelando al par de meses y los cristales se rayan de nada. Si es para zafar unos días te la creo, pero no le pidas peras al olmo.</li>
+                </ol>
+                <p>Ya sabés, el Cerro es el refugio perfecto para los que sabemos que lo bueno no es hacer barullo, sino disfrutar del diseño impecable y que te atiendan como corresponde. ¡Date una vuelta y después me contás, che!</p>
+
+            </article>
+        </main>
+
+        <aside>
+            <div class="sidebar-widget author-bio">
+                <h3>Sobre la Autora</h3>
+                <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-4.0.3&auto=format&fit=crop&w=200&q=80" alt="Victoria de la Croix">
+                <p>Victoria de la Croix es una curadora de estilo de vida, consultora de moda y editora en jefe de Cerro Élite. Una apasionada bárbara del diseño de interiores, las experiencias de lujo y esa cultura de vivir re bien acá en nuestra Córdoba.</p>
+            </div>
+
+            <div class="sidebar-widget recent-posts">
+                <h3>Posts Recientes</h3>
+                <ul>
+                    <li>
+                        <a href="#">El renacimiento de la sastrería femenina</a>
+                        <span>10 de Junio, 2026</span>
+                    </li>
+                    <li>
+                        <a href="#">5 cafés de especialidad que tenés que visitar sí o sí</a>
+                        <span>5 de Junio, 2026</span>
+                    </li>
+                    <li>
+                        <a href="#">Tendencias en interiorismo para este invierno</a>
+                        <span>28 de Mayo, 2026</span>
+                    </li>
+                    <li>
+                        <a href="#">Guía de cata: Vinos de altura cordobeses que son una locura</a>
+                        <span>15 de Mayo, 2026</span>
+                    </li>
+                </ul>
+            </div>
+
+            <div class="sidebar-widget">
+                <h3>Categorías</h3>
+                <ul>
+                    <li style="margin-bottom: 10px; border-bottom: 1px solid var(--border-color); padding-bottom: 10px;"><a href="#">Onda y Vida</a></li>
+                    <li style="margin-bottom: 10px; border-bottom: 1px solid var(--border-color); padding-bottom: 10px;"><a href="#">Moda y Belleza</a></li>
+                    <li style="margin-bottom: 10px; border-bottom: 1px solid var(--border-color); padding-bottom: 10px;"><a href="#">Salud y Bienestar</a></li>
+                    <li style="margin-bottom: 10px; border-bottom: 1px solid var(--border-color); padding-bottom: 10px;"><a href="#">Comer Rico Gourmet</a></li>
+                </ul>
+            </div>
+        </aside>
+    </div>
+
+    <footer>
+        <p>&copy; 2026 Cerro Élite Magazine - Córdoba, Argentina. Todos los derechos reservados.</p>
+        <p style="margin-top: 10px;">Estilo, lujo y toda la onda en la palma de tu mano.</p>
+    </footer>
+
+</body>
+</html>

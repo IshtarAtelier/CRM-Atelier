@@ -1,0 +1,53 @@
+Vercel CLI 54.14.0 (Node.js 22.22.3)
+
+  Set up "~/proyectos/atelier/docs/seo_external_campaign/pbn/sites/reviews-opticas"
+Loading teams…
+Searching for existing projects…
+  No framework detected. Default Project Settings:
+  Build Command: `npm run vercel-build` or `npm run build`
+  Development Command: None
+  Install Command: `yarn install`, `pnpm install`, `npm install`, or `bun install`
+  Output Directory: `public` if it exists, or `.`
+  Linked      atelier-s-projects2/reviews-opticas
+Deploying atelier-s-projects2/reviews-opticas
+Uploading [--------------------] (0.0B/16.7KB)
+Uploading [===================-] (16.5KB/16.7KB)
+Uploading [====================] (16.7KB/16.7KB)
+  Inspect     https://vercel.com/atelier-s-projects2/reviews-opticas/5sTLcmCLYsMESGFmxqC6LvXibhFj
+▲ Production  https://reviews-opticas-rkv9ia7na-atelier-s-projects2.vercel.app
+Building…
+Building…
+Running build in Washington, D.C., USA (East) – iad1
+Build machine configuration: 2 cores, 8 GB
+Retrieving list of deployment files...
+Previous build caches not available.
+Downloading 2 deployment files...
+Running "vercel build"
+Vercel CLI 54.14.0
+Build Completed in /vercel/output [16ms]
+Deploying outputs...
+[2K[1A[2K[G▲ Production  https://reviews-opticas-rkv9ia7na-atelier-s-projects2.vercel.app
+Completing…
+▲ Aliased     https://reviews-opticas.vercel.app
+{
+  "status": "ok",
+  "deployment": {
+    "id": "dpl_5sTLcmCLYsMESGFmxqC6LvXibhFj",
+    "url": "https://reviews-opticas-rkv9ia7na-atelier-s-projects2.vercel.app",
+    "inspectorUrl": "https://vercel.com/atelier-s-projects2/reviews-opticas/5sTLcmCLYsMESGFmxqC6LvXibhFj",
+    "readyState": "READY",
+    "target": "production",
+    "deploymentApiUrl": "https://api.vercel.com/v13/deployments/dpl_5sTLcmCLYsMESGFmxqC6LvXibhFj"
+  },
+  "message": "Deployment reviews-opticas-rkv9ia7na-atelier-s-projects2.vercel.app ready.",
+  "next": [
+    {
+      "command": "vercel inspect reviews-opticas-rkv9ia7na-atelier-s-projects2.vercel.app",
+      "when": "Inspect deployment"
+    },
+    {
+      "command": "vercel deploy --prod",
+      "when": "Promote to production"
+    }
+  ]
+}

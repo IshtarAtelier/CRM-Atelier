@@ -1,0 +1,53 @@
+Vercel CLI 54.14.0 (Node.js 22.22.3)
+
+  Set up "~/proyectos/atelier/docs/seo_external_campaign/pbn_pillars/lentes-sol"
+Loading teams…
+Searching for existing projects…
+  No framework detected. Default Project Settings:
+  Build Command: `npm run vercel-build` or `npm run build`
+  Development Command: None
+  Install Command: `yarn install`, `pnpm install`, `npm install`, or `bun install`
+  Output Directory: `public` if it exists, or `.`
+  Linked      atelier-s-projects2/lentes-sol
+Deploying atelier-s-projects2/lentes-sol
+Uploading [--------------------] (0.0B/12.8KB)
+Uploading [===================-] (12.3KB/12.8KB)
+Uploading [====================] (12.8KB/12.8KB)
+  Inspect     https://vercel.com/atelier-s-projects2/lentes-sol/C9U7jDAVdcuARLVNjAMuQnviW4H4
+▲ Production  https://lentes-vhpctdene-atelier-s-projects2.vercel.app
+Building…
+Building…
+Running build in Washington, D.C., USA (East) – iad1
+Build machine configuration: 2 cores, 8 GB
+Retrieving list of deployment files...
+Previous build caches not available.
+Downloading 2 deployment files...
+Running "vercel build"
+Vercel CLI 54.14.0
+Build Completed in /vercel/output [16ms]
+Deploying outputs...
+[2K[1A[2K[G▲ Production  https://lentes-vhpctdene-atelier-s-projects2.vercel.app
+Completing…
+▲ Aliased     https://lentes-sol.vercel.app
+{
+  "status": "ok",
+  "deployment": {
+    "id": "dpl_C9U7jDAVdcuARLVNjAMuQnviW4H4",
+    "url": "https://lentes-vhpctdene-atelier-s-projects2.vercel.app",
+    "inspectorUrl": "https://vercel.com/atelier-s-projects2/lentes-sol/C9U7jDAVdcuARLVNjAMuQnviW4H4",
+    "readyState": "READY",
+    "target": "production",
+    "deploymentApiUrl": "https://api.vercel.com/v13/deployments/dpl_C9U7jDAVdcuARLVNjAMuQnviW4H4"
+  },
+  "message": "Deployment lentes-vhpctdene-atelier-s-projects2.vercel.app ready.",
+  "next": [
+    {
+      "command": "vercel inspect lentes-vhpctdene-atelier-s-projects2.vercel.app",
+      "when": "Inspect deployment"
+    },
+    {
+      "command": "vercel deploy --prod",
+      "when": "Promote to production"
+    }
+  ]
+}

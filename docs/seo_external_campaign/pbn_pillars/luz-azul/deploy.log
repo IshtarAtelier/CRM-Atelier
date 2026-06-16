@@ -1,0 +1,48 @@
+Vercel CLI 54.14.0 (Node.js 22.22.3)
+
+  Set up "~/proyectos/atelier/docs/seo_external_campaign/pbn_pillars/luz-azul"
+Loading teams…
+Searching for existing projects…
+  No framework detected. Default Project Settings:
+  Build Command: `npm run vercel-build` or `npm run build`
+  Development Command: None
+  Install Command: `yarn install`, `pnpm install`, `npm install`, or `bun install`
+  Output Directory: `public` if it exists, or `.`
+  Linked      atelier-s-projects2/luz-azul
+Deploying atelier-s-projects2/luz-azul
+Uploading [--------------------] (0.0B/15.3KB)
+Uploading [===================-] (14.8KB/15.3KB)
+Uploading [====================] (15.3KB/15.3KB)
+  Inspect     https://vercel.com/atelier-s-projects2/luz-azul/9GKpckozjze1CXeeG6HmbeK8fJoi
+▲ Production  https://luz-azul-bzernp3x5-atelier-s-projects2.vercel.app
+Building…
+Running build in Washington, D.C., USA (East) – iad1
+Build machine configuration: 2 cores, 8 GB
+Retrieving list of deployment files...
+Previous build caches not available.
+Previous build caches not available.
+[2K[1A[2K[G▲ Production  https://luz-azul-bzernp3x5-atelier-s-projects2.vercel.app
+Completing…
+▲ Aliased     https://luz-azul.vercel.app
+{
+  "status": "ok",
+  "deployment": {
+    "id": "dpl_9GKpckozjze1CXeeG6HmbeK8fJoi",
+    "url": "https://luz-azul-bzernp3x5-atelier-s-projects2.vercel.app",
+    "inspectorUrl": "https://vercel.com/atelier-s-projects2/luz-azul/9GKpckozjze1CXeeG6HmbeK8fJoi",
+    "readyState": "READY",
+    "target": "production",
+    "deploymentApiUrl": "https://api.vercel.com/v13/deployments/dpl_9GKpckozjze1CXeeG6HmbeK8fJoi"
+  },
+  "message": "Deployment luz-azul-bzernp3x5-atelier-s-projects2.vercel.app ready.",
+  "next": [
+    {
+      "command": "vercel inspect luz-azul-bzernp3x5-atelier-s-projects2.vercel.app",
+      "when": "Inspect deployment"
+    },
+    {
+      "command": "vercel deploy --prod",
+      "when": "Promote to production"
+    }
+  ]
+}

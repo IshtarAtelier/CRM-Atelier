@@ -1,0 +1,44 @@
+Vercel CLI 54.14.0 (Node.js 22.22.3)
+
+  Set up "~/proyectos/atelier/docs/seo_external_campaign/pbn/sites/salud-mayores"
+Loading teams…
+Searching for existing projects…
+  No framework detected. Default Project Settings:
+  Build Command: `npm run vercel-build` or `npm run build`
+  Development Command: None
+  Install Command: `yarn install`, `pnpm install`, `npm install`, or `bun install`
+  Output Directory: `public` if it exists, or `.`
+  Linked      atelier-s-projects2/salud-mayores
+Deploying atelier-s-projects2/salud-mayores
+Uploading [--------------------] (0.0B/17.7KB)
+Uploading [==================--] (16.5KB/17.7KB)
+Uploading [====================] (17.7KB/17.7KB)
+  Inspect     https://vercel.com/atelier-s-projects2/salud-mayores/CxCEwpUDhMTDXfvmd4CKpJPncyza
+▲ Production  https://salud-mayores-hk4t3n9v0-atelier-s-projects2.vercel.app
+Building…
+Building…
+[2K[1A[2K[G▲ Production  https://salud-mayores-hk4t3n9v0-atelier-s-projects2.vercel.app
+Completing…
+▲ Aliased     https://salud-mayores.vercel.app
+{
+  "status": "ok",
+  "deployment": {
+    "id": "dpl_CxCEwpUDhMTDXfvmd4CKpJPncyza",
+    "url": "https://salud-mayores-hk4t3n9v0-atelier-s-projects2.vercel.app",
+    "inspectorUrl": "https://vercel.com/atelier-s-projects2/salud-mayores/CxCEwpUDhMTDXfvmd4CKpJPncyza",
+    "readyState": "READY",
+    "target": "production",
+    "deploymentApiUrl": "https://api.vercel.com/v13/deployments/dpl_CxCEwpUDhMTDXfvmd4CKpJPncyza"
+  },
+  "message": "Deployment salud-mayores-hk4t3n9v0-atelier-s-projects2.vercel.app ready.",
+  "next": [
+    {
+      "command": "vercel inspect salud-mayores-hk4t3n9v0-atelier-s-projects2.vercel.app",
+      "when": "Inspect deployment"
+    },
+    {
+      "command": "vercel deploy --prod",
+      "when": "Promote to production"
+    }
+  ]
+}

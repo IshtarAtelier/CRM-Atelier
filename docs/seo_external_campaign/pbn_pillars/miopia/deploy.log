@@ -1,0 +1,52 @@
+Vercel CLI 54.14.0 (Node.js 22.22.3)
+
+  Set up "~/proyectos/atelier/docs/seo_external_campaign/pbn_pillars/miopia"
+Loading teams…
+Searching for existing projects…
+  No framework detected. Default Project Settings:
+  Build Command: `npm run vercel-build` or `npm run build`
+  Development Command: None
+  Install Command: `yarn install`, `pnpm install`, `npm install`, or `bun install`
+  Output Directory: `public` if it exists, or `.`
+  Linked      atelier-s-projects2/miopia
+Deploying atelier-s-projects2/miopia
+Uploading [--------------------] (0.0B/11.1KB)
+Uploading [===================-] (10.6KB/11.1KB)
+Uploading [====================] (11.1KB/11.1KB)
+  Inspect     https://vercel.com/atelier-s-projects2/miopia/B56Xgc4qmMatwjNTSngijPcBfQNz
+▲ Production  https://miopia-jh5bq2l3y-atelier-s-projects2.vercel.app
+Building…
+Building…
+Running build in Washington, D.C., USA (East) – iad1
+Build machine configuration: 2 cores, 8 GB
+Retrieving list of deployment files...
+Previous build caches not available.
+Downloading 2 deployment files...
+Running "vercel build"
+Vercel CLI 54.14.0
+Build Completed in /vercel/output [17ms]
+[2K[1A[2K[G▲ Production  https://miopia-jh5bq2l3y-atelier-s-projects2.vercel.app
+Completing…
+▲ Aliased     https://miopia.vercel.app
+{
+  "status": "ok",
+  "deployment": {
+    "id": "dpl_B56Xgc4qmMatwjNTSngijPcBfQNz",
+    "url": "https://miopia-jh5bq2l3y-atelier-s-projects2.vercel.app",
+    "inspectorUrl": "https://vercel.com/atelier-s-projects2/miopia/B56Xgc4qmMatwjNTSngijPcBfQNz",
+    "readyState": "READY",
+    "target": "production",
+    "deploymentApiUrl": "https://api.vercel.com/v13/deployments/dpl_B56Xgc4qmMatwjNTSngijPcBfQNz"
+  },
+  "message": "Deployment miopia-jh5bq2l3y-atelier-s-projects2.vercel.app ready.",
+  "next": [
+    {
+      "command": "vercel inspect miopia-jh5bq2l3y-atelier-s-projects2.vercel.app",
+      "when": "Inspect deployment"
+    },
+    {
+      "command": "vercel deploy --prod",
+      "when": "Promote to production"
+    }
+  ]
+}
