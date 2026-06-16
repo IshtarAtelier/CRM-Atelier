@@ -122,6 +122,8 @@ export async function GoogleReviews() {
                   <Image 
                     src={review.profile_photo_url} 
                     alt={review.author_name} 
+                    width={48}
+                    height={48}
                     className="w-12 h-12 rounded-full bg-stone-50 object-cover shrink-0 shadow-sm border-2 border-stone-100 group-hover:border-primary/30 transition-colors" 
                     referrerPolicy="no-referrer" 
                   />
