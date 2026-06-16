@@ -4,12 +4,6 @@ import { useState, useEffect } from 'react';
 import { Plus, Search, Package, Loader2, AlertCircle, ArrowUpRight, Trash2, ShoppingBag, CheckSquare, Square, X, Pencil, Save, CheckCircle2, Zap, Camera, Clock, Database, Layers } from "lucide-react";
 import { Product } from '@/hooks/useProducts';
 import ProductForm from '@/components/inventory/ProductForm';
-'use client';
-
-import { useState, useEffect } from 'react';
-import { Plus, Search, Package, Loader2, AlertCircle, ArrowUpRight, Trash2, ShoppingBag, CheckSquare, Square, X, Pencil, Save, CheckCircle2, Zap, Camera, Clock, Database, Layers } from "lucide-react";
-import { Product } from '@/hooks/useProducts';
-import ProductForm from '@/components/inventory/ProductForm';
 import { resolveStorageUrl } from '@/lib/utils/storage';
 import LabPriceImporter from '@/components/inventory/LabPriceImporter';
 import AIImageUploader from '@/components/inventory/AIImageUploader';
@@ -17,10 +11,515 @@ import PhotoStudio from '@/components/inventory/PhotoStudio';
 import SettingsModal from '@/components/inventory/SettingsModal';
 import { useProducts } from '@/hooks/useProducts';
 import { autoCorrectLab } from '@/utils/product-controllers';
-import Image from "next/image";
+import { PRODUCT_CATEGORIES as SHARED_CATEGORIES } from '@/lib/constants';
+const PRODUCT_CATEGORIES = [
+    { id: 'ALL', label: 'Todos' },
+    ...SHARED_CATEGORIES
+];
+
+
+
+export default function InventarioPage() {
+    const [searchQuery, setSearchQuery] = useState('');
+    const [showForm, setShowForm] = useState(false);
+    const [selectedCategory, setSelectedCategory] = useState('ALL');
+    const [onlyWeb, setOnlyWeb] = useState(false);
+    const [selectedSubtype, setSelectedSubtype] = useState('');
+    const [selectedOrigin, setSelectedOrigin] = useState('');
+    const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+    const [isDeleting, setIsDeleting] = useState(false);
+    const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+    const [editForm, setEditForm] = useState({ name: '', brand: '', model: '', type: '', stock: 0, cost: 0, price: 0, lensIndex: '', laboratory: '', sphereMin: '' as string, sphereMax: '' as string, cylinderMin: '' as string, cylinderMax: '' as string, additionMin: '' as string, additionMax: '' as string, is2x1: false, publishToWeb: false, lensWidth: '' as string, bridgeWidth: '' as string, templeLength: '' as string, frameHeight: '' as string, seoTitle: '', seoDescription: '', seoTags: '', customSlug: '', mpn: '', gender: '', ageGroup: '', origin: '' });
+    const [savingEdit, setSavingEdit] = useState(false);
+    const [selectedBrand, setSelectedBrand] = useState('');
+    const [selectedLab, setSelectedLab] = useState('');
+    const [importing, setImporting] = useState(false);
+    const [importResult, setImportResult] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+    const [userRole, setUserRole] = useState('STAFF');
+    const [showEditRanges, setShowEditRanges] = useState(false);
+    const [showLabImporter, setShowLabImporter] = useState(false);
+    const [showPhotoStudio, setShowPhotoStudio] = useState(false);
+    const [showSettings, setShowSettings] = useState(false);
+    const [editingMarkup, setEditingMarkup] = useState<string | null>(null);
+    const [editMarkupValue, setEditMarkupValue] = useState('');
+    const [labsConfig, setLabsConfig] = useState<{name: string, calibrado?: number, iva?: number}[]>([]);
+
+    // -- State for Colors --
+    const [colors, setColors] = useState<any[]>([]);
+    const [loadingColors, setLoadingColors] = useState(false);
+    const [colorForm, setColorForm] = useState({ id: '', name: '', category: 'COMPACTO', hexColor: '#000000', sortOrder: 0, active: true });
+    const [showColorForm, setShowColorForm] = useState(false);
+    const [savingColor, setSavingColor] = useState(false);
+
+    const loadColors = async () => {
+        setLoadingColors(true);
+        try {
+            const res = await fetch('/api/crystal-colors');
+            const data = await res.json();
+            if (Array.isArray(data)) setColors(data);
+        } catch (error) {
+            console.error(error);
+        } finally {
+            setLoadingColors(false);
+        }
+    };
+
+    const handleSaveColor = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setSavingColor(true);
+        try {
+            const method = colorForm.id ? 'PATCH' : 'POST';
+            const url = colorForm.id ? `/api/crystal-colors/${colorForm.id}` : '/api/crystal-colors';
+            
+            const res = await fetch(url, {
+                method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(colorForm)
+            });
+
+            if (res.ok) {
+                setShowColorForm(false);
+                setColorForm({ id: '', name: '', category: 'COMPACTO', hexColor: '#000000', sortOrder: 0, active: true });
+                loadColors();
+            } else {
+                const data = await res.json();
+                alert(data.error || 'Error al guardar el color');
+            }
+        } catch (error) {
+            alert('Error de conexión');
+        } finally {
+            setSavingColor(false);
+        }
+    };
+
+    const handleDeleteColor = async (id: string, name: string) => {
+        if (!confirm(`¿Estás seguro de eliminar el color "${name}"?`)) return;
+        try {
+            const res = await fetch(`/api/crystal-colors/${id}`, { method: 'DELETE' });
+            if (res.ok) {
+                loadColors();
+            } else {
+                alert('Error al eliminar');
+            }
+        } catch (error) {
+            alert('Error de conexión');
+        }
+    };
+
+    useEffect(() => {
+        try {
+            const stored = localStorage.getItem('user');
+            if (stored) {
+                const u = JSON.parse(stored);
+                setUserRole(u.role || 'STAFF');
+            }
+        } catch { }
+        
+        fetch('/api/laboratories').then(r => r.json()).then(d => {
+            if(d.laboratories) setLabsConfig(d.laboratories);
+        }).catch(console.error);
+
+        loadColors();
+    }, []);
+
+    const isAdmin = userRole === 'ADMIN';
+
+    // The filter passed to useProducts: if subtype selected use it, otherwise use category
+    const activeFilter = selectedSubtype && selectedCategory === 'Cristal' ? `Cristal ${selectedSubtype}` : selectedCategory;
+
+    const activeCategory = PRODUCT_CATEGORIES.find(c => c.id === selectedCategory);
+
+    const { products: rawProducts, loading, error, refresh, deleteProduct, bulkDelete } = useProducts(searchQuery, activeFilter);
+
+    // Extract unique brands and labs, deduplicating case-insensitively and ignoring accents for the UI
+    const normalizeStr = (str: string) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+
+    const uniqueBrands = Array.from(new Map(
+        rawProducts.map(p => p.brand).filter(Boolean).map(b => [normalizeStr(b!), b])
+    ).values()) as string[];
+    uniqueBrands.sort();
+
+    const uniqueLabs = Array.from(new Map(
+        rawProducts.map(p => p.laboratory).filter(Boolean).map(l => [normalizeStr(l!), l])
+    ).values()) as string[];
+    uniqueLabs.sort();
+
+    let products = selectedBrand ? rawProducts.filter(p => p.brand?.toLowerCase() === selectedBrand.toLowerCase()) : rawProducts;
+    if (selectedLab) {
+        products = products.filter(p => p.laboratory?.toLowerCase() === selectedLab.toLowerCase());
+    }
+    if (onlyWeb) {
+        products = products.filter(p => p.publishToWeb === true);
+    }
+    if (selectedOrigin) {
+        products = products.filter(p => (p as any).origin === selectedOrigin);
+    }
+
+    // Helper: detecta cristales (incluye valores legacy LENS/MULTIFOCAL/etc)
+    const checkCristal = (p: { category?: string; type?: string | null }) =>
+        p.category === 'Cristal'
+        || p.type?.startsWith('Cristal')
+        || ['MONOFOCAL','MULTIFOCAL','BIFOCAL','OCUPACIONAL'].includes(p.type?.toUpperCase() || '');
+
+    // Helper: determinar si el producto maneja stock propio o se pide a laboratorio (Todos los cristales son de lab)
+    const isRequestedToLab = (p: { category?: string; type?: string | null; origin?: string | null }) => 
+        checkCristal(p) || p.category === 'Tratamiento';
+
+    // Excluir cristales y tratamientos del cálculo de stock (se compran bajo demanda)
+    const nonCrystalProducts = products.filter(p => !isRequestedToLab(p));
+    
+    // Helper para armar el nombre completo (Marca + Nombre) evitando duplicados
+    const getDisplayName = (p: Product) => {
+        let namePart = p.name || '';
+        if (p.brand && namePart.toUpperCase().startsWith(p.brand.toUpperCase())) {
+            namePart = namePart.substring(p.brand.length).replace(/^[\s\-·]+/, '').trim();
+        }
+        const parts = [];
+        if (p.brand) parts.push(p.brand);
+        if (namePart) parts.push(namePart);
+        return parts.length > 0 ? parts.join(' · ') : (p.type || 'Sin nombre');
+    };
+    const stats = {
+        totalProducts: products.length,
+        totalStock: nonCrystalProducts.reduce((acc, p) => acc + p.stock, 0),
+        lowStock: nonCrystalProducts.filter(p => p.stock <= 2 && p.stock > 0).length,
+        inventoryValue: nonCrystalProducts.reduce((acc, p) => acc + (p.cost * p.stock), 0)
+    };
+
+    const handleDelete = async (id: string, name: string) => {
+        if (confirm(`¿Eliminar "${name}"?`)) {
+            const result = await deleteProduct(id);
+            if (result.success) {
+                selectedIds.delete(id);
+                setSelectedIds(new Set(selectedIds));
+            } else {
+                alert(result.error || 'No se pudo eliminar el producto');
+            }
+        }
+    };
+
+    const handleBulkDelete = async () => {
+        if (selectedIds.size === 0) return;
+        if (confirm(`¿Eliminar ${selectedIds.size} producto(s)?`)) {
+            setIsDeleting(true);
+            const result = await bulkDelete(Array.from(selectedIds));
+            if (result.errors && result.errors.length > 0) {
+                alert(`Algunos productos no se pudieron eliminar:\n${result.errors.join('\n')}`);
+            }
+            setSelectedIds(new Set());
+            setIsDeleting(false);
+        }
+    };
+
+    const toggleSelect = (id: string) => {
+        const next = new Set(selectedIds);
+        if (next.has(id)) next.delete(id); else next.add(id);
+        setSelectedIds(next);
+    };
+
+    const startEdit = (p: Product) => {
+        setEditingProduct(p);
+        setEditForm({
+            name: p.name || '',
+            brand: p.brand || '',
+            model: p.model || '',
+            type: p.type || '',
+            stock: p.stock,
+            cost: p.cost,
+            price: p.price,
+            lensIndex: p.lensIndex || '',
+            laboratory: p.laboratory || '',
+            sphereMin: p.sphereMin != null ? String(p.sphereMin) : '',
+            sphereMax: p.sphereMax != null ? String(p.sphereMax) : '',
+            cylinderMin: p.cylinderMin != null ? String(p.cylinderMin) : '',
+            cylinderMax: p.cylinderMax != null ? String(p.cylinderMax) : '',
+            additionMin: p.additionMin != null ? String(p.additionMin) : '',
+            additionMax: p.additionMax != null ? String(p.additionMax) : '',
+            is2x1: p.is2x1 === true,
+            publishToWeb: p.publishToWeb === true,
+            lensWidth: (p as any).lensWidth != null ? String((p as any).lensWidth) : '',
+            bridgeWidth: (p as any).bridgeWidth != null ? String((p as any).bridgeWidth) : '',
+            templeLength: (p as any).templeLength != null ? String((p as any).templeLength) : '',
+            frameHeight: (p as any).frameHeight != null ? String((p as any).frameHeight) : '',
+            seoTitle: (p as any).seoTitle || '',
+            seoDescription: (p as any).seoDescription || '',
+            seoTags: (p as any).seoTags || '',
+            customSlug: (p as any).customSlug || '',
+            mpn: (p as any).mpn || '',
+            gender: (p as any).gender || '',
+            ageGroup: (p as any).ageGroup || '',
+            origin: (p as any).origin || 'LABORATORIO',
+        });
+        setShowEditRanges(false);
+    };
+
+    const handleSaveEdit = async () => {
+        if (!editingProduct) return;
+        const isEditCristal = checkCristal(editingProduct);
+        // Validar laboratorio e indice obligatorios para cristales
+        if (isEditCristal) {
+            if (!editForm.laboratory.trim()) {
+                alert('El laboratorio es obligatorio para cristales');
+                return;
+            }
+            if (!editForm.lensIndex.trim()) {
+                alert('El índice de refracción es obligatorio para cristales');
+                return;
+            }
+        }
+        setSavingEdit(true);
+        try {
+            // Normalizar category/type legacy al guardar
+            const normalizedFields: Record<string, string> = {};
+            if (isEditCristal) {
+                if (editingProduct.category !== 'Cristal') normalizedFields.category = 'Cristal';
+                if (editForm.type) {
+                    normalizedFields.type = editForm.type;
+                } else if (editingProduct.type && !editingProduct.type.startsWith('Cristal')) {
+                    const sub = editingProduct.type.charAt(0).toUpperCase() + editingProduct.type.slice(1).toLowerCase();
+                    normalizedFields.type = `Cristal ${sub}`;
+                }
+            }
+            const payload = {
+                ...editForm,
+                ...normalizedFields,
+                sphereMin: editForm.sphereMin !== '' ? parseFloat(editForm.sphereMin) : null,
+                sphereMax: editForm.sphereMax !== '' ? parseFloat(editForm.sphereMax) : null,
+                cylinderMin: editForm.cylinderMin !== '' ? parseFloat(editForm.cylinderMin) : null,
+                cylinderMax: editForm.cylinderMax !== '' ? parseFloat(editForm.cylinderMax) : null,
+                additionMin: editForm.additionMin !== '' ? parseFloat(editForm.additionMin) : null,
+                additionMax: editForm.additionMax !== '' ? parseFloat(editForm.additionMax) : null,
+            };
+            const res = await fetch(`/api/products/${editingProduct.id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            if (res.ok) {
+                setEditingProduct(null);
+                refresh();
+            } else {
+                const data = await res.json();
+                alert(data.details || data.error);
+            }
+        } catch { alert('Error de conexión'); }
+        finally { setSavingEdit(false); }
+    };
+
+    const [generatingSEOEdit, setGeneratingSEOEdit] = useState(false);
+
+    const handleGenerateSEOEdit = async () => {
+        if (!editForm.name && !editingProduct?.type) return;
+        setGeneratingSEOEdit(true);
+        try {
+            const res = await fetch('/api/seo/generate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    name: editForm.name,
+                    brand: editForm.brand,
+                    model: editForm.model,
+                    category: editingProduct?.category,
+                    type: editForm.type || editingProduct?.type
+                })
+            });
+            if (res.ok) {
+                const data = await res.json();
+                setEditForm(prev => ({
+                    ...prev,
+                    seoTitle: data.seoTitle || prev.seoTitle,
+                    seoDescription: data.seoDescription || prev.seoDescription,
+                    seoTags: data.seoTags || prev.seoTags,
+                    customSlug: data.customSlug || prev.customSlug,
+                }));
+            } else {
+                alert('Error al generar SEO.');
+            }
+        } catch (e) {
+            alert('Error de conexión al generar SEO.');
+        } finally {
+            setGeneratingSEOEdit(false);
+        }
+    };
+
+    const toggleSelectAll = () => {
+        if (selectedIds.size === products.length) {
+            setSelectedIds(new Set());
+        } else {
+            setSelectedIds(new Set(products.map(p => p.id)));
+        }
+    };
+
+
+
+
+    const handleImportCSV = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        setImporting(true);
+        setImportResult(null);
+        try {
+            const formData = new FormData();
+            formData.append('file', file);
+            const res = await fetch('/api/products/import', { method: 'POST', body: formData });
+            const data = await res.json();
+            if (res.ok) {
+                setImportResult({ type: 'success', text: data.message });
+                refresh();
+            } else {
+                setImportResult({ type: 'error', text: data.error || 'Error al importar' });
+            }
+        } catch {
+            setImportResult({ type: 'error', text: 'Error de conexión' });
+        }
+        setImporting(false);
+        e.target.value = '';
+        setTimeout(() => setImportResult(null), 6000);
+    };
+
+    return (
+        <div className="p-4 lg:p-8 max-w-[1600px] mx-auto space-y-6 animate-in fade-in duration-500 pb-20">
+
+            {/* Import Result Toast */}
+            {importResult && (
+                <div className={`fixed top-4 right-4 p-4 rounded-2xl flex items-center gap-3 text-sm font-bold z-[100] animate-in slide-in-from-right duration-300 shadow-2xl ${importResult.type === 'success'
+                    ? 'bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 border-2 border-emerald-200 dark:border-emerald-800'
+                    : 'bg-red-50 dark:bg-red-950 text-red-600 dark:text-red-400 border-2 border-red-200 dark:border-red-800'
+                    }`}>
+                    {importResult.type === 'success' ? <CheckCircle2 className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}
+                    {importResult.text}
+                </div>
+            )}
+
+            {/* Header */}
+            <header className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+                <div className="w-full lg:w-auto">
+                    <h1 className="text-2xl lg:text-3xl font-black text-stone-800 dark:text-stone-100 tracking-tight italic">
+                        Stock y <span className="text-primary not-italic border-b-4 border-primary/30">Productos</span>
+                    </h1>
+                    <p className="text-stone-400 mt-1 font-medium uppercase text-[8px] lg:text-[10px] tracking-[0.2em]">Control de inventario y catálogo</p>
+                </div>
+                <div className="flex items-center gap-2 flex-wrap w-full lg:w-auto overflow-x-auto lg:overflow-visible pb-2 lg:pb-0 no-scrollbar">
+                    <button
+                        onClick={() => setShowPhotoStudio(true)}
+                        className="flex-1 lg:flex-none flex items-center justify-center gap-2 px-5 lg:px-6 py-2.5 lg:py-3 bg-gradient-to-r from-violet-600 to-indigo-600 text-white rounded-xl text-[9px] lg:text-[10px] font-black shadow-lg hover:scale-105 active:scale-95 transition-all group uppercase tracking-widest whitespace-nowrap"
+                    >
+                        <Camera className="w-4 h-4 group-hover:scale-110 transition-transform" strokeWidth={3} />
+                        Photo Studio
+                    </button>
+                    {isAdmin && (
+                        <>
+                            <button
+                                onClick={() => setShowSettings(true)}
+                                className="flex-1 lg:flex-none flex items-center justify-center gap-2 px-5 lg:px-6 py-2.5 lg:py-3 bg-stone-100 text-stone-700 dark:bg-stone-800 dark:text-stone-300 rounded-xl text-[9px] lg:text-[10px] font-black shadow-sm hover:scale-105 active:scale-95 transition-all group uppercase tracking-widest whitespace-nowrap border border-stone-200 dark:border-stone-700"
+                            >
+                                <Clock className="w-4 h-4 group-hover:-rotate-12 transition-transform" strokeWidth={3} />
+                                Tiempos
+                            </button>
+                            <button
+                                onClick={() => setShowLabImporter(true)}
+                                className="flex-1 lg:flex-none flex items-center justify-center gap-2 px-5 lg:px-6 py-2.5 lg:py-3 bg-amber-600 text-white rounded-xl text-[9px] lg:text-[10px] font-black shadow-lg hover:scale-105 active:scale-95 transition-all group uppercase tracking-widest whitespace-nowrap"
+                            >
+                                <Zap className="w-4 h-4 group-hover:rotate-12 transition-transform" strokeWidth={3} />
+                                OCR Lab
+                            </button>
+                            <button
+                                onClick={() => setShowForm(true)}
+                                className="flex-1 lg:flex-none flex items-center justify-center gap-2 px-5 lg:px-6 py-2.5 lg:py-3 bg-stone-900 text-white dark:bg-primary dark:text-primary-foreground rounded-xl text-[9px] lg:text-[10px] font-black shadow-lg hover:scale-105 active:scale-95 transition-all group uppercase tracking-widest whitespace-nowrap"
+                            >
+                                <Plus className="w-4 h-4 group-hover:rotate-90 transition-transform" strokeWidth={3} />
+                                Cargar
+                            </button>
+                        </>
+                    )}
+                </div>
+            </header>
+
+            {/* Stats */}
+            <div className={`grid grid-cols-2 ${isAdmin ? 'md:grid-cols-4' : 'md:grid-cols-3'} gap-3`}>
+                {[
+                    { label: 'Artículos', value: stats.totalProducts, icon: ShoppingBag },
+                    { label: 'Stock Total', value: stats.totalStock, icon: Package },
+                    { label: 'Stock Crítico', value: stats.lowStock, icon: AlertCircle },
+                    ...(isAdmin ? [{ label: 'Valorización', value: `$${stats.inventoryValue.toLocaleString()}`, icon: ArrowUpRight }] : []),
+                ].map((s, i) => (
+                    <div key={i} className="bg-white dark:bg-stone-900 p-4 rounded-2xl border border-stone-100 dark:border-stone-800 flex items-center gap-3">
+                        <s.icon className="w-5 h-5 text-stone-400 shrink-0" />
+                        <div>
+                            <p className="text-[9px] font-black text-stone-400 uppercase tracking-widest">{s.label}</p>
+                            <p className="text-lg font-black text-stone-800 dark:text-white">{s.value}</p>
+                        </div>
+                    </div>
+                ))}
+            </div>
+
+            {/* Search + Mass Delete Bar */}
+            <div className="flex gap-4 mb-6">
+                <div className="relative group flex-1">
+                    <Search className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-stone-400 group-focus-within:text-primary transition-colors duration-300" />
+                    <input
+                        type="text"
+                        placeholder="Buscar por nombre, marca o modelo..."
+                        className="w-full pl-14 pr-6 py-5 bg-stone-50/50 dark:bg-stone-800/30 backdrop-blur-md border border-stone-200/50 dark:border-stone-700/50 rounded-full shadow-[0_2px_10px_-3px_rgba(6,81,237,0.05)] focus:bg-white dark:focus:bg-stone-900 focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all font-medium text-stone-800 dark:text-stone-100 placeholder-stone-400"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                    />
+                </div>
+                {isAdmin && selectedIds.size > 0 && (
+                    <button
+                        onClick={handleBulkDelete}
+                        disabled={isDeleting}
+                        className="flex items-center justify-center gap-2 px-8 bg-red-500 text-white rounded-full text-[11px] font-black shadow-lg hover:bg-red-600 hover:scale-105 active:scale-95 transition-all uppercase tracking-widest animate-in slide-in-from-right-3"
+                    >
+                        {isDeleting ? (
+                            <><Loader2 className="w-4 h-4 animate-spin" /> Eliminando...</>
+                        ) : (
+                            <><Trash2 className="w-4 h-4" /> ({selectedIds.size})</>
+                        )}
+                    </button>
+                )}
+            </div>
+
+            {/* Filters Area */}
+            <div className="flex flex-col gap-4 mb-8">
+                {/* Category filters */}
+                <div className="flex flex-wrap gap-2 overflow-x-auto pb-2 no-scrollbar">
+                    {PRODUCT_CATEGORIES.map((cat) => {
+                        const isActive = selectedCategory === cat.id && !selectedSubtype;
+                        return (
+                            <button
+                                key={cat.id}
+                                onClick={() => {
+                                    setSelectedCategory(cat.id);
+                                    setSelectedSubtype('');
+                                    setSelectedOrigin('');
+                                    setSelectedBrand('');
+                                    setSelectedLab('');
+                                }}
+                                className={`h-8 px-3 rounded-xl text-xs font-bold uppercase tracking-wider whitespace-nowrap transition-all duration-300 border flex items-center justify-center ${
+                                    isActive
+                                    ? 'bg-stone-900 text-white dark:bg-stone-100 dark:text-stone-900 shadow-md scale-105'
+                                    : 'bg-transparent border border-stone-200 dark:border-stone-800 text-stone-500 hover:border-stone-300 dark:hover:border-stone-600 hover:bg-stone-50 dark:hover:bg-stone-800/50'
+                                }`}
+                            >
+                                {cat.label}
+                            </button>
+                        );
+                    })}
+                    <button
+                        onClick={() => setOnlyWeb(!onlyWeb)}
+                        className={`h-8 px-3 rounded-xl text-xs font-bold uppercase tracking-wider whitespace-nowrap transition-all duration-300 border flex items-center gap-1.5 ${
+                            onlyWeb
+                            ? 'bg-violet-600 text-white border-violet-600 shadow-md scale-105 hover:bg-violet-750'
+                            : 'bg-transparent border border-violet-200 text-violet-600 hover:border-violet-350 hover:bg-violet-50/50 dark:border-violet-900/50 dark:text-violet-400'
+                        }`}
+                    >
+                        🌐 Solo Web
+                    </button>
+                </div>
 
                 {/* Subtype filters — only when Cristal or Tratamiento is selected */}
-                {(selectedCategory === 'Cristal' || selectedCategory === 'Tratamiento') && activeCategory?.subtypes && (
+                {(selectedCategory === 'Cristal' || selectedCategory === 'Tratamiento') && (activeCategory as any)?.subtypes && (
                     <div className="inline-flex flex-wrap items-center gap-2 bg-stone-100/50 dark:bg-stone-800/50 backdrop-blur-md p-1.5 rounded-full border border-stone-200/50 dark:border-stone-700/50 w-max animate-in fade-in slide-in-from-top-2 duration-300">
                         <button
                             onClick={() => setSelectedSubtype('')}
@@ -32,7 +531,7 @@ import Image from "next/image";
                             {!selectedSubtype && <div className="absolute inset-0 bg-white dark:bg-stone-600 rounded-full shadow-sm -z-10" />}
                             Todos
                         </button>
-                        {activeCategory.subtypes.map(sub => {
+                        {(activeCategory as any).subtypes.map((sub: string) => {
                             const isActive = selectedSubtype === sub;
                             return (
                                 <button
@@ -209,7 +708,7 @@ import Image from "next/image";
                                             const imgUrl = resolveStorageUrl(p.imagenesCatalogo?.[0] || p.rawImageUrls?.[0] || null);
                                             if (imgUrl) {
                                                 return (
-                                                    <Image 
+                                                    <img 
                                                         src={imgUrl} 
                                                         alt={p.name || ''} 
                                                         className="w-10 h-10 object-contain rounded-lg border border-stone-200 dark:border-stone-800 bg-stone-50 dark:bg-stone-900 shadow-sm shrink-0" 
@@ -259,7 +758,7 @@ import Image from "next/image";
                                                             try {
                                                                 await fetch(`/api/products/${p.id}`, {
                                                                     method: 'PUT',
-                                                                    headers: { 'Content-Type': 'application/json' },
+                                                                    headers: { 'Content-Type': 'application/json', 'x-user-role': 'ADMIN' },
                                                                     body: JSON.stringify({ price: newPrice })
                                                                 });
                                                                 refresh();
