@@ -182,12 +182,17 @@ export function TiendaClient({
                   >
                     {/* Imagen */}
                     <div className="bg-[#f5f5f5] aspect-square overflow-hidden mb-4 relative">
-                      {/* Badge Urgencia / Escasez */}
-                      {p.stock !== undefined && p.stock > 0 && p.stock <= 3 && (
-                        <span className="absolute top-3 right-3 z-10 bg-red-650 text-white text-[7.5px] font-black uppercase tracking-[0.15em] px-2.5 py-1 rounded shadow-md animate-pulse">
-                          Últimas {p.stock} u.
+                      {/* Badges en la esquina superior derecha */}
+                      <div className="absolute top-3 right-3 z-10 flex flex-col gap-1 items-end">
+                        <span className="bg-[#1a1a1a] text-white text-[10px] font-bold uppercase tracking-wider px-2 py-1 shadow-sm">
+                          {webSettings.web_promo_cash_discount}% OFF
                         </span>
-                      )}
+                        {p.stock !== undefined && p.stock > 0 && p.stock <= 3 && (
+                          <span className="bg-red-650 text-white text-[7.5px] font-black uppercase tracking-[0.15em] px-2.5 py-1 rounded shadow-md animate-pulse">
+                            Últimas {p.stock} u.
+                          </span>
+                        )}
+                      </div>
 
                       {imgUrl ? (
                         <div className="absolute inset-0 flex items-center justify-center">
@@ -238,14 +243,12 @@ export function TiendaClient({
                         {p.name || p.model}
                       </h2>
                       
-                      <div className="pt-3 border-t border-stone-200/60 flex flex-col gap-1.5">
-                        <p className="text-base font-bold text-stone-900">
-                          {webSettings.web_promo_installments} de <span className="font-black text-[#b08f4c] text-lg">${Math.round((p.price || 0) / installmentsCount).toLocaleString("es-AR")}</span>
+                      <div className="pt-3 flex items-center gap-2">
+                        <p className="text-lg font-black text-stone-900 tracking-tight">
+                          ${Math.round((p.price || 0) * (1 - discountRate)).toLocaleString("es-AR")}
                         </p>
-                        
-                        <p className="text-xs text-stone-500 font-medium mt-1">
-                          <span className="line-through opacity-60 mr-1">${(p.price || 0).toLocaleString("es-AR")}</span>
-                          ${Math.round((p.price || 0) * (1 - discountRate)).toLocaleString("es-AR")} efvo/transf. <span className="text-emerald-600 font-bold ml-1">(-{webSettings.web_promo_cash_discount}%)</span>
+                        <p className="text-sm font-medium text-stone-400 line-through decoration-1">
+                          ${(p.price || 0).toLocaleString("es-AR")}
                         </p>
                       </div>
 

@@ -185,15 +185,12 @@ export function HomeProductCarousel({ collections, totalCount }: Props) {
             {/* Nombre, precio y botones de acción */}
             <div className="px-3 pt-6 pb-4 border-r border-[#e5e5e5] flex flex-col justify-between min-h-[150px] h-auto">
               <div>
-                <h3 className="text-[12px] font-medium text-stone-800 line-clamp-1">{item.name}</h3>
-                <p className="text-[12px] text-[#999] mt-0.5">{item.price}</p>
-
-                {/* Sellos de Confianza (Trust Badges) */}
-                <div className="flex flex-wrap gap-1 mt-2">
-                  <span className="text-[6.5px] md:text-[7.5px] font-black uppercase tracking-wider bg-stone-50 border border-stone-200/50 text-stone-500 px-1.5 py-0.5 rounded-sm">6 Cuotas</span>
-                  <span className="text-[6.5px] md:text-[7.5px] font-black uppercase tracking-wider bg-stone-50 border border-stone-200/50 text-stone-500 px-1.5 py-0.5 rounded-sm">Envío Gratis</span>
-                  <span className="text-[6.5px] md:text-[7.5px] font-black uppercase tracking-wider bg-amber-50/50 border border-amber-500/20 text-[#b08f4c] px-1.5 py-0.5 rounded-sm font-semibold">Garantía</span>
-                  <span className="text-[6.5px] md:text-[7.5px] font-black uppercase tracking-wider bg-emerald-50/50 border border-emerald-500/20 text-emerald-700 px-1.5 py-0.5 rounded-sm font-semibold">15% OFF</span>
+                <h3 className="text-[12px] font-bold text-stone-900 line-clamp-1 uppercase tracking-wide">{item.name}</h3>
+                
+                <div className="flex items-center gap-2 mt-1.5">
+                  <p className="text-[13px] font-black text-stone-900 tracking-tight">
+                    {item.price}
+                  </p>
                 </div>
               </div>
 
