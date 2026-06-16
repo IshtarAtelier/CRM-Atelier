@@ -191,8 +191,7 @@ export function FilmmakerReel() {
             </p>
             {/* Title */}
             <h2
-              className="text-white text-4xl lg:text-6xl font-bold tracking-tight leading-none mb-3"
-              style={{ fontFamily: "'Georgia', 'Times New Roman', serif" }}
+              className=" font-serif"
             >
               {frame.title}
             </h2>

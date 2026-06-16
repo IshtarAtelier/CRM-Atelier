@@ -9,7 +9,7 @@ import {
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { resolveStorageUrl, fileToBase64 } from '@/lib/utils/storage';
-import FileDropZone from '@/components/FileDropZone';
+import FileDropZone from '@/components/ui/FileDropZone';
 import type { CashMovement } from '@/types/orders';
 import Image from "next/image";
 

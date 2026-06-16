@@ -115,7 +115,7 @@ export function UserProfile({ name, role, userId }: { name: string, role: string
                                     setNewPassword('');
                                     setMessage(null);
                                 }}
-                                className="p-1 text-stone-600 hover:text-stone-600 dark:hover:text-stone-500 rounded-lg transition-colors"
+                                className="p-1 text-stone-400 hover:text-stone-600 dark:hover:text-stone-300 rounded-lg transition-colors"
                             >
                                 <X size={20} />
                             </button>
@@ -132,7 +132,7 @@ export function UserProfile({ name, role, userId }: { name: string, role: string
                                 </div>
                             )}
                             
-                            <label className="text-xs font-black text-stone-600 uppercase tracking-widest block mb-2">
+                            <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest block mb-2">
                                 Nueva Contraseña
                             </label>
                             <div className="relative mb-5">
@@ -141,13 +141,13 @@ export function UserProfile({ name, role, userId }: { name: string, role: string
                                     value={newPassword}
                                     onChange={e => setNewPassword(e.target.value)}
                                     placeholder="••••••••"
-                                    className="w-full px-4 py-3 bg-stone-50 dark:bg-stone-800 border-2 border-stone-200 dark:border-stone-700 rounded-xl text-sm font-bold outline-none focus:border-amber-500 transition-all pr-12"
+                                    className="w-full px-4 py-3 bg-stone-50 dark:bg-stone-800 border-2 border-stone-200 dark:border-stone-700 rounded-xl text-sm font-bold focus:ring-2 focus:ring-amber-500 focus:outline-none focus:border-amber-500 transition-all pr-12"
                                     autoFocus
                                     onKeyDown={e => e.key === 'Enter' && handleChangePassword()}
                                 />
                                 <button
                                     onClick={() => setShowPassword(!showPassword)}
-                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-600 hover:text-stone-600"
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600"
                                 >
                                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                                 </button>

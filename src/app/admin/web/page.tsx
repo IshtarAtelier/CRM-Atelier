@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { resolveStorageUrl } from '@/lib/utils/storage';
+import Image from "next/image";
 
 interface WebProduct {
   id: string;
@@ -123,7 +124,7 @@ export default function WebManagementPage() {
             : isDark 
             ? 'linear-gradient(135deg, #181514 0%, #0d0c0b 50%, #000000 100%)'
             : 'linear-gradient(135deg, #f7f1eb 0%, #efe1d8 50%, #e2cdbe 100%)',
-          fontFamily: 'Playfair Display, Georgia, "Times New Roman", serif',
+          
         }}
       >
         {/* Background light flares */}
@@ -138,7 +139,7 @@ export default function WebManagementPage() {
 
         {/* Story Header */}
         <div className="relative z-10 pt-10 px-6 flex flex-col items-center shrink-0">
-          <img 
+          <Image 
             src={isDark ? '/images/logo-blanco.png' : '/images/logo-negro.png'} 
             alt="Atelier Logo" 
             className="h-8 object-contain opacity-90"
@@ -200,7 +201,7 @@ export default function WebManagementPage() {
                   <div className="relative flex flex-col items-center justify-center pt-2">
                     <div className="relative w-40 h-20 flex items-center justify-center overflow-hidden">
                       <div className="absolute inset-0 bg-white/20 dark:bg-black/20 blur-md rounded-full" />
-                      <img src={img} alt="Glasses highlight" className="object-contain w-full h-full relative z-10 drop-shadow-md scale-110" />
+                      <Image src={img} alt="Glasses highlight" className="object-contain w-full h-full relative z-10 drop-shadow-md scale-110" />
                     </div>
                   </div>
                 ) : (
@@ -234,7 +235,7 @@ export default function WebManagementPage() {
                 </div>
 
                 <div className="text-center py-1">
-                  <h2 className="text-3xl font-black tracking-wider leading-none" style={{ color: textColor, fontFamily: 'Georgia, serif' }}>
+                  <h2 className="text-3xl font-black tracking-wider leading-none" style={{ color: textColor }}>
                     {flyerPromoBadge || '15% OFF'}
                   </h2>
                   <p className="text-[10px] font-bold tracking-widest uppercase mt-1 opacity-80" style={{ color: subtextColor }}>
@@ -246,7 +247,7 @@ export default function WebManagementPage() {
                   <div className="space-y-2 flex flex-col items-center">
                     <div className="relative w-40 h-20 flex items-center justify-center">
                       <div className="absolute w-24 h-24 rounded-full bg-primary/10 filter blur-xl" />
-                      <img src={img} alt="Product promo" className="object-contain w-full h-full relative z-10 drop-shadow-md" />
+                      <Image src={img} alt="Product promo" className="object-contain w-full h-full relative z-10 drop-shadow-md" />
                     </div>
                     <div className="text-center font-sans">
                       <p className="text-[9px] font-bold uppercase tracking-wider text-stone-500">{p?.product.model}</p>
@@ -282,7 +283,7 @@ export default function WebManagementPage() {
                 {img ? (
                   <div className="space-y-3 flex flex-col items-center">
                     <div className="relative w-44 h-20 flex items-center justify-center p-1 rounded-xl bg-white/20 dark:bg-black/10 border border-white/10 shadow-inner">
-                      <img src={img} alt="New glasses arrival" className="object-contain w-full h-full drop-shadow-md scale-110" />
+                      <Image src={img} alt="New glasses arrival" className="object-contain w-full h-full drop-shadow-md scale-110" />
                     </div>
                     <div className="text-center font-sans">
                       <p className="text-[8px] font-black uppercase tracking-widest text-primary">{p?.product.brand || 'ATELIER'}</p>
@@ -331,7 +332,7 @@ export default function WebManagementPage() {
                 <div className="text-3xl font-serif text-primary leading-none h-4 opacity-50 select-none">“</div>
                 <p 
                   className="text-xs sm:text-sm font-medium leading-relaxed px-2 italic"
-                  style={{ color: textColor, fontFamily: 'Georgia, serif' }}
+                  style={{ color: textColor }}
                 >
                   {flyerQuoteText || 'El estilo es una forma de decir quién eres sin tener que hablar.'}
                 </p>
@@ -342,7 +343,7 @@ export default function WebManagementPage() {
                 {img && (
                   <div className="flex flex-col items-center justify-center pt-3 mt-1 border-t border-stone-200/10 shrink-0">
                     <div className="w-24 h-8 flex items-center justify-center overflow-hidden">
-                      <img src={img} alt="Quote glasses" className="object-contain w-full h-full drop-shadow-sm" />
+                      <Image src={img} alt="Quote glasses" className="object-contain w-full h-full drop-shadow-sm" />
                     </div>
                     <p className="text-[7px] font-black uppercase tracking-widest opacity-60 text-stone-400 mt-1">
                       {p?.product.brand} {p?.product.model}
@@ -371,7 +372,7 @@ export default function WebManagementPage() {
                   <div className="space-y-2 flex flex-col items-center">
                     <div className="relative w-40 h-20 flex items-center justify-center">
                       <div className="absolute w-24 h-24 rounded-full bg-primary/10 filter blur-xl" />
-                      <img src={img} alt="Holiday product highlight" className="object-contain w-full h-full relative z-10 drop-shadow-md" />
+                      <Image src={img} alt="Holiday product highlight" className="object-contain w-full h-full relative z-10 drop-shadow-md" />
                     </div>
                     <p className="text-[9px] font-bold uppercase tracking-wider text-stone-500 mt-1">{p?.product.model}</p>
                   </div>
@@ -824,7 +825,7 @@ export default function WebManagementPage() {
                         <tr key={wp.id} className="hover:bg-stone-50/50 dark:hover:bg-stone-800/30 transition-colors">
                           <td className="px-6 py-4 flex items-center gap-3">
                             <div className="w-10 h-10 bg-stone-50 dark:bg-stone-850 border border-stone-200 dark:border-stone-800 rounded-lg overflow-hidden flex items-center justify-center shrink-0 relative">
-                              <img src={img} alt={wp.name} className="object-contain w-full h-full mix-blend-multiply dark:mix-blend-normal" />
+                              <Image src={img} alt={wp.name} className="object-contain w-full h-full mix-blend-multiply dark:mix-blend-normal" />
                             </div>
                             <div>
                               <p className="text-[10px] text-stone-400 font-black uppercase tracking-widest">{wp.product.brand || 'ATELIER'}</p>
@@ -900,7 +901,7 @@ export default function WebManagementPage() {
                   <div>
                     <div className="h-44 bg-stone-100 dark:bg-stone-800 relative w-full overflow-hidden">
                       {post.imageUrl ? (
-                        <img src={post.imageUrl} alt={post.title} className="w-full h-full object-cover" />
+                        <Image src={post.imageUrl} alt={post.title} className="w-full h-full object-cover" />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center text-stone-300">
                           <FileText className="w-10 h-10" />
@@ -934,7 +935,7 @@ export default function WebManagementPage() {
                     <div className="flex gap-2">
                       <Link 
                         href={`/blog/${post.slug}`} 
-                        target="_blank"
+                        target="_blank" rel="noopener noreferrer"
                         className="p-2 hover:bg-stone-100 dark:hover:bg-stone-800 text-stone-500 hover:text-black dark:hover:text-white rounded-lg transition-all"
                         title="Previsualizar"
                       >
@@ -1316,7 +1317,7 @@ export default function WebManagementPage() {
                           >
                             <div className="flex items-center gap-3">
                               <div className="w-8 h-8 bg-stone-50 border border-stone-200 dark:border-stone-800 rounded-lg overflow-hidden shrink-0 flex items-center justify-center p-0.5">
-                                <img src={img} alt={p.name} className="object-contain w-full h-full mix-blend-multiply dark:mix-blend-normal" />
+                                <Image src={img} alt={p.name} className="object-contain w-full h-full mix-blend-multiply dark:mix-blend-normal" />
                               </div>
                               <div>
                                 <p className="font-bold text-stone-800 dark:text-stone-100 leading-none">{p.product.model || p.name}</p>
@@ -1342,7 +1343,7 @@ export default function WebManagementPage() {
                         <div className="flex items-center justify-between p-3.5 bg-indigo-50/40 dark:bg-indigo-950/20 border border-indigo-200/50 dark:border-indigo-900/50 rounded-2xl">
                           <div className="flex items-center gap-3">
                             <div className="w-10 h-10 bg-white border border-stone-200 dark:border-stone-800 rounded-lg overflow-hidden shrink-0 flex items-center justify-center p-0.5">
-                              <img src={img} alt={p.name} className="object-contain w-full h-full mix-blend-multiply dark:mix-blend-normal" />
+                              <Image src={img} alt={p.name} className="object-contain w-full h-full mix-blend-multiply dark:mix-blend-normal" />
                             </div>
                             <div>
                               <p className="font-black text-xs text-stone-800 dark:text-stone-100">{p.product.model}</p>
@@ -1660,7 +1661,7 @@ export default function WebManagementPage() {
             <form onSubmit={handleSaveProduct} className="space-y-4">
               <div className="flex items-center gap-3 p-3 bg-stone-50 dark:bg-stone-800/40 rounded-xl border border-stone-200/50 dark:border-stone-700/50">
                 <div className="w-12 h-12 bg-white border border-stone-200 dark:border-stone-800 rounded-lg overflow-hidden shrink-0 flex items-center justify-center p-1 relative">
-                  <img src={editingProduct.product.imagenesCatalogo?.length > 0 ? resolveStorageUrl(editingProduct.product.imagenesCatalogo[0]) : editingProduct.imageUrl || "/images/placeholder.svg"} className="object-contain w-full h-full mix-blend-multiply dark:mix-blend-normal" />
+                  <Image src={editingProduct.product.imagenesCatalogo?.length > 0 ? resolveStorageUrl(editingProduct.product.imagenesCatalogo[0]) : editingProduct.imageUrl || "/images/placeholder.svg"} alt="Producto" fill className="object-contain mix-blend-multiply dark:mix-blend-normal p-1" />
                 </div>
                 <div>
                   <h4 className="font-bold text-sm text-stone-800 dark:text-stone-200 leading-tight">{editingProduct.product.model}</h4>

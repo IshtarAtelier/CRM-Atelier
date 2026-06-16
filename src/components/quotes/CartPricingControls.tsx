@@ -47,7 +47,7 @@ export default function CartPricingControls({
                         min={0}
                         value={markup || ''}
                         onChange={e => setMarkup(Math.abs(Number(e.target.value)))}
-                        className="w-full bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-lg px-2.5 py-1.5 text-xs font-bold outline-none"
+                        className="w-full bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-lg px-2.5 py-1.5 text-xs font-bold focus:ring-2 focus:ring-amber-500 focus:outline-none"
                     />
                     <span className="text-xs font-bold text-blue-500">%</span>
                  </div>
@@ -60,7 +60,7 @@ export default function CartPricingControls({
                  <select
                     value={discountCash}
                     onChange={e => setDiscountCash(Number(e.target.value))}
-                    className="w-full bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-lg px-2.5 py-1.5 text-xs font-bold outline-none cursor-pointer"
+                    className="w-full bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-lg px-2.5 py-1.5 text-xs font-bold focus:ring-2 focus:ring-amber-500 focus:outline-none cursor-pointer"
                 >
                     {[0, 5, 10, 15, 20, 25, 30].map(v => <option key={v} value={v}>-{v}%</option>)}
                 </select>
@@ -73,7 +73,7 @@ export default function CartPricingControls({
                  <select
                     value={discountTransfer}
                     onChange={e => setDiscountTransfer(Number(e.target.value))}
-                    className="w-full bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-lg px-2.5 py-1.5 text-xs font-bold outline-none cursor-pointer"
+                    className="w-full bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-lg px-2.5 py-1.5 text-xs font-bold focus:ring-2 focus:ring-amber-500 focus:outline-none cursor-pointer"
                 >
                     {[0, 5, 10, 15, 20].map(v => <option key={v} value={v}>-{v}%</option>)}
                 </select>
@@ -86,7 +86,7 @@ export default function CartPricingControls({
                  <select
                     value={discountCard}
                     onChange={e => setDiscountCard(Number(e.target.value))}
-                    className="w-full bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-lg px-2.5 py-1.5 text-xs font-bold outline-none cursor-pointer"
+                    className="w-full bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-lg px-2.5 py-1.5 text-xs font-bold focus:ring-2 focus:ring-amber-500 focus:outline-none cursor-pointer"
                 >
                     {[0, 5, 10].map(v => <option key={v} value={v}>{v === 0 ? '0%' : `+${v}%`}</option>)}
                 </select>
@@ -105,7 +105,7 @@ export default function CartPricingControls({
                             min={0}
                             value={specialDiscount || ''}
                             onChange={e => setSpecialDiscount(Math.abs(Number(e.target.value)))}
-                            className="w-full bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-lg px-2.5 py-1.5 text-xs font-bold outline-none"
+                            className="w-full bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-lg px-2.5 py-1.5 text-xs font-bold focus:ring-2 focus:ring-amber-500 focus:outline-none"
                             placeholder="Monto"
                         />
                      </div>

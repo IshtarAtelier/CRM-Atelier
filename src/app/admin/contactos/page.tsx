@@ -7,7 +7,7 @@ import { useContacts } from '@/hooks/useContacts';
 import { ContactStatus } from '@/types/contacts';
 
 // Modular Components
-import ContactForm from '@/components/ContactForm';
+import ContactForm from '@/components/contacts/ContactForm';
 import ContactDetail from '@/components/contacts/ContactDetail';
 import FavoritesPanel from '@/components/contacts/FavoritesPanel';
 

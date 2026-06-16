@@ -8,6 +8,11 @@ export async function PATCH(
     { params }: { params: Promise<{ id: string }> }
 ) {
     try {
+        const roleHeader = request.headers.get('x-user-role');
+        if (roleHeader !== 'ADMIN') {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+        }
+
         const { id } = await params;
         const body = await request.json();
         const { name, role, password } = body;
@@ -44,6 +49,11 @@ export async function DELETE(
     { params }: { params: Promise<{ id: string }> }
 ) {
     try {
+        const roleHeader = request.headers.get('x-user-role');
+        if (roleHeader !== 'ADMIN') {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+        }
+
         const { id } = await params;
 
         // Don't allow deleting the last admin

@@ -106,7 +106,7 @@ export function TiendaClient({
         <div className="max-w-[1600px] mx-auto px-5 py-10 flex flex-col md:flex-row md:items-end justify-between gap-4">
           <div>
             <p className="text-[10px] font-black uppercase tracking-[0.25em] text-stone-400 mb-2">Atelier Óptica</p>
-            <h1 className="text-4xl md:text-5xl font-light tracking-tight" style={{ fontFamily: "'Georgia', 'Times New Roman', serif" }}>
+            <h1 className=" font-serif">
               Colección
             </h1>
           </div>

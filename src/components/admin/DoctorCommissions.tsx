@@ -190,17 +190,17 @@ export default function DoctorCommissions() {
                             <Stethoscope className="w-5 h-5 text-teal-600 dark:text-teal-400" />
                         </div>
                         <div>
-                            <h2 className="text-xs font-black uppercase tracking-widest text-stone-600">Comisiones Médicos</h2>
-                            <p className="text-xs text-stone-500 mt-0.5">15% sobre ventas netas de clientes derivados</p>
+                            <h2 className="text-xs font-black uppercase tracking-widest text-stone-400">Comisiones Médicos</h2>
+                            <p className="text-[10px] text-stone-300 mt-0.5">15% sobre ventas netas de clientes derivados</p>
                         </div>
                     </div>
 
                     {/* Doctor Selector */}
                     <div className="relative group">
-                        <Stethoscope className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-500 group-focus-within:text-teal-500 transition-colors z-10" />
-                        <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-600 pointer-events-none" />
+                        <Stethoscope className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-300 group-focus-within:text-teal-500 transition-colors z-10" />
+                        <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400 pointer-events-none" />
                         <select
-                            className="pl-10 pr-9 py-2.5 bg-stone-50 dark:bg-stone-900 border-2 border-stone-200 dark:border-stone-600 rounded-xl text-sm font-bold outline-none focus:border-teal-500 transition-all appearance-none cursor-pointer min-w-[220px]"
+                            className="pl-10 pr-9 py-2.5 bg-stone-50 dark:bg-stone-900 border-2 border-stone-200 dark:border-stone-600 rounded-xl text-sm font-bold focus:ring-2 focus:ring-amber-500 focus:outline-none focus:border-teal-500 transition-all appearance-none cursor-pointer min-w-[220px]"
                             value={selectedDoctor}
                             onChange={e => handleDoctorChange(e.target.value)}
                         >
@@ -216,12 +216,12 @@ export default function DoctorCommissions() {
                 {!selectedDoctor ? (
                     <div className="p-16 text-center">
                         <Stethoscope className="w-16 h-16 text-stone-200 dark:text-stone-700 mx-auto mb-4" />
-                        <p className="text-sm font-bold text-stone-500 dark:text-stone-600">Seleccioná un médico para ver sus comisiones</p>
+                        <p className="text-sm font-bold text-stone-300 dark:text-stone-600">Seleccioná un médico para ver sus comisiones</p>
                     </div>
                 ) : loading ? (
                     <div className="p-16 text-center">
                         <Loader2 className="w-8 h-8 text-teal-500 animate-spin mx-auto mb-3" />
-                        <p className="text-xs font-bold text-stone-600">Calculando comisiones...</p>
+                        <p className="text-xs font-bold text-stone-400">Calculando comisiones...</p>
                     </div>
                 ) : data ? (
                     <div className="p-6 space-y-6">
@@ -241,19 +241,19 @@ export default function DoctorCommissions() {
                             <div className="bg-teal-50 dark:bg-teal-950 border-2 border-teal-100 dark:border-teal-900 rounded-2xl p-5">
                                 <div className="flex items-center gap-2 mb-2">
                                     <DollarSign className="w-4 h-4 text-teal-500" />
-                                    <span className="text-xs font-black text-teal-600 dark:text-teal-400 uppercase tracking-widest">Comisiones Generadas</span>
+                                    <span className="text-[9px] font-black text-teal-600 dark:text-teal-400 uppercase tracking-widest">Comisiones Generadas</span>
                                 </div>
-                                <p className="text-xsl md:text-2xl font-black text-teal-700 dark:text-teal-300 truncate">${data.totalCommission.toLocaleString()}</p>
-                                <p className="text-xs font-bold text-teal-500 mt-0.5">{data.operations.length} operación{data.operations.length !== 1 ? 'es' : ''}</p>
+                                <p className="text-xl md:text-2xl font-black text-teal-700 dark:text-teal-300 truncate">${data.totalCommission.toLocaleString()}</p>
+                                <p className="text-[10px] font-bold text-teal-500 mt-0.5">{data.operations.length} operación{data.operations.length !== 1 ? 'es' : ''}</p>
                             </div>
 
                             <div className="bg-blue-50 dark:bg-blue-950 border-2 border-blue-100 dark:border-blue-900 rounded-2xl p-5">
                                 <div className="flex items-center gap-2 mb-2">
                                     <Wallet className="w-4 h-4 text-blue-500" />
-                                    <span className="text-xs font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest">Pagado al Médico</span>
+                                    <span className="text-[9px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest">Pagado al Médico</span>
                                 </div>
-                                <p className="text-xsl md:text-2xl font-black text-blue-700 dark:text-blue-300 truncate">${data.totalPaidToDoctor.toLocaleString()}</p>
-                                <p className="text-xs font-bold text-blue-500 mt-0.5">{data.doctorPayments.length} pago{data.doctorPayments.length !== 1 ? 's' : ''}</p>
+                                <p className="text-xl md:text-2xl font-black text-blue-700 dark:text-blue-300 truncate">${data.totalPaidToDoctor.toLocaleString()}</p>
+                                <p className="text-[10px] font-bold text-blue-500 mt-0.5">{data.doctorPayments.length} pago{data.doctorPayments.length !== 1 ? 's' : ''}</p>
                             </div>
 
                             <div className={`border-2 rounded-2xl p-5 ${data.balance > 0
@@ -262,14 +262,14 @@ export default function DoctorCommissions() {
                                 }`}>
                                 <div className="flex items-center gap-2 mb-2">
                                     <TrendingUp className={`w-4 h-4 ${data.balance > 0 ? 'text-amber-500' : 'text-emerald-500'}`} />
-                                    <span className={`text-xs font-black uppercase tracking-widest ${data.balance > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
+                                    <span className={`text-[9px] font-black uppercase tracking-widest ${data.balance > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
                                         Balance Pendiente
                                     </span>
                                 </div>
-                                <p className={`text-xsl md:text-2xl font-black truncate ${data.balance > 0 ? 'text-amber-700 dark:text-amber-300' : 'text-emerald-700 dark:text-emerald-300'}`}>
+                                <p className={`text-xl md:text-2xl font-black truncate ${data.balance > 0 ? 'text-amber-700 dark:text-amber-300' : 'text-emerald-700 dark:text-emerald-300'}`}>
                                     ${data.balance.toLocaleString()}
                                 </p>
-                                <p className={`text-xs font-bold mt-0.5 ${data.balance > 0 ? 'text-amber-500' : 'text-emerald-500'}`}>
+                                <p className={`text-[10px] font-bold mt-0.5 ${data.balance > 0 ? 'text-amber-500' : 'text-emerald-500'}`}>
                                     {data.balance > 0 ? 'Se debe al médico' : 'Saldo al día ✓'}
                                 </p>
                             </div>
@@ -278,7 +278,7 @@ export default function DoctorCommissions() {
                         {/* Operations List */}
                         {data.operations.length > 0 && (
                             <div>
-                                <h3 className="text-xs font-black text-stone-600 uppercase tracking-widest mb-3 flex items-center gap-2">
+                                <h3 className="text-[10px] font-black text-stone-400 uppercase tracking-widest mb-3 flex items-center gap-2">
                                     <Receipt className="w-4 h-4" />
                                     Operaciones ({data.operations.length})
                                 </h3>
@@ -290,22 +290,22 @@ export default function DoctorCommissions() {
                                                     <User className="w-4 h-4 text-teal-500" />
                                                     <span className="text-sm font-black text-stone-800 dark:text-white">{op.clientName}</span>
                                                 </div>
-                                                <span className="text-xs font-bold text-stone-600">{formatDate(op.date)}</span>
+                                                <span className="text-[9px] font-bold text-stone-400">{formatDate(op.date)}</span>
                                             </div>
 
                                             <div className="space-y-1.5 text-xs">
                                                 <div className="flex justify-between">
-                                                    <span className="text-stone-600 font-medium">Total operación</span>
+                                                    <span className="text-stone-400 font-medium">Total operación</span>
                                                     <span className="font-bold text-stone-700 dark:text-stone-200">${op.orderTotal.toLocaleString()}</span>
                                                 </div>
                                                 {op.platformFee > 0 && (
                                                     <div className="flex justify-between">
-                                                        <span className="text-xsurple-400 font-medium">Comisión plataforma</span>
-                                                        <span className="font-bold text-xsurple-500">-${op.platformFee.toLocaleString()}</span>
+                                                        <span className="text-purple-400 font-medium">Comisión plataforma</span>
+                                                        <span className="font-bold text-purple-500">-${op.platformFee.toLocaleString()}</span>
                                                     </div>
                                                 )}
                                                 <div className="flex justify-between">
-                                                    <span className="text-stone-600 font-medium">Neto</span>
+                                                    <span className="text-stone-400 font-medium">Neto</span>
                                                     <span className="font-bold text-stone-700 dark:text-stone-200">${op.netAmount.toLocaleString()}</span>
                                                 </div>
                                                 <div className="flex justify-between border-t border-stone-200 dark:border-stone-700 pt-1.5 mt-1.5">
@@ -317,7 +317,7 @@ export default function DoctorCommissions() {
                                             {/* Payment method pills */}
                                             <div className="flex gap-1 mt-2 flex-wrap">
                                                 {[...new Set(op.paymentMethods)].map((m, i) => (
-                                                    <span key={i} className="px-2 py-0.5 bg-stone-200 dark:bg-stone-700 rounded text-[8px] font-bold text-stone-500 dark:text-stone-600 uppercase tracking-wider">
+                                                    <span key={i} className="px-2 py-0.5 bg-stone-200 dark:bg-stone-700 rounded text-[8px] font-bold text-stone-500 dark:text-stone-400 uppercase tracking-wider">
                                                         {METHOD_LABELS[m] || m}
                                                     </span>
                                                 ))}
@@ -331,7 +331,7 @@ export default function DoctorCommissions() {
                         {data.operations.length === 0 && (
                             <div className="text-center py-8">
                                 <Receipt className="w-10 h-10 text-stone-200 dark:text-stone-700 mx-auto mb-2" />
-                                <p className="text-xs font-black text-stone-500 dark:text-stone-600 uppercase tracking-widest">
+                                <p className="text-xs font-black text-stone-300 dark:text-stone-600 uppercase tracking-widest">
                                     Sin ventas de clientes derivados por este médico
                                 </p>
                             </div>
@@ -340,13 +340,13 @@ export default function DoctorCommissions() {
                         {/* Payments Section */}
                         <div className="border-t-2 border-stone-100 dark:border-stone-700 pt-6">
                             <div className="flex items-center justify-between mb-4">
-                                <h3 className="text-xs font-black text-stone-600 uppercase tracking-widest flex items-center gap-2">
+                                <h3 className="text-[10px] font-black text-stone-400 uppercase tracking-widest flex items-center gap-2">
                                     <Wallet className="w-4 h-4" />
                                     Pagos realizados al médico
                                 </h3>
                                 <button
                                     onClick={() => setShowPaymentForm(!showPaymentForm)}
-                                    className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all flex items-center gap-1.5 hover:scale-105 ${showPaymentForm
+                                    className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-1.5 hover:scale-105 ${showPaymentForm
                                         ? 'bg-stone-200 dark:bg-stone-600 text-stone-500'
                                         : 'bg-teal-600 text-white shadow-lg shadow-teal-500/20'
                                         }`}
@@ -359,28 +359,28 @@ export default function DoctorCommissions() {
                             {/* Payment Form */}
                             {showPaymentForm && (
                                 <div className="bg-teal-50/50 dark:bg-teal-950/30 border-2 border-teal-100 dark:border-teal-900 rounded-2xl p-5 mb-5 animate-in slide-in-from-top duration-200">
-                                    <h4 className="text-xs font-black text-teal-600 dark:text-teal-400 uppercase tracking-widest mb-4">
+                                    <h4 className="text-[10px] font-black text-teal-600 dark:text-teal-400 uppercase tracking-widest mb-4">
                                         Nuevo pago a {selectedDoctor}
                                     </h4>
                                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                         {/* Amount */}
                                         <div className="space-y-1.5">
-                                            <label className="text-xs font-black text-stone-600 uppercase tracking-widest">Monto *</label>
+                                            <label className="text-[9px] font-black text-stone-400 uppercase tracking-widest">Monto *</label>
                                             <div className="relative group">
-                                                <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-500 group-focus-within:text-teal-500 transition-colors" />
+                                                <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-300 group-focus-within:text-teal-500 transition-colors" />
                                                 <input
                                                     type="number"
                                                     value={payAmount}
                                                     onChange={e => setPayAmount(e.target.value)}
                                                     placeholder="0"
-                                                    className="w-full pl-9 pr-3 py-3 bg-white dark:bg-stone-900 border-2 border-stone-200 dark:border-stone-600 rounded-xl text-sm font-bold outline-none focus:border-teal-500 transition-all"
+                                                    className="w-full pl-9 pr-3 py-3 bg-white dark:bg-stone-900 border-2 border-stone-200 dark:border-stone-600 rounded-xl text-sm font-bold focus:ring-2 focus:ring-amber-500 focus:outline-none focus:border-teal-500 transition-all"
                                                 />
                                             </div>
                                         </div>
 
                                         {/* Method */}
                                         <div className="space-y-1.5">
-                                            <label className="text-xs font-black text-stone-600 uppercase tracking-widest">Método *</label>
+                                            <label className="text-[9px] font-black text-stone-400 uppercase tracking-widest">Método *</label>
                                             <div className="flex gap-2">
                                                 <button
                                                     type="button"
@@ -409,13 +409,13 @@ export default function DoctorCommissions() {
 
                                         {/* Notes */}
                                         <div className="space-y-1.5">
-                                            <label className="text-xs font-black text-stone-600 uppercase tracking-widest">Notas</label>
+                                            <label className="text-[9px] font-black text-stone-400 uppercase tracking-widest">Notas</label>
                                             <input
                                                 type="text"
                                                 value={payNotes}
                                                 onChange={e => setPayNotes(e.target.value)}
                                                 placeholder="Descripción..."
-                                                className="w-full px-3 py-3 bg-white dark:bg-stone-900 border-2 border-stone-200 dark:border-stone-600 rounded-xl text-sm font-bold outline-none focus:border-teal-500 transition-all"
+                                                className="w-full px-3 py-3 bg-white dark:bg-stone-900 border-2 border-stone-200 dark:border-stone-600 rounded-xl text-sm font-bold focus:ring-2 focus:ring-amber-500 focus:outline-none focus:border-teal-500 transition-all"
                                             />
                                         </div>
                                     </div>
@@ -423,7 +423,7 @@ export default function DoctorCommissions() {
                                     {/* Receipt upload for transfer */}
                                     {payMethod === 'TRANSFER' && (
                                         <div className="mt-4 space-y-1.5">
-                                            <label className="text-xs font-black text-stone-600 uppercase tracking-widest">Comprobante</label>
+                                            <label className="text-[9px] font-black text-stone-400 uppercase tracking-widest">Comprobante</label>
                                             <FileDropZone
                                                 accept="image/*"
                                                 maxSizeMB={10}
@@ -477,8 +477,8 @@ export default function DoctorCommissions() {
                                                         </span>
                                                     </div>
                                                     <div className="flex items-center gap-2 mt-0.5">
-                                                        <span className="text-xs text-stone-600 font-medium">{formatDate(p.date)}</span>
-                                                        {p.notes && <span className="text-xs text-stone-600">· {p.notes}</span>}
+                                                        <span className="text-[10px] text-stone-400 font-medium">{formatDate(p.date)}</span>
+                                                        {p.notes && <span className="text-[10px] text-stone-400">· {p.notes}</span>}
                                                     </div>
                                                 </div>
                                             </div>
@@ -497,7 +497,7 @@ export default function DoctorCommissions() {
                                                 <button
                                                     onClick={() => handleDeletePayment(p.id)}
                                                     disabled={deletingId === p.id}
-                                                    className="p-2 text-stone-500 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950 rounded-lg transition-all opacity-0 group-hover:opacity-100 disabled:opacity-50"
+                                                    className="p-2 text-stone-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950 rounded-lg transition-all opacity-0 group-hover:opacity-100 disabled:opacity-50"
                                                     title="Eliminar pago"
                                                 >
                                                     {deletingId === p.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
@@ -509,7 +509,7 @@ export default function DoctorCommissions() {
                             ) : (
                                 <div className="text-center py-6">
                                     <Wallet className="w-8 h-8 text-stone-200 dark:text-stone-700 mx-auto mb-2" />
-                                    <p className="text-xs font-black text-stone-500 dark:text-stone-600 uppercase tracking-widest">Sin pagos registrados</p>
+                                    <p className="text-[10px] font-black text-stone-300 dark:text-stone-600 uppercase tracking-widest">Sin pagos registrados</p>
                                 </div>
                             )}
                         </div>

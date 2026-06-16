@@ -24,16 +24,16 @@ export function FloatingDock() {
             <button
                 type="button"
                 onClick={() => setIsCollapsed(!isCollapsed)}
-                className="p-2.5 rounded-full hover:bg-stone-100 dark:hover:bg-stone-800 text-stone-500 hover:text-stone-900 dark:text-stone-600 dark:hover:text-stone-100 transition-colors flex items-center justify-center"
+                className="p-2.5 rounded-full hover:bg-stone-100 dark:hover:bg-stone-800 text-stone-500 hover:text-stone-900 dark:text-stone-400 dark:hover:text-stone-100 transition-colors flex items-center justify-center"
                 title={isCollapsed ? "Mostrar accesos rápidos" : "Contraer accesos rápidos"}
             >
                 {isCollapsed ? (
                     <div className="flex items-center gap-1">
                         <LayoutGrid className="w-5 h-5 text-indigo-500 dark:text-indigo-400" />
-                        <span className="text-xs font-black uppercase tracking-widest text-stone-500 dark:text-stone-600 px-1 hidden md:inline">Accesos</span>
+                        <span className="text-[9px] font-black uppercase tracking-widest text-stone-500 dark:text-stone-400 px-1 hidden md:inline">Accesos</span>
                     </div>
                 ) : (
-                    <ChevronRight className="w-5 h-5 text-stone-600" />
+                    <ChevronRight className="w-5 h-5 text-stone-400" />
                 )}
             </button>
 

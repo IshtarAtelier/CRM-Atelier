@@ -37,12 +37,12 @@ export default function BalancePanel({ orders, onClose }: BalancePanelProps) {
             <header className="p-8 border-b border-stone-100 dark:border-stone-800 flex justify-between items-center bg-stone-50/50 dark:bg-stone-800/30">
                 <div className="flex items-center gap-3 text-emerald-600 dark:text-emerald-400">
                     <Banknote className="w-6 h-6 animate-pulse" />
-                    <h3 className="font-black text-stone-800 dark:text-white uppercase tracking-tighter italic text-xsl">
+                    <h3 className="font-black text-stone-800 dark:text-white uppercase tracking-tighter italic text-xl">
                         Pedidos con Saldos
                     </h3>
                 </div>
                 <button onClick={onClose} className="p-3 hover:bg-stone-100 dark:hover:bg-stone-800 rounded-2xl transition-all hover:rotate-90">
-                    <X className="w-5 h-5 text-stone-600" />
+                    <X className="w-5 h-5 text-stone-400" />
                 </button>
             </header>
 
@@ -56,9 +56,9 @@ export default function BalancePanel({ orders, onClose }: BalancePanelProps) {
                     <button
                         key={tab.id}
                         onClick={() => setViewMode(tab.id as any)}
-                        className={`flex-1 py-2 px-1 rounded-2xl text-xs font-black uppercase tracking-wider transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] ${viewMode === tab.id 
+                        className={`flex-1 py-2 px-1 rounded-2xl text-[9px] font-black uppercase tracking-wider transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] ${viewMode === tab.id 
                             ? `${tab.color} shadow-md` 
-                            : 'bg-stone-50 dark:bg-stone-800 text-stone-600 dark:text-stone-500 hover:bg-stone-100 dark:hover:bg-stone-700'
+                            : 'bg-stone-50 dark:bg-stone-800 text-stone-400 dark:text-stone-500 hover:bg-stone-100 dark:hover:bg-stone-700'
                         }`}
                     >
                         {tab.label}
@@ -107,11 +107,11 @@ export default function BalancePanel({ orders, onClose }: BalancePanelProps) {
                                         <p className={`text-lg font-black ${isOverdue ? 'text-red-600' : activeColorClass} tracking-tighter`}>
                                             ${displayBalance.toLocaleString('es-AR')}
                                         </p>
-                                        <p className="text-xs font-bold text-stone-600 uppercase tracking-widest">
+                                        <p className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">
                                             de Saldo
                                         </p>
                                     </div>
-                                    <p className={`text-xs font-bold mt-1 uppercase tracking-wider ${isOverdue ? 'text-red-500' : 'text-stone-500'}`}>
+                                    <p className={`text-[10px] font-bold mt-1 uppercase tracking-wider ${isOverdue ? 'text-red-500' : 'text-stone-500'}`}>
                                         Pedido del {format(new Date(order.createdAt), "d 'de' MMM", { locale: es })} ({bizDays} {bizDays === 1 ? 'día' : 'días'} hábiles)
                                     </p>
 
@@ -143,13 +143,13 @@ export default function BalancePanel({ orders, onClose }: BalancePanelProps) {
                         <div className="w-20 h-20 bg-white dark:bg-stone-800 rounded-full flex items-center justify-center shadow-xl mb-6">
                             <Banknote className="w-10 h-10 text-stone-100" />
                         </div>
-                        <p className="text-sm font-black text-stone-500 uppercase tracking-widest leading-relaxed">No hay saldos pendientes mayores a $1.000</p>
+                        <p className="text-sm font-black text-stone-300 uppercase tracking-widest leading-relaxed">No hay saldos pendientes mayores a $1.000</p>
                     </div>
                 )}
             </div>
 
             <footer className="p-6 bg-stone-50/50 dark:bg-stone-800/30 border-t border-stone-100 dark:border-stone-800">
-                <p className="text-xs font-black text-stone-600 uppercase tracking-[0.3em] text-center italic">
+                <p className="text-[10px] font-black text-stone-400 uppercase tracking-[0.3em] text-center italic">
                     Recordatorio automático de cobranza
                 </p>
             </footer>

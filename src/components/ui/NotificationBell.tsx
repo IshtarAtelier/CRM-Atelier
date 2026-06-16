@@ -103,20 +103,20 @@ export function NotificationBell() {
 
     return (
         <div className="relative" ref={panelRef}>
-            <button
+            <button aria-label="Notificaciones" aria-expanded={isOpen} aria-controls="notification-panel"
                 onClick={() => { setIsOpen(!isOpen); if (!isOpen) fetchNotifications(); }}
                 className="relative p-2 rounded-xl text-foreground/50 hover:bg-foreground/5 hover:text-foreground transition-all group"
             >
                 <Bell className={`w-5 h-5 transition-colors ${pendingCount > 0 ? 'text-amber-500' : 'text-foreground/40 group-hover:text-foreground/70'}`} />
                 {pendingCount > 0 && (
-                    <span className="absolute -top-0.5 -right-0.5 w-5 h-5 bg-red-500 text-white text-xs font-black rounded-full flex items-center justify-center animate-pulse shadow-lg shadow-red-500/30">
+                    <span aria-live="polite" className="absolute -top-0.5 -right-0.5 w-5 h-5 bg-red-500 text-white text-xs font-black rounded-full flex items-center justify-center animate-pulse shadow-lg shadow-red-500/30">
                         {pendingCount}
                     </span>
                 )}
             </button>
 
             {isOpen && (
-                <div className="absolute bottom-full left-0 mb-2 w-80 bg-white dark:bg-stone-900 rounded-2xl shadow-2xl border border-stone-200 dark:border-stone-700 overflow-hidden animate-in slide-in-from-bottom-2 fade-in duration-200 z-[100]">
+                <div id="notification-panel" role="dialog" aria-label="Panel de notificaciones" className="absolute bottom-full left-0 mb-2 w-80 bg-white dark:bg-stone-900 rounded-2xl shadow-2xl border border-stone-200 dark:border-stone-700 overflow-hidden animate-in slide-in-from-bottom-2 fade-in duration-200 z-[100]">
                     <div className="px-4 py-3 border-b border-stone-100 dark:border-stone-800 flex items-center justify-between">
                         <h3 className="text-xs font-black uppercase tracking-widest text-stone-500">Solicitudes Pendientes</h3>
                         <span className="text-xs font-black text-stone-600 bg-stone-100 dark:bg-stone-800 px-2 py-1 rounded-lg">{pendingCount}</span>
@@ -154,7 +154,7 @@ export function NotificationBell() {
                                                 {n.type === "INVOICE_REQUEST" ? "Ir a Facturar" : n.type === "LAB_READY" ? "Ver Pedidos" : "Ver Ficha"}
                                             </a>
                                         )}
-                                        <button
+                                        <button aria-label="Notificaciones" aria-expanded={isOpen} aria-controls="notification-panel"
                                             onClick={() => handleAction(n.id, "APPROVED")}
                                             disabled={processingId === n.id}
                                             className="flex flex-1 items-center justify-center gap-1.5 px-3 py-2 bg-emerald-500 text-white rounded-xl text-xs font-black uppercase tracking-widest hover:bg-emerald-600 active:scale-95 transition-all disabled:opacity-50"
@@ -162,7 +162,7 @@ export function NotificationBell() {
                                             {processingId === n.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
                                             Aprobar
                                         </button>
-                                        <button
+                                        <button aria-label="Notificaciones" aria-expanded={isOpen} aria-controls="notification-panel"
                                             onClick={() => handleAction(n.id, "REJECTED")}
                                             disabled={processingId === n.id}
                                             className="flex flex-1 items-center justify-center gap-1.5 px-3 py-2 bg-stone-200 dark:bg-stone-700 text-stone-600 dark:text-stone-500 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-stone-300 active:scale-95 transition-all disabled:opacity-50"

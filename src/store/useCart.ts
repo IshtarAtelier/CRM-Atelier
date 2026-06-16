@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { trackAddToCart } from '@/lib/tracking';
 
-export interface CartItem {
+interface CartItem {
   id: string; // unique ID for cart line item
   productId: string;
   brand: string;

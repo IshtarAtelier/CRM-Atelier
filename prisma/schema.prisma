@@ -9,16 +9,16 @@ datasource db {
 }
 
 model User {
-  id               String         @id @default(cuid())
-  name             String
-  email            String         @unique
-  password         String
-  role             String         @default("STAFF")
-  createdAt        DateTime       @default(now())
-  updatedAt        DateTime       @updatedAt
-  cashMovements    CashMovement[]
-  orders           Order[]
-  auditLogs        AuditLog[]
+  id            String         @id @default(cuid())
+  name          String
+  email         String         @unique
+  password      String
+  role          String         @default("STAFF")
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  cashMovements CashMovement[]
+  orders        Order[]
+  auditLogs     AuditLog[]
 }
 
 model Client {
@@ -41,6 +41,7 @@ model Client {
   updatedAt     DateTime       @updatedAt
   createdBy     String?        @default("Sistema")
   wantsInvoice  Boolean?
+  isDeleted     Boolean        @default(false)
   tasks         ClientTask[]
   interactions  Interaction[]
   orders        Order[]
@@ -91,7 +92,7 @@ model Tag {
   notifyPhone         String?
   autoAssignCondition String?
   clients             Client[] @relation("ClientToTag")
-  orders      Order[]  @relation("OrderToTag")
+  orders              Order[]  @relation("OrderToTag")
 }
 
 model ClientTask {
@@ -169,7 +170,7 @@ model Product {
   is2x1                 Boolean  @default(false)
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
-  labType               String?  // STOCK o LABORATORY
+  labType               String? // STOCK o LABORATORY
   botLabel              String?
   botRecommended        Boolean  @default(false)
   imageProcessingStatus String?  @default("IDLE")
@@ -182,7 +183,7 @@ model Product {
   templeLength          Int?
   frameHeight           Int?
 
-  origin                String? // "STOCK" or "LABORATORIO"
+  origin String? // "STOCK" or "LABORATORIO"
 
   // SEO & E-Commerce (TiendaNube Style)
   seoTitle       String?
@@ -200,6 +201,7 @@ model Product {
   @@index([brand])
   @@index([model])
   @@index([updatedAt])
+  @@index([category])
 }
 
 model Order {
@@ -240,7 +242,7 @@ model Order {
   labNearPdOi          Float?
   labHeightOD          Float?
   labHeightOI          Float?
-  labEdgeInStore       Boolean  @default(false) // Si es TRUE, el lab solo manda los cristales tallados ("Calibra en óptica")
+  labEdgeInStore       Boolean        @default(false) // Si es TRUE, el lab solo manda los cristales tallados ("Calibra en óptica")
   frameA               String?
   frameB               String?
   frameDbl             String?
@@ -256,13 +258,13 @@ model Order {
   smartLabLastSync     DateTime?
   smartLabEntryDate    String?
   smartLabDays         Int?
-  smartLabDetails      String?         // JSON: [{num, sector, progress, entryDate, days}]
+  smartLabDetails      String? // JSON: [{num, sector, progress, entryDate, days}]
   prescriptionSnapshot String?
   appliedPromoName     String?
   appliedPromoDiscount Float?
   specialDiscount      Float?         @default(0.0)
   invoices             Invoice[]
-  client               Client         @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  client               Client         @relation(fields: [clientId], references: [id], onDelete: Restrict)
   prescription         Prescription?  @relation(fields: [prescriptionId], references: [id], onDelete: SetNull)
   user                 User           @relation(fields: [userId], references: [id], onDelete: Restrict)
   items                OrderItem[]
@@ -274,6 +276,7 @@ model Order {
   @@index([orderType, isDeleted])
   @@index([createdAt])
   @@index([userId])
+  @@index([status])
 }
 
 model Invoice {
@@ -293,7 +296,7 @@ model Invoice {
   status         String   @default("COMPLETED")
   createdAt      DateTime @default(now())
   observations   String?
-  order          Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  order          Order    @relation(fields: [orderId], references: [id], onDelete: Restrict)
 
   @@index([orderId])
   @@index([cae])
@@ -333,7 +336,7 @@ model Payment {
   date       DateTime @default(now())
   notes      String?
   receiptUrl String?
-  order      Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  order      Order    @relation(fields: [orderId], references: [id], onDelete: Restrict)
 
   @@index([orderId])
 }
@@ -346,25 +349,26 @@ model Doctor {
 }
 
 model WhatsAppChat {
-  id            String            @id @default(cuid())
-  clientId      String?
-  waId          String            @unique
-  realPhone     String?
-  profileName   String?
-  lastMessageAt DateTime?
-  status        String            @default("OPEN")
-  unreadCount   Int               @default(0)
-  createdAt     DateTime          @default(now())
-  updatedAt     DateTime          @updatedAt
-  botEnabled    Boolean           @default(true)
-  archived      Boolean           @default(false)
-  chatLabels    String[]          @default([])
-  chatSummary   String?           @db.Text
+  id             String            @id @default(cuid())
+  clientId       String?
+  waId           String            @unique
+  realPhone      String?
+  profileName    String?
+  lastMessageAt  DateTime?
+  status         String            @default("OPEN")
+  unreadCount    Int               @default(0)
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+  botEnabled     Boolean           @default(true)
+  archived       Boolean           @default(false)
+  chatLabels     String[]          @default([])
+  chatSummary    String?           @db.Text
   lastFollowUpAt DateTime?
-  client        Client?           @relation(fields: [clientId], references: [id], onDelete: SetNull)
-  messages      WhatsAppMessage[]
+  client         Client?           @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  messages       WhatsAppMessage[]
 
   @@index([clientId])
+  @@index([status])
 }
 
 model WhatsAppMessage {
@@ -565,7 +569,7 @@ model CrystalColor {
 
 model TeamMessage {
   id        String   @id @default(cuid())
-  sender    String   // ISHTAR, MATIAS, SYSTEM
+  sender    String // ISHTAR, MATIAS, SYSTEM
   content   String
   createdAt DateTime @default(now())
 
@@ -574,15 +578,15 @@ model TeamMessage {
 
 model AuditLog {
   id         String   @id @default(cuid())
-  userId     String?  // Puede ser null si es una acción del sistema
-  userName   String?  // Nombre del usuario (STAFF, ADMIN, etc)
-  action     String   // CREATE, UPDATE, DELETE
-  entityType String   // ORDER, CONTACT, PAYMENT, etc.
-  entityId   String   
-  details    Json?    // Qué campos cambiaron o razón
+  userId     String? // Puede ser null si es una acción del sistema
+  userName   String? // Nombre del usuario (STAFF, ADMIN, etc)
+  action     String // CREATE, UPDATE, DELETE
+  entityType String // ORDER, CONTACT, PAYMENT, etc.
+  entityId   String
+  details    Json? // Qué campos cambiaron o razón
   createdAt  DateTime @default(now())
 
-  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   @@index([entityType, entityId])
   @@index([userId])

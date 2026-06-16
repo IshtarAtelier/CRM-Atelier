@@ -121,14 +121,14 @@ export default function CommandPalette() {
             {/* Backdrop */}
             <div
                 className="absolute inset-0 bg-black/50 backdrop-blur-sm animate-in fade-in duration-150"
-                onClick={() => setOpen(false)} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.currentTarget.click(); } }}
+                onClick={() => setOpen(false)}
             />
 
             {/* Palette */}
             <div className="relative w-full max-w-2xl bg-white dark:bg-stone-900 rounded-2xl shadow-2xl border-2 border-stone-200 dark:border-stone-700 overflow-hidden animate-in slide-in-from-top-4 fade-in duration-200">
                 {/* Search Input */}
                 <div className="flex items-center gap-3 px-5 py-4 border-b-2 border-stone-100 dark:border-stone-800">
-                    <Search className="w-5 h-5 text-stone-500 flex-shrink-0" />
+                    <Search className="w-5 h-5 text-stone-300 flex-shrink-0" />
                     <input
                         ref={inputRef}
                         type="text"
@@ -136,10 +136,10 @@ export default function CommandPalette() {
                         value={query}
                         onChange={e => handleQueryChange(e.target.value)}
                         onKeyDown={handleKeyDown}
-                        className="flex-1 text-sm font-medium bg-transparent outline-none placeholder:text-stone-500 dark:placeholder:text-stone-600"
+                        className="flex-1 text-sm font-medium bg-transparent focus:ring-2 focus:ring-amber-500 focus:outline-none placeholder:text-stone-300 dark:placeholder:text-stone-600"
                     />
                     {loading && <Loader2 className="w-4 h-4 text-primary animate-spin flex-shrink-0" />}
-                    <kbd className="hidden md:flex items-center gap-1 px-2 py-1 bg-stone-100 dark:bg-stone-800 rounded-lg text-xs font-bold text-stone-600 border border-stone-200 dark:border-stone-700">
+                    <kbd className="hidden md:flex items-center gap-1 px-2 py-1 bg-stone-100 dark:bg-stone-800 rounded-lg text-[10px] font-bold text-stone-400 border border-stone-200 dark:border-stone-700">
                         ESC
                     </kbd>
                 </div>
@@ -149,16 +149,16 @@ export default function CommandPalette() {
                     {query.length < 2 ? (
                         <div className="p-8 text-center">
                             <Command className="w-10 h-10 text-stone-200 dark:text-stone-700 mx-auto mb-3" />
-                            <p className="text-xs font-bold text-stone-500 dark:text-stone-600">
+                            <p className="text-xs font-bold text-stone-300 dark:text-stone-600">
                                 Escribí al menos 2 caracteres para buscar
                             </p>
                             <div className="flex items-center justify-center gap-4 mt-4">
-                                <span className="text-xs text-stone-500 flex items-center gap-1">
-                                    <kbd className="px-1.5 py-0.5 bg-stone-100 dark:bg-stone-800 rounded text-xs font-bold border border-stone-200 dark:border-stone-700">↑↓</kbd>
+                                <span className="text-[10px] text-stone-300 flex items-center gap-1">
+                                    <kbd className="px-1.5 py-0.5 bg-stone-100 dark:bg-stone-800 rounded text-[9px] font-bold border border-stone-200 dark:border-stone-700">↑↓</kbd>
                                     navegar
                                 </span>
-                                <span className="text-xs text-stone-500 flex items-center gap-1">
-                                    <kbd className="px-1.5 py-0.5 bg-stone-100 dark:bg-stone-800 rounded text-xs font-bold border border-stone-200 dark:border-stone-700">Enter</kbd>
+                                <span className="text-[10px] text-stone-300 flex items-center gap-1">
+                                    <kbd className="px-1.5 py-0.5 bg-stone-100 dark:bg-stone-800 rounded text-[9px] font-bold border border-stone-200 dark:border-stone-700">Enter</kbd>
                                     abrir
                                 </span>
                             </div>
@@ -166,7 +166,7 @@ export default function CommandPalette() {
                     ) : totalResults === 0 && !loading ? (
                         <div className="p-8 text-center">
                             <Search className="w-10 h-10 text-stone-200 dark:text-stone-700 mx-auto mb-3" />
-                            <p className="text-xs font-bold text-stone-500 dark:text-stone-600">
+                            <p className="text-xs font-bold text-stone-300 dark:text-stone-600">
                                 Sin resultados para &quot;{query}&quot;
                             </p>
                         </div>
@@ -175,7 +175,7 @@ export default function CommandPalette() {
                             {/* Contacts */}
                             {contacts.length > 0 && (
                                 <div>
-                                    <p className="px-5 py-2 text-xs font-black text-stone-600 uppercase tracking-widest flex items-center gap-1.5">
+                                    <p className="px-5 py-2 text-[9px] font-black text-stone-400 uppercase tracking-widest flex items-center gap-1.5">
                                         <User className="w-3.5 h-3.5" /> Contactos ({contacts.length})
                                     </p>
                                     {contacts.map(c => {
@@ -196,14 +196,14 @@ export default function CommandPalette() {
                                                 <div className="flex-1 min-w-0">
                                                     <p className="text-sm font-bold truncate">{c.name}</p>
                                                     <div className="flex items-center gap-2 mt-0.5">
-                                                        {c.phone && <span className="text-xs text-stone-600 flex items-center gap-0.5"><Phone className="w-3 h-3" /> {c.phone}</span>}
-                                                        {c.doctor && <span className="text-xs text-teal-500 flex items-center gap-0.5"><Stethoscope className="w-3 h-3" /> {c.doctor}</span>}
+                                                        {c.phone && <span className="text-[10px] text-stone-400 flex items-center gap-0.5"><Phone className="w-3 h-3" /> {c.phone}</span>}
+                                                        {c.doctor && <span className="text-[10px] text-teal-500 flex items-center gap-0.5"><Stethoscope className="w-3 h-3" /> {c.doctor}</span>}
                                                     </div>
                                                 </div>
                                                 <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-wider ${STATUS_COLORS[c.status] || 'bg-stone-100 text-stone-500'}`}>
                                                     {STATUS_LABELS[c.status] || c.status}
                                                 </span>
-                                                <ArrowRight className="w-4 h-4 text-stone-500 flex-shrink-0" />
+                                                <ArrowRight className="w-4 h-4 text-stone-300 flex-shrink-0" />
                                             </button>
                                         );
                                     })}
@@ -213,7 +213,7 @@ export default function CommandPalette() {
                             {/* Products */}
                             {products.length > 0 && (
                                 <div>
-                                    <p className="px-5 py-2 text-xs font-black text-stone-600 uppercase tracking-widest flex items-center gap-1.5">
+                                    <p className="px-5 py-2 text-[9px] font-black text-stone-400 uppercase tracking-widest flex items-center gap-1.5">
                                         <Package className="w-3.5 h-3.5" /> Productos ({products.length})
                                     </p>
                                     {products.map(p => {
@@ -233,15 +233,15 @@ export default function CommandPalette() {
                                                 </div>
                                                 <div className="flex-1 min-w-0">
                                                     <p className="text-sm font-bold truncate">{p.name}</p>
-                                                    <span className="text-xs text-stone-600">{p.type}</span>
+                                                    <span className="text-[10px] text-stone-400">{p.type}</span>
                                                 </div>
                                                 <div className="text-right flex-shrink-0">
                                                     <p className="text-sm font-black">${p.price.toLocaleString()}</p>
-                                                    <p className={`text-xs font-bold ${p.stock > 0 ? 'text-emerald-500' : 'text-red-400'}`}>
+                                                    <p className={`text-[10px] font-bold ${p.stock > 0 ? 'text-emerald-500' : 'text-red-400'}`}>
                                                         Stock: {p.stock}
                                                     </p>
                                                 </div>
-                                                <ArrowRight className="w-4 h-4 text-stone-500 flex-shrink-0" />
+                                                <ArrowRight className="w-4 h-4 text-stone-300 flex-shrink-0" />
                                             </button>
                                         );
                                     })}
@@ -251,7 +251,7 @@ export default function CommandPalette() {
                             {/* Orders */}
                             {orders.length > 0 && (
                                 <div>
-                                    <p className="px-5 py-2 text-xs font-black text-stone-600 uppercase tracking-widest flex items-center gap-1.5">
+                                    <p className="px-5 py-2 text-[9px] font-black text-stone-400 uppercase tracking-widest flex items-center gap-1.5">
                                         <ShoppingCart className="w-3.5 h-3.5" /> Ventas ({orders.length})
                                     </p>
                                     {orders.map(o => {
@@ -271,12 +271,12 @@ export default function CommandPalette() {
                                                 </div>
                                                 <div className="flex-1 min-w-0">
                                                     <p className="text-sm font-bold truncate">{o.clientName}</p>
-                                                    <span className={`text-xs font-bold ${o.orderType === 'SALE' ? 'text-emerald-500' : 'text-amber-500'}`}>
+                                                    <span className={`text-[10px] font-bold ${o.orderType === 'SALE' ? 'text-emerald-500' : 'text-amber-500'}`}>
                                                         {o.orderType === 'SALE' ? 'Venta' : 'Presupuesto'}
                                                     </span>
                                                 </div>
                                                 <p className="text-sm font-black flex-shrink-0">${o.total.toLocaleString()}</p>
-                                                <ArrowRight className="w-4 h-4 text-stone-500 flex-shrink-0" />
+                                                <ArrowRight className="w-4 h-4 text-stone-300 flex-shrink-0" />
                                             </button>
                                         );
                                     })}
@@ -288,13 +288,13 @@ export default function CommandPalette() {
 
                 {/* Footer */}
                 <div className="px-5 py-3 border-t-2 border-stone-100 dark:border-stone-800 flex items-center justify-between">
-                    <span className="text-xs font-bold text-stone-500">
+                    <span className="text-[10px] font-bold text-stone-300">
                         {totalResults > 0 ? `${totalResults} resultados` : 'Búsqueda global'}
                     </span>
-                    <span className="text-xs text-stone-500 flex items-center gap-1">
-                        <kbd className="px-1.5 py-0.5 bg-stone-100 dark:bg-stone-800 rounded text-xs font-bold border border-stone-200 dark:border-stone-700">Ctrl</kbd>
+                    <span className="text-[10px] text-stone-300 flex items-center gap-1">
+                        <kbd className="px-1.5 py-0.5 bg-stone-100 dark:bg-stone-800 rounded text-[9px] font-bold border border-stone-200 dark:border-stone-700">Ctrl</kbd>
                         +
-                        <kbd className="px-1.5 py-0.5 bg-stone-100 dark:bg-stone-800 rounded text-xs font-bold border border-stone-200 dark:border-stone-700">K</kbd>
+                        <kbd className="px-1.5 py-0.5 bg-stone-100 dark:bg-stone-800 rounded text-[9px] font-bold border border-stone-200 dark:border-stone-700">K</kbd>
                     </span>
                 </div>
             </div>

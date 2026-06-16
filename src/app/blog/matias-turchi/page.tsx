@@ -4,6 +4,7 @@ import { StorefrontFooter } from "@/components/Storefront/StorefrontFooter";
 import { FloatingWhatsApp } from "@/components/Storefront/FloatingWhatsApp";
 import { Award, BookOpen, Target, Microscope, Star } from "lucide-react";
 import { WHATSAPP_PHONE } from '@/lib/constants';
+import Image from "next/image";
 
 export const metadata: Metadata = {
   title: "Matías Turchi | Especialista en Multifocales Essilor Expert | Atelier Óptica",
@@ -44,7 +45,7 @@ export default function MatiasTurchiPage() {
       <div className="pt-24 pb-16 border-b border-stone-200 bg-white">
         <div className="max-w-[1000px] mx-auto px-5 text-center">
           <p className="text-[10px] font-black uppercase tracking-[0.3em] text-stone-400 mb-4">Nuestro Equipo</p>
-          <h1 className="text-4xl md:text-[#555]xl font-light tracking-tight mb-6" style={{ fontFamily: "'Georgia', 'Times New Roman', serif" }}>
+          <h1 className=" font-serif">
             Matías Turchi
           </h1>
           <p className="text-xl md:text-2xl text-stone-500 font-light max-w-2xl mx-auto">
@@ -62,7 +63,7 @@ export default function MatiasTurchiPage() {
             <div className="aspect-[3/4] relative overflow-hidden bg-stone-200 rounded-3xl sticky top-24 shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
               <div className="absolute inset-0 bg-gradient-to-t from-stone-900/60 to-transparent z-10" />
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/images/blog/matias-turchi.png" alt="Matías Turchi - Especialista en Multifocales" className="absolute inset-0 w-full h-full object-cover" />
+              <Image src="/images/blog/matias-turchi.png" alt="Matías Turchi - Especialista en Multifocales" className="absolute inset-0 w-full h-full object-cover" />
               <div className="absolute bottom-6 left-6 z-20 text-white">
                 <p className="text-xs uppercase tracking-widest font-medium tracking-tight mb-1 drop-shadow-[0_2px_10px_rgba(0,0,0,0.02)]">Certificación</p>
                 <p className="text-lg font-serif">Essilor Expert</p>
@@ -74,7 +75,7 @@ export default function MatiasTurchiPage() {
           <div className="md:col-span-7 space-y-12">
             
             <section>
-              <h2 className="text-3xl font-light tracking-tight mb-6 text-stone-900" style={{ fontFamily: "'Georgia', 'Times New Roman', serif" }}>
+              <h2 className=" font-serif">
                 El Arte de la Precisión Visual
               </h2>
               <div className="space-y-5 text-stone-600 text-lg leading-relaxed font-light">
@@ -168,7 +169,7 @@ export default function MatiasTurchiPage() {
             </section>
 
             <div className="bg-stone-900 text-white p-8 md:p-10 rounded-3xl">
-              <h3 className="text-2xl font-light mb-4" style={{ fontFamily: "'Georgia', 'Times New Roman', serif" }}>
+              <h3 className=" font-serif">
                 ¿Necesitás asesoramiento para tus multifocales?
               </h3>
               <p className="text-stone-300 font-light mb-8">

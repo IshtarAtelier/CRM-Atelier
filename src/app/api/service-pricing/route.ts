@@ -1,11 +1,21 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 
-export async function GET() {
-    try {
-        const services = await prisma.servicePricing.findMany({
+import { unstable_cache } from 'next/cache';
+
+const getCachedServices = unstable_cache(
+    async () => {
+        return await prisma.servicePricing.findMany({
             orderBy: [{ category: 'asc' }, { sortOrder: 'asc' }, { name: 'asc' }]
         });
+    },
+    ['service-pricing-list'],
+    { tags: ['service-pricing'], revalidate: 300 }
+);
+
+export async function GET() {
+    try {
+        const services = await getCachedServices();
         return NextResponse.json(services);
     } catch (error) {
         console.error('Error fetching service pricing:', error);

@@ -1,9 +1,10 @@
 import { headers } from "next/headers";
-import { Sidebar } from "@/components/Sidebar";
-import { FloatingDock } from "@/components/FloatingDock";
-import CommandPalette from "@/components/CommandPalette";
-import { LeadToastNotifications } from "@/components/LeadToastNotifications";
-import { CopilotChat } from "@/components/CopilotChat";
+import { Sidebar } from "@/components/layout/Sidebar";
+import { FloatingDock } from "@/components/ui/FloatingDock";
+import CommandPalette from "@/components/ui/CommandPalette";
+import { LeadToastNotifications } from "@/components/ui/LeadToastNotifications";
+import { CopilotChat } from "@/components/admin/CopilotChat";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 export default async function AdminLayout({
   children,
@@ -26,7 +27,7 @@ export default async function AdminLayout({
         <CopilotChat userName={userName} userRole={userRole} />
         <div className="flex-1 relative">
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/5 via-background to-background -z-10" />
-          {children}
+          <ErrorBoundary>{children}</ErrorBoundary>
         </div>
       </main>
     </div>

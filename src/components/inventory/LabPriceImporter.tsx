@@ -2,6 +2,7 @@
 
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { X, Image as ImageIcon, Loader2, Check, AlertCircle, Zap, ClipboardPaste, ArrowRight, Save, ChevronDown, ChevronUp } from 'lucide-react';
+import Image from "next/image";
 
 interface ExtractedItem {
     linea: string;
@@ -120,7 +121,7 @@ export default function LabPriceImporter({ onClose, onSuccess, laboratories }: P
         try {
             const res = await fetch('/api/products/ocr-update', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'x-user-role': 'ADMIN' },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ imageBase64, laboratory, calibrado, iva }),
             });
             const data = await res.json();
@@ -178,7 +179,7 @@ export default function LabPriceImporter({ onClose, onSuccess, laboratories }: P
             try {
                 const res = await fetch(`/api/products/${item.match.id}`, {
                     method: 'PUT',
-                    headers: { 'Content-Type': 'application/json', 'x-user-role': 'ADMIN' },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ 
                         cost: item.extracted.costoFinal,
                         price: finalPrice
@@ -242,7 +243,7 @@ export default function LabPriceImporter({ onClose, onSuccess, laboratories }: P
                                             setIva(config.iva);
                                         }
                                     }}
-                                        className="w-full px-3 py-3 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl font-bold text-xs outline-none focus:border-primary uppercase">
+                                        className="w-full px-3 py-3 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl font-bold text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none focus:border-primary uppercase">
                                         {Array.from(new Map([...laboratories, 'OPTOVISION', 'GRUPO OPTICO'].map(l => [l.toUpperCase(), l])).values()).map(l => (
                                             <option key={l} value={l}>{l}</option>
                                         ))}
@@ -251,12 +252,12 @@ export default function LabPriceImporter({ onClose, onSuccess, laboratories }: P
                                 <div className="space-y-1">
                                     <label className="text-[9px] font-black text-stone-400 uppercase tracking-widest ml-2">Calibrado base ($)</label>
                                     <input type="number" value={calibrado} onChange={e => setCalibrado(Number(e.target.value) || 0)}
-                                        className="w-full px-3 py-3 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl font-bold text-xs outline-none focus:border-primary text-violet-600 dark:text-violet-400" />
+                                        className="w-full px-3 py-3 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl font-bold text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none focus:border-primary text-violet-600 dark:text-violet-400" />
                                 </div>
                                 <div className="space-y-1">
                                     <label className="text-[9px] font-black text-stone-400 uppercase tracking-widest ml-2">IVA (%)</label>
                                     <input type="number" value={iva} onChange={e => setIva(Number(e.target.value) || 0)}
-                                        className="w-full px-3 py-3 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl font-bold text-xs outline-none focus:border-primary text-blue-600 dark:text-blue-400" />
+                                        className="w-full px-3 py-3 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl font-bold text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none focus:border-primary text-blue-600 dark:text-blue-400" />
                                 </div>
                             </div>
 
@@ -289,7 +290,7 @@ export default function LabPriceImporter({ onClose, onSuccess, laboratories }: P
                             >
                                 {imagePreview ? (
                                     <div className="space-y-3">
-                                        <img src={imagePreview} alt="Preview" className="max-h-64 mx-auto rounded-xl shadow-lg" />
+                                        <Image src={imagePreview} alt="Preview" className="max-h-64 mx-auto rounded-xl shadow-lg" />
                                         <p className="text-[9px] font-black text-primary uppercase tracking-widest">✓ Imagen cargada — click para cambiar</p>
                                     </div>
                                 ) : (
@@ -380,7 +381,7 @@ export default function LabPriceImporter({ onClose, onSuccess, laboratories }: P
                                                 value={globalMarkup}
                                                 onChange={e => setGlobalMarkup(e.target.value)}
                                                 placeholder="2.55"
-                                                className="w-20 bg-transparent text-sm font-black text-stone-800 dark:text-white outline-none"
+                                                className="w-20 bg-transparent text-sm font-black text-stone-800 dark:text-white focus:ring-2 focus:ring-amber-500 focus:outline-none"
                                             />
                                         </div>
                                         <button 
@@ -452,7 +453,7 @@ export default function LabPriceImporter({ onClose, onSuccess, laboratories }: P
                                                                                 setCustomMarkups(prev => ({...prev, [m.match!.id]: val}));
                                                                             }
                                                                         }}
-                                                                        className="w-full bg-transparent font-black text-primary outline-none"
+                                                                        className="w-full bg-transparent font-black text-primary focus:ring-2 focus:ring-amber-500 focus:outline-none"
                                                                     />
                                                                 </div>
                                                             </td>

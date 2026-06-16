@@ -33,8 +33,7 @@ export function HomeWhyChooseUs() {
         <div className="text-center mb-16">
           <p className="text-[10px] font-black uppercase tracking-[0.25em] text-[#b08f4c] mb-3">Nuestros Pilares</p>
           <h2 
-            className="text-3xl md:text-4xl font-light tracking-tight text-stone-900 leading-tight"
-            style={{ fontFamily: "'Georgia', 'Times New Roman', serif" }}
+            className=" font-serif"
           >
             ¿Por qué elegir Atelier Óptica?
           </h2>

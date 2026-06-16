@@ -5,7 +5,7 @@ import { FloatingWhatsApp } from "@/components/Storefront/FloatingWhatsApp";
 
 export default function NotFound() {
   return (
-    <div className="min-h-screen bg-stone-50 text-black flex flex-col justify-between" style={{ fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif" }}>
+    <div className="min-h-screen bg-stone-50 text-black flex flex-col justify-between font-sans">
       <StorefrontNavbar theme="light" />
       
       <main className="flex-1 flex flex-col items-center justify-center px-4 py-32 text-center max-w-md mx-auto">

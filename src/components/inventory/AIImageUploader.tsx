@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { UploadCloud, Loader2, Sparkles } from 'lucide-react';
+import Image from "next/image";
 
 interface AIImageUploaderProps {
   productId: string;
@@ -131,7 +132,7 @@ export default function AIImageUploader({ productId, initialStatus = 'IDLE', ini
         <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
           {images.map((img, i) => (
             <div key={i} className="w-20 h-20 rounded-xl overflow-hidden border-2 border-emerald-400 shrink-0 bg-white">
-              <img src={resolveImageUrl(img)} alt={`Vista ${i + 1}`} className="w-full h-full object-contain p-1" />
+              <Image src={resolveImageUrl(img)} alt={`Vista ${i + 1}`} className="w-full h-full object-contain p-1" />
             </div>
           ))}
         </div>

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Star, MessageCircle, ArrowRight, ExternalLink } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import Image from "next/image";
 
 interface Review {
   author_name: string;
@@ -126,7 +127,7 @@ export function ReviewsPageContent({
               <span className="text-[11px] font-black uppercase tracking-[0.2em] text-primary mb-3 block">
                 Opiniones de la Comunidad
               </span>
-              <h1 className="text-4xl md:text-5xl lg:text-6xl font-light tracking-tight text-stone-900 dark:text-white mb-6" style={{ fontFamily: "'Georgia', 'Times New Roman', serif" }}>
+              <h1 className=" font-serif">
                 Experiencia Atelier
               </h1>
               <p className="text-stone-600 dark:text-stone-300 max-w-xl leading-relaxed text-sm md:text-base">
@@ -301,7 +302,7 @@ export function ReviewsPageContent({
       <section className="bg-stone-900 dark:bg-stone-950 text-white py-24 relative overflow-hidden border-t border-stone-800">
         <div className="absolute inset-0 bg-gradient-to-tr from-primary/10 to-transparent pointer-events-none" />
         <div className="max-w-3xl mx-auto text-center px-5 relative z-10">
-          <h2 className="text-3xl md:text-4xl font-light tracking-tight mb-6" style={{ fontFamily: "'Georgia', 'Times New Roman', serif" }}>
+          <h2 className=" font-serif">
             ¿Ya compraste en Atelier?
           </h2>
           <p className="text-stone-400 text-sm md:text-base leading-relaxed mb-10 max-w-xl mx-auto">

@@ -106,9 +106,9 @@ export default function ContactForm({ onClose, onSubmit, onUnify, onGoToOriginal
                 <header className="p-8 border-b flex justify-between items-center bg-stone-50/50 dark:bg-stone-800/30">
                     <div>
                         <h2 className="text-2xl font-black text-stone-800 dark:text-stone-100 tracking-tight italic">{initialData ? 'Editar' : 'Nuevo'} <span className="text-primary not-italic">Contacto</span></h2>
-                        <p className="text-xs font-black uppercase tracking-widest text-stone-600 mt-1">Completa los datos esenciales</p>
+                        <p className="text-[10px] font-black uppercase tracking-widest text-stone-400 mt-1">Completa los datos esenciales</p>
                     </div>
-                    <button onClick={onClose} className="p-3 hover:bg-stone-100 dark:hover:bg-stone-800 rounded-2xl"><X className="w-6 h-6 text-stone-600" /></button>
+                    <button onClick={onClose} className="p-3 hover:bg-stone-100 dark:hover:bg-stone-800 rounded-2xl"><X className="w-6 h-6 text-stone-400" /></button>
                 </header>
 
                 <form onSubmit={handleSubmit} className="p-8 space-y-8 max-h-[70vh] overflow-y-auto custom-scrollbar">
@@ -118,13 +118,14 @@ export default function ContactForm({ onClose, onSubmit, onUnify, onGoToOriginal
 
                     {isHighTicket && (
                         <div className="p-6 bg-amber-50 dark:bg-amber-900/10 rounded-[2rem] border-2 border-amber-200 dark:border-amber-800 space-y-4">
-                            <label className="text-xs font-black uppercase tracking-widest text-amber-700">⚡ Seguimiento Obligatorio (Multifocal)</label>
-                            <input type="text" placeholder="Ej: Llamar en 48hs" value={followUpTask} onChange={(e) => setFollowUpTask(e.target.value)} className="w-full px-4 py-4 bg-white dark:bg-stone-800 border-2 dark:border-stone-700 dark:text-stone-100 rounded-2xl font-bold text-sm outline-none focus:border-amber-500" />
-                            <input type="date" value={followUpDate} onChange={(e) => setFollowUpDate(e.target.value)} className="w-full px-4 py-3 bg-white dark:bg-stone-800 border-2 dark:border-stone-700 dark:text-stone-100 rounded-2xl text-sm font-bold outline-none" />
+                            <label className="text-[10px] font-black uppercase tracking-widest text-amber-700">⚡ Seguimiento Obligatorio (Multifocal)</label>
+                            <label htmlFor="input-100" className="sr-only">Ej: Llamar en 48hs</label>
+<input id="input-100" type="text" placeholder="Ej: Llamar en 48hs" value={followUpTask} onChange={(e) => setFollowUpTask(e.target.value)} className="w-full px-4 py-4 bg-white dark:bg-stone-800 border-2 dark:border-stone-700 dark:text-stone-100 rounded-2xl font-bold text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none focus:border-amber-500" />
+                            <input type="date" value={followUpDate} onChange={(e) => setFollowUpDate(e.target.value)} className="w-full px-4 py-3 bg-white dark:bg-stone-800 border-2 dark:border-stone-700 dark:text-stone-100 rounded-2xl text-sm font-bold focus:ring-2 focus:ring-amber-500 focus:outline-none" />
                         </div>
                     )}
 
-                    <div className="p-5 bg-stone-50 dark:bg-stone-800/30 rounded-[2rem] border border-stone-100 dark:border-stone-800 flex items-center justify-between cursor-pointer transition-all hover:bg-stone-100 dark:hover:bg-stone-800/50" onClick={() => setVisitedStore(!visitedStore)} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.currentTarget.click(); } }}>
+                    <div role="button" tabIndex={0} className="p-5 bg-stone-50 dark:bg-stone-800/30 rounded-[2rem] border border-stone-100 dark:border-stone-800 flex items-center justify-between cursor-pointer transition-all hover:bg-stone-100 dark:hover:bg-stone-800/50" onClick={() => setVisitedStore(!visitedStore)}>
                         <div>
                             <p className="text-sm font-black text-stone-800 dark:text-stone-100 uppercase tracking-widest">📍 Visita al Local</p>
                             <p className="text-xs text-stone-500 font-bold mt-1">El cliente está o estuvo presencialmente en el local hoy.</p>
@@ -135,9 +136,9 @@ export default function ContactForm({ onClose, onSubmit, onUnify, onGoToOriginal
                     </div>
 
                     <div className="space-y-4">
-                        <label className="text-xs font-black uppercase tracking-widest text-stone-500 ml-1">Prioridad</label>
+                        <label className="text-[10px] font-black uppercase tracking-widest text-stone-500 ml-1">Prioridad</label>
                         <div className="flex gap-4 p-5 bg-stone-50 dark:bg-stone-800/50 border-2 rounded-2xl justify-center">
-                            {[1, 2, 3, 4, 5].map(s => <button key={s} type="button" onClick={() => setFormData({ ...formData, priority: s })} className="transition-transform hover:scale-125"><Star className={`w-8 h-8 ${s <= formData.priority ? 'fill-primary text-primary' : 'text-stone-500'}`} strokeWidth={3} /></button>)}
+                            {[1, 2, 3, 4, 5].map(s => <button key={s} type="button" onClick={() => setFormData({ ...formData, priority: s })} className="transition-transform hover:scale-125"><Star className={`w-8 h-8 ${s <= formData.priority ? 'fill-primary text-primary' : 'text-stone-300'}`} strokeWidth={3} /></button>)}
                         </div>
                     </div>
 
@@ -147,7 +148,7 @@ export default function ContactForm({ onClose, onSubmit, onUnify, onGoToOriginal
                             name="save_only"
                             disabled={saving}
                             onClick={() => setSubmitAction('save')}
-                            className="flex-1 py-5 bg-stone-100 text-stone-600 dark:bg-stone-800 dark:text-stone-600 rounded-2xl text-xs font-black shadow-sm hover:bg-stone-200 dark:hover:bg-stone-700 active:scale-95 transition-all flex items-center justify-center gap-3 uppercase tracking-widest disabled:opacity-50"
+                            className="flex-1 py-5 bg-stone-100 text-stone-600 dark:bg-stone-800 dark:text-stone-400 rounded-2xl text-xs font-black shadow-sm hover:bg-stone-200 dark:hover:bg-stone-700 active:scale-95 transition-all flex items-center justify-center gap-3 uppercase tracking-widest disabled:opacity-50"
                         >
                             {saving && submitAction === 'save' ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
                             SOLO GUARDAR
@@ -192,21 +193,21 @@ export default function ContactForm({ onClose, onSubmit, onUnify, onGoToOriginal
                                 <button
                                     autoFocus
                                     onClick={() => onGoToOriginal(duplicateWarning.existingClient.id)}
-                                    className="flex-1 py-4 bg-primary text-primary-foreground rounded-xl font-bold shadow-lg hover:scale-105 active:scale-95 transition-all outline-none focus:ring-4 focus:ring-primary/50"
+                                    className="flex-1 py-4 bg-primary text-primary-foreground rounded-xl font-bold shadow-lg hover:scale-105 active:scale-95 transition-all focus:ring-2 focus:ring-amber-500 focus:outline-none focus:ring-4 focus:ring-primary/50"
                                 >
                                     IR A LA FICHA ORIGINAL
                                 </button>
                             )}
                             <button
                                 onClick={handleSubmit}
-                                className="flex-1 py-4 bg-stone-100 text-stone-600 dark:bg-stone-800 dark:text-stone-500 rounded-xl font-bold hover:bg-stone-200 dark:hover:bg-stone-700 active:scale-95 transition-all"
+                                className="flex-1 py-4 bg-stone-100 text-stone-600 dark:bg-stone-800 dark:text-stone-300 rounded-xl font-bold hover:bg-stone-200 dark:hover:bg-stone-700 active:scale-95 transition-all"
                             >
                                 CREAR DUPLICADO IGUAL
                             </button>
                         </div>
                         <button 
                             onClick={() => setDuplicateWarning(null)}
-                            className="mt-6 text-sm text-stone-600 hover:text-stone-600 font-bold underline decoration-stone-300 underline-offset-4"
+                            className="mt-6 text-sm text-stone-400 hover:text-stone-600 font-bold underline decoration-stone-300 underline-offset-4"
                         >
                             Cancelar y volver a editar
                         </button>

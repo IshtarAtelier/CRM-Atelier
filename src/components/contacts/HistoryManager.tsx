@@ -97,7 +97,7 @@ export default function HistoryManager({
                         value={newNote}
                         onChange={(e) => setNewNote(e.target.value)}
                         placeholder="Registra una llamada, consulta o detalle..."
-                        className="flex-1 bg-white dark:bg-stone-900 border border-stone-100 dark:border-stone-800 rounded-2xl p-4 text-sm font-medium outline-none focus:ring-2 focus:ring-primary/20 transition-all resize-none h-24"
+                        className="flex-1 bg-white dark:bg-stone-900 border border-stone-100 dark:border-stone-800 rounded-2xl p-4 text-sm font-medium focus:ring-2 focus:ring-amber-500 focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all resize-none h-24"
                     />
                     <button
                         onClick={handleSubmit}

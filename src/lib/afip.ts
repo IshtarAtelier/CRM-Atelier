@@ -16,7 +16,7 @@ export interface BillingAccountConfig {
     activityStart: string;
 }
 
-export const BILLING_ACCOUNTS: Record<BillingAccount, BillingAccountConfig> = {
+const BILLING_ACCOUNTS: Record<BillingAccount, BillingAccountConfig> = {
     ISH: {
         cuit: parseInt(process.env.AFIP_CUIT_ISH || '0'),
         label: 'Ishtar Pissano',

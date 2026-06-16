@@ -100,7 +100,7 @@ export default async function NuestroLocalPage() {
       <div className="pt-20 border-b border-stone-100">
         <div className="max-w-[1200px] mx-auto px-5 py-12">
           <p className="text-[10px] font-black uppercase tracking-[0.25em] text-stone-400 mb-3">Atelier Óptica · Córdoba</p>
-          <h1 className="text-4xl md:text-6xl font-light tracking-tight mb-0" style={{ fontFamily: "'Georgia', 'Times New Roman', serif" }}>
+          <h1 className=" font-serif">
             Nuestro Local
           </h1>
         </div>
@@ -125,7 +125,7 @@ export default async function NuestroLocalPage() {
             <div className="absolute inset-0 bg-gradient-to-t from-stone-900/60 to-transparent pointer-events-none" />
             <div className="absolute bottom-6 left-6 md:bottom-8 md:left-8 text-white">
               <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/70 mb-2">Experiencia Inmersiva</p>
-              <p className="text-2xl md:text-3xl font-light" style={{ fontFamily: "'Georgia', 'Times New Roman', serif" }}>Nuestro Espacio</p>
+              <p className=" font-serif">Nuestro Espacio</p>
             </div>
           </div>
           <div className="flex flex-col gap-4">
@@ -152,7 +152,7 @@ export default async function NuestroLocalPage() {
 
         {/* ── TEXTO SEO ── */}
         <section className="max-w-3xl mb-16">
-          <h2 className="text-3xl font-light tracking-tight mb-6" style={{ fontFamily: "'Georgia', 'Times New Roman', serif" }}>
+          <h2 className=" font-serif">
             Una Óptica Diferente en Cerro de las Rosas
           </h2>
           <div className="space-y-4 text-stone-600 text-lg leading-relaxed font-light">
@@ -177,7 +177,7 @@ export default async function NuestroLocalPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-start">
           {/* Info */}
           <div>
-            <h2 className="text-2xl font-light tracking-tight mb-8" style={{ fontFamily: "'Georgia', 'Times New Roman', serif" }}>
+            <h2 className=" font-serif">
               Cómo llegar
             </h2>
 

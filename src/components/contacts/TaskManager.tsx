@@ -89,7 +89,7 @@ export default function TaskManager({ tasks, contact, onAddTask, onToggleTask }:
                                 placeholder="Ej: Llamar para confirmar graduación..."
                                 value={description}
                                 onChange={(e) => setDescription(e.target.value)}
-                                className="w-full bg-white dark:bg-stone-900 px-4 py-3 rounded-2xl text-sm font-medium border-2 border-stone-100 dark:border-stone-800 focus:border-stone-900 dark:focus:border-primary transition-all outline-none"
+                                className="w-full bg-white dark:bg-stone-900 px-4 py-3 rounded-2xl text-sm font-medium border-2 border-stone-100 dark:border-stone-800 focus:border-stone-900 dark:focus:border-primary transition-all focus:ring-2 focus:ring-amber-500 focus:outline-none"
                                 autoFocus
                             />
                         </div>
@@ -100,7 +100,7 @@ export default function TaskManager({ tasks, contact, onAddTask, onToggleTask }:
                                     type="date"
                                     value={dueDate}
                                     onChange={(e) => setDueDate(e.target.value)}
-                                    className="w-full bg-white dark:bg-stone-900 px-4 py-3 rounded-2xl text-sm font-medium border-2 border-stone-100 dark:border-stone-800 focus:border-stone-900 dark:focus:border-primary transition-all outline-none"
+                                    className="w-full bg-white dark:bg-stone-900 px-4 py-3 rounded-2xl text-sm font-medium border-2 border-stone-100 dark:border-stone-800 focus:border-stone-900 dark:focus:border-primary transition-all focus:ring-2 focus:ring-amber-500 focus:outline-none"
                                 />
                             </div>
                             <button

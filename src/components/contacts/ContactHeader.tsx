@@ -198,7 +198,7 @@ export default function ContactHeader({
                             <button
                                 key={star}
                                 onClick={() => onUpdatePriority(contact.id, star)}
-                                className="transition-transform hover:scale-125 focus:outline-none"
+                                className="transition-transform hover:scale-125 focus:focus:ring-2 focus:ring-amber-500 focus:outline-none"
                             >
                                 <Star className={`w-4 h-4 ${star <= contact.priority ? 'fill-primary text-primary' : 'text-stone-200 dark:text-stone-800'}`} />
                             </button>

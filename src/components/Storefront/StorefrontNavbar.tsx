@@ -131,7 +131,7 @@ export function StorefrontNavbar({ theme = "dark", mixBlend = false }: Storefron
               onMouseEnter={() => setIsExploreOpen(true)}
               onMouseLeave={() => setIsExploreOpen(false)}
             >
-              <button 
+              <button aria-expanded={isExploreOpen} aria-haspopup="true" 
                 className={`flex items-center gap-0.5 sm:gap-1 text-[11px] sm:text-[13px] font-medium ${activeTextColorClass} hover:opacity-60 transition-opacity p-2 sm:p-0`}
                 style={activeTextShadowStyle}
               >
@@ -233,7 +233,7 @@ export function StorefrontNavbar({ theme = "dark", mixBlend = false }: Storefron
                 placeholder="Buscar por modelo, marca o categoría..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full text-2xl md:text-4xl font-light tracking-tight border-b border-stone-200 dark:border-stone-850 pb-4 outline-none bg-transparent placeholder-stone-300 dark:placeholder-stone-700 text-stone-900 dark:text-stone-100 focus:border-black dark:focus:border-white transition-colors"
+                className="w-full text-2xl md:text-4xl font-light tracking-tight border-b border-stone-200 dark:border-stone-850 pb-4 focus:ring-2 focus:ring-amber-500 focus:outline-none bg-transparent placeholder-stone-300 dark:placeholder-stone-700 text-stone-900 dark:text-stone-100 focus:border-black dark:focus:border-white transition-colors"
               />
             </div>
 
@@ -272,7 +272,7 @@ export function StorefrontNavbar({ theme = "dark", mixBlend = false }: Storefron
                       >
                         <div className="w-16 h-16 bg-[#f5f5f5] dark:bg-stone-900 rounded-xl flex items-center justify-center overflow-hidden shrink-0 relative">
                           {imgUrl ? (
-                            <img src={imgUrl} alt={p.model} className="w-full h-full object-contain mix-blend-multiply dark:mix-blend-normal" />
+                            <Image src={imgUrl} alt={p.model} fill className="object-contain mix-blend-multiply dark:mix-blend-normal" />
                           ) : (
                             <Search className="w-6 h-6 text-stone-300" />
                           )}

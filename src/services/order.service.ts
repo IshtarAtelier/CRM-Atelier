@@ -55,7 +55,7 @@ const OrderUpdateSchema = z.object({
     appliedPromoName: z.string().nullable().optional(),
 }).passthrough();
 
-export const dynamic = 'force-dynamic';
+// export const dynamic = 'force-dynamic';
 
 export class OrderService {
     static async getOrder(id: string) {

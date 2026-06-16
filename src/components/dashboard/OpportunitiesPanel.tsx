@@ -182,12 +182,12 @@ export default function OpportunitiesPanel({ opportunities, onClose, onRefresh }
             <header className="p-6 md:p-8 border-b border-stone-100 dark:border-stone-800 flex justify-between items-center bg-amber-50/50 dark:bg-amber-950/10">
                 <div className="flex items-center gap-3 text-amber-500">
                     <Zap className="w-6 h-6 fill-amber-500 animate-pulse" />
-                    <h3 className="font-black text-stone-800 dark:text-white uppercase tracking-tighter italic text-xsl">
+                    <h3 className="font-black text-stone-800 dark:text-white uppercase tracking-tighter italic text-xl">
                         Oportunidades de Cierre
                     </h3>
                 </div>
                 <button onClick={onClose} className="p-3 hover:bg-stone-100 dark:hover:bg-stone-800 rounded-2xl transition-all hover:rotate-90">
-                    <X className="w-5 h-5 text-stone-600" />
+                    <X className="w-5 h-5 text-stone-400" />
                 </button>
             </header>
 
@@ -213,7 +213,7 @@ export default function OpportunitiesPanel({ opportunities, onClose, onRefresh }
                                         </p>
                                         {getOppBadge(opp.type)}
                                     </div>
-                                    <p className="text-xs font-bold text-stone-500 dark:text-stone-600 line-clamp-2 leading-tight">
+                                    <p className="text-xs font-bold text-stone-500 dark:text-stone-400 line-clamp-2 leading-tight">
                                         {opp.detail}
                                     </p>
                                 </div>
@@ -224,7 +224,7 @@ export default function OpportunitiesPanel({ opportunities, onClose, onRefresh }
                             <button
                                 onClick={(e) => handleFinalizeOpportunity(e, opp)}
                                 disabled={finalizingId === opp.id}
-                                className={`absolute top-1/2 -translate-y-1/2 p-2.5 md:p-3 bg-stone-100 hover:bg-emerald-50 hover:text-emerald-600 dark:bg-stone-800 dark:hover:bg-emerald-950/30 dark:hover:text-emerald-400 text-stone-500 dark:text-stone-600 rounded-xl md:rounded-2xl border border-stone-200/40 dark:border-stone-700/40 shadow hover:scale-110 active:scale-95 transition-all z-10 disabled:opacity-50 ${
+                                className={`absolute top-1/2 -translate-y-1/2 p-2.5 md:p-3 bg-stone-100 hover:bg-emerald-50 hover:text-emerald-600 dark:bg-stone-800 dark:hover:bg-emerald-950/30 dark:hover:text-emerald-400 text-stone-500 dark:text-stone-400 rounded-xl md:rounded-2xl border border-stone-200/40 dark:border-stone-700/40 shadow hover:scale-110 active:scale-95 transition-all z-10 disabled:opacity-50 ${
                                     opp.phone ? 'right-[5.5rem] md:right-[7.5rem]' : 'right-12 md:right-16'
                                 }`}
                                 title="Finalizar Seguimiento"
@@ -258,14 +258,14 @@ export default function OpportunitiesPanel({ opportunities, onClose, onRefresh }
                         <div className="w-20 h-20 bg-white dark:bg-stone-800 rounded-full flex items-center justify-center shadow-xl mb-6">
                             <Zap className="w-10 h-10 text-stone-200" />
                         </div>
-                        <p className="text-sm font-black text-stone-600 uppercase tracking-widest leading-relaxed">No hay alertas de cierre pendientes</p>
-                        <p className="text-xs text-stone-600 mt-2">¡Buen trabajo! Todo está al día.</p>
+                        <p className="text-sm font-black text-stone-400 uppercase tracking-widest leading-relaxed">No hay alertas de cierre pendientes</p>
+                        <p className="text-xs text-stone-400 mt-2">¡Buen trabajo! Todo está al día.</p>
                     </div>
                 )}
             </div>
 
             <footer className="p-6 bg-stone-50/50 dark:bg-stone-800/30 border-t border-stone-100 dark:border-stone-800">
-                <p className="text-xs font-black text-stone-600 uppercase tracking-[0.3em] text-center">Optica CRM Opportunities</p>
+                <p className="text-[10px] font-black text-stone-400 uppercase tracking-[0.3em] text-center">Optica CRM Opportunities</p>
             </footer>
         </div>
     );

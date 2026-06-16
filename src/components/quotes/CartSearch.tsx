@@ -26,7 +26,7 @@ export default function CartSearch({
                     placeholder="Agregar cualquier producto (Cristal, Armazón, etc.)..."
                     value={searchQuery}
                     onChange={e => setSearchQuery(e.target.value)}
-                    className="w-full bg-stone-50 dark:bg-stone-900/40 border border-stone-200 dark:border-stone-800 py-3 pl-11 pr-4 rounded-xl text-xs font-semibold outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/30 transition-all placeholder:text-stone-300 dark:text-stone-100"
+                    className="w-full bg-stone-50 dark:bg-stone-900/40 border border-stone-200 dark:border-stone-800 py-3 pl-11 pr-4 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-amber-500 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/30 transition-all placeholder:text-stone-300 dark:text-stone-100"
                 />
             </div>
             {results.length > 0 && (

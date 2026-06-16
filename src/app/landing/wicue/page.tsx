@@ -5,6 +5,7 @@ import { motion, useScroll, useTransform } from "framer-motion";
 import { StorefrontNavbar } from "@/components/Storefront/StorefrontNavbar";
 import { StorefrontFooter } from "@/components/Storefront/StorefrontFooter";
 import { Sun, BatteryCharging, Shield, Smartphone, ArrowRight } from "lucide-react";
+import Image from "next/image";
 
 export default function WicueLandingPage() {
   const { scrollYProgress } = useScroll();
@@ -19,7 +20,7 @@ export default function WicueLandingPage() {
         <section className="relative h-screen w-full flex items-center justify-center overflow-hidden">
           {/* Fondo de Video / Imagen Cinemática */}
           <div className="absolute inset-0 z-0 bg-stone-900">
-            <img 
+            <Image 
               src="/images/landing/ray_ban_meta.png" 
               alt="Ray-Ban Meta Smart Glasses" 
               className="w-full h-full object-cover opacity-40 mix-blend-luminosity"
@@ -104,7 +105,7 @@ export default function WicueLandingPage() {
 
         {/* FULL WIDTH IMAGE / VIDEO BANNER */}
         <section className="relative py-40 flex items-center justify-center bg-stone-900 overflow-hidden">
-           <img 
+           <Image 
               src="/images/landing/wicue_glasses.png" 
               alt="Lifestyle Wicue" 
               className="absolute inset-0 w-full h-full object-cover opacity-50 mix-blend-overlay"

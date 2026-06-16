@@ -342,15 +342,15 @@ export default function DashboardObjectives({
             <div className="space-y-4">
               <div>
                 <label className="text-xs font-black uppercase tracking-widest text-stone-400 block mb-2">Objetivo Base (ARS)</label>
-                <input type="number" value={editT1} onChange={e => setEditT1(e.target.value)} className="w-full bg-stone-800 border border-white/10 rounded-xl px-4 py-3 text-white font-bold outline-none focus:border-primary transition-colors" />
+                <input type="number" value={editT1} onChange={e => setEditT1(e.target.value)} className="w-full bg-stone-800 border border-white/10 rounded-xl px-4 py-3 text-white font-bold focus:ring-2 focus:ring-amber-500 focus:outline-none focus:border-primary transition-colors" />
               </div>
               <div>
                 <label className="text-xs font-black uppercase tracking-widest text-stone-400 block mb-2">Objetivo Stretch (ARS)</label>
-                <input type="number" value={editT2} onChange={e => setEditT2(e.target.value)} className="w-full bg-stone-800 border border-white/10 rounded-xl px-4 py-3 text-white font-bold outline-none focus:border-primary transition-colors" />
+                <input type="number" value={editT2} onChange={e => setEditT2(e.target.value)} className="w-full bg-stone-800 border border-white/10 rounded-xl px-4 py-3 text-white font-bold focus:ring-2 focus:ring-amber-500 focus:outline-none focus:border-primary transition-colors" />
               </div>
               <div>
                 <label className="text-xs font-black uppercase tracking-widest text-stone-400 block mb-2">Objetivo Elite (ARS)</label>
-                <input type="number" value={editT3} onChange={e => setEditT3(e.target.value)} className="w-full bg-stone-800 border border-white/10 rounded-xl px-4 py-3 text-white font-bold outline-none focus:border-primary transition-colors" />
+                <input type="number" value={editT3} onChange={e => setEditT3(e.target.value)} className="w-full bg-stone-800 border border-white/10 rounded-xl px-4 py-3 text-white font-bold focus:ring-2 focus:ring-amber-500 focus:outline-none focus:border-primary transition-colors" />
               </div>
             </div>
             

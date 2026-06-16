@@ -315,7 +315,7 @@ export default function CheckoutModal({
                                                 </div>
                                             </div>
                                             {p.receiptUrl && (
-                                                <a href={resolveStorageUrl(p.receiptUrl)} target="_blank" className="p-2 hover:bg-white dark:hover:bg-stone-700 rounded-lg transition-all text-primary">
+                                                <a href={resolveStorageUrl(p.receiptUrl)} target="_blank" rel="noopener noreferrer" className="p-2 hover:bg-white dark:hover:bg-stone-700 rounded-lg transition-all text-primary">
                                                     <ImageIcon className="w-4 h-4" />
                                                 </a>
                                             )}

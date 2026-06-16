@@ -22,12 +22,12 @@ export default function ReviewRequestsPanel({ requests, onClose }: ReviewRequest
             <header className="p-6 md:p-8 border-b border-stone-100 dark:border-stone-800 flex justify-between items-center bg-yellow-50/50 dark:bg-yellow-900/10">
                 <div className="flex items-center gap-3 text-yellow-500">
                     <Star className="w-6 h-6 fill-yellow-500 animate-pulse" />
-                    <h3 className="font-black text-stone-800 dark:text-white uppercase tracking-tighter italic text-xsl">
+                    <h3 className="font-black text-stone-800 dark:text-white uppercase tracking-tighter italic text-xl">
                         Reseñas Pendientes
                     </h3>
                 </div>
                 <button onClick={onClose} className="p-3 hover:bg-stone-100 dark:hover:bg-stone-800 rounded-2xl transition-all hover:rotate-90">
-                    <X className="w-5 h-5 text-stone-600" />
+                    <X className="w-5 h-5 text-stone-400" />
                 </button>
             </header>
 
@@ -42,7 +42,7 @@ export default function ReviewRequestsPanel({ requests, onClose }: ReviewRequest
                             >
                                 <div className="absolute top-0 left-0 w-1.5 h-full bg-yellow-500/20 group-hover:bg-yellow-500 transition-colors" />
 
-                                <div className="w-10 h-10 md:w-12 md:h-12 bg-stone-50 dark:bg-stone-900 rounded-xl md:rounded-2xl flex items-center justify-center text-stone-600 group-hover:text-yellow-500 group-hover:bg-yellow-500/5 transition-all shrink-0">
+                                <div className="w-10 h-10 md:w-12 md:h-12 bg-stone-50 dark:bg-stone-900 rounded-xl md:rounded-2xl flex items-center justify-center text-stone-400 group-hover:text-yellow-500 group-hover:bg-yellow-500/5 transition-all shrink-0">
                                     <User className="w-5 h-5 md:w-6 md:h-6" />
                                 </div>
 
@@ -54,15 +54,15 @@ export default function ReviewRequestsPanel({ requests, onClose }: ReviewRequest
                                                 onClick={(e) => {
                                                     e.preventDefault();
                                                     e.stopPropagation();
-                                                }} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.currentTarget.click(); } }}
-                                                className="text-xs font-bold text-stone-600 dark:text-stone-500 normal-case ml-2 select-all cursor-text"
+                                                }}
+                                                className="text-xs font-bold text-stone-400 dark:text-stone-500 normal-case ml-2 select-all cursor-text"
                                                 title="Hacé click para seleccionar y copiar"
                                             >
                                                 ({task.client.phone})
                                             </span>
                                         )}
                                     </p>
-                                    <p className="text-xs font-bold text-stone-500 dark:text-stone-600 line-clamp-2 leading-tight lowercase">
+                                    <p className="text-xs font-bold text-stone-500 dark:text-stone-400 line-clamp-2 leading-tight lowercase">
                                         {task.description}
                                     </p>
                                 </div>
@@ -139,7 +139,7 @@ export default function ReviewRequestsPanel({ requests, onClose }: ReviewRequest
                                 }}
                                 disabled={isCompleting === task.id}
                                 className={`absolute right-2 md:right-3 top-1/2 -translate-y-1/2 p-2 md:p-2.5 rounded-xl md:rounded-2xl transition-all z-10 
-                                    ${isCompleting === task.id ? 'bg-stone-100 text-stone-600' : 'bg-white hover:bg-yellow-50 dark:bg-stone-800 dark:hover:bg-yellow-900/30 text-stone-500 hover:text-yellow-500 shadow-sm hover:shadow-md'}
+                                    ${isCompleting === task.id ? 'bg-stone-100 text-stone-400' : 'bg-white hover:bg-yellow-50 dark:bg-stone-800 dark:hover:bg-yellow-900/30 text-stone-300 hover:text-yellow-500 shadow-sm hover:shadow-md'}
                                 `}
                                 title="Finalizar tarea de reseña"
                             >
@@ -156,13 +156,13 @@ export default function ReviewRequestsPanel({ requests, onClose }: ReviewRequest
                         <div className="w-20 h-20 bg-white dark:bg-stone-800 rounded-full flex items-center justify-center shadow-xl mb-6">
                             <Star className="w-10 h-10 text-stone-200" />
                         </div>
-                        <p className="text-sm font-black text-stone-600 uppercase tracking-widest leading-relaxed">No hay solicitudes pendientes</p>
+                        <p className="text-sm font-black text-stone-400 uppercase tracking-widest leading-relaxed">No hay solicitudes pendientes</p>
                     </div>
                 )}
             </div>
 
             <footer className="p-6 bg-stone-50/50 dark:bg-stone-800/30 border-t border-stone-100 dark:border-stone-800 space-y-4">
-                <p className="text-xs font-black text-stone-600 uppercase tracking-[0.3em] text-center">Optica CRM v2.0</p>
+                <p className="text-[10px] font-black text-stone-400 uppercase tracking-[0.3em] text-center">Optica CRM v2.0</p>
             </footer>
         </div>
     );

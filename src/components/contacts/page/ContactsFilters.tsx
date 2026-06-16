@@ -43,7 +43,7 @@ export default function ContactsFilters({
                 <input
                     type="text"
                     placeholder="Buscar pacientes por nombre, teléfono, o interés..."
-                    className="w-full pl-14 pr-6 py-5 bg-stone-50/50 dark:bg-stone-800/30 backdrop-blur-md border border-stone-200/50 dark:border-stone-700/50 rounded-full shadow-[0_2px_10px_-3px_rgba(6,81,237,0.05)] focus:bg-white dark:focus:bg-stone-900 focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all font-medium text-stone-800 dark:text-stone-100 placeholder-stone-400"
+                    className="w-full pl-14 pr-6 py-5 bg-stone-50/50 dark:bg-stone-800/30 backdrop-blur-md border border-stone-200/50 dark:border-stone-700/50 rounded-full shadow-[0_2px_10px_-3px_rgba(6,81,237,0.05)] focus:bg-white dark:focus:bg-stone-900 focus:ring-4 focus:ring-primary/10 focus:border-primary focus:ring-2 focus:ring-amber-500 focus:outline-none transition-all font-medium text-stone-800 dark:text-stone-100 placeholder-stone-400"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                 />

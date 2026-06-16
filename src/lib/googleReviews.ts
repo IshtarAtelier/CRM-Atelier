@@ -1,4 +1,4 @@
-export const FALLBACK_REVIEWS = [
+const FALLBACK_REVIEWS = [
   {
     author_name: "Juan Manuel Rodríguez",
     profile_photo_url: "",

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist } from "next/font/google";
 import Script from "next/script";
+import { ThemeProvider } from "next-themes";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -56,6 +57,7 @@ export const metadata: Metadata = {
   },
 };
 
+import { Toaster } from "sonner";
 import { TrackingScripts } from "@/components/Storefront/TrackingScripts";
 
 export default function RootLayout({
@@ -64,20 +66,27 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="es">
+    <html lang="es" suppressHydrationWarning>
+      <head>
+        <link rel="preconnect" href="https://storage.googleapis.com" />
+      </head>
       <body
         className={`${geistSans.variable} antialiased selection:bg-primary/30`}
       >
-        <div className="min-h-screen bg-background text-foreground">
-          {children}
-        </div>
-        <TrackingScripts />
-        <a href="/recomendados" className="sr-only">Enlaces recomendados</a>
-        <Script strategy="afterInteractive" id="sw-register">{`
-          if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('/sw.js').catch(() => {});
-          }
-        `}</Script>
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+          <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:z-[100] focus:p-4 focus:bg-background focus:text-foreground">Saltar al contenido principal</a>
+          <div className="min-h-screen bg-background text-foreground" id="main-content">
+            {children}
+          </div>
+          <Toaster position="top-right" richColors />
+          <TrackingScripts />
+
+          <Script strategy="afterInteractive" id="sw-register">{`
+            if ('serviceWorker' in navigator) {
+              navigator.serviceWorker.register('/sw.js').catch(() => {});
+            }
+          `}</Script>
+        </ThemeProvider>
       </body>
     </html>
   );

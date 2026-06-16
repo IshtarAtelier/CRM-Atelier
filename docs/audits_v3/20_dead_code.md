@@ -1,0 +1,290 @@
+# Reporte de Código Muerto y Archivos Huérfanos (Fase 2)
+
+## Resumen
+- **Archivos no utilizados:** 222
+- **Exportaciones huérfanas:** 14
+- **Tipos huérfanos:** 16
+- **Dependencias sin uso:** 23
+
+## Archivos No Utilizados
+- `cross_check.ts`
+- `fix-jsx.js`
+- `prisma/seed.js`
+- `public/sw.js`
+- `scripts/import-posts.tsx`
+- `src/test-html.ts`
+- `src/test-local-pdf.ts`
+- `src/test-pdf.ts`
+- `src/test-send-pdf.ts`
+- `wa-service/agent-tools.js`
+- `wa-service/db.js`
+- `wa-service/graph.js`
+- `wa-service/index.js`
+- `wa-service/passive-extractor.js`
+- `wa-service/sales-followups.js`
+- `wa-service/tools.js`
+- `wa-service/transcriber.js`
+- `wa-service/utils.js`
+- `prisma/scripts/check-multifocal.js`
+- `prisma/scripts/check_cols.js`
+- `prisma/scripts/check_db.js`
+- `prisma/scripts/clear-and-list.js`
+- `prisma/scripts/seed-cristales-multi.ts`
+- `prisma/scripts/seed-crystal-colors.ts`
+- `prisma/scripts/seed-monofocal-fotocrom.js`
+- `prisma/scripts/seed-multifocal-upsert.js`
+- `prisma/scripts/seed-multifocal.js`
+- `prisma/scripts/seed-pricing.ts`
+- `prisma/scripts/update-tenido-category.ts`
+- `scripts/creates/create-comfort.js`
+- `scripts/creates/create-eyezen-kids.js`
+- `scripts/creates/create-eyezen.js`
+- `scripts/creates/create-myopilux.js`
+- `scripts/creates/create-physio.js`
+- `scripts/creates/create_treatment.ts`
+- `scripts/maintenance/analyze_blog.js`
+- `scripts/maintenance/analyze_blog2.js`
+- `scripts/maintenance/bookmarklet.js`
+- `scripts/maintenance/bookmarklet.min.js`
+- `scripts/maintenance/clean.js`
+- `scripts/maintenance/convert.js`
+- `scripts/maintenance/debug-reports.js`
+- `scripts/maintenance/eslint.standalone.mjs`
+- `scripts/maintenance/extract_dropdowns.js`
+- `scripts/maintenance/extract_dropdowns.ts`
+- `scripts/maintenance/extract_iframes.js`
+- `scripts/maintenance/extract_pedidos.ts`
+- `scripts/maintenance/fix-a11y.js`
+- `scripts/maintenance/fix-img.js`
+- `scripts/maintenance/fix-roles.js`
+- `scripts/maintenance/fix-safe.js`
+- `scripts/maintenance/fix-tabs.js`
+- `scripts/maintenance/fix-xsss.js`
+- `scripts/maintenance/fix_blog.js`
+- `scripts/maintenance/fix_db.js`
+- `scripts/maintenance/fix_db2.js`
+- `scripts/maintenance/fix_jeferson.ts`
+- `scripts/maintenance/fix_slug.js`
+- `scripts/maintenance/fix_ts.js`
+- `scripts/maintenance/import-metal.js`
+- `scripts/maintenance/migrate-interactions.js`
+- `scripts/maintenance/parse_faq.js`
+- `scripts/maintenance/refactor.js`
+- `scripts/maintenance/send-circular.js`
+- `scripts/maintenance/send_vanesa.ts`
+- `scripts/maintenance/sync-prod-to-local-pg.js`
+- `scripts/maintenance/update_landing.js`
+- `scripts/queries/count-balances-live.js`
+- `scripts/queries/count-images.js`
+- `scripts/queries/find-prices-in-prod-product.js`
+- `scripts/queries/get-opto-config.js`
+- `scripts/queries/get_dim.js`
+- `scripts/queries/get_smartlab_fields.ts`
+- `scripts/queries/investigate_smartlab.ts`
+- `scripts/queries/mayo_lab_sales.ts`
+- `scripts/queries/query-all.js`
+- `scripts/queries/query-sales-by-lens-type.js`
+- `scripts/queries/query-sales-pie.js`
+- `scripts/queries/query-varilux.js`
+- `scripts/queries/query.js`
+- `scripts/queries/query_crystals.js`
+- `scripts/queries/query_prod.js`
+- `scripts/tests/seed-test-products.ts`
+- `scripts/tests/test-duplicates.js`
+- `scripts/tests/test-image-direct.ts`
+- `scripts/tests/test-image.ts`
+- `scripts/tests/test-image4.ts`
+- `scripts/tests/test-metal.js`
+- `scripts/tests/test-models.ts`
+- `scripts/tests/test-patocco.js`
+- `scripts/tests/test-prod.js`
+- `scripts/tests/test-screenshot.js`
+- `scripts/tests/test-social.ts`
+- `scripts/tests/test-story-generation.ts`
+- `scripts/tests/test-vertex-imagen.ts`
+- `scripts/tests/test_chats.js`
+- `scripts/tests/test_clients.js`
+- `scripts/tests/test_contacts.ts`
+- `scripts/tests/test_getall.ts`
+- `scripts/tests/test_getbyid.ts`
+- `scripts/tests/test_jspdf.ts`
+- `scripts/tests/test_pdf_send.ts`
+- `scripts/tests/test_phone.js`
+- `scripts/tests/update-test-product.ts`
+- `scripts/updates/backfill_store_visits.ts`
+- `scripts/updates/fix-physio-lab.js`
+- `scripts/updates/fix_treatment.ts`
+- `scripts/updates/merge-duplicates.ts`
+- `scripts/updates/reprocess-all-eyewear.js`
+- `scripts/updates/update-all-prices.js`
+- `scripts/updates/update-comfort-max.js`
+- `scripts/updates/update-interview-espace.js`
+- `scripts/updates/update-kodak.js`
+- `scripts/updates/update-mi-primer-varilux.js`
+- `scripts/updates/update-monofocales-gens.js`
+- `scripts/updates/update-myopilux-names.js`
+- `scripts/updates/update-physio-prod.js`
+- `scripts/updates/update-precise.js`
+- `scripts/updates/update-product-names.js`
+- `scripts/updates/update-ranges-comfort.js`
+- `scripts/updates/update-ranges-eyezen.js`
+- `scripts/updates/update-ranges-kodak.js`
+- `scripts/updates/update-ranges-myopilux.js`
+- `scripts/updates/update-ranges-xr-fix.js`
+- `scripts/updates/update-ranges-xr.js`
+- `scripts/updates/update-varilux-xr-prod.js`
+- `scripts/checks/analyze-names.ts`
+- `scripts/checks/audit-varilux.js`
+- `scripts/checks/check-caniggia.ts`
+- `scripts/checks/check-comfort-max.js`
+- `scripts/checks/check-comfort.js`
+- `scripts/checks/check-eyezen.js`
+- `scripts/checks/check-interview-espace.js`
+- `scripts/checks/check-kodak-extended.js`
+- `scripts/checks/check-kodak.js`
+- `scripts/checks/check-lab-configs.js`
+- `scripts/checks/check-monofocal-gens.js`
+- `scripts/checks/check-myopia.js`
+- `scripts/checks/check-myopilux.js`
+- `scripts/checks/check-optovision-prod.js`
+- `scripts/checks/check-patocco.js`
+- `scripts/checks/check-physio-prod.js`
+- `scripts/checks/check-precise.js`
+- `scripts/checks/check-types.js`
+- `scripts/checks/check-varilux-xr-prod.js`
+- `scripts/checks/check-xr-all.js`
+- `scripts/checks/check.ts`
+- `scripts/checks/check_crystals_index.ts`
+- `scripts/checks/check_dashboard_sales.ts`
+- `scripts/checks/check_db.ts`
+- `scripts/checks/check_db2.ts`
+- `scripts/checks/check_db3.ts`
+- `scripts/checks/check_db4.ts`
+- `scripts/checks/check_db5.ts`
+- `scripts/checks/check_db6.ts`
+- `scripts/checks/check_db7.ts`
+- `scripts/checks/check_db8.ts`
+- `scripts/checks/check_db9.ts`
+- `scripts/checks/check_db_cast.js`
+- `scripts/checks/check_deleted_gaspar.ts`
+- `scripts/checks/check_h1.js`
+- `scripts/checks/check_h1_multi.js`
+- `scripts/checks/check_interactions.ts`
+- `scripts/checks/check_orders.ts`
+- `scripts/checks/check_real_sync.ts`
+- `scripts/checks/check_store_visits.ts`
+- `scripts/checks/check_syncs.ts`
+- `scripts/checks/compare-prices.js`
+- `scripts/checks/count_duplicates.ts`
+- `scripts/checks/list-duplicates.ts`
+- `scripts/checks/match-service-to-product.js`
+- `scripts/checks/verify-physio.js`
+- `scripts/checks/verify-xr.js`
+- `src/components/CotizadorPopup.tsx`
+- `src/components/QuickQuote.tsx`
+- `wa-service/cron/inactivity-followups.js`
+- `wa-service/prompts/executivePrompt.js`
+- `wa-service/prompts/salesPrompt.js`
+- `wa-service/followups/config.js`
+- `wa-service/followups/eligibility.js`
+- `wa-service/followups/message-generator.js`
+- `wa-service/followups/message-validator.js`
+- `wa-service/followups/sender.js`
+- `wa-service/followups/smart-task-executor.js`
+- `wa-service/followups/task-generator.js`
+- `wa-service/routes/api.js`
+- `wa-service/services/ai.service.js`
+- `wa-service/services/bot.service.js`
+- `wa-service/services/helper.service.js`
+- `wa-service/services/sync.service.js`
+- `wa-service/whatsapp/client.js`
+- `wa-service/shared/business-hours.js`
+- `src/app/promo/convert.js`
+- `src/components/Storefront/HomeVideoSection.tsx`
+- `src/components/admin/CopilotChat.tsx`
+- `src/components/admin/DoctorCommissions.tsx`
+- `src/components/admin/UserProfile.tsx`
+- `src/components/billing/InvoiceItemEditor.tsx`
+- `src/components/billing/InvoiceModal.tsx`
+- `src/components/contacts/ContactForm.tsx`
+- `src/components/contacts/ContactFormSections.tsx`
+- `src/components/dashboard/BalancePanel.tsx`
+- `src/components/dashboard/GlobalBalanceReminders.tsx`
+- `src/components/dashboard/GlobalLabReady.tsx`
+- `src/components/dashboard/GlobalOpportunities.tsx`
+- `src/components/dashboard/GlobalReviewRequests.tsx`
+- `src/components/dashboard/GlobalTasks.tsx`
+- `src/components/dashboard/LabReadyPanel.tsx`
+- `src/components/dashboard/OpportunitiesPanel.tsx`
+- `src/components/dashboard/ReviewRequestsPanel.tsx`
+- `src/components/dashboard/TasksPanel.tsx`
+- `src/components/layout/Sidebar.tsx`
+- `src/components/modals/TestChatModal.tsx`
+- `src/components/inventory/ProductCard.tsx`
+- `src/components/quotes/QuotePrescription.tsx`
+- `src/components/ui/CommandPalette.tsx`
+- `src/components/ui/FileDropZone.tsx`
+- `src/components/ui/FloatingDock.tsx`
+- `src/components/ui/LeadToastNotifications.tsx`
+- `src/components/ui/NotificationBell.tsx`
+- `src/lib/data/blog.ts`
+- `src/lib/validations/order.schema.ts`
+
+## Exportaciones Huérfanas
+- `src/lib/promo-utils.ts: calculatePromoFrameDiscount`
+- `src/lib/backup.ts: BACKUP_PREFIX`
+- `src/lib/copilot-tools.ts: STAFF_TOOLS`
+- `src/lib/copilot-tools.ts: ADMIN_TOOLS`
+- `src/lib/googleReviews.ts: FALLBACK_REVIEWS`
+- `src/lib/googleReviews.ts: fetchLegacyReviews`
+- `src/lib/googleReviews.ts: fetchNewReviews`
+- `src/lib/afip.ts: BILLING_ACCOUNTS`
+- `src/lib/wa-config.ts: WA_SERVER_URL`
+- `src/lib/client-pdf-generator.ts: getClientHtml`
+- `src/services/order.service.ts: dynamic`
+- `src/lib/receipt-pdf-generator.ts: getReceiptHtml`
+- `src/lib/order-pdf-generator.ts: getOrderHtml`
+- `src/lib/crystal-color-utils.ts: getColorCategoryLabel`
+
+## Tipos Huérfanos
+- `src/store/useCart.ts: CartItem`
+- `src/types/orders.ts: OrderItemProduct`
+- `src/types/orders.ts: OrderItem`
+- `src/types/orders.ts: OrderPrescription`
+- `src/types/orders.ts: OrderPayment`
+- `src/types/orders.ts: OrderInvoice`
+- `src/types/orders.ts: OrderClient`
+- `src/types/contacts.ts: Tag`
+- `src/types/contacts.ts: Interaction`
+- `src/types/contacts.ts: Prescription`
+- `src/types/contacts.ts: OrderItem`
+- `src/types/contacts.ts: Payment`
+- `src/types/contacts.ts: Order`
+- `src/services/smartlab.service.ts: ScrapedDetail`
+- `src/services/billing.service.ts: CreateInvoiceItem`
+- `src/services/agents/agents/QuoteAgent.ts: QuoteOption`
+
+## Dependencias Sin Uso
+- `package.json: @aws-sdk/client-s3`
+- `package.json: @aws-sdk/s3-request-presigner`
+- `package.json: @langchain/langgraph`
+- `package.json: axios`
+- `package.json: clsx`
+- `package.json: cors`
+- `package.json: dotenv`
+- `package.json: express`
+- `package.json: googleapis`
+- `package.json: jsonwebtoken`
+- `package.json: node-fetch`
+- `package.json: openai`
+- `package.json: pg`
+- `package.json: proxy-agent`
+- `package.json: qrcode-terminal`
+- `package.json: tailwind-merge`
+- `package.json: tesseract.js`
+- `package.json: whatsapp-web.js`
+- `package.json: xlsx`
+- `package.json: @types/bcryptjs`
+- `package.json: better-sqlite3`
+- `package.json: cross-env`
+- `package.json: eslint-config-next`

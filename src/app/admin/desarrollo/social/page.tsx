@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Megaphone, Sparkles, Loader2, Copy, Download, CheckCircle2, Image as ImageIcon, Instagram, Facebook, Clock, Hash, Trash2 } from 'lucide-react';
+import Image from "next/image";
 
 interface Product { id: string; brand: string | null; model: string | null; category: string; }
 interface BlogPost { id: string; title: string; category: string; }
@@ -369,7 +370,7 @@ export default function SocialMediaPage() {
                                 </div>
                                 {result.imageUrl ? (
                                     <div className="space-y-3">
-                                        <img src={`/api/storage/view?key=${encodeURIComponent(result.imageUrl)}`} alt="Generada" className="w-full rounded-xl border border-stone-200 dark:border-stone-700" />
+                                        <Image src={`/api/storage/view?key=${encodeURIComponent(result.imageUrl)}`} alt="Generada" className="w-full rounded-xl border border-stone-200 dark:border-stone-700" />
                                         <a href={`/api/storage/view?key=${encodeURIComponent(result.imageUrl)}`} download className="w-full py-2.5 bg-emerald-500 text-white rounded-xl text-xs font-black uppercase tracking-widest hover:scale-[1.02] transition-all flex items-center justify-center gap-2">
                                             <Download className="w-4 h-4" /> Descargar Imagen
                                         </a>

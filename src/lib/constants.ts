@@ -64,3 +64,13 @@ export const METHOD_LABELS: Record<string, string> = {
     GO_CUOTAS: 'Go Cuotas',
     GO_CUOTAS_ISH: 'Go Cuotas Ish',
 };
+
+// Shared Product Categories
+export const PRODUCT_CATEGORIES = [
+    { id: 'Cristal', label: '🔬 Cristales', icon: '🔬', noStock: true, subtypes: ['Monofocal', 'Multifocal', 'Bifocal', 'Ocupacional', 'Coquil'] },
+    { id: 'Lentes de Sol', label: '🕶️ Sol', icon: '🕶️' },
+    { id: 'Armazón de Receta', label: '👓 Armazón', icon: '👓' },
+    { id: 'Lentes de Contacto', label: '👁️ Contacto', icon: '👁️' },
+    { id: 'Lentes Especiales', label: '✨ Especiales', icon: '✨' },
+    { id: 'Tratamiento', label: '💧 Tratamientos', icon: '💧', subtypes: ['Tratamientos', 'Colores de Cristal'] },
+];

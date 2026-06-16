@@ -12,7 +12,7 @@ export function CheckoutContactForm({ formData, handleChange }: { formData: any,
             value={formData.email}
             required 
             placeholder="Correo Electrónico" 
-            className="w-full border border-stone-200 p-3 text-sm focus:border-black focus:outline-none transition-colors" 
+            className="w-full border border-stone-200 p-3 text-sm focus:border-black focus:focus:ring-2 focus:ring-amber-500 focus:outline-none transition-colors" 
             onChange={handleChange} 
           />
         </div>
@@ -23,7 +23,7 @@ export function CheckoutContactForm({ formData, handleChange }: { formData: any,
             value={formData.firstName}
             required 
             placeholder="Nombre" 
-            className="w-full border border-stone-200 p-3 text-sm focus:border-black focus:outline-none transition-colors" 
+            className="w-full border border-stone-200 p-3 text-sm focus:border-black focus:focus:ring-2 focus:ring-amber-500 focus:outline-none transition-colors" 
             onChange={handleChange} 
           />
         </div>
@@ -34,7 +34,7 @@ export function CheckoutContactForm({ formData, handleChange }: { formData: any,
             value={formData.lastName}
             required 
             placeholder="Apellido" 
-            className="w-full border border-stone-200 p-3 text-sm focus:border-black focus:outline-none transition-colors" 
+            className="w-full border border-stone-200 p-3 text-sm focus:border-black focus:focus:ring-2 focus:ring-amber-500 focus:outline-none transition-colors" 
             onChange={handleChange} 
           />
         </div>
@@ -47,7 +47,7 @@ export function CheckoutContactForm({ formData, handleChange }: { formData: any,
             pattern="[0-9]{7,11}"
             title="Ingresá un DNI o CUIL válido (7 a 11 números sin puntos ni guiones)"
             placeholder="DNI / CUIL (Ej: 35123456)" 
-            className="w-full border border-stone-200 p-3 text-sm focus:border-black focus:outline-none transition-colors" 
+            className="w-full border border-stone-200 p-3 text-sm focus:border-black focus:focus:ring-2 focus:ring-amber-500 focus:outline-none transition-colors" 
             onChange={handleChange} 
           />
         </div>
@@ -60,7 +60,7 @@ export function CheckoutContactForm({ formData, handleChange }: { formData: any,
             pattern="[0-9]{10,13}"
             title="Ingresá un teléfono válido, incluyendo código de área sin el 15. Ej: 3511234567"
             placeholder="WhatsApp (Ej: 3511234567)" 
-            className="w-full border border-stone-200 p-3 text-sm focus:border-black focus:outline-none transition-colors" 
+            className="w-full border border-stone-200 p-3 text-sm focus:border-black focus:focus:ring-2 focus:ring-amber-500 focus:outline-none transition-colors" 
             onChange={handleChange} 
           />
         </div>

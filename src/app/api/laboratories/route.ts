@@ -2,11 +2,21 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { headers } from 'next/headers';
 
-export async function GET() {
-    try {
-        const labs = await prisma.laboratoryConfig.findMany({
+import { unstable_cache } from 'next/cache';
+
+const getCachedLabs = unstable_cache(
+    async () => {
+        return await prisma.laboratoryConfig.findMany({
             orderBy: { name: 'asc' }
         });
+    },
+    ['laboratories-list'],
+    { tags: ['laboratories'], revalidate: 300 }
+);
+
+export async function GET() {
+    try {
+        const labs = await getCachedLabs();
         return NextResponse.json({ laboratories: labs });
     } catch (error: any) {
         return NextResponse.json({ error: error.message }, { status: 500 });

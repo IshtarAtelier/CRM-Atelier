@@ -44,6 +44,7 @@ import {
     Gem 
 } from 'lucide-react';
 import type { Product } from '@/types/orders';
+import Image from "next/image";
 
 const getTypeConfig = (type: string | null, category?: string | null) => {
     const key = getCategoryKey(type, category);
@@ -579,7 +580,7 @@ function CotizadorPageContent() {
                 <div className="flex-1 flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1">
                     <button
                         onClick={() => setActiveType(null)}
-                        className={`h-9 px-4 rounded-xl text-xs font-bold uppercase tracking-wider whitespace-nowrap transition-all border flex items-center justify-center ${activeType === null
+                        className={`h-8 px-3 rounded-xl text-xs font-bold uppercase tracking-wider whitespace-nowrap transition-all border flex items-center justify-center ${activeType === null
                             ? 'bg-primary text-primary-foreground border-primary shadow-sm hover:bg-primary/95'
                             : 'bg-white dark:bg-stone-850 text-stone-500 border-stone-200 dark:border-stone-750 hover:border-primary/30 hover:text-stone-700 dark:hover:text-white'
                             }`}
@@ -588,12 +589,12 @@ function CotizadorPageContent() {
                     </button>
                     <button
                         onClick={() => setOnlyWeb(!onlyWeb)}
-                        className={`h-9 px-4 rounded-xl text-xs font-bold uppercase tracking-wider whitespace-nowrap transition-all border flex items-center gap-1.5 ${onlyWeb
+                        className={`h-8 px-3 rounded-xl text-xs font-bold uppercase tracking-wider whitespace-nowrap transition-all border flex items-center gap-1.5 ${onlyWeb
                             ? 'bg-violet-600 text-white border-violet-600 shadow-sm hover:bg-violet-700'
                             : 'bg-white dark:bg-stone-850 text-violet-650 border-violet-200 hover:border-violet-300 dark:border-violet-900/50 dark:text-violet-400'
                             }`}
                     >
-                        🌐 Solo Web
+                        🌐 Web
                     </button>
                     {availableCategories.map(cat => {
                         const config = getTypeConfig(cat);
@@ -603,12 +604,12 @@ function CotizadorPageContent() {
                             <button
                                 key={cat}
                                 onClick={() => setActiveType(cat)}
-                                className={`h-9 px-4 rounded-xl text-xs font-bold uppercase tracking-wider whitespace-nowrap transition-all border flex items-center gap-2 ${activeType === cat
+                                className={`h-8 px-3 rounded-xl text-xs font-bold uppercase tracking-wider whitespace-nowrap transition-all border flex items-center gap-1.5 ${activeType === cat
                                     ? 'bg-primary text-primary-foreground border-primary shadow-sm'
                                     : `${config.color} hover:shadow-sm`
                                     }`}
                             >
-                                <Icon className="w-3.5 h-3.5" />
+                                <Icon className="w-3 h-3" />
                                 {config.label} ({count})
                             </button>
                         );
@@ -721,7 +722,7 @@ function CotizadorPageContent() {
                                                                  const imgUrl = resolveStorageUrl(product.imagenesCatalogo?.[0] || product.rawImageUrls?.[0] || null);
                                                                  if (imgUrl) {
                                                                      return (
-                                                                         <img 
+                                                                         <Image 
                                                                              src={imgUrl} 
                                                                              alt={product.name || ''} 
                                                                              className="w-8 h-8 object-contain rounded-lg border border-stone-200 dark:border-stone-850 bg-stone-50 dark:bg-stone-900 shadow-sm shrink-0" 

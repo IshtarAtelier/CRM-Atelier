@@ -3,6 +3,7 @@
 import React from 'react';
 import { Ruler, Glasses, Activity, FileText, AlertCircle } from 'lucide-react';
 import { resolveStorageUrl } from '@/lib/utils/storage';
+import Image from "next/image";
 
 interface PrescriptionDetailsProps {
     prescription: any;
@@ -152,9 +153,9 @@ export default function PrescriptionDetails({
 
             {/* Image Attachment */}
             {prescription?.imageUrl ? (
-                <div className="mt-2 flex items-center gap-4 bg-emerald-50/30 dark:bg-emerald-950/20 p-4 rounded-3xl border border-emerald-100 dark:border-emerald-900/50 group cursor-pointer hover:bg-emerald-50 dark:hover:bg-emerald-950/40 transition-all" onClick={() => window.open(resolveStorageUrl(prescription.imageUrl), '_blank')}>
+                <div role="button" tabIndex={0} className="mt-2 flex items-center gap-4 bg-emerald-50/30 dark:bg-emerald-950/20 p-4 rounded-3xl border border-emerald-100 dark:border-emerald-900/50 group cursor-pointer hover:bg-emerald-50 dark:hover:bg-emerald-950/40 transition-all" onClick={() => window.open(resolveStorageUrl(prescription.imageUrl), '_blank')}>
                     <div className="relative overflow-hidden rounded-2xl border-2 border-emerald-200">
-                        <img 
+                        <Image 
                             src={resolveStorageUrl(prescription.imageUrl)} 
                             alt="Imagen de Receta" 
                             className="w-16 h-16 object-cover transition-transform group-hover:scale-110"

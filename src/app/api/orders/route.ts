@@ -392,6 +392,23 @@ export async function GET(request: Request) {
         ];
 
         if (hasBalance) {
+            const rawIds: {id: string}[] = await prisma.$queryRaw`
+                SELECT id
+                FROM "Order"
+                WHERE "isDeleted" = false AND COALESCE("subtotalWithMarkup", "total", 0) - COALESCE("paid", 0) > 500
+            `;
+            const candidateIds = rawIds.map(r => r.id);
+            
+            if (candidateIds.length === 0) {
+                if (paginate) {
+                    return NextResponse.json({ orders: [], totalRevenue: 0, pagination: { total: 0, page, limit, totalPages: 0 } });
+                } else {
+                    return NextResponse.json([]);
+                }
+            }
+
+            where.id = { in: candidateIds };
+
             // When filtering by balance, we retrieve matching records, filter in-memory, and manually paginate.
             const allMatchingOrders = await prisma.order.findMany({
                 where,

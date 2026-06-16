@@ -3,6 +3,7 @@
 import { useState, useRef } from 'react';
 import { X, Camera, ImagePlus, ArrowRight, Search, Plus, Loader2, CheckCircle2, Package, Sparkles } from 'lucide-react';
 import { Product } from '@/hooks/useProducts';
+import Image from "next/image";
 
 interface PhotoStudioProps {
   onClose: () => void;
@@ -105,7 +106,7 @@ export default function PhotoStudio({ onClose, products, onSuccess, isAdmin, uni
         };
         const createRes = await fetch('/api/products', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'x-user-role': 'ADMIN' },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
         });
         if (!createRes.ok) {
@@ -220,7 +221,7 @@ export default function PhotoStudio({ onClose, products, onSuccess, isAdmin, uni
 
                       {photo ? (
                         <div className="relative aspect-square rounded-2xl overflow-hidden border-2 border-emerald-400 shadow-lg">
-                          <img src={photo.preview} alt={angle.label} className="w-full h-full object-cover" />
+                          <Image src={photo.preview} alt={angle.label} className="w-full h-full object-cover" />
                           <div className="absolute top-1.5 right-1.5 bg-emerald-500 text-white p-1 rounded-full shadow">
                             <CheckCircle2 className="w-3.5 h-3.5" />
                           </div>
@@ -302,7 +303,7 @@ export default function PhotoStudio({ onClose, products, onSuccess, isAdmin, uni
               <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
                 {photos.map((p, i) => (
                   <div key={i} className="w-16 h-16 rounded-xl overflow-hidden border-2 border-emerald-400 shrink-0">
-                    <img src={p.preview} alt={`Vista ${i + 1}`} className="w-full h-full object-cover" />
+                    <Image src={p.preview} alt={`Vista ${i + 1}`} className="w-full h-full object-cover" />
                   </div>
                 ))}
               </div>
@@ -337,7 +338,7 @@ export default function PhotoStudio({ onClose, products, onSuccess, isAdmin, uni
                       placeholder="Buscar por marca, modelo..."
                       value={searchQuery}
                       onChange={e => setSearchQuery(e.target.value)}
-                      className="w-full pl-12 pr-5 py-4 bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-2xl text-sm font-bold outline-none focus:border-primary transition-all"
+                      className="w-full pl-12 pr-5 py-4 bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-2xl text-sm font-bold focus:ring-2 focus:ring-amber-500 focus:outline-none focus:border-primary transition-all"
                       autoFocus
                     />
                   </div>
@@ -404,7 +405,7 @@ export default function PhotoStudio({ onClose, products, onSuccess, isAdmin, uni
                         placeholder="Ej: Ray-Ban"
                         value={newProduct.brand}
                         onChange={e => setNewProduct({ ...newProduct, brand: e.target.value })}
-                        className="w-full px-4 py-3.5 bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl font-bold text-sm outline-none focus:border-primary"
+                        className="w-full px-4 py-3.5 bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl font-bold text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none focus:border-primary"
                         list="studio-brands-list"
                       />
                       <datalist id="studio-brands-list">
@@ -418,7 +419,7 @@ export default function PhotoStudio({ onClose, products, onSuccess, isAdmin, uni
                         placeholder="Ej: Wayfarer Negro"
                         value={newProduct.model}
                         onChange={e => setNewProduct({ ...newProduct, model: e.target.value })}
-                        className="w-full px-4 py-3.5 bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl font-bold text-sm outline-none focus:border-primary"
+                        className="w-full px-4 py-3.5 bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl font-bold text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none focus:border-primary"
                       />
                     </div>
                     <div className="space-y-1">
@@ -428,7 +429,7 @@ export default function PhotoStudio({ onClose, products, onSuccess, isAdmin, uni
                         min={0}
                         value={newProduct.stock}
                         onChange={e => setNewProduct({ ...newProduct, stock: parseInt(e.target.value) || 0 })}
-                        className="w-full px-4 py-3.5 bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl font-bold text-sm outline-none focus:border-primary"
+                        className="w-full px-4 py-3.5 bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl font-bold text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none focus:border-primary"
                       />
                     </div>
                     <div className="space-y-1">
@@ -439,7 +440,7 @@ export default function PhotoStudio({ onClose, products, onSuccess, isAdmin, uni
                         placeholder="0"
                         value={newProduct.price || ''}
                         onChange={e => setNewProduct({ ...newProduct, price: parseFloat(e.target.value) || 0 })}
-                        className="w-full px-4 py-3.5 bg-primary/5 border-2 border-primary/20 rounded-xl font-black text-sm text-primary outline-none focus:border-primary"
+                        className="w-full px-4 py-3.5 bg-primary/5 border-2 border-primary/20 rounded-xl font-black text-sm text-primary focus:ring-2 focus:ring-amber-500 focus:outline-none focus:border-primary"
                       />
                     </div>
                     {isAdmin && (
@@ -451,7 +452,7 @@ export default function PhotoStudio({ onClose, products, onSuccess, isAdmin, uni
                           placeholder="0"
                           value={newProduct.cost || ''}
                           onChange={e => setNewProduct({ ...newProduct, cost: parseFloat(e.target.value) || 0 })}
-                          className="w-full px-4 py-3.5 bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl font-bold text-sm outline-none focus:border-primary"
+                          className="w-full px-4 py-3.5 bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl font-bold text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none focus:border-primary"
                         />
                       </div>
                     )}

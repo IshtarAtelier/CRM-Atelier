@@ -3,7 +3,7 @@ import { es } from 'date-fns/locale';
 import fs from 'fs';
 import path from 'path';
 
-export function getClientHtml(client: any): string {
+function getClientHtml(client: any): string {
     let dateStr = '';
     try {
         dateStr = format(new Date(client.createdAt), "dd 'de' MMMM, yyyy", { locale: es });

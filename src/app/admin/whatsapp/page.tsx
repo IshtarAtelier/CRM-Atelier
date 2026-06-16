@@ -11,7 +11,7 @@ import {
 import { WhatsAppIcon } from '@/components/icons/WhatsAppIcon';
 import { format } from 'date-fns';
 import { io as SocketIOClient } from 'socket.io-client';
-import { TestChatModal } from '@/components/TestChatModal';
+import { TestChatModal } from '@/components/ui/TestChatModal';
 import dynamic from 'next/dynamic';
 import { useSearchParams } from 'next/navigation';
 import { BotPricingSection } from '@/components/config/BotPricingSection';

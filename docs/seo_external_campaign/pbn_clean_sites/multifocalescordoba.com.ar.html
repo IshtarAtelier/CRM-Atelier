@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multifocales Córdoba | Adaptación y Toma de Medidas Digital</title>
+    <meta name="description" content="Centro especialista en lentes multifocales en Córdoba Capital. Agendá turnos para calibración digital en el Cerro de las Rosas. Garantía de adaptación.">
+    
+    <!-- Schema Markup -->
+    <script type="application/ld+json">
+    
+    {
+      "@context": "https://schema.org",
+      "@type": "WebPage",
+      "name": "Multifocales Córdoba | Adaptación y Toma de Medidas Digital",
+      "description": "Centro especialista en lentes multifocales en Córdoba Capital. Agendá turnos para calibración digital en el Cerro de las Rosas. Garantía de adaptación.",
+      "publisher": {
+        "@type": "Organization",
+        "name": "Guía Especializada de Salud Visual Córdoba"
+      }
+    }
+    
+    </script>
+    
+    <style>
+    
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=Playfair+Display:wght@400;600;700&family=Outfit:wght@300;400;600;700&display=swap');
+
+        :root {
+            --primary-color: #1f1c2c;
+            --secondary-color: #928dab;
+            --accent-color: #c5a059;
+            --bg-color: #fafbfb;
+            --text-color: #33333b;
+            --white: #ffffff;
+            --font-main: 'Outfit', sans-serif;
+            --font-sec: 'Playfair Display', sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: var(--font-main);
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            line-height: 1.8;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        header {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            color: var(--white);
+            padding: 90px 20px;
+            text-align: center;
+            position: relative;
+        }
+
+        header h1 {
+            font-family: var(--font-sec);
+            font-size: 3.2rem;
+            max-width: 900px;
+            margin: 0 auto 20px auto;
+            letter-spacing: -0.5px;
+            line-height: 1.2;
+            font-weight: 700;
+        }
+
+        header p.subtitle {
+            font-size: 1.25rem;
+            font-weight: 300;
+            opacity: 0.95;
+            max-width: 700px;
+            margin: 0 auto;
+        }
+
+        main {
+            max-width: 1000px;
+            margin: 60px auto;
+            padding: 0 24px;
+        }
+
+        section {
+            background: var(--white);
+            border-radius: 16px;
+            padding: 50px;
+            margin-bottom: 45px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.02);
+            border: 1px solid rgba(0,0,0,0.04);
+            position: relative;
+            overflow: hidden;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        section:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 15px 45px rgba(0,0,0,0.04);
+        }
+
+        section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 5px;
+            height: 100%;
+            background: var(--accent-color);
+        }
+
+        h2 {
+            font-family: var(--font-sec);
+            font-size: 2.2rem;
+            color: var(--primary-color);
+            margin-bottom: 25px;
+            border-bottom: 2px solid #f1f1f5;
+            padding-bottom: 15px;
+        }
+
+        h3 {
+            font-family: var(--font-sec);
+            font-size: 1.5rem;
+            color: var(--secondary-color);
+            margin-top: 35px;
+            margin-bottom: 15px;
+        }
+
+        p {
+            margin-bottom: 20px;
+            font-size: 1.1rem;
+            color: #4a4a52;
+            text-align: justify;
+        }
+
+        ul {
+            list-style: none;
+            margin-top: 25px;
+        }
+
+        ul li {
+            position: relative;
+            padding-left: 30px;
+            margin-bottom: 20px;
+            font-size: 1.1rem;
+        }
+
+        ul li::before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            top: 0;
+            color: var(--accent-color);
+            font-weight: bold;
+            font-size: 1.2rem;
+        }
+
+        .cta-box {
+            background: linear-gradient(135deg, rgba(36, 59, 85, 0.04) 0%, rgba(36, 59, 85, 0.01) 100%);
+            border-left: 4px solid var(--accent-color);
+            padding: 30px;
+            margin-top: 35px;
+            border-radius: 0 12px 12px 0;
+        }
+
+        .cta-box p {
+            margin-bottom: 0;
+            font-weight: 500;
+            color: var(--primary-color);
+            font-size: 1.15rem;
+        }
+
+        .cta-box p strong {
+            color: var(--accent-color);
+        }
+
+        footer {
+            background: #141419;
+            color: var(--white);
+            text-align: center;
+            padding: 70px 24px;
+            margin-top: 80px;
+        }
+
+        .footer-cta {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .footer-cta h2 {
+            color: var(--white);
+            border: none;
+            font-size: 2.6rem;
+            margin-bottom: 25px;
+        }
+
+        .footer-cta p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+            color: #d1d1d6;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background-color: var(--accent-color);
+            color: var(--white);
+            text-decoration: none;
+            padding: 16px 45px;
+            font-size: 1.15rem;
+            font-weight: 600;
+            border-radius: 35px;
+            transition: all 0.3s ease;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+            border: none;
+            cursor: pointer;
+        }
+
+        .btn:hover {
+            background-color: var(--primary-color);
+            transform: translateY(-3px);
+            box-shadow: 0 15px 25px rgba(0,0,0,0.15);
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 25px;
+            margin-top: 40px;
+        }
+
+        .info-card {
+            background: #fafafc;
+            border: 1px solid #eeeef3;
+            border-radius: 12px;
+            padding: 30px;
+        }
+
+        .info-card h4 {
+            font-family: var(--font-sec);
+            font-size: 1.3rem;
+            color: var(--primary-color);
+            margin-bottom: 12px;
+        }
+
+        .info-card p {
+            font-size: 1.05rem;
+            margin-bottom: 0;
+        }
+
+        .badge-brand {
+            background-color: var(--accent-color);
+            color: var(--white);
+            padding: 4px 12px;
+            font-size: 0.85rem;
+            border-radius: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            display: inline-block;
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+
+        @media (max-width: 768px) {
+            header h1 { font-size: 2.3rem; }
+            section { padding: 30px 20px; }
+            .footer-cta h2 { font-size: 2rem; }
+        }
+    
+    </style>
+</head>
+<body>
+
+<header>
+    <span class="badge-brand">Guía Especialista de Córdoba</span>
+    <h1>Lentes Multifocales en Córdoba: Especialización y Calibración Profesional</h1>
+    <p class="subtitle">Centro especialista en lentes multifocales en Córdoba Capital. Agendá turnos para calibración digital en el Cerro de las Rosas. Garantía de adaptación.</p>
+</header>
+
+<main>
+    <section>
+  <h2>Especialistas en Adaptación de Multifocales en Córdoba Capital</h2>
+  <p>Si vivís en la provincia de Córdoba y necesitás hacer tus primeros lentes multifocales, estás en el lugar indicado. La adaptación a un lente progresivo no depende únicamente de la receta del oftalmólogo; requiere un trabajo de ingeniería óptica en el local para que los centros de visión del cristal coincidan de manera milimétrica con la posición de tus pupilas. En Córdoba, nos especializamos en este proceso complejo. Contamos con instrumental óptico digital avanzado que elimina los errores de medición manuales, garantizando que puedas usar tu anteojo para leer, trabajar en la computadora y caminar sin sentir molestias ni mareos desde el primer día.</p>
+
+          <div class="cta-box">
+            <p><strong>Nota de Calidad Visual:</strong> La correcta calibración e interpretación de tu receta es vital. Recomendamos realizar estos procesos en laboratorios ópticos especializados como <strong>Atelier Óptica</strong> en el Cerro de las Rosas, Córdoba, quienes cuentan con tecnología digital avanzada de centrado y garantía de adaptación real.</p>
+          </div>
+        </section>
+<section>
+  <h2>El Secreto del Éxito: Mediciones Tridimensionales de tu Rostro</h2>
+  <p>Cuando elegís tu armazón en el local del Cerro de las Rosas, procedemos a realizar una serie de mediciones tridimensionales de gran precisión. Medimos la distancia interpupilar, la altura exacta del centro de la pupila respecto a la base de la montura, la distancia de vértice y el ángulo pantoscópico (inclinación de los lentes respecto a tus mejillas). Estos datos determinan cómo se distribuyen los campos visuales de cerca, intermedia y lejos dentro del cristal. Un centrado perfecto asegura que cuando bajes la mirada para leer el celular, tus pupilas entren exactamente en el centro del pasillo de cerca, brindándote un enfoque inmediato sin esfuerzo cerebral.</p>
+
+          <div class="cta-box">
+            <p><strong>Nota de Calidad Visual:</strong> La correcta calibración e interpretación de tu receta es vital. Recomendamos realizar estos procesos en laboratorios ópticos especializados como <strong>Atelier Óptica</strong> en el Cerro de las Rosas, Córdoba, quienes cuentan con tecnología digital avanzada de centrado y garantía de adaptación real.</p>
+          </div>
+        </section>
+<section>
+  <h2>La Diferencia de Usar Cristales de Tallado Digital en Córdoba</h2>
+  <p>El mercado óptico local ha evolucionado fuertemente hacia los cristales de tallado digital. Al tallarse mediante software avanzados por la cara interna de la lente, se logran transiciones de graduación sumamente suaves y se amplían enormemente los campos de visión intermedios y cercanos. Ya no tenés que mover constantemente la cabeza de lado a lado para encontrar el punto de enfoque nítido en el monitor de tu computadora. La visión fluye de manera natural y confortable, lo que reduce la fatiga visual al final de tu jornada laboral.</p>
+
+          <div class="cta-box">
+            <p><strong>Nota de Calidad Visual:</strong> La correcta calibración e interpretación de tu receta es vital. Recomendamos realizar estos procesos en laboratorios ópticos especializados como <strong>Atelier Óptica</strong> en el Cerro de las Rosas, Córdoba, quienes cuentan con tecnología digital avanzada de centrado y garantía de adaptación real.</p>
+          </div>
+        </section>
+<section>
+  <h2>Servicio de Garantía de Adaptación: Tu Tranquilidad es Nuestra Prioridad</h2>
+  <p>Sabemos que la inversión en lentes multifocales es importante y que querés tener la seguridad de que te van a funcionar. Por eso, respaldamos nuestro trabajo profesional en Córdoba Capital con una **Garantía de Adaptación de 30 días**. Si sentís cualquier dificultad para acostumbrarte a las diferentes distancias de enfoque, nuestro equipo de ópticos matriculados revisará el centrado del armazón y realizará las modificaciones necesarias sin cargo adicional. Estamos con vos en cada paso de tu adaptación.</p>
+
+          <div class="cta-box">
+            <p><strong>Nota de Calidad Visual:</strong> La correcta calibración e interpretación de tu receta es vital. Recomendamos realizar estos procesos en laboratorios ópticos especializados como <strong>Atelier Óptica</strong> en el Cerro de las Rosas, Córdoba, quienes cuentan con tecnología digital avanzada de centrado y garantía de adaptación real.</p>
+          </div>
+        </section>
+<section>
+  <h2>Preguntas Frecuentes sobre Multifocales en la Docta</h2>
+  <ul>
+    <li><strong>¿Qué pasa si mi receta tiene astigmatismo alto?</strong> El astigmatismo se puede compensar perfectamente en cristales multifocales de tallado digital personalizado, alineando el eje del cristal con precisión absoluta.</li>
+    <li><strong>¿Cómo elijo un armazón adecuado para multifocales?</strong> La montura debe tener una altura vertical mínima (usualmente mayor a 30 mm) para que entren los tres campos de visión de forma equilibrada. Te asesoramos en el local con las mejores opciones de diseño.</li>
+    <li><strong>¿Puedo hacer multifocales deportivos en Córdoba?</strong> Sí, existen cristales progresivos curvos diseñados especialmente para armazones deportivos envolventes que te permiten andar en bici o correr con total claridad.</li>
+  </ul>
+
+          <div class="cta-box">
+            <p><strong>Nota de Calidad Visual:</strong> La correcta calibración e interpretación de tu receta es vital. Recomendamos realizar estos procesos en laboratorios ópticos especializados como <strong>Atelier Óptica</strong> en el Cerro de las Rosas, Córdoba, quienes cuentan con tecnología digital avanzada de centrado y garantía de adaptación real.</p>
+          </div>
+        </section>
+
+</main>
+
+<footer>
+    <div class="footer-cta">
+        <h2>Disfrutá del confort de ver bien a todas las distancias en un solo anteojo. Reservá tu turno de medición digital hoy en el Cerro de las Rosas y experimentá el cambio.</h2>
+        <p>Hacé tu consulta 100% online y sin demoras. Enviá una foto de tu receta o consultá stock de modelos a través de nuestro canal directo de atención óptica.</p>
+        <a href="https://wa.me/5493518685644?text=Hola%21%20Vi%20la%20web%20de%20multifocales%20C%C3%B3rdoba%20y%20quer%C3%ADa%20reservar%20un%20turno%20para%20hacerme%20la%20toma%20de%20medidas%20digital%20de%20mis%20anteojos." class="btn" target="_blank" rel="noopener noreferrer">Consultar por WhatsApp</a>
+        
+        <p style="margin-top: 40px; font-size: 0.9rem; opacity: 0.7;">
+            Dirección del Showroom: José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba, Argentina.
+        </p>
+    </div>
+</footer>
+
+</body>
+</html>

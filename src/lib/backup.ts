@@ -5,7 +5,7 @@ import { promisify } from 'util';
 
 const gzipAsync = promisify(gzip);
 
-export const BACKUP_PREFIX = 'db-backups/';
+const BACKUP_PREFIX = 'db-backups/';
 
 export class BackupService {
     /**

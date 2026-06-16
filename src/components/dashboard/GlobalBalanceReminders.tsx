@@ -46,7 +46,7 @@ export function GlobalBalanceReminders() {
                         ? 'bg-stone-900 border-stone-800 text-white dark:bg-stone-800 dark:border-stone-700'
                         : count > 0
                             ? 'bg-emerald-500/10 dark:bg-emerald-500/10 border-emerald-500/20 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-500/20 dark:hover:bg-emerald-500/20'
-                            : 'bg-transparent border-transparent text-stone-500 hover:bg-stone-100 dark:hover:bg-stone-800/50 hover:text-stone-900 dark:text-stone-600 dark:hover:text-stone-100'
+                            : 'bg-transparent border-transparent text-stone-500 hover:bg-stone-100 dark:hover:bg-stone-800/50 hover:text-stone-900 dark:text-stone-400 dark:hover:text-stone-100'
                         }`}
                 >
                     {/* Pulsing glow effect when balances exist and panel is closed */}
@@ -55,14 +55,14 @@ export function GlobalBalanceReminders() {
                     )}
 
                     <div className="relative">
-                        <Banknote className={`w-5 h-5 md:w-6 md:h-6 ${isOpen ? 'text-white' : count > 0 ? 'text-emerald-600 dark:text-emerald-500' : 'text-stone-600 group-hover:text-stone-600 dark:text-stone-500 dark:group-hover:text-stone-500 transition-colors'}`} />
+                        <Banknote className={`w-5 h-5 md:w-6 md:h-6 ${isOpen ? 'text-white' : count > 0 ? 'text-emerald-600 dark:text-emerald-500' : 'text-stone-400 group-hover:text-stone-600 dark:text-stone-500 dark:group-hover:text-stone-300 transition-colors'}`} />
                         {count > 0 && (
-                            <span className="absolute -top-1.5 -right-1.5 w-4 h-4 md:w-5 md:h-5 bg-emerald-500 text-white text-xs md:text-xs font-black rounded-full flex items-center justify-center border-2 border-white dark:border-stone-900 shadow-md">
+                            <span className="absolute -top-1.5 -right-1.5 w-4 h-4 md:w-5 md:h-5 bg-emerald-500 text-white text-[9px] md:text-[10px] font-black rounded-full flex items-center justify-center border-2 border-white dark:border-stone-900 shadow-md">
                                 {count}
                             </span>
                         )}
                     </div>
-                    <span className={`text-xs font-bold uppercase tracking-widest hidden md:block transition-colors ${isOpen ? 'text-white' : count > 0 ? 'text-emerald-700 dark:text-emerald-400' : 'text-stone-500 dark:text-stone-600'}`}>
+                    <span className={`text-[10px] font-bold uppercase tracking-widest hidden md:block transition-colors ${isOpen ? 'text-white' : count > 0 ? 'text-emerald-700 dark:text-emerald-400' : 'text-stone-500 dark:text-stone-400'}`}>
                         Saldos
                     </span>
                 </button>
@@ -76,7 +76,7 @@ export function GlobalBalanceReminders() {
                     />
                     <div
                         className="fixed inset-0 bg-stone-900/20 dark:bg-black/40 backdrop-blur-sm z-50 transition-opacity"
-                        onClick={() => setIsOpen(false)} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.currentTarget.click(); } }}
+                        onClick={() => setIsOpen(false)}
                     />
                 </>,
                 portalTarget

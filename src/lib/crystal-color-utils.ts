@@ -37,7 +37,7 @@ export function needsColorSelection(product: any): boolean {
 /**
  * Get a display label for the color type category
  */
-export function getColorCategoryLabel(category: string): string {
+function getColorCategoryLabel(category: string): string {
   switch (category) {
     case 'COMPACTO': return 'Color Compacto';
     case 'MUESTRA': return 'Color Según Muestra';

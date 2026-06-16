@@ -82,7 +82,7 @@ export const ContactCard: React.FC<ContactCardProps> = ({
                                         'Cerrado'}
                             </span>
                         </div>
-                        <div className="flex gap-0.5" onClick={(e) => e.stopPropagation()}>
+                        <div role="button" tabIndex={0} className="flex gap-0.5" onClick={(e) => e.stopPropagation()}>
                             {[1, 2, 3, 4, 5].map((star) => (
                                 <button
                                     key={star}

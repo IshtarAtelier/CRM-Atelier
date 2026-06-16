@@ -185,7 +185,7 @@ export function BotPricingSection() {
                             value={searchQuery}
                             onChange={e => handleSearch(e.target.value)}
                             placeholder="Buscar en el catálogo general (ej: clipon, sygnus, varilux)..."
-                            className="w-full pl-12 pr-4 py-3 bg-white dark:bg-stone-800 border-2 border-stone-200 dark:border-stone-600 rounded-xl text-sm font-bold outline-none focus:border-indigo-500 transition-all"
+                            className="w-full pl-12 pr-4 py-3 bg-white dark:bg-stone-800 border-2 border-stone-200 dark:border-stone-600 rounded-xl text-sm font-bold focus:ring-2 focus:ring-amber-500 focus:outline-none focus:border-indigo-500 transition-all"
                         />
                         <Search className="w-5 h-5 text-stone-400 absolute left-4 top-3.5" />
                         {searching && <Loader2 className="w-5 h-5 text-indigo-500 absolute right-4 top-3.5 animate-spin" />}

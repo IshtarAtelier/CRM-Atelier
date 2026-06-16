@@ -134,7 +134,7 @@ export function GlassesDiagram({ productId, measures: initialMeasures, editable 
                 placeholder="—"
                 onChange={e => handleChange(field.id as keyof FrameMeasures, e.target.value)}
                 onFocus={() => setEditing(field.id as keyof FrameMeasures)}
-                className="w-full bg-transparent text-sm font-mono focus:outline-none text-black"
+                className="w-full bg-transparent text-sm font-mono focus:focus:ring-2 focus:ring-amber-500 focus:outline-none text-black"
               />
             </div>
           ))}

@@ -18,7 +18,7 @@ export default function BlogPegamentoAnteojos() {
           <p className="text-[#c8a55c] text-xs font-black uppercase tracking-widest mb-4">
             Laboratorio Óptico y Urgencias
           </p>
-          <h1 className="text-3xl md:text-5xl font-medium text-[#433831] mb-6 leading-tight" style={{ fontFamily: "'Georgia', 'Times New Roman', serif" }}>
+          <h1 className=" font-serif">
             Por qué NUNCA debés pegar tus anteojos rotos con "La Gotita"
           </h1>
           <p className="text-stone-500 text-sm">
@@ -35,7 +35,7 @@ export default function BlogPegamentoAnteojos() {
             Como ópticos, en nuestro laboratorio vemos a diario los desastres que causan estos pegamentos. Lo que parece una solución rápida de cinco minutos, a menudo termina arruinando definitivamente tus lentes.
           </p>
 
-          <h2 className="text-2xl font-semibold mt-10 mb-4" style={{ fontFamily: "'Georgia', 'Times New Roman', serif" }}>
+          <h2 className=" font-serif">
             ¿Qué le hace el pegamento a tus anteojos?
           </h2>
 
@@ -51,7 +51,7 @@ export default function BlogPegamentoAnteojos() {
             </li>
           </ul>
 
-          <h2 className="text-2xl font-semibold mt-10 mb-4" style={{ fontFamily: "'Georgia', 'Times New Roman', serif" }}>
+          <h2 className=" font-serif">
             Tengo una urgencia: ¿qué hago para salir del paso?
           </h2>
 
@@ -62,7 +62,7 @@ export default function BlogPegamentoAnteojos() {
             Además, si se salió un tornillo o se desprendió una pieza, <strong className="font-semibold">guardá todo en una bolsita o cajita</strong>. Hasta el pedacito más pequeño nos sirve en el laboratorio para entender cómo reconstruir la estructura.
           </p>
 
-          <h2 className="text-2xl font-semibold mt-10 mb-4" style={{ fontFamily: "'Georgia', 'Times New Roman', serif" }}>
+          <h2 className=" font-serif">
             La solución definitiva en el Laboratorio Óptico
           </h2>
 

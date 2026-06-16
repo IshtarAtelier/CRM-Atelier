@@ -52,7 +52,7 @@ async function retryWithBackoff<T>(
     }
 }
 
-export interface CreateInvoiceItem {
+interface CreateInvoiceItem {
     description: string;
     quantity: number;
     price: number;

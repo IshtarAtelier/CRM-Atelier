@@ -31,20 +31,7 @@ interface BulkItem {
 
 const LENS_INDICES = ['1.49', '1.50', '1.53', '1.56', '1.59', '1.60', '1.67', '1.74', 'Foto'];
 
-const PRODUCT_CATEGORIES: { id: string; label: string; icon: string; noStock?: boolean; subtypes?: string[] }[] = [
-    {
-        id: 'Cristal',
-        label: 'Cristal',
-        icon: '🔬',
-        noStock: true, // Se pide al laboratorio, no hay stock propio
-        subtypes: ['Monofocal', 'Multifocal', 'Bifocal', 'Ocupacional', 'Coquil']
-    },
-    { id: 'Lentes de Sol', label: 'Lentes de Sol', icon: '🕶️' },
-    { id: 'Armazón de Receta', label: 'Armazón de Receta', icon: '👓' },
-    { id: 'Lentes de Contacto', label: 'Lentes de Contacto', icon: '👁️' },
-    { id: 'Lentes Especiales', label: 'Lentes Especiales', icon: '✨' },
-    { id: 'Tratamiento', label: 'Tratamientos', icon: '💧' },
-];
+import { PRODUCT_CATEGORIES } from '@/lib/constants';
 
 export default function ProductForm({ onClose, onSuccess, isAdmin = false, uniqueBrands = [], uniqueLabs = [] }: ProductFormProps) {
     const [mode, setMode] = useState<'single' | 'bulk'>('single');
@@ -396,7 +383,7 @@ export default function ProductForm({ onClose, onSuccess, isAdmin = false, uniqu
                             <div className="space-y-2">
                                 <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest ml-4">Nombre *</label>
                                 <input required type="text" placeholder={`Ej: ${finalType} Premium AR`}
-                                    className="w-full px-6 py-4 bg-stone-50/50 dark:bg-stone-800/30 border border-stone-200 dark:border-stone-700 rounded-[1.5rem] font-bold text-sm outline-none focus:border-primary transition-all"
+                                    className="w-full px-6 py-4 bg-stone-50/50 dark:bg-stone-800/30 border border-stone-200 dark:border-stone-700 rounded-[1.5rem] font-bold text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none focus:border-primary transition-all"
                                     value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })}
                                 />
                             </div>
@@ -440,7 +427,7 @@ export default function ProductForm({ onClose, onSuccess, isAdmin = false, uniqu
                                     placeholder="Ej: 1.56, 1.67, Foto..."
                                     value={formData.lensIndex}
                                     onChange={e => setFormData({ ...formData, lensIndex: e.target.value })}
-                                    className={`w-full px-6 py-4 bg-stone-50/50 dark:bg-stone-800/30 border rounded-[1.5rem] font-bold text-sm outline-none focus:border-primary transition-all ${!formData.lensIndex ? 'border-red-300 dark:border-red-700' : 'border-stone-200 dark:border-stone-700'}`}
+                                    className={`w-full px-6 py-4 bg-stone-50/50 dark:bg-stone-800/30 border rounded-[1.5rem] font-bold text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none focus:border-primary transition-all ${!formData.lensIndex ? 'border-red-300 dark:border-red-700' : 'border-stone-200 dark:border-stone-700'}`}
                                 />
                                 <div className="flex flex-wrap gap-1.5">
                                     {LENS_INDICES.map(idx => (
@@ -465,7 +452,7 @@ export default function ProductForm({ onClose, onSuccess, isAdmin = false, uniqu
                                 <div className="relative group">
                                     <DollarSign className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-primary" />
                                     <input required type="number" min={1} placeholder="0.00"
-                                        className="w-full pl-14 pr-6 py-5 bg-primary/5 dark:bg-primary/10 border-2 border-primary/20 rounded-[2rem] font-black text-xl outline-none focus:border-primary transition-all text-primary placeholder:text-primary/30"
+                                        className="w-full pl-14 pr-6 py-5 bg-primary/5 dark:bg-primary/10 border-2 border-primary/20 rounded-[2rem] font-black text-xl focus:ring-2 focus:ring-amber-500 focus:outline-none focus:border-primary transition-all text-primary placeholder:text-primary/30"
                                         value={formData.price || ''}
                                         onChange={e => setFormData({ ...formData, price: parseFloat(e.target.value) || 0 })}
                                     />
@@ -481,7 +468,7 @@ export default function ProductForm({ onClose, onSuccess, isAdmin = false, uniqu
                                 <div className="relative group">
                                     <DollarSign className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-300 group-focus-within:text-primary transition-colors" />
                                     <input required type="number" min={0} placeholder="0.00"
-                                        className="w-full pl-12 pr-6 py-4 bg-stone-50/50 dark:bg-stone-800/30 border border-stone-200 dark:border-stone-700 rounded-[1.5rem] font-bold text-sm outline-none focus:border-primary transition-all"
+                                        className="w-full pl-12 pr-6 py-4 bg-stone-50/50 dark:bg-stone-800/30 border border-stone-200 dark:border-stone-700 rounded-[1.5rem] font-bold text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none focus:border-primary transition-all"
                                         value={formData.cost || ''}
                                         onChange={e => setFormData({ ...formData, cost: parseFloat(e.target.value) || 0 })}
                                     />
@@ -507,13 +494,13 @@ export default function ProductForm({ onClose, onSuccess, isAdmin = false, uniqu
                                 <div className="grid grid-cols-[auto_1fr_auto_1fr] items-center gap-2">
                                     <span className="text-[9px] font-black text-stone-400 uppercase tracking-widest">Esfera</span>
                                     <input type="number" step="0.25" placeholder="Mín (ej: -12)"
-                                        className="px-4 py-3 bg-stone-50/50 dark:bg-stone-800/30 border border-stone-200 dark:border-stone-700 rounded-xl font-bold text-xs outline-none focus:border-primary transition-all"
+                                        className="px-4 py-3 bg-stone-50/50 dark:bg-stone-800/30 border border-stone-200 dark:border-stone-700 rounded-xl font-bold text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none focus:border-primary transition-all"
                                         value={formData.sphereMin}
                                         onChange={e => setFormData({ ...formData, sphereMin: e.target.value })}
                                     />
                                     <span className="text-[9px] font-black text-stone-300 uppercase">a</span>
                                     <input type="number" step="0.25" placeholder="Máx (ej: +8)"
-                                        className="px-4 py-3 bg-stone-50/50 dark:bg-stone-800/30 border border-stone-200 dark:border-stone-700 rounded-xl font-bold text-xs outline-none focus:border-primary transition-all"
+                                        className="px-4 py-3 bg-stone-50/50 dark:bg-stone-800/30 border border-stone-200 dark:border-stone-700 rounded-xl font-bold text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none focus:border-primary transition-all"
                                         value={formData.sphereMax}
                                         onChange={e => setFormData({ ...formData, sphereMax: e.target.value })}
                                     />
@@ -523,13 +510,13 @@ export default function ProductForm({ onClose, onSuccess, isAdmin = false, uniqu
                                 <div className="grid grid-cols-[auto_1fr_auto_1fr] items-center gap-2">
                                     <span className="text-[9px] font-black text-stone-400 uppercase tracking-widest">Cilindro</span>
                                     <input type="number" step="0.25" placeholder="Mín (ej: -6)"
-                                        className="px-4 py-3 bg-stone-50/50 dark:bg-stone-800/30 border border-stone-200 dark:border-stone-700 rounded-xl font-bold text-xs outline-none focus:border-primary transition-all"
+                                        className="px-4 py-3 bg-stone-50/50 dark:bg-stone-800/30 border border-stone-200 dark:border-stone-700 rounded-xl font-bold text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none focus:border-primary transition-all"
                                         value={formData.cylinderMin}
                                         onChange={e => setFormData({ ...formData, cylinderMin: e.target.value })}
                                     />
                                     <span className="text-[9px] font-black text-stone-300 uppercase">a</span>
                                     <input type="number" step="0.25" placeholder="Máx (ej: 0)"
-                                        className="px-4 py-3 bg-stone-50/50 dark:bg-stone-800/30 border border-stone-200 dark:border-stone-700 rounded-xl font-bold text-xs outline-none focus:border-primary transition-all"
+                                        className="px-4 py-3 bg-stone-50/50 dark:bg-stone-800/30 border border-stone-200 dark:border-stone-700 rounded-xl font-bold text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none focus:border-primary transition-all"
                                         value={formData.cylinderMax}
                                         onChange={e => setFormData({ ...formData, cylinderMax: e.target.value })}
                                     />
@@ -540,13 +527,13 @@ export default function ProductForm({ onClose, onSuccess, isAdmin = false, uniqu
                                     <div className="grid grid-cols-[auto_1fr_auto_1fr] items-center gap-2">
                                         <span className="text-[9px] font-black text-stone-400 uppercase tracking-widest">Adición</span>
                                         <input type="number" step="0.25" placeholder="Mín (ej: 0.75)"
-                                            className="px-4 py-3 bg-stone-50/50 dark:bg-stone-800/30 border border-stone-200 dark:border-stone-700 rounded-xl font-bold text-xs outline-none focus:border-primary transition-all"
+                                            className="px-4 py-3 bg-stone-50/50 dark:bg-stone-800/30 border border-stone-200 dark:border-stone-700 rounded-xl font-bold text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none focus:border-primary transition-all"
                                             value={formData.additionMin}
                                             onChange={e => setFormData({ ...formData, additionMin: e.target.value })}
                                         />
                                         <span className="text-[9px] font-black text-stone-300 uppercase">a</span>
                                         <input type="number" step="0.25" placeholder="Máx (ej: 3.50)"
-                                            className="px-4 py-3 bg-stone-50/50 dark:bg-stone-800/30 border border-stone-200 dark:border-stone-700 rounded-xl font-bold text-xs outline-none focus:border-primary transition-all"
+                                            className="px-4 py-3 bg-stone-50/50 dark:bg-stone-800/30 border border-stone-200 dark:border-stone-700 rounded-xl font-bold text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none focus:border-primary transition-all"
                                             value={formData.additionMax}
                                             onChange={e => setFormData({ ...formData, additionMax: e.target.value })}
                                         />
@@ -579,7 +566,7 @@ export default function ProductForm({ onClose, onSuccess, isAdmin = false, uniqu
                                     <Plus className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-300 group-focus-within:text-primary transition-colors" />
                                     <input autoFocus required type="text"
                                         placeholder={`Ej: ${finalType} Premium`}
-                                        className="w-full pl-12 pr-6 py-4 bg-stone-50/50 dark:bg-stone-800/30 border border-stone-200 dark:border-stone-700 rounded-[1.5rem] font-bold text-sm outline-none focus:border-primary transition-all"
+                                        className="w-full pl-12 pr-6 py-4 bg-stone-50/50 dark:bg-stone-800/30 border border-stone-200 dark:border-stone-700 rounded-[1.5rem] font-bold text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none focus:border-primary transition-all"
                                         value={formData.name}
                                         onChange={e => setFormData({ ...formData, name: e.target.value })}
                                     />
@@ -601,7 +588,7 @@ export default function ProductForm({ onClose, onSuccess, isAdmin = false, uniqu
                             <div className="space-y-2">
                                 <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest ml-4">Modelo / Color</label>
                                 <input type="text" placeholder="Ej: DuraVision"
-                                    className="w-full px-6 py-4 bg-stone-50/50 dark:bg-stone-800/30 border border-stone-200 dark:border-stone-700 rounded-[1.5rem] font-bold text-sm outline-none focus:border-primary transition-all"
+                                    className="w-full px-6 py-4 bg-stone-50/50 dark:bg-stone-800/30 border border-stone-200 dark:border-stone-700 rounded-[1.5rem] font-bold text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none focus:border-primary transition-all"
                                     value={formData.model} onChange={e => setFormData({ ...formData, model: e.target.value })}
                                 />
                             </div>
@@ -613,7 +600,7 @@ export default function ProductForm({ onClose, onSuccess, isAdmin = false, uniqu
                                 <div className="relative group">
                                     <Layers className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-300 group-focus-within:text-primary transition-colors" />
                                     <input type="number" min={0}
-                                        className="w-full pl-12 pr-6 py-4 bg-stone-50/50 dark:bg-stone-800/30 border border-stone-200 dark:border-stone-700 rounded-[1.5rem] font-bold text-sm outline-none focus:border-primary transition-all"
+                                        className="w-full pl-12 pr-6 py-4 bg-stone-50/50 dark:bg-stone-800/30 border border-stone-200 dark:border-stone-700 rounded-[1.5rem] font-bold text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none focus:border-primary transition-all"
                                         value={formData.stock}
                                         onChange={e => setFormData({ ...formData, stock: parseInt(e.target.value) || 0 })}
                                     />
@@ -628,7 +615,7 @@ export default function ProductForm({ onClose, onSuccess, isAdmin = false, uniqu
                                 <div className="relative group">
                                     <DollarSign className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-300 group-focus-within:text-primary transition-colors" />
                                     <input required type="number" min={1} placeholder="0.00"
-                                        className="w-full pl-12 pr-6 py-4 bg-stone-50/50 dark:bg-stone-800/30 border border-stone-200 dark:border-stone-700 rounded-[1.5rem] font-bold text-sm outline-none focus:border-primary transition-all"
+                                        className="w-full pl-12 pr-6 py-4 bg-stone-50/50 dark:bg-stone-800/30 border border-stone-200 dark:border-stone-700 rounded-[1.5rem] font-bold text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none focus:border-primary transition-all"
                                         value={formData.cost || ''}
                                         onChange={e => setFormData({ ...formData, cost: parseFloat(e.target.value) || 0 })}
                                     />
@@ -672,7 +659,7 @@ export default function ProductForm({ onClose, onSuccess, isAdmin = false, uniqu
                                 <div className="relative group">
                                     <DollarSign className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-primary" />
                                     <input required type="number" min={1} placeholder="0.00"
-                                        className="w-full pl-14 pr-6 py-5 bg-primary/5 dark:bg-primary/10 border-2 border-primary/20 rounded-[2rem] font-black text-xl outline-none focus:border-primary transition-all text-primary placeholder:text-primary/30"
+                                        className="w-full pl-14 pr-6 py-5 bg-primary/5 dark:bg-primary/10 border-2 border-primary/20 rounded-[2rem] font-black text-xl focus:ring-2 focus:ring-amber-500 focus:outline-none focus:border-primary transition-all text-primary placeholder:text-primary/30"
                                         value={formData.price || ''}
                                         onChange={e => setFormData({ ...formData, price: parseFloat(e.target.value) || 0 })}
                                     />
@@ -708,14 +695,14 @@ export default function ProductForm({ onClose, onSuccess, isAdmin = false, uniqu
                                 <label className="text-[9px] font-black text-stone-400 uppercase tracking-widest ml-2">Título SEO (Max 70 char)</label>
                                 <input type="text" placeholder="Ej: Anteojos de Sol Ray-Ban Aviator"
                                     maxLength={70}
-                                    className="w-full px-4 py-3 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl text-xs outline-none focus:border-primary transition-all"
+                                    className="w-full px-4 py-3 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none focus:border-primary transition-all"
                                     value={formData.seoTitle || ''} onChange={e => setFormData({ ...formData, seoTitle: e.target.value })}
                                 />
                             </div>
                             <div className="space-y-2">
                                 <label className="text-[9px] font-black text-stone-400 uppercase tracking-widest ml-2">URL del producto (Slug)</label>
                                 <input type="text" placeholder="Ej: ray-ban-aviator-negro"
-                                    className="w-full px-4 py-3 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl text-xs outline-none focus:border-primary transition-all font-mono"
+                                    className="w-full px-4 py-3 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none focus:border-primary transition-all font-mono"
                                     value={formData.customSlug || ''} onChange={e => setFormData({ ...formData, customSlug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-') })}
                                 />
                             </div>
@@ -723,28 +710,28 @@ export default function ProductForm({ onClose, onSuccess, isAdmin = false, uniqu
                                 <label className="text-[9px] font-black text-stone-400 uppercase tracking-widest ml-2">Descripción SEO (Max 160 char)</label>
                                 <textarea placeholder="Persuasiva, resalta beneficios e inmediatez..."
                                     maxLength={160} rows={2}
-                                    className="w-full px-4 py-3 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl text-xs outline-none focus:border-primary transition-all resize-none"
+                                    className="w-full px-4 py-3 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none focus:border-primary transition-all resize-none"
                                     value={formData.seoDescription || ''} onChange={e => setFormData({ ...formData, seoDescription: e.target.value })}
                                 />
                             </div>
                             <div className="space-y-2 col-span-2">
                                 <label className="text-[9px] font-black text-stone-400 uppercase tracking-widest ml-2">Tags (Palabras Clave)</label>
                                 <input type="text" placeholder="Ej: polarizadas, filtro UV, anteojos de sol, vintage"
-                                    className="w-full px-4 py-3 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl text-xs outline-none focus:border-primary transition-all"
+                                    className="w-full px-4 py-3 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none focus:border-primary transition-all"
                                     value={formData.seoTags || ''} onChange={e => setFormData({ ...formData, seoTags: e.target.value })}
                                 />
                             </div>
                             <div className="space-y-2">
                                 <label className="text-[9px] font-black text-stone-400 uppercase tracking-widest ml-2">MPN (Código Fab.)</label>
                                 <input type="text" placeholder="Ej: RB3025"
-                                    className="w-full px-4 py-3 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl text-xs outline-none focus:border-primary transition-all"
+                                    className="w-full px-4 py-3 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none focus:border-primary transition-all"
                                     value={formData.mpn || ''} onChange={e => setFormData({ ...formData, mpn: e.target.value })}
                                 />
                             </div>
                             <div className="space-y-2 flex gap-2">
                                 <div className="flex-1">
                                     <label className="text-[9px] font-black text-stone-400 uppercase tracking-widest ml-2">Rango Edad</label>
-                                    <select className="w-full px-3 py-3 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl text-xs outline-none focus:border-primary transition-all"
+                                    <select className="w-full px-3 py-3 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none focus:border-primary transition-all"
                                         value={formData.ageGroup || ''} onChange={e => setFormData({ ...formData, ageGroup: e.target.value })}>
                                         <option value="">Seleccionar</option>
                                         <option value="Adulto">Adulto</option>
@@ -753,7 +740,7 @@ export default function ProductForm({ onClose, onSuccess, isAdmin = false, uniqu
                                 </div>
                                 <div className="flex-1">
                                     <label className="text-[9px] font-black text-stone-400 uppercase tracking-widest ml-2">Género</label>
-                                    <select className="w-full px-3 py-3 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl text-xs outline-none focus:border-primary transition-all"
+                                    <select className="w-full px-3 py-3 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none focus:border-primary transition-all"
                                         value={formData.gender || ''} onChange={e => setFormData({ ...formData, gender: e.target.value })}>
                                         <option value="">Seleccionar</option>
                                         <option value="Femenino">Femenino</option>
@@ -851,29 +838,29 @@ export default function ProductForm({ onClose, onSuccess, isAdmin = false, uniqu
                                 <tr key={item.id} className="hover:bg-white dark:hover:bg-stone-800/50 transition-colors group">
                                     {isCristal ? (
                                         <>
-                                            <td className="p-2"><input type="text" list="brands-list" className="w-full min-w-[100px] px-3 py-2.5 bg-transparent border border-transparent focus:border-stone-300 dark:focus:border-stone-600 focus:bg-white dark:focus:bg-stone-800 rounded-lg text-[11px] font-bold outline-none transition-all" value={item.brand} onChange={e => updateBulkItem(item.id, 'brand', e.target.value)} placeholder="Ej: Zeiss" /></td>
-                                            <td className="p-2"><input type="text" className="w-full min-w-[120px] px-3 py-2.5 bg-transparent border border-transparent focus:border-stone-300 dark:focus:border-stone-600 focus:bg-white dark:focus:bg-stone-800 rounded-lg text-[11px] font-bold outline-none transition-all" value={item.name} onChange={e => updateBulkItem(item.id, 'name', e.target.value)} placeholder="Ej: Antireflejo" /></td>
-                                            <td className="p-2"><input type="text" list="labs-list" className="w-full min-w-[120px] px-3 py-2.5 bg-transparent border border-transparent focus:border-stone-300 dark:focus:border-stone-600 focus:bg-white dark:focus:bg-stone-800 rounded-lg text-[11px] font-bold outline-none uppercase transition-all" value={item.laboratory} onChange={e => updateBulkItem(item.id, 'laboratory', e.target.value.toUpperCase())} onBlur={() => updateBulkItem(item.id, 'laboratory', autoCorrectLab(item.laboratory) || '')} placeholder="Laboratorio" /></td>
-                                            <td className="p-2"><input type="text" className="w-full min-w-[70px] px-3 py-2.5 bg-transparent border border-transparent focus:border-stone-300 dark:focus:border-stone-600 focus:bg-white dark:focus:bg-stone-800 rounded-lg text-[11px] font-bold outline-none transition-all" value={item.lensIndex} onChange={e => updateBulkItem(item.id, 'lensIndex', e.target.value)} placeholder="Ej: 1.56" /></td>
-                                            <td className="p-2"><input type="number" min="0" className="w-full min-w-[90px] px-3 py-2.5 bg-primary/5 border border-transparent focus:border-primary focus:bg-primary/10 rounded-lg text-[11px] font-black text-primary outline-none transition-all" value={item.price} onChange={e => updateBulkItem(item.id, 'price', e.target.value)} placeholder="0.00" /></td>
-                                            {isAdmin && <td className="p-2"><input type="number" min="0" className="w-full min-w-[80px] px-3 py-2.5 bg-transparent border border-transparent focus:border-stone-300 dark:focus:border-stone-600 focus:bg-white dark:focus:bg-stone-800 rounded-lg text-[11px] font-bold outline-none transition-all" value={item.cost} onChange={e => updateBulkItem(item.id, 'cost', e.target.value)} placeholder="0.00" /></td>}
+                                            <td className="p-2"><input type="text" list="brands-list" className="w-full min-w-[100px] px-3 py-2.5 bg-transparent border border-transparent focus:border-stone-300 dark:focus:border-stone-600 focus:bg-white dark:focus:bg-stone-800 rounded-lg text-[11px] font-bold focus:ring-2 focus:ring-amber-500 focus:outline-none transition-all" value={item.brand} onChange={e => updateBulkItem(item.id, 'brand', e.target.value)} placeholder="Ej: Zeiss" /></td>
+                                            <td className="p-2"><input type="text" className="w-full min-w-[120px] px-3 py-2.5 bg-transparent border border-transparent focus:border-stone-300 dark:focus:border-stone-600 focus:bg-white dark:focus:bg-stone-800 rounded-lg text-[11px] font-bold focus:ring-2 focus:ring-amber-500 focus:outline-none transition-all" value={item.name} onChange={e => updateBulkItem(item.id, 'name', e.target.value)} placeholder="Ej: Antireflejo" /></td>
+                                            <td className="p-2"><input type="text" list="labs-list" className="w-full min-w-[120px] px-3 py-2.5 bg-transparent border border-transparent focus:border-stone-300 dark:focus:border-stone-600 focus:bg-white dark:focus:bg-stone-800 rounded-lg text-[11px] font-bold focus:ring-2 focus:ring-amber-500 focus:outline-none uppercase transition-all" value={item.laboratory} onChange={e => updateBulkItem(item.id, 'laboratory', e.target.value.toUpperCase())} onBlur={() => updateBulkItem(item.id, 'laboratory', autoCorrectLab(item.laboratory) || '')} placeholder="Laboratorio" /></td>
+                                            <td className="p-2"><input type="text" className="w-full min-w-[70px] px-3 py-2.5 bg-transparent border border-transparent focus:border-stone-300 dark:focus:border-stone-600 focus:bg-white dark:focus:bg-stone-800 rounded-lg text-[11px] font-bold focus:ring-2 focus:ring-amber-500 focus:outline-none transition-all" value={item.lensIndex} onChange={e => updateBulkItem(item.id, 'lensIndex', e.target.value)} placeholder="Ej: 1.56" /></td>
+                                            <td className="p-2"><input type="number" min="0" className="w-full min-w-[90px] px-3 py-2.5 bg-primary/5 border border-transparent focus:border-primary focus:bg-primary/10 rounded-lg text-[11px] font-black text-primary focus:ring-2 focus:ring-amber-500 focus:outline-none transition-all" value={item.price} onChange={e => updateBulkItem(item.id, 'price', e.target.value)} placeholder="0.00" /></td>
+                                            {isAdmin && <td className="p-2"><input type="number" min="0" className="w-full min-w-[80px] px-3 py-2.5 bg-transparent border border-transparent focus:border-stone-300 dark:focus:border-stone-600 focus:bg-white dark:focus:bg-stone-800 rounded-lg text-[11px] font-bold focus:ring-2 focus:ring-amber-500 focus:outline-none transition-all" value={item.cost} onChange={e => updateBulkItem(item.id, 'cost', e.target.value)} placeholder="0.00" /></td>}
                                             {showRanges && (
                                                 <>
-                                                    <td className="p-2 border-l border-stone-100 dark:border-stone-800 bg-amber-50/30 dark:bg-amber-900/5"><input type="number" step="0.25" className="w-full min-w-[60px] px-2 py-2.5 bg-transparent border border-transparent focus:border-amber-300 dark:focus:border-amber-700 focus:bg-white dark:focus:bg-stone-800 rounded-lg text-[11px] font-bold outline-none transition-all" value={item.sphereMin} onChange={e => updateBulkItem(item.id, 'sphereMin', e.target.value)} placeholder="-12" /></td>
-                                                    <td className="p-2 bg-amber-50/30 dark:bg-amber-900/5"><input type="number" step="0.25" className="w-full min-w-[60px] px-2 py-2.5 bg-transparent border border-transparent focus:border-amber-300 dark:focus:border-amber-700 focus:bg-white dark:focus:bg-stone-800 rounded-lg text-[11px] font-bold outline-none transition-all" value={item.sphereMax} onChange={e => updateBulkItem(item.id, 'sphereMax', e.target.value)} placeholder="+8" /></td>
-                                                    <td className="p-2 bg-amber-50/30 dark:bg-amber-900/5"><input type="number" step="0.25" className="w-full min-w-[60px] px-2 py-2.5 bg-transparent border border-transparent focus:border-amber-300 dark:focus:border-amber-700 focus:bg-white dark:focus:bg-stone-800 rounded-lg text-[11px] font-bold outline-none transition-all" value={item.cylinderMin} onChange={e => updateBulkItem(item.id, 'cylinderMin', e.target.value)} placeholder="-6" /></td>
-                                                    <td className="p-2 bg-amber-50/30 dark:bg-amber-900/5"><input type="number" step="0.25" className="w-full min-w-[60px] px-2 py-2.5 bg-transparent border border-transparent focus:border-amber-300 dark:focus:border-amber-700 focus:bg-white dark:focus:bg-stone-800 rounded-lg text-[11px] font-bold outline-none transition-all" value={item.cylinderMax} onChange={e => updateBulkItem(item.id, 'cylinderMax', e.target.value)} placeholder="0" /></td>
+                                                    <td className="p-2 border-l border-stone-100 dark:border-stone-800 bg-amber-50/30 dark:bg-amber-900/5"><input type="number" step="0.25" className="w-full min-w-[60px] px-2 py-2.5 bg-transparent border border-transparent focus:border-amber-300 dark:focus:border-amber-700 focus:bg-white dark:focus:bg-stone-800 rounded-lg text-[11px] font-bold focus:ring-2 focus:ring-amber-500 focus:outline-none transition-all" value={item.sphereMin} onChange={e => updateBulkItem(item.id, 'sphereMin', e.target.value)} placeholder="-12" /></td>
+                                                    <td className="p-2 bg-amber-50/30 dark:bg-amber-900/5"><input type="number" step="0.25" className="w-full min-w-[60px] px-2 py-2.5 bg-transparent border border-transparent focus:border-amber-300 dark:focus:border-amber-700 focus:bg-white dark:focus:bg-stone-800 rounded-lg text-[11px] font-bold focus:ring-2 focus:ring-amber-500 focus:outline-none transition-all" value={item.sphereMax} onChange={e => updateBulkItem(item.id, 'sphereMax', e.target.value)} placeholder="+8" /></td>
+                                                    <td className="p-2 bg-amber-50/30 dark:bg-amber-900/5"><input type="number" step="0.25" className="w-full min-w-[60px] px-2 py-2.5 bg-transparent border border-transparent focus:border-amber-300 dark:focus:border-amber-700 focus:bg-white dark:focus:bg-stone-800 rounded-lg text-[11px] font-bold focus:ring-2 focus:ring-amber-500 focus:outline-none transition-all" value={item.cylinderMin} onChange={e => updateBulkItem(item.id, 'cylinderMin', e.target.value)} placeholder="-6" /></td>
+                                                    <td className="p-2 bg-amber-50/30 dark:bg-amber-900/5"><input type="number" step="0.25" className="w-full min-w-[60px] px-2 py-2.5 bg-transparent border border-transparent focus:border-amber-300 dark:focus:border-amber-700 focus:bg-white dark:focus:bg-stone-800 rounded-lg text-[11px] font-bold focus:ring-2 focus:ring-amber-500 focus:outline-none transition-all" value={item.cylinderMax} onChange={e => updateBulkItem(item.id, 'cylinderMax', e.target.value)} placeholder="0" /></td>
                                                 </>
                                             )}
                                         </>
                                     ) : (
                                         <>
-                                            <td className="p-2"><input type="text" className="w-full min-w-[150px] px-3 py-2.5 bg-transparent border border-transparent focus:border-stone-300 dark:focus:border-stone-600 focus:bg-white dark:focus:bg-stone-800 rounded-lg text-[11px] font-bold outline-none transition-all" value={item.name} onChange={e => updateBulkItem(item.id, 'name', e.target.value)} placeholder="Ej: Armazón Titanio" /></td>
-                                            <td className="p-2"><input type="text" list="brands-list" className="w-full min-w-[100px] px-3 py-2.5 bg-transparent border border-transparent focus:border-stone-300 dark:focus:border-stone-600 focus:bg-white dark:focus:bg-stone-800 rounded-lg text-[11px] font-bold outline-none transition-all" value={item.brand} onChange={e => updateBulkItem(item.id, 'brand', e.target.value)} placeholder="Marca" /></td>
-                                            <td className="p-2"><input type="text" className="w-full min-w-[100px] px-3 py-2.5 bg-transparent border border-transparent focus:border-stone-300 dark:focus:border-stone-600 focus:bg-white dark:focus:bg-stone-800 rounded-lg text-[11px] font-bold outline-none transition-all" value={item.model} onChange={e => updateBulkItem(item.id, 'model', e.target.value)} placeholder="Modelo/Color" /></td>
-                                            {!isRequestedToLab && <td className="p-2"><input type="number" min="0" className="w-full min-w-[70px] px-3 py-2.5 bg-transparent border border-transparent focus:border-stone-300 dark:focus:border-stone-600 focus:bg-white dark:focus:bg-stone-800 rounded-lg text-[11px] font-bold outline-none transition-all" value={item.stock} onChange={e => updateBulkItem(item.id, 'stock', e.target.value)} placeholder="0" /></td>}
-                                            <td className="p-2"><input type="number" min="0" className="w-full min-w-[90px] px-3 py-2.5 bg-primary/5 border border-transparent focus:border-primary focus:bg-primary/10 rounded-lg text-[11px] font-black text-primary outline-none transition-all" value={item.price} onChange={e => updateBulkItem(item.id, 'price', e.target.value)} placeholder="0.00" /></td>
-                                            {isAdmin && <td className="p-2"><input type="number" min="0" className="w-full min-w-[80px] px-3 py-2.5 bg-transparent border border-transparent focus:border-stone-300 dark:focus:border-stone-600 focus:bg-white dark:focus:bg-stone-800 rounded-lg text-[11px] font-bold outline-none transition-all" value={item.cost} onChange={e => updateBulkItem(item.id, 'cost', e.target.value)} placeholder="0.00" /></td>}
+                                            <td className="p-2"><input type="text" className="w-full min-w-[150px] px-3 py-2.5 bg-transparent border border-transparent focus:border-stone-300 dark:focus:border-stone-600 focus:bg-white dark:focus:bg-stone-800 rounded-lg text-[11px] font-bold focus:ring-2 focus:ring-amber-500 focus:outline-none transition-all" value={item.name} onChange={e => updateBulkItem(item.id, 'name', e.target.value)} placeholder="Ej: Armazón Titanio" /></td>
+                                            <td className="p-2"><input type="text" list="brands-list" className="w-full min-w-[100px] px-3 py-2.5 bg-transparent border border-transparent focus:border-stone-300 dark:focus:border-stone-600 focus:bg-white dark:focus:bg-stone-800 rounded-lg text-[11px] font-bold focus:ring-2 focus:ring-amber-500 focus:outline-none transition-all" value={item.brand} onChange={e => updateBulkItem(item.id, 'brand', e.target.value)} placeholder="Marca" /></td>
+                                            <td className="p-2"><input type="text" className="w-full min-w-[100px] px-3 py-2.5 bg-transparent border border-transparent focus:border-stone-300 dark:focus:border-stone-600 focus:bg-white dark:focus:bg-stone-800 rounded-lg text-[11px] font-bold focus:ring-2 focus:ring-amber-500 focus:outline-none transition-all" value={item.model} onChange={e => updateBulkItem(item.id, 'model', e.target.value)} placeholder="Modelo/Color" /></td>
+                                            {!isRequestedToLab && <td className="p-2"><input type="number" min="0" className="w-full min-w-[70px] px-3 py-2.5 bg-transparent border border-transparent focus:border-stone-300 dark:focus:border-stone-600 focus:bg-white dark:focus:bg-stone-800 rounded-lg text-[11px] font-bold focus:ring-2 focus:ring-amber-500 focus:outline-none transition-all" value={item.stock} onChange={e => updateBulkItem(item.id, 'stock', e.target.value)} placeholder="0" /></td>}
+                                            <td className="p-2"><input type="number" min="0" className="w-full min-w-[90px] px-3 py-2.5 bg-primary/5 border border-transparent focus:border-primary focus:bg-primary/10 rounded-lg text-[11px] font-black text-primary focus:ring-2 focus:ring-amber-500 focus:outline-none transition-all" value={item.price} onChange={e => updateBulkItem(item.id, 'price', e.target.value)} placeholder="0.00" /></td>
+                                            {isAdmin && <td className="p-2"><input type="number" min="0" className="w-full min-w-[80px] px-3 py-2.5 bg-transparent border border-transparent focus:border-stone-300 dark:focus:border-stone-600 focus:bg-white dark:focus:bg-stone-800 rounded-lg text-[11px] font-bold focus:ring-2 focus:ring-amber-500 focus:outline-none transition-all" value={item.cost} onChange={e => updateBulkItem(item.id, 'cost', e.target.value)} placeholder="0.00" /></td>}
                                         </>
                                     )}
                                     <td className="p-2 text-center">
@@ -983,7 +970,7 @@ function SmartInput({ value, onChange, onBlur, options, placeholder, required, h
                 onChange={e => { onChange(e.target.value); setIsOpen(true); }}
                 onFocus={() => setIsOpen(true)}
                 onBlur={() => { setTimeout(() => setIsOpen(false), 200); if (onBlur) onBlur(); }}
-                className={`w-full px-6 py-4 bg-stone-50/50 dark:bg-stone-800/30 border rounded-[1.5rem] font-bold text-sm outline-none focus:border-primary transition-all ${hasError ? 'border-red-300 dark:border-red-700' : 'border-stone-200 dark:border-stone-700'}`}
+                className={`w-full px-6 py-4 bg-stone-50/50 dark:bg-stone-800/30 border rounded-[1.5rem] font-bold text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none focus:border-primary transition-all ${hasError ? 'border-red-300 dark:border-red-700' : 'border-stone-200 dark:border-stone-700'}`}
             />
             {isOpen && (filtered.length > 0 || showCreate) && (
                 <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-2xl shadow-xl z-50 max-h-60 overflow-y-auto p-2">

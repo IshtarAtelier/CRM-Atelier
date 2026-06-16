@@ -28,7 +28,7 @@ export default function ContactoPage() {
         
         {/* Info lateral */}
         <div className="flex-1">
-          <h1 className="text-4xl md:text-5xl font-light tracking-tight mb-6" style={{ fontFamily: "'Georgia', 'Times New Roman', serif" }}>
+          <h1 className=" font-serif">
             Contacto
           </h1>
           <p className="text-stone-600 leading-relaxed mb-10">

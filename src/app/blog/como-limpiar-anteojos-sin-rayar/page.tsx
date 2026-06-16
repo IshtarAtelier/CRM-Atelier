@@ -12,7 +12,7 @@ export const metadata: Metadata = {
 
 export default function ComoLimpiarAnteojosPage() {
   return (
-    <div className="bg-[#faf8f5] text-black min-h-screen selection:bg-black selection:text-white" style={{ fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif" }}>
+    <div className="bg-[#faf8f5] text-black min-h-screen selection:bg-black selection:text-white font-sans">
       <StorefrontNavbar theme="light" />
       
       <main className="max-w-3xl mx-auto px-5 pt-32 pb-24">

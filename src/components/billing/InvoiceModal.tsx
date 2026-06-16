@@ -195,8 +195,8 @@ export default function InvoiceModal({ order, initialAccount, initialAmount, onC
                             <FileText className="w-6 h-6" />
                         </div>
                         <div>
-                            <h2 className="text-xsl font-black tracking-tight">Emitir Factura Electrónica</h2>
-                            <p className="text-xs font-black uppercase tracking-[0.2em] opacity-70">Monotributo - Factura C</p>
+                            <h2 className="text-xl font-black tracking-tight">Emitir Factura Electrónica</h2>
+                            <p className="text-[10px] font-black uppercase tracking-[0.2em] opacity-70">Monotributo - Factura C</p>
                         </div>
                     </div>
                     <button onClick={onClose} className="p-3 hover:bg-white/10 rounded-2xl transition-all"><X className="w-6 h-6" /></button>
@@ -211,9 +211,9 @@ export default function InvoiceModal({ order, initialAccount, initialAmount, onC
                         </div>
                         <h3 className="text-2xl font-black text-stone-800 dark:text-white mb-2">¡Comprobante Generado!</h3>
                         <div className="bg-stone-50 dark:bg-stone-800 rounded-3xl p-6 space-y-4 text-left mt-8 border-2 border-dashed border-emerald-500/20">
-                            <div className="flex justify-between items-center"><span className="text-xs font-black text-stone-600 uppercase tracking-widest">N° Comprobante</span><span className="text-base font-black text-stone-900 dark:text-white">{success.voucherLabel}</span></div>
-                            <div className="flex justify-between items-center"><span className="text-xs font-black text-stone-600 uppercase tracking-widest">CAE</span><span className="text-base font-mono font-bold text-blue-600">{success.cae}</span></div>
-                            <div className="flex justify-between items-center"><span className="text-xs font-black text-stone-600 uppercase tracking-widest">Monto</span><span className="text-base font-black text-emerald-600">${targetAmount.toLocaleString('es-AR')}</span></div>
+                            <div className="flex justify-between items-center"><span className="text-[10px] font-black text-stone-400 uppercase tracking-widest">N° Comprobante</span><span className="text-base font-black text-stone-900 dark:text-white">{success.voucherLabel}</span></div>
+                            <div className="flex justify-between items-center"><span className="text-[10px] font-black text-stone-400 uppercase tracking-widest">CAE</span><span className="text-base font-mono font-bold text-blue-600">{success.cae}</span></div>
+                            <div className="flex justify-between items-center"><span className="text-[10px] font-black text-stone-400 uppercase tracking-widest">Monto</span><span className="text-base font-black text-emerald-600">${targetAmount.toLocaleString('es-AR')}</span></div>
                         </div>
                         <div className="flex gap-4 mt-10">
                             <button 
@@ -238,24 +238,24 @@ export default function InvoiceModal({ order, initialAccount, initialAmount, onC
                         <div className={`p-4 sm:p-6 rounded-[2rem] shadow-xl transition-all duration-300 ${targetAmount > paidReal ? 'bg-red-600 text-white' : 'bg-stone-900 dark:bg-stone-100 text-white dark:text-stone-900'}`}>
                             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                                 <div>
-                                    <p className="text-xs font-black uppercase tracking-widest opacity-60">Monto del Comprobante</p>
+                                    <p className="text-[10px] font-black uppercase tracking-widest opacity-60">Monto del Comprobante</p>
                                     <div className="flex items-center gap-2 mt-1">
                                         <span className="text-3xl font-black tracking-tighter">$</span>
                                         <input 
                                             type="number" 
                                             value={targetAmount}
                                             onChange={(e) => setTargetAmount(Number(e.target.value))}
-                                            className="bg-transparent text-3xl font-black tracking-tighter w-48 outline-none border-b-2 border-white/20 focus:border-white transition-all"
+                                            className="bg-transparent text-3xl font-black tracking-tighter w-48 focus:ring-2 focus:ring-amber-500 focus:outline-none border-b-2 border-white/20 focus:border-white transition-all"
                                         />
                                     </div>
                                 </div>
                                 <div className="text-left sm:text-right">
-                                    <p className="text-xs font-black uppercase tracking-widest opacity-60">Tope según pago</p>
+                                    <p className="text-[10px] font-black uppercase tracking-widest opacity-60">Tope según pago</p>
                                     <p className="text-lg font-black mt-1">${paidReal.toLocaleString('es-AR')}</p>
                                 </div>
                             </div>
                             {targetAmount > paidReal && (
-                                <div className="mt-3 flex items-center gap-2 text-xs font-bold bg-white/20 p-2 rounded-xl animate-pulse">
+                                <div className="mt-3 flex items-center gap-2 text-[10px] font-bold bg-white/20 p-2 rounded-xl animate-pulse">
                                     <AlertCircle size={14} /> NO PODÉS FACTURAR MÁS DE LO PAGADO
                                 </div>
                             )}
@@ -264,10 +264,10 @@ export default function InvoiceModal({ order, initialAccount, initialAmount, onC
                         {/* Item Editor */}
                         <div>
                             <div className="flex items-center justify-between mb-4">
-                                <h4 className="text-xs font-black text-stone-600 uppercase tracking-widest flex items-center gap-2">
+                                <h4 className="text-xs font-black text-stone-400 uppercase tracking-widest flex items-center gap-2">
                                     <Info className="w-3.5 h-3.5" /> Detalle de los ítems
                                 </h4>
-                                <button onClick={addItem} className="flex items-center gap-2 text-xs font-black text-blue-600 hover:text-blue-700 transition-colors uppercase tracking-widest">
+                                <button onClick={addItem} className="flex items-center gap-2 text-[10px] font-black text-blue-600 hover:text-blue-700 transition-colors uppercase tracking-widest">
                                     <Plus className="w-3.5 h-3.5" /> Agregar ítem
                                 </button>
                             </div>
@@ -280,26 +280,26 @@ export default function InvoiceModal({ order, initialAccount, initialAmount, onC
                                                     type="text" 
                                                     value={it.description}
                                                     onChange={(e) => updateItem(it.id, 'description', e.target.value)}
-                                                    className="w-full bg-transparent font-bold text-sm text-stone-800 dark:text-white outline-none placeholder:text-stone-500"
+                                                    className="w-full bg-transparent font-bold text-sm text-stone-800 dark:text-white focus:ring-2 focus:ring-amber-500 focus:outline-none placeholder:text-stone-300"
                                                     placeholder="Descripción del concepto..."
                                                 />
                                                 <div className="flex flex-wrap items-center gap-2 sm:gap-4">
                                                     <div className="flex items-center gap-2 bg-white dark:bg-stone-800 px-3 py-1.5 rounded-xl text-xs shadow-sm">
-                                                        <span className="text-stone-600 font-bold">Cant:</span>
+                                                        <span className="text-stone-400 font-bold">Cant:</span>
                                                         <input 
                                                             type="number" 
                                                             value={it.quantity}
                                                             onChange={(e) => updateItem(it.id, 'quantity', Number(e.target.value))}
-                                                            className="w-8 bg-transparent font-black outline-none"
+                                                            className="w-8 bg-transparent font-black focus:ring-2 focus:ring-amber-500 focus:outline-none"
                                                         />
                                                     </div>
                                                     <div className="flex items-center gap-2 bg-white dark:bg-stone-800 px-3 py-1.5 rounded-xl text-xs shadow-sm">
-                                                        <span className="text-stone-600 font-bold">Precio: $</span>
+                                                        <span className="text-stone-400 font-bold">Precio: $</span>
                                                         <input 
                                                             type="number" 
                                                             value={it.price}
                                                             onChange={(e) => updateItem(it.id, 'price', Number(e.target.value))}
-                                                            className="w-24 bg-transparent font-black outline-none"
+                                                            className="w-24 bg-transparent font-black focus:ring-2 focus:ring-amber-500 focus:outline-none"
                                                         />
                                                     </div>
                                                 </div>
@@ -327,7 +327,7 @@ export default function InvoiceModal({ order, initialAccount, initialAmount, onC
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                             <div className="space-y-4">
                                 <div>
-                                    <label className="block text-xs font-black text-stone-600 uppercase tracking-widest mb-2">Cuenta Emisora (Facturación)</label>
+                                    <label className="block text-[10px] font-black text-stone-400 uppercase tracking-widest mb-2">Cuenta Emisora (Facturación)</label>
                                     <div className="flex gap-2 p-1.5 bg-stone-100 dark:bg-stone-800 rounded-[1.5rem]">
                                         {['ISH', 'YANI'].map(acc => {
                                             const isActive = account === acc;
@@ -341,7 +341,7 @@ export default function InvoiceModal({ order, initialAccount, initialAmount, onC
                                                             ? acc === 'ISH' 
                                                                 ? 'bg-emerald-600 text-white shadow-md scale-[1.02]' 
                                                                 : 'bg-blue-600 text-white shadow-md scale-[1.02]'
-                                                            : 'text-stone-600 hover:text-stone-600 dark:hover:text-stone-500'
+                                                            : 'text-stone-400 hover:text-stone-600 dark:hover:text-stone-300'
                                                     }`}
                                                 >
                                                     {acc === 'ISH' ? 'ISHTAR' : 'YANI'}
@@ -351,19 +351,19 @@ export default function InvoiceModal({ order, initialAccount, initialAmount, onC
                                     </div>
                                 </div>
                                 <div className="mt-4">
-                                    <label className="block text-xs font-black text-stone-600 uppercase tracking-widest mb-2">Fecha de Factura</label>
+                                    <label className="block text-[10px] font-black text-stone-400 uppercase tracking-widest mb-2">Fecha de Factura</label>
                                     <input 
                                         type="date"
                                         value={issueDate}
                                         onChange={(e) => setIssueDate(e.target.value)}
-                                        className="w-full px-5 py-3 bg-stone-50 dark:bg-stone-800 border-2 border-transparent focus:border-indigo-500 rounded-2xl text-xs font-black tracking-widest outline-none transition-all"
+                                        className="w-full px-5 py-3 bg-stone-50 dark:bg-stone-800 border-2 border-transparent focus:border-indigo-500 rounded-2xl text-xs font-black tracking-widest focus:ring-2 focus:ring-amber-500 focus:outline-none transition-all"
                                     />
-                                    <p className="text-xs text-stone-600 mt-1.5">Recordá que AFIP solo permite facturar hasta 5 días hacia atrás.</p>
+                                    <p className="text-[9px] text-stone-400 mt-1.5">Recordá que AFIP solo permite facturar hasta 5 días hacia atrás.</p>
                                 </div>
                             </div>
 
                             <div className="space-y-4">
-                                <label className="block text-xs font-black text-stone-600 uppercase tracking-widest">Receptor (Comprobante)</label>
+                                <label className="block text-[10px] font-black text-stone-400 uppercase tracking-widest">Receptor (Comprobante)</label>
                                 <div className="grid grid-cols-3 gap-2">
                                     {DOC_TYPES.map(dt => (
                                         <button 
@@ -373,7 +373,7 @@ export default function InvoiceModal({ order, initialAccount, initialAmount, onC
                                                 if (dt.value === 99) setDocNro('0');
                                                 else if (dt.value === 96 && order.client.dni) setDocNro(order.client.dni);
                                             }}
-                                            className={`py-3 rounded-xl text-xs font-black transition-all ${docTipo === dt.value ? 'bg-indigo-600 text-white shadow-lg' : 'bg-stone-100 dark:bg-stone-800 text-stone-600'}`}
+                                            className={`py-3 rounded-xl text-[10px] font-black transition-all ${docTipo === dt.value ? 'bg-indigo-600 text-white shadow-lg' : 'bg-stone-100 dark:bg-stone-800 text-stone-400'}`}
                                         >
                                             {dt.label}
                                         </button>
@@ -384,7 +384,7 @@ export default function InvoiceModal({ order, initialAccount, initialAmount, onC
                                         type="text" 
                                         value={docNro}
                                         onChange={e => setDocNro(e.target.value)}
-                                        className="w-full px-5 py-3 bg-stone-50 dark:bg-stone-800 border-2 border-transparent focus:border-indigo-500 rounded-2xl text-xs font-black tracking-widest outline-none transition-all"
+                                        className="w-full px-5 py-3 bg-stone-50 dark:bg-stone-800 border-2 border-transparent focus:border-indigo-500 rounded-2xl text-xs font-black tracking-widest focus:ring-2 focus:ring-amber-500 focus:outline-none transition-all"
                                         placeholder="Nro de Documento..."
                                     />
                                 )}
@@ -393,19 +393,19 @@ export default function InvoiceModal({ order, initialAccount, initialAmount, onC
 
                         {/* Observations Panel */}
                         <div className="bg-stone-50 dark:bg-stone-800/40 p-5 rounded-2xl border-2 border-stone-100 dark:border-stone-800">
-                            <label className="block text-xs font-black text-stone-600 uppercase tracking-widest mb-2">Observaciones de la Factura</label>
+                            <label className="block text-[10px] font-black text-stone-400 uppercase tracking-widest mb-2">Observaciones de la Factura</label>
                             <textarea 
                                 value={observations}
                                 onChange={(e) => setObservations(e.target.value)}
                                 rows={2}
-                                className="w-full px-5 py-3 bg-white dark:bg-stone-800 border-2 border-transparent focus:border-indigo-500 rounded-2xl text-xs font-bold outline-none transition-all placeholder:text-stone-500 resize-none text-stone-800 dark:text-white"
+                                className="w-full px-5 py-3 bg-white dark:bg-stone-800 border-2 border-transparent focus:border-indigo-500 rounded-2xl text-xs font-bold focus:ring-2 focus:ring-amber-500 focus:outline-none transition-all placeholder:text-stone-300 resize-none text-stone-800 dark:text-white"
                                 placeholder="Escribí aquí observaciones que se imprimirán en el PDF (ej. detalles de garantía, promociones aplicadas, etc.)..."
                             />
                         </div>
 
                         {/* Error & Action */}
                         {error && (
-                            <div className="bg-red-50 text-red-600 p-4 rounded-2xl text-xs font-black uppercase tracking-widest flex items-center gap-3 animate-pulse">
+                            <div className="bg-red-50 text-red-600 p-4 rounded-2xl text-[10px] font-black uppercase tracking-widest flex items-center gap-3 animate-pulse">
                                 <AlertCircle className="w-5 h-5" /> {error}
                             </div>
                         )}

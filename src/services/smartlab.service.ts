@@ -1,6 +1,6 @@
 import { prisma } from '@/lib/db';
 
-export interface ScrapedDetail {
+interface ScrapedDetail {
     num: string;
     sector: string;
     progress: number;

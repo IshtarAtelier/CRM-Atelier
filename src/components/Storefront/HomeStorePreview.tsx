@@ -22,8 +22,7 @@ export async function HomeStorePreview() {
             <div>
               <p className="text-[10px] font-black uppercase tracking-[0.25em] text-[#b08f4c] mb-3">Presencia Local</p>
               <h2 
-                className="text-3xl md:text-4xl font-light tracking-tight text-stone-900 leading-tight mb-4"
-                style={{ fontFamily: "'Georgia', 'Times New Roman', serif" }}
+                className=" font-serif"
               >
                 Visitá nuestro local en Cerro de las Rosas
               </h2>

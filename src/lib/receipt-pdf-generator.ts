@@ -3,7 +3,7 @@ import { es } from 'date-fns/locale';
 import * as fs from 'fs';
 import * as path from 'path';
 
-export function getReceiptHtml(payment: any, order: any, client: any): string {
+function getReceiptHtml(payment: any, order: any, client: any): string {
     let dateStr = '';
     try {
         dateStr = format(new Date(payment.date), "dd 'de' MMMM, yyyy", { locale: es });

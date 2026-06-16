@@ -6,7 +6,7 @@ import {
     Save, Loader2, AlertCircle, DollarSign
 } from 'lucide-react';
 import { PricingService } from '@/services/PricingService';
-import FileDropZone from '@/components/FileDropZone';
+import FileDropZone from '@/components/ui/FileDropZone';
 
 interface AddPaymentModalProps {
     orderId: string;
@@ -219,7 +219,7 @@ export default function AddPaymentModal({
                 <form onSubmit={handleSubmit} className="p-8 space-y-6 overflow-y-auto flex-1 custom-scrollbar">
                     {/* Monto con sugerencias */}
                     <div className="space-y-4">
-                        <label className="text-[10px] font-black uppercase text-stone-400 tracking-widest block pl-1">
+                        <label htmlFor="payment-amount" className="text-[10px] font-black uppercase text-stone-400 tracking-widest block pl-1">
                             Monto a Pagar
                         </label>
                         <div className="relative">
@@ -230,7 +230,7 @@ export default function AddPaymentModal({
                                 step="any"
                                 value={amount}
                                 onChange={(e) => setAmount(e.target.value)}
-                                className="w-full pl-8 pr-4 py-4 bg-stone-50 dark:bg-stone-900/50 border-2 border-transparent focus:border-emerald-500 rounded-2xl text-2xl font-black text-stone-900 dark:text-white transition-all outline-none"
+                                className="w-full pl-8 pr-4 py-4 bg-stone-50 dark:bg-stone-900/50 border-2 border-transparent focus:border-emerald-500 rounded-2xl text-2xl font-black text-stone-900 dark:text-white transition-all focus:ring-2 focus:ring-amber-500 focus:outline-none"
                                 placeholder="0.00"
                                 required
                             />
@@ -266,7 +266,7 @@ export default function AddPaymentModal({
 
                     {/* Método de Pago */}
                     <div className="space-y-3">
-                        <label className="text-[10px] font-black uppercase text-stone-400 tracking-widest block pl-1">
+                        <label htmlFor="payment-amount" className="text-[10px] font-black uppercase text-stone-400 tracking-widest block pl-1">
                             Método de Pago
                         </label>
                         <div className="space-y-3">
@@ -309,29 +309,29 @@ export default function AddPaymentModal({
                     {/* Fecha y Referencia */}
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
-                            <label className="text-[10px] font-black uppercase text-stone-400 tracking-widest block pl-1">Fecha</label>
+                            <label htmlFor="payment-amount" className="text-[10px] font-black uppercase text-stone-400 tracking-widest block pl-1">Fecha</label>
                             <input
                                 type="date"
                                 value={date}
                                 onChange={(e) => setDate(e.target.value)}
-                                className="w-full px-4 py-3 bg-stone-50 dark:bg-stone-900/50 border border-stone-100 dark:border-stone-700 rounded-xl text-sm font-bold text-stone-900 dark:text-white outline-none focus:ring-2 focus:ring-emerald-500/20"
+                                className="w-full px-4 py-3 bg-stone-50 dark:bg-stone-900/50 border border-stone-100 dark:border-stone-700 rounded-xl text-sm font-bold text-stone-900 dark:text-white focus:ring-2 focus:ring-amber-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
                             />
                         </div>
                         <div className="space-y-2">
-                            <label className="text-[10px] font-black uppercase text-stone-400 tracking-widest block pl-1">Referencia {method !== 'CASH' && <span className="text-red-400">*</span>}</label>
+                            <label htmlFor="payment-amount" className="text-[10px] font-black uppercase text-stone-400 tracking-widest block pl-1">Referencia {method !== 'CASH' && <span className="text-red-400">*</span>}</label>
                             <input
                                 type="text"
                                 value={reference}
                                 onChange={(e) => setReference(e.target.value)}
                                 placeholder={method !== 'CASH' ? "Obligatorio: N° Comprobante" : "N° Comprobante, etc"}
-                                className="w-full px-4 py-3 bg-stone-50 dark:bg-stone-900/50 border border-stone-100 dark:border-stone-700 rounded-xl text-sm font-bold text-stone-900 dark:text-white outline-none focus:ring-2 focus:ring-emerald-500/20"
+                                className="w-full px-4 py-3 bg-stone-50 dark:bg-stone-900/50 border border-stone-100 dark:border-stone-700 rounded-xl text-sm font-bold text-stone-900 dark:text-white focus:ring-2 focus:ring-amber-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
                             />
                         </div>
                     </div>
 
                     {/* Comprobante */}
                     <div className="space-y-2">
-                        <label className="text-[10px] font-black uppercase text-stone-400 tracking-widest block pl-1">
+                        <label htmlFor="payment-amount" className="text-[10px] font-black uppercase text-stone-400 tracking-widest block pl-1">
                             Comprobante {requiresReceipt ? <span className="text-red-500">(Obligatorio)</span> : '(Opcional)'}
                         </label>
                         <FileDropZone

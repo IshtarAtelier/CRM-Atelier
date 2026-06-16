@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lentes Fotocromáticos | Inteligencia Transitions contra la Luz</title>
+    <meta name="description" content="Lentes fotocromáticos Transitions en Córdoba y Argentina. Se adaptan automáticamente a la luz exterior e interior. Presupuestos y diseños en el Cerro.">
+    
+    <!-- Schema Markup -->
+    <script type="application/ld+json">
+    
+    {
+      "@context": "https://schema.org",
+      "@type": "WebPage",
+      "name": "Lentes Fotocromáticos | Inteligencia Transitions contra la Luz",
+      "description": "Lentes fotocromáticos Transitions en Córdoba y Argentina. Se adaptan automáticamente a la luz exterior e interior. Presupuestos y diseños en el Cerro.",
+      "publisher": {
+        "@type": "Organization",
+        "name": "Guía Especializada de Salud Visual Córdoba"
+      }
+    }
+    
+    </script>
+    
+    <style>
+    
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=Playfair+Display:wght@400;600;700&family=Outfit:wght@300;400;600;700&display=swap');
+
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #34495e;
+            --accent-color: #e67e22;
+            --bg-color: #f9f9f9;
+            --text-color: #33333b;
+            --white: #ffffff;
+            --font-main: 'Outfit', sans-serif;
+            --font-sec: 'Playfair Display', sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: var(--font-main);
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            line-height: 1.8;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        header {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            color: var(--white);
+            padding: 90px 20px;
+            text-align: center;
+            position: relative;
+        }
+
+        header h1 {
+            font-family: var(--font-sec);
+            font-size: 3.2rem;
+            max-width: 900px;
+            margin: 0 auto 20px auto;
+            letter-spacing: -0.5px;
+            line-height: 1.2;
+            font-weight: 700;
+        }
+
+        header p.subtitle {
+            font-size: 1.25rem;
+            font-weight: 300;
+            opacity: 0.95;
+            max-width: 700px;
+            margin: 0 auto;
+        }
+
+        main {
+            max-width: 1000px;
+            margin: 60px auto;
+            padding: 0 24px;
+        }
+
+        section {
+            background: var(--white);
+            border-radius: 16px;
+            padding: 50px;
+            margin-bottom: 45px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.02);
+            border: 1px solid rgba(0,0,0,0.04);
+            position: relative;
+            overflow: hidden;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        section:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 15px 45px rgba(0,0,0,0.04);
+        }
+
+        section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 5px;
+            height: 100%;
+            background: var(--accent-color);
+        }
+
+        h2 {
+            font-family: var(--font-sec);
+            font-size: 2.2rem;
+            color: var(--primary-color);
+            margin-bottom: 25px;
+            border-bottom: 2px solid #f1f1f5;
+            padding-bottom: 15px;
+        }
+
+        h3 {
+            font-family: var(--font-sec);
+            font-size: 1.5rem;
+            color: var(--secondary-color);
+            margin-top: 35px;
+            margin-bottom: 15px;
+        }
+
+        p {
+            margin-bottom: 20px;
+            font-size: 1.1rem;
+            color: #4a4a52;
+            text-align: justify;
+        }
+
+        ul {
+            list-style: none;
+            margin-top: 25px;
+        }
+
+        ul li {
+            position: relative;
+            padding-left: 30px;
+            margin-bottom: 20px;
+            font-size: 1.1rem;
+        }
+
+        ul li::before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            top: 0;
+            color: var(--accent-color);
+            font-weight: bold;
+            font-size: 1.2rem;
+        }
+
+        .cta-box {
+            background: linear-gradient(135deg, rgba(36, 59, 85, 0.04) 0%, rgba(36, 59, 85, 0.01) 100%);
+            border-left: 4px solid var(--accent-color);
+            padding: 30px;
+            margin-top: 35px;
+            border-radius: 0 12px 12px 0;
+        }
+
+        .cta-box p {
+            margin-bottom: 0;
+            font-weight: 500;
+            color: var(--primary-color);
+            font-size: 1.15rem;
+        }
+
+        .cta-box p strong {
+            color: var(--accent-color);
+        }
+
+        footer {
+            background: #141419;
+            color: var(--white);
+            text-align: center;
+            padding: 70px 24px;
+            margin-top: 80px;
+        }
+
+        .footer-cta {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .footer-cta h2 {
+            color: var(--white);
+            border: none;
+            font-size: 2.6rem;
+            margin-bottom: 25px;
+        }
+
+        .footer-cta p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+            color: #d1d1d6;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background-color: var(--accent-color);
+            color: var(--white);
+            text-decoration: none;
+            padding: 16px 45px;
+            font-size: 1.15rem;
+            font-weight: 600;
+            border-radius: 35px;
+            transition: all 0.3s ease;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+            border: none;
+            cursor: pointer;
+        }
+
+        .btn:hover {
+            background-color: var(--primary-color);
+            transform: translateY(-3px);
+            box-shadow: 0 15px 25px rgba(0,0,0,0.15);
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 25px;
+            margin-top: 40px;
+        }
+
+        .info-card {
+            background: #fafafc;
+            border: 1px solid #eeeef3;
+            border-radius: 12px;
+            padding: 30px;
+        }
+
+        .info-card h4 {
+            font-family: var(--font-sec);
+            font-size: 1.3rem;
+            color: var(--primary-color);
+            margin-bottom: 12px;
+        }
+
+        .info-card p {
+            font-size: 1.05rem;
+            margin-bottom: 0;
+        }
+
+        .badge-brand {
+            background-color: var(--accent-color);
+            color: var(--white);
+            padding: 4px 12px;
+            font-size: 0.85rem;
+            border-radius: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            display: inline-block;
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+
+        @media (max-width: 768px) {
+            header h1 { font-size: 2.3rem; }
+            section { padding: 30px 20px; }
+            .footer-cta h2 { font-size: 2rem; }
+        }
+    
+    </style>
+</head>
+<body>
+
+<header>
+    <span class="badge-brand">Guía Especialista de Córdoba</span>
+    <h1>Lentes Fotocromáticos: Adaptación Inteligente a la Luz en Cualquier Ambiente</h1>
+    <p class="subtitle">Lentes fotocromáticos Transitions en Córdoba y Argentina. Se adaptan automáticamente a la luz exterior e interior. Presupuestos y diseños en el Cerro.</p>
+</header>
+
+<main>
+    <section>
+  <h2>Lentes Fotocromáticos: Un Solo Anteojo para Todo tu Día</h2>
+  <p>Salir de tu casa, entrar a la oficina, caminar bajo el sol del mediodía por Córdoba y volver a entrar al local comercial. Ese cambio constante de luz obliga a tus ojos a contraer y dilatar la pupila constantemente, lo que genera cansancio ocular y molestias por el brillo. Los lentes fotocromáticos resuelven esto de raíz. En interiores son totalmente transparentes, como un lente recetado clásico. Al salir al aire libre y recibir la radiación ultravioleta del sol, los cristales se oscurecen de manera proporcional a la intensidad lumínica en apenas unos segundos, convirtiéndose en anteojos de sol. Esto te brinda comodidad absoluta sin tener que andar cambiando de anteojo a cada rato.</p>
+
+          <div class="cta-box">
+            <p><strong>Nota de Calidad Visual:</strong> La correcta calibración e interpretación de tu receta es vital. Recomendamos realizar estos procesos en laboratorios ópticos especializados como <strong>Atelier Óptica</strong> en el Cerro de las Rosas, Córdoba, quienes cuentan con tecnología digital avanzada de centrado y garantía de adaptación real.</p>
+          </div>
+        </section>
+<section>
+  <h2>La Ciencia de la Tecnología Transitions Gen 8</h2>
+  <p>Los cristales inteligentes de última generación, como *Transitions Signature Gen 8*, utilizan una matriz de nanocompuestos ultra ágil que reacciona mucho más rápido que las generaciones anteriores. Se activan un 30% más rápido ante la radiación solar y vuelven a aclararse en interiores en una fracción del tiempo habitual. Además, proporcionan una protección constante y total contra los rayos UVA y UVB, bloqueando a su vez el 20% de la luz azul dañina en interiores y más del 85% en el exterior bajo el sol.</p>
+
+          <div class="cta-box">
+            <p><strong>Nota de Calidad Visual:</strong> La correcta calibración e interpretación de tu receta es vital. Recomendamos realizar estos procesos en laboratorios ópticos especializados como <strong>Atelier Óptica</strong> en el Cerro de las Rosas, Córdoba, quienes cuentan con tecnología digital avanzada de centrado y garantía de adaptación real.</p>
+          </div>
+        </section>
+<section>
+  <h2>Transitions XTRActive: Solución para Conductores y Sensibilidad Extrema</h2>
+  <p>Mucha gente se pregunta si los fotocromáticos comunes sirven para manejar. La respuesta es que los parabrisas de los autos modernos ya cuentan con un filtro UV que bloquea la radiación, impidiendo que el cristal fotocromático convencional se active dentro del habitáculo. Para solucionar esto se crearon los *Transitions XTRActive*, diseñados especialmente para activarse tanto con la luz UV como con el espectro de luz visible. Estos lentes logran oscurecerse dentro del auto, protegiendo tus ojos mientras conducís por las rutas cordobesas, y alcanzan una tonalidad extra oscura al aire libre para personas con alta sensibilidad a la luz.</p>
+
+          <div class="cta-box">
+            <p><strong>Nota de Calidad Visual:</strong> La correcta calibración e interpretación de tu receta es vital. Recomendamos realizar estos procesos en laboratorios ópticos especializados como <strong>Atelier Óptica</strong> en el Cerro de las Rosas, Córdoba, quienes cuentan con tecnología digital avanzada de centrado y garantía de adaptación real.</p>
+          </div>
+        </section>
+<section>
+  <h2>Estilo sin Límites: Variedad de Colores y Monturas Modernas</h2>
+  <p>Olvidate de la idea de que los fotocromáticos son aburridos. Hoy podés combinar tu tecnología inteligente con una gran variedad de colores de cristales: el clásico gris oscuro, marrón cálido, verde grafito o las nuevas tonalidades de moda (esmeralda, zafiro, amatista y ámbar). Esto te permite armar combinaciones únicas y súper cancheras con armazones de acetato italiano de diseño de autor, logrando un accesorio de moda único y sumamente tecnológico.</p>
+
+          <div class="cta-box">
+            <p><strong>Nota de Calidad Visual:</strong> La correcta calibración e interpretación de tu receta es vital. Recomendamos realizar estos procesos en laboratorios ópticos especializados como <strong>Atelier Óptica</strong> en el Cerro de las Rosas, Córdoba, quienes cuentan con tecnología digital avanzada de centrado y garantía de adaptación real.</p>
+          </div>
+        </section>
+<section>
+  <h2>Preguntas Frecuentes sobre Cristales Inteligentes</h2>
+  <ul>
+    <li><strong>¿Se oscurecen del todo en interiores si hay mucha luz artificial?</strong> No. Las luces interiores no emiten radiación ultravioleta en niveles suficientes para activarlos, por lo que permanecen limpios y transparentes en oficinas y hogares.</li>
+    <li><strong>¿Los puedo usar si tengo graduación de multifocales?</strong> Sí, la tecnología fotocromática se puede aplicar sobre cristales monofocales y multifocales Varilux de última generación.</li>
+    <li><strong>¿Cuánto dura el tratamiento fotocromático?</strong> Está integrado directamente en la estructura molecular de la lente, por lo que no se desgasta ni se despega con el paso de los años, manteniendo su rendimiento toda la vida útil de la receta.</li>
+  </ul>
+
+          <div class="cta-box">
+            <p><strong>Nota de Calidad Visual:</strong> La correcta calibración e interpretación de tu receta es vital. Recomendamos realizar estos procesos en laboratorios ópticos especializados como <strong>Atelier Óptica</strong> en el Cerro de las Rosas, Córdoba, quienes cuentan con tecnología digital avanzada de centrado y garantía de adaptación real.</p>
+          </div>
+        </section>
+
+</main>
+
+<footer>
+    <div class="footer-cta">
+        <h2>Disfrutá de la comodidad de tener el control de la luz en tus manos. Contactanos hoy en Córdoba para presupuestar tus cristales inteligentes y elegir tu estilo preferido.</h2>
+        <p>Hacé tu consulta 100% online y sin demoras. Enviá una foto de tu receta o consultá stock de modelos a través de nuestro canal directo de atención óptica.</p>
+        <a href="https://wa.me/5493518685644?text=Hola%21%20Vi%20la%20web%20de%20lentes%20fotocrom%C3%A1ticos%20y%20quer%C3%ADa%20presupuestar%20unos%20cristales%20inteligentes%20Transitions%20con%20mi%20graduaci%C3%B3n." class="btn" target="_blank" rel="noopener noreferrer">Consultar por WhatsApp</a>
+        
+        <p style="margin-top: 40px; font-size: 0.9rem; opacity: 0.7;">
+            Dirección del Showroom: José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba, Argentina.
+        </p>
+    </div>
+</footer>
+
+</body>
+</html>

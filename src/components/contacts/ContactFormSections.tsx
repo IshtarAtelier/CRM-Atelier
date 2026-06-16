@@ -19,7 +19,8 @@ export function PersonalDataSection({ formData, setFormData, doctors, sources, h
                     <label className="text-xs font-black uppercase tracking-widest text-stone-500 ml-1 flex items-center gap-1">Nombre / Apellido <span className="text-primary">*</span></label>
                     <div className="relative group">
                         <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-stone-500 group-focus-within:text-primary transition-colors" />
-                        <input required type="text" className="w-full pl-12 pr-4 py-4 bg-stone-50 dark:bg-stone-800 border-2 rounded-2xl font-bold text-sm outline-none focus:border-primary" placeholder="Nombre completo" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} />
+                        <label htmlFor="input-1" className="sr-only">Nombre completo</label>
+<input id="input-1" required type="text" className="w-full pl-12 pr-4 py-4 bg-stone-50 dark:bg-stone-800 border-2 rounded-2xl font-bold text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none focus:border-primary" placeholder="Nombre completo" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} />
                     </div>
                 </div>
 
@@ -27,7 +28,8 @@ export function PersonalDataSection({ formData, setFormData, doctors, sources, h
                     <label className="text-xs font-black uppercase tracking-widest text-stone-500 ml-1 flex items-center gap-1">Teléfono <span className="text-primary">*</span></label>
                     <div className="relative group">
                         <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-stone-500 group-focus-within:text-primary transition-colors" />
-                        <input required type="text" className="w-full pl-12 pr-4 py-4 bg-stone-50 dark:bg-stone-800 border-2 rounded-2xl font-bold text-sm outline-none focus:border-primary" placeholder="11 2233 4455" value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} />
+                        <label htmlFor="input-2" className="sr-only">11 2233 4455</label>
+<input id="input-2" required type="text" className="w-full pl-12 pr-4 py-4 bg-stone-50 dark:bg-stone-800 border-2 rounded-2xl font-bold text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none focus:border-primary" placeholder="11 2233 4455" value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} />
                     </div>
                 </div>
             </div>
@@ -37,7 +39,8 @@ export function PersonalDataSection({ formData, setFormData, doctors, sources, h
                     <label className="text-xs font-black uppercase tracking-widest text-stone-500 ml-1">DNI</label>
                     <div className="relative group">
                         <FileText className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-stone-500 group-focus-within:text-primary transition-colors" />
-                        <input type="text" className="w-full pl-12 pr-4 py-4 bg-stone-50 dark:bg-stone-800 border-2 rounded-2xl font-bold text-sm outline-none focus:border-primary" placeholder="Número de documento" value={formData.dni} onChange={(e) => setFormData({ ...formData, dni: e.target.value })} />
+                        <label htmlFor="input-3" className="sr-only">Número de documento</label>
+<input id="input-3" type="text" className="w-full pl-12 pr-4 py-4 bg-stone-50 dark:bg-stone-800 border-2 rounded-2xl font-bold text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none focus:border-primary" placeholder="Número de documento" value={formData.dni} onChange={(e) => setFormData({ ...formData, dni: e.target.value })} />
                     </div>
                 </div>
 
@@ -45,7 +48,8 @@ export function PersonalDataSection({ formData, setFormData, doctors, sources, h
                     <label className="text-xs font-black uppercase tracking-widest text-stone-500 ml-1">Obra Social</label>
                     <div className="relative group">
                         <Building2 className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-stone-500 group-focus-within:text-primary transition-colors" />
-                        <input type="text" className="w-full pl-12 pr-4 py-4 bg-stone-50 dark:bg-stone-800 border-2 rounded-2xl font-bold text-sm outline-none focus:border-primary" placeholder="Jerárquicos, OSDE, etc." value={formData.insurance} onChange={(e) => setFormData({ ...formData, insurance: e.target.value })} />
+                        <label htmlFor="input-4" className="sr-only">Jerárquicos, OSDE, etc.</label>
+<input id="input-4" type="text" className="w-full pl-12 pr-4 py-4 bg-stone-50 dark:bg-stone-800 border-2 rounded-2xl font-bold text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none focus:border-primary" placeholder="Jerárquicos, OSDE, etc." value={formData.insurance} onChange={(e) => setFormData({ ...formData, insurance: e.target.value })} />
                     </div>
                 </div>
 
@@ -55,7 +59,7 @@ export function PersonalDataSection({ formData, setFormData, doctors, sources, h
                         <Stethoscope className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-stone-500 group-focus-within:text-primary transition-colors z-10" />
                         <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-600 pointer-events-none" />
                         <select 
-                            className="w-full pl-12 pr-10 py-4 bg-stone-50 dark:bg-stone-800 border-2 rounded-2xl font-bold text-sm appearance-none cursor-pointer outline-none focus:border-primary disabled:opacity-50 disabled:cursor-not-allowed" 
+                            className="w-full pl-12 pr-10 py-4 bg-stone-50 dark:bg-stone-800 border-2 rounded-2xl font-bold text-sm appearance-none cursor-pointer focus:ring-2 focus:ring-amber-500 focus:outline-none focus:border-primary disabled:opacity-50 disabled:cursor-not-allowed" 
                             value={formData.doctor} 
                             onChange={(e) => setFormData({ ...formData, doctor: e.target.value })}
                             disabled={hasOrdersInFactory}
@@ -71,7 +75,7 @@ export function PersonalDataSection({ formData, setFormData, doctors, sources, h
                     <label className="text-xs font-black uppercase tracking-widest text-stone-500 ml-1 flex items-center gap-1">Origen / Canal <span className="text-primary">*</span></label>
                     <div className="relative group">
                         <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-600 pointer-events-none" />
-                        <select className="w-full px-5 py-4 bg-stone-50 dark:bg-stone-800 border-2 rounded-2xl font-bold text-sm appearance-none cursor-pointer outline-none focus:border-primary" value={formData.contactSource} onChange={(e) => setFormData({ ...formData, contactSource: e.target.value })}>
+                        <select className="w-full px-5 py-4 bg-stone-50 dark:bg-stone-800 border-2 rounded-2xl font-bold text-sm appearance-none cursor-pointer focus:ring-2 focus:ring-amber-500 focus:outline-none focus:border-primary" value={formData.contactSource} onChange={(e) => setFormData({ ...formData, contactSource: e.target.value })}>
                             <option value="">Seleccionar origen...</option>
                             {sources.map((s, idx) => <option key={s || `source-${idx}`} value={s}>{s}</option>)}
                         </select>
@@ -84,7 +88,8 @@ export function PersonalDataSection({ formData, setFormData, doctors, sources, h
                     <label className="text-xs font-black uppercase tracking-widest text-stone-500 ml-1">Email</label>
                     <div className="relative group">
                         <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-stone-500 group-focus-within:text-primary transition-colors" />
-                        <input type="email" className="w-full pl-12 pr-4 py-4 bg-stone-50 dark:bg-stone-800 border-2 rounded-2xl font-bold text-sm outline-none focus:border-primary" placeholder="correo@ejemplo.com" value={formData.email || ''} onChange={(e) => setFormData({ ...formData, email: e.target.value })} />
+                        <label htmlFor="input-5" className="sr-only">correo@ejemplo.com</label>
+<input id="input-5" type="email" className="w-full pl-12 pr-4 py-4 bg-stone-50 dark:bg-stone-800 border-2 rounded-2xl font-bold text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none focus:border-primary" placeholder="correo@ejemplo.com" value={formData.email || ''} onChange={(e) => setFormData({ ...formData, email: e.target.value })} />
                     </div>
                 </div>
 
@@ -92,7 +97,8 @@ export function PersonalDataSection({ formData, setFormData, doctors, sources, h
                     <label className="text-xs font-black uppercase tracking-widest text-stone-500 ml-1">Dirección / Localidad</label>
                     <div className="relative group">
                         <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-stone-500 group-focus-within:text-primary transition-colors" />
-                        <input type="text" className="w-full pl-12 pr-4 py-4 bg-stone-50 dark:bg-stone-800 border-2 rounded-2xl font-bold text-sm outline-none focus:border-primary" placeholder="Calle, Número, Localidad" value={formData.address || ''} onChange={(e) => setFormData({ ...formData, address: e.target.value })} />
+                        <label htmlFor="input-6" className="sr-only">Calle, Número, Localidad</label>
+<input id="input-6" type="text" className="w-full pl-12 pr-4 py-4 bg-stone-50 dark:bg-stone-800 border-2 rounded-2xl font-bold text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none focus:border-primary" placeholder="Calle, Número, Localidad" value={formData.address || ''} onChange={(e) => setFormData({ ...formData, address: e.target.value })} />
                     </div>
                 </div>
             </div>

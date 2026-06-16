@@ -319,12 +319,13 @@ export const ContactService = {
                     }
                 });
 
-                for (const chat of matchingChats) {
-                    await prisma.whatsAppChat.update({
-                        where: { id: chat.id },
+                const chatIds = matchingChats.map(c => c.id);
+                if (chatIds.length > 0) {
+                    await prisma.whatsAppChat.updateMany({
+                        where: { id: { in: chatIds } },
                         data: { clientId: createdClient.id }
                     });
-                    console.log(`[Contact Create Sync] Linked unlinked chat ${chat.waId} to new client ${createdClient.id}`);
+                    console.log(`[Contact Create Sync] Linked unlinked chats to new client ${createdClient.id}`);
                 }
             } catch (syncErr) {
                 console.error('[Contact Create Sync] Error auto-linking chats:', syncErr);
@@ -418,16 +419,17 @@ export const ContactService = {
                     where: { clientId: id }
                 });
 
-                for (const chat of clientChats) {
+                const chatsToUnlink = clientChats.filter(chat => {
                     const chatPhone = (chat.realPhone || chat.waId || '').replace(/\D/g, '');
-                    const matchesNew = newPhoneNorm && chatPhone.endsWith(newPhoneNorm.slice(-8));
-                    if (!matchesNew) {
-                        await prisma.whatsAppChat.update({
-                            where: { id: chat.id },
-                            data: { clientId: null }
-                        });
-                        console.log(`[Phone Update Sync] Unlinked chat ${chat.waId} from client ${id} because phone changed`);
-                    }
+                    return !(newPhoneNorm && chatPhone.endsWith(newPhoneNorm.slice(-8)));
+                }).map(c => c.id);
+
+                if (chatsToUnlink.length > 0) {
+                    await prisma.whatsAppChat.updateMany({
+                        where: { id: { in: chatsToUnlink } },
+                        data: { clientId: null }
+                    });
+                    console.log(`[Phone Update Sync] Unlinked chats from client ${id} because phone changed`);
                 }
 
                 // 2. Link chats that match the new phone and are currently unlinked
@@ -443,12 +445,13 @@ export const ContactService = {
                         }
                     });
 
-                    for (const chat of matchingChats) {
-                        await prisma.whatsAppChat.update({
-                            where: { id: chat.id },
+                    const chatIds = matchingChats.map(c => c.id);
+                    if (chatIds.length > 0) {
+                        await prisma.whatsAppChat.updateMany({
+                            where: { id: { in: chatIds } },
                             data: { clientId: id }
                         });
-                        console.log(`[Phone Update Sync] Linked unlinked chat ${chat.waId} to client ${id}`);
+                        console.log(`[Phone Update Sync] Linked unlinked chats to client ${id}`);
                     }
                 }
             } catch (syncErr) {

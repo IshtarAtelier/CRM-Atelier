@@ -8,7 +8,8 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import PrescriptionDetails from '../prescriptions/PrescriptionDetails';
 import { resolveStorageUrl } from '@/lib/utils/storage';
-import FileDropZone from '@/components/FileDropZone';
+import FileDropZone from '@/components/ui/FileDropZone';
+import Image from "next/image";
 
 interface PrescriptionManagerProps {
     contact: any;
@@ -371,7 +372,7 @@ export default function PrescriptionManager({
                         {['sphereOD', 'cylinderOD', 'axisOD'].map(f => (
                             <div key={f}>
                                 <label className="text-[8px] font-black text-stone-400 uppercase block mb-0.5">{f.replace('OD','').toUpperCase()}</label>
-                                <input type="text" inputMode="decimal" value={(form as any)[f]} onChange={e => handleFieldChange(f, e.target.value)} className="w-full bg-stone-50 dark:bg-stone-900 border border-stone-200 dark:border-stone-700 p-2.5 rounded-xl text-sm font-bold text-center outline-none focus:ring-2 focus:ring-emerald-300" placeholder="0.00" />
+                                <input type="text" inputMode="decimal" value={(form as any)[f]} onChange={e => handleFieldChange(f, e.target.value)} className="w-full bg-stone-50 dark:bg-stone-900 border border-stone-200 dark:border-stone-700 p-2.5 rounded-xl text-sm font-bold text-center focus:ring-2 focus:ring-amber-500 focus:outline-none focus:ring-2 focus:ring-emerald-300" placeholder="0.00" />
                             </div>
                         ))}
                     </div>
@@ -382,7 +383,7 @@ export default function PrescriptionManager({
                         {['sphereOI', 'cylinderOI', 'axisOI'].map(f => (
                             <div key={f}>
                                 <label className="text-[8px] font-black text-stone-400 uppercase block mb-0.5">{f.replace('OI','').toUpperCase()}</label>
-                                <input type="text" inputMode="decimal" value={(form as any)[f]} onChange={e => handleFieldChange(f, e.target.value)} className="w-full bg-stone-50 dark:bg-stone-900 border border-stone-200 dark:border-stone-700 p-2.5 rounded-xl text-sm font-bold text-center outline-none focus:ring-2 focus:ring-blue-300" placeholder="0.00" />
+                                <input type="text" inputMode="decimal" value={(form as any)[f]} onChange={e => handleFieldChange(f, e.target.value)} className="w-full bg-stone-50 dark:bg-stone-900 border border-stone-200 dark:border-stone-700 p-2.5 rounded-xl text-sm font-bold text-center focus:ring-2 focus:ring-amber-500 focus:outline-none focus:ring-2 focus:ring-blue-300" placeholder="0.00" />
                             </div>
                         ))}
                     </div>
@@ -419,7 +420,7 @@ export default function PrescriptionManager({
                                 {[['nearSphereOD', 'ESFERA'], ['nearCylinderOD', 'CILINDRO'], ['nearAxisOD', 'EJE']].map(([f, label]) => (
                                     <div key={f}>
                                         <label className="text-[7px] font-black text-stone-400 uppercase block mb-0.5">{label}</label>
-                                        <input type="text" inputMode="decimal" value={(form as any)[f]} onChange={e => handleFieldChange(f, e.target.value)} className="w-full bg-white dark:bg-stone-900 border border-amber-200 dark:border-amber-800/30 p-2.5 rounded-xl text-sm font-bold text-center outline-none focus:ring-2 focus:ring-amber-300" placeholder="0.00" />
+                                        <input type="text" inputMode="decimal" value={(form as any)[f]} onChange={e => handleFieldChange(f, e.target.value)} className="w-full bg-white dark:bg-stone-900 border border-amber-200 dark:border-amber-800/30 p-2.5 rounded-xl text-sm font-bold text-center focus:ring-2 focus:ring-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-300" placeholder="0.00" />
                                     </div>
                                 ))}
                             </div>
@@ -431,7 +432,7 @@ export default function PrescriptionManager({
                                 {[['nearSphereOI', 'ESFERA'], ['nearCylinderOI', 'CILINDRO'], ['nearAxisOI', 'EJE']].map(([f, label]) => (
                                     <div key={f}>
                                         <label className="text-[7px] font-black text-stone-400 uppercase block mb-0.5">{label}</label>
-                                        <input type="text" inputMode="decimal" value={(form as any)[f]} onChange={e => handleFieldChange(f, e.target.value)} className="w-full bg-white dark:bg-stone-900 border border-amber-200 dark:border-amber-800/30 p-2.5 rounded-xl text-sm font-bold text-center outline-none focus:ring-2 focus:ring-amber-300" placeholder="0.00" />
+                                        <input type="text" inputMode="decimal" value={(form as any)[f]} onChange={e => handleFieldChange(f, e.target.value)} className="w-full bg-white dark:bg-stone-900 border border-amber-200 dark:border-amber-800/30 p-2.5 rounded-xl text-sm font-bold text-center focus:ring-2 focus:ring-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-300" placeholder="0.00" />
                                     </div>
                                 ))}
                             </div>
@@ -445,11 +446,11 @@ export default function PrescriptionManager({
                             <div className="grid grid-cols-2 gap-3">
                                 <div>
                                     <label className="text-[7px] font-black text-emerald-500 uppercase block mb-0.5">ADD OD</label>
-                                    <input type="text" inputMode="decimal" value={form.additionOD} onChange={e => handleFieldChange('additionOD', e.target.value)} className="w-full bg-amber-100/50 dark:bg-amber-900/20 border border-amber-300 dark:border-amber-700 p-2.5 rounded-xl text-sm font-black text-center outline-none focus:ring-2 focus:ring-amber-400 text-amber-700 dark:text-amber-300" placeholder="auto" />
+                                    <input type="text" inputMode="decimal" value={form.additionOD} onChange={e => handleFieldChange('additionOD', e.target.value)} className="w-full bg-amber-100/50 dark:bg-amber-900/20 border border-amber-300 dark:border-amber-700 p-2.5 rounded-xl text-sm font-black text-center focus:ring-2 focus:ring-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-400 text-amber-700 dark:text-amber-300" placeholder="auto" />
                                 </div>
                                 <div>
                                     <label className="text-[7px] font-black text-blue-500 uppercase block mb-0.5">ADD OI</label>
-                                    <input type="text" inputMode="decimal" value={form.additionOI} onChange={e => handleFieldChange('additionOI', e.target.value)} className="w-full bg-amber-100/50 dark:bg-amber-900/20 border border-amber-300 dark:border-amber-700 p-2.5 rounded-xl text-sm font-black text-center outline-none focus:ring-2 focus:ring-amber-400 text-amber-700 dark:text-amber-300" placeholder="auto" />
+                                    <input type="text" inputMode="decimal" value={form.additionOI} onChange={e => handleFieldChange('additionOI', e.target.value)} className="w-full bg-amber-100/50 dark:bg-amber-900/20 border border-amber-300 dark:border-amber-700 p-2.5 rounded-xl text-sm font-black text-center focus:ring-2 focus:ring-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-400 text-amber-700 dark:text-amber-300" placeholder="auto" />
                                 </div>
                             </div>
                         </div>
@@ -476,7 +477,7 @@ export default function PrescriptionManager({
                     <label className="text-[9px] font-black text-emerald-600 uppercase tracking-widest block mb-2">Foto de la receta (Opcional para guardar)</label>
                     {form.imageUrl && !receiptFile ? (
                         <div className="relative">
-                            <img 
+                            <Image 
                                 src={resolveStorageUrl(form.imageUrl)} 
                                 alt="Receta" 
                                 className="w-full max-h-48 object-contain rounded-xl border-2 border-emerald-500 shadow-md" 

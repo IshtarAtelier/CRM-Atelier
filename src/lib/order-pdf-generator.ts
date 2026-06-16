@@ -5,7 +5,7 @@ import { PricingService } from '@/services/PricingService';
 import fs from 'fs';
 import path from 'path';
 
-export function getOrderHtml(order: any, client: any): string {
+function getOrderHtml(order: any, client: any): string {
     const isSale = order.orderType === 'SALE';
     
     let dateStr = '';

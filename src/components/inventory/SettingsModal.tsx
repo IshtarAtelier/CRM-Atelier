@@ -85,35 +85,35 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div className="space-y-1">
                                     <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest ml-3">Monofocales Stock</label>
-                                    <input type="text" value={times.monofocalStock} onChange={e => setTimes({ ...times, monofocalStock: e.target.value })} className="w-full px-5 py-4 bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-2xl font-bold text-sm outline-none focus:border-primary" />
+                                    <input type="text" value={times.monofocalStock} onChange={e => setTimes({ ...times, monofocalStock: e.target.value })} className="w-full px-5 py-4 bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-2xl font-bold text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none focus:border-primary" />
                                 </div>
                                 <div className="space-y-1">
                                     <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest ml-3">Monofocales Laboratorio</label>
-                                    <input type="text" value={times.monofocalLab} onChange={e => setTimes({ ...times, monofocalLab: e.target.value })} className="w-full px-5 py-4 bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-2xl font-bold text-sm outline-none focus:border-primary" />
+                                    <input type="text" value={times.monofocalLab} onChange={e => setTimes({ ...times, monofocalLab: e.target.value })} className="w-full px-5 py-4 bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-2xl font-bold text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none focus:border-primary" />
                                 </div>
                                 <div className="space-y-1">
                                     <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest ml-3">Bifocales</label>
-                                    <input type="text" value={times.bifocal} onChange={e => setTimes({ ...times, bifocal: e.target.value })} className="w-full px-5 py-4 bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-2xl font-bold text-sm outline-none focus:border-primary" />
+                                    <input type="text" value={times.bifocal} onChange={e => setTimes({ ...times, bifocal: e.target.value })} className="w-full px-5 py-4 bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-2xl font-bold text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none focus:border-primary" />
                                 </div>
                                 <div className="space-y-1">
                                     <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest ml-3">Multifocales (Grupo Óptico)</label>
-                                    <input type="text" value={times.multifocalGrupoOptico} onChange={e => setTimes({ ...times, multifocalGrupoOptico: e.target.value })} className="w-full px-5 py-4 bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-2xl font-bold text-sm outline-none focus:border-primary" />
+                                    <input type="text" value={times.multifocalGrupoOptico} onChange={e => setTimes({ ...times, multifocalGrupoOptico: e.target.value })} className="w-full px-5 py-4 bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-2xl font-bold text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none focus:border-primary" />
                                 </div>
                                 <div className="space-y-1">
                                     <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest ml-3">Multifocales (Optovision)</label>
-                                    <input type="text" value={times.multifocalOptovision} onChange={e => setTimes({ ...times, multifocalOptovision: e.target.value })} className="w-full px-5 py-4 bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-2xl font-bold text-sm outline-none focus:border-primary" />
+                                    <input type="text" value={times.multifocalOptovision} onChange={e => setTimes({ ...times, multifocalOptovision: e.target.value })} className="w-full px-5 py-4 bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-2xl font-bold text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none focus:border-primary" />
                                 </div>
                                 <div className="space-y-1">
                                     <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest ml-3">L. de Contacto Esféricas</label>
-                                    <input type="text" value={times.contactoEsfericas} onChange={e => setTimes({ ...times, contactoEsfericas: e.target.value })} className="w-full px-5 py-4 bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-2xl font-bold text-sm outline-none focus:border-primary" />
+                                    <input type="text" value={times.contactoEsfericas} onChange={e => setTimes({ ...times, contactoEsfericas: e.target.value })} className="w-full px-5 py-4 bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-2xl font-bold text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none focus:border-primary" />
                                 </div>
                                 <div className="space-y-1 md:col-span-2">
                                     <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest ml-3">L. de Contacto Tóricas / Especiales</label>
-                                    <input type="text" value={times.contactoToricas} onChange={e => setTimes({ ...times, contactoToricas: e.target.value })} className="w-full px-5 py-4 bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-2xl font-bold text-sm outline-none focus:border-primary" />
+                                    <input type="text" value={times.contactoToricas} onChange={e => setTimes({ ...times, contactoToricas: e.target.value })} className="w-full px-5 py-4 bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-2xl font-bold text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none focus:border-primary" />
                                 </div>
                                 <div className="space-y-1 md:col-span-2">
                                     <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest ml-3">Aclaración para el Cliente</label>
-                                    <textarea value={times.aclaracion} onChange={e => setTimes({ ...times, aclaracion: e.target.value })} className="w-full px-5 py-4 bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-2xl font-bold text-sm outline-none focus:border-primary min-h-[100px] resize-none" />
+                                    <textarea value={times.aclaracion} onChange={e => setTimes({ ...times, aclaracion: e.target.value })} className="w-full px-5 py-4 bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-2xl font-bold text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none focus:border-primary min-h-[100px] resize-none" />
                                 </div>
                             </div>
                         </>

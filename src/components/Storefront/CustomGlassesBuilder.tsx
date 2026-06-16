@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { LensConfigurator } from "./LensConfigurator";
-import { Interactive3DImage } from "./Interactive3DImage";
+import dynamic from "next/dynamic";
+const Interactive3DImage = dynamic(() => import("./Interactive3DImage").then(mod => mod.Interactive3DImage), { ssr: false });
 import Image from "next/image";
 import { useCart } from "@/store/useCart";
 import { resolveStorageUrl } from "@/lib/utils/storage";
@@ -163,7 +164,7 @@ export function CustomGlassesBuilder({ products }: { products: Product[] }) {
           {/* Paso 1: Armazón */}
           <button 
             onClick={handleClearSelection}
-            className="flex items-center gap-2 group cursor-pointer focus:outline-none"
+            className="flex items-center gap-2 group cursor-pointer focus:focus:ring-2 focus:ring-amber-500 focus:outline-none"
           >
             <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black tracking-tighter border transition-all duration-300 ${
               currentGlobalStep === 1 
@@ -244,7 +245,7 @@ export function CustomGlassesBuilder({ products }: { products: Product[] }) {
                 placeholder="Buscar por marca o modelo..." 
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-white border border-stone-200 hover:border-stone-300 focus:border-stone-400 rounded-xl px-4 py-2.5 text-xs outline-none transition-all placeholder:text-stone-400 text-stone-905"
+                className="w-full bg-white border border-stone-200 hover:border-stone-300 focus:border-stone-400 rounded-xl px-4 py-2.5 text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none transition-all placeholder:text-stone-400 text-stone-905"
               />
               {searchQuery && (
                 <button 
@@ -335,7 +336,7 @@ export function CustomGlassesBuilder({ products }: { products: Product[] }) {
                       whileHover={{ y: -5 }}
                       key={p.id}
                       onClick={() => handleSelect(p)}
-                      className="flex flex-col items-center text-center group outline-none cursor-pointer"
+                      className="flex flex-col items-center text-center group focus:ring-2 focus:ring-amber-500 focus:outline-none cursor-pointer"
                     >
                       <div className={`w-full aspect-[4/3] relative mb-6 flex items-center justify-center transition-all duration-500 isolate ${isSelected ? 'opacity-100 scale-105' : 'opacity-70 group-hover:opacity-100'}`}>
                         <Image 

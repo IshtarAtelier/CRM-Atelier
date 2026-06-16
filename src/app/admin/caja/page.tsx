@@ -11,6 +11,7 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { resolveStorageUrl } from '@/lib/utils/storage';
 import type { CashMovement } from '@/types/orders';
+import Image from "next/image";
 
 const CATEGORIES = [
     { key: 'VENTA', label: 'Venta Entrante', icon: Wallet, color: 'text-emerald-500', bg: 'bg-emerald-50 dark:bg-emerald-950' },
@@ -307,7 +308,7 @@ export default function CajaPage() {
                             </button>
                         </div>
                         <div className="flex-1 overflow-auto bg-stone-50 dark:bg-stone-900/50 p-4">
-                            <img src={viewingReceipt} alt="Comprobante" className="w-full h-auto rounded-2xl shadow-lg" />
+                            <Image src={viewingReceipt} alt="Comprobante" className="w-full h-auto rounded-2xl shadow-lg" />
                         </div>
                     </div>
                 </div>

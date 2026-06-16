@@ -75,8 +75,7 @@ export default function FAQPage() {
           <p className="text-stone-500 text-sm mb-4">¿Tenés otra duda?</p>
           <a 
             href={`https://wa.me/${WHATSAPP_PHONE}`} 
-            target="_blank"
-            rel="noreferrer"
+            target="_blank" rel="noopener noreferrer"
             className="inline-block px-8 py-3 bg-black text-white text-[12px] uppercase tracking-widest font-medium hover:opacity-80 transition-opacity rounded-full"
           >
             Hablar por WhatsApp

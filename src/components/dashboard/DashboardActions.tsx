@@ -96,14 +96,14 @@ export default function DashboardActions({ onPeriodChange }: DashboardActionsPro
                         type="date"
                         value={customFrom}
                         onChange={e => setCustomFrom(e.target.value)}
-                        className="px-2 py-1 border border-stone-200 dark:border-stone-700 rounded-lg text-[10px] font-bold bg-white dark:bg-stone-950 text-stone-700 dark:text-stone-300 outline-none focus:border-primary"
+                        className="px-2 py-1 border border-stone-200 dark:border-stone-700 rounded-lg text-[10px] font-bold bg-white dark:bg-stone-950 text-stone-700 dark:text-stone-300 focus:ring-2 focus:ring-amber-500 focus:outline-none focus:border-primary"
                     />
                     <span className="text-stone-400 text-[10px] font-bold">a</span>
                     <input
                         type="date"
                         value={customTo}
                         onChange={e => setCustomTo(e.target.value)}
-                        className="px-2 py-1 border border-stone-200 dark:border-stone-700 rounded-lg text-[10px] font-bold bg-white dark:bg-stone-950 text-stone-700 dark:text-stone-300 outline-none focus:border-primary"
+                        className="px-2 py-1 border border-stone-200 dark:border-stone-700 rounded-lg text-[10px] font-bold bg-white dark:bg-stone-950 text-stone-700 dark:text-stone-300 focus:ring-2 focus:ring-amber-500 focus:outline-none focus:border-primary"
                     />
                     <button
                         onClick={applyCustom}

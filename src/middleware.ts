@@ -15,6 +15,7 @@ function safeCompare(a: string, b: string): boolean {
 }
 
 export async function middleware(request: NextRequest) {
+
     const token = request.cookies.get('session')?.value
     const { pathname } = request.nextUrl
 

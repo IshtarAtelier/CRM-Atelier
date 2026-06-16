@@ -17,6 +17,7 @@ import {
     Search
 } from 'lucide-react';
 import type { Order } from '@/types/orders';
+import Image from "next/image";
 
 export const LAB_STEPS = [
     { key: 'NONE', label: 'Pendiente', icon: Clock, color: 'stone', bg: 'bg-stone-100 dark:bg-stone-800', text: 'text-stone-500 dark:text-stone-400', ring: 'ring-stone-200 dark:ring-stone-700' },
@@ -66,7 +67,7 @@ export function OrderDetailPanel({ order, context = 'ventas', financials, onAuto
                     >
                         <X className="w-6 h-6" />
                     </button>
-                    <img 
+                    <Image 
                         src={imageUrl} 
                         alt="Receta médica" 
                         className="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl"
@@ -143,7 +144,7 @@ export function OrderDetailPanel({ order, context = 'ventas', financials, onAuto
                                     onClick={() => setFullImageOpen(true)}
                                 >
                                     <div className="aspect-[4/3] w-full bg-white dark:bg-black">
-                                        <img 
+                                        <Image 
                                             src={imageUrl} 
                                             alt="Receta" 
                                             className="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-opacity"

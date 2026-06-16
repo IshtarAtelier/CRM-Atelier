@@ -26,6 +26,11 @@ export async function GET() {
 // POST /api/users — Create a new user
 export async function POST(request: Request) {
     try {
+        const roleHeader = request.headers.get('x-user-role');
+        if (roleHeader !== 'ADMIN') {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+        }
+
         const { name, email, password, role } = await request.json();
 
         if (!name || !email || !password) {

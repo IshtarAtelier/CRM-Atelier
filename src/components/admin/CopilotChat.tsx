@@ -161,13 +161,13 @@ export function CopilotChat({ userName = 'Usuario', userRole = 'STAFF' }: Copilo
               </div>
               <div>
                 <h3 className="text-sm font-bold text-white">Copilot</h3>
-                <p className="text-xs text-white/70 font-medium">
+                <p className="text-[10px] text-white/70 font-medium">
                   {userRole === 'ADMIN' ? 'Acceso completo' : 'Consultas operativas'}
                 </p>
               </div>
             </div>
             <div className="flex items-center gap-1">
-              <kbd className="hidden md:inline px-1.5 py-0.5 bg-white/15 rounded text-xs font-bold text-white/60 border border-white/20">
+              <kbd className="hidden md:inline px-1.5 py-0.5 bg-white/15 rounded text-[9px] font-bold text-white/60 border border-white/20">
                 ⌘J
               </kbd>
               <button
@@ -191,7 +191,7 @@ export function CopilotChat({ userName = 'Usuario', userRole = 'STAFF' }: Copilo
                   <p className="text-sm font-bold text-stone-700 dark:text-stone-200">
                     Hola {userName.split(' ')[0]} 👋
                   </p>
-                  <p className="text-xs text-stone-600 dark:text-stone-500 mt-1">
+                  <p className="text-xs text-stone-400 dark:text-stone-500 mt-1">
                     Preguntame lo que necesites
                   </p>
                 </div>
@@ -203,7 +203,7 @@ export function CopilotChat({ userName = 'Usuario', userRole = 'STAFF' }: Copilo
                         setInput(s);
                         setTimeout(() => inputRef.current?.focus(), 50);
                       }}
-                      className="px-3 py-1.5 bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-500 text-[11px] font-medium rounded-full hover:bg-violet-100 dark:hover:bg-violet-900/30 hover:text-violet-700 dark:hover:text-violet-300 transition-all border border-stone-200 dark:border-stone-700"
+                      className="px-3 py-1.5 bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-300 text-[11px] font-medium rounded-full hover:bg-violet-100 dark:hover:bg-violet-900/30 hover:text-violet-700 dark:hover:text-violet-300 transition-all border border-stone-200 dark:border-stone-700"
                     >
                       {s}
                     </button>
@@ -223,7 +223,7 @@ export function CopilotChat({ userName = 'Usuario', userRole = 'STAFF' }: Copilo
                   }`}>
                     {msg.role === 'user'
                       ? <User className="w-3.5 h-3.5 text-violet-600 dark:text-violet-400" />
-                      : <Sparkles className="w-3.5 h-3.5 text-stone-500 dark:text-stone-600" />
+                      : <Sparkles className="w-3.5 h-3.5 text-stone-500 dark:text-stone-400" />
                     }
                   </div>
                   <div className={`rounded-2xl px-4 py-2.5 ${
@@ -244,7 +244,7 @@ export function CopilotChat({ userName = 'Usuario', userRole = 'STAFF' }: Copilo
               <div className="flex justify-start">
                 <div className="flex items-end gap-2">
                   <div className="w-6 h-6 rounded-lg bg-stone-100 dark:bg-stone-800 flex items-center justify-center">
-                    <Sparkles className="w-3.5 h-3.5 text-stone-500 dark:text-stone-600" />
+                    <Sparkles className="w-3.5 h-3.5 text-stone-500 dark:text-stone-400" />
                   </div>
                   <div className="bg-stone-100 dark:bg-stone-800 rounded-2xl rounded-bl-md px-4 py-3 border border-stone-200 dark:border-stone-700 flex items-center gap-1.5">
                     <span className="w-1.5 h-1.5 bg-stone-400 rounded-full animate-bounce [animation-delay:-0.3s]" />
@@ -269,7 +269,7 @@ export function CopilotChat({ userName = 'Usuario', userRole = 'STAFF' }: Copilo
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 placeholder="Preguntá algo..."
-                className="flex-1 bg-stone-100 dark:bg-stone-800 border-none rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-violet-500 dark:text-white placeholder:text-stone-600 dark:placeholder:text-stone-500 outline-none"
+                className="flex-1 bg-stone-100 dark:bg-stone-800 border-none rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-violet-500 dark:text-white placeholder:text-stone-400 dark:placeholder:text-stone-500 focus:ring-2 focus:ring-amber-500 focus:outline-none"
                 id="copilot-input"
               />
               <button

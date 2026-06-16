@@ -328,7 +328,7 @@ export default function CheckoutPage() {
         <StorefrontNavbar theme="light" />
         <div className="text-center mt-32 max-w-md mx-auto px-5 mb-32">
           <ShieldCheck className="w-16 h-16 mx-auto mb-6 text-emerald-500" />
-          <h2 className="text-3xl font-light mb-4" style={{ fontFamily: "'Georgia', 'Times New Roman', serif" }}>¡Gracias por tu compra!</h2>
+          <h2 className=" font-serif">¡Gracias por tu compra!</h2>
           <p className="text-stone-500 mb-8 leading-relaxed">
             {formData.paymentMethod === 'TRANSFER' 
               ? "Hemos registrado tu pedido. Te enviamos un correo con los datos bancarios para realizar la transferencia del monto total con descuento."
@@ -375,7 +375,7 @@ export default function CheckoutPage() {
         {/* IZQUIERDA: Formulario de Checkout */}
         <div className="lg:col-span-7 flex flex-col gap-10">
           <div>
-            <h1 className="text-3xl font-light tracking-tight mb-2" style={{ fontFamily: "'Georgia', 'Times New Roman', serif" }}>
+            <h1 className=" font-serif">
               Checkout
             </h1>
             <p className="text-stone-500 text-sm">Completá tus datos para finalizar la compra de forma segura.</p>

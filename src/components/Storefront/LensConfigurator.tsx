@@ -148,7 +148,7 @@ export function LensConfigurator({ basePrice, productId, category, onColorChange
       </div>
 
       {flowType === "CLEAR" && category !== "Anteojos de Sol" && (
-        <div className="relative overflow-hidden mb-8 p-6 bg-stone-900 text-white rounded-[1rem] flex flex-col sm:flex-row items-center justify-between gap-4 cursor-pointer hover:bg-black transition-colors shadow-xl shadow-stone-900/10 group" onClick={() => { setFlowType("SUN"); setStep(1); setLensType(null); setTreatment(null); setTintColor(null); setTintStyle(null); }}>
+        <div role="button" tabIndex={0} className="relative overflow-hidden mb-8 p-6 bg-stone-900 text-white rounded-[1rem] flex flex-col sm:flex-row items-center justify-between gap-4 cursor-pointer hover:bg-black transition-colors shadow-xl shadow-stone-900/10 group" onClick={() => { setFlowType("SUN"); setStep(1); setLensType(null); setTreatment(null); setTintColor(null); setTintStyle(null); }}>
           {/* Brillo móvil infinito (Shimmer) */}
           <div className="absolute inset-0 pointer-events-none bg-gradient-to-r from-transparent via-white/15 to-transparent animate-shimmer" />
           
@@ -163,7 +163,7 @@ export function LensConfigurator({ basePrice, productId, category, onColorChange
       )}
 
       {flowType === "SUN" && category !== "Anteojos de Sol" && (
-        <div className="mb-8 p-4 border border-black/10 rounded-[1rem] flex flex-col sm:flex-row items-center justify-between cursor-pointer hover:bg-black/5 transition-colors" onClick={() => { setFlowType("CLEAR"); setStep(1); setLensType(null); setTreatment(null); setTintColor(null); setTintStyle(null); }}>
+        <div role="button" tabIndex={0} className="mb-8 p-4 border border-black/10 rounded-[1rem] flex flex-col sm:flex-row items-center justify-between cursor-pointer hover:bg-black/5 transition-colors" onClick={() => { setFlowType("CLEAR"); setStep(1); setLensType(null); setTreatment(null); setTintColor(null); setTintStyle(null); }}>
           <p className="text-[11px] font-bold uppercase tracking-widest text-black flex items-center gap-3"><span className="text-xl">👓</span> Volver a cristales transparentes</p>
           <span className="text-[10px] uppercase tracking-widest underline underline-offset-4 mt-2 sm:mt-0 font-bold">Cambiar</span>
         </div>
@@ -629,7 +629,7 @@ function ColorOption({ color, hex, selected, onClick }: any) {
 
 function CompletedStep({ num, subtitle, title, onClick }: { num: string, subtitle: string, title: string, onClick: () => void }) {
   return (
-    <div className="flex flex-col sm:flex-row sm:items-center justify-between py-6 border-b border-black/10 cursor-pointer group hover:bg-black/5 px-6 -mx-6 transition-colors rounded-xl" onClick={onClick}>
+    <div role="button" tabIndex={0} className="flex flex-col sm:flex-row sm:items-center justify-between py-6 border-b border-black/10 cursor-pointer group hover:bg-black/5 px-6 -mx-6 transition-colors rounded-xl" onClick={onClick}>
       <div className="flex items-center gap-6">
         <span className="text-[12px] font-bold uppercase tracking-[0.3em] text-[#999] opacity-40">{num}</span>
         <div>

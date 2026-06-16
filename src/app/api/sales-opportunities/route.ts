@@ -254,32 +254,6 @@ export async function GET() {
         });
 
         for (const cart of abandonedCarts) {
-            // Check if there is a client with this phone number who has already bought (status CLIENT or has active SALE)
-            if (cart.phone) {
-                const cleanedPhone = cart.phone.replace(/\D/g, '');
-                if (cleanedPhone) {
-                    const existingClient = await prisma.client.findFirst({
-                        where: {
-                            phone: { contains: cleanedPhone.slice(-8) }, // match last 8 digits for flexible matching
-                            OR: [
-                                { status: { in: ['CLIENT', 'active'] } },
-                                {
-                                    orders: {
-                                        some: {
-                                            OR: [
-                                                { orderType: 'SALE' },
-                                                { status: 'CONFIRMED', updatedAt: { gte: sevenDaysAgo } }
-                                            ],
-                                            isDeleted: false
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    });
-                    if (existingClient) continue; // Skip since they are already a customer
-                }
-            }
 
             // Exclude small/simple carts (only show high value, multifocals, myopia controls)
             const hasHighValue = cart.total >= 250000;

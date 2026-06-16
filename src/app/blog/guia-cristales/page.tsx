@@ -18,7 +18,7 @@ export default function CrystalGuidePage() {
         <Link href="/" className="text-[13px] font-medium hover:opacity-60 transition-opacity" style={{ textShadow: "0 1px 3px rgba(0,0,0,0.3)" }}>
           Back
         </Link>
-        <Link href="/" className="absolute left-1/2 -translate-x-1/2 text-[16px] font-medium tracking-tight tracking-[0.15em] drop-shadow-md" style={{ fontFamily: "'Georgia', 'Times New Roman', serif" }}>
+        <Link href="/" className=" font-serif">
           ATELIER ÓPTICA
         </Link>
         <div className="flex gap-5">

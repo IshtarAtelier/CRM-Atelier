@@ -1,12 +1,13 @@
 "use client";
+import Image from "next/image";
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Glasses, ClipboardList, LayoutDashboard, Cog, FileText, Contact, Calculator, ShoppingCart, Wallet, Search, Menu, X, Receipt, Banknote, TrendingDown, ChevronLeft, ChevronRight, Wrench } from "lucide-react";
 import { motion } from "framer-motion";
-import { UserProfile } from '../admin/UserProfile';
-import { NotificationBell } from '../ui/NotificationBell';
+import { UserProfile } from "@/components/admin/UserProfile";
+import { NotificationBell } from "@/components/ui/NotificationBell";
 import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon";
 
 interface SidebarProps {
@@ -74,7 +75,7 @@ export function Sidebar({ userName = "Usuario", userRole = "STAFF", userId = "" 
     <>
       <div className={`px-5 py-5 flex items-center ${isCollapsed ? 'justify-center' : 'justify-between'}`}>
         {!isCollapsed ? (
-          <img src="/assets/logo-atelier-optica.png" alt="Logo Atelier Óptica" className="h-10 object-contain dark:invert" />
+          <Image src="/assets/logo-atelier-optica.png" alt="Logo Atelier Óptica" width={150} height={40} className="h-10 object-contain dark:invert" />
         ) : (
           <div className="w-8 h-8 bg-stone-900 dark:bg-white rounded-xl flex items-center justify-center font-black text-white dark:text-stone-900 text-lg">
             A

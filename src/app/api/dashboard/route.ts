@@ -113,42 +113,30 @@ export async function GET(request: Request) {
         }, 0);
         const totalPaidMonth = currentMonthOrders.reduce((acc: number, order: any) => acc + (order.paid || 0), 0);
         
-        // SALDO PENDIENTE GLOBAL (Cuentas a cobrar históricas)
-        // Se calcula igual que getOrdersWithBalance: agrupado por cliente,
-        // sumando totales de SALEs y restando TODOS los payments reales (de cualquier orden).
-        // Esto evita discrepancias con el campo cacheado `paid`.
-        const allClientsWithOrders = await prisma.client.findMany({
-            where: {
-                orders: {
-                    some: { orderType: 'SALE', isDeleted: false }
-                }
-            },
-            select: {
-                id: true,
-                orders: {
-                    where: { isDeleted: false },
-                    select: {
-                        orderType: true,
-                        total: true,
-                        subtotalWithMarkup: true,
-                        payments: { select: { amount: true } }
-                    }
-                }
-            }
-        });
-        const globalPendingBalance = allClientsWithOrders.reduce((acc, client) => {
-            let totalSales = 0;
-            let totalPaid = 0;
-            for (const order of client.orders) {
-                if (order.orderType === 'SALE') {
-                    totalSales += order.total || order.subtotalWithMarkup || 0;
-                }
-                // Sum ALL payments (from sales and quotes alike)
-                for (const p of order.payments) {
-                    totalPaid += p.amount || 0;
-                }
-            }
-            return acc + Math.max(0, totalSales - totalPaid);
+        const clientBalances = await prisma.$queryRaw`
+            WITH ClientSales AS (
+                SELECT "clientId", SUM(COALESCE("total", "subtotalWithMarkup", 0)) as "totalSales"
+                FROM "Order"
+                WHERE "isDeleted" = false AND "orderType" = 'SALE' AND "clientId" IS NOT NULL
+                GROUP BY "clientId"
+            ),
+            ClientPayments AS (
+                SELECT o."clientId", SUM(p."amount") as "totalPaid"
+                FROM "Payment" p
+                JOIN "Order" o ON p."orderId" = o."id"
+                WHERE o."isDeleted" = false AND o."clientId" IS NOT NULL
+                GROUP BY o."clientId"
+            )
+            SELECT 
+                cs."clientId", 
+                cs."totalSales", 
+                COALESCE(cp."totalPaid", 0) as "totalPaid"
+            FROM ClientSales cs
+            LEFT JOIN ClientPayments cp ON cs."clientId" = cp."clientId"
+        `;
+
+        const globalPendingBalance = (clientBalances as any[]).reduce((acc, row) => {
+            return acc + Math.max(0, Number(row.totalSales || 0) - Number(row.totalPaid || 0));
         }, 0);
 
         const ordersCountMonth = currentMonthOrders.length;

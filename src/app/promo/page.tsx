@@ -308,7 +308,7 @@ export default function PromoLandingPage() {
         <div className="max-w-6xl mx-auto">
           <div className="flex flex-col items-center text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-serif text-white mb-6">Confianza Absoluta</h2>
-            <a href="https://maps.app.goo.gl/fQ9T1xBFmDV8Tpim9" target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 text-[#C5A059] border-b border-[#C5A059] pb-1 hover:text-white hover:border-white transition-colors text-sm font-bold uppercase tracking-widest">
+            <a href="https://maps.app.goo.gl/fQ9T1xBFmDV8Tpim9" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-[#C5A059] border-b border-[#C5A059] pb-1 hover:text-white hover:border-white transition-colors text-sm font-bold uppercase tracking-widest">
               Ver las 200+ reseñas en Google
             </a>
           </div>

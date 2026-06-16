@@ -109,7 +109,7 @@ export function CheckoutShippingForm({ formData, handleChange, isLocalCity, hasC
             name="shippingBranch" 
             value={formData.shippingBranch || ""}
             placeholder="Ej: Sucursal Cerro de las Rosas (Av. Rafael Núñez 4200) o dejas vacío y coordinamos por WhatsApp" 
-            className="w-full border border-stone-200 p-3 text-sm focus:border-black focus:outline-none transition-colors rounded-lg bg-stone-50/30" 
+            className="w-full border border-stone-200 p-3 text-sm focus:border-black focus:focus:ring-2 focus:ring-amber-500 focus:outline-none transition-colors rounded-lg bg-stone-50/30" 
             onChange={handleChange} 
           />
         </div>
@@ -123,7 +123,7 @@ export function CheckoutShippingForm({ formData, handleChange, isLocalCity, hasC
             value={formData.address}
             required 
             placeholder="Dirección (Calle, Número, Depto)" 
-            className="w-full border border-stone-200 p-3 text-sm focus:border-black focus:outline-none transition-colors" 
+            className="w-full border border-stone-200 p-3 text-sm focus:border-black focus:focus:ring-2 focus:ring-amber-500 focus:outline-none transition-colors" 
             onChange={handleChange} 
           />
         </div>
@@ -134,7 +134,7 @@ export function CheckoutShippingForm({ formData, handleChange, isLocalCity, hasC
             value={formData.city}
             required 
             placeholder="Ciudad" 
-            className="w-full border border-stone-200 p-3 text-sm focus:border-black focus:outline-none transition-colors" 
+            className="w-full border border-stone-200 p-3 text-sm focus:border-black focus:focus:ring-2 focus:ring-amber-500 focus:outline-none transition-colors" 
             onChange={handleChange} 
           />
         </div>
@@ -145,7 +145,7 @@ export function CheckoutShippingForm({ formData, handleChange, isLocalCity, hasC
             value={formData.state}
             required 
             placeholder="Provincia" 
-            className="w-full border border-stone-200 p-3 text-sm focus:border-black focus:outline-none transition-colors" 
+            className="w-full border border-stone-200 p-3 text-sm focus:border-black focus:focus:ring-2 focus:ring-amber-500 focus:outline-none transition-colors" 
             onChange={handleChange} 
           />
         </div>
@@ -156,7 +156,7 @@ export function CheckoutShippingForm({ formData, handleChange, isLocalCity, hasC
             value={formData.zip}
             required 
             placeholder="Código Postal" 
-            className="w-full border border-stone-200 p-3 text-sm focus:border-black focus:outline-none transition-colors" 
+            className="w-full border border-stone-200 p-3 text-sm focus:border-black focus:focus:ring-2 focus:ring-amber-500 focus:outline-none transition-colors" 
             onChange={handleChange} 
           />
         </div>

@@ -1030,14 +1030,14 @@ const getPendingBalances: CopilotTool = {
 // EXPORTS
 // ═══════════════════════════════════════════════════
 
-export const STAFF_TOOLS: CopilotTool[] = [
+const STAFF_TOOLS: CopilotTool[] = [
   lookupClient, getClientBalance, getOrderStatus,
   getProductStock, getPriceList, getMySalesToday, getLabStatus, updateLabOrder,
   getClientPrescriptions, updateClientInfo, createClientTask, getClientTasks,
   completeClientTask, addClientInteraction, getClientHistory, getSalesVsTarget
 ];
 
-export const ADMIN_TOOLS: CopilotTool[] = [
+const ADMIN_TOOLS: CopilotTool[] = [
   getFinancialReport, getAllSalesStats, getBillingStats,
   getExpenseSummary, getProductCost, getProductSalesCount, getPendingBalances,
 ];

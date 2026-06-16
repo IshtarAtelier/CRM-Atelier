@@ -2,6 +2,7 @@
 
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { Upload, X, FileImage, File as FileIcon, AlertCircle, Clipboard } from 'lucide-react';
+import Image from "next/image";
 
 interface FileDropZoneProps {
     /** Accepted file types, e.g. "image/*" or "image/*,.pdf" */
@@ -201,7 +202,7 @@ export default function FileDropZone({
                         
                         {/* Centered Loading Badge */}
                         <div className="absolute inset-0 flex items-center justify-center z-20">
-                            <span className="bg-stone-900/80 text-primary px-4 py-2 rounded-full text-xs font-black uppercase tracking-widest backdrop-blur-md border border-primary/50 shadow-[0_0_30px_rgba(52,211,153,0.3)] animate-pulse">
+                            <span className="bg-stone-900/80 text-primary px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest backdrop-blur-md border border-primary/50 shadow-[0_0_30px_rgba(52,211,153,0.3)] animate-pulse">
                                 {loadingLabel || 'Escaneando...'}
                             </span>
                         </div>
@@ -223,7 +224,7 @@ export default function FileDropZone({
     return (
         <div className={className}>
             <div
-                onClick={handleClick} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.currentTarget.click(); } }}
+                onClick={handleClick}
                 onDragEnter={handleDragEnter}
                 onDragLeave={handleDragLeave}
                 onDragOver={handleDragOver}
@@ -256,7 +257,7 @@ export default function FileDropZone({
                 {loading ? (
                     <>
                         <div className="w-8 h-8 border-3 border-primary/30 border-t-primary rounded-full animate-spin mb-3 relative z-10" />
-                        <span className="text-xs font-black text-primary uppercase tracking-widest animate-pulse relative z-10">
+                        <span className="text-[10px] font-black text-primary uppercase tracking-widest animate-pulse relative z-10">
                             {loadingLabel}
                         </span>
                     </>
@@ -282,20 +283,20 @@ export default function FileDropZone({
                     <>
                         <div className="w-10 h-10 bg-stone-100 dark:bg-stone-800 rounded-full flex items-center justify-center mb-2 group-hover:bg-primary/10 group-hover:scale-110 transition-all duration-300 relative z-10">
                             {accept?.includes('image') ? (
-                                <FileImage className="w-5 h-5 text-stone-500 group-hover:text-primary transition-colors duration-300" />
+                                <FileImage className="w-5 h-5 text-stone-300 group-hover:text-primary transition-colors duration-300" />
                             ) : (
-                                <FileIcon className="w-5 h-5 text-stone-500 group-hover:text-primary transition-colors duration-300" />
+                                <FileIcon className="w-5 h-5 text-stone-300 group-hover:text-primary transition-colors duration-300" />
                             )}
                         </div>
-                        <span className="text-xs font-black text-stone-600 group-hover:text-primary/70 uppercase tracking-widest transition-colors duration-300 text-center px-4 relative z-10">
+                        <span className="text-[10px] font-black text-stone-400 group-hover:text-primary/70 uppercase tracking-widest transition-colors duration-300 text-center px-4 relative z-10">
                             {label}
                         </span>
                         
                         <div className="flex items-center gap-2 mt-2 relative z-10">
-                            <span className="flex items-center gap-1 text-xs font-bold text-stone-600 bg-stone-200/50 dark:bg-stone-800/50 px-2 py-0.5 rounded-md">
+                            <span className="flex items-center gap-1 text-[9px] font-bold text-stone-400 bg-stone-200/50 dark:bg-stone-800/50 px-2 py-0.5 rounded-md">
                                 <Clipboard className="w-3 h-3" /> Ctrl+V para pegar
                             </span>
-                            <span className="text-xs font-bold text-stone-500">
+                            <span className="text-[9px] font-bold text-stone-300">
                                 Máx. {maxSizeMB}MB
                             </span>
                         </div>
@@ -306,7 +307,7 @@ export default function FileDropZone({
             {error && (
                 <div className="flex items-center gap-1.5 mt-2 text-red-500 animate-in slide-in-from-top duration-200">
                     <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-                    <span className="text-xs font-bold">{error}</span>
+                    <span className="text-[10px] font-bold">{error}</span>
                 </div>
             )}
         </div>

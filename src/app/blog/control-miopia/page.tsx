@@ -1,6 +1,7 @@
 import { Metadata } from 'next';
 import Link from "next/link";
 import { WHATSAPP_PHONE } from '@/lib/constants';
+import Image from "next/image";
 
 
 export const metadata: Metadata = {
@@ -18,7 +19,7 @@ export default function MyopiaControlPage() {
         <Link href="/blog" className="text-[13px] font-medium hover:opacity-60 transition-opacity" style={{ textShadow: "0 1px 3px rgba(0,0,0,0.3)" }}>
           Back
         </Link>
-        <Link href="/" className="absolute left-1/2 -translate-x-1/2 text-[16px] font-medium tracking-tight tracking-[0.15em] drop-shadow-md" style={{ fontFamily: "'Georgia', 'Times New Roman', serif" }}>
+        <Link href="/" className=" font-serif">
           ATELIER ÓPTICA
         </Link>
         <div className="flex gap-5">
@@ -38,7 +39,7 @@ export default function MyopiaControlPage() {
         {/* Hero Image */}
         <div className="w-full h-64 md:h-[400px] relative mb-12 lg:mb-16 bg-stone-100 overflow-hidden">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img 
+          <Image 
             src="/images/blog/vidriera-atelier.webp" 
             alt="Interior de Atelier Óptica" 
             className="w-full h-full object-cover" 

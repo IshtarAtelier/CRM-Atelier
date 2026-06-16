@@ -2,9 +2,16 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { encrypt } from '@/lib/auth';
 import bcrypt from 'bcryptjs';
+import { checkRateLimit } from '@/lib/rate-limiter';
 
 export async function POST(request: Request) {
     try {
+        const ip = request.headers.get('x-forwarded-for') || 'unknown-ip';
+        const rateLimit = checkRateLimit(`login-${ip}`, { limit: 10, windowMs: 15 * 60 * 1000 });
+        if (!rateLimit.success) {
+            return NextResponse.json({ error: 'Demasiados intentos fallidos. Intenta nuevamente en 15 minutos.' }, { status: 429 });
+        }
+
         const { email, password } = await request.json();
 
         if (!email || !password) {

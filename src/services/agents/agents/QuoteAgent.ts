@@ -10,7 +10,7 @@ export interface QuoteRequest {
   frameId?: string;
 }
 
-export interface QuoteOption {
+interface QuoteOption {
   name: string;
   description: string;
   originalPrice: number;

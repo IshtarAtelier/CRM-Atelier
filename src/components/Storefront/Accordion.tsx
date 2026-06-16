@@ -18,7 +18,7 @@ export function AccordionItem({ title, subtitle, children, defaultOpen = false }
     <div className="border border-[#e8e2db] rounded-2xl bg-white overflow-hidden transition-all duration-300 mb-4">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full text-left px-6 py-5 flex items-center justify-between focus:outline-none hover:bg-[#faf8f5] transition-colors"
+        className="w-full text-left px-6 py-5 flex items-center justify-between focus:focus:ring-2 focus:ring-amber-500 focus:outline-none hover:bg-[#faf8f5] transition-colors"
       >
         <div>
           <h3 className="text-xl font-bold text-black">{title}</h3>

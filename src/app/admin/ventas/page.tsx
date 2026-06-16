@@ -7,9 +7,10 @@ import { WhatsAppIcon } from '@/components/icons/WhatsAppIcon';
 import { PricingService } from '@/services/PricingService';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import InvoiceModal from '@/components/InvoiceModal';
+import InvoiceModal from '@/components/billing/InvoiceModal';
 import { generateInvoicePDF } from '@/lib/invoice-generator';
 import type { Order } from '@/types/orders';
+import Image from "next/image";
 
 const LAB_STATUS: Record<string, { key: string, label: string; color: string; icon: any; bg: string; text: string; ring: string }> = {
     'NONE': { key: 'NONE', label: 'Sin enviar', color: 'bg-stone-100 text-stone-500', bg: 'bg-stone-100 dark:bg-stone-800', text: 'text-stone-500 dark:text-stone-400', ring: 'ring-stone-200 dark:ring-stone-700', icon: Clock },
@@ -637,7 +638,7 @@ export default function VentasPage() {
 </style></head><body>
 <button class="print-btn" onclick="window.print()">IMPRIMIR PDF</button>
 <div class='letterhead'>
-    <img src='${logoUrl}' class='letterhead-logo' alt='Atelier Óptica' />
+    <Image src='${logoUrl}' class='letterhead-logo' alt='Atelier Óptica' />
     <div class='letterhead-right'>
         <div class='address-bold'>José Luis de Tejeda 4380 · Córdoba</div>
         <div>Fecha: ${dateStr}</div>
