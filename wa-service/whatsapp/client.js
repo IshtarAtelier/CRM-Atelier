@@ -107,6 +107,8 @@ async function startClientInternal(attempt = 1) {
         try {
             fs.rmSync(sessionPath, { recursive: true, force: true });
             console.log('🗑️ Archivos de sesión eliminados.');
+        } catch (e) {
+            console.error('⚠️ No se pudo eliminar la sesión corrupta:', e.message);
         }
     }
 
