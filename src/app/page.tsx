@@ -109,6 +109,7 @@ export default async function Home() {
     ? list.map(wp => ({
         id: wp.product.id,
         name: wp.name,
+        rawPrice: wp.product.price,
         price: wp.product.price ? `6 cuotas de $${Math.round(wp.product.price / 6).toLocaleString("es-AR")}` : "",
         img: wp.imageUrl 
           ? resolveStorageUrl(wp.imageUrl)

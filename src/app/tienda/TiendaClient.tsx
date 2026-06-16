@@ -12,7 +12,7 @@ import { PaymentOptions } from "@/components/Storefront/PaymentOptions";
 import { ProductFilters } from "@/components/Storefront/ProductFilters";
 import { resolveStorageUrl } from "@/lib/utils/storage";
 
-const CATEGORIES = ["Todo", "Receta", "Sol", "XL", "Clip-On", "Contacto"];
+const CATEGORIES = ["Todo", "Receta", "Sol", "Clip-On", "Contacto", "Cristales"];
 
 const isXlProduct = (p: any) => {
   const nameLower = (p.name || "").toLowerCase();
@@ -93,6 +93,9 @@ export function TiendaClient({
         if (active === "contacto") {
           return cat.includes("contacto") || cat.includes("contact");
         }
+        if (active === "cristales") {
+          return cat.includes("cristal") || cat.includes("lente");
+        }
         return cat === active;
       });
 
@@ -115,16 +118,16 @@ export function TiendaClient({
           </p>
         </div>
 
-        {/* ── FILTROS ── */}
-        <div className="max-w-[1600px] mx-auto px-5 pb-5 pt-2 flex flex-wrap items-center gap-2">
+        {/* ── BANNER DE CATEGORÍAS ── */}
+        <div className="max-w-[1600px] mx-auto px-5 pb-8 pt-6 flex flex-wrap items-center justify-center gap-3">
           {CATEGORIES.map(cat => (
             <button
               key={cat}
               onClick={() => setActiveCategory(cat)}
-              className={`shrink-0 text-[12px] font-extrabold uppercase tracking-widest px-6 py-2.5 rounded-full transition-all duration-300 ${
+              className={`shrink-0 text-[13px] font-black uppercase tracking-widest px-8 py-3.5 rounded-full transition-all duration-300 ${
                 activeCategory === cat
-                  ? "bg-black text-white shadow-md scale-105"
-                  : "bg-stone-100 text-stone-500 hover:bg-stone-200 hover:text-black"
+                  ? "bg-black text-white shadow-lg scale-105"
+                  : "bg-stone-100 text-stone-500 hover:bg-stone-200 hover:text-black hover:scale-105"
               }`}
             >
               {cat}
@@ -133,7 +136,7 @@ export function TiendaClient({
           {activeCategory !== "Todo" && (
             <button
               onClick={() => setActiveCategory("Todo")}
-              className="shrink-0 ml-2 flex items-center gap-1 text-[10px] font-bold text-stone-400 hover:text-black transition-colors"
+              className="shrink-0 ml-4 flex items-center gap-1 text-[11px] font-bold text-stone-400 hover:text-black transition-colors"
             >
               <X className="w-3 h-3" /> Limpiar
             </button>

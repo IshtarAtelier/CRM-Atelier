@@ -11,6 +11,7 @@ interface CarouselProduct {
   id: string | number;
   name: string;
   price: string;
+  rawPrice?: number;
   img: string;
   slug: string;
   stock?: number;
@@ -187,10 +188,25 @@ export function HomeProductCarousel({ collections, totalCount }: Props) {
               <div>
                 <h3 className="text-[12px] font-bold text-stone-900 line-clamp-1 uppercase tracking-wide">{item.name}</h3>
                 
-                <div className="flex items-center gap-2 mt-1.5">
-                  <p className="text-[13px] font-black text-stone-900 tracking-tight">
-                    {item.price}
-                  </p>
+                <div className="flex items-center justify-between mt-1 pr-2">
+                  <div className="flex flex-col gap-0.5">
+                    <p className="text-[13px] font-black text-stone-900 tracking-tight">
+                      {item.price}
+                    </p>
+                    {item.rawPrice && (
+                      <p className="text-[10px] text-stone-500 font-medium">
+                        ${Math.round(item.rawPrice * 0.85).toLocaleString("es-AR")} eft/transf
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex flex-col items-end gap-1">
+                    <span className="text-[8px] font-black uppercase tracking-widest text-emerald-700 bg-emerald-50 border border-emerald-100 px-1.5 py-0.5 rounded-sm whitespace-nowrap">
+                      15% OFF 🔥
+                    </span>
+                    <span className="text-[8px] font-black uppercase tracking-widest text-stone-700 bg-stone-100 px-1.5 py-0.5 rounded-sm whitespace-nowrap">
+                      Envío Gratis
+                    </span>
+                  </div>
                 </div>
               </div>
 
