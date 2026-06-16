@@ -16,7 +16,7 @@ export function CristalHero({ preTitle, title, description }: CristalHeroProps) 
         <h1 className="text-4xl md:text-6xl font-black tracking-tight mb-8">
           {title}
         </h1>
-        <p className="text-lg md:text-xl text-black/70 max-w-3xl mx-auto leading-relaxed font-light">
+        <p className="text-lg md:text-xl text-stone-800 max-w-3xl mx-auto leading-relaxed">
           {description}
         </p>
       </div>

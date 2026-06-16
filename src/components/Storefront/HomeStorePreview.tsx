@@ -94,11 +94,11 @@ export async function HomeStorePreview() {
             {/* Store Photo */}
             <div className="w-full h-[300px] md:h-[420px] overflow-hidden rounded-3xl border border-[#e8e2db]/40 shadow-sm relative group">
               <Image
-                src="/images/blog/fachada-ladrillo.webp"
+                src="/images/blog/fachada-local.jpg"
                 alt="Fachada Atelier Óptica"
                 fill
                 sizes="(max-width: 1024px) 100vw, 35vw"
-                className="object-cover group-hover:scale-105 transition-transform duration-700"
+                className="object-cover object-left-top group-hover:scale-105 transition-transform duration-700"
               />
               <div className="absolute inset-0 bg-black/25 flex items-end p-6">
                 <span className="text-white text-[10px] font-black uppercase tracking-widest bg-black/50 backdrop-blur-md px-4 py-2 rounded-full">

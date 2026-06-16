@@ -7,6 +7,8 @@ import { ChevronDown, Search, ShoppingBag, X } from "lucide-react";
 import { useCart } from "@/store/useCart";
 import { CartSidebar } from "./CartSidebar";
 import { resolveStorageUrl } from "@/lib/utils/storage";
+import Image from "next/image";
+import { usePathname } from "next/navigation";
 
 interface StorefrontNavbarProps {
   theme?: "light" | "dark"; // dark = dark background (needs white text), light = light background (needs black text)
@@ -14,6 +16,7 @@ interface StorefrontNavbarProps {
 }
 
 export function StorefrontNavbar({ theme = "dark", mixBlend = false }: StorefrontNavbarProps) {
+  const pathname = usePathname();
   const [scrolled, setScrolled] = useState(false);
   const [isExploreOpen, setIsExploreOpen] = useState(false);
   const { items, setIsOpen: setCartOpen } = useCart();
@@ -117,7 +120,7 @@ export function StorefrontNavbar({ theme = "dark", mixBlend = false }: Storefron
               </Link>
               <Link 
                 href="/arma-tus-lentes" 
-                className={`text-[13px] font-bold ${activeTextColorClass} hover:opacity-60 transition-opacity border-b-2 border-primary pb-0.5 hidden sm:block`} 
+                className={`text-[13px] font-bold ${activeTextColorClass} hover:opacity-60 transition-opacity ${pathname === '/arma-tus-lentes' ? 'border-b-2 border-primary' : ''} pb-0.5 hidden sm:block`} 
                 style={activeTextShadowStyle}
               >
                 Lentes a Medida
