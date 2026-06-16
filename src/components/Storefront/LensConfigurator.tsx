@@ -238,21 +238,18 @@ export function LensConfigurator({ basePrice, productId, category, onColorChange
                         onClick={() => { setLensType("NONE"); setTreatment("ORGANICO_BLANCO"); setStep(4); }} 
                         title="Sin Aumento" 
                         desc="Orgánico Blanco neutro + Teñido." 
-                        price={`+$${(PRICING.MONOFOCAL.ORGANICO_BLANCO + PRICING.EXTRAS.TINT).toLocaleString()}`} 
                       />
                       <OptionCard 
                         selected={lensType === "MONOFOCAL"} 
                         onClick={() => { setLensType("MONOFOCAL"); setTreatment("ORGANICO_BLANCO"); setStep(4); }} 
                         title="Monofocal Teñido" 
                         desc="Orgánico Blanco para lejos o cerca." 
-                        price={`+$${(PRICING.MONOFOCAL.ORGANICO_BLANCO + PRICING.EXTRAS.TINT).toLocaleString()}`} 
                       />
                       <OptionCard 
                         selected={lensType === "BIFOCAL"} 
                         onClick={() => { setLensType("BIFOCAL"); setTreatment("ORGANICO_BLANCO"); setStep(4); }} 
                         title="Bifocal Teñido" 
                         desc="Visión dividida para lejos y cerca." 
-                        price={`+$${(PRICING.BIFOCAL.ORGANICO_BLANCO + PRICING.EXTRAS.TINT).toLocaleString()}`} 
                       />
                       <OptionCard 
                         selected={false} 
@@ -313,14 +310,12 @@ export function LensConfigurator({ basePrice, productId, category, onColorChange
                             onClick={() => { setTreatment("ORGANICO_BLANCO"); setStep(4); }} 
                             title="Básico (Sin Protección)" 
                             features={["Visión estándar", "Sin Antirreflex", "Grosor normal"]} 
-                            price={`+$${PRICING.MONOFOCAL.ORGANICO_BLANCO?.toLocaleString() || '0'}`} 
                           />
                           <OptionCard 
                             selected={treatment === "ORGANICO_AR"} 
                             onClick={() => { setTreatment("ORGANICO_AR"); setStep(4); }} 
                             title="Antirreflex (Evita Brillos)" 
                             features={["Visión más nítida", "Sin reflejos molestos", "Mayor estética"]} 
-                            price={`+$${PRICING.MONOFOCAL.ORGANICO_AR?.toLocaleString() || '0'}`} 
                           />
                           <OptionCard 
                             selected={treatment === "ORGANICO_BLUE"} 
@@ -328,7 +323,6 @@ export function LensConfigurator({ basePrice, productId, category, onColorChange
                             title="Super Blue" 
                             badge="MÁS ELEGIDO ⭐"
                             features={["Antirreflex Premium", "Filtro luz azul (Pantallas)", "20% más delgado"]} 
-                            price={`+$${PRICING.MONOFOCAL.ORGANICO_BLUE?.toLocaleString() || '0'}`} 
                           />
                           <OptionCard 
                             selected={treatment === "POLI_BLUE"} 
@@ -336,27 +330,25 @@ export function LensConfigurator({ basePrice, productId, category, onColorChange
                             title="Extra Fino y Resistente" 
                             badge="PREMIUM 👑"
                             features={["Policarbonato irrompible", "Filtro luz azul", "Ultra liviano"]} 
-                            price={`+$${PRICING.MONOFOCAL.POLI_BLUE?.toLocaleString() || '0'}`} 
                           />
                           <OptionCard 
                             selected={treatment === "ORGANICO_FOTOCROMATICO"} 
                             onClick={() => { setTreatment("ORGANICO_FOTOCROMATICO"); setStep(4); }} 
                             title="Fotocromático" 
                             features={["Se oscurece al sol", "Protección UV 100%", "Uso interior/exterior"]} 
-                            price={`+$${PRICING.MONOFOCAL.ORGANICO_FOTOCROMATICO?.toLocaleString() || '0'}`} 
                           />
                         </>
                       )}
                       
                       {lensType === "BIFOCAL" && (
-                        <OptionCard selected={true} onClick={() => { setTreatment("ORGANICO_BLANCO"); setStep(4); }} title="Bifocal Estándar" desc="Cristal tradicional con línea divisoria." price={`+$${PRICING.BIFOCAL.ORGANICO_BLANCO?.toLocaleString() || '0'}`} />
+                        <OptionCard selected={true} onClick={() => { setTreatment("ORGANICO_BLANCO"); setStep(4); }} title="Bifocal Estándar" desc="Cristal tradicional con línea divisoria." />
                       )}
 
                       {lensType === "MULTIFOCAL" && (
                         <>
-                          <OptionCard selected={treatment === "SMART_FREE"} onClick={() => { setTreatment("SMART_FREE"); setStep(4); }} title="Diseño Digital ONE" desc="Campo visual amplio y transición natural." price={`+$${PRICING.MULTIFOCAL.SMART_FREE.toLocaleString()}`} />
-                          <OptionCard selected={treatment === "VARILUX"} onClick={() => { setTreatment("VARILUX"); setStep(4); }} title="Varilux Premium" desc="La experiencia visual definitiva sin esfuerzo." price={`+$${PRICING.MULTIFOCAL.VARILUX.toLocaleString()}`} />
-                          <OptionCard selected={treatment === "FOTOCROMATICO"} onClick={() => { setTreatment("FOTOCROMATICO"); setStep(4); }} title="Multi Fotocromático" desc="Tecnología digital que se oscurece al sol." price={`+$${PRICING.MULTIFOCAL.FOTOCROMATICO.toLocaleString()}`} />
+                          <OptionCard selected={treatment === "SMART_FREE"} onClick={() => { setTreatment("SMART_FREE"); setStep(4); }} title="Diseño Digital ONE" desc="Campo visual amplio y transición natural." />
+                          <OptionCard selected={treatment === "VARILUX"} onClick={() => { setTreatment("VARILUX"); setStep(4); }} title="Varilux Premium" desc="La experiencia visual definitiva sin esfuerzo." />
+                          <OptionCard selected={treatment === "FOTOCROMATICO"} onClick={() => { setTreatment("FOTOCROMATICO"); setStep(4); }} title="Multi Fotocromático" desc="Tecnología digital que se oscurece al sol." />
                         </>
                       )}
                     </div>
