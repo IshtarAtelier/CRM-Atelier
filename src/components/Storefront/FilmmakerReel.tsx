@@ -11,7 +11,7 @@ const FRAMES = [
     id: "monalisa",
     src: "/images/editorial/monalisa.webp",
     title: "La Gioconda",
-    subtitle: "Acetato Negro · Edición Limitada",
+    subtitle: "La Gioconda · Edición Limitada",
     year: "S. XVI",
     credit: "Leonardo da Vinci",
   },

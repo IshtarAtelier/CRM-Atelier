@@ -87,15 +87,40 @@
         .container { max-width: 1200px; margin: 0 auto; padding: 0 5%; }
         section { padding: 120px 0; position: relative; }
         
-        /* Hero */
+        /* Hero Redesign */
         .hero {
-            min-height: 100vh; display: flex; align-items: center; justify-content: center;
-            text-align: center; position: relative; overflow: hidden;
-            background: radial-gradient(circle at 50% 50%, rgba(30,30,40,1) 0%, var(--bg-base) 70%);
+            min-height: 100vh; display: flex; align-items: center; padding-top: 80px;
+            position: relative; overflow: hidden; background: var(--bg-base);
         }
-        .hero p { max-width: 800px; margin: 0 auto 40px; font-size: 1.25rem; font-weight: 400; }
-        .badge { background: rgba(212, 175, 55, 0.1); border: 1px solid var(--accent-gold); color: var(--accent-gold); padding: 5px 15px; border-radius: 20px; font-size: 0.9rem; font-weight: 600; display: inline-block; margin-bottom: 20px; }
-
+        .aurora {
+            position: absolute; top: -50%; left: -50%; width: 200%; height: 200%;
+            background: radial-gradient(circle at 30% 40%, rgba(212,175,55,0.1) 0%, transparent 30%),
+                        radial-gradient(circle at 70% 60%, rgba(15,82,186,0.1) 0%, transparent 30%);
+            filter: blur(80px); z-index: 0; animation: pulseAurora 15s infinite alternate ease-in-out;
+        }
+        @keyframes pulseAurora { 0% { transform: rotate(0deg) scale(1); } 100% { transform: rotate(10deg) scale(1.1); } }
+        
+        .hero-container { position: relative; z-index: 1; max-width: 1200px; margin: 0 auto; padding: 0 5%; width: 100%; }
+        .hero-grid { display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 60px; align-items: center; }
+        
+        .hero-content { text-align: left; }
+        .hero-content h1 { font-family: var(--font-heading); font-size: 4rem; line-height: 1.1; margin-bottom: 20px; color: #fff; }
+        .hero-content p { font-size: 1.2rem; color: var(--text-muted); margin-bottom: 40px; max-width: 600px; }
+        
+        .hero-visual { position: relative; perspective: 1000px; }
+        .hero-frame {
+            width: 100%; aspect-ratio: 3/4; border-radius: 30px;
+            background: rgba(255,255,255,0.02); border: 1px solid var(--glass-border);
+            box-shadow: 0 30px 60px rgba(0,0,0,0.5), inset 0 0 20px rgba(212,175,55,0.05);
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            overflow: hidden; backdrop-filter: blur(20px); transform: rotateY(-10deg) rotateX(5deg);
+            transition: transform 0.5s ease;
+        }
+        .hero-frame:hover { transform: rotateY(0deg) rotateX(0deg); }
+        .hero-frame img { width: 100%; height: 100%; object-fit: cover; }
+        
+        .badge { background: rgba(212, 175, 55, 0.1); border: 1px solid var(--accent-gold); color: var(--accent-gold); padding: 8px 20px; border-radius: 30px; font-size: 0.9rem; font-weight: 600; display: inline-block; margin-bottom: 25px; letter-spacing: 1px; }
+        
         /* Grid Layouts */
         .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 80px; align-items: center; }
         .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 30px; margin-top: 40px; }
@@ -168,9 +193,12 @@
         .reveal.active { opacity: 1; transform: translateY(0); }
 
         @media(max-width: 900px) {
-            h1 { font-size: 3rem; }
+            .hero-content h1 { font-size: 3rem; }
             h2 { font-size: 2.2rem; }
-            .grid-2, .grid-3 { grid-template-columns: 1fr; gap: 40px; }
+            .hero-grid, .grid-2, .grid-3 { grid-template-columns: 1fr; gap: 40px; text-align: center; }
+            .hero-content { text-align: center; }
+            .hero-content p { margin: 0 auto 40px; }
+            .hero-frame { transform: none; aspect-ratio: 16/9; margin-top: 30px; }
             .hero { min-height: 80vh; padding-top: 120px; }
             .glass-card { padding: 30px; }
             .compare-table { display: block; overflow-x: auto; }
@@ -190,14 +218,24 @@
         <a href="https://wa.me/5493518685644?text=Hola%2C+tengo+mi+receta+y+quiero+cotizar+Varilux" class="btn btn-gold" style="padding: 10px 24px; font-size: 0.9rem;" target="_blank">Cotizar mi Receta</a>
     </nav>
 
-    <!-- Hero -->
+    <!-- Hero Section -->
     <section class="hero">
-        <div class="container reveal">
-            <span class="badge">Promoción Activa: Doble Disfrute (2x1)</span>
-            <h1>Visión Perfecta.<br><span class="gold-gradient">Cero Mareos.</span></h1>
-            <p>Descubrí por qué Varilux es el único multifocal en el mundo que te permite bajar escaleras con seguridad, manejar de noche sin encandilamientos y usar la computadora sin dolor de cuello. <strong>Pagá en Cuotas Sin Interés con garantía de adaptación total.</strong></p>
-            <div style="display:flex; justify-content:center; gap:20px; flex-wrap:wrap; margin-top: 30px;">
-                <a href="https://wa.me/5493518685644?text=Hola%2C+quiero+saber+los+precios+y+cuotas+de+Varilux" class="btn btn-wa" target="_blank">Consultar Precios y Cuotas</a>
+        <div class="aurora"></div>
+        <div class="hero-container">
+            <div class="hero-grid">
+                <div class="hero-content reveal">
+                    <span class="badge">Promoción Activa: Doble Disfrute (2x1)</span>
+                    <h1>Visión Perfecta.<br><span class="gold-gradient">Cero Mareos.</span></h1>
+                    <p>Descubrí por qué Varilux es el único multifocal del mundo impulsado por Inteligencia Artificial que te permite manejar de noche, usar pantallas y bajar escaleras sin esfuerzo visual. <strong>Aboná en Cuotas Sin Interés con garantía de adaptación.</strong></p>
+                    <a href="https://wa.me/5493518685644?text=Hola%2C+quiero+consultar+precios+de+los+lentes+Varilux" class="btn btn-gold" target="_blank">Consultar Precios y Cuotas</a>
+                </div>
+                
+                <div class="hero-visual reveal">
+                    <div class="hero-frame">
+                        <!-- El usuario debe subir esta imagen (ej: paciente sonriendo o lente de lujo) -->
+                        <img src="hero-real.jpg" alt="Persona usando lentes Varilux" onerror="this.src='https://via.placeholder.com/600x800/111111/D4AF37?text=Subir+hero-real.jpg';">
+                    </div>
+                </div>
             </div>
         </div>
     </section>
