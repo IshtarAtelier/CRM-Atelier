@@ -17,7 +17,7 @@ const FRAMES = [
   },
   {
     id: "venus",
-    src: "/images/editorial/filmmaker-venus.webp",
+    src: "/images/editorial/filmmaker-venus-calypso.png",
     title: "El Nacimiento",
     subtitle: "Montura Dorada · Geométrica",
     year: "S. XV",
