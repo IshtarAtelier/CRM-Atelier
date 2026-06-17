@@ -23,6 +23,8 @@ export function NotificationBell() {
 
     // Tipos de notificación que solo puede ver el ADMIN (ishtar)
     const ADMIN_ONLY_TYPES = ['DELETE_REQUEST', 'INVOICE_REQUEST', 'CASH_OUTFLOW', 'HIGH_CASH_BALANCE', 'ISH_THRESHOLD_REACHED'];
+    // Tipos de notificación que solo puede ver el VENDEDOR (no el admin)
+    const SELLER_ONLY_TYPES = ['LAB_READY'];
 
     // Fetch user role on mount
     useEffect(() => {
@@ -80,9 +82,13 @@ export function NotificationBell() {
 
     // Filtrar notificaciones según el rol del usuario
     const isAdmin = userRole === 'ADMIN';
-    const visibleNotifications = notifications.filter(n =>
-        isAdmin || !ADMIN_ONLY_TYPES.includes(n.type)
-    );
+    const visibleNotifications = notifications.filter(n => {
+        if (isAdmin) {
+            return !SELLER_ONLY_TYPES.includes(n.type);
+        } else {
+            return !ADMIN_ONLY_TYPES.includes(n.type);
+        }
+    });
     const pendingCount = visibleNotifications.length;
 
     const getTypeIcon = (type: string) => {
