@@ -4,11 +4,6 @@ import { Truck, Home, MapPin } from "lucide-react";
 export function CheckoutShippingForm({ formData, handleChange, isLocalCity, hasCrystals }: { formData: any, handleChange: any, isLocalCity: boolean, hasCrystals: boolean }) {
   const selectedMethod = formData.shippingMethod;
 
-  // Dispatch times
-  const dispatchText = hasCrystals 
-    ? "Laboratorio y calibrado: 5 días hábiles para el despacho" 
-    : "Despacho en 2 días hábiles (solo armazón)";
-
   return (
     <section>
       <h2 className="text-[11px] font-black uppercase tracking-widest border-b border-stone-200 pb-2 mb-4">2. Envío</h2>
@@ -27,18 +22,20 @@ export function CheckoutShippingForm({ formData, handleChange, isLocalCity, hasC
               />
               <div className="-mt-0.5">
                 <div className="flex items-center gap-2">
-                  <p className="text-sm font-bold text-black">Cadetería Local Express</p>
+                  <p className="text-sm font-bold text-black">Retiro en Local (Córdoba)</p>
                   <span className="text-[9px] font-bold text-[#1b4332] bg-green-50 px-1.5 py-0.5 rounded-sm uppercase">Gratis</span>
                 </div>
                 <p className="text-[11px] text-stone-500 mt-1 leading-relaxed">
-                  Entrega a domicilio dentro de Córdoba / Carlos Paz. Coordinamos el horario de entrega con vos por WhatsApp.
+                  Retirá tu pedido directamente en nuestro atelier de Cerro de las Rosas. Te avisamos por WhatsApp apenas esté listo.
                 </p>
-                <p className="text-[10px] font-bold text-stone-700 mt-1.5 uppercase tracking-wider">
-                  {hasCrystals ? "Listo en 5 días hábiles" : "Listo para entrega en 24-48hs hábiles"}
-                </p>
+                {hasCrystals && (
+                  <p className="text-[10px] font-bold text-stone-700 mt-1.5 uppercase tracking-wider">
+                    Listo en 5 días hábiles
+                  </p>
+                )}
               </div>
             </div>
-            <Truck className={`w-5 h-5 transition-colors ${selectedMethod === 'LOCAL' ? 'text-black' : 'text-stone-400'}`} />
+            <MapPin className={`w-5 h-5 transition-colors ${selectedMethod === 'LOCAL' ? 'text-black' : 'text-stone-400'}`} />
           </label>
         )}
 
@@ -53,9 +50,11 @@ export function CheckoutShippingForm({ formData, handleChange, isLocalCity, hasC
               className="accent-black mt-1" 
             />
             <div className="-mt-0.5">
-              <div className="flex items-center gap-2">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-1">
                 <p className="text-sm font-bold text-black">Envío a Domicilio (Correo Argentino)</p>
-                <span className="text-[9px] font-bold text-[#1b4332] bg-green-50 px-1.5 py-0.5 rounded-sm uppercase">Gratis</span>
+                <span className="text-[10px] font-black text-white bg-emerald-600 px-2 py-1 rounded shadow-sm uppercase animate-pulse w-fit">
+                  ¡Solo por esta semana: Envío Sin Cargo!
+                </span>
               </div>
               <p className="text-[11px] text-stone-500 mt-1 leading-relaxed">
                 Envío bonificado a cualquier punto del país. Llega directo a tu puerta.
@@ -63,9 +62,11 @@ export function CheckoutShippingForm({ formData, handleChange, isLocalCity, hasC
               <p className="text-[11.5px] text-stone-800 mt-2 font-medium">
                 🕒 Tránsito: <strong>3 a 5 días hábiles</strong> desde que se despacha.
               </p>
-              <p className="text-[10.5px] text-amber-700 bg-amber-50/50 border border-amber-100 px-2.5 py-1 rounded-md mt-2 font-medium">
-                ⚙️ {dispatchText}
-              </p>
+              {hasCrystals && (
+                <p className="text-[10.5px] text-amber-700 bg-amber-50/50 border border-amber-100 px-2.5 py-1 rounded-md mt-2 font-medium">
+                  ⚙️ Laboratorio y calibrado: 5 días hábiles para el despacho
+                </p>
+              )}
             </div>
           </div>
           <Home className={`w-5 h-5 transition-colors ${selectedMethod === 'CORREO_DOMICILIO' ? 'text-black' : 'text-stone-400'}`} />
@@ -82,9 +83,11 @@ export function CheckoutShippingForm({ formData, handleChange, isLocalCity, hasC
               className="accent-black mt-1" 
             />
             <div className="-mt-0.5">
-              <div className="flex items-center gap-2">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-1">
                 <p className="text-sm font-bold text-black">Envío a Sucursal (Correo Argentino)</p>
-                <span className="text-[9px] font-bold text-[#1b4332] bg-green-50 px-1.5 py-0.5 rounded-sm uppercase">Gratis</span>
+                <span className="text-[10px] font-black text-white bg-emerald-600 px-2 py-1 rounded shadow-sm uppercase animate-pulse w-fit">
+                  ¡Solo por esta semana: Envío Sin Cargo!
+                </span>
               </div>
               <p className="text-[11px] text-stone-500 mt-1 leading-relaxed">
                 Retirá en la sucursal oficial de Correo Argentino de tu localidad.
@@ -92,12 +95,14 @@ export function CheckoutShippingForm({ formData, handleChange, isLocalCity, hasC
               <p className="text-[11.5px] text-stone-800 mt-2 font-medium">
                 🕒 Tránsito: <strong>3 a 5 días hábiles</strong> desde que se despacha.
               </p>
-              <p className="text-[10.5px] text-amber-700 bg-amber-50/50 border border-amber-100 px-2.5 py-1 rounded-md mt-2 font-medium">
-                ⚙️ {dispatchText}
-              </p>
+              {hasCrystals && (
+                <p className="text-[10.5px] text-amber-700 bg-amber-50/50 border border-amber-100 px-2.5 py-1 rounded-md mt-2 font-medium">
+                  ⚙️ Laboratorio y calibrado: 5 días hábiles para el despacho
+                </p>
+              )}
             </div>
           </div>
-          <MapPin className={`w-5 h-5 transition-colors ${selectedMethod === 'CORREO_SUCURSAL' ? 'text-black' : 'text-stone-400'}`} />
+          <Truck className={`w-5 h-5 transition-colors ${selectedMethod === 'CORREO_SUCURSAL' ? 'text-black' : 'text-stone-400'}`} />
         </label>
       </div>
 

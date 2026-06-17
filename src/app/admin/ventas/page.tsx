@@ -194,9 +194,12 @@ export default function VentasPage() {
             };
 
             const encodedData = encodeURIComponent(JSON.stringify(payload));
-            const smartLabUrl = `https://grupooptico.dyndns.info/smartlab/laboratory/new#ATELIER_DATA=${encodedData}`;
             
-            alert('✅ ¡Listo!\\n\\n1. Se abrirá SmartLab.\\n2. Seleccioná el tipo de lente (ej: Multifocal).\\n3. Hacé clic en ⭐ "🤖 Atelier → Smart..." en favoritos.\\n4. ¡Los campos se llenan solos!\\n5. Revisá y dale a Guardar.');
+            // Usamos la URL de login con callback para esquivar el bug 404 de SmartLab cuando la sesión expira
+            const callbackPath = encodeURIComponent('/smartlab/laboratory/new#ATELIER_DATA=' + encodedData);
+            const smartLabUrl = `https://grupooptico.dyndns.info/smartlab/auth/authSmartlab/login?callbackUrl=${callbackPath}`;
+            
+            alert('✅ ¡Listo!\\n\\n1. Se abrirá SmartLab (iniciá sesión si te lo pide).\\n2. Hacé clic en tu favorito ⭐ "🤖 Atelier → SmartLab".\\n3. ¡Esperá un segundo! El robot elegirá "Monofocal/Multifocal" y llenará todos los campos solo.\\n4. Revisá y dale a Guardar.');
             
             window.open(smartLabUrl, '_blank');
 

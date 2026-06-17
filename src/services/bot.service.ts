@@ -146,7 +146,6 @@ export class BotService {
             message += `*Ubicación:* https://share.google/j2ZT7ReboDLt7onCp\n`;
             message += `*Horarios:*\n   • Lunes a viernes de 9:00 a 13:30 y de 16:00 a 19:30\n   • Sábados de 10:00 a 14:00 hs\n\n`;
             message += `¡Te esperamos! Muchas gracias.\n`;
-            message += `\n_La óptica mejor calificada en Google Business 5/5_`;
 
             const formattedPhone = normalizeArgentinePhone(clientPhone);
             if (!formattedPhone) return false;

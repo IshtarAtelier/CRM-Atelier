@@ -59,6 +59,12 @@ export async function GET(request: Request) {
             // Validar que el labStatus sea FINISHED (que significa fabricado pero no listo)
             // Si el pedido volvió atrás o ya avanzó, no mandamos mensaje.
             if (order.labStatus !== 'FINISHED') {
+                 // Si el cron ya lo pasó a READY ayer, dejamos la notificación PENDING en la campanita
+                 // para que el vendedor lo pueda pasar a Entregado desde ahí, pero no volvemos a procesarlo.
+                 if (order.labStatus === 'READY' && notif.message.includes('Cliente notificado')) {
+                     continue;
+                 }
+                 
                  await prisma.notification.update({
                     where: { id: notif.id },
                     data: { status: 'RESOLVED', resolvedBy: 'Cron Pickup - Estado Inválido o Ya Procesado' }
@@ -79,17 +85,17 @@ export async function GET(request: Request) {
             const sent = await BotService.notifyOrderReady(order);
 
             if (sent) {
-                // Resolver notificación interna para que no aparezca más en la campana
+                // Modificar la notificación en lugar de resolverla para que el vendedor
+                // sepa que el cliente ya fue avisado y lo pase a entregado cuando venga.
+                const updatedMessage = notif.message.replace('Pedido finalizado en laboratorio', '🛍️ Cliente notificado (Listo para Retirar)');
                 await prisma.notification.update({
                     where: { id: notif.id },
-                    data: { status: 'RESOLVED', resolvedBy: 'Cron Pickup' }
+                    data: { message: updatedMessage }
                 });
 
-                results.push({ orderId: order.id, status: 'Sent & Resolved' });
+                results.push({ orderId: order.id, status: 'Sent & Notification Updated' });
             } else {
                 // Si falla el envío (ej: número de WhatsApp inválido), lo dejamos pendiente
-                // Opcional: podrías marcarlo FAILED si no quieres que reintente mañana.
-                // Por ahora lo dejamos PENDING así el vendedor lo ve.
                 results.push({ orderId: order.id, status: 'Failed to send' });
             }
         }

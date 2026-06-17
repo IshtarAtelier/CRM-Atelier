@@ -531,12 +531,14 @@ export default function PedidosPage() {
                 intensidad_tenido
             };
 
-            const dataString = `ATELIER_SMARTLAB_DATA:${JSON.stringify(payload)}`;
+            const encodedData = encodeURIComponent(JSON.stringify(payload));
             
-            await navigator.clipboard.writeText(dataString);
-
-            alert('✅ ¡Datos copiados al portapapeles!\n\n1. Se abrirá SmartLab.\n2. Hacé clic en "Nuevo Pedido".\n3. Presioná el botón de Favoritos "🤖 Atelier SmartLab" para autocompletar.\n4. Revisá y dale a Guardar.');
-            window.open(SMARTLAB_URL + '/laboratory/new', '_blank');
+            // Usamos la URL de login con callback para esquivar el bug 404 de SmartLab cuando la sesión expira
+            const callbackPath = encodeURIComponent('/smartlab/laboratory/new#ATELIER_DATA=' + encodedData);
+            const smartLabUrl = `https://grupooptico.dyndns.info/smartlab/auth/authSmartlab/login?callbackUrl=${callbackPath}`;
+            
+            alert('✅ ¡Listo!\\n\\n1. Se abrirá SmartLab (iniciá sesión si te lo pide).\\n2. Hacé clic en tu favorito ⭐ "🤖 Atelier → SmartLab".\\n3. ¡Esperá un segundo! El robot elegirá "Monofocal/Multifocal" y llenará todos los campos solo.\\n4. Revisá y dale a Guardar.');
+            window.open(smartLabUrl, '_blank');
 
         } catch (error) {
             console.error('Error auto-submitting:', error);

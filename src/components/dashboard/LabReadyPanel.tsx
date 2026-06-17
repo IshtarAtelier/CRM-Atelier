@@ -16,13 +16,17 @@ export default function LabReadyPanel({ orders, onClose, onRefresh }: LabReadyPa
 
     const displayedOrders = orders.filter(o => !dismissedIds.has(o.id));
 
-    const advanceToReady = async (orderId: string) => {
+    const advanceToReady = async (orderId: string, currentStatus: string) => {
         setAdvancingId(orderId);
+        
+        // Si ya está en READY, lo pasamos a DELIVERED
+        const nextStatus = currentStatus === 'READY' ? 'DELIVERED' : 'READY';
+
         try {
             const res = await fetch(`/api/orders/${orderId}`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ labStatus: 'READY' }),
+                body: JSON.stringify({ labStatus: nextStatus }),
             });
             if (res.ok) {
                 setDismissedIds(prev => new Set(prev).add(orderId));
@@ -104,6 +108,11 @@ export default function LabReadyPanel({ orders, onClose, onRefresh }: LabReadyPa
                                                 <span>⚠️ Terminado Parcial</span>
                                             </div>
                                         )}
+                                        {order.labStatus === 'READY' && (
+                                            <div className="mb-2 mt-1 inline-flex items-center gap-1.5 px-2 py-1 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-[9px] font-black uppercase tracking-widest rounded-lg border border-blue-200/50 dark:border-blue-800/50">
+                                                <span>🛍️ Cliente Notificado</span>
+                                            </div>
+                                        )}
 
                                         <div className="flex items-center gap-3 text-[10px] font-bold text-stone-400">
                                             {order.smartLabSector && (
@@ -128,27 +137,28 @@ export default function LabReadyPanel({ orders, onClose, onRefresh }: LabReadyPa
                                         </div>
                                     </div>
 
-                                    {/* Mark as READY button */}
                                     <button
-                                        onClick={() => advanceToReady(order.id)}
+                                        onClick={() => advanceToReady(order.id, order.labStatus)}
                                         disabled={advancingId === order.id || order.labStatus === 'IN_PROGRESS'}
                                         className={`absolute right-3 md:right-4 top-1/2 -translate-y-1/2 px-3 py-2 md:px-4 md:py-2.5 rounded-xl md:rounded-2xl shadow-lg transition-all z-10 flex flex-col md:flex-row items-center justify-center gap-1 md:gap-2 ${
                                             order.labStatus === 'IN_PROGRESS' 
                                                 ? 'bg-stone-200 dark:bg-stone-800 text-stone-400 cursor-not-allowed'
-                                                : 'bg-emerald-500 hover:bg-emerald-600 text-white hover:scale-105 active:scale-95 disabled:opacity-50'
+                                                : order.labStatus === 'READY'
+                                                    ? 'bg-indigo-500 hover:bg-indigo-600 text-white hover:scale-105 active:scale-95 disabled:opacity-50'
+                                                    : 'bg-emerald-500 hover:bg-emerald-600 text-white hover:scale-105 active:scale-95 disabled:opacity-50'
                                         }`}
-                                        title={order.labStatus === 'IN_PROGRESS' ? 'No se puede avisar aún. Faltan cristales en el laboratorio.' : 'Avisar que llegó al local'}
+                                        title={order.labStatus === 'IN_PROGRESS' ? 'No se puede avisar aún. Faltan cristales en el laboratorio.' : order.labStatus === 'READY' ? 'Marcar como Entregado' : 'Avisar que llegó al local'}
                                     >
                                         {advancingId === order.id ? (
                                             <>
                                                 <span className="w-4 h-4 md:w-5 md:h-5 block rounded-full border-2 border-current border-t-transparent animate-spin" />
-                                                <span className="text-[8px] md:text-[9px] font-black uppercase tracking-widest hidden md:inline">Avisando...</span>
+                                                <span className="text-[8px] md:text-[9px] font-black uppercase tracking-widest hidden md:inline">Procesando...</span>
                                             </>
                                         ) : (
                                             <>
                                                 <CheckCircle2 className="w-4 h-4 md:w-5 md:h-5" />
-                                                <span className="text-[8px] md:text-[9px] font-black uppercase tracking-widest text-center leading-[1.2] whitespace-nowrap">
-                                                    Avisar que<br className="md:hidden" /> llegó al local
+                                                <span className="text-[8px] md:text-[9px] font-black uppercase tracking-widest hidden md:inline">
+                                                    {order.labStatus === 'READY' ? 'Entregar' : 'Avisar que llegó al local'}
                                                 </span>
                                             </>
                                         )}

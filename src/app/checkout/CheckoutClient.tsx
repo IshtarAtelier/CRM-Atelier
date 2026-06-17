@@ -331,18 +331,46 @@ export function CheckoutClient() {
           <h2 className=" font-serif">¡Gracias por tu compra!</h2>
           <p className="text-stone-500 mb-8 leading-relaxed">
             {formData.paymentMethod === 'TRANSFER' 
-              ? "Hemos registrado tu pedido. Te enviamos un correo con los datos bancarios para realizar la transferencia del monto total con descuento."
+              ? "Hemos registrado tu pedido con éxito."
               : "Hemos registrado tu pedido de forma exitosa. Te enviamos un correo con la confirmación."}
             <br/><br/>
             <strong>Tiempo de entrega estimado:</strong> {hasCrystals ? '5 días hábiles por trabajo de laboratorio a medida.' : 'Despacho rápido dentro de los 2 días hábiles.'}
           </p>
-          <div className="bg-green-50 text-green-900 border border-green-200 rounded-lg p-4 mb-8 text-sm">
-            <p className="font-medium mb-1">¿Tenés alguna duda con tu pedido?</p>
-            <p className="text-green-700/80 mb-2">Escribinos directamente a nuestro canal de soporte.</p>
-            <a href={`https://wa.me/${WHATSAPP_PHONE}`} target="_blank" rel="noopener noreferrer" className="font-bold underline underline-offset-4 hover:text-green-600 transition-colors">
-              Contactar por WhatsApp ({WHATSAPP_PHONE})
-            </a>
-          </div>
+
+          {formData.paymentMethod === 'TRANSFER' && (
+            <div className="bg-stone-50 border border-stone-200 rounded-lg p-6 mb-8 text-left">
+              <h3 className="font-bold text-stone-900 mb-4 text-sm uppercase tracking-widest border-b border-stone-200 pb-2">Datos para Transferencia</h3>
+              <ul className="text-sm text-stone-600 space-y-3 mb-6">
+                <li><strong className="text-stone-900">CBU / CVU:</strong> [COMPLETAR_CBU_AQUI]</li>
+                <li><strong className="text-stone-900">Alias:</strong> [COMPLETAR_ALIAS_AQUI]</li>
+                <li><strong className="text-stone-900">Titular:</strong> [COMPLETAR_TITULAR_AQUI]</li>
+                <li><strong className="text-stone-900">Banco:</strong> [COMPLETAR_BANCO_AQUI]</li>
+              </ul>
+              <div className="bg-emerald-50 text-emerald-900 border border-emerald-200 rounded p-4 text-xs mb-4">
+                <p className="font-bold mb-1">Paso final:</p>
+                <p>Transferí el total con descuento y envianos el comprobante haciendo clic en el botón de abajo para que preparemos tu pedido.</p>
+              </div>
+              <a 
+                href={`https://wa.me/${WHATSAPP_PHONE}?text=${encodeURIComponent(`¡Hola! Acabo de realizar una compra web y ya hice la transferencia. Adjunto mi comprobante.`)}`}
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className="block w-full text-center bg-emerald-600 text-white px-6 py-3 text-[11px] font-bold uppercase tracking-widest hover:bg-emerald-700 transition-colors"
+              >
+                Enviar Comprobante por WhatsApp
+              </a>
+            </div>
+          )}
+
+          {formData.paymentMethod !== 'TRANSFER' && (
+            <div className="bg-green-50 text-green-900 border border-green-200 rounded-lg p-4 mb-8 text-sm">
+              <p className="font-medium mb-1">¿Tenés alguna duda con tu pedido?</p>
+              <p className="text-green-700/80 mb-2">Escribinos directamente a nuestro canal de soporte.</p>
+              <a href={`https://wa.me/${WHATSAPP_PHONE}`} target="_blank" rel="noopener noreferrer" className="font-bold underline underline-offset-4 hover:text-green-600 transition-colors">
+                Contactar por WhatsApp ({WHATSAPP_PHONE})
+              </a>
+            </div>
+          )}
+
           <Link href="/tienda" className="inline-block bg-black text-white px-8 py-4 text-[11px] font-bold uppercase tracking-widest hover:bg-stone-800 transition-colors">
             Volver a la Tienda
           </Link>

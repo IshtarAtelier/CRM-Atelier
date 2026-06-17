@@ -2,8 +2,9 @@ import { NextResponse } from 'next/server';
 import { headers } from 'next/headers';
 import { prisma } from '@/lib/db';
 import { ContactService } from '@/services/contact.service';
+import { OrderService } from '@/services/order.service';
 
-// PATCH /api/notifications/[id] — Approve or reject a notification (ADMIN only)
+// PATCH /api/notifications/[id] — Approve, reject, or mark delivered
 export async function PATCH(
     request: Request,
     { params }: { params: Promise<{ id: string }> }
@@ -14,14 +15,14 @@ export async function PATCH(
         const role = headersList.get('x-user-role') || 'STAFF';
         const adminName = headersList.get('x-user-name') || 'Admin';
 
-        if (role !== 'ADMIN') {
-            return NextResponse.json({ error: 'Solo el administrador puede gestionar solicitudes' }, { status: 403 });
+        const body = await request.json();
+        const { action } = body; // "APPROVED", "REJECTED", or "MARK_DELIVERED"
+
+        if (role !== 'ADMIN' && action !== 'MARK_DELIVERED') {
+            return NextResponse.json({ error: 'Solo el administrador puede gestionar estas solicitudes' }, { status: 403 });
         }
 
-        const body = await request.json();
-        const { action } = body; // "APPROVED" or "REJECTED"
-
-        if (!['APPROVED', 'REJECTED'].includes(action)) {
+        if (!['APPROVED', 'REJECTED', 'MARK_DELIVERED'].includes(action)) {
             return NextResponse.json({ error: 'Acción inválida' }, { status: 400 });
         }
 
@@ -34,6 +35,8 @@ export async function PATCH(
             return NextResponse.json({ error: 'Esta solicitud ya fue procesada' }, { status: 409 });
         }
 
+        let finalStatus = action;
+
         // If approving a DELETE_REQUEST, execute the deletion
         if (action === 'APPROVED' && notification.type === 'DELETE_REQUEST' && notification.orderId) {
             try {
@@ -43,11 +46,24 @@ export async function PATCH(
             }
         }
 
+        // If marking DELIVERED
+        if (action === 'MARK_DELIVERED') {
+            if (notification.type !== 'LAB_READY' || !notification.orderId) {
+                return NextResponse.json({ error: 'Notificación inválida para marcar como entregado' }, { status: 400 });
+            }
+            try {
+                await OrderService.updateOrder(notification.orderId, { labStatus: 'DELIVERED' });
+                finalStatus = 'RESOLVED';
+            } catch (err: any) {
+                return NextResponse.json({ error: `Error al actualizar la orden: ${err.message}` }, { status: 500 });
+            }
+        }
+
         // Update notification status
         const updated = await prisma.notification.update({
             where: { id },
             data: {
-                status: action,
+                status: finalStatus,
                 resolvedBy: adminName,
             },
         });

@@ -228,6 +228,7 @@ export class OrderService {
             labColor, labTreatment, labDiameter, labPdOd, labPdOi, 
             frameA, frameB, frameDbl, frameEdc, smartLabScreenshot,
             labPrismOD, labPrismOI, labBaseCurve, labFrameType, labBevelPosition,
+            labFrameShape, labFrameDetails,
             prescriptionId, items, total, markup, 
             discountCash, discountTransfer, discountCard, specialDiscount, subtotalWithMarkup
         } = body;
@@ -297,6 +298,9 @@ export class OrderService {
             }
         }
         
+        if (labFrameShape !== undefined) data.labFrameShape = labFrameShape;
+        if (labFrameDetails !== undefined) data.labFrameDetails = labFrameDetails;
+
         if (markup !== undefined) data.markup = Math.max(0, markup);
         if (discountCash !== undefined) data.discountCash = discountCash;
         if (discountTransfer !== undefined) data.discountTransfer = discountTransfer;

@@ -18,6 +18,7 @@ interface OrderManagerProps {
     onConvertOrder: (orderId: string, data?: any) => Promise<void> | void;
     onAddPayment: (orderId: string) => void;
     onDeleteOrder: (orderId: string, reason?: string, role?: string) => Promise<void> | void;
+    onRequestPrescription?: () => void;
 }
 
 export default function OrderManager({
@@ -29,7 +30,8 @@ export default function OrderManager({
     onRefresh,
     onConvertOrder,
     onAddPayment,
-    onDeleteOrder
+    onDeleteOrder,
+    onRequestPrescription
 }: OrderManagerProps) {
     const orders = contact.orders || [];
     const contactName = contact.name;
@@ -212,6 +214,7 @@ export default function OrderManager({
                             onConvert={onConvertOrder}
                             onAddPayment={onAddPayment}
                             onDelete={onDeleteOrder}
+                            onRequestPrescription={onRequestPrescription}
                             onEdit={handleEditQuote}
                             onRefreshContact={async () => onRefresh()}
                             isExpanded={expandedOrderId === order.id}

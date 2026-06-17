@@ -13,17 +13,10 @@ export function ExitIntentPopup() {
     const hasBeenShown = sessionStorage.getItem("atelier-exit-intent-shown");
     if (hasBeenShown === "true") return;
 
-    // Solo habilitar el exit intent después de 5 segundos de navegación
-    // para evitar falsos positivos apenas entran a la página.
-    let isReady = false;
-    const timer = setTimeout(() => {
-      isReady = true;
-    }, 5000);
-
     const handleMouseLeave = (e: MouseEvent) => {
-      // Trigger when mouse moves strictly out of the top edge (clientY <= 5)
-      // and only if the protection timer has passed.
-      if (isReady && e.clientY <= 5) {
+      // Trigger strictly when the mouse leaves the viewport from the top (clientY <= 0).
+      // This ensures it only triggers when aiming for the address bar/tabs, preventing accidental popups.
+      if (e.clientY <= 0) {
         const alreadyShown = sessionStorage.getItem("atelier-exit-intent-shown");
         if (!alreadyShown) {
           setIsOpen(true);
@@ -34,7 +27,6 @@ export function ExitIntentPopup() {
 
     document.addEventListener("mouseleave", handleMouseLeave);
     return () => {
-      clearTimeout(timer);
       document.removeEventListener("mouseleave", handleMouseLeave);
     };
   }, []);

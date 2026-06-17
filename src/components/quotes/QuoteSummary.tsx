@@ -37,6 +37,7 @@ interface QuoteSummaryProps {
     onAddPayment?: (orderId: string) => void;
     onStatusChange?: (orderId: string, nextStatus: string) => Promise<void>;
     onCloseSale?: () => Promise<void>;
+    onRequestPrescription?: () => void;
     isExpanded?: boolean;
     onToggleExpand?: () => void;
     showActions?: boolean;
@@ -54,6 +55,7 @@ export default function QuoteSummary({
     onAddPayment,
     onStatusChange,
     onCloseSale,
+    onRequestPrescription,
     isExpanded = true,
     onToggleExpand,
     showActions = true,
@@ -749,9 +751,16 @@ export default function QuoteSummary({
                     order={order}
                     contact={contact as any}
                     onClose={() => setShowCheckout(false)}
+                    onRequestPrescription={onRequestPrescription}
                     onComplete={async (data) => {
                         if (onConvert) {
-                            await onConvert(order.id, { prescriptionId: data.prescriptionId });
+                            await onConvert(order.id, { 
+                                prescriptionId: data.prescriptionId,
+                                labFrameShape: data.labFrameShape,
+                                labFrameDetails: data.labFrameDetails,
+                                labNotes: data.labNotes,
+                                labColor: data.labColor
+                            });
                             setShowCheckout(false);
                         }
                     }}

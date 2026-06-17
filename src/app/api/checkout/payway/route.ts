@@ -5,6 +5,7 @@ import { WHATSAPP_PHONE } from '@/lib/constants';
 import { ContactService, normalizeArgentinePhone } from '@/services/contact.service';
 import { getWebSettings } from '@/lib/web-settings';
 import { CrystalMapping } from '@/lib/config/crystal-mapping';
+import { generateReceiptPDF } from '@/lib/receipt-pdf-generator';
 
 export async function POST(req: Request) {
   try {
@@ -438,8 +439,38 @@ export async function POST(req: Request) {
       html: adminHtml
     }).catch(err => console.error("Error admin email:", err));
 
-    // Si eligió transferencia bancaria, procesar como orden pendiente y devolver exito
+    // Si eligió transferencia bancaria, enviar email al cliente con instrucciones y devolver exito
     if (isTransfer) {
+       const clientTransferHtml = `
+         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333;">
+           <h2 style="color: #4caf50;">¡Hola ${customer.firstName}!</h2>
+           <p>Hemos registrado tu pedido <strong>#${order.id.slice(-4).toUpperCase()}</strong> de forma exitosa.</p>
+           <p>Elegiste abonar mediante transferencia bancaria con descuento. El total a transferir es de <strong>$${emailTotal.toLocaleString('es-AR')}</strong>.</p>
+           
+           <div style="background: #f9f9f9; padding: 20px; border-radius: 8px; margin: 20px 0; border: 1px solid #ddd;">
+             <h3 style="margin-top: 0;">Datos para la transferencia</h3>
+             <ul style="list-style: none; padding: 0; margin: 0;">
+               <li style="margin-bottom: 10px;"><strong>CBU / CVU:</strong> [COMPLETAR_CBU_AQUI]</li>
+               <li style="margin-bottom: 10px;"><strong>Alias:</strong> [COMPLETAR_ALIAS_AQUI]</li>
+               <li style="margin-bottom: 10px;"><strong>Titular:</strong> [COMPLETAR_TITULAR_AQUI]</li>
+               <li><strong>Banco:</strong> [COMPLETAR_BANCO_AQUI]</li>
+             </ul>
+           </div>
+           
+           <p style="background: #e8f5e9; padding: 15px; border-left: 4px solid #4caf50; font-weight: bold;">
+             IMPORTANTE: Una vez realizada la transferencia, respondé este correo o envianos el comprobante por WhatsApp al ${WHATSAPP_PHONE} para que empecemos a preparar tu pedido.
+           </p>
+           
+           <p style="margin-top: 30px;">¡Gracias por elegir Atelier Óptica!</p>
+         </div>
+       `;
+
+       sendEmail({
+         to: customer.email,
+         subject: `🛒 Instrucciones de Pago - Pedido #${order.id.slice(-4).toUpperCase()} - Atelier Óptica`,
+         html: clientTransferHtml
+       }).catch(err => console.error("Error client transfer email:", err));
+
        return NextResponse.json({ 
          success: true, 
          message: "Orden de transferencia generada",
@@ -545,6 +576,51 @@ export async function POST(req: Request) {
         }
       });
     });
+
+    try {
+      const updatedOrder = await prisma.order.findUnique({
+        where: { id: order.id },
+        include: { client: true, payments: true }
+      });
+      const paymentRecord = updatedOrder?.payments?.[updatedOrder.payments.length - 1];
+
+      if (updatedOrder && paymentRecord) {
+        const pdfData = await generateReceiptPDF(paymentRecord, updatedOrder, updatedOrder.client);
+        
+        const attachments = [{
+          filename: pdfData.filename,
+          content: pdfData.base64.split('base64,')[1] || pdfData.base64,
+          encoding: 'base64'
+        }];
+
+        // Enviar a cliente
+        const clientHtml = `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333;">
+            <h2 style="color: #4caf50;">¡Hola ${customer.firstName}!</h2>
+            <p>Hemos registrado y cobrado tu pedido <strong>#${order.id.slice(-4).toUpperCase()}</strong> de forma exitosa.</p>
+            <p>Adjunto a este correo encontrarás el comprobante de pago electrónico.</p>
+            <p style="margin-top: 30px;">¡Gracias por elegir Atelier Óptica!</p>
+          </div>
+        `;
+        
+        await sendEmail({
+          to: customer.email,
+          subject: `🛒 Confirmación de Pago - Pedido #${order.id.slice(-4).toUpperCase()} - Atelier Óptica`,
+          html: clientHtml,
+          attachments
+        });
+
+        // Adjuntar PDF también al admin re-enviando un update o usando un mail nuevo
+        await sendEmail({
+          to: adminEmails,
+          subject: `✅ COMPROBANTE PAYWAY GENERADO - Venta #${order.id.slice(-4).toUpperCase()}`,
+          html: `<p>El cliente abonó con Payway exitosamente. Se adjunta el comprobante interno automático.</p>`,
+          attachments
+        });
+      }
+    } catch (pdfErr) {
+      console.error("Error generando/enviando PDF de Payway:", pdfErr);
+    }
 
     return NextResponse.json({ 
       success: true, 

@@ -119,38 +119,7 @@ export default function PrescriptionDetails({
                 </div>
             </div>
 
-            {/* 3. PRISMAS Y OBSERVACIONES */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="p-5 bg-stone-50 dark:bg-stone-900/50 rounded-[2rem] border border-stone-100 dark:border-stone-800">
-                    <p className="text-[9px] font-black text-stone-400 uppercase tracking-widest mb-3 flex items-center gap-2">
-                        <Ruler className="w-3.5 h-3.5" /> Prismas
-                    </p>
-                    <div className="space-y-3">
-                        <div className="flex justify-between items-center pb-2 border-b border-stone-100 dark:border-stone-800/50">
-                            <span className="text-[10px] font-bold text-stone-400 uppercase">Ojo Derecho</span>
-                            <span className={`text-xs font-black ${prescription?.prismOD ? 'text-stone-800 dark:text-stone-100' : 'text-stone-300 dark:text-stone-800 italic'}`}>
-                                {prescription?.prismOD || 'vacio'}
-                            </span>
-                        </div>
-                        <div className="flex justify-between items-center">
-                            <span className="text-[10px] font-bold text-stone-400 uppercase">Ojo Izquierdo</span>
-                            <span className={`text-xs font-black ${prescription?.prismOI ? 'text-stone-800 dark:text-stone-100' : 'text-stone-300 dark:text-stone-800 italic'}`}>
-                                {prescription?.prismOI || 'vacio'}
-                            </span>
-                        </div>
-                    </div>
-                </div>
-
-                <div className="p-5 bg-stone-50 dark:bg-stone-900/50 rounded-[2rem] border border-stone-100 dark:border-stone-800">
-                    <p className="text-[9px] font-black text-stone-400 uppercase tracking-widest mb-2">Observaciones</p>
-                    {prescription?.notes ? (
-                        <p className="text-xs font-medium text-stone-600 dark:text-stone-300 italic">“{prescription.notes}”</p>
-                    ) : (
-                        <p className="text-[10px] text-stone-300 italic font-bold">Sin observaciones adicionales</p>
-                    )}
-                </div>
-            </div>
-
+            {/* Removed PRISMAS Y OBSERVACIONES */}
             {/* Image Attachment */}
             {prescription?.imageUrl ? (
                 <div role="button" tabIndex={0} className="mt-2 flex items-center gap-4 bg-emerald-50/30 dark:bg-emerald-950/20 p-4 rounded-3xl border border-emerald-100 dark:border-emerald-900/50 group cursor-pointer hover:bg-emerald-50 dark:hover:bg-emerald-950/40 transition-all" onClick={() => window.open(resolveStorageUrl(prescription.imageUrl), '_blank')}>
@@ -158,6 +127,8 @@ export default function PrescriptionDetails({
                         <Image 
                             src={resolveStorageUrl(prescription.imageUrl)} 
                             alt="Imagen de Receta" 
+                            width={64}
+                            height={64}
                             className="w-16 h-16 object-cover transition-transform group-hover:scale-110"
                         />
                     </div>

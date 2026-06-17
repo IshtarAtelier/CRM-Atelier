@@ -5,7 +5,8 @@ import {
     X, CheckCircle2, AlertCircle, Banknote, 
     Glasses, User, Receipt, ArrowRight,
     Loader2, History,
-    Image as ImageIcon
+    Image as ImageIcon,
+    FlaskConical
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -19,6 +20,7 @@ interface CheckoutModalProps {
     onClose: () => void;
     onComplete: (data: any) => Promise<void>;
     onRefreshContact: () => Promise<void>;
+    onRequestPrescription?: () => void;
 }
 
 export default function CheckoutModal({
@@ -26,7 +28,8 @@ export default function CheckoutModal({
     contact,
     onClose,
     onComplete,
-    onRefreshContact
+    onRefreshContact,
+    onRequestPrescription
 }: CheckoutModalProps) {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -47,9 +50,25 @@ export default function CheckoutModal({
     const minRequired = total * 0.4;
     
     // Prescription Selection
-    const hasCrystals = order.items?.some((it: any) => 
-        it.product?.type === 'Cristal' || it.product?.category === 'Cristal' || (it.product?.name || '').includes('Cristal')
-    );
+    const hasCrystals = order.items?.some((it: any) => {
+        const str = `${it.product?.type || ''} ${it.product?.category || ''} ${it.product?.name || ''} ${it.productNameSnapshot || ''}`.toLowerCase();
+        return str.includes('cristal') || str.includes('monofocal') || str.includes('multifocal') || str.includes('bifocal') || str.includes('progresivo') || str.includes('ocupacional') || str.includes('lente');
+    });
+
+    const isMultifocal = order.items?.some((it: any) => {
+        const str = `${it.product?.type || ''} ${it.product?.category || ''} ${it.product?.name || ''} ${it.productNameSnapshot || ''}`.toLowerCase();
+        return str.includes('multifocal') || str.includes('progresivo') || str.includes('ocupacional');
+    });
+
+    const hasTinting = order.items?.some((it: any) => {
+        const str = `${it.product?.type || ''} ${it.product?.category || ''} ${it.product?.name || ''} ${it.productNameSnapshot || ''}`.toLowerCase();
+        return str.includes('teñido') || str.includes('tenido') || str.includes('coloracion');
+    });
+
+    const isOrganicoBlanco = order.items?.some((it: any) => {
+        const str = `${it.product?.type || ''} ${it.product?.category || ''} ${it.product?.name || ''} ${it.productNameSnapshot || ''}`.toLowerCase();
+        return (str.includes('cristal') || str.includes('monofocal') || str.includes('multifocal')) && str.includes('organico') && str.includes('blanco');
+    });
     const [selectedRxId, setSelectedRxId] = useState<string | null>(order.prescriptionId || (contact.prescriptions?.[0]?.id || null));
 
     // Effect to ensure we pick a prescription if it becomes available or if one was just added
@@ -58,6 +77,13 @@ export default function CheckoutModal({
             setSelectedRxId(contact.prescriptions[0].id);
         }
     }, [contact.prescriptions, selectedRxId]);
+
+    // SmartLab Frame Selection
+    const [frameShape, setFrameShape] = useState<string>('');
+    const [frameDetails, setFrameDetails] = useState<string>('');
+    const [labNotes, setLabNotes] = useState<string>('');
+    const [tintType, setTintType] = useState<string>('');
+    const [tintColor, setTintColor] = useState<string>('');
 
     const canConvert = Number(paid) >= Number(minRequired) && isClientDataComplete && (!hasCrystals || selectedRxId);
 
@@ -98,10 +124,19 @@ export default function CheckoutModal({
             }
 
             // 2. Convert to Sale - Con validación estricta de stock
+            let finalLabColor = undefined;
+            if (hasTinting && (tintType || tintColor)) {
+                finalLabColor = `${tintType} ${tintColor}`.trim();
+            }
+
             await onComplete({
                 orderType: 'SALE',
                 prescriptionId: selectedRxId,
-                clientData: clientForm // Enviamos los datos actualizados del cliente
+                clientData: clientForm,
+                labFrameShape: isMultifocal ? (frameShape || undefined) : undefined,
+                labFrameDetails: frameDetails || undefined,
+                labNotes: labNotes || undefined,
+                labColor: finalLabColor
             });
         } catch (err: any) {
             setError(err.message || 'Error en la operación');
@@ -268,9 +303,22 @@ export default function CheckoutModal({
                                     ))}
                                 </div>
                             ) : (
-                                <div className="bg-red-50 dark:bg-red-950/20 p-6 rounded-3xl border-2 border-red-100 flex items-center gap-4">
-                                    <AlertCircle className="w-6 h-6 text-red-500" />
-                                    <p className="text-xs font-bold text-red-700 uppercase tracking-widest">Debe cargar una receta para continuar</p>
+                                <div className="bg-red-50 dark:bg-red-950/20 p-6 rounded-3xl border-2 border-red-100 flex flex-col sm:flex-row items-center justify-between gap-4">
+                                    <div className="flex items-center gap-4">
+                                        <AlertCircle className="w-6 h-6 text-red-500" />
+                                        <p className="text-xs font-bold text-red-700 uppercase tracking-widest">Debe cargar una receta para continuar</p>
+                                    </div>
+                                    {onRequestPrescription && (
+                                        <button
+                                            onClick={() => {
+                                                onClose();
+                                                onRequestPrescription();
+                                            }}
+                                            className="px-6 py-3 bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-400 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-red-200 dark:hover:bg-red-800/50 transition-colors"
+                                        >
+                                            CARGAR RECETA
+                                        </button>
+                                    )}
                                 </div>
                             )}
 
@@ -282,6 +330,117 @@ export default function CheckoutModal({
                                     />
                                 </div>
                             )}
+                        </section>
+                    )}
+
+                    {/* 3.5 SECCION SMARTLAB FORMA DE ARMAZON */}
+                    {hasCrystals && (
+                        <section className="space-y-4">
+                            <h3 className="text-xs font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest flex items-center gap-2">
+                                <FlaskConical className="w-4 h-4" /> Laboratorio SmartLab
+                            </h3>
+                            <div className="bg-blue-50/50 dark:bg-blue-950/20 border-2 border-blue-100 dark:border-blue-900/50 rounded-3xl p-6">
+                                {isMultifocal && (
+                                    <>
+                                        <label className="text-[10px] font-black text-blue-500 uppercase tracking-widest block mb-4">Forma de Armazón (Obligatorio para cristales tallados)</label>
+                                        <div className="grid grid-cols-4 sm:grid-cols-8 gap-2 mb-4">
+                                            {[
+                                                { id: 'redondo', label: 'Redondo', svg: <circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" strokeWidth="2"/> },
+                                                { id: 'ovalado', label: 'Ovalado', svg: <ellipse cx="12" cy="12" rx="10" ry="6" fill="none" stroke="currentColor" strokeWidth="2"/> },
+                                                { id: 'rectangular', label: 'Rect', svg: <rect x="2" y="7" width="20" height="10" rx="2" ry="2" fill="none" stroke="currentColor" strokeWidth="2"/> },
+                                                { id: 'cuadrado', label: 'Cuadrado', svg: <rect x="4" y="4" width="16" height="16" rx="3" ry="3" fill="none" stroke="currentColor" strokeWidth="2"/> },
+                                                { id: 'aviador', label: 'Aviador', svg: <path d="M4 10c-1.1 0-2 .9-2 2v2c0 2.2 1.8 4 4 4h2c2.2 0 4-1.8 4-4v-2c0-1.1-.9-2-2-2H4zm10 0c-1.1 0-2 .9-2 2v2c0 2.2 1.8 4 4 4h2c2.2 0 4-1.8 4-4v-2c0-1.1-.9-2-2-2h-2zM12 10V8c0-1.1.9-2 2-2h4c1.1 0 2 .9 2 2v2" fill="none" stroke="currentColor" strokeWidth="2"/> },
+                                                { id: 'cateye', label: 'Cat-Eye', svg: <><path d="M2 12s4-8 10-8 10 8 10 8-4 8-10 8-10-8-10-8z" fill="none" stroke="currentColor" strokeWidth="2"/><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" strokeWidth="2"/></> },
+                                                { id: 'pantos', label: 'Panto', svg: <path d="M5 10a5 5 0 0 1 10 0v2a5 5 0 0 1-10 0v-2zm12 0a5 5 0 0 1 10 0v2a5 5 0 0 1-10 0v-2zM15 10H17M5 10C5 6 8 3 12 3s7 3 7 7" fill="none" stroke="currentColor" strokeWidth="2"/> },
+                                                { id: 'geometrico', label: 'Geométrico', svg: <polygon points="12 3 21 8.5 21 15.5 12 21 3 15.5 3 8.5 12 3" fill="none" stroke="currentColor" strokeWidth="2"/> }
+                                            ].map(shape => {
+                                                const isSel = frameShape === shape.id;
+                                                return (
+                                                    <button
+                                                        key={shape.id}
+                                                        onClick={() => setFrameShape(shape.id)}
+                                                        className={`flex flex-col items-center justify-center p-2 rounded-xl border-2 transition-all group ${
+                                                            isSel ? 'border-blue-500 bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300' 
+                                                            : 'border-transparent hover:border-blue-200 bg-white dark:bg-stone-800 text-stone-400 hover:text-blue-500'
+                                                        }`}
+                                                    >
+                                                        <svg viewBox="0 0 24 24" className="w-5 h-5 mb-1 group-hover:scale-110 transition-transform">
+                                                            {shape.svg}
+                                                        </svg>
+                                                        <span className="text-[7px] font-black uppercase tracking-wider">{shape.label}</span>
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    </>
+                                )}
+
+                                <div className="space-y-2 mb-4">
+                                    <label className="text-[9px] font-black text-stone-400 uppercase tracking-widest block">Detalles del Armazón</label>
+                                    <input 
+                                        type="text" 
+                                        value={frameDetails}
+                                        onChange={e => setFrameDetails(e.target.value)}
+                                        placeholder="Ej: Metálico ranurado medio marco, Plaquetas de silicona..." 
+                                        className="w-full bg-white dark:bg-stone-900 border border-blue-200 dark:border-blue-800/50 px-4 py-3 rounded-xl text-xs font-medium focus:border-blue-500 outline-none"
+                                    />
+                                </div>
+
+                                {hasTinting && (
+                                    <div className="mb-4 p-4 bg-white/50 dark:bg-stone-900/50 rounded-2xl border border-blue-100 dark:border-blue-800/50">
+                                        <h4 className="text-[10px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest mb-3">Opciones de Teñido</h4>
+                                        {!isOrganicoBlanco && (
+                                            <div className="mb-3 px-3 py-2 bg-amber-50 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400 text-[9px] font-bold rounded-lg border border-amber-200 dark:border-amber-800/50">
+                                                ⚠️ Atención: Se recomienda aplicar teñidos únicamente sobre cristales "Orgánico Blanco".
+                                            </div>
+                                        )}
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div className="space-y-2">
+                                                <label className="text-[9px] font-bold text-stone-500 uppercase">Tipo</label>
+                                                <select 
+                                                    value={tintType} 
+                                                    onChange={e => setTintType(e.target.value)}
+                                                    className="w-full bg-white dark:bg-stone-900 border border-blue-200 dark:border-blue-800/50 px-3 py-2 rounded-xl text-xs font-medium focus:border-blue-500 outline-none"
+                                                >
+                                                    <option value="">Seleccionar...</option>
+                                                    <option value="Compacto">Compacto (Pleno)</option>
+                                                    <option value="Degradé">Degradé</option>
+                                                    <option value="Según Muestra">Según Muestra</option>
+                                                </select>
+                                            </div>
+                                            <div className="space-y-2">
+                                                <label className="text-[9px] font-bold text-stone-500 uppercase">Color</label>
+                                                <select 
+                                                    value={tintColor} 
+                                                    onChange={e => setTintColor(e.target.value)}
+                                                    className="w-full bg-white dark:bg-stone-900 border border-blue-200 dark:border-blue-800/50 px-3 py-2 rounded-xl text-xs font-medium focus:border-blue-500 outline-none"
+                                                >
+                                                    <option value="">Seleccionar...</option>
+                                                    <option value="Gris">Gris</option>
+                                                    <option value="Marrón">Marrón</option>
+                                                    <option value="Verde G15">Verde G15</option>
+                                                    <option value="Rosa">Rosa</option>
+                                                    <option value="Amarillo">Amarillo</option>
+                                                    <option value="Naranja">Naranja</option>
+                                                    <option value="Rojo">Rojo</option>
+                                                    <option value="Otro">Otro (Aclarar en notas)</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                <div className="space-y-2">
+                                    <label className="text-[9px] font-black text-stone-400 uppercase tracking-widest block">Observaciones Adicionales (Opcional)</label>
+                                    <textarea 
+                                        value={labNotes}
+                                        onChange={e => setLabNotes(e.target.value)}
+                                        placeholder="Cualquier nota adicional sobre el cristal o armazón..." 
+                                        rows={2}
+                                        className="w-full bg-white dark:bg-stone-900 border border-blue-200 dark:border-blue-800/50 px-4 py-3 rounded-xl text-xs font-medium focus:border-blue-500 outline-none resize-none"
+                                    />
+                                </div>
+                            </div>
                         </section>
                     )}
 

@@ -480,6 +480,8 @@ export default function PrescriptionManager({
                             <Image 
                                 src={resolveStorageUrl(form.imageUrl)} 
                                 alt="Receta" 
+                                width={800}
+                                height={400}
                                 className="w-full max-h-48 object-contain rounded-xl border-2 border-emerald-500 shadow-md" 
                             />
                             <button onClick={() => setForm(p => ({...p, imageUrl: ''}))} className="absolute top-2 right-2 p-2 bg-red-500 text-white rounded-full"><X className="w-4 h-4" /></button>

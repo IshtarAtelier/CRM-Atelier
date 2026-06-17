@@ -55,6 +55,7 @@ next-env.d.ts
 # database
 dev.db*
 prisma/dev.db*
+prisma/atelier.db
 backups/
 /storage
 

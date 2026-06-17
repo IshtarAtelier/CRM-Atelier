@@ -98,7 +98,11 @@ export default function ContactDetail({
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ 
                     orderType: 'SALE',
-                    prescriptionId: conversionData?.prescriptionId 
+                    prescriptionId: conversionData?.prescriptionId,
+                    labFrameShape: conversionData?.labFrameShape,
+                    labFrameDetails: conversionData?.labFrameDetails,
+                    labNotes: conversionData?.labNotes,
+                    labColor: conversionData?.labColor
                 }),
             });
             if (!res.ok) {
@@ -246,6 +250,7 @@ export default function ContactDetail({
                             onConvertOrder={handleConvertOrder}
                             onAddPayment={handleAddPayment}
                             onDeleteOrder={handleDeleteOrder}
+                            onRequestPrescription={() => setActiveSection('prescription')}
                         />
                     )}
                 </main>

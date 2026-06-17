@@ -10,7 +10,7 @@ export async function GET() {
             where: {
                 isDeleted: false,
                 orderType: 'SALE',
-                labStatus: { in: ['FINISHED', 'IN_PROGRESS'] },
+                labStatus: { in: ['FINISHED', 'IN_PROGRESS', 'READY'] },
             },
             select: {
                 id: true,
@@ -39,7 +39,7 @@ export async function GET() {
         });
 
         const readyOrders = orders.filter(order => {
-            if (order.labStatus === 'FINISHED') return true;
+            if (order.labStatus === 'FINISHED' || order.labStatus === 'READY') return true;
             if (order.labStatus === 'IN_PROGRESS' && order.smartLabDetails) {
                 try {
                     const details = JSON.parse(order.smartLabDetails as string);

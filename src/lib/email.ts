@@ -14,19 +14,25 @@ interface SendEmailOptions {
     subject: string;
     text?: string;
     html?: string;
+    attachments?: Array<{
+        filename: string;
+        content: string | Buffer;
+        encoding?: string;
+    }>;
 }
 
 /**
  * Utility to send an email to a client
  */
-export async function sendEmail({ to, subject, text, html }: SendEmailOptions) {
+export async function sendEmail({ to, subject, text, html, attachments }: SendEmailOptions) {
     try {
         const info = await transporter.sendMail({
             from: `"Atelier Óptica" <${process.env.EMAIL_USER || 'noreply@atelier.com'}>`,
             to,
             subject,
             text,
-            html
+            html,
+            attachments
         });
         console.log(`[Email] Correo enviado exitosamente a ${to}. ID: ${info.messageId}`);
         return { success: true, messageId: info.messageId };
