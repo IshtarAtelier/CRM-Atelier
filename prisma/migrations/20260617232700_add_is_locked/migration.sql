@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "Order" ADD COLUMN "isLocked" BOOLEAN NOT NULL DEFAULT true;
