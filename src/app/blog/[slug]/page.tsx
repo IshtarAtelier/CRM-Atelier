@@ -1374,7 +1374,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
 
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="rounded-3xl overflow-hidden mb-12 shadow-lg border border-black/5  h-64 md:h-96 w-full relative">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
+          { }
           <Image src={post.imageUrl || '/images/og-image.jpg'} alt={post.title} fill className="w-full h-full object-cover" />
         </div>
 
@@ -1411,7 +1411,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
             {otherPosts.map(related => (
               <Link key={related.slug} href={`/blog/${related.slug}`} className="group bg-white  rounded-2xl border border-black/5  overflow-hidden hover:shadow-lg hover:border-black/30 transition-all duration-300">
                 <div className="h-40 overflow-hidden bg-stone-100">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  { }
                   <Image src={related.imageUrl || undefined} alt={related.title} width={1200} height={800} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
                 </div>
                 <div className="p-5">

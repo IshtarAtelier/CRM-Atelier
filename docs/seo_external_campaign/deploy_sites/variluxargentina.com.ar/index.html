@@ -9,9 +9,8 @@
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Inter:wght@300;400;500;600;700&display=swap">
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Inter:wght@300;400;500;600;700&display=swap" media="print" onload="this.media='all'">
-    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Inter:wght@300;400;500;600;700&display=swap"></noscript>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&amp;family=Playfair+Display:wght@600;800&amp;display=swap" rel="stylesheet">
 
     <style>
         :root {
@@ -40,19 +39,21 @@
         p { font-size: 1.1rem; color: var(--text-muted); margin-bottom: 20px; font-weight: 300; }
         
         .gold-gradient {
-            background: linear-gradient(135deg, var(--accent-gold-light), var(--accent-gold));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
+            color: var(--accent-gold);
+            background: linear-gradient(135deg, #F3E5AB 0%, #D4AF37 50%, #AA801E 100%);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
         }
 
         /* Navbar */
         nav {
-            position: fixed; top: 0; width: 100%; z-index: 1000;
-            background: rgba(2, 2, 2, 0.85); backdrop-filter: blur(20px);
-            border-bottom: 1px solid var(--glass-border);
-            padding: 15px 5%; display: flex; justify-content: space-between; align-items: center;
+            position: absolute; top: 0; width: 100%; padding: 20px 5%;
+            display: flex; justify-content: space-between; align-items: center; z-index: 1000;
+            flex-wrap: wrap; gap: 15px;
         }
-        .logo { font-family: var(--font-heading); font-size: 1.6rem; font-style: italic; font-weight: 700; }
+        .logo { font-family: var(--font-display); font-size: 1.5rem; font-weight: 800; letter-spacing: 1px; color: #fff; text-decoration: none; }
+        .nav-links { display: flex; align-items: center; gap: 20px; flex-wrap: wrap; }
+        .nav-link { color: var(--accent-gold); text-decoration: none; font-weight: 600; font-size: 0.9rem; transition: 0.3s; }
+        .nav-link:hover { color: #fff; }
         .logo span { font-family: var(--font-body); font-size: 1rem; font-weight: 300; font-style: normal; color: var(--text-muted); }
 
         /* Buttons */
@@ -208,14 +209,12 @@
 <body>
     
     <!-- Top Navigation -->
-    <div style="position: absolute; top: 30px; right: 30px; z-index: 100;">
-        <a href="blog.html" class="btn" style="background: rgba(0,0,0,0.5); border: 1px solid var(--accent-gold); color: var(--accent-gold); backdrop-filter: blur(5px);">Blog de Tecnología Visual</a>
-    </div>
-
-    <!-- Hero Section -->
     <nav>
-        <div class="logo">Varilux <span class="gold-gradient">Argentina</span></div>
-        <a href="https://wa.me/5493518685644?text=Hola%2C+tengo+mi+receta+y+quiero+cotizar+Varilux" class="btn btn-gold" style="padding: 10px 24px; font-size: 0.9rem;" target="_blank">Cotizar mi Receta</a>
+        <a href="index.html" class="logo">Varilux <span class="gold-gradient">Argentina</span></a>
+        <div class="nav-links">
+            <a href="blog.html" class="nav-link">Blog Visual</a>
+            <a href="https://wa.me/5493518685644?text=Hola%2C+tengo+mi+receta+y+quiero+cotizar+Varilux" class="btn btn-gold" style="padding: 10px 24px; font-size: 0.9rem;" target="_blank">Cotizar mi Receta</a>
+        </div>
     </nav>
 
     <!-- Hero Section -->
@@ -233,7 +232,7 @@
                 <div class="hero-visual reveal">
                     <div class="hero-frame">
                         <!-- El usuario debe subir esta imagen (ej: paciente sonriendo o lente de lujo) -->
-                        <img src="hero-real.jpg" alt="Persona usando lentes Varilux" onerror="this.src='https://via.placeholder.com/600x800/111111/D4AF37?text=Subir+hero-real.jpg';">
+                        <img src="hero-real.jpg" alt="Persona usando lentes Varilux" onerror="this.onerror=null; this.src='https://via.placeholder.com/600x800/111111/D4AF37?text=Subir+hero-real.jpg';">
                     </div>
                 </div>
             </div>
@@ -245,7 +244,7 @@
         <div class="grid-2">
             <div class="reveal">
                 <!-- El usuario debe subir esta imagen al directorio deploy_sites/variluxargentina.com.ar/ -->
-                <img src="comfort.jpg" alt="Beneficios de Varilux" class="real-img" onerror="this.src='https://via.placeholder.com/600x400/111111/D4AF37?text=Subir+comfort.jpg';">
+                <img src="comfort.jpg" alt="Beneficios de Varilux" class="real-img" onerror="this.onerror=null; this.src='https://via.placeholder.com/600x400/111111/D4AF37?text=Subir+comfort.jpg';">
             </div>
             <div class="reveal">
                 <h3 class="gold-gradient">CÓMODOS DESDE EL DÍA 1</h3>
@@ -336,7 +335,7 @@
                     <h3 style="font-size: 1.4rem; color: var(--accent-gold);">Paleta de Colores Transitions Gen S</h3>
                     <p style="font-size: 0.95rem; margin-bottom: 20px;">Elegí entre 7 colores vibrantes: Zafiro, Amatista, Rubí, Esmeralda, Verde Grafito, Marrón o Gris. Totalmente claros en interiores.</p>
                     <!-- El usuario debe subir esta imagen al directorio deploy_sites/variluxargentina.com.ar/ -->
-                    <img src="transitions.jpg" alt="Colores Transitions Gen S" class="real-img" onerror="this.src='https://via.placeholder.com/800x400/111111/D4AF37?text=Subir+transitions.jpg';">
+                    <img src="transitions.jpg" alt="Colores Transitions Gen S" class="real-img" onerror="this.onerror=null; this.src='https://via.placeholder.com/800x400/111111/D4AF37?text=Subir+transitions.jpg';">
                 </div>
             </div>
             
@@ -362,7 +361,7 @@
             </div>
             <div class="reveal">
                 <!-- El usuario debe subir esta imagen al directorio deploy_sites/variluxargentina.com.ar/ -->
-                <img src="certificado.jpg" alt="Certificado de Autenticidad Essilor" class="real-img" onerror="this.src='https://via.placeholder.com/600x400/111111/D4AF37?text=Subir+certificado.jpg';">
+                <img src="certificado.jpg" alt="Certificado de Autenticidad Essilor" class="real-img" onerror="this.onerror=null; this.src='https://via.placeholder.com/600x400/111111/D4AF37?text=Subir+certificado.jpg';">
             </div>
         </div>
     </section>
@@ -457,7 +456,7 @@
             </div>
             
             <div style="border-radius: 20px; overflow: hidden; border: 1px solid var(--accent-gold); box-shadow: 0 10px 30px rgba(212, 175, 55, 0.1);">
-                <iframe width="100%" height="300" frameborder="0" scrolling="no" marginheight="0" marginwidth="0" src="https://maps.google.com/maps?q=Jos%C3%A9%20Luis%20de%20Tejeda%204380,%20Cerro%20de%20las%20Rosas,%20C%C3%B3rdoba&t=&z=15&ie=UTF8&iwloc=&output=embed" style="display: block;"></iframe>
+                <iframe width="100%" height="300" frameborder="0" scrolling="no" marginheight="0" marginwidth="0" src="https://maps.google.com/maps?q=Jos%C3%A9%20Luis%20de%20Tejeda%204380,%20Cerro%20de%20las%20Rosas,%20C%C3%B3rdoba&amp;t=&amp;z=15&amp;ie=UTF8&amp;iwloc=&amp;output=embed" style="display: block;"></iframe>
             </div>
         </div>
     </footer>

@@ -894,7 +894,7 @@ export default function AdministracionPage() {
                         </button>
                         <h3 className="text-sm font-black uppercase tracking-widest text-stone-400 mb-6 flex items-center gap-2 px-2"><ImageIcon className="w-4 h-4"/> Comprobante de Pago</h3>
                         <div className="rounded-xl overflow-hidden bg-stone-50 dark:bg-stone-800 flex items-center justify-center min-h-[300px]">
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            { }
                             <Image src={viewingReceipt} alt="Comprobante" className="max-h-[70vh] object-contain" />
                         </div>
                     </div>

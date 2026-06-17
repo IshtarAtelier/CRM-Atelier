@@ -78,7 +78,7 @@ export function SalesDetailSection({ salesDetail }: { salesDetail: SaleDetail[] 
         if (keys.length > 0 && Object.keys(expandedMonths).length === 0) {
             setExpandedMonths({ [keys[0]]: true });
         }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
     }, [salesDetail]);
 
     const toggleMonth = (month: string) => {

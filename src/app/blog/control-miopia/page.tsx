@@ -38,7 +38,7 @@ export default function MyopiaControlPage() {
 
         {/* Hero Image */}
         <div className="w-full h-64 md:h-[400px] relative mb-12 lg:mb-16 bg-stone-100 overflow-hidden">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
+          { }
           <Image 
             src="/images/blog/vidriera-atelier.webp" 
             alt="Interior de Atelier Óptica" 

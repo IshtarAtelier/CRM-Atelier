@@ -7,7 +7,7 @@
     <meta name="description" content="Descubrí las últimas novedades en tecnología visual, inteligencia artificial en multifocales Varilux XR y tratamientos Crizal y Transitions.">
     
     <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=Playfair+Display:wght@600;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&amp;family=Playfair+Display:wght@600;800&amp;display=swap" rel="stylesheet">
     
     <style>
         :root {
@@ -40,6 +40,7 @@
         }
         .logo { font-family: var(--font-display); font-size: 1.5rem; font-weight: 800; letter-spacing: 1px; color: #fff; text-decoration: none; }
         .gold-gradient {
+            color: var(--accent-gold);
             background: linear-gradient(135deg, #F3E5AB 0%, #D4AF37 50%, #AA801E 100%);
             -webkit-background-clip: text; -webkit-text-fill-color: transparent;
         }
@@ -59,7 +60,7 @@
             display: flex; flex-direction: column; text-decoration: none; color: inherit;
         }
         .blog-card:hover { transform: translateY(-10px); border-color: var(--accent-gold); box-shadow: 0 10px 40px rgba(212, 175, 55, 0.15); }
-        .blog-img { width: 100%; height: 250px; background: #222; display: flex; align-items: center; justify-content: center; color: var(--text-muted); font-size: 0.9rem; }
+        .blog-img { width: 100%; height: 250px; background: #222; display: flex; align-items: center; justify-content: center; color: #b3b3b3; font-size: 0.9rem; }
         .blog-content { padding: 30px; display: flex; flex-direction: column; flex-grow: 1; }
         .blog-tag { color: var(--accent-gold); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 15px; font-weight: 600; }
         .blog-title { font-family: var(--font-display); font-size: 1.8rem; margin-bottom: 15px; color: #fff; line-height: 1.2; }
@@ -72,9 +73,9 @@
 </head>
 <body>
 
-    <nav>
+    <nav style="flex-wrap: wrap; gap: 15px;">
         <a href="index.html" class="logo">Varilux <span class="gold-gradient">Argentina</span></a>
-        <a href="index.html" style="color: #fff; text-decoration: none; font-size: 0.9rem;">Volver al Inicio</a>
+        <a href="index.html" style="color: #fff; text-decoration: none; font-size: 0.9rem; font-weight: 600;">← Volver al Inicio</a>
     </nav>
 
     <header class="container">

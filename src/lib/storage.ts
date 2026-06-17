@@ -1,4 +1,5 @@
-import * as admin from 'firebase-admin';
+import { initializeApp, getApps, cert } from 'firebase-admin/app';
+import { getStorage } from 'firebase-admin/storage';
 import { writeFile, mkdir, unlink, readdir, stat } from "fs/promises";
 import path from "path";
 
@@ -13,9 +14,9 @@ const storageBucket = process.env.FIREBASE_STORAGE_BUCKET;
 const isCloudEnabled = !!(projectId && clientEmail && privateKey && storageBucket);
 
 // Inicializar Firebase Admin SDK (solo una vez)
-if (isCloudEnabled && !admin.apps.length) {
-    admin.initializeApp({
-        credential: admin.credential.cert({
+if (isCloudEnabled && !getApps().length) {
+    initializeApp({
+        credential: cert({
             projectId,
             clientEmail,
             privateKey,
@@ -29,7 +30,7 @@ if (isCloudEnabled && !admin.apps.length) {
  */
 export async function uploadFile(buffer: Buffer, filename: string, contentType: string): Promise<string> {
     if (isCloudEnabled) {
-        const bucket = admin.storage().bucket();
+        const bucket = getStorage().bucket();
         const file = bucket.file(filename);
         await file.save(buffer, {
             metadata: { contentType }
@@ -61,7 +62,7 @@ export async function getSignedUrl(key: string): Promise<string> {
     }
 
     if (isCloudEnabled) {
-        const bucket = admin.storage().bucket();
+        const bucket = getStorage().bucket();
         const file = bucket.file(key);
         try {
             const [url] = await file.getSignedUrl({
@@ -85,7 +86,7 @@ export async function getSignedUrl(key: string): Promise<string> {
  */
 export async function getUploadSignedUrl(key: string, contentType: string): Promise<{ uploadUrl: string, key: string }> {
     if (isCloudEnabled) {
-        const bucket = admin.storage().bucket();
+        const bucket = getStorage().bucket();
         const file = bucket.file(key);
         try {
             const [url] = await file.getSignedUrl({
@@ -112,7 +113,7 @@ export async function getUploadSignedUrl(key: string, contentType: string): Prom
 export async function listFiles(prefix: string): Promise<{ key: string, size?: number, lastModified?: Date }[]> {
     if (isCloudEnabled) {
         try {
-            const bucket = admin.storage().bucket();
+            const bucket = getStorage().bucket();
             const [files] = await bucket.getFiles({ prefix });
             
             return files.map(file => ({
@@ -164,7 +165,7 @@ export async function deleteFile(key: string): Promise<void> {
 
     if (isCloudEnabled) {
         try {
-            const bucket = admin.storage().bucket();
+            const bucket = getStorage().bucket();
             await bucket.file(key).delete();
         } catch (error) {
             console.error("Error deleting Firebase file:", error);
@@ -209,7 +210,7 @@ export async function getFileBuffer(key: string): Promise<Buffer | null> {
 
     if (isCloudEnabled) {
         try {
-            const bucket = admin.storage().bucket();
+            const bucket = getStorage().bucket();
             const [buffer] = await bucket.file(key).download();
             return buffer;
         } catch (error) {

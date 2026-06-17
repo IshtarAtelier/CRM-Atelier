@@ -10,7 +10,6 @@ import { es } from 'date-fns/locale';
 import InvoiceModal from '@/components/billing/InvoiceModal';
 import { generateInvoicePDF } from '@/lib/invoice-generator';
 import type { Order } from '@/types/orders';
-import Image from "next/image";
 
 const LAB_STATUS: Record<string, { key: string, label: string; color: string; icon: any; bg: string; text: string; ring: string }> = {
     'NONE': { key: 'NONE', label: 'Sin enviar', color: 'bg-stone-100 text-stone-500', bg: 'bg-stone-100 dark:bg-stone-800', text: 'text-stone-500 dark:text-stone-400', ring: 'ring-stone-200 dark:ring-stone-700', icon: Clock },

@@ -1,5 +1,5 @@
 import { getGoogleReviews } from "@/lib/googleReviews";
-import { Star, Quote, Sparkles, Check } from "lucide-react";
+import { Star, Quote, Sparkles } from "lucide-react";
 import Image from "next/image";
 
 export async function GoogleReviews() {
@@ -92,7 +92,7 @@ export async function GoogleReviews() {
 
                 <div className="flex items-center gap-3 pt-5 border-t border-stone-100 mt-auto">
                   {review.profile_photo_url ? (
-                    /* eslint-disable-next-line @next/next/no-img-element */
+                     
                     <Image 
                       src={review.profile_photo_url} 
                       alt={review.author_name} 

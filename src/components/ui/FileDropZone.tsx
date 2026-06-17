@@ -2,7 +2,6 @@
 
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { Upload, X, FileImage, File as FileIcon, AlertCircle, Clipboard } from 'lucide-react';
-import Image from "next/image";
 
 interface FileDropZoneProps {
     /** Accepted file types, e.g. "image/*" or "image/*,.pdf" */

@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { Metadata } from 'next';
-import { ArrowRight, BookOpen } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import { StorefrontNavbar } from '@/components/Storefront/StorefrontNavbar';
 import { StorefrontFooter } from '@/components/Storefront/StorefrontFooter';
 import { FloatingWhatsApp } from '@/components/Storefront/FloatingWhatsApp';
@@ -110,7 +110,7 @@ export default async function BlogPage() {
             const postElement = (
               <Link key={post.slug} href={`/blog/${post.slug}`} className={`group bg-white dark:bg-stone-900 rounded-3xl border border-stone-200 dark:border-stone-800 shadow-sm hover:shadow-xl hover:border-primary/40 transition-all duration-300 overflow-hidden flex flex-col ${layoutStyle}`}>
                 <div className={`${imgHeight} w-full overflow-hidden bg-stone-100 relative shrink-0`}>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  { }
                   <img src={post.imageUrl || undefined} alt={post.title} className={`w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ${post.slug === 'matias-turchi' ? 'object-top' : 'object-center'}`} />
                   <div className="absolute inset-0 bg-gradient-to-t from-stone-900/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                 </div>
@@ -148,7 +148,7 @@ export default async function BlogPage() {
               if (vIndex < visualBlocks.length) {
                 const visualElement = (
                   <div key={`visual-${index}`} className="group col-span-1 md:col-span-1 lg:col-span-1 row-span-1 rounded-3xl overflow-hidden relative shadow-sm hover:shadow-xl transition-all duration-300 bg-stone-900">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    { }
                     <img src={visualBlocks[vIndex]} alt="Atelier Lifestyle" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 opacity-90 group-hover:opacity-100" />
                     <div className="absolute inset-0 bg-stone-900/10 group-hover:bg-transparent transition-colors duration-300" />
                     <div className="absolute bottom-6 left-6 right-6 opacity-0 group-hover:opacity-100 transition-opacity duration-300">

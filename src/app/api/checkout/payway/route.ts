@@ -337,7 +337,7 @@ export async function POST(req: Request) {
           clientId: client.id,
           userId: systemUser.id,
           status: "WEB_PENDING",
-          orderType: "WEB",
+          orderType: "SALE",
           total: customer.paymentMethod === 'TRANSFER' ? recalculatedItemsTotal * transferMultiplier : recalculatedItemsTotal,
           labNotes: `Método de envío: ${shippingMethodLabel}${customer.shippingBranch ? ` (Sucursal: ${customer.shippingBranch})` : ''}. Método de pago: ${customer.paymentMethod}. Dirección: ${customer.address}, ${customer.city}, ${customer.state} ${customer.zip}`,
           items: {

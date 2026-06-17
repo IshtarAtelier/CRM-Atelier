@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { Star, MessageCircle, ArrowRight, ExternalLink } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import Image from "next/image";
 
 interface Review {
   author_name: string;
@@ -228,7 +227,7 @@ export function ReviewsPageContent({
                     {/* Encabezado Autor */}
                     <div className="flex items-center gap-4 mb-6">
                       {review.profile_photo_url ? (
-                        /* eslint-disable-next-line @next/next/no-img-element */
+                         
                         <img
                           src={review.profile_photo_url}
                           alt={review.author_name}

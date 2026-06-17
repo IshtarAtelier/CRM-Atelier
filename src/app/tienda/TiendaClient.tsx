@@ -4,15 +4,23 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
-import { SlidersHorizontal, X } from "lucide-react";
+import { X } from "lucide-react";
 import { StorefrontNavbar } from "@/components/Storefront/StorefrontNavbar";
 import { StorefrontFooter } from "@/components/Storefront/StorefrontFooter";
 import { FloatingWhatsApp } from "@/components/Storefront/FloatingWhatsApp";
-import { PaymentOptions } from "@/components/Storefront/PaymentOptions";
 import { ProductFilters } from "@/components/Storefront/ProductFilters";
 import { resolveStorageUrl } from "@/lib/utils/storage";
 
 const CATEGORIES = ["Todo", "Receta", "Sol", "Clip-On", "Contacto", "Cristales"];
+
+const CATEGORY_IMAGES: Record<string, string> = {
+  "Todo": "/images/banners/todo.png",
+  "Receta": "/images/banners/receta.png",
+  "Sol": "/images/banners/sol.png",
+  "Clip-On": "/images/banners/clipon.png",
+  "Contacto": "/images/banners/contacto.png",
+  "Cristales": "/images/banners/cristales.png"
+};
 
 const isXlProduct = (p: any) => {
   const nameLower = (p.name || "").toLowerCase();
@@ -104,12 +112,12 @@ export function TiendaClient({
     <div className="bg-white min-h-screen text-black font-sans selection:bg-black selection:text-white">
       <StorefrontNavbar theme="light" />
 
-      {/* ── HERO BAR ── */}
-      <div className="pt-20 border-b border-stone-100">
-        <div className="max-w-[1600px] mx-auto px-5 py-10 flex flex-col md:flex-row md:items-end justify-between gap-4">
+      {/* ── HERO BAR (TEXT) ── */}
+      <div className="pt-28 pb-8 bg-white border-b border-stone-100">
+        <div className="max-w-[1600px] mx-auto px-5 flex flex-col md:flex-row md:items-end justify-between gap-4">
           <div>
             <p className="text-[10px] font-black uppercase tracking-[0.25em] text-stone-400 mb-2">Atelier Óptica</p>
-            <h1 className=" font-serif">
+            <h1 className="text-4xl md:text-5xl font-serif">
               Colección
             </h1>
           </div>
@@ -117,35 +125,82 @@ export function TiendaClient({
             Armazones seleccionados a mano. Cada pieza elegida por diseño, calidad y carácter.
           </p>
         </div>
-
-        {/* ── BANNER DE CATEGORÍAS ── */}
-        <div className="max-w-[1600px] mx-auto px-5 pb-8 pt-6 flex flex-wrap items-center justify-center gap-3">
-          {CATEGORIES.map(cat => (
-            <button
-              key={cat}
-              onClick={() => setActiveCategory(cat)}
-              className={`shrink-0 text-[13px] font-black uppercase tracking-widest px-8 py-3.5 rounded-full transition-all duration-300 ${
-                activeCategory === cat
-                  ? "bg-black text-white shadow-lg scale-105"
-                  : "bg-stone-100 text-stone-500 hover:bg-stone-200 hover:text-black hover:scale-105"
-              }`}
-            >
-              {cat}
-            </button>
-          ))}
-          {activeCategory !== "Todo" && (
-            <button
-              onClick={() => setActiveCategory("Todo")}
-              className="shrink-0 ml-4 flex items-center gap-1 text-[11px] font-bold text-stone-400 hover:text-black transition-colors"
-            >
-              <X className="w-3 h-3" /> Limpiar
-            </button>
-          )}
-        </div>
       </div>
 
-      {/* ── MEDIOS DE PAGO STRIP ── */}
-      <PaymentOptions variant="strip" />
+      {/* ── DYNAMIC HERO BANNER ── */}
+      <div className="w-full">
+        {/* Image Container */}
+        <div className="relative w-full h-[350px] md:h-[450px] lg:h-[550px] bg-stone-200 overflow-hidden">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={activeCategory}
+              initial={{ opacity: 0, scale: 1.05 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.6 }}
+              className="absolute inset-0"
+            >
+              <Image
+                src={CATEGORY_IMAGES[activeCategory] || CATEGORY_IMAGES["Todo"]}
+                alt={`Colección ${activeCategory}`}
+                fill
+                priority
+                className="object-cover object-center"
+              />
+              <div className="absolute inset-0 bg-black/20" />
+            </motion.div>
+          </AnimatePresence>
+          <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
+             <h1 className="text-white text-5xl md:text-7xl font-serif text-center drop-shadow-2xl tracking-tight">
+                {activeCategory === "Todo" ? "Nueva Colección" : activeCategory}
+             </h1>
+          </div>
+        </div>
+
+        {/* Promo Strip */}
+        <div className="w-full bg-[#1c1c1c] text-white py-4 overflow-hidden whitespace-nowrap flex justify-center border-b border-stone-800">
+          <div className="inline-flex items-center gap-4 text-center justify-center w-full max-w-[1600px] px-5">
+            <span className="text-[9px] sm:text-[10px] md:text-[11px] font-black uppercase tracking-[0.2em]">
+              {discountRate * 100}% OFF EFECTIVO/TRANSFERENCIA
+            </span>
+            <span className="text-[#b08f4c] text-[10px] md:text-xs font-black uppercase tracking-[0.2em] hidden sm:block">·</span>
+            <span className="text-[9px] sm:text-[10px] md:text-[11px] font-black uppercase tracking-[0.2em] hidden sm:block">
+              {webSettings.web_promo_installments}
+            </span>
+            <span className="text-[#b08f4c] text-[10px] md:text-xs font-black uppercase tracking-[0.2em] hidden md:block">·</span>
+            <span className="text-[9px] sm:text-[10px] md:text-[11px] font-black uppercase tracking-[0.2em] hidden md:block">
+              ENVÍOS A TODO EL PAÍS
+            </span>
+          </div>
+        </div>
+
+        {/* ── BANNER DE CATEGORÍAS ── */}
+        <div className="bg-white border-b border-stone-100">
+          <div className="max-w-[1600px] mx-auto px-5 py-6 flex flex-wrap items-center justify-center gap-3">
+            {CATEGORIES.map(cat => (
+              <button
+                key={cat}
+                onClick={() => setActiveCategory(cat)}
+                className={`shrink-0 text-[11px] font-black uppercase tracking-widest px-6 py-3 rounded-full transition-all duration-300 ${
+                  activeCategory === cat
+                    ? "bg-black text-white shadow-md scale-105"
+                    : "bg-stone-50 text-stone-500 hover:bg-stone-100 hover:text-black"
+                }`}
+              >
+                {cat}
+              </button>
+            ))}
+            {activeCategory !== "Todo" && (
+              <button
+                onClick={() => setActiveCategory("Todo")}
+                className="shrink-0 ml-4 flex items-center gap-1 text-[11px] font-bold text-stone-400 hover:text-black transition-colors"
+              >
+                <X className="w-3 h-3" /> Limpiar
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
 
       <main className="max-w-[1600px] mx-auto px-5 py-12 pb-20 flex flex-col lg:flex-row gap-8 lg:gap-12 relative">
         <aside className="w-full lg:w-64 flex-shrink-0">
