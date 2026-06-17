@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { toast } from "sonner";
 import { Bell, Check, X, Trash2, FileText, Loader2, ExternalLink, AlertTriangle, Factory } from "lucide-react";
 
 interface Notification {
@@ -19,6 +20,9 @@ export function NotificationBell() {
     const [isOpen, setIsOpen] = useState(false);
     const [processingId, setProcessingId] = useState<string | null>(null);
     const [userRole, setUserRole] = useState<string | null>(null);
+    const roleRef = useRef<string | null>(null);
+    const prevLabReadyIds = useRef<Set<string>>(new Set());
+    const isInitialLoad = useRef<boolean>(true);
     const panelRef = useRef<HTMLDivElement>(null);
 
     // Tipos de notificación que solo puede ver el ADMIN (ishtar)
@@ -30,7 +34,12 @@ export function NotificationBell() {
     useEffect(() => {
         fetch('/api/auth/me')
             .then(res => res.ok ? res.json() : null)
-            .then(data => { if (data?.role) setUserRole(data.role); })
+            .then(data => { 
+                if (data?.role) {
+                    setUserRole(data.role); 
+                    roleRef.current = data.role;
+                }
+            })
             .catch(() => {});
     }, []);
 
@@ -39,7 +48,37 @@ export function NotificationBell() {
             const res = await fetch("/api/notifications");
             if (res.ok) {
                 const data = await res.json();
-                setNotifications(data.filter((n: Notification) => n.status === "PENDING"));
+                const pending = data.filter((n: Notification) => n.status === "PENDING");
+                
+                const currentLabReadyIds = new Set<string>();
+                pending.forEach((n: Notification) => {
+                    if (n.type === 'LAB_READY') currentLabReadyIds.add(n.id);
+                });
+
+                if (!isInitialLoad.current && roleRef.current !== 'ADMIN') {
+                    const newLabReady = pending.filter((n: Notification) => n.type === 'LAB_READY' && !prevLabReadyIds.current.has(n.id));
+                    
+                    if (newLabReady.length > 0) {
+                        try {
+                            const audio = new Audio('/sounds/notification.ogg');
+                            audio.play().catch(e => console.log('Audio autoplay blocked', e));
+                        } catch (e) {}
+
+                        newLabReady.forEach((n: Notification) => {
+                            let clientName = 'un cliente';
+                            const match = n.message.match(/—\s*(.*?)\s*\(/);
+                            if (match) {
+                                clientName = match[1];
+                            }
+                            toast.success(`¡Tenés un nuevo pedido fabricado de ${clientName}!`, { duration: 8000, position: 'top-center' });
+                        });
+                    }
+                }
+
+                prevLabReadyIds.current = currentLabReadyIds;
+                if (isInitialLoad.current) isInitialLoad.current = false;
+
+                setNotifications(pending);
             }
         } catch { }
     };
@@ -160,22 +199,26 @@ export function NotificationBell() {
                                                 {n.type === "INVOICE_REQUEST" ? "Ir a Facturar" : n.type === "LAB_READY" ? "Ver Pedidos" : "Ver Ficha"}
                                             </a>
                                         )}
-                                        <button aria-label="Notificaciones" aria-expanded={isOpen} aria-controls="notification-panel"
-                                            onClick={() => handleAction(n.id, "APPROVED")}
-                                            disabled={processingId === n.id}
-                                            className="flex flex-1 items-center justify-center gap-1.5 px-3 py-2 bg-emerald-500 text-white rounded-xl text-xs font-black uppercase tracking-widest hover:bg-emerald-600 active:scale-95 transition-all disabled:opacity-50"
-                                        >
-                                            {processingId === n.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
-                                            Aprobar
-                                        </button>
-                                        <button aria-label="Notificaciones" aria-expanded={isOpen} aria-controls="notification-panel"
-                                            onClick={() => handleAction(n.id, "REJECTED")}
-                                            disabled={processingId === n.id}
-                                            className="flex flex-1 items-center justify-center gap-1.5 px-3 py-2 bg-stone-200 dark:bg-stone-700 text-stone-600 dark:text-stone-500 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-stone-300 active:scale-95 transition-all disabled:opacity-50"
-                                        >
-                                            <X className="w-3 h-3" />
-                                            Rechazar
-                                        </button>
+                                        {n.type !== "LAB_READY" && (
+                                            <>
+                                                <button aria-label="Notificaciones" aria-expanded={isOpen} aria-controls="notification-panel"
+                                                    onClick={() => handleAction(n.id, "APPROVED")}
+                                                    disabled={processingId === n.id}
+                                                    className="flex flex-1 items-center justify-center gap-1.5 px-3 py-2 bg-emerald-500 text-white rounded-xl text-xs font-black uppercase tracking-widest hover:bg-emerald-600 active:scale-95 transition-all disabled:opacity-50"
+                                                >
+                                                    {processingId === n.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
+                                                    Aprobar
+                                                </button>
+                                                <button aria-label="Notificaciones" aria-expanded={isOpen} aria-controls="notification-panel"
+                                                    onClick={() => handleAction(n.id, "REJECTED")}
+                                                    disabled={processingId === n.id}
+                                                    className="flex flex-1 items-center justify-center gap-1.5 px-3 py-2 bg-stone-200 dark:bg-stone-700 text-stone-600 dark:text-stone-500 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-stone-300 active:scale-95 transition-all disabled:opacity-50"
+                                                >
+                                                    <X className="w-3 h-3" />
+                                                    Rechazar
+                                                </button>
+                                            </>
+                                        )}
                                     </div>
                                 </div>
                             ))
