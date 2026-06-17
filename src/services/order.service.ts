@@ -73,6 +73,7 @@ export class OrderService {
                 clientId: true,
                 status: true,
                 orderType: true,
+                isLocked: true,
                 total: true,
                 paid: true,
                 markup: true,

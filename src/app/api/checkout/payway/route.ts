@@ -408,12 +408,6 @@ export async function POST(req: Request) {
       </div>
     `;
 
-    sendEmail({
-      to: customer.email,
-      subject: `Confirmación de Orden #${order.id} - Atelier Óptica`,
-      html: confirmationHtml
-    }).catch(err => console.error("Error confirmation email:", err));
-
     const adminEmails = 'pisano.ishtar@gmail.com, atelier.optica.cerro@gmail.com';
     const adminHtml = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd;">
@@ -442,14 +436,20 @@ export async function POST(req: Request) {
       </div>
     `;
 
-    sendEmail({
-      to: adminEmails,
-      subject: `🛒 Nueva Compra Web - $${emailTotal.toLocaleString('es-AR')} - ${customer.firstName} ${customer.lastName}`,
-      html: adminHtml
-    }).catch(err => console.error("Error admin email:", err));
-
     // Si eligió transferencia bancaria, enviar email al cliente con instrucciones y devolver exito
     if (isTransfer) {
+      // 4a. Enviar email base de nueva compra
+      sendEmail({
+        to: customer.email,
+        subject: `Confirmación de Orden #${order.id} - Atelier Óptica`,
+        html: confirmationHtml
+      }).catch(err => console.error("Error confirmation email:", err));
+
+      sendEmail({
+        to: adminEmails,
+        subject: `🛒 Nueva Compra Web - $${emailTotal.toLocaleString('es-AR')} - ${customer.firstName} ${customer.lastName}`,
+        html: adminHtml
+      }).catch(err => console.error("Error admin email:", err));
        const clientTransferHtml = `
          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333;">
            <h2 style="color: #4caf50;">¡Hola ${customer.firstName}!</h2>
@@ -603,27 +603,18 @@ export async function POST(req: Request) {
         }];
 
         // Enviar a cliente
-        const clientHtml = `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333;">
-            <h2 style="color: #4caf50;">¡Hola ${customer.firstName}!</h2>
-            <p>Hemos registrado y cobrado tu pedido <strong>#${order.id.slice(-4).toUpperCase()}</strong> de forma exitosa.</p>
-            <p>Adjunto a este correo encontrarás el comprobante de pago electrónico.</p>
-            <p style="margin-top: 30px;">¡Gracias por elegir Atelier Óptica!</p>
-          </div>
-        `;
-        
         await sendEmail({
           to: customer.email,
-          subject: `🛒 Confirmación de Pago - Pedido #${order.id.slice(-4).toUpperCase()} - Atelier Óptica`,
-          html: clientHtml,
+          subject: `Confirmación de Orden #${order.id} - Atelier Óptica`,
+          html: confirmationHtml,
           attachments
         });
 
         // Adjuntar PDF también al admin re-enviando un update o usando un mail nuevo
         await sendEmail({
           to: adminEmails,
-          subject: `✅ COMPROBANTE PAYWAY GENERADO - Venta #${order.id.slice(-4).toUpperCase()}`,
-          html: `<p>El cliente abonó con Payway exitosamente. Se adjunta el comprobante interno automático.</p>`,
+          subject: `🛒 Nueva Compra Web - $${emailTotal.toLocaleString('es-AR')} - ${customer.firstName} ${customer.lastName}`,
+          html: adminHtml,
           attachments
         });
       }

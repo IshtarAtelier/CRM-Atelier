@@ -72,14 +72,14 @@ export default function VentasPage() {
             const apellido = nameParts.pop() || '';
             const nombre = nameParts.join(' ') || apellido;
 
-            const frameItems = order.items?.filter((i: any) => i.product?.category === 'FRAME' || i.product?.category === 'SUNGLASS' || i.productCategorySnapshot === 'FRAME' || i.productCategorySnapshot === 'SUNGLASS') || [];
+            const frameItems = order.items?.filter((i: any) => i.product?.category === 'Armazón de Receta' || i.product?.category === 'Lentes de Sol' || i.productCategorySnapshot === 'Armazón de Receta' || i.productCategorySnapshot === 'Lentes de Sol' || i.product?.category === 'FRAME' || i.product?.category === 'SUNGLASS' || i.productCategorySnapshot === 'FRAME' || i.productCategorySnapshot === 'SUNGLASS') || [];
             const frameInfo = frameItems.length > 0
                 ? `Armazón ${frameItems[0]?.product?.brand || frameItems[0]?.productBrandSnapshot || ''} ${frameItems[0]?.product?.name || frameItems[0]?.productNameSnapshot || ''}`.trim()
                 : order.frameSource === 'USUARIO'
                     ? `Armazón del cliente ${order.userFrameBrand || ''} ${order.userFrameModel || ''}`.trim()
                     : '';
 
-            const lensItems = order.items?.filter((i: any) => i.product?.category === 'LENS' || i.productCategorySnapshot === 'LENS') || [];
+            const lensItems = order.items?.filter((i: any) => i.product?.category === 'Cristal' || i.productCategorySnapshot === 'Cristal' || i.product?.category === 'LENS' || i.productCategorySnapshot === 'LENS') || [];
             const lensProduct = lensItems.length > 0 ? lensItems[0]?.product : null;
             const lensName = lensProduct?.name?.toLowerCase() || lensItems[0]?.productNameSnapshot?.toLowerCase() || '';
             const lensIndex = lensProduct?.lensIndex || '';
@@ -105,7 +105,7 @@ export default function VentasPage() {
                 else if (lensName.includes('foto') || lensName.includes('transition')) tratamiento = 'Fotocromático';
             }
 
-            const treatmentItems = order.items?.filter((i: any) => i.product?.category === 'Tratamiento' || i.productCategorySnapshot === 'Tratamiento') || [];
+            const treatmentItems = order.items?.filter((i: any) => i.product?.category === 'Tratamiento' || i.productCategorySnapshot === 'Tratamiento' || (i.product?.type || '').includes('Tratamiento')) || [];
             let tipo_tenido = '';
             let color_tenido = '';
             let intensidad_tenido = '';

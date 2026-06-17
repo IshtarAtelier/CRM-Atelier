@@ -646,6 +646,7 @@ export const ContactService = {
                 orders: {
                     select: {
                         id: true,
+                        isLocked: true,
                         total: true,
                         paid: true,
                         status: true,
