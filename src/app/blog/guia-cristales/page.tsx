@@ -4,7 +4,8 @@ import { WHATSAPP_PHONE } from '@/lib/constants';
 
 
 export const metadata: Metadata = {
-  title: "guia cristales | Atelier Óptica",
+  alternates: { canonical: '/blog/guia-cristales' },
+  title: "guia cristales",
   description: "Descubrí todo sobre guia cristales en Atelier Óptica. Envíos a toda Argentina, cuotas sin interés y atención personalizada.",
   keywords: ["óptica Argentina", "envíos a toda Argentina", "cuotas", "atención personalizada", "anteojos de receta", "guia cristales"],
 };

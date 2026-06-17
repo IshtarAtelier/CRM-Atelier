@@ -13,13 +13,13 @@ import { getProductAttributes } from '@/utils/product-controllers';
 import { resolveStorageUrl } from '@/lib/utils/storage';
 
 export const metadata: Metadata = {
-  title: "Anteojos de Sol | Atelier Óptica Córdoba",
+  title: "Anteojos de Sol",
   description: "Descubrí nuestra colección de anteojos de sol con protección UV400. Las mejores marcas y diseños en Córdoba.",
   alternates: {
     canonical: 'https://www.atelieroptica.com.ar/lentes-de-sol',
   },
   openGraph: {
-    title: 'Anteojos de Sol | Atelier Óptica Córdoba',
+    title: "Anteojos de Sol",
     description: 'Descubrí nuestra colección de anteojos de sol con protección UV400. Las mejores marcas y diseños en Córdoba.',
     url: 'https://www.atelieroptica.com.ar/lentes-de-sol',
     type: 'website',

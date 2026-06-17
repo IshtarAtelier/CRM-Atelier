@@ -3,7 +3,8 @@ import { StorefrontNavbar } from '@/components/Storefront/StorefrontNavbar';
 import { StorefrontFooter } from '@/components/Storefront/StorefrontFooter';
 
 export const metadata: Metadata = {
-  title: 'Por qué los anteojos de farmacia o calle destruyen tu vista | Atelier Óptica',
+  alternates: { canonical: '/blog/peligros-anteojos-pregraduados-farmacia' },
+  title: "Por qué los anteojos de farmacia o calle destruyen tu vista",
   description: "Descubrí los peligros de usar lentes pregraduados de farmacia o kiosco. Conocé la importancia de los centros ópticos y la distancia pupilar para tu salud visual. Envíos a toda Argentina. Cuotas sin interés. Atención personalizada y asesoramiento estético.",
   keywords: ["óptica Argentina", "envíos a toda Argentina", "cuotas", "atención personalizada", "anteojos de receta", "peligros anteojos pregraduados farmacia"],
 };

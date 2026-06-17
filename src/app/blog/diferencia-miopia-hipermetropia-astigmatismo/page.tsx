@@ -7,7 +7,8 @@ import { WHATSAPP_PHONE } from '@/lib/constants';
 
 
 export const metadata: Metadata = {
-  title: "diferencia miopia hipermetropia astigmatismo | Atelier Óptica",
+  alternates: { canonical: '/blog/diferencia-miopia-hipermetropia-astigmatismo' },
+  title: "diferencia miopia hipermetropia astigmatismo",
   description: "Descubrí todo sobre diferencia miopia hipermetropia astigmatismo en Atelier Óptica. Envíos a toda Argentina, cuotas sin interés y atención personalizada.",
   keywords: ["óptica Argentina", "envíos a toda Argentina", "cuotas", "atención personalizada", "anteojos de receta", "diferencia miopia hipermetropia astigmatismo"],
 };

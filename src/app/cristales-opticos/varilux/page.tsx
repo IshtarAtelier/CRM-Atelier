@@ -7,7 +7,8 @@ import { VariluxLensVisualizer } from "@/components/cristales/VariluxLensVisuali
 import { VariluxQuiz } from "@/components/cristales/VariluxQuiz";
 
 export const metadata: Metadata = {
-  title: "Varilux Multifocales Avanzados | Atelier Óptica",
+  alternates: { canonical: '/cristales-opticos/varilux' },
+  title: "Varilux Multifocales Avanzados",
   description: "Tecnología Varilux XR Series con Inteligencia Artificial. Visión nítida a todas las distancias. Diseñada para tu vida real.",
   keywords: "Varilux XR Series, Multifocales, Inteligencia Artificial, Cristales, Lentes, Presbicia, Óptica, Atelier, Córdoba",
 };

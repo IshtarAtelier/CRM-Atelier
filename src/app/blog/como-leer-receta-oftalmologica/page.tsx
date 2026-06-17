@@ -5,7 +5,8 @@ import { StorefrontFooter } from '@/components/Storefront/StorefrontFooter';
 import { FileText, Eye, CheckCircle } from 'lucide-react';
 
 export const metadata: Metadata = {
-  title: 'Guía para leer tu receta oftalmológica (OD, OI, Esf, Cil) | Atelier Óptica',
+  alternates: { canonical: '/blog/como-leer-receta-oftalmologica' },
+  title: "Guía para leer tu receta oftalmológica (OD, OI, Esf, Cil)",
   description: "¿No entendés qué dicen los números y letras de tu receta oftalmológica? En Atelier Óptica Córdoba te explicamos de forma sencilla qué significan. Envíos a toda Argentina. Cuotas sin interés. Atención personalizada y asesoramiento estético.",
   keywords: ["óptica Argentina", "envíos a toda Argentina", "cuotas", "atención personalizada", "anteojos de receta", "como leer receta oftalmologica"],
 };

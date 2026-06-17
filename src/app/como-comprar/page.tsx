@@ -6,7 +6,7 @@ import { ShoppingBag, Truck, CreditCard, ShieldCheck } from 'lucide-react';
 import { WHATSAPP_PHONE } from '@/lib/constants';
 
 export const metadata: Metadata = {
-  title: "Cómo Comprar | Atelier Óptica Córdoba",
+  title: "Cómo Comprar",
   description: "Guía paso a paso para realizar tus compras online en Atelier Óptica de manera segura. Envíos a todo el país y métodos de pago.",
   alternates: { canonical: 'https://www.atelieroptica.com.ar/como-comprar' },
 };

@@ -5,7 +5,8 @@ import { CristalFeatures } from "@/components/cristales/CristalFeatures";
 import { CristalCTA } from "@/components/cristales/CristalCTA";
 
 export const metadata: Metadata = {
-  title: "MyoFix Control de Miopía | Atelier Óptica",
+  alternates: { canonical: '/cristales-opticos/myofix' },
+  title: "MyoFix Control de Miopía",
   description: "Lentes MyoFix by Smart Lens con Defocus Technology. Tratamiento terapéutico para ralentizar la miopía infantil progresiva.",
   keywords: "MyoFix, Smart Lens, Miopía, Control Miopía Niños, Defocus Technology, Óptica, Atelier, Córdoba",
 };

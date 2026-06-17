@@ -5,7 +5,7 @@ import { FloatingWhatsApp } from "@/components/Storefront/FloatingWhatsApp";
 import { Lock, Heart, ShieldAlert } from 'lucide-react';
 
 export const metadata: Metadata = {
-  title: "Políticas de Privacidad | Atelier Óptica Córdoba",
+  title: "Políticas de Privacidad",
   description: "Conocé cómo protegemos tus datos personales, de pago y tus recetas oftalmológicas en Atelier Óptica.",
   alternates: { canonical: 'https://www.atelieroptica.com.ar/politicas-de-privacidad' },
 };

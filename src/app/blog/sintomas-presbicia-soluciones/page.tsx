@@ -6,7 +6,8 @@ import { FloatingWhatsApp } from "@/components/Storefront/FloatingWhatsApp";
 import { WHATSAPP_PHONE } from "@/lib/constants";
 
 export const metadata: Metadata = {
-  title: "¿Te alejás el celular para leer? Presbicia y soluciones | Atelier Óptica",
+  alternates: { canonical: '/blog/sintomas-presbicia-soluciones' },
+  title: "¿Te alejás el celular para leer? Presbicia y soluciones",
   description: "Conocé los síntomas de la presbicia, por qué empezás a alejar el celular y cuáles son las mejores soluciones ópticas (como los multifocales) tras visitar a tu médico oftalmólogo. Envíos a toda Argentina. Cuotas sin interés. Atención personalizada y asesoramiento estético.",
   keywords: ["óptica Argentina", "envíos a toda Argentina", "cuotas", "atención personalizada", "anteojos de receta", "sintomas presbicia soluciones"],
 };

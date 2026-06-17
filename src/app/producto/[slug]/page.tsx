@@ -105,7 +105,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 
   if (!product) {
     return {
-      title: 'Producto no encontrado | Atelier Óptica',
+      title: "Producto no encontrado",
     };
   }
 

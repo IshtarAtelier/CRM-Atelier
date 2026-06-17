@@ -4,7 +4,8 @@ import { WHATSAPP_PHONE } from '@/lib/constants';
 
 
 export const metadata: Metadata = {
-  title: "colores cristales | Atelier Óptica",
+  alternates: { canonical: '/blog/colores-cristales' },
+  title: "colores cristales",
   description: "Descubrí todo sobre colores cristales en Atelier Óptica. Envíos a toda Argentina, cuotas sin interés y atención personalizada.",
   keywords: ["óptica Argentina", "envíos a toda Argentina", "cuotas", "atención personalizada", "anteojos de receta", "colores cristales"],
 };

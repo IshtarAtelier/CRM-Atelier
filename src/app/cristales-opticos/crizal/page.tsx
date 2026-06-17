@@ -5,7 +5,8 @@ import { CristalFeatures } from "@/components/cristales/CristalFeatures";
 import { CristalCTA } from "@/components/cristales/CristalCTA";
 
 export const metadata: Metadata = {
-  title: "Crizal Tratamientos Antirreflejo | Atelier Óptica",
+  alternates: { canonical: '/cristales-opticos/crizal' },
+  title: "Crizal Tratamientos Antirreflejo",
   description: "Descubrí la familia Crizal de Essilor: Sapphire HR, Rock, Prevencia. Tratamientos antirreflejo para mayor claridad y extrema resistencia.",
   keywords: "Crizal, Antirreflejo, Sapphire, Rock, Prevencia, Cristales, Lentes Limpias, Protección, Óptica, Atelier",
 };

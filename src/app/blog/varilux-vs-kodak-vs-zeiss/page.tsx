@@ -4,7 +4,8 @@ import { StorefrontFooter } from "@/components/Storefront/StorefrontFooter";
 import { FloatingWhatsApp } from "@/components/Storefront/FloatingWhatsApp";
 
 export const metadata: Metadata = {
-  title: "Varilux vs Kodak vs Zeiss: ¿Qué multifocal premium elegir? | Atelier Óptica",
+  alternates: { canonical: '/blog/varilux-vs-kodak-vs-zeiss' },
+  title: "Varilux vs Kodak vs Zeiss: ¿Qué multifocal premium elegir?",
   description: "Descubrí las diferencias entre Varilux, Zeiss y Kodak. Comparativa de multifocales premium, adaptación y campos visuales para presbicia. Asesoramiento en Córdoba. Envíos a toda Argentina. Cuotas sin interés. Atención personalizada y asesoramiento estético.",
   keywords: ["óptica Argentina", "envíos a toda Argentina", "cuotas", "atención personalizada", "anteojos de receta", "varilux vs kodak vs zeiss"],
 };

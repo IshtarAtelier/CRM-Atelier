@@ -5,7 +5,8 @@ import { CristalFeatures } from "@/components/cristales/CristalFeatures";
 import { CristalCTA } from "@/components/cristales/CristalCTA";
 
 export const metadata: Metadata = {
-  title: "Lentes Multifocales Kodak | Atelier Óptica",
+  alternates: { canonical: '/cristales-opticos/kodak' },
+  title: "Lentes Multifocales Kodak",
   description: "Lentes multifocales Kodak Unique DRO y Kodak Precise. Transición suave, reducción de fatiga visual y adaptación rápida garantizada.",
   keywords: "Kodak, Unique DRO, Precise, Multifocales, Presbicia, Óptica, Atelier, Lentes progresivos",
 };

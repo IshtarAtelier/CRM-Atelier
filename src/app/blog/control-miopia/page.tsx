@@ -5,7 +5,8 @@ import Image from "next/image";
 
 
 export const metadata: Metadata = {
-  title: "control miopia | Atelier Óptica",
+  alternates: { canonical: '/blog/control-miopia' },
+  title: "control miopia",
   description: "Descubrí todo sobre control miopia en Atelier Óptica. Envíos a toda Argentina, cuotas sin interés y atención personalizada.",
   keywords: ["óptica Argentina", "envíos a toda Argentina", "cuotas", "atención personalizada", "anteojos de receta", "control miopia"],
 };

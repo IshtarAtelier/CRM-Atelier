@@ -2,7 +2,8 @@ import { Metadata } from 'next';
 import { CheckoutClient } from './CheckoutClient';
 
 export const metadata: Metadata = {
-  title: 'Checkout | Atelier Óptica',
+  alternates: { canonical: '/checkout' },
+  title: "Checkout",
   description: 'Finalizá tu compra de forma segura',
   robots: {
     index: false,

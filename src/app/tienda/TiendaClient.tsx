@@ -22,20 +22,7 @@ const CATEGORY_IMAGES: Record<string, string> = {
   "Cristales": "/images/banners/cristales.png"
 };
 
-const isXlProduct = (p: any) => {
-  const nameLower = (p.name || "").toLowerCase();
-  const modelLower = (p.model || "").toLowerCase();
-  return nameLower.includes("athena") || 
-         nameLower.includes("gaia") || 
-         nameLower.includes("clio") || 
-         nameLower.includes("minerva") || 
-         nameLower.includes("artemis") ||
-         modelLower.includes("91501") ||
-         modelLower.includes("238014") ||
-         modelLower.includes("238015") ||
-         modelLower.includes("3932") ||
-         modelLower.includes("g7013");
-};
+// Removed duplicated isXlProduct function
 
 export function TiendaClient({ 
   initialProducts,
@@ -49,6 +36,11 @@ export function TiendaClient({
   availableMaterials?: string[];
 }) {
   const [activeCategory, setActiveCategory] = useState("Todo");
+  const [visibleCount, setVisibleCount] = useState(24);
+
+  useEffect(() => {
+    setVisibleCount(24);
+  }, [activeCategory]);
 
   const [webSettings, setWebSettings] = useState({
     web_promo_cash_discount: 15,
@@ -93,7 +85,7 @@ export function TiendaClient({
           return cat.includes("sol") || cat.includes("sun");
         }
         if (active === "xl") {
-          return isXlProduct(p);
+          return p.shape === "XL";
         }
         if (active === "clip-on") {
           return cat.includes("clip");
@@ -107,6 +99,7 @@ export function TiendaClient({
         return cat === active;
       });
 
+  const displayedProducts = filtered.slice(0, visibleCount);
 
   return (
     <div className="bg-white min-h-screen text-black font-sans selection:bg-black selection:text-white">
@@ -228,7 +221,7 @@ export function TiendaClient({
               transition={{ duration: 0.3 }}
               className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-x-6 gap-y-14"
             >
-              {filtered.map((p, index) => {
+              {displayedProducts.map((p, index) => {
                 const hasSecondImage = p.imagenesCatalogo && p.imagenesCatalogo.length > 1;
                 const imgUrl = p.imagenesCatalogo?.length > 0
                   ? resolveStorageUrl(p.imagenesCatalogo[0])
@@ -294,7 +287,7 @@ export function TiendaClient({
                       {/* Badge categoría */}
                       {p.category && (
                         <span className="absolute top-3 left-3 text-[8px] font-black uppercase tracking-widest bg-white/80 backdrop-blur-sm px-2 py-1 z-10">
-                          {isXlProduct(p) ? `${p.category} · XL` : p.category}
+                          {p.shape === "XL" ? `${p.category} · XL` : p.category}
                         </span>
                       )}
                     </div>
@@ -333,9 +326,20 @@ export function TiendaClient({
               )}
             </motion.div>
           </AnimatePresence>
+        {filtered.length > visibleCount && (
+          <div className="mt-12 flex justify-center w-full">
+            <button 
+              onClick={() => setVisibleCount(v => v + 24)}
+              className="border-2 border-stone-900 text-stone-900 hover:bg-stone-900 hover:text-white px-8 py-3 text-[11px] font-black uppercase tracking-[0.2em] rounded-full transition-all duration-300 shadow-sm hover:shadow-md"
+            >
+              Cargar más productos
+            </button>
+          </div>
+        )}
+        
         {filtered.length > 0 && (
-          <p className="mt-12 text-center text-[10px] text-stone-300 uppercase tracking-widest font-bold">
-            {filtered.length} {filtered.length === 1 ? "modelo" : "modelos"} · Atelier Óptica
+          <p className="mt-8 text-center text-[10px] text-stone-300 uppercase tracking-widest font-bold">
+            Mostrando {Math.min(visibleCount, filtered.length)} de {filtered.length} {filtered.length === 1 ? "modelo" : "modelos"} · Atelier Óptica
           </p>
         )}
         </div>

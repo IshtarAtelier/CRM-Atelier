@@ -38,6 +38,7 @@ const OrderUpdateSchema = z.object({
     userFrameModel: z.string().nullable().optional(),
     userFrameNotes: z.string().nullable().optional(),
     items: z.array(OrderItemSchema).optional(),
+    isLocked: z.boolean().optional(),
     // Lab fields
     labStatus: z.string().optional(),
     labNotes: z.string().nullable().optional(),
@@ -199,26 +200,36 @@ export class OrderService {
             throw new Error('Datos inválidos');
         }
 
-        // ── Guard: prevent editing items/pricing on SALE orders for non-admin users ──
+        // ── Guard: prevent editing items/pricing on SALE orders based on lock state ──
         const existingForGuard = await prisma.order.findUnique({
             where: { id },
-            select: { orderType: true }
+            select: { orderType: true, isLocked: true }
         });
-        if (existingForGuard?.orderType === 'SALE' && role !== 'ADMIN') {
+
+        if (existingForGuard?.orderType === 'SALE') {
+            // 1. Unlocking (isLocked: false) is ADMIN-only
+            if (body.isLocked === false && existingForGuard.isLocked && role !== 'ADMIN') {
+                throw new Error('Solo el administrador puede reabrir una venta.');
+            }
+
+            // 2. Financial changes/items changes are only allowed if the sale is currently unlocked
+            // or if the admin is unlocking it in this same request.
             const financialFields = [
                 'items', 'markup', 'discountCash', 'discountTransfer', 
                 'discountCard', 'specialDiscount', 'total', 'subtotalWithMarkup',
                 'clientId', 'userId', 'orderType'
             ];
             const hasFinancialEdits = Object.keys(body).some(key => financialFields.includes(key));
-            if (hasFinancialEdits) {
-                throw new Error('Solo el administrador puede modificar detalles financieros o ítems de una venta confirmada.');
+            const isUnlockingNow = body.isLocked === false;
+            
+            if (existingForGuard.isLocked && !isUnlockingNow && hasFinancialEdits) {
+                throw new Error('La venta está bloqueada. El administrador debe reabrirla para poder editar.');
             }
         }
 
         if (body.items) {
-            if (existingForGuard?.orderType === 'SALE') {
-                throw new Error('No se pueden modificar los ítems de una venta confirmada. Solicitá reapertura al administrador.');
+            if (existingForGuard?.orderType === 'SALE' && existingForGuard?.isLocked) {
+                throw new Error('No se pueden modificar los ítems de una venta bloqueada. Solicitá reapertura al administrador.');
             }
         }
 
@@ -230,10 +241,12 @@ export class OrderService {
             labPrismOD, labPrismOI, labBaseCurve, labFrameType, labBevelPosition,
             labFrameShape, labFrameDetails,
             prescriptionId, items, total, markup, 
-            discountCash, discountTransfer, discountCard, specialDiscount, subtotalWithMarkup
+            discountCash, discountTransfer, discountCard, specialDiscount, subtotalWithMarkup,
+            isLocked
         } = body;
 
         const data: any = {};
+        if (isLocked !== undefined) data.isLocked = isLocked;
         
         // Use existing values if not provided in body (need to fetch order first if totals are missing)
         let finalMarkup = markup;
@@ -308,6 +321,85 @@ export class OrderService {
         if (specialDiscount !== undefined) data.specialDiscount = specialDiscount;
 
         if (items && Array.isArray(items)) {
+            // Load prescription details if order has prescription (to sync with crystal items)
+            let rxDetails: any = null;
+            const effectiveRxId = prescriptionId !== undefined ? prescriptionId : (existingForGuard ? (await prisma.order.findUnique({ where: { id }, select: { prescriptionId: true } }))?.prescriptionId : null);
+            if (effectiveRxId) {
+                rxDetails = await prisma.prescription.findUnique({
+                    where: { id: effectiveRxId }
+                });
+            }
+
+            // If it is already a SALE order, we must revert the stock of old items and deduct stock for new items.
+            if (existingForGuard?.orderType === 'SALE') {
+                const currentOrderWithItems = await prisma.order.findUnique({
+                    where: { id },
+                    select: {
+                        items: {
+                            select: {
+                                productId: true,
+                                quantity: true,
+                                product: { select: { category: true, type: true } }
+                            }
+                        }
+                    }
+                });
+
+                const oldStockItems = (currentOrderWithItems?.items || []).filter((item: any) => {
+                    const cat = item.product?.category;
+                    const type = item.product?.type;
+                    return item.productId && !(cat === 'Cristal' || (type || '').includes('Cristal'));
+                });
+
+                const newProductIds = items.map((it: any) => it.productId).filter(Boolean);
+                const dbNewProducts = await prisma.product.findMany({
+                    where: { id: { in: newProductIds } }
+                });
+
+                const newStockItems = items.filter((item: any) => {
+                    const dbProd = dbNewProducts.find(p => p.id === item.productId);
+                    if (!dbProd) return false;
+                    const cat = dbProd.category;
+                    const type = dbProd.type;
+                    return !(cat === 'Cristal' || (type || '').includes('Cristal'));
+                });
+
+                // Check stock availability for new stock items (taking into account what is currently held by this order)
+                const insufficientStock: string[] = [];
+                for (const newItem of newStockItems) {
+                    const dbProd = dbNewProducts.find(p => p.id === newItem.productId)!;
+                    const oldItem = oldStockItems.find(o => o.productId === newItem.productId);
+                    const oldQty = oldItem ? oldItem.quantity : 0;
+                    const netQtyNeeded = newItem.quantity - oldQty;
+                    if (netQtyNeeded > 0 && dbProd.stock < netQtyNeeded) {
+                        const name = `${dbProd.brand || ''} ${dbProd.name || ''}`.trim();
+                        insufficientStock.push(`${name}: stock ${dbProd.stock}, necesitás ${netQtyNeeded} más (neto)`);
+                    }
+                }
+
+                if (insufficientStock.length > 0) {
+                    throw new Error(`Stock insuficiente:\n${insufficientStock.join('\n')}`);
+                }
+
+                // In the transaction (or before updating), adjust the stocks
+                await prisma.$transaction(async (tx) => {
+                    // Revert old items stock
+                    for (const oldItem of oldStockItems) {
+                        await tx.product.update({
+                            where: { id: oldItem.productId as string },
+                            data: { stock: { increment: oldItem.quantity } }
+                        });
+                    }
+                    // Apply new items stock
+                    for (const newItem of newStockItems) {
+                        await tx.product.update({
+                            where: { id: newItem.productId as string },
+                            data: { stock: { decrement: newItem.quantity } }
+                        });
+                    }
+                });
+            }
+
             const productIds = items.map((it: any) => it.productId).filter(Boolean);
             const dbProducts = await prisma.product.findMany({
                 where: { id: { in: productIds } }
@@ -317,15 +409,19 @@ export class OrderService {
                 deleteMany: {},
                 create: items.map((item: any) => {
                     const dbProd = dbProducts.find(p => p.id === item.productId);
+                    const isOD = item.eye === 'OD';
+                    const isOI = item.eye === 'OI';
+                    const isCrystal = dbProd && (dbProd.category === 'Cristal' || (dbProd.type || '').includes('Cristal'));
+
                     return {
                         productId: item.productId,
                         quantity: item.quantity,
                         price: item.price,
                         eye: item.eye || null,
-                        sphereVal: item.sphereVal ?? null,
-                        cylinderVal: item.cylinderVal ?? null,
-                        axisVal: item.axisVal ?? null,
-                        additionVal: item.additionVal ?? null,
+                        sphereVal: isCrystal && rxDetails ? (isOD ? rxDetails.sphereOD : rxDetails.sphereOI) : (item.sphereVal ?? null),
+                        cylinderVal: isCrystal && rxDetails ? (isOD ? rxDetails.cylinderOD : rxDetails.cylinderOI) : (item.cylinderVal ?? null),
+                        axisVal: isCrystal && rxDetails ? (isOD ? rxDetails.axisOD : rxDetails.axisOI) : (item.axisVal ?? null),
+                        additionVal: isCrystal && rxDetails ? (isOD ? (rxDetails.additionOD ?? rxDetails.addition) : (rxDetails.additionOI ?? rxDetails.addition)) : (item.additionVal ?? null),
                         productNameSnapshot: dbProd ? (dbProd.model || dbProd.name || null) : null,
                         productBrandSnapshot: dbProd ? (dbProd.brand || null) : null,
                         productCategorySnapshot: dbProd ? (dbProd.category || null) : null,
@@ -680,10 +776,13 @@ export class OrderService {
             }
 
             data.orderType = orderType;
-            // When converting to SALE, automatically send to lab
-            if (orderType === 'SALE' && !labStatus) {
-                data.labStatus = 'SENT';
-                data.labSentAt = new Date();
+            // When converting to SALE, automatically send to lab and lock it
+            if (orderType === 'SALE') {
+                data.isLocked = true;
+                if (!labStatus) {
+                    data.labStatus = 'SENT';
+                    data.labSentAt = new Date();
+                }
             }
 
             // Stock decrement: when converting to SALE, atomically decrement stock
@@ -852,6 +951,8 @@ export class OrderService {
                 discountTransfer: true,
                 discountCard: true,
                 markup: true,
+                isLocked: true,
+                prescriptionId: true,
                 items: {
                     select: {
                         id: true, price: true, quantity: true, eye: true,

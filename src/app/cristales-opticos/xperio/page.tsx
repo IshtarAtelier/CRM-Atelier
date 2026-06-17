@@ -5,7 +5,8 @@ import { CristalFeatures } from "@/components/cristales/CristalFeatures";
 import { CristalCTA } from "@/components/cristales/CristalCTA";
 
 export const metadata: Metadata = {
-  title: "Xperio Polarizados Premium | Atelier Óptica",
+  alternates: { canonical: '/cristales-opticos/xperio' },
+  title: "Xperio Polarizados Premium",
   description: "Lentes polarizadas Xperio para confort total al sol. Cortan los reflejos cegadores de la ruta, la nieve y el agua. Categoría 3.",
   keywords: "Xperio, Polarizados, Lentes de Sol, Reflejos, Conducción, Óptica, Atelier, Córdoba",
 };

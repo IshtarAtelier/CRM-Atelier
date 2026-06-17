@@ -3,7 +3,8 @@ import { StorefrontNavbar } from '@/components/Storefront/StorefrontNavbar';
 import { StorefrontFooter } from '@/components/Storefront/StorefrontFooter';
 
 export const metadata: Metadata = {
-  title: '¿Cuánto cuesta un lente multifocal en Argentina? (Guía 2026) | Atelier Óptica',
+  alternates: { canonical: '/blog/guia-precios-multifocales-argentina' },
+  title: "¿Cuánto cuesta un lente multifocal en Argentina? (Guía 2026)",
   description: "Descubrí en nuestra guía 2026 los valores de lentes multifocales en Argentina. Conocé el valor de invertir en marcas como Varilux y Kodak. Asesoramiento en Córdoba. Envíos a toda Argentina. Cuotas sin interés. Atención personalizada y asesoramiento estético.",
   keywords: ["óptica Argentina", "envíos a toda Argentina", "cuotas", "atención personalizada", "anteojos de receta", "guia precios multifocales argentina"],
 };

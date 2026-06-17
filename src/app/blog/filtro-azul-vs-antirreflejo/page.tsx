@@ -3,7 +3,8 @@ import { StorefrontNavbar } from "@/components/Storefront/StorefrontNavbar";
 import { StorefrontFooter } from "@/components/Storefront/StorefrontFooter";
 
 export const metadata: Metadata = {
-  title: "Filtro Azul vs Antirreflejo: ¿Cuál necesitas realmente? | Atelier Óptica",
+  alternates: { canonical: '/blog/filtro-azul-vs-antirreflejo' },
+  title: "Filtro Azul vs Antirreflejo: ¿Cuál necesitas realmente?",
   description: "Descubrí la diferencia entre los cristales con filtro azul (blue cut) y el tratamiento antirreflejo. Asesoramiento óptico en Córdoba, Argentina. Envíos a toda Argentina. Cuotas sin interés. Atención personalizada y asesoramiento estético.",
   keywords: ["óptica Argentina", "envíos a toda Argentina", "cuotas", "atención personalizada", "anteojos de receta", "filtro azul vs antirreflejo"],
 };

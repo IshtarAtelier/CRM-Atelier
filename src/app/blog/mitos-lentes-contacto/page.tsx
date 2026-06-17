@@ -3,7 +3,8 @@ import { StorefrontNavbar } from '@/components/Storefront/StorefrontNavbar';
 import { StorefrontFooter } from '@/components/Storefront/StorefrontFooter';
 
 export const metadata: Metadata = {
-  title: 'Mitos, verdades y primera adaptación a lentes de contacto | Atelier Óptica',
+  alternates: { canonical: '/blog/mitos-lentes-contacto' },
+  title: "Mitos, verdades y primera adaptación a lentes de contacto",
   description: "Todo lo que necesitás saber sobre tu primera vez con lentes de contacto en Córdoba. Oxigenación, descartables y consejos de higiene. Siempre con receta médica. Envíos a toda Argentina. Cuotas sin interés. Atención personalizada y asesoramiento estético.",
   keywords: ["óptica Argentina", "envíos a toda Argentina", "cuotas", "atención personalizada", "anteojos de receta", "mitos lentes contacto"],
 };

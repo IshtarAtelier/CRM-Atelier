@@ -5,7 +5,8 @@ import { CristalFeatures } from "@/components/cristales/CristalFeatures";
 import { CristalCTA } from "@/components/cristales/CristalCTA";
 
 export const metadata: Metadata = {
-  title: "Blue UV Filter System | Atelier Óptica",
+  alternates: { canonical: '/cristales-opticos/blue-uv' },
+  title: "Blue UV Filter System",
   description: "Filtro de luz azul en la masa del cristal. Protección sin reflejos estéticos indeseados. Evita el envejecimiento celular retiniano y la fatiga digital.",
   keywords: "Blue UV, Filtro Azul, Pantallas, Protección UV, Blue UV Capture, Cristales, Óptica, Atelier",
 };

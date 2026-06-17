@@ -5,7 +5,8 @@ import { CristalFeatures } from "@/components/cristales/CristalFeatures";
 import { CristalCTA } from "@/components/cristales/CristalCTA";
 
 export const metadata: Metadata = {
-  title: "Stellest Control Miopía Infantil | Atelier Óptica",
+  alternates: { canonical: '/cristales-opticos/stellest' },
+  title: "Stellest Control Miopía Infantil",
   description: "Cristales Stellest de Essilor con tecnología H.A.L.T. Comprobado clínicamente que ralentizan la miopía en niños un 67%.",
   keywords: "Stellest, Miopía, Niños, Cristales Infantiles, Control Miopía, Essilor, H.A.L.T, Óptica, Atelier, Córdoba",
 };

@@ -4,7 +4,8 @@ import { StorefrontFooter } from '@/components/Storefront/StorefrontFooter';
 import { WHATSAPP_PHONE } from '@/lib/constants';
 
 export const metadata: Metadata = {
-  title: 'Acetato Italiano vs Metal vs Inyectado: ¿Cuál dura más? | Atelier Óptica',
+  alternates: { canonical: '/blog/materiales-armazones-acetato-tr90' },
+  title: "Acetato Italiano vs Metal vs Inyectado: ¿Cuál dura más?",
   description: "Descubrí las diferencias entre armazones de acetato, metal e inyectado. Analizamos la durabilidad, estética y si causan alergias. Asesoramiento óptico en Córdoba. Envíos a toda Argentina. Cuotas sin interés. Atención personalizada y asesoramiento estético.",
   keywords: ["óptica Argentina", "envíos a toda Argentina", "cuotas", "atención personalizada", "anteojos de receta", "materiales armazones acetato tr90"],
 };

@@ -4,7 +4,8 @@ import { StorefrontFooter } from "@/components/Storefront/StorefrontFooter";
 import { WHATSAPP_PHONE } from '@/lib/constants';
 
 export const metadata: Metadata = {
-  title: "Control de Miopía Infantil: Todo sobre Stellest y MyoFix | Atelier Óptica",
+  alternates: { canonical: '/blog/control-miopia-infantil-lentes' },
+  title: "Control de Miopía Infantil: Todo sobre Stellest y MyoFix",
   description: "Descubrí cómo los cristales Stellest y MyoFix ayudan a ralentizar el avance de la miopía en niños. Asesoramiento óptico en Córdoba basado en tu receta oftalmológica. ¡Consultá a tu oftalmopediatra y vení a visitarnos! Envíos a toda Argentina. Cuotas sin interés. Atención personalizada y asesoramiento estético.",
   keywords: ["óptica Argentina", "envíos a toda Argentina", "cuotas", "atención personalizada", "anteojos de receta", "control miopia infantil lentes"],
 };

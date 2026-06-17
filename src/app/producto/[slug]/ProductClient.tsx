@@ -134,7 +134,7 @@ export function ProductClient({
             {activeImageIndex > 0 && (
               <div className="absolute top-6 right-6 z-20 bg-black/50 backdrop-blur-md text-white text-[10px] font-mono tracking-widest uppercase px-3 py-1.5 rounded-full flex items-center gap-2">
                 <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
-                AI Try-On
+                Vista {activeImageIndex + 1}
               </div>
             )}
           </motion.div>
@@ -497,51 +497,35 @@ export function ProductClient({
             
             <button
               onClick={() => setShowConfigurator(true)}
-              className="w-full border border-[#e5e5e5] bg-white text-black px-8 py-4 text-[11px] font-bold uppercase tracking-widest hover:border-black transition-colors shadow-sm"
+              disabled={product.stock !== undefined && product.stock <= 0 && product.category !== "Cristal"}
+              className={`w-full border px-8 py-4 text-[11px] font-bold uppercase tracking-widest transition-colors shadow-sm ${
+                (product.stock !== undefined && product.stock <= 0 && product.category !== "Cristal")
+                  ? 'border-stone-300 bg-stone-100 text-stone-400 cursor-not-allowed'
+                  : 'border-[#e5e5e5] bg-white text-black hover:border-black'
+              }`}
             >
               + Agregar Cristales Con Receta
             </button>
 
             {images.length > 1 && (
-              <div className="flex gap-2 w-full mt-2">
-                {images.length === 2 ? (
-                  <button
-                    onClick={() => setActiveImageIndex(activeImageIndex === 0 ? 1 : 0)}
-                    className={`w-full py-4 text-[11px] font-bold uppercase tracking-widest transition-all duration-300 flex items-center justify-center gap-2 rounded-sm border ${
-                      activeImageIndex > 0 
-                        ? 'bg-[#c8a55c] text-white border-[#c8a55c] hover:bg-[#b08f4c]' 
-                        : 'border-[#c8a55c] text-[#c8a55c] bg-white hover:bg-[#c8a55c]/5'
-                    }`}
-                  >
-                    <User className="w-4 h-4" /> 
-                    {activeImageIndex > 0 ? "Ver Foto de Producto" : "✨ Probar con IA (Virtual Try-On)"}
-                  </button>
-                ) : (
-                  <>
+              <div className="flex flex-wrap gap-2 w-full mt-2">
+                {images.map((_: any, idx: number) => {
+                  if (idx === 0) return null;
+                  return (
                     <button
-                      onClick={() => setActiveImageIndex(activeImageIndex === 1 ? 0 : 1)}
-                      className={`flex-1 py-4 text-[10px] font-bold uppercase tracking-widest transition-all duration-300 flex items-center justify-center gap-1.5 rounded-sm border ${
-                        activeImageIndex === 1 
+                      key={idx}
+                      onClick={() => setActiveImageIndex(activeImageIndex === idx ? 0 : idx)}
+                      className={`flex-1 min-w-[120px] py-4 text-[10px] font-bold uppercase tracking-widest transition-all duration-300 flex items-center justify-center gap-1.5 rounded-sm border ${
+                        activeImageIndex === idx 
                           ? 'bg-[#c8a55c] text-white border-[#c8a55c] hover:bg-[#b08f4c]' 
                           : 'border-stone-200 text-stone-700 bg-white hover:border-[#c8a55c] hover:text-[#c8a55c]'
                       }`}
                     >
-                      <User className="w-3.5 h-3.5" />
-                      {activeImageIndex === 1 ? "Ver Foto" : "✨ Probar Hombre"}
+                      <Camera className="w-3.5 h-3.5" />
+                      {activeImageIndex === idx ? "Ocultar" : `Ver Foto ${idx + 1}`}
                     </button>
-                    <button
-                      onClick={() => setActiveImageIndex(activeImageIndex === 2 ? 0 : 2)}
-                      className={`flex-1 py-4 text-[10px] font-bold uppercase tracking-widest transition-all duration-300 flex items-center justify-center gap-1.5 rounded-sm border ${
-                        activeImageIndex === 2 
-                          ? 'bg-[#c8a55c] text-white border-[#c8a55c] hover:bg-[#b08f4c]' 
-                          : 'border-stone-200 text-stone-700 bg-white hover:border-[#c8a55c] hover:text-[#c8a55c]'
-                      }`}
-                    >
-                      <UserPlus className="w-3.5 h-3.5" />
-                      {activeImageIndex === 2 ? "Ver Foto" : "✨ Probar Mujer"}
-                    </button>
-                  </>
-                )}
+                  );
+                })}
               </div>
             )}
 

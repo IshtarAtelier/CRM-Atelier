@@ -55,12 +55,14 @@ export async function POST(
 
         // Apply updates in a transaction
         await prisma.$transaction(async (tx) => {
-            for (const change of changes) {
-                await tx.orderItem.update({
-                    where: { id: change.itemId },
-                    data: { price: change.newPrice },
-                });
-            }
+            await Promise.all(
+                changes.map((change) =>
+                    tx.orderItem.update({
+                        where: { id: change.itemId },
+                        data: { price: change.newPrice },
+                    })
+                )
+            );
 
             // Recalculate total
             const updatedItems = await tx.orderItem.findMany({ where: { orderId: id } });

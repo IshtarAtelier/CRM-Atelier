@@ -6,7 +6,7 @@ import { Glasses } from 'lucide-react';
 import { WHATSAPP_PHONE } from '@/lib/constants';
 
 export const metadata: Metadata = {
-  title: "Anteojos Clip On | Atelier Óptica Córdoba",
+  title: "Anteojos Clip On",
   description: "Anteojos recetados con suplemento solar magnético Clip-On. La solución más práctica para ver bien y protegerte del sol.",
   alternates: { canonical: 'https://www.atelieroptica.com.ar/clip-on' },
 };

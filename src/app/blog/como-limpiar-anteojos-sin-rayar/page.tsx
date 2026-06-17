@@ -5,7 +5,8 @@ import Link from "next/link";
 import { WHATSAPP_PHONE } from '@/lib/constants';
 
 export const metadata: Metadata = {
-  title: "Cómo limpiar tus anteojos sin rayarlos: Consejos de un óptico | Atelier Óptica",
+  alternates: { canonical: '/blog/como-limpiar-anteojos-sin-rayar' },
+  title: "Cómo limpiar tus anteojos sin rayarlos: Consejos de un óptico",
   description: "Descubrí la forma correcta de limpiar tus anteojos de receta y lentes de sol sin dañar el cristal ni los tratamientos antirreflejo. Consejos expertos desde Córdoba. Envíos a toda Argentina. Cuotas sin interés. Atención personalizada y asesoramiento estético.",
   keywords: ["óptica Argentina", "envíos a toda Argentina", "cuotas", "atención personalizada", "anteojos de receta", "como limpiar anteojos sin rayar"],
 };

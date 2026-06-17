@@ -10,6 +10,7 @@ import { FloatingWhatsApp } from '@/components/Storefront/FloatingWhatsApp';
 import { prisma } from '@/lib/db';
 import { resolveStorageUrl } from '@/lib/utils/storage';
 import Image from "next/image";
+import sanitizeHtml from 'sanitize-html';
 
 async function getPostBySlug(slug: string) {
   try {
@@ -1324,6 +1325,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   return {
     title: cleanTitle,
     description: post.metaDescription,
+    alternates: { canonical: `/blog/${resolvedParams.slug}` },
     openGraph: {
       title: cleanTitle,
       description: post.metaDescription,
@@ -1380,7 +1382,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
 
         <article className="prose prose-stone dark:prose-invert prose-lg max-w-none prose-headings:font-medium tracking-tight prose-a:text-[#111] hover:prose-a:text-[#111]/80 prose-p:leading-relaxed prose-li:my-1">
           {post.isDb ? (
-            <div dangerouslySetInnerHTML={{ __html: post.content as string }} />
+            <div dangerouslySetInnerHTML={{ __html: sanitizeHtml(post.content as string, { allowedTags: sanitizeHtml.defaults.allowedTags.concat(['img', 'iframe']), allowedAttributes: false }) }} />
           ) : (
             post.content
           )}

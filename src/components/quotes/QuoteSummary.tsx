@@ -5,7 +5,7 @@ import {
     Calculator, Receipt, Download,
     CheckCircle2, X, Clock, Glasses, 
     Banknote, ArrowRightLeft, CreditCard,
-    Lock, ChevronRight, ChevronUp, Pencil,
+    Lock, Unlock, ChevronRight, ChevronUp, Pencil,
     History, Trash2, Eye, AlertCircle, Factory
 } from 'lucide-react';
 import { format } from 'date-fns';
@@ -70,6 +70,53 @@ export default function QuoteSummary({
     const [isDeletingPayment, setIsDeletingPayment] = React.useState<string | null>(null);
     const [isSendingWhatsApp, setIsSendingWhatsApp] = React.useState(false);
     const [isSendingPDF, setIsSendingPDF] = React.useState(false);
+    const [isUpdatingLock, setIsUpdatingLock] = React.useState(false);
+
+    const handleUnlock = async () => {
+        const confirmUnlock = window.confirm('¿Estás seguro de que querés reabrir esta venta para edición?');
+        if (!confirmUnlock) return;
+        setIsUpdatingLock(true);
+        try {
+            const res = await fetch(`/api/orders/${order.id}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ isLocked: false })
+            });
+            if (res.ok) {
+                if (onRefreshContact) await onRefreshContact();
+            } else {
+                const errData = await res.json();
+                alert(`Error: ${errData.error || 'No se pudo reabrir la venta'}`);
+            }
+        } catch (err) {
+            console.error('Error unlocking order:', err);
+        } finally {
+            setIsUpdatingLock(false);
+        }
+    };
+
+    const handleLock = async () => {
+        const confirmLock = window.confirm('¿Estás seguro de que querés volver a bloquear/trabar esta venta?');
+        if (!confirmLock) return;
+        setIsUpdatingLock(true);
+        try {
+            const res = await fetch(`/api/orders/${order.id}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ isLocked: true })
+            });
+            if (res.ok) {
+                if (onRefreshContact) await onRefreshContact();
+            } else {
+                const errData = await res.json();
+                alert(`Error: ${errData.error || 'No se pudo bloquear la venta'}`);
+            }
+        } catch (err) {
+            console.error('Error locking order:', err);
+        } finally {
+            setIsUpdatingLock(false);
+        }
+    };
 
     if (compact) {
         const total = order.total || 0;
@@ -130,7 +177,7 @@ export default function QuoteSummary({
 
     const isSale = order.orderType === 'SALE';
     const isQuote = !isSale;
-    const isLockedSale = isSale && currentUserRole !== 'ADMIN';
+    const isLockedSale = isSale && order.isLocked !== false;
     
     // Integración con PricingService
     const financials = PricingService.calculateOrderFinancials(order);
@@ -657,9 +704,35 @@ export default function QuoteSummary({
                                 <CheckCircle2 className="w-5 h-5" /> CONVERTIR EN VENTA
                             </button>
                         ) : isLockedSale ? (
-                            <div className="sm:col-span-4 flex items-center gap-3 p-4 bg-stone-50 dark:bg-stone-900 border-2 border-stone-200 rounded-2xl">
-                                <Lock className="w-5 h-5 text-stone-400" />
-                                <span className="text-[10px] font-black text-stone-400 uppercase tracking-widest">Venta Bloqueada (Solo Admin)</span>
+                            currentUserRole === 'ADMIN' ? (
+                                <button 
+                                    onClick={handleUnlock}
+                                    disabled={isUpdatingLock}
+                                    className="sm:col-span-4 py-4 bg-amber-500 hover:bg-amber-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                                >
+                                    <Unlock className="w-5 h-5" /> REABRIR PARA EDITAR
+                                </button>
+                            ) : (
+                                <div className="sm:col-span-4 flex items-center gap-3 p-4 bg-stone-50 dark:bg-stone-900 border-2 border-stone-200 rounded-2xl">
+                                    <Lock className="w-5 h-5 text-stone-400" />
+                                    <span className="text-[10px] font-black text-stone-400 uppercase tracking-widest">Venta Bloqueada (Solo Admin)</span>
+                                </div>
+                            )
+                        ) : isSale ? (
+                            <div className="sm:col-span-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <button 
+                                    onClick={() => onEdit?.(order)}
+                                    className="py-4 bg-stone-900 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-3"
+                                >
+                                    <Pencil className="w-5 h-5" /> EDITAR DETALLES DE LA VENTA
+                                </button>
+                                <button 
+                                    onClick={handleLock}
+                                    disabled={isUpdatingLock}
+                                    className="py-4 bg-red-600 hover:bg-red-700 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-3 disabled:opacity-50"
+                                >
+                                    <Lock className="w-5 h-5" /> VOLVER A BLOQUEAR
+                                </button>
                             </div>
                         ) : null}
                         

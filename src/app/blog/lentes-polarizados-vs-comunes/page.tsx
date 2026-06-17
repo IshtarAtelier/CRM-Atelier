@@ -4,7 +4,8 @@ import { StorefrontFooter } from "@/components/Storefront/StorefrontFooter";
 import { WHATSAPP_PHONE } from '@/lib/constants';
 
 export const metadata: Metadata = {
-  title: 'Lentes Polarizados vs Comunes al Manejar | Atelier Óptica',
+  alternates: { canonical: '/blog/lentes-polarizados-vs-comunes' },
+  title: "Lentes Polarizados vs Comunes al Manejar",
   description: "Descubrí la diferencia entre lentes polarizados y de sol comunes. Evitá el deslumbramiento, mejorá tu seguridad vial y descansá tu vista en la ruta. Encontrá tus próximos anteojos de sol en Atelier Óptica, Córdoba. Envíos a toda Argentina. Cuotas sin interés. Atención personalizada y asesoramiento estético.",
   keywords: ["óptica Argentina", "envíos a toda Argentina", "cuotas", "atención personalizada", "anteojos de receta", "lentes polarizados vs comunes"],
 };

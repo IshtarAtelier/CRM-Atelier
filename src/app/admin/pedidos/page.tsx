@@ -503,11 +503,22 @@ export default function PedidosPage() {
                     }
                 }
             }
+            // Detectar tipo de armazón del nombre del producto
+            const frameNameLower = frameItems.length > 0
+                ? (frameItems[0]?.product?.name || frameItems[0]?.productNameSnapshot || '').toLowerCase()
+                : '';
+            let tipo_armazon = '';
+            if (frameNameLower.includes('acetato') || frameNameLower.includes('plást') || frameNameLower.includes('plast') || frameNameLower.includes('pasta') || frameNameLower.includes('nylon')) {
+                tipo_armazon = 'PLÁSTICO';
+            } else if (frameNameLower.includes('metal') || frameNameLower.includes('titanio') || frameNameLower.includes('acero')) {
+                tipo_armazon = 'METALICO';
+            }
+
             const payload = {
                 tipo_lente,
                 labType: order.labType || '',
-                codigoInterno: order.client.name, // Requested by user: en codigo interno va el nombre del cliente
-                paciente: order.client.name,
+                codigoInterno: order.client.name,
+                paciente_fullname: order.client.name,
                 od_esfera: odItem?.sphereVal || '',
                 od_cilindro: odItem?.cylinderVal || '',
                 od_eje: odItem?.axisVal || '',
@@ -529,7 +540,9 @@ export default function PedidosPage() {
                 detalles_armazon: order.labFrameDetails || '',
                 tipo_tenido,
                 color_tenido,
-                intensidad_tenido
+                intensidad_tenido,
+                tipo_aro: 'Aro completo',
+                tipo_armazon
             };
 
             const encodedData = encodeURIComponent(JSON.stringify(payload));

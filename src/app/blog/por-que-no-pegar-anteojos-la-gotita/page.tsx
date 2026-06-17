@@ -3,7 +3,8 @@ import { StorefrontFooter } from "@/components/Storefront/StorefrontFooter";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Por qué NUNCA debés pegar tus anteojos rotos con La Gotita | Atelier Óptica",
+  alternates: { canonical: '/blog/por-que-no-pegar-anteojos-la-gotita' },
+  title: "Por qué NUNCA debés pegar tus anteojos rotos con La Gotita",
   description: "Pegar tus anteojos con cianoacrilato puede arruinarlos para siempre. Enterate de por qué debés evitarlo y cómo lo solucionamos en el laboratorio óptico. Envíos a toda Argentina. Cuotas sin interés. Atención personalizada y asesoramiento estético.",
   keywords: ["óptica Argentina", "envíos a toda Argentina", "cuotas", "atención personalizada", "anteojos de receta", "por que no pegar anteojos la gotita"],
 };

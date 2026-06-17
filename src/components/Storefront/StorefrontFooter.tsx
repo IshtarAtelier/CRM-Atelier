@@ -1,21 +1,15 @@
-"use client";
-
 import Link from "next/link";
 import Image from "next/image";
 import { WHATSAPP_PHONE } from "@/lib/constants";
-import { useState, useEffect } from "react";
+import { getWebSettings } from "@/lib/web-settings";
 
-export function StorefrontFooter() {
-  const [webSettings, setWebSettings] = useState<any>(null);
-
-  useEffect(() => {
-    fetch('/api/settings')
-      .then(res => res.json())
-      .then(data => {
-        setWebSettings(data);
-      })
-      .catch(err => console.error("Error loading web settings for footer:", err));
-  }, []);
+export async function StorefrontFooter() {
+  let webSettings: any = null;
+  try {
+    webSettings = await getWebSettings();
+  } catch (error) {
+    console.error("Error loading web settings for footer:", error);
+  }
 
   const addressLine = webSettings?.web_store_address || "José Luis de Tejeda 4380";
   const localityLine = webSettings?.web_store_locality || "Cerro de las Rosas, Córdoba";

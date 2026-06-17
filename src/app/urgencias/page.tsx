@@ -6,7 +6,8 @@ import { CristalCTA } from "@/components/cristales/CristalCTA";
 import { AccordionItem } from "@/components/Storefront/Accordion";
 
 export const metadata: Metadata = {
-  title: "Óptica Abierta Ahora y Reparación de Anteojos | Atelier Óptica",
+  alternates: { canonical: '/urgencias' },
+  title: "Óptica Abierta Ahora y Reparación de Anteojos",
   description: "Servicio de urgencia para anteojos recetados. Reparación de armazones, cambio de plaquetas y cristales monofocales gracias a nuestro laboratorio propio.",
   keywords: ["optica abierta ahora", "reparacion de anteojos", "anteojos en 1 hora", "optica de turno cordoba", "soldar armazon", "arreglo de anteojos rotos"],
 };

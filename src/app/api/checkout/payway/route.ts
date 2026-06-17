@@ -8,6 +8,7 @@ import { CrystalMapping } from '@/lib/config/crystal-mapping';
 import { generateReceiptPDF } from '@/lib/receipt-pdf-generator';
 
 export async function POST(req: Request) {
+  let globalRestoreStock: (() => Promise<void>) | null = null;
   try {
     const body = await req.json();
     const { customer, items, total } = body;
@@ -105,7 +106,11 @@ export async function POST(req: Request) {
         });
       }
 
-      const framePrice = dbProduct ? dbProduct.price : item.price;
+      if (!dbProduct) {
+        throw new Error(`Producto no encontrado en la base de datos: ${item.model}`);
+      }
+
+      const framePrice = dbProduct.price;
       let calculatedPrice = framePrice;
       const isCustomLens = item.lensConfig && (item.lensConfig.lensType !== "NONE" || item.lensConfig.color);
 
@@ -122,14 +127,18 @@ export async function POST(req: Request) {
           }
         } else {
           // CLEAR FLOW
-          if (lensType === "MONOFOCAL" && treatment) {
-            calculatedPrice += PRICING.MONOFOCAL[treatment as keyof typeof PRICING.MONOFOCAL] || 0;
+          if (lensType === "MONOFOCAL") {
+            const txPrice = treatment ? PRICING.MONOFOCAL[treatment as keyof typeof PRICING.MONOFOCAL] : undefined;
+            if (txPrice === undefined) throw new Error("Tratamiento monofocal inválido o faltante.");
+            calculatedPrice += txPrice;
           }
-          else if (lensType === "BIFOCAL" && treatment) {
+          else if (lensType === "BIFOCAL") {
             calculatedPrice += PRICING.BIFOCAL.ORGANICO_BLANCO;
           }
-          else if (lensType === "MULTIFOCAL" && treatment) {
-            calculatedPrice += PRICING.MULTIFOCAL[treatment as keyof typeof PRICING.MULTIFOCAL] || 0;
+          else if (lensType === "MULTIFOCAL") {
+            const txPrice = treatment ? PRICING.MULTIFOCAL[treatment as keyof typeof PRICING.MULTIFOCAL] : undefined;
+            if (txPrice === undefined) throw new Error("Tratamiento multifocal inválido o faltante.");
+            calculatedPrice += txPrice;
           }
         }
       }
@@ -214,7 +223,7 @@ export async function POST(req: Request) {
 
     // Decrement stock in preparation
     const decrementedProducts: { id: string, quantity: number }[] = [];
-    const restoreStock = async () => {
+    globalRestoreStock = async () => {
       for (const dp of decrementedProducts) {
         try {
           await prisma.product.update({
@@ -243,7 +252,7 @@ export async function POST(req: Request) {
         }
       }
     } catch (err) {
-      await restoreStock();
+      if (globalRestoreStock) await globalRestoreStock();
       throw err;
     }
 
@@ -347,7 +356,7 @@ export async function POST(req: Request) {
         }
       });
     } catch (createErr) {
-      await restoreStock();
+      if (globalRestoreStock) await globalRestoreStock();
       throw createErr;
     }
 
@@ -482,13 +491,14 @@ export async function POST(req: Request) {
     const bin = body.bin;
     
     if (!paymentToken || !bin) {
-      await restoreStock();
+      if (globalRestoreStock) await globalRestoreStock();
       throw new Error("Token de pago o BIN no proporcionado.");
     }
 
     let paymentMethodId = 1; // Default Visa
-    if (bin.startsWith("5") || bin.startsWith("2")) paymentMethodId = 15; // Mastercard
-    if (bin.startsWith("34") || bin.startsWith("37")) paymentMethodId = 39; // Amex
+    if (bin.startsWith("58")) paymentMethodId = 63; // Cabal
+    else if (bin.startsWith("5") || bin.startsWith("2")) paymentMethodId = 15; // Mastercard
+    else if (bin.startsWith("34") || bin.startsWith("37")) paymentMethodId = 39; // Amex
 
     const privateKey = process.env.PAYWAY_PRIVATE_KEY;
     const isProd = process.env.PAYWAY_ENVIRONMENT === 'production';
@@ -526,7 +536,7 @@ export async function POST(req: Request) {
       console.error("[PAYWAY DECLINED]", paywayData);
       
       // Restore reserved stock on payment failure
-      await restoreStock();
+      if (globalRestoreStock) await globalRestoreStock();
 
       // Actualizar orden a fallida/rechazada
       await prisma.order.update({
@@ -630,6 +640,10 @@ export async function POST(req: Request) {
 
   } catch (error: any) {
     console.error("[PAYWAY API ERROR]", error);
+    // Asegurarse de liberar stock si ocurre CUALQUIER error en la función
+    if (globalRestoreStock) {
+      await globalRestoreStock();
+    }
     return NextResponse.json(
       { error: error?.message || 'Error procesando solicitud de pago o creando la ficha' },
       { status: 500 }

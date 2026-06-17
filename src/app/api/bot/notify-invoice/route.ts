@@ -86,27 +86,9 @@ export async function POST(request: Request) {
             }
         }
 
-        // Si no hay cliente registrado (o no se encontró)
-        const adminMessage = `📢 *Solicitud de Factura Detectada (Sin Ficha CRM)*\n\nEl cliente *${profileName}* (${realPhone}) ha solicitado una factura.\n\n💬 Mensaje recibido: "${messageContent}"\n\n⚠️ No se encontró una ficha vinculada a este número de WhatsApp en el CRM.`;
-
-        const res = await fetchWa('/api/send', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                chatId: adminWaId,
-                message: adminMessage,
-                senderName: 'Sistema Atelier'
-            })
-        });
-
-        if (!res.ok) {
-            const errorText = await res.text();
-            console.error('[notify-invoice] Failed to send WhatsApp to admin (no client):', res.status, errorText);
-            return NextResponse.json({ error: `Error enviando WhatsApp al admin: ${errorText}` }, { status: 500 });
-        }
-
-        console.log('[notify-invoice] Invoice request notification sent to admin (no client sheet).');
-        return NextResponse.json({ success: true, notified: 'text_only' });
+        // Si no hay cliente registrado (o no se encontró, o no tiene status CLIENT), ignoramos la notificación
+        console.log('[notify-invoice] Invoice request ignored: not an active client.');
+        return NextResponse.json({ success: true, ignored: true, reason: 'El remitente no es un cliente registrado activo.' });
 
     } catch (error: any) {
         console.error('[notify-invoice] Error in route:', error.message, error.stack);

@@ -120,8 +120,8 @@ export default function OrderManager({
     };
 
     const handleEditQuote = async (order: any) => {
-        // Only allow editing QUOTEs, never SALEs
-        if (order.orderType === 'SALE') return;
+        // Only allow editing if it's a quote, OR if it's an unlocked sale
+        if (order.orderType === 'SALE' && order.isLocked !== false) return;
 
         setQuoteItems((order.items || []).map((it: any, idx: number) => ({
             product: it.product,

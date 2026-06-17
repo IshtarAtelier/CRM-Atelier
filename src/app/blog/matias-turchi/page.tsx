@@ -7,7 +7,8 @@ import { WHATSAPP_PHONE } from '@/lib/constants';
 import Image from "next/image";
 
 export const metadata: Metadata = {
-  title: "Matías Turchi | Especialista en Multifocales Essilor Expert | Atelier Óptica",
+  alternates: { canonical: '/blog/matias-turchi' },
+  title: "Matías Turchi | Especialista en Multifocales Essilor Expert",
   description: "Conocé a Matías Turchi, nuestro especialista en multifocales certificado como Essilor Expert. Precisión visual y última tecnología a tu disposición. Envíos a toda Argentina. Cuotas sin interés. Atención personalizada y asesoramiento estético.",
   keywords: ["óptica Argentina", "envíos a toda Argentina", "cuotas", "atención personalizada", "anteojos de receta", "matias turchi"],
 };

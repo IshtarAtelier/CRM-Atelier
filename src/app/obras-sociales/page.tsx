@@ -6,7 +6,8 @@ import { AccordionItem } from "@/components/Storefront/Accordion";
 import { CristalCTA } from "@/components/cristales/CristalCTA";
 
 export const metadata: Metadata = {
-  title: "Ópticas con Obras Sociales y Prepagas | Atelier Óptica",
+  alternates: { canonical: '/obras-sociales' },
+  title: "Ópticas con Obras Sociales y Prepagas",
   description: "Confeccionamos facturas y documentación para reintegros de prepagas y obras sociales como OSDE, Swiss Medical, Galeno y Apross. Presupuestamos tu receta.",
   keywords: ["optica con osde", "optica con swiss medical", "reintegros anteojos", "obras sociales opticas", "descuentos en cristales", "optica cordoba"],
 };

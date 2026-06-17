@@ -5,7 +5,8 @@ import { StorefrontFooter } from '@/components/Storefront/StorefrontFooter';
 import { WHATSAPP_PHONE } from '@/lib/constants';
 
 export const metadata: Metadata = {
-  title: 'Cristales Transitions: ¿Valen la pena para el uso diario? | Atelier Óptica',
+  alternates: { canonical: '/blog/lentes-fotocromaticos-transitions' },
+  title: "Cristales Transitions: ¿Valen la pena para el uso diario?",
   description: "Descubrí cómo la tecnología de lentes fotocromáticos Transitions adapta tus anteojos a cualquier condición de luz. Conocé sus ventajas para el uso diario y protección UV en Atelier Óptica, Córdoba. Envíos a toda Argentina. Cuotas sin interés. Atención personalizada y asesoramiento estético.",
   keywords: ["óptica Argentina", "envíos a toda Argentina", "cuotas", "atención personalizada", "anteojos de receta", "lentes fotocromaticos transitions"],
 };

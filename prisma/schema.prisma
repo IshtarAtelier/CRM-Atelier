@@ -267,6 +267,7 @@ model Order {
   appliedPromoName     String?
   appliedPromoDiscount Float?
   specialDiscount      Float?         @default(0.0)
+  isLocked             Boolean        @default(true)
   invoices             Invoice[]
   client               Client         @relation(fields: [clientId], references: [id], onDelete: Restrict)
   prescription         Prescription?  @relation(fields: [prescriptionId], references: [id], onDelete: SetNull)
@@ -281,6 +282,8 @@ model Order {
   @@index([createdAt])
   @@index([userId])
   @@index([status])
+  @@index([prescriptionId])
+  @@index([labStatus])
 }
 
 model Invoice {

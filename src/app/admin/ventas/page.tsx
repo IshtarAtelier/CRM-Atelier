@@ -153,14 +153,26 @@ export default function VentasPage() {
                 }
             }
 
+            // Detectar tipo de armazón del nombre del producto
+            const frameNameLower = frameItems.length > 0
+                ? (frameItems[0]?.product?.name || frameItems[0]?.productNameSnapshot || '').toLowerCase()
+                : '';
+            let tipo_armazon = '';
+            if (frameNameLower.includes('acetato') || frameNameLower.includes('plást') || frameNameLower.includes('plast') || frameNameLower.includes('pasta') || frameNameLower.includes('nylon')) {
+                tipo_armazon = 'PLÁSTICO';
+            } else if (frameNameLower.includes('metal') || frameNameLower.includes('titanio') || frameNameLower.includes('acero')) {
+                tipo_armazon = 'METALICO';
+            }
+
             const payload = {
                 tipo_lente,
                 labType: order.labType || '',
                 codigoInterno: clientName,
                 paciente_nombre: nombre,
                 paciente_apellido: apellido,
-                paciente_telefono: '3541215971', // Privacidad: Datos de la óptica, no del paciente
-                paciente_email: 'pisano.ishtar@gmail.com', // Privacidad: Datos de la óptica
+                paciente_telefono: '3541215971',
+                paciente_email: 'pisano.ishtar@gmail.com',
+                paciente_fullname: clientName,
                 od_esfera: fmt(rx.sphereOD, true),
                 od_cilindro: fmt(rx.cylinderOD),
                 od_eje: rx.axisOD != null ? String(rx.axisOD) : '',
@@ -190,7 +202,9 @@ export default function VentasPage() {
                 tratamiento,
                 tipo_tenido,
                 color_tenido,
-                intensidad_tenido
+                intensidad_tenido,
+                tipo_aro: 'Aro completo',
+                tipo_armazon
             };
 
             const encodedData = encodeURIComponent(JSON.stringify(payload));

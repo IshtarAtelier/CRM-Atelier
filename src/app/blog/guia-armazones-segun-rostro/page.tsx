@@ -7,7 +7,8 @@ import Link from 'next/link';
 import { WHATSAPP_PHONE } from '@/lib/constants';
 
 export const metadata: Metadata = {
-  title: "Guía Definitiva para Elegir Armazones Según tu Rostro | Atelier Óptica",
+  alternates: { canonical: '/blog/guia-armazones-segun-rostro' },
+  title: "Guía Definitiva para Elegir Armazones Según tu Rostro",
   description: "Descubrí qué anteojos te quedan mejor según la forma de tu rostro (redondo, cuadrado, corazón). Asesoramiento estético profesional en Atelier Óptica, Córdoba. Envíos a toda Argentina. Cuotas sin interés. Atención personalizada y asesoramiento estético.",
   keywords: ["óptica Argentina", "envíos a toda Argentina", "cuotas", "atención personalizada", "anteojos de receta", "guia armazones segun rostro"],
 };

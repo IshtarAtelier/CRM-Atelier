@@ -12,13 +12,13 @@ import { getProductAttributes } from '@/utils/product-controllers';
 import { resolveStorageUrl } from '@/lib/utils/storage';
 
 export const metadata: Metadata = {
-  title: "Anteojos de Receta | Atelier Óptica Córdoba",
+  title: "Anteojos de Receta",
   description: "Armazones de receta de diseño. Encontrá el modelo perfecto para tus cristales monofocales o multifocales.",
   alternates: {
     canonical: 'https://www.atelieroptica.com.ar/receta',
   },
   openGraph: {
-    title: 'Anteojos de Receta | Atelier Óptica Córdoba',
+    title: "Anteojos de Receta",
     description: 'Armazones de receta de diseño. Encontrá el modelo perfecto para tus cristales monofocales o multifocales.',
     url: 'https://www.atelieroptica.com.ar/receta',
     type: 'website',

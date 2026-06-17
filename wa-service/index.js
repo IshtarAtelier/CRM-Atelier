@@ -1007,35 +1007,38 @@ const handleMessage = async (msg) => {
             const isRequestingInvoice = invoiceKeywords.some(keyword => normalizedBody.includes(keyword));
             
             if (isRequestingInvoice) {
-                console.log(`🧾 Solicitud de factura detectada en chat ${chat.id} (${profileName || realPhone}). Notificando al administrador...`);
-                
-                try {
-                    const axios = require('axios');
-                    let notifyUrl = process.env.CRM_API_URL;
-                    if (notifyUrl.endsWith('/api/bot')) {
-                        notifyUrl = notifyUrl + '/notify-invoice';
-                    } else if (notifyUrl.endsWith('/api')) {
-                        notifyUrl = notifyUrl + '/bot/notify-invoice';
-                    } else {
-                        notifyUrl = notifyUrl + '/api/bot/notify-invoice';
-                    }
-                    
-                    axios.post(notifyUrl, {
-                        clientId: chat.clientId || null,
-                        profileName: profileName || chat.profileName || 'Cliente Desconocido',
-                        realPhone: realPhone || chat.realPhone || waId.split('@')[0],
-                        messageContent: body
-                    }, {
-                        headers: {
-                            'x-api-key': process.env.BOT_API_KEY
+                if (chat.clientId) {
+                    console.log(`🧾 Solicitud de factura detectada en chat ${chat.id} (${profileName || realPhone}). Notificando al administrador...`);
+                    try {
+                        const axios = require('axios');
+                        let notifyUrl = process.env.CRM_API_URL;
+                        if (notifyUrl.endsWith('/api/bot')) {
+                            notifyUrl = notifyUrl + '/notify-invoice';
+                        } else if (notifyUrl.endsWith('/api')) {
+                            notifyUrl = notifyUrl + '/bot/notify-invoice';
+                        } else {
+                            notifyUrl = notifyUrl + '/api/bot/notify-invoice';
                         }
-                    }).then(res => {
-                        console.log('  ✅ Notificación de factura enviada al CRM:', res.data);
-                    }).catch(err => {
-                        console.error('  ❌ Error enviando notificación de factura al CRM:', err.message, err.response?.data);
-                    });
-                } catch (notifyErr) {
-                    console.error('  ❌ Error al preparar petición de notificación de factura:', notifyErr.message);
+                        
+                        axios.post(notifyUrl, {
+                            clientId: chat.clientId || null,
+                            profileName: profileName || chat.profileName || 'Cliente Desconocido',
+                            realPhone: realPhone || chat.realPhone || waId.split('@')[0],
+                            messageContent: body
+                        }, {
+                            headers: {
+                                'x-api-key': process.env.BOT_API_KEY
+                            }
+                        }).then(res => {
+                            console.log('  ✅ Notificación de factura enviada al CRM:', res.data);
+                        }).catch(err => {
+                            console.error('  ❌ Error enviando notificación de factura al CRM:', err.message, err.response?.data);
+                        });
+                    } catch (notifyErr) {
+                        console.error('  ❌ Error al preparar petición de notificación de factura:', notifyErr.message);
+                    }
+                } else {
+                    console.log(`🧾 Solicitud de factura ignorada en chat ${chat.id} (${profileName || realPhone}) porque no está registrado en el sistema.`);
                 }
             }
         }

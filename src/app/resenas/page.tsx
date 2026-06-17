@@ -6,7 +6,7 @@ import { ReviewsPageContent } from '@/components/Storefront/ReviewsPageContent';
 import { WHATSAPP_PHONE } from '@/lib/constants';
 
 export const metadata: Metadata = {
-  title: 'Reseñas de Clientes | Atelier Óptica Córdoba',
+  title: "Reseñas de Clientes",
   description: 'Descubrí lo que nuestros clientes opinan sobre Atelier Óptica. Opiniones reales de Google sobre nuestros armazones, lentes de sol y cristales graduados en el Cerro de las Rosas, Córdoba.',
   alternates: { canonical: 'https://www.atelieroptica.com.ar/resenas' },
 };

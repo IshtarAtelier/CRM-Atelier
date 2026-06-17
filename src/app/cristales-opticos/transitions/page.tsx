@@ -5,7 +5,8 @@ import { CristalFeatures } from "@/components/cristales/CristalFeatures";
 import { CristalCTA } from "@/components/cristales/CristalCTA";
 
 export const metadata: Metadata = {
-  title: "Transitions Inteligentes | Atelier Óptica",
+  alternates: { canonical: '/cristales-opticos/transitions' },
+  title: "Transitions Inteligentes",
   description: "Lentes Transitions GEN S y XTRActive. La mejor tecnología fotocromática de Essilor. Se adaptan a cualquier condición de luz.",
   keywords: "Transitions, Fotocromáticos, Transitions GEN S, XTRActive, Lentes Inteligentes, Luz, Sol, Óptica, Atelier",
 };
