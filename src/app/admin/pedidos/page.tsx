@@ -532,12 +532,9 @@ export default function PedidosPage() {
             };
 
             const encodedData = encodeURIComponent(JSON.stringify(payload));
+            const smartLabUrl = `https://grupooptico.dyndns.info/smartlab/laboratory/new#ATELIER_DATA=${encodedData}`;
             
-            // Usamos la URL de login con callback para esquivar el bug 404 de SmartLab cuando la sesión expira
-            const callbackPath = encodeURIComponent('/smartlab/laboratory/new#ATELIER_DATA=' + encodedData);
-            const smartLabUrl = `https://grupooptico.dyndns.info/smartlab/auth/authSmartlab/login?callbackUrl=${callbackPath}`;
-            
-            alert('✅ ¡Listo!\\n\\n1. Se abrirá SmartLab (iniciá sesión si te lo pide).\\n2. Hacé clic en tu favorito ⭐ "🤖 Atelier → SmartLab".\\n3. ¡Esperá un segundo! El robot elegirá "Monofocal/Multifocal" y llenará todos los campos solo.\\n4. Revisá y dale a Guardar.');
+            alert('✅ ¡Datos copiados al sistema!\n\nPASOS A SEGUIR:\n1️⃣ Se abrirá la web de SmartLab.\n2️⃣ Hacé clic en tu favorito ⭐ "🤖 Atelier → SmartLab".\n3️⃣ ¡No toques nada un segundo! El sistema elegirá el lente y llenará todo.\n\n⚠️ IMPORTANTE:\nSi la página te tira error "404", es porque se cerró tu sesión de SmartLab. Iniciá sesión manualmente y volvé a tocar este botón amarillo.');
             window.open(smartLabUrl, '_blank');
 
         } catch (error) {

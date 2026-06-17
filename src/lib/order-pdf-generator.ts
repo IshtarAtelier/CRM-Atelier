@@ -89,15 +89,15 @@ function getOrderHtml(order: any, client: any): string {
         .inst-total { font-size: 8px; color: #a8a29e; font-weight: 700; text-align: right; text-transform: uppercase; display: block; }
         .p-tag { font-size: 8px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; color:#a8a29e; margin-bottom: 4px; display: block; }
 
-        .totals-summary { margin-top: 25px; padding: 25px; border-radius: 20px; background: #1c1917; color: white; display: flex; justify-content: space-between; align-items: center; border: 2px solid ${brandSand}; }
-        .tot-amount { font-size: 34px; font-weight: 900; color: ${systemEmerald}; letter-spacing: -1px; }
-        .tot-col { text-align: center; padding: 0 15px; border-right: 1px solid rgba(255,255,255,0.1); }
+        .totals-summary { margin-top: 25px; padding: 20px 25px; border-radius: 16px; background: #fffcf9; color: #1c1917; display: flex; justify-content: space-between; align-items: center; border: 1.5px solid ${brandBeige}; }
+        .tot-amount { font-size: 34px; font-weight: 900; color: #047857; letter-spacing: -1px; }
+        .tot-col { text-align: center; padding: 0 15px; border-right: 1px solid ${brandBeige}; }
         .tot-col:last-of-type { border-right: none; }
         .tot-val { font-size: 18px; font-weight: 900; display: block; }
-        .tot-label { font-size: 8px; font-weight: 900; text-transform: uppercase; letter-spacing: 1px; color: #a8a29e; display: block; margin-bottom: 4px; }
+        .tot-label { font-size: 8px; font-weight: 900; text-transform: uppercase; letter-spacing: 1px; color: #78716c; display: block; margin-bottom: 4px; }
         
-        .tot-paid { text-align: right; border-left: 2px solid rgba(255,255,255,0.2); padding-left: 25px; margin-left: 10px; }
-        .paid-value { font-size: 24px; font-weight: 900; color: #fbbf24; }
+        .tot-paid { text-align: right; border-left: 2px solid ${brandBeige}; padding-left: 25px; margin-left: 10px; }
+        .paid-value { font-size: 24px; font-weight: 900; color: #b45309; }
 
         .footer { margin-top: 40px; text-align: center; border-top: 2px solid ${brandBeige}; padding-top: 20px; font-size: 9px; color: #a8a29e; text-transform: uppercase; letter-spacing: 3px; font-weight: 900; }
         
@@ -258,21 +258,21 @@ function getOrderHtml(order: any, client: any): string {
 
     <div class='totals-summary'>
         <div class='tot-col'>
-            <span class='tot-label' style="color: #10b981;">💵 Efectivo</span>
-            <span class='tot-val' style="color: #10b981;">$${financials.totalCash.toLocaleString()}</span>
+            <span class='tot-label' style="color: #047857;">💵 Efectivo</span>
+            <span class='tot-val' style="color: #047857;">$${financials.totalCash.toLocaleString()}</span>
         </div>
         <div class='tot-col'>
-            <span class='tot-label' style="color: #a78bfa;">🏦 Transf</span>
-            <span class='tot-val' style="color: #a78bfa;">$${financials.totalTransfer.toLocaleString()}</span>
+            <span class='tot-label' style="color: #6d28d9;">🏦 Transf</span>
+            <span class='tot-val' style="color: #6d28d9;">$${financials.totalTransfer.toLocaleString()}</span>
         </div>
         <div class='tot-col'>
-            <span class='tot-label' style="color: #fb923c;">💳 Tarjeta</span>
-            <span class='tot-val' style="color: #fb923c;">$${financials.totalCard.toLocaleString()}</span>
+            <span class='tot-label' style="color: #c2410c;">💳 Tarjeta</span>
+            <span class='tot-val' style="color: #c2410c;">$${financials.totalCard.toLocaleString()}</span>
         </div>
         
         <div class='tot-paid'>
-            <span class='tot-label'>Abonado Real</span>
-            <span class='paid-value'>$${financials.paidReal.toLocaleString()}</span>
+            <span class='tot-label' style="color: #78716c;">Abonado Real</span>
+            <span class='paid-value' style="color: #1c1917;">$${financials.paidReal.toLocaleString()}</span>
         </div>
     </div>
     `}
@@ -513,18 +513,30 @@ async function generateOrderPDFWithJsPDF(order: any, contact: any, filename: str
         
         y = cy + ch + 8;
         
-        // Totals bar
-        doc.setFillColor(28, 25, 23); doc.roundedRect(m, y, cw, 20, 3, 3, 'F');
+        // Totals bar (Light background, beige border)
+        doc.setFillColor(255, 252, 249); 
+        doc.setDrawColor(212, 195, 181); // brandBeige
+        doc.setLineWidth(0.5);
+        doc.roundedRect(m, y, cw, 20, 3, 3, 'FD'); // Fill and stroke
+        
         const colW = cw / 4;
-        const drawCol = (x: number, label: string, val: string, color: [number,number,number]) => {
-            doc.setFontSize(5); doc.setFont('helvetica', 'bold'); doc.setTextColor(...color);
+        const drawCol = (x: number, label: string, val: string, labelColor: [number,number,number], valColor: [number,number,number]) => {
+            doc.setFontSize(5); doc.setFont('helvetica', 'bold'); doc.setTextColor(...labelColor);
             doc.text(label, x, y + 7);
-            doc.setFontSize(11); doc.text(val, x, y + 14);
+            doc.setFontSize(11); doc.setTextColor(...valColor);
+            doc.text(val, x, y + 14);
         };
-        drawCol(m + 4, 'EFECTIVO', `$${financials.totalCash.toLocaleString()}`, emerald);
-        drawCol(m + colW + 4, 'TRANSFERENCIA', `$${financials.totalTransfer.toLocaleString()}`, [167, 139, 250]);
-        drawCol(m + colW * 2 + 4, 'TARJETA', `$${financials.totalCard.toLocaleString()}`, [251, 146, 60]);
-        drawCol(m + colW * 3 + 4, 'ABONADO REAL', `$${financials.paidReal.toLocaleString()}`, [251, 191, 36]);
+        
+        const darkGreen: [number,number,number] = [4, 120, 87];
+        const darkPurple: [number,number,number] = [109, 40, 217];
+        const darkOrange: [number,number,number] = [194, 65, 12];
+        const darkStone: [number,number,number] = [28, 25, 23];
+        const darkGray: [number,number,number] = [120, 113, 108]; // #78716c
+        
+        drawCol(m + 4, 'EFECTIVO', `$${financials.totalCash.toLocaleString()}`, darkGreen, darkGreen);
+        drawCol(m + colW + 4, 'TRANSFERENCIA', `$${financials.totalTransfer.toLocaleString()}`, darkPurple, darkPurple);
+        drawCol(m + colW * 2 + 4, 'TARJETA', `$${financials.totalCard.toLocaleString()}`, darkOrange, darkOrange);
+        drawCol(m + colW * 3 + 4, 'ABONADO REAL', `$${financials.paidReal.toLocaleString()}`, darkGray, darkStone);
         y += 26;
     } else {
         doc.setFillColor(240, 253, 244); doc.setDrawColor(...emerald); doc.setLineWidth(0.5);
