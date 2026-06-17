@@ -9,6 +9,8 @@ import { AdsService } from '@/services/ads.service';
 import { GoogleContactsService } from '@/services/google-contacts.service';
 import { formatOrderItemsSummary } from '@/lib/order-utils';
 import { logAudit } from '@/lib/audit';
+import { addBusinessDays, calculateEstimatedDays } from '@/lib/business-days';
+import { format } from 'date-fns';
 
 const OrderItemSchema = z.object({
     productId: z.string(),
@@ -51,6 +53,8 @@ const OrderUpdateSchema = z.object({
     labFrameType: z.string().nullable().optional(),
     labBevelPosition: z.string().nullable().optional(),
     smartLabScreenshot: z.string().nullable().optional(),
+    labFrameShape: z.string().nullable().optional(),
+    labFrameDetails: z.string().nullable().optional(),
     // Promo
     appliedPromoName: z.string().nullable().optional(),
 }).passthrough();
@@ -444,13 +448,41 @@ export class OrderService {
             if (labOrderNumber && labOrderNumber.trim() !== '' && !labStatus) {
                 const currentOrder = await prisma.order.findUnique({
                     where: { id },
-                    select: { labStatus: true, labSentAt: true }
+                    select: { 
+                        labStatus: true, 
+                        labSentAt: true,
+                        client: { select: { name: true, phone: true } },
+                        items: { select: { product: { select: { origin: true, type: true, category: true } } } }
+                    }
                 });
                 // Auto-advance if still in NONE (Pendiente) or SENT (Falta procesar)
                 if (!currentOrder?.labStatus || currentOrder.labStatus === 'NONE' || currentOrder.labStatus === 'SENT') {
                     data.labStatus = 'IN_PROGRESS';
                     if (!currentOrder?.labSentAt) {
                         data.labSentAt = new Date();
+                    }
+
+                    // Enviar mensaje automático de laboratorio procesado
+                    try {
+                        const estimatedDays = calculateEstimatedDays(currentOrder?.items || []);
+                        const estimatedDate = format(addBusinessDays(new Date(), estimatedDays), 'dd/MM/yyyy');
+                        const phone = currentOrder?.client?.phone?.replace(/\D/g, '');
+                        
+                        if (phone && phone.length >= 10) {
+                            const msg = `Hola ${currentOrder?.client?.name || ''} su pedido ya fue procesado con exito, leer info importante.\n\n* Una vez que el pedido este listo informamos para el retiro.\n* Si tiene dudas sobre el estado solo consultar pasada la fecha prevista\n* Los tiempos son aproximados\n\n*Fecha aproximada* : ${estimatedDate}`;
+                            
+                            fetchWa('/api/send', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    chatId: `549${phone.slice(-10)}@c.us`,
+                                    message: msg,
+                                    senderName: 'Sistema Atelier'
+                                })
+                            }).catch(err => console.error('[Lab Status] Error enviando WhatsApp:', err));
+                        }
+                    } catch (e) {
+                        console.error('Error al preparar mensaje de laboratorio:', e);
                     }
                 }
             }
@@ -469,6 +501,8 @@ export class OrderService {
         if (labDiameter !== undefined) data.labDiameter = labDiameter;
         if (labPdOd !== undefined) data.labPdOd = labPdOd;
         if (labPdOi !== undefined) data.labPdOi = labPdOi;
+        if (body.labFrameShape !== undefined) data.labFrameShape = body.labFrameShape;
+        if (body.labFrameDetails !== undefined) data.labFrameDetails = body.labFrameDetails;
 
         // Frame measurement fields (for SmartLab) - Temporarily disabled to avoid DB error until migration
         // if (frameA !== undefined) data.frameA = frameA;

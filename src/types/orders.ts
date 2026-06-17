@@ -109,6 +109,8 @@ export interface Order {
     userFrameBrand?: string | null;
     userFrameModel?: string | null;
     userFrameNotes?: string | null;
+    labFrameShape?: string | null;
+    labFrameDetails?: string | null;
     frameA?: string | null;
     frameB?: string | null;
     frameDbl?: string | null;

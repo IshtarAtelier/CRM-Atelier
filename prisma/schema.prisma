@@ -221,6 +221,8 @@ model Order {
   labStatus            String?        @default("NONE")
   labSentAt            DateTime?
   labNotes             String?
+  labFrameShape        String? // Forma del armazón (redondo, cuadrado, etc)
+  labFrameDetails      String? // Detalles del armazón escritos por el vendedor
   labOrderNumber       String?
   discount             Float?         @default(0.0)
   markup               Float?         @default(0.0)

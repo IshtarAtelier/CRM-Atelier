@@ -524,6 +524,8 @@ export default function PedidosPage() {
                 color: order.labColor || '',
                 observaciones: order.labNotes || '',
                 armazon: frameInfo,
+                forma_armazon: order.labFrameShape || '',
+                detalles_armazon: order.labFrameDetails || '',
                 tipo_tenido,
                 color_tenido,
                 intensidad_tenido
@@ -551,12 +553,15 @@ export default function PedidosPage() {
         setSavingField(key);
         try {
             const bodyMap: Record<string, string> = {
+                notes: 'labNotes',
                 color: 'labColor',
                 treatment: 'labTreatment',
                 diameter: 'labDiameter',
                 pdOd: 'labPdOd',
                 pdOi: 'labPdOi',
                 type: 'labType',
+                frameShape: 'labFrameShape',
+                frameDetails: 'labFrameDetails',
             };
             await fetch(`/api/orders/${orderId}`, {
                 method: 'PATCH',
@@ -1359,6 +1364,55 @@ export default function PedidosPage() {
                                         />
                                         {(labFields[`${order.id}_notes`] ?? order.labNotes) ? <CopyBtn value={labFields[`${order.id}_notes`] ?? order.labNotes ?? ''} field="obs" /> : null}
                                         {savingField === `${order.id}_notes` && <Loader2 className="w-4 h-4 text-blue-500 animate-spin mt-2" />}
+                                    </div>
+                                </div>
+
+                                {/* Forma de Armazón (Solo Multifocales) */}
+                                {d.lensType === 'MULTIFOCAL' && (
+                                    <div className="border-2 border-stone-100 dark:border-stone-700 rounded-2xl p-4">
+                                        <label className="text-[9px] font-black text-stone-400 uppercase tracking-widest block mb-2">Forma de Armazón (SmartLab)</label>
+                                        <div className="grid grid-cols-4 gap-2 mb-1">
+                                            {[
+                                                { id: 'redondo', label: 'Redondo', svg: <circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" strokeWidth="2"/> },
+                                                { id: 'ovalado', label: 'Ovalado', svg: <ellipse cx="12" cy="12" rx="10" ry="6" fill="none" stroke="currentColor" strokeWidth="2"/> },
+                                                { id: 'rectangular', label: 'Rectangular', svg: <rect x="2" y="7" width="20" height="10" rx="2" ry="2" fill="none" stroke="currentColor" strokeWidth="2"/> },
+                                                { id: 'cuadrado', label: 'Cuadrado', svg: <rect x="4" y="4" width="16" height="16" rx="3" ry="3" fill="none" stroke="currentColor" strokeWidth="2"/> },
+                                                { id: 'aviador', label: 'Aviador', svg: <path d="M4 10c-1.1 0-2 .9-2 2v2c0 2.2 1.8 4 4 4h2c2.2 0 4-1.8 4-4v-2c0-1.1-.9-2-2-2H4zm10 0c-1.1 0-2 .9-2 2v2c0 2.2 1.8 4 4 4h2c2.2 0 4-1.8 4-4v-2c0-1.1-.9-2-2-2h-2zM12 10V8c0-1.1.9-2 2-2h4c1.1 0 2 .9 2 2v2" fill="none" stroke="currentColor" strokeWidth="2"/> },
+                                                { id: 'cateye', label: 'Cat-Eye', svg: <><path d="M2 12s4-8 10-8 10 8 10 8-4 8-10 8-10-8-10-8z" fill="none" stroke="currentColor" strokeWidth="2"/><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" strokeWidth="2"/></> },
+                                                { id: 'pantos', label: 'Panto', svg: <path d="M5 10a5 5 0 0 1 10 0v2a5 5 0 0 1-10 0v-2zm12 0a5 5 0 0 1 10 0v2a5 5 0 0 1-10 0v-2zM15 10H17M5 10C5 6 8 3 12 3s7 3 7 7" fill="none" stroke="currentColor" strokeWidth="2"/> },
+                                                { id: 'geometrico', label: 'Geométrico', svg: <polygon points="12 3 21 8.5 21 15.5 12 21 3 15.5 3 8.5 12 3" fill="none" stroke="currentColor" strokeWidth="2"/> }
+                                            ].map(shape => {
+                                                const currentShape = labFields[`${order.id}_frameShape`] ?? order.labFrameShape;
+                                                const isSelected = currentShape === shape.label;
+                                                return (
+                                                    <button
+                                                        key={shape.id}
+                                                        onClick={() => saveLabField(order.id, 'frameShape', shape.label)}
+                                                        className={`flex flex-col items-center justify-center gap-1.5 p-2 rounded-xl border-2 transition-all hover:scale-105 ${isSelected ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400' : 'border-transparent hover:bg-stone-100 dark:hover:bg-stone-800 text-stone-500'}`}
+                                                    >
+                                                        <svg viewBox="0 0 24 24" className="w-8 h-8">{shape.svg}</svg>
+                                                        <span className="text-[10px] font-bold tracking-tight">{shape.label}</span>
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                        {savingField === `${order.id}_frameShape` && <div className="flex justify-end"><Loader2 className="w-4 h-4 text-blue-500 animate-spin mt-1" /></div>}
+                                    </div>
+                                )}
+
+                                {/* Detalles del Armazón */}
+                                <div className="border-2 border-stone-100 dark:border-stone-700 rounded-2xl p-4">
+                                    <label className="text-[9px] font-black text-stone-400 uppercase tracking-widest block mb-2">Detalles del Armazón (SmartLab)</label>
+                                    <div className="flex items-start gap-2">
+                                        <textarea
+                                            value={labFields[`${order.id}_frameDetails`] ?? order.labFrameDetails ?? ''}
+                                            onChange={e => setLabFields(prev => ({ ...prev, [`${order.id}_frameDetails`]: e.target.value }))}
+                                            onBlur={e => saveLabField(order.id, 'frameDetails', e.target.value)}
+                                            placeholder="Detalles sobre el armazón (ej: tipo de ranurado, bisel, material, anotaciones del vendedor)..."
+                                            className="flex-1 px-3 py-2 border-2 border-stone-200 dark:border-stone-600 rounded-xl text-sm font-medium focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none bg-white dark:bg-stone-900 transition-all min-h-[60px] resize-y"
+                                        />
+                                        {(labFields[`${order.id}_frameDetails`] ?? order.labFrameDetails) ? <CopyBtn value={labFields[`${order.id}_frameDetails`] ?? order.labFrameDetails ?? ''} field="frameDet" /> : null}
+                                        {savingField === `${order.id}_frameDetails` && <Loader2 className="w-4 h-4 text-blue-500 animate-spin mt-2" />}
                                     </div>
                                 </div>
 
