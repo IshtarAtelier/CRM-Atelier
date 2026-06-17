@@ -9,18 +9,18 @@ export function ExitIntentPopup() {
   const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => {
-    // Check if exit intent was already shown in this session
-    const hasBeenShown = sessionStorage.getItem("atelier-exit-intent-shown");
+    // Check if exit intent was already shown
+    const hasBeenShown = localStorage.getItem("atelier-exit-intent-shown");
     if (hasBeenShown === "true") return;
 
     const handleMouseLeave = (e: MouseEvent) => {
       // Trigger strictly when the mouse leaves the viewport from the top (clientY <= 0).
       // This ensures it only triggers when aiming for the address bar/tabs, preventing accidental popups.
-      if (e.clientY <= 0) {
-        const alreadyShown = sessionStorage.getItem("atelier-exit-intent-shown");
+      if (e.clientY < 10) {
+        const alreadyShown = localStorage.getItem("atelier-exit-intent-shown");
         if (!alreadyShown) {
           setIsOpen(true);
-          sessionStorage.setItem("atelier-exit-intent-shown", "true");
+          localStorage.setItem("atelier-exit-intent-shown", "true");
         }
       }
     };

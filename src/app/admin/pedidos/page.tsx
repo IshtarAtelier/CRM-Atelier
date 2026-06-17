@@ -541,7 +541,7 @@ export default function PedidosPage() {
                 tipo_tenido,
                 color_tenido,
                 intensidad_tenido,
-                tipo_aro: 'Aro completo',
+                tipo_aro: 'Calibrado Aro Entero',
                 tipo_armazon
             };
 

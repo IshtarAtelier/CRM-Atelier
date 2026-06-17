@@ -15,7 +15,7 @@ import { Camera, User, UserPlus, Share2, ChevronDown, Truck, Package, ShieldChec
 import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon";
 import { useCart } from "@/store/useCart";
 import { resolveStorageUrl } from "@/lib/utils/storage";
-
+import { trackAddToCart } from "@/lib/tracking";
 export function ProductClient({ 
   product, 
   variants = [], 
@@ -248,6 +248,12 @@ export function ProductClient({
               <button
                 disabled={product.stock !== undefined && product.stock <= 0 && product.category !== "Cristal" || isAdded}
                 onClick={() => {
+                  trackAddToCart({
+                    id: product.id,
+                    name: product.model,
+                    price: product.price || 0,
+                    quantity: 1
+                  });
                   addItem({
                     productId: product.id,
                     brand: product.brand,

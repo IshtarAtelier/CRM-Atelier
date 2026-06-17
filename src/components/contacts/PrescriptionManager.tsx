@@ -477,11 +477,9 @@ export default function PrescriptionManager({
                     <label className="text-[9px] font-black text-emerald-600 uppercase tracking-widest block mb-2">Foto de la receta (Opcional para guardar)</label>
                     {form.imageUrl && !receiptFile ? (
                         <div className="relative">
-                            <Image 
+                            <img 
                                 src={resolveStorageUrl(form.imageUrl)} 
                                 alt="Receta" 
-                                width={800}
-                                height={400}
                                 className="w-full max-h-48 object-contain rounded-xl border-2 border-emerald-500 shadow-md" 
                             />
                             <button onClick={() => setForm(p => ({...p, imageUrl: ''}))} className="absolute top-2 right-2 p-2 bg-red-500 text-white rounded-full"><X className="w-4 h-4" /></button>
