@@ -262,6 +262,16 @@ function getStatus() {
 async function sendMessage(waId, content, media = null) {
     if (!waClient || !isReady) throw new Error('WhatsApp not connected');
 
+    try {
+        // Force resolution of the number to avoid "No LID for user" error
+        const numberId = await waClient.getNumberId(waId);
+        if (numberId && numberId._serialized) {
+            waId = numberId._serialized;
+        }
+    } catch (e) {
+        console.warn(`[sendMessage] Could not resolve number ID for ${waId}: ${e.message}`);
+    }
+
     if (media && media.base64) {
         const mediaObj = new MessageMedia(media.mimetype, media.base64, media.filename || 'image.jpg');
         const options = { caption: content || '' };
