@@ -94,11 +94,12 @@ export default function BillingPage() {
     };
 
     const handleSendWhatsAppInvoice = async (order: Order, invoiceId: string) => {
-        const phone = order.client?.phone?.replace(/\D/g, '');
-        if (!phone) {
+        const rawPhone = order.client?.phone?.replace(/\D/g, '');
+        if (!rawPhone) {
             alert('⚠️ El cliente no tiene teléfono registrado.');
             return;
         }
+        const phone = rawPhone.length >= 10 ? `549${rawPhone.slice(-10)}` : rawPhone;
 
         setDownloadingId(`wsp-${invoiceId}`);
         try {
@@ -133,7 +134,8 @@ export default function BillingPage() {
             if (sendRes.ok) {
                 alert('✅ Factura enviada por WhatsApp al cliente');
             } else {
-                throw new Error('Error de conexión con el bot de WhatsApp');
+                const errData = await sendRes.json().catch(() => ({}));
+                throw new Error(errData.error || 'Error de conexión con el bot de WhatsApp');
             }
         } catch (error: any) {
             console.error('Error sending invoice via WhatsApp:', error);

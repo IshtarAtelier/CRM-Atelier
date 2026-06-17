@@ -86,8 +86,8 @@ export default function OpportunitiesPanel({ opportunities, onClose, onRefresh }
 
         if (!opp.phone) return;
 
-        let phone = opp.phone.replace(/\D/g, '');
-        if (phone.length === 10) phone = '549' + phone;
+        const rawPhone = opp.phone.replace(/\D/g, '');
+        let phone = rawPhone.length >= 10 ? '549' + rawPhone.slice(-10) : rawPhone;
 
         // If WhatsApp service is connected, navigate directly to local chat page
         if (isWhatsAppConnected) {

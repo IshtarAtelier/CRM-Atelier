@@ -469,8 +469,8 @@ function CotizadorPageContent() {
         msg += `   ↳ 6 cuotas sin interés: $${inst6.toLocaleString()} c/u\n`;
         msg += `\nAtelier Óptica`;
         
-        let phone = pendingContact.phone.replace(/\D/g, '');
-        if (phone.length === 10) phone = '549' + phone;
+        const rawPhone = pendingContact.phone.replace(/\D/g, '');
+        const phone = rawPhone.length >= 10 ? '549' + rawPhone.slice(-10) : rawPhone;
 
         try {
             const res = await fetch('/api/whatsapp/send', {

@@ -450,10 +450,9 @@ export async function POST(req: Request) {
            <div style="background: #f9f9f9; padding: 20px; border-radius: 8px; margin: 20px 0; border: 1px solid #ddd;">
              <h3 style="margin-top: 0;">Datos para la transferencia</h3>
              <ul style="list-style: none; padding: 0; margin: 0;">
-               <li style="margin-bottom: 10px;"><strong>CBU / CVU:</strong> [COMPLETAR_CBU_AQUI]</li>
-               <li style="margin-bottom: 10px;"><strong>Alias:</strong> [COMPLETAR_ALIAS_AQUI]</li>
-               <li style="margin-bottom: 10px;"><strong>Titular:</strong> [COMPLETAR_TITULAR_AQUI]</li>
-               <li><strong>Banco:</strong> [COMPLETAR_BANCO_AQUI]</li>
+               <li style="margin-bottom: 10px;"><strong>CVU:</strong> 0000069704088281149142</li>
+               <li style="margin-bottom: 10px;"><strong>Alias:</strong> badaza.media.arq</li>
+               <li><strong>Banco:</strong> Proveedor de Servicios de Pago - Garpa S.A.</li>
              </ul>
            </div>
            

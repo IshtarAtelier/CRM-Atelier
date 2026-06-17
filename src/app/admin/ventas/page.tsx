@@ -209,11 +209,12 @@ export default function VentasPage() {
     };
 
     const handleSendWhatsAppInvoice = async (order: Order, invoiceId: string) => {
-        const phone = order.client?.phone?.replace(/\D/g, '');
-        if (!phone) {
+        const rawPhone = order.client?.phone?.replace(/\D/g, '');
+        if (!rawPhone) {
             alert('⚠️ El cliente no tiene teléfono registrado.');
             return;
         }
+        const phone = rawPhone.length >= 10 ? `549${rawPhone.slice(-10)}` : rawPhone;
 
         setRequestingInvoiceId(`wsp-${invoiceId}`);
         try {
@@ -248,7 +249,8 @@ export default function VentasPage() {
             if (sendRes.ok) {
                 alert('✅ Factura enviada por WhatsApp al cliente');
             } else {
-                throw new Error('Error de conexión con el bot de WhatsApp');
+                const errData = await sendRes.json().catch(() => ({}));
+                throw new Error(errData.error || 'Error de conexión con el bot de WhatsApp');
             }
         } catch (error: any) {
             console.error('Error sending invoice via WhatsApp:', error);
@@ -1253,11 +1255,12 @@ export default function VentasPage() {
                                                     msg += `*Horarios:*\n   • Lunes a viernes de 9:00 a 13:30 y de 16:00 a 19:30\n   • Sábados de 10:00 a 14:00 hs\n\n`;
                                                     msg += `¡Te esperamos! Muchas gracias.\n`;
                                                     msg += `\n_La óptica mejor calificada en Google Business 5/5_`;
-                                                    const phone = (order.client?.phone || '').replace(/\D/g, '');
-                                                    if (!phone) {
+                                                    const rawPhone = (order.client?.phone || '').replace(/\D/g, '');
+                                                    if (!rawPhone) {
                                                         alert('⚠️ El cliente no tiene teléfono registrado.');
                                                         return;
                                                     }
+                                                    const phone = rawPhone.length >= 10 ? `549${rawPhone.slice(-10)}` : rawPhone;
                                                     try {
                                                         const res = await fetch('/api/whatsapp/send', {
                                                             method: 'POST',
@@ -1267,10 +1270,11 @@ export default function VentasPage() {
                                                         if (res.ok) {
                                                             alert('✅ Mensaje enviado por WhatsApp al cliente.');
                                                         } else {
-                                                            alert('❌ Error al enviar el WhatsApp.');
+                                                            const errData = await res.json().catch(() => ({}));
+                                                            alert(`❌ Error al enviar el WhatsApp: ${errData?.error || 'Error desconocido'}`);
                                                         }
-                                                    } catch {
-                                                        alert('❌ Error: verificá que el servidor WhatsApp esté corriendo.');
+                                                    } catch (err: any) {
+                                                        alert(`❌ Error de red al enviar el WhatsApp: ${err.message}`);
                                                     }
                                                 }}
                                                 className={`p-3 rounded-xl hover:scale-110 transition-all ${order.labStatus === 'READY' ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/30 animate-pulse hover:animate-none' : 'bg-emerald-50 text-emerald-600'}`}

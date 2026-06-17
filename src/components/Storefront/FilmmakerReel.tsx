@@ -11,7 +11,7 @@ const FRAMES = [
     id: "monalisa",
     src: "/images/editorial/monalisa.webp",
     title: "La Gioconda",
-    subtitle: "La Gioconda · Edición Limitada",
+    subtitle: "Acetato Negro · Edición Limitada",
     year: "S. XVI",
     credit: "Leonardo da Vinci",
   },
@@ -22,14 +22,6 @@ const FRAMES = [
     subtitle: "Montura Dorada · Geométrica",
     year: "S. XV",
     credit: "Sandro Botticelli",
-  },
-  {
-    id: "dali",
-    src: "/images/editorial/filmmaker-dali.webp",
-    title: "La Persistencia",
-    subtitle: "Marco Carei · Detalles en Oro",
-    year: "S. XX",
-    credit: "Salvador Dalí",
   },
   {
     id: "pearl",
@@ -104,7 +96,7 @@ export function FilmmakerReel() {
         <div className="absolute inset-0">
           <div className="w-full h-full relative">
             <Image
-              src="/images/editorial/filmmaker-monalisa.webp"
+              src="/images/editorial/monalisa.webp"
               alt="La Gioconda"
               fill
               priority

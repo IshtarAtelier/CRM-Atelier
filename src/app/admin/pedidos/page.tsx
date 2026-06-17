@@ -312,11 +312,12 @@ export default function PedidosPage() {
         text += `\n\n⏱️ *Tiempo estimado de confección:* 7 a 10 días hábiles`;
         if (order.labNotes) text += `\n\n📝 *Observaciones:* ${order.labNotes}`;
 
-        const phone = order.client.phone?.replace(/\D/g, '') || '';
-        if (!phone) {
+        const rawPhone = order.client.phone?.replace(/\D/g, '') || '';
+        if (!rawPhone) {
             alert('⚠️ El cliente no tiene teléfono registrado.');
             return;
         }
+        const phone = rawPhone.length >= 10 ? `549${rawPhone.slice(-10)}` : rawPhone;
 
         try {
             const res = await fetch('/api/whatsapp/send', {

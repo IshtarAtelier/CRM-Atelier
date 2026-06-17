@@ -341,10 +341,9 @@ export function CheckoutClient() {
             <div className="bg-stone-50 border border-stone-200 rounded-lg p-6 mb-8 text-left">
               <h3 className="font-bold text-stone-900 mb-4 text-sm uppercase tracking-widest border-b border-stone-200 pb-2">Datos para Transferencia</h3>
               <ul className="text-sm text-stone-600 space-y-3 mb-6">
-                <li><strong className="text-stone-900">CBU / CVU:</strong> [COMPLETAR_CBU_AQUI]</li>
-                <li><strong className="text-stone-900">Alias:</strong> [COMPLETAR_ALIAS_AQUI]</li>
-                <li><strong className="text-stone-900">Titular:</strong> [COMPLETAR_TITULAR_AQUI]</li>
-                <li><strong className="text-stone-900">Banco:</strong> [COMPLETAR_BANCO_AQUI]</li>
+                <li><strong className="text-stone-900">CVU:</strong> 0000069704088281149142</li>
+                <li><strong className="text-stone-900">Alias:</strong> badaza.media.arq</li>
+                <li><strong className="text-stone-900">Banco:</strong> Proveedor de Servicios de Pago - Garpa S.A.</li>
               </ul>
               <div className="bg-emerald-50 text-emerald-900 border border-emerald-200 rounded p-4 text-xs mb-4">
                 <p className="font-bold mb-1">Paso final:</p>
