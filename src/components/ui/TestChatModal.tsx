@@ -116,7 +116,7 @@ export function TestChatModal({ isOpen, onClose }: TestChatModalProps) {
             } else {
                 setMessages(prev => [...prev, { role: 'ai', content: 'Dejame revisarlo bien y en un ratito te respondo.', blocks: ['Dejame revisarlo bien y en un ratito te respondo.'] }]);
             }
-        } catch (e) {
+        } catch {
             setMessages(prev => [...prev, { role: 'ai', content: 'Dejame revisarlo bien y en un ratito te respondo.', blocks: ['Dejame revisarlo bien y en un ratito te respondo.'] }]);
         } finally {
             setIsTyping(false);

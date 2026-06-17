@@ -56,6 +56,15 @@ export function ExitIntentPopup() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={handleClose}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                handleClose();
+              }
+            }}
+            role="button"
+            tabIndex={-1}
+            aria-label="Cerrar modal"
             className="absolute inset-0 bg-stone-900/60 backdrop-blur-md"
           />
 

@@ -23,13 +23,14 @@
             --glass: rgba(20, 20, 25, 0.7);
             --glass-border: rgba(255, 255, 255, 0.05);
             --font-heading: 'Playfair Display', serif;
+        --font-display: 'Playfair Display', serif;
             --font-body: 'Inter', sans-serif;
             --whatsapp: #25D366;
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
         html { scroll-behavior: smooth; }
-        body { font-family: var(--font-body); background-color: var(--bg-base); color: var(--text-main); line-height: 1.7; overflow-x: hidden; }
+        body { font-family: var(--font-body); background-color: var(--bg-base); color: var(--text-main); line-height: 1.7; overflow-x: hidden; padding-top: 80px; }
 
         /* Typography */
         h1, h2, h3, h4 { font-family: var(--font-heading); font-weight: 600; color: #fff; }
@@ -41,14 +42,14 @@
         .gold-gradient {
             color: var(--accent-gold);
             background: linear-gradient(135deg, #F3E5AB 0%, #D4AF37 50%, #AA801E 100%);
-            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
         }
 
         /* Navbar */
         nav {
-            position: absolute; top: 0; width: 100%; padding: 20px 5%;
+            position: fixed; top: 0; width: 100%; padding: 20px 5%;
             display: flex; justify-content: space-between; align-items: center; z-index: 1000;
-            flex-wrap: wrap; gap: 15px;
+            flex-wrap: wrap; gap: 15px; background: rgba(2, 2, 2, 0.9); backdrop-filter: blur(10px);
         }
         .logo { font-family: var(--font-display); font-size: 1.5rem; font-weight: 800; letter-spacing: 1px; color: #fff; text-decoration: none; }
         .nav-links { display: flex; align-items: center; gap: 20px; flex-wrap: wrap; }
@@ -68,10 +69,7 @@
             box-shadow: 0 8px 25px rgba(37, 211, 102, 0.2);
         }
         .btn-wa:hover { background-color: #20bd5a; transform: translateY(-3px); box-shadow: 0 12px 30px rgba(37, 211, 102, 0.4); }
-        .btn-gold {
-            background: linear-gradient(135deg, var(--accent-gold), #b28d22); color: #000;
-            box-shadow: 0 8px 25px rgba(212, 175, 55, 0.2);
-        }
+        .btn-gold { background: linear-gradient(135deg, #D4AF37 0%, #AA801E 100%); color: #fff; box-shadow: 0 10px 20px rgba(212, 175, 55, 0.3); }
         .btn-gold:hover { transform: translateY(-3px); box-shadow: 0 12px 30px rgba(212, 175, 55, 0.4); }
 
         /* Floating WA */
@@ -160,7 +158,7 @@
             background: var(--bg-surface); border-radius: 16px; overflow: hidden;
             border: 1px solid var(--glass-border);
         }
-        .compare-table th, .compare-table td { padding: 20px; text-align: left; border-bottom: 1px solid var(--glass-border); }
+        .compare-table th, .compare-table td { padding: 20px; text-align: left; border-bottom: 1px solid var(--glass-border); word-break: normal; }
         .compare-table th { background: rgba(255,255,255,0.02); font-family: var(--font-heading); font-size: 1.2rem; }
         .compare-table th.highlight { color: var(--accent-gold); }
         .compare-table tr:last-child td { border-bottom: none; }
@@ -203,22 +201,37 @@
             .hero { min-height: 80vh; padding-top: 120px; }
             .glass-card { padding: 30px; }
             .compare-table { display: block; overflow-x: auto; }
+            .compare-table td, .compare-table th { word-break: break-word; }
         }
     </style>
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Optician",
+      "name": "Atelier Óptica Varilux Argentina",
+      "url": "https://atelieroptica.com.ar",
+      "address": {
+        "@type": "PostalAddress",
+        "streetAddress": "José Luis de Tejeda 4380",
+        "addressLocality": "Córdoba",
+        "addressCountry": "AR"
+      }
+    }
+    </script>
 </head>
 <body>
     
     <!-- Top Navigation -->
-    <nav>
+    <nav role="navigation">
         <a href="index.html" class="logo">Varilux <span class="gold-gradient">Argentina</span></a>
         <div class="nav-links">
-            <a href="blog.html" class="nav-link">Blog Visual</a>
-            <a href="https://wa.me/5493518685644?text=Hola%2C+tengo+mi+receta+y+quiero+cotizar+Varilux" class="btn btn-gold" style="padding: 10px 24px; font-size: 0.9rem;" target="_blank">Cotizar mi Receta</a>
+            <a href="https://atelieroptica.com.ar" rel="noopener noreferrer" style="color: var(--accent-gold); text-decoration: none;">Atelier Óptica</a>
+            <a href="https://wa.me/5493518685644?text=Hola%2C+tengo+mi+receta+y+quiero+cotizar+Varilux" class="btn btn-gold" style="padding: 10px 24px; font-size: 0.9rem;" target="_blank" rel="noopener noreferrer">Cotizar mi Receta</a>
         </div>
     </nav>
 
     <!-- Hero Section -->
-    <section class="hero">
+    <section class="hero" role="main">
         <div class="aurora"></div>
         <div class="hero-container">
             <div class="hero-grid">
@@ -226,13 +239,12 @@
                     <span class="badge">Promoción Activa: Doble Disfrute (2x1)</span>
                     <h1>Visión Perfecta.<br><span class="gold-gradient">Cero Mareos.</span></h1>
                     <p>Descubrí por qué Varilux es el único multifocal del mundo impulsado por Inteligencia Artificial que te permite manejar de noche, usar pantallas y bajar escaleras sin esfuerzo visual. <strong>Aboná en Cuotas Sin Interés con garantía de adaptación.</strong></p>
-                    <a href="https://wa.me/5493518685644?text=Hola%2C+quiero+consultar+precios+de+los+lentes+Varilux" class="btn btn-gold" target="_blank">Consultar Precios y Cuotas</a>
+                    <a href="https://wa.me/5493518685644?text=Hola%2C+quiero+consultar+precios+de+los+lentes+Varilux" class="btn btn-gold" target="_blank" rel="noopener noreferrer">Consultar Precios y Cuotas</a>
                 </div>
                 
                 <div class="hero-visual reveal">
                     <div class="hero-frame">
-                        <!-- El usuario debe subir esta imagen (ej: paciente sonriendo o lente de lujo) -->
-                        <img src="hero-real.jpg" alt="Persona usando lentes Varilux" onerror="this.onerror=null; this.src='https://via.placeholder.com/600x800/111111/D4AF37?text=Subir+hero-real.jpg';">
+                        <img src="hero-varilux.jpg" alt="Persona usando lentes Varilux">
                     </div>
                 </div>
             </div>
@@ -243,8 +255,7 @@
     <section class="container">
         <div class="grid-2">
             <div class="reveal">
-                <!-- El usuario debe subir esta imagen al directorio deploy_sites/variluxargentina.com.ar/ -->
-                <img src="comfort.jpg" alt="Beneficios de Varilux" class="real-img" onerror="this.onerror=null; this.src='https://via.placeholder.com/600x400/111111/D4AF37?text=Subir+comfort.jpg';">
+                <img src="comfort-vision.jpg" alt="Beneficios de Varilux" class="real-img">
             </div>
             <div class="reveal">
                 <h3 class="gold-gradient">CÓMODOS DESDE EL DÍA 1</h3>
@@ -269,7 +280,7 @@
                 <h3 style="color:#fff;">💳 Planes de Financiación Activos</h3>
                 <p style="font-size:1.2rem; margin-top:15px; color:var(--text-main);">Aboná tus cristales Varilux utilizando el plan <strong>Cuota Simple</strong> o consultá por nuestras promociones bancarias vigentes para pagar en <strong>Cuotas Sin Interés</strong>.</p>
                 <p style="font-size: 1rem; color: var(--accent-gold);">🎁 <strong>Promo Doble Disfrute (2x1):</strong> Llevate tu primer par transparente y te bonificamos un segundo par de sol graduado o transitions.</p>
-                <a href="https://wa.me/5493518685644?text=Hola%2C+quiero+cotizar+mis+lentes+con+el+plan+Cuota+Simple+y+la+promo+2x1" class="btn btn-wa" style="margin-top: 20px;" target="_blank">Consultar Financiación con mi Tarjeta</a>
+                <a href="https://wa.me/5493518685644?text=Hola%2C+quiero+cotizar+mis+lentes+con+el+plan+Cuota+Simple+y+la+promo+2x1" class="btn btn-wa" style="margin-top: 20px;" target="_blank" rel="noopener noreferrer">Consultar Financiación con mi Tarjeta</a>
             </div>
         </div>
     </section>
@@ -288,7 +299,6 @@
                 <h3>Varilux Comfort Max</h3>
                 <span class="price-tag">Gama Media Alta | Ergonomía</span>
                 <p style="font-size: 0.95rem; text-align: left;"><strong>¿Cuándo elegirlo?</strong><br>Si trabajás 8 horas por día en una oficina usando computadoras y el celular constantemente. Su tecnología Flex Optim amplía la "zona de postura útil".</p>
-                <p style="font-size: 0.95rem; text-align: left; color: var(--accent-gold);"><strong>Beneficio:</strong> Adiós a las contracturas cervicales y dolor de cuello. Podés sentarte como quieras.</p>
             </div>
             
             <!-- Physio 3.0 -->
@@ -296,7 +306,6 @@
                 <h3>Varilux Physio 3.0</h3>
                 <span class="price-tag">Alta Gama | Alta Resolución</span>
                 <p style="font-size: 0.95rem; text-align: left;"><strong>¿Cuándo elegirlo?</strong><br>Si sos una persona muy activa, manejás mucho de noche o en ruta, o requerís ver detalles finos. Usa tecnología W.A.V.E 2.0 que ajusta el lente al diámetro de tu pupila.</p>
-                <p style="font-size: 0.95rem; text-align: left; color: var(--accent-gold);"><strong>Beneficio:</strong> Alto contraste incluso con poca luz, colores más vivos y cero destellos nocturnos.</p>
             </div>
 
             <!-- XR Series -->
@@ -304,13 +313,12 @@
                 <div style="background: var(--accent-gold); color: #000; font-size: 0.8rem; font-weight: bold; padding: 5px; position: absolute; top: 0; left: 0; right: 0; text-transform: uppercase;">La Cúspide Tecnológica</div>
                 <h3 style="margin-top: 15px;">Varilux XR Series</h3>
                 <span class="price-tag">Premium | IA Conductual</span>
-                <p style="font-size: 0.95rem; text-align: left;"><strong>¿Cuándo elegirlo?</strong><br>Si querés la mejor visión del planeta Tierra. Tiene un gemelo digital 3D que predice cómo vas a mover el ojo antes de que lo hagas. Campos de visión extrapanorámicos.</p>
-                <p style="font-size: 0.95rem; text-align: left; color: var(--accent-gold);"><strong>Beneficio:</strong> Nitidez instantánea en milisegundos y un volumen visual 49% mayor al estándar.</p>
+                <p style="font-size: 0.95rem; text-align: left;"><strong>¿Cuándo elegirlo?</strong><br>Si querés la mejor visión del planeta Tierra. Tiene un gemelo digital 3D que predice cómo vas a mover el ojo antes de que lo hagas.</p>
             </div>
         </div>
         
         <div style="text-align: center; margin-top: 40px;" class="reveal">
-            <a href="https://wa.me/5493518685644?text=Hola%2C+quiero+que+me+asesoren+para+saber+qué+modelo+de+Varilux+es+mejor+para+mi+receta" class="btn btn-gold" target="_blank">Pedir Asesoramiento Gratuito</a>
+            <a href="https://wa.me/5493518685644?text=Hola%2C+quiero+que+me+asesoren+para+saber+qué+modelo+de+Varilux+es+mejor+para+mi+receta" class="btn btn-gold" target="_blank" rel="noopener noreferrer">Pedir Asesoramiento Gratuito</a>
         </div>
     </section>
 
@@ -318,90 +326,39 @@
     <section style="background: var(--bg-surface);">
         <div class="container reveal">
             <h2 style="text-align: center;">Tu Lente. Tu Estilo.</h2>
-            <p style="text-align: center; max-width: 800px; margin: 0 auto 50px;">Cualquier diseño de Varilux (Comfort, Physio o XR) funciona como el "motor" de tu visión. Ahora, debés elegir el escudo y el color. <strong>Todos nuestros multifocales se pueden personalizar.</strong></p>
-            
             <div class="grid-2">
                 <div>
                     <h3 class="gold-gradient">FAMILIA CRIZAL</h3>
-                    <p style="margin-bottom: 30px;">El tratamiento Crizal se fusiona al cristal para hacerlo invisible y resistente.</p>
+                    <p>El tratamiento Crizal se fusiona al cristal para hacerlo invisible y resistente.</p>
                     <ul class="feat-list">
-                        <li><strong>Crizal Sapphire HR:</strong> El más estético del mundo. Reduce reflejos en 360°, ideal para que tus ojos se vean perfectos en fotos y reuniones.</li>
-                        <li><strong>Crizal Rock:</strong> La máxima durabilidad. Resistente a rayas y súper fácil de limpiar. Para los que son menos cuidadosos con sus lentes.</li>
-                        <li><strong>Crizal Prevencia / Eyezen:</strong> Escudo total contra la luz azul de pantallas, previniendo el envejecimiento ocular prematuro.</li>
+                        <li><strong>Crizal Sapphire HR:</strong> El más estético del mundo.</li>
+                        <li><strong>Crizal Rock:</strong> La máxima durabilidad.</li>
+                        <li><strong>Crizal Prevencia:</strong> Escudo total contra la luz azul.</li>
                     </ul>
                 </div>
                 
                 <div class="reveal" style="text-align: center;">
-                    <h3 style="font-size: 1.4rem; color: var(--accent-gold);">Paleta de Colores Transitions Gen S</h3>
-                    <p style="font-size: 0.95rem; margin-bottom: 20px;">Elegí entre 7 colores vibrantes: Zafiro, Amatista, Rubí, Esmeralda, Verde Grafito, Marrón o Gris. Totalmente claros en interiores.</p>
-                    <!-- El usuario debe subir esta imagen al directorio deploy_sites/variluxargentina.com.ar/ -->
-                    <img src="transitions.jpg" alt="Colores Transitions Gen S" class="real-img" onerror="this.onerror=null; this.src='https://via.placeholder.com/800x400/111111/D4AF37?text=Subir+transitions.jpg';">
+                    <img src="transitions.jpg" alt="Colores Transitions Gen S" class="real-img" onerror="this.onerror=null; this.src='https://via.placeholder.com/800x400/111111/D4AF37?text=Transitions';">
                 </div>
-            </div>
-            
-            <div style="text-align: center; margin-top: 50px;" class="reveal">
-                <a href="https://wa.me/5493518685644?text=Hola%2C+quiero+cotizar+mis+Varilux+con+tecnología+Transitions+y+Crizal" class="btn btn-gold" target="_blank">Elegir mis Tratamientos</a>
             </div>
         </div>
     </section>
 
-    <!-- Trust Signals (Confianza, Falsificación, Garantía) -->
+    <!-- Trust Signals -->
     <section class="container">
         <div class="grid-2">
             <div class="reveal">
                 <h3 class="gold-gradient">SEGURIDAD TOTAL</h3>
                 <h2>Garantía médica. 100% Originales.</h2>
-                <p>En el mercado abundan imitaciones y "lentes que te venden como Varilux pero no lo son". En Atelier Óptica te damos la máxima tranquilidad.</p>
-                <ul class="feat-list" style="margin-top: 30px;">
-                    <li><strong>Garantía de Adaptación 90 Días:</strong> Si no te adaptás (cosa que rara vez ocurre), Essilor y nosotros nos hacemos cargo de fabricarte unos nuevos sin costo adicional. Tu inversión está a salvo.</li>
-                    <li><strong>Certificado de Autenticidad Oficial:</strong> Con tus anteojos recibirás la tarjeta de garantía internacional de Essilor Francia, validable en su web.</li>
-                    <li><strong>Grabados Láser Invisibles:</strong> Te enseñaremos a encontrar las marcas de agua de seguridad talladas en tus cristales para que compruebes que estás usando tecnología original.</li>
-                    <li><strong>Envíos Asegurados a todo el país:</strong> ¿No vivís cerca? No pasa nada. Hacemos el lente a medida con tu receta y te lo enviamos asegurado para que llegue intacto a tu puerta.</li>
+                <ul class="feat-list">
+                    <li><strong>Garantía de Adaptación 90 Días:</strong> Si no te adaptás, los cambiamos sin costo.</li>
+                    <li><strong>Certificado de Autenticidad:</strong> Garantía internacional Essilor.</li>
+                    <li><strong>Envíos Asegurados a todo el país.</strong></li>
                 </ul>
             </div>
             <div class="reveal">
-                <!-- El usuario debe subir esta imagen al directorio deploy_sites/variluxargentina.com.ar/ -->
-                <img src="certificado.jpg" alt="Certificado de Autenticidad Essilor" class="real-img" onerror="this.onerror=null; this.src='https://via.placeholder.com/600x400/111111/D4AF37?text=Subir+certificado.jpg';">
+                <img src="trust.png" alt="Certificado de Autenticidad Essilor" class="real-img" onerror="this.onerror=null; this.src='https://via.placeholder.com/600x400/111111/D4AF37?text=Certificado';">
             </div>
-        </div>
-    </section>
-
-    <!-- Comparativa -->
-    <section style="background: var(--bg-surface);">
-        <div class="container reveal">
-            <h2 style="text-align: center;">¿Por qué no comprar un "multifocal barato"?</h2>
-            
-            <table class="compare-table">
-                <thead>
-                    <tr>
-                        <th>Experiencia del Paciente</th>
-                        <th>Multifocal Económico / Genérico</th>
-                        <th class="highlight">Familia Varilux</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td>Campos Visuales</td>
-                        <td>Estrechos. Sentís que "ves por un tubo".</td>
-                        <td><strong>Extrapanorámicos. Libertad de movimiento.</strong></td>
-                    </tr>
-                    <tr>
-                        <td>Uso de Computadora</td>
-                        <td>Obliga a mover el cuello causando contracturas.</td>
-                        <td><strong>Zona de postura natural (Chau dolor).</strong></td>
-                    </tr>
-                    <tr>
-                        <td>Manejo de Noche</td>
-                        <td>Pérdida de nitidez y deslumbramiento molesto.</td>
-                        <td><strong>Alta Resolución y nitidez superior.</strong></td>
-                    </tr>
-                    <tr>
-                        <td>Garantía de Adaptación</td>
-                        <td><span class="cross">✗</span> Cero respaldo. Si te mareás, perdiste tu dinero.</td>
-                        <td><span class="check">✓</span> <strong>90 Días de Garantía Essilor.</strong></td>
-                    </tr>
-                </tbody>
-            </table>
         </div>
     </section>
 
@@ -411,91 +368,55 @@
             <h2 style="text-align: center; margin-bottom: 60px;">Preguntas Frecuentes</h2>
             
             <div class="faq-item">
-                <button class="faq-btn">¿Cuánto salen los lentes Varilux en Argentina?</button>
+                <button class="faq-btn accordion" aria-expanded="false">¿Cuánto salen los lentes Varilux?</button>
                 <div class="faq-content">
-                    <p>El precio depende exactamente de la receta de tu médico oftalmólogo (si tenés astigmatismo alto, adición alta) y del modelo que elijas (Liberty, Comfort, Physio o XR). Para no darte un número erróneo, te pedimos que nos envíes una foto de tu receta por WhatsApp y te damos el presupuesto exacto en minutos, junto con las opciones de financiación.</p>
+                    <p>El precio depende de tu receta y modelo. Envianos una foto de tu receta por WhatsApp para una cotización exacta.</p>
                 </div>
             </div>
 
             <div class="faq-item">
-                <button class="faq-btn">Varilux Comfort, Physio o XR: ¿Cuál me conviene?</button>
+                <button class="faq-btn accordion" aria-expanded="false">¿Cuál es el mejor modelo?</button>
                 <div class="faq-content">
-                    <p>La regla de oro es tu estilo de vida: Si sos oficinista y vivís frente a la PC, el <strong>Comfort Max</strong> salvará tus cervicales gracias a su flexibilidad postural. Si sos viajante, arquitecto, o manejás mucho de noche, el <strong>Physio 3.0</strong> te dará la resolución y contraste (sin halos) que necesitás. Y si sos hiper-tecnológico, tenés múltiples pantallas y no tolerás restricciones visuales de ningún tipo, tenés que ir por el <strong>XR Series</strong>, que usa IA para predecir tus movimientos oculares. Envianos tu receta y te asesoramos.</p>
-                </div>
-            </div>
-            
-            <div class="faq-item">
-                <button class="faq-btn">Me dijeron que me voy a marear al principio...</button>
-                <div class="faq-content">
-                    <p>Ese es el miedo más común, derivado de gente que usó cristales genéricos o les tomaron mal las medidas en la óptica. Los cristales Varilux están diseñados biométricamente para que la adaptación sea instintiva. Además, en Atelier somos extremadamente precisos con las alturas y centrados para garantizar que veas bien de inmediato.</p>
-                </div>
-            </div>
-
-            <div class="faq-item">
-                <button class="faq-btn">¿Puedo usar mi propio armazón?</button>
-                <div class="faq-content">
-                    <p>¡Sí! Si tenés un armazón que te encanta y está en buenas condiciones, podés enviárnoslo y nosotros le tallamos y montamos tus nuevos cristales Varilux originales. También tenemos un catálogo enorme de armazones italianos y de titanio si buscás renovarte.</p>
+                    <p>Depende de tu rutina. Comfort para oficina, Physio para manejo nocturno, XR para máxima tecnología.</p>
                 </div>
             </div>
         </div>
     </section>
 
-    <footer style="background: var(--bg-surface); padding-top: 60px; padding-bottom: 60px; border-top: 1px solid var(--glass-border);">
-        <div class="container grid-2" style="align-items: start; gap: 40px;">
+    <footer style="background: var(--bg-surface); padding: 60px 0; border-top: 1px solid var(--glass-border);">
+        <div class="container grid-2">
             <div>
-                <h2 class="gold-gradient" style="font-size:2rem; margin-bottom:20px;">Tu vista no tiene precio.</h2>
-                <a href="https://wa.me/5493518685644?text=Hola%2C+quiero+asesoramiento+para+hacer+mis+lentes+Varilux" class="btn btn-gold" style="margin-bottom: 30px;" target="_blank">Hablar con un Asesor de Atelier</a>
-                
-                <h3 style="font-size: 1.2rem; margin-bottom: 10px; color: #fff;">Atelier Óptica Boutique</h3>
-                <p style="font-size: 0.95rem; margin-bottom: 5px; color: var(--text-main);">📍 José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba.</p>
-                <p style="font-size: 0.95rem; margin-bottom: 20px;">Atendemos con turnos para brindarte el mejor asesoramiento en multifocales.</p>
-                
-                <p style="font-size: 0.8rem; margin-bottom: 5px;">Sitio Informativo | Distribuidores Oficiales Essilor Argentina</p>
-                <p style="font-size: 0.8rem; margin-bottom: 5px;">Sitio operado por <a href="https://atelieroptica.com.ar" style="color: var(--accent-gold); text-decoration: none; font-weight: bold;">Atelier Óptica</a> - Tu óptica de confianza en Córdoba.</p>
-                <p style="font-size: 0.75rem; color: #555;">Varilux®, Crizal®, Nanoptix® y Transitions® son marcas registradas de EssilorLuxottica.</p>
+                <h2 class="gold-gradient">Tu vista no tiene precio.</h2>
+                <p>Atelier Óptica Boutique. Córdoba, Argentina.</p>
             </div>
-            
-            <div style="border-radius: 20px; overflow: hidden; border: 1px solid var(--accent-gold); box-shadow: 0 10px 30px rgba(212, 175, 55, 0.1);">
-                <iframe width="100%" height="300" frameborder="0" scrolling="no" marginheight="0" marginwidth="0" src="https://maps.google.com/maps?q=Jos%C3%A9%20Luis%20de%20Tejeda%204380,%20Cerro%20de%20las%20Rosas,%20C%C3%B3rdoba&amp;t=&amp;z=15&amp;ie=UTF8&amp;iwloc=&amp;output=embed" style="display: block;"></iframe>
+            <div>
+                <iframe src="https://maps.google.com/maps?q=Jos%C3%A9%20Luis%20de%20Tejeda%204380,%20Cerro%20de%20las%20Rosas,%20C%C3%B3rdoba&output=embed" width="100%" height="250" style="border:0;" allowfullscreen="" loading="lazy"></iframe>
             </div>
         </div>
     </footer>
 
     <!-- Botón Flotante WA -->
-    <a href="https://wa.me/5493518685644?text=Hola%2C+estoy+en+la+página+y+tengo+una+duda" class="float-wa" target="_blank" aria-label="Consultar por WhatsApp">
-        <svg viewBox="0 0 24 24">
-            <path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.582 2.128 2.182-.573c.978.58 1.911.928 3.145.929 3.178 0 5.767-2.587 5.768-5.766.001-3.187-2.575-5.77-5.764-5.771zm3.392 8.244c-.144.405-.837.774-1.17.824-.299.045-.677.063-1.092-.069-.252-.08-.575-.187-.988-.365-1.739-.751-2.874-2.502-2.961-2.617-.087-.116-.708-.94-.708-1.793s.448-1.273.607-1.446c.159-.173.346-.217.462-.217l.332.006c.106.005.249-.04.39.298.144.347.491 1.2.534 1.287.043.087.072.188.014.304-.058.116-.087.188-.173.289l-.26.304c-.087.086-.177.18-.076.354.101.174.449.741.964 1.201.662.591 1.221.774 1.394.86s.274.072.376-.043c.101-.116.433-.506.549-.68.116-.173.231-.145.39-.087s1.011.477 1.184.564.289.13.332.202c.045.072.045.419-.099.824zm-3.423-14.416c-6.627 0-12 5.373-12 12s5.373 12 12 12 12-5.373 12-12-5.373-12-12-12zm.029 18.88c-1.161 0-2.305-.292-3.318-.844l-3.677.964.984-3.595c-.607-1.052-.927-2.246-.926-3.468.001-5.824 4.74-10.563 10.564-10.563 5.826 0 10.564 4.74 10.564 10.564 0 5.825-4.739 10.563-10.564 10.563z"/>
-        </svg>
+    <a href="https://wa.me/5493518685644?text=Hola" class="float-wa" target="_blank" rel="noopener noreferrer" aria-label="Contacto por WhatsApp">
+        <svg viewBox="0 0 24 24"><path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.582 2.128 2.182-.573c.978.58 1.911.928 3.145.929 3.178 0 5.767-2.587 5.768-5.766.001-3.187-2.575-5.77-5.764-5.771zm3.392 8.244c-.144.405-.837.774-1.17.824-.299.045-.677.063-1.092-.069-.252-.08-.575-.187-.988-.365-1.739-.751-2.874-2.502-2.961-2.617-.087-.116-.708-.94-.708-1.793s.448-1.273.607-1.446c.159-.173.346-.217.462-.217l.332.006c.106.005.249-.04.39.298.144.347.491 1.2.534 1.287.043.087.072.188.014.304-.058.116-.087.188-.173.289l-.26.304c-.087.086-.177.18-.076.354.101.174.449.741.964 1.201.662.591 1.221.774 1.394.86s.274.072.376-.043c.101-.116.433-.506.549-.68.116-.173.231-.145.39-.087s1.011.477 1.184.564.289.13.332.202c.045.072.045.419-.099.824zm-3.423-14.416c-6.627 0-12 5.373-12 12s5.373 12 12 12 12-5.373 12-12-5.373-12-12-12zm.029 18.88c-1.161 0-2.305-.292-3.318-.844l-3.677.964.984-3.595c-.607-1.052-.927-2.246-.926-3.468.001-5.824 4.74-10.563 10.564-10.563 5.826 0 10.564 4.74 10.564 10.564 0 5.825-4.739 10.563-10.564 10.563z"/></svg>
     </a>
 
     <script>
-        // Scroll Reveal Animation
         const reveals = document.querySelectorAll('.reveal');
-        const revealOptions = { threshold: 0.15, rootMargin: "0px 0px -50px 0px" };
-        
-        const revealOnScroll = new IntersectionObserver(function(entries, observer) {
-            entries.forEach(entry => {
-                if (!entry.isIntersecting) return;
-                entry.target.classList.add('active');
-                observer.unobserve(entry.target);
-            });
-        }, revealOptions);
-
+        const revealOnScroll = new IntersectionObserver(entries => {
+            entries.forEach(entry => { if (entry.isIntersecting) entry.target.classList.add('active'); });
+        }, { threshold: 0.15 });
         reveals.forEach(reveal => { revealOnScroll.observe(reveal); });
 
-        // FAQ Accordion
-        const faqBtns = document.querySelectorAll('.faq-btn');
-        faqBtns.forEach(btn => {
-            btn.addEventListener('click', function() {
-                this.classList.toggle('active');
-                const content = this.nextElementSibling;
-                if (content.style.maxHeight) {
-                    content.style.maxHeight = null;
-                } else {
-                    content.style.maxHeight = content.scrollHeight + "px";
-                }
+        const acc = document.getElementsByClassName('accordion');
+        for (let i = 0; i < acc.length; i++) {
+            acc[i].setAttribute('aria-expanded', 'false');
+            acc[i].addEventListener('click', function() {
+                const isActive = this.classList.toggle('active');
+                this.setAttribute('aria-expanded', isActive ? 'true' : 'false');
+                const panel = this.nextElementSibling;
+                panel.style.maxHeight = isActive ? panel.scrollHeight + "px" : null;
             });
-        });
+        }
     </script>
 </body>
 </html>

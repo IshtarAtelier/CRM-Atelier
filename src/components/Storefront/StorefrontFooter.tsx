@@ -19,7 +19,7 @@ export function StorefrontFooter() {
 
   const addressLine = webSettings?.web_store_address || "José Luis de Tejeda 4380";
   const localityLine = webSettings?.web_store_locality || "Cerro de las Rosas, Córdoba";
-  const mapsUrl = webSettings?.web_store_maps_url || "https://www.google.com/maps?cid=14830223812501661125";
+  const mapsUrl = webSettings?.web_store_maps_url || "https://www.google.com/maps/search/?api=1&query=Atelier+Optica+Cordoba+Jose+Luis+de+Tejeda+4380";
   const whatsappPhoneId = webSettings?.web_store_whatsapp_id || WHATSAPP_PHONE;
 
   return (
@@ -39,27 +39,27 @@ export function StorefrontFooter() {
       </div>
 
       {/* Footer Content Overlay (Frosted Dark Glass effect) */}
-      <div className="relative z-10 w-full h-full bg-stone-950/85 backdrop-blur-2xl border-t border-white/5 text-stone-300">
+      <div className="relative z-10 w-full h-full bg-stone-950/90 backdrop-blur-3xl border-t border-white/10 text-stone-300">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-10 px-5 py-12">
           
           {/* Links principales */}
           <div className="flex flex-col gap-1 md:gap-3">
-            <p className="text-[10px] uppercase tracking-widest font-bold text-stone-400 mb-2">Atelier</p>
-            <Link href="/contacto" className="text-[13px] font-medium hover:opacity-60 transition-opacity py-2 md:py-0">Contacto</Link>
-            <Link href="/faq" className="text-[13px] font-medium hover:opacity-60 transition-opacity py-2 md:py-0">Atención al Cliente</Link>
-            <Link href="/nuestro-local" className="text-[13px] font-medium hover:opacity-60 transition-opacity py-2 md:py-0">Nuestro Local</Link>
-            <Link href="/resenas" className="text-[13px] font-medium hover:opacity-60 transition-opacity py-2 md:py-0">Opiniones de Clientes</Link>
-            <Link href="/blog" className="text-[13px] font-medium hover:opacity-60 transition-opacity py-2 md:py-0">Editorial</Link>
+            <p className="text-[10px] md:text-[11px] uppercase tracking-widest font-black text-stone-400 mb-2">Atelier</p>
+            <Link href="/contacto" className="text-[13px] md:text-[14px] font-medium text-stone-200 hover:text-white transition-colors py-2 md:py-0">Contacto</Link>
+            <Link href="/faq" className="text-[13px] md:text-[14px] font-medium text-stone-200 hover:text-white transition-colors py-2 md:py-0">Atención al Cliente</Link>
+            <Link href="/nuestro-local" className="text-[13px] md:text-[14px] font-medium text-stone-200 hover:text-white transition-colors py-2 md:py-0">Nuestro Local</Link>
+            <Link href="/resenas" className="text-[13px] md:text-[14px] font-medium text-stone-200 hover:text-white transition-colors py-2 md:py-0">Opiniones de Clientes</Link>
+            <Link href="/blog" className="text-[13px] md:text-[14px] font-medium text-stone-200 hover:text-white transition-colors py-2 md:py-0">Editorial</Link>
           </div>
 
           {/* Ubicación */}
           <div className="flex flex-col gap-3">
-            <p className="text-[10px] uppercase tracking-widest font-bold text-stone-400 mb-2">Visitanos</p>
-            <p className="text-[13px] font-medium leading-relaxed text-white">
+            <p className="text-[10px] md:text-[11px] uppercase tracking-widest font-black text-stone-400 mb-2">Visitanos</p>
+            <p className="text-[13px] md:text-[14px] font-medium leading-relaxed text-stone-100">
               {addressLine}<br />
               {localityLine}
             </p>
-            <a href={mapsUrl} target="_blank" rel="noopener noreferrer" className="text-[12px] text-white font-medium hover:text-[#b08f4c] transition-colors underline decoration-stone-500 underline-offset-4 mt-1">
+            <a href={mapsUrl} target="_blank" rel="noopener noreferrer" className="text-[13px] text-amber-500/90 font-bold hover:text-amber-400 transition-colors underline decoration-amber-500/30 underline-offset-4 mt-1">
               Ver en Google Maps
             </a>
           </div>

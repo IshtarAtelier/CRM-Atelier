@@ -157,47 +157,52 @@ export function TiendaClient({
           </div>
         </div>
 
-        {/* Promo Strip */}
-        <div className="w-full bg-[#1c1c1c] text-white py-4 overflow-hidden whitespace-nowrap flex justify-center border-b border-stone-800">
-          <div className="inline-flex items-center gap-4 text-center justify-center w-full max-w-[1600px] px-5">
-            <span className="text-[9px] sm:text-[10px] md:text-[11px] font-black uppercase tracking-[0.2em]">
-              {discountRate * 100}% OFF EFECTIVO/TRANSFERENCIA
-            </span>
-            <span className="text-[#b08f4c] text-[10px] md:text-xs font-black uppercase tracking-[0.2em] hidden sm:block">·</span>
-            <span className="text-[9px] sm:text-[10px] md:text-[11px] font-black uppercase tracking-[0.2em] hidden sm:block">
-              {webSettings.web_promo_installments}
-            </span>
-            <span className="text-[#b08f4c] text-[10px] md:text-xs font-black uppercase tracking-[0.2em] hidden md:block">·</span>
-            <span className="text-[9px] sm:text-[10px] md:text-[11px] font-black uppercase tracking-[0.2em] hidden md:block">
-              ENVÍOS A TODO EL PAÍS
-            </span>
-          </div>
-        </div>
-
-        {/* ── BANNER DE CATEGORÍAS ── */}
+        {/* ── BANNER DE CATEGORÍAS Y PROMOS ── */}
         <div className="bg-white border-b border-stone-100">
-          <div className="max-w-[1600px] mx-auto px-5 py-6 flex flex-wrap items-center justify-center gap-3">
-            {CATEGORIES.map(cat => (
-              <button
-                key={cat}
-                onClick={() => setActiveCategory(cat)}
-                className={`shrink-0 text-[11px] font-black uppercase tracking-widest px-6 py-3 rounded-full transition-all duration-300 ${
-                  activeCategory === cat
-                    ? "bg-black text-white shadow-md scale-105"
-                    : "bg-stone-50 text-stone-500 hover:bg-stone-100 hover:text-black"
-                }`}
-              >
-                {cat}
-              </button>
-            ))}
-            {activeCategory !== "Todo" && (
-              <button
-                onClick={() => setActiveCategory("Todo")}
-                className="shrink-0 ml-4 flex items-center gap-1 text-[11px] font-bold text-stone-400 hover:text-black transition-colors"
-              >
-                <X className="w-3 h-3" /> Limpiar
-              </button>
-            )}
+          <div className="max-w-[1600px] mx-auto px-5 py-4 flex flex-col xl:flex-row items-center justify-between gap-4">
+            
+            {/* Espacio vacío para equilibrar en desktop si fuera necesario, o promos a la izquierda */}
+            <div className="hidden xl:flex flex-1 items-center gap-3">
+               <span className="text-[10px] font-black uppercase text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-full whitespace-nowrap">
+                  ENVÍO GRATIS A TODO EL PAÍS
+               </span>
+            </div>
+
+            {/* Categorías (Centro) */}
+            <div className="flex flex-wrap items-center justify-center gap-2">
+              {CATEGORIES.map(cat => (
+                <button
+                  key={cat}
+                  onClick={() => setActiveCategory(cat)}
+                  className={`shrink-0 text-[10px] md:text-[11px] font-black uppercase tracking-widest px-5 md:px-6 py-2.5 md:py-3 rounded-full transition-all duration-300 ${
+                    activeCategory === cat
+                      ? "bg-black text-white shadow-md scale-105"
+                      : "bg-stone-50 text-stone-500 hover:bg-stone-100 hover:text-black"
+                  }`}
+                >
+                  {cat}
+                </button>
+              ))}
+              {activeCategory !== "Todo" && (
+                <button
+                  onClick={() => setActiveCategory("Todo")}
+                  className="shrink-0 ml-2 flex items-center gap-1 text-[10px] font-bold text-stone-400 hover:text-black transition-colors"
+                >
+                  <X className="w-3 h-3" /> Limpiar
+                </button>
+              )}
+            </div>
+
+            {/* Promos (Derecha) */}
+            <div className="flex xl:flex-1 justify-center xl:justify-end items-center gap-3 w-full xl:w-auto">
+               <span className="text-[10px] font-black uppercase text-red-600 bg-red-50 px-3 py-1.5 rounded-full whitespace-nowrap">
+                  {discountRate * 100}% OFF TRANSFERENCIA
+               </span>
+               <span className="xl:hidden text-[10px] font-black uppercase text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-full whitespace-nowrap">
+                  ENVÍO GRATIS
+               </span>
+            </div>
+            
           </div>
         </div>
       </div>

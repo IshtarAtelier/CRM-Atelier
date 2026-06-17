@@ -28,7 +28,6 @@ export default function CheckoutModal({
     onComplete,
     onRefreshContact
 }: CheckoutModalProps) {
-    const [step, setStep] = useState<'review' | 'payment' | 'processing'>('review');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     
@@ -45,7 +44,6 @@ export default function CheckoutModal({
     const financials = PricingService.calculateOrderFinancials(order);
     const total = financials.totalCash; // Cambiado a totalCash como base para la seña del 40%
     const paid = financials.paidReal;
-    const balance = financials.remainingCard;
     const minRequired = total * 0.4;
     
     // Prescription Selection
@@ -75,7 +73,7 @@ export default function CheckoutModal({
                 await onRefreshContact();
                 setIsEditingClient(false);
             }
-        } catch (e) {
+        } catch {
             setError('Error al actualizar cliente');
         } finally {
             setLoading(false);
@@ -380,24 +378,4 @@ export default function CheckoutModal({
             </div>
         </div>
     );
-}
-
-function LockIcon(props: any) {
-    return (
-        <svg
-            {...props}
-            xmlns="http://www.w3.org/2000/svg"
-            width="24"
-            height="24"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-        >
-            <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
-            <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-        </svg>
-    )
 }

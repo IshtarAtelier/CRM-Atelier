@@ -1260,7 +1260,7 @@ export const ContactService = {
                         to: 'pisano.ishtar@gmail.com',
                         subject: `💵 Ingreso de Efectivo: $${amount.toLocaleString('es-AR')}`,
                         text: `Se ha registrado un nuevo pago en EFECTIVO en el sistema.\n\n👤 Cliente: ${result.clientName}\n💰 Monto: $${amount.toLocaleString('es-AR')}\n\nFicha del cliente: ${clientLink}`
-                    });
+                    }).catch(console.error);
                 } catch (e) {
                     console.error('Error sending cash email alert:', e);
                 }

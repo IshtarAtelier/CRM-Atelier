@@ -20,6 +20,7 @@ export function Sidebar({ userName = "Usuario", userRole = "STAFF", userId = "" 
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
   const isAdmin = userRole === "ADMIN";
 
@@ -28,14 +29,17 @@ export function Sidebar({ userName = "Usuario", userRole = "STAFF", userId = "" 
     const saved = localStorage.getItem('sidebarCollapsed');
     if (saved === 'true') {
       setIsCollapsed(true);
+      document.documentElement.style.setProperty('--sidebar-width', '5rem');
     }
+    setMounted(true);
   }, []);
 
   // Update CSS variable and save state when toggled
   useEffect(() => {
+    if (!mounted) return;
     document.documentElement.style.setProperty('--sidebar-width', isCollapsed ? '5rem' : '16rem');
     localStorage.setItem('sidebarCollapsed', isCollapsed.toString());
-  }, [isCollapsed]);
+  }, [isCollapsed, mounted]);
 
   // Close drawer on route change
   useEffect(() => {

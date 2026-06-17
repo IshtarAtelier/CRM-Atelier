@@ -243,7 +243,7 @@ export function StorefrontNavbar({ theme = "dark", mixBlend = false }: Storefron
                 <div className="flex flex-col gap-4">
                   <p className="text-[10px] font-black uppercase tracking-widest text-stone-400">Sugerencias</p>
                   <div className="flex flex-wrap gap-2">
-                    {["Receta", "Sol", "XL", "Clip-On"].map(term => (
+                    {["Receta", "Sol", "Clip-On"].map(term => (
                       <button
                         key={term}
                         onClick={() => setSearchQuery(term)}
@@ -272,7 +272,7 @@ export function StorefrontNavbar({ theme = "dark", mixBlend = false }: Storefron
                       >
                         <div className="w-16 h-16 bg-[#f5f5f5] dark:bg-stone-900 rounded-xl flex items-center justify-center overflow-hidden shrink-0 relative">
                           {imgUrl ? (
-                            <Image src={imgUrl} alt={p.model} fill className="object-contain mix-blend-multiply dark:mix-blend-normal" />
+                            <Image src={imgUrl} alt={p.model} fill sizes="64px" className="object-contain mix-blend-multiply dark:mix-blend-normal" />
                           ) : (
                             <Search className="w-6 h-6 text-stone-300" />
                           )}

@@ -72,16 +72,19 @@ export function useProducts(searchQuery: string = '', selectedType: string = 'AL
                 // Always sort by price ascending (cheapest first)
                 data.sort((a, b) => (a.price || 0) - (b.price || 0));
 
+                if (signal?.aborted) return;
                 setProducts(data);
                 setError(null);
             } else {
                 throw new Error('Error al cargar productos');
             }
         } catch (err: any) {
-            if (err.name === 'AbortError') return;
+            if (err.name === 'AbortError' || signal?.aborted) return;
             setError(err.message);
         } finally {
-            setLoading(false);
+            if (!signal?.aborted) {
+                setLoading(false);
+            }
         }
     }, [searchQuery, selectedType]);
 

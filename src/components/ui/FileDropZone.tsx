@@ -224,6 +224,15 @@ export default function FileDropZone({
         <div className={className}>
             <div
                 onClick={handleClick}
+                onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        handleClick();
+                    }
+                }}
+                role="button"
+                tabIndex={disabled || loading ? -1 : 0}
+                aria-label={label}
                 onDragEnter={handleDragEnter}
                 onDragLeave={handleDragLeave}
                 onDragOver={handleDragOver}

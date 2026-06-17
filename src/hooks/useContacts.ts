@@ -67,8 +67,18 @@ export function useContacts(activeTab: ContactStatus, searchQuery: string, favor
         const timer = setTimeout(() => {
             fetchContacts();
         }, delay);
-        return () => clearTimeout(timer);
+        return () => {
+            clearTimeout(timer);
+        };
     }, [fetchContacts, searchQuery]);
+
+    useEffect(() => {
+        return () => {
+            if (abortControllerRef.current) {
+                abortControllerRef.current.abort();
+            }
+        };
+    }, []);
 
     const createContact = async (formData: ContactFormData): Promise<Contact | null> => {
         try {
