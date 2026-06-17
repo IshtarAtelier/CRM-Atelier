@@ -99,7 +99,7 @@ export function NotificationBell() {
         return () => document.removeEventListener("mousedown", handleClickOutside);
     }, []);
 
-    const handleAction = async (id: string, action: "APPROVED" | "REJECTED") => {
+    const handleAction = async (id: string, action: "APPROVED" | "REJECTED" | "MARK_DELIVERED") => {
         setProcessingId(id);
         try {
             const res = await fetch(`/api/notifications/${id}`, {
@@ -198,6 +198,16 @@ export function NotificationBell() {
                                                 <ExternalLink className="w-3 h-3" />
                                                 {n.type === "INVOICE_REQUEST" ? "Ir a Facturar" : n.type === "LAB_READY" ? "Ver Pedidos" : "Ver Ficha"}
                                             </a>
+                                        )}
+                                        {n.type === "LAB_READY" && (
+                                            <button aria-label="Notificaciones" aria-expanded={isOpen} aria-controls="notification-panel"
+                                                onClick={() => handleAction(n.id, "MARK_DELIVERED")}
+                                                disabled={processingId === n.id}
+                                                className="flex flex-1 items-center justify-center gap-1.5 px-3 py-2 bg-emerald-500 text-white rounded-xl text-xs font-black uppercase tracking-widest hover:bg-emerald-600 active:scale-95 transition-all disabled:opacity-50"
+                                            >
+                                                {processingId === n.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
+                                                Entregar
+                                            </button>
                                         )}
                                         {n.type !== "LAB_READY" && (
                                             <>
