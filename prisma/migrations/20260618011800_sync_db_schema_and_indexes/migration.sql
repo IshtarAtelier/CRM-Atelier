@@ -1,26 +1,29 @@
 -- DropForeignKey
-ALTER TABLE "Invoice" DROP CONSTRAINT "Invoice_orderId_fkey";
+ALTER TABLE "Invoice" DROP CONSTRAINT IF EXISTS "Invoice_orderId_fkey";
 
 -- DropForeignKey
-ALTER TABLE "Order" DROP CONSTRAINT "Order_clientId_fkey";
+ALTER TABLE "Order" DROP CONSTRAINT IF EXISTS "Order_clientId_fkey";
 
 -- DropForeignKey
-ALTER TABLE "Payment" DROP CONSTRAINT "Payment_orderId_fkey";
+ALTER TABLE "Payment" DROP CONSTRAINT IF EXISTS "Payment_orderId_fkey";
+
+-- DropForeignKey
+ALTER TABLE "AuditLog" DROP CONSTRAINT IF EXISTS "AuditLog_userId_fkey";
 
 -- AlterTable
-ALTER TABLE "Client" ADD COLUMN     "createdBy" TEXT DEFAULT 'Sistema',
-ADD COLUMN     "isDeleted" BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE "Client" ADD COLUMN IF NOT EXISTS "createdBy" TEXT DEFAULT 'Sistema',
+ADD COLUMN IF NOT EXISTS "isDeleted" BOOLEAN NOT NULL DEFAULT false;
 
 -- AlterTable
-ALTER TABLE "Order" ADD COLUMN     "labFrameDetails" TEXT,
-ADD COLUMN     "labFrameShape" TEXT;
+ALTER TABLE "Order" ADD COLUMN IF NOT EXISTS "labFrameDetails" TEXT,
+ADD COLUMN IF NOT EXISTS "labFrameShape" TEXT;
 
 -- AlterTable
-ALTER TABLE "Product" ADD COLUMN     "diameterMax" DOUBLE PRECISION,
-ADD COLUMN     "diameterMin" DOUBLE PRECISION;
+ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "diameterMax" DOUBLE PRECISION,
+ADD COLUMN IF NOT EXISTS "diameterMin" DOUBLE PRECISION;
 
 -- CreateTable
-CREATE TABLE "TeamMessage" (
+CREATE TABLE IF NOT EXISTS "TeamMessage" (
     "id" TEXT NOT NULL,
     "sender" TEXT NOT NULL,
     "content" TEXT NOT NULL,
@@ -30,7 +33,7 @@ CREATE TABLE "TeamMessage" (
 );
 
 -- CreateTable
-CREATE TABLE "AuditLog" (
+CREATE TABLE IF NOT EXISTS "AuditLog" (
     "id" TEXT NOT NULL,
     "userId" TEXT,
     "userName" TEXT,
@@ -44,91 +47,91 @@ CREATE TABLE "AuditLog" (
 );
 
 -- CreateIndex
-CREATE INDEX "TeamMessage_createdAt_idx" ON "TeamMessage"("createdAt");
+CREATE INDEX IF NOT EXISTS "TeamMessage_createdAt_idx" ON "TeamMessage"("createdAt");
 
 -- CreateIndex
-CREATE INDEX "AuditLog_entityType_entityId_idx" ON "AuditLog"("entityType", "entityId");
+CREATE INDEX IF NOT EXISTS "AuditLog_entityType_entityId_idx" ON "AuditLog"("entityType", "entityId");
 
 -- CreateIndex
-CREATE INDEX "AuditLog_userId_idx" ON "AuditLog"("userId");
+CREATE INDEX IF NOT EXISTS "AuditLog_userId_idx" ON "AuditLog"("userId");
 
 -- CreateIndex
-CREATE INDEX "AuditLog_createdAt_idx" ON "AuditLog"("createdAt");
+CREATE INDEX IF NOT EXISTS "AuditLog_createdAt_idx" ON "AuditLog"("createdAt");
 
 -- CreateIndex
-CREATE INDEX "CashMovement_userId_idx" ON "CashMovement"("userId");
+CREATE INDEX IF NOT EXISTS "CashMovement_userId_idx" ON "CashMovement"("userId");
 
 -- CreateIndex
-CREATE INDEX "CheckoutSession_status_idx" ON "CheckoutSession"("status");
+CREATE INDEX IF NOT EXISTS "CheckoutSession_status_idx" ON "CheckoutSession"("status");
 
 -- CreateIndex
-CREATE INDEX "Client_name_idx" ON "Client"("name");
+CREATE INDEX IF NOT EXISTS "Client_name_idx" ON "Client"("name");
 
 -- CreateIndex
-CREATE INDEX "Client_phone_idx" ON "Client"("phone");
+CREATE INDEX IF NOT EXISTS "Client_phone_idx" ON "Client"("phone");
 
 -- CreateIndex
-CREATE INDEX "Client_createdAt_idx" ON "Client"("createdAt");
+CREATE INDEX IF NOT EXISTS "Client_createdAt_idx" ON "Client"("createdAt");
 
 -- CreateIndex
-CREATE INDEX "Client_dni_idx" ON "Client"("dni");
+CREATE INDEX IF NOT EXISTS "Client_dni_idx" ON "Client"("dni");
 
 -- CreateIndex
-CREATE INDEX "ClientTask_clientId_idx" ON "ClientTask"("clientId");
+CREATE INDEX IF NOT EXISTS "ClientTask_clientId_idx" ON "ClientTask"("clientId");
 
 -- CreateIndex
-CREATE INDEX "DoctorPayment_doctorId_idx" ON "DoctorPayment"("doctorId");
+CREATE INDEX IF NOT EXISTS "DoctorPayment_doctorId_idx" ON "DoctorPayment"("doctorId");
 
 -- CreateIndex
-CREATE INDEX "Interaction_clientId_idx" ON "Interaction"("clientId");
+CREATE INDEX IF NOT EXISTS "Interaction_clientId_idx" ON "Interaction"("clientId");
 
 -- CreateIndex
-CREATE INDEX "Notification_orderId_idx" ON "Notification"("orderId");
+CREATE INDEX IF NOT EXISTS "Notification_orderId_idx" ON "Notification"("orderId");
 
 -- CreateIndex
-CREATE INDEX "Order_userId_idx" ON "Order"("userId");
+CREATE INDEX IF NOT EXISTS "Order_userId_idx" ON "Order"("userId");
 
 -- CreateIndex
-CREATE INDEX "Order_status_idx" ON "Order"("status");
+CREATE INDEX IF NOT EXISTS "Order_status_idx" ON "Order"("status");
 
 -- CreateIndex
-CREATE INDEX "Order_prescriptionId_idx" ON "Order"("prescriptionId");
+CREATE INDEX IF NOT EXISTS "Order_prescriptionId_idx" ON "Order"("prescriptionId");
 
 -- CreateIndex
-CREATE INDEX "Order_labStatus_idx" ON "Order"("labStatus");
+CREATE INDEX IF NOT EXISTS "Order_labStatus_idx" ON "Order"("labStatus");
 
 -- CreateIndex
-CREATE INDEX "OrderItem_orderId_idx" ON "OrderItem"("orderId");
+CREATE INDEX IF NOT EXISTS "OrderItem_orderId_idx" ON "OrderItem"("orderId");
 
 -- CreateIndex
-CREATE INDEX "OrderItem_productId_idx" ON "OrderItem"("productId");
+CREATE INDEX IF NOT EXISTS "OrderItem_productId_idx" ON "OrderItem"("productId");
 
 -- CreateIndex
-CREATE INDEX "Prescription_clientId_idx" ON "Prescription"("clientId");
+CREATE INDEX IF NOT EXISTS "Prescription_clientId_idx" ON "Prescription"("clientId");
 
 -- CreateIndex
-CREATE INDEX "Product_name_idx" ON "Product"("name");
+CREATE INDEX IF NOT EXISTS "Product_name_idx" ON "Product"("name");
 
 -- CreateIndex
-CREATE INDEX "Product_brand_idx" ON "Product"("brand");
+CREATE INDEX IF NOT EXISTS "Product_brand_idx" ON "Product"("brand");
 
 -- CreateIndex
-CREATE INDEX "Product_model_idx" ON "Product"("model");
+CREATE INDEX IF NOT EXISTS "Product_model_idx" ON "Product"("model");
 
 -- CreateIndex
-CREATE INDEX "Product_updatedAt_idx" ON "Product"("updatedAt");
+CREATE INDEX IF NOT EXISTS "Product_updatedAt_idx" ON "Product"("updatedAt");
 
 -- CreateIndex
-CREATE INDEX "Product_category_idx" ON "Product"("category");
+CREATE INDEX IF NOT EXISTS "Product_category_idx" ON "Product"("category");
 
 -- CreateIndex
-CREATE INDEX "WhatsAppChat_clientId_idx" ON "WhatsAppChat"("clientId");
+CREATE INDEX IF NOT EXISTS "WhatsAppChat_clientId_idx" ON "WhatsAppChat"("clientId");
 
 -- CreateIndex
-CREATE INDEX "WhatsAppChat_status_idx" ON "WhatsAppChat"("status");
+CREATE INDEX IF NOT EXISTS "WhatsAppChat_status_idx" ON "WhatsAppChat"("status");
 
 -- CreateIndex
-CREATE INDEX "WhatsAppMessage_chatId_createdAt_idx" ON "WhatsAppMessage"("chatId", "createdAt" DESC);
+CREATE INDEX IF NOT EXISTS "WhatsAppMessage_chatId_createdAt_idx" ON "WhatsAppMessage"("chatId", "createdAt" DESC);
 
 -- AddForeignKey
 ALTER TABLE "Order" ADD CONSTRAINT "Order_clientId_fkey" FOREIGN KEY ("clientId") REFERENCES "Client"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
