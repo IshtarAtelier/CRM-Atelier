@@ -609,14 +609,20 @@ export default function VentasPage() {
         if (!next) return;
         setUpdatingId(orderId);
         try {
-            await fetch(`/api/orders/${orderId}`, {
+            const res = await fetch(`/api/orders/${orderId}`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ labStatus: next }),
             });
-            await fetchOrders();
-        } catch (error) {
+            if (!res.ok) {
+                const data = await res.json().catch(() => ({}));
+                alert(`⚠️ ${data.error || 'Error al avanzar el estado'}`);
+            } else {
+                await fetchOrders();
+            }
+        } catch (error: any) {
             console.error('Error advancing status:', error);
+            alert(`⚠️ Error de red al avanzar el estado: ${error.message || error}`);
         }
         setUpdatingId(null);
     };

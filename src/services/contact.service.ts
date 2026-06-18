@@ -825,7 +825,13 @@ export const ContactService = {
             distanceOD: safeNullableFloat(data.distanceOD),
             distanceOI: safeNullableFloat(data.distanceOI),
             heightOD: safeNullableFloat(data.heightOD),
-            heightOI: safeNullableFloat(data.heightOI)
+            heightOI: safeNullableFloat(data.heightOI),
+            nearSphereOD: safeNullableFloat(data.nearSphereOD),
+            nearSphereOI: safeNullableFloat(data.nearSphereOI),
+            nearCylinderOD: safeNullableFloat(data.nearCylinderOD),
+            nearAxisOD: safeNullableInt(data.nearAxisOD),
+            nearCylinderOI: safeNullableFloat(data.nearCylinderOI),
+            nearAxisOI: safeNullableInt(data.nearAxisOI)
         };
     },
 
@@ -853,6 +859,12 @@ export const ContactService = {
                 heightOI: transposed.heightOI,
                 imageUrl: transposed.imageUrl || null,
                 prescriptionType: data.prescriptionType || 'ADDITION',
+                nearSphereOD: isNear ? transposed.nearSphereOD : null,
+                nearSphereOI: isNear ? transposed.nearSphereOI : null,
+                nearCylinderOD: isNear ? transposed.nearCylinderOD : null,
+                nearAxisOD: isNear ? transposed.nearAxisOD : null,
+                nearCylinderOI: isNear ? transposed.nearCylinderOI : null,
+                nearAxisOI: isNear ? transposed.nearAxisOI : null,
             }
         });
 
@@ -881,12 +893,12 @@ export const ContactService = {
                 imageUrl: transposed.imageUrl || null,
                 notes: transposed.notes || null,
                 prescriptionType: data.prescriptionType || 'ADDITION',
-                nearSphereOD: isNear ? (parseFloat(data.nearSphereOD) || 0) : null,
-                nearSphereOI: isNear ? (parseFloat(data.nearSphereOI) || 0) : null,
-                nearCylinderOD: isNear ? (parseFloat(data.nearCylinderOD) || 0) : null,
-                nearAxisOD: isNear ? (parseInt(data.nearAxisOD) || 0) : null,
-                nearCylinderOI: isNear ? (parseFloat(data.nearCylinderOI) || 0) : null,
-                nearAxisOI: isNear ? (parseInt(data.nearAxisOI) || 0) : null
+                nearSphereOD: isNear ? transposed.nearSphereOD : null,
+                nearSphereOI: isNear ? transposed.nearSphereOI : null,
+                nearCylinderOD: isNear ? transposed.nearCylinderOD : null,
+                nearAxisOD: isNear ? transposed.nearAxisOD : null,
+                nearCylinderOI: isNear ? transposed.nearCylinderOI : null,
+                nearAxisOI: isNear ? transposed.nearAxisOI : null
             }
         });
     },
@@ -914,12 +926,12 @@ export const ContactService = {
                 imageUrl: transposed.imageUrl,
                 notes: transposed.notes,
                 prescriptionType: data.prescriptionType || 'ADDITION',
-                nearSphereOD: isNear ? (parseFloat(data.nearSphereOD) || 0) : null,
-                nearSphereOI: isNear ? (parseFloat(data.nearSphereOI) || 0) : null,
-                nearCylinderOD: isNear ? (parseFloat(data.nearCylinderOD) || 0) : null,
-                nearAxisOD: isNear ? (parseInt(data.nearAxisOD) || 0) : null,
-                nearCylinderOI: isNear ? (parseFloat(data.nearCylinderOI) || 0) : null,
-                nearAxisOI: isNear ? (parseInt(data.nearAxisOI) || 0) : null
+                nearSphereOD: isNear ? transposed.nearSphereOD : null,
+                nearSphereOI: isNear ? transposed.nearSphereOI : null,
+                nearCylinderOD: isNear ? transposed.nearCylinderOD : null,
+                nearAxisOD: isNear ? transposed.nearAxisOD : null,
+                nearCylinderOI: isNear ? transposed.nearCylinderOI : null,
+                nearAxisOI: isNear ? transposed.nearAxisOI : null
             }
         });
     },
@@ -930,7 +942,7 @@ export const ContactService = {
         });
     },
 
-    async addPayment(orderId: string, amount: number, method: string, notes?: string, receiptUrl?: string) {
+    async addPayment(orderId: string, amount: number, method: string, notes?: string, receiptUrl?: string, date?: Date | string) {
         return await prisma.$transaction(async (tx) => {
             // Lock the order row using raw SQL FOR UPDATE to prevent race conditions on concurrent payments
             await tx.$queryRaw`SELECT id FROM "Order" WHERE id = ${orderId} FOR UPDATE`;
@@ -1097,7 +1109,14 @@ export const ContactService = {
             }
 
             const payment = await tx.payment.create({
-                data: { orderId, amount, method, notes, receiptUrl }
+                data: { 
+                    orderId, 
+                    amount, 
+                    method, 
+                    notes, 
+                    receiptUrl,
+                    ...(date ? { date: new Date(date) } : {})
+                }
             });
 
             const orderUpdateData: any = { paid: { increment: amount } };

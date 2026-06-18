@@ -2,6 +2,17 @@ import { initializeApp, getApps, cert } from 'firebase-admin/app';
 import { getStorage } from 'firebase-admin/storage';
 import { writeFile, mkdir, unlink, readdir, stat } from "fs/promises";
 import path from "path";
+import http from 'http';
+import https from 'https';
+
+// Deshabilitar keepAlive globalmente para prevenir errores de "Premature close" en la red de Railway
+if (http.globalAgent) {
+    (http.globalAgent as any).keepAlive = false;
+}
+if (https.globalAgent) {
+    (https.globalAgent as any).keepAlive = false;
+}
+
 
 // Configuración de Firebase desde variables de entorno
 const projectId = process.env.FIREBASE_PROJECT_ID;
@@ -30,20 +41,24 @@ if (isCloudEnabled && !getApps().length) {
  */
 export async function uploadFile(buffer: Buffer, filename: string, contentType: string): Promise<string> {
     if (isCloudEnabled) {
-        const bucket = getStorage().bucket();
-        const file = bucket.file(filename);
-        await file.save(buffer, {
-            metadata: { contentType }
-        });
-        return filename; // En la nube guardamos el KEY (nombre) como referencia
-    } else {
-        // MODO LOCAL (Simulación para desarrollo)
-        const storageDir = path.join(process.cwd(), 'storage', 'uploads');
-        const filepath = path.join(storageDir, filename);
-        await mkdir(path.dirname(filepath), { recursive: true });
-        await writeFile(filepath, buffer);
-        return `local://${filename}`; // Prefijo para saber que es local
+        try {
+            const bucket = getStorage().bucket();
+            const file = bucket.file(filename);
+            await file.save(buffer, {
+                metadata: { contentType }
+            });
+            return filename; // En la nube guardamos el KEY (nombre) como referencia
+        } catch (error) {
+            console.error("⚠️ Firebase upload failed, falling back to local storage:", error);
+        }
     }
+    
+    // MODO LOCAL (Simulación para desarrollo o fallback por error)
+    const storageDir = path.join(process.cwd(), 'storage', 'uploads');
+    const filepath = path.join(storageDir, filename);
+    await mkdir(path.dirname(filepath), { recursive: true });
+    await writeFile(filepath, buffer);
+    return `local://${filename}`; // Prefijo para saber que es local
 }
 
 /**
@@ -211,10 +226,21 @@ export async function getFileBuffer(key: string): Promise<Buffer | null> {
     if (isCloudEnabled) {
         try {
             const bucket = getStorage().bucket();
-            const [buffer] = await bucket.file(key).download();
-            return buffer;
+            const file = bucket.file(key);
+            // Generar la URL firmada offline
+            const [url] = await file.getSignedUrl({
+                action: 'read',
+                expires: Date.now() + 15 * 60 * 1000 // 15 minutos
+            });
+            // Descargar usando fetch estándar
+            const response = await fetch(url);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            const arrayBuffer = await response.arrayBuffer();
+            return Buffer.from(arrayBuffer);
         } catch (error) {
-            console.error('Error downloading Cloud file buffer:', error);
+            console.error('Error downloading Cloud file buffer via signed URL:', error);
             return null;
         }
     } else {

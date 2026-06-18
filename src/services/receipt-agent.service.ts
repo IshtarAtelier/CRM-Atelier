@@ -58,18 +58,52 @@ Extrae la siguiente información y preséntala ESTRICTAMENTE en formato JSON pla
 }
 Solo devuelve el JSON, sin texto antes ni después.`;
 
-            const response = await model.invoke([
-                 new SystemMessage(systemPrompt),
-                 new HumanMessage({
-                    content: [
-                        { type: "text", text: "Por favor, analiza este comprobante según las instrucciones." },
-                        { 
-                            type: "image_url", 
-                            image_url: { url: `data:${mimeType};base64,${base64Data}` }
-                        }
-                    ]
-                 })
-            ]);
+            const MAX_RETRIES = 3;
+            function isTransientError(error: any): boolean {
+                const msg = error?.message || error?.toString() || '';
+                return (
+                    msg.includes('Premature close') ||
+                    msg.includes('ECONNRESET') ||
+                    msg.includes('ETIMEDOUT') ||
+                    msg.includes('socket hang up') ||
+                    msg.includes('network') ||
+                    msg.includes('fetch failed') ||
+                    msg.includes('Invalid response body')
+                );
+            }
+
+            let response;
+            let lastError: any;
+            for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+                try {
+                    response = await model.invoke([
+                         new SystemMessage(systemPrompt),
+                         new HumanMessage({
+                            content: [
+                                { type: "text", text: "Por favor, analiza este comprobante según las instrucciones." },
+                                { 
+                                    type: "image_url", 
+                                    image_url: { url: `data:${mimeType};base64,${base64Data}` }
+                                }
+                            ]
+                         })
+                    ]);
+                    break;
+                } catch (error: any) {
+                    lastError = error;
+                    if (attempt < MAX_RETRIES && isTransientError(error)) {
+                        const delay = Math.min(1000 * Math.pow(2, attempt - 1), 4000);
+                        console.warn(`[ReceiptAgent] Attempt ${attempt}/${MAX_RETRIES} failed (transient). Retrying in ${delay}ms...`, error.message);
+                        await new Promise(r => setTimeout(r, delay));
+                    } else {
+                        throw error;
+                    }
+                }
+            }
+
+            if (!response) {
+                throw lastError || new Error('Receipt analysis failed after all retries');
+            }
 
             // 4. Parse the response
             let extracted: any = {};

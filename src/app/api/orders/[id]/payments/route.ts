@@ -7,6 +7,7 @@ const PaymentSchema = z.object({
     method: z.string(),
     notes: z.string().nullable().optional(),
     receiptUrl: z.string().nullable().optional(),
+    date: z.string().nullable().optional(),
 });
 
 export const dynamic = 'force-dynamic';
@@ -27,7 +28,7 @@ export async function POST(
             }, { status: 400 });
         }
 
-        const { amount, method, notes, receiptUrl } = validation.data;
+        const { amount, method, notes, receiptUrl, date } = validation.data;
 
         // Validation: Non-cash payments MUST include a receipt photo
         const isCash = method === 'EFECTIVO' || method === 'CASH';
@@ -43,7 +44,8 @@ export async function POST(
             amount,
             method,
             notes ?? undefined,
-            receiptUrl ?? undefined
+            receiptUrl ?? undefined,
+            date ?? undefined
         );
 
         return NextResponse.json(payment);

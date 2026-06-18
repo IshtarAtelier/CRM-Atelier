@@ -184,16 +184,35 @@ export default function PrescriptionManager({
         try {
             let finalImageUrl = form.imageUrl;
 
-            // 1. Subir la imagen si hay que subir una nueva
+            // 1. Subir la imagen si hay que subir una nueva (con reintento automático)
             if (receiptFile) {
-                const formData = new FormData();
-                formData.append('file', receiptFile);
-                const uploadRes = await fetch('/api/upload', { method: 'POST', body: formData });
-                const uploadData = await uploadRes.json();
-                if (!uploadRes.ok) {
-                    throw new Error(uploadData.error || 'Error al subir la imagen de la receta. Asegúrate de intentar nuevamente.');
+                let uploadSuccess = false;
+                let uploadError: any = null;
+
+                for (let attempt = 1; attempt <= 2; attempt++) {
+                    try {
+                        const formData = new FormData();
+                        formData.append('file', receiptFile);
+                        const uploadRes = await fetch('/api/upload', { method: 'POST', body: formData });
+                        const uploadData = await uploadRes.json();
+                        if (!uploadRes.ok) {
+                            throw new Error(uploadData.error || 'Error al subir la imagen de la receta.');
+                        }
+                        finalImageUrl = uploadData.url;
+                        uploadSuccess = true;
+                        break;
+                    } catch (err: any) {
+                        uploadError = err;
+                        if (attempt < 2 && (err.message?.includes('conexión') || err.message?.includes('Google Cloud') || err.message?.includes('Premature'))) {
+                            console.warn(`[PrescriptionManager] Upload attempt ${attempt} failed, retrying...`);
+                            await new Promise(r => setTimeout(r, 1500));
+                        }
+                    }
                 }
-                finalImageUrl = uploadData.url;
+
+                if (!uploadSuccess) {
+                    throw uploadError || new Error('Error al subir la imagen de la receta.');
+                }
             }
 
             // Remove image obligation
@@ -289,7 +308,13 @@ export default function PrescriptionManager({
             }
         } catch (err: any) {
             console.error(err);
-            setError(err.message || 'Error al guardar la receta');
+            const msg = err.message || 'Error al guardar la receta';
+            // Make Google Cloud connection errors more user-friendly
+            if (msg.includes('Premature close') || msg.includes('Invalid response body') || msg.includes('oauth2')) {
+                setError('Error de conexión con Google Cloud. Por favor, presioná "Guardar Receta" nuevamente.');
+            } else {
+                setError(msg);
+            }
         } finally {
             setSaving(false);
         }

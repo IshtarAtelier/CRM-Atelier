@@ -12,7 +12,7 @@ const nextConfig: NextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
-  serverExternalPackages: ['playwright'],
+  serverExternalPackages: ['playwright', 'firebase-admin'],
   experimental: {
     serverActions: {
       bodySizeLimit: '10mb',

@@ -2,6 +2,7 @@
 
 # dependencies
 node_modules/
+wa-service/node_modules/
 /.pnp
 .pnp.*
 .yarn/*

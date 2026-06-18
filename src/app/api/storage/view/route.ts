@@ -24,13 +24,16 @@ export async function GET(req: NextRequest) {
     try {
         const isCloudEnabled = !!process.env.FIREBASE_PROJECT_ID;
         
-        let buffer: Buffer | null = null;
         if (isCloudEnabled && !key.startsWith('local://')) {
-            buffer = await getFileBuffer(key);
-        } else {
-            const lookupKey = key.startsWith('local://') ? key : `local://${key}`;
-            buffer = await getFileBuffer(lookupKey);
+            // Generar URL firmada y redirigir directamente al navegador del cliente
+            const { getSignedUrl } = await import('@/lib/storage');
+            const signedUrl = await getSignedUrl(key);
+            return NextResponse.redirect(signedUrl, { status: 307 });
         }
+
+        // Si es local, buscar y retornar el buffer directamente
+        const lookupKey = key.startsWith('local://') ? key : `local://${key}`;
+        const buffer = await getFileBuffer(lookupKey);
 
         if (!buffer) {
             return new NextResponse('File not found', { status: 404 });
