@@ -225,57 +225,63 @@ export class SmartLabService {
 
                 if (details.length === 0) continue;
 
-                const minProgress = Math.min(...details.map(d => d.progress));
-                const maxDays = Math.max(...details.map(d => d.days));
-                const earliestEntry = details.map(d => d.entryDate).filter(Boolean)[0] || '';
-                const sectorSummary = details.length === 1 
-                    ? details[0].sector 
-                    : details.map(d => `${d.num.slice(-4)}: ${d.sector}`).join(' | ');
+                try {
+                    const minProgress = Math.min(...details.map(d => d.progress));
+                    const maxDays = Math.max(...details.map(d => d.days));
+                    const earliestEntry = details.map(d => d.entryDate).filter(Boolean)[0] || '';
+                    const sectorSummary = details.length === 1 
+                        ? details[0].sector 
+                        : details.map(d => `${d.num.slice(-4)}: ${d.sector}`).join(' | ');
 
-                const updateData: Record<string, unknown> = {
-                    smartLabSector: sectorSummary,
-                    smartLabProgress: minProgress,
-                    smartLabLastSync: new Date(),
-                    smartLabEntryDate: earliestEntry,
-                    smartLabDays: maxDays,
-                    smartLabDetails: JSON.stringify(details),
-                };
+                    const updateData: Record<string, unknown> = {
+                        smartLabSector: sectorSummary,
+                        smartLabProgress: minProgress,
+                        smartLabLastSync: new Date(),
+                        smartLabEntryDate: earliestEntry,
+                        smartLabDays: maxDays,
+                        smartLabDetails: JSON.stringify(details),
+                    };
 
-                const wasNotFinished = (crmOrder.smartLabProgress || 0) < 100;
-                const allFinished = details.every(d => d.progress >= 100);
+                    const wasNotFinished = (crmOrder.smartLabProgress || 0) < 100;
+                    const allFinished = details.every(d => d.progress >= 100);
 
-                if (allFinished) {
-                    updateData.labStatus = 'FINISHED';
-                } else if (minProgress > 0) {
-                    updateData.labStatus = 'IN_PROGRESS';
-                }
+                    if (allFinished) {
+                        updateData.labStatus = 'FINISHED';
+                    } else if (minProgress > 0) {
+                        updateData.labStatus = 'IN_PROGRESS';
+                    }
 
-                if (allFinished && wasNotFinished) {
-                    newlyFinished++;
-                    await prisma.notification.create({
-                        data: {
-                            type: 'LAB_READY',
-                            message: `🏭 Pedido finalizado en laboratorio — ${crmOrder.client.name} (${numbers.join(', ')})`,
-                            orderId: crmOrder.id,
-                            requestedBy: 'SmartLab Sync',
-                            status: 'PENDING',
-                        },
+                    // Primero actualizar la DB, luego notificar (evita notificaciones duplicadas si falla el update)
+                    await prisma.order.update({
+                        where: { id: crmOrder.id },
+                        data: updateData,
                     });
+
+                    if (allFinished && wasNotFinished) {
+                        newlyFinished++;
+                        await prisma.notification.create({
+                            data: {
+                                type: 'LAB_READY',
+                                message: `🏭 Pedido finalizado en laboratorio — ${crmOrder.client.name} (${numbers.join(', ')})`,
+                                orderId: crmOrder.id,
+                                requestedBy: 'SmartLab Sync',
+                                status: 'PENDING',
+                            },
+                        });
+                    }
+
+                    updatedCount++;
+                    matchResults.push({
+                        client: crmOrder.client.name,
+                        numbers,
+                        details: details.map(d => ({ num: d.num, progress: d.progress, sector: d.sector })),
+                        overallProgress: minProgress,
+                        isNew: allFinished && wasNotFinished,
+                    });
+                } catch (orderError) {
+                    console.error(`[SmartLab Sync] Error actualizando pedido ${crmOrder.id} (${crmOrder.client.name}):`, orderError);
+                    // Continuar con el siguiente pedido sin abortar el sync completo
                 }
-
-                await prisma.order.update({
-                    where: { id: crmOrder.id },
-                    data: updateData,
-                });
-
-                updatedCount++;
-                matchResults.push({
-                    client: crmOrder.client.name,
-                    numbers,
-                    details: details.map(d => ({ num: d.num, progress: d.progress, sector: d.sector })),
-                    overallProgress: minProgress,
-                    isNew: allFinished && wasNotFinished,
-                });
             }
 
             console.log(`[SmartLab Sync] Resultado: ${updatedCount} actualizados, ${newlyFinished} nuevos fabricados`);
