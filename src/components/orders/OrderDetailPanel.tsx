@@ -17,7 +17,6 @@ import {
     Search
 } from 'lucide-react';
 import type { Order } from '@/types/orders';
-import Image from "next/image";
 
 export const LAB_STEPS = [
     { key: 'NONE', label: 'Pendiente', icon: Clock, color: 'stone', bg: 'bg-stone-100 dark:bg-stone-800', text: 'text-stone-500 dark:text-stone-400', ring: 'ring-stone-200 dark:ring-stone-700' },

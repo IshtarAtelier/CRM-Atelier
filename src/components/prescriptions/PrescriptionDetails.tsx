@@ -1,9 +1,8 @@
 'use client';
 
 import React from 'react';
-import { Ruler, Glasses, Activity, FileText, AlertCircle } from 'lucide-react';
+import { Glasses, Activity, FileText, AlertCircle } from 'lucide-react';
 import { resolveStorageUrl } from '@/lib/utils/storage';
-import Image from "next/image";
 
 interface PrescriptionDetailsProps {
     prescription: any;

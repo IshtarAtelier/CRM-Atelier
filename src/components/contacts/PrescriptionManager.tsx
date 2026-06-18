@@ -9,7 +9,6 @@ import { es } from 'date-fns/locale';
 import PrescriptionDetails from '../prescriptions/PrescriptionDetails';
 import { resolveStorageUrl } from '@/lib/utils/storage';
 import FileDropZone from '@/components/ui/FileDropZone';
-import Image from "next/image";
 
 interface PrescriptionManagerProps {
     contact: any;
