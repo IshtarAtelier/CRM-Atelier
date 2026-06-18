@@ -71,6 +71,10 @@ interface QuoteItem {
     eye?: 'OD' | 'OI';
     crystalColor?: string;
     crystalColorType?: string;
+    productBrandSnapshot?: string | null;
+    productNameSnapshot?: string | null;
+    productCategorySnapshot?: string | null;
+    uid?: number;
 }
 
 function CotizadorPageContent() {
@@ -346,12 +350,15 @@ function CotizadorPageContent() {
                 body: JSON.stringify({
                     clientId: contactId,
                     items: quoteItems.map(it => ({
-                        productId: it.product.id,
+                        productId: it.product?.id || null,
                         quantity: it.quantity,
                         price: it.customPrice,
                         eye: it.eye,
                         crystalColor: it.crystalColor || null,
                         crystalColorType: it.crystalColorType || null,
+                        productBrandSnapshot: it.productBrandSnapshot || it.product?.brand || null,
+                        productNameSnapshot: it.productNameSnapshot || it.product?.name || it.product?.model || null,
+                        productCategorySnapshot: it.productCategorySnapshot || it.product?.category || null,
                     })),
                     markup,
                     discount: discountCash,
@@ -459,7 +466,7 @@ function CotizadorPageContent() {
         // Build the message
         let msg = `Hola ${pendingContact.name}, te envío el presupuesto solicitado:\n\n`;
         quoteItems.forEach(it => {
-            msg += `- ${it.product.brand} · ${it.product.name || ''} ${it.eye ? '['+it.eye+']' : ''}: $${it.customPrice.toLocaleString()}\n`;
+            msg += `- ${it.product?.brand || it.productBrandSnapshot || ''} · ${it.product?.name || it.productNameSnapshot || ''} ${it.eye ? '['+it.eye+']' : ''}: $${it.customPrice.toLocaleString()}\n`;
         });
         msg += `\n*Precio Lista: $${listPrice.toLocaleString()}*\n`;
         msg += `💰 Efectivo (-${discountCash}%): $${Math.round(totalCash).toLocaleString()}\n`;
@@ -493,7 +500,7 @@ function CotizadorPageContent() {
     const handleCopy = () => {
         let text = `PRESUPUESTO ATELIER\n\n`;
         quoteItems.forEach(it => {
-            text += `• ${it.product.brand} · ${it.product.name || ''} ${it.eye ? '['+it.eye+']' : ''}: $${it.customPrice.toLocaleString()}\n`;
+            text += `• ${it.product?.brand || it.productBrandSnapshot || ''} · ${it.product?.name || it.productNameSnapshot || ''} ${it.eye ? '['+it.eye+']' : ''}: $${it.customPrice.toLocaleString()}\n`;
         });
         text += `\nTotal Lista: $${Math.round(totalWithMarkup).toLocaleString()}\n`;
         text += `Promo Efectivo: $${Math.round(totalCash).toLocaleString()}\n`;
@@ -503,13 +510,15 @@ function CotizadorPageContent() {
     };
 
     const handleEditQuote = (quote: any) => {
-        // Map items — API returns `price`, CotizadorCart expects `customPrice`
         const mappedItems = quote.items.map((it: any, idx: number) => ({
             product: it.product,
             quantity: it.quantity,
             customPrice: it.price,
             eye: it.eye,
-            uid: Date.now() + idx
+            uid: Date.now() + idx,
+            productBrandSnapshot: it.productBrandSnapshot,
+            productNameSnapshot: it.productNameSnapshot,
+            productCategorySnapshot: it.productCategorySnapshot
         }));
         setQuoteItems(mappedItems);
         

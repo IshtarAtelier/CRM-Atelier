@@ -202,6 +202,57 @@ export function OrderDetailPanel({ order, context = 'ventas', financials, onAuto
                         )}
                     </div>
 
+                    {/* Lab Measurements and Details */}
+                    {(order.frameA || order.frameB || order.frameDbl || order.frameEdc || order.labColor || order.labTreatment || order.labFrameShape || order.labFrameDetails || order.labNotes) && (
+                        <div className="bg-white dark:bg-stone-800 rounded-2xl border border-stone-100 dark:border-stone-700 overflow-hidden shadow-sm">
+                            <div className="px-5 py-3 border-b border-stone-100 dark:border-stone-700 bg-stone-50 dark:bg-stone-800/50">
+                                <h4 className="text-[10px] font-black text-stone-500 uppercase tracking-widest flex items-center gap-2">
+                                    <FlaskConical className="w-3.5 h-3.5" /> Detalles de Laboratorio
+                                </h4>
+                            </div>
+                            <div className="p-4 grid grid-cols-2 gap-4">
+                                {order.labFrameShape && (
+                                    <div>
+                                        <p className="text-[8px] font-black text-stone-400 uppercase tracking-widest">Forma / Aro</p>
+                                        <p className="text-xs font-bold text-stone-800 dark:text-stone-200 mt-1 uppercase">{order.labFrameShape}</p>
+                                    </div>
+                                )}
+                                {(order.frameA || order.frameB || order.frameEdc || order.frameDbl) && (
+                                    <div>
+                                        <p className="text-[8px] font-black text-stone-400 uppercase tracking-widest">Medidas del Armazón</p>
+                                        <p className="text-xs font-bold text-stone-800 dark:text-stone-200 mt-1">
+                                            {order.frameA && `A: ${order.frameA} `}
+                                            {order.frameB && `B: ${order.frameB} `}
+                                            {order.frameEdc && `ED: ${order.frameEdc} `}
+                                            {order.frameDbl && `Pte: ${order.frameDbl}`}
+                                        </p>
+                                    </div>
+                                )}
+                                {(order.labTreatment || order.labColor) && (
+                                    <div className="col-span-2">
+                                        <p className="text-[8px] font-black text-stone-400 uppercase tracking-widest">Tratamiento / Teñido</p>
+                                        <p className="text-xs font-bold text-stone-800 dark:text-stone-200 mt-1">
+                                            {order.labTreatment && `${order.labTreatment} `}
+                                            {order.labColor && `- ${order.labColor}`}
+                                        </p>
+                                    </div>
+                                )}
+                                {order.labFrameDetails && (
+                                    <div className="col-span-2">
+                                        <p className="text-[8px] font-black text-stone-400 uppercase tracking-widest">Detalles del Armazón</p>
+                                        <p className="text-xs font-bold text-stone-800 dark:text-stone-200 mt-1">{order.labFrameDetails}</p>
+                                    </div>
+                                )}
+                                {order.labNotes && (
+                                    <div className="col-span-2">
+                                        <p className="text-[8px] font-black text-stone-400 uppercase tracking-widest">Observaciones Lab</p>
+                                        <p className="text-xs font-bold text-stone-800 dark:text-stone-200 mt-1">{order.labNotes}</p>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
                     {/* Financials (If present) */}
                     {financials && (
                         <div className="p-5 rounded-2xl bg-stone-900 dark:bg-black text-white flex justify-between items-center shadow-md">

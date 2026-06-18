@@ -385,6 +385,8 @@ export async function GET(request: Request) {
             smartLabEntryDate: true,
             smartLabDays: true,
             smartLabDetails: true,
+            labFrameShape: true,
+            labFrameDetails: true,
         };
         const orderBy: any = [
             { labSentAt: { sort: 'desc', nulls: 'first' } },

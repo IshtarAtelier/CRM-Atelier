@@ -150,7 +150,7 @@ export class BotService {
             const formattedPhone = normalizeArgentinePhone(clientPhone);
             if (!formattedPhone) return false;
 
-            // Send via internal WA server proxy
+             // Send via internal WA server proxy
             const res = await fetchWa('/api/send', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -161,7 +161,9 @@ export class BotService {
             });
             
             if (!res.ok) {
-                console.warn('[Auto-Notify READY] WhatsApp server returned error:', await res.text());
+                const errText = await res.text();
+                console.warn('[Auto-Notify READY] WhatsApp server returned error:', errText);
+                throw new Error(errText || `HTTP ${res.status}`);
             }
 
             // Log interaction
@@ -175,6 +177,19 @@ export class BotService {
             return true;
         } catch (error: any) {
             console.error('[Auto-Notify READY] Error:', error.message);
+            // Log fallback task for failure
+            try {
+                await prisma.clientTask.create({
+                    data: {
+                        clientId: order.clientId,
+                        description: `⚠️ Falló la notificación automática de Listo para Retirar al cliente (${order.client?.name || 'Cliente'}). Por favor, notificar manualmente.`,
+                        status: 'PENDING',
+                        type: 'TASK'
+                    }
+                });
+            } catch (dbErr) {
+                console.error('Error creating fallback task for notifyOrderReady failure:', dbErr);
+            }
             return false;
         }
     }

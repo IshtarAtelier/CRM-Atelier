@@ -140,14 +140,14 @@ export default function CheckoutModal({
                 orderType: 'SALE',
                 prescriptionId: selectedRxId,
                 clientData: clientForm,
-                labFrameShape: isMultifocal ? (frameShape || undefined) : undefined,
+                labFrameShape: frameShape || undefined,
                 labFrameDetails: frameDetails || undefined,
                 labNotes: labNotes || undefined,
                 labColor: finalLabColor,
-                labMeasurePte: isMultifocal ? frameMeasurePte : undefined,
-                labMeasureA: isMultifocal ? frameMeasureA : undefined,
-                labMeasureB: isMultifocal ? frameMeasureB : undefined,
-                labMeasureEd: isMultifocal ? frameMeasureEd : undefined
+                labMeasurePte: frameMeasurePte || undefined,
+                labMeasureA: frameMeasureA || undefined,
+                labMeasureB: frameMeasureB || undefined,
+                labMeasureEd: frameMeasureEd || undefined
             });
         } catch (err: any) {
             setError(err.message || 'Error en la operación');
@@ -351,18 +351,17 @@ export default function CheckoutModal({
                                 <FlaskConical className="w-4 h-4" /> Laboratorio SmartLab
                             </h3>
                             <div className="bg-blue-50/50 dark:bg-blue-950/20 border-2 border-blue-100 dark:border-blue-900/50 rounded-3xl p-6">
-                                {isMultifocal && (
-                                    <>
-                                        <label className="text-[10px] font-black text-blue-500 uppercase tracking-widest block mb-4">Forma de Armazón (Obligatorio para cristales tallados)</label>
-                                        <div className="grid grid-cols-4 sm:grid-cols-8 gap-2 mb-4">
+
+                                        <label className="text-[10px] font-black text-blue-500 uppercase tracking-widest block mb-4">Forma de Armazón (Opcional)</label>
+                                        <div className="grid grid-cols-2 gap-x-12 gap-y-6 mb-8 max-w-sm mx-auto">
                                             {[
-                                                { id: 'redondo', label: 'Redondo', svg: <circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" strokeWidth="2"/> },
                                                 { id: 'ovalado', label: 'Ovalado', svg: <ellipse cx="12" cy="12" rx="10" ry="6" fill="none" stroke="currentColor" strokeWidth="2"/> },
+                                                { id: 'redondo', label: 'Redondo', svg: <circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" strokeWidth="2"/> },
                                                 { id: 'rectangular', label: 'Rect', svg: <rect x="2" y="7" width="20" height="10" rx="2" ry="2" fill="none" stroke="currentColor" strokeWidth="2"/> },
                                                 { id: 'cuadrado', label: 'Cuadrado', svg: <rect x="4" y="4" width="16" height="16" rx="3" ry="3" fill="none" stroke="currentColor" strokeWidth="2"/> },
-                                                { id: 'aviador', label: 'Aviador', svg: <path d="M4 10c-1.1 0-2 .9-2 2v2c0 2.2 1.8 4 4 4h2c2.2 0 4-1.8 4-4v-2c0-1.1-.9-2-2-2H4zm10 0c-1.1 0-2 .9-2 2v2c0 2.2 1.8 4 4 4h2c2.2 0 4-1.8 4-4v-2c0-1.1-.9-2-2-2h-2zM12 10V8c0-1.1.9-2 2-2h4c1.1 0 2 .9 2 2v2" fill="none" stroke="currentColor" strokeWidth="2"/> },
-                                                { id: 'cateye', label: 'Cat-Eye', svg: <><path d="M2 12s4-8 10-8 10 8 10 8-4 8-10 8-10-8-10-8z" fill="none" stroke="currentColor" strokeWidth="2"/><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" strokeWidth="2"/></> },
                                                 { id: 'pantos', label: 'Panto', svg: <path d="M5 10a5 5 0 0 1 10 0v2a5 5 0 0 1-10 0v-2zm12 0a5 5 0 0 1 10 0v2a5 5 0 0 1-10 0v-2zM15 10H17M5 10C5 6 8 3 12 3s7 3 7 7" fill="none" stroke="currentColor" strokeWidth="2"/> },
+                                                { id: 'cateye', label: 'Cat-Eye', svg: <><path d="M2 12s4-8 10-8 10 8 10 8-4 8-10 8-10-8-10-8z" fill="none" stroke="currentColor" strokeWidth="2"/><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" strokeWidth="2"/></> },
+                                                { id: 'aviador', label: 'Aviador', svg: <path d="M4 10c-1.1 0-2 .9-2 2v2c0 2.2 1.8 4 4 4h2c2.2 0 4-1.8 4-4v-2c0-1.1-.9-2-2-2H4zm10 0c-1.1 0-2 .9-2 2v2c0 2.2 1.8 4 4 4h2c2.2 0 4-1.8 4-4v-2c0-1.1-.9-2-2-2h-2zM12 10V8c0-1.1.9-2 2-2h4c1.1 0 2 .9 2 2v2" fill="none" stroke="currentColor" strokeWidth="2"/> },
                                                 { id: 'geometrico', label: 'Geométrico', svg: <polygon points="12 3 21 8.5 21 15.5 12 21 3 15.5 3 8.5 12 3" fill="none" stroke="currentColor" strokeWidth="2"/> }
                                             ].map(shape => {
                                                 const isSel = frameShape === shape.id;
@@ -430,8 +429,7 @@ export default function CheckoutModal({
                                                 </div>
                                             </div>
                                         </div>
-                                    </>
-                                )}
+                                    
 
                                 <div className="space-y-2 mb-4">
                                     <label className="text-[9px] font-black text-stone-400 uppercase tracking-widest block">Detalles del Armazón</label>

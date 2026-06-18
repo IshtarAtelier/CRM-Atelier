@@ -13,7 +13,7 @@ import { addBusinessDays, calculateEstimatedDays } from '@/lib/business-days';
 import { format } from 'date-fns';
 
 const OrderItemSchema = z.object({
-    productId: z.string(),
+    productId: z.string().nullable().optional(),
     quantity: z.number().min(1),
     price: z.number(),
     eye: z.string().nullable().optional(),
@@ -21,6 +21,11 @@ const OrderItemSchema = z.object({
     cylinderVal: z.number().nullable().optional(),
     axisVal: z.number().nullable().optional(),
     additionVal: z.number().nullable().optional(),
+    crystalColor: z.string().nullable().optional(),
+    crystalColorType: z.string().nullable().optional(),
+    productBrandSnapshot: z.string().nullable().optional(),
+    productNameSnapshot: z.string().nullable().optional(),
+    productCategorySnapshot: z.string().nullable().optional(),
 });
 
 const OrderUpdateSchema = z.object({
@@ -144,6 +149,8 @@ export class OrderService {
                 smartLabSector: true,
                 smartLabProgress: true,
                 smartLabLastSync: true,
+                labFrameShape: true,
+                labFrameDetails: true,
                 smartLabEntryDate: true,
                 smartLabDays: true,
             smartLabDetails: true,
@@ -415,7 +422,7 @@ export class OrderService {
                     const isCrystal = dbProd && (dbProd.category === 'Cristal' || (dbProd.type || '').includes('Cristal'));
 
                     return {
-                        productId: item.productId,
+                        productId: item.productId || null,
                         quantity: item.quantity,
                         price: item.price,
                         eye: item.eye || null,
@@ -423,9 +430,11 @@ export class OrderService {
                         cylinderVal: isCrystal && rxDetails ? (isOD ? rxDetails.cylinderOD : rxDetails.cylinderOI) : (item.cylinderVal ?? null),
                         axisVal: isCrystal && rxDetails ? (isOD ? rxDetails.axisOD : rxDetails.axisOI) : (item.axisVal ?? null),
                         additionVal: isCrystal && rxDetails ? (isOD ? (rxDetails.additionOD ?? rxDetails.addition) : (rxDetails.additionOI ?? rxDetails.addition)) : (item.additionVal ?? null),
-                        productNameSnapshot: dbProd ? (dbProd.model || dbProd.name || null) : null,
-                        productBrandSnapshot: dbProd ? (dbProd.brand || null) : null,
-                        productCategorySnapshot: dbProd ? (dbProd.category || null) : null,
+                        productNameSnapshot: dbProd ? (dbProd.model || dbProd.name || null) : (item.productNameSnapshot || null),
+                        productBrandSnapshot: dbProd ? (dbProd.brand || null) : (item.productBrandSnapshot || null),
+                        productCategorySnapshot: dbProd ? (dbProd.category || null) : (item.productCategorySnapshot || null),
+                        crystalColor: item.crystalColor || null,
+                        crystalColorType: item.crystalColorType || null,
                     };
                 }),
             };
@@ -550,6 +559,7 @@ export class OrderService {
                 const currentOrder = await prisma.order.findUnique({
                     where: { id },
                     select: { 
+                        clientId: true,
                         labStatus: true, 
                         labSentAt: true,
                         client: { select: { name: true, phone: true } },
@@ -557,20 +567,20 @@ export class OrderService {
                     }
                 });
                 // Auto-advance if still in NONE (Pendiente) or SENT (Falta procesar)
-                if (!currentOrder?.labStatus || currentOrder.labStatus === 'NONE' || currentOrder.labStatus === 'SENT') {
+                if (currentOrder && (!currentOrder.labStatus || currentOrder.labStatus === 'NONE' || currentOrder.labStatus === 'SENT')) {
                     data.labStatus = 'IN_PROGRESS';
-                    if (!currentOrder?.labSentAt) {
+                    if (!currentOrder.labSentAt) {
                         data.labSentAt = new Date();
                     }
 
                     // Enviar mensaje automático de laboratorio procesado
                     try {
-                        const estimatedDays = calculateEstimatedDays(currentOrder?.items || []);
+                        const estimatedDays = calculateEstimatedDays(currentOrder.items || []);
                         const estimatedDate = format(addBusinessDays(new Date(), estimatedDays), 'dd/MM/yyyy');
-                        const phone = currentOrder?.client?.phone?.replace(/\D/g, '');
+                        const phone = currentOrder.client?.phone?.replace(/\D/g, '');
                         
                         if (phone && phone.length >= 10) {
-                            const msg = `Hola ${currentOrder?.client?.name || ''} su pedido ya fue procesado con exito, leer info importante.\n\n* Una vez que el pedido este listo informamos para el retiro.\n* Si tiene dudas sobre el estado solo consultar pasada la fecha prevista\n* Los tiempos son aproximados\n\n*Fecha aproximada* : ${estimatedDate}`;
+                            const msg = `Hola ${currentOrder.client?.name || ''} su pedido ya fue procesado con exito, leer info importante.\n\n* Una vez que el pedido este listo informamos para el retiro.\n* Si tiene dudas sobre el estado solo consultar pasada la fecha prevista\n* Los tiempos son aproximados\n\n*Fecha aproximada* : ${estimatedDate}`;
                             
                             fetchWa('/api/send', {
                                 method: 'POST',
@@ -580,7 +590,27 @@ export class OrderService {
                                     message: msg,
                                     senderName: 'Sistema Atelier'
                                 })
-                            }).catch(err => console.error('[Lab Status] Error enviando WhatsApp:', err));
+                            }).then(async (res) => {
+                                if (!res.ok) {
+                                    throw new Error(`HTTP ${res.status}`);
+                                }
+                            }).catch(async (err) => {
+                                console.error('[Lab Status] Error enviando WhatsApp:', err);
+                                try {
+                                    if (currentOrder && currentOrder.clientId) {
+                                        await prisma.clientTask.create({
+                                            data: {
+                                                clientId: currentOrder.clientId,
+                                                description: `⚠️ Falló el mensaje automático de laboratorio al cliente (${currentOrder.client?.name || ''}). Por favor, notificar manualmente.`,
+                                                status: 'PENDING',
+                                                type: 'TASK'
+                                            }
+                                        });
+                                    }
+                                } catch (dbErr) {
+                                    console.error('Error creating fallback task for WhatsApp failure:', dbErr);
+                                }
+                            });
                         }
                     } catch (e) {
                         console.error('Error al preparar mensaje de laboratorio:', e);
