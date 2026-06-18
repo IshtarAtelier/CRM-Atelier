@@ -3,6 +3,7 @@ import { SmartLabService } from '@/services/smartlab.service';
 import { env } from '@/env';
 import { sendEmail } from '@/lib/email';
 import { fetchWa } from '@/lib/wa-config';
+import { prisma } from '@/lib/db';
 
 // Cooldown para alertas de timeout/red: avisar máximo 1 vez cada 2 horas
 let lastTimeoutAlertAt: number | null = null;
@@ -26,6 +27,45 @@ export async function GET(req: Request) {
             console.log(`[CRON SmartLab] Sync omitido: ${result.reason}`);
         } else {
             console.log(`[CRON SmartLab] Sync completado: ${result.matched || 0} actualizados, ${result.newlyFinished || 0} nuevos fabricados`);
+            
+            try {
+                // Verificar si el estado anterior era fallido
+                const lastSyncStatus = await prisma.systemSetting.findUnique({
+                    where: { key: 'smartlab_last_sync_failed' }
+                });
+                const wasFailed = lastSyncStatus?.value === 'true';
+
+                if (wasFailed) {
+                    // Enviar aviso de restauración por Email
+                    await sendEmail({
+                        to: 'pisano.ishtar@gmail.com',
+                        subject: '✅ SmartLab Restablecido — Grupo Óptico funcionando',
+                        text: `Atelier Óptica\n\nLa sincronización con el laboratorio (Grupo Óptico) se ha restablecido correctamente.\n\nÚltimo Sync: exitoso (${result.matched || 0} actualizados, ${result.newlyFinished || 0} nuevos fabricados)\nFecha: ${new Date().toLocaleString('es-AR')}`,
+                        html: `<h3 style="color: #2e7d32;">✅ SmartLab Restablecido</h3><p>La sincronización con el laboratorio (Grupo Óptico) se ha restablecido correctamente.</p><p><b>Último Sync:</b> exitoso (${result.matched || 0} actualizados, ${result.newlyFinished || 0} nuevos fabricados)</p><p><b>Fecha:</b> ${new Date().toLocaleString('es-AR')}</p>`
+                    });
+
+                    // Enviar aviso de restauración por WhatsApp
+                    await fetchWa('/api/send', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            chatId: '5493541215971@c.us',
+                            message: `✅ *Atelier Restablecido - SmartLab*\n\nLa sincronización con el laboratorio (Grupo Óptico) se ha restablecido correctamente.\n\n*Último Sync:* exitoso (${result.matched || 0} actualizados, ${result.newlyFinished || 0} nuevos fabricados)\n*Fecha:* ${new Date().toLocaleString('es-AR')}`
+                        })
+                    });
+                    
+                    console.log('[CRON SmartLab] Alertas de restauración enviadas a Ishtar.');
+                }
+
+                // Guardar/actualizar estado a OK (false)
+                await prisma.systemSetting.upsert({
+                    where: { key: 'smartlab_last_sync_failed' },
+                    update: { value: 'false' },
+                    create: { key: 'smartlab_last_sync_failed', value: 'false' }
+                });
+            } catch (statusError) {
+                console.error('[CRON SmartLab] Error procesando estado de restauración:', statusError);
+            }
         }
         
         // Si sincronizó bien, resetear el cooldown de timeout para que la próxima caída avise de nuevo
@@ -42,6 +82,13 @@ export async function GET(req: Request) {
         const errorMessage = error instanceof Error ? error.message : String(error);
         
         try {
+            // Guardar/actualizar estado a fallido (true)
+            await prisma.systemSetting.upsert({
+                where: { key: 'smartlab_last_sync_failed' },
+                update: { value: 'true' },
+                create: { key: 'smartlab_last_sync_failed', value: 'true' }
+            }).catch(err => console.error('[CRON SmartLab] Error al guardar estado fallido en SystemSetting:', err));
+
             const isTimeout = errorMessage.toLowerCase().includes('timeout') || errorMessage.toLowerCase().includes('network') || errorMessage.toLowerCase().includes('navigation');
             
             // Para errores de timeout/red: alertar solo si pasaron más de 2 horas desde la última alerta
