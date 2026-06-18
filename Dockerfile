@@ -54,5 +54,6 @@ EXPOSE 3000
 ENV PORT=3000
 
 # Run migrations and start next standalone server
-CMD ["sh", "-c", "npx prisma migrate deploy && HOSTNAME=0.0.0.0 node server.js"]
+CMD ["sh", "-c", "node node_modules/prisma/build/index.js migrate deploy && HOSTNAME=0.0.0.0 node server.js"]
+
 
