@@ -102,7 +102,11 @@ export default function ContactDetail({
                     labFrameShape: conversionData?.labFrameShape,
                     labFrameDetails: conversionData?.labFrameDetails,
                     labNotes: conversionData?.labNotes,
-                    labColor: conversionData?.labColor
+                    labColor: conversionData?.labColor,
+                    frameA: conversionData?.labMeasureA,
+                    frameB: conversionData?.labMeasureB,
+                    frameEdc: conversionData?.labMeasureEd,
+                    frameDbl: conversionData?.labMeasurePte
                 }),
             });
             if (!res.ok) {

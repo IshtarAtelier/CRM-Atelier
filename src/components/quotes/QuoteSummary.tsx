@@ -832,7 +832,11 @@ export default function QuoteSummary({
                                 labFrameShape: data.labFrameShape,
                                 labFrameDetails: data.labFrameDetails,
                                 labNotes: data.labNotes,
-                                labColor: data.labColor
+                                labColor: data.labColor,
+                                labMeasurePte: data.labMeasurePte,
+                                labMeasureA: data.labMeasureA,
+                                labMeasureB: data.labMeasureB,
+                                labMeasureEd: data.labMeasureEd
                             });
                             setShowCheckout(false);
                         }

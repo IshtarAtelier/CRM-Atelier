@@ -215,7 +215,7 @@ export async function POST(req: Request) {
         const dbProduct = await prisma.product.findUnique({
           where: { id: item.productId }
         });
-        if (dbProduct && dbProduct.category !== "Cristal" && dbProduct.stock < item.quantity) {
+        if (dbProduct && dbProduct.category !== "Cristal" && dbProduct.category !== "Tratamiento" && dbProduct.stock < item.quantity) {
           return NextResponse.json({ error: `Stock insuficiente para ${item.model}. Disponible: ${dbProduct.stock}` }, { status: 400 });
         }
       }
@@ -242,7 +242,7 @@ export async function POST(req: Request) {
           const dbProduct = await prisma.product.findUnique({
             where: { id: item.productId }
           });
-          if (dbProduct && dbProduct.category !== "Cristal") {
+          if (dbProduct && dbProduct.category !== "Cristal" && dbProduct.category !== "Tratamiento") {
             await prisma.product.update({
               where: { id: item.productId },
               data: { stock: { decrement: item.quantity } }

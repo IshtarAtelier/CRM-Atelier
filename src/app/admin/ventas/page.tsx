@@ -205,7 +205,11 @@ export default function VentasPage() {
                 color_tenido,
                 intensidad_tenido,
                 tipo_aro: 'Calibrado Aro Entero',
-                tipo_armazon
+                tipo_armazon,
+                medidaA: order.frameA || '',
+                medidaB: order.frameB || '',
+                medidaED: order.frameEdc || '',
+                medidaPte: order.frameDbl || '',
             };
 
             const encodedData = encodeURIComponent(JSON.stringify(payload));
