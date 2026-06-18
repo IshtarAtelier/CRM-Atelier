@@ -89,7 +89,6 @@ export default function VentasPage() {
             else if (lensName.includes('bifo') && lensName.includes('kri')) tipo_lente = 'Bifocal Kri';
             else if (lensName.includes('bifo')) tipo_lente = 'Bifocal Ft';
             else if (lensName.includes('ocupa') || lensName.includes('intermedio')) tipo_lente = 'Ocupacional';
-            else if (tipo_lente === 'Monofocal' && (rx?.addition || rx?.additionOD || rx?.additionOI)) tipo_lente = 'Multifocal';
 
             let material = order.labMaterial || '';
             if (!material && lensName) {
@@ -194,9 +193,9 @@ export default function VentasPage() {
                 oi_dp_cerca: order.labNearPdOi != null ? String(order.labNearPdOi) : (rx.nearDistanceOI != null ? String(rx.nearDistanceOI) : ''),
                 od_altura: order.labHeightOD != null ? String(order.labHeightOD) : (rx.heightOD != null ? String(rx.heightOD) : ''),
                 oi_altura: order.labHeightOI != null ? String(order.labHeightOI) : (rx.heightOI != null ? String(rx.heightOI) : ''),
-                observaciones: rx.notes || '',
+                observaciones: [rx.notes, order.labNotes].filter(Boolean).join(' | '),
                 color: order.labColor || '',
-                armazon: frameInfo,
+                armazon: [frameInfo, order.labFrameDetails].filter(Boolean).join(' - '),
                 diametro: order.labDiameter || '',
                 indice: lensIndex,
                 material,
@@ -210,6 +209,17 @@ export default function VentasPage() {
                 medidaB: order.frameB || '',
                 medidaED: order.frameEdc || '',
                 medidaPte: order.frameDbl || '',
+                fuzzy_article: [
+                    lensName.includes('pro') ? 'pro' : '',
+                    lensName.includes('free') ? 'free' : '',
+                    lensName.includes('exclusive') ? 'exclusive' : '',
+                    lensName.includes('drive') ? 'drive' : '',
+                    lensName.includes('ailens') ? 'ailens' : '',
+                    lensName.includes('org') ? 'org' : '',
+                    lensName.includes('poli') ? 'poli' : '',
+                    (lensName.includes('blue') || tratamiento === 'Filtro Azul') ? 'blue' : '',
+                    (lensName.includes('ar') || tratamiento === 'Antirreflejo') ? 'c/ar' : ''
+                ].filter(Boolean)
             };
 
             const encodedData = encodeURIComponent(JSON.stringify(payload));

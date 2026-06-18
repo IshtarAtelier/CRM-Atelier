@@ -1,0 +1,736 @@
+=== SEARCHING IN LOCAL (POSTGRES) ===
+FOUND IN LOCAL -> Table: WhatsAppMessage, Column: mediaUrl, Target: 7219
+Matches (1):
+{
+  "id": "cmptycf3502239p8ic23wgxz7",
+  "chatId": "cmocait3f000mcpo0avej3l0v",
+  "direction": "OUTBOUND",
+  "type": "IMAGE",
+  "content": "file.pdf",
+  "mediaUrl": "1780242372197_wa_out_1780242372147.pdf",
+  "waMessageId": "true_104702763090043@lid_4A49CB72630D66C31E9A",
+  "status": "SENT",
+  "createdAt": "2026-05-31T15:46:13.985Z",
+  "senderName": null
+}
+FOUND IN LOCAL -> Table: WhatsAppMessage, Column: waMessageId, Target: 7219
+Matches (53):
+{
+  "id": "cmpl9a558007f4hk8qal7usir",
+  "chatId": "cmpl9a54f007d4hk8y1zdo21v",
+  "direction": "OUTBOUND",
+  "type": "TEXT",
+  "content": "Hola",
+  "mediaUrl": null,
+  "waMessageId": "true_246608499372192@lid_3A56F859B84FD2F11F03",
+  "status": "SENT",
+  "createdAt": "2026-05-22T16:34:27.000Z",
+  "senderName": null
+}
+{
+  "id": "cmpl9a55q007h4hk85ork9gpb",
+  "chatId": "cmpl9a54f007d4hk8y1zdo21v",
+  "direction": "OUTBOUND",
+  "type": "IMAGE",
+  "content": "[Media/Documento]",
+  "mediaUrl": null,
+  "waMessageId": "true_246608499372192@lid_4A6B60C92DF6C42B28FA",
+  "status": "SENT",
+  "createdAt": "2026-05-22T16:43:52.000Z",
+  "senderName": null
+}
+{
+  "id": "cmpl9a566007j4hk8qxcx0t01",
+  "chatId": "cmpl9a54f007d4hk8y1zdo21v",
+  "direction": "OUTBOUND",
+  "type": "IMAGE",
+  "content": "[Media/Documento]",
+  "mediaUrl": null,
+  "waMessageId": "true_246608499372192@lid_3A2951BA315E09275F9F",
+  "status": "SENT",
+  "createdAt": "2026-05-22T16:56:45.000Z",
+  "senderName": null
+}
+{
+  "id": "cmpl9a56s007l4hk8p2f0hlba",
+  "chatId": "cmpl9a54f007d4hk8y1zdo21v",
+  "direction": "OUTBOUND",
+  "type": "TEXT",
+  "content": "Estoy al fondo de la casa por si acaso",
+  "mediaUrl": null,
+  "waMessageId": "true_246608499372192@lid_3A7162CE48D3BC28FB08",
+  "status": "SENT",
+  "createdAt": "2026-05-22T17:09:27.000Z",
+  "senderName": null
+}
+{
+  "id": "cmpl9a57a007n4hk8rh9re39l",
+  "chatId": "cmpl9a54f007d4hk8y1zdo21v",
+  "direction": "INBOUND",
+  "type": "IMAGE",
+  "content": "[Media/Documento]",
+  "mediaUrl": null,
+  "waMessageId": "false_246608499372192@lid_A505CE2E0A2D6F7ECC5286F2E498C7FD",
+  "status": "SENT",
+  "createdAt": "2026-05-22T17:11:43.000Z",
+  "senderName": null
+}
+{
+  "id": "cmpl9a57s007p4hk86r12a15o",
+  "chatId": "cmpl9a54f007d4hk8y1zdo21v",
+  "direction": "INBOUND",
+  "type": "IMAGE",
+  "content": "[Media/Documento]",
+  "mediaUrl": null,
+  "waMessageId": "false_246608499372192@lid_A54BE74C40A9D1000BD61CD13D85D8EF",
+  "status": "SENT",
+  "createdAt": "2026-05-22T17:11:46.000Z",
+  "senderName": null
+}
+{
+  "id": "cmpl9a589007r4hk844vkneql",
+  "chatId": "cmpl9a54f007d4hk8y1zdo21v",
+  "direction": "OUTBOUND",
+  "type": "TEXT",
+  "content": "Ok",
+  "mediaUrl": null,
+  "waMessageId": "true_246608499372192@lid_3AE6F487ECBF39F378F0",
+  "status": "SENT",
+  "createdAt": "2026-05-22T17:14:34.000Z",
+  "senderName": null
+}
+{
+  "id": "cmpl9a58r007t4hk82xk2878w",
+  "chatId": "cmpl9a54f007d4hk8y1zdo21v",
+  "direction": "OUTBOUND",
+  "type": "TEXT",
+  "content": "Mándame canalones",
+  "mediaUrl": null,
+  "waMessageId": "true_246608499372192@lid_3A8709ACB32BD0A868EA",
+  "status": "SENT",
+  "createdAt": "2026-05-22T17:14:52.000Z",
+  "senderName": null
+}
+{
+  "id": "cmpl9a599007v4hk88gj6w9oz",
+  "chatId": "cmpl9a54f007d4hk8y1zdo21v",
+  "direction": "INBOUND",
+  "type": "IMAGE",
+  "content": "[Media/Documento]",
+  "mediaUrl": null,
+  "waMessageId": "false_246608499372192@lid_A51F47B836DEC062CBEC82CB4AD74ABE",
+  "status": "SENT",
+  "createdAt": "2026-05-22T17:18:36.000Z",
+  "senderName": null
+}
+{
+  "id": "cmpl9a59q007x4hk8fjanw0ry",
+  "chatId": "cmpl9a54f007d4hk8y1zdo21v",
+  "direction": "OUTBOUND",
+  "type": "TEXT",
+  "content": "O algo de carne sino no tenés v",
+  "mediaUrl": null,
+  "waMessageId": "true_246608499372192@lid_3A99DCD602BE832FC440",
+  "status": "SENT",
+  "createdAt": "2026-05-22T17:18:39.000Z",
+  "senderName": null
+}
+{
+  "id": "cmpl9a5a7007z4hk82l64nphq",
+  "chatId": "cmpl9a54f007d4hk8y1zdo21v",
+  "direction": "OUTBOUND",
+  "type": "TEXT",
+  "content": "?",
+  "mediaUrl": null,
+  "waMessageId": "true_246608499372192@lid_3A8C1C3041F23E3D014B",
+  "status": "SENT",
+  "createdAt": "2026-05-22T17:18:40.000Z",
+  "senderName": null
+}
+{
+  "id": "cmpl9a5an00814hk8f6w3z708",
+  "chatId": "cmpl9a54f007d4hk8y1zdo21v",
+  "direction": "INBOUND",
+  "type": "IMAGE",
+  "content": "[Media/Documento]",
+  "mediaUrl": null,
+  "waMessageId": "false_246608499372192@lid_A54F4D67574A351083FDB463E56BEB08",
+  "status": "SENT",
+  "createdAt": "2026-05-22T17:23:25.000Z",
+  "senderName": null
+}
+{
+  "id": "cmpl9a5b200834hk8df4vszz0",
+  "chatId": "cmpl9a54f007d4hk8y1zdo21v",
+  "direction": "OUTBOUND",
+  "type": "TEXT",
+  "content": "Buenísimo ok",
+  "mediaUrl": null,
+  "waMessageId": "true_246608499372192@lid_3ABCD831606C7669D4F3",
+  "status": "SENT",
+  "createdAt": "2026-05-22T17:24:31.000Z",
+  "senderName": null
+}
+{
+  "id": "cmpl9a5bj00854hk8q3huyags",
+  "chatId": "cmpl9a54f007d4hk8y1zdo21v",
+  "direction": "OUTBOUND",
+  "type": "TEXT",
+  "content": "Lo espero gracias",
+  "mediaUrl": null,
+  "waMessageId": "true_246608499372192@lid_3ABCE4158D315AAC3A58",
+  "status": "SENT",
+  "createdAt": "2026-05-22T17:24:38.000Z",
+  "senderName": null
+}
+{
+  "id": "cmpl9a5bz00874hk8nowt3jl6",
+  "chatId": "cmpl9a54f007d4hk8y1zdo21v",
+  "direction": "INBOUND",
+  "type": "IMAGE",
+  "content": "[Media/Documento]",
+  "mediaUrl": null,
+  "waMessageId": "false_246608499372192@lid_A5CC367F186C9079EB43DBD25E9DCD6B",
+  "status": "SENT",
+  "createdAt": "2026-05-22T17:37:28.000Z",
+  "senderName": null
+}
+{
+  "id": "cmpporcvv000aprbe6ibnaosb",
+  "chatId": "cmpl9a54f007d4hk8y1zdo21v",
+  "direction": "OUTBOUND",
+  "type": "TEXT",
+  "content": "Gracias",
+  "mediaUrl": null,
+  "waMessageId": "true_246608499372192@lid_3A0103322DF9917AAE9D",
+  "status": "SENT",
+  "createdAt": "2026-05-20T16:18:09.000Z",
+  "senderName": null
+}
+{
+  "id": "cmpporcyf0016prbev8iehcgl",
+  "chatId": "cmpl9a54f007d4hk8y1zdo21v",
+  "direction": "OUTBOUND",
+  "type": "TEXT",
+  "content": "Hola cómo estás. ?",
+  "mediaUrl": null,
+  "waMessageId": "true_246608499372192@lid_3A243701ECFB9834BCC6",
+  "status": "SENT",
+  "createdAt": "2026-05-28T15:54:10.000Z",
+  "senderName": null
+}
+{
+  "id": "cmpporcyl0018prbex0ryic95",
+  "chatId": "cmpl9a54f007d4hk8y1zdo21v",
+  "direction": "INBOUND",
+  "type": "IMAGE",
+  "content": "[Media/Documento]",
+  "mediaUrl": null,
+  "waMessageId": "false_246608499372192@lid_A5958A8144D6703EA147D485129BB241",
+  "status": "SENT",
+  "createdAt": "2026-05-28T15:54:42.000Z",
+  "senderName": null
+}
+{
+  "id": "cmpporcyv001aprbe4fx1nxb0",
+  "chatId": "cmpl9a54f007d4hk8y1zdo21v",
+  "direction": "OUTBOUND",
+  "type": "TEXT",
+  "content": "que tendran hoy",
+  "mediaUrl": null,
+  "waMessageId": "true_246608499372192@lid_3BC117443DC5EF2EDEAD",
+  "status": "SENT",
+  "createdAt": "2026-05-28T16:00:59.000Z",
+  "senderName": null
+}
+{
+  "id": "cmpporcz1001cprbea7wwawrr",
+  "chatId": "cmpl9a54f007d4hk8y1zdo21v",
+  "direction": "OUTBOUND",
+  "type": "TEXT",
+  "content": "de menu",
+  "mediaUrl": null,
+  "waMessageId": "true_246608499372192@lid_3BC766CBA862FA6761CE",
+  "status": "SENT",
+  "createdAt": "2026-05-28T16:01:01.000Z",
+  "senderName": null
+}
+{
+  "id": "cmppp5jvz00018q76yj6lvwym",
+  "chatId": "cmpl9a54f007d4hk8y1zdo21v",
+  "direction": "OUTBOUND",
+  "type": "TEXT",
+  "content": "pero en 9 mil pesos ?",
+  "mediaUrl": null,
+  "waMessageId": "true_246608499372192@lid_3BE7A9FF5AE0FBBC14CC",
+  "status": "SENT",
+  "createdAt": "2026-05-28T16:17:52.367Z",
+  "senderName": null
+}
+{
+  "id": "cmppp7wf7000t8q76zq2c8lmu",
+  "chatId": "cmpl9a54f007d4hk8y1zdo21v",
+  "direction": "INBOUND",
+  "type": "IMAGE",
+  "content": "[Media/Documento]",
+  "mediaUrl": null,
+  "waMessageId": "false_246608499372192@lid_A553856295D4D186A63C8F3D75254CED",
+  "status": "SENT",
+  "createdAt": "2026-05-28T16:14:58.000Z",
+  "senderName": null
+}
+{
+  "id": "cmppp7wfc000v8q760p9ob0vf",
+  "chatId": "cmpl9a54f007d4hk8y1zdo21v",
+  "direction": "OUTBOUND",
+  "type": "TEXT",
+  "content": "ALGO MAS LIVIANITO ? 😀",
+  "mediaUrl": null,
+  "waMessageId": "true_246608499372192@lid_3B51E5E5CEB85B0AB295",
+  "status": "SENT",
+  "createdAt": "2026-05-28T16:16:26.000Z",
+  "senderName": null
+}
+{
+  "id": "cmppp7wfj000x8q769pbymotp",
+  "chatId": "cmpl9a54f007d4hk8y1zdo21v",
+  "direction": "INBOUND",
+  "type": "IMAGE",
+  "content": "[Media/Documento]",
+  "mediaUrl": null,
+  "waMessageId": "false_246608499372192@lid_A5BF6B0BF4216ECE6CFC59A696541CE3",
+  "status": "SENT",
+  "createdAt": "2026-05-28T16:17:02.000Z",
+  "senderName": null
+}
+{
+  "id": "cmpppb3mu00jd8q767stkew6z",
+  "chatId": "cmpl9a54f007d4hk8y1zdo21v",
+  "direction": "INBOUND",
+  "type": "TEXT",
+  "content": "https://www.canva.com/design/DAF96dzRGag/BwWzMyuUIRE7eczC_8VC1Q/view?utm_content=DAF96dzRGag&utm_campaign=designshare&utm_medium=link2&utm_source=uniquelinks&utlId=h8ea458921d",
+  "mediaUrl": null,
+  "waMessageId": "false_246608499372192@lid_A5D7FA6A976ED52CCDF39E985F8FA79A",
+  "status": "SENT",
+  "createdAt": "2026-05-28T16:22:11.239Z",
+  "senderName": null
+}
+{
+  "id": "cmpppb62300jf8q768f3ik3gw",
+  "chatId": "cmpl9a54f007d4hk8y1zdo21v",
+  "direction": "INBOUND",
+  "type": "TEXT",
+  "content": "Esa es la carta con todo lo que sale para llevar, el envio sin cargo 😁🍴",
+  "mediaUrl": null,
+  "waMessageId": "false_246608499372192@lid_A51D9562EF6E9C6EA1BDEB9DAE7F48CB",
+  "status": "SENT",
+  "createdAt": "2026-05-28T16:22:14.380Z",
+  "senderName": null
+}
+{
+  "id": "cmpppbiab00jh8q76d9z79frh",
+  "chatId": "cmpl9a54f007d4hk8y1zdo21v",
+  "direction": "INBOUND",
+  "type": "AUDIO",
+  "content": "[Audio transcrito]: \"Esa es la carta con todo lo que se le puede llevar y los precios y si no te paso las opciones que tenemos por 9000, las otras opciones.\"",
+  "mediaUrl": "1779985348505_wa_1779985348469.ogg",
+  "waMessageId": "false_246608499372192@lid_A54671FFD4BAFC18A9BC55D37E5B3EB4",
+  "status": "SENT",
+  "createdAt": "2026-05-28T16:22:30.227Z",
+  "senderName": null
+}
+{
+  "id": "cmpppbvdc00jj8q76ub8tat6w",
+  "chatId": "cmpl9a54f007d4hk8y1zdo21v",
+  "direction": "INBOUND",
+  "type": "IMAGE",
+  "content": "",
+  "mediaUrl": "1779985365133_wa_1779985365105.jpg",
+  "waMessageId": "false_246608499372192@lid_A58B495FF6E92C82BF3AAC324CA31B87",
+  "status": "SENT",
+  "createdAt": "2026-05-28T16:22:47.183Z",
+  "senderName": null
+}
+{
+  "id": "cmppzjj5u00ceuzknr4z5u71q",
+  "chatId": "cmpl9a54f007d4hk8y1zdo21v",
+  "direction": "OUTBOUND",
+  "type": "TEXT",
+  "content": "te pido el menu diario",
+  "mediaUrl": null,
+  "waMessageId": "true_246608499372192@lid_3B3AAC032DB851B8B6C6",
+  "status": "SENT",
+  "createdAt": "2026-05-28T16:29:49.000Z",
+  "senderName": null
+}
+{
+  "id": "cmppzjj6300cguzknlctr9469",
+  "chatId": "cmpl9a54f007d4hk8y1zdo21v",
+  "direction": "OUTBOUND",
+  "type": "TEXT",
+  "content": "de costeleta con ensaada podra ser ?",
+  "mediaUrl": null,
+  "waMessageId": "true_246608499372192@lid_3BD0DB79E0CD78C617B3",
+  "status": "SENT",
+  "createdAt": "2026-05-28T16:30:15.000Z",
+  "senderName": null
+}
+{
+  "id": "cmppzjj6800ciuzkn9zgowngu",
+  "chatId": "cmpl9a54f007d4hk8y1zdo21v",
+  "direction": "INBOUND",
+  "type": "IMAGE",
+  "content": "[Media/Documento]",
+  "mediaUrl": null,
+  "waMessageId": "false_246608499372192@lid_A5CE3F67DA070A10D82064969130F477",
+  "status": "SENT",
+  "createdAt": "2026-05-28T16:31:00.000Z",
+  "senderName": null
+}
+{
+  "id": "cmppzjj6d00ckuzknaf9f6rtt",
+  "chatId": "cmpl9a54f007d4hk8y1zdo21v",
+  "direction": "OUTBOUND",
+  "type": "TEXT",
+  "content": "eso es todo",
+  "mediaUrl": null,
+  "waMessageId": "true_246608499372192@lid_3BC4FD5135102C46ED00",
+  "status": "SENT",
+  "createdAt": "2026-05-28T16:35:49.000Z",
+  "senderName": null
+}
+{
+  "id": "cmppzjj6h00cmuzknm11cctl4",
+  "chatId": "cmpl9a54f007d4hk8y1zdo21v",
+  "direction": "OUTBOUND",
+  "type": "TEXT",
+  "content": "a ortiz y herrera 174",
+  "mediaUrl": null,
+  "waMessageId": "true_246608499372192@lid_3BCE7CA0D6E1C9715B4A",
+  "status": "SENT",
+  "createdAt": "2026-05-28T16:35:56.000Z",
+  "senderName": null
+}
+{
+  "id": "cmppzjj6o00couzknwjz2ikzg",
+  "chatId": "cmpl9a54f007d4hk8y1zdo21v",
+  "direction": "INBOUND",
+  "type": "IMAGE",
+  "content": "[Media/Documento]",
+  "mediaUrl": null,
+  "waMessageId": "false_246608499372192@lid_A570D4152AD98D783290B700AF0ACEEB",
+  "status": "SENT",
+  "createdAt": "2026-05-28T16:36:13.000Z",
+  "senderName": null
+}
+{
+  "id": "cmppzjj6t00cquzkn8au17k6a",
+  "chatId": "cmpl9a54f007d4hk8y1zdo21v",
+  "direction": "OUTBOUND",
+  "type": "TEXT",
+  "content": "gracias",
+  "mediaUrl": null,
+  "waMessageId": "true_246608499372192@lid_3BF8C32A7018B07EE958",
+  "status": "SENT",
+  "createdAt": "2026-05-28T16:37:19.000Z",
+  "senderName": null
+}
+{
+  "id": "cmppzjj7000csuzknr5z7tzaq",
+  "chatId": "cmpl9a54f007d4hk8y1zdo21v",
+  "direction": "OUTBOUND",
+  "type": "TEXT",
+  "content": "te transfiero",
+  "mediaUrl": null,
+  "waMessageId": "true_246608499372192@lid_3BEBFEF7086E49C537F8",
+  "status": "SENT",
+  "createdAt": "2026-05-28T16:37:22.000Z",
+  "senderName": null
+}
+{
+  "id": "cmppzjj7600cuuzkn5xh123h0",
+  "chatId": "cmpl9a54f007d4hk8y1zdo21v",
+  "direction": "INBOUND",
+  "type": "TEXT",
+  "content": "Losabuelosresto2",
+  "mediaUrl": null,
+  "waMessageId": "false_246608499372192@lid_A583FD17C5EBAEF4A71C67CCAC3D4F55",
+  "status": "SENT",
+  "createdAt": "2026-05-28T16:37:34.000Z",
+  "senderName": null
+}
+{
+  "id": "cmppzjj7a00cwuzkn1wgo8n2m",
+  "chatId": "cmpl9a54f007d4hk8y1zdo21v",
+  "direction": "INBOUND",
+  "type": "IMAGE",
+  "content": "[Media/Documento]",
+  "mediaUrl": null,
+  "waMessageId": "false_246608499372192@lid_A54B55C301DF9CECCCB755A3737223F5",
+  "status": "SENT",
+  "createdAt": "2026-05-28T16:37:43.000Z",
+  "senderName": null
+}
+{
+  "id": "cmppzjj7e00cyuzkn3zan7fvk",
+  "chatId": "cmpl9a54f007d4hk8y1zdo21v",
+  "direction": "INBOUND",
+  "type": "IMAGE",
+  "content": "[Media/Documento]",
+  "mediaUrl": null,
+  "waMessageId": "false_246608499372192@lid_A5E9507554D2CFC1C274F6B99C89180C",
+  "status": "SENT",
+  "createdAt": "2026-05-28T16:47:19.000Z",
+  "senderName": null
+}
+{
+  "id": "cmppzjj7k00d0uzkni1r6mjuo",
+  "chatId": "cmpl9a54f007d4hk8y1zdo21v",
+  "direction": "OUTBOUND",
+  "type": "IMAGE",
+  "content": "[Media/Documento]",
+  "mediaUrl": null,
+  "waMessageId": "true_246608499372192@lid_4AC418E566B80ED6282F",
+  "status": "SENT",
+  "createdAt": "2026-05-28T16:50:28.000Z",
+  "senderName": null
+}
+{
+  "id": "cmppzjj7p00d2uzkn76opx4n8",
+  "chatId": "cmpl9a54f007d4hk8y1zdo21v",
+  "direction": "INBOUND",
+  "type": "IMAGE",
+  "content": "[Media/Documento]",
+  "mediaUrl": null,
+  "waMessageId": "false_246608499372192@lid_A58820C6C957A60B6B19D8D0EC2F0CC9",
+  "status": "SENT",
+  "createdAt": "2026-05-28T16:50:47.000Z",
+  "senderName": null
+}
+{
+  "id": "cmpsgchr501ob9p8ihx9rftse",
+  "chatId": "cmpl9a2po002y4hk87ev2rz63",
+  "direction": "OUTBOUND",
+  "type": "TEXT",
+  "content": "Juju muy bie",
+  "mediaUrl": null,
+  "waMessageId": "true_256886389612547@lid_3A53F4F380B7272191F6",
+  "status": "SENT",
+  "createdAt": "2026-05-30T14:34:38.177Z",
+  "senderName": null
+}
+{
+  "id": "cmpwxbkrv01mozevqqb14vs50",
+  "chatId": "cmpl9a54f007d4hk8y1zdo21v",
+  "direction": "OUTBOUND",
+  "type": "TEXT",
+  "content": "Hola buenas tardes",
+  "mediaUrl": null,
+  "waMessageId": "true_246608499372192@lid_3AB30665A3659E5041E5",
+  "status": "SENT",
+  "createdAt": "2026-06-02T17:27:34.000Z",
+  "senderName": null
+}
+{
+  "id": "cmpwxbks001mqzevqzocuv2hf",
+  "chatId": "cmpl9a54f007d4hk8y1zdo21v",
+  "direction": "OUTBOUND",
+  "type": "TEXT",
+  "content": "Quería saber si les queda algún menú del día",
+  "mediaUrl": null,
+  "waMessageId": "true_246608499372192@lid_3A560F95B958C2AD4FCC",
+  "status": "SENT",
+  "createdAt": "2026-06-02T17:27:40.000Z",
+  "senderName": null
+}
+{
+  "id": "cmpwxbks501mszevqw9s8z6w4",
+  "chatId": "cmpl9a54f007d4hk8y1zdo21v",
+  "direction": "INBOUND",
+  "type": "IMAGE",
+  "content": "[Media/Documento]",
+  "mediaUrl": null,
+  "waMessageId": "false_246608499372192@lid_A56E95486113E4230A516C0AC0E0F422",
+  "status": "SENT",
+  "createdAt": "2026-06-02T17:28:06.000Z",
+  "senderName": null
+}
+{
+  "id": "cmpwxbksa01muzevqompe2sdq",
+  "chatId": "cmpl9a54f007d4hk8y1zdo21v",
+  "direction": "OUTBOUND",
+  "type": "TEXT",
+  "content": "que tiene para hoy",
+  "mediaUrl": null,
+  "waMessageId": "true_246608499372192@lid_3BA08257B244AB90356D",
+  "status": "SENT",
+  "createdAt": "2026-06-02T17:30:16.000Z",
+  "senderName": null
+}
+{
+  "id": "cmpwxbkse01mwzevqp9kioog7",
+  "chatId": "cmpl9a54f007d4hk8y1zdo21v",
+  "direction": "OUTBOUND",
+  "type": "TEXT",
+  "content": "las albondigas ?",
+  "mediaUrl": null,
+  "waMessageId": "true_246608499372192@lid_3B3B77D4656165F51477",
+  "status": "SENT",
+  "createdAt": "2026-06-02T17:30:26.000Z",
+  "senderName": null
+}
+{
+  "id": "cmpwxbksi01myzevqbd3leamz",
+  "chatId": "cmpl9a54f007d4hk8y1zdo21v",
+  "direction": "OUTBOUND",
+  "type": "TEXT",
+  "content": "con arroz ? \nte pido una porcion",
+  "mediaUrl": null,
+  "waMessageId": "true_246608499372192@lid_3B1E9FA4D745D7124618",
+  "status": "SENT",
+  "createdAt": "2026-06-02T17:30:39.000Z",
+  "senderName": null
+}
+{
+  "id": "cmpwxbksm01n0zevqd1u7iwye",
+  "chatId": "cmpl9a54f007d4hk8y1zdo21v",
+  "direction": "OUTBOUND",
+  "type": "TEXT",
+  "content": "para ortix y herrera 174",
+  "mediaUrl": null,
+  "waMessageId": "true_246608499372192@lid_3B81ACEFCF84A9CE7E2A",
+  "status": "SENT",
+  "createdAt": "2026-06-02T17:30:44.000Z",
+  "senderName": null
+}
+{
+  "id": "cmpwxbkss01n2zevq3l9prjd4",
+  "chatId": "cmpl9a54f007d4hk8y1zdo21v",
+  "direction": "OUTBOUND",
+  "type": "TEXT",
+  "content": "te mando el pago",
+  "mediaUrl": null,
+  "waMessageId": "true_246608499372192@lid_3BFD3CC65544F4860634",
+  "status": "SENT",
+  "createdAt": "2026-06-02T17:30:47.000Z",
+  "senderName": null
+}
+{
+  "id": "cmpwxbksw01n4zevqnor27h68",
+  "chatId": "cmpl9a54f007d4hk8y1zdo21v",
+  "direction": "INBOUND",
+  "type": "IMAGE",
+  "content": "[Media/Documento]",
+  "mediaUrl": null,
+  "waMessageId": "false_246608499372192@lid_A5521DE33738724B38B90FBBA411E00F",
+  "status": "SENT",
+  "createdAt": "2026-06-02T17:31:11.000Z",
+  "senderName": null
+}
+{
+  "id": "cmpwyzh820296zevqx91t3wbe",
+  "chatId": "cmocait3f000mcpo0avej3l0v",
+  "direction": "INBOUND",
+  "type": "TEXT",
+  "content": "Bueno que bueno que te transmita al menos eso, yo si se que son muy profesionales",
+  "mediaUrl": null,
+  "waMessageId": "false_104702763090043@lid_ACA4C721982531F48B1C9143A76EBCBC",
+  "status": "SENT",
+  "createdAt": "2026-06-02T18:27:28.370Z",
+  "senderName": null
+}
+{
+  "id": "cmpwxbkt101n6zevqwzzzikn4",
+  "chatId": "cmpl9a54f007d4hk8y1zdo21v",
+  "direction": "OUTBOUND",
+  "type": "IMAGE",
+  "content": "[Media/Documento]",
+  "mediaUrl": "1780528440453_wa_1780528440430.jpg",
+  "waMessageId": "true_246608499372192@lid_4A6700ECB454A42D1CFF",
+  "status": "SENT",
+  "createdAt": "2026-06-02T17:31:52.000Z",
+  "senderName": null
+}
+FOUND IN LOCAL -> Table: WhatsAppChat, Column: waId, Target: 7219
+Matches (1):
+{
+  "id": "cmpl9a54f007d4hk8y1zdo21v",
+  "clientId": null,
+  "waId": "246608499372192@lid",
+  "profileName": "Los Abuelos Resto",
+  "lastMessageAt": "2026-06-02T17:31:52.000Z",
+  "status": "OPEN",
+  "unreadCount": 0,
+  "createdAt": "2026-05-25T13:42:27.951Z",
+  "updatedAt": "2026-06-03T23:10:14.518Z",
+  "botEnabled": false,
+  "archived": true,
+  "chatLabels": [],
+  "realPhone": "5493541334612",
+  "chatSummary": null,
+  "lastFollowUpAt": null
+}
+FOUND IN LOCAL -> Table: WhatsAppChat, Column: realPhone, Target: 3513447219
+Matches (1):
+{
+  "id": "cmoauitkb0008qgroif8zeyry",
+  "clientId": "cmmmhk3j7005b12ltk5029ri2",
+  "waId": "27853567619110@lid",
+  "profileName": "- Lucia",
+  "lastMessageAt": "2026-06-03T21:16:31.000Z",
+  "status": "OPEN",
+  "unreadCount": 0,
+  "createdAt": "2026-04-23T02:11:54.540Z",
+  "updatedAt": "2026-06-03T23:10:13.518Z",
+  "botEnabled": false,
+  "archived": true,
+  "chatLabels": [
+    "Cancelar Bot"
+  ],
+  "realPhone": "5493513447219",
+  "chatSummary": null,
+  "lastFollowUpAt": null
+}
+FOUND IN LOCAL -> Table: WhatsAppChat, Column: realPhone, Target: 3447219
+Matches (1):
+{
+  "id": "cmoauitkb0008qgroif8zeyry",
+  "clientId": "cmmmhk3j7005b12ltk5029ri2",
+  "waId": "27853567619110@lid",
+  "profileName": "- Lucia",
+  "lastMessageAt": "2026-06-03T21:16:31.000Z",
+  "status": "OPEN",
+  "unreadCount": 0,
+  "createdAt": "2026-04-23T02:11:54.540Z",
+  "updatedAt": "2026-06-03T23:10:13.518Z",
+  "botEnabled": false,
+  "archived": true,
+  "chatLabels": [
+    "Cancelar Bot"
+  ],
+  "realPhone": "5493513447219",
+  "chatSummary": null,
+  "lastFollowUpAt": null
+}
+FOUND IN LOCAL -> Table: WhatsAppChat, Column: realPhone, Target: 7219
+Matches (1):
+{
+  "id": "cmoauitkb0008qgroif8zeyry",
+  "clientId": "cmmmhk3j7005b12ltk5029ri2",
+  "waId": "27853567619110@lid",
+  "profileName": "- Lucia",
+  "lastMessageAt": "2026-06-03T21:16:31.000Z",
+  "status": "OPEN",
+  "unreadCount": 0,
+  "createdAt": "2026-04-23T02:11:54.540Z",
+  "updatedAt": "2026-06-03T23:10:13.518Z",
+  "botEnabled": false,
+  "archived": true,
+  "chatLabels": [
+    "Cancelar Bot"
+  ],
+  "realPhone": "5493513447219",
+  "chatSummary": null,
+  "lastFollowUpAt": null
+}
+=== SEARCHING IN PRODUCTION (POSTGRES) ===

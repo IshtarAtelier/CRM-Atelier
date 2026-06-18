@@ -69,7 +69,7 @@ export default function CartLineItems({
                             )}
                             <div className="flex-1 min-w-0">
                                 <p className="text-xs font-bold text-stone-800 dark:text-stone-150 truncate group-hover:text-primary transition-colors flex items-center gap-2">
-                                    {item.product.brand} · {item.product.name}
+                                    {item.product?.brand || item.productBrandSnapshot || '—'} · {item.product?.name || item.productNameSnapshot || 'Producto eliminado'}
                                     {safePrice(item.customPrice) === 0 && isMultifocal2x1(item.product) && (
                                         <span className="bg-emerald-500 text-white text-[9px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider animate-pulse">
                                             BONIFICADO 2x1
@@ -78,7 +78,7 @@ export default function CartLineItems({
                                 </p>
                                 <div className="flex items-center gap-2 mt-0.5">
                                     <p className="text-[10px] font-semibold text-stone-400 uppercase tracking-wider">
-                                        {getCategoryKey(item.product.type, item.product.category)}
+                                        {getCategoryKey(item.product?.type || item.productCategorySnapshot || null, item.product?.category || item.productCategorySnapshot || null)}
                                         {item.isPromo && <span className="text-emerald-500 ml-2">† SIN CARGO 2x1</span>}
                                     </p>
                                     {hasColor && (

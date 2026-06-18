@@ -71,9 +71,13 @@ export default function OrderManager({
         if (savingQuote) return;
         setSavingQuote(true);
         try {
-            const hasCrystals = quoteItems.some(i => i.product.type === 'Cristal' || i.product.category === 'Cristal');
+            const hasCrystals = quoteItems.some(i => 
+                i.product?.type === 'Cristal' || 
+                i.product?.category === 'Cristal' ||
+                i.productCategorySnapshot === 'Cristal'
+            );
             const hasFramesInCart = quoteItems.some(i => {
-                const cat = (i.product.category || '').toLowerCase();
+                const cat = (i.product?.category || i.productCategorySnapshot || '').toLowerCase();
                 return cat === 'frame' || cat === 'atelier' || cat === 'armazón de receta' || cat.includes('armazon') || cat.includes('armazón');
             });
             
@@ -90,12 +94,20 @@ export default function OrderManager({
             const url = editingQuoteId ? `/api/orders/${editingQuoteId}` : '/api/orders';
             const method = editingQuoteId ? 'PATCH' : 'POST';
 
-            await fetch(url, {
+            const res = await fetch(url, {
                 method,
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     clientId: contactId,
-                    items: quoteItems.map(i => ({ productId: i.product.id, quantity: i.quantity, price: i.customPrice, eye: i.eye })),
+                    items: quoteItems.map(i => ({
+                        productId: i.product?.id || null,
+                        quantity: i.quantity,
+                        price: i.customPrice,
+                        eye: i.eye,
+                        productBrandSnapshot: i.productBrandSnapshot || i.product?.brand || null,
+                        productNameSnapshot: i.productNameSnapshot || i.product?.name || i.product?.model || null,
+                        productCategorySnapshot: i.productCategorySnapshot || i.product?.category || null,
+                    })),
                     markup: quoteMarkup,
                     discountCash: quoteDiscountCash,
                     discountTransfer: quoteDiscountTransfer,
@@ -111,9 +123,16 @@ export default function OrderManager({
                     specialDiscount: specialDiscountAmount,
                 })
             });
-            setIsQuoteSuccess(true);
-        } catch (e) {
+
+            if (res.ok) {
+                setIsQuoteSuccess(true);
+            } else {
+                const err = await res.json();
+                alert(`❌ Error al guardar: ${err.error || 'Error desconocido'}`);
+            }
+        } catch (e: any) {
             console.error('Error saving quote:', e);
+            alert(`❌ Error inesperado: ${e.message || 'Error desconocido'}`);
         } finally {
             setSavingQuote(false);
         }
@@ -128,7 +147,10 @@ export default function OrderManager({
             quantity: it.quantity,
             customPrice: it.price,
             eye: it.eye,
-            uid: Date.now() + idx
+            uid: Date.now() + idx,
+            productBrandSnapshot: it.productBrandSnapshot,
+            productNameSnapshot: it.productNameSnapshot,
+            productCategorySnapshot: it.productCategorySnapshot
         })));
         setQuoteMarkup(order.markup || 0);
         setQuoteDiscountCash(order.discountCash ?? 20);

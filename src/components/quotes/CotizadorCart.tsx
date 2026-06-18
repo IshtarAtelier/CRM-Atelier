@@ -193,7 +193,7 @@ export default function CotizadorCart({
 
             setItems(prev => {
                 const is2x1 = isMultifocal2x1(product);
-                const existingPairsFiltered = prev.filter(it => it.product.id === product.id && it.eye === 'OD');
+                const existingPairsFiltered = prev.filter(it => it.product?.id === product.id && it.eye === 'OD');
                 const ts = Date.now();
                 const sprice = safePrice(product.price);
                 const isFree = is2x1 && existingPairsFiltered.length % 2 !== 0;
