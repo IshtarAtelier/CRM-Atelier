@@ -49,7 +49,7 @@ export class SmartLabService {
             const page = await context.newPage();
 
             // ── Login ──────────────────────────────────
-            await page.goto('https://grupooptico.dyndns.info/smartlab/auth/authSmartlab/login', { waitUntil: 'networkidle' });
+            await page.goto('https://grupooptico.dyndns.info/smartlab/auth/authSmartlab/login', { waitUntil: 'domcontentloaded' });
             await page.waitForSelector('input', { timeout: 10000 });
 
             const inputs = await page.$$('input');
@@ -68,7 +68,7 @@ export class SmartLabService {
                 if (text.toLowerCase().includes('iniciar') || text.toLowerCase().includes('ingresar') || text.toLowerCase().includes('login')) {
                     await page.waitForTimeout(1000);
                     await Promise.all([
-                        page.waitForNavigation({ waitUntil: 'networkidle' }),
+                        page.waitForNavigation({ waitUntil: 'domcontentloaded' }),
                         btn.click({ delay: 300 })
                     ]);
                     loginClicked = true;
@@ -77,7 +77,7 @@ export class SmartLabService {
             }
             if (!loginClicked) {
                 await Promise.all([
-                    page.waitForNavigation({ waitUntil: 'networkidle' }),
+                    page.waitForNavigation({ waitUntil: 'domcontentloaded' }),
                     inputs[1].press('Enter', { delay: 200 })
                 ]);
             }
@@ -85,7 +85,7 @@ export class SmartLabService {
 
             // ── Navegar a lista ──────────────────────────
             console.log('[SmartLab Sync] Navegando a lista de pedidos...');
-            await page.goto('https://grupooptico.dyndns.info/smartlab/laboratory/list', { waitUntil: 'networkidle' });
+            await page.goto('https://grupooptico.dyndns.info/smartlab/laboratory/list', { waitUntil: 'domcontentloaded' });
             
             console.log('[SmartLab Sync] Esperando a que carguen los campos de búsqueda...');
             await page.waitForSelector('input[type="text"]', { timeout: 15000 }).catch(() => console.log('Timeout esperando inputs'));
@@ -166,10 +166,10 @@ export class SmartLabService {
                         const cells = await row.$$('td');
                         if (cells.length < 5) continue;
 
-                        const pedidoText = await cells[0].textContent() || '';
+                        const pedidoText = await cells[0].innerText() || '';
                         if (!pedidoText.includes(num)) continue;
 
-                        const sector = (await cells[3].textContent() || '').trim();
+                        const sector = (await cells[3].innerText() || '').replace(/\n/g, ' ').trim();
 
                         let progress = 0;
                         const progressCol = cells[4];
@@ -184,12 +184,12 @@ export class SmartLabService {
                             }
                         }
                         if (progress === 0) {
-                            const ptxt = (await progressCol.textContent() || '').trim();
+                            const ptxt = (await progressCol.innerText() || '').trim();
                             const pm = ptxt.match(/([\d.]+)\s*%/);
                             if (pm) progress = Math.round(parseFloat(pm[1]));
                         }
 
-                        const fullText = await progressCol.textContent() || '';
+                        const fullText = await progressCol.innerText() || '';
                         let entryDate = '';
                         const im = fullText.match(/[Ii]ngreso:?\s*([\d\-\/]+\s*[\d:]*)/);
                         if (im) entryDate = im[1].trim();
