@@ -2,17 +2,19 @@ import Link from "next/link";
 import { Metadata } from "next";
 
 import { StorefrontNavbar } from "@/components/Storefront/StorefrontNavbar";
-import { StorefrontFooter } from "@/components/Storefront/StorefrontFooter";
-import { FloatingWhatsApp } from "@/components/Storefront/FloatingWhatsApp";
 import { FilmmakerReel } from "@/components/Storefront/FilmmakerReel";
-import { GoogleReviews } from "@/components/Storefront/GoogleReviews";
-import { HomeProductCarousel } from "@/components/Storefront/HomeProductCarousel";
-import { HomeConfiguratorSection } from "@/components/Storefront/HomeConfiguratorSection";
-import { HomeMacroFilm } from "@/components/Storefront/HomeMacroFilm";
-import { HomeStorePreview } from "@/components/Storefront/HomeStorePreview";
-import { HomeWhyChooseUs } from "@/components/Storefront/HomeWhyChooseUs";
-import { HomeRecommendationQuiz } from "@/components/Storefront/HomeRecommendationQuiz";
-import { ExitIntentPopup } from "@/components/Storefront/ExitIntentPopup";
+import dynamic from "next/dynamic";
+
+const StorefrontFooter = dynamic(() => import("@/components/Storefront/StorefrontFooter").then(mod => mod.StorefrontFooter));
+const FloatingWhatsApp = dynamic(() => import("@/components/Storefront/FloatingWhatsApp").then(mod => mod.FloatingWhatsApp));
+const GoogleReviews = dynamic(() => import("@/components/Storefront/GoogleReviews").then(mod => mod.GoogleReviews));
+const HomeProductCarousel = dynamic(() => import("@/components/Storefront/HomeProductCarousel").then(mod => mod.HomeProductCarousel));
+const HomeConfiguratorSection = dynamic(() => import("@/components/Storefront/HomeConfiguratorSection").then(mod => mod.HomeConfiguratorSection));
+const HomeMacroFilm = dynamic(() => import("@/components/Storefront/HomeMacroFilm").then(mod => mod.HomeMacroFilm));
+const HomeStorePreview = dynamic(() => import("@/components/Storefront/HomeStorePreview").then(mod => mod.HomeStorePreview));
+const HomeWhyChooseUs = dynamic(() => import("@/components/Storefront/HomeWhyChooseUs").then(mod => mod.HomeWhyChooseUs));
+const HomeRecommendationQuiz = dynamic(() => import("@/components/Storefront/HomeRecommendationQuiz").then(mod => mod.HomeRecommendationQuiz));
+const ExitIntentPopup = dynamic(() => import("@/components/Storefront/ExitIntentPopup").then(mod => mod.ExitIntentPopup));
 import { prisma } from "@/lib/db";
 import { resolveStorageUrl } from "@/lib/utils/storage";
 

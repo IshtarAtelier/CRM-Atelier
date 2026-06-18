@@ -22,10 +22,14 @@ export async function GET(req: Request) {
     try {
         const result = await SmartLabService.syncOrders();
         
-        console.log(`[CRON SmartLab] Sync completado: ${result.matched || 0} actualizados, ${result.newlyFinished || 0} nuevos fabricados`);
+        if (result.skipped) {
+            console.log(`[CRON SmartLab] Sync omitido: ${result.reason}`);
+        } else {
+            console.log(`[CRON SmartLab] Sync completado: ${result.matched || 0} actualizados, ${result.newlyFinished || 0} nuevos fabricados`);
+        }
         
         // Si sincronizó bien, resetear el cooldown de timeout para que la próxima caída avise de nuevo
-        lastTimeoutAlertAt = null;
+        if (!result.skipped) lastTimeoutAlertAt = null;
 
         return NextResponse.json({
             success: true,

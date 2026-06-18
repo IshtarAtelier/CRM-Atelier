@@ -158,8 +158,7 @@ export function HomeProductCarousel({ collections, totalCount }: Props) {
                   src={item.img}
                   alt={`Anteojos ${item.category || ''} ${item.brand || ''} ${item.name} en Atelier Óptica Córdoba`}
                   fill
-                  priority={i < 2}
-                  loading={i < 2 ? undefined : 'lazy'}
+                  loading="lazy"
                   style={{ transform: "translateZ(0)" }}
                   sizes="(max-width: 768px) 45vw, (max-width: 1024px) 33vw, 25vw"
                   className={`object-contain p-6 mix-blend-multiply transition-opacity duration-500 ease-in-out ${item.secondImg ? 'md:group-hover:opacity-0' : ''}`}

@@ -49,7 +49,7 @@ export class SmartLabService {
             const page = await context.newPage();
 
             // ── Login ──────────────────────────────────
-            await page.goto('https://grupooptico.dyndns.info/smartlab/auth/authSmartlab/login', { waitUntil: 'networkidle' });
+            await page.goto('https://grupooptico.dyndns.info/smartlab/auth/authSmartlab/login', { waitUntil: 'domcontentloaded' });
             await page.waitForSelector('input', { timeout: 10000 });
 
             const inputs = await page.$$('input');
@@ -68,7 +68,7 @@ export class SmartLabService {
                 if (text.toLowerCase().includes('iniciar') || text.toLowerCase().includes('ingresar') || text.toLowerCase().includes('login')) {
                     await page.waitForTimeout(1000);
                     await Promise.all([
-                        page.waitForNavigation({ waitUntil: 'networkidle' }),
+                        page.waitForNavigation({ waitUntil: 'domcontentloaded' }),
                         btn.click({ delay: 300 })
                     ]);
                     loginClicked = true;
@@ -77,7 +77,7 @@ export class SmartLabService {
             }
             if (!loginClicked) {
                 await Promise.all([
-                    page.waitForNavigation({ waitUntil: 'networkidle' }),
+                    page.waitForNavigation({ waitUntil: 'domcontentloaded' }),
                     inputs[1].press('Enter', { delay: 200 })
                 ]);
             }
@@ -85,7 +85,7 @@ export class SmartLabService {
 
             // ── Navegar a lista ──────────────────────────
             console.log('[SmartLab Sync] Navegando a lista de pedidos...');
-            await page.goto('https://grupooptico.dyndns.info/smartlab/laboratory/list', { waitUntil: 'networkidle' });
+            await page.goto('https://grupooptico.dyndns.info/smartlab/laboratory/list', { waitUntil: 'domcontentloaded' });
             
             console.log('[SmartLab Sync] Esperando a que carguen los campos de búsqueda...');
             await page.waitForSelector('input[type="text"]', { timeout: 15000 }).catch(() => console.log('Timeout esperando inputs'));
@@ -166,10 +166,10 @@ export class SmartLabService {
                         const cells = await row.$$('td');
                         if (cells.length < 5) continue;
 
-                        const pedidoText = await cells[0].textContent() || '';
+                        const pedidoText = await cells[0].innerText() || '';
                         if (!pedidoText.includes(num)) continue;
 
-                        const sector = (await cells[3].textContent() || '').trim();
+                        const sector = (await cells[3].innerText() || '').replace(/\n/g, ' ').trim();
 
                         let progress = 0;
                         const progressCol = cells[4];
@@ -184,12 +184,12 @@ export class SmartLabService {
                             }
                         }
                         if (progress === 0) {
-                            const ptxt = (await progressCol.textContent() || '').trim();
+                            const ptxt = (await progressCol.innerText() || '').trim();
                             const pm = ptxt.match(/([\d.]+)\s*%/);
                             if (pm) progress = Math.round(parseFloat(pm[1]));
                         }
 
-                        const fullText = await progressCol.textContent() || '';
+                        const fullText = await progressCol.innerText() || '';
                         let entryDate = '';
                         const im = fullText.match(/[Ii]ngreso:?\s*([\d\-\/]+\s*[\d:]*)/);
                         if (im) entryDate = im[1].trim();
@@ -225,57 +225,63 @@ export class SmartLabService {
 
                 if (details.length === 0) continue;
 
-                const minProgress = Math.min(...details.map(d => d.progress));
-                const maxDays = Math.max(...details.map(d => d.days));
-                const earliestEntry = details.map(d => d.entryDate).filter(Boolean)[0] || '';
-                const sectorSummary = details.length === 1 
-                    ? details[0].sector 
-                    : details.map(d => `${d.num.slice(-4)}: ${d.sector}`).join(' | ');
+                try {
+                    const minProgress = Math.min(...details.map(d => d.progress));
+                    const maxDays = Math.max(...details.map(d => d.days));
+                    const earliestEntry = details.map(d => d.entryDate).filter(Boolean)[0] || '';
+                    const sectorSummary = details.length === 1 
+                        ? details[0].sector 
+                        : details.map(d => `${d.num.slice(-4)}: ${d.sector}`).join(' | ');
 
-                const updateData: Record<string, unknown> = {
-                    smartLabSector: sectorSummary,
-                    smartLabProgress: minProgress,
-                    smartLabLastSync: new Date(),
-                    smartLabEntryDate: earliestEntry,
-                    smartLabDays: maxDays,
-                    smartLabDetails: JSON.stringify(details),
-                };
+                    const updateData: Record<string, unknown> = {
+                        smartLabSector: sectorSummary,
+                        smartLabProgress: minProgress,
+                        smartLabLastSync: new Date(),
+                        smartLabEntryDate: earliestEntry,
+                        smartLabDays: maxDays,
+                        smartLabDetails: JSON.stringify(details),
+                    };
 
-                const wasNotFinished = (crmOrder.smartLabProgress || 0) < 100;
-                const allFinished = details.every(d => d.progress >= 100);
+                    const wasNotFinished = (crmOrder.smartLabProgress || 0) < 100;
+                    const allFinished = details.every(d => d.progress >= 100);
 
-                if (allFinished) {
-                    updateData.labStatus = 'FINISHED';
-                } else if (minProgress > 0) {
-                    updateData.labStatus = 'IN_PROGRESS';
-                }
+                    if (allFinished) {
+                        updateData.labStatus = 'FINISHED';
+                    } else if (minProgress > 0) {
+                        updateData.labStatus = 'IN_PROGRESS';
+                    }
 
-                if (allFinished && wasNotFinished) {
-                    newlyFinished++;
-                    await prisma.notification.create({
-                        data: {
-                            type: 'LAB_READY',
-                            message: `🏭 Pedido finalizado en laboratorio — ${crmOrder.client.name} (${numbers.join(', ')})`,
-                            orderId: crmOrder.id,
-                            requestedBy: 'SmartLab Sync',
-                            status: 'PENDING',
-                        },
+                    // Primero actualizar la DB, luego notificar (evita notificaciones duplicadas si falla el update)
+                    await prisma.order.update({
+                        where: { id: crmOrder.id },
+                        data: updateData,
                     });
+
+                    if (allFinished && wasNotFinished) {
+                        newlyFinished++;
+                        await prisma.notification.create({
+                            data: {
+                                type: 'LAB_READY',
+                                message: `🏭 Pedido finalizado en laboratorio — ${crmOrder.client.name} (${numbers.join(', ')})`,
+                                orderId: crmOrder.id,
+                                requestedBy: 'SmartLab Sync',
+                                status: 'PENDING',
+                            },
+                        });
+                    }
+
+                    updatedCount++;
+                    matchResults.push({
+                        client: crmOrder.client.name,
+                        numbers,
+                        details: details.map(d => ({ num: d.num, progress: d.progress, sector: d.sector })),
+                        overallProgress: minProgress,
+                        isNew: allFinished && wasNotFinished,
+                    });
+                } catch (orderError) {
+                    console.error(`[SmartLab Sync] Error actualizando pedido ${crmOrder.id} (${crmOrder.client.name}):`, orderError);
+                    // Continuar con el siguiente pedido sin abortar el sync completo
                 }
-
-                await prisma.order.update({
-                    where: { id: crmOrder.id },
-                    data: updateData,
-                });
-
-                updatedCount++;
-                matchResults.push({
-                    client: crmOrder.client.name,
-                    numbers,
-                    details: details.map(d => ({ num: d.num, progress: d.progress, sector: d.sector })),
-                    overallProgress: minProgress,
-                    isNew: allFinished && wasNotFinished,
-                });
             }
 
             console.log(`[SmartLab Sync] Resultado: ${updatedCount} actualizados, ${newlyFinished} nuevos fabricados`);

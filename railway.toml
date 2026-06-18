@@ -3,6 +3,3 @@ builder = "NIXPACKS"
 
 [deploy]
 startCommand = "sh -c 'if [ -f server.js ]; then node node_modules/prisma/build/index.js migrate deploy && HOSTNAME=0.0.0.0 node server.js; else node index.js; fi'"
-
-
-
