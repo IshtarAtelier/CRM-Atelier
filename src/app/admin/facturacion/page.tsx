@@ -12,7 +12,6 @@ import { resolveStorageUrl } from '@/lib/utils/storage';
 import { generateInvoicePDF } from '@/lib/invoice-generator';
 import { WhatsAppIcon } from '@/components/icons/WhatsAppIcon';
 import type { Order } from '@/types/orders';
-import Image from "next/image";
 
 export default function BillingPage() {
     const router = useRouter();
@@ -524,7 +523,7 @@ export default function BillingPage() {
                         <h3 className="text-sm font-black uppercase tracking-widest text-stone-400 mb-6 flex items-center gap-2 px-2"><ImageIcon className="w-4 h-4"/> Comprobante de Pago</h3>
                         <div className="rounded-xl overflow-hidden bg-stone-50 dark:bg-stone-800 flex items-center justify-center min-h-[300px]">
                             { }
-                            <Image src={resolveStorageUrl(selectedReceipt)} alt="Comprobante" className="max-h-[70vh] object-contain" />
+                            <img src={resolveStorageUrl(selectedReceipt)} alt="Comprobante" className="max-h-[70vh] object-contain" />
                         </div>
                     </div>
                 </div>

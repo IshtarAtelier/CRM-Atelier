@@ -11,7 +11,6 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { resolveStorageUrl } from '@/lib/utils/storage';
 import type { CashMovement } from '@/types/orders';
-import Image from "next/image";
 
 const CATEGORIES = [
     { key: 'VENTA', label: 'Venta Entrante', icon: Wallet, color: 'text-emerald-500', bg: 'bg-emerald-50 dark:bg-emerald-950' },

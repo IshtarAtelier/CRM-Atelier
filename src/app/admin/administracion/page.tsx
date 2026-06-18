@@ -11,7 +11,6 @@ import { es } from 'date-fns/locale';
 import { resolveStorageUrl, fileToBase64 } from '@/lib/utils/storage';
 import FileDropZone from '@/components/ui/FileDropZone';
 import type { CashMovement } from '@/types/orders';
-import Image from "next/image";
 
 // ── Types ─────────────────────────────────────
 
