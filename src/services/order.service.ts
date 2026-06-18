@@ -605,11 +605,11 @@ export class OrderService {
         if (body.labFrameShape !== undefined) data.labFrameShape = body.labFrameShape;
         if (body.labFrameDetails !== undefined) data.labFrameDetails = body.labFrameDetails;
 
-        // Frame measurement fields (for SmartLab) - Temporarily disabled to avoid DB error until migration
-        // if (frameA !== undefined) data.frameA = frameA;
-        // if (frameB !== undefined) data.frameB = frameB;
-        // if (frameDbl !== undefined) data.frameDbl = frameDbl;
-        // if (frameEdc !== undefined) data.frameEdc = frameEdc;
+        // Frame measurement fields (for SmartLab)
+        if (frameA !== undefined) data.frameA = frameA;
+        if (frameB !== undefined) data.frameB = frameB;
+        if (frameDbl !== undefined) data.frameDbl = frameDbl;
+        if (frameEdc !== undefined) data.frameEdc = frameEdc;
         if (smartLabScreenshot !== undefined) data.smartLabScreenshot = smartLabScreenshot;
 
         // High-precision lab fields
@@ -757,8 +757,8 @@ export class OrderService {
                 const stockItems = (existingOrder.items || []).filter((item: any) => {
                     const cat = item.product?.category;
                     const type = item.product?.type;
-                    const isCrystal = cat === 'Cristal' || (type || '').includes('Cristal');
-                    return !isCrystal;
+                    const isCrystalOrTreatment = cat === 'Cristal' || cat === 'Tratamiento' || cat === 'TRATAMIENTO' || (type || '').includes('Cristal');
+                    return !isCrystalOrTreatment;
                 });
                 const insufficientStock: string[] = [];
                 for (const item of stockItems) {
@@ -803,7 +803,7 @@ export class OrderService {
                 const stockItems = (orderForStock?.items || []).filter((item: any) => {
                     const cat = item.product?.category;
                     const type = item.product?.type;
-                    return !(cat === 'Cristal' || (type || '').includes('Cristal'));
+                    return !(cat === 'Cristal' || cat === 'Tratamiento' || cat === 'TRATAMIENTO' || (type || '').includes('Cristal'));
                 });
 
                 const stockUpdates = stockItems
