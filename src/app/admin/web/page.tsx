@@ -534,6 +534,25 @@ export default function WebManagementPage() {
   };
 
   // Product actions
+  const toggleWebProductStatus = async (id: string, field: 'isFeatured' | 'isActive', currentValue: boolean) => {
+    // Optimistic UI update
+    setProducts(prev => prev.map(p => p.id === id ? { ...p, [field]: !currentValue } : p));
+    
+    try {
+      const res = await fetch('/api/admin/web-products', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, [field]: !currentValue })
+      });
+      if (!res.ok) throw new Error('Failed to update');
+    } catch (err) {
+      console.error(err);
+      alert(`Error al actualizar el estado.`);
+      // Revert
+      setProducts(prev => prev.map(p => p.id === id ? { ...p, [field]: currentValue } : p));
+    }
+  };
+
   const handleEditProduct = (p: WebProduct) => {
     setEditingProduct(p);
     setProductForm({
@@ -841,24 +860,23 @@ export default function WebManagementPage() {
                             /{wp.slug}
                           </td>
                           <td className="px-6 py-4 text-center">
-                            {wp.isFeatured ? (
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[9px] font-black text-amber-600 bg-amber-50 border border-amber-200 rounded-sm">
-                                <Star className="w-2.5 h-2.5 fill-current" /> Sí
-                              </span>
-                            ) : (
-                              <span className="text-[10px] text-stone-400 font-bold">No</span>
-                            )}
+                            <button
+                              onClick={() => toggleWebProductStatus(wp.id, 'isFeatured', wp.isFeatured)}
+                              className={`inline-flex items-center justify-center p-1.5 rounded-md transition-all hover:scale-110 ${wp.isFeatured ? 'bg-amber-50 text-amber-500 border border-amber-200 shadow-sm' : 'text-stone-300 hover:text-amber-400 hover:bg-amber-50/50'}`}
+                              title={wp.isFeatured ? "Quitar de Destacados" : "Destacar en Inicio"}
+                            >
+                              <Star className={`w-4 h-4 ${wp.isFeatured ? 'fill-current' : ''}`} />
+                            </button>
                           </td>
                           <td className="px-6 py-4 text-center">
-                            {wp.isActive ? (
-                              <span className="px-2 py-0.5 text-[9px] font-bold text-emerald-600 bg-emerald-50 border border-emerald-200 rounded-sm">
-                                Activo
-                              </span>
-                            ) : (
-                              <span className="px-2 py-0.5 text-[9px] font-bold text-stone-450 bg-stone-100 border border-stone-200 rounded-sm">
-                                Oculto
-                              </span>
-                            )}
+                            <button
+                              onClick={() => toggleWebProductStatus(wp.id, 'isActive', wp.isActive)}
+                              className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider rounded-sm transition-all border ${wp.isActive ? 'text-emerald-700 bg-emerald-50 border-emerald-200 hover:bg-emerald-100 hover:border-emerald-300' : 'text-stone-500 bg-stone-50 border-stone-200 hover:bg-stone-100'}`}
+                              title={wp.isActive ? "Ocultar producto de la web" : "Publicar producto en la web"}
+                            >
+                              <div className={`w-1.5 h-1.5 rounded-full ${wp.isActive ? 'bg-emerald-500' : 'bg-stone-400'}`} />
+                              {wp.isActive ? 'Activo' : 'Oculto'}
+                            </button>
                           </td>
                           <td className="px-6 py-4 text-right">
                             <button
