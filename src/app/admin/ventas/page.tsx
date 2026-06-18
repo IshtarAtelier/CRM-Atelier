@@ -89,6 +89,7 @@ export default function VentasPage() {
             else if (lensName.includes('bifo') && lensName.includes('kri')) tipo_lente = 'Bifocal Kri';
             else if (lensName.includes('bifo')) tipo_lente = 'Bifocal Ft';
             else if (lensName.includes('ocupa') || lensName.includes('intermedio')) tipo_lente = 'Ocupacional';
+            else if (tipo_lente === 'Monofocal' && (rx?.addition || rx?.additionOD || rx?.additionOI)) tipo_lente = 'Multifocal';
 
             let material = order.labMaterial || '';
             if (!material && lensName) {

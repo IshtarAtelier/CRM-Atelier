@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html>
-<head><title>Robot SmartLab v15</title><style>
+<head><title>Robot SmartLab v16</title><style>
 body{font-family:system-ui;background:#fafaf9;display:flex;justify-content:center;align-items:center;min-height:100vh;margin:0}
 .card{background:white;border-radius:24px;padding:48px;box-shadow:0 25px 50px -12px rgba(0,0,0,.15);max-width:500px;text-align:center;border:2px solid #e7e5e4}
 h1{font-size:28px;font-weight:900;color:#1c1917;margin:0 0 12px}
@@ -14,7 +14,7 @@ a.robot:active{cursor:grabbing}
 </style></head>
 <body>
 <div class="card">
-<h1>🤖 Robot SmartLab v15</h1>
+<h1>🤖 Robot SmartLab v16</h1>
 <p>Arrastrá el botón naranja a tu barra de favoritos.<br>Si ya tenés uno viejo, borralo primero.</p>
 <div class="drag-zone">
 <a class="robot" id="robotLink" href="#">🤖 Atelier → SmartLab</a>
@@ -57,8 +57,7 @@ var c = "javascript:void(function(){try{"
 +"}else{box.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',keyCode:27,bubbles:true}));box.blur()}"
 +"if(cb)setTimeout(cb,800)" // Wait 800ms to let backdrop fade out before next interaction
 +"},800)}" // Wait 800ms to let listbox appear fully
-// Click lens type
-+"if(D.tipo_lente){var btns=document.querySelectorAll('button');for(var b=0;b<btns.length;b++){if(btns[b].innerText&&btns[b].innerText.trim().toLowerCase()===D.tipo_lente.toLowerCase()){btns[b].click();done.push('Tipo: '+D.tipo_lente);break}}}"
++"if(D.tipo_lente){var btns=document.querySelectorAll('button');for(var b=0;b<btns.length;b++){if(btns[b].innerText&&btns[b].innerText.trim().toLowerCase()===D.tipo_lente.toLowerCase()){btns[b].dispatchEvent(new MouseEvent('mousedown',{bubbles:true,cancelable:true,view:window}));btns[b].dispatchEvent(new MouseEvent('mouseup',{bubbles:true,cancelable:true,view:window}));btns[b].click();done.push('Tipo: '+D.tipo_lente);break}}}"
 +"setTimeout(function(){"
 // Codigo interno
 +"var ce=document.getElementById('optical-code-text');if(ce&&D.codigoInterno){SV(ce,D.codigoInterno);done.push('Codigo')}"
