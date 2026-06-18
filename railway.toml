@@ -2,4 +2,5 @@
 builder = "NIXPACKS"
 
 [deploy]
-startCommand = "sh -c 'npx prisma migrate deploy && (if [ -f next.config.ts ]; then next start -p ${PORT:-3000} -H 0.0.0.0; else node index.js; fi)'"
+startCommand = "sh -c 'npx prisma migrate deploy && HOSTNAME=0.0.0.0 node server.js'"
+
