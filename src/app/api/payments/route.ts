@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic';
 export async function POST(request: Request) {
     try {
         const body = await request.json();
-        const { orderId, amount, method, notes, receiptUrl } = body;
+        const { orderId, amount, method, notes, receiptUrl, date } = body;
 
         if (!orderId || !method) {
             return NextResponse.json({ error: 'Datos de pago incompletos (orderId y method son obligatorios)' }, { status: 400 });
@@ -17,7 +17,7 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'El monto debe ser un número positivo' }, { status: 400 });
         }
 
-        const result = await ContactService.addPayment(orderId, amount, method, notes, receiptUrl);
+        const result = await ContactService.addPayment(orderId, amount, method, notes, receiptUrl, date);
         return NextResponse.json(result);
     } catch (error: any) {
         console.error('Error creating payment:', error);

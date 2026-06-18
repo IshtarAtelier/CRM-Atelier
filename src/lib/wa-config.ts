@@ -1,3 +1,5 @@
+import { retryWithBackoff } from './retry-utils';
+
 // Centraliza la URL del servidor WhatsApp en un solo lugar.
 // En producción (Railway), se configura via variable de entorno WA_SERVER_URL.
 // En desarrollo local, cae al default de 127.0.0.1:3100.
@@ -13,8 +15,26 @@ export function fetchWa(url: string | URL, init?: RequestInit): Promise<Response
         ? `${WA_SERVER_URL}${url}`
         : url;
 
-    return fetch(resolvedUrl, {
-        ...init,
-        headers
-    });
+    return retryWithBackoff(
+        async () => {
+            const res = await fetch(resolvedUrl, {
+                ...init,
+                headers
+            });
+            // Retry transient 5xx server status codes
+            if (!res.ok && [502, 503, 504].includes(res.status)) {
+                throw Object.assign(
+                    new Error(`WhatsApp API responded with transient status ${res.status}`),
+                    { status: res.status }
+                );
+            }
+            return res;
+        },
+        {
+            maxRetries: 3,
+            delayMs: 500,
+            maxDelayMs: 2000,
+            label: `WhatsApp API (${url})`
+        }
+    );
 }

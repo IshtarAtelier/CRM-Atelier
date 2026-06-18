@@ -4,6 +4,7 @@ import { ChatVertexAI } from '@langchain/google-vertexai-web';
 import { SystemMessage, HumanMessage } from '@langchain/core/messages';
 import { prisma } from '@/lib/db';
 import { checkRateLimit } from '@/lib/rate-limiter';
+import { retryWithBackoff } from '@/lib/retry-utils';
 
 export const dynamic = 'force-dynamic';
 
@@ -89,18 +90,22 @@ Devuelve SOLO un JSON válido con esta estructura:
             if (mimeMatch) mimeType = mimeMatch[1];
         }
 
-        const response = await model.invoke([
-            new SystemMessage(systemPrompt),
-            new HumanMessage({
-                content: [
-                    { type: 'text', text: 'Extrae todos los productos y precios de esta lista de precios de laboratorio óptico.' },
-                    {
-                        type: 'image_url',
-                        image_url: { url: `data:${mimeType};base64,${cleanBase64}` }
-                    }
-                ]
-            })
-        ]);
+        // Use unified retry logic for transient OAuth/network errors
+        const response = await retryWithBackoff(
+            () => model.invoke([
+                new SystemMessage(systemPrompt),
+                new HumanMessage({
+                    content: [
+                        { type: 'text', text: 'Extrae todos los productos y precios de esta lista de precios de laboratorio óptico.' },
+                        {
+                            type: 'image_url',
+                            image_url: { url: `data:${mimeType};base64,${cleanBase64}` }
+                        }
+                    ]
+                })
+            ]),
+            { label: 'OCR Price Importer' }
+        );
 
         // 2. Parse AI response
         let extracted: { linea: string; material: string; tratamiento: string; color: string; precio: number }[] = [];

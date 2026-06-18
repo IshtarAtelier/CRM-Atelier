@@ -158,17 +158,36 @@ export default function AddPaymentModal({
         try {
             let receiptUrl = null;
 
-            // 1. Subir comprobante si existe (a Firebase Storage)
+            // 1. Subir comprobante si existe (con reintento automático)
             if (receiptFile) {
-                const formData = new FormData();
-                formData.append('file', receiptFile);
-                const uploadRes = await fetch('/api/upload', { method: 'POST', body: formData });
-                const uploadData = await uploadRes.json();
-                
-                if (!uploadRes.ok) {
-                    throw new Error(uploadData.error || 'Error al subir la foto del comprobante');
+                let uploadSuccess = false;
+                let uploadError: any = null;
+
+                for (let attempt = 1; attempt <= 2; attempt++) {
+                    try {
+                        const formData = new FormData();
+                        formData.append('file', receiptFile);
+                        const uploadRes = await fetch('/api/upload', { method: 'POST', body: formData });
+                        const uploadData = await uploadRes.json();
+                        
+                        if (!uploadRes.ok) {
+                            throw new Error(uploadData.error || 'Error al subir la foto del comprobante');
+                        }
+                        receiptUrl = uploadData.url;
+                        uploadSuccess = true;
+                        break;
+                    } catch (err: any) {
+                        uploadError = err;
+                        if (attempt < 2 && (err.message?.includes('conexión') || err.message?.includes('Google Cloud') || err.message?.includes('Premature'))) {
+                            console.warn(`[AddPaymentModal] Upload attempt ${attempt} failed, retrying...`);
+                            await new Promise(r => setTimeout(r, 1500));
+                        }
+                    }
                 }
-                receiptUrl = uploadData.url;
+
+                if (!uploadSuccess) {
+                    throw uploadError || new Error('Error al subir la foto del comprobante');
+                }
             }
 
             // 2. Registrar el pago
@@ -192,7 +211,12 @@ export default function AddPaymentModal({
             const payment = await res.json();
             onSuccess(payment);
         } catch (err: any) {
-            setError(err.message);
+            const msg = err.message || 'Error al registrar el pago';
+            if (msg.includes('Premature close') || msg.includes('Invalid response body') || msg.includes('oauth2')) {
+                setError('Error de conexión con Google Cloud. Por favor, intentá guardar el pago de nuevo.');
+            } else {
+                setError(msg);
+            }
         } finally {
             setLoading(false);
         }

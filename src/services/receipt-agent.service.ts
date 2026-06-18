@@ -3,6 +3,7 @@ import { ChatVertexAI } from "@langchain/google-vertexai-web";
 import { SystemMessage, HumanMessage } from "@langchain/core/messages";
 import { getFileBuffer } from '@/lib/storage';
 import { detectBillingAccount, getBillingAccountConfig } from '@/lib/afip';
+import { retryWithBackoff } from '@/lib/retry-utils';
 
 export class ReceiptAgentService {
     /**
@@ -58,18 +59,22 @@ Extrae la siguiente información y preséntala ESTRICTAMENTE en formato JSON pla
 }
 Solo devuelve el JSON, sin texto antes ni después.`;
 
-            const response = await model.invoke([
-                 new SystemMessage(systemPrompt),
-                 new HumanMessage({
-                    content: [
-                        { type: "text", text: "Por favor, analiza este comprobante según las instrucciones." },
-                        { 
-                            type: "image_url", 
-                            image_url: { url: `data:${mimeType};base64,${base64Data}` }
-                        }
-                    ]
-                 })
-            ]);
+            // Use unified retry logic for transient OAuth/network errors
+            const response = await retryWithBackoff(
+                () => model.invoke([
+                     new SystemMessage(systemPrompt),
+                     new HumanMessage({
+                        content: [
+                            { type: "text", text: "Por favor, analiza este comprobante según las instrucciones." },
+                            { 
+                                type: "image_url", 
+                                image_url: { url: `data:${mimeType};base64,${base64Data}` }
+                            }
+                        ]
+                     })
+                ]),
+                { label: 'ReceiptAgent' }
+            );
 
             // 4. Parse the response
             let extracted: any = {};

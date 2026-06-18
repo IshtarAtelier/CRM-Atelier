@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getFileBuffer } from '@/lib/storage';
 import path from 'path';
 
+export const dynamic = 'force-dynamic';
+
+
 export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const key = searchParams.get('key');
@@ -23,14 +26,20 @@ export async function GET(req: NextRequest) {
 
     try {
         const isCloudEnabled = !!process.env.FIREBASE_PROJECT_ID;
+        console.log('[View Route] isCloudEnabled:', isCloudEnabled, 'key:', key);
         
-        let buffer: Buffer | null = null;
         if (isCloudEnabled && !key.startsWith('local://')) {
-            buffer = await getFileBuffer(key);
-        } else {
-            const lookupKey = key.startsWith('local://') ? key : `local://${key}`;
-            buffer = await getFileBuffer(lookupKey);
+            console.log('[View Route] Entering cloud redirect for key:', key);
+            const { getSignedUrl } = await import('@/lib/storage');
+            const signedUrl = await getSignedUrl(key);
+            console.log('[View Route] Redirecting to signedUrl:', signedUrl);
+            return NextResponse.redirect(signedUrl, { status: 307 });
         }
+        console.log('[View Route] Bypassed cloud redirect, falling back to local for key:', key);
+
+        // Si es local, buscar y retornar el buffer directamente
+        const lookupKey = key.startsWith('local://') ? key : `local://${key}`;
+        const buffer = await getFileBuffer(lookupKey);
 
         if (!buffer) {
             return new NextResponse('File not found', { status: 404 });

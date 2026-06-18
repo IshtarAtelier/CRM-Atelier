@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { ChatVertexAI } from "@langchain/google-vertexai-web";
 import { HumanMessage } from "@langchain/core/messages";
 import { checkRateLimit } from '@/lib/rate-limiter';
+import { retryWithBackoff } from '@/lib/retry-utils';
 
 export const dynamic = 'force-dynamic';
 
@@ -86,14 +87,18 @@ Responde SOLO con el JSON, sin texto alrededor, sin comillas de código ni forma
             temperature: 0,
         });
 
-        const response = await model.invoke([
-            new HumanMessage({
-                content: [
-                    { type: "text", text: prompt },
-                    { type: "image_url", image_url: { url: `data:${mimeType};base64,${base64}` } }
-                ]
-            })
-        ]);
+        // Use unified retry logic for transient OAuth/network errors
+        const response = await retryWithBackoff(
+            () => model.invoke([
+                new HumanMessage({
+                    content: [
+                        { type: "text", text: prompt },
+                        { type: "image_url", image_url: { url: `data:${mimeType};base64,${base64}` } }
+                    ]
+                })
+            ]),
+            { label: 'OCR VertexAI' }
+        );
 
         const textResponse = response.content.toString();
         const cleanedJson = textResponse.replace(/```json/gi, '').replace(/```/g, '').trim();
@@ -102,6 +107,13 @@ Responde SOLO con el JSON, sin texto alrededor, sin comillas de código ni forma
         return NextResponse.json(extractedData);
     } catch (error: any) {
         const { handleAIError } = await import('@/lib/ai-error-handler');
+        // Provide a user-friendly message for OAuth/network errors
+        const msg = error?.message || '';
+        if (msg.includes('Premature close') || msg.includes('Invalid response body') || msg.includes('oauth2')) {
+            return NextResponse.json({ 
+                error: 'Error de conexión con Google Cloud. Por favor, intentá de nuevo.' 
+            }, { status: 502 });
+        }
         try {
             await handleAIError(error, 'OCR de Recetas/Comprobantes');
         } catch (handledError: any) {
