@@ -4,6 +4,7 @@ import { ChatVertexAI } from '@langchain/google-vertexai-web';
 import { SystemMessage, HumanMessage } from '@langchain/core/messages';
 import { prisma } from '@/lib/db';
 import { checkRateLimit } from '@/lib/rate-limiter';
+import { retryWithBackoff } from '@/lib/retry-utils';
 
 export const dynamic = 'force-dynamic';
 
@@ -89,52 +90,22 @@ Devuelve SOLO un JSON válido con esta estructura:
             if (mimeMatch) mimeType = mimeMatch[1];
         }
 
-        const MAX_RETRIES = 3;
-        function isTransientError(error: any): boolean {
-            const msg = error?.message || error?.toString() || '';
-            return (
-                msg.includes('Premature close') ||
-                msg.includes('ECONNRESET') ||
-                msg.includes('ETIMEDOUT') ||
-                msg.includes('socket hang up') ||
-                msg.includes('network') ||
-                msg.includes('fetch failed') ||
-                msg.includes('Invalid response body')
-            );
-        }
-
-        let response;
-        let lastError: any;
-        for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
-            try {
-                response = await model.invoke([
-                    new SystemMessage(systemPrompt),
-                    new HumanMessage({
-                        content: [
-                            { type: 'text', text: 'Extrae todos los productos y precios de esta lista de precios de laboratorio óptico.' },
-                            {
-                                type: 'image_url',
-                                image_url: { url: `data:${mimeType};base64,${cleanBase64}` }
-                            }
-                        ]
-                    })
-                ]);
-                break;
-            } catch (error: any) {
-                lastError = error;
-                if (attempt < MAX_RETRIES && isTransientError(error)) {
-                    const delay = Math.min(1000 * Math.pow(2, attempt - 1), 4000);
-                    console.warn(`[OCR-Update] Attempt ${attempt}/${MAX_RETRIES} failed (transient). Retrying in ${delay}ms...`, error.message);
-                    await new Promise(r => setTimeout(r, delay));
-                } else {
-                    throw error;
-                }
-            }
-        }
-
-        if (!response) {
-            throw lastError || new Error('OCR failed after all retries');
-        }
+        // Use unified retry logic for transient OAuth/network errors
+        const response = await retryWithBackoff(
+            () => model.invoke([
+                new SystemMessage(systemPrompt),
+                new HumanMessage({
+                    content: [
+                        { type: 'text', text: 'Extrae todos los productos y precios de esta lista de precios de laboratorio óptico.' },
+                        {
+                            type: 'image_url',
+                            image_url: { url: `data:${mimeType};base64,${cleanBase64}` }
+                        }
+                    ]
+                })
+            ]),
+            { label: 'OCR Price Importer' }
+        );
 
         // 2. Parse AI response
         let extracted: { linea: string; material: string; tratamiento: string; color: string; precio: number }[] = [];

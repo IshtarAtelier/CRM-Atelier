@@ -23,13 +23,16 @@ export async function GET(req: NextRequest) {
 
     try {
         const isCloudEnabled = !!process.env.FIREBASE_PROJECT_ID;
+        console.log('[View Route] isCloudEnabled:', isCloudEnabled, 'key:', key);
         
         if (isCloudEnabled && !key.startsWith('local://')) {
-            // Generar URL firmada y redirigir directamente al navegador del cliente
+            console.log('[View Route] Entering cloud redirect for key:', key);
             const { getSignedUrl } = await import('@/lib/storage');
             const signedUrl = await getSignedUrl(key);
+            console.log('[View Route] Redirecting to signedUrl:', signedUrl);
             return NextResponse.redirect(signedUrl, { status: 307 });
         }
+        console.log('[View Route] Bypassed cloud redirect, falling back to local for key:', key);
 
         // Si es local, buscar y retornar el buffer directamente
         const lookupKey = key.startsWith('local://') ? key : `local://${key}`;
