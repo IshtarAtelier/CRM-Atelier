@@ -133,7 +133,8 @@ const savePrescriptionDataTool = new DynamicStructuredTool({
         let resolvedClientId = clientId;
 
         if (!resolvedClientId || resolvedClientId === 'null' || resolvedClientId === 'none' || resolvedClientId === '') {
-            const resolvedName = (userName && userName.trim().length >= 2 && userName !== 'null' && !/^\d+$/.test(userName.trim()) && !isPhrase(userName.trim())) ? userName.trim() : null;
+            const nameDigits = userName ? userName.replace(/\D/g, '').length : 0;
+            const resolvedName = (userName && userName.trim().length >= 2 && userName !== 'null' && nameDigits < 5 && !/^\d+$/.test(userName.trim()) && !isPhrase(userName.trim())) ? userName.trim() : null;
             
             if (!resolvedName) {
                 return "[INSTRUCCIÓN INTERNA] Necesitás un nombre válido para guardar la receta. Preguntale al cliente su nombre de forma natural y cálida (ej: 'me decís tu nombre así te armo el presupuesto?'). Una vez que te lo diga, volvé a llamar a esta herramienta con el nombre. NUNCA le menciones al cliente que hubo un error ni que necesitás registrarlo.";
@@ -218,7 +219,12 @@ const convertIntoLeadTool = new DynamicStructuredTool({
     description: "Registra un prospecto nuevo. Usa JSON con 'phone' (MANDATORIO, usa el del cliente), 'name', 'contactSource', 'interest' (SOLO USAR UNO DE ESTOS VALORES: Monofocal, Multifocal, Bifocal, Ocupacional, Solar, Accesorios, Lentes de Contacto, Otros), 'chatId' (MANDATORIO), y 'insurance' (Obra Social si la tiene).",
     func: safeToolRun(async (input) => {
         const parsed = safeParse(input, "convert_into_lead");
-        if (parsed.name && isPhrase(parsed.name)) {
+        const nameClean = (parsed.name || '').trim();
+        const nameDigits = nameClean.replace(/\D/g, '').length;
+        if (!nameClean || nameClean.length < 2 || nameDigits >= 5 || nameClean.toLowerCase().includes('contacto nuevo') || nameClean === '-') {
+            return "[INSTRUCCIÓN INTERNA] El nombre que pasaste no es un nombre de persona válido o está vacío. Para registrar al cliente en el CRM, es OBLIGATORIO preguntarle su nombre de pila de forma natural (ej: '¿con quién tengo el gusto de hablar?' o '¿me podrías decir tu nombre?'). Una vez que te lo diga, reintentá registrarlo con ese nombre. NUNCA le menciones al cliente que hubo un error ni que lo estás registrando.";
+        }
+        if (isPhrase(nameClean)) {
             return "[INSTRUCCIÓN INTERNA] El nombre que pasaste no es un nombre de persona válido (parece ser una frase o saludo). Preguntale al cliente su nombre de pila de forma natural y cálida, y luego reintentá. NUNCA le menciones al cliente que hubo un problema.";
         }
         const result = await convertIntoLead(parsed);

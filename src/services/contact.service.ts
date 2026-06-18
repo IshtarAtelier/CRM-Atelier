@@ -180,7 +180,12 @@ export const ContactService = {
     },
 
     async create(data: ContactCreateData) {
-        const normalizedName = data.name.trim().toLowerCase();
+        const nameClean = (data.name || '').trim();
+        const nameDigitsCount = (nameClean.match(/\d/g) || []).length;
+        if (!nameClean || nameClean.length < 2 || nameDigitsCount >= 5 || nameClean === '-' || nameClean.toLowerCase() === 'contacto nuevo wa' || nameClean.toLowerCase() === 'contacto nuevo') {
+            throw new Error(JSON.stringify({ isBlocked: true, message: `Bloqueo de seguridad: El nombre "${data.name}" no es un nombre de persona válido.` }));
+        }
+        const normalizedName = nameClean.toLowerCase();
         
         let normalizedIncomingPhone = "";
         if (data.phone) {

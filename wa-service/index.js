@@ -614,8 +614,9 @@ const handleMessage = async (msg) => {
     // ── Resolve Profile Name ──────────────────────────
     const rawName = contact.pushname || contact.name || '';
     let profileName = rawName.replace(/[^a-zA-Z0-9 áéíóúÁÉÍÓÚñÑüÜ.,\-']/g, '').trim();
-    // Reject garbage names: empty, pure numbers, too short, looks like an ID code, or if it is a phrase/sentence
-    if (!profileName || /^\d+$/.test(profileName) || profileName.length < 2 || /^[0-9a-f]{10,}$/i.test(profileName) || isPhrase(profileName)) {
+    const profileDigitsCount = (profileName.match(/\d/g) || []).length;
+    // Reject garbage names: empty, too many digits (phone numbers/codes), pure numbers, too short, looks like an ID code, or if it is a phrase/sentence
+    if (!profileName || profileDigitsCount >= 6 || /^\d+$/.test(profileName) || profileName.length < 2 || /^[0-9a-f]{10,}$/i.test(profileName) || isPhrase(profileName)) {
         profileName = '';
     }
 
