@@ -308,7 +308,7 @@ export default function CajaPage() {
                             </button>
                         </div>
                         <div className="flex-1 overflow-auto bg-stone-50 dark:bg-stone-900/50 p-4">
-                            <Image src={viewingReceipt} alt="Comprobante" className="w-full h-auto rounded-2xl shadow-lg" />
+                            <img src={viewingReceipt} alt="Comprobante" className="w-full h-auto rounded-2xl shadow-lg" />
                         </div>
                     </div>
                 </div>
