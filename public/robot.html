@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html>
-<head><title>Robot SmartLab v14</title><style>
+<head><title>Robot SmartLab v15</title><style>
 body{font-family:system-ui;background:#fafaf9;display:flex;justify-content:center;align-items:center;min-height:100vh;margin:0}
 .card{background:white;border-radius:24px;padding:48px;box-shadow:0 25px 50px -12px rgba(0,0,0,.15);max-width:500px;text-align:center;border:2px solid #e7e5e4}
 h1{font-size:28px;font-weight:900;color:#1c1917;margin:0 0 12px}
@@ -14,7 +14,7 @@ a.robot:active{cursor:grabbing}
 </style></head>
 <body>
 <div class="card">
-<h1>🤖 Robot SmartLab v14</h1>
+<h1>🤖 Robot SmartLab v15</h1>
 <p>Arrastrá el botón naranja a tu barra de favoritos.<br>Si ya tenés uno viejo, borralo primero.</p>
 <div class="drag-zone">
 <a class="robot" id="robotLink" href="#">🤖 Atelier → SmartLab</a>
@@ -72,8 +72,8 @@ var c = "javascript:void(function(){try{"
 +"AQ('left-eye-far-cylindrical-autocomplete',D.oi_cilindro,'Cil OI');"
 +"AQ('right-eye-far-axis-autocomplete',D.od_eje,'Eje OD');"
 +"AQ('left-eye-far-axis-autocomplete',D.oi_eje,'Eje OI');"
-+"AQ('right-eye-addition-autocomplete',D.od_adicion,'Add OD');"
-+"AQ('left-eye-addition-autocomplete',D.oi_adicion,'Add OI');"
++"var tAddR=document.getElementById('right-eye-addition-text');if(tAddR&&D.od_adicion){SV(tAddR,D.od_adicion);done.push('Add OD')}else{AQ('right-eye-addition-autocomplete',D.od_adicion,'Add OD')}"
++"var tAddL=document.getElementById('left-eye-addition-text');if(tAddL&&D.oi_adicion){SV(tAddL,D.oi_adicion);done.push('Add OI')}else{AQ('left-eye-addition-autocomplete',D.oi_adicion,'Add OI')}"
 +"AQ('right-eye-interpupillary-distance-autocomplete',D.od_dp,'DP OD');"
 +"AQ('left-eye-interpupillary-distance-autocomplete',D.oi_dp,'DP OI');"
 +"AQ('right-eye-pupillary-height-autocomplete',D.od_altura,'Alt OD');"

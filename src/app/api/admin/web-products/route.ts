@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { revalidatePath } from 'next/cache';
 
 export const dynamic = 'force-dynamic';
 
@@ -62,6 +63,9 @@ export async function PATCH(request: Request) {
                 ...(slug !== undefined ? { slug: slug.toLowerCase().replace(/[^a-z0-9-]/g, '-') } : {}),
             }
         });
+
+        revalidatePath('/');
+        revalidatePath('/tienda');
 
         return NextResponse.json({ success: true, webProduct: updated });
     } catch (error: any) {
