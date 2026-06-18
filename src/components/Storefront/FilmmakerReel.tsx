@@ -100,6 +100,7 @@ export function FilmmakerReel() {
               alt="La Gioconda"
               fill
               priority
+              unoptimized
               className="object-cover"
               sizes="100vw"
             />
@@ -130,6 +131,7 @@ export function FilmmakerReel() {
                 alt={frame.title}
                 fill
                 priority={current === 0}
+                unoptimized
                 className="object-cover"
                 sizes="100vw"
               />
