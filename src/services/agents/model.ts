@@ -1,6 +1,8 @@
 import { ChatVertexAI } from "@langchain/google-vertexai-web";
 import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
 
+import { retryWithBackoff } from "@/lib/retry-utils";
+
 let globalUseFallback = false;
 
 class FallbackModel {
@@ -24,18 +26,28 @@ class FallbackModel {
 
   async invoke(messages: any, options?: any): Promise<any> {
     if (globalUseFallback) {
-      return this.geminiModel.invoke(messages, options);
+      return retryWithBackoff(
+        () => this.geminiModel.invoke(messages, options),
+        { label: 'Gemini (Fallback) Invoke' }
+      );
     }
 
     try {
-      return await this.vertexModel.invoke(messages, options);
+      // Retry VertexAI up to 2 times for transient network issues before falling back permanently
+      return await retryWithBackoff(
+        () => this.vertexModel.invoke(messages, options),
+        { maxRetries: 2, delayMs: 500, label: 'VertexAI Invoke' }
+      );
     } catch (error: any) {
       console.warn(
-        '[Agent Model] ChatVertexAI invocation failed, falling back to ChatGoogleGenerativeAI permanently. Error:',
+        '[Agent Model] ChatVertexAI invocation failed after retries, falling back to ChatGoogleGenerativeAI permanently. Error:',
         error.message
       );
       globalUseFallback = true;
-      return await this.geminiModel.invoke(messages, options);
+      return retryWithBackoff(
+        () => this.geminiModel.invoke(messages, options),
+        { label: 'Gemini (Fallback) Invoke' }
+      );
     }
   }
 }

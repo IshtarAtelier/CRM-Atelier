@@ -2,6 +2,7 @@ import { initializeApp, getApps, cert } from 'firebase-admin/app';
 import { getStorage } from 'firebase-admin/storage';
 import { writeFile, mkdir, unlink, readdir, stat } from "fs/promises";
 import path from "path";
+import { retryWithBackoff } from './retry-utils';
 import http from 'http';
 import https from 'https';
 
@@ -225,20 +226,25 @@ export async function getFileBuffer(key: string): Promise<Buffer | null> {
 
     if (isCloudEnabled) {
         try {
-            const bucket = getStorage().bucket();
-            const file = bucket.file(key);
-            // Generar la URL firmada offline
-            const [url] = await file.getSignedUrl({
-                action: 'read',
-                expires: Date.now() + 15 * 60 * 1000 // 15 minutos
-            });
-            // Descargar usando fetch estándar
-            const response = await fetch(url);
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            const arrayBuffer = await response.arrayBuffer();
-            return Buffer.from(arrayBuffer);
+            return await retryWithBackoff(
+                async () => {
+                    const bucket = getStorage().bucket();
+                    const file = bucket.file(key);
+                    // Generar la URL firmada offline
+                    const [url] = await file.getSignedUrl({
+                        action: 'read',
+                        expires: Date.now() + 15 * 60 * 1000 // 15 minutos
+                    });
+                    // Descargar usando fetch estándar
+                    const response = await fetch(url);
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    const arrayBuffer = await response.arrayBuffer();
+                    return Buffer.from(arrayBuffer);
+                },
+                { label: `Firebase storage getFileBuffer (${key})` }
+            );
         } catch (error) {
             console.error('Error downloading Cloud file buffer via signed URL:', error);
             return null;
