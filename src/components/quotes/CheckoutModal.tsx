@@ -84,6 +84,12 @@ export default function CheckoutModal({
     const [labNotes, setLabNotes] = useState<string>('');
     const [tintType, setTintType] = useState<string>('');
     const [tintColor, setTintColor] = useState<string>('');
+    const [tintIntensity, setTintIntensity] = useState<string>('');
+
+    const [frameMeasurePte, setFrameMeasurePte] = useState<string>('');
+    const [frameMeasureA, setFrameMeasureA] = useState<string>('');
+    const [frameMeasureB, setFrameMeasureB] = useState<string>('');
+    const [frameMeasureEd, setFrameMeasureEd] = useState<string>('');
 
     const canConvert = Number(paid) >= Number(minRequired) && isClientDataComplete && (!hasCrystals || selectedRxId);
 
@@ -127,6 +133,7 @@ export default function CheckoutModal({
             let finalLabColor = undefined;
             if (hasTinting && (tintType || tintColor)) {
                 finalLabColor = `${tintType} ${tintColor}`.trim();
+                if (tintIntensity) finalLabColor += ` (Grado: ${tintIntensity})`;
             }
 
             await onComplete({
@@ -136,7 +143,11 @@ export default function CheckoutModal({
                 labFrameShape: isMultifocal ? (frameShape || undefined) : undefined,
                 labFrameDetails: frameDetails || undefined,
                 labNotes: labNotes || undefined,
-                labColor: finalLabColor
+                labColor: finalLabColor,
+                labMeasurePte: isMultifocal ? frameMeasurePte : undefined,
+                labMeasureA: isMultifocal ? frameMeasureA : undefined,
+                labMeasureB: isMultifocal ? frameMeasureB : undefined,
+                labMeasureEd: isMultifocal ? frameMeasureEd : undefined
             });
         } catch (err: any) {
             setError(err.message || 'Error en la operación');
@@ -372,6 +383,53 @@ export default function CheckoutModal({
                                                 );
                                             })}
                                         </div>
+
+                                        <div className="mb-4">
+                                            <label className="text-[10px] font-black text-blue-500 uppercase tracking-widest block mb-4">Medidas del Armazón</label>
+                                            <div className="flex flex-col sm:flex-row gap-6 items-center bg-white/50 dark:bg-stone-900/30 p-4 rounded-2xl border border-blue-100 dark:border-blue-900/50">
+                                                <div className="w-full sm:w-1/3 flex justify-center">
+                                                    <svg width="120" height="70" viewBox="0 0 120 70" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-stone-400">
+                                                        <path d="M10 35 C10 15, 45 15, 55 35 C45 65, 10 55, 10 35 Z" />
+                                                        <path d="M65 35 C65 15, 100 15, 110 35 C100 65, 65 55, 65 35 Z" />
+                                                        <path d="M55 25 Q60 20 65 25" />
+                                                        
+                                                        {/* A (Ancho) */}
+                                                        <line x1="12" y1="35" x2="53" y2="35" strokeDasharray="2,2" />
+                                                        <text x="32" y="32" fontSize="6" fill="currentColor" stroke="none">A</text>
+                                                        
+                                                        {/* B (Alto) */}
+                                                        <line x1="32" y1="18" x2="32" y2="52" strokeDasharray="2,2" />
+                                                        <text x="35" y="48" fontSize="6" fill="currentColor" stroke="none">B</text>
+
+                                                        {/* ED (Diagonal) */}
+                                                        <line x1="15" y1="20" x2="50" y2="50" strokeDasharray="2,2" />
+                                                        <text x="20" y="45" fontSize="6" fill="currentColor" stroke="none">ED</text>
+
+                                                        {/* Puente */}
+                                                        <line x1="55" y1="20" x2="65" y2="20" strokeDasharray="2,2" />
+                                                        <text x="56" y="18" fontSize="6" fill="currentColor" stroke="none">Pte</text>
+                                                    </svg>
+                                                </div>
+                                                <div className="w-full sm:w-2/3 grid grid-cols-2 gap-3">
+                                                    <div className="space-y-1">
+                                                        <label className="text-[9px] font-bold text-stone-500 uppercase">Puente</label>
+                                                        <input type="number" value={frameMeasurePte} onChange={e => setFrameMeasurePte(e.target.value)} className="w-full bg-white dark:bg-stone-900 border border-blue-200 dark:border-blue-800/50 px-3 py-2 rounded-xl text-xs font-medium focus:border-blue-500 outline-none" placeholder="Ej: 16" />
+                                                    </div>
+                                                    <div className="space-y-1">
+                                                        <label className="text-[9px] font-bold text-stone-500 uppercase">Ancho (A)</label>
+                                                        <input type="number" value={frameMeasureA} onChange={e => setFrameMeasureA(e.target.value)} className="w-full bg-white dark:bg-stone-900 border border-blue-200 dark:border-blue-800/50 px-3 py-2 rounded-xl text-xs font-medium focus:border-blue-500 outline-none" placeholder="Ej: 56" />
+                                                    </div>
+                                                    <div className="space-y-1">
+                                                        <label className="text-[9px] font-bold text-stone-500 uppercase">Alto (B)</label>
+                                                        <input type="number" value={frameMeasureB} onChange={e => setFrameMeasureB(e.target.value)} className="w-full bg-white dark:bg-stone-900 border border-blue-200 dark:border-blue-800/50 px-3 py-2 rounded-xl text-xs font-medium focus:border-blue-500 outline-none" placeholder="Ej: 42" />
+                                                    </div>
+                                                    <div className="space-y-1">
+                                                        <label className="text-[9px] font-bold text-stone-500 uppercase">Diagonal (ED)</label>
+                                                        <input type="number" value={frameMeasureEd} onChange={e => setFrameMeasureEd(e.target.value)} className="w-full bg-white dark:bg-stone-900 border border-blue-200 dark:border-blue-800/50 px-3 py-2 rounded-xl text-xs font-medium focus:border-blue-500 outline-none" placeholder="Ej: 54" />
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </>
                                 )}
 
@@ -425,6 +483,16 @@ export default function CheckoutModal({
                                                     <option value="Rojo">Rojo</option>
                                                     <option value="Otro">Otro (Aclarar en notas)</option>
                                                 </select>
+                                            </div>
+                                            <div className="space-y-2">
+                                                <label className="text-[9px] font-bold text-stone-500 uppercase">Intensidad</label>
+                                                <input 
+                                                    type="text"
+                                                    value={tintIntensity} 
+                                                    onChange={e => setTintIntensity(e.target.value)}
+                                                    placeholder="Ej: 10%, Medio..."
+                                                    className="w-full bg-white dark:bg-stone-900 border border-blue-200 dark:border-blue-800/50 px-3 py-2 rounded-xl text-xs font-medium focus:border-blue-500 outline-none"
+                                                />
                                             </div>
                                         </div>
                                     </div>
