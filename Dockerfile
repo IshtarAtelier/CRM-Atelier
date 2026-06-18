@@ -1,17 +1,14 @@
 FROM node:22-slim AS base
-RUN apt-get update && apt-get install -y openssl ca-certificates && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y --no-install-recommends openssl ca-certificates && rm -rf /var/lib/apt/lists/*
 
-# Install dependencies only when needed
+# ── Install dependencies ──
 FROM base AS deps
 WORKDIR /app
-
-# Install dependencies based on package-lock.json
 COPY package*.json ./
+# --ignore-scripts evita instalar Playwright browsers en esta etapa (se hace en builder)
 RUN npm ci --ignore-scripts
-# Generate Prisma client explicitly (since we skipped postinstall)
-RUN npx prisma generate --schema=node_modules/.prisma/schema.prisma 2>/dev/null || true
 
-# Rebuild the source code only when needed
+# ── Build ──
 FROM base AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
@@ -20,56 +17,59 @@ COPY . .
 # Generate Prisma client
 RUN npx prisma generate
 
-# Build Next.js app (without playwright install in build script)
+# Build Next.js (standalone output)
 ENV NEXT_TELEMETRY_DISABLED=1
-RUN npm run build
+# Override build script to skip playwright install (lo hacemos abajo)
+RUN npx prisma generate && npx next build
 
-# Install Playwright with only Chromium and its system dependencies
+# Install Playwright Chromium + ALL system deps in builder
 ENV PLAYWRIGHT_BROWSERS_PATH=/app/.playwright-browsers
 RUN npx playwright install --with-deps chromium
 
-# Production image, copy all the files and run next
+# ── Production runner ──
 FROM node:22-slim AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
+ENV PLAYWRIGHT_BROWSERS_PATH=/app/.playwright-browsers
 
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
-# Install Chromium system dependencies in the runner image
-RUN apt-get update && apt-get install -y \
-    libnss3 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 \
-    libxkbcommon0 libxcomposite1 libxdamage1 libxrandr2 libgbm1 \
-    libpango-1.0-0 libcairo2 libasound2 libxshmfence1 \
-    ca-certificates fonts-liberation openssl \
-    && rm -rf /var/lib/apt/lists/*
+# Instalar dependencias del sistema para Chromium de forma robusta:
+# Copiamos playwright temporalmente para usar su herramienta install-deps
+COPY --from=builder /app/node_modules/playwright-core /tmp/playwright-core
+COPY --from=builder /app/node_modules/playwright /tmp/playwright
+RUN apt-get update \
+    && npx /tmp/playwright-core install-deps chromium \
+    && apt-get install -y --no-install-recommends openssl ca-certificates \
+    && rm -rf /var/lib/apt/lists/* /tmp/playwright-core /tmp/playwright
 
 COPY --from=builder /app/public ./public
 
-# Set the correct permission for prerender cache
+# Prerender cache
 RUN mkdir .next
 RUN chown nextjs:nodejs .next
 
-# Automatically leverage output traces to reduce image size
+# Next.js standalone output (incluye server.js + node_modules mínimos)
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
-# Copy Prisma schema, migrations, and CLI engines for runtime migrations
+# Prisma para migrations en runtime
 COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
 COPY --from=builder --chown=nextjs:nodejs /app/node_modules/prisma ./node_modules/prisma
 COPY --from=builder --chown=nextjs:nodejs /app/node_modules/@prisma ./node_modules/@prisma
 
-# Copy Playwright browsers from builder
+# Playwright: copiar browsers del builder y el paquete playwright para que el servicio lo use
 COPY --from=builder --chown=nextjs:nodejs /app/.playwright-browsers ./.playwright-browsers
-ENV PLAYWRIGHT_BROWSERS_PATH=/app/.playwright-browsers
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules/playwright ./node_modules/playwright
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules/playwright-core ./node_modules/playwright-core
 
 USER nextjs
 
 EXPOSE 3000
-
 ENV PORT=3000
 
-# Run migrations and start next standalone server
+# Migrations + start
 CMD ["sh", "-c", "node node_modules/prisma/build/index.js migrate deploy && HOSTNAME=0.0.0.0 node server.js"]
