@@ -88,6 +88,10 @@ function CotizadorPageContent() {
     const [search, setSearch] = useState('');
     const [activeType, setActiveType] = useState<string | null>(null);
     const [onlyWeb, setOnlyWeb] = useState(false);
+    const [selectedSubtype, setSelectedSubtype] = useState('');
+    const [selectedOrigin, setSelectedOrigin] = useState('');
+    const [selectedBrand, setSelectedBrand] = useState('');
+    const [selectedLab, setSelectedLab] = useState('');
     const [quoteItems, setQuoteItems] = useState<QuoteItem[]>([]);
     const [markup, setMarkup] = useState(0);
     const [discountCash, setDiscountCash] = useState(20);
@@ -222,11 +226,59 @@ function CotizadorPageContent() {
         return () => clearTimeout(timer);
     }, [contactSearch]);
 
+    // Clear sub-filters when activeType changes
+    useEffect(() => {
+        setSelectedSubtype('');
+        setSelectedOrigin('');
+        setSelectedBrand('');
+        setSelectedLab('');
+    }, [activeType]);
+
     // Filter logic
     const availableCategories = useMemo(() => {
         const types = new Set(products.map(p => getCategoryKey(p.type, p.category)));
         return Array.from(types).sort() as string[];
     }, [products]);
+
+    const baseFilteredForBrandsAndLabs = useMemo(() => {
+        return products.filter(p => {
+            const matchesWeb = !onlyWeb || p.publishToWeb === true;
+            if (!matchesWeb) return false;
+            
+            if (activeType === 'NONE') return true;
+            if (activeType) {
+                if (getCategoryKey(p.type, p.category) !== activeType) return false;
+            }
+            
+            if (activeType === 'Cristal' && selectedSubtype) {
+                const type = p.type?.toLowerCase() || '';
+                const qSubtype = selectedSubtype.toLowerCase();
+                if (type !== `cristal ${qSubtype}` && !type.includes(qSubtype) && type !== qSubtype) return false;
+            }
+            
+            if (activeType === 'Cristal' && selectedOrigin) {
+                if ((p as any).origin !== selectedOrigin) return false;
+            }
+            
+            return true;
+        });
+    }, [products, activeType, onlyWeb, selectedSubtype, selectedOrigin]);
+
+    const uniqueBrands = useMemo(() => {
+        const normalizeStr = (str: string) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+        const brands = Array.from(new Map(
+            baseFilteredForBrandsAndLabs.map(p => p.brand).filter(Boolean).map(b => [normalizeStr(b!), b])
+        ).values()) as string[];
+        return brands.sort((a, b) => a.localeCompare(b));
+    }, [baseFilteredForBrandsAndLabs]);
+
+    const uniqueLabs = useMemo(() => {
+        const normalizeStr = (str: string) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+        const labs = Array.from(new Map(
+            baseFilteredForBrandsAndLabs.map(p => p.laboratory).filter(Boolean).map(l => [normalizeStr(l!), l])
+        ).values()) as string[];
+        return labs.sort((a, b) => a.localeCompare(b));
+    }, [baseFilteredForBrandsAndLabs]);
 
     const filtered = useMemo(() => {
         const normalizeText = (str: string) => str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
@@ -241,10 +293,31 @@ function CotizadorPageContent() {
             const matchesWeb = !onlyWeb || p.publishToWeb === true;
             
             if (activeType === 'NONE') return matchesSearch && matchesWeb;
-            if (activeType) return matchesSearch && matchesWeb && getCategoryKey(p.type, p.category) === activeType;
+            if (activeType) {
+                if (getCategoryKey(p.type, p.category) !== activeType) return false;
+            }
+
+            if (activeType === 'Cristal' && selectedSubtype) {
+                const type = p.type?.toLowerCase() || '';
+                const qSubtype = selectedSubtype.toLowerCase();
+                if (type !== `cristal ${qSubtype}` && !type.includes(qSubtype) && type !== qSubtype) return false;
+            }
+
+            if (activeType === 'Cristal' && selectedOrigin) {
+                if ((p as any).origin !== selectedOrigin) return false;
+            }
+
+            if (selectedBrand) {
+                if (p.brand?.toLowerCase() !== selectedBrand.toLowerCase()) return false;
+            }
+
+            if (selectedLab) {
+                if (p.laboratory?.toLowerCase() !== selectedLab.toLowerCase()) return false;
+            }
+            
             return matchesSearch && matchesWeb;
         }).sort((a, b) => (a.price || 0) - (b.price || 0));
-    }, [products, search, activeType, onlyWeb]);
+    }, [products, search, activeType, onlyWeb, selectedSubtype, selectedOrigin, selectedBrand, selectedLab]);
 
     const groupedProducts = useMemo(() => {
         const groups: { [key: string]: Product[] } = {};
@@ -571,59 +644,157 @@ function CotizadorPageContent() {
             </header>
 
             {/* Search + Categories */}
-            <div className="px-4 lg:px-8 py-3.5 border-b border-sidebar-border bg-sidebar/65 flex flex-col md:flex-row md:items-center gap-3 flex-shrink-0">
-                <div className="relative w-full md:w-64 flex-shrink-0">
-                    <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-stone-400" />
-                    <input
-                        ref={searchRef}
-                        type="text"
-                        placeholder="Buscar producto..."
-                        value={search}
-                        onChange={e => setSearch(e.target.value)}
-                        className="w-full bg-white dark:bg-stone-850 border border-stone-200 dark:border-stone-750 py-2 px-9 rounded-xl text-xs font-semibold outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/30 transition-all placeholder:text-stone-400 dark:text-stone-100"
-                    />
-                    {search && (
-                        <button onClick={() => setSearch('')} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600 text-xs">✕</button>
-                    )}
+            <div className="px-4 lg:px-8 py-3.5 border-b border-sidebar-border bg-sidebar/65 flex flex-col gap-3 flex-shrink-0">
+                <div className="flex flex-col md:flex-row md:items-center gap-3">
+                    <div className="relative w-full md:w-64 flex-shrink-0">
+                        <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-stone-400" />
+                        <input
+                            ref={searchRef}
+                            type="text"
+                            placeholder="Buscar producto..."
+                            value={search}
+                            onChange={e => setSearch(e.target.value)}
+                            className="w-full bg-white dark:bg-stone-850 border border-stone-200 dark:border-stone-750 py-2 px-9 rounded-xl text-xs font-semibold outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/30 transition-all placeholder:text-stone-400 dark:text-stone-100"
+                        />
+                        {search && (
+                            <button onClick={() => setSearch('')} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600 text-xs">✕</button>
+                        )}
+                    </div>
+                    <div className="flex-1 flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1">
+                        <button
+                            onClick={() => setActiveType(null)}
+                            className={`h-8 px-3 rounded-xl text-xs font-bold uppercase tracking-wider whitespace-nowrap transition-all border flex items-center justify-center ${activeType === null
+                                ? 'bg-primary text-primary-foreground border-primary shadow-sm hover:bg-primary/95'
+                                : 'bg-white dark:bg-stone-850 text-stone-500 border-stone-200 dark:border-stone-750 hover:border-primary/30 hover:text-stone-700 dark:hover:text-white'
+                                }`}
+                        >
+                            Todos ({products.length})
+                        </button>
+                        <button
+                            onClick={() => setOnlyWeb(!onlyWeb)}
+                            className={`h-8 px-3 rounded-xl text-xs font-bold uppercase tracking-wider whitespace-nowrap transition-all border flex items-center gap-1.5 ${onlyWeb
+                                ? 'bg-violet-600 text-white border-violet-600 shadow-sm hover:bg-violet-700'
+                                : 'bg-white dark:bg-stone-850 text-violet-650 border-violet-200 hover:border-violet-350 hover:bg-violet-50/50 dark:border-violet-900/50 dark:text-violet-400'
+                                }`}
+                        >
+                            🌐 Web
+                        </button>
+                        {availableCategories.map(cat => {
+                            const config = getTypeConfig(cat);
+                            const count = products.filter(p => getCategoryKey(p.type, p.category) === cat).length;
+                            const Icon = config.icon;
+                            return (
+                                <button
+                                    key={cat}
+                                    onClick={() => setActiveType(cat)}
+                                    className={`h-8 px-3 rounded-xl text-xs font-bold uppercase tracking-wider whitespace-nowrap transition-all border flex items-center gap-1.5 ${activeType === cat
+                                        ? 'bg-primary text-primary-foreground border-primary shadow-sm'
+                                        : `${config.color} hover:shadow-sm`
+                                        }`}
+                                >
+                                    <Icon className="w-3 h-3" />
+                                    {config.label} ({count})
+                                </button>
+                            );
+                        })}
+                    </div>
                 </div>
-                <div className="flex-1 flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1">
-                    <button
-                        onClick={() => setActiveType(null)}
-                        className={`h-8 px-3 rounded-xl text-xs font-bold uppercase tracking-wider whitespace-nowrap transition-all border flex items-center justify-center ${activeType === null
-                            ? 'bg-primary text-primary-foreground border-primary shadow-sm hover:bg-primary/95'
-                            : 'bg-white dark:bg-stone-850 text-stone-500 border-stone-200 dark:border-stone-750 hover:border-primary/30 hover:text-stone-700 dark:hover:text-white'
-                            }`}
-                    >
-                        Todos ({products.length})
-                    </button>
-                    <button
-                        onClick={() => setOnlyWeb(!onlyWeb)}
-                        className={`h-8 px-3 rounded-xl text-xs font-bold uppercase tracking-wider whitespace-nowrap transition-all border flex items-center gap-1.5 ${onlyWeb
-                            ? 'bg-violet-600 text-white border-violet-600 shadow-sm hover:bg-violet-700'
-                            : 'bg-white dark:bg-stone-850 text-violet-650 border-violet-200 hover:border-violet-300 dark:border-violet-900/50 dark:text-violet-400'
-                            }`}
-                    >
-                        🌐 Web
-                    </button>
-                    {availableCategories.map(cat => {
-                        const config = getTypeConfig(cat);
-                        const count = products.filter(p => getCategoryKey(p.type, p.category) === cat).length;
-                        const Icon = config.icon;
-                        return (
-                            <button
-                                key={cat}
-                                onClick={() => setActiveType(cat)}
-                                className={`h-8 px-3 rounded-xl text-xs font-bold uppercase tracking-wider whitespace-nowrap transition-all border flex items-center gap-1.5 ${activeType === cat
-                                    ? 'bg-primary text-primary-foreground border-primary shadow-sm'
-                                    : `${config.color} hover:shadow-sm`
+
+                {/* Secondary Filters Area */}
+                {(activeType === 'Cristal' || uniqueBrands.length > 1 || uniqueLabs.length > 1) && (
+                    <div className="flex flex-wrap items-center gap-3 animate-in fade-in slide-in-from-top-2 duration-300">
+                        {/* Subtype filters — only when Cristal is active */}
+                        {activeType === 'Cristal' && (
+                            <div className="inline-flex flex-wrap items-center gap-1 bg-stone-100/50 dark:bg-stone-800/40 backdrop-blur-md p-1 rounded-xl border border-stone-200/50 dark:border-stone-750/50">
+                                <button
+                                    onClick={() => setSelectedSubtype('')}
+                                    className={`px-3 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all ${
+                                        !selectedSubtype
+                                            ? 'bg-white dark:bg-stone-700 text-stone-900 dark:text-white shadow-sm font-black'
+                                            : 'text-stone-500 hover:text-stone-700 dark:hover:text-stone-300'
                                     }`}
-                            >
-                                <Icon className="w-3 h-3" />
-                                {config.label} ({count})
-                            </button>
-                        );
-                    })}
-                </div>
+                                >
+                                    Todos
+                                </button>
+                                {['Monofocal', 'Multifocal', 'Bifocal', 'Ocupacional', 'Coquil'].map((sub) => (
+                                    <button
+                                        key={sub}
+                                        onClick={() => setSelectedSubtype(sub)}
+                                        className={`px-3 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all ${
+                                            selectedSubtype === sub
+                                                ? 'bg-white dark:bg-stone-700 text-stone-900 dark:text-white shadow-sm font-black'
+                                                : 'text-stone-500 hover:text-stone-700 dark:hover:text-stone-300'
+                                        }`}
+                                    >
+                                        {sub}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+
+                        {/* Origin filter — only when Cristal is active */}
+                        {activeType === 'Cristal' && (
+                            <div className="inline-flex flex-wrap items-center gap-1 bg-stone-100/50 dark:bg-stone-800/40 backdrop-blur-md p-1 rounded-xl border border-stone-200/50 dark:border-stone-750/50">
+                                <span className="text-[9px] font-black text-stone-400 dark:text-stone-550 uppercase tracking-widest px-2">Origen:</span>
+                                {[
+                                    { val: '', label: 'Todos' },
+                                    { val: 'LABORATORIO', label: 'Laboratorio' },
+                                    { val: 'STOCK', label: 'Stock y Rango Extendido' }
+                                ].map((orig) => (
+                                    <button
+                                        key={orig.val}
+                                        onClick={() => setSelectedOrigin(orig.val)}
+                                        className={`px-3 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all ${
+                                            selectedOrigin === orig.val
+                                                ? 'bg-white dark:bg-stone-700 text-stone-900 dark:text-white shadow-sm font-black'
+                                                : 'text-stone-500 hover:text-stone-700 dark:hover:text-stone-300'
+                                        }`}
+                                    >
+                                        {orig.label}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+
+                        {/* Brand dropdown */}
+                        {uniqueBrands.length > 1 && (
+                            <div className="flex items-center gap-2 bg-stone-50 dark:bg-stone-800/40 p-1 rounded-xl border border-stone-200/50 dark:border-stone-750/50">
+                                <span className="text-[9px] font-black text-stone-400 dark:text-stone-550 uppercase tracking-widest pl-2">Marca:</span>
+                                <select
+                                    value={selectedBrand}
+                                    onChange={(e) => setSelectedBrand(e.target.value)}
+                                    className="bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-750 text-[10px] font-bold px-2 py-1.5 rounded-lg outline-none focus:border-primary cursor-pointer text-stone-700 dark:text-stone-300"
+                                >
+                                    <option value="">Todas</option>
+                                    {uniqueBrands.map((brand) => (
+                                        <option key={brand} value={brand}>
+                                            {brand}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                        )}
+
+                        {/* Lab dropdown */}
+                        {uniqueLabs.length > 1 && (
+                            <div className="flex items-center gap-2 bg-stone-50 dark:bg-stone-800/40 p-1 rounded-xl border border-stone-200/50 dark:border-stone-750/50">
+                                <span className="text-[9px] font-black text-stone-400 dark:text-stone-550 uppercase tracking-widest pl-2">Laboratorio:</span>
+                                <select
+                                    value={selectedLab}
+                                    onChange={(e) => setSelectedLab(e.target.value)}
+                                    className="bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-750 text-[10px] font-bold px-2 py-1.5 rounded-lg outline-none focus:border-primary cursor-pointer text-stone-700 dark:text-stone-300"
+                                >
+                                    <option value="">Todos</option>
+                                    {uniqueLabs.map((lab) => (
+                                        <option key={lab} value={lab}>
+                                            {lab}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                        )}
+                    </div>
+                )}
             </div>
 
             {/* Main Content Area */}
