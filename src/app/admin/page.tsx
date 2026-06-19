@@ -245,6 +245,26 @@ export default function Home() {
                 highlight={false}
               />
             </div>
+            <div className="min-w-[260px] flex-1">
+              <StatsCard
+                title="Clientes Atendidos"
+                value={`${d.funnel.contacts || 0}`}
+                icon={User}
+                trend="Nuevos"
+                sub="Contactos del período"
+                highlight={false}
+              />
+            </div>
+            <div className="min-w-[260px] flex-1">
+              <StatsCard
+                title="Ticket Promedio"
+                value={`$${Math.round(d.ticketPromedioMonth || 0).toLocaleString()}`}
+                icon={Percent}
+                trend={d.ticketPromedioMonth > 0 ? 'Activo' : '—'}
+                sub="Por operación"
+                highlight={false}
+              />
+            </div>
           </div>
         </section>
       )}

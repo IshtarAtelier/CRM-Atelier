@@ -91,7 +91,17 @@ export default function CheckoutModal({
     const [frameMeasureB, setFrameMeasureB] = useState<string>('');
     const [frameMeasureEd, setFrameMeasureEd] = useState<string>('');
 
-    const canConvert = Number(paid) >= Number(minRequired) && isClientDataComplete && (!hasCrystals || selectedRxId);
+    const isFrameDataComplete = !hasCrystals || (
+        frameDetails.trim() !== '' &&
+        frameMeasurePte.trim() !== '' &&
+        frameMeasureA.trim() !== '' &&
+        frameMeasureB.trim() !== '' &&
+        frameMeasureEd.trim() !== ''
+    );
+
+    const canConvert = Number(paid) >= Number(minRequired) && 
+                       isClientDataComplete && 
+                       (!hasCrystals || (selectedRxId && isFrameDataComplete));
 
     const handleUpdateClient = async () => {
         setLoading(true);
@@ -411,20 +421,20 @@ export default function CheckoutModal({
                                                 </div>
                                                 <div className="w-full sm:w-2/3 grid grid-cols-2 gap-3">
                                                     <div className="space-y-1">
-                                                        <label className="text-[9px] font-bold text-stone-500 uppercase">Puente</label>
-                                                        <input type="number" value={frameMeasurePte} onChange={e => setFrameMeasurePte(e.target.value)} className="w-full bg-white dark:bg-stone-900 border border-blue-200 dark:border-blue-800/50 px-3 py-2 rounded-xl text-xs font-medium focus:border-blue-500 outline-none" placeholder="Ej: 16" />
+                                                        <label className="text-[9px] font-bold text-stone-500 uppercase">Puente {hasCrystals && <span className="text-red-500">*</span>}</label>
+                                                        <input type="number" required={hasCrystals} value={frameMeasurePte} onChange={e => setFrameMeasurePte(e.target.value)} className="w-full bg-white dark:bg-stone-900 border border-blue-200 dark:border-blue-800/50 px-3 py-2 rounded-xl text-xs font-medium focus:border-blue-500 outline-none" placeholder="Ej: 16" />
                                                     </div>
                                                     <div className="space-y-1">
-                                                        <label className="text-[9px] font-bold text-stone-500 uppercase">Ancho (A)</label>
-                                                        <input type="number" value={frameMeasureA} onChange={e => setFrameMeasureA(e.target.value)} className="w-full bg-white dark:bg-stone-900 border border-blue-200 dark:border-blue-800/50 px-3 py-2 rounded-xl text-xs font-medium focus:border-blue-500 outline-none" placeholder="Ej: 56" />
+                                                        <label className="text-[9px] font-bold text-stone-500 uppercase">Ancho (A) {hasCrystals && <span className="text-red-500">*</span>}</label>
+                                                        <input type="number" required={hasCrystals} value={frameMeasureA} onChange={e => setFrameMeasureA(e.target.value)} className="w-full bg-white dark:bg-stone-900 border border-blue-200 dark:border-blue-800/50 px-3 py-2 rounded-xl text-xs font-medium focus:border-blue-500 outline-none" placeholder="Ej: 56" />
                                                     </div>
                                                     <div className="space-y-1">
-                                                        <label className="text-[9px] font-bold text-stone-500 uppercase">Alto (B)</label>
-                                                        <input type="number" value={frameMeasureB} onChange={e => setFrameMeasureB(e.target.value)} className="w-full bg-white dark:bg-stone-900 border border-blue-200 dark:border-blue-800/50 px-3 py-2 rounded-xl text-xs font-medium focus:border-blue-500 outline-none" placeholder="Ej: 42" />
+                                                        <label className="text-[9px] font-bold text-stone-500 uppercase">Alto (B) {hasCrystals && <span className="text-red-500">*</span>}</label>
+                                                        <input type="number" required={hasCrystals} value={frameMeasureB} onChange={e => setFrameMeasureB(e.target.value)} className="w-full bg-white dark:bg-stone-900 border border-blue-200 dark:border-blue-800/50 px-3 py-2 rounded-xl text-xs font-medium focus:border-blue-500 outline-none" placeholder="Ej: 42" />
                                                     </div>
                                                     <div className="space-y-1">
-                                                        <label className="text-[9px] font-bold text-stone-500 uppercase">Diagonal (ED)</label>
-                                                        <input type="number" value={frameMeasureEd} onChange={e => setFrameMeasureEd(e.target.value)} className="w-full bg-white dark:bg-stone-900 border border-blue-200 dark:border-blue-800/50 px-3 py-2 rounded-xl text-xs font-medium focus:border-blue-500 outline-none" placeholder="Ej: 54" />
+                                                        <label className="text-[9px] font-bold text-stone-500 uppercase">Diagonal (ED) {hasCrystals && <span className="text-red-500">*</span>}</label>
+                                                        <input type="number" required={hasCrystals} value={frameMeasureEd} onChange={e => setFrameMeasureEd(e.target.value)} className="w-full bg-white dark:bg-stone-900 border border-blue-200 dark:border-blue-800/50 px-3 py-2 rounded-xl text-xs font-medium focus:border-blue-500 outline-none" placeholder="Ej: 54" />
                                                     </div>
                                                 </div>
                                             </div>
@@ -432,9 +442,10 @@ export default function CheckoutModal({
                                     
 
                                 <div className="space-y-2 mb-4">
-                                    <label className="text-[9px] font-black text-stone-400 uppercase tracking-widest block">Detalles del Armazón</label>
+                                    <label className="text-[9px] font-black text-stone-400 uppercase tracking-widest block">Detalles del Armazón {hasCrystals && <span className="text-red-500">*</span>}</label>
                                     <input 
                                         type="text" 
+                                        required={hasCrystals}
                                         value={frameDetails}
                                         onChange={e => setFrameDetails(e.target.value)}
                                         placeholder="Ej: Metálico ranurado medio marco, Plaquetas de silicona..." 

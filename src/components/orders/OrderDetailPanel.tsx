@@ -17,6 +17,7 @@ import {
     Search
 } from 'lucide-react';
 import type { Order } from '@/types/orders';
+import { resolveStorageUrl } from '@/lib/utils/storage';
 
 export const LAB_STEPS = [
     { key: 'NONE', label: 'Pendiente', icon: Clock, color: 'stone', bg: 'bg-stone-100 dark:bg-stone-800', text: 'text-stone-500 dark:text-stone-400', ring: 'ring-stone-200 dark:ring-stone-700' },
@@ -42,16 +43,6 @@ interface OrderDetailPanelProps {
 
 export function OrderDetailPanel({ order, context = 'ventas', financials, onAutoSubmit, isAutoSubmitting }: OrderDetailPanelProps) {
     const [fullImageOpen, setFullImageOpen] = useState(false);
-
-    // Resolve Firebase Storage URL if needed
-    const resolveStorageUrl = (url: string | null | undefined) => {
-        if (!url) return '';
-        if (url.startsWith('http')) return url;
-        if (url.startsWith('images/')) {
-            return `https://firebasestorage.googleapis.com/v0/b/${process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'atelier-398322'}.appspot.com/o/${encodeURIComponent(url)}?alt=media`;
-        }
-        return url;
-    };
 
     const imageUrl = resolveStorageUrl(order.prescription?.imageUrl);
 

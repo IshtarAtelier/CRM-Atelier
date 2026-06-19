@@ -152,7 +152,7 @@ export function Sidebar({ userName = "Usuario", userRole = "STAFF", userId = "" 
             </button>
         )}
         <div className={`flex items-center gap-1 ${isCollapsed ? 'justify-center py-4 flex-col' : 'px-2 pb-6 lg:pb-2'}`}>
-          {isAdmin && <NotificationBell />}
+          <NotificationBell />
           {!isCollapsed && (
             <div className="flex-1 overflow-hidden">
                 <UserProfile name={userName} role={userRole} userId={userId} />
