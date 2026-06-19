@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html>
-<head><title>Robot SmartLab v17</title><style>
+<head><title>Robot SmartLab v18</title><style>
 body{font-family:system-ui;background:#fafaf9;display:flex;justify-content:center;align-items:center;min-height:100vh;margin:0}
 .card{background:white;border-radius:24px;padding:48px;box-shadow:0 25px 50px -12px rgba(0,0,0,.15);max-width:500px;text-align:center;border:2px solid #e7e5e4}
 h1{font-size:28px;font-weight:900;color:#1c1917;margin:0 0 12px}
@@ -14,13 +14,13 @@ a.robot:active{cursor:grabbing}
 </style></head>
 <body>
 <div class="card">
-<h1>🤖 Robot SmartLab v17</h1>
+<h1>🤖 Robot SmartLab v18</h1>
 <p>Arrastrá el botón naranja a tu barra de favoritos.<br>Si ya tenés uno viejo, borralo primero.</p>
 <div class="drag-zone">
 <a class="robot" id="robotLink" href="#">🤖 Atelier → SmartLab</a>
 <p class="hint">⬆️ Arrastrá este botón a tu barra de favoritos</p>
 </div>
-<p class="ok">✅ Testeado: Forzando click en opciones de menú</p>
+<p class="ok">✅ v18: Fuzzy best-match + medidas Pte/A/B/ED</p>
 </div>
 <script>
 var c = "javascript:void(function(){try{"
@@ -31,35 +31,46 @@ var c = "javascript:void(function(){try{"
 +"var TS=Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype,'value').set;"
 +"function SV(el,v){if(!el)return;var s=el.tagName==='TEXTAREA'?TS:IS;if(s)s.call(el,v);el.dispatchEvent(new Event('input',{bubbles:true}));el.dispatchEvent(new Event('change',{bubbles:true}))}"
 +"var done=[];"
-// Robust case-insensitive combobox selector by label
+// ===== SEL_BY_LABEL: now uses BEST MATCH for fuzzy (most terms win) =====
 +"function SEL_BY_LABEL(lblTxt,txt,nm,cb,fz){"
 +"var all=document.querySelectorAll('label,span,p,div');var box=null;"
 +"for(var i=0;i<all.length;i++){"
 +"var t=(all[i].innerText||'').trim().toLowerCase();"
 +"var l=lblTxt.toLowerCase();"
 +"if(t===l||t===l+':'||t===l+'*'||t===l+' *'){"
-+"var nx=all[i].nextElementSibling;if(nx){box=nx.querySelector(\"[role='combobox']\");if(!box)box=nx.querySelector('button');}"
-+"if(!box){var p=all[i].parentElement;if(p){box=p.querySelector(\"[role='combobox']\");if(!box)box=p.querySelector('button');}}"
-+"if(!box){box=all[i].querySelector(\"[role='combobox']\");if(!box)box=all[i].querySelector('button');}"
++"var nx=all[i].nextElementSibling;if(nx){box=nx.querySelector(\"[role='combobox']\");if(!box)box=nx.querySelector('select');if(!box)box=nx.querySelector('button');}"
++"if(!box){var p=all[i].parentElement;if(p){box=p.querySelector(\"[role='combobox']\");if(!box)box=p.querySelector('select');if(!box)box=p.querySelector('button');}}"
++"if(!box){box=all[i].querySelector(\"[role='combobox']\");if(!box)box=all[i].querySelector('select');if(!box)box=all[i].querySelector('button');}"
 +"if(box)break;"
 +"}}"
-+"if(!box||(!txt&&!fz)){console.warn('Selector not found for:', lblTxt);if(cb)cb();return}"
+// Handle native <select> elements directly
++"if(box&&box.tagName==='SELECT'){"
++"if(txt){for(var si=0;si<box.options.length;si++){if(box.options[si].text.toLowerCase().indexOf(txt.toLowerCase())>-1){box.selectedIndex=si;box.dispatchEvent(new Event('change',{bubbles:true}));done.push(nm);break}}}"
++"if(cb)setTimeout(cb,500);return}"
+// If no box found or no value to set
++"if(!box||(!txt&&!fz)){console.warn('SEL_BY_LABEL: not found for:', lblTxt);if(cb)cb();return}"
 +"box.focus();"
 +"box.dispatchEvent(new MouseEvent('mousedown',{bubbles:true,cancelable:true,view:window}));"
 +"box.click();"
 +"setTimeout(function(){"
 +"var lbs=document.querySelectorAll(\"[role='listbox']\");"
-+"var lb=lbs[lbs.length-1];" // always take the last listbox to avoid old animating ones
++"var lb=lbs[lbs.length-1];"
 +"if(lb){var opts=lb.querySelectorAll(\"[role='option']\");var pk=false;"
+// FUZZY BEST MATCH: pick option with most matching terms (not requiring all)
 +"if(fz&&fz.length>0){"
-+"for(var o=0;o<opts.length;o++){var ot=(opts[o].innerText||'').toLowerCase(),mc=0;for(var f=0;f<fz.length;f++)if(ot.indexOf(fz[f])>-1)mc++;if(mc===fz.length){opts[o].dispatchEvent(new MouseEvent('mousedown',{bubbles:true,cancelable:true,view:window}));opts[o].dispatchEvent(new MouseEvent('mouseup',{bubbles:true,cancelable:true,view:window}));opts[o].click();pk=true;done.push(nm);break}}"
++"var bestIdx=-1,bestScore=0;"
++"for(var o=0;o<opts.length;o++){var ot=(opts[o].innerText||'').toLowerCase(),mc=0;for(var f=0;f<fz.length;f++)if(ot.indexOf(fz[f])>-1)mc++;if(mc>bestScore){bestScore=mc;bestIdx=o}}"
++"if(bestIdx>-1&&bestScore>0){opts[bestIdx].dispatchEvent(new MouseEvent('mousedown',{bubbles:true,cancelable:true,view:window}));opts[bestIdx].dispatchEvent(new MouseEvent('mouseup',{bubbles:true,cancelable:true,view:window}));opts[bestIdx].click();pk=true;done.push(nm)}"
 +"}else{"
 +"for(var i=0;i<opts.length;i++){if((opts[i].innerText||'').trim().toLowerCase()===(txt||'').toLowerCase()){opts[i].dispatchEvent(new MouseEvent('mousedown',{bubbles:true,cancelable:true,view:window}));opts[i].dispatchEvent(new MouseEvent('mouseup',{bubbles:true,cancelable:true,view:window}));opts[i].click();pk=true;done.push(nm);break}}"
+// Partial match fallback
++"if(!pk){for(var j=0;j<opts.length;j++){if((opts[j].innerText||'').trim().toLowerCase().indexOf((txt||'').toLowerCase())>-1){opts[j].dispatchEvent(new MouseEvent('mousedown',{bubbles:true,cancelable:true,view:window}));opts[j].dispatchEvent(new MouseEvent('mouseup',{bubbles:true,cancelable:true,view:window}));opts[j].click();pk=true;done.push(nm);break}}}"
 +"}"
-+"if(!pk){console.warn('Option not found for:', lblTxt);box.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',keyCode:27,bubbles:true}));box.blur()}"
++"if(!pk){console.warn('Option not found for:', lblTxt, 'val:', txt||fz);box.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',keyCode:27,bubbles:true}));box.blur()}"
 +"}else{console.warn('Listbox not found for:', lblTxt);box.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',keyCode:27,bubbles:true}));box.blur()}"
-+"if(cb)setTimeout(cb,1200)" // Wait 1200ms to let backdrop fade out before next interaction
-+"},1200)}" // Wait 1200ms to let listbox appear fully
++"if(cb)setTimeout(cb,1200)"
++"},1200)}"
+// ===== INPUT_BY_LABEL =====
 +"function INPUT_BY_LABEL(lblTxt,val,nm){"
 +"if(!val)return;"
 +"var all=document.querySelectorAll('label,span,p,div');var inp=null;"
@@ -75,6 +86,7 @@ var c = "javascript:void(function(){try{"
 +"}}"
 +"if(inp){SV(inp,val);done.push(nm||lblTxt);} else {console.warn('Input not found for:', lblTxt)}"
 +"}"
+// ===== TIPO LENTE button click =====
 +"if(D.tipo_lente){var btns=document.querySelectorAll('button');for(var b=0;b<btns.length;b++){if(btns[b].innerText&&btns[b].innerText.trim().toLowerCase()===D.tipo_lente.toLowerCase()){btns[b].dispatchEvent(new MouseEvent('mousedown',{bubbles:true,cancelable:true,view:window}));btns[b].dispatchEvent(new MouseEvent('mouseup',{bubbles:true,cancelable:true,view:window}));btns[b].click();done.push('Tipo: '+D.tipo_lente);break}}}"
 +"setTimeout(function(){"
 // Codigo interno
@@ -125,32 +137,37 @@ var c = "javascript:void(function(){try{"
 +"var lb=lbs[lbs.length-1],pk=false;"
 +"if(lb){var opts=lb.querySelectorAll(\"[role='option']\");"
 +"if(opts.length>0){"
-+"if(it.fuzzy&&it.fuzzy.length>0){for(var o=0;o<opts.length;o++){var ot=(opts[o].innerText||'').toLowerCase(),mc=0;for(var f=0;f<it.fuzzy.length;f++)if(ot.indexOf(it.fuzzy[f])>-1)mc++;if(mc===it.fuzzy.length){opts[o].dispatchEvent(new MouseEvent('mousedown',{bubbles:true,cancelable:true,view:window}));opts[o].dispatchEvent(new MouseEvent('mouseup',{bubbles:true,cancelable:true,view:window}));opts[o].click();pk=true;break}}if(!pk&&opts[0]){opts[0].dispatchEvent(new MouseEvent('mousedown',{bubbles:true,cancelable:true,view:window}));opts[0].dispatchEvent(new MouseEvent('mouseup',{bubbles:true,cancelable:true,view:window}));opts[0].click();pk=true}}"
+// Use best-match for fuzzy in autocomplete queue too
++"if(it.fuzzy&&it.fuzzy.length>0){var bestIdx=-1,bestScore=0;for(var o=0;o<opts.length;o++){var ot=(opts[o].innerText||'').toLowerCase(),mc=0;for(var f=0;f<it.fuzzy.length;f++)if(ot.indexOf(it.fuzzy[f])>-1)mc++;if(mc>bestScore){bestScore=mc;bestIdx=o}}if(bestIdx>-1&&bestScore>0){opts[bestIdx].dispatchEvent(new MouseEvent('mousedown',{bubbles:true,cancelable:true,view:window}));opts[bestIdx].dispatchEvent(new MouseEvent('mouseup',{bubbles:true,cancelable:true,view:window}));opts[bestIdx].click();pk=true}}"
 +"else{for(var o2=0;o2<opts.length;o2++){if((opts[o2].innerText||'').toLowerCase().indexOf(it.val.toLowerCase())>-1){opts[o2].dispatchEvent(new MouseEvent('mousedown',{bubbles:true,cancelable:true,view:window}));opts[o2].dispatchEvent(new MouseEvent('mouseup',{bubbles:true,cancelable:true,view:window}));opts[o2].click();pk=true;break}}if(!pk&&opts[0]){opts[0].dispatchEvent(new MouseEvent('mousedown',{bubbles:true,cancelable:true,view:window}));opts[0].dispatchEvent(new MouseEvent('mouseup',{bubbles:true,cancelable:true,view:window}));opts[0].click();pk=true}}"
 +"}}"
 +"if(!pk)el.dispatchEvent(new KeyboardEvent('keydown',{key:'Enter',keyCode:13,bubbles:true}));"
 +"el.blur();done.push(it.label);qi++;setTimeout(PN,350)"
 +"},500)}"
 +"PN();"
-// Final fields: observaciones, armazon, dropdowns
+// ===== FU: Final fields after autocomplete queue =====
 +"function FU(){"
+// Observaciones
 +"var oe=document.getElementById('comment-textarea');if(oe&&D.observaciones){SV(oe,D.observaciones);done.push('Obs')}else{INPUT_BY_LABEL('Observación', D.observaciones, 'Obs')}"
+// Armazon y Modelo
 +"var fe=document.getElementById('frame-and-model-textarea');if(fe&&D.armazon){SV(fe,D.armazon);done.push('Armazon')}else{INPUT_BY_LABEL('Armazón y Modelo', D.armazon, 'Armazon')}"
-+"INPUT_BY_LABEL('Pte.', D.medidaPte, 'Pte');"
-+"INPUT_BY_LABEL('A', D.medidaA, 'A');"
-+"INPUT_BY_LABEL('B', D.medidaB, 'B');"
-+"INPUT_BY_LABEL('ED', D.medidaED, 'ED');"
+// Garantia / Paciente
 +"var allL=document.querySelectorAll('label,span,p,div');for(var l=0;l<allL.length;l++){if((allL[l].innerText||'').indexOf('Nombre y Apellido del Paciente')>-1){var gInp=null;var p=allL[l].parentElement;if(p)gInp=p.querySelector('input');if(!gInp){var p2=p?p.parentElement:null;if(p2)gInp=p2.querySelector('input');}if(!gInp){var nx=allL[l].nextElementSibling;if(nx)gInp=nx.tagName==='INPUT'?nx:nx.querySelector('input');}if(gInp){SV(gInp,D.paciente_fullname);done.push('Garantia');break;}}}"
-// Dropdowns by Label Text (avoid id bugs)
+// ===== CHAINED DROPDOWNS =====
 +"var tAro=D.tipo_aro||'Calibrado Aro Entero';"
 +"var tArm=D.tipo_armazon||'PLÁSTICO';"
 +"SEL_BY_LABEL('Tipo de aro',tAro,'TipoAro',function(){"
 +"SEL_BY_LABEL('Tipo armazón',tArm,'TipoArm',function(){"
-+"var finish=function(){ alert('Campos completados ('+done.length+'): '+done.join(', ')+'\\n\\nRevisa todo antes de Guardar.'); };"
-+"var step5=function(){ if(D.tipo_tenido) SEL_BY_LABEL('Tipo teñido',D.tipo_tenido,'TipoTenido',finish); else finish(); };"
-+"var step4=function(){ if(D.fuzzy_article&&D.fuzzy_article.length>0) SEL_BY_LABEL('Artículo ojo izquierdo',null,'Articulo OI',step5,D.fuzzy_article); else step5(); };"
-+"var step3=function(){ if(D.fuzzy_article&&D.fuzzy_article.length>0) { setTimeout(function(){ SEL_BY_LABEL('Artículo ojo derecho',null,'Articulo OD',step4,D.fuzzy_article); }, 1500); } else step5(); };"
-+"step3();"
++"var finish=function(){ alert('Campos completados ('+done.length+'): '+done.join(', ')+'\\\\n\\\\nRevisa todo antes de Guardar.'); };"
++"var stepTenido=function(){ if(D.tipo_tenido) SEL_BY_LABEL('Tipo teñido',D.tipo_tenido,'TipoTenido',finish); else finish(); };"
++"var stepOI=function(){ if(D.fuzzy_article&&D.fuzzy_article.length>0) SEL_BY_LABEL('Artículo ojo izquierdo',null,'Articulo OI',stepTenido,D.fuzzy_article); else stepTenido(); };"
++"var stepOD=function(){ if(D.fuzzy_article&&D.fuzzy_article.length>0) { setTimeout(function(){ SEL_BY_LABEL('Artículo ojo derecho',null,'Articulo OD',stepOI,D.fuzzy_article); }, 1500); } else stepTenido(); };"
+// Medidas Pte, A, B, ED - try both SEL_BY_LABEL (dropdown) and INPUT_BY_LABEL (input)
++"var stepED=function(){ if(D.medidaED){ SEL_BY_LABEL('ED',D.medidaED,'ED',stepOD); } else stepOD(); };"
++"var stepB=function(){ if(D.medidaB){ SEL_BY_LABEL('B',D.medidaB,'B',stepED); } else stepED(); };"
++"var stepA=function(){ if(D.medidaA){ SEL_BY_LABEL('A',D.medidaA,'A',stepB); } else stepB(); };"
++"var stepPte=function(){ if(D.medidaPte){ SEL_BY_LABEL('Pte.',D.medidaPte,'Pte',stepA); } else stepA(); };"
++"stepPte();"
 +"})})"
 +"}"
 +"},1200)"

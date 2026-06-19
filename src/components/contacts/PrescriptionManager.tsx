@@ -537,9 +537,22 @@ export default function PrescriptionManager({
                                             additionOI: data.additionOI != null ? data.additionOI.toString() : prev.additionOI,
                                             distanceOI: data.distanceOI != null ? data.distanceOI.toString() : prev.distanceOI,
                                             heightOI: data.heightOI != null ? data.heightOI.toString() : prev.heightOI,
+                                            nearSphereOD: data.nearSphereOD != null ? data.nearSphereOD.toString() : prev.nearSphereOD,
+                                            nearCylinderOD: data.nearCylinderOD != null ? data.nearCylinderOD.toString() : prev.nearCylinderOD,
+                                            nearAxisOD: data.nearAxisOD != null ? data.nearAxisOD.toString() : prev.nearAxisOD,
+                                            nearSphereOI: data.nearSphereOI != null ? data.nearSphereOI.toString() : prev.nearSphereOI,
+                                            nearCylinderOI: data.nearCylinderOI != null ? data.nearCylinderOI.toString() : prev.nearCylinderOI,
+                                            nearAxisOI: data.nearAxisOI != null ? data.nearAxisOI.toString() : prev.nearAxisOI,
                                         }));
-                                        // Auto-enable near toggle if OCR detected addition values
-                                        if (data.additionOD != null || data.additionOI != null) {
+                                        // Auto-enable near toggle if OCR detected addition values or near values
+                                        if (
+                                            data.additionOD != null || 
+                                            data.additionOI != null || 
+                                            data.nearSphereOD != null || 
+                                            data.nearSphereOI != null ||
+                                            data.nearCylinderOD != null ||
+                                            data.nearCylinderOI != null
+                                        ) {
                                             setShowNear(true);
                                         }
                                         setShowOcrVerifyMessage(true);

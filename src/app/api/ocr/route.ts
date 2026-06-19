@@ -36,10 +36,18 @@ export async function POST(request: Request) {
 
         let prompt = '';
         if (type === 'prescription') {
-            prompt = `Analiza esta receta óptica. Extrae ÚNICAMENTE los valores numéricos correspondientes a:
-OD (Ojo Derecho): Esférico, Cilíndrico, Eje, DIP (Distancia o DNP), Adición, Altura.
-OI (Ojo Izquierdo): Esférico, Cilíndrico, Eje, DIP (Distancia o DNP), Adición, Altura.
-Devuelve los resultados usando esta estructura JSON exacta. Usa null si un valor no está presente.
+            prompt = `Analiza esta receta óptica. Las recetas de lentes a menudo tienen una sección para "Lejos" (distancia) y otra para "Cerca" o "Lectura" (cerca), o pueden especificar una graduación de Lejos y una "Adición" (o "Add").
+Extrae ÚNICAMENTE los valores numéricos correspondientes a:
+OD (Ojo Derecho): Esférico Lejos, Cilíndrico Lejos, Eje Lejos, DIP (DNP), Adición, Altura, Esférico Cerca, Cilíndrico Cerca, Eje Cerca.
+OI (Ojo Izquierdo): Esférico Lejos, Cilíndrico Lejos, Eje Lejos, DIP (DNP), Adición, Altura, Esférico Cerca, Cilíndrico Cerca, Eje Cerca.
+
+Reglas de extracción importantes:
+1. Valores sin coma: A veces los médicos escriben la graduación sin coma decimal, por ejemplo "+275" para indicar "+2.75", o "+525" para "+5.25", o "+075" para "+0.75". Conviértelos siempre a su valor decimal correcto (ej. 2.75, 5.25, 0.75).
+2. Esférico Cerca (nearSphere): Si la receta tiene una sección o valores de "Cerca" explicitados (ej. OD +5.25, OI +5.50), extráelos en "nearSphereOD" y "nearSphereOI".
+3. Adición (addition): Si la receta tiene "Ad." o "Add" (adición), ej. "+2.50", o si se puede calcular como la diferencia entre la esfera de cerca y la esfera de lejos (Cerca - Lejos = Adición), colócalo en "additionOD" y "additionOI".
+4. Cilíndrico y Eje de Cerca: Generalmente son iguales a los de Lejos, pero si están explicitados en la sección de Cerca, extráelos.
+
+Devuelve los resultados usando esta estructura JSON exacta. Usa null si un valor no está presente o no se puede determinar.
 {
   "sphereOD": número_o_null,
   "cylinderOD": número_o_null,
@@ -47,12 +55,18 @@ Devuelve los resultados usando esta estructura JSON exacta. Usa null si un valor
   "additionOD": número_o_null,
   "distanceOD": número_o_null,
   "heightOD": número_o_null,
+  "nearSphereOD": número_o_null,
+  "nearCylinderOD": número_o_null,
+  "nearAxisOD": número_o_null,
   "sphereOI": número_o_null,
   "cylinderOI": número_o_null,
   "axisOI": número_o_null,
   "additionOI": número_o_null,
   "distanceOI": número_o_null,
-  "heightOI": número_o_null
+  "heightOI": número_o_null,
+  "nearSphereOI": número_o_null,
+  "nearCylinderOI": número_o_null,
+  "nearAxisOI": número_o_null
 }
 Responde SOLO con el JSON, sin texto alrededor, sin comillas de código ni formato markdown. Asegúrate de extraer bien los signos negativos (-).`;
         } else {
