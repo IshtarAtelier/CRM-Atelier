@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html>
-<head><title>Robot SmartLab v18</title><style>
+<head><title>Robot SmartLab v19</title><style>
 body{font-family:system-ui;background:#fafaf9;display:flex;justify-content:center;align-items:center;min-height:100vh;margin:0}
 .card{background:white;border-radius:24px;padding:48px;box-shadow:0 25px 50px -12px rgba(0,0,0,.15);max-width:500px;text-align:center;border:2px solid #e7e5e4}
 h1{font-size:28px;font-weight:900;color:#1c1917;margin:0 0 12px}
@@ -14,13 +14,13 @@ a.robot:active{cursor:grabbing}
 </style></head>
 <body>
 <div class="card">
-<h1>🤖 Robot SmartLab v18</h1>
+<h1>🤖 Robot SmartLab v19</h1>
 <p>Arrastrá el botón naranja a tu barra de favoritos.<br>Si ya tenés uno viejo, borralo primero.</p>
 <div class="drag-zone">
 <a class="robot" id="robotLink" href="#">🤖 Atelier → SmartLab</a>
 <p class="hint">⬆️ Arrastrá este botón a tu barra de favoritos</p>
 </div>
-<p class="ok">✅ v18: Fuzzy best-match + medidas Pte/A/B/ED</p>
+<p class="ok">✅ v19: + Color, Color/Intensidad teñido, fix cerca</p>
 </div>
 <script>
 var c = "javascript:void(function(){try{"
@@ -103,9 +103,7 @@ var c = "javascript:void(function(){try{"
 +"AQ('left-eye-far-axis-autocomplete',D.oi_eje,'Eje OI');"
 +"if(D.tipo_lente==='Multifocal'||D.tipo_lente==='Ocupacional'){"
 +"  AQ('right-eye-near-spherical-autocomplete',D.od_esfera_cerca,'Cerca Esf OD');"
-+"  AQ('right-eye-near-cylindrical-autocomplete',D.od_cilindro_cerca,'Cerca Cil OD');"
 +"  AQ('left-eye-near-spherical-autocomplete',D.oi_esfera_cerca,'Cerca Esf OI');"
-+"  AQ('left-eye-near-cylindrical-autocomplete',D.oi_cilindro_cerca,'Cerca Cil OI');"
 +"  var tAddR=document.getElementById('right-eye-addition-text');if(tAddR&&D.od_adicion){SV(tAddR,D.od_adicion);done.push('Add OD')}"
 +"  var tAddL=document.getElementById('left-eye-addition-text');if(tAddL&&D.oi_adicion){SV(tAddL,D.oi_adicion);done.push('Add OI')}"
 +"}else{"
@@ -117,6 +115,8 @@ var c = "javascript:void(function(){try{"
 +"AQ('right-eye-pupillary-height-autocomplete',D.od_altura,'Alt OD');"
 +"AQ('left-eye-pupillary-height-autocomplete',D.oi_altura,'Alt OI');"
 +"AQ('diameter-autocomplete',D.diametro,'Diam');"
+// Color del cristal
++"AQ('color-autocomplete',D.color,'Color');"
 // Material fuzzy
 +"var ml=(D.material||'').toLowerCase(),tl=(D.tratamiento||'').toLowerCase(),fz=[];"
 +"if(ml.indexOf('org')>-1)fz.push('org');"
@@ -159,7 +159,9 @@ var c = "javascript:void(function(){try{"
 +"SEL_BY_LABEL('Tipo de aro',tAro,'TipoAro',function(){"
 +"SEL_BY_LABEL('Tipo armazón',tArm,'TipoArm',function(){"
 +"var finish=function(){ alert('Campos completados ('+done.length+'): '+done.join(', ')+'\\\\n\\\\nRevisa todo antes de Guardar.'); };"
-+"var stepTenido=function(){ if(D.tipo_tenido) SEL_BY_LABEL('Tipo teñido',D.tipo_tenido,'TipoTenido',finish); else finish(); };"
++"var stepIntensidad=function(){ if(D.intensidad_tenido) SEL_BY_LABEL('Intensidad teñido',D.intensidad_tenido,'IntTenido',finish); else finish(); };"
++"var stepColorTenido=function(){ if(D.color_tenido) SEL_BY_LABEL('Color teñido',D.color_tenido,'ColorTenido',stepIntensidad); else stepIntensidad(); };"
++"var stepTenido=function(){ if(D.tipo_tenido) SEL_BY_LABEL('Tipo teñido',D.tipo_tenido,'TipoTenido',stepColorTenido); else stepColorTenido(); };"
 +"var stepOI=function(){ if(D.fuzzy_article&&D.fuzzy_article.length>0) SEL_BY_LABEL('Artículo ojo izquierdo',null,'Articulo OI',stepTenido,D.fuzzy_article); else stepTenido(); };"
 +"var stepOD=function(){ if(D.fuzzy_article&&D.fuzzy_article.length>0) { setTimeout(function(){ SEL_BY_LABEL('Artículo ojo derecho',null,'Articulo OD',stepOI,D.fuzzy_article); }, 1500); } else stepTenido(); };"
 // Medidas Pte, A, B, ED - try both SEL_BY_LABEL (dropdown) and INPUT_BY_LABEL (input)
