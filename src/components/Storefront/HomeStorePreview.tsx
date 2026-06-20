@@ -146,7 +146,7 @@ export async function HomeStorePreview() {
             <div className="w-full h-full overflow-hidden rounded-[2rem] border border-stone-800/60 shadow-2xl relative group bg-stone-900">
               <div className="absolute inset-0 bg-stone-900 animate-pulse" />
               <iframe
-                src="https://maps.google.com/maps?width=100%25&amp;height=600&amp;hl=en&amp;q=Trist%C3%A1n%20Malbr%C3%A1n%203965,%20Cerro%20de%20las%20Rosas,%20C%C3%B3rdoba+(Atelier%20%C3%93ptica)&amp;t=&amp;z=15&amp;ie=UTF8&amp;iwloc=B&amp;output=embed"
+                src="https://maps.google.com/maps?width=100%25&amp;height=600&amp;hl=en&amp;q=Luis%20Jose%20De%20Tejeda%204380,%20Cerro%20de%20las%20Rosas,%20C%C3%B3rdoba+(Atelier%20%C3%93ptica)&amp;t=&amp;z=15&amp;ie=UTF8&amp;iwloc=B&amp;output=embed"
                 width="100%"
                 height="100%"
                 style={{ border: 0, filter: "invert(100%) hue-rotate(180deg) brightness(85%) contrast(110%)" }}
