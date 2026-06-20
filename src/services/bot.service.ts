@@ -114,6 +114,36 @@ export class BotService {
             )
         );
 
+        // Sync contact source in milestones
+        try {
+            const client = await prisma.client.findUnique({
+                where: { id: clientId },
+                select: { contactSource: true }
+            });
+            
+            if (client && client.contactSource) {
+                const existingSourceHito = await prisma.interaction.findFirst({
+                    where: {
+                        clientId,
+                        content: { startsWith: '📍 [HITO] Origen:' }
+                    }
+                });
+                
+                if (!existingSourceHito) {
+                    const sourceHito = await prisma.interaction.create({
+                        data: {
+                            clientId,
+                            type: 'SUMMARY',
+                            content: `📍 [HITO] Origen: ${client.contactSource}`
+                        }
+                    });
+                    savedHitos.push(sourceHito);
+                }
+            }
+        } catch (syncErr) {
+            console.error('[Hitos Source Sync] Error syncing contactSource milestone:', syncErr);
+        }
+
         return savedHitos;
     }
 

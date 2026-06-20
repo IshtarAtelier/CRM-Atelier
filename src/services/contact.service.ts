@@ -32,6 +32,62 @@ export function normalizeArgentinePhone(phone: string | null | undefined): strin
     return '549' + base;
 }
 
+export function normalizeContactSource(source: string | null | undefined): string | null {
+    if (!source || source.trim() === "") return null;
+    const clean = source.trim();
+    const lower = clean.toLowerCase();
+    if (lower.includes('google') || lower === 'gads') {
+        return 'Google Ads';
+    } else if (
+        lower.includes('meta') || 
+        lower.includes('instagram') || 
+        lower.includes('facebook') || 
+        lower === 'face' || 
+        lower === 'fb' || 
+        lower === 'ig'
+    ) {
+        return 'Meta';
+    } else if (lower.includes('ya es cliente') || lower === 'cliente' || lower === 'antiguo') {
+        return 'Ya es Cliente';
+    }
+    return clean;
+}
+
+export async function syncContactSourceTag(clientId: string, contactSource: string | null) {
+    if (!contactSource) return;
+
+    let tagName = '';
+    let color = '#1677ff'; // blue by default
+    if (contactSource === 'Google Ads') {
+        tagName = 'Google Ads';
+        color = '#1677ff';
+    } else if (contactSource === 'Meta') {
+        tagName = 'Meta Ads';
+        color = '#E91E63'; // pink/magenta
+    } else if (contactSource === 'Ya es Cliente') {
+        tagName = 'Ya es cliente';
+        color = '#4CAF50'; // green
+    }
+
+    if (tagName) {
+        try {
+            const tag = await prisma.tag.upsert({
+                where: { name: tagName },
+                update: {},
+                create: { name: tagName, color }
+            });
+            await prisma.client.update({
+                where: { id: clientId },
+                data: {
+                    tags: { connect: { id: tag.id } }
+                }
+            });
+        } catch (err) {
+            console.error(`[Contact Tag Sync] Error syncing tag "${tagName}" for client ${clientId}:`, err);
+        }
+    }
+}
+
 export interface ContactCreateData {
     name: string;
     email?: string | null;
@@ -287,15 +343,13 @@ export const ContactService = {
             }
         }
 
-        // Hardening: Strictly pick only necessary fields to avoid Prisma validation errors
-        // with relations or unexpected properties
         const createData: any = {
             name: data.name,
             email: data.email?.trim() === "" ? null : data.email,
             phone: normalizedIncomingPhone, // Se guarda normalizado (solo números)
             dni: data.dni?.trim() === "" ? null : data.dni,
             status: data.status || 'CONTACT',
-            contactSource: data.contactSource?.trim() === "" ? null : data.contactSource,
+            contactSource: normalizeContactSource(data.contactSource),
             interest: data.interest?.trim() === "" ? 'Otros' : data.interest,
             expectedValue: Number(data.expectedValue) || 0,
             priority: Number(data.priority) || 0,
@@ -309,6 +363,9 @@ export const ContactService = {
         const createdClient = await prisma.client.create({
             data: createData
         });
+
+        // Auto-tag based on contactSource
+        await syncContactSourceTag(createdClient.id, createdClient.contactSource);
 
         // Link any unlinked chats matching the new client's phone number
         if (normalizedIncomingPhone && normalizedIncomingPhone.length >= 8) {
@@ -388,7 +445,9 @@ export const ContactService = {
                 updateData.isFavorite = false;
             }
         }
-        if (data.contactSource !== undefined) updateData.contactSource = data.contactSource?.trim() === "" ? null : data.contactSource;
+        if (data.contactSource !== undefined) {
+            updateData.contactSource = normalizeContactSource(data.contactSource);
+        }
         if (data.interest !== undefined) updateData.interest = data.interest?.trim() === "" ? 'Otros' : data.interest;
         if (data.expectedValue !== undefined) updateData.expectedValue = Number(data.expectedValue) || 0;
         if (data.priority !== undefined) updateData.priority = Number(data.priority) || 0;
@@ -413,6 +472,11 @@ export const ContactService = {
             where: { id },
             data: updateData
         });
+
+        // Auto-tag based on contactSource update
+        if (data.contactSource !== undefined) {
+            await syncContactSourceTag(updatedClient.id, updatedClient.contactSource);
+        }
 
         // Sync WhatsApp chats if phone changed
         if (oldClient && oldClient.phone !== updatedClient.phone) {

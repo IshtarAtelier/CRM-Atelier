@@ -13,12 +13,12 @@ class FallbackModel {
     this.vertexModel = new ChatVertexAI({
       model: "gemini-2.5-flash",
       location: "global",
-      maxOutputTokens: 4096, // Aumentado a 4096 para evitar truncaciones
+      maxOutputTokens: 8192, // Aumentado a 8192 para evitar truncaciones por CoT
       temperature,
     });
     this.geminiModel = new ChatGoogleGenerativeAI({
       model: "gemini-2.5-flash",
-      maxOutputTokens: 4096, // Aumentado a 4096 para evitar truncaciones
+      maxOutputTokens: 8192, // Aumentado a 8192 para evitar truncaciones por CoT
       temperature,
       apiKey: process.env.GOOGLE_GENAI_API_KEY || process.env.GOOGLE_API_KEY,
     });

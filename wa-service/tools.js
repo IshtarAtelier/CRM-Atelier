@@ -91,6 +91,16 @@ async function detectContactSourceFromChat(chatId) {
 
     const text = firstMessage.content.toLowerCase();
 
+    // 0. Deterministic Template Matches
+    // Meta templates with brackets, e.g. [metaSofi], [Metaplaca]
+    if (/\[meta[a-zA-Z0-9_-]+\]/i.test(firstMessage.content)) {
+        return 'Meta';
+    }
+    // Google templates: "Los vi en Google,", "Hola! Vi su anuncio en Google..."
+    if (/vi su anuncio en google|los vi en google/i.test(firstMessage.content)) {
+        return 'Google Ads';
+    }
+
     // 1. Google (Google, Maps, Búsqueda)
     if (
         text.includes('google') ||
@@ -104,6 +114,7 @@ async function detectContactSourceFromChat(chatId) {
     if (
         text.includes('instagram') ||
         text.includes('facebook') ||
+        text.includes('meta') ||
         text.includes('vi su publicacion') ||
         text.includes('vi tu publicacion') ||
         text.includes('vi su publicación') ||
@@ -199,6 +210,17 @@ async function convertIntoLead({ phone, name, contactSource, interest, chatId, i
             await addTagToClient({ clientId: newContact.id, tagName: 'Google Ads' });
         }
 
+        // Registrar el hito de origen en la ficha
+        if (resolvedSource) {
+            await prisma.interaction.create({
+                data: {
+                    clientId: newContact.id,
+                    type: 'SUMMARY',
+                    content: `📍 [HITO] Origen: ${resolvedSource}`
+                }
+            });
+        }
+
         return { success: true, contact: newContact };
     } catch (e) {
         console.error('Error en convertIntoLead:', e.message);
@@ -253,11 +275,19 @@ async function getPriceList({ category, search, botRecommended }) {
         const creditTotal = Math.round(cash * 1.15);
         const cuota = Math.round(creditTotal / 6);
         const cuotaFormatted = cuota.toLocaleString('es-AR');
+        const creditTotalFormatted = creditTotal.toLocaleString('es-AR');
 
-        let line = `*${i + 1}. ${name}*\n`;
-        line += `💵 Efectivo/Transferencia: *$${cashFormatted}*\n`;
-        line += `💳 6 cuotas fijas de *$${cuotaFormatted}*`;
+        let line = "";
+        if (p.imageUrl) {
+            line += `[IMAGE: ${p.imageUrl}]\n`;
+        }
+        line += `*Opción ${i + 1} – ${name}*\n`;
+        line += `• Precio contado: *$${cashFormatted}*\n`;
+        line += `• 6 cuotas sin interés de *$${cuotaFormatted}* (total *$${creditTotalFormatted}*)`;
         
+        if (p.link) {
+            line += `\n• Link: ${p.link}`;
+        }
         if (p.is2x1) {
             line += `\n🎉 *Promo 2x1* - Incluye dos pares de cristales!`;
         }

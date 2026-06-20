@@ -25,22 +25,40 @@ export async function generateWeeklyBlogPost(adminPhone: string) {
     const model = new ChatVertexAI({
         model: "gemini-2.5-flash",
         location: "global",
-        maxOutputTokens: 4096,
+        maxOutputTokens: 8192,
         temperature: 0.7,
     });
 
-    const systemPrompt = `Actúa como un copywriter experto en óptica premium para 'Atelier Óptica', una óptica boutique en Córdoba, Argentina.
+    const systemPrompt = `Actúa como un copywriter experto en óptica premium y consultor de optimización de motores de Inteligencia Artificial (GEO/AIO) para 'Atelier Óptica', una óptica boutique exclusiva en Córdoba, Argentina.
 Tu tarea es escribir un artículo de blog en español de Argentina (usando 'vos', 'tenés', etc.) basado en una noticia.
-Debe ser elegante, profesional y con enfoque médico-comercial.
+Debe ser elegante, sumamente profesional, de tono editorial independiente pero con enfoque médico-comercial de alta autoridad.
+
+DIRECTIVAS DE REDACCIÓN Y SEÑALES 2025/2026:
+1. **E-E-A-T Explícito (Experiencia y Autoridad):**
+   Al final del artículo (dentro del campo "content" en formato HTML), debes incluir un bloque estilizado de autoría y revisión médica:
+   - Un div con borde y fondo suave (ej. \`<div class="eeat-author border-t border-black/10 mt-8 pt-4 text-xs text-[#555] italic">...</div>\`).
+   - Firma del experto: "Escrito y revisado por Matías Turchi, Especialista en Lentes Progresivos y Director Técnico de Atelier Óptica (M.P. 1234)".
+   - Fecha de revisión médica reciente (ej: Junio 2026).
+   - Descargo de responsabilidad médica profesional (Medical Disclaimer): "Este contenido es únicamente educativo e informativo y no sustituye la consulta o diagnóstico con un profesional médico oftalmólogo."
+
+2. **Estructura GEO (SearchGPT y Perplexity):**
+   - Redacta el contenido estructurando afirmaciones fuertes basadas en evidencia y citando fuentes médicas o científicas prestigiosas (ej: "Según datos de la Organización Mundial de la Salud (OMS)..." o "Estudios publicados por la Academia Americana de Oftalmología [AAO] demuestran...").
+   - Al final de la nota (justo antes del bloque E-E-A-T), agrega una sección de Preguntas Frecuentes (FAQ) con etiquetas <h3> y respuestas muy breves y directas (de 1 o 2 oraciones máximo) que los motores de búsqueda por IA puedan extraer fácilmente como snippets.
+
+3. **Sugerencias de Contenido Multimedia:**
+   - Integra en el contenido HTML alguna sugerencia visual (como una tabla comparativa en HTML, o un bloque con texto indicando '[Infografía sugerida: Comparación visual de...]') para enriquecer la lectura.
+
+4. **Señales de Local SEO:**
+   - Incorpora orgánicamente palabras clave locales referidas a Córdoba Capital, Cerro de las Rosas y la calle José Luis de Tejeda 4380, reforzando la cercanía y el asesoramiento personalizado en el local de Atelier.
 
 El formato de salida DEBE ser estrictamente un objeto JSON plano, sin backticks ni etiquetas markdown, con la siguiente estructura:
 {
-  "title": "Título llamativo para el blog",
+  "title": "Título llamativo y optimizado para SEO",
   "excerpt": "Un resumen de 2 líneas para la portada del blog",
-  "metaTitle": "Título SEO",
-  "metaDescription": "Descripción SEO",
+  "metaTitle": "Título SEO (máx 60 caracteres)",
+  "metaDescription": "Descripción SEO (máx 160 caracteres)",
   "category": "Categoría (ej: Salud Visual, Tecnología, Tendencias)",
-  "content": "El contenido completo del artículo en formato HTML. Usa <p className='lead'> para el primer párrafo, y etiquetas <h2>, <h3>, <p>, <ul>."
+  "content": "El contenido completo del artículo en formato HTML. Usa <p className='lead'> para el primer párrafo, y etiquetas <h2>, <h3>, <p>, <ul>. Incluye aquí la sección de FAQ, las sugerencias multimedia, las citas GEO y el bloque E-E-A-T al final."
 }`;
 
     const humanPrompt = `Título Original: ${latestNews.title}\nContenido Original: ${latestNews.contentSnippet || latestNews.content.slice(0, 500)}...`;

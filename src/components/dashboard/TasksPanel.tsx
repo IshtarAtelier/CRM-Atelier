@@ -21,6 +21,14 @@ export default function TasksPanel({ tasks, onClose }: TasksPanelProps) {
     const today = new Date();
     today.setHours(23, 59, 59, 999);
 
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+
+    const isOverdue = (task: any) => {
+        if (!task.dueDate) return false;
+        return new Date(task.dueDate) < startOfToday;
+    };
+
     const urgentTasks = tasks.filter(task => {
         if (completedTasks.has(task.id)) return false;
         if (!task.dueDate) return true;
@@ -51,16 +59,26 @@ export default function TasksPanel({ tasks, onClose }: TasksPanelProps) {
 
             <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-3 md:space-y-4 custom-scrollbar">
                 {displayedTasks.length > 0 ? (
-                    displayedTasks.map(task => (
-                        <div key={task.id} className="relative group">
+                    displayedTasks.map(task => {
+                        const overdue = isOverdue(task);
+                        return (
+                        <div key={task.id} className={`relative group ${overdue ? 'animate-in fade-in duration-300' : ''}`}>
                             <Link
                                 href={`/admin/contactos?clientId=${task.clientId}`}
                                 onClick={onClose}
-                                className="w-full flex items-center gap-4 p-4 md:p-5 bg-white dark:bg-stone-800 rounded-[2rem] md:rounded-[2.5rem] border border-stone-100 dark:border-stone-700 hover:border-primary/30 dark:hover:border-primary/20 hover:shadow-xl transition-all text-left relative overflow-hidden"
+                                className={`w-full flex items-center gap-4 p-4 md:p-5 rounded-[2rem] md:rounded-[2.5rem] border hover:shadow-xl transition-all text-left relative overflow-hidden ${
+                                    overdue
+                                        ? 'bg-red-50 dark:bg-red-950/40 border-red-200 dark:border-red-800/60 hover:border-red-400 dark:hover:border-red-600 ring-1 ring-red-100 dark:ring-red-900/30'
+                                        : 'bg-white dark:bg-stone-800 border-stone-100 dark:border-stone-700 hover:border-primary/30 dark:hover:border-primary/20'
+                                }`}
                             >
-                                <div className="absolute top-0 left-0 w-1.5 h-full bg-primary/20 group-hover:bg-primary transition-colors" />
+                                <div className={`absolute top-0 left-0 w-1.5 h-full transition-colors ${overdue ? 'bg-red-500 group-hover:bg-red-600' : 'bg-primary/20 group-hover:bg-primary'}`} />
 
-                                <div className="w-10 h-10 md:w-12 md:h-12 bg-stone-50 dark:bg-stone-900 rounded-xl md:rounded-2xl flex items-center justify-center text-stone-400 group-hover:text-primary group-hover:bg-primary/5 transition-all shrink-0">
+                                <div className={`w-10 h-10 md:w-12 md:h-12 rounded-xl md:rounded-2xl flex items-center justify-center transition-all shrink-0 ${
+                                    overdue
+                                        ? 'bg-red-100 dark:bg-red-900/40 text-red-500 dark:text-red-400 group-hover:bg-red-200 dark:group-hover:bg-red-800/40'
+                                        : 'bg-stone-50 dark:bg-stone-900 text-stone-400 group-hover:text-primary group-hover:bg-primary/5'
+                                }`}>
                                     <User className="w-5 h-5 md:w-6 md:h-6" />
                                 </div>
 
@@ -84,9 +102,13 @@ export default function TasksPanel({ tasks, onClose }: TasksPanelProps) {
                                         {task.description}
                                     </p>
                                     {task.dueDate && (
-                                        <div className="flex items-center gap-1.5 mt-2 text-[10px] font-black text-primary uppercase tracking-widest">
+                                        <div className={`flex items-center gap-1.5 mt-2 text-[10px] font-black uppercase tracking-widest ${
+                                            overdue ? 'text-red-600 dark:text-red-400' : 'text-primary'
+                                        }`}>
                                             <Clock className="w-3 h-3" />
-                                            <span>vence {format(new Date(task.dueDate), "d 'de' MMM", { locale: es })}</span>
+                                            <span>
+                                                {overdue ? '⚠ VENCIDA' : 'vence'} {format(new Date(task.dueDate), "d 'de' MMM", { locale: es })}
+                                            </span>
                                         </div>
                                     )}
                                 </div>
@@ -177,7 +199,7 @@ export default function TasksPanel({ tasks, onClose }: TasksPanelProps) {
                                 )}
                             </button>
                         </div>
-                    ))
+                    );})
                 ) : (
                     <div className="h-full flex flex-col items-center justify-center text-center px-10 py-20 bg-stone-50/50 dark:bg-stone-800/20 rounded-[3rem] border-2 border-dashed border-stone-100 dark:border-stone-800">
                         <div className="w-20 h-20 bg-white dark:bg-stone-800 rounded-full flex items-center justify-center shadow-xl mb-6">

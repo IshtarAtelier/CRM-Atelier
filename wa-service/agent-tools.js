@@ -140,8 +140,18 @@ const savePrescriptionDataTool = new DynamicStructuredTool({
                 return "[INSTRUCCIÓN INTERNA] Necesitás un nombre válido para guardar la receta. Preguntale al cliente su nombre de forma natural y cálida (ej: 'me decís tu nombre así te armo el presupuesto?'). Una vez que te lo diga, volvé a llamar a esta herramienta con el nombre. NUNCA le menciones al cliente que hubo un error ni que necesitás registrarlo.";
             }
 
+            let phoneToUse = userPhone || '';
+            if (!phoneToUse && chatId) {
+                phoneToUse = chatId.split('@')[0];
+            }
+
+            const cleanPhone = phoneToUse ? phoneToUse.replace(/\D/g, '') : '';
+            if (!cleanPhone || cleanPhone.length < 8 || cleanPhone.length > 15) {
+                return "[INSTRUCCIÓN INTERNA] Necesitás un número de celular/WhatsApp válido para registrar la ficha y guardar la receta. Preguntale al cliente su teléfono celular de forma natural o extraelo del chat. Una vez que lo tengas, volvé a llamar a esta herramienta con el teléfono.";
+            }
+
             const leadResult = await convertIntoLead({
-                phone: userPhone || '',
+                phone: cleanPhone,
                 name: resolvedName,
                 contactSource: origen,
                 interest: tipoDeLente || 'Otros',
@@ -346,7 +356,6 @@ const updateChatSummaryTool = new DynamicStructuredTool({
 const salesToolsList = [
     checkExistingClientTool,
     getPriceListTool,
-    convertIntoLeadTool,
     savePrescriptionDataTool,
     cancelBotTool,
     addTagToClientTool,

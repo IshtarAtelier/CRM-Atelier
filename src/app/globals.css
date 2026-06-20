@@ -48,6 +48,10 @@ body {
 .animate-shrink-width {
   animation: shrink-width 8s linear forwards;
 }
+
+.animate-shrink-bar {
+  animation: shrink-width 8s linear forwards;
+}
 @keyframes shimmer {
   0% { background-position: 0% center; }
   50% { background-position: 100% center; }

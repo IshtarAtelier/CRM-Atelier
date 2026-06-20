@@ -593,7 +593,14 @@ export default function PrescriptionManager({
                 <button onClick={() => { setIsAdding(false); onCloseConversion?.(); resetForm(); }} className="px-6 py-4 bg-stone-100 rounded-2xl font-black text-xs uppercase tracking-widest">CANCELAR</button>
                 <button 
                     onClick={handleSave} 
-                    disabled={saving || isAnalyzing || (!form.sphereOD && !form.sphereOI && !form.cylinderOD && !form.cylinderOI && !form.additionOD && !form.additionOI && !receiptFile && !form.imageUrl)}
+                    disabled={saving || isAnalyzing || (
+                        !form.sphereOD && !form.sphereOI && 
+                        !form.cylinderOD && !form.cylinderOI && 
+                        !form.additionOD && !form.additionOI && 
+                        !form.nearSphereOD && !form.nearSphereOI && 
+                        !form.nearCylinderOD && !form.nearCylinderOI && 
+                        !receiptFile && !form.imageUrl
+                    )}
                     className="flex-1 py-4 bg-emerald-500 text-white rounded-2xl font-black text-xs uppercase tracking-widest disabled:opacity-50"
                 >
                     {saving ? 'GUARDANDO...' : (isAnalyzing ? 'ANALIZANDO RECETA...' : 'GUARDAR RECETA')}

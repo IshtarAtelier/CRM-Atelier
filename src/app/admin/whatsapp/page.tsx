@@ -823,6 +823,15 @@ export default function WhatsAppPage() {
         setShowLabelPicker(false);
         setShowFollowUpMenu(false);
         await fetchMessages(chat.id);
+
+        // Mark as read: optimistic UI + API call
+        if (chat.unreadCount > 0) {
+            // Optimistic: update local state immediately
+            setChats(prev => prev.map(c => c.id === chat.id ? { ...c, unreadCount: 0 } : c));
+            setSelectedChat(prev => prev ? { ...prev, unreadCount: 0 } : prev);
+            // Persist to database (fire-and-forget)
+            fetch(`/api/whatsapp/chats/${chat.id}/mark-read`, { method: 'POST' }).catch(() => {});
+        }
     };
 
     // ── Send text ─────────────────────────────────
@@ -2256,7 +2265,7 @@ export default function WhatsAppPage() {
                                 </div>
                             </div>
                             <div>
-                                <label className="text-[10px] font-black uppercase tracking-widest text-stone-400 mb-1 block">Origen</label>
+                                <label className="text-[10px] font-black uppercase tracking-widest text-stone-400 mb-1 block">Origen *</label>
                                 <select
                                     value={extractedClient.contactSource || ''}
                                     onChange={e => setExtractedClient({ ...extractedClient, contactSource: e.target.value })}

@@ -124,13 +124,13 @@ INSTRUCCIONES:
 4. Detecta si mencionó obra social/seguro médico (ej: "OSDE", "Swiss Medical", "Galeno", "Apross", etc.)
 5. Detecta la fuente de contacto (contactSource). REGLAS ESTRICTAS:
    ${isLid ? '- Este chat es de tipo ANUNCIO META (@lid) iniciado por el cliente, por lo tanto contactSource DEBE ser "Meta".' : `- Este chat es DIRECTO o fue INICIADO POR NOSOTROS. Solo asigna un origen si hay EVIDENCIA CLARA en la conversación:
-   - "Google Ads": SOLO si el cliente dice explícitamente que los encontró por Google, Maps o búsqueda de Google.
-   - "Meta": SOLO si el cliente dice explícitamente que vio un anuncio en Instagram o Facebook.
+   - "Google Ads": Si el cliente menciona que los encontró por Google/Maps o si la primera línea es exactamente "Hola! Vi su anuncio en Google y quiero recibir más información." o contiene referencias a Google.
+   - "Meta": Si el cliente menciona que vio un anuncio en Instagram o Facebook, o si hay un tag en corchetes que empiece con "meta" o "Meta" (ej: [metaFlor], [MetaAgos], [metaSofi], [metacursi], etc.).
    - "Referido": Si menciona que alguien lo recomendó, un amigo, conocido o familiar.
    - "Calle": Si dice que vio el local al pasar o pasó por la puerta.
    - "Ya es Cliente": Si se identifica como cliente existente.
    - null: EN CASO DE DUDA o si no hay evidencia clara del origen, DEBE ser null. Este es el valor por defecto.
-   IMPORTANTE: No asumas "Meta" solo porque la conversación menciona palabras como "publicidad", "anuncio" o "vi esto". Solo usa "Meta" si el cliente dice EXPLÍCIPAMENTE que vio algo en Instagram o Facebook. Si la conversación la iniciamos nosotros, el default es obligatoriamente null.`}
+   IMPORTANTE: Si la conversación la iniciamos nosotros, el default es obligatoriamente null.`}
 6. Extrae cualquier nota relevante (ej: preferences, urgencia, comentarios importantes)
 `;
 
@@ -162,13 +162,76 @@ INSTRUCCIONES:
             }, { status: 422 });
         }
 
+        // Deterministic template pre-extraction
+        const firstInbound = sortedMessages.find(m => m.direction === 'INBOUND');
+        let deterministicSource: string | null = null;
+        if (firstInbound && firstInbound.content) {
+            const firstContent = firstInbound.content;
+            if (/\[meta[a-zA-Z0-9_-]+\]/i.test(firstContent)) {
+                deterministicSource = 'Meta';
+            } else if (/vi su anuncio en google|los vi en google/i.test(firstContent)) {
+                deterministicSource = 'Google Ads';
+            }
+        }
+
+        // Normalize contactSource casing/spelling
+        let sourceNorm = parsedData.contactSource;
+        if (deterministicSource) {
+            sourceNorm = deterministicSource;
+        } else if (typeof sourceNorm === 'string') {
+            sourceNorm = sourceNorm.trim();
+            const lower = sourceNorm.toLowerCase();
+            if (lower.includes('google') || lower === 'gads') {
+                sourceNorm = 'Google Ads';
+            } else if (
+                lower.includes('meta') || 
+                lower.includes('instagram') || 
+                lower.includes('facebook') || 
+                lower === 'face' ||
+                lower === 'fb' ||
+                lower === 'ig'
+            ) {
+                sourceNorm = 'Meta';
+            } else if (lower === 'ya es cliente') {
+                sourceNorm = 'Ya es Cliente';
+            } else if (lower === 'tienda nube' || lower === 'tiendanube') {
+                sourceNorm = 'Tienda nube';
+            } else if (lower === 'referido' || lower === 'recomendado' || lower === 'recomendada') {
+                sourceNorm = 'Referido';
+            } else if (lower === 'calle') {
+                sourceNorm = 'Calle';
+            } else if (lower === 'wave') {
+                sourceNorm = 'Wave';
+            } else if (lower === 'salida') {
+                sourceNorm = 'Salida';
+            } else if (lower === 'jemima' || lower.includes('jemima')) {
+                sourceNorm = 'Jemima';
+            } else {
+                sourceNorm = 'Otros';
+            }
+        } else {
+            // Fallback heuristics directly on the first inbound message content
+            if (firstInbound && firstInbound.content) {
+                const text = firstInbound.content.toLowerCase();
+                if (text.includes('google') || text.includes('búsqueda') || text.includes('busqueda') || text.includes('maps')) {
+                    sourceNorm = 'Google Ads';
+                } else if (text.includes('meta') || text.includes('instagram') || text.includes('facebook') || text.includes('face')) {
+                    sourceNorm = 'Meta';
+                } else {
+                    sourceNorm = null;
+                }
+            } else {
+                sourceNorm = null;
+            }
+        }
+
         // Type safety & Sanitization
         const resultData = {
             name: (typeof parsedData.name === 'string' && parsedData.name.trim() !== '') ? parsedData.name.trim() : (profileName || 'Cliente WhatsApp'),
             phone: typeof parsedData.phone === 'string' ? parsedData.phone : null,
             interest: typeof parsedData.interest === 'string' ? parsedData.interest : null,
             insurance: typeof parsedData.insurance === 'string' ? parsedData.insurance : null,
-            contactSource: (typeof parsedData.contactSource === 'string' && ["Google Ads", "Meta", "Calle", "Jemima", "Ya es Cliente", "Tienda nube", "Referido", "Wave", "Salida", "Otros"].includes(parsedData.contactSource)) ? parsedData.contactSource : null,
+            contactSource: sourceNorm,
             notes: typeof parsedData.notes === 'string' ? parsedData.notes : null
         };
 

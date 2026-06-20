@@ -1347,8 +1347,45 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
   // Get 3 other posts to suggest
   const otherPosts = await getRelatedPosts(post.slug);
 
+  const baseUrl = 'https://www.atelieroptica.com.ar';
+  const schema = {
+    "@context": "https://schema.org",
+    "@type": "BlogPosting",
+    "headline": post.title,
+    "description": post.excerpt || post.metaDescription,
+    "image": [
+      post.imageUrl 
+        ? (post.imageUrl.startsWith('http') ? post.imageUrl : `${baseUrl}${post.imageUrl}`) 
+        : `${baseUrl}/images/og-image.jpg`
+    ],
+    "datePublished": post.date,
+    "dateModified": post.date,
+    "author": {
+      "@type": "Organization",
+      "name": "Atelier Óptica",
+      "url": "https://www.atelieroptica.com.ar"
+    },
+    "publisher": {
+      "@type": "Organization",
+      "name": "Atelier Óptica",
+      "url": "https://www.atelieroptica.com.ar",
+      "logo": {
+        "@type": "ImageObject",
+        "url": "https://www.atelieroptica.com.ar/icon.png"
+      }
+    },
+    "mainEntityOfPage": {
+      "@type": "WebPage",
+      "@id": `${baseUrl}/blog/${post.slug}`
+    }
+  };
+
   return (
     <div className="min-h-screen bg-[#faf8f5] dark:bg-stone-950 pb-20">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
+      />
       <StorefrontNavbar theme="light" />
 
       <div className="bg-[#faf8f5] border-b border-black/5  pt-16">
