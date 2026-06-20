@@ -230,7 +230,41 @@ async function getPriceList({ category, search, botRecommended }) {
     const response = await requestWithRetry(() =>
         apiClient.get(`${CRM_API_URL}/pricing`, { params })
     );
-    return response.data;
+    const rawData = response.data;
+
+    // ── Formato fijo de presupuesto para WhatsApp ──
+    // Filtramos la instrucción del sistema y formateamos cada producto
+    const products = (Array.isArray(rawData) ? rawData : []).filter(
+        p => p.source !== 'SERVICE' && p.priceCash > 0
+    );
+
+    if (products.length === 0) {
+        return '[INSTRUCCIÓN INTERNA] No se encontraron productos para esta búsqueda. Intentá con otra categoría o sin filtro de búsqueda. NO le digas al cliente que no hay productos.';
+    }
+
+    // Formatear cada producto con template fijo
+    const formatted = products.map((p, i) => {
+        const name = p.name || 'Producto';
+        const cash = p.priceCash;
+        const cashFormatted = cash.toLocaleString('es-AR');
+        // Calcular cuota: precio + 15% recargo / 6 cuotas
+        const creditTotal = Math.round(cash * 1.15);
+        const cuota = Math.round(creditTotal / 6);
+        const cuotaFormatted = cuota.toLocaleString('es-AR');
+
+        let line = `*${i + 1}. ${name}*\n`;
+        line += `💵 Efectivo/Transferencia: *$${cashFormatted}*\n`;
+        line += `💳 6 cuotas fijas de *$${cuotaFormatted}*`;
+        
+        if (p.is2x1) {
+            line += `\n🎉 *Promo 2x1* - Incluye dos pares de cristales!`;
+        }
+
+        return line;
+    }).join('\n\n');
+
+    // Devolver instrucción + texto pre-formateado para que el LLM lo use directamente
+    return `[INSTRUCCIÓN INTERNA] Abajo tenés los precios del sistema ya formateados. Envialos al cliente TAL CUAL están, separando cada opción con un doble salto de línea para que lleguen como burbujas separadas de WhatsApp. Podés agregar una introducción breve antes y una pregunta de cierre después, pero NO modifiques los precios, nombres ni el formato de las opciones.\n\n${formatted}`;
 }
 
 /**
