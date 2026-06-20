@@ -27,7 +27,8 @@ export function TiendaClient({
   initialProducts,
   availableBrands = [],
   availableShapes = [],
-  availableMaterials = []
+  availableMaterials = [],
+  footer
 }: { 
   initialProducts: any[];
   availableBrands?: string[];
