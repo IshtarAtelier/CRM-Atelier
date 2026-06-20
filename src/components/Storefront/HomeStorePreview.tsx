@@ -146,7 +146,7 @@ export async function HomeStorePreview() {
             <div className="w-full h-full overflow-hidden rounded-[2rem] border border-stone-800/60 shadow-2xl relative group bg-stone-900">
               <div className="absolute inset-0 bg-stone-900 animate-pulse" />
               <iframe
-                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3406.126442657476!2d-64.2400508!3d-31.3831!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x943299c0da27ea09%3A0xcdd93bb53ab437c5!2sAtelier%20Optica!5e0!3m2!1sen!2sar!4v1716162356789!5m2!1sen!2sar"
+                src="https://maps.google.com/maps?width=100%25&amp;height=600&amp;hl=en&amp;q=Trist%C3%A1n%20Malbr%C3%A1n%203965,%20Cerro%20de%20las%20Rosas,%20C%C3%B3rdoba+(Atelier%20%C3%93ptica)&amp;t=&amp;z=15&amp;ie=UTF8&amp;iwloc=B&amp;output=embed"
                 width="100%"
                 height="100%"
                 style={{ border: 0, filter: "invert(100%) hue-rotate(180deg) brightness(85%) contrast(110%)" }}

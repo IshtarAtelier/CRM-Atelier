@@ -107,14 +107,14 @@ export function StorefrontNavbar({ theme = "dark", mixBlend = false }: Storefron
           <nav className="flex gap-2 sm:gap-6 items-center">
               <Link 
                 href="/tienda" 
-                className={`text-[11px] sm:text-[13px] font-medium ${activeTextColorClass} hover:opacity-60 transition-opacity p-2 sm:p-0`} 
+                className={`text-[11px] sm:text-[13px] font-medium ${activeTextColorClass} hover:opacity-60 transition-opacity p-2 sm:p-0 hidden sm:block`} 
                 style={activeTextShadowStyle}
               >
                 Shop
               </Link>
               <Link 
                 href="/cristales-opticos" 
-                className={`text-[11px] sm:text-[13px] font-medium ${activeTextColorClass} hover:opacity-60 transition-opacity p-2 sm:p-0`} 
+                className={`text-[11px] sm:text-[13px] font-medium ${activeTextColorClass} hover:opacity-60 transition-opacity p-2 sm:p-0 hidden sm:block`} 
                 style={activeTextShadowStyle}
               >
                 Cristales
@@ -136,7 +136,9 @@ export function StorefrontNavbar({ theme = "dark", mixBlend = false }: Storefron
                 className={`flex items-center gap-0.5 sm:gap-1 text-[11px] sm:text-[13px] font-medium ${activeTextColorClass} hover:opacity-60 transition-opacity p-2 sm:p-0`}
                 style={activeTextShadowStyle}
               >
-                Explore <ChevronDown className="w-3 h-3 opacity-70" />
+                <span className="hidden sm:inline">Explore</span>
+                <span className="sm:hidden">Menú</span>
+                <ChevronDown className="w-3 h-3 opacity-70" />
               </button>
   
               <AnimatePresence>
@@ -148,6 +150,15 @@ export function StorefrontNavbar({ theme = "dark", mixBlend = false }: Storefron
                     transition={{ duration: 0.2 }}
                     className="absolute top-full left-0 mt-2 w-48 bg-white shadow-xl rounded-xl border border-stone-100 overflow-hidden py-2"
                   >
+                    <Link href="/tienda" className="block sm:hidden px-4 py-2 text-[12px] font-medium text-stone-700 hover:bg-stone-50 transition-colors">
+                      Shop
+                    </Link>
+                    <Link href="/cristales-opticos" className="block sm:hidden px-4 py-2 text-[12px] font-medium text-stone-700 hover:bg-stone-50 transition-colors">
+                      Cristales
+                    </Link>
+                    <Link href="/arma-tus-lentes" className="block sm:hidden px-4 py-2 text-[12px] font-medium text-stone-700 hover:bg-stone-50 transition-colors">
+                      Lentes a Medida
+                    </Link>
                     <Link href="/blog" className="block px-4 py-2 text-[12px] font-medium text-stone-700 hover:bg-stone-50 transition-colors">
                       El Blog
                     </Link>
