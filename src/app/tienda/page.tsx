@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/db';
 import { TiendaClient } from './TiendaClient';
+import { StorefrontFooter } from '@/components/Storefront/StorefrontFooter';
 import { Metadata } from 'next';
 import { getProductAttributes } from '@/utils/product-controllers';
 
@@ -131,6 +132,7 @@ export default async function TiendaPage({ searchParams }: { searchParams?: Prom
       availableBrands={availableBrands}
       availableShapes={availableShapes}
       availableMaterials={availableMaterials}
+      footer={<StorefrontFooter />}
     />
   );
 }

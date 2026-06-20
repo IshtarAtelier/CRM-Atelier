@@ -5,6 +5,7 @@ import { getProductAttributes } from '@/utils/product-controllers';
 
 export const revalidate = 300;
 import { ProductClient } from './ProductClient';
+import { StorefrontFooter } from '@/components/Storefront/StorefrontFooter';
 import { resolveStorageUrl } from "@/lib/utils/storage";
 
 // Constante para el producto demo
@@ -321,7 +322,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }}
       />
-      <ProductClient product={product} variants={variants} relatedProducts={relatedProducts} />
+      <ProductClient product={product} variants={variants} similarProducts={relatedProducts} footer={<StorefrontFooter />} />
     </>
   );
 }

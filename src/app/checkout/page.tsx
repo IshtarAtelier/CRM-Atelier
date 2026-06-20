@@ -1,5 +1,6 @@
 import { Metadata } from 'next';
 import { CheckoutClient } from './CheckoutClient';
+import { StorefrontFooter } from '@/components/Storefront/StorefrontFooter';
 
 export const metadata: Metadata = {
   alternates: { canonical: '/checkout' },
@@ -12,5 +13,5 @@ export const metadata: Metadata = {
 };
 
 export default function CheckoutPage() {
-  return <CheckoutClient />;
+  return <CheckoutClient footer={<StorefrontFooter />} />;
 }

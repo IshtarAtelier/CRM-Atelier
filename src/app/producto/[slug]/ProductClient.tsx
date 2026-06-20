@@ -6,7 +6,6 @@ import { WHATSAPP_PHONE } from "@/lib/constants";
 import { LensConfigurator } from "@/components/Storefront/LensConfigurator";
 import { GlassesDiagram } from "@/components/Storefront/GlassesDiagram";
 import { StorefrontNavbar } from "@/components/Storefront/StorefrontNavbar";
-import { StorefrontFooter } from "@/components/Storefront/StorefrontFooter";
 import { FloatingWhatsApp } from "@/components/Storefront/FloatingWhatsApp";
 import { PaymentOptions } from "@/components/Storefront/PaymentOptions";
 import { useState, useEffect } from "react";
@@ -19,11 +18,13 @@ import { trackAddToCart } from "@/lib/tracking";
 export function ProductClient({ 
   product, 
   variants = [], 
-  relatedProducts = [] 
+  similarProducts,
+  footer 
 }: { 
   product: any; 
   variants?: any[]; 
-  relatedProducts?: any[]; 
+  similarProducts: any[];
+  footer?: React.ReactNode;
 }) {
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [showConfigurator, setShowConfigurator] = useState(false);
@@ -558,12 +559,12 @@ export function ProductClient({
         </div>
       </div>
 
-      {relatedProducts && relatedProducts.length > 0 && (
+      {similarProducts && similarProducts.length > 0 && (
         <div className="px-8 lg:px-14 pb-12 bg-white">
           <div className="border-t border-[#e5e5e5] pt-12">
             <h3 className="text-[10px] font-black uppercase tracking-widest text-black mb-6">Productos que te pueden interesar</h3>
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-              {relatedProducts.map((p, idx) => (
+              {similarProducts.map((p: any, idx: number) => (
                 <Link 
                   key={idx} 
                   href={`/producto/${p.slug}`}
@@ -590,7 +591,7 @@ export function ProductClient({
         </div>
       )}
 
-      <StorefrontFooter />
+      {footer}
 
       <FloatingWhatsApp productName={`${product.brand} ${product.model}`} />
 

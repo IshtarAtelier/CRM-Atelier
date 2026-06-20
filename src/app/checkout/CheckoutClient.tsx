@@ -2,7 +2,7 @@
 
 import { useCart } from "@/store/useCart";
 import { StorefrontNavbar } from "@/components/Storefront/StorefrontNavbar";
-import { StorefrontFooter } from "@/components/Storefront/StorefrontFooter";
+import { FloatingWhatsApp } from "@/components/Storefront/FloatingWhatsApp";
 import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import { ShieldCheck } from "lucide-react";
@@ -13,7 +13,7 @@ import { CheckoutSummarySidebar } from "@/components/checkout/CheckoutSummarySid
 import { WHATSAPP_PHONE } from "@/lib/constants";
 import { trackInitiateCheckout, trackPurchase } from "@/lib/tracking";
 
-export function CheckoutClient() {
+export function CheckoutClient({ footer }: { footer?: React.ReactNode }) {
   const { items, getCartTotal, clearCart } = useCart();
   const [mounted, setMounted] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -374,7 +374,7 @@ export function CheckoutClient() {
             Volver a la Tienda
           </Link>
         </div>
-        <StorefrontFooter />
+        {footer}
       </div>
     );
   }
@@ -423,7 +423,7 @@ export function CheckoutClient() {
         <CheckoutSummarySidebar items={items} getCartTotal={getCartTotal} formData={formData} webSettings={webSettings} />
       </main>
       
-      <StorefrontFooter />
+      {footer}
     </div>
   );
 }

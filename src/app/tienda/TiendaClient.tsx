@@ -6,7 +6,6 @@ import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import { X } from "lucide-react";
 import { StorefrontNavbar } from "@/components/Storefront/StorefrontNavbar";
-import { StorefrontFooter } from "@/components/Storefront/StorefrontFooter";
 import { FloatingWhatsApp } from "@/components/Storefront/FloatingWhatsApp";
 import { ProductFilters } from "@/components/Storefront/ProductFilters";
 import { resolveStorageUrl } from "@/lib/utils/storage";
@@ -34,6 +33,7 @@ export function TiendaClient({
   availableBrands?: string[];
   availableShapes?: string[];
   availableMaterials?: string[];
+  footer?: React.ReactNode;
 }) {
   const [activeCategory, setActiveCategory] = useState("Todo");
   const [visibleCount, setVisibleCount] = useState(24);
@@ -345,7 +345,7 @@ export function TiendaClient({
         </div>
       </main>
 
-      <StorefrontFooter />
+      {footer}
       <FloatingWhatsApp message="¡Hola Atelier! Estoy recorriendo la tienda online y me gustaría recibir asesoramiento personalizado." />
     </div>
   );
