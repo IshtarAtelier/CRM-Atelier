@@ -243,6 +243,8 @@ async function getPriceList({ category, search, botRecommended }) {
     }
 
     // Formatear cada producto con template fijo
+    // El sistema de index.js splitea por \n\n para crear burbujas separadas
+    // Cada producto completo = 1 burbuja de WhatsApp
     const formatted = products.map((p, i) => {
         const name = p.name || 'Producto';
         const cash = p.priceCash;
