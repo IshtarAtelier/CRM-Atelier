@@ -197,13 +197,28 @@ Responde ÚNICAMENTE con el JSON puro. Sin markdown.
             await reportInvoiceRequest({ clientId: currentClientId });
         }
 
-        // 4. Actualizar el chatSummary
+        // 4. Actualizar el chatSummary (PROTEGIDO: no sobreescribir resúmenes ricos del agente)
         if (parsed.summary) {
-            console.log(`  📝 [Ficha Inteligente] Actualizando resumen del chat.`);
-            await prisma.whatsAppChat.update({
-                where: { id: chatId },
-                data: { chatSummary: parsed.summary }
-            }).catch(e => console.error("Error update chatSummary pasivo:", e.message));
+            const existingSummary = chatInfo.chatSummary || '';
+            
+            if (!existingSummary || existingSummary.trim().length === 0) {
+                // No hay resumen previo → escribir el nuevo
+                console.log(`  📝 [Ficha Inteligente] Creando resumen inicial del chat.`);
+                await prisma.whatsAppChat.update({
+                    where: { id: chatId },
+                    data: { chatSummary: parsed.summary }
+                }).catch(e => console.error("Error update chatSummary pasivo:", e.message));
+            } else if (parsed.summary.length > existingSummary.length * 1.5) {
+                // El nuevo resumen es significativamente más completo → reemplazar
+                console.log(`  📝 [Ficha Inteligente] Actualizando resumen del chat (más completo que el anterior).`);
+                await prisma.whatsAppChat.update({
+                    where: { id: chatId },
+                    data: { chatSummary: parsed.summary }
+                }).catch(e => console.error("Error update chatSummary pasivo:", e.message));
+            } else {
+                // Ya existe un resumen (probablemente del agente, más rico) → NO sobreescribir
+                console.log(`  📝 [Ficha Inteligente] Resumen existente preservado (${existingSummary.length} chars). Extractor pasivo NO sobreescribe.`);
+            }
         }
 
         // Emitir evento para refrescar UI

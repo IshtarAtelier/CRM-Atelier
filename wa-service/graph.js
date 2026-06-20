@@ -33,7 +33,7 @@ const salesToolNode = new ToolNode(salesToolsList, { handleToolErrors: true });
 const executiveToolNode = new ToolNode(executiveToolsList, { handleToolErrors: true });
 
 // ── Wrappers con detección de ciclos de error en herramientas ──
-const toolErrorTracker = new Map(); // key: chatId, value: { toolName, count }
+const toolErrorTracker = new Map(); // key: chatId, value: { toolName, count, lastArgs }
 
 function wrapToolNodeWithCycleDetection(originalToolNode, agentType) {
     return async (state) => {
@@ -51,16 +51,19 @@ function wrapToolNodeWithCycleDetection(originalToolNode, agentType) {
             const toolName = msg.name || msg.tool_call_id || 'unknown_tool';
 
             const tracker = toolErrorTracker.get(chatId);
+            // Extraer los argumentos de la tool call para detectar loops exactos
+            const toolArgs = JSON.stringify(msg.artifact || msg.tool_call_id || '').substring(0, 200);
 
             if (isError) {
                 if (tracker && tracker.toolName === toolName) {
                     tracker.count++;
                 } else {
-                    toolErrorTracker.set(chatId, { toolName, count: 1 });
+                    toolErrorTracker.set(chatId, { toolName, count: 1, lastArgs: toolArgs });
                 }
 
                 const current = toolErrorTracker.get(chatId);
-                if (current && current.count >= 3) {
+                // Reducido de 3→2 para cortar loops más rápido
+                if (current && current.count >= 2) {
                     console.error(`  🛑 [${agentType}] Tool "${toolName}" falló ${current.count} veces consecutivas para chat ${chatId}. Rompiendo ciclo y abortando.`);
                     toolErrorTracker.delete(chatId);
                     throw new Error(`Tool ${toolName} falló repetidamente. Forzando apagado silencioso.`);
@@ -357,7 +360,7 @@ const workflow = new StateGraph(GraphAnnotation)
   .addEdge("executiveTools", "executiveAgent")
   .addEdge("auditor", "__end__");
 
-const graph = workflow.compile({ recursionLimit: 25 });
+const graph = workflow.compile({ recursionLimit: 15 }); // Reducido de 25→15 para cortar loops más rápido
 module.exports = { 
   graph,
   DEFAULT_SALES_PROMPT,

@@ -292,39 +292,61 @@ async function processBotTurn(chat, waId, profileName, realPhone) {
         const recentMessages = await prisma.whatsAppMessage.findMany({
             where: { chatId: chat.id },
             orderBy: { createdAt: 'desc' },
-            take: 12
+            take: 30 // Ampliado de 12 → 30 para capturar ~15 intercambios completos
         });
 
         const newestMessageProcessed = recentMessages[0]; // Referencia para el post-procesamiento
 
         const { AIMessage } = require("@langchain/core/messages");
         
-        // Reconstruir el historial
-        const allMessages = recentMessages.reverse().map(m => {
+        // Reconstruir el historial, convirtiendo mensajes DB a LangChain messages
+        const rawMessages = recentMessages.reverse().map(m => {
             if (m.direction === 'OUTBOUND') {
-                return new AIMessage(m.content || '');
+                return { role: 'ai', content: m.content || '' };
             } else {
                 if (m.type === 'IMAGE') {
                     const cached = (global.mediaCache?.[chat.id] || []).find(item => item.waMessageId === m.waMessageId);
                     if (cached) {
                         console.log(`📸 Enviando imagen multimodal a Gemini para mensaje: ${m.waMessageId}`);
-                        return new HumanMessage({
-                            content: [
-                                { type: "text", text: `[Imagen adjunta. Mensaje del cliente: "${m.content || '(sin texto)'}"]` },
-                                { type: "image_url", image_url: { url: `data:${cached.mimeType};base64,${cached.base64}` } }
-                            ]
-                        });
+                        return { role: 'human', multimodal: true, content: [
+                            { type: "text", text: `[Imagen adjunta. Mensaje del cliente: "${m.content || '(sin texto)'}"]` },
+                            { type: "image_url", image_url: { url: `data:${cached.mimeType};base64,${cached.base64}` } }
+                        ]};
                     } else {
-                        return new HumanMessage(`[Imagen adjunta (antigua): ${m.content || '(sin texto)'}]`);
+                        return { role: 'human', content: `[Imagen adjunta (antigua): ${m.content || '(sin texto)'}]` };
                     }
                 } else if (m.type === 'AUDIO') {
-                    // Ahora la transcripción es manejada antes de guardar el mensaje
-                    return new HumanMessage(`[El cliente envió un audio transcrito. Mensaje: ${m.content}]`);
+                    return { role: 'human', content: `[El cliente envió un audio transcrito. Mensaje: ${m.content}]` };
                 } else {
-                    return new HumanMessage(m.content || '[Mensaje vacío]');
+                    return { role: 'human', content: m.content || '[Mensaje vacío]' };
                 }
             }
         });
+
+        // ── Fusionar burbujas consecutivas del bot en un solo AIMessage ──
+        // Cuando el bot envía 3 burbujas seguidas, se fusionan en un solo mensaje
+        // para no desperdiciar slots de contexto (antes, 3 burbujas = 3 de 12 slots)
+        const mergedMessages = [];
+        for (let i = 0; i < rawMessages.length; i++) {
+            const curr = rawMessages[i];
+            if (curr.role === 'ai') {
+                // Acumular mensajes AI consecutivos
+                let mergedContent = curr.content;
+                while (i + 1 < rawMessages.length && rawMessages[i + 1].role === 'ai') {
+                    i++;
+                    mergedContent += '\n\n' + rawMessages[i].content;
+                }
+                mergedMessages.push(new AIMessage(mergedContent));
+            } else {
+                // Mensaje humano
+                if (curr.multimodal) {
+                    mergedMessages.push(new HumanMessage({ content: curr.content }));
+                } else {
+                    mergedMessages.push(new HumanMessage(curr.content));
+                }
+            }
+        }
+        const allMessages = mergedMessages;
 
         const config = { configurable: { thread_id: waId } };
         const state = { 
@@ -421,18 +443,65 @@ async function processBotTurn(chat, waId, profileName, realPhone) {
             if (!guardrail.safe) {
                 console.warn(`  ⚠️ [Output Guardrail] Respuesta bloqueada para ${profileName} por: ${guardrail.reason}`);
                 
+                // ── Si es revelación de identidad de bot → responder como humano + apagar ──
+                const isIdentityReveal = guardrail.reason.includes('Revelación de Identidad');
+                if (isIdentityReveal) {
+                    // Respuestas que solo un humano podría decir
+                    const humanDeflections = [
+                        'Si tenés alguna duda te parece que te llame?',
+                        'Dale, si preferís te llamo y lo vemos por teléfono, te parece?',
+                    ];
+                    const deflection = humanDeflections[Math.floor(Math.random() * humanDeflections.length)];
+                    
+                    // Enviar la respuesta humana
+                    botReplyingTo.add(waId);
+                    await sendTypingState(waId);
+                    await new Promise(r => setTimeout(r, 2000));
+                    const sent = await sendMessage(waId, deflection);
+                    setTimeout(() => botReplyingTo.delete(waId), 3000);
+                    
+                    // Guardar el mensaje enviado en la DB
+                    if (sent && sent.id && sent.id._serialized) {
+                        await prisma.whatsAppMessage.upsert({
+                            where: { waMessageId: sent.id._serialized },
+                            update: { senderName: 'Bot' },
+                            create: {
+                                chatId: chat.id,
+                                direction: 'OUTBOUND',
+                                type: 'TEXT',
+                                content: deflection,
+                                waMessageId: sent.id._serialized,
+                                senderName: 'Bot',
+                                status: 'SENT'
+                            }
+                        }).catch(e => console.error('Error guardando deflección:', e.message));
+                    }
+                    console.log(`  🛡️ [Anti-Revelación] Respuesta humana enviada: "${deflection}"`);
+                }
+                
                 // 1. Apagar bot para este chat
                 await disableBotForChatById(chat.id, `Brecha de seguridad (Guardrail: ${guardrail.reason})`);
                 
-                // 2. Registrar nota de seguridad en la ficha del cliente
+                // 2. Registrar nota de seguridad + crear tarea urgente
                 if (chat.clientId) {
                     await prisma.interaction.create({
                         data: {
                             clientId: chat.clientId,
                             type: 'NOTE',
-                            content: `⚠️ [Output Guardrail] Bot desactivado. Se bloqueó una respuesta automática por contener datos internos o JSON: "${responseText.substring(0, 150)}..."`
+                            content: `⚠️ [Output Guardrail] Bot desactivado. ${isIdentityReveal ? 'Cliente sospecha que habla con un bot. Se envió deflección humana.' : 'Se bloqueó respuesta con datos internos.'} Respuesta original: "${responseText.substring(0, 150)}..."`
                         }
                     }).catch(e => console.error('Error guardando nota:', e.message));
+                    
+                    // Si es revelación de identidad → tarea urgente para que un humano llame
+                    if (isIdentityReveal) {
+                        await prisma.clientTask.create({
+                            data: {
+                                clientId: chat.clientId,
+                                description: '🚨 URGENTE: Cliente sospecha que habla con un bot. Se le ofreció llamarlo. Llamar YA para mantener la confianza.',
+                                dueDate: new Date()
+                            }
+                        }).catch(e => console.error('Error creando tarea urgente:', e.message));
+                    }
                 }
 
                 // 3. Notificar al panel vía WebSocket
@@ -441,7 +510,7 @@ async function processBotTurn(chat, waId, profileName, realPhone) {
                         chatId: chat.id,
                         name: profileName || chat.profileName || 'Cliente',
                         phone: realPhone || chat.realPhone || waId.split('@')[0],
-                        error: `Bloqueo de Seguridad (${guardrail.reason})`
+                        error: isIdentityReveal ? '🛡️ Sospecha de Bot (deflección enviada)' : `Bloqueo de Seguridad (${guardrail.reason})`
                     });
                 }
                 
@@ -467,7 +536,49 @@ async function processBotTurn(chat, waId, profileName, realPhone) {
             // Seteamos DESPUÉS del check de mensajes nuevos para evitar leak en early return
             botReplyingTo.add(waId);
             // Limpiar signos de interrogación de apertura para seguir la regla de estilo humano
-            const cleanResponseText = responseText.replace(/¿/g, '');
+            let cleanResponseText = responseText.replace(/¿/g, '');
+
+            // ── Componente 6: Filtro post-procesamiento contra frases repetitivas ──
+            const PROHIBITED_FILLER_PHRASES = [
+                'dame un segundito', 'esperame que busco', 'ahí te paso',
+                'dejame verificar', 'te calculo los precios', 'ahí te busco',
+                'dejame chequear', 'ya te busco', 'un momentito'
+            ];
+            const lowerResponse = cleanResponseText.toLowerCase();
+            for (const phrase of PROHIBITED_FILLER_PHRASES) {
+                if (lowerResponse.includes(phrase)) {
+                    // Eliminar la frase prohibida de la respuesta
+                    const regex = new RegExp(phrase.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+                    cleanResponseText = cleanResponseText.replace(regex, '').replace(/\s{2,}/g, ' ').trim();
+                    console.log(`  🚫 [Anti-Relleno] Frase prohibida eliminada: "${phrase}"`);
+                }
+            }
+
+            // Detectar si la respuesta repite literalmente frases de los últimos mensajes del bot
+            const recentBotMessages = recentMessages
+                .filter(m => m.direction === 'OUTBOUND' && m.senderName === 'Bot')
+                .slice(-3)
+                .map(m => (m.content || '').toLowerCase());
+            
+            const responseSentences = cleanResponseText.split(/[.!?\n]/).map(s => s.trim().toLowerCase()).filter(s => s.length > 15);
+            for (const sentence of responseSentences) {
+                for (const prevMsg of recentBotMessages) {
+                    if (prevMsg.includes(sentence)) {
+                        // La frase ya fue dicha antes → eliminarla
+                        const escSentence = sentence.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                        cleanResponseText = cleanResponseText.replace(new RegExp(escSentence, 'gi'), '').trim();
+                        console.log(`  🔄 [Anti-Repetición] Frase repetida eliminada: "${sentence.substring(0, 50)}..."`);
+                    }
+                }
+            }
+
+            // Si después de limpiar quedó vacío, no enviar
+            if (!cleanResponseText.trim()) {
+                console.log(`  ⏹️ Respuesta vacía tras filtrado. No se envía nada.`);
+                botReplyingTo.delete(waId);
+                return;
+            }
+
             const messageBlocks = cleanResponseText.split('\n\n').map(b => b.trim()).filter(b => b.length > 0);
             
             for (let i = 0; i < messageBlocks.length; i++) {
@@ -523,6 +634,58 @@ async function processBotTurn(chat, waId, profileName, realPhone) {
             // Resetear contador de errores consecutivos tras envío exitoso
             chatErrorCounts.delete(chat.id);
             console.log(`  ✅ Bot respondió a ${profileName} (${result.agentType || 'UNKNOWN'}) con ${messageBlocks.length} mensajes`);
+
+            // ── Componente 7: Auto-resumen periódico cada ~5 turnos del bot ──
+            // Si el agente no invocó update_chat_summary, generamos uno automáticamente
+            try {
+                const hasAgentSummaryCall = result.messages?.some(msg => 
+                    msg.tool_calls?.some(tc => tc.name === 'update_chat_summary')
+                );
+                if (!hasAgentSummaryCall) {
+                    // Contar turnos del bot desde el último update_chat_summary
+                    const botTurnsSinceLastSummary = await prisma.whatsAppMessage.count({
+                        where: {
+                            chatId: chat.id,
+                            direction: 'OUTBOUND',
+                            senderName: 'Bot',
+                            createdAt: { gte: new Date(Date.now() - 30 * 60 * 1000) } // últimos 30 min
+                        }
+                    });
+                    if (botTurnsSinceLastSummary >= 5) {
+                        // Generar un resumen ligero en background
+                        const { updateChatSummary } = require('./tools');
+                        const existingSummary = freshChat.chatSummary || '';
+                        
+                        // Solo si hay contexto suficiente para resumir
+                        const recentForSummary = recentMessages.slice(-10).reverse();
+                        const convText = recentForSummary.map(m => {
+                            const who = m.direction === 'OUTBOUND' ? 'Bot' : 'Cliente';
+                            return `${who}: ${(m.content || '').substring(0, 200)}`;
+                        }).join('\n');
+
+                        const { ChatGoogleGenerativeAI: SummaryModel } = require("@langchain/google-genai");
+                        const summaryLLM = new SummaryModel({
+                            model: 'gemini-2.5-flash',
+                            temperature: 0,
+                            maxOutputTokens: 500,
+                            apiKey: process.env.GOOGLE_GENAI_API_KEY || process.env.GOOGLE_API_KEY
+                        });
+
+                        const summaryPrompt = `Sos un asistente de CRM. A partir del resumen anterior y la conversación reciente, generá un resumen actualizado en máximo 4 líneas con: nombre, obra social, tipo de lente, cotización entregada, decisión del cliente, y cualquier dato relevante. NO inventes datos.\n\nResumen anterior:\n${existingSummary || '(Ninguno)'}\n\nConversación reciente:\n${convText}\n\nResumen actualizado:`;
+
+                        summaryLLM.invoke(summaryPrompt).then(async (res) => {
+                            const newSummary = res.content.toString().trim();
+                            if (newSummary && newSummary.length > 10) {
+                                await updateChatSummary({ chatId: chat.id, summaryText: newSummary });
+                                console.log(`  📝 [Auto-Resumen] Resumen periódico generado para ${profileName}`);
+                            }
+                        }).catch(e => console.error('Error en auto-resumen periódico:', e.message));
+                    }
+                }
+            } catch (autoSumErr) {
+                // No es crítico, solo loguear
+                console.error('Error en lógica de auto-resumen:', autoSumErr.message);
+            }
         }
     } catch (err) {
         botReplyingTo.delete(waId); // B1: limpiar tracking en caso de error
