@@ -78,3 +78,25 @@ Se implementó y ejecutó de manera exitosa el plan de atribución de orígenes 
 
 ### 4. Compilación Exitosa
 - La compilación e integridad de tipos TypeScript finalizó de forma correcta.
+
+---
+
+## Corrección de Error en Tienda y Checkout (Producción)
+
+### Problema
+Las páginas `/tienda` y `/checkout` presentaban una pantalla de error `"¡Ups! Algo salió mal"` en producción.
+
+### Causa Raíz
+Se identificó que el backend y el frontend habían sido modificados para dar soporte a tarifas mayoristas (rol `OPTICA`), añadiendo el campo `wholesalePrice` en la base de datos local y en el cliente de Prisma. Sin embargo, **la base de datos de producción (en Railway) no tenía aplicada la columna `wholesalePrice` en la tabla `Product`**, lo que provocaba que las consultas del servidor de Next.js (como `prisma.webProduct.findMany({ include: { product: true } })`) fallaran arrojando un error `P2022` ("The column Product.wholesalePrice does not exist in the current database").
+
+Además, en el entorno local existía un error de tipos TypeScript en `src/hooks/useProducts.ts` y en `src/components/inventory/ProductForm.tsx` (en el método `addBulkRow`), lo que causaba fallos de compilación al correr `npm run build`.
+
+### Soluciones Implementadas
+1. **Migración de Base de Datos**: Creamos manualmente una nueva migración de Prisma `20260622180000_add_wholesale_price` que añade de forma segura e idempotente la columna `wholesalePrice` a la tabla `Product`:
+   ```sql
+   ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "wholesalePrice" DOUBLE PRECISION NOT NULL DEFAULT 0.0;
+   ```
+   Aplicamos esta migración exitosamente a la base de datos de producción mediante `prisma migrate deploy`.
+2. **Corrección de Tipos**: Añadimos el campo `wholesalePrice: number` a la interfaz `Product` en [useProducts.ts](file:///Users/ishtarpissano/proyectos/atelier/src/hooks/useProducts.ts) y añadimos el campo al inicializador de `bulkItems` en [ProductForm.tsx](file:///Users/ishtarpissano/proyectos/atelier/src/components/inventory/ProductForm.tsx).
+3. **Verificación**: Corrimos `npm run build` localmente y la compilación de la aplicación de Next.js finalizó exitosamente sin errores de compilación. Corrimos pruebas automatizadas con Playwright levantando el servidor local conectado a la base de datos de producción, comprobando que tanto `/tienda` como `/checkout` cargan correctamente y sin ningún tipo de excepción.
+
