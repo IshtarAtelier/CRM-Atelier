@@ -145,6 +145,27 @@ export default function TasksPanel({ tasks, onClose }: TasksPanelProps) {
                                             }
                                             
                                             finalMessage = `Hola ${task.client.name.split(' ')[0]}, Te escribo para pedirte un favor enorme 🙏\n\nMe dejarias una reseña en Google? me ayuda muchísimo, si podés compartir cómo fue tu experiencia y qué fue lo que más te gustó de nuestra atención.\n\nSi podés, contá en la reseña qué te parecieron tus ${productNames}, ¡nos ayuda un montón! 🙌\n\n👉 https://g.page/r/CcVls8v7ic_NEBM/review\n\n\nMe suma muchísimo para seguir creciendo! Espero tu comentario 🤍✨🫶`;
+                                        } else {
+                                            try {
+                                                const res = await fetch('/api/sales-opportunities/generate-message', {
+                                                    method: 'POST',
+                                                    headers: { 'Content-Type': 'application/json' },
+                                                    body: JSON.stringify({
+                                                        id: task.id,
+                                                        type: 'TASK',
+                                                        clientName: task.client.name.split(' ')[0],
+                                                        taskDescription: task.description
+                                                    })
+                                                });
+                                                if (res.ok) {
+                                                    const data = await res.json();
+                                                    if (data.message) {
+                                                        finalMessage = data.message;
+                                                    }
+                                                }
+                                            } catch (err) {
+                                                console.error('Error generating AI message for task', err);
+                                            }
                                         }
 
                                         let phone = task.client.phone.replace(/\D/g, '');

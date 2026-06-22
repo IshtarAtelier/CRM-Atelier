@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { StorefrontNavbar } from "@/components/Storefront/StorefrontNavbar";
-import { StorefrontFooter } from "@/components/Storefront/StorefrontFooter";
 import { FloatingWhatsApp } from "@/components/Storefront/FloatingWhatsApp";
+import { StorefrontFooterStatic } from "@/components/Storefront/StorefrontFooterStatic";
 
 export default function NotFound() {
   return (
@@ -22,7 +22,7 @@ export default function NotFound() {
         </Link>
       </main>
 
-      <StorefrontFooter />
+      <StorefrontFooterStatic />
       <FloatingWhatsApp />
     </div>
   );

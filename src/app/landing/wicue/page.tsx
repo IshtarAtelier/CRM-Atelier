@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { motion, useScroll, useTransform } from "framer-motion";
 import { StorefrontNavbar } from "@/components/Storefront/StorefrontNavbar";
-import { StorefrontFooter } from "@/components/Storefront/StorefrontFooter";
+import { StorefrontFooterStatic as StorefrontFooter } from "@/components/Storefront/StorefrontFooterStatic";
 import { Sun, BatteryCharging, Shield, Smartphone, ArrowRight } from "lucide-react";
 import Image from "next/image";
 

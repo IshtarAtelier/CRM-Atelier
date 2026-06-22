@@ -4,7 +4,6 @@ import { Metadata } from "next";
 import { StorefrontNavbar } from "@/components/Storefront/StorefrontNavbar";
 import { FilmmakerReel } from "@/components/Storefront/FilmmakerReel";
 import dynamic from "next/dynamic";
-
 const StorefrontFooter = dynamic(() => import("@/components/Storefront/StorefrontFooter").then(mod => mod.StorefrontFooter));
 const FloatingWhatsApp = dynamic(() => import("@/components/Storefront/FloatingWhatsApp").then(mod => mod.FloatingWhatsApp));
 const GoogleReviews = dynamic(() => import("@/components/Storefront/GoogleReviews").then(mod => mod.GoogleReviews));

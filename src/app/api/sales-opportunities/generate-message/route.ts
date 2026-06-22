@@ -17,14 +17,14 @@ const messageSchema = {
 
 export async function POST(req: Request) {
     try {
-        const { id, type } = await req.json();
+        const { id, type, clientName: reqClientName, taskDescription } = await req.json();
 
         if (!id || !type) {
             return NextResponse.json({ error: 'Faltan parámetros' }, { status: 400 });
         }
 
         let context = '';
-        let clientName = 'Cliente';
+        let clientName = reqClientName || 'Cliente';
 
         if (type === 'PENDING_QUOTE') {
             const order = await prisma.order.findUnique({
@@ -96,25 +96,45 @@ export async function POST(req: Request) {
                 ${itemsList}
                 `;
             }
+        } else if (type === 'TASK') {
+            context = `
+            Tipo de Seguimiento: Tarea Pendiente
+            Nombre del Cliente: ${clientName}
+            Detalle/Instrucción de la Tarea: ${taskDescription || ''}
+            `;
         }
 
         if (!context) {
             return NextResponse.json({ error: 'No se encontró contexto para generar el mensaje' }, { status: 404 });
         }
 
-        const prompt = `
-        Eres el mejor asesor de ventas de Atelier Óptica, una óptica moderna y premium.
-        Tu objetivo es escribir un mensaje de seguimiento de WhatsApp para intentar cerrar una venta pendiente.
-        
-        Aquí tienes la información de la oportunidad de venta:
-        ${context}
+        const prompt = type === 'TASK'
+            ? `
+            Eres el mejor asesor de ventas de Atelier Óptica, una óptica moderna y premium.
+            Tu objetivo es escribir un mensaje de WhatsApp para un cliente basado en una tarea o recordatorio de seguimiento comercial.
+            
+            Aquí tienes la información de la tarea de seguimiento:
+            ${context}
 
-        Reglas del mensaje:
-        1. Tono: Cercano, muy amable, cálido. Trata al cliente por su nombre (${clientName}). Usa emojis con sutileza (ej. 🤍, ✨, 👓).
-        2. Muestra disposición: Pregúntale si tiene alguna duda técnica con los productos (sobre cristales o armazones) o si necesita ayuda para avanzar.
-        3. Foco comercial: Habla en plural ("te escribimos de Atelier", "estamos a disposición").
-        4. Extensión: Corto, directo y conversacional. Un saludo cálido, una oración referida al producto/presupuesto, y una oración ofreciendo ayuda. No más de 3 o 4 líneas.
-        `;
+            Reglas del mensaje:
+            1. Tono y voseo: Cercano, muy amable, cálido, utilizando el voseo argentino (ej. "cómo estás", "querés", "contame"). Trata al cliente por su primer nombre (${clientName}). Usa emojis con sutileza (ej. 🤍, ✨, 👓, 😊).
+            2. Objetivo del mensaje: Redacta la consulta/aviso de forma muy natural basándote en la tarea/recordatorio.
+            3. Finalización: NO te despidas formalmente (evita decir "saludos", "que tengas un buen día" o "quedamos a disposición"). El mensaje debe finalizar con una pregunta abierta e invitar a continuar la conversación en base a la tarea.
+            4. Extensión: Corto, directo y conversacional. No más de 3 o 4 líneas.
+            `
+            : `
+            Eres el mejor asesor de ventas de Atelier Óptica, una óptica moderna y premium.
+            Tu objetivo es escribir un mensaje de seguimiento de WhatsApp para intentar cerrar una venta pendiente.
+            
+            Aquí tienes la información de la oportunidad de venta:
+            ${context}
+
+            Reglas del mensaje:
+            1. Tono y voseo: Cercano, muy amable, cálido, utilizando el voseo argentino (ej. "cómo estás", "querés", "contame"). Trata al cliente por su primer nombre (${clientName}). Usa emojis con sutileza (ej. 🤍, ✨, 👓, 😊).
+            2. Muestra disposición: Pregúntale si tiene alguna duda técnica con los productos (sobre cristales o armazones) o si necesita ayuda para avanzar.
+            3. Finalización: NO te despidas formalmente (evita decir "saludos", "que tengas un buen día" o "quedamos a disposición"). El mensaje debe finalizar con una pregunta abierta e invitar a la conversación.
+            4. Extensión: Corto, directo y conversacional. No más de 3 o 4 líneas.
+            `;
 
         const response = await ai.models.generateContent({
             model: "gemini-2.5-flash",

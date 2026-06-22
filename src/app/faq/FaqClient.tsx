@@ -1,7 +1,7 @@
 "use client";
 
 import { StorefrontNavbar } from "@/components/Storefront/StorefrontNavbar";
-import { StorefrontFooter } from "@/components/Storefront/StorefrontFooter";
+import { StorefrontFooterStatic as StorefrontFooter } from "@/components/Storefront/StorefrontFooterStatic";
 import { FloatingWhatsApp } from "@/components/Storefront/FloatingWhatsApp";
 import { WHATSAPP_PHONE } from "@/lib/constants";
 import { useState } from "react";
