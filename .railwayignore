@@ -1,0 +1,12 @@
+node_modules/
+wa-service/node_modules/
+.next/
+.git/
+.wwebjs_auth/
+.wwebjs_cache/
+.playwright-browsers/
+backups/
+logs/
+coverage/
+build/
+out/
