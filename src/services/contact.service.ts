@@ -22,11 +22,13 @@ export function normalizeArgentinePhone(phone: string | null | undefined): strin
         base = base.substring(1);
     }
     
-    // Remove mobile prefix '15' if it's placed after an area code
-    const regex15 = /^([1-3]\d{1,3})15(\d{6,8})$/;
-    const match = base.match(regex15);
-    if (match) {
-        base = match[1] + match[2];
+    // Remove mobile prefix '15' if it's placed after an area code (only if length is > 10)
+    if (base.length > 10) {
+        const regex15 = /^([1-3]\d{1,3})15(\d{6,8})$/;
+        const match = base.match(regex15);
+        if (match) {
+            base = match[1] + match[2];
+        }
     }
     
     return '549' + base;

@@ -68,7 +68,9 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
 
         if (!res.ok) {
             console.error('[send-pdf] Bot API Error:', res.status, responseData);
-            return NextResponse.json({ error: `Error del bot al enviar PDF (${res.status}): ${responseData?.error || 'desconocido'}` }, { status: 500 });
+            const rawError = responseData?.error || 'desconocido';
+            const cleanError = rawError.includes('registrado') ? rawError : `Error del bot al enviar PDF (${res.status}): ${rawError}`;
+            return NextResponse.json({ error: cleanError }, { status: 500 });
         }
 
         console.log('[send-pdf] PDF sent successfully to:', formattedPhone);

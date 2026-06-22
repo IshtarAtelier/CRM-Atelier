@@ -263,12 +263,19 @@ async function sendMessage(waId, content, media = null) {
     if (!waClient || !isReady) throw new Error('WhatsApp not connected');
 
     try {
-        // Force resolution of the number to avoid "No LID for user" error
-        const numberId = await waClient.getNumberId(waId);
-        if (numberId && numberId._serialized) {
-            waId = numberId._serialized;
+        if (waId.includes('@c.us')) {
+            // Force resolution of the number to avoid "No LID for user" error
+            const numberId = await waClient.getNumberId(waId);
+            if (numberId && numberId._serialized) {
+                waId = numberId._serialized;
+            } else {
+                throw new Error('El número no está registrado en WhatsApp o es inválido');
+            }
         }
     } catch (e) {
+        if (e.message.includes('registrado en WhatsApp')) {
+            throw e;
+        }
         console.warn(`[sendMessage] Could not resolve number ID for ${waId}: ${e.message}`);
     }
 
