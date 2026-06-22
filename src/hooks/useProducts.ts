@@ -12,6 +12,7 @@ export interface Product {
     stock: number;
     price: number;
     cost: number;
+    wholesalePrice: number;
     lensIndex: string | null;
     unitType: string | null;
     laboratory: string | null;
