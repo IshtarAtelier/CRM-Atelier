@@ -1,7 +1,7 @@
 import React from "react";
 import Image from "next/image";
 
-export function CheckoutSummarySidebar({ items, getCartTotal, formData, webSettings }: { items: any[], getCartTotal: any, formData: any, webSettings?: { web_promo_cash_discount: number, web_promo_installments: string } }) {
+export function CheckoutSummarySidebar({ items, getCartTotal, formData, webSettings, isWholesale }: { items: any[], getCartTotal: any, formData: any, webSettings?: { web_promo_cash_discount: number, web_promo_installments: string }, isWholesale?: boolean }) {
   const discountRate = (webSettings?.web_promo_cash_discount || 15) / 100;
 
   return (
@@ -50,6 +50,13 @@ export function CheckoutSummarySidebar({ items, getCartTotal, formData, webSetti
           <span className="text-black font-bold uppercase tracking-widest text-[10px] mt-1">Gratis</span>
         </div>
         
+        {isWholesale && (
+          <div className="flex justify-between text-[10px] text-blue-600 font-black uppercase tracking-widest bg-blue-50/50 p-2 rounded border border-blue-100/80 my-1 animate-in fade-in">
+            <span>Tarifa Mayorista Activa</span>
+            <span>Precio Neto</span>
+          </div>
+        )}
+
         {formData.paymentMethod === 'TRANSFER' && (
           <div className="flex justify-between text-sm text-green-600 font-medium animate-in fade-in">
             <span>Descuento ({Math.round(discountRate * 100)}% OFF Transferencia)</span>

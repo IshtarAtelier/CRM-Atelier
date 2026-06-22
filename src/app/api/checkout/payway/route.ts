@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
 import { prisma } from '@/lib/db';
 import { sendEmail } from '@/lib/email';
 import { WHATSAPP_PHONE } from '@/lib/constants';
@@ -12,6 +13,29 @@ export async function POST(req: Request) {
   try {
     const body = await req.json();
     const { customer, items, total } = body;
+
+    // Check if the user is a wholesale client (OPTICA role)
+    const cookieStore = await cookies();
+    const sessionToken = cookieStore.get('session')?.value;
+    let isWholesaleUser = false;
+    if (sessionToken) {
+      try {
+        const { decrypt } = await import('@/lib/auth');
+        const payload = await decrypt(sessionToken);
+        if (payload && payload.role === 'OPTICA') {
+          isWholesaleUser = true;
+        }
+      } catch (err) {
+        console.error("Error decrypting wholesale session token:", err);
+      }
+    }
+
+    if (customer.paymentMethod === 'MAYORISTA' && !isWholesaleUser) {
+      return NextResponse.json({ error: "Método de pago no autorizado." }, { status: 403 });
+    }
+    if (isWholesaleUser) {
+      customer.paymentMethod = 'MAYORISTA';
+    }
 
     const shippingMethodLabel = (() => {
       switch (customer.shippingMethod) {
@@ -110,7 +134,7 @@ export async function POST(req: Request) {
         throw new Error(`Producto no encontrado en la base de datos: ${item.model}`);
       }
 
-      const framePrice = dbProduct.price;
+      const framePrice = isWholesaleUser && dbProduct.wholesalePrice > 0 ? dbProduct.wholesalePrice : dbProduct.price;
       let calculatedPrice = framePrice;
       const isCustomLens = item.lensConfig && (item.lensConfig.lensType !== "NONE" || item.lensConfig.color);
 
@@ -479,11 +503,79 @@ export async function POST(req: Request) {
          html: clientTransferHtml
        }).catch(err => console.error("Error client transfer email:", err));
 
-       return NextResponse.json({ 
-         success: true, 
-         message: "Orden de transferencia generada",
-         orderId: order.id
-       });
+        return NextResponse.json({ 
+          success: true, 
+          message: "Orden de transferencia generada",
+          orderId: order.id
+        });
+    }
+
+    // Si es un pedido mayorista, enviar email especial y finalizar sin cargo
+    if (customer.paymentMethod === 'MAYORISTA') {
+      sendEmail({
+        to: customer.email,
+        subject: `Confirmación de Pedido Mayorista #${order.id.slice(-4).toUpperCase()} - Atelier Óptica`,
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333; padding: 20px; border: 1px solid #ddd; border-radius: 8px;">
+            <h2 style="color: #1e3a8a; border-bottom: 1px solid #e5e7eb; padding-bottom: 10px; margin-top: 0;">¡Hola ${customer.firstName}!</h2>
+            <p>Hemos registrado tu pedido mayorista <strong>#${order.id.slice(-4).toUpperCase()}</strong> de forma exitosa.</p>
+            <p>El total a coordinar de tu compra mayorista es de <strong>$${emailTotal.toLocaleString('es-AR')}</strong>.</p>
+            
+            <div style="background: #f3f4f6; padding: 15px; border-radius: 6px; margin: 20px 0; border-left: 4px solid #1e3a8a;">
+              <h4 style="margin: 0 0 5px 0; color: #1e3a8a;">Coordinación de Pago y Despacho</h4>
+              <p style="margin: 0; font-size: 13px; line-height: 1.4; color: #555;">
+                Nos pondremos en contacto contigo por correo electrónico o WhatsApp a la brevedad para enviarte la factura proforma y coordinar la transferencia bancaria u otro medio de pago elegido, así como el despacho de la mercadería.
+              </p>
+            </div>
+            
+            <p style="font-size: 12px; color: #666; background: #eff6ff; padding: 10px; border-radius: 4px;">
+              Nota: La mercadería ha sido reservada de nuestro stock para tu pedido.
+            </p>
+            
+            <p style="margin-top: 25px; font-weight: bold;">Atelier Óptica - Área Mayorista</p>
+          </div>
+        `
+      }).catch(err => console.error("Error client wholesale email:", err));
+
+      const adminWholesaleHtml = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd;">
+          <h2 style="color: #1e3a8a; border-bottom: 2px solid #1e3a8a; padding-bottom: 10px; margin-top: 0;">💼 NUEVO PEDIDO MAYORISTA WEB 💼</h2>
+          <p><strong>Orden ID:</strong> #${order.id}</p>
+          <p><strong>Total Mayorista:</strong> $${emailTotal.toLocaleString('es-AR')}</p>
+          
+          <h3 style="background: #f4f4f4; padding: 10px; margin-top: 20px;">Datos de la Óptica</h3>
+          <ul style="list-style: none; padding: 0;">
+            <li><strong>Nombre / Razón Social:</strong> ${customer.firstName} ${customer.lastName}</li>
+            <li><strong>Email:</strong> ${customer.email}</li>
+            <li><strong>WhatsApp:</strong> ${customer.phone}</li>
+            <li><strong>DNI/CUIT:</strong> ${customer.dni}</li>
+            <li><strong>Método de Envío:</strong> ${shippingMethodLabel} ${customer.shippingBranch ? `(Sucursal: ${customer.shippingBranch})` : ''}</li>
+            <li><strong>Dirección:</strong> ${customer.address}, ${customer.city}, ${customer.state} ${customer.zip}</li>
+          </ul>
+
+          <h3 style="background: #f4f4f4; padding: 10px; margin-top: 20px;">Productos Comprados</h3>
+          <table width="100%" cellpadding="10" cellspacing="0" style="border-collapse: collapse;">
+            ${itemsHtml}
+          </table>
+          
+          <div style="margin-top: 30px; padding: 15px; background: #eff6ff; border-left: 5px solid #3b82f6;">
+            <p style="margin: 0; font-weight: bold;">Acción requerida:</p>
+            <p style="margin: 5px 0 0 0; font-size: 13px;">Comunicate con el cliente para cobrar y acordar el despacho de la mercadería.</p>
+          </div>
+        </div>
+      `;
+
+      sendEmail({
+        to: adminEmails,
+        subject: `💼 Compra Mayorista Web - $${emailTotal.toLocaleString('es-AR')} - ${customer.firstName} ${customer.lastName}`,
+        html: adminWholesaleHtml
+      }).catch(err => console.error("Error admin wholesale email:", err));
+
+      return NextResponse.json({ 
+        success: true, 
+        message: "Pedido mayorista registrado",
+        orderId: order.id
+      });
     }
 
     // PAYWAY: Ejecutar el pago real

@@ -160,6 +160,7 @@ model Product {
   unitType              String?  @default("UNIDAD")
   laboratory            String?
   price                 Float    @default(0.0)
+  wholesalePrice        Float    @default(0.0)
   cost                  Float    @default(0.0)
   sphereMin             Float?
   sphereMax             Float?

@@ -1,7 +1,7 @@
 const { StateGraph, MessagesAnnotation, Annotation } = require("@langchain/langgraph");
 const { ChatGoogleGenerativeAI } = require("@langchain/google-genai");
 const { ToolNode } = require("@langchain/langgraph/prebuilt");
-const { SystemMessage, HumanMessage, AIMessage } = require("@langchain/core/messages");
+const { SystemMessage, AIMessage } = require("@langchain/core/messages");
 const { salesToolsList, executiveToolsList } = require("./agent-tools");
 const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '.env') });
@@ -238,12 +238,21 @@ async function salesNode(state) {
     const hasContent = response.content && (typeof response.content === 'string' ? response.content.trim().length > 0 : response.content.length > 0);
     const hasToolCalls = response.tool_calls && response.tool_calls.length > 0;
     if (!hasContent && !hasToolCalls) {
-      console.warn(`⚠️ salesNode: LLM devolvió respuesta vacía (intento ${attempt}/${MAX_RETRIES}).`);
-      if (attempt < MAX_RETRIES) {
-        await new Promise(r => setTimeout(r, 1000));
-        continue;
+      const hasCancelOrDisableInHistory = state.messages.some(msg => 
+        msg.tool_calls && msg.tool_calls.some(call => 
+          call.name === 'cancel_bot' || call.name === 'disable_bot_for_personal_chat'
+        )
+      );
+      if (hasCancelOrDisableInHistory) {
+        console.log(`ℹ️ salesNode: Permitida respuesta vacía debido a solicitud de apagado de bot previa.`);
+      } else {
+        console.warn(`⚠️ salesNode: LLM devolvió respuesta vacía (intento ${attempt}/${MAX_RETRIES}).`);
+        if (attempt < MAX_RETRIES) {
+          await new Promise(r => setTimeout(r, 1000));
+          continue;
+        }
+        throw new Error('LLM devolvió respuesta vacía luego de múltiples intentos');
       }
-      throw new Error('LLM devolvió respuesta vacía luego de múltiples intentos');
     }
     return { messages: [response] };
   }
@@ -289,12 +298,21 @@ async function executiveNode(state) {
     const hasContent = response.content && (typeof response.content === 'string' ? response.content.trim().length > 0 : response.content.length > 0);
     const hasToolCalls = response.tool_calls && response.tool_calls.length > 0;
     if (!hasContent && !hasToolCalls) {
-      console.warn(`⚠️ executiveNode: LLM devolvió respuesta vacía (intento ${attempt}/${MAX_RETRIES}).`);
-      if (attempt < MAX_RETRIES) {
-        await new Promise(r => setTimeout(r, 1000));
-        continue;
+      const hasCancelOrDisableInHistory = state.messages.some(msg => 
+        msg.tool_calls && msg.tool_calls.some(call => 
+          call.name === 'cancel_bot' || call.name === 'disable_bot_for_personal_chat'
+        )
+      );
+      if (hasCancelOrDisableInHistory) {
+        console.log(`ℹ️ executiveNode: Permitida respuesta vacía debido a solicitud de apagado de bot previa.`);
+      } else {
+        console.warn(`⚠️ executiveNode: LLM devolvió respuesta vacía (intento ${attempt}/${MAX_RETRIES}).`);
+        if (attempt < MAX_RETRIES) {
+          await new Promise(r => setTimeout(r, 1000));
+          continue;
+        }
+        throw new Error('LLM devolvió respuesta vacía luego de múltiples intentos');
       }
-      throw new Error('LLM devolvió respuesta vacía luego de múltiples intentos');
     }
     return { messages: [response] };
   }

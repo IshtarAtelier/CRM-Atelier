@@ -47,6 +47,7 @@ async function getProduct(slug: string) {
         model: webProduct.name || webProduct.product.model || '',
         modelCode: webProduct.product.model,
         price: webProduct.product.price,
+        wholesalePrice: webProduct.product.wholesalePrice,
         stock: webProduct.product.stock,
         imagenesCatalogo: webProduct.images.length > 0 ? webProduct.images : webProduct.product.imagenesCatalogo,
         category: webProduct.category,
@@ -78,6 +79,7 @@ async function getProduct(slug: string) {
       model: product.model || 'Sin modelo',
       modelCode: product.model,
       price: product.price,
+      wholesalePrice: product.wholesalePrice,
       stock: product.stock,
       imagenesCatalogo: product.imagenesCatalogo,
       category: product.category || 'Receta',
@@ -215,6 +217,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
       brand: wp.product.brand || 'Atelier',
       model: wp.name || wp.product.model || '',
       price: wp.product.price,
+      wholesalePrice: wp.product.wholesalePrice,
       slug: wp.slug,
       imageUrl: wp.images.length > 0 ? wp.images[0] : (wp.product.imagenesCatalogo?.[0] || '/images/placeholder.svg')
     }));

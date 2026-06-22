@@ -37,7 +37,41 @@ export function ProductClient({
 
   const { addItem, setIsOpen } = useCart();
 
+  const [isWholesale, setIsWholesale] = useState(false);
+  const [currentUser, setCurrentUser] = useState<any>(null);
   const [settings, setSettings] = useState<any>(null);
+
+  useEffect(() => {
+    const stored = localStorage.getItem('user');
+    if (stored) {
+      try {
+        const u = JSON.parse(stored);
+        if (u.role === 'OPTICA') {
+          setIsWholesale(true);
+          setCurrentUser(u);
+        }
+      } catch (e) {}
+    }
+
+    fetch('/api/auth/me')
+      .then(res => {
+        if (res.ok) return res.json();
+        throw new Error();
+      })
+      .then(data => {
+        if (data.role === 'OPTICA') {
+          setIsWholesale(true);
+          setCurrentUser(data);
+        } else {
+          setIsWholesale(false);
+          setCurrentUser(null);
+        }
+      })
+      .catch(() => {
+        setIsWholesale(false);
+        setCurrentUser(null);
+      });
+  }, []);
 
   useEffect(() => {
     fetch('/api/settings')
@@ -229,37 +263,63 @@ export function ProductClient({
               </div>
             )}
             
-            <motion.p 
-              initial={{ y: 20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.4, duration: 0.8 }}
-              className="text-2xl font-light tracking-tight text-black mb-6"
-            >
-              ${(product.price || 0).toLocaleString("es-AR")}
-            </motion.p>
-            
-            <PaymentOptions 
-              variant="inline" 
-              price={product.price || 0} 
-              cashDiscount={cashDiscount} 
-              installmentsText={installmentsText} 
-            />
+            {isWholesale ? (
+              <motion.div
+                initial={{ y: 20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 0.4, duration: 0.8 }}
+                className="mb-6 flex flex-col gap-1"
+              >
+                <span className="text-[10px] font-black uppercase text-blue-600 bg-blue-50 px-3 py-1 rounded w-max">
+                  Precio Mayorista Ópticas
+                </span>
+                <div className="flex items-baseline gap-3">
+                  <span className="text-3xl font-black text-blue-600">
+                    ${(product.wholesalePrice || product.price || 0).toLocaleString("es-AR")}
+                  </span>
+                  {product.wholesalePrice < product.price && (
+                    <span className="text-sm font-medium text-stone-400 line-through">
+                      ${(product.price || 0).toLocaleString("es-AR")} (P. Lista)
+                    </span>
+                  )}
+                </div>
+              </motion.div>
+            ) : (
+              <>
+                <motion.p 
+                  initial={{ y: 20, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  transition={{ delay: 0.4, duration: 0.8 }}
+                  className="text-2xl font-light tracking-tight text-black mb-6"
+                >
+                  ${(product.price || 0).toLocaleString("es-AR")}
+                </motion.p>
+                
+                <PaymentOptions 
+                  variant="inline" 
+                  price={product.price || 0} 
+                  cashDiscount={cashDiscount} 
+                  installmentsText={installmentsText} 
+                />
+              </>
+            )}
 
             <div className="flex flex-col gap-3 mb-6 mt-4">
               <button
                 disabled={product.stock !== undefined && product.stock <= 0 && product.category !== "Cristal" || isAdded}
                 onClick={() => {
+                  const itemPrice = isWholesale && product.wholesalePrice > 0 ? product.wholesalePrice : (product.price || 0);
                   trackAddToCart({
                     id: product.id,
                     name: product.model,
-                    price: product.price || 0,
+                    price: itemPrice,
                     quantity: 1
                   });
                   addItem({
                     productId: product.id,
                     brand: product.brand,
                     model: product.model,
-                    price: product.price || 0,
+                    price: itemPrice,
                     image: images[0] || "/images/placeholder.svg",
                     lensColor: null,
                     lensConfig: {
@@ -538,7 +598,11 @@ export function ProductClient({
 
             <div className="mt-4 flex flex-col items-center gap-3">
               <a 
-                href={`https://wa.me/${whatsappPhoneId}?text=${encodeURIComponent(`¡Hola! Quiero comprar el anteojo ${product.brand || ''} ${product.model || ''} por $${(product.price || 0).toLocaleString("es-AR")}. ¿Me pasarían los datos para transferencia/link de pago?`)}`}
+                href={`https://wa.me/${whatsappPhoneId}?text=${encodeURIComponent(
+                  isWholesale 
+                    ? `¡Hola! Soy de la óptica ${currentUser?.name || ''} y quiero consultar por el anteojo mayorista ${product.brand || ''} ${product.model || ''} por $${(product.wholesalePrice || product.price || 0).toLocaleString("es-AR")}.`
+                    : `¡Hola! Quiero comprar el anteojo ${product.brand || ''} ${product.model || ''} por $${(product.price || 0).toLocaleString("es-AR")}. ¿Me pasarían los datos para transferencia/link de pago?`
+                )}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-[10px] text-stone-500 font-bold uppercase tracking-widest hover:text-[#1b4332] transition-colors flex items-center justify-center gap-1.5 underline underline-offset-4"
@@ -579,10 +643,10 @@ export function ProductClient({
                       className="object-contain p-2 group-hover:scale-105 transition-transform duration-500" 
                     />
                   </div>
-                  <p className="text-[9px] text-stone-400 font-bold uppercase tracking-wider">{p.brand}</p>
+                  <p className="text-xs text-stone-400 font-bold uppercase tracking-wider">{p.brand}</p>
                   <h4 className="text-xs font-bold text-stone-900 truncate uppercase mt-0.5">{p.model}</h4>
                   <p className="text-xs text-stone-600 font-medium mt-1">
-                    ${(p.price || 0).toLocaleString("es-AR")}
+                    ${(isWholesale && p.wholesalePrice > 0 ? p.wholesalePrice : (p.price || 0)).toLocaleString("es-AR")} {isWholesale && <span className="text-[9px] font-black text-blue-600">(Mayorista)</span>}
                   </p>
                 </Link>
               ))}

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Zap, X, ChevronRight, Heart, FileText, ShoppingCart, Loader2, Check } from 'lucide-react';
 import { WhatsAppIcon } from '@/components/icons/WhatsAppIcon';
 import Link from 'next/link';
@@ -25,24 +25,7 @@ interface OpportunitiesPanelProps {
 }
 
 export default function OpportunitiesPanel({ opportunities, onClose, onRefresh }: OpportunitiesPanelProps) {
-    const [sendingId, setSendingId] = useState<string | null>(null);
     const [finalizingId, setFinalizingId] = useState<string | null>(null);
-    const [isWhatsAppConnected, setIsWhatsAppConnected] = useState(false);
-
-    useEffect(() => {
-        const checkWhatsAppStatus = async () => {
-            try {
-                const res = await fetch('/api/whatsapp/status');
-                if (res.ok) {
-                    const data = await res.json();
-                    setIsWhatsAppConnected(!!data.connected);
-                }
-            } catch (err) {
-                console.error('Error checking WhatsApp status:', err);
-            }
-        };
-        checkWhatsAppStatus();
-    }, []);
 
     const getOppIcon = (type: string) => {
         if (type === 'STALLED_FAVORITE') return <Heart className="w-5 h-5 text-red-500 fill-red-500/10" />;
@@ -80,7 +63,7 @@ export default function OpportunitiesPanel({ opportunities, onClose, onRefresh }
         return `/admin/ventas`; // Carts don't have a direct detail page but belong to storefront/orders
     };
 
-    const handleSendWhatsApp = async (e: React.MouseEvent, opp: Opportunity) => {
+    const handleSendWhatsApp = (e: React.MouseEvent, opp: Opportunity) => {
         e.preventDefault();
         e.stopPropagation();
 
@@ -89,65 +72,26 @@ export default function OpportunitiesPanel({ opportunities, onClose, onRefresh }
         const rawPhone = opp.phone.replace(/\D/g, '');
         const phone = rawPhone.length >= 10 ? '549' + rawPhone.slice(-10) : rawPhone;
 
-        // If WhatsApp service is connected, navigate directly to local chat page
-        if (isWhatsAppConnected) {
-            // Generate follow-up template message
-            const firstName = opp.clientName.split(' ')[0];
-            let message = '';
-
-            if (opp.type === 'STALLED_FAVORITE') {
-                message = `Hola ${firstName}! Espero que estés muy bien 🤍 Queríamos saber si tenés alguna duda sobre tu consulta y si te podemos ayudar en algo más. ¡Que tengas un excelente día! ✨`;
-            } else if (opp.type === 'PENDING_QUOTE') {
-                message = `Hola ${firstName}! Te escribimos de Atelier para ver si habías podido analizar el presupuesto que te armamos el otro día. Avisanos si querés modificar algo o coordinar la compra. ¡Saludos! 👓✨`;
-            } else {
-                message = `Hola ${firstName}! Vimos que dejaste algunos artículos en tu carrito en nuestra web Atelier. Queríamos ver si tuviste algún inconveniente con el pago o si tenías alguna consulta técnica con los cristales. ¡Quedamos a tu disposición! 🛒✨`;
-            }
-
-            // Copy to clipboard for easy pasting in the local WhatsApp chat
-            try {
-                await navigator.clipboard.writeText(message);
-            } catch (err) {
-                console.warn('Failed to copy to clipboard:', err);
-            }
-
-            onClose();
-            window.location.href = `/admin/whatsapp?phone=${phone}`;
-            return;
-        }
-
-        // Otherwise fallback to wa.me (opens WhatsApp Web)
-        setSendingId(opp.id);
-
-        let message = '';
         const firstName = opp.clientName.split(' ')[0];
+        let message = '';
 
         if (opp.type === 'STALLED_FAVORITE') {
-            message = `Hola ${firstName}! Espero que estés muy bien 🤍 Queríamos saber si tenés alguna duda sobre tu consulta y si te podemos ayudar en algo más. ¡Que tengas un excelente día! ✨`;
+            message = `Hola ${firstName}! Cómo andás? Quería saber si te quedó alguna duda sobre los lentes que estuvimos viendo. Si querés te puedo pasar fotitos de los armazones en stock, que a la gente le gusta mucho ver los detalles de los modelos.`;
         } else if (opp.type === 'PENDING_QUOTE') {
-            message = `Hola ${firstName}! Te escribimos de Atelier para ver si habías podido analizar el presupuesto que te armamos el otro día. Avisanos si querés modificar algo o coordinar la compra. ¡Saludos! 👓✨`;
+            message = `Hola ${firstName}! Cómo estás? Pudiste ver el presupuesto que te enviamos? Si te sirve, te puedo mandar fotos de los armazones para que veas bien el estilo, que a la gente le gusta mucho ver cómo quedan en la vida real.`;
         } else {
-            message = `Hola ${firstName}! Vimos que dejaste algunos artículos en tu carrito en nuestra web Atelier. Queríamos ver si tuviste algún inconveniente con el pago o si tenías alguna consulta técnica con los cristales. ¡Quedamos a tu disposición! 🛒✨`;
+            message = `Hola ${firstName}! Cómo estás? Vimos que te quedaron unos artículos en el carrito. Si querés te puedo pasar fotos reales de esos modelos en stock para ver los detalles, que a la gente le gusta mucho ver las fotos reales antes de avanzar.`;
         }
 
+        // Copy to clipboard for easy pasting in the local WhatsApp chat
         try {
-            const res = await fetch('/api/whatsapp/send', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ chatId: `${phone}@c.us`, message })
-            });
-
-            if (res.ok) {
-                alert('✅ Mensaje de seguimiento enviado con éxito');
-                onRefresh();
-            } else {
-                // Fallback to wa.me if api fails
-                window.open(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`, '_blank');
-            }
+            navigator.clipboard.writeText(message);
         } catch (err) {
-            window.open(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`, '_blank');
-        } finally {
-            setSendingId(null);
+            console.warn('Failed to copy to clipboard:', err);
         }
+
+        onClose();
+        window.location.href = `/admin/whatsapp?phone=${phone}&text=${encodeURIComponent(message)}`;
     };
 
     const handleFinalizeOpportunity = async (e: React.MouseEvent, opp: Opportunity) => {
@@ -240,15 +184,10 @@ export default function OpportunitiesPanel({ opportunities, onClose, onRefresh }
                             {opp.phone && (
                                 <button
                                     onClick={(e) => handleSendWhatsApp(e, opp)}
-                                    disabled={sendingId === opp.id}
-                                    className="absolute right-12 md:right-16 top-1/2 -translate-y-1/2 p-2.5 md:p-3 bg-emerald-500 text-white rounded-xl md:rounded-2xl shadow-lg hover:scale-110 active:scale-95 transition-all z-10 disabled:opacity-50"
+                                    className="absolute right-12 md:right-16 top-1/2 -translate-y-1/2 p-2.5 md:p-3 bg-emerald-500 text-white rounded-xl md:rounded-2xl shadow-lg hover:scale-110 active:scale-95 transition-all z-10"
                                     title="Enviar WhatsApp de Seguimiento"
                                 >
-                                    {sendingId === opp.id ? (
-                                        <Loader2 className="w-4 h-4 md:w-5 md:h-5 animate-spin" />
-                                    ) : (
-                                        <WhatsAppIcon className="w-4 h-4 md:w-5 md:h-5" />
-                                    )}
+                                    <WhatsAppIcon className="w-4 h-4 md:w-5 md:h-5" />
                                 </button>
                             )}
                         </div>

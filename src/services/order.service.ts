@@ -356,7 +356,7 @@ export class OrderService {
                 const oldStockItems = (currentOrderWithItems?.items || []).filter((item: any) => {
                     const cat = item.product?.category;
                     const type = item.product?.type;
-                    return item.productId && !(cat === 'Cristal' || (type || '').includes('Cristal'));
+                    return item.productId && !(cat === 'Cristal' || cat === 'Tratamiento' || cat === 'TRATAMIENTO' || (type || '').includes('Cristal'));
                 });
 
                 const newProductIds = items.map((it: any) => it.productId).filter(Boolean);
@@ -369,7 +369,7 @@ export class OrderService {
                     if (!dbProd) return false;
                     const cat = dbProd.category;
                     const type = dbProd.type;
-                    return !(cat === 'Cristal' || (type || '').includes('Cristal'));
+                    return !(cat === 'Cristal' || cat === 'Tratamiento' || cat === 'TRATAMIENTO' || (type || '').includes('Cristal'));
                 });
 
                 // Check stock availability for new stock items (taking into account what is currently held by this order)

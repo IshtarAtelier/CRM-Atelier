@@ -427,14 +427,23 @@ async function cancelBot({ clientId, waId }) {
         });
 
         if (clientId && clientId !== 'none') {
-            await prisma.client.update({
-                where: { id: clientId },
-                data: {
-                    tags: {
-                        connect: { id: tag.id }
-                    }
+            try {
+                const clientExists = await prisma.client.findUnique({ where: { id: clientId } });
+                if (clientExists) {
+                    await prisma.client.update({
+                        where: { id: clientId },
+                        data: {
+                            tags: {
+                                connect: { id: tag.id }
+                            }
+                        }
+                    });
+                } else {
+                    console.log(`[cancelBot] Client ID ${clientId} not found in database. Skipping client tag update.`);
                 }
-            });
+            } catch (err) {
+                console.error('[cancelBot] Error updating client tags:', err.message);
+            }
         }
 
         if (waId) {
@@ -481,6 +490,12 @@ async function addTagToClient({ clientId, tagName }) {
             update: {},
             create: { name: tagName, color: '#1677ff' } // azul por defecto
         });
+
+        const clientExists = await prisma.client.findUnique({ where: { id: clientId } });
+        if (!clientExists) {
+            console.log(`[addTagToClient] Client ID ${clientId} not found in database. Skipping.`);
+            return { success: false, message: `El cliente con ID ${clientId} no existe en el sistema.` };
+        }
 
         const client = await prisma.client.update({
             where: { id: clientId },
@@ -599,7 +614,7 @@ async function reportComplaint({ clientId, details }) {
     
     try {
         const complaintsUrl = CRM_API_URL.replace('/api/bot', '/api');
-        const response = await requestWithRetry(() =>
+        await requestWithRetry(() =>
             apiClient.post(`${complaintsUrl}/complaints`, {
                 clientId,
                 details
@@ -759,7 +774,7 @@ async function generateAndSaveHandoffSummary(chatId) {
 async function updateChatSummary({ chatId, summaryText }) {
     if (!chatId || !summaryText) return { success: false, error: 'chatId y summaryText son obligatorios' };
     try {
-        const updatedChat = await prisma.whatsAppChat.update({
+        await prisma.whatsAppChat.update({
             where: { id: chatId },
             data: { chatSummary: summaryText }
         });

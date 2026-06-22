@@ -11,11 +11,11 @@ const { Server } = require('socket.io');
 const cors = require('cors');
 const { prisma } = require('./db');
 const { graph, DEFAULT_SALES_PROMPT } = require('./graph');
-const { logBotMessage, isPhrase, generateAndSaveHandoffSummary } = require('./tools');
+const { isPhrase, generateAndSaveHandoffSummary } = require('./tools');
 const { HumanMessage } = require("@langchain/core/messages");
 const path = require('path');
 const fs = require('fs');
-const os = require('os');
+
 
 require('dotenv').config({ path: path.join(__dirname, '.env') });
 
@@ -24,7 +24,7 @@ const { processPassiveExtraction } = require('./passive-extractor');
 const { transcribeAudio } = require('./transcriber');
 const { checkAndSendSalesFollowUps } = require('./sales-followups');
 const { checkAndSendInactivityFollowUps } = require('./cron/inactivity-followups');
-const { TAGS_SIN_BOT, getAdminWaId, withTimeout, getFileExtension } = require('./utils');
+const { TAGS_SIN_BOT, getFileExtension } = require('./utils');
 
 const configPath = path.join(__dirname, 'agent_config.json');
 
@@ -218,7 +218,7 @@ const handleMessageCreate = async (msg) => {
 };
 
 const { runOutputGuardrail, detectPaymentReceipt } = require('./services/ai.service');
-const { isBusinessHours, getNextBusinessMorning, getNextWeekdayDate } = require('./services/helper.service');
+
 const { BotService } = require('./services/bot.service');
 
 // Initialize BotService globally so functions can use it
@@ -252,7 +252,7 @@ const disableBotForChatById = (chatId, reason) => botService.disableBotForChatBy
 /**
  * Desactiva el bot usando waId y genera el resumen de handoff.
  */
-const disableBotForWaId = (waId, reason) => botService.disableBotForWaId(waId, reason);
+// const disableBotForWaId = (waId, reason) => botService.disableBotForWaId(waId, reason);
 
 /**
  * Detecta promesas de visita en el local y crea automáticamente una tarea de seguimiento.
@@ -408,7 +408,7 @@ async function processBotTurn(chat, waId, profileName, realPhone) {
             try {
                 // Notificar exclusivamente al admin especificado por el usuario
                 const adminNotifyPhone = "5493541215971@c.us";
-                const alertMsg = `🚨 *ERROR TÉCNICO EN BOT* 🚨\nConversación con bot apagado: ${profileName || 'Cliente'} (${realPhone || waId.split('@')[0]})\nMotivo: El bot sufrió un error y se apagó en silencio.`;
+                const alertMsg = `🚨 *ERROR TÉCNICO EN BOT* 🚨\nConversación con bot apagado: ${profileName || 'Cliente'} (${realPhone || waId.split('@')[0]})\nMotivo: El bot sufrió un error y se apagó en silencio.\nDetalle: ${apiErrorMessage}`;
                 await sendMessage(adminNotifyPhone, alertMsg);
                 console.log(`  🔔 Alerta de error enviada al administrador (3541215971)`);
             } catch (alertErr) {
@@ -443,41 +443,7 @@ async function processBotTurn(chat, waId, profileName, realPhone) {
             if (!guardrail.safe) {
                 console.warn(`  ⚠️ [Output Guardrail] Respuesta bloqueada para ${profileName} por: ${guardrail.reason}`);
                 
-                // ── Si es revelación de identidad de bot → responder como humano + apagar ──
                 const isIdentityReveal = guardrail.reason.includes('Revelación de Identidad');
-                if (isIdentityReveal) {
-                    // Respuestas que solo un humano podría decir
-                    const humanDeflections = [
-                        'Si tenés alguna duda te parece que te llame?',
-                        'Dale, si preferís te llamo y lo vemos por teléfono, te parece?',
-                    ];
-                    const deflection = humanDeflections[Math.floor(Math.random() * humanDeflections.length)];
-                    
-                    // Enviar la respuesta humana
-                    botReplyingTo.add(waId);
-                    await sendTypingState(waId);
-                    await new Promise(r => setTimeout(r, 2000));
-                    const sent = await sendMessage(waId, deflection);
-                    setTimeout(() => botReplyingTo.delete(waId), 3000);
-                    
-                    // Guardar el mensaje enviado en la DB
-                    if (sent && sent.id && sent.id._serialized) {
-                        await prisma.whatsAppMessage.upsert({
-                            where: { waMessageId: sent.id._serialized },
-                            update: { senderName: 'Bot' },
-                            create: {
-                                chatId: chat.id,
-                                direction: 'OUTBOUND',
-                                type: 'TEXT',
-                                content: deflection,
-                                waMessageId: sent.id._serialized,
-                                senderName: 'Bot',
-                                status: 'SENT'
-                            }
-                        }).catch(e => console.error('Error guardando deflección:', e.message));
-                    }
-                    console.log(`  🛡️ [Anti-Revelación] Respuesta humana enviada: "${deflection}"`);
-                }
                 
                 // 1. Apagar bot para este chat
                 await disableBotForChatById(chat.id, `Brecha de seguridad (Guardrail: ${guardrail.reason})`);
@@ -488,7 +454,7 @@ async function processBotTurn(chat, waId, profileName, realPhone) {
                         data: {
                             clientId: chat.clientId,
                             type: 'NOTE',
-                            content: `⚠️ [Output Guardrail] Bot desactivado. ${isIdentityReveal ? 'Cliente sospecha que habla con un bot. Se envió deflección humana.' : 'Se bloqueó respuesta con datos internos.'} Respuesta original: "${responseText.substring(0, 150)}..."`
+                            content: `⚠️ [Output Guardrail] Bot desactivado. ${isIdentityReveal ? 'Cliente sospecha que habla con un bot. Se desactivó en silencio absoluto.' : 'Se bloqueó respuesta con datos internos.'} Respuesta original: "${responseText.substring(0, 150)}..."`
                         }
                     }).catch(e => console.error('Error guardando nota:', e.message));
                     
@@ -497,7 +463,7 @@ async function processBotTurn(chat, waId, profileName, realPhone) {
                         await prisma.clientTask.create({
                             data: {
                                 clientId: chat.clientId,
-                                description: '🚨 URGENTE: Cliente sospecha que habla con un bot. Se le ofreció llamarlo. Llamar YA para mantener la confianza.',
+                                description: 'Acusación de IA: Cliente sospecha bot. Llamar urgente.',
                                 dueDate: new Date()
                             }
                         }).catch(e => console.error('Error creando tarea urgente:', e.message));
@@ -510,7 +476,7 @@ async function processBotTurn(chat, waId, profileName, realPhone) {
                         chatId: chat.id,
                         name: profileName || chat.profileName || 'Cliente',
                         phone: realPhone || chat.realPhone || waId.split('@')[0],
-                        error: isIdentityReveal ? '🛡️ Sospecha de Bot (deflección enviada)' : `Bloqueo de Seguridad (${guardrail.reason})`
+                        error: isIdentityReveal ? '🛡️ Sospecha de Bot (apagado silencioso)' : `Bloqueo de Seguridad (${guardrail.reason})`
                     });
                 }
                 
@@ -1061,8 +1027,6 @@ const handleMessage = async (msg) => {
         let mediaBase64 = null;
         let mediaMime = null;
         let mediaUrl = null;
-        let geminiFileUri = null;
-        let geminiMimeType = null;
         
         if (msg.hasMedia) {
             try {
@@ -1392,7 +1356,7 @@ function apiAuth(req, res, next) {
 }
 app.use('/api', apiAuth);
 
-const { syncRecentChatsAndMessages, processMediaDownloadQueue, downloadAndUploadMediaForSyncMessage } = require('./services/sync.service');
+const { syncRecentChatsAndMessages } = require('./services/sync.service');
 
 const mediaDownloadQueue = [];
 const isDownloadingMediaRef = { current: false };

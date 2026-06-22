@@ -29,7 +29,7 @@ export default function InventarioPage() {
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
     const [isDeleting, setIsDeleting] = useState(false);
     const [editingProduct, setEditingProduct] = useState<Product | null>(null);
-    const [editForm, setEditForm] = useState({ name: '', brand: '', model: '', type: '', stock: 0, cost: 0, price: 0, lensIndex: '', laboratory: '', sphereMin: '' as string, sphereMax: '' as string, cylinderMin: '' as string, cylinderMax: '' as string, additionMin: '' as string, additionMax: '' as string, is2x1: false, publishToWeb: false, lensWidth: '' as string, bridgeWidth: '' as string, templeLength: '' as string, frameHeight: '' as string, seoTitle: '', seoDescription: '', seoTags: '', customSlug: '', mpn: '', gender: '', ageGroup: '', origin: '' });
+    const [editForm, setEditForm] = useState({ name: '', brand: '', model: '', type: '', stock: 0, cost: 0, price: 0, wholesalePrice: 0, lensIndex: '', laboratory: '', sphereMin: '' as string, sphereMax: '' as string, cylinderMin: '' as string, cylinderMax: '' as string, additionMin: '' as string, additionMax: '' as string, is2x1: false, publishToWeb: false, lensWidth: '' as string, bridgeWidth: '' as string, templeLength: '' as string, frameHeight: '' as string, seoTitle: '', seoDescription: '', seoTags: '', customSlug: '', mpn: '', gender: '', ageGroup: '', origin: '' });
     const [savingEdit, setSavingEdit] = useState(false);
     const [selectedBrand, setSelectedBrand] = useState('');
     const [selectedLab, setSelectedLab] = useState('');
@@ -227,6 +227,7 @@ export default function InventarioPage() {
             stock: p.stock,
             cost: p.cost,
             price: p.price,
+            wholesalePrice: (p as any).wholesalePrice || 0,
             lensIndex: p.lensIndex || '',
             laboratory: p.laboratory || '',
             sphereMin: p.sphereMin != null ? String(p.sphereMin) : '',
@@ -675,7 +676,7 @@ export default function InventarioPage() {
                                 )}
                             </button>
                         </div>
-                        {(isAdmin ? ['Producto', 'Tipo', 'Índice', 'Stock', 'Costo', 'Markup', 'Precio', ''] : ['Producto', 'Tipo', 'Índice', 'Stock', 'Precio', '']).map((h, i) => {
+                        {(isAdmin ? ['Producto', 'Tipo', 'Índice', 'Stock', 'Costo', 'Markup', 'P. Minorista', 'P. Mayorista', ''] : ['Producto', 'Tipo', 'Índice', 'Stock', 'Precio', '']).map((h, i) => {
                             const isNumeric = ['Stock', 'Costo', 'Markup', 'Precio'].includes(h);
                             const isCentered = ['Tipo', 'Índice'].includes(h);
                             return (
@@ -782,6 +783,7 @@ export default function InventarioPage() {
                                         )
                                     ) : <span className="text-stone-300">—</span>}</div>}
                                     <div className="text-right pr-4"><span className="text-sm font-black text-stone-900 dark:text-white">${p.price?.toLocaleString()}</span></div>
+                                    {isAdmin && <div className="text-right pr-4"><span className="text-sm font-black text-blue-600 dark:text-blue-400">${p.wholesalePrice?.toLocaleString() || '0'}</span></div>}
                                     {isAdmin && (
                                         <div className="flex items-center gap-1">
                                             <button onClick={() => startEdit(p)} className="p-2 opacity-0 group-hover:opacity-100 hover:text-primary transition-all"><Pencil className="w-4 h-4" /></button>
@@ -946,9 +948,13 @@ export default function InventarioPage() {
                                     <input type="number" min={0} value={editForm.cost} onChange={e => setEditForm({ ...editForm, cost: parseFloat(e.target.value) || 0 })} className="w-full px-5 py-4 bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-2xl font-bold text-sm outline-none focus:border-primary" />
                                 </div>
                                 )}
-                                <div className="col-span-2 space-y-1">
-                                    <label className="text-[10px] font-black text-primary uppercase tracking-widest ml-3">Precio Venta ($)</label>
+                                <div className="col-span-1 space-y-1">
+                                    <label className="text-[10px] font-black text-primary uppercase tracking-widest ml-3">Precio Minorista ($)</label>
                                     <input type="number" min={0} value={editForm.price} onChange={e => setEditForm({ ...editForm, price: parseFloat(e.target.value) || 0 })} className="w-full px-5 py-5 bg-primary/5 border-2 border-primary/20 rounded-2xl font-black text-xl outline-none focus:border-primary text-primary" />
+                                </div>
+                                <div className="col-span-1 space-y-1">
+                                    <label className="text-[10px] font-black text-blue-600 uppercase tracking-widest ml-3">Precio Mayorista ($)</label>
+                                    <input type="number" min={0} value={editForm.wholesalePrice} onChange={e => setEditForm({ ...editForm, wholesalePrice: parseFloat(e.target.value) || 0 })} className="w-full px-5 py-5 bg-blue-50/50 dark:bg-blue-950/20 border-2 border-blue-200 dark:border-blue-800 rounded-2xl font-black text-xl outline-none focus:border-blue-500 text-blue-600 dark:text-blue-400" />
                                 </div>
 
                                 {/* Laboratorio — obligatorio para cristales */}

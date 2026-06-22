@@ -28,6 +28,38 @@ export function StorefrontNavbar({ theme = "dark", mixBlend = false }: Storefron
   const [allProducts, setAllProducts] = useState<any[]>([]);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [webSettings, setWebSettings] = useState<any>(null);
+  const [currentUser, setCurrentUser] = useState<any>(null);
+
+  useEffect(() => {
+    // Check localStorage
+    const stored = localStorage.getItem('user');
+    if (stored) {
+      try {
+        const u = JSON.parse(stored);
+        if (u.role === 'OPTICA') setCurrentUser(u);
+      } catch (e) {}
+    }
+
+    // Verify session
+    fetch('/api/auth/me')
+      .then(res => {
+        if (res.ok) return res.json();
+        throw new Error();
+      })
+      .then(data => {
+        if (data.role === 'OPTICA') {
+          setCurrentUser(data);
+          localStorage.setItem('user', JSON.stringify(data));
+        } else {
+          setCurrentUser(null);
+          localStorage.removeItem('user');
+        }
+      })
+      .catch(() => {
+        setCurrentUser(null);
+        localStorage.removeItem('user');
+      });
+  }, []);
 
   useEffect(() => {
     fetch('/api/settings')
@@ -190,7 +222,24 @@ export function StorefrontNavbar({ theme = "dark", mixBlend = false }: Storefron
           </Link>
   
           {/* Derecha: Iconos */}
-          <div className={`flex items-center gap-1 sm:gap-5 ${activeTextColorClass}`}>
+          <div className={`flex items-center gap-2 sm:gap-5 ${activeTextColorClass}`}>
+            {currentUser && currentUser.role === 'OPTICA' && (
+              <div className="flex items-center gap-1.5 sm:gap-2 mr-1 sm:mr-2">
+                <span className="text-[8px] sm:text-[9.5px] font-black uppercase bg-[#b08f4c] text-white px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full whitespace-nowrap shadow-sm">
+                  Óptica: {currentUser.name}
+                </span>
+                <button
+                  onClick={async () => {
+                    await fetch('/api/auth/logout', { method: 'POST' });
+                    localStorage.removeItem('user');
+                    window.location.href = '/login';
+                  }}
+                  className="text-[8px] sm:text-[9.5px] font-black uppercase text-stone-400 hover:text-red-500 transition-colors ml-1"
+                >
+                  Salir
+                </button>
+              </div>
+            )}
             <button 
               onClick={() => setIsSearchOpen(true)} 
               className="hover:opacity-60 transition-opacity p-2 sm:p-0" 

@@ -28,6 +28,9 @@ export async function middleware(request: NextRequest) {
         if (token) {
             const payload = await decrypt(token);
             if (payload) {
+                if (payload.role === 'OPTICA') {
+                    return NextResponse.redirect(new URL('/tienda', request.url));
+                }
                 return NextResponse.redirect(new URL('/admin', request.url));
             }
         }
@@ -114,6 +117,10 @@ export async function middleware(request: NextRequest) {
         const payload = await decrypt(token);
         if (!payload) {
             return NextResponse.redirect(new URL('/login', request.url));
+        }
+
+        if (payload.role === 'OPTICA') {
+            return NextResponse.redirect(new URL('/tienda', request.url));
         }
 
         // Inyectar datos del usuario para el layout del admin

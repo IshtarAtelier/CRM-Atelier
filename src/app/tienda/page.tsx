@@ -97,6 +97,7 @@ export default async function TiendaPage({ searchParams }: { searchParams?: Prom
       modelCode: modelCode,
       category: wp.category,
       price: wp.product.price,
+      wholesalePrice: wp.product.wholesalePrice,
       stock: wp.product.stock,
       slug: wp.slug,
       imagenesCatalogo: wp.images.length > 0 ? wp.images : (wp.product.imagenesCatalogo || []),

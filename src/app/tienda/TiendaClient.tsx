@@ -43,10 +43,37 @@ export function TiendaClient({
     setVisibleCount(24);
   }, [activeCategory]);
 
+  const [isWholesale, setIsWholesale] = useState(false);
   const [webSettings, setWebSettings] = useState({
     web_promo_cash_discount: 15,
     web_promo_installments: "6 cuotas sin interés"
   });
+
+  useEffect(() => {
+    const stored = localStorage.getItem('user');
+    if (stored) {
+      try {
+        const u = JSON.parse(stored);
+        if (u.role === 'OPTICA') setIsWholesale(true);
+      } catch (e) {}
+    }
+
+    fetch('/api/auth/me')
+      .then(res => {
+        if (res.ok) return res.json();
+        throw new Error();
+      })
+      .then(data => {
+        if (data.role === 'OPTICA') {
+          setIsWholesale(true);
+        } else {
+          setIsWholesale(false);
+        }
+      })
+      .catch(() => {
+        setIsWholesale(false);
+      });
+  }, []);
 
   useEffect(() => {
     fetch('/api/settings')
@@ -189,9 +216,15 @@ export function TiendaClient({
 
             {/* Promos (Derecha) */}
             <div className="flex xl:flex-1 justify-center xl:justify-end items-center gap-3 w-full xl:w-auto">
-               <span className="text-[10px] font-black uppercase text-red-600 bg-red-50 px-3 py-1.5 rounded-full whitespace-nowrap">
-                  {discountRate * 100}% OFF TRANSFERENCIA
-               </span>
+               {isWholesale ? (
+                 <span className="text-[10px] font-black uppercase text-blue-600 bg-blue-50 px-3 py-1.5 rounded-full whitespace-nowrap">
+                    Tarifa Mayorista Activa
+                 </span>
+               ) : (
+                 <span className="text-[10px] font-black uppercase text-red-600 bg-red-50 px-3 py-1.5 rounded-full whitespace-nowrap">
+                    {discountRate * 100}% OFF TRANSFERENCIA
+                 </span>
+               )}
                <span className="xl:hidden text-[10px] font-black uppercase text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-full whitespace-nowrap">
                   ENVÍO GRATIS
                </span>
@@ -241,9 +274,11 @@ export function TiendaClient({
                     <div className="bg-[#f5f5f5] aspect-square overflow-hidden mb-4 relative">
                       {/* Badges en la esquina superior derecha */}
                       <div className="absolute top-3 right-3 z-10 flex flex-col gap-1 items-end">
-                        <span className="bg-[#1a1a1a] text-white text-[10px] font-bold uppercase tracking-wider px-2 py-1 shadow-sm">
-                          {webSettings.web_promo_cash_discount}% OFF
-                        </span>
+                        {!isWholesale && (
+                          <span className="bg-[#1a1a1a] text-white text-[10px] font-bold uppercase tracking-wider px-2 py-1 shadow-sm">
+                            {webSettings.web_promo_cash_discount}% OFF
+                          </span>
+                        )}
                         {p.stock !== undefined && p.stock > 0 && p.stock <= 3 && (
                           <span className="bg-red-650 text-white text-[7.5px] font-black uppercase tracking-[0.15em] px-2.5 py-1 rounded shadow-md animate-pulse">
                             Últimas {p.stock} u.
@@ -300,14 +335,32 @@ export function TiendaClient({
                         {p.name || p.model}
                       </h2>
                       
-                      <div className="pt-3 flex items-center gap-2">
-                        <p className="text-lg font-black text-stone-900 tracking-tight">
-                          ${Math.round((p.price || 0) * (1 - discountRate)).toLocaleString("es-AR")}
-                        </p>
-                        <p className="text-sm font-medium text-stone-400 line-through decoration-1">
-                          ${(p.price || 0).toLocaleString("es-AR")}
-                        </p>
-                      </div>
+                      {isWholesale ? (
+                        <div className="pt-3 flex flex-col gap-1">
+                          <span className="text-[9px] font-black uppercase text-blue-600 bg-blue-50 px-2 py-0.5 rounded w-max">
+                            Precio Mayorista
+                          </span>
+                          <div className="flex items-center gap-2 animate-in fade-in">
+                            <p className="text-lg font-black text-blue-600 tracking-tight">
+                              ${(p.wholesalePrice || p.price || 0).toLocaleString("es-AR")}
+                            </p>
+                            {p.wholesalePrice < p.price && (
+                              <p className="text-xs font-medium text-stone-400 line-through decoration-1">
+                                ${(p.price || 0).toLocaleString("es-AR")} (P. Lista)
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="pt-3 flex items-center gap-2">
+                          <p className="text-lg font-black text-stone-900 tracking-tight">
+                            ${Math.round((p.price || 0) * (1 - discountRate)).toLocaleString("es-AR")}
+                          </p>
+                          <p className="text-sm font-medium text-stone-400 line-through decoration-1">
+                            ${(p.price || 0).toLocaleString("es-AR")}
+                          </p>
+                        </div>
+                      )}
 
                       <div className="mt-4 w-full border-2 border-stone-900 text-stone-900 group-hover:bg-stone-900 group-hover:text-white text-[11px] font-black uppercase tracking-[0.2em] py-3 text-center rounded-xl transition-all duration-300">
                         Ver Anteojo

@@ -636,7 +636,7 @@ export const ContactService = {
                 const stockItems = (order.items || []).filter((item: any) => {
                     const cat = item.product?.category;
                     const type = item.product?.type;
-                    return !(cat === 'Cristal' || (type || '').includes('Cristal'));
+                    return !(cat === 'Cristal' || cat === 'Tratamiento' || cat === 'TRATAMIENTO' || (type || '').includes('Cristal'));
                 });
                 for (const item of stockItems) {
                     if (!item.productId) continue;

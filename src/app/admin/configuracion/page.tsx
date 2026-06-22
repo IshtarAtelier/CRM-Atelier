@@ -723,6 +723,7 @@ export default function ConfiguracionPage() {
                                 >
                                     <option value="STAFF">Vendedor (STAFF)</option>
                                     <option value="ADMIN">Administrador (ADMIN)</option>
+                                    <option value="OPTICA">Óptica (OPTICA)</option>
                                 </select>
                             </div>
                         </div>
@@ -762,6 +763,8 @@ export default function ConfiguracionPage() {
                                         {/* Avatar */}
                                         <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-lg font-black flex-shrink-0 ${user.role === 'ADMIN'
                                             ? 'bg-amber-100 dark:bg-amber-950 text-amber-600 dark:text-amber-400'
+                                            : user.role === 'OPTICA'
+                                            ? 'bg-blue-100 dark:bg-blue-950 text-blue-600 dark:text-blue-400'
                                             : 'bg-stone-100 dark:bg-stone-700 text-stone-500 dark:text-stone-400'
                                             }`}>
                                             {user.name.charAt(0).toUpperCase()}
@@ -785,6 +788,7 @@ export default function ConfiguracionPage() {
                                                     >
                                                         <option value="STAFF">STAFF</option>
                                                         <option value="ADMIN">ADMIN</option>
+                                                        <option value="OPTICA">OPTICA</option>
                                                     </select>
                                                     <button onClick={() => saveEdit(user.id)} className="p-2 bg-emerald-500 text-white rounded-lg hover:scale-105 transition-all">
                                                         <Save className="w-4 h-4" />
@@ -799,9 +803,11 @@ export default function ConfiguracionPage() {
                                                         <h3 className="text-sm font-black text-stone-800 dark:text-white">{user.name}</h3>
                                                         <span className={`px-2 py-0.5 rounded-lg text-[8px] font-black uppercase tracking-widest ${user.role === 'ADMIN'
                                                             ? 'bg-amber-100 dark:bg-amber-950 text-amber-600 dark:text-amber-400'
+                                                            : user.role === 'OPTICA'
+                                                            ? 'bg-blue-100 dark:bg-blue-950 text-blue-600 dark:text-blue-400'
                                                             : 'bg-stone-100 dark:bg-stone-700 text-stone-500 dark:text-stone-400'
                                                             }`}>
-                                                            {user.role === 'ADMIN' ? '🛡️ Admin' : '👤 Vendedor'}
+                                                            {user.role === 'ADMIN' ? '🛡️ Admin' : user.role === 'OPTICA' ? '🏪 Óptica' : '👤 Vendedor'}
                                                         </span>
                                                     </div>
                                                     <p className="text-xs text-stone-400 font-medium">{user.email}</p>

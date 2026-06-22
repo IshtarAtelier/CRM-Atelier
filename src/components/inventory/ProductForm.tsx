@@ -21,6 +21,7 @@ interface BulkItem {
     laboratory: string;
     lensIndex: string;
     price: string | number;
+    wholesalePrice: string | number;
     cost: string | number;
     stock: string | number;
     model: string;
@@ -48,7 +49,7 @@ export default function ProductForm({ onClose, onSuccess, isAdmin = false, uniqu
 
     // Step 2 — single product details
     const [formData, setFormData] = useState({ 
-        name: '', brand: '', model: '', stock: 0, price: 0, cost: 0, 
+        name: '', brand: '', model: '', stock: 0, price: 0, wholesalePrice: 0, cost: 0, 
         lensIndex: '', laboratory: '', sphereMin: '', sphereMax: '', 
         cylinderMin: '', cylinderMax: '', additionMin: '', additionMax: '',
         diameterMin: '', diameterMax: '',
@@ -61,7 +62,7 @@ export default function ProductForm({ onClose, onSuccess, isAdmin = false, uniqu
     const [bulkItems, setBulkItems] = useState<BulkItem[]>([{
         id: Math.random().toString(36).substring(2, 9),
         brand: '', name: '', laboratory: '', lensIndex: '',
-        price: '', cost: '', stock: '', model: '',
+        price: '', wholesalePrice: '', cost: '', stock: '', model: '',
         sphereMin: '', sphereMax: '', cylinderMin: '', cylinderMax: '',
         diameterMin: '', diameterMax: ''
     }]);
@@ -117,6 +118,7 @@ export default function ProductForm({ onClose, onSuccess, isAdmin = false, uniqu
                 type: finalType,
                 category: selectedCategory,
                 price: formData.price,
+                wholesalePrice: formData.wholesalePrice,
                 cost: isCristal ? getFinalCost(formData.cost, formData.laboratory) : formData.cost,
                 stock: isRequestedToLab ? 0 : formData.stock,
                 lensIndex: isCristal ? formData.lensIndex : null,
@@ -234,6 +236,7 @@ export default function ProductForm({ onClose, onSuccess, isAdmin = false, uniqu
                     category: selectedCategory,
                     lensIndex: item.lensIndex,
                     price: Number(item.price) || 0,
+                    wholesalePrice: Number(item.wholesalePrice) || 0,
                     cost: isAdmin ? (isCristal ? getFinalCost(Number(item.cost) || 0, item.laboratory) : Number(item.cost) || 0) : 0,
                     stock: 0,
                     unitType: 'PAR',
@@ -256,6 +259,7 @@ export default function ProductForm({ onClose, onSuccess, isAdmin = false, uniqu
                 type: finalType,
                 category: selectedCategory,
                 price: Number(item.price) || 0,
+                wholesalePrice: Number(item.wholesalePrice) || 0,
                 cost: isAdmin ? Number(item.cost) || 0 : 0,
                 stock: isRequestedToLab ? 0 : (Number(item.stock) || 0),
                 unitType: 'UNIDAD',
@@ -457,13 +461,26 @@ export default function ProductForm({ onClose, onSuccess, isAdmin = false, uniqu
 
                             {/* Precio Venta */}
                             <div className="space-y-2">
-                                <label className="text-[10px] font-black text-primary uppercase tracking-widest ml-4">Precio Venta ($) *</label>
+                                <label className="text-[10px] font-black text-primary uppercase tracking-widest ml-4">Precio Venta (Minorista) ($) *</label>
                                 <div className="relative group">
                                     <DollarSign className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-primary" />
                                     <input required type="number" min={1} placeholder="0.00"
                                         className="w-full pl-14 pr-6 py-5 bg-primary/5 dark:bg-primary/10 border-2 border-primary/20 rounded-[2rem] font-black text-xl focus:ring-2 focus:ring-amber-500 focus:outline-none focus:border-primary transition-all text-primary placeholder:text-primary/30"
                                         value={formData.price || ''}
                                         onChange={e => setFormData({ ...formData, price: parseFloat(e.target.value) || 0 })}
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Precio Mayorista */}
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black text-blue-600 uppercase tracking-widest ml-4">Precio Mayorista ($) *</label>
+                                <div className="relative group">
+                                    <DollarSign className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-blue-600" />
+                                    <input required type="number" min={0} placeholder="0.00"
+                                        className="w-full pl-14 pr-6 py-5 bg-blue-50/50 dark:bg-blue-950/20 border-2 border-blue-200 dark:border-blue-850 rounded-[2rem] font-black text-xl focus:ring-2 focus:ring-blue-500 focus:outline-none focus:border-blue-600 transition-all text-blue-600 dark:text-blue-400 placeholder:text-blue-300"
+                                        value={formData.wholesalePrice || ''}
+                                        onChange={e => setFormData({ ...formData, wholesalePrice: parseFloat(e.target.value) || 0 })}
                                     />
                                 </div>
                             </div>
@@ -681,14 +698,27 @@ export default function ProductForm({ onClose, onSuccess, isAdmin = false, uniqu
                             </div>
 
                             {/* Precio Venta */}
-                            <div className="space-y-2 col-span-2">
-                                <label className="text-[10px] font-black text-primary uppercase tracking-widest ml-4">Precio Venta ($) *</label>
+                            <div className="space-y-2 col-span-1">
+                                <label className="text-[10px] font-black text-primary uppercase tracking-widest ml-4">Precio Minorista ($) *</label>
                                 <div className="relative group">
                                     <DollarSign className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-primary" />
                                     <input required type="number" min={1} placeholder="0.00"
                                         className="w-full pl-14 pr-6 py-5 bg-primary/5 dark:bg-primary/10 border-2 border-primary/20 rounded-[2rem] font-black text-xl focus:ring-2 focus:ring-amber-500 focus:outline-none focus:border-primary transition-all text-primary placeholder:text-primary/30"
                                         value={formData.price || ''}
                                         onChange={e => setFormData({ ...formData, price: parseFloat(e.target.value) || 0 })}
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Precio Mayorista */}
+                            <div className="space-y-2 col-span-1">
+                                <label className="text-[10px] font-black text-blue-600 uppercase tracking-widest ml-4">Precio Mayorista ($) *</label>
+                                <div className="relative group">
+                                    <DollarSign className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-blue-600" />
+                                    <input required type="number" min={0} placeholder="0.00"
+                                        className="w-full pl-14 pr-6 py-5 bg-blue-50/50 dark:bg-blue-950/20 border-2 border-blue-200 dark:border-blue-850 rounded-[2rem] font-black text-xl focus:ring-2 focus:ring-blue-500 focus:outline-none focus:border-blue-600 transition-all text-blue-600 dark:text-blue-400 placeholder:text-blue-300"
+                                        value={formData.wholesalePrice || ''}
+                                        onChange={e => setFormData({ ...formData, wholesalePrice: parseFloat(e.target.value) || 0 })}
                                     />
                                 </div>
                             </div>
@@ -798,7 +828,7 @@ export default function ProductForm({ onClose, onSuccess, isAdmin = false, uniqu
             setBulkItems(prev => [...prev, {
                 id: Math.random().toString(36).substring(2, 9),
                 brand: '', name: '', laboratory: '', lensIndex: '',
-                price: '', cost: '', stock: '', model: '',
+                price: '', wholesalePrice: '', cost: '', stock: '', model: '',
                 sphereMin: '', sphereMax: '', cylinderMin: '', cylinderMax: '',
                 diameterMin: '', diameterMax: ''
             }]);
@@ -838,6 +868,7 @@ export default function ProductForm({ onClose, onSuccess, isAdmin = false, uniqu
                                         <th className="p-3 text-[9px] font-black uppercase tracking-widest text-stone-500">Laboratorio *</th>
                                         <th className="p-3 text-[9px] font-black uppercase tracking-widest text-stone-500">Índice *</th>
                                         <th className="p-3 text-[9px] font-black uppercase tracking-widest text-primary">Venta $ *</th>
+                                        <th className="p-3 text-[9px] font-black uppercase tracking-widest text-blue-600 dark:text-blue-500">Mayorista $</th>
                                         {isAdmin && <th className="p-3 text-[9px] font-black uppercase tracking-widest text-stone-500">{isCristal ? 'Lista $' : 'Costo $'}</th>}
                                         {showRanges && (
                                             <>
@@ -855,6 +886,7 @@ export default function ProductForm({ onClose, onSuccess, isAdmin = false, uniqu
                                         <th className="p-3 text-[9px] font-black uppercase tracking-widest text-stone-500">Modelo</th>
                                         {!isRequestedToLab && <th className="p-3 text-[9px] font-black uppercase tracking-widest text-stone-500">Stock *</th>}
                                         <th className="p-3 text-[9px] font-black uppercase tracking-widest text-primary">Venta $ *</th>
+                                        <th className="p-3 text-[9px] font-black uppercase tracking-widest text-blue-600 dark:text-blue-500">Mayorista $</th>
                                         {isAdmin && <th className="p-3 text-[9px] font-black uppercase tracking-widest text-stone-500">{isCristal ? 'Lista $' : 'Costo $'}</th>}
                                     </>
                                 )}
@@ -871,6 +903,7 @@ export default function ProductForm({ onClose, onSuccess, isAdmin = false, uniqu
                                             <td className="p-2"><input type="text" list="labs-list" className="w-full min-w-[120px] px-3 py-2.5 bg-transparent border border-transparent focus:border-stone-300 dark:focus:border-stone-600 focus:bg-white dark:focus:bg-stone-800 rounded-lg text-[11px] font-bold focus:ring-2 focus:ring-amber-500 focus:outline-none uppercase transition-all" value={item.laboratory} onChange={e => updateBulkItem(item.id, 'laboratory', e.target.value.toUpperCase())} onBlur={() => updateBulkItem(item.id, 'laboratory', autoCorrectLab(item.laboratory) || '')} placeholder="Laboratorio" /></td>
                                             <td className="p-2"><input type="text" className="w-full min-w-[70px] px-3 py-2.5 bg-transparent border border-transparent focus:border-stone-300 dark:focus:border-stone-600 focus:bg-white dark:focus:bg-stone-800 rounded-lg text-[11px] font-bold focus:ring-2 focus:ring-amber-500 focus:outline-none transition-all" value={item.lensIndex} onChange={e => updateBulkItem(item.id, 'lensIndex', e.target.value)} placeholder="Ej: 1.56" /></td>
                                             <td className="p-2"><input type="number" min="0" className="w-full min-w-[90px] px-3 py-2.5 bg-primary/5 border border-transparent focus:border-primary focus:bg-primary/10 rounded-lg text-[11px] font-black text-primary focus:ring-2 focus:ring-amber-500 focus:outline-none transition-all" value={item.price} onChange={e => updateBulkItem(item.id, 'price', e.target.value)} placeholder="0.00" /></td>
+                                            <td className="p-2"><input type="number" min="0" className="w-full min-w-[90px] px-3 py-2.5 bg-blue-50/50 border border-transparent focus:border-blue-500 focus:bg-blue-100/50 rounded-lg text-[11px] font-black text-blue-600 focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all" value={item.wholesalePrice} onChange={e => updateBulkItem(item.id, 'wholesalePrice', e.target.value)} placeholder="0.00" /></td>
                                             {isAdmin && <td className="p-2"><input type="number" min="0" className="w-full min-w-[80px] px-3 py-2.5 bg-transparent border border-transparent focus:border-stone-300 dark:focus:border-stone-600 focus:bg-white dark:focus:bg-stone-800 rounded-lg text-[11px] font-bold focus:ring-2 focus:ring-amber-500 focus:outline-none transition-all" value={item.cost} onChange={e => updateBulkItem(item.id, 'cost', e.target.value)} placeholder="0.00" /></td>}
                                             {showRanges && (
                                                 <>
@@ -888,6 +921,7 @@ export default function ProductForm({ onClose, onSuccess, isAdmin = false, uniqu
                                             <td className="p-2"><input type="text" className="w-full min-w-[100px] px-3 py-2.5 bg-transparent border border-transparent focus:border-stone-300 dark:focus:border-stone-600 focus:bg-white dark:focus:bg-stone-800 rounded-lg text-[11px] font-bold focus:ring-2 focus:ring-amber-500 focus:outline-none transition-all" value={item.model} onChange={e => updateBulkItem(item.id, 'model', e.target.value)} placeholder="Modelo/Color" /></td>
                                             {!isRequestedToLab && <td className="p-2"><input type="number" min="0" className="w-full min-w-[70px] px-3 py-2.5 bg-transparent border border-transparent focus:border-stone-300 dark:focus:border-stone-600 focus:bg-white dark:focus:bg-stone-800 rounded-lg text-[11px] font-bold focus:ring-2 focus:ring-amber-500 focus:outline-none transition-all" value={item.stock} onChange={e => updateBulkItem(item.id, 'stock', e.target.value)} placeholder="0" /></td>}
                                             <td className="p-2"><input type="number" min="0" className="w-full min-w-[90px] px-3 py-2.5 bg-primary/5 border border-transparent focus:border-primary focus:bg-primary/10 rounded-lg text-[11px] font-black text-primary focus:ring-2 focus:ring-amber-500 focus:outline-none transition-all" value={item.price} onChange={e => updateBulkItem(item.id, 'price', e.target.value)} placeholder="0.00" /></td>
+                                            <td className="p-2"><input type="number" min="0" className="w-full min-w-[90px] px-3 py-2.5 bg-blue-50/50 border border-transparent focus:border-blue-500 focus:bg-blue-100/50 rounded-lg text-[11px] font-black text-blue-600 focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all" value={item.wholesalePrice} onChange={e => updateBulkItem(item.id, 'wholesalePrice', e.target.value)} placeholder="0.00" /></td>
                                             {isAdmin && <td className="p-2"><input type="number" min="0" className="w-full min-w-[80px] px-3 py-2.5 bg-transparent border border-transparent focus:border-stone-300 dark:focus:border-stone-600 focus:bg-white dark:focus:bg-stone-800 rounded-lg text-[11px] font-bold focus:ring-2 focus:ring-amber-500 focus:outline-none transition-all" value={item.cost} onChange={e => updateBulkItem(item.id, 'cost', e.target.value)} placeholder="0.00" /></td>}
                                         </>
                                     )}

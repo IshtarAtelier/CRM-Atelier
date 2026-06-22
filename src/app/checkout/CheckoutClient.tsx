@@ -19,6 +19,8 @@ export function CheckoutClient({ footer }: { footer?: React.ReactNode }) {
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [paywayLoaded, setPaywayLoaded] = useState(false);
+  const [isWholesale, setIsWholesale] = useState(false);
+  const [currentUser, setCurrentUser] = useState<any>(null);
 
   const initiatedRef = useRef(false);
 
@@ -55,10 +57,13 @@ export function CheckoutClient({ footer }: { footer?: React.ReactNode }) {
     installments: "1"
   });
 
-  const [webSettings, setWebSettings] = useState({
+  const [webSettings, setWebSettings] = useState<any>({
     web_promo_cash_discount: 15,
-    web_promo_installments: "6 cuotas sin interés"
+    web_promo_installments: "6 cuotas sin interés",
+    web_store_whatsapp_id: WHATSAPP_PHONE
   });
+
+  const whatsappPhoneId = webSettings?.web_store_whatsapp_id || WHATSAPP_PHONE;
 
   const isLocalCity = (() => {
     const city = (formData.city || "").toLowerCase().trim();
@@ -91,7 +96,8 @@ export function CheckoutClient({ footer }: { footer?: React.ReactNode }) {
         if (data) {
           setWebSettings({
             web_promo_cash_discount: data.web_promo_cash_discount !== undefined ? Number(data.web_promo_cash_discount) : 15,
-            web_promo_installments: data.web_promo_installments || "6 cuotas sin interés"
+            web_promo_installments: data.web_promo_installments || "6 cuotas sin interés",
+            web_store_whatsapp_id: data.web_store_whatsapp_id || WHATSAPP_PHONE
           });
         }
       })
@@ -99,13 +105,66 @@ export function CheckoutClient({ footer }: { footer?: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
+    let isMounted = true;
+    
     const saved = localStorage.getItem("atelier-checkout-form");
     if (saved) {
       try {
         setFormData(JSON.parse(saved));
       } catch (e) {}
     }
+    
+    // Check if wholesale user is logged in
+    const stored = localStorage.getItem('user');
+    if (stored) {
+      try {
+        const u = JSON.parse(stored);
+        if (u.role === 'OPTICA') {
+          if (isMounted) {
+            setIsWholesale(true);
+            setCurrentUser(u);
+            setFormData(prev => ({
+              ...prev,
+              paymentMethod: 'MAYORISTA',
+              firstName: prev.firstName || u.name || '',
+              email: prev.email || u.email || ''
+            }));
+          }
+        }
+      } catch (e) {}
+    }
+
+    fetch('/api/auth/me')
+      .then(res => {
+        if (res.ok) return res.json();
+        throw new Error();
+      })
+      .then(data => {
+        if (!isMounted) return;
+        if (data.role === 'OPTICA') {
+          setIsWholesale(true);
+          setCurrentUser(data);
+          setFormData(prev => ({
+            ...prev,
+            paymentMethod: 'MAYORISTA',
+            firstName: prev.firstName || data.name || '',
+            email: prev.email || data.email || ''
+          }));
+        } else {
+          setIsWholesale(false);
+          setCurrentUser(null);
+        }
+      })
+      .catch(() => {
+        if (!isMounted) return;
+        setIsWholesale(false);
+        setCurrentUser(null);
+      });
+
     setMounted(true);
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   // Auto-adjust shipping method when local/national city transitions
@@ -179,7 +238,7 @@ export function CheckoutClient({ footer }: { footer?: React.ReactNode }) {
     setIsProcessing(true);
     
     try {
-      if (formData.paymentMethod === 'TRANSFER') {
+      if (formData.paymentMethod === 'TRANSFER' || formData.paymentMethod === 'MAYORISTA') {
         const res = await fetch("/api/checkout/payway", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -213,7 +272,7 @@ export function CheckoutClient({ footer }: { footer?: React.ReactNode }) {
           clearCart();
           setIsSuccess(true);
         } else {
-          alert("Error generando orden de transferencia.");
+          alert(formData.paymentMethod === 'MAYORISTA' ? "Error generando pedido mayorista." : "Error generando orden de transferencia.");
         }
         return;
       }
@@ -332,7 +391,9 @@ export function CheckoutClient({ footer }: { footer?: React.ReactNode }) {
           <p className="text-stone-500 mb-8 leading-relaxed">
             {formData.paymentMethod === 'TRANSFER' 
               ? "Hemos registrado tu pedido con éxito."
-              : "Hemos registrado tu pedido de forma exitosa. Te enviamos un correo con la confirmación."}
+              : formData.paymentMethod === 'MAYORISTA'
+                ? "Hemos registrado tu pedido mayorista con éxito. Descontamos el stock de la mercadería."
+                : "Hemos registrado tu pedido de forma exitosa. Te enviamos un correo con la confirmación."}
             <br/><br/>
             <strong>Tiempo de entrega estimado:</strong> {hasCrystals ? '5 días hábiles por trabajo de laboratorio a medida.' : 'Despacho rápido dentro de los 2 días hábiles.'}
           </p>
@@ -350,7 +411,7 @@ export function CheckoutClient({ footer }: { footer?: React.ReactNode }) {
                 <p>Transferí el total con descuento y envianos el comprobante haciendo clic en el botón de abajo para que preparemos tu pedido.</p>
               </div>
               <a 
-                href={`https://wa.me/${WHATSAPP_PHONE}?text=${encodeURIComponent(`¡Hola! Acabo de realizar una compra web y ya hice la transferencia. Adjunto mi comprobante.`)}`}
+                href={`https://wa.me/${whatsappPhoneId}?text=${encodeURIComponent(`¡Hola! Acabo de realizar una compra web y ya hice la transferencia. Adjunto mi comprobante.`)}`}
                 target="_blank" 
                 rel="noopener noreferrer" 
                 className="block w-full text-center bg-emerald-600 text-white px-6 py-3 text-[11px] font-bold uppercase tracking-widest hover:bg-emerald-700 transition-colors"
@@ -360,12 +421,30 @@ export function CheckoutClient({ footer }: { footer?: React.ReactNode }) {
             </div>
           )}
 
-          {formData.paymentMethod !== 'TRANSFER' && (
+          {formData.paymentMethod === 'MAYORISTA' && (
+            <div className="bg-stone-50 border border-stone-200 rounded-lg p-6 mb-8 text-left animate-in fade-in">
+              <h3 className="font-bold text-stone-900 mb-4 text-sm uppercase tracking-widest border-b border-stone-200 pb-2">Pedido Mayorista Registrado</h3>
+              <div className="bg-blue-50 text-blue-900 border border-blue-200 rounded p-4 text-xs mb-4">
+                <p className="font-bold mb-1">Próximos pasos:</p>
+                <p>La mercadería ya fue reservada de nuestro stock. Te enviamos un email de confirmación y en breve nos comunicaremos contigo para enviarte la proforma y coordinar el pago.</p>
+              </div>
+              <a 
+                href={`https://wa.me/${whatsappPhoneId}?text=${encodeURIComponent(`¡Hola! Acabo de registrar un pedido mayorista en la web y me gustaría coordinar el pago.`)}`}
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className="block w-full text-center bg-blue-600 text-white px-6 py-3 text-[11px] font-bold uppercase tracking-widest hover:bg-blue-700 transition-colors"
+              >
+                Coordinar Pago por WhatsApp
+              </a>
+            </div>
+          )}
+
+          {formData.paymentMethod !== 'TRANSFER' && formData.paymentMethod !== 'MAYORISTA' && (
             <div className="bg-green-50 text-green-900 border border-green-200 rounded-lg p-4 mb-8 text-sm">
               <p className="font-medium mb-1">¿Tenés alguna duda con tu pedido?</p>
               <p className="text-green-700/80 mb-2">Escribinos directamente a nuestro canal de soporte.</p>
-              <a href={`https://wa.me/${WHATSAPP_PHONE}`} target="_blank" rel="noopener noreferrer" className="font-bold underline underline-offset-4 hover:text-green-600 transition-colors">
-                Contactar por WhatsApp ({WHATSAPP_PHONE})
+              <a href={`https://wa.me/${whatsappPhoneId}`} target="_blank" rel="noopener noreferrer" className="font-bold underline underline-offset-4 hover:text-green-600 transition-colors">
+                Contactar por WhatsApp ({whatsappPhoneId})
               </a>
             </div>
           )}
@@ -414,13 +493,13 @@ export function CheckoutClient({ footer }: { footer?: React.ReactNode }) {
             
             <CheckoutShippingForm formData={formData} handleChange={handleChange} isLocalCity={isLocalCity} hasCrystals={hasCrystals} />
             
-            <CheckoutPaymentOptions formData={formData} handleChange={handleChange} isProcessing={isProcessing} webSettings={webSettings} paywayLoaded={paywayLoaded} />
+            <CheckoutPaymentOptions formData={formData} handleChange={handleChange} isProcessing={isProcessing} webSettings={webSettings} paywayLoaded={paywayLoaded} isWholesale={isWholesale} />
 
           </form>
         </div>
 
         {/* DERECHA: Resumen de Compra */}
-        <CheckoutSummarySidebar items={items} getCartTotal={getCartTotal} formData={formData} webSettings={webSettings} />
+        <CheckoutSummarySidebar items={items} getCartTotal={getCartTotal} formData={formData} webSettings={webSettings} isWholesale={isWholesale} />
       </main>
       
       {footer}
