@@ -114,12 +114,12 @@ export default function VariluxPage() {
       <VariluxQuiz />
 
       <CristalCTA 
-        title="El éxito está en la toma de medidas"
+        title="Centro Varilux Expert: Precisión en la toma de medidas para Multifocales"
         description={
           <>
-            Podés tener el mejor cristal del mundo (Varilux XR), pero si la altura pupilar o la distancia nasopupilar no están calculadas a la perfección, no verás bien. 
+            Podés invertir en el mejor cristal multifocal del mundo, como el Varilux XR, pero si la altura pupilar o la distancia nasopupilar no están calculadas con exactitud milimétrica, la adaptación fallará y no lograrás una visión nítida. 
             <br className="mt-4" />
-            Al ser un <strong>Centro Varilux Expert</strong>, en Atelier contamos con instrumental de precisión y profesionales avalados por Essilor para asegurar que tu inversión rinda al 100%.
+            Al ser un <strong>Centro Varilux Expert</strong> certificado, en Atelier Óptica la toma de medidas es realizada artesanalmente por nuestra Óptica Contactóloga Ishtar Pissano (con más de 10 años de experiencia). Te garantizamos una toma de medidas perfecta y personalizada para que la adaptación a tus nuevos multifocales sea rápida, natural y tu inversión rinda al 100%.
           </>
         }
         buttonText="Reservar Asesoramiento Visual"
