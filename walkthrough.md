@@ -100,3 +100,30 @@ Además, en el entorno local existía un error de tipos TypeScript en `src/hooks
 2. **Corrección de Tipos**: Añadimos el campo `wholesalePrice: number` a la interfaz `Product` en [useProducts.ts](file:///Users/ishtarpissano/proyectos/atelier/src/hooks/useProducts.ts) y añadimos el campo al inicializador de `bulkItems` en [ProductForm.tsx](file:///Users/ishtarpissano/proyectos/atelier/src/components/inventory/ProductForm.tsx).
 3. **Verificación**: Corrimos `npm run build` localmente y la compilación de la aplicación de Next.js finalizó exitosamente sin errores de compilación. Corrimos pruebas automatizadas con Playwright levantando el servidor local conectado a la base de datos de producción, comprobando que tanto `/tienda` como `/checkout` cargan correctamente y sin ningún tipo de excepción.
 
+---
+
+## Solución Definitiva al Fallo de Bundling de PrismaClient (Client-Side Hydration Crash)
+
+### Problema
+Incluso después de aplicar la migración de base de datos, el área de la tienda `/tienda` arrojaba una pantalla de error `"¡Ups! Algo salió mal"` en producción. El navegador arrojaba la excepción:
+`Error fetching web settings from database: Error: PrismaClient is unable to run in this browser environment, or has been bundled for the browser (running in unknown).`
+seguido del error React #482 (Fallo de hidratación).
+
+### Causa Raíz
+Se descubrió que los componentes del lado del cliente (`"use client"`) de la aplicación estaban importando estáticamente el componente del servidor `StorefrontFooter`.
+Dado que `StorefrontFooter` importa `getWebSettings` de `@/lib/web-settings` (que a su vez importa `prisma` de `@/lib/db`), Webpack terminaba empaquetando el cliente de Prisma completo en los chunks de JavaScript del lado del cliente. Al hidratar la página en el navegador, el constructor de `PrismaClient` fallaba arrojando el error de entorno del navegador.
+
+Los componentes del lado del cliente que importaban estáticamente el footer problemático eran:
+1. [FaqClient.tsx](file:///Users/ishtarpissano/proyectos/atelier/src/app/faq/FaqClient.tsx)
+2. [page.tsx](file:///Users/ishtarpissano/proyectos/atelier/src/app/landing/wicue/page.tsx) (Wicue Landing Page)
+
+### Solución Implementada
+1. **Footer Estático Seguro**: Diseñamos [StorefrontFooterStatic.tsx](file:///Users/ishtarpissano/proyectos/atelier/src/components/Storefront/StorefrontFooterStatic.tsx), un componente 100% puro y seguro para el navegador que no depende del cliente de Prisma ni realiza consultas a la base de datos.
+2. **Reemplazo en Componentes Cliente**:
+   - Modificamos [FaqClient.tsx](file:///Users/ishtarpissano/proyectos/atelier/src/app/faq/FaqClient.tsx) y la landing de Wicue [page.tsx](file:///Users/ishtarpissano/proyectos/atelier/src/app/landing/wicue/page.tsx) para importar y renderizar `StorefrontFooterStatic` (aliaseado como `StorefrontFooter` para evitar modificaciones mayores de código).
+   - Simplificamos [not-found.tsx](file:///Users/ishtarpissano/proyectos/atelier/src/app/not-found.tsx) para cargar `StorefrontFooterStatic` de forma estática en lugar de usar `next/dynamic`.
+3. **Verificación**:
+   - Compilamos la aplicación con `npm run build` localmente y finalizó exitosamente sin advertencias de dependencias.
+   - Levantamos el servidor de producción local (`PORT=3003 npx next start`) y ejecutamos la suite de pruebas de Playwright verificando `/tienda` y `/checkout` de forma secuencial. El test finalizó de forma exitosa (`🎉 Test passed: No client-side exceptions detected!`), confirmando la ausencia de cualquier tipo de error o excepción en la consola del navegador.
+
+
