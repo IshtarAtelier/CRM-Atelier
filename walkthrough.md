@@ -126,4 +126,24 @@ Los componentes del lado del cliente que importaban estáticamente el footer pro
    - Compilamos la aplicación con `npm run build` localmente y finalizó exitosamente sin advertencias de dependencias.
    - Levantamos el servidor de producción local (`PORT=3003 npx next start`) y ejecutamos la suite de pruebas de Playwright verificando `/tienda` y `/checkout` de forma secuencial. El test finalizó de forma exitosa (`🎉 Test passed: No client-side exceptions detected!`), confirmando la ausencia de cualquier tipo de error o excepción en la consola del navegador.
 
+---
+
+## Solución al Fallo del Botón "Pagar con Tarjeta" (Bloqueo CSP)
+
+### Problema
+En el checkout (`/checkout`), al seleccionar tarjeta de crédito/débito, el botón **"Pagar con Tarjeta"** permanecía inactivo/gris y al hacerle clic no ocurría ninguna acción.
+
+### Causa Raíz
+Inspeccionando la consola de desarrollo, encontramos que el navegador bloqueaba la carga de la biblioteca externa de Payway/Decidir (`https://live.decidir.com/static/v2/decidir.js`) debido a las directivas de seguridad en la cabecera de **Content Security Policy (CSP)** configurada en el archivo `next.config.ts`.
+Como el script del SDK de Payway era bloqueado, el callback `onload` que activa el estado `paywayLoaded = true` nunca se ejecutaba, lo que dejaba el botón inhabilitado.
+
+### Solución Implementada
+1. **Modificación de CSP**: Actualizamos la directiva de seguridad en [next.config.ts](file:///Users/ishtarpissano/proyectos/atelier/next.config.ts) para añadir explícitamente los dominios del SDK de Payway/Decidir en `script-src`:
+   ```ts
+   script-src 'self' 'unsafe-eval' 'unsafe-inline' https://live.decidir.com https://developers.decidir.com
+   ```
+2. **Subida y Despliegue**: Hicimos push del cambio a la rama `main` en GitHub, lo que disparó automáticamente el build y despliegue del contenedor docker en Railway.
+3. **Verificación**: Ejecutamos una prueba de Playwright en producción ([test_checkout_csp.js](file:///Users/ishtarpissano/.gemini/antigravity/brain/4e4da702-74d2-42f1-8b3c-451a179c6358/scratch/test_checkout_csp.js)). El script cargó exitosamente (`HTTP 200`) el archivo `decidir.js` desde `live.decidir.com` sin infringir ninguna directiva de CSP, confirmando que el botón **"Pagar con Tarjeta"** ahora se habilita correctamente para el procesamiento seguro de pagos.
+
+
 
