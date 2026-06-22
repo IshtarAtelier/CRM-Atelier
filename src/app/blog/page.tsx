@@ -6,6 +6,7 @@ import { StorefrontFooter } from '@/components/Storefront/StorefrontFooter';
 import { FloatingWhatsApp } from '@/components/Storefront/FloatingWhatsApp';
 import { staticPosts } from '@/lib/static-blog-posts';
 import { prisma } from '@/lib/db';
+import { seoKeywords, formatQueryToTitle } from '@/lib/seo-keywords';
 
 export const revalidate = 300;
 
@@ -61,9 +62,16 @@ export default async function BlogPage() {
           <h1 className="text-4xl lg:text-5xl font-black text-stone-900 dark:text-white tracking-tight mb-4">
             Blog <span className="text-primary italic">Atelier</span>
           </h1>
-          <p className="text-lg text-stone-600 dark:text-stone-400 max-w-2xl mx-auto">
+          <p className="text-lg text-stone-600 dark:text-stone-400 max-w-2xl mx-auto mb-8">
             Noticias, consejos de salud visual y guías sobre anteojos y multifocales en Córdoba.
           </p>
+          <Link 
+            href="/blog/faq" 
+            className="inline-flex items-center justify-center px-6 py-3 bg-stone-900 dark:bg-white text-white dark:text-stone-900 rounded-full font-bold shadow-md hover:bg-stone-800 dark:hover:bg-stone-100 hover:-translate-y-0.5 transition-all"
+          >
+            Ver Preguntas Frecuentes (FAQ)
+            <ArrowRight className="w-4 h-4 ml-2" />
+          </Link>
         </div>
       </div>
 
@@ -166,6 +174,24 @@ export default async function BlogPage() {
           }, [] as React.ReactNode[])}
         </div>
       </div>
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 border-t border-stone-200 dark:border-stone-800">
+        <h3 className="text-xl font-bold text-stone-900 dark:text-white mb-6">
+          Búsquedas Populares en Córdoba
+        </h3>
+        <div className="flex flex-wrap gap-3">
+          {seoKeywords.map((keyword) => (
+            <Link 
+              key={keyword} 
+              href={`/blog/busquedas/${keyword}`}
+              className="text-sm px-4 py-2 bg-stone-100 dark:bg-stone-900 text-stone-600 dark:text-stone-400 rounded-full hover:bg-primary hover:text-white dark:hover:bg-primary dark:hover:text-white transition-colors"
+            >
+              {formatQueryToTitle(keyword)}
+            </Link>
+          ))}
+        </div>
+      </div>
+
       <StorefrontFooter />
       <FloatingWhatsApp />
     </div>

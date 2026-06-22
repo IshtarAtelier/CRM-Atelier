@@ -1,5 +1,6 @@
 import { MetadataRoute } from 'next';
 import { prisma } from '@/lib/db';
+import { seoKeywords } from '@/lib/seo-keywords';
 
 export const dynamic = 'force-dynamic';
 
@@ -21,6 +22,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     '/clip-on',
     '/resenas',
     '/blog',
+    '/blog/faq',
     '/arma-tus-lentes',
     '/varilux',
   ].map((route) => ({
@@ -130,12 +132,20 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     console.error("Error fetching sitemap product routes from DB:", error);
   }
 
+  const seoKeywordRoutes = seoKeywords.map((keyword) => ({
+    url: `${baseUrl}/blog/busquedas/${keyword}`,
+    lastModified: new Date(),
+    changeFrequency: 'weekly' as const,
+    priority: 0.8,
+  }));
+
   return [
     ...staticRoutes,
     ...physicalBlogRoutes,
     ...fallbackBlogRoutes,
     ...dbBlogRoutes,
-    ...productRoutes
+    ...productRoutes,
+    ...seoKeywordRoutes
   ];
 }
 
