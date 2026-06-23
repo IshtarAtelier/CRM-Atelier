@@ -55,14 +55,16 @@ async function main() {
         });
     }
 
-    // 1. Obtener clientes creados este mes con status "CIERRE"
+    // 1. Obtener clientes creados este mes que NO estén ya confirmados o convertidos a cliente
     const startOfMonth = new Date();
     startOfMonth.setDate(1);
     startOfMonth.setHours(0, 0, 0, 0);
 
     const clients = await prisma.client.findMany({
         where: {
-            status: 'CIERRE',
+            status: {
+                notIn: ['CONFIRMED', 'CUSTOMER', 'COMPLETED']
+            },
             createdAt: {
                 gte: startOfMonth
             }
@@ -75,13 +77,12 @@ async function main() {
         }
     });
 
-    console.log(`Se encontraron ${clients.length} clientes en estado CIERRE creados desde ${startOfMonth.toLocaleDateString()}`);
+    console.log(`Se encontraron ${clients.length} clientes pendientes creados desde ${startOfMonth.toLocaleDateString()}`);
 
     for (const client of clients) {
         try {
             const chat = client.whatsappChats[0];
             if (!chat || !chat.realPhone) {
-                console.log(`[Skip] Cliente ${client.name} no tiene un chat de WhatsApp vinculado o no hay número real.`);
                 continue;
             }
 
@@ -93,7 +94,6 @@ async function main() {
             });
 
             if (messages.length === 0) {
-                console.log(`[Skip] Cliente ${client.name} no tiene mensajes en el historial.`);
                 continue;
             }
 
@@ -123,8 +123,9 @@ ${chatContext}
 ---
 
 INSTRUCCIONES CRÍTICAS:
+0. SI EL CONTEXTO INDICA CLARAMENTE QUE EL CLIENTE YA COMPRÓ los anteojos (ya sea a nosotros o en otra óptica) o que la venta ya está cerrada, responde ÚNICAMENTE con la palabra "SKIP_SALE" y nada más. No envíes seguimiento en este caso.
 1. Escribe UN SOLO PÁRRAFO CORTO, no más de 2 oraciones.
-2. Suena 100% humano, empático y muy amigable. Retoma el último tema que hablaron.
+2. Suena 100% humano, empático y muy amigable. Retoma el último tema que hablaron (ej. monofocales bajos, presupuestos, turnos, etc.).
 3. Haz una pregunta sutil y servicial al final, usando un tono similar a: "¿Contame un poquito qué te pareció?", "¿Necesitás que te cotice alguna otra opción?", o "¿Te quedó alguna duda con los precios?".
 4. NO uses saludos formales robóticos. Di "Hola [Nombre]" o similar, relajado.
 5. NO TE DESPIDAS definitivamente. Queremos que el cliente se sienta cómodo para responder.
@@ -139,6 +140,11 @@ INSTRUCCIONES CRÍTICAS:
             ]);
 
             const followUpMessage = response.content.toString().trim();
+
+            if (followUpMessage.includes("SKIP_SALE")) {
+                console.log(`[Skip] La IA detectó que ${client.name} ya cerró la compra. Se saltea.`);
+                continue;
+            }
             console.log(`\nMensaje generado para ${client.name}:\n"${followUpMessage}"\n`);
 
             // 3. Enviar mensaje por WhatsApp
