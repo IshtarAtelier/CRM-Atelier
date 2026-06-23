@@ -97,13 +97,12 @@ async function main() {
                 continue;
             }
 
-            // Evitar enviar mensaje si el último mensaje fue del negocio y se envió hoy
+            // Evitar enviar mensaje si la última conversación (de nosotros o de ellos) fue hoy
             const lastMessage = messages[0];
-            const isFromUs = lastMessage.direction === 'OUTBOUND';
             const isToday = new Date().getTime() - new Date(lastMessage.createdAt).getTime() < 86400000;
             
-            if (isFromUs && isToday) {
-                console.log(`[Skip] Ya le enviamos un mensaje a ${client.name} en las últimas 24hs.`);
+            if (isToday) {
+                console.log(`[Skip] ${client.name} tiene actividad en las últimas 24hs. Se saltea.`);
                 continue;
             }
 
