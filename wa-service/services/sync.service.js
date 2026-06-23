@@ -163,6 +163,25 @@ const syncRecentChatsAndMessages = async (deps, wc) => {
                         }
                     } catch (e) {}
 
+                    // Search for a matching client by phone suffix (last 8 digits)
+                    let linkedClientId = null;
+                    if (realPhone && realPhone.length >= 8) {
+                        const searchPhoneStr = realPhone.slice(-8).replace(/\D/g, '');
+                        if (searchPhoneStr.length >= 8) {
+                            try {
+                                const rawDuplicates = await prisma.$queryRawUnsafe(`
+                                    SELECT id 
+                                    FROM "Client" 
+                                    WHERE REGEXP_REPLACE(COALESCE(phone, ''), '\\D', '', 'g') LIKE '%${searchPhoneStr}%'
+                                    LIMIT 1
+                                `);
+                                if (rawDuplicates && rawDuplicates.length > 0) {
+                                    linkedClientId = rawDuplicates[0].id;
+                                }
+                            } catch (e) {}
+                        }
+                    }
+
                     try {
                         dbChat = await prisma.whatsAppChat.create({
                             data: {
@@ -172,7 +191,8 @@ const syncRecentChatsAndMessages = async (deps, wc) => {
                                 status: 'OPEN',
                                 botEnabled: shouldEnableBot,
                                 lastMessageAt: new Date(),
-                                unreadCount: chatObj.unreadCount > 0 ? chatObj.unreadCount : 0
+                                unreadCount: chatObj.unreadCount > 0 ? chatObj.unreadCount : 0,
+                                clientId: linkedClientId
                             }
                         });
                     } catch (createErr) {

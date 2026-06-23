@@ -301,24 +301,31 @@ async function processBotTurn(chat, waId, profileName, realPhone) {
         
         // Reconstruir el historial, convirtiendo mensajes DB a LangChain messages
         const rawMessages = recentMessages.reverse().map(m => {
+            const dateObj = new Date(m.createdAt);
+            const formatter = new Intl.DateTimeFormat('es-AR', {
+                timeZone: 'America/Argentina/Cordoba',
+                weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+            });
+            const timestamp = `[${formatter.format(dateObj)}] `;
+
             if (m.direction === 'OUTBOUND') {
-                return { role: 'ai', content: m.content || '' };
+                return { role: 'ai', content: timestamp + (m.content || '') };
             } else {
                 if (m.type === 'IMAGE') {
                     const cached = (global.mediaCache?.[chat.id] || []).find(item => item.waMessageId === m.waMessageId);
                     if (cached) {
                         console.log(`📸 Enviando imagen multimodal a Gemini para mensaje: ${m.waMessageId}`);
                         return { role: 'human', multimodal: true, content: [
-                            { type: "text", text: `[Imagen adjunta. Mensaje del cliente: "${m.content || '(sin texto)'}"]` },
+                            { type: "text", text: `${timestamp}[Imagen adjunta. Mensaje del cliente: "${m.content || '(sin texto)'}"]` },
                             { type: "image_url", image_url: { url: `data:${cached.mimeType};base64,${cached.base64}` } }
                         ]};
                     } else {
-                        return { role: 'human', content: `[Imagen adjunta (antigua): ${m.content || '(sin texto)'}]` };
+                        return { role: 'human', content: `${timestamp}[Imagen adjunta (antigua): ${m.content || '(sin texto)'}]` };
                     }
                 } else if (m.type === 'AUDIO') {
-                    return { role: 'human', content: `[El cliente envió un audio transcrito. Mensaje: ${m.content}]` };
+                    return { role: 'human', content: `${timestamp}[El cliente envió un audio transcrito. Mensaje: ${m.content}]` };
                 } else {
-                    return { role: 'human', content: m.content || '[Mensaje vacío]' };
+                    return { role: 'human', content: timestamp + (m.content || '[Mensaje vacío]') };
                 }
             }
         });

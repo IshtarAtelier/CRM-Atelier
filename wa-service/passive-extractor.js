@@ -42,8 +42,14 @@ async function processPassiveExtraction(chatId, waId, profileName) {
 
         // Reconstruimos el texto
         const conversationText = recentMessages.reverse().map(m => {
+            const dateObj = new Date(m.createdAt);
+            const formatter = new Intl.DateTimeFormat('es-AR', {
+                timeZone: 'America/Argentina/Cordoba',
+                weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+            });
+            const timestamp = `[${formatter.format(dateObj)}]`;
             const role = m.direction === 'OUTBOUND' ? 'Óptica:' : 'Cliente:';
-            return `${role} ${m.content || '[Adjunto/Media]'}`;
+            return `${timestamp} ${role} ${m.content || '[Adjunto/Media]'}`;
         }).join('\n');
 
         const isKnownClient = !!chatInfo.clientId;

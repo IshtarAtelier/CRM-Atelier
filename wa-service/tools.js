@@ -557,7 +557,8 @@ async function disableBotForChat({ chatId, reason }) {
         return { success: false, message: '[INSTRUCCIÓN INTERNA] No se pudo desactivar el bot porque falta el chatId.' };
     }
     
-    const tagName = reason || 'Cancelar Bot';
+    const clientTagName = 'Cancelar Bot';
+    const labelName = reason || 'Cancelar Bot';
     
     try {
         const chat = await prisma.whatsAppChat.findUnique({ where: { id: chatId } });
@@ -566,9 +567,9 @@ async function disableBotForChat({ chatId, reason }) {
         }
 
         const tag = await prisma.tag.upsert({
-            where: { name: tagName },
+            where: { name: clientTagName },
             update: {},
-            create: { name: tagName, color: tagName === 'Proveedor' ? '#722ed1' : (tagName === 'Spam' ? '#8c8c8c' : '#ff4d4f') }
+            create: { name: clientTagName, color: '#ff4d4f' }
         });
 
         if (chat.clientId) {
@@ -583,7 +584,7 @@ async function disableBotForChat({ chatId, reason }) {
         }
 
         const updatedLabels = new Set(chat.chatLabels || []);
-        updatedLabels.add(tagName);
+        updatedLabels.add(labelName);
 
         await prisma.whatsAppChat.update({
             where: { id: chatId },
