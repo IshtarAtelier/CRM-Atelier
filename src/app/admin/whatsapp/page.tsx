@@ -31,6 +31,24 @@ const getLabelStyle = (label: string) =>
     CHAT_LABEL_OPTIONS.find(o => o.label === label)?.color
     ?? 'bg-violet-100/80 text-violet-700 border-violet-200';
 
+const formatDateDivider = (dateString: string | Date) => {
+    const d = new Date(dateString);
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    
+    if (d.toDateString() === today.toDateString()) return 'Hoy';
+    if (d.toDateString() === yesterday.toDateString()) return 'Ayer';
+    
+    const diffTime = today.getTime() - d.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+    if (diffDays < 7 && diffDays > 0) {
+        return d.toLocaleDateString('es-AR', { weekday: 'long' }).replace(/^\w/, c => c.toUpperCase());
+    }
+    
+    return d.toLocaleDateString('es-AR', { day: 'numeric', month: 'long', year: d.getFullYear() !== today.getFullYear() ? 'numeric' : undefined });
+};
+
 const resolveMediaUrl = (url?: string) => {
     if (!url) return '';
     if (url.startsWith('local://')) {
@@ -1868,8 +1886,27 @@ export default function WhatsAppPage() {
                                 <div className="flex-1 overflow-y-auto px-6 py-8 space-y-6 bg-gradient-to-b from-transparent to-stone-50/50 dark:from-transparent dark:to-stone-950/20 custom-scrollbar-smooth">
                                     {messages.map((msg, idx) => {
                                         const isOut = msg.direction === 'OUTBOUND';
+                                        
+                                        let showDateDivider = false;
+                                        if (idx === 0) {
+                                            showDateDivider = true;
+                                        } else {
+                                            const prevMsg = messages[idx - 1];
+                                            const currentDay = new Date(msg.createdAt).toDateString();
+                                            const prevDay = new Date(prevMsg.createdAt).toDateString();
+                                            showDateDivider = currentDay !== prevDay;
+                                        }
+
                                         return (
-                                            <div key={msg.id || `msg-${idx}`} className={`flex ${isOut ? 'justify-end' : 'justify-start'}`}>
+                                            <div key={msg.id || `msg-${idx}`} className="flex flex-col w-full gap-4">
+                                                {showDateDivider && (
+                                                    <div className="flex justify-center w-full my-1">
+                                                        <span className="bg-stone-200/50 dark:bg-stone-800/50 text-stone-500 dark:text-stone-400 text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-full backdrop-blur-sm shadow-sm">
+                                                            {formatDateDivider(msg.createdAt)}
+                                                        </span>
+                                                    </div>
+                                                )}
+                                                <div className={`flex w-full ${isOut ? 'justify-end' : 'justify-start'}`}>
                                                 <div className="flex gap-2 max-w-[80%] items-end">
                                                     {!isOut && (
                                                         <div className="w-6 h-6 rounded-full bg-stone-200 flex-shrink-0 flex items-center justify-center text-[9px] font-black text-stone-500 self-end mb-1">
@@ -1923,6 +1960,7 @@ export default function WhatsAppPage() {
                                                             {isOut && <CheckCircle2 className="w-3 h-3" />}
                                                         </div>
                                                     </div>
+                                                </div>
                                                 </div>
                                             </div>
                                         );
