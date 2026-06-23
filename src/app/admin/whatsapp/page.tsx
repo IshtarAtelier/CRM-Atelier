@@ -2054,15 +2054,30 @@ export default function WhatsAppPage() {
                                                 </button>
                                             </div>
                                         ) : (
-                                            <div className="flex-1 bg-white dark:bg-stone-800 border-[3px] border-stone-100 dark:border-stone-700 rounded-[2rem] flex items-center px-6 shadow-sm focus-within:border-emerald-200 dark:focus-within:border-emerald-900/50 transition-colors">
-                                                <input
-                                                    type="text"
+                                            <div className="flex-1 bg-white dark:bg-stone-800 border-[3px] border-stone-100 dark:border-stone-700 rounded-[2rem] flex items-end px-6 shadow-sm focus-within:border-emerald-200 dark:focus-within:border-emerald-900/50 transition-colors">
+                                                <textarea
                                                     value={newMessage}
-                                                    onChange={e => setNewMessage(e.target.value)}
-                                                    onKeyDown={e => e.key === 'Enter' && !e.shiftKey && sendMessage()}
+                                                    onChange={e => {
+                                                        setNewMessage(e.target.value);
+                                                        e.target.style.height = 'auto';
+                                                        e.target.style.height = `${Math.min(e.target.scrollHeight, 150)}px`;
+                                                    }}
+                                                    onKeyDown={e => {
+                                                        if (e.key === 'Enter' && !e.shiftKey) {
+                                                            e.preventDefault();
+                                                            sendMessage();
+                                                            setTimeout(() => {
+                                                                if (e.target instanceof HTMLTextAreaElement) {
+                                                                    e.target.style.height = 'auto';
+                                                                }
+                                                            }, 10);
+                                                        }
+                                                    }}
                                                     onFocus={() => setShowEmojiPicker(false)}
                                                     placeholder="Escribe un mensaje..."
-                                                    className="w-full py-4 bg-transparent outline-none text-[15px] font-medium text-stone-800 dark:text-white placeholder:text-stone-400"
+                                                    rows={1}
+                                                    className="w-full py-4 bg-transparent outline-none text-[15px] font-medium text-stone-800 dark:text-white placeholder:text-stone-400 resize-none overflow-y-auto custom-scrollbar-smooth"
+                                                    style={{ minHeight: '56px', maxHeight: '150px' }}
                                                 />
                                             </div>
                                         )}
