@@ -1969,9 +1969,14 @@ export default function WhatsAppPage() {
                                                         
                                                         {/* RENDERIZADO DE MEDIOS */}
                                                         {msg.mediaUrl && msg.type === 'AUDIO' && (
-                                                            <div className="mb-2 bg-black/5 dark:bg-white/5 p-2 rounded-2xl flex items-center border border-black/5">
-                                                                <Mic className="w-5 h-5 opacity-50 mr-2 shrink-0" />
-                                                                <audio controls src={resolveMediaUrl(msg.mediaUrl)} className="h-10 w-48 ouline-none filter drop-shadow-sm" preload="metadata" />
+                                                            <div className="mb-2 bg-black/5 dark:bg-white/5 p-2 rounded-2xl flex flex-col gap-2 border border-black/5">
+                                                                <div className="flex items-center">
+                                                                    <Mic className="w-5 h-5 opacity-50 mr-2 shrink-0" />
+                                                                    <audio controls src={resolveMediaUrl(msg.mediaUrl)} className="h-10 w-48 outline-none filter drop-shadow-sm" preload="metadata" />
+                                                                </div>
+                                                                <a href={resolveMediaUrl(msg.mediaUrl)} target="_blank" rel="noopener noreferrer" className="text-[10px] text-stone-500 hover:text-emerald-600 underline ml-7">
+                                                                    Descargar audio (si no se reproduce)
+                                                                </a>
                                                             </div>
                                                         )}
                                                         {msg.mediaUrl && msg.type === 'IMAGE' && (

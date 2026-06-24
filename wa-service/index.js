@@ -141,10 +141,16 @@ const handleMessageCreate = async (msg) => {
                 });
                 
                 // GUARDAR EL MENSAJE EN EL CRM (UPSERT para evitar race conditions con el envío directo)
-                let messageType = msg.hasMedia ? 'IMAGE' : 'TEXT';
+                let messageType = 'TEXT';
+                if (['image', 'sticker'].includes(msg.type)) messageType = 'IMAGE';
+                else if (msg.type === 'video') messageType = 'VIDEO';
+                else if (['audio', 'ptt'].includes(msg.type)) messageType = 'AUDIO';
+                else if (msg.type === 'document') messageType = 'DOCUMENT';
+                else if (msg.hasMedia) messageType = 'IMAGE';
+                
                 let mediaUrl = null;
                 
-                if (msg.hasMedia) {
+                if (msg.hasMedia || ['image', 'video', 'audio', 'ptt', 'document', 'sticker'].includes(msg.type)) {
                     try {
                         const media = await msg.downloadMedia();
                         if (media) {
@@ -1037,12 +1043,18 @@ const handleMessage = async (msg) => {
         }
 
         // 2. Save Inbound Message
-        let messageType = msg.hasMedia ? 'IMAGE' : 'TEXT';
+        let messageType = 'TEXT';
+        if (['image', 'sticker'].includes(msg.type)) messageType = 'IMAGE';
+        else if (msg.type === 'video') messageType = 'VIDEO';
+        else if (['audio', 'ptt'].includes(msg.type)) messageType = 'AUDIO';
+        else if (msg.type === 'document') messageType = 'DOCUMENT';
+        else if (msg.hasMedia) messageType = 'IMAGE';
+
         let mediaBase64 = null;
         let mediaMime = null;
         let mediaUrl = null;
         
-        if (msg.hasMedia) {
+        if (msg.hasMedia || ['image', 'video', 'audio', 'ptt', 'document', 'sticker'].includes(msg.type)) {
             try {
                 const media = await msg.downloadMedia();
                 if (media) {
@@ -1053,9 +1065,12 @@ const handleMessage = async (msg) => {
                     const buffer = Buffer.from(media.data, 'base64');
                     const ext = getFileExtension(media.mimetype);
 
-                    if (messageType === 'AUDIO' && agentEnabled) {
+                    if (messageType === 'AUDIO') {
                         console.log(`  🎧 Transcribiendo audio de ${profileName}...`);
-                        const text = await transcribeAudio(media.data, media.mimetype);
+                        const text = await transcribeAudio(media.data, media.mimetype).catch(e => {
+                            console.error('Error en transcripción:', e.message);
+                            return null;
+                        });
                         if (text) {
                             body = `[Audio transcrito]: "${text}"`;
                             console.log(`  ✅ Audio transcrito: ${text}`);
