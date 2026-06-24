@@ -194,6 +194,9 @@ export function StorefrontNavbar({ theme = "dark", mixBlend = false }: Storefron
                     <Link href="/blog" className="block px-4 py-2 text-[12px] font-medium text-stone-700 hover:bg-stone-50 transition-colors">
                       El Blog
                     </Link>
+                    <Link href="/quienes-somos" className="block px-4 py-2 text-[12px] font-medium text-stone-700 hover:bg-stone-50 transition-colors">
+                      Quiénes Somos
+                    </Link>
                     <Link href="/nuestro-local" className="block px-4 py-2 text-[12px] font-medium text-stone-700 hover:bg-stone-50 transition-colors">
                       Nuestro Local
                     </Link>

@@ -39,6 +39,7 @@ export async function StorefrontFooter() {
           {/* Links principales */}
           <div className="flex flex-col gap-1 md:gap-3">
             <p className="text-[10px] md:text-[11px] uppercase tracking-widest font-black text-stone-400 mb-2">Atelier</p>
+            <Link href="/quienes-somos" className="text-[13px] md:text-[14px] font-medium text-stone-200 hover:text-white transition-colors py-2 md:py-0">Quiénes Somos</Link>
             <Link href="/contacto" className="text-[13px] md:text-[14px] font-medium text-stone-200 hover:text-white transition-colors py-2 md:py-0">Contacto</Link>
             <Link href="/faq" className="text-[13px] md:text-[14px] font-medium text-stone-200 hover:text-white transition-colors py-2 md:py-0">Atención al Cliente</Link>
             <Link href="/nuestro-local" className="text-[13px] md:text-[14px] font-medium text-stone-200 hover:text-white transition-colors py-2 md:py-0">Nuestro Local</Link>
