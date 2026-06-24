@@ -1455,6 +1455,7 @@ server.listen(PORT, '0.0.0.0', async () => {
                             broadcastChatUpdate(dbChat.id);
                             if (global.io) global.io.emit('chat_read_status');
                         }
+                    }
                 } catch (e) {
                     console.error('Error procesando unread_count:', e.message);
                 }
