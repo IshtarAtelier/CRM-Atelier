@@ -118,6 +118,24 @@ export default function QuoteSummary({
         }
     };
 
+    const handleToggleAuth = async (checked: boolean) => {
+        try {
+            const res = await fetch(`/api/orders/${order.id}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ authorizedByAdmin: checked }),
+            });
+            if (res.ok) {
+                if (onRefreshContact) await onRefreshContact();
+            } else {
+                const data = await res.json();
+                alert(`⚠️ ${data.error || 'Error al actualizar autorización'}`);
+            }
+        } catch (error) {
+            console.error('Error toggling admin authorization:', error);
+        }
+    };
+
     if (compact) {
         const total = order.total || 0;
         const paid = order.paid || 0;
@@ -599,11 +617,40 @@ export default function QuoteSummary({
                                     {showPaymentsList ? 'Ocultar' : 'Ver Detalles'}
                                 </button>
                             </div>
-                            <span className={`text-[10px] font-black uppercase ${financials.progress >= 100 ? 'text-emerald-500' : 'text-amber-500'}`}>{Math.round(financials.progress)}% Completado</span>
+                            <span className={`text-[10px] font-black uppercase ${financials.progress >= 100 || order.authorizedByAdmin ? 'text-emerald-500' : 'text-amber-500'}`}>
+                                {Math.round(financials.progress)}% Completado {order.authorizedByAdmin && financials.progress < 50 && '(Autorizado)'}
+                            </span>
                         </div>
                         <div className="h-2 bg-stone-100 dark:bg-stone-900 rounded-full overflow-hidden border border-stone-200 dark:border-stone-700">
-                            <div className={`h-full transition-all duration-700 ${financials.progress >= 100 ? 'bg-emerald-500' : 'bg-amber-500'}`} style={{ width: `${Math.min(financials.progress, 100)}%` }} />
+                            <div className={`h-full transition-all duration-700 ${financials.progress >= 100 || order.authorizedByAdmin ? 'bg-emerald-500' : 'bg-amber-500'}`} style={{ width: `${Math.min(financials.progress, 100)}%` }} />
                         </div>
+
+                        {currentUserRole === 'ADMIN' && financials.progress < 50 && (
+                            <div className="flex items-center gap-3 p-3 bg-amber-500/10 border border-amber-500/20 rounded-2xl mt-2 animate-in slide-in-from-top-1">
+                                <input 
+                                    type="checkbox" 
+                                    id={`auth-check-summary-${order.id}`}
+                                    checked={order.authorizedByAdmin || false}
+                                    onChange={(e) => handleToggleAuth(e.target.checked)}
+                                    className="w-4 h-4 text-amber-600 border-amber-300 rounded focus:ring-amber-500 cursor-pointer"
+                                />
+                                <label htmlFor={`auth-check-summary-${order.id}`} className="text-xs font-black text-amber-600 dark:text-amber-400 uppercase tracking-widest cursor-pointer select-none">
+                                    Autorizar operación con seña menor al 50%
+                                </label>
+                            </div>
+                        )}
+                        
+                        {currentUserRole !== 'ADMIN' && financials.progress < 50 && (
+                            <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-2xl flex items-center gap-2 mt-2">
+                                <span className="text-amber-500 text-xs">⚠️</span>
+                                <span className="text-[9px] font-black text-amber-600 dark:text-amber-400 uppercase tracking-widest">
+                                    {order.authorizedByAdmin 
+                                        ? '✓ Autorizado por Administrador' 
+                                        : 'Seña menor al 50% - Requiere autorización del Administrador'
+                                    }
+                                </span>
+                            </div>
+                        )}
 
                         {showPaymentsList && (
                             <div className="bg-stone-50 dark:bg-stone-900/50 rounded-3xl p-4 border-2 border-stone-100 dark:border-stone-800 space-y-3 animate-in slide-in-from-top-2 duration-300">
