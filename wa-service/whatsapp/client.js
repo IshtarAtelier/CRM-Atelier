@@ -9,6 +9,7 @@ let _onMessage = null;
 let keepAliveFailCount = 0;
 const MAX_KEEPALIVE_FAILS = 2; // Tolerar 2 fallos antes de reiniciar
 let _onMessageCreate = null;
+let _onUnreadCount = null;
 
 let _onStatusChange = null;
 
@@ -29,10 +30,11 @@ function clearKeepAlive() {
     }
 }
 
-async function initWhatsApp({ onMessage, onMessageCreate, onStatusChange }) {
+async function initWhatsApp({ onMessage, onMessageCreate, onStatusChange, onUnreadCount }) {
     _onMessage = onMessage;
     _onMessageCreate = onMessageCreate;
     _onStatusChange = onStatusChange;
+    _onUnreadCount = onUnreadCount;
     await startClient();
 }
 
@@ -224,6 +226,12 @@ async function startClient(attempt = 1) {
 
     if (_onMessageCreate) {
         waClient.on('message_create', _onMessageCreate);
+    }
+
+    // Listener para marcar como leídos desde el celular
+    waClient.removeAllListeners('unread_count');
+    if (_onUnreadCount) {
+        waClient.on('unread_count', _onUnreadCount);
     }
 
     try {

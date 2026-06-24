@@ -63,6 +63,7 @@ const OrderUpdateSchema = z.object({
     labFrameDetails: z.string().nullable().optional(),
     // Promo
     appliedPromoName: z.string().nullable().optional(),
+    authorizedByAdmin: z.boolean().optional(),
 }).passthrough();
 
 // export const dynamic = 'force-dynamic';
@@ -79,6 +80,7 @@ export class OrderService {
                 status: true,
                 orderType: true,
                 isLocked: true,
+                authorizedByAdmin: true,
                 total: true,
                 paid: true,
                 markup: true,
@@ -241,6 +243,17 @@ export class OrderService {
             }
         }
 
+        // ── Guard: authorizedByAdmin can only be changed by ADMIN ──
+        if (body.authorizedByAdmin !== undefined && role !== 'ADMIN') {
+            const currentOrderForAuth = await prisma.order.findUnique({
+                where: { id },
+                select: { authorizedByAdmin: true }
+            });
+            if (currentOrderForAuth && body.authorizedByAdmin !== currentOrderForAuth.authorizedByAdmin) {
+                throw new Error('Solo el administrador puede autorizar señas menores al 50%.');
+            }
+        }
+
         const { 
             labStatus, labNotes, orderType, labOrderNumber, 
             frameSource, userFrameBrand, userFrameModel, userFrameNotes, 
@@ -250,11 +263,12 @@ export class OrderService {
             labFrameShape, labFrameDetails,
             prescriptionId, items, total, markup, 
             discountCash, discountTransfer, discountCard, specialDiscount, subtotalWithMarkup,
-            isLocked
+            isLocked, authorizedByAdmin
         } = body;
 
         const data: any = {};
         if (isLocked !== undefined) data.isLocked = isLocked;
+        if (authorizedByAdmin !== undefined) data.authorizedByAdmin = authorizedByAdmin;
         
         // Use existing values if not provided in body (need to fetch order first if totals are missing)
         let finalMarkup = markup;
@@ -451,6 +465,7 @@ export class OrderService {
                     total: true,
                     paid: true,
                     labStatus: true,
+                    authorizedByAdmin: true,
                     prescriptionId: true,
                     items: {
                         select: {
@@ -518,11 +533,11 @@ export class OrderService {
                         }
                     }
 
-                    // 2. Payment validation: total paid must be >= 40% of order total
+                    // 2. Payment validation: total paid must be >= 50% of order total
                     const totalPaid = orderForValidation.paid || 0;
-                    const minRequired = (orderForValidation.total || 0) * 0.4;
-                    if (totalPaid < minRequired) {
-                        errors.push(`El pago ($${Math.round(totalPaid).toLocaleString()}) no cubre el 40% mínimo ($${Math.ceil(minRequired).toLocaleString()}) para enviar a fábrica.`);
+                    const minRequired = (orderForValidation.total || 0) * 0.5;
+                    if (totalPaid < minRequired && !orderForValidation.authorizedByAdmin) {
+                        errors.push(`El pago ($${Math.round(totalPaid).toLocaleString()}) no cubre el 50% mínimo ($${Math.ceil(minRequired).toLocaleString()}) para enviar a fábrica.`);
                     }
 
                     // 3. All payments must have method specified
@@ -670,6 +685,7 @@ export class OrderService {
                         total: true,
                         paid: true,
                         orderType: true,
+                        authorizedByAdmin: true,
                         prescriptionId: true,
                         frameSource: true,
                         userFrameBrand: true,
@@ -709,11 +725,11 @@ export class OrderService {
                     throw new Error('La ficha del contacto debe estar completa (nombre, teléfono, DNI y dirección obligatorios)');
                 }
 
-                // Check: 40% minimum payment
-                const minRequired = (existingOrder.total || 0) * 0.4;
+                // Check: 50% minimum payment
+                const minRequired = (existingOrder.total || 0) * 0.5;
                 const totalPaid = existingOrder.paid || 0;
-                if (totalPaid < minRequired) {
-                    throw new Error(`Se requiere un pago mínimo del 40% ($${Math.ceil(minRequired).toLocaleString()}) para convertir en venta. Pagado: $${totalPaid.toLocaleString()}`);
+                if (totalPaid < minRequired && !existingOrder.authorizedByAdmin) {
+                    throw new Error(`Se requiere un pago mínimo del 50% ($${Math.ceil(minRequired).toLocaleString()}) para convertir en venta. Pagado: $${totalPaid.toLocaleString()}`);
                 }
 
                 // Check: if order has crystals, frame info must be set

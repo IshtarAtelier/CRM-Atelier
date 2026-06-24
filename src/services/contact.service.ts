@@ -1927,6 +1927,7 @@ export const ContactService = {
                         id: true,
                         total: true,
                         paid: true,
+                        authorizedByAdmin: true,
                         prescriptionId: true,
                         frameSource: true,
                         userFrameBrand: true,
@@ -1958,12 +1959,12 @@ export const ContactService = {
         const lastOrder = client.orders[0];
         if (!lastOrder) return { canClose: false, reason: 'No hay pedidos registrados' };
 
-        // 4. Pago >= 40%
-        const minRequired = lastOrder.total * 0.4;
-        if (lastOrder.paid < minRequired) {
+        // 4. Pago >= 50%
+        const minRequired = lastOrder.total * 0.5;
+        if (lastOrder.paid < minRequired && !lastOrder.authorizedByAdmin) {
             return {
                 canClose: false,
-                reason: `El pago ($${lastOrder.paid.toLocaleString()}) es inferior al 40% ($${minRequired.toLocaleString()})`,
+                reason: `El pago ($${lastOrder.paid.toLocaleString()}) es inferior al 50% ($${minRequired.toLocaleString()}) y no está autorizado por el administrador`,
                 isLabWarning: true
             };
         }

@@ -187,10 +187,10 @@ INSTRUCCIONES:
                 lower.includes('meta') || 
                 lower.includes('instagram') || 
                 lower.includes('facebook') || 
-                lower === 'face' ||
                 lower === 'fb' ||
                 lower === 'ig'
             ) {
+                // "face" is too generic and can cause false positives for Meta
                 sourceNorm = 'Meta';
             } else if (lower === 'ya es cliente') {
                 sourceNorm = 'Ya es Cliente';
@@ -207,7 +207,7 @@ INSTRUCCIONES:
             } else if (lower === 'jemima' || lower.includes('jemima')) {
                 sourceNorm = 'Jemima';
             } else {
-                sourceNorm = 'Otros';
+                sourceNorm = null; // En vez de 'Otros', lo dejamos vacío para que el usuario elija
             }
         } else {
             // Fallback heuristics directly on the first inbound message content
@@ -215,7 +215,7 @@ INSTRUCCIONES:
                 const text = firstInbound.content.toLowerCase();
                 if (text.includes('google') || text.includes('búsqueda') || text.includes('busqueda') || text.includes('maps')) {
                     sourceNorm = 'Google Ads';
-                } else if (text.includes('meta') || text.includes('instagram') || text.includes('facebook') || text.includes('face')) {
+                } else if (text.includes('instagram') || text.includes('facebook')) {
                     sourceNorm = 'Meta';
                 } else {
                     sourceNorm = null;
@@ -231,7 +231,7 @@ INSTRUCCIONES:
             phone: typeof parsedData.phone === 'string' ? parsedData.phone : null,
             interest: typeof parsedData.interest === 'string' ? parsedData.interest : null,
             insurance: typeof parsedData.insurance === 'string' ? parsedData.insurance : null,
-            contactSource: sourceNorm,
+            contactSource: sourceNorm === 'Otros' ? null : sourceNorm, // Nunca preseleccionar Otros
             notes: typeof parsedData.notes === 'string' ? parsedData.notes : null
         };
 

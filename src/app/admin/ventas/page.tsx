@@ -1374,6 +1374,8 @@ export default function VentasPage() {
                                         context="ventas"
                                         onAutoSubmit={autoSubmitSmartLab}
                                         isAutoSubmitting={isAutoSubmitting}
+                                        userRole={userRole}
+                                        onRefresh={() => fetchOrders(search)}
                                     />
                                 )}
                             </div>

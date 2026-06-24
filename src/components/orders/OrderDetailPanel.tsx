@@ -29,7 +29,7 @@ export const LAB_STEPS = [
 ];
 
 interface OrderDetailPanelProps {
-    order: Order;
+    order: Order & { authorizedByAdmin?: boolean };
     context?: 'ventas' | 'pedidos';
     financials?: {
         totalCash: number;
@@ -39,12 +39,40 @@ interface OrderDetailPanelProps {
     };
     onAutoSubmit?: (order: Order) => void;
     isAutoSubmitting?: boolean;
+    userRole?: string;
+    onRefresh?: () => void;
 }
 
-export function OrderDetailPanel({ order, context = 'ventas', financials, onAutoSubmit, isAutoSubmitting }: OrderDetailPanelProps) {
+export function OrderDetailPanel({ 
+    order, 
+    context = 'ventas', 
+    financials, 
+    onAutoSubmit, 
+    isAutoSubmitting,
+    userRole = 'STAFF',
+    onRefresh
+}: OrderDetailPanelProps) {
     const [fullImageOpen, setFullImageOpen] = useState(false);
 
     const imageUrl = resolveStorageUrl(order.prescription?.imageUrl);
+
+    const handleToggleAuth = async (checked: boolean) => {
+        try {
+            const res = await fetch(`/api/orders/${order.id}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ authorizedByAdmin: checked }),
+            });
+            if (res.ok) {
+                if (onRefresh) onRefresh();
+            } else {
+                const data = await res.json();
+                alert(`⚠️ ${data.error || 'Error al actualizar autorización'}`);
+            }
+        } catch (error) {
+            console.error('Error toggling admin authorization:', error);
+        }
+    };
 
     return (
         <div className="border-t-2 border-stone-100 dark:border-stone-700/50 px-4 md:px-6 pb-6 pt-5 bg-stone-50/50 dark:bg-stone-900/30 animate-in slide-in-from-top-2 fade-in duration-200">
@@ -188,6 +216,77 @@ export function OrderDetailPanel({ order, context = 'ventas', financials, onAuto
                                         </p>
                                     </div>
                                 </div>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Control de Pago y Autorización */}
+                    <div className="bg-white dark:bg-stone-800 rounded-2xl border border-stone-100 dark:border-stone-700 p-5 shadow-sm space-y-4">
+                        <div className="flex justify-between items-center">
+                            <span className="text-[10px] font-black text-stone-500 uppercase tracking-widest block">Cobertura de Seña</span>
+                            <span className="text-[9px] font-bold text-stone-400 italic">Mínimo para enviar: 50%</span>
+                        </div>
+                        
+                        <div className="flex items-center gap-3">
+                            <div className="flex-1">
+                                <div className="h-2 bg-stone-100 dark:bg-stone-900 rounded-full overflow-hidden border border-stone-200 dark:border-stone-700">
+                                    <div 
+                                        className={`h-full transition-all duration-700 ${order.paid >= (order.total * 0.5) || order.authorizedByAdmin ? 'bg-emerald-500' : 'bg-amber-500'}`} 
+                                        style={{ width: `${Math.min((order.paid / (order.total || 1)) * 100, 100)}%` }} 
+                                    />
+                                </div>
+                                <div className="flex justify-between text-[10px] font-bold mt-1 text-stone-500">
+                                    <span>Pagado: ${order.paid.toLocaleString()}</span>
+                                    <span>Total: ${order.total.toLocaleString()}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        {order.paid < (order.total * 0.5) ? (
+                            <div className="space-y-3">
+                                {order.authorizedByAdmin ? (
+                                    <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl flex items-center gap-2">
+                                        <span className="text-emerald-500 text-sm">✓</span>
+                                        <span className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-widest">
+                                            Autorizado por Administrador
+                                        </span>
+                                    </div>
+                                ) : (
+                                    <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl flex items-center gap-2">
+                                        <span className="text-amber-500 text-sm">⚠️</span>
+                                        <span className="text-[10px] font-black text-amber-600 dark:text-amber-400 uppercase tracking-widest">
+                                            Seña menor al 50% - Envío Bloqueado
+                                        </span>
+                                    </div>
+                                )}
+
+                                {userRole === 'ADMIN' ? (
+                                    <div className="flex items-center gap-3 p-3 bg-stone-50 dark:bg-stone-900/50 border border-stone-200 dark:border-stone-700 rounded-xl">
+                                        <input 
+                                            type="checkbox" 
+                                            id={`auth-check-${order.id}`}
+                                            checked={order.authorizedByAdmin || false}
+                                            onChange={(e) => handleToggleAuth(e.target.checked)}
+                                            className="w-4 h-4 text-indigo-600 border-stone-300 rounded focus:ring-indigo-500 cursor-pointer"
+                                        />
+                                        <label htmlFor={`auth-check-${order.id}`} className="text-xs font-black text-stone-600 dark:text-stone-300 uppercase tracking-widest cursor-pointer select-none">
+                                            Autorizar envío con menos del 50%
+                                        </label>
+                                    </div>
+                                ) : (
+                                    !order.authorizedByAdmin && (
+                                        <p className="text-[9px] font-bold text-stone-400 italic text-center">
+                                            Solo un administrador puede autorizar este envío.
+                                        </p>
+                                    )
+                                )}
+                            </div>
+                        ) : (
+                            <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl flex items-center gap-2">
+                                <span className="text-emerald-500 text-sm">✓</span>
+                                <span className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-widest">
+                                    Pago cubre el 50% mínimo
+                                </span>
                             </div>
                         )}
                     </div>

@@ -1,4 +1,6 @@
 import { prisma } from '@/lib/db';
+import { sendEmail } from '@/lib/email';
+import { fetchWa } from '@/lib/wa-config';
 
 interface ScrapedDetail {
     num: string;
@@ -98,6 +100,82 @@ export class SmartLabService {
             console.log('[SmartLab Sync] Esperando a que carguen los campos de búsqueda...');
             await page.waitForSelector('input[type="text"]', { timeout: 15000 }).catch(() => console.log('Timeout esperando inputs'));
             await page.waitForTimeout(2000);
+
+            // ── Limpiar Filtro de Fechas y Cambiar a 100 registros para ver pedidos trabados ──
+            const stuckOrdersList: any[] = [];
+            try {
+                console.log('[SmartLab Sync] Limpiando filtro de fechas via DOM...');
+                await page.evaluate(() => {
+                    const el = document.querySelector('input[placeholder="Seleccionar fechas"]') as HTMLInputElement | null;
+                    if (el) {
+                        el.value = '';
+                        el.dispatchEvent(new Event('input', { bubbles: true }));
+                        el.dispatchEvent(new Event('change', { bubbles: true }));
+                    }
+                });
+                await page.waitForTimeout(1000);
+
+                const applyBtn = await page.$('button:has-text("Aplicar"), button:has-text("filtros"), a:has-text("Aplicar")');
+                if (applyBtn) {
+                    console.log('[SmartLab Sync] Aplicando filtros...');
+                    await applyBtn.click({ delay: 300 });
+                    await page.waitForTimeout(4000);
+                }
+
+                console.log('[SmartLab Sync] Seleccionando 100 registros por página...');
+                await page.selectOption('select', '100').catch(() => {});
+                await page.waitForTimeout(4000);
+
+                // Scrapear pedidos trabados en validación / ingreso pendiente por más de 2 días
+                const rows = await page.$$('table tbody tr');
+                for (const row of rows) {
+                    const cells = await row.$$('td');
+                    if (cells.length < 5) continue;
+                    
+                    const num = (await cells[0].innerText() || '').trim();
+                    const client = (await cells[1].innerText() || '').trim();
+                    const dateStr = (await cells[2].innerText() || '').trim();
+                    const sector = (await cells[3].innerText() || '').trim().replace(/\n/g, ' ');
+                    const progressColText = (await cells[4].innerText() || '').trim().replace(/\n/g, ' ');
+                    
+                    let progress = 0;
+                    const progressMatch = progressColText.match(/([\d.]+)\s*%/);
+                    if (progressMatch) progress = Math.round(parseFloat(progressMatch[1]));
+                    
+                    // Calcular días transcurridos
+                    let days = 0;
+                    const m = dateStr.match(/^(\d{2})-(\d{2})-(\d{2})\s+(\d{2}):(\d{2})$/);
+                    if (m) {
+                        const day = parseInt(m[1]);
+                        const month = parseInt(m[2]) - 1;
+                        const year = 2000 + parseInt(m[3]);
+                        const hour = parseInt(m[4]);
+                        const min = parseInt(m[5]);
+                        const entryDate = new Date(year, month, day, hour, min);
+                        const diffTime = Math.abs(Date.now() - entryDate.getTime());
+                        days = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+                    }
+                    
+                    const sectorLower = sector.toLowerCase();
+                    const progressLower = progressColText.toLowerCase();
+                    const isStuckText = sectorLower.includes('pendiente') || sectorLower.includes('validación') || progressLower.includes('pendiente');
+                    const isLowProgress = progress < 15;
+
+                    if ((isStuckText || isLowProgress) && days >= 2) {
+                        stuckOrdersList.push({
+                            num,
+                            client: client || 'Sin especificar',
+                            dateStr,
+                            sector,
+                            progress: `${progress}%`,
+                            days
+                        });
+                    }
+                }
+                console.log(`[SmartLab Sync] Se encontraron ${stuckOrdersList.length} pedidos trabados/pendientes.`);
+            } catch (errScrape) {
+                console.error('[SmartLab Sync] Error al obtener pedidos trabados:', errScrape);
+            }
 
             // ── Obtener pedidos del CRM que son de Grupo Óptico y activos ──
             const crmOrders = await prisma.order.findMany({
@@ -294,11 +372,82 @@ export class SmartLabService {
 
             console.log(`[SmartLab Sync] Resultado: ${updatedCount} actualizados, ${newlyFinished} nuevos fabricados`);
 
+            // --- ALERTA DE PEDIDOS TRABADOS ---
+            try {
+                if (stuckOrdersList.length > 0) {
+                    const notifiedSetting = await prisma.systemSetting.findUnique({
+                        where: { key: 'smartlab_notified_stuck_orders' }
+                    });
+                    
+                    let notifiedNums: string[] = [];
+                    try {
+                        if (notifiedSetting?.value) {
+                            notifiedNums = JSON.parse(notifiedSetting.value);
+                        }
+                    } catch (e) {
+                        console.error('Error al parsear smartlab_notified_stuck_orders:', e);
+                    }
+
+                    const newStuckOrders = stuckOrdersList.filter(o => !notifiedNums.includes(o.num));
+
+                    if (newStuckOrders.length > 0) {
+                        console.log(`[SmartLab Sync] Detectados ${newStuckOrders.length} nuevos pedidos trabados. Enviando alertas...`);
+                        
+                        const orderDetailsText = newStuckOrders.map(o => 
+                            `- Pedido ${o.num}: Paciente "${o.client}", ingresado el ${o.dateStr} (${o.days} días trabado, progreso ${o.progress}, sector "${o.sector}")`
+                        ).join('\n');
+
+                        const orderDetailsHtml = newStuckOrders.map(o => 
+                            `<li><b>Pedido ${o.num}</b>: Paciente "<i>${o.client}</i>", ingresado el ${o.dateStr} (<b>${o.days} días trabado</b>, progreso ${o.progress}, sector "${o.sector}")</li>`
+                        ).join('');
+
+                        // Enviar Email
+                        await sendEmail({
+                            to: 'pisano.ishtar@gmail.com',
+                            subject: '⚠️ Alerta SmartLab — Pedidos trabados en ingreso/validación',
+                            text: `Atelier Óptica\n\nSe detectaron nuevos pedidos con más de 2 días de demora en el ingreso/validación:\n\n${orderDetailsText}\n\nPor favor, verifica el estado en SmartLab.`,
+                            html: `<h3 style="color: #d32f2f;">⚠️ Alerta de Pedidos Trabados</h3><p>Se detectaron nuevos pedidos con más de 2 días de demora en el ingreso/validación en SmartLab:</p><ul>${orderDetailsHtml}</ul><p>Por favor, realiza el seguimiento con el laboratorio.</p>`
+                        }).catch(err => console.error('Error enviando email de alerta stuck orders:', err));
+
+                        // Enviar WhatsApp
+                        await fetchWa('/api/send', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                chatId: '5493541215971@c.us',
+                                message: `⚠️ *Atelier Alerta - Pedidos Trabados en SmartLab*\n\nSe detectaron nuevos pedidos demorados en el ingreso/validación:\n\n${orderDetailsText}\n\n_Por favor, realiza el seguimiento con el laboratorio._`
+                            })
+                        }).catch(err => console.error('Error enviando WhatsApp de alerta stuck orders:', err));
+
+                        const updatedNotifiedNums = [...notifiedNums, ...newStuckOrders.map(o => o.num)];
+                        await prisma.systemSetting.upsert({
+                            where: { key: 'smartlab_notified_stuck_orders' },
+                            update: { value: JSON.stringify(updatedNotifiedNums) },
+                            create: { key: 'smartlab_notified_stuck_orders', value: JSON.stringify(updatedNotifiedNums) }
+                        });
+                    }
+
+                    // Limpieza de pedidos que ya salieron de trabados
+                    const currentStuckNums = stuckOrdersList.map(o => o.num);
+                    const activeNotifiedNums = notifiedNums.filter((num: string) => currentStuckNums.includes(num));
+                    if (activeNotifiedNums.length !== notifiedNums.length) {
+                        await prisma.systemSetting.upsert({
+                            where: { key: 'smartlab_notified_stuck_orders' },
+                            update: { value: JSON.stringify(activeNotifiedNums) },
+                            create: { key: 'smartlab_notified_stuck_orders', value: JSON.stringify(activeNotifiedNums) }
+                        });
+                    }
+                }
+            } catch (alertError) {
+                console.error('[SmartLab Sync] Error al procesar alertas de pedidos trabados:', alertError);
+            }
+
             return {
                 totalCrmOrders: grupoOpticoOrders.length,
                 matched: updatedCount,
                 newlyFinished,
                 details: matchResults,
+                stuckOrders: stuckOrdersList
             };
 
         } catch (error) {

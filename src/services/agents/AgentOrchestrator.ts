@@ -53,8 +53,22 @@ export class AgentOrchestrator {
 
       // Obtener el nombre del cliente
       const client = await prisma.client.findUnique({
-        where: { id: clientId }
+        where: { id: clientId },
+        include: { tags: true }
       });
+
+      // Si el cliente es un proveedor o tiene la etiqueta Cancelar Bot, silenciar y apagar el asistente permanentemente
+      const isProveedor = client?.tags.some((t: any) => t.name.toLowerCase() === 'proveedor');
+      const isCanceled = client?.tags.some((t: any) => t.name.toLowerCase() === 'cancelar bot');
+      
+      if (isProveedor || isCanceled) {
+        await prisma.whatsAppChat.updateMany({
+          where: { clientId: clientId },
+          data: { botEnabled: false }
+        });
+        return { intent: 'GENERAL_INQUIRY', replyText: "" };
+      }
+
       const clientName = client?.name || "Cliente";
 
       // 2. Ejecutar TriageAgent para determinar la intención del usuario

@@ -33,6 +33,32 @@ export default function CheckoutModal({
 }: CheckoutModalProps) {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [authorizedByAdmin, setAuthorizedByAdmin] = useState(order.authorizedByAdmin || false);
+    const [userRole, setUserRole] = useState('STAFF');
+    
+    useEffect(() => {
+        const loadUserRole = async () => {
+            try {
+                const stored = localStorage.getItem('user');
+                if (stored) {
+                    const u = JSON.parse(stored);
+                    setUserRole(u.role || 'STAFF');
+                    return;
+                }
+            } catch { }
+            try {
+                const res = await fetch('/api/auth/me');
+                if (res.ok) {
+                    const u = await res.json();
+                    setUserRole(u.role || 'STAFF');
+                    localStorage.setItem('user', JSON.stringify(u));
+                }
+            } catch { }
+        };
+        loadUserRole();
+    }, []);
+
+    const isAdmin = userRole === 'ADMIN';
     
     // Client Data Validation
     const [clientForm, setClientForm] = useState({
@@ -45,9 +71,9 @@ export default function CheckoutModal({
 
     // Repaso Final: Usar PricingService para consistencia total
     const financials = PricingService.calculateOrderFinancials(order);
-    const total = financials.totalCash; // Cambiado a totalCash como base para la seña del 40%
+    const total = financials.totalCash; // Cambiado a totalCash como base para la seña del 50%
     const paid = financials.paidReal;
-    const minRequired = total * 0.4;
+    const minRequired = total * 0.5;
     
     // Prescription Selection
     const hasCrystals = order.items?.some((it: any) => {
@@ -99,7 +125,7 @@ export default function CheckoutModal({
         frameMeasureEd.trim() !== ''
     );
 
-    const canConvert = Number(paid) >= Number(minRequired) && 
+    const canConvert = (Number(paid) >= Number(minRequired) || authorizedByAdmin) && 
                        isClientDataComplete && 
                        (!hasCrystals || (selectedRxId && isFrameDataComplete));
 
@@ -157,7 +183,8 @@ export default function CheckoutModal({
                 labMeasurePte: frameMeasurePte || undefined,
                 labMeasureA: frameMeasureA || undefined,
                 labMeasureB: frameMeasureB || undefined,
-                labMeasureEd: frameMeasureEd || undefined
+                labMeasureEd: frameMeasureEd || undefined,
+                authorizedByAdmin: authorizedByAdmin
             });
         } catch (err: any) {
             setError(err.message || 'Error en la operación');
@@ -528,7 +555,7 @@ export default function CheckoutModal({
                                     <Banknote className="w-4 h-4" /> Pagos Registrados
                                 </h3>
                                 <div className="flex items-center gap-2">
-                                    <span className="text-[10px] font-bold text-stone-400 italic">Mínimo requerido (40%): ${Math.ceil(minRequired).toLocaleString()}</span>
+                                    <span className="text-[10px] font-bold text-stone-400 italic">Mínimo requerido (50%): ${Math.ceil(minRequired).toLocaleString()}</span>
                                 </div>
                             </div>
 
@@ -567,16 +594,40 @@ export default function CheckoutModal({
                                 <div className="flex-1 space-y-2">
                                     <div className="flex justify-between text-[10px] font-black uppercase tracking-widest">
                                         <span className="text-stone-400 italic">Cobertura de la Orden</span>
-                                        <span className={paid >= minRequired ? 'text-emerald-500' : 'text-amber-500'}>
-                                            ${paid.toLocaleString()} / ${Math.ceil(minRequired).toLocaleString()} {paid >= minRequired ? '✓ COMPLETADO' : '⚠️ SEÑA INSUFICIENTE'}
+                                        <span className={(paid >= minRequired || authorizedByAdmin) ? 'text-emerald-500' : 'text-amber-500'}>
+                                            ${paid.toLocaleString()} / ${Math.ceil(minRequired).toLocaleString()} {paid >= minRequired ? '✓ COMPLETADO' : (authorizedByAdmin ? '✓ AUTORIZADO (SEÑA MENOR)' : '⚠️ SEÑA INSUFICIENTE')}
                                         </span>
                                     </div>
                                     <div className="h-2 bg-stone-100 dark:bg-stone-900 rounded-full overflow-hidden border border-stone-200 dark:border-stone-700">
                                         <div 
-                                            className={`h-full transition-all duration-700 ${paid >= minRequired ? 'bg-emerald-500' : 'bg-amber-500'}`} 
+                                            className={`h-full transition-all duration-700 ${(paid >= minRequired || authorizedByAdmin) ? 'bg-emerald-500' : 'bg-amber-500'}`} 
                                             style={{ width: `${Math.min((paid / (total || 1)) * 100, 100)}%` }} 
                                         />
                                     </div>
+                                    
+                                    {isAdmin && paid < minRequired && (
+                                        <div className="flex items-center gap-3 p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl mt-3 animate-in slide-in-from-top-1">
+                                            <input 
+                                                type="checkbox" 
+                                                id="auth-check-checkout"
+                                                checked={authorizedByAdmin}
+                                                onChange={(e) => setAuthorizedByAdmin(e.target.checked)}
+                                                className="w-4 h-4 text-amber-600 border-amber-300 rounded focus:ring-amber-500"
+                                            />
+                                            <label htmlFor="auth-check-checkout" className="text-xs font-black text-amber-600 dark:text-amber-400 uppercase tracking-widest cursor-pointer select-none">
+                                                Autorizar venta con seña menor al 50%
+                                            </label>
+                                        </div>
+                                    )}
+
+                                    {!isAdmin && paid < minRequired && !authorizedByAdmin && (
+                                        <div className="p-3 bg-amber-500/15 border border-amber-500/20 rounded-xl mt-3 flex items-start gap-2 animate-in slide-in-from-top-1">
+                                            <span className="text-xs">⚠️</span>
+                                            <p className="text-[9px] font-black text-amber-600 dark:text-amber-400 uppercase tracking-wider leading-relaxed">
+                                                Requiere que el administrador autorice la venta con seña menor al 50% para poder continuar.
+                                            </p>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         </section>

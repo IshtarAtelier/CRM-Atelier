@@ -7,10 +7,23 @@ import { prisma } from '@/lib/db';
 export async function GET() {
     try {
         const res = await fetchWa('/api/chats', { cache: 'no-store' });
-        const data = await res.json();
+        let data = await res.json();
+
+        // Solo retornamos la data directamente sin hacer queries por cada chat
         return NextResponse.json(data);
-    } catch {
-        return NextResponse.json([]);
+    } catch (err: any) {
+        console.warn('[Next.js Chats GET] Falló conexión con wa-service, sirviendo desde DB local como fallback:', err.message);
+        try {
+            // Servir desde la base de datos local como plan de contingencia
+            const localChats = await prisma.whatsAppChat.findMany({
+                include: { client: true, messages: { orderBy: { createdAt: 'desc' }, take: 1 } },
+                orderBy: { lastMessageAt: 'desc' }
+            });
+            return NextResponse.json(localChats);
+        } catch (dbErr) {
+            console.error('[Next.js Chats GET Fallback] Error crítico al obtener chats de DB local:', dbErr);
+            return NextResponse.json([]);
+        }
     }
 }
 

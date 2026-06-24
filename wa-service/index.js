@@ -325,7 +325,14 @@ async function processBotTurn(chat, waId, profileName, realPhone) {
                 } else if (m.type === 'AUDIO') {
                     return { role: 'human', content: `${timestamp}[El cliente envió un audio transcrito. Mensaje: ${m.content}]` };
                 } else {
-                    return { role: 'human', content: timestamp + (m.content || '[Mensaje vacío]') };
+                    let cleanContent = m.content || '';
+                    if (/\[meta[a-zA-Z0-9_-]+\]/i.test(cleanContent)) {
+                        cleanContent = cleanContent.replace(/\[meta[a-zA-Z0-9_-]+\]/gi, '').trim();
+                        if (!cleanContent) {
+                            cleanContent = "Hola, vengo de un anuncio de Facebook/Instagram y estoy interesado.";
+                        }
+                    }
+                    return { role: 'human', content: timestamp + (cleanContent || '[Mensaje vacío]') };
                 }
             }
         });
@@ -1124,6 +1131,13 @@ const handleMessage = async (msg) => {
 
         broadcastChatUpdate(chat.id);
         
+        // ── Auto-etiquetado Meta Ads y Multifocales ──
+        if (body && /\[meta[a-zA-Z0-9_-]+\]/i.test(body) && chat.clientId) {
+            const { addTagToClient } = require('./tools');
+            await addTagToClient({ clientId: chat.clientId, tagName: 'Meta Ads' }).catch(e => console.error("Error auto-tag Meta:", e.message));
+            await addTagToClient({ clientId: chat.clientId, tagName: 'Multifocal' }).catch(e => console.error("Error auto-tag Multifocal:", e.message));
+        }
+
         // Emitir evento para notificaciones de escritorio en el CRM
         if (global.io) {
             global.io.emit('new_message_received', {
@@ -1428,6 +1442,23 @@ server.listen(PORT, '0.0.0.0', async () => {
         await initWhatsApp({ 
             onMessage: handleMessage, 
             onMessageCreate: handleMessageCreate,
+            onUnreadCount: async (chat) => {
+                try {
+                    if (chat.unreadCount === 0) {
+                        const waId = chat.id._serialized;
+                        await prisma.whatsAppChat.updateMany({
+                            where: { waId },
+                            data: { unreadCount: 0 }
+                        });
+                        const dbChat = await prisma.whatsAppChat.findFirst({ where: { waId } });
+                        if (dbChat) {
+                            broadcastChatUpdate(dbChat.id);
+                            if (global.io) global.io.emit('chat_read_status');
+                        }
+                } catch (e) {
+                    console.error('Error procesando unread_count:', e.message);
+                }
+            },
             onStatusChange: (status) => {
                 const wasConnected = global.lastWhatsAppConnectedState || false;
                 const isNowConnected = status.isReady;

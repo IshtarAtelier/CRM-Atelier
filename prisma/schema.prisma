@@ -269,6 +269,7 @@ model Order {
   appliedPromoDiscount Float?
   specialDiscount      Float?         @default(0.0)
   isLocked             Boolean        @default(true)
+  authorizedByAdmin    Boolean        @default(false)
   invoices             Invoice[]
   client               Client         @relation(fields: [clientId], references: [id], onDelete: Restrict)
   prescription         Prescription?  @relation(fields: [prescriptionId], references: [id], onDelete: SetNull)

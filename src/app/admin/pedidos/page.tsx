@@ -46,6 +46,7 @@ export default function PedidosPage() {
     const [isAutoSubmitting, setIsAutoSubmitting] = useState(false);
     const [isSyncing, setIsSyncing] = useState(false);
     const [syncResult, setSyncResult] = useState<any>(null);
+    const [userRole, setUserRole] = useState('STAFF');
 
     useEffect(() => {
         fetchOrders();
@@ -66,7 +67,26 @@ export default function PedidosPage() {
                 setIsSyncing(false);
             }
         };
+        const loadUserRole = async () => {
+            try {
+                const stored = localStorage.getItem('user');
+                if (stored) {
+                    const u = JSON.parse(stored);
+                    setUserRole(u.role || 'STAFF');
+                    return;
+                }
+            } catch { }
+            try {
+                const res = await fetch('/api/auth/me');
+                if (res.ok) {
+                    const u = await res.json();
+                    setUserRole(u.role || 'STAFF');
+                    localStorage.setItem('user', JSON.stringify(u));
+                }
+            } catch { }
+        };
         autoSync();
+        loadUserRole();
     }, []);
 
     const fetchOrders = async () => {
@@ -1146,6 +1166,8 @@ export default function PedidosPage() {
                                         order={order as any} 
                                         context="pedidos"
                                         financials={financials}
+                                        userRole={userRole}
+                                        onRefresh={fetchOrders}
                                     />
                                 )}
                             </div>

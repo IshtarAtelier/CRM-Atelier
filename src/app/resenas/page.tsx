@@ -83,15 +83,17 @@ async function getGoogleReviews() {
     }
 
     try {
-      const resData = await fetchLegacyReviews(placeId, apiKey);
+      // Intentar primero con la API Nueva de Places
+      const resData = await fetchNewReviews(placeId, apiKey);
       if (resData && resData.reviews && resData.reviews.length > 0) return resData;
-    } catch (legacyError: any) {
-      console.warn('Fallo la API Legacy en Página:', legacyError.message);
+    } catch (newApiError: any) {
+      console.warn('Fallo la API Nueva en Página:', newApiError.message);
       try {
-        const resData = await fetchNewReviews(placeId, apiKey);
+        // Fallback a la API Legacy
+        const resData = await fetchLegacyReviews(placeId, apiKey);
         if (resData && resData.reviews && resData.reviews.length > 0) return resData;
-      } catch (newApiError: any) {
-        console.error('Fallo la API Nueva en Página:', newApiError.message);
+      } catch (legacyError: any) {
+        console.error('Fallo la API Legacy en Página:', legacyError.message);
       }
     }
     return { reviews: [], rating: 5.0, userRatingCount: 621 };

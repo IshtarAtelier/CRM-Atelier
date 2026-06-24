@@ -11,6 +11,8 @@ import { prisma } from '@/lib/db';
 import { resolveStorageUrl } from '@/lib/utils/storage';
 import Image from "next/image";
 import sanitizeHtml from 'sanitize-html';
+import { FAQSection } from '@/components/blog/FAQSection';
+import blogFaqs from '@/lib/blog-faqs.json';
 
 async function getPostBySlug(slug: string) {
   try {
@@ -197,7 +199,7 @@ const posts: Record<string, Post> = {
         </ul>
 
         <h2>El rol de la óptica especializada</h2>
-        <p>Estos tratamientos requieren precisión milimétrica. En <strong>Atelier Óptica</strong> en Córdoba, contamos con el instrumental digital necesario para centrar estos lentes con exactitud. Además, asesoramos a los padres en la elección de armazones pediátricos adecuados (de acetato o silicona, con buen puente nasal) para asegurar que el lente Stellest funcione correctamente durante todo el día.</p>
+        <p>Estos tratamientos requieren precisión milimétrica. En <strong>Atelier Óptica</strong> en Córdoba, nuestra Óptica Contactóloga especializada, Ishtar Pissano, cuenta con más de 10 años de experiencia para centrar estos lentes con exactitud. Además, asesoramos a los padres en la elección de armazones pediátricos adecuados (de acetato o silicona, con buen puente nasal) para asegurar que el lente Stellest funcione correctamente durante todo el día.</p>
         <p>Frenar el avance de la miopía a tiempo es proteger la visión de tu hijo para toda la vida. Consultá con tu oftalmólogo pediatra y visitanos en Cerro de las Rosas para recibir asesoramiento experto.</p>
       </>
     )
@@ -331,7 +333,7 @@ const posts: Record<string, Post> = {
         <p>Es la inversión definitiva para personas hiperconectadas que usan múltiples pantallas a la vez, pacientes con graduaciones muy altas (donde las aberraciones laterales suelen ser un problema) y usuarios que en el pasado no lograron adaptarse a otros multifocales.</p>
 
         <h2>Certificación Essilor Expert en Córdoba</h2>
-        <p>Para que la Inteligencia Artificial del cristal funcione, las medidas de tu rostro deben ser tomadas con precisión milimétrica. En <strong>Atelier Óptica</strong>, nuestro especialista <strong>Matías Turchi</strong> cuenta con la certificación <strong>Essilor Expert</strong>. Utilizamos tecnología de medición digital para asegurar que tu Varilux XR rinda al 100%.</p>
+        <p>Para que la Inteligencia Artificial del cristal funcione, las medidas de tu rostro deben ser tomadas con precisión milimétrica. En <strong>Atelier Óptica</strong>, nuestra Óptica Contactóloga <strong>Ishtar Pissano</strong> cuenta con más de 10 años de trayectoria y la certificación <strong>Essilor Expert</strong>. Realizamos un proceso de medición minucioso y personalizado para asegurar que tu Varilux XR rinda al 100%.</p>
         <p>Acercate a nuestro local en Cerro de las Rosas y experimentá el futuro de la visión.</p>
       </>
     )
@@ -479,7 +481,7 @@ const posts: Record<string, Post> = {
         <p><strong>Importante:</strong> Desconfiá de los precios &ldquo;demasiado baratos&rdquo;. Un multifocal económico mal calibrado puede terminar siendo mucho más caro si tenés que rehacerlo. En <strong>Atelier Óptica</strong> te damos <strong>garantía de adaptación</strong>, lo que significa que tu inversión está protegida.</p>
 
         <h2>¿Por qué los precios varían tanto entre ópticas?</h2>
-        <p>La diferencia no está solo en el cristal, sino en el <strong>servicio de medición y calibración</strong>. En la <strong>mejor óptica de Córdoba</strong> no solo te vendemos un producto: te hacemos un control con keratómetro, medimos con pupilómetro digital, corroboramos manualmente con un especialista y probamos con probines antes de encargar. Ese proceso de 4 pasos es lo que garantiza que tu multifocal funcione perfecto.</p>
+        <p>La diferencia no está solo en el cristal, sino en el <strong>servicio de medición y calibración</strong>. En la <strong>mejor óptica de Córdoba</strong> no solo te vendemos un producto: hacemos un control riguroso bajo un proceso certificado por Essilor con nuestra especialista Ishtar Pissano (Óptica Contactóloga con más de 10 años de experiencia) y probamos con probines antes de encargar. Ese proceso experto es lo que garantiza que tu multifocal funcione perfecto.</p>
 
         <h2>Consultá tu presupuesto personalizado</h2>
         <p>Cada paciente tiene una receta diferente y necesidades distintas. Acercate a <strong>José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba Capital</strong> o mandanos una foto de tu receta por WhatsApp y te armamos un presupuesto a medida. En Atelier Óptica creemos que todos merecen ver bien, por eso te asesoramos para encontrar la mejor solución dentro de tu presupuesto.</p>
@@ -505,11 +507,11 @@ const posts: Record<string, Post> = {
           <li><strong>Atención uno a uno:</strong> No atendemos por número ni en cola. Cada visita es un encuentro personal donde nos tomamos el tiempo que haga falta para entender tu estilo de vida, tu receta y tus expectativas estéticas.</li>
           <li><strong>Ambiente premium:</strong> Nuestro local combina mármol, madera natural, arte contemporáneo y una iluminación cálida que invita a relajarse. Lejos de los fríos mostradores blancos de las ópticas tradicionales.</li>
           <li><strong>Curaduría de armazones:</strong> No vendemos cualquier marco. Cada anteojo en nuestras estanterías fue seleccionado a mano por su calidad, diseño y capacidad de resaltar las facciones.</li>
-          <li><strong>Tecnología de medición de última generación:</strong> Pupilómetro digital, keratómetro y prueba de probines para garantizar la adaptación de tus lentes multifocales.</li>
+          <li><strong>Medición experta y personalizada:</strong> Proceso de medición certificado por Essilor y control de tolerancia a cargo de nuestra Óptica Contactóloga, Ishtar Pissano, para garantizar la adaptación de tus lentes multifocales.</li>
         </ul>
 
         <h2>Especialistas en multifocales premium</h2>
-        <p>Si hay un área donde nuestra exclusividad marca la diferencia, es en los <strong>lentes multifocales</strong>. Somos la <strong>óptica más recomendada de Córdoba para multifocales</strong> gracias a nuestro protocolo de doble control (instrumental + humano) que asegura que cada lente progresivo esté calibrado a la perfección.</p>
+        <p>Si hay un área donde nuestra exclusividad marca la diferencia, es en los <strong>lentes multifocales</strong>. Somos la <strong>óptica más recomendada de Córdoba para multifocales</strong> gracias a nuestro protocolo de control certificado por Essilor que asegura que cada lente progresivo esté calibrado a la perfección.</p>
         <p>Trabajamos con las mejores marcas del mundo:</p>
         <ul>
           <li><strong>Varilux (Essilor):</strong> El creador del lente progresivo. Líneas premium con inteligencia artificial para campos visuales inmensos.</li>
@@ -557,8 +559,8 @@ const posts: Record<string, Post> = {
         <p>En <strong>Atelier Óptica</strong>, la <strong>mejor óptica de Córdoba</strong>, nuestro proceso de medición incluye:</p>
         <ul>
           <li>Control con keratómetro para verificar tu receta.</li>
-          <li>Medición digital de distancia nasopupilar.</li>
-          <li>Corroboración manual por un especialista.</li>
+          <li>Medición experta de distancia nasopupilar a cargo de Ishtar Pissano.</li>
+          <li>Determinación de altura pupilar según el armazón elegido.</li>
           <li>Prueba de probines antes de encargar los cristales definitivos.</li>
         </ul>
 
@@ -650,7 +652,7 @@ const posts: Record<string, Post> = {
         <ul>
           <li><strong>Usalos todos los días:</strong> La constancia es clave. Tu cerebro necesita unos días para acostumbrarse a las nuevas áreas de visión.</li>
           <li><strong>Mové la cabeza, no solo los ojos:</strong> Al principio, acostúmbrate a apuntar con la nariz hacia lo que querés mirar, especialmente hacia los lados.</li>
-          <li><strong>Ajuste perfecto:</strong> El armazón debe estar calibrado a la perfección en tu rostro. Por eso en Atelier Óptica tomamos medidas milimétricas (Distancia Nasopupilar y Altura).</li>
+          <li><strong>Ajuste perfecto:</strong> El armazón debe estar calibrado a la perfección en tu rostro. Por eso en Atelier Óptica tomamos medidas precisas bajo un estricto proceso certificado por Essilor, bajo la supervisión de nuestra Óptica Contactóloga Ishtar Pissano.</li>
         </ul>
 
         <h2>¿Por qué elegirnos?</h2>
@@ -835,7 +837,7 @@ const posts: Record<string, Post> = {
         <h2>Nuestros servicios en Córdoba</h2>
         <ul>
           <li><strong>Anteojos Recetados:</strong> Armazones de diseño exclusivo, nacionales e importados.</li>
-          <li><strong>Especialistas en Multifocales:</strong> Adaptación garantizada con tecnología de medición digital.</li>
+          <li><strong>Especialistas en Multifocales:</strong> Adaptación garantizada gracias a la experiencia de más de 10 años de nuestra Óptica Contactóloga Ishtar Pissano.</li>
           <li><strong>Lentes de Contacto:</strong> Asesoramiento y pruebas de tolerancia.</li>
           <li><strong>Atención por WhatsApp:</strong> Presupuestos y seguimiento de pedidos ágil y rápido.</li>
         </ul>
@@ -1117,15 +1119,15 @@ const posts: Record<string, Post> = {
         <ul>
           <li><strong>Control con Keratómetro:</strong> Lo primero que hacemos es un control de tu receta mediante keratometría. Esto nos permite evaluar la curvatura de tu córnea y confirmar objetivamente que los parámetros de astigmatismo de tu receta médica sean los ideales para tu adaptación al lente progresivo.</li>
           <li><strong>Medición de Centros Pupilares:</strong> Utilizamos instrumentos de precisión para calcular la Distancia Nasopupilar exacta (la distancia desde el centro de tu pupila hasta el puente de la nariz). Esta medida electrónica evita los errores de centrado que suelen causar mareos.</li>
-          <li><strong>Corroboración Manual de Especialista:</strong> La tecnología nos da los números, pero el ojo humano aporta la ergonomía. Un especialista en medición verifica el ajuste anatómico del armazón en tu rostro y utiliza la técnica de marcado manual (con fibrón) para dibujar la altura exacta de lectura basada en cómo vos sostenés la cabeza de forma natural.</li>
+          <li><strong>Proceso Certificado por Essilor:</strong> La tecnología nos da los números, pero la experiencia aporta la ergonomía. Un especialista en medición verifica el ajuste anatómico del armazón en tu rostro y determina la altura exacta de lectura basada en cómo vos sostenés la cabeza de forma natural, bajo estrictos estándares de calidad.</li>
           <li><strong>Prueba de Probines:</strong> ¡No dejamos nada a la imaginación! Antes de pedir tus cristales definitivos, realizamos una prueba física con "probines" (lentes de prueba en consultorio). Así vos mismo podés experimentar cómo vas a ver y nosotros podemos afinar el enfoque hasta que sientas comodidad absoluta.</li>
         </ul>
 
         <h2>El Vínculo Laboratorio-Óptica</h2>
-        <p>Una vez que terminamos nuestra calibración y pruebas manuales, enviamos este "mapa" exacto a los mejores laboratorios de tallado digital de Argentina (como Novar y Essilor-Varilux). Ellos tallan el lente milímetro a milímetro (tecnología Freeform) para que el canal visual se alinee de forma idéntica a lo que probamos en nuestro local.</p>
+        <p>Una vez que terminamos nuestra calibración y pruebas bajo certificación experta, enviamos este "mapa" exacto a los mejores laboratorios de tallado digital de Argentina (como Novar y Essilor-Varilux). Ellos tallan el lente milímetro a milímetro (tecnología Freeform) para que el canal visual se alinee de forma idéntica a lo que probamos en nuestro local.</p>
 
         <h2>Garantía de Adaptación Real</h2>
-        <p>Nuestra confianza en nuestro método de doble control (instrumental + humano) es tan grande que te brindamos <strong>Garantía de Adaptación</strong>. Si tenés problemas para acostumbrarte, re-evaluamos el lente y lo solucionamos.</p>
+        <p>Nuestra confianza en nuestro método de control certificado por Essilor es tan grande que te brindamos <strong>Garantía de Adaptación</strong>. Si tenés problemas para acostumbrarte, re-evaluamos el lente y lo solucionamos.</p>
 
         <p>Si buscás excelencia visual, un trato profesional que no se apure en tomar tus medidas, y resultados reales, te esperamos en Atelier Óptica, en el corazón del Cerro de las Rosas.</p>
       </>
@@ -1361,9 +1363,9 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
     "datePublished": post.date,
     "dateModified": post.date,
     "author": {
-      "@type": "Organization",
-      "name": "Atelier Óptica",
-      "url": "https://www.atelieroptica.com.ar"
+      "@type": "Person",
+      "name": "Ishtar Pissano",
+      "jobTitle": "Óptica Contactóloga"
     },
     "publisher": {
       "@type": "Organization",
@@ -1380,12 +1382,88 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
     }
   };
 
+  const breadcrumbSchema = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      {
+        "@type": "ListItem",
+        "position": 1,
+        "name": "Inicio",
+        "item": baseUrl
+      },
+      {
+        "@type": "ListItem",
+        "position": 2,
+        "name": "Blog",
+        "item": `${baseUrl}/blog`
+      },
+      {
+        "@type": "ListItem",
+        "position": 3,
+        "name": post.title,
+        "item": `${baseUrl}/blog/${post.slug}`
+      }
+    ]
+  };
+
+  const localBusinessSchema = {
+    "@context": "https://schema.org",
+    "@type": "Optician",
+    "name": "Atelier Óptica",
+    "image": `${baseUrl}/icon.png`,
+    "@id": baseUrl,
+    "url": baseUrl,
+    "telephone": "+5493518685644",
+    "address": {
+      "@type": "PostalAddress",
+      "streetAddress": "José Luis de Tejeda 4380",
+      "addressLocality": "Cerro de las Rosas",
+      "addressRegion": "Córdoba",
+      "postalCode": "5009",
+      "addressCountry": "AR"
+    },
+    "geo": {
+      "@type": "GeoCoordinates",
+      "latitude": -31.371234,
+      "longitude": -64.234123
+    }
+  };
+
+  const postFaqs = (blogFaqs as any)[post.slug];
+  const faqSchema = postFaqs && postFaqs.length > 0 ? {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": postFaqs.map((faq: any) => ({
+      "@type": "Question",
+      "name": faq.question,
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": faq.answer
+      }
+    }))
+  } : null;
+
   return (
     <div className="min-h-screen bg-[#faf8f5] dark:bg-stone-950 pb-20">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
       />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(localBusinessSchema) }}
+      />
+      {faqSchema && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
+        />
+      )}
       <StorefrontNavbar theme="light" />
 
       <div className="bg-[#faf8f5] border-b border-black/5  pt-16">
@@ -1424,6 +1502,11 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
             post.content
           )}
         </article>
+
+        {/* Render FAQs */}
+        {postFaqs && postFaqs.length > 0 && (
+          <FAQSection faqs={postFaqs} />
+        )}
         
         {/* CTA WhatsApp */}
         <div className="mt-16 pt-8 border-t border-black/5  text-center">

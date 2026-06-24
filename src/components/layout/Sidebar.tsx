@@ -8,6 +8,7 @@ import { Glasses, ClipboardList, LayoutDashboard, Cog, FileText, Contact, Calcul
 import { motion } from "framer-motion";
 import { UserProfile } from "@/components/admin/UserProfile";
 import { NotificationBell } from "@/components/ui/NotificationBell";
+import { WhatsAppBadge } from "@/components/ui/WhatsAppBadge";
 import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon";
 
 interface SidebarProps {
@@ -115,9 +116,13 @@ export function Sidebar({ userName = "Usuario", userRole = "STAFF", userId = "" 
                   transition={{ type: "spring", stiffness: 300, damping: 30 }}
                 />
               )}
-              <div className={`relative z-10 flex items-center gap-3 ${isActive ? 'text-primary' : 'group-hover:scale-105 transition-transform duration-300'}`}>
+              <div className={`relative z-10 flex items-center gap-3 w-full ${isActive ? 'text-primary' : 'group-hover:scale-105 transition-transform duration-300'}`}>
                 <Icon size={20} />
-                {!isCollapsed && <span className="text-sm font-medium">{link.label}</span>}
+                {!isCollapsed && <span className="text-sm font-medium whitespace-nowrap">{link.label}</span>}
+                {link.label === "WhatsApp" && !isCollapsed && <WhatsAppBadge />}
+                {link.label === "WhatsApp" && isCollapsed && (
+                  <div className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-white dark:border-[#221d1a]"></div>
+                )}
               </div>
             </Link>
           );

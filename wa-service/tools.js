@@ -206,6 +206,7 @@ async function convertIntoLead({ phone, name, contactSource, interest, chatId, i
         // Agregar etiqueta visual explícita según la fuente detectada
         if (resolvedSource === 'Meta') {
             await addTagToClient({ clientId: newContact.id, tagName: 'Meta Ads' });
+            await addTagToClient({ clientId: newContact.id, tagName: 'Multifocal' });
         } else if (resolvedSource === 'Google Ads') {
             await addTagToClient({ clientId: newContact.id, tagName: 'Google Ads' });
         }
@@ -599,7 +600,7 @@ async function disableBotForChat({ chatId, reason }) {
         // Generar resumen de handoff
         generateAndSaveHandoffSummary(chatId).catch(e => console.error("Error en resumen disableBotForChat:", e.message));
 
-        return { success: true, message: `Bot apagado y etiquetado como '${tagName}' para el chat.` };
+        return { success: true, message: `Bot apagado y etiquetado como '${clientTagName}' para el chat.` };
     } catch (e) {
         console.error('Error en disableBotForChatById:', e.message);
         throw new Error('No se pudo desactivar el bot en la base de datos.');

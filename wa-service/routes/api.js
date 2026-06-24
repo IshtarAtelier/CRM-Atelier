@@ -75,36 +75,6 @@ function createApiRouter(deps) {
             orderBy: { lastMessageAt: 'desc' },
         });
 
-        // Auto-link chats that have null clientId on-the-fly using phone suffix matching (last 8 digits)
-        chats = await Promise.all(chats.map(async (chat) => {
-            if (!chat.clientId) {
-                const phone = chat.realPhone || chat.waId.split('@')[0];
-                if (phone && phone.length >= 8) {
-                    const searchPhoneStr = phone.slice(-8).replace(/\D/g, '');
-                    if (searchPhoneStr.length >= 8) {
-                        try {
-                            const rawDuplicates = await prisma.$queryRawUnsafe(`
-                                SELECT id 
-                                FROM "Client" 
-                                WHERE REGEXP_REPLACE(COALESCE(phone, ''), '\\D', '', 'g') LIKE '%${searchPhoneStr}%'
-                                LIMIT 1
-                            `);
-                            if (rawDuplicates && rawDuplicates.length > 0) {
-                                const linkedChat = await prisma.whatsAppChat.update({
-                                    where: { id: chat.id },
-                                    data: { clientId: rawDuplicates[0].id },
-                                    include: { client: true, messages: { orderBy: { createdAt: 'desc' }, take: 1 } }
-                                });
-                                return linkedChat;
-                            }
-                        } catch (err) {
-                            console.error(`Error auto-linking chat ${chat.id} on GET /chats:`, err.message);
-                        }
-                    }
-                }
-            }
-            return chat;
-        }));
 
         res.json(chats);
     });

@@ -151,6 +151,7 @@ export default function WhatsAppPage() {
     const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'success'>('idle');
     const [loadingStatus, setLoadingStatus] = useState(true);
     const [filterLabel, setFilterLabel] = useState<string | null>(null);
+    const [readFilter, setReadFilter] = useState<'ALL' | 'UNREAD' | 'READ'>('ALL');
     const [searchQuery, setSearchQuery] = useState('');
     const [showArchived, setShowArchived] = useState(false);
     const [showLabelPicker, setShowLabelPicker] = useState(false);
@@ -710,6 +711,31 @@ export default function WhatsAppPage() {
                     }
                 });
 
+                socket.on('new_message_received', ({ chatId, name, phone, content }: { chatId: string, name: string, phone: string, content: string }) => {
+                    if (selectedChatRef.current?.id !== chatId) {
+                        try {
+                            const audio = new Audio('/sounds/notification.ogg');
+                            audio.play().catch(() => {});
+                        } catch (e) {}
+
+                        const title = `📩 Mensaje de ${name}`;
+                        const icon = "https://cdn-icons-png.flaticon.com/512/124/124034.png";
+                        
+                        showInAppNotification(title, content, icon, () => {
+                            // Find chat in local state and select it
+                            setChats(prev => {
+                                const c = prev.find(ch => ch.id === chatId);
+                                if (c) setSelectedChat(c);
+                                return prev;
+                            });
+                        });
+
+                        if ("Notification" in window && Notification.permission === "granted") {
+                            new Notification(title, { body: content, icon });
+                        }
+                    }
+                });
+
                 socket.on('chat_summary_updated', ({ chatId, summary }: { chatId: string, summary: string }) => {
                     fetchChats();
                     if (selectedChatRef.current?.id === chatId) {
@@ -741,8 +767,21 @@ export default function WhatsAppPage() {
     }, [fetchStatus, fetchChats, fetchMessages]);
 
     // ── Auto-scroll ───────────────────────────────
+    const lastScrollChatIdRef = useRef<string | null>(null);
     useEffect(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        if (!selectedChatRef.current) return;
+        const isNewChat = lastScrollChatIdRef.current !== selectedChatRef.current.id;
+        
+        // Timeout para asegurar que las imágenes/DOM rendericen antes de scrollear
+        setTimeout(() => {
+            if (messagesEndRef.current) {
+                messagesEndRef.current.scrollIntoView({ behavior: isNewChat ? 'auto' : 'smooth' });
+            }
+        }, 50);
+        
+        if (isNewChat && messages.length > 0) {
+            lastScrollChatIdRef.current = selectedChatRef.current.id;
+        }
     }, [messages]);
 
     // ── Select chat ───────────────────────────────
@@ -1060,8 +1099,10 @@ export default function WhatsAppPage() {
         } else {
             if (c.archived !== showArchived) return false;
             if (filterLabel && !(c.chatLabels || []).includes(filterLabel)) return false;
+            if (readFilter === 'UNREAD' && c.unreadCount === 0) return false;
+            if (readFilter === 'READ' && c.unreadCount > 0) return false;
             
-            if (!showArchived && !filterLabel && c.unreadCount === 0) {
+            if (!showArchived && !filterLabel && readFilter === 'ALL' && c.unreadCount === 0) {
                 const daysOld = c.lastMessageAt ? (new Date().getTime() - new Date(c.lastMessageAt).getTime()) / (1000 * 3600 * 24) : 0;
                 if (daysOld > 2) return false;
             }
@@ -1467,25 +1508,35 @@ export default function WhatsAppPage() {
                                 />
                             </div>
 
-                            {usedLabels.length > 0 && (
-                                <div className="flex gap-2 overflow-x-auto pb-1 pb-hide-scroll">
+                            <div className="flex gap-2 overflow-x-auto pb-1 mb-2 pb-hide-scroll">
+                                <button
+                                    onClick={() => { setFilterLabel(null); setReadFilter('ALL'); }}
+                                    className={`px-3 py-1.5 rounded-full text-[11px] font-black whitespace-nowrap transition-all flex-shrink-0 shadow-sm ${!filterLabel && readFilter === 'ALL' ? 'bg-stone-900 text-white' : 'bg-white text-stone-600 hover:bg-stone-50'}`}
+                                >
+                                    Todos
+                                </button>
+                                <button
+                                    onClick={() => { setReadFilter(readFilter === 'UNREAD' ? 'ALL' : 'UNREAD'); setFilterLabel(null); }}
+                                    className={`px-3 py-1.5 rounded-full text-[11px] font-bold whitespace-nowrap transition-all shadow-sm border ${readFilter === 'UNREAD' ? 'bg-green-500 text-white border-green-600 ring-2 ring-green-500/50 scale-105' : 'bg-white text-stone-600 border-stone-200 hover:bg-stone-50'}`}
+                                >
+                                    No Leídos
+                                </button>
+                                <button
+                                    onClick={() => { setReadFilter(readFilter === 'READ' ? 'ALL' : 'READ'); setFilterLabel(null); }}
+                                    className={`px-3 py-1.5 rounded-full text-[11px] font-bold whitespace-nowrap transition-all shadow-sm border ${readFilter === 'READ' ? 'bg-stone-600 text-white border-stone-700 ring-2 ring-stone-500/50 scale-105' : 'bg-white text-stone-600 border-stone-200 hover:bg-stone-50'}`}
+                                >
+                                    Leídos
+                                </button>
+                                {usedLabels.map(lbl => (
                                     <button
-                                        onClick={() => setFilterLabel(null)}
-                                        className={`px-3 py-1.5 rounded-full text-[11px] font-black whitespace-nowrap transition-all flex-shrink-0 shadow-sm ${!filterLabel ? 'bg-stone-900 text-white' : 'bg-white text-stone-600 hover:bg-stone-50'}`}
+                                        key={lbl}
+                                        onClick={() => { setFilterLabel(filterLabel === lbl ? null : lbl); setReadFilter('ALL'); }}
+                                        className={`px-3 py-1.5 rounded-full text-[11px] font-bold whitespace-nowrap transition-all shadow-sm border ${filterLabel === lbl ? getLabelStyle(lbl) + ' ring-2 ring-violet-500/50 scale-105' : 'bg-white text-stone-600 border-white/50 hover:bg-stone-50'}`}
                                     >
-                                        Todos
+                                        {lbl}
                                     </button>
-                                    {usedLabels.map(lbl => (
-                                        <button
-                                            key={lbl}
-                                            onClick={() => setFilterLabel(filterLabel === lbl ? null : lbl)}
-                                            className={`px-3 py-1.5 rounded-full text-[11px] font-bold whitespace-nowrap transition-all shadow-sm border ${filterLabel === lbl ? getLabelStyle(lbl) + ' ring-2 ring-violet-500/50 scale-105' : 'bg-white text-stone-600 border-white/50 hover:bg-stone-50'}`}
-                                        >
-                                            {lbl}
-                                        </button>
-                                    ))}
-                                </div>
-                            )}
+                                ))}
+                            </div>
                         </div>
 
                         {/* Listado */}
