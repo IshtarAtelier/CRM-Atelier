@@ -7,6 +7,7 @@ import { FloatingWhatsApp } from '@/components/Storefront/FloatingWhatsApp';
 import { staticPosts } from '@/lib/static-blog-posts';
 import { prisma } from '@/lib/db';
 import { seoKeywords, formatQueryToTitle } from '@/lib/seo-keywords';
+import { SeoAccordion } from '@/components/blog/SeoAccordion';
 
 export const revalidate = 300;
 
@@ -175,22 +176,7 @@ export default async function BlogPage() {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 border-t border-stone-200 dark:border-stone-800">
-        <h3 className="text-xl font-bold text-stone-900 dark:text-white mb-6">
-          Búsquedas Populares en Córdoba
-        </h3>
-        <div className="flex flex-wrap gap-3">
-          {seoKeywords.map((keyword) => (
-            <Link 
-              key={keyword} 
-              href={`/blog/busquedas/${keyword}`}
-              className="text-sm px-4 py-2 bg-stone-100 dark:bg-stone-900 text-stone-600 dark:text-stone-400 rounded-full hover:bg-primary hover:text-white dark:hover:bg-primary dark:hover:text-white transition-colors"
-            >
-              {formatQueryToTitle(keyword)}
-            </Link>
-          ))}
-        </div>
-      </div>
+      <SeoAccordion keywords={seoKeywords} />
 
       <StorefrontFooter />
       <FloatingWhatsApp />
