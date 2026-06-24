@@ -121,6 +121,11 @@ const handleMessageCreate = async (msg) => {
     if (msg.fromMe) {
         const waId = msg.to;
         
+        // Si el mensaje fue enviado por el propio bot, lo ignoramos por completo
+        if (global.botMessageIds && global.botMessageIds.has(msg.id._serialized)) {
+            return;
+        }
+
         // Si el bot está activamente enviando un mensaje a este número, ignoramos la "intervención humana"
         const isBotReplying = botReplyingTo.has(waId);
 
@@ -160,6 +165,18 @@ const handleMessageCreate = async (msg) => {
 
                             const buffer = Buffer.from(media.data, 'base64');
                             const ext = getFileExtension(media.mimetype);
+
+                            if (messageType === 'AUDIO') {
+                                console.log(`  🎧 Transcribiendo audio saliente...`);
+                                const text = await transcribeAudio(media.data, media.mimetype).catch(e => {
+                                    console.error('Error en transcripción saliente:', e.message);
+                                    return null;
+                                });
+                                if (text) {
+                                    msg.body = `[Audio transcrito]: "${text}"`;
+                                    console.log(`  ✅ Audio saliente transcrito: ${text}`);
+                                }
+                            }
 
                             const axios = require('axios');
                             const FormDataNode = require('form-data');
@@ -588,6 +605,10 @@ async function processBotTurn(chat, waId, profileName, realPhone) {
                     const sent = await sendMessage(waId, block, mediaObj);
                     
                     if (sent && sent.id && sent.id._serialized) {
+                        if (!global.botMessageIds) global.botMessageIds = new Set();
+                        global.botMessageIds.add(sent.id._serialized);
+                        setTimeout(() => global.botMessageIds.delete(sent.id._serialized), 10 * 60 * 1000); // 10 mins
+
                         try {
                             await prisma.whatsAppMessage.upsert({
                                 where: { waMessageId: sent.id._serialized },
