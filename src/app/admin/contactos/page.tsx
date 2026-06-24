@@ -221,6 +221,7 @@ function ContactosPageContent() {
                         return success;
                     }}
                     autoStartQuote={autoStartQuote}
+                    currentUserRole={currentUserRole}
                 />
             )}
 

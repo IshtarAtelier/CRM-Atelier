@@ -693,7 +693,8 @@ export default function WhatsAppPage() {
                 setLoadingStatus(false);
 
                 const token = data.socketToken;
-                socket = SocketIOClient(process.env.NEXT_PUBLIC_WA_URL || 'http://localhost:3100', {
+                const socketUrl = process.env.NEXT_PUBLIC_WA_URL || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3100');
+                socket = SocketIOClient(socketUrl, {
                     auth: { token }
                 });
 

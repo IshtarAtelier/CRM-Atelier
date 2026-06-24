@@ -21,9 +21,11 @@ export function WhatsAppBadge() {
         fetchCount();
         const interval = setInterval(fetchCount, 15000);
 
-        // Global socket connection for immediate updates
         import('socket.io-client').then(({ io }) => {
-            const socket = io(process.env.NEXT_PUBLIC_WA_URL || 'http://localhost:3100', {
+            fetch('/api/whatsapp/status').then(r => r.json()).then(statusData => {
+                const token = statusData.socketToken;
+                const socketUrl = process.env.NEXT_PUBLIC_WA_URL || statusData.socketUrl || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3100');
+                const socket = io(socketUrl, {
                 transports: ['websocket'],
                 path: '/socket.io',
                 reconnection: true
@@ -50,10 +52,8 @@ export function WhatsAppBadge() {
 
             socket.on('chat_read_status', fetchCount);
 
-            return () => {
-                socket.disconnect();
-                clearInterval(interval);
-            };
+                return () => { socket.disconnect(); };
+            }).catch(console.error);
         });
 
         return () => clearInterval(interval);

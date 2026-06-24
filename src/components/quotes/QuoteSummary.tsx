@@ -883,7 +883,8 @@ export default function QuoteSummary({
                                 labMeasurePte: data.labMeasurePte,
                                 labMeasureA: data.labMeasureA,
                                 labMeasureB: data.labMeasureB,
-                                labMeasureEd: data.labMeasureEd
+                                labMeasureEd: data.labMeasureEd,
+                                authorizedByAdmin: data.authorizedByAdmin
                             });
                             setShowCheckout(false);
                         }

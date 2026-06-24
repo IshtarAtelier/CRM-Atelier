@@ -25,6 +25,7 @@ interface ContactDetailProps {
     onDeleteOrder: (orderId: string, reason?: string, role?: string) => Promise<any> | void;
     onDeleteContact?: (id: string) => Promise<boolean>;
     autoStartQuote?: boolean;
+    currentUserRole?: string;
 }
 
 export default function ContactDetail({
@@ -39,12 +40,13 @@ export default function ContactDetail({
     onStatusChange,
     onDeleteOrder,
     onDeleteContact,
-    autoStartQuote
+    autoStartQuote,
+    currentUserRole: propUserRole
 }: ContactDetailProps) {
     const [contact, setContact] = useState<Contact | null>(null);
     const [loading, setLoading] = useState(true);
     const [activeSection, setActiveSection] = useState<'history' | 'tasks' | 'prescription' | 'budget' | 'sales'>('history');
-    const [currentUserRole, setCurrentUserRole] = useState('STAFF');
+    const [currentUserRole, setCurrentUserRole] = useState(propUserRole || 'STAFF');
     const [pendingConvertOrderId, setPendingConvertOrderId] = useState<string | null>(null);
     const [convertSuccess, setConvertSuccess] = useState(false);
     const [convertError, setConvertError] = useState<string | null>(null);
@@ -66,7 +68,14 @@ export default function ContactDetail({
     }, [contactId]);
 
     useEffect(() => {
+        if (propUserRole) {
+            setCurrentUserRole(propUserRole);
+        }
+    }, [propUserRole]);
+
+    useEffect(() => {
         const loadUser = async () => {
+            if (propUserRole) return;
             const res = await fetch('/api/auth/me');
             if (res.ok) {
                 const data = await res.json();
@@ -75,7 +84,7 @@ export default function ContactDetail({
         };
         loadUser();
         fetchContact();
-    }, [contactId, fetchContact]);
+    }, [contactId, fetchContact, propUserRole]);
 
     useEffect(() => {
         if (autoStartQuote && contact) {
@@ -106,7 +115,8 @@ export default function ContactDetail({
                     frameA: conversionData?.labMeasureA,
                     frameB: conversionData?.labMeasureB,
                     frameEdc: conversionData?.labMeasureEd,
-                    frameDbl: conversionData?.labMeasurePte
+                    frameDbl: conversionData?.labMeasurePte,
+                    authorizedByAdmin: conversionData?.authorizedByAdmin
                 }),
             });
             if (!res.ok) {
