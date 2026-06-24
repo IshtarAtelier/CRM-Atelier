@@ -8,6 +8,7 @@
  */
 
 import { useState, useEffect } from "react";
+import { DollarSign } from "lucide-react";
 
 interface PaymentOptionsProps {
   variant?: "inline" | "strip";
@@ -60,11 +61,7 @@ export function PaymentOptions({ variant = "inline", price, cashDiscount, instal
       highlight: false,
     },
     {
-      icon: (
-        <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818.879.11Y12m0 0c-.88-.11-1.285-.51-1.285-1.027 0-.522.405-.921.905-.921h1.386c.5 0 .9.4.9.9v1.838M12 6V4m0 14v2m0-14h1.386c.5 0 .9.4.9.9 0 .522-.405.921-.905.921H12M3 16.5h13.5" />
-        </svg>
-      ),
+      icon: <DollarSign className="w-4 h-4" strokeWidth={1.5} />,
       label: showCalculated
         ? `$${cashPriceValue.toLocaleString('es-AR')} en efectivo / transferencia`
         : `${discountPercent}% de descuento`,

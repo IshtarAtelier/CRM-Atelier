@@ -12,6 +12,7 @@ export function CheckoutContactForm({ formData, handleChange }: { formData: any,
             value={formData.email}
             required 
             placeholder="Correo Electrónico" 
+            autoComplete="email"
             className="w-full border border-stone-200 p-3 text-sm focus:border-black focus:focus:ring-2 focus:ring-amber-500 focus:outline-none transition-colors" 
             onChange={handleChange} 
           />
@@ -23,6 +24,7 @@ export function CheckoutContactForm({ formData, handleChange }: { formData: any,
             value={formData.firstName}
             required 
             placeholder="Nombre" 
+            autoComplete="given-name"
             className="w-full border border-stone-200 p-3 text-sm focus:border-black focus:focus:ring-2 focus:ring-amber-500 focus:outline-none transition-colors" 
             onChange={handleChange} 
           />
@@ -34,6 +36,7 @@ export function CheckoutContactForm({ formData, handleChange }: { formData: any,
             value={formData.lastName}
             required 
             placeholder="Apellido" 
+            autoComplete="family-name"
             className="w-full border border-stone-200 p-3 text-sm focus:border-black focus:focus:ring-2 focus:ring-amber-500 focus:outline-none transition-colors" 
             onChange={handleChange} 
           />
@@ -60,6 +63,7 @@ export function CheckoutContactForm({ formData, handleChange }: { formData: any,
             pattern="[0-9]{10,13}"
             title="Ingresá un teléfono válido, incluyendo código de área sin el 15. Ej: 3511234567"
             placeholder="WhatsApp (Ej: 3511234567)" 
+            autoComplete="tel"
             className="w-full border border-stone-200 p-3 text-sm focus:border-black focus:focus:ring-2 focus:ring-amber-500 focus:outline-none transition-colors" 
             onChange={handleChange} 
           />

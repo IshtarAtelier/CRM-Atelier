@@ -13,7 +13,15 @@ import { CheckoutSummarySidebar } from "@/components/checkout/CheckoutSummarySid
 import { WHATSAPP_PHONE } from "@/lib/constants";
 import { trackInitiateCheckout, trackPurchase } from "@/lib/tracking";
 
-export function CheckoutClient({ footer }: { footer?: React.ReactNode }) {
+export function CheckoutClient({ 
+  paywayConfig, 
+  initialSettings, 
+  footer 
+}: { 
+  paywayConfig: { publicKey: string; environment: string }; 
+  initialSettings?: any; 
+  footer?: React.ReactNode 
+}) {
   const { items, getCartTotal, clearCart } = useCart();
   const [mounted, setMounted] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -58,9 +66,9 @@ export function CheckoutClient({ footer }: { footer?: React.ReactNode }) {
   });
 
   const [webSettings, setWebSettings] = useState<any>({
-    web_promo_cash_discount: 15,
-    web_promo_installments: "6 cuotas sin interés",
-    web_store_whatsapp_id: WHATSAPP_PHONE
+    web_promo_cash_discount: initialSettings?.web_promo_cash_discount !== undefined ? Number(initialSettings.web_promo_cash_discount) : 15,
+    web_promo_installments: initialSettings?.web_promo_installments || "6 cuotas sin interés",
+    web_store_whatsapp_id: initialSettings?.web_store_whatsapp_id || WHATSAPP_PHONE
   });
 
   const whatsappPhoneId = webSettings?.web_store_whatsapp_id || WHATSAPP_PHONE;
@@ -75,34 +83,18 @@ export function CheckoutClient({ footer }: { footer?: React.ReactNode }) {
            city === "villa carlos paz";
   })();
 
-  const [paywayConfig, setPaywayConfig] = useState<{publicKey: string, environment: string} | null>(null);
-
   useEffect(() => {
-    fetch('/api/checkout/config').then(r => r.json()).then(data => {
-      setPaywayConfig(data);
-      // Load Decidir SDK
+    if (paywayConfig) {
+      // Load Decidir SDK immediately on mount using server props
       const script = document.createElement('script');
-      script.src = data.environment === 'production' 
+      script.src = paywayConfig.environment === 'production' 
         ? 'https://live.decidir.com/static/v2/decidir.js'
         : 'https://developers.decidir.com/static/v2/decidir.js';
       script.async = true;
       script.onload = () => setPaywayLoaded(true);
       document.body.appendChild(script);
-    });
-
-    fetch('/api/settings')
-      .then(r => r.json())
-      .then(data => {
-        if (data) {
-          setWebSettings({
-            web_promo_cash_discount: data.web_promo_cash_discount !== undefined ? Number(data.web_promo_cash_discount) : 15,
-            web_promo_installments: data.web_promo_installments || "6 cuotas sin interés",
-            web_store_whatsapp_id: data.web_store_whatsapp_id || WHATSAPP_PHONE
-          });
-        }
-      })
-      .catch(err => console.error("Error loading web settings in checkout:", err));
-  }, []);
+    }
+  }, [paywayConfig]);
 
   useEffect(() => {
     let isMounted = true;
@@ -228,7 +220,32 @@ export function CheckoutClient({ footer }: { footer?: React.ReactNode }) {
   }, [formData, mounted, items]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    
+    if (name === "zip") {
+      let updatedFields: Record<string, string> = {};
+      const trimmed = value.trim();
+      
+      // Auto-fill Córdoba
+      if (/^5\d{3}$/.test(trimmed)) {
+        updatedFields.state = "Córdoba";
+        if (trimmed.startsWith("50")) {
+          updatedFields.city = "Córdoba";
+        }
+      } else if (/^(1\d{3}|[a-zA-Z]1\d{3})$/.test(trimmed)) {
+        // Auto-fill CABA
+        updatedFields.state = "CABA";
+        updatedFields.city = "CABA";
+      }
+      
+      setFormData(prev => ({
+        ...prev,
+        [name]: value,
+        ...updatedFields
+      }));
+    } else {
+      setFormData(prev => ({ ...prev, [name]: value }));
+    }
   };
 
 
@@ -487,14 +504,14 @@ export function CheckoutClient({ footer }: { footer?: React.ReactNode }) {
             <p className="text-stone-500 text-sm">Completá tus datos para finalizar la compra de forma segura.</p>
           </div>
 
-          <form onSubmit={handlePaywaySubmit} className="flex flex-col gap-10">
-            
-            <CheckoutContactForm formData={formData} handleChange={handleChange} />
-            
-            <CheckoutShippingForm formData={formData} handleChange={handleChange} isLocalCity={isLocalCity} hasCrystals={hasCrystals} />
-            
-            <CheckoutPaymentOptions formData={formData} handleChange={handleChange} isProcessing={isProcessing} webSettings={webSettings} paywayLoaded={paywayLoaded} isWholesale={isWholesale} />
-
+          <form onSubmit={handlePaywaySubmit}>
+            <fieldset disabled={isProcessing} className="flex flex-col gap-10 border-0 p-0 m-0 disabled:opacity-75 transition-opacity">
+              <CheckoutContactForm formData={formData} handleChange={handleChange} />
+              
+              <CheckoutShippingForm formData={formData} handleChange={handleChange} isLocalCity={isLocalCity} hasCrystals={hasCrystals} />
+              
+              <CheckoutPaymentOptions formData={formData} handleChange={handleChange} isProcessing={isProcessing} webSettings={webSettings} paywayLoaded={paywayLoaded} isWholesale={isWholesale} />
+            </fieldset>
           </form>
         </div>
 
