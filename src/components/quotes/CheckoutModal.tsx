@@ -347,7 +347,10 @@ export default function CheckoutModal({
                             {selectedRxId && (
                                 <div className="mt-4 animate-in fade-in slide-in-from-top-4 duration-500">
                                     <PrescriptionDetails 
-                                        prescription={contact.prescriptions?.find((r: any) => r.id === selectedRxId)} 
+                                        prescription={contact.prescriptions?.find((r: any) => r.id === selectedRxId)}
+                                        editable={true}
+                                        contactId={contact.id}
+                                        onUpdate={onRefreshContact}
                                     />
                                 </div>
                             )}
