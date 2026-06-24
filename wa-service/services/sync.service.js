@@ -210,7 +210,7 @@ const syncRecentChatsAndMessages = async (deps, wc) => {
                     const updateData = {};
                     if (profileName && !dbChat.clientId) updateData.profileName = profileName;
                     if (realPhone && !dbChat.realPhone) updateData.realPhone = realPhone;
-                    if (chatObj.unreadCount > 0 && dbChat.unreadCount === 0) updateData.unreadCount = chatObj.unreadCount;
+                    if (chatObj.unreadCount !== dbChat.unreadCount) updateData.unreadCount = chatObj.unreadCount;
                     
                     if (Object.keys(updateData).length > 0) {
                         dbChat = await prisma.whatsAppChat.update({
@@ -232,14 +232,19 @@ const syncRecentChatsAndMessages = async (deps, wc) => {
                     let dbMsg = existingMsg;
 
                     if (!existingMsg) {
-                        let msgType = msg.hasMedia ? 'IMAGE' : 'TEXT';
+                        let msgType = 'TEXT';
+                        if (['image', 'sticker'].includes(msg.type)) msgType = 'IMAGE';
+                        else if (msg.type === 'video') msgType = 'VIDEO';
+                        else if (['audio', 'ptt'].includes(msg.type)) msgType = 'AUDIO';
+                        else if (msg.type === 'document') msgType = 'DOCUMENT';
+                        else if (msg.hasMedia) msgType = 'IMAGE';
                         
                         dbMsg = await prisma.whatsAppMessage.create({
                             data: {
                                 chatId: dbChat.id,
                                 direction: msg.fromMe ? 'OUTBOUND' : 'INBOUND',
                                 type: msgType,
-                                content: msg.body || (msg.hasMedia ? '[Media/Documento]' : ''),
+                                content: msg.body || ((msg.hasMedia || ['image', 'video', 'audio', 'ptt', 'document', 'sticker'].includes(msg.type)) ? '[Media/Documento]' : ''),
                                 waMessageId: msg.id._serialized,
                                 senderName: msg.fromMe ? 'Humano (Sincronizado)' : null,
                                 createdAt: new Date(msg.timestamp * 1000)
@@ -248,7 +253,7 @@ const syncRecentChatsAndMessages = async (deps, wc) => {
                     }
 
                     // Si tiene media y le falta el mediaUrl, lo agregamos a la cola para descargarlo secuencialmente en segundo plano
-                    if (msg.hasMedia && !dbMsg.mediaUrl) {
+                    if ((msg.hasMedia || ['image', 'video', 'audio', 'ptt', 'document', 'sticker'].includes(msg.type)) && !dbMsg.mediaUrl) {
                         mediaDownloadQueue.push({ msg, dbMessageId: dbMsg.id, chatId: dbChat.id });
                         processMediaDownloadQueue(deps);
                     }
