@@ -1,19 +1,64 @@
 'use client';
 
-import React from 'react';
-import { Glasses, Activity, FileText, AlertCircle } from 'lucide-react';
+import React, { useState, useCallback } from 'react';
+import { Glasses, Activity, FileText, AlertCircle, Pencil, Save, Loader2, CheckCircle2, X } from 'lucide-react';
 import { resolveStorageUrl } from '@/lib/utils/storage';
 
 interface PrescriptionDetailsProps {
     prescription: any;
     showEmpty?: boolean;
+    /** Enable inline editing of empty/missing fields */
+    editable?: boolean;
+    /** Contact ID needed for API calls when editing */
+    contactId?: string;
+    /** Callback after a field is saved */
+    onUpdate?: () => void;
 }
 
 export default function PrescriptionDetails({
     prescription,
-    showEmpty = true
+    showEmpty = true,
+    editable = false,
+    contactId,
+    onUpdate
 }: PrescriptionDetailsProps) {
     if (!prescription && !showEmpty) return null;
+
+    const [editingField, setEditingField] = useState<string | null>(null);
+    const [editValue, setEditValue] = useState('');
+    const [saving, setSaving] = useState(false);
+    const [savedField, setSavedField] = useState<string | null>(null);
+
+    const handleStartEdit = (fieldKey: string, currentVal: any) => {
+        setEditingField(fieldKey);
+        setEditValue(currentVal != null && currentVal !== '' ? String(currentVal) : '');
+    };
+
+    const handleSave = useCallback(async () => {
+        if (!editingField || !prescription?.id || !contactId) return;
+        setSaving(true);
+        try {
+            const res = await fetch(`/api/contacts/${contactId}/prescriptions/${prescription.id}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ [editingField]: editValue || null })
+            });
+            if (res.ok) {
+                setSavedField(editingField);
+                setEditingField(null);
+                setTimeout(() => setSavedField(null), 2000);
+                if (onUpdate) onUpdate();
+            }
+        } catch (err) {
+            console.error('Error saving rx field:', err);
+        }
+        setSaving(false);
+    }, [editingField, editValue, prescription?.id, contactId, onUpdate]);
+
+    const handleCancel = () => {
+        setEditingField(null);
+        setEditValue('');
+    };
 
     // Helper to format values with empty state
     const fmt = (val: any, suffix = '', prefix = '') => {
@@ -32,8 +77,77 @@ export default function PrescriptionDetails({
 
     const hasData = (val: any) => val !== undefined && val !== null && val !== '';
 
+    const renderCell = (label: string, val: any, fieldKey: string, suffix = '', prefix = '') => {
+        const isEmpty = !hasData(val);
+        const isEditing = editingField === fieldKey;
+        const justSaved = savedField === fieldKey;
+
+        return (
+            <div className={`px-4 py-4 text-center border-r border-stone-100 dark:border-stone-800 last:border-r-0 relative group ${isEmpty && editable ? 'bg-amber-50/30 dark:bg-amber-950/10' : ''}`}>
+                <p className="text-[7px] font-black text-stone-400 uppercase mb-1 tracking-widest">{label}</p>
+                
+                {isEditing ? (
+                    <div className="flex items-center gap-1 justify-center">
+                        <input
+                            type="text"
+                            value={editValue}
+                            onChange={e => setEditValue(e.target.value)}
+                            autoFocus
+                            onKeyDown={e => { if (e.key === 'Enter') handleSave(); if (e.key === 'Escape') handleCancel(); }}
+                            className="w-16 px-1.5 py-1 text-xs font-bold text-center bg-white dark:bg-stone-800 border-2 border-blue-400 rounded-lg outline-none"
+                        />
+                        <button onClick={handleSave} disabled={saving} className="p-0.5 text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-950 rounded transition-all">
+                            {saving ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />}
+                        </button>
+                        <button onClick={handleCancel} className="p-0.5 text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-800 rounded transition-all">
+                            <X className="w-3 h-3" />
+                        </button>
+                    </div>
+                ) : (
+                    <div className="flex items-center justify-center gap-1">
+                        <p className={`text-sm font-black ${hasData(val) ? 'text-stone-800 dark:text-stone-100' : 'text-stone-300 dark:text-stone-800'}`}>
+                            {justSaved ? (
+                                <span className="text-emerald-500 flex items-center gap-1 justify-center">
+                                    <CheckCircle2 className="w-3 h-3" /> Guardado
+                                </span>
+                            ) : fmt(val, suffix, prefix)}
+                        </p>
+                        {editable && isEmpty && !justSaved && (
+                            <button
+                                onClick={() => handleStartEdit(fieldKey, val)}
+                                className="p-1 text-amber-500 hover:bg-amber-100 dark:hover:bg-amber-900/30 rounded-lg transition-all opacity-0 group-hover:opacity-100 hover:scale-110"
+                                title={`Completar ${label}`}
+                            >
+                                <Pencil className="w-3 h-3" />
+                            </button>
+                        )}
+                        {editable && hasData(val) && !justSaved && (
+                            <button
+                                onClick={() => handleStartEdit(fieldKey, val)}
+                                className="p-1 text-stone-300 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-950 rounded-lg transition-all opacity-0 group-hover:opacity-100"
+                                title={`Editar ${label}`}
+                            >
+                                <Pencil className="w-2.5 h-2.5" />
+                            </button>
+                        )}
+                    </div>
+                )}
+            </div>
+        );
+    };
+
     return (
         <div className="space-y-6 animate-in fade-in duration-500">
+            {/* Editable Banner */}
+            {editable && (
+                <div className="flex items-center gap-2 px-4 py-2 bg-blue-50 dark:bg-blue-950/20 border border-blue-100 dark:border-blue-900/50 rounded-xl animate-in fade-in duration-300">
+                    <Pencil className="w-3 h-3 text-blue-500" />
+                    <span className="text-[9px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest">
+                        Hacé click en cualquier campo para editarlo
+                    </span>
+                </div>
+            )}
+
             {/* 1. VISIÓN DE LEJOS / DISTANCIA */}
             <div className="bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-[2rem] overflow-hidden shadow-sm">
                 <div className="bg-stone-900 dark:bg-stone-950 text-white text-[9px] font-black uppercase tracking-[0.2em] px-6 py-3 italic flex justify-between items-center">
@@ -47,21 +161,12 @@ export default function PrescriptionDetails({
                         <div className="px-6 py-4 bg-emerald-500/5 border-r border-stone-100 dark:border-stone-800">
                             <span className="inline-flex items-center justify-center w-8 h-8 rounded-xl bg-emerald-500 text-white text-[10px] font-black">OD</span>
                         </div>
-                        {[
-                            { label: 'Esfera', val: prescription?.sphereOD },
-                            { label: 'Cilindro', val: prescription?.cylinderOD },
-                            { label: 'Eje', val: prescription?.axisOD, suffix: '°' },
-                            { label: 'Add', val: prescription?.additionOD ?? prescription?.addition, prefix: '+' },
-                            { label: 'DNP', val: prescription?.distanceOD ?? prescription?.pd },
-                            { label: 'Altura', val: prescription?.heightOD }
-                        ].map((f, i) => (
-                            <div key={i} className="px-4 py-4 text-center border-r border-stone-100 dark:border-stone-800 last:border-r-0">
-                                <p className="text-[7px] font-black text-stone-400 uppercase mb-1 tracking-widest">{f.label}</p>
-                                <p className={`text-sm font-black ${hasData(f.val) ? 'text-stone-800 dark:text-stone-100' : 'text-stone-300 dark:text-stone-800'}`}>
-                                    {fmt(f.val, f.suffix, f.prefix)}
-                                </p>
-                            </div>
-                        ))}
+                        {renderCell('Esfera', prescription?.sphereOD, 'sphereOD')}
+                        {renderCell('Cilindro', prescription?.cylinderOD, 'cylinderOD')}
+                        {renderCell('Eje', prescription?.axisOD, 'axisOD', '°')}
+                        {renderCell('Add', prescription?.additionOD ?? prescription?.addition, 'additionOD', '', '+')}
+                        {renderCell('DNP', prescription?.distanceOD ?? prescription?.pd, 'distanceOD')}
+                        {renderCell('Altura', prescription?.heightOD, 'heightOD')}
                     </div>
 
                     {/* OI Row */}
@@ -69,21 +174,12 @@ export default function PrescriptionDetails({
                         <div className="px-6 py-4 bg-blue-500/5 border-r border-stone-100 dark:border-stone-800">
                             <span className="inline-flex items-center justify-center w-8 h-8 rounded-xl bg-blue-500 text-white text-[10px] font-black">OI</span>
                         </div>
-                        {[
-                            { label: 'Esfera', val: prescription?.sphereOI },
-                            { label: 'Cilindro', val: prescription?.cylinderOI },
-                            { label: 'Eje', val: prescription?.axisOI, suffix: '°' },
-                            { label: 'Add', val: prescription?.additionOI ?? prescription?.addition, prefix: '+' },
-                            { label: 'DNP', val: prescription?.distanceOI ?? prescription?.pd },
-                            { label: 'Altura', val: prescription?.heightOI }
-                        ].map((f, i) => (
-                            <div key={i} className="px-4 py-4 text-center border-r border-stone-100 dark:border-stone-800 last:border-r-0">
-                                <p className="text-[7px] font-black text-stone-400 uppercase mb-1 tracking-widest">{f.label}</p>
-                                <p className={`text-sm font-black ${hasData(f.val) ? 'text-stone-800 dark:text-stone-100' : 'text-stone-300 dark:text-stone-800'}`}>
-                                    {fmt(f.val, f.suffix, f.prefix)}
-                                </p>
-                            </div>
-                        ))}
+                        {renderCell('Esfera', prescription?.sphereOI, 'sphereOI')}
+                        {renderCell('Cilindro', prescription?.cylinderOI, 'cylinderOI')}
+                        {renderCell('Eje', prescription?.axisOI, 'axisOI', '°')}
+                        {renderCell('Add', prescription?.additionOI ?? prescription?.addition, 'additionOI', '', '+')}
+                        {renderCell('DNP', prescription?.distanceOI ?? prescription?.pd, 'distanceOI')}
+                        {renderCell('Altura', prescription?.heightOI, 'heightOI')}
                     </div>
                 </div>
             </div>
