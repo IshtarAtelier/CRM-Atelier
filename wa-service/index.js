@@ -129,10 +129,17 @@ const handleMessageCreate = async (msg) => {
         // Si el bot está activamente enviando un mensaje a este número, ignoramos la "intervención humana"
         const isBotReplying = botReplyingTo.has(waId);
 
+        // Ignorar si el mensaje saliente es una respuesta automática de Meta Ads
+        let isMetaAutoReply = false;
+        if (msg.body && (msg.body.includes('¿Cómo podemos ayudarte?') && msg.body.includes('¡Hola'))) {
+            isMetaAutoReply = true;
+            console.log(`  🤖 Mensaje de bienvenida de Meta detectado. Ignorando como intervención humana.`);
+        }
+
         try {
             const chat = await prisma.whatsAppChat.findUnique({ where: { waId } });
             if (chat) {
-                if (chat.botEnabled && !isBotReplying) {
+                if (chat.botEnabled && !isBotReplying && !isMetaAutoReply) {
                     await disableBotForChatById(chat.id, 'Intervención humana (mensaje saliente)');
                 }
 
