@@ -51,9 +51,15 @@ export function LeadToastNotifications() {
     }, []);
 
     useEffect(() => {
-        const socket = SocketIOClient(process.env.NEXT_PUBLIC_WA_URL || 'http://localhost:3100');
+        let socket: any = null;
 
-        socket.on('lead_created', (data: LeadNotification) => {
+        fetch('/api/whatsapp/status')
+            .then(res => res.json())
+            .then(statusData => {
+                const socketUrl = process.env.NEXT_PUBLIC_WA_URL || statusData.socketUrl || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3100');
+                socket = SocketIOClient(socketUrl);
+
+                socket.on('lead_created', (data: LeadNotification) => {
             const toastId = `${data.id}-${Date.now()}`;
             setToasts(prev => [...prev, { id: toastId, type: 'LEAD', data, exiting: false }]);
 
@@ -95,33 +101,35 @@ export function LeadToastNotifications() {
         });
 
         socket.on('new_message_received', (data: { chatId: string, name: string, phone: string, content: string, botEnabled: boolean }) => {
-            // Don't show in-app toast if user is already viewing this chat
-            const isViewingChat = window.location.pathname.includes('/whatsapp') && 
-                window.location.search.includes(data.phone?.slice(-8));
+            // Don't show global notification if user is already on the WhatsApp page (page.tsx handles its own notifications)
+            const isOnWhatsAppPage = window.location.pathname.includes('/whatsapp');
 
-            if (!isViewingChat) {
+            if (!isOnWhatsAppPage) {
                 // In-app toast notification
                 const toastId = `msg-${data.chatId}-${Date.now()}`;
                 setToasts(prev => [...prev, { id: toastId, type: 'MESSAGE', data, exiting: false }]);
                 setTimeout(() => removeToast(toastId), 8000);
-            }
-
-            // Browser notification (always, unless viewing that chat)
-            if (!isViewingChat && "Notification" in window && Notification.permission === "granted") {
-                const notification = new Notification(`Mensaje de ${data.name}`, {
-                    body: data.content,
-                    icon: "https://cdn-icons-png.flaticon.com/512/124/124034.png",
-                    tag: `chat-${data.chatId}`
-                });
                 
-                notification.onclick = () => {
-                    window.focus();
-                    window.location.href = `/admin/whatsapp?phone=${data.phone}`;
-                };
+                // Browser notification
+                if ("Notification" in window && Notification.permission === "granted") {
+                    const notification = new Notification(`Mensaje de ${data.name}`, {
+                        body: data.content,
+                        icon: "https://cdn-icons-png.flaticon.com/512/124/124034.png",
+                        tag: `chat-${data.chatId}`
+                    });
+                    
+                    notification.onclick = () => {
+                        window.focus();
+                        window.location.href = `/admin/whatsapp?phone=${data.phone}`;
+                    };
+                }
             }
         });
+        
+            })
+            .catch(console.error);
 
-        return () => { socket.disconnect(); };
+        return () => { if (socket) socket.disconnect(); };
     }, [removeToast, userRole]);
 
     if (toasts.length === 0) return null;

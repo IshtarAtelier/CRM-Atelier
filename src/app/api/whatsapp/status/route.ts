@@ -10,14 +10,16 @@ export async function GET() {
         const data = await res.json();
         return NextResponse.json({
             ...data,
-            socketToken: process.env.WA_API_KEY || ''
+            socketToken: process.env.WA_API_KEY || '',
+            socketUrl: process.env.WA_SERVER_URL || 'http://localhost:3100'
         });
     } catch {
         return NextResponse.json({
             connected: false,
             qr: null,
             error: 'WhatsApp server no disponible',
-            socketToken: process.env.WA_API_KEY || ''
+            socketToken: process.env.WA_API_KEY || '',
+            socketUrl: process.env.WA_SERVER_URL || 'http://localhost:3100'
         });
     }
 }
