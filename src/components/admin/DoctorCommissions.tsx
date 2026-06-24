@@ -68,7 +68,19 @@ export default function DoctorCommissions() {
     useEffect(() => {
         fetch('/api/doctors')
             .then(r => r.json())
-            .then(d => { if (Array.isArray(d)) setDoctors(d); })
+            .then(d => {
+                if (Array.isArray(d)) {
+                    setDoctors(d);
+                    // Restore saved doctor selection
+                    try {
+                        const saved = localStorage.getItem('atelier_doctor_selected');
+                        if (saved && d.some((doc: Doctor) => doc.name === saved)) {
+                            setSelectedDoctor(saved);
+                            fetchCommissions(saved);
+                        }
+                    } catch { }
+                }
+            })
             .catch(() => { });
     }, []);
 
@@ -95,6 +107,8 @@ export default function DoctorCommissions() {
     const handleDoctorChange = (name: string) => {
         setSelectedDoctor(name);
         setShowPaymentForm(false);
+        // Persist selection
+        try { localStorage.setItem('atelier_doctor_selected', name); } catch { }
         fetchCommissions(name);
     };
 

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import {
-    FileText, TrendingUp, DollarSign, Package, ArrowDown, RefreshCw, AlertCircle
+    FileText, TrendingUp, DollarSign, Package, ArrowDown, RefreshCw, AlertCircle, Save, CheckCircle2
 } from 'lucide-react';
 import { format } from 'date-fns';
 
@@ -122,19 +122,43 @@ function getPresetDates(preset: string): { from: string; to: string } {
 
 // ── Page ──────────────────────────────────
 
+const STORAGE_KEY = 'atelier_reportes_state';
+
 export default function ReportsDashboard() {
     const [data, setData] = useState<ReportData | null>(null);
     const [loading, setLoading] = useState(true);
     const [dateFrom, setDateFrom] = useState('');
     const [dateTo, setDateTo] = useState('');
     const [activePreset, setActivePreset] = useState('month');
+    const [saved, setSaved] = useState(false);
 
+    // Restore saved state or default to current month
     useEffect(() => {
+        try {
+            const raw = localStorage.getItem(STORAGE_KEY);
+            if (raw) {
+                const s = JSON.parse(raw);
+                if (s.dateFrom && s.dateTo) {
+                    setDateFrom(s.dateFrom);
+                    setDateTo(s.dateTo);
+                    setActivePreset(s.activePreset || '');
+                    fetchReport(s.dateFrom, s.dateTo);
+                    return;
+                }
+            }
+        } catch { }
         const { from, to } = getPresetDates('month');
         setDateFrom(from);
         setDateTo(to);
         fetchReport(from, to);
     }, []);
+
+    // Auto-save filters to localStorage
+    useEffect(() => {
+        if (dateFrom && dateTo) {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify({ dateFrom, dateTo, activePreset }));
+        }
+    }, [dateFrom, dateTo, activePreset]);
 
     const fetchReport = async (from?: string, to?: string) => {
         setLoading(true);
@@ -229,6 +253,20 @@ export default function ReportsDashboard() {
                             className="p-2 bg-primary text-primary-foreground rounded-xl hover:bg-primary/90 transition-all shadow-sm shadow-primary/20 hover:shadow-primary/40"
                         >
                             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+                        </button>
+                        <button
+                            onClick={() => {
+                                localStorage.setItem(STORAGE_KEY, JSON.stringify({ dateFrom, dateTo, activePreset }));
+                                setSaved(true);
+                                setTimeout(() => setSaved(false), 2500);
+                            }}
+                            className={`p-2 rounded-xl transition-all flex items-center gap-1.5 ${saved
+                                ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/30'
+                                : 'bg-stone-100 dark:bg-stone-700 text-stone-500 dark:text-stone-300 hover:bg-stone-200 dark:hover:bg-stone-600'
+                            }`}
+                            title="Guardar filtros para no perderlos"
+                        >
+                            {saved ? <CheckCircle2 className="w-4 h-4" /> : <Save className="w-4 h-4" />}
                         </button>
                     </div>
                 </div>
