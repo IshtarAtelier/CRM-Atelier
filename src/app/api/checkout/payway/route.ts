@@ -134,38 +134,7 @@ export async function POST(req: Request) {
         throw new Error(`Producto no encontrado en la base de datos: ${item.model}`);
       }
 
-      const framePrice = isWholesaleUser && dbProduct.wholesalePrice > 0 ? dbProduct.wholesalePrice : dbProduct.price;
-      let calculatedPrice = framePrice;
-      const isCustomLens = item.lensConfig && (item.lensConfig.lensType !== "NONE" || item.lensConfig.color);
-
-      if (isCustomLens) {
-        const { lensType, treatment, color } = item.lensConfig;
-        if (color) {
-          // SUN FLOW
-          if (lensType === "NONE" || lensType === "MONOFOCAL") calculatedPrice += (PRICING.MONOFOCAL.ORGANICO_BLANCO || 0);
-          else if (lensType === "BIFOCAL") calculatedPrice += (PRICING.BIFOCAL.ORGANICO_BLANCO || 0);
-          else if (lensType === "MULTIFOCAL") calculatedPrice += (PRICING.MULTIFOCAL.SMART_FREE || 0);
-          
-          if (lensType !== null && lensType !== "NONE") {
-            calculatedPrice += PRICING.EXTRAS.TINT;
-          }
-        } else {
-          // CLEAR FLOW
-          if (lensType === "MONOFOCAL") {
-            const txPrice = treatment ? PRICING.MONOFOCAL[treatment as keyof typeof PRICING.MONOFOCAL] : undefined;
-            if (txPrice === undefined) throw new Error("Tratamiento monofocal inválido o faltante.");
-            calculatedPrice += txPrice;
-          }
-          else if (lensType === "BIFOCAL") {
-            calculatedPrice += PRICING.BIFOCAL.ORGANICO_BLANCO;
-          }
-          else if (lensType === "MULTIFOCAL") {
-            const txPrice = treatment ? PRICING.MULTIFOCAL[treatment as keyof typeof PRICING.MULTIFOCAL] : undefined;
-            if (txPrice === undefined) throw new Error("Tratamiento multifocal inválido o faltante.");
-            calculatedPrice += txPrice;
-          }
-        }
-      }
+      const calculatedPrice = recalculateItemPrice(item, dbProduct, isWholesaleUser, pricingMap);
 
       recalculatedItemsTotal += calculatedPrice * item.quantity;
 
@@ -412,53 +381,9 @@ export async function POST(req: Request) {
       </tr>
     `).join('');
 
-    const confirmationHtml = `
-      <div style="font-family: 'Inter', Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 40px; border: 1px solid #e5e5e5;">
-        <h1 style="font-size: 32px; text-align: center; border-bottom: 2px solid #000; padding-bottom: 20px;">ATELIER ÓPTICA</h1>
-        <h2 style="font-size: 18px; font-weight: normal; margin-top: 30px;">Hola ${customer.firstName},</h2>
-        <p>Gracias por elegir a Atelier Óptica. Hemos recibido tu pedido con el número de orden <strong>#${order.id}</strong>.</p>
-        <table width="100%" cellpadding="0" cellspacing="0">${itemsHtml}</table>
-        <p style="text-align: right; font-weight: bold; font-size: 16px; margin-top: 20px;">Total: $${emailTotal.toLocaleString("es-AR")}</p>
-        <div style="background: #f9f9f9; border-left: 4px solid #000; padding: 15px; margin: 20px 0;">
-          <strong>Método de envío:</strong> ${shippingMethodLabel} ${customer.shippingBranch ? `(Sucursal: ${customer.shippingBranch})` : ''}<br/>
-          <strong>Tiempo de tránsito:</strong> ${customer.shippingMethod === 'LOCAL' ? 'Entrega express 24-48hs hábiles' : '3 a 5 días hábiles desde que se despacha.'}<br/>
-          <strong>Tiempo de preparación / despacho:</strong><br/>
-          ${hasCrystals ? '5 días hábiles por calibración y trabajo de laboratorio a medida.' : 'Despacho rápido dentro de los 2 días hábiles.'}
-        </div>
-        <p style="text-align: center; color: #666; font-size: 12px; margin-top: 30px; border-top: 1px solid #eee; padding-top: 20px;">
-          Atelier Óptica - Cerro de las Rosas, Córdoba.<br/>
-          WhatsApp: <a href="https://wa.me/${whatsappPhone}">${whatsappPhone}</a>
-        </p>
-      </div>
-    `;
-
+    const confirmationHtml = getConfirmationHtml(customer, order.id, emailTotal, shippingMethodLabel, hasCrystals, itemsHtml);
     const adminEmails = 'pisano.ishtar@gmail.com, atelier.optica.cerro@gmail.com';
-    const adminHtml = `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd;">
-        <h2 style="color: #333; border-bottom: 2px solid #000; padding-bottom: 10px;">🚨 NUEVA VENTA WEB 🚨</h2>
-        <p><strong>Orden ID:</strong> #${order.id}</p>
-        <p><strong>Total:</strong> $${emailTotal.toLocaleString('es-AR')} (${isTransfer ? 'Transferencia' : 'Tarjeta'})</p>
-        
-        <h3 style="background: #f4f4f4; padding: 10px; margin-top: 20px;">Datos del Cliente</h3>
-        <ul style="list-style: none; padding: 0;">
-          <li><strong>Nombre:</strong> ${customer.firstName} ${customer.lastName}</li>
-          <li><strong>Email:</strong> ${customer.email}</li>
-          <li><strong>WhatsApp:</strong> ${customer.phone}</li>
-          <li><strong>DNI:</strong> ${customer.dni}</li>
-          <li><strong>Método de Envío:</strong> ${shippingMethodLabel} ${customer.shippingBranch ? `(Sucursal: ${customer.shippingBranch})` : ''}</li>
-          <li><strong>Dirección:</strong> ${customer.address}, ${customer.city}, ${customer.state} ${customer.zip}</li>
-        </ul>
-
-        <h3 style="background: #f4f4f4; padding: 10px; margin-top: 20px;">Productos Comprados</h3>
-        <table width="100%" cellpadding="10" cellspacing="0" style="border-collapse: collapse;">
-          ${itemsHtml}
-        </table>
-        
-        <div style="margin-top: 30px; padding: 15px; background: #e8f5e9; border-left: 5px solid #4caf50;">
-          <p style="margin: 0;"><strong>Ingresá al CRM</strong> para ver y gestionar la ficha completa.</p>
-        </div>
-      </div>
-    `;
+    const adminHtml = getAdminHtml(customer, order.id, emailTotal, shippingMethodLabel, isTransfer, itemsHtml);
 
     // Si eligió transferencia bancaria, enviar email al cliente con instrucciones y devolver exito
     if (isTransfer) {
@@ -474,28 +399,7 @@ export async function POST(req: Request) {
         subject: `🛒 Nueva Compra Web - $${emailTotal.toLocaleString('es-AR')} - ${customer.firstName} ${customer.lastName}`,
         html: adminHtml
       }).catch(err => console.error("Error admin email:", err));
-       const clientTransferHtml = `
-         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333;">
-           <h2 style="color: #4caf50;">¡Hola ${customer.firstName}!</h2>
-           <p>Hemos registrado tu pedido <strong>#${order.id.slice(-4).toUpperCase()}</strong> de forma exitosa.</p>
-           <p>Elegiste abonar mediante transferencia bancaria con descuento. El total a transferir es de <strong>$${emailTotal.toLocaleString('es-AR')}</strong>.</p>
-           
-           <div style="background: #f9f9f9; padding: 20px; border-radius: 8px; margin: 20px 0; border: 1px solid #ddd;">
-             <h3 style="margin-top: 0;">Datos para la transferencia</h3>
-             <ul style="list-style: none; padding: 0; margin: 0;">
-               <li style="margin-bottom: 10px;"><strong>CVU:</strong> 0000069704088281149142</li>
-               <li style="margin-bottom: 10px;"><strong>Alias:</strong> badaza.media.arq</li>
-               <li><strong>Banco:</strong> Proveedor de Servicios de Pago - Garpa S.A.</li>
-             </ul>
-           </div>
-           
-           <p style="background: #e8f5e9; padding: 15px; border-left: 4px solid #4caf50; font-weight: bold;">
-             IMPORTANTE: Una vez realizada la transferencia, respondé este correo o envianos el comprobante por WhatsApp al ${WHATSAPP_PHONE} para que empecemos a preparar tu pedido.
-           </p>
-           
-           <p style="margin-top: 30px;">¡Gracias por elegir Atelier Óptica!</p>
-         </div>
-       `;
+       const clientTransferHtml = getClientTransferHtml(customer, order.id, emailTotal);
 
        sendEmail({
          to: customer.email,
