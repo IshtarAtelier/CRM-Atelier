@@ -74,6 +74,7 @@ export function NuestroLocalClient({ settings, children }: NuestroLocalClientPro
             alt="Fachada de Atelier Óptica en Cerro de las Rosas, Córdoba"
             fill
             priority
+            unoptimized
             className="object-cover"
             sizes="100vw"
           />
@@ -162,6 +163,7 @@ export function NuestroLocalClient({ settings, children }: NuestroLocalClientPro
                 src={img.src}
                 alt={img.alt}
                 fill
+                unoptimized
                 sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
                 className="object-cover transition-transform duration-700 ease-out group-hover:scale-110"
               />
@@ -226,6 +228,7 @@ export function NuestroLocalClient({ settings, children }: NuestroLocalClientPro
               src="/images/blog/mostrador-marmol.webp"
               alt="Mostrador de mármol de Atelier Óptica"
               fill
+              unoptimized
               sizes="(max-width: 1024px) 100vw, 50vw"
               className="object-cover"
             />
