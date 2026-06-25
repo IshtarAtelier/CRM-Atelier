@@ -69,7 +69,7 @@ export default async function Home() {
           product: true
         },
         orderBy: { createdAt: 'desc' },
-        take: 12 // Maximum of 12 featured products for best PageSpeed score and clean visual presentation
+        take: 50 // Fetch more to allow for deduplication
       });
       
       const [dbSol, dbReceta, dbNuevos, count] = await Promise.all([
@@ -77,19 +77,19 @@ export default async function Home() {
           where: { isActive: true, product: { publishToWeb: true, category: 'Lentes de Sol' } },
           include: { product: true },
           orderBy: { createdAt: 'desc' },
-          take: 12
+          take: 50
         }),
         prisma.webProduct.findMany({
           where: { isActive: true, product: { publishToWeb: true, category: 'Armazón de Receta' } },
           include: { product: true },
           orderBy: { createdAt: 'desc' },
-          take: 12
+          take: 50
         }),
         prisma.webProduct.findMany({
           where: { isActive: true, product: { publishToWeb: true, category: { not: 'Cristal' } } },
           include: { product: true },
           orderBy: { createdAt: 'desc' },
-          take: 12
+          take: 50
         }),
         prisma.webProduct.count({
           where: { isActive: true, product: { publishToWeb: true, category: { not: 'Cristal' } } }
@@ -104,28 +104,43 @@ export default async function Home() {
     console.error("Prerendering warning: Database not reachable at build time. Using fallbacks.", error);
   }
 
-  // Formateamos los productos para el carrusel
-  const formatProducts = (list: any[]) => list.length > 0 
-    ? list.map(wp => ({
-        id: wp.product.id,
-        name: wp.name,
-        rawPrice: wp.product.price,
-        price: wp.product.price ? `6 cuotas de $${Math.round(wp.product.price / 6).toLocaleString("es-AR")}` : "",
-        img: wp.imageUrl 
-          ? resolveStorageUrl(wp.imageUrl)
-          : (wp.images.length > 0 
-              ? resolveStorageUrl(wp.images[0])
-              : (wp.product.imagenesCatalogo.length > 0 ? resolveStorageUrl(wp.product.imagenesCatalogo[0]) : '/images/og-image.jpg')),
-        slug: wp.slug,
-        stock: wp.product.stock,
-        brand: wp.product.brand,
-        model: wp.product.model,
-        secondImg: wp.images.length > 1 
-          ? resolveStorageUrl(wp.images[1])
-          : (wp.product.imagenesCatalogo.length > 1 ? resolveStorageUrl(wp.product.imagenesCatalogo[1]) : null),
-        category: wp.product.category
-      }))
-    : [];
+  // Formateamos los productos para el carrusel y evitamos variantes repetidas
+  const formatProducts = (list: any[]) => {
+    if (!list || list.length === 0) return [];
+    
+    const formatted = list.map(wp => ({
+      id: wp.product.id,
+      name: wp.name,
+      rawPrice: wp.product.price,
+      price: wp.product.price ? `6 cuotas de $${Math.round(wp.product.price / 6).toLocaleString("es-AR")}` : "",
+      img: wp.imageUrl 
+        ? resolveStorageUrl(wp.imageUrl)
+        : (wp.images.length > 0 
+            ? resolveStorageUrl(wp.images[0])
+            : (wp.product.imagenesCatalogo.length > 0 ? resolveStorageUrl(wp.product.imagenesCatalogo[0]) : '/images/og-image.jpg')),
+      slug: wp.slug,
+      stock: wp.product.stock,
+      brand: wp.product.brand,
+      model: wp.product.model,
+      secondImg: wp.images.length > 1 
+        ? resolveStorageUrl(wp.images[1])
+        : (wp.product.imagenesCatalogo.length > 1 ? resolveStorageUrl(wp.product.imagenesCatalogo[1]) : null),
+      category: wp.product.category
+    }));
+
+    // Deduplicate variants (e.g. "Frida C1" and "Frida C5" -> only keep first)
+    const uniqueBaseNames = new Set<string>();
+    const deduplicated = formatted.filter(p => {
+      const match = (p.model || p.name).match(/(.*)\s+(c\d+)\b/i);
+      const baseName = match ? match[1].trim().toLowerCase() : (p.model || p.name).toLowerCase();
+      
+      if (uniqueBaseNames.has(baseName)) return false;
+      uniqueBaseNames.add(baseName);
+      return true;
+    });
+
+    return deduplicated.slice(0, 12);
+  };
 
   const carouselData = {
     destacados: formatProducts(dbWebProducts),
