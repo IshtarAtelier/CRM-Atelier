@@ -718,6 +718,7 @@ export const ContactService = {
                     select: {
                         id: true,
                         isLocked: true,
+                        authorizedByAdmin: true,
                         total: true,
                         paid: true,
                         status: true,
