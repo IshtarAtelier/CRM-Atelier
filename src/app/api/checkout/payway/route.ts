@@ -573,7 +573,7 @@ export async function POST(req: Request) {
           id: client.id,
           email: customer.email
         },
-        device_unique_id: `WEB-${order.id}`,
+        device_unique_identifier: `WEB-${order.id}`,
         retail_transaction_data: {
           items: sanitizedItems.map(item => ({
             code: item.productId || 'generic',
