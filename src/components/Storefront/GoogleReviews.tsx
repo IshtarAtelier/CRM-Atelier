@@ -6,32 +6,35 @@ import Image from "next/image";
 
 const FALLBACK_REVIEWS = [
   {
-    author_name: "Juan Manuel Rodríguez",
-    profile_photo_url: "",
-    rating: 5,
-    relative_time_description: "Hace 1 semana",
-    text: "Excelente atención y asesoramiento. Compré unos cristales multifocales de última tecnología y la adaptación fue súper rápida. Muy recomendados!"
-  },
-  {
-    author_name: "Valentina Gómez",
-    profile_photo_url: "",
-    rating: 5,
-    relative_time_description: "Hace 2 semanas",
-    text: "La mejor óptica de Córdoba sin dudas. El local es hermoso y los armazones son de un diseño exclusivo que no se encuentra en ningún otro lado."
-  },
-  {
-    author_name: "Sol Acuña",
-    profile_photo_url: "",
+    author_name: "Julieta Foppoli",
+    profile_photo_url: "https://lh3.googleusercontent.com/a-/ALV-UjWGd0XySGT0AZWji7lm9u8bCXz_qUw2cp1pctHqZULadZuVpco=s128-c0x00000000-cc-rp-mo-ba2",
     rating: 5,
     relative_time_description: "Hace 3 semanas",
-    text: "Muy conforme con mi compra online. Me asesoraron por WhatsApp con mi receta médica y los lentes llegaron impecables a Mendoza en pocos días."
+    text: "Excelente atención... La compra se salió de \"hablar de precios\" a revisar que era mejor, probar opciones e incluso proponer llamado para poder recomendar mejor. El local impecable todo a la vista lo que hizo súper ágil la elección. Atención profesional, amable... Nada de andar corriendo o despachando gente como me venía pasando. Súper recomendado!",
+    author_url: "https://www.google.com/maps/contrib/106672142904345242727/reviews"
+  },
+  {
+    author_name: "CLAUDIA SONIA GUZMAN",
+    profile_photo_url: "https://lh3.googleusercontent.com/a/ACg8ocJoSNHR7DOfx2W2t_X553rntdzqc6VOHf8zIImUV-Mu1_PX5A=s128-c0x00000000-cc-rp-mo",
+    rating: 5,
+    relative_time_description: "Hace 5 meses",
+    text: "Excelente experiencia. Ya había comprado antes y volví a elegirlos porque la calidad es realmente impecable. Los anteojos multifocales son hermosos y de primera. Destaco especialmente la atención de Matías, siempre amable, claro y profesional. Da gusto encontrar un lugar donde la atención y el producto van de la mano. Sin dudas, un lugar al que siempre dan ganas de volver. ¡Gracias totales!",
+    author_url: "https://www.google.com/maps/contrib/104774864567102780209/reviews"
+  },
+  {
+    author_name: "Vale Contreras",
+    profile_photo_url: "https://lh3.googleusercontent.com/a/ACg8ocKlvsiphuxNDrTgtk8DwEsr_sZo-MOFipoh9Dj8fWjis2VJttie=s128-c0x00000000-cc-rp-mo",
+    rating: 5,
+    relative_time_description: "Hace 2 semanas",
+    text: "Muy buena atención. Me asesoraron con mucha paciencia para elegir mis anteojos y resolvieron todas mis dudas. El trato fue amable y profesional durante todo el proceso. Quedé muy conforme con el servicio y con el resultado final",
+    author_url: "https://www.google.com/maps/contrib/103428301390791156724/reviews"
   }
 ];
 
 export function GoogleReviews() {
   const [reviews, setReviews] = useState<any[]>(FALLBACK_REVIEWS);
   const [rating, setRating] = useState<number>(5.0);
-  const [userRatingCount, setUserRatingCount] = useState<number>(621);
+  const [userRatingCount, setUserRatingCount] = useState<number>(642);
 
   useEffect(() => {
     fetch('/api/reviews')
@@ -40,7 +43,7 @@ export function GoogleReviews() {
         if (data && data.reviews && data.reviews.length > 0) {
           setReviews(data.reviews);
           setRating(data.rating || 5.0);
-          setUserRatingCount(data.userRatingCount || 621);
+          setUserRatingCount(data.userRatingCount || 642);
         }
       })
       .catch(err => {

@@ -1,38 +1,43 @@
 const FALLBACK_REVIEWS = [
   {
-    author_name: "Juan Manuel Rodríguez",
-    profile_photo_url: "",
-    rating: 5,
-    relative_time_description: "Hace 1 semana",
-    text: "Excelente atención y asesoramiento. Compré unos cristales multifocales de última tecnología y la adaptación fue súper rápida. Muy recomendados!"
-  },
-  {
-    author_name: "Valentina Gómez",
-    profile_photo_url: "",
-    rating: 5,
-    relative_time_description: "Hace 2 semanas",
-    text: "La mejor óptica de Córdoba sin dudas. El local es hermoso y los armazones son de un diseño exclusivo que no se encuentra en ningún otro lado."
-  },
-  {
-    author_name: "Sol Acuña",
-    profile_photo_url: "",
+    author_name: "Julieta Foppoli",
+    profile_photo_url: "https://lh3.googleusercontent.com/a-/ALV-UjWGd0XySGT0AZWji7lm9u8bCXz_qUw2cp1pctHqZULadZuVpco=s128-c0x00000000-cc-rp-mo-ba2",
     rating: 5,
     relative_time_description: "Hace 3 semanas",
-    text: "Muy conforme con mi compra online. Me asesoraron por WhatsApp con mi receta médica y los lentes llegaron impecables a Mendoza en pocos días."
+    text: "Excelente atención... La compra se salió de \"hablar de precios\" a revisar que era mejor, probar opciones e incluso proponer llamado para poder recomendar mejor. El local impecable todo a la vista lo que hizo súper ágil la elección. Atención profesional, amable... Nada de andar corriendo o despachando gente como me venía pasando. Súper recomendado!",
+    author_url: "https://www.google.com/maps/contrib/106672142904345242727/reviews"
   },
   {
-    author_name: "Facundo Ortiz",
-    profile_photo_url: "",
+    author_name: "CLAUDIA SONIA GUZMAN",
+    profile_photo_url: "https://lh3.googleusercontent.com/a/ACg8ocJoSNHR7DOfx2W2t_X553rntdzqc6VOHf8zIImUV-Mu1_PX5A=s128-c0x00000000-cc-rp-mo",
     rating: 5,
-    relative_time_description: "Hace 1 mes",
-    text: "Los anteojos clip-on son geniales y de una calidad excelente. La atención al cliente es impecable, te guían pacientemente en cada detalle."
+    relative_time_description: "Hace 5 meses",
+    text: "Excelente experiencia. Ya había comprado antes y volví a elegirlos porque la calidad es realmente impecable. Los anteojos multifocales son hermosos y de primera. Destaco especialmente la atención de Matías, siempre amable, claro y profesional. Da gusto encontrar un lugar donde la atención y el producto van de la mano. Sin dudas, un lugar al que siempre dan ganas de volver. ¡Gracias totales!",
+    author_url: "https://www.google.com/maps/contrib/104774864567102780209/reviews"
   },
   {
-    author_name: "Martina Paz",
-    profile_photo_url: "",
+    author_name: "Vale Contreras",
+    profile_photo_url: "https://lh3.googleusercontent.com/a/ACg8ocKlvsiphuxNDrTgtk8DwEsr_sZo-MOFipoh9Dj8fWjis2VJttie=s128-c0x00000000-cc-rp-mo",
     rating: 5,
-    relative_time_description: "Hace 1 mes",
-    text: "Compré unos lentes de sol y son hermosos. Excelente presentación, el packaging es súper premium y muy cuidado. Volveré a comprar."
+    relative_time_description: "Hace 2 semanas",
+    text: "Muy buena atención. Me asesoraron con mucha paciencia para elegir mis anteojos y resolvieron todas mis dudas. El trato fue amable y profesional durante todo el proceso. Quedé muy conforme con el servicio y con el resultado final",
+    author_url: "https://www.google.com/maps/contrib/103428301390791156724/reviews"
+  },
+  {
+    author_name: "Angelica Gagliano",
+    profile_photo_url: "https://lh3.googleusercontent.com/a/ACg8ocKtMGm-nV0w5T3l2VTHNUoRYxrqpWpeTQoUW4nqjuS5a12sv_0C=s128-c0x00000000-cc-rp-mo",
+    rating: 5,
+    relative_time_description: "Hace 6 meses",
+    text: "Un día, viendo las redes me comuniqué por WhatsApp casi a la hora de cierre y Matías me atendió tomándose todo el tiempo del mundo, con tanta amabilidad y dedicación que esa fue, mi primera buena impresión. Luego fui al local y me sentí especial en cuanto a la atención personalizada. Muchas gracias, estoy muy feliz con mis multifocales fotocromáticos 2x1. Recomiendo 100%",
+    author_url: "https://www.google.com/maps/contrib/101181909865280760845/reviews"
+  },
+  {
+    author_name: "Norberto Garone",
+    profile_photo_url: "https://lh3.googleusercontent.com/a/ACg8ocLYzzZBjh1AxexVjiNlMYp73CBPQfIkwSSOCQxHBe_7p47gcw=s128-c0x00000000-cc-rp-mo",
+    rating: 5,
+    relative_time_description: "Hace 5 meses",
+    text: "Excelente trabajo y una impecable cordialidad y eficiencia. Atendido con un profesionalismo impecable y considero fue un antes y un después mejorando mi calidad de vida. Gracias Matías!!! Sin dejar de mencionar el excelente precio y calidad de los lentes adquiridos.",
+    author_url: "https://www.google.com/maps/contrib/113865402328733115088/reviews"
   }
 ];
 
@@ -55,7 +60,7 @@ export async function fetchLegacyReviews(placeId: string, apiKey: string) {
   return {
     reviews,
     rating: data.result?.rating || 5.0,
-    userRatingCount: data.result?.user_ratings_total || 621
+    userRatingCount: data.result?.user_ratings_total || 642
   };
 }
 
@@ -90,7 +95,7 @@ export async function fetchNewReviews(placeId: string, apiKey: string) {
   return {
     reviews,
     rating: data.rating || 5.0,
-    userRatingCount: data.userRatingCount || 621
+    userRatingCount: data.userRatingCount || 642
   };
 }
 
@@ -100,7 +105,7 @@ export async function getGoogleReviews() {
 
   if (!apiKey) {
     console.warn('Falta la API Key de Google Places en el entorno. Silenciando componente.');
-    return { reviews: [], rating: 5.0, userRatingCount: 621 };
+    return { reviews: [], rating: 5.0, userRatingCount: 642 };
   }
 
   try {
@@ -124,5 +129,5 @@ export async function getGoogleReviews() {
   }
 
   console.warn('No se pudieron obtener reseñas reales de Google. Silenciando componente.');
-  return { reviews: [], rating: 5.0, userRatingCount: 621 };
+  return { reviews: [], rating: 5.0, userRatingCount: 642 };
 }

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { prisma } from '@/lib/db';
 import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
 import { z } from 'zod';
 
@@ -71,7 +71,7 @@ export async function GET(request: Request) {
         // 2. Call Gemini
         const llm = new ChatGoogleGenerativeAI({
             apiKey: apiKey,
-            modelName: "gemini-2.5-flash",
+            model: "gemini-2.5-flash",
             temperature: 0.7,
         });
 

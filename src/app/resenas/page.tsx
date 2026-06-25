@@ -32,7 +32,7 @@ async function fetchLegacyReviews(placeId: string, apiKey: string) {
   return {
     reviews,
     rating: data.result?.rating || 5.0,
-    userRatingCount: data.result?.user_ratings_total || 621
+    userRatingCount: data.result?.user_ratings_total || 642
   };
 }
 
@@ -67,7 +67,7 @@ async function fetchNewReviews(placeId: string, apiKey: string) {
   return {
     reviews,
     rating: data.rating || 5.0,
-    userRatingCount: data.userRatingCount || 621
+    userRatingCount: data.userRatingCount || 642
   };
 }
 
@@ -78,7 +78,7 @@ async function getGoogleReviews() {
 
     if (!apiKey) {
       console.warn("GOOGLE_PLACES_API_KEY no configurada. Cargando reseñas en base a testimonios locales.");
-      return { reviews: [], rating: 5.0, userRatingCount: 621 };
+      return { reviews: [], rating: 5.0, userRatingCount: 642 };
     }
 
     try {
@@ -95,10 +95,10 @@ async function getGoogleReviews() {
         console.error('Fallo la API Legacy en Página:', legacyError.message);
       }
     }
-    return { reviews: [], rating: 5.0, userRatingCount: 621 };
+    return { reviews: [], rating: 5.0, userRatingCount: 642 };
   } catch (error) {
     console.error('Error fetching reviews on server page:', error);
-    return { reviews: [], rating: 5.0, userRatingCount: 621 };
+    return { reviews: [], rating: 5.0, userRatingCount: 642 };
   }
 }
 
