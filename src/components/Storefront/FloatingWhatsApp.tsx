@@ -18,6 +18,10 @@ export function FloatingWhatsApp({ message, productName }: { message?: string; p
     return () => clearTimeout(timer);
   }, []);
 
+  if (pathname?.startsWith("/admin") || pathname?.startsWith("/login")) {
+    return null;
+  }
+
   let defaultText = "¡Hola Atelier! Me gustaría hacer una consulta.";
   
   if (productName) {
