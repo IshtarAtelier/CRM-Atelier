@@ -448,10 +448,13 @@ export async function POST(req: Request) {
       throw new Error("Token de pago o BIN no proporcionado.");
     }
 
-    let paymentMethodId = 1; // Default Visa
-    if (bin.startsWith("58")) paymentMethodId = 63; // Cabal
-    else if (bin.startsWith("5") || bin.startsWith("2")) paymentMethodId = 15; // Mastercard
-    else if (bin.startsWith("34") || bin.startsWith("37")) paymentMethodId = 39; // Amex
+    let paymentMethodId = body.paymentMethodId ? parseInt(body.paymentMethodId, 10) : null;
+    if (!paymentMethodId || isNaN(paymentMethodId)) {
+      paymentMethodId = 1; // Default Visa
+      if (bin.startsWith("58")) paymentMethodId = 63; // Cabal
+      else if (bin.startsWith("5") || bin.startsWith("2")) paymentMethodId = 15; // Mastercard
+      else if (bin.startsWith("34") || bin.startsWith("37")) paymentMethodId = 39; // Amex
+    }
 
     const privateKey = process.env.PAYWAY_PRIVATE_KEY;
     const isProd = process.env.PAYWAY_ENVIRONMENT === 'production';
