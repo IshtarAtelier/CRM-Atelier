@@ -14,13 +14,13 @@ a.robot:active{cursor:grabbing}
 </style></head>
 <body>
 <div class="card">
-<h1>🤖 Robot SmartLab v19</h1>
+<h1>🤖 Robot SmartLab v20</h1>
 <p>Arrastrá el botón naranja a tu barra de favoritos.<br>Si ya tenés uno viejo, borralo primero.</p>
 <div class="drag-zone">
 <a class="robot" id="robotLink" href="#">🤖 Atelier → SmartLab</a>
 <p class="hint">⬆️ Arrastrá este botón a tu barra de favoritos</p>
 </div>
-<p class="ok">✅ v19: + Color, Color/Intensidad teñido, fix cerca</p>
+<p class="ok">✅ v20: + Índice de refracción en selección de material y artículo</p>
 </div>
 <script>
 var c = "javascript:void(function(){try{"
@@ -126,6 +126,7 @@ var c = "javascript:void(function(){try{"
 +"else if(tl.indexOf('foto')>-1||tl.indexOf('transition')>-1)fz.push('foto');"
 +"else if(tl.indexOf('antirreflejo')>-1||tl.indexOf('ar')>-1)fz.push('c/ar');"
 +"else if(fz.length>0)fz.push('blanco');"
++"if(D.indice)fz.push(String(D.indice));"
 +"if(fz.length>0||D.material)AQ('material-autocomplete',D.material||' ','Material',fz.length>0?fz:null);"
 // Process autocomplete queue
 +"var qi=0;"
