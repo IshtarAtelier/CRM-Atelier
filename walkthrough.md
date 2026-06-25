@@ -238,3 +238,14 @@ El frontend (SDK de Decidir/Payway) genera un token de pago específico para el 
 3. **Verificación y Compilación**:
    - Corrimos `npx next build` localmente confirmando que la aplicación compila con éxito y sin errores de tipado.
    - Subimos los cambios a la rama `desarrollo` (`origin/desarrollo`) para que impacten en producción.
+
+---
+
+## 8. Remoción del Widget de Soporte de WhatsApp dentro del CRM / Panel de Administración
+
+### Problema
+El widget flotante de chat de WhatsApp para clientes (`FloatingWhatsApp`) se estaba mostrando dentro de las vistas privadas del CRM de administración, lo que interfería con la navegación de los operadores comerciales y no correspondía al entorno de administración interno.
+
+### Solución Implementada
+- **Ocultamiento por Ruta**: Editamos la lógica interna del componente [FloatingWhatsApp.tsx](file:///Users/ishtarpissano/proyectos/atelier/src/components/Storefront/FloatingWhatsApp.tsx) para interceptar el `pathname` y retornar inmediatamente `null` (evitando renderizarse) si la ruta actual del navegador corresponde a la administración `/admin` o al portal de acceso `/login`.
+- **Verificación**: Compilamos y verificamos que el resto del sitio de cara al cliente continúe mostrando el botón flotante normalmente, mientras que desaparece por completo al ingresar al CRM.
