@@ -1,13 +1,11 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { motion, useScroll, useTransform } from "framer-motion";
 import Image from "next/image";
-import Link from "next/link";
 import { MapPin, Clock, Phone, ChevronDown, Sparkles, Eye, Coffee } from "lucide-react";
 import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon";
 import { StorefrontNavbar } from "@/components/Storefront/StorefrontNavbar";
-import { StorefrontFooter } from "@/components/Storefront/StorefrontFooter";
 import { GoogleReviews } from "@/components/Storefront/GoogleReviews";
 
 interface NuestroLocalClientProps {
@@ -18,6 +16,7 @@ interface NuestroLocalClientProps {
     phone: string;
     whatsappPhoneId: string;
   };
+  children?: React.ReactNode;
 }
 
 const GALLERY_IMAGES = [
@@ -50,7 +49,7 @@ const SERVICES = [
   },
 ];
 
-export function NuestroLocalClient({ settings }: NuestroLocalClientProps) {
+export function NuestroLocalClient({ settings, children }: NuestroLocalClientProps) {
   const heroRef = useRef<HTMLDivElement>(null);
   const { scrollYProgress } = useScroll({
     target: heroRef,
@@ -399,7 +398,7 @@ export function NuestroLocalClient({ settings }: NuestroLocalClientProps) {
         </div>
       </section>
 
-      <StorefrontFooter />
+      {children}
       
     </div>
   );

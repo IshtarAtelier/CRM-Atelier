@@ -1,6 +1,7 @@
 import { Metadata } from 'next';
 import { getWebSettings } from '@/lib/web-settings';
 import { NuestroLocalClient } from './NuestroLocalClient';
+import { StorefrontFooter } from '@/components/Storefront/StorefrontFooter';
 
 export const metadata: Metadata = {
   title: "Nuestro Local | Óptica Boutique en Cerro de las Rosas, Córdoba",
@@ -96,7 +97,9 @@ export default async function NuestroLocalPage() {
           phone,
           whatsappPhoneId,
         }}
-      />
+      >
+        <StorefrontFooter />
+      </NuestroLocalClient>
     </>
   );
 }
