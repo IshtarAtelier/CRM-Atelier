@@ -158,7 +158,8 @@ export function HomeProductCarousel({ collections, totalCount }: Props) {
                   src={item.img}
                   alt={`Anteojos ${item.category || ''} ${item.brand || ''} ${item.name} en Atelier Óptica Córdoba`}
                   fill
-                  loading="lazy"
+                  priority={i < 4}
+                  loading={i < 4 ? "eager" : "lazy"}
                   style={{ transform: "translateZ(0)" }}
                   sizes="(max-width: 768px) 45vw, (max-width: 1024px) 33vw, 25vw"
                   className={`object-contain p-6 mix-blend-multiply transition-opacity duration-500 ease-in-out ${item.secondImg ? 'md:group-hover:opacity-0' : ''}`}
@@ -174,7 +175,8 @@ export function HomeProductCarousel({ collections, totalCount }: Props) {
                   src={item.secondImg}
                   alt={`${item.name} Try-On`}
                   fill
-                  loading="lazy"
+                  priority={i < 2}
+                  loading={i < 2 ? "eager" : "lazy"}
                   style={{ transform: "translateZ(0)" }}
                   sizes="(max-width: 768px) 45vw, (max-width: 1024px) 33vw, 25vw"
                   className="object-cover opacity-0 md:group-hover:opacity-100 transition-opacity duration-500 ease-in-out"

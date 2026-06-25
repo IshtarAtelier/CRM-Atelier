@@ -83,9 +83,9 @@ export function FilmmakerReel() {
       <div className="absolute bottom-0 left-0 right-0 h-[6%] bg-black z-20" />
 
       {/* ─── PRELOAD ALL IMAGES ─── */}
-      <div className="hidden">
+      <div className="absolute opacity-0 pointer-events-none w-px h-px overflow-hidden" aria-hidden="true">
         {FRAMES.map(f => (
-          <Image unoptimized key={f.id + "-preload"} src={f.src} alt="preload" width={100} height={100} priority />
+          <Image key={f.id + "-preload"} src={f.src} alt="preload" width={10} height={10} priority />
         ))}
       </div>
 
