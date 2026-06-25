@@ -72,6 +72,53 @@ export default function QuoteSummary({
     const [isSendingPDF, setIsSendingPDF] = React.useState(false);
     const [isUpdatingLock, setIsUpdatingLock] = React.useState(false);
 
+    const [labFrameShape, setLabFrameShape] = React.useState(order.labFrameShape || '');
+    const [frameA, setFrameA] = React.useState(order.frameA || '');
+    const [frameB, setFrameB] = React.useState(order.frameB || '');
+    const [frameDbl, setFrameDbl] = React.useState(order.frameDbl || '');
+    const [frameEdc, setFrameEdc] = React.useState(order.frameEdc || '');
+    const [labFrameDetails, setLabFrameDetails] = React.useState(order.labFrameDetails || '');
+    const [isSavingFrame, setIsSavingFrame] = React.useState(false);
+
+    React.useEffect(() => {
+        setLabFrameShape(order.labFrameShape || '');
+        setFrameA(order.frameA || '');
+        setFrameB(order.frameB || '');
+        setFrameDbl(order.frameDbl || '');
+        setFrameEdc(order.frameEdc || '');
+        setLabFrameDetails(order.labFrameDetails || '');
+    }, [order]);
+
+    const handleSaveFrameMeasures = async () => {
+        setIsSavingFrame(true);
+        try {
+            const res = await fetch(`/api/orders/${order.id}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    labFrameShape,
+                    frameA,
+                    frameB,
+                    frameDbl,
+                    frameEdc,
+                    labFrameDetails
+                })
+            });
+            if (res.ok) {
+                alert('✓ Medidas y forma del armazón guardadas correctamente.');
+                if (onRefreshContact) await onRefreshContact();
+            } else {
+                const errData = await res.json();
+                alert(`⚠️ Error al guardar: ${errData.error || 'Error desconocido'}`);
+            }
+        } catch (error) {
+            console.error('Error saving frame measures:', error);
+            alert('⚠️ Error de red al intentar guardar las medidas.');
+        } finally {
+            setIsSavingFrame(false);
+        }
+    };
+
     const handleUnlock = async () => {
         const confirmUnlock = window.confirm('¿Estás seguro de que querés reabrir esta venta para edición?');
         if (!confirmUnlock) return;
@@ -501,6 +548,101 @@ export default function QuoteSummary({
                 />
 
                 <PrescriptionDetails prescription={order.prescription} />
+
+                {/* Medidas y Forma del Armazón (Repaso de la Venta / Cotización) */}
+                {isSale && (
+                    <div className="bg-stone-50 dark:bg-stone-900/50 rounded-[2rem] p-6 border-2 border-stone-200 dark:border-stone-700">
+                        <div className="flex items-center gap-2 mb-4">
+                            <Glasses className="w-5 h-5 text-indigo-500" />
+                            <h4 className="text-[10px] font-black text-stone-700 dark:text-stone-300 uppercase tracking-widest">
+                                Medidas y Forma del Armazón (Laboratorio)
+                            </h4>
+                        </div>
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                            <div>
+                                <label className="text-[8px] font-black text-stone-400 uppercase tracking-widest block mb-1">
+                                    Forma / Aro
+                                </label>
+                                <input
+                                    type="text"
+                                    value={labFrameShape}
+                                    onChange={(e) => setLabFrameShape(e.target.value)}
+                                    placeholder="Ej: Redondo, Cuadrado"
+                                    className="w-full px-3 py-2 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl text-xs font-bold text-stone-800 dark:text-stone-200 uppercase"
+                                />
+                            </div>
+                            <div>
+                                <label className="text-[8px] font-black text-stone-400 uppercase tracking-widest block mb-1">
+                                    Horizontal (A)
+                                </label>
+                                <input
+                                    type="text"
+                                    value={frameA}
+                                    onChange={(e) => setFrameA(e.target.value)}
+                                    placeholder="Ej: 52"
+                                    className="w-full px-3 py-2 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl text-xs font-bold text-stone-800 dark:text-stone-200"
+                                />
+                            </div>
+                            <div>
+                                <label className="text-[8px] font-black text-stone-400 uppercase tracking-widest block mb-1">
+                                    Vertical (B)
+                                </label>
+                                <input
+                                    type="text"
+                                    value={frameB}
+                                    onChange={(e) => setFrameB(e.target.value)}
+                                    placeholder="Ej: 45"
+                                    className="w-full px-3 py-2 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl text-xs font-bold text-stone-800 dark:text-stone-200"
+                                />
+                            </div>
+                            <div>
+                                <label className="text-[8px] font-black text-stone-400 uppercase tracking-widest block mb-1">
+                                    Puente (Pte / DBL)
+                                </label>
+                                <input
+                                    type="text"
+                                    value={frameDbl}
+                                    onChange={(e) => setFrameDbl(e.target.value)}
+                                    placeholder="Ej: 18"
+                                    className="w-full px-3 py-2 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl text-xs font-bold text-stone-800 dark:text-stone-200"
+                                />
+                            </div>
+                            <div>
+                                <label className="text-[8px] font-black text-stone-400 uppercase tracking-widest block mb-1">
+                                    Diagonal (ED / EDC)
+                                </label>
+                                <input
+                                    type="text"
+                                    value={frameEdc}
+                                    onChange={(e) => setFrameEdc(e.target.value)}
+                                    placeholder="Ej: 54"
+                                    className="w-full px-3 py-2 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl text-xs font-bold text-stone-800 dark:text-stone-200"
+                                />
+                            </div>
+                            <div className="col-span-2 sm:col-span-3">
+                                <label className="text-[8px] font-black text-stone-400 uppercase tracking-widest block mb-1">
+                                    Detalles / Notas del Armazón
+                                </label>
+                                <input
+                                    type="text"
+                                    value={labFrameDetails}
+                                    onChange={(e) => setLabFrameDetails(e.target.value)}
+                                    placeholder="Ej: Patillas con flex, acetato negro"
+                                    className="w-full px-3 py-2 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl text-xs font-bold text-stone-800 dark:text-stone-200"
+                                />
+                            </div>
+                        </div>
+                        <div className="mt-4 flex justify-end">
+                            <button
+                                onClick={handleSaveFrameMeasures}
+                                disabled={isSavingFrame}
+                                className="px-6 py-2.5 bg-stone-900 text-white rounded-xl font-black text-[10px] uppercase tracking-widest hover:scale-105 active:scale-95 transition-all flex items-center gap-2 disabled:opacity-50"
+                            >
+                                {isSavingFrame ? 'Guardando...' : 'Guardar Medidas del Armazón'}
+                            </button>
+                        </div>
+                    </div>
+                )}
 
                 {/* SmartLab Info Block - Expanded View */}
                 {isSale && order.smartLabProgress != null && order.smartLabProgress > 0 && (

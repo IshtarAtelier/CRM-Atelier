@@ -63,15 +63,29 @@ function ContactosPageContent() {
         } else if (idParam) {
             setSelectedContactId(idParam);
         }
-
-        try {
-            const stored = localStorage.getItem('user');
-            if (stored) {
-                const u = JSON.parse(stored);
-                setCurrentUserRole(u.role || 'STAFF');
-            }
-        } catch { }
     }, [searchParams]);
+
+    useEffect(() => {
+        const loadUserRole = async () => {
+            try {
+                const stored = localStorage.getItem('user');
+                if (stored) {
+                    const u = JSON.parse(stored);
+                    setCurrentUserRole(u.role || 'STAFF');
+                    return;
+                }
+            } catch { }
+            try {
+                const res = await fetch('/api/auth/me');
+                if (res.ok) {
+                    const u = await res.json();
+                    setCurrentUserRole(u.role || 'STAFF');
+                    localStorage.setItem('user', JSON.stringify(u));
+                }
+            } catch { }
+        };
+        loadUserRole();
+    }, []);
 
     // Sync URL with selected contact
     const selectContact = useCallback((id: string | null) => {
