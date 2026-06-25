@@ -12,7 +12,7 @@ const geistSans = Geist({
 
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://www.atelieroptica.com.ar'),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://crm-atelier-production-ae72.up.railway.app'),
   title: {
     default: "Atelier Óptica | Armazones, Cristales y Multifocales en Cuotas",
     template: "%s | Atelier Óptica"
