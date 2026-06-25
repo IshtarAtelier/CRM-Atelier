@@ -172,9 +172,9 @@ export function CustomGlassesBuilder({ products }: { products: Product[] }) {
     <div className="flex-1 flex flex-col overflow-hidden h-[calc(100dvh-72px)]">
       
       {/* ── BARRA DE PROCESO (STEPS) — Cinematic ── */}
-      <div className="w-full bg-[#0f0e0c] border-b border-white/5 px-4 py-3 md:py-4 flex justify-center items-center shrink-0 shadow-[0_4px_30px_rgba(0,0,0,0.3)] relative overflow-hidden z-20">
+      <div className="w-full bg-[#faf8f5] border-b border-[#e8e2db] px-4 py-3 md:py-4 flex justify-center items-center shrink-0 shadow-sm relative overflow-hidden z-20">
         {/* Ambient glow */}
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[2px] bg-gradient-to-r from-transparent via-[#c8a55c]/30 to-transparent" />
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[2px] bg-gradient-to-r from-transparent via-[#c8a55c]/15 to-transparent" />
         <div className="flex items-center justify-between w-full max-w-xl md:max-w-2xl px-2">
           {/* Paso 1: Armazón */}
           <button 
@@ -183,22 +183,22 @@ export function CustomGlassesBuilder({ products }: { products: Product[] }) {
           >
             <div className={`w-9 h-9 md:w-10 md:h-10 rounded-2xl flex items-center justify-center transition-all duration-500 ${
               currentGlobalStep === 1 
-                ? 'bg-[#c8a55c] text-[#0f0e0c] shadow-lg shadow-[#c8a55c]/30 scale-110' 
+                ? 'bg-[#1a1714] text-white shadow-lg shadow-black/10 scale-110' 
                 : currentGlobalStep > 1 
-                  ? 'bg-[#c8a55c] text-[#0f0e0c] shadow-md shadow-[#c8a55c]/20'
-                  : 'bg-white/10 text-white/30 group-hover:bg-white/15'
+                  ? 'bg-[#c8a55c] text-white shadow-md shadow-[#c8a55c]/20'
+                  : 'bg-stone-100 border border-stone-200 text-stone-400 group-hover:bg-stone-200/50 group-hover:text-stone-600'
             }`}>
               {currentGlobalStep > 1 ? <span className="text-sm font-bold">✓</span> : <Glasses className="w-4 h-4" strokeWidth={1.8} />}
             </div>
             <span className={`text-[8px] md:text-[9px] font-black uppercase tracking-[0.15em] transition-colors ${
-              currentGlobalStep === 1 ? 'text-[#c8a55c]' : currentGlobalStep > 1 ? 'text-[#c8a55c]' : 'text-white/25'
+              currentGlobalStep === 1 ? 'text-[#1a1714]' : currentGlobalStep > 1 ? 'text-[#c8a55c]' : 'text-stone-400'
             }`}>
               Armazón
             </span>
           </button>
 
           {/* Línea 1 -> 2 */}
-          <div className="flex-1 mx-3 md:mx-5 h-[2px] bg-white/10 rounded-full relative overflow-hidden">
+          <div className="flex-1 mx-3 md:mx-5 h-[2px] bg-stone-200 rounded-full relative overflow-hidden">
             <motion.div 
               className="absolute top-0 left-0 h-full bg-gradient-to-r from-[#c8a55c] to-[#d4b87a] rounded-full" 
               initial={false}
@@ -211,22 +211,22 @@ export function CustomGlassesBuilder({ products }: { products: Product[] }) {
           <div className="flex flex-col items-center gap-1.5">
             <div className={`w-9 h-9 md:w-10 md:h-10 rounded-2xl flex items-center justify-center transition-all duration-500 ${
               currentGlobalStep === 2 
-                ? 'bg-[#c8a55c] text-[#0f0e0c] shadow-lg shadow-[#c8a55c]/30 scale-110' 
+                ? 'bg-[#1a1714] text-white shadow-lg shadow-black/10 scale-110' 
                 : currentGlobalStep > 2 
-                  ? 'bg-[#c8a55c] text-[#0f0e0c] shadow-md shadow-[#c8a55c]/20'
-                  : 'bg-white/10 text-white/30'
+                  ? 'bg-[#c8a55c] text-white shadow-md shadow-[#c8a55c]/20'
+                  : 'bg-stone-100 border border-stone-200 text-stone-400'
             }`}>
               {currentGlobalStep > 2 ? <span className="text-sm font-bold">✓</span> : <Disc3 className="w-4 h-4" strokeWidth={1.8} />}
             </div>
             <span className={`text-[8px] md:text-[9px] font-black uppercase tracking-[0.15em] transition-colors ${
-              currentGlobalStep === 2 ? 'text-[#c8a55c]' : currentGlobalStep > 2 ? 'text-[#c8a55c]' : 'text-white/25'
+              currentGlobalStep === 2 ? 'text-[#1a1714]' : currentGlobalStep > 2 ? 'text-[#c8a55c]' : 'text-stone-400'
             }`}>
               Cristales
             </span>
           </div>
 
           {/* Línea 2 -> 3 */}
-          <div className="flex-1 mx-3 md:mx-5 h-[2px] bg-white/10 rounded-full relative overflow-hidden">
+          <div className="flex-1 mx-3 md:mx-5 h-[2px] bg-stone-200 rounded-full relative overflow-hidden">
             <motion.div 
               className="absolute top-0 left-0 h-full bg-gradient-to-r from-[#c8a55c] to-[#d4b87a] rounded-full" 
               initial={false}
@@ -239,13 +239,13 @@ export function CustomGlassesBuilder({ products }: { products: Product[] }) {
           <div className="flex flex-col items-center gap-1.5">
             <div className={`w-9 h-9 md:w-10 md:h-10 rounded-2xl flex items-center justify-center transition-all duration-500 ${
               currentGlobalStep === 3 
-                ? 'bg-[#c8a55c] text-[#0f0e0c] shadow-lg shadow-[#c8a55c]/30 scale-110' 
-                : 'bg-white/10 text-white/30'
+                ? 'bg-[#1a1714] text-white shadow-lg shadow-black/10 scale-110' 
+                : 'bg-stone-100 border border-stone-200 text-stone-400'
             }`}>
               <ClipboardCheck className="w-4 h-4" strokeWidth={1.8} />
             </div>
             <span className={`text-[8px] md:text-[9px] font-black uppercase tracking-[0.15em] transition-colors ${
-              currentGlobalStep === 3 ? 'text-[#c8a55c]' : 'text-white/25'
+              currentGlobalStep === 3 ? 'text-[#1a1714]' : 'text-stone-400'
             }`}>
               Receta
             </span>
@@ -257,17 +257,17 @@ export function CustomGlassesBuilder({ products }: { products: Product[] }) {
       <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
         
         {/* LEFT: Frame Selector (Minimalist) */}
-        <div className="w-full lg:w-[45%] xl:w-[40%] h-full flex flex-col z-10 bg-[#0f0e0c] relative overflow-hidden">
+        <div className="w-full lg:w-[45%] xl:w-[40%] h-full flex flex-col z-10 bg-[#faf8f5] relative overflow-hidden">
           {/* Ambient glow effects */}
-          <div className="absolute top-20 -left-20 w-[300px] h-[300px] rounded-full bg-[#c8a55c]/[0.06] blur-[100px] pointer-events-none" />
-          <div className="absolute bottom-40 right-0 w-[200px] h-[200px] rounded-full bg-[#c8a55c]/[0.04] blur-[80px] pointer-events-none" />
+          <div className="absolute top-20 -left-20 w-[300px] h-[300px] rounded-full bg-[#c8a55c]/[0.03] blur-[100px] pointer-events-none" />
+          <div className="absolute bottom-40 right-0 w-[200px] h-[200px] rounded-full bg-[#c8a55c]/[0.02] blur-[80px] pointer-events-none" />
 
           <div className="p-6 lg:p-10 pb-3 flex justify-between items-end shrink-0 relative z-10">
             <div>
               <p className="text-[9px] font-black uppercase tracking-[0.3em] text-[#c8a55c] mb-1">Paso 1</p>
-              <h1 className="text-xl font-serif tracking-tight text-white">Elegí tu Armazón</h1>
+              <h1 className="text-xl font-serif tracking-tight text-[#1a1714]">Elegí tu Armazón</h1>
             </div>
-            <span className="text-[9px] font-black uppercase tracking-widest text-white/40 bg-white/5 border border-white/10 px-2.5 py-1 rounded-full">
+            <span className="text-[9px] font-black uppercase tracking-widest text-stone-500 bg-stone-100 border border-stone-200/80 px-2.5 py-1 rounded-full">
               {filteredProducts.length} {filteredProducts.length === 1 ? 'modelo' : 'modelos'}
             </span>
           </div>
@@ -276,18 +276,18 @@ export function CustomGlassesBuilder({ products }: { products: Product[] }) {
           <div className="px-6 lg:px-10 pb-5 flex flex-col gap-3 shrink-0 relative z-10">
             {/* Campo de Búsqueda */}
             <div className="relative">
-              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/30 pointer-events-none" />
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-stone-400 pointer-events-none" />
               <input 
                 type="text" 
                 placeholder="Buscar por marca o modelo..." 
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-white/5 border border-white/10 hover:border-white/20 focus:border-[#c8a55c]/60 rounded-xl pl-9 pr-4 py-2.5 text-xs focus:ring-2 focus:ring-[#c8a55c]/15 focus:outline-none transition-all placeholder:text-white/25 text-white/90"
+                className="w-full bg-white border border-stone-200/80 hover:border-stone-300 focus:border-[#c8a55c] rounded-xl pl-9 pr-4 py-2.5 text-xs focus:ring-2 focus:ring-[#c8a55c]/10 focus:outline-none transition-all placeholder:text-stone-400 text-stone-850 shadow-sm"
               />
               {searchQuery && (
                 <button 
                   onClick={() => setSearchQuery("")}
-                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-white/30 hover:text-white text-xs font-bold transition-colors"
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-700 text-xs font-bold transition-colors"
                 >
                   ✕
                 </button>
@@ -303,8 +303,8 @@ export function CustomGlassesBuilder({ products }: { products: Product[] }) {
                     onClick={() => setSelectedBrand(brand)}
                     className={`shrink-0 text-[9px] font-bold uppercase tracking-widest px-3.5 py-2 rounded-full border transition-all duration-300 ${
                       selectedBrand === brand 
-                        ? 'bg-[#c8a55c] border-[#c8a55c] text-[#0f0e0c] shadow-md shadow-[#c8a55c]/20' 
-                        : 'bg-white/5 border-white/10 text-white/40 hover:border-white/25 hover:text-white/70'
+                        ? 'bg-[#1a1714] border-[#1a1714] text-white shadow-md' 
+                        : 'bg-white border-stone-200/80 text-stone-500 hover:border-stone-300 hover:text-stone-800 shadow-sm'
                     }`}
                   >
                     {brand}
@@ -323,29 +323,29 @@ export function CustomGlassesBuilder({ products }: { products: Product[] }) {
                   initial={{ opacity: 0, x: -10 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ duration: 0.4, delay: 0.2 }}
-                  className="bg-white/5 border border-white/10 text-white/80 p-4 rounded-2xl rounded-tl-sm w-[90%] self-start backdrop-blur-sm"
+                  className="bg-white border border-stone-200/85 text-stone-800 p-4 rounded-2xl rounded-tl-sm w-[90%] self-start shadow-sm"
                 >
                   <p className="text-[12px] font-medium leading-relaxed">
                     ¡Hola! 👋 Te voy a guiar paso a paso en el diseño de tus nuevos lentes a medida.
                   </p>
                 </motion.div>
-
+ 
                 <motion.div 
                   initial={{ opacity: 0, x: -10 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ duration: 0.4, delay: 1.5 }}
-                  className="bg-white/5 border border-white/10 text-white/80 p-4 rounded-2xl rounded-tl-sm w-[95%] self-start backdrop-blur-sm"
+                  className="bg-white border border-stone-200/85 text-stone-800 p-4 rounded-2xl rounded-tl-sm w-[95%] self-start shadow-sm"
                 >
                   <p className="text-[12px] font-medium leading-relaxed">
                     El primer paso es elegir tu armazón. Abajo vas a encontrar nuestras opciones exclusivas en metal y acetato.
                   </p>
                 </motion.div>
-
+ 
                 <motion.div 
                   initial={{ opacity: 0, x: 10 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ duration: 0.4, delay: 2.8 }}
-                  className="bg-[#c8a55c] text-[#0f0e0c] p-3 rounded-2xl rounded-br-sm shadow-lg shadow-[#c8a55c]/20 w-[85%] self-end mt-2 text-center"
+                  className="bg-[#c8a55c] text-white p-3 rounded-2xl rounded-br-sm shadow-lg shadow-[#c8a55c]/20 w-[85%] self-end mt-2 text-center"
                 >
                   <p className="text-[11px] font-black tracking-[0.1em] uppercase flex items-center justify-center gap-1.5">
                     <Glasses className="w-3.5 h-3.5" /> Seleccioná un modelo
@@ -353,10 +353,10 @@ export function CustomGlassesBuilder({ products }: { products: Product[] }) {
                 </motion.div>
               </div>
             )}
-
+ 
             {filteredProducts.length === 0 ? (
               <div className="flex flex-col items-center justify-center text-center py-24 px-4">
-                <p className="text-white/30 text-[11px] uppercase tracking-widest mb-4">No se encontraron armazones</p>
+                <p className="text-stone-450 text-[11px] uppercase tracking-widest mb-4">No se encontraron armazones</p>
                 <button 
                   onClick={() => { setSearchQuery(""); setSelectedBrand("Todas"); }} 
                   className="text-[10px] font-bold uppercase tracking-[0.15em] underline underline-offset-4 text-[#c8a55c] hover:opacity-60 transition-opacity"
@@ -376,8 +376,8 @@ export function CustomGlassesBuilder({ products }: { products: Product[] }) {
                       onClick={() => handleSelect(p)}
                       className={`flex flex-col items-center text-center group focus:outline-none cursor-pointer relative rounded-2xl p-4 pb-5 transition-all duration-500 ${
                         isSelected 
-                          ? 'bg-[#c8a55c]/10 shadow-[0_0_30px_rgba(200,165,92,0.15)] ring-1 ring-[#c8a55c]/50' 
-                          : 'hover:bg-white/5 hover:shadow-[0_0_20px_rgba(200,165,92,0.08)]'
+                          ? 'bg-white border-2 border-[#c8a55c] shadow-lg shadow-[#c8a55c]/10' 
+                          : 'bg-white border border-stone-200/60 shadow-sm hover:border-stone-300/80 hover:shadow-md'
                       }`}
                     >
                       {/* Selected badge */}
@@ -385,29 +385,29 @@ export function CustomGlassesBuilder({ products }: { products: Product[] }) {
                         <motion.div 
                           initial={{ opacity: 0, scale: 0.8 }}
                           animate={{ opacity: 1, scale: 1 }}
-                          className="absolute top-2.5 right-2.5 bg-[#c8a55c] text-[#0f0e0c] text-[7px] font-black uppercase tracking-[0.15em] px-2.5 py-1 rounded-full shadow-lg shadow-[#c8a55c]/30 z-10"
+                          className="absolute top-2.5 right-2.5 bg-[#c8a55c] text-white text-[7px] font-black uppercase tracking-[0.15em] px-2.5 py-1 rounded-full shadow-lg shadow-[#c8a55c]/30 z-10"
                         >
                           ✓ Elegido
                         </motion.div>
                       )}
-
-                      <div className={`w-full aspect-[4/3] relative mb-4 flex items-center justify-center transition-all duration-500 isolate rounded-xl overflow-hidden bg-white/[0.03] ${isSelected ? 'opacity-100 scale-105' : 'opacity-60 group-hover:opacity-100'}`}>
+ 
+                      <div className={`w-full aspect-[4/3] relative mb-4 flex items-center justify-center transition-all duration-500 isolate rounded-xl overflow-hidden bg-stone-50/50 ${isSelected ? 'opacity-100 scale-105' : 'opacity-70 group-hover:opacity-100'}`}>
                         <Image 
                           src={(p.imagenesCatalogo.length > 0 ? resolveStorageUrl(p.imagenesCatalogo[0]) : "") || p.mockImage || "/images/placeholder.svg"}
                           alt={p.model || 'Anteojo'}
                           fill
                           style={{ objectFit: "contain", transform: "translateZ(0)" }}
-                          className={`${((p.model || '').toLowerCase().includes('tl3932 c3') || (p.model || '').toLowerCase().includes('diana') || p.id === 'cmq5d11hf002rhy61fhvqs7nj') ? 'scale-125' : ''} brightness-110 contrast-105`}
+                          className={`${((p.model || '').toLowerCase().includes('tl3932 c3') || (p.model || '').toLowerCase().includes('diana') || p.id === 'cmq5d11hf002rhy61fhvqs7nj') ? 'scale-125' : ''} brightness-105 contrast-[1.02]`}
                           sizes="(max-width: 768px) 50vw, 33vw"
                         />
                       </div>
-                      <p className={`text-[8px] uppercase tracking-[0.3em] font-bold mb-1.5 transition-colors duration-300 ${isSelected ? 'text-[#c8a55c]' : 'text-white/25 group-hover:text-white/50'}`}>
+                      <p className={`text-[8px] uppercase tracking-[0.3em] font-bold mb-1.5 transition-colors duration-300 ${isSelected ? 'text-[#c8a55c]' : 'text-stone-400 group-hover:text-stone-500'}`}>
                         {p.brand}
                       </p>
-                      <h3 className={`text-sm font-serif uppercase tracking-tight transition-colors duration-300 mb-2 ${isSelected ? 'text-white' : 'text-white/50 group-hover:text-white/80'}`}>
+                      <h3 className={`text-sm font-serif uppercase tracking-tight transition-colors duration-300 mb-2 ${isSelected ? 'text-stone-900' : 'text-stone-800 group-hover:text-black'}`}>
                         {p.model}
                       </h3>
-                      <p className={`text-[11px] font-bold transition-colors duration-300 ${isSelected ? 'text-[#c8a55c]' : 'text-white/20 group-hover:text-white/40'}`}>
+                      <p className={`text-[11px] font-bold transition-colors duration-300 ${isSelected ? 'text-[#c8a55c]' : 'text-stone-600'}`}>
                         ${p.price.toLocaleString()}
                       </p>
                     </motion.button>
