@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { 
     X, CheckCircle2, AlertCircle, Banknote, 
     Glasses, User, Receipt, ArrowRight,
-    Loader2, History,
+    Loader2, History, Save,
     Image as ImageIcon,
     FlaskConical
 } from 'lucide-react';
@@ -33,32 +33,8 @@ export default function CheckoutModal({
 }: CheckoutModalProps) {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const [authorizedByAdmin, setAuthorizedByAdmin] = useState(order.authorizedByAdmin || false);
-    const [userRole, setUserRole] = useState('STAFF');
-    
-    useEffect(() => {
-        const loadUserRole = async () => {
-            try {
-                const stored = localStorage.getItem('user');
-                if (stored) {
-                    const u = JSON.parse(stored);
-                    setUserRole(u.role || 'STAFF');
-                    return;
-                }
-            } catch { }
-            try {
-                const res = await fetch('/api/auth/me');
-                if (res.ok) {
-                    const u = await res.json();
-                    setUserRole(u.role || 'STAFF');
-                    localStorage.setItem('user', JSON.stringify(u));
-                }
-            } catch { }
-        };
-        loadUserRole();
-    }, []);
-
-    const isAdmin = userRole === 'ADMIN';
+    const [savingDraft, setSavingDraft] = useState(false);
+    const [savedDraft, setSavedDraft] = useState(false);
     
     // Client Data Validation
     const [clientForm, setClientForm] = useState({
@@ -71,9 +47,9 @@ export default function CheckoutModal({
 
     // Repaso Final: Usar PricingService para consistencia total
     const financials = PricingService.calculateOrderFinancials(order);
-    const total = financials.totalCash; // Cambiado a totalCash como base para la seña del 50%
+    const total = financials.totalCash; // Cambiado a totalCash como base para la seña del 40%
     const paid = financials.paidReal;
-    const minRequired = total * 0.5;
+    const minRequired = total * 0.4;
     
     // Prescription Selection
     const hasCrystals = order.items?.some((it: any) => {
@@ -125,7 +101,7 @@ export default function CheckoutModal({
         frameMeasureEd.trim() !== ''
     );
 
-    const canConvert = (Number(paid) >= Number(minRequired) || authorizedByAdmin) && 
+    const canConvert = Number(paid) >= Number(minRequired) && 
                        isClientDataComplete && 
                        (!hasCrystals || (selectedRxId && isFrameDataComplete));
 
@@ -183,13 +159,67 @@ export default function CheckoutModal({
                 labMeasurePte: frameMeasurePte || undefined,
                 labMeasureA: frameMeasureA || undefined,
                 labMeasureB: frameMeasureB || undefined,
-                labMeasureEd: frameMeasureEd || undefined,
-                authorizedByAdmin: authorizedByAdmin
+                labMeasureEd: frameMeasureEd || undefined
             });
         } catch (err: any) {
             setError(err.message || 'Error en la operación');
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleSaveDraft = async () => {
+        if (savingDraft) return;
+        setSavingDraft(true);
+        setError(null);
+        try {
+            // 1. Save client data if edited
+            if (isEditingClient && isClientDataComplete) {
+                const res = await fetch(`/api/contacts/${contact.id}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(clientForm)
+                });
+                if (res.ok) await onRefreshContact();
+            }
+
+            // 2. Build lab color string
+            let finalLabColor = undefined;
+            if (hasTinting && (tintType || tintColor)) {
+                finalLabColor = `${tintType} ${tintColor}`.trim();
+                if (tintIntensity) finalLabColor += ` (Grado: ${tintIntensity})`;
+            }
+
+            // 3. Save lab/frame data to order
+            const patchBody: any = {};
+            if (selectedRxId) patchBody.prescriptionId = selectedRxId;
+            if (frameShape) patchBody.labFrameShape = frameShape;
+            if (frameDetails) patchBody.labFrameDetails = frameDetails;
+            if (labNotes) patchBody.labNotes = labNotes;
+            if (finalLabColor) patchBody.labColor = finalLabColor;
+            if (frameMeasurePte) patchBody.frameDbl = frameMeasurePte;
+            if (frameMeasureA) patchBody.frameA = frameMeasureA;
+            if (frameMeasureB) patchBody.frameB = frameMeasureB;
+            if (frameMeasureEd) patchBody.frameEdc = frameMeasureEd;
+
+            if (Object.keys(patchBody).length > 0) {
+                const res = await fetch(`/api/orders/${order.id}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(patchBody)
+                });
+                if (!res.ok) {
+                    const d = await res.json();
+                    throw new Error(d.error || 'Error al guardar');
+                }
+            }
+
+            setSavedDraft(true);
+            setTimeout(() => setSavedDraft(false), 3000);
+        } catch (err: any) {
+            setError(err.message || 'Error al guardar datos');
+        } finally {
+            setSavingDraft(false);
         }
     };
 
@@ -558,7 +588,7 @@ export default function CheckoutModal({
                                     <Banknote className="w-4 h-4" /> Pagos Registrados
                                 </h3>
                                 <div className="flex items-center gap-2">
-                                    <span className="text-[10px] font-bold text-stone-400 italic">Mínimo requerido (50%): ${Math.ceil(minRequired).toLocaleString()}</span>
+                                    <span className="text-[10px] font-bold text-stone-400 italic">Mínimo requerido (40%): ${Math.ceil(minRequired).toLocaleString()}</span>
                                 </div>
                             </div>
 
@@ -597,40 +627,16 @@ export default function CheckoutModal({
                                 <div className="flex-1 space-y-2">
                                     <div className="flex justify-between text-[10px] font-black uppercase tracking-widest">
                                         <span className="text-stone-400 italic">Cobertura de la Orden</span>
-                                        <span className={(paid >= minRequired || authorizedByAdmin) ? 'text-emerald-500' : 'text-amber-500'}>
-                                            ${paid.toLocaleString()} / ${Math.ceil(minRequired).toLocaleString()} {paid >= minRequired ? '✓ COMPLETADO' : (authorizedByAdmin ? '✓ AUTORIZADO (SEÑA MENOR)' : '⚠️ SEÑA INSUFICIENTE')}
+                                        <span className={paid >= minRequired ? 'text-emerald-500' : 'text-amber-500'}>
+                                            ${paid.toLocaleString()} / ${Math.ceil(minRequired).toLocaleString()} {paid >= minRequired ? '✓ COMPLETADO' : '⚠️ SEÑA INSUFICIENTE'}
                                         </span>
                                     </div>
                                     <div className="h-2 bg-stone-100 dark:bg-stone-900 rounded-full overflow-hidden border border-stone-200 dark:border-stone-700">
                                         <div 
-                                            className={`h-full transition-all duration-700 ${(paid >= minRequired || authorizedByAdmin) ? 'bg-emerald-500' : 'bg-amber-500'}`} 
+                                            className={`h-full transition-all duration-700 ${paid >= minRequired ? 'bg-emerald-500' : 'bg-amber-500'}`} 
                                             style={{ width: `${Math.min((paid / (total || 1)) * 100, 100)}%` }} 
                                         />
                                     </div>
-                                    
-                                    {isAdmin && paid < minRequired && (
-                                        <div className="flex items-center gap-3 p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl mt-3 animate-in slide-in-from-top-1">
-                                            <input 
-                                                type="checkbox" 
-                                                id="auth-check-checkout"
-                                                checked={authorizedByAdmin}
-                                                onChange={(e) => setAuthorizedByAdmin(e.target.checked)}
-                                                className="w-4 h-4 text-amber-600 border-amber-300 rounded focus:ring-amber-500"
-                                            />
-                                            <label htmlFor="auth-check-checkout" className="text-xs font-black text-amber-600 dark:text-amber-400 uppercase tracking-widest cursor-pointer select-none">
-                                                Autorizar venta con seña menor al 50%
-                                            </label>
-                                        </div>
-                                    )}
-
-                                    {!isAdmin && paid < minRequired && !authorizedByAdmin && (
-                                        <div className="p-3 bg-amber-500/15 border border-amber-500/20 rounded-xl mt-3 flex items-start gap-2 animate-in slide-in-from-top-1">
-                                            <span className="text-xs">⚠️</span>
-                                            <p className="text-[9px] font-black text-amber-600 dark:text-amber-400 uppercase tracking-wider leading-relaxed">
-                                                Requiere que el administrador autorice la venta con seña menor al 50% para poder continuar.
-                                            </p>
-                                        </div>
-                                    )}
                                 </div>
                             </div>
                         </section>
@@ -646,9 +652,26 @@ export default function CheckoutModal({
                     <div className="flex flex-col sm:flex-row gap-4">
                         <button 
                             onClick={onClose}
-                            className="px-8 py-4 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-2xl font-black text-xs uppercase tracking-widest"
+                            className="px-6 py-4 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-2xl font-black text-xs uppercase tracking-widest"
                         >
                             CANCELAR
+                        </button>
+                        <button 
+                            onClick={handleSaveDraft}
+                            disabled={savingDraft || loading}
+                            className={`px-6 py-4 rounded-2xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2 transition-all ${
+                                savedDraft 
+                                    ? 'bg-emerald-100 dark:bg-emerald-950 text-emerald-600 border-2 border-emerald-300 dark:border-emerald-800' 
+                                    : 'bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400 border-2 border-blue-200 dark:border-blue-800 hover:bg-blue-100 dark:hover:bg-blue-900/30 hover:scale-105 active:scale-95'
+                            } disabled:opacity-50 disabled:scale-100`}
+                        >
+                            {savingDraft ? (
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : savedDraft ? (
+                                <><CheckCircle2 className="w-4 h-4" /> DATOS GUARDADOS ✓</>
+                            ) : (
+                                <><Save className="w-4 h-4" /> GUARDAR DATOS</>
+                            )}
                         </button>
                         <button 
                             onClick={handleConfirm}
