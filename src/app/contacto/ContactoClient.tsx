@@ -70,7 +70,7 @@ export function ContactoClient({
         <span className="text-[10px] font-bold uppercase tracking-[0.25em] text-[#c8a55c] block mb-3">
           Atención Personalizada
         </span>
-        <h1 className="font-serif text-4xl md:text-5xl tracking-tight mb-4 text-stone-905">
+        <h1 className="font-serif text-4xl md:text-5xl tracking-tight mb-4 text-stone-950">
           Contacto & Asesoramiento
         </h1>
         <p className="text-stone-500 leading-relaxed text-sm md:text-base">
