@@ -104,6 +104,16 @@ export default async function Home() {
     console.error("Prerendering warning: Database not reachable at build time. Using fallbacks.", error);
   }
 
+  const storageBucket = process.env.FIREBASE_STORAGE_BUCKET;
+  const getDirectUrl = (key: string) => {
+    if (!key) return '/images/og-image.jpg';
+    if (key.startsWith('http') || key.startsWith('/') || key.startsWith('data:')) return key;
+    if (storageBucket && !key.startsWith('local://')) {
+      return `https://firebasestorage.googleapis.com/v0/b/${storageBucket}/o/${encodeURIComponent(key)}?alt=media`;
+    }
+    return `/api/storage/view?key=${encodeURIComponent(key)}`;
+  };
+
   // Formateamos los productos para el carrusel y evitamos variantes repetidas
   const formatProducts = (list: any[]) => {
     if (!list || list.length === 0) return [];
@@ -114,17 +124,17 @@ export default async function Home() {
       rawPrice: wp.product.price,
       price: wp.product.price ? `6 cuotas de $${Math.round(wp.product.price / 6).toLocaleString("es-AR")}` : "",
       img: wp.imageUrl 
-        ? resolveStorageUrl(wp.imageUrl)
+        ? getDirectUrl(wp.imageUrl)
         : (wp.images.length > 0 
-            ? resolveStorageUrl(wp.images[0])
-            : (wp.product.imagenesCatalogo.length > 0 ? resolveStorageUrl(wp.product.imagenesCatalogo[0]) : '/images/og-image.jpg')),
+            ? getDirectUrl(wp.images[0])
+            : (wp.product.imagenesCatalogo.length > 0 ? getDirectUrl(wp.product.imagenesCatalogo[0]) : '/images/og-image.jpg')),
       slug: wp.slug,
       stock: wp.product.stock,
       brand: wp.product.brand,
       model: wp.product.model,
       secondImg: wp.images.length > 1 
-        ? resolveStorageUrl(wp.images[1])
-        : (wp.product.imagenesCatalogo.length > 1 ? resolveStorageUrl(wp.product.imagenesCatalogo[1]) : null),
+        ? getDirectUrl(wp.images[1])
+        : (wp.product.imagenesCatalogo.length > 1 ? getDirectUrl(wp.product.imagenesCatalogo[1]) : null),
       category: wp.product.category
     }));
 

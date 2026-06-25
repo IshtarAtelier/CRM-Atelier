@@ -69,6 +69,17 @@ export default async function TiendaPage() {
   const availableShapes = Array.from(shapesSet).sort();
   const availableMaterials = Array.from(materialsSet).sort();
 
+  // Helper to resolve URLs directly on the server to avoid slow client-side API redirects
+  const storageBucket = process.env.FIREBASE_STORAGE_BUCKET;
+  const getDirectUrl = (key: string) => {
+    if (!key) return '';
+    if (key.startsWith('http') || key.startsWith('/') || key.startsWith('data:')) return key;
+    if (storageBucket && !key.startsWith('local://')) {
+      return `https://firebasestorage.googleapis.com/v0/b/${storageBucket}/o/${encodeURIComponent(key)}?alt=media`;
+    }
+    return `/api/storage/view?key=${encodeURIComponent(key)}`;
+  };
+
   // 2) Map WebProducts to products format needed by storefront
   let mappedProducts = dbProducts.map(wp => {
     const modelCode = wp.product.model || wp.name || '';
@@ -96,7 +107,7 @@ export default async function TiendaPage() {
       wholesalePrice: wp.product.wholesalePrice,
       stock: wp.product.stock,
       slug: wp.slug,
-      imagenesCatalogo: wp.images.length > 0 ? wp.images : (wp.product.imagenesCatalogo || []),
+      imagenesCatalogo: (wp.images.length > 0 ? wp.images : (wp.product.imagenesCatalogo || [])).map(getDirectUrl),
       shape: isXl ? "XL" : (shape || "Otros"),
       material: material || "Acetato",
       gender: wp.product.gender || "Unisex"
