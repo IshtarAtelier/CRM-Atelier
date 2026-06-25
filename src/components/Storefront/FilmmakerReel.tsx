@@ -82,6 +82,13 @@ export function FilmmakerReel() {
       <div className="absolute top-0 left-0 right-0 h-[6%] bg-black z-20" />
       <div className="absolute bottom-0 left-0 right-0 h-[6%] bg-black z-20" />
 
+      {/* ─── PRELOAD ALL IMAGES ─── */}
+      <div className="hidden">
+        {FRAMES.map(f => (
+          <Image key={f.id + "-preload"} src={f.src} alt="preload" width={100} height={100} priority />
+        ))}
+      </div>
+
       {/* ─── IMAGES ─── */}
       <AnimatePresence mode="wait">
         <motion.div
