@@ -4,6 +4,8 @@ import { StorefrontFooter } from '@/components/Storefront/StorefrontFooter';
 import { prisma } from '@/lib/db';
 import { defaultWebSettings } from '@/lib/web-settings';
 
+export const dynamic = 'force-dynamic';
+
 export const metadata: Metadata = {
   alternates: { canonical: '/checkout' },
   title: "Checkout",
