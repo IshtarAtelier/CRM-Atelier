@@ -5,7 +5,7 @@ import { CristalesTabs } from "./CristalesTabs";
 export default function CristalesLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="bg-[#faf8f5] text-black selection:bg-black selection:text-white overflow-x-hidden font-sans">
-      <StorefrontNavbar theme="dark" />
+      <StorefrontNavbar theme="light" />
       
       {/* TABS NAVIGATION */}
       <div className="w-full bg-[#faf8f5] pt-28 pb-4 px-6 sticky top-0 z-40 border-b border-[#e8e2db]">
