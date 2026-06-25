@@ -22,12 +22,43 @@ interface Product {
   slug: string;
 }
 
+function getProductParts(name: string) {
+  // Matches "Name C1" or "Name C10" at the end of string
+  const match = name.match(/(.*)\s+(c\d+)\b/i);
+  if (match) {
+    return {
+      baseName: match[1].trim(),
+      variantLabel: match[2].toUpperCase().trim()
+    };
+  }
+  return {
+    baseName: name,
+    variantLabel: "Standard"
+  };
+}
+
+interface GroupedProduct {
+  baseName: string;
+  brand: string;
+  price: number;
+  category: string;
+  variants: {
+    id: string;
+    label: string;
+    stock: number;
+    imagenesCatalogo: string[];
+    slug: string;
+    price: number;
+  }[];
+}
+
 export function CustomGlassesBuilder({ products }: { products: Product[] }) {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [isMobileConfigOpen, setIsMobileConfigOpen] = useState(false);
   const [configuratorStep, setConfiguratorStep] = useState(1);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedBrand, setSelectedBrand] = useState("Todas");
+  const [selectedVariantIds, setSelectedVariantIds] = useState<Record<string, string>>({});
   
   const { setIsOpen: setCartOpen } = useCart();
 
@@ -62,6 +93,67 @@ export function CustomGlassesBuilder({ products }: { products: Product[] }) {
       
     return matchesSearch && matchesBrand;
   });
+
+  // Group filtered products by base model name
+  const groupedProducts: GroupedProduct[] = [];
+  filteredProducts.forEach(p => {
+    const { baseName, variantLabel } = getProductParts(p.model || p.id);
+    let existing = groupedProducts.find(
+      g => g.baseName.toLowerCase() === baseName.toLowerCase() && 
+           g.brand.toLowerCase() === p.brand.toLowerCase()
+    );
+    if (!existing) {
+      existing = {
+        baseName,
+        brand: p.brand,
+        price: p.price,
+        category: p.category,
+        variants: []
+      };
+      groupedProducts.push(existing);
+    }
+    existing.variants.push({
+      id: p.id,
+      label: variantLabel,
+      stock: p.stock,
+      imagenesCatalogo: p.imagenesCatalogo,
+      slug: p.slug,
+      price: p.price
+    });
+  });
+
+  const getActiveVariant = (group: GroupedProduct) => {
+    const selectedId = selectedVariantIds[group.baseName];
+    if (selectedId) {
+      const found = group.variants.find(v => v.id === selectedId);
+      if (found) return found;
+    }
+    return group.variants[0];
+  };
+
+  const handleSelectVariant = (baseName: string, variantId: string) => {
+    setSelectedVariantIds(prev => ({
+      ...prev,
+      [baseName]: variantId
+    }));
+    if (selectedProduct) {
+      const { baseName: selectedBaseName } = getProductParts(selectedProduct.model || selectedProduct.id);
+      if (selectedBaseName.toLowerCase() === baseName.toLowerCase()) {
+        const nextVariant = products.find(p => p.id === variantId);
+        if (nextVariant) {
+          setSelectedProduct(nextVariant);
+        }
+      }
+    }
+  };
+
+  const handleCardClick = (group: GroupedProduct) => {
+    const activeVariant = getActiveVariant(group);
+    const origProduct = products.find(p => p.id === activeVariant.id);
+    if (origProduct) {
+      handleSelect(origProduct);
+    }
+  };
 
   // Calculate current global step (1 to 3) based on selected product and configurator inner step (1-4)
   const currentGlobalStep = selectedProduct === null 
@@ -366,14 +458,17 @@ export function CustomGlassesBuilder({ products }: { products: Product[] }) {
               </div>
             ) : (
               <div className="grid grid-cols-2 gap-x-5 gap-y-8">
-                {filteredProducts.map((p) => {
-                  const isSelected = selectedProduct?.id === p.id;
+                {groupedProducts.map((group) => {
+                  const activeVariant = getActiveVariant(group);
+                  const isSelected = selectedProduct?.id === activeVariant.id;
+                  const origProduct = products.find(p => p.id === activeVariant.id);
+                  
                   return (
-                    <motion.button
+                    <motion.div
                       whileHover={{ y: -4, scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
-                      key={p.id}
-                      onClick={() => handleSelect(p)}
+                      key={group.baseName}
+                      onClick={() => handleCardClick(group)}
                       className={`flex flex-col items-center text-center group focus:outline-none cursor-pointer relative rounded-2xl p-4 pb-5 transition-all duration-500 ${
                         isSelected 
                           ? 'bg-white border-2 border-[#c8a55c] shadow-lg shadow-[#c8a55c]/10' 
@@ -393,24 +488,49 @@ export function CustomGlassesBuilder({ products }: { products: Product[] }) {
  
                       <div className={`w-full aspect-[4/3] relative mb-4 flex items-center justify-center transition-all duration-500 isolate rounded-xl overflow-hidden bg-stone-50/50 ${isSelected ? 'opacity-100 scale-105' : 'opacity-70 group-hover:opacity-100'}`}>
                         <Image 
-                          src={(p.imagenesCatalogo.length > 0 ? resolveStorageUrl(p.imagenesCatalogo[0]) : "") || p.mockImage || "/images/placeholder.svg"}
-                          alt={p.model || 'Anteojo'}
+                          src={(activeVariant.imagenesCatalogo.length > 0 ? resolveStorageUrl(activeVariant.imagenesCatalogo[0]) : "") || (origProduct?.mockImage) || "/images/placeholder.svg"}
+                          alt={group.baseName || 'Anteojo'}
                           fill
                           style={{ objectFit: "contain", transform: "translateZ(0)" }}
-                          className={`${((p.model || '').toLowerCase().includes('tl3932 c3') || (p.model || '').toLowerCase().includes('diana') || p.id === 'cmq5d11hf002rhy61fhvqs7nj') ? 'scale-125' : ''} brightness-105 contrast-[1.02]`}
+                          className={`${((group.baseName || '').toLowerCase().includes('tl3932 c3') || (group.baseName || '').toLowerCase().includes('diana') || activeVariant.id === 'cmq5d11hf002rhy61fhvqs7nj') ? 'scale-125' : ''} brightness-105 contrast-[1.02]`}
                           sizes="(max-width: 768px) 50vw, 33vw"
                         />
                       </div>
                       <p className={`text-[8px] uppercase tracking-[0.3em] font-bold mb-1.5 transition-colors duration-300 ${isSelected ? 'text-[#c8a55c]' : 'text-stone-400 group-hover:text-stone-500'}`}>
-                        {p.brand}
+                        {group.brand}
                       </p>
                       <h3 className={`text-sm font-serif uppercase tracking-tight transition-colors duration-300 mb-2 ${isSelected ? 'text-stone-900' : 'text-stone-800 group-hover:text-black'}`}>
-                        {p.model}
+                        {group.baseName}
                       </h3>
                       <p className={`text-[11px] font-bold transition-colors duration-300 ${isSelected ? 'text-[#c8a55c]' : 'text-stone-600'}`}>
-                        ${p.price.toLocaleString()}
+                        ${activeVariant.price.toLocaleString()}
                       </p>
-                    </motion.button>
+
+                      {/* Variant selectors */}
+                      {group.variants.length > 1 && (
+                        <div className="flex gap-1.5 mt-3 flex-wrap justify-center relative z-20">
+                          {group.variants.map((v) => {
+                            const isVariantActive = activeVariant.id === v.id;
+                            return (
+                              <button
+                                key={v.id}
+                                onClick={(e) => {
+                                  e.stopPropagation(); // prevent card click
+                                  handleSelectVariant(group.baseName, v.id);
+                                }}
+                                className={`text-[8px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full border transition-all ${
+                                  isVariantActive
+                                    ? 'bg-[#1a1714] border-[#1a1714] text-white font-black'
+                                    : 'bg-stone-50 border-stone-200 text-stone-500 hover:bg-stone-100 hover:text-stone-700'
+                                }`}
+                              >
+                                {v.label}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </motion.div>
                   );
                 })}
               </div>
