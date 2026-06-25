@@ -35,6 +35,7 @@ export default function LentesTransitionsPage() {
               src="/images/blog/vidriera-atelier.webp" 
               alt="Anteojos con cristales transitions en Atelier Óptica" 
               fill
+              sizes="(max-width: 768px) 100vw, 800px"
               className="object-cover" 
             />
           </div>

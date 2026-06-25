@@ -104,7 +104,6 @@ export function FilmmakerReel() {
               alt={frame.title}
               fill
               priority={current === 0}
-              unoptimized
               className="object-cover"
               sizes="100vw"
             />
