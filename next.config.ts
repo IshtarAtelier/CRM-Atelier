@@ -12,7 +12,7 @@ const nextConfig: NextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
-  serverExternalPackages: ['playwright', 'firebase-admin'],
+  serverExternalPackages: ['playwright', 'firebase-admin', 'sharp'],
   experimental: {
     serverActions: {
       bodySizeLimit: '10mb',
@@ -28,7 +28,6 @@ const nextConfig: NextConfig = {
   },
   images: {
     formats: ['image/avif', 'image/webp'],
-    unoptimized: true,
     remotePatterns: [
       { protocol: 'https', hostname: '*.firebasestorage.googleapis.com' },
       { protocol: 'https', hostname: 'firebasestorage.googleapis.com' },
