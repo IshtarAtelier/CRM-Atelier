@@ -181,7 +181,15 @@ export class ReportService {
 
             const has2x1Tag = order.tags?.some((t: any) => t.name.toLowerCase().includes('2x1')) || false;
             const has2x1Product = order.items.some((i: any) => i.product && (i.product.name || '').toLowerCase().includes('2x1'));
-            const is2x1Order = (order.appliedPromoName || '').toLowerCase().includes('2x1') || has2x1Tag || has2x1Product;
+            const hasFreeCrystal = order.items.some((i: any) => {
+                if (!i.product) return false;
+                const isCrystal = (i.product.category || '').toUpperCase().includes('CRISTAL')
+                    || (i.product.type || '').includes('Cristal')
+                    || (i.product.type || '').includes('Multifocal')
+                    || (i.product.type || '').includes('Monofocal');
+                return isCrystal && i.price === 0;
+            });
+            const is2x1Order = (order.appliedPromoName || '').toLowerCase().includes('2x1') || has2x1Tag || has2x1Product || hasFreeCrystal;
 
             for (const item of order.items) {
                 const product = item.product;

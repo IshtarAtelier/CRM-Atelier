@@ -337,7 +337,7 @@ export function ProductClient({
                 }}
                 className={`w-full px-8 py-5 text-[15px] font-black uppercase tracking-[0.2em] transition-all disabled:cursor-not-allowed shadow-xl hover:scale-[1.02] ${isAdded ? 'bg-green-600 text-white' : 'bg-black text-white hover:bg-stone-900 disabled:opacity-50 disabled:bg-stone-400 disabled:hover:scale-100 disabled:shadow-none'}`}
               >
-                {isAdded ? "¡Ya son tuyos! 🎉" : ((product.stock !== undefined && product.stock <= 0 && product.category !== "Cristal") ? "Agotado" : "¡Los Quiero!")}
+                {isAdded ? "¡Ya son tuyos! 🎉" : ((product.stock !== undefined && product.stock <= 0 && product.category !== "Cristal") ? "Agotado" : "Comprar Ahora >")}
               </button>
             </div>
 

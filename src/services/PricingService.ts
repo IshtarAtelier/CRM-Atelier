@@ -102,6 +102,19 @@ export class PricingService {
     }
 
     /**
+     * Calculates the total estimated cost of an order by summing the cost of all its items.
+     * This is used to audit laboratory invoices.
+     */
+    static calculateEstimatedCost(order: any): number {
+        if (!order.items || order.items.length === 0) return 0;
+        
+        return order.items.reduce((total: number, item: any) => {
+            const productCost = item.product?.cost || 0;
+            return total + (productCost * item.quantity);
+        }, 0);
+    }
+
+    /**
      * Calcula el desglose financiero completo (Totales y Saldos) para una orden existente.
      */
     static calculateOrderFinancials(order: any): OrderFinancials {
