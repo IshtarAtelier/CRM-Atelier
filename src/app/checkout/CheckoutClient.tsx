@@ -336,62 +336,73 @@ export function CheckoutClient({
       createInput('card_holder_doc_number', formData.dni.replace(/\D/g, ''));
 
       decidir.createToken(form, async (status: number, response: any) => {
-        if (status !== 200 && status !== 201) {
-          console.error("Error Token:", response);
-          toast.error("Los datos de la tarjeta son inválidos o fueron rechazados. Por favor verificá.");
-          setIsProcessing(false);
-          return;
-        }
-
-        const token = response.id;
-        const bin = response.bin; // Decidir returns bin in response
-        const paymentMethodId = response.payment_method_id; // Decidir returns payment_method_id
-
-        // Ahora enviamos el token al backend
-        const res = await fetch("/api/checkout/payway", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            customer: {
-              ...formData,
-              shippingMethod: formData.shippingMethod,
-              shippingBranch: formData.shippingBranch
-            },
-            items: items,
-            total: getCartTotal(),
-            paymentToken: token,
-            bin: bin,
-            paymentMethodId: paymentMethodId
-          })
-        });
-
-        if (res.ok) {
-          const data = await res.json();
-          if (data.success) {
-            const sessionId = localStorage.getItem("atelier-checkout-session-id");
-            if (sessionId) {
-              fetch('/api/checkout/session', {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ sessionId, status: 'COMPLETED' })
-              }).catch(console.error);
-              localStorage.removeItem("atelier-checkout-session-id");
+        try {
+          if (status !== 200 && status !== 201) {
+            console.error("Error Token:", response);
+            let tokenErrorMsg = "Los datos de la tarjeta son inválidos o fueron rechazados. Por favor verificá.";
+            if (response?.error && Array.isArray(response.error)) {
+              const errorDetails = response.error.map((e: any) => e.param || e.message || 'error desconocido').join(', ');
+              tokenErrorMsg = `Error en los datos de la tarjeta: ${errorDetails}`;
             }
-            try {
-              trackPurchase(data.orderId || sessionId || crypto.randomUUID(), getCartTotal(), items);
-            } catch (e) {
-              console.error("Purchase tracking error:", e);
-            }
-            clearCart();
-            setIsSuccess(true);
-          } else {
-            toast.error(data.error || "El pago fue rechazado por la tarjeta.");
+            toast.error(tokenErrorMsg);
+            setIsProcessing(false);
+            return;
           }
-        } else {
-          const errorData = await res.json();
-          toast.error(errorData.error || "Error procesando el pago. Revisá los fondos e intentá de nuevo.");
+
+          const token = response.id;
+          const bin = response.bin; // Decidir returns bin in response
+          const paymentMethodId = response.payment_method_id; // Decidir returns payment_method_id
+
+          // Ahora enviamos el token al backend
+          const res = await fetch("/api/checkout/payway", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              customer: {
+                ...formData,
+                shippingMethod: formData.shippingMethod,
+                shippingBranch: formData.shippingBranch
+              },
+              items: items,
+              total: getCartTotal(),
+              paymentToken: token,
+              bin: bin,
+              paymentMethodId: paymentMethodId
+            })
+          });
+
+          if (res.ok) {
+            const data = await res.json();
+            if (data.success) {
+              const sessionId = localStorage.getItem("atelier-checkout-session-id");
+              if (sessionId) {
+                fetch('/api/checkout/session', {
+                  method: 'PUT',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ sessionId, status: 'COMPLETED' })
+                }).catch(console.error);
+                localStorage.removeItem("atelier-checkout-session-id");
+              }
+              try {
+                trackPurchase(data.orderId || sessionId || crypto.randomUUID(), getCartTotal(), items);
+              } catch (e) {
+                console.error("Purchase tracking error:", e);
+              }
+              clearCart();
+              setIsSuccess(true);
+            } else {
+              toast.error(data.error || "El pago fue rechazado por la tarjeta.");
+            }
+          } else {
+            const errorData = await res.json();
+            toast.error(errorData.error || "Error procesando el pago. Revisá los fondos e intentá de nuevo.");
+          }
+        } catch (callbackError: any) {
+          console.error("Error en callback de PayWay:", callbackError);
+          toast.error("Error procesando el pago: " + (callbackError.message || "Intente nuevamente."));
+        } finally {
+          setIsProcessing(false);
         }
-        setIsProcessing(false);
       });
 
     } catch (error: any) {

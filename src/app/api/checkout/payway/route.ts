@@ -463,18 +463,23 @@ export async function POST(req: Request) {
       ? 'https://live.decidir.com/api/v2/payments'
       : 'https://developers.decidir.com/api/v2/payments';
 
+    // PayWay/Decidir API requires amount in CENTS (integer, multiply by 100)
+    const amountInCents = Math.round(total * 100);
+
     const paywayRequest = {
       site_transaction_id: `WEB-${order.id}`,
       token: paymentToken,
       payment_method_id: paymentMethodId,
       bin: bin,
-      amount: total,
+      amount: amountInCents,
       currency: "ARS",
       installments: parseInt(customer.installments || "1", 10),
       description: "Compra Atelier Óptica Web",
       payment_type: "single",
       sub_payments: []
     };
+
+    console.log("[PAYWAY CHECKOUT] Request payload:", JSON.stringify({ ...paywayRequest, token: '***REDACTED***' }));
 
     const paywayRes = await fetch(apiUrl, {
       method: 'POST',

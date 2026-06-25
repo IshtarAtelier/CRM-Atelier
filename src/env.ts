@@ -28,7 +28,7 @@ const envSchema = z.object({
   PAYWAY_SITE_ID: z.string().optional(),
   PAYWAY_PUBLIC_KEY: z.string().optional(),
   PAYWAY_PRIVATE_KEY: z.string().optional(),
-  PAYWAY_ENVIRONMENT: z.enum(['development', 'production']).default('development'),
+  PAYWAY_ENVIRONMENT: z.enum(['development', 'sandbox', 'production']).default('development'),
 
   // WhatsApp
   META_ACCESS_TOKEN: z.string().optional(),
