@@ -476,7 +476,32 @@ export async function POST(req: Request) {
       installments: parseInt(customer.installments || "1", 10),
       description: "Compra Atelier Óptica Web",
       payment_type: "single",
-      sub_payments: []
+      sub_payments: [],
+      fraud_detection: {
+        send_to_cs: true,
+        channel: "Web",
+        bill_to: {
+          city: customer.city || "N/A",
+          country: "AR",
+          customer_id: client.id,
+          email: customer.email,
+          first_name: customer.firstName,
+          last_name: customer.lastName,
+          phone_number: customer.phone?.replace(/\D/g, '') || "",
+          postal_code: customer.zip || "0000",
+          state: customer.state || "N/A",
+          street1: customer.address || "N/A"
+        },
+        purchase_totals: {
+          currency: "ARS",
+          amount: amountInCents
+        },
+        customer: {
+          id: client.id,
+          email: customer.email
+        },
+        device_unique_id: `WEB-${order.id}`
+      }
     };
 
     console.log("[PAYWAY CHECKOUT] Request payload:", JSON.stringify({ ...paywayRequest, token: '***REDACTED***' }));
