@@ -581,10 +581,13 @@ export default function PedidosPage() {
                     lensName.includes('exclusive') ? 'exclusive' : '',
                     lensName.includes('drive') ? 'drive' : '',
                     lensName.includes('ailens') ? 'ailens' : '',
+                    lensName.includes('super') ? 'super' : '',
+                    lensName.includes('asfer') || lensName.includes('asfér') ? 'asfer' : '',
                     lensName.includes('org') ? 'org' : '',
                     lensName.includes('poli') ? 'poli' : '',
                     (lensName.includes('blue') || tratamiento === 'Filtro Azul') ? 'blue' : '',
-                    (lensName.includes('ar') || tratamiento === 'Antirreflejo') ? 'c/ar' : ''
+                    (lensName.includes('ar') || tratamiento === 'Antirreflejo') ? 'c/ar' : '',
+                    lensIndex ? String(lensIndex) : ''
                 ].filter(Boolean)
             };
 
