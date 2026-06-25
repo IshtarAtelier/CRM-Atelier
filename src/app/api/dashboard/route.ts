@@ -335,7 +335,7 @@ export async function GET(request: Request) {
                     || (product.type || '').includes('Monofocal');
 
                 let itemCost = (product.cost || 0) * item.quantity;
-                if (product.unitType === 'PAR' && item.eye && (product.cost || 0) > 0) {
+                if (isCrystalItem && item.eye && (product.cost || 0) > 0) {
                     itemCost = ((product.cost || 0) / 2) * item.quantity;
                 }
 

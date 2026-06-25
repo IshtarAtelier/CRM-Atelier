@@ -190,7 +190,7 @@ export class ReportService {
 
                 let itemCost = (product.cost || 0) * item.quantity;
                 
-                if (isCrystalItem && product.unitType !== 'UNIDAD' && (item.eye === 'OD' || item.eye === 'OI') && (product.cost || 0) > 0) {
+                if (isCrystalItem && (item.eye === 'OD' || item.eye === 'OI') && (product.cost || 0) > 0) {
                     itemCost = ((product.cost || 0) / 2) * item.quantity;
                 }
 
