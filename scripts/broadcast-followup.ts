@@ -63,7 +63,7 @@ async function main() {
     const clients = await prisma.client.findMany({
         where: {
             status: {
-                notIn: ['CONFIRMED', 'CUSTOMER', 'COMPLETED']
+                notIn: ['CUSTOMER', 'COMPLETED', 'ARCHIVED', 'LOST']
             },
             createdAt: {
                 gte: startOfMonth
@@ -122,7 +122,7 @@ ${chatContext}
 ---
 
 INSTRUCCIONES CRÍTICAS:
-0. SI EL CONTEXTO INDICA CLARAMENTE QUE EL CLIENTE YA COMPRÓ los anteojos (ya sea a nosotros o en otra óptica) o que la venta ya está cerrada, responde ÚNICAMENTE con la palabra "SKIP_SALE" y nada más. No envíes seguimiento en este caso.
+0. SI EL CONTEXTO INDICA CLARAMENTE QUE EL CLIENTE YA COMPRÓ los anteojos (ya sea a nosotros o en otra óptica), QUE NO ESTÁ INTERESADO, o que la venta ya está cerrada, responde ÚNICAMENTE con la palabra "SKIP_SALE" y nada más. No envíes seguimiento en este caso.
 1. Escribe UN SOLO PÁRRAFO CORTO, no más de 2 oraciones.
 2. Suena 100% humano, empático y muy amigable. Retoma el último tema que hablaron (ej. monofocales bajos, presupuestos, turnos, etc.).
 3. Haz una pregunta sutil y servicial al final, usando un tono similar a: "¿Contame un poquito qué te pareció?", "¿Necesitás que te cotice alguna otra opción?", o "¿Te quedó alguna duda con los precios?".
