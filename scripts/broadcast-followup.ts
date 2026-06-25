@@ -63,7 +63,7 @@ async function main() {
     const clients = await prisma.client.findMany({
         where: {
             status: {
-                notIn: ['CUSTOMER', 'COMPLETED', 'ARCHIVED', 'LOST']
+                notIn: ['CONFIRMED', 'CUSTOMER', 'COMPLETED', 'ARCHIVED', 'LOST']
             },
             createdAt: {
                 gte: startOfMonth
