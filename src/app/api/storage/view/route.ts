@@ -33,7 +33,8 @@ export async function GET(req: NextRequest) {
             const { getSignedUrl } = await import('@/lib/storage');
             const signedUrl = await getSignedUrl(key);
             console.log('[View Route] Redirecting to signedUrl:', signedUrl);
-            return NextResponse.redirect(signedUrl, { status: 307 });
+            const absoluteUrl = new URL(signedUrl, req.url).toString();
+            return NextResponse.redirect(absoluteUrl, { status: 307 });
         }
         console.log('[View Route] Bypassed cloud redirect, falling back to local for key:', key);
 

@@ -7,7 +7,7 @@ import { prisma } from '@/lib/db';
 export async function GET() {
     try {
         const res = await fetchWa('/api/chats', { cache: 'no-store' });
-        let data = await res.json();
+        const data = await res.json();
 
         // Solo retornamos la data directamente sin hacer queries por cada chat
         return NextResponse.json(data);

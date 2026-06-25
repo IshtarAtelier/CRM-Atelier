@@ -22,8 +22,6 @@ export default function PrescriptionDetails({
     contactId,
     onUpdate
 }: PrescriptionDetailsProps) {
-    if (!prescription && !showEmpty) return null;
-
     const [editingField, setEditingField] = useState<string | null>(null);
     const [editValue, setEditValue] = useState('');
     const [saving, setSaving] = useState(false);
@@ -59,6 +57,8 @@ export default function PrescriptionDetails({
         setEditingField(null);
         setEditValue('');
     };
+
+    if (!prescription && !showEmpty) return null;
 
     // Helper to format values with empty state
     const fmt = (val: any, suffix = '', prefix = '') => {

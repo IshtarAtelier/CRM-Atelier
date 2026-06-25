@@ -1590,10 +1590,12 @@ process.on('unhandledRejection', (reason) => {
     console.error('⚠️ Unhandled Rejection:', reason?.message || reason);
 });
 
-// B11: Capturar excepciones síncronas no atrapadas
-process.on('uncaughtException', (err) => {
+process.on('uncaughtException', async (err) => {
     console.error('🛑 Uncaught Exception:', err.message, err.stack);
-    // No matamos el proceso para mantener el bot corriendo
+    try {
+        await prisma.$disconnect();
+    } catch (e) {}
+    process.exit(1);
 });
 
 // Graceful Shutdown: Liberar conexiones de Prisma al apagar

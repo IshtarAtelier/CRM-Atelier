@@ -6,7 +6,7 @@ import { StorefrontNavbar } from '@/components/Storefront/StorefrontNavbar';
 import { StorefrontFooter } from '@/components/Storefront/StorefrontFooter';
 import { staticPosts } from '@/lib/static-blog-posts';
 import { prisma } from '@/lib/db';
-import { seoKeywords, formatQueryToTitle } from '@/lib/seo-keywords';
+import { seoKeywords } from '@/lib/seo-keywords';
 import { SeoAccordion } from '@/components/blog/SeoAccordion';
 
 export const revalidate = 300;

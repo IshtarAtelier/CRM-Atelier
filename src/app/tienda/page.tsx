@@ -70,7 +70,7 @@ export default async function TiendaPage() {
   const availableMaterials = Array.from(materialsSet).sort();
 
   // 2) Map WebProducts to products format needed by storefront
-  let mappedProducts = dbProducts.map(wp => {
+  const mappedProducts = dbProducts.map(wp => {
     const modelCode = wp.product.model || wp.name || '';
     const { shape, material } = getProductAttributes(modelCode);
     

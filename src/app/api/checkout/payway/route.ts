@@ -8,7 +8,74 @@ import { getWebSettings } from '@/lib/web-settings';
 import { CrystalMapping } from '@/lib/config/crystal-mapping';
 import { generateReceiptPDF } from '@/lib/receipt-pdf-generator';
 import { getAdminHtml, getAdminWholesaleHtml, getClientTransferHtml, getClientWholesaleHtml, getConfirmationHtml } from '@/lib/checkout/checkout-emails';
-import { buildPricingMap, recalculateItemPrice } from '@/lib/checkout/checkout-pricing';
+import { recalculateItemPrice } from '@/lib/checkout/checkout-pricing';
+
+function getArgentineStateCode(stateName: string): string {
+  if (!stateName) return "C"; // fallback to CABA
+  const normalized = stateName.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+  
+  switch (normalized) {
+    case "caba":
+    case "ciudad autonoma de buenos aires":
+    case "capital federal":
+    case "capital":
+      return "C";
+    case "buenos aires":
+    case "provincia de buenos aires":
+    case "pba":
+      return "B";
+    case "catamarca":
+      return "K";
+    case "chaco":
+      return "H";
+    case "chubut":
+      return "U";
+    case "cordoba":
+      return "X";
+    case "corrientes":
+      return "W";
+    case "entre rios":
+      return "E";
+    case "formosa":
+      return "P";
+    case "jujuy":
+      return "Y";
+    case "la pampa":
+      return "L";
+    case "la rioja":
+      return "F";
+    case "mendoza":
+      return "M";
+    case "misiones":
+      return "N";
+    case "neuquen":
+      return "Q";
+    case "rio negro":
+      return "R";
+    case "salta":
+      return "A";
+    case "san juan":
+      return "J";
+    case "san luis":
+      return "D";
+    case "santa cruz":
+      return "Z";
+    case "santa fe":
+      return "S";
+    case "santiago del estero":
+      return "G";
+    case "tierra del fuego":
+    case "tierra del fuego, antartida e islas del atlantico sur":
+      return "V";
+    case "tucuman":
+      return "T";
+    default:
+      if (stateName.length === 1 && /^[a-zA-Z]$/.test(stateName)) {
+        return stateName.toUpperCase();
+      }
+      return "C";
+  }
+}
 
 export async function POST(req: Request) {
   let globalRestoreStock: (() => Promise<void>) | null = null;
@@ -495,7 +562,7 @@ export async function POST(req: Request) {
           last_name: customer.lastName,
           phone_number: customer.phone?.replace(/\D/g, '') || "",
           postal_code: customer.zip || "0000",
-          state: customer.state || "N/A",
+          state: getArgentineStateCode(customer.state),
           street1: customer.address || "N/A"
         },
         purchase_totals: {
@@ -506,7 +573,15 @@ export async function POST(req: Request) {
           id: client.id,
           email: customer.email
         },
-        device_unique_id: `WEB-${order.id}`
+        device_unique_id: `WEB-${order.id}`,
+        retail_transaction_data: {
+          items: sanitizedItems.map(item => ({
+            code: item.productId || 'generic',
+            name: item.model || 'Producto',
+            qty: item.quantity,
+            price: Math.round(item.price * 100)
+          }))
+        }
       }
     };
 

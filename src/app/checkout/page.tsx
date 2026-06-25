@@ -22,7 +22,7 @@ export default async function CheckoutPage() {
     environment: process.env.PAYWAY_ENVIRONMENT || 'sandbox'
   };
 
-  let webSettings = { ...defaultWebSettings };
+  const webSettings = { ...defaultWebSettings };
   try {
     const dbSettings = await prisma.systemSetting.findMany();
     dbSettings.forEach(s => {

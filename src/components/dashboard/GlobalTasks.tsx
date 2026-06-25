@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Bell, AlertTriangle, X } from 'lucide-react';
 import TasksPanel from './TasksPanel';

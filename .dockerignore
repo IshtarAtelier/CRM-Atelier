@@ -1,6 +1,42 @@
+# Dependencies (installed fresh inside Docker)
+node_modules
 wa-service/node_modules
+
+# Build artifacts
+.next
+.git
+.github
+.vscode
+
+# Environment files (CRITICAL: don't leak secrets into Docker context)
+.env
+.env.*
+!.env.example
+
+# Data & backups
+backups/
+scratch/
+storage/
+logs/
+data/
+contenidos-essilor/
+
+# WhatsApp auth
+.wwebjs_auth/
+.wwebjs_cache/
 wa-service/.wwebjs_auth
 wa-service/.wwebjs_cache
-.next
-node_modules
-.git
+
+# Playwright (installed inside Docker)
+.playwright-browsers/
+
+# Agent state
+.agents/
+
+# Docker configs (not needed inside container)
+docker-compose*.yml
+Dockerfile
+
+# Misc
+*.md
+!prisma/*.md

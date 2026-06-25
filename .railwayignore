@@ -11,9 +11,10 @@ coverage/
 build/
 out/
 prisma/generated/
-backups/
-.playwright-browsers/
 scratch/
 storage/
+contenidos-essilor/
+data/
+.agents/
 public/images/blog/tiendanube/
 wa-service/

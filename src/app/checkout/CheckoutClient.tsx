@@ -223,7 +223,7 @@ export function CheckoutClient({
     const { name, value } = e.target;
     
     if (name === "zip") {
-      let updatedFields: Record<string, string> = {};
+      const updatedFields: Record<string, string> = {};
       const trimmed = value.trim();
       
       // Auto-fill Córdoba

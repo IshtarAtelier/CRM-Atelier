@@ -62,6 +62,13 @@ backups/
 
 # scratch files
 /scratch/
+
+# content data (already uploaded to DB)
+/contenidos-essilor/
+/data/
+
+# agent sessions (ephemeral state)
+/.agents/
 /next.log
 
 # logs

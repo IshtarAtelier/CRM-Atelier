@@ -52,6 +52,10 @@ export async function middleware(request: NextRequest) {
             return NextResponse.json({ error: 'Sesión inválida' }, { status: 401 });
         }
 
+        if (payload.role === 'OPTICA') {
+            return NextResponse.json({ error: 'Acceso no autorizado' }, { status: 403 });
+        }
+
         const requestHeaders = new Headers(request.headers);
         requestHeaders.set('x-user-id', payload.id as string);
         requestHeaders.set('x-user-role', payload.role as string);
