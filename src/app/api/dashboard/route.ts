@@ -60,8 +60,10 @@ export async function GET(request: Request) {
                     select: {
                         price: true,
                         quantity: true,
+                        eye: true,
                         product: {
                             select: {
+                                name: true,
                                 type: true,
                                 cost: true,
                                 category: true
@@ -318,7 +320,8 @@ export async function GET(request: Request) {
         const typeStats: Record<string, { total: number; count: number; cost: number }> = {};
         currentMonthOrders.forEach((order: any) => {
             const has2x1Tag = order.tags?.some((t: any) => t.name.toLowerCase().includes('2x1')) || false;
-            const is2x1Order = ((order as any).appliedPromoName || '').toLowerCase().includes('2x1') || has2x1Tag;
+            const has2x1Product = order.items.some((i: any) => i.product && (i.product.name || '').toLowerCase().includes('2x1'));
+            const is2x1Order = ((order as any).appliedPromoName || '').toLowerCase().includes('2x1') || has2x1Tag || has2x1Product;
 
             order.items.forEach((item: any) => {
                 const product = item.product;

@@ -179,6 +179,10 @@ export class ReportService {
             const orderProductTypes = new Set<string>();
             let paidCrystalsCount = 0;
 
+            const has2x1Tag = order.tags?.some((t: any) => t.name.toLowerCase().includes('2x1')) || false;
+            const has2x1Product = order.items.some((i: any) => i.product && (i.product.name || '').toLowerCase().includes('2x1'));
+            const is2x1Order = (order.appliedPromoName || '').toLowerCase().includes('2x1') || has2x1Tag || has2x1Product;
+
             for (const item of order.items) {
                 const product = item.product;
                 if (!product) continue;
@@ -193,9 +197,6 @@ export class ReportService {
                 if (isCrystalItem && (item.eye === 'OD' || item.eye === 'OI') && (product.cost || 0) > 0) {
                     itemCost = ((product.cost || 0) / 2) * item.quantity;
                 }
-
-                const has2x1Tag = order.tags?.some((t: any) => t.name.toLowerCase().includes('2x1')) || false;
-                const is2x1Order = (order.appliedPromoName || '').toLowerCase().includes('2x1') || has2x1Tag;
                 
                 if (is2x1Order && isCrystalItem) {
                     if (item.price === 0) {
