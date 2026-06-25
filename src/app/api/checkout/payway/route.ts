@@ -147,7 +147,13 @@ export async function POST(req: Request) {
       });
     }
 
+    console.log("[PAYWAY CHECKOUT] Precio recalculado backend:", recalculatedItemsTotal, "| Total frontend:", total, "| Diferencia:", Math.abs(recalculatedItemsTotal - total));
+    for (const si of sanitizedItems) {
+      console.log(`[PAYWAY CHECKOUT] Item: ${si.model} | Precio calculado: ${si.price} | Qty: ${si.quantity} | ProductId: ${si.productId}`);
+    }
+
     if (Math.abs(recalculatedItemsTotal - total) > 5) {
+      console.error("[PAYWAY CHECKOUT] DISCREPANCIA DETECTADA - Backend:", recalculatedItemsTotal, "Frontend:", total);
       return NextResponse.json({ error: "Discrepancia de precio detectada. Por favor, reintente." }, { status: 400 });
     }
 
