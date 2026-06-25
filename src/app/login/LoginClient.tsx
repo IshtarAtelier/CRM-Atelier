@@ -155,8 +155,15 @@ export function LoginClient() {
                                             headers: { "Content-Type": "application/json" },
                                             body: JSON.stringify({ email: 'ishtar', password: 'local-admin-ishtar' }),
                                         });
-                                        if (res.ok) router.push("/admin");
-                                        else setError("Error bypass local");
+                                        if (res.ok) {
+                                            const data = await res.json();
+                                            if (data.user) {
+                                                localStorage.setItem('user', JSON.stringify(data.user));
+                                            }
+                                            router.push("/admin");
+                                        } else {
+                                            setError("Error bypass local");
+                                        }
                                         setIsLoading(false);
                                     }}
                                     className="w-full flex justify-center py-3 px-4 border-2 border-primary/20 rounded-2xl shadow-sm text-[10px] font-black text-primary bg-white hover:bg-primary/5 transition-all items-center gap-2 uppercase tracking-[0.2em]"
