@@ -345,6 +345,7 @@ export function CheckoutClient({
 
         const token = response.id;
         const bin = response.bin; // Decidir returns bin in response
+        const paymentMethodId = response.payment_method_id; // Decidir returns payment_method_id
 
         // Ahora enviamos el token al backend
         const res = await fetch("/api/checkout/payway", {
@@ -359,7 +360,8 @@ export function CheckoutClient({
             items: items,
             total: getCartTotal(),
             paymentToken: token,
-            bin: bin
+            bin: bin,
+            paymentMethodId: paymentMethodId
           })
         });
 
