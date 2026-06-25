@@ -98,7 +98,7 @@ export function PromoClient() {
       {/* Hero Section */}
       <section className="relative w-full bg-[#0F0F0F] pt-20 pb-32 px-6 overflow-hidden">
         <div className="absolute inset-0 opacity-20 pointer-events-none">
-           <Image src="/img/store-inside-1.jpg" alt="Atelier Interior" fill sizes="100vw" className="object-cover grayscale" priority />
+           <Image unoptimized src="/img/store-inside-1.jpg" alt="Atelier Interior" fill sizes="100vw" className="object-cover grayscale" priority />
            <div className="absolute inset-0 bg-gradient-to-t from-[#0F0F0F] via-[#0F0F0F]/80 to-transparent" />
         </div>
         
@@ -237,7 +237,7 @@ export function PromoClient() {
             </div>
           </div>
           <div className="relative h-[500px] w-full rounded-3xl overflow-hidden border border-white/10">
-             <Image 
+             <Image unoptimized 
                 src="/img/store-inside-1.jpg" 
                 alt="Tecnología Multifocal" 
                 fill 
@@ -277,7 +277,7 @@ export function PromoClient() {
                 className="group relative bg-[#FCFCFC] border border-gray-100 rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all"
               >
                 <div className="relative h-60 w-full bg-white p-4">
-                  <Image 
+                  <Image unoptimized 
                     src={glass.src} 
                     alt={glass.title} 
                     fill 

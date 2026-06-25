@@ -85,7 +85,7 @@ export function FilmmakerReel() {
       {/* ─── PRELOAD ALL IMAGES ─── */}
       <div className="hidden">
         {FRAMES.map(f => (
-          <Image key={f.id + "-preload"} src={f.src} alt="preload" width={100} height={100} priority />
+          <Image unoptimized key={f.id + "-preload"} src={f.src} alt="preload" width={100} height={100} priority />
         ))}
       </div>
 
@@ -106,7 +106,7 @@ export function FilmmakerReel() {
             animate={{ scale: 1.06 }}
             transition={{ duration: 5, ease: "linear" }}
           >
-            <Image
+            <Image unoptimized
               src={frame.src}
               alt={frame.title}
               fill
@@ -258,7 +258,7 @@ export function FilmmakerReel() {
               idx === current ? "border-white opacity-100 scale-105" : "border-white/20 opacity-40 hover:opacity-70"
             }`}
           >
-            <Image 
+            <Image unoptimized 
               src={f.src} 
               alt={f.title} 
               fill

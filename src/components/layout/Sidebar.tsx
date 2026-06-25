@@ -80,7 +80,7 @@ export function Sidebar({ userName = "Usuario", userRole = "STAFF", userId = "" 
     <>
       <div className={`px-5 py-5 flex items-center ${isCollapsed ? 'justify-center' : 'justify-between'}`}>
         {!isCollapsed ? (
-          <Image src="/assets/logo-atelier-optica.png" alt="Logo Atelier Óptica" width={150} height={40} className="h-10 object-contain dark:invert" />
+          <Image unoptimized src="/assets/logo-atelier-optica.png" alt="Logo Atelier Óptica" width={150} height={40} className="h-10 object-contain dark:invert" />
         ) : (
           <div className="w-8 h-8 bg-stone-900 dark:bg-white rounded-xl flex items-center justify-center font-black text-white dark:text-stone-900 text-lg">
             A

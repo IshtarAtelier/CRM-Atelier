@@ -167,7 +167,7 @@ export function TestChatModal({ isOpen, onClose }: TestChatModalProps) {
                                 <div key={idx} className="flex justify-end">
                                     <div className="max-w-[80%] rounded-2xl px-4 py-2 shadow-sm bg-emerald-500 text-white rounded-tr-sm">
                                         {msg.mediaBase64 && msg.mediaType !== 'audio' && (
-                                            <Image src={`data:${msg.mediaMime};base64,${msg.mediaBase64}`} alt="Adjunto" width={200} height={200} className="w-full max-w-[200px] rounded-lg mb-2" />
+                                            <Image unoptimized src={`data:${msg.mediaMime};base64,${msg.mediaBase64}`} alt="Adjunto" width={200} height={200} className="w-full max-w-[200px] rounded-lg mb-2" />
                                         )}
                                         {msg.mediaType === 'audio' && (
                                             <div className="flex items-center gap-2 mb-1 bg-emerald-600/50 rounded-lg px-3 py-1.5">
@@ -240,7 +240,7 @@ export function TestChatModal({ isOpen, onClose }: TestChatModalProps) {
                     {selectedFile && (
                         <div className="mb-3 flex items-center gap-3 bg-stone-100 dark:bg-stone-800 p-2 rounded-xl relative w-fit">
                             {selectedFile.type === 'image' ? (
-                                <Image src={selectedFile.url} alt="Preview" width={48} height={48} className="w-12 h-12 object-cover rounded-lg" />
+                                <Image unoptimized src={selectedFile.url} alt="Preview" width={48} height={48} className="w-12 h-12 object-cover rounded-lg" />
                             ) : (
                                 <div className="w-12 h-12 rounded-lg bg-violet-100 dark:bg-violet-900/50 flex items-center justify-center">
                                     <span className="text-lg">🎙️</span>

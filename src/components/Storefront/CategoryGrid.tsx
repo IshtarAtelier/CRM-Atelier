@@ -86,7 +86,7 @@ export function CategoryGrid({ products, emptyMessage = "Estamos actualizando nu
           >
             <Link href={`/producto/${p.slug}`} className="flex-1 flex flex-col">
               <div className="relative aspect-square mb-4 bg-[#fdfdfd] border border-[#f0f0f0] overflow-hidden rounded-xl isolate">
-                <Image 
+                <Image unoptimized 
                   src={imageUrl} 
                   alt={`${p.brand} ${p.model}`}
                   fill
@@ -97,7 +97,7 @@ export function CategoryGrid({ products, emptyMessage = "Estamos actualizando nu
                 />
 
                 {hasSecondImage && secondImageUrl && (
-                  <Image 
+                  <Image unoptimized 
                     src={secondImageUrl} 
                     alt={`${p.brand} ${p.model} Try-On`}
                     fill

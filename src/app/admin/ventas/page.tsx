@@ -677,7 +677,7 @@ export default function VentasPage() {
 </style></head><body>
 <button class="print-btn" onclick="window.print()">IMPRIMIR PDF</button>
 <div class='letterhead'>
-    <Image src='${logoUrl}' class='letterhead-logo' alt='Atelier Óptica' />
+    <Image unoptimized src='${logoUrl}' class='letterhead-logo' alt='Atelier Óptica' />
     <div class='letterhead-right'>
         <div class='address-bold'>José Luis de Tejeda 4380 · Córdoba</div>
         <div>Fecha: ${dateStr}</div>

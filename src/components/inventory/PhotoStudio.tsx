@@ -221,7 +221,7 @@ export default function PhotoStudio({ onClose, products, onSuccess, isAdmin, uni
 
                       {photo ? (
                         <div className="relative aspect-square rounded-2xl overflow-hidden border-2 border-emerald-400 shadow-lg">
-                          <Image src={photo.preview} alt={angle.label} className="w-full h-full object-cover" />
+                          <Image unoptimized src={photo.preview} alt={angle.label} className="w-full h-full object-cover" />
                           <div className="absolute top-1.5 right-1.5 bg-emerald-500 text-white p-1 rounded-full shadow">
                             <CheckCircle2 className="w-3.5 h-3.5" />
                           </div>
@@ -303,7 +303,7 @@ export default function PhotoStudio({ onClose, products, onSuccess, isAdmin, uni
               <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
                 {photos.map((p, i) => (
                   <div key={i} className="w-16 h-16 rounded-xl overflow-hidden border-2 border-emerald-400 shrink-0">
-                    <Image src={p.preview} alt={`Vista ${i + 1}`} className="w-full h-full object-cover" />
+                    <Image unoptimized src={p.preview} alt={`Vista ${i + 1}`} className="w-full h-full object-cover" />
                   </div>
                 ))}
               </div>

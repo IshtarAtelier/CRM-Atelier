@@ -902,7 +902,7 @@ function CotizadorPageContent() {
                                                                  const imgUrl = resolveStorageUrl(product.imagenesCatalogo?.[0] || product.rawImageUrls?.[0] || null);
                                                                  if (imgUrl) {
                                                                      return (
-                                                                         <Image 
+                                                                         <Image unoptimized 
                                                                              src={imgUrl} 
                                                                              alt={product.name || ''} 
                                                                              className="w-8 h-8 object-contain rounded-lg border border-stone-200 dark:border-stone-850 bg-stone-50 dark:bg-stone-900 shadow-sm shrink-0" 

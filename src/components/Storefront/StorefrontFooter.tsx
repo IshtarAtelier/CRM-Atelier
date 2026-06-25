@@ -21,7 +21,7 @@ export async function StorefrontFooter() {
       
       {/* Cinematic Background Image */}
       <div className="absolute inset-0 z-0">
-        <Image 
+        <Image unoptimized 
           src="/footer-hands-compressed.jpg" 
           alt="Atelier Creation" 
           fill 

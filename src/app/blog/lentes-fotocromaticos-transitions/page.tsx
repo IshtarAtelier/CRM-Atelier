@@ -31,7 +31,7 @@ export default function LentesTransitionsPage() {
 
           {/* Hero Image */}
           <div className="w-full h-[300px] md:h-[500px] relative mb-12 lg:mb-16 bg-neutral-200 overflow-hidden rounded-lg">
-            <Image 
+            <Image unoptimized 
               src="/images/blog/vidriera-atelier.webp" 
               alt="Anteojos con cristales transitions en Atelier Óptica" 
               fill

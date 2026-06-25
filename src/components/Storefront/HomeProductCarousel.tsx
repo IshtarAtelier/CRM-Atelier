@@ -154,7 +154,7 @@ export function HomeProductCarousel({ collections, totalCount }: Props) {
               )}
 
               {item.img ? (
-                <Image 
+                <Image unoptimized 
                   src={item.img}
                   alt={`Anteojos ${item.category || ''} ${item.brand || ''} ${item.name} en Atelier Óptica Córdoba`}
                   fill
@@ -170,7 +170,7 @@ export function HomeProductCarousel({ collections, totalCount }: Props) {
               )}
 
               {item.secondImg && (
-                <Image 
+                <Image unoptimized 
                   src={item.secondImg}
                   alt={`${item.name} Try-On`}
                   fill

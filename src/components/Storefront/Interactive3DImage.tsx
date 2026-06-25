@@ -72,7 +72,7 @@ export function Interactive3DImage({ src, alt, className = "", imageClassName = 
           style={{ x: translateX, y: translateY, translateZ: 50 }}
           className="w-full h-full relative z-10 isolate"
         >
-          <Image 
+          <Image unoptimized 
             src={src}
             alt={alt}
             fill

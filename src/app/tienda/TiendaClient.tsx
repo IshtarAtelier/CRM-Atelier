@@ -183,7 +183,7 @@ export function TiendaClient({
               transition={{ duration: 0.6 }}
               className="absolute inset-0"
             >
-              <Image
+              <Image unoptimized
                 src={CATEGORY_IMAGES[activeCategory] || CATEGORY_IMAGES["Todo"]}
                 alt={`Colección ${activeCategory}`}
                 fill
@@ -319,7 +319,7 @@ export function TiendaClient({
 
                       {imgUrl ? (
                         <div className="absolute inset-0 flex items-center justify-center">
-                          <Image
+                          <Image unoptimized
                             src={imgUrl}
                             alt={`${p.brand} ${p.model}`}
                             fill
@@ -342,7 +342,7 @@ export function TiendaClient({
                       )}
 
                       {hasSecondImage && secondImgUrl && (
-                        <Image
+                        <Image unoptimized
                           src={secondImgUrl}
                           alt={`${p.brand} ${p.model} Try-On`}
                           fill

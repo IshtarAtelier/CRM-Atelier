@@ -290,7 +290,7 @@ export default function LabPriceImporter({ onClose, onSuccess, laboratories }: P
                             >
                                 {imagePreview ? (
                                     <div className="space-y-3">
-                                        <Image src={imagePreview} alt="Preview" className="max-h-64 mx-auto rounded-xl shadow-lg" />
+                                        <Image unoptimized src={imagePreview} alt="Preview" className="max-h-64 mx-auto rounded-xl shadow-lg" />
                                         <p className="text-[9px] font-black text-primary uppercase tracking-widest">✓ Imagen cargada — click para cambiar</p>
                                     </div>
                                 ) : (

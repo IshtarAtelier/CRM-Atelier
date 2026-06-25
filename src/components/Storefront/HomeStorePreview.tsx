@@ -123,7 +123,7 @@ export async function HomeStorePreview() {
             {/* Store Photo */}
             <div className="w-full h-full overflow-hidden rounded-[2rem] border border-stone-800/60 shadow-2xl relative group">
               <div className="absolute inset-0 bg-stone-900 animate-pulse" /> {/* Placeholder while loading */}
-              <Image
+              <Image unoptimized
                 src="/images/blog/fachada-local.jpg"
                 alt="Fachada Atelier Óptica"
                 fill
