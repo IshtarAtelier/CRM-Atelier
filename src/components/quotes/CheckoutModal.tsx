@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { 
     X, CheckCircle2, AlertCircle, Banknote, 
     Glasses, User, Receipt, ArrowRight,
-    Loader2, History,
+    Loader2, History, Save,
     Image as ImageIcon,
     FlaskConical
 } from 'lucide-react';
@@ -33,6 +33,8 @@ export default function CheckoutModal({
 }: CheckoutModalProps) {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [savingDraft, setSavingDraft] = useState(false);
+    const [savedDraft, setSavedDraft] = useState(false);
     
     // Client Data Validation
     const [clientForm, setClientForm] = useState({
@@ -163,6 +165,61 @@ export default function CheckoutModal({
             setError(err.message || 'Error en la operación');
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleSaveDraft = async () => {
+        if (savingDraft) return;
+        setSavingDraft(true);
+        setError(null);
+        try {
+            // 1. Save client data if edited
+            if (isEditingClient && isClientDataComplete) {
+                const res = await fetch(`/api/contacts/${contact.id}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(clientForm)
+                });
+                if (res.ok) await onRefreshContact();
+            }
+
+            // 2. Build lab color string
+            let finalLabColor = undefined;
+            if (hasTinting && (tintType || tintColor)) {
+                finalLabColor = `${tintType} ${tintColor}`.trim();
+                if (tintIntensity) finalLabColor += ` (Grado: ${tintIntensity})`;
+            }
+
+            // 3. Save lab/frame data to order
+            const patchBody: any = {};
+            if (selectedRxId) patchBody.prescriptionId = selectedRxId;
+            if (frameShape) patchBody.labFrameShape = frameShape;
+            if (frameDetails) patchBody.labFrameDetails = frameDetails;
+            if (labNotes) patchBody.labNotes = labNotes;
+            if (finalLabColor) patchBody.labColor = finalLabColor;
+            if (frameMeasurePte) patchBody.frameDbl = frameMeasurePte;
+            if (frameMeasureA) patchBody.frameA = frameMeasureA;
+            if (frameMeasureB) patchBody.frameB = frameMeasureB;
+            if (frameMeasureEd) patchBody.frameEdc = frameMeasureEd;
+
+            if (Object.keys(patchBody).length > 0) {
+                const res = await fetch(`/api/orders/${order.id}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(patchBody)
+                });
+                if (!res.ok) {
+                    const d = await res.json();
+                    throw new Error(d.error || 'Error al guardar');
+                }
+            }
+
+            setSavedDraft(true);
+            setTimeout(() => setSavedDraft(false), 3000);
+        } catch (err: any) {
+            setError(err.message || 'Error al guardar datos');
+        } finally {
+            setSavingDraft(false);
         }
     };
 
@@ -595,9 +652,26 @@ export default function CheckoutModal({
                     <div className="flex flex-col sm:flex-row gap-4">
                         <button 
                             onClick={onClose}
-                            className="px-8 py-4 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-2xl font-black text-xs uppercase tracking-widest"
+                            className="px-6 py-4 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-2xl font-black text-xs uppercase tracking-widest"
                         >
                             CANCELAR
+                        </button>
+                        <button 
+                            onClick={handleSaveDraft}
+                            disabled={savingDraft || loading}
+                            className={`px-6 py-4 rounded-2xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2 transition-all ${
+                                savedDraft 
+                                    ? 'bg-emerald-100 dark:bg-emerald-950 text-emerald-600 border-2 border-emerald-300 dark:border-emerald-800' 
+                                    : 'bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400 border-2 border-blue-200 dark:border-blue-800 hover:bg-blue-100 dark:hover:bg-blue-900/30 hover:scale-105 active:scale-95'
+                            } disabled:opacity-50 disabled:scale-100`}
+                        >
+                            {savingDraft ? (
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : savedDraft ? (
+                                <><CheckCircle2 className="w-4 h-4" /> DATOS GUARDADOS ✓</>
+                            ) : (
+                                <><Save className="w-4 h-4" /> GUARDAR DATOS</>
+                            )}
                         </button>
                         <button 
                             onClick={handleConfirm}
