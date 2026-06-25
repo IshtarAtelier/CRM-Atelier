@@ -526,6 +526,10 @@ async function addTagToClient({ clientId, tagName }) {
                     where: { id: c.id },
                     data: { chatLabels: Array.from(labels) }
                 });
+                
+                if (global.io) {
+                    global.io.emit('chat_updated', { chatId: c.id });
+                }
             }
         } catch (labelErr) {
             console.error("[Etiqueta Automation] Error push chatLabel:", labelErr.message);
