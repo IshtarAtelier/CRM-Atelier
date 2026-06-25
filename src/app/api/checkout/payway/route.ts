@@ -7,6 +7,8 @@ import { ContactService, normalizeArgentinePhone } from '@/services/contact.serv
 import { getWebSettings } from '@/lib/web-settings';
 import { CrystalMapping } from '@/lib/config/crystal-mapping';
 import { generateReceiptPDF } from '@/lib/receipt-pdf-generator';
+import { getAdminHtml, getAdminWholesaleHtml, getClientTransferHtml, getClientWholesaleHtml, getConfirmationHtml } from '@/lib/checkout/checkout-emails';
+import { buildPricingMap, recalculateItemPrice } from '@/lib/checkout/checkout-pricing';
 
 export async function POST(req: Request) {
   let globalRestoreStock: (() => Promise<void>) | null = null;
@@ -419,55 +421,10 @@ export async function POST(req: Request) {
       sendEmail({
         to: customer.email,
         subject: `Confirmación de Pedido Mayorista #${order.id.slice(-4).toUpperCase()} - Atelier Óptica`,
-        html: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333; padding: 20px; border: 1px solid #ddd; border-radius: 8px;">
-            <h2 style="color: #1e3a8a; border-bottom: 1px solid #e5e7eb; padding-bottom: 10px; margin-top: 0;">¡Hola ${customer.firstName}!</h2>
-            <p>Hemos registrado tu pedido mayorista <strong>#${order.id.slice(-4).toUpperCase()}</strong> de forma exitosa.</p>
-            <p>El total a coordinar de tu compra mayorista es de <strong>$${emailTotal.toLocaleString('es-AR')}</strong>.</p>
-            
-            <div style="background: #f3f4f6; padding: 15px; border-radius: 6px; margin: 20px 0; border-left: 4px solid #1e3a8a;">
-              <h4 style="margin: 0 0 5px 0; color: #1e3a8a;">Coordinación de Pago y Despacho</h4>
-              <p style="margin: 0; font-size: 13px; line-height: 1.4; color: #555;">
-                Nos pondremos en contacto contigo por correo electrónico o WhatsApp a la brevedad para enviarte la factura proforma y coordinar la transferencia bancaria u otro medio de pago elegido, así como el despacho de la mercadería.
-              </p>
-            </div>
-            
-            <p style="font-size: 12px; color: #666; background: #eff6ff; padding: 10px; border-radius: 4px;">
-              Nota: La mercadería ha sido reservada de nuestro stock para tu pedido.
-            </p>
-            
-            <p style="margin-top: 25px; font-weight: bold;">Atelier Óptica - Área Mayorista</p>
-          </div>
-        `
+        html: getClientWholesaleHtml(customer, order.id, emailTotal)
       }).catch(err => console.error("Error client wholesale email:", err));
 
-      const adminWholesaleHtml = `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd;">
-          <h2 style="color: #1e3a8a; border-bottom: 2px solid #1e3a8a; padding-bottom: 10px; margin-top: 0;">💼 NUEVO PEDIDO MAYORISTA WEB 💼</h2>
-          <p><strong>Orden ID:</strong> #${order.id}</p>
-          <p><strong>Total Mayorista:</strong> $${emailTotal.toLocaleString('es-AR')}</p>
-          
-          <h3 style="background: #f4f4f4; padding: 10px; margin-top: 20px;">Datos de la Óptica</h3>
-          <ul style="list-style: none; padding: 0;">
-            <li><strong>Nombre / Razón Social:</strong> ${customer.firstName} ${customer.lastName}</li>
-            <li><strong>Email:</strong> ${customer.email}</li>
-            <li><strong>WhatsApp:</strong> ${customer.phone}</li>
-            <li><strong>DNI/CUIT:</strong> ${customer.dni}</li>
-            <li><strong>Método de Envío:</strong> ${shippingMethodLabel} ${customer.shippingBranch ? `(Sucursal: ${customer.shippingBranch})` : ''}</li>
-            <li><strong>Dirección:</strong> ${customer.address}, ${customer.city}, ${customer.state} ${customer.zip}</li>
-          </ul>
-
-          <h3 style="background: #f4f4f4; padding: 10px; margin-top: 20px;">Productos Comprados</h3>
-          <table width="100%" cellpadding="10" cellspacing="0" style="border-collapse: collapse;">
-            ${itemsHtml}
-          </table>
-          
-          <div style="margin-top: 30px; padding: 15px; background: #eff6ff; border-left: 5px solid #3b82f6;">
-            <p style="margin: 0; font-weight: bold;">Acción requerida:</p>
-            <p style="margin: 5px 0 0 0; font-size: 13px;">Comunicate con el cliente para cobrar y acordar el despacho de la mercadería.</p>
-          </div>
-        </div>
-      `;
+      const adminWholesaleHtml = getAdminWholesaleHtml(customer, order.id, emailTotal, shippingMethodLabel, itemsHtml);
 
       sendEmail({
         to: adminEmails,
