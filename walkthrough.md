@@ -219,3 +219,22 @@ Realizamos un análisis automático e interactivo de todo el sitio web para audi
   Esto permite cargar y reproducir videos y pistas multimedia desde el dominio de Pixabay, solucionando el renderizado de la sección interactiva.
 - **Auditoría General**: Comprobamos las 12 rutas principales de la web. Todas retornan código de estado `200 OK` con títulos y meta-descripciones de SEO correctos. Se generaron las capturas y se documentó en [full_site_audit_report.md](file:///Users/ishtarpissano/.gemini/antigravity/brain/4e4da702-74d2-42f1-8b3c-451a179c6358/full_site_audit_report.md).
 - **Verificación**: Todo el código de TypeScript compila con éxito y sin errores de tipado.
+
+---
+
+## 7. Corrección de Error en Pasarela de Pago Payway (invalid_param: payment_method_id)
+
+### Problema
+El usuario reportó que al intentar realizar compras con tarjetas que funcionan perfectamente, la transacción era rechazada con un error en pantalla indicando parámetros inválidos (`invalid_param`). 
+Al auditar los registros de base de datos en busca de órdenes rechazadas, confirmamos múltiples rechazos con el error:
+`[PAGO RECHAZADO PAYWAY]: Error de validación: payment_method_id (invalid_param)`
+
+### Causa Raíz
+El frontend (SDK de Decidir/Payway) genera un token de pago específico para el tipo de tarjeta introducido por el cliente (sea Crédito o Débito de las distintas marcas) y detecta correctamente el `payment_method_id` (por ejemplo, `104` para Visa Débito o `105` para Mastercard Débito). Sin embargo, el backend en [route.ts](file:///Users/ishtarpissano/proyectos/atelier/src/app/api/checkout/payway/route.ts) ignoraba por completo el `paymentMethodId` capturado por el frontend, recalculándolo con heurísticas basadas en el BIN que asumían siempre tarjetas de crédito (ej. Visa Crédito `1` o Mastercard Crédito `15`). Al enviar un token de débito con una marca de crédito, la API de Decidir rechazaba la operación por inconsistencia de parámetros.
+
+### Cambios Implementados
+1. **Lectura Dinámica del ID**: Modificamos el endpoint del backend en [route.ts](file:///Users/ishtarpissano/proyectos/atelier/src/app/api/checkout/payway/route.ts) para intentar extraer `paymentMethodId` desde el cuerpo de la petición (`body.paymentMethodId`), parseándolo como entero.
+2. **Fallback Seguro**: Si el frontend por algún motivo no proporciona el `paymentMethodId`, el backend automáticamente cae en las heurísticas de respaldo basadas en el BIN (Visa `1`, Cabal `63`, Mastercard `15`, Amex `39`).
+3. **Verificación y Compilación**:
+   - Corrimos `npx next build` localmente confirmando que la aplicación compila con éxito y sin errores de tipado.
+   - Subimos los cambios a la rama `desarrollo` (`origin/desarrollo`) para que impacten en producción.
