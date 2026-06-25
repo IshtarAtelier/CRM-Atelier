@@ -56,6 +56,7 @@ export const metadata: Metadata = {
 
 import { Toaster } from "sonner";
 import { TrackingScripts } from "@/components/Storefront/TrackingScripts";
+import { FloatingWhatsApp } from "@/components/Storefront/FloatingWhatsApp";
 
 export default function RootLayout({
   children,
@@ -76,6 +77,7 @@ export default function RootLayout({
             {children}
           </div>
           <Toaster position="top-right" richColors />
+          <FloatingWhatsApp />
           <TrackingScripts />
 
           <Script strategy="afterInteractive" id="sw-register">{`

@@ -1,7 +1,6 @@
 import { Metadata } from 'next';
 import { StorefrontNavbar } from "@/components/Storefront/StorefrontNavbar";
 import { StorefrontFooter } from "@/components/Storefront/StorefrontFooter";
-import { FloatingWhatsApp } from "@/components/Storefront/FloatingWhatsApp";
 import { Lock, Heart, ShieldAlert } from 'lucide-react';
 
 export const metadata: Metadata = {
@@ -78,7 +77,7 @@ export default function PoliticasDePrivacidadPage() {
       </main>
 
       <StorefrontFooter />
-      <FloatingWhatsApp />
+      
     </div>
   );
 }

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronDown, Search, ShoppingBag, X } from "lucide-react";
+import { ChevronDown, Search, ShoppingBag, X, ShoppingCart, Gem, Glasses, BookOpen, Users, MapPin, HelpCircle, Star, MessageCircle, ChevronRight } from "lucide-react";
 import { useCart } from "@/store/useCart";
 import dynamic from "next/dynamic";
 const CartSidebar = dynamic(() => import('./CartSidebar').then(mod => mod.CartSidebar), { ssr: false });
@@ -134,102 +134,141 @@ export function StorefrontNavbar({ theme = "dark", mixBlend = false }: Storefron
         )}
 
         {/* Navbar Inner Row */}
-        <div className={`px-3 sm:px-5 flex justify-between items-center transition-all duration-300 ${headerBgClass} ${mixBlend && !isHeaderScrolled ? 'mix-blend-difference text-white' : ''}`}>
+        <div className={`px-3 sm:px-5 py-1 flex justify-between items-center transition-all duration-300 ${headerBgClass} ${mixBlend && !isHeaderScrolled ? 'mix-blend-difference text-white' : ''}`}>
           {/* Izquierda: Links de navegación */}
-          <nav className="flex gap-2 sm:gap-6 items-center">
-              <Link 
-                href="/tienda" 
-                className={`text-[11px] sm:text-[13px] font-medium ${activeTextColorClass} hover:opacity-60 transition-opacity p-2 sm:p-0 hidden sm:block`} 
-                style={activeTextShadowStyle}
+          <div className="flex-1 flex justify-start">
+            <nav className="flex gap-2 lg:gap-6 items-center">
+                <Link 
+                  href="/tienda" 
+                  className={`relative group text-[11px] lg:text-[13px] font-medium ${activeTextColorClass} p-2 lg:p-0 hidden lg:block transition-colors`} 
+                  style={activeTextShadowStyle}
+                >
+                  Shop
+                  <span className="absolute -bottom-1 left-0 w-0 h-[1px] bg-current transition-all duration-300 group-hover:w-full opacity-80"></span>
+                </Link>
+                <Link 
+                  href="/cristales-opticos" 
+                  className={`relative group text-[11px] lg:text-[13px] font-medium ${activeTextColorClass} p-2 lg:p-0 hidden lg:block transition-colors`} 
+                  style={activeTextShadowStyle}
+                >
+                  Cristales
+                  <span className="absolute -bottom-1 left-0 w-0 h-[1px] bg-current transition-all duration-300 group-hover:w-full opacity-80"></span>
+                </Link>
+                <Link 
+                  href="/arma-tus-lentes" 
+                  className={`relative group text-[13px] font-bold ${activeTextColorClass} hidden lg:block transition-colors pb-0.5`} 
+                  style={activeTextShadowStyle}
+                >
+                  Lentes a Medida
+                  <span className={`absolute bottom-0 left-0 h-[2px] bg-primary transition-all duration-300 opacity-80 ${pathname === '/arma-tus-lentes' ? 'w-full' : 'w-0 group-hover:w-full'}`}></span>
+                </Link>
+    
+              <div 
+                className="relative"
+                onMouseEnter={() => setIsExploreOpen(true)}
+                onMouseLeave={() => setIsExploreOpen(false)}
               >
-                Shop
-              </Link>
-              <Link 
-                href="/cristales-opticos" 
-                className={`text-[11px] sm:text-[13px] font-medium ${activeTextColorClass} hover:opacity-60 transition-opacity p-2 sm:p-0 hidden sm:block`} 
-                style={activeTextShadowStyle}
-              >
-                Cristales
-              </Link>
-              <Link 
-                href="/arma-tus-lentes" 
-                className={`text-[13px] font-bold ${activeTextColorClass} hover:opacity-60 transition-opacity ${pathname === '/arma-tus-lentes' ? 'border-b-2 border-primary' : ''} pb-0.5 hidden sm:block`} 
-                style={activeTextShadowStyle}
-              >
-                Lentes a Medida
-              </Link>
-  
-            <div 
-              className="relative"
-              onMouseEnter={() => setIsExploreOpen(true)}
-              onMouseLeave={() => setIsExploreOpen(false)}
-            >
-              <button aria-expanded={isExploreOpen} aria-haspopup="true" 
-                className={`flex items-center gap-0.5 sm:gap-1 text-[11px] sm:text-[13px] font-medium ${activeTextColorClass} hover:opacity-60 transition-opacity p-2 sm:p-0`}
-                style={activeTextShadowStyle}
-              >
-                <span className="hidden sm:inline">Explore</span>
-                <span className="sm:hidden">Menú</span>
-                <ChevronDown className="w-3 h-3 opacity-70" />
-              </button>
-  
-              <AnimatePresence>
-                {isExploreOpen && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 5 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: 5 }}
-                    transition={{ duration: 0.2 }}
-                    className="absolute top-full left-0 mt-2 w-48 bg-white shadow-xl rounded-xl border border-stone-100 overflow-hidden py-2"
-                  >
-                    <Link href="/tienda" className="block sm:hidden px-4 py-2 text-[12px] font-medium text-stone-700 hover:bg-stone-50 transition-colors">
-                      Shop
-                    </Link>
-                    <Link href="/cristales-opticos" className="block sm:hidden px-4 py-2 text-[12px] font-medium text-stone-700 hover:bg-stone-50 transition-colors">
-                      Cristales
-                    </Link>
-                    <Link href="/arma-tus-lentes" className="block sm:hidden px-4 py-2 text-[12px] font-medium text-stone-700 hover:bg-stone-50 transition-colors">
-                      Lentes a Medida
-                    </Link>
-                    <Link href="/blog" className="block px-4 py-2 text-[12px] font-medium text-stone-700 hover:bg-stone-50 transition-colors">
-                      El Blog
-                    </Link>
-                    <Link href="/quienes-somos" className="block px-4 py-2 text-[12px] font-medium text-stone-700 hover:bg-stone-50 transition-colors">
-                      Quiénes Somos
-                    </Link>
-                    <Link href="/nuestro-local" className="block px-4 py-2 text-[12px] font-medium text-stone-700 hover:bg-stone-50 transition-colors">
-                      Nuestro Local
-                    </Link>
-                    <Link href="/faq" className="block px-4 py-2 text-[12px] font-medium text-stone-700 hover:bg-stone-50 transition-colors">
-                      Preguntas Frecuentes
-                    </Link>
-                    <Link href="/resenas" className="block px-4 py-2 text-[12px] font-medium text-stone-700 hover:bg-stone-50 transition-colors">
-                      Opiniones de Clientes
-                    </Link>
-                    <Link href="/contacto" className="block px-4 py-2 text-[12px] font-medium text-stone-700 hover:bg-stone-50 transition-colors">
-                      Consulta y Contactos
-                    </Link>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-          </nav>
+                <button aria-expanded={isExploreOpen} aria-haspopup="true" 
+                  className={`flex items-center gap-0.5 lg:gap-1 text-[11px] lg:text-[13px] font-medium ${activeTextColorClass} hover:opacity-60 transition-opacity p-2 lg:p-0`}
+                  style={activeTextShadowStyle}
+                >
+                  <span className="hidden lg:inline">Explore</span>
+                  <span className="lg:hidden">Menú</span>
+                  <ChevronDown className="w-3 h-3 opacity-70" />
+                </button>
+    
+                <AnimatePresence>
+                  {isExploreOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 8, scale: 0.97 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 8, scale: 0.97 }}
+                      transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+                      className="absolute top-full left-0 mt-3 w-[280px] bg-[#0f0e0c] shadow-2xl shadow-black/40 rounded-2xl border border-white/10 overflow-hidden backdrop-blur-xl"
+                    >
+                      {/* Mobile-only links */}
+                      <div className="lg:hidden border-b border-white/10 py-2 px-2">
+                        <Link href="/tienda" className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-[12px] font-medium text-white/80 hover:bg-white/5 hover:text-white transition-all group">
+                          <ShoppingCart className="w-4 h-4 text-[#c8a55c] opacity-60 group-hover:opacity-100 transition-opacity" strokeWidth={1.5} />
+                          Shop
+                          <ChevronRight className="w-3 h-3 text-white/20 ml-auto group-hover:text-white/50 group-hover:translate-x-0.5 transition-all" />
+                        </Link>
+                        <Link href="/cristales-opticos" className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-[12px] font-medium text-white/80 hover:bg-white/5 hover:text-white transition-all group">
+                          <Gem className="w-4 h-4 text-[#c8a55c] opacity-60 group-hover:opacity-100 transition-opacity" strokeWidth={1.5} />
+                          Cristales
+                          <ChevronRight className="w-3 h-3 text-white/20 ml-auto group-hover:text-white/50 group-hover:translate-x-0.5 transition-all" />
+                        </Link>
+                        <Link href="/arma-tus-lentes" className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-[12px] font-medium text-white/80 hover:bg-white/5 hover:text-white transition-all group">
+                          <Glasses className="w-4 h-4 text-[#c8a55c] opacity-60 group-hover:opacity-100 transition-opacity" strokeWidth={1.5} />
+                          Lentes a Medida
+                          <ChevronRight className="w-3 h-3 text-white/20 ml-auto group-hover:text-white/50 group-hover:translate-x-0.5 transition-all" />
+                        </Link>
+                      </div>
+
+                      {/* Main links */}
+                      <div className="py-2 px-2">
+                        <Link href="/blog" className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-[12px] font-medium text-white/80 hover:bg-white/5 hover:text-white transition-all group">
+                          <BookOpen className="w-4 h-4 text-[#c8a55c] opacity-60 group-hover:opacity-100 transition-opacity" strokeWidth={1.5} />
+                          El Blog
+                          <ChevronRight className="w-3 h-3 text-white/20 ml-auto group-hover:text-white/50 group-hover:translate-x-0.5 transition-all" />
+                        </Link>
+                        <Link href="/quienes-somos" className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-[12px] font-medium text-white/80 hover:bg-white/5 hover:text-white transition-all group">
+                          <Users className="w-4 h-4 text-[#c8a55c] opacity-60 group-hover:opacity-100 transition-opacity" strokeWidth={1.5} />
+                          Quiénes Somos
+                          <ChevronRight className="w-3 h-3 text-white/20 ml-auto group-hover:text-white/50 group-hover:translate-x-0.5 transition-all" />
+                        </Link>
+                        <Link href="/nuestro-local" className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-[12px] font-medium text-white/80 hover:bg-white/5 hover:text-white transition-all group">
+                          <MapPin className="w-4 h-4 text-[#c8a55c] opacity-60 group-hover:opacity-100 transition-opacity" strokeWidth={1.5} />
+                          Nuestro Local
+                          <ChevronRight className="w-3 h-3 text-white/20 ml-auto group-hover:text-white/50 group-hover:translate-x-0.5 transition-all" />
+                        </Link>
+                        <Link href="/faq" className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-[12px] font-medium text-white/80 hover:bg-white/5 hover:text-white transition-all group">
+                          <HelpCircle className="w-4 h-4 text-[#c8a55c] opacity-60 group-hover:opacity-100 transition-opacity" strokeWidth={1.5} />
+                          Preguntas Frecuentes
+                          <ChevronRight className="w-3 h-3 text-white/20 ml-auto group-hover:text-white/50 group-hover:translate-x-0.5 transition-all" />
+                        </Link>
+                        <Link href="/resenas" className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-[12px] font-medium text-white/80 hover:bg-white/5 hover:text-white transition-all group">
+                          <Star className="w-4 h-4 text-[#c8a55c] opacity-60 group-hover:opacity-100 transition-opacity" strokeWidth={1.5} />
+                          Opiniones de Clientes
+                          <ChevronRight className="w-3 h-3 text-white/20 ml-auto group-hover:text-white/50 group-hover:translate-x-0.5 transition-all" />
+                        </Link>
+                      </div>
+
+                      {/* CTA Footer */}
+                      <div className="border-t border-white/10 p-3">
+                        <Link href="/contacto" className="flex items-center gap-3 px-3 py-3 rounded-xl bg-[#c8a55c]/10 border border-[#c8a55c]/20 text-[12px] font-bold text-[#c8a55c] hover:bg-[#c8a55c]/20 transition-all group">
+                          <MessageCircle className="w-4 h-4" strokeWidth={1.5} />
+                          Consulta y Contactos
+                          <ChevronRight className="w-3 h-3 opacity-50 ml-auto group-hover:translate-x-0.5 transition-transform" />
+                        </Link>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            </nav>
+          </div>
           
           {/* Centro: Texto logo */}
-          <Link 
-            href="/" 
-            className={`absolute left-1/2 -translate-x-1/2 text-[12px] sm:text-[16px] font-bold tracking-[0.08em] sm:tracking-[0.15em] ${activeTextColorClass} drop-shadow-md`} 
-            style={{ fontFamily: "'Georgia', 'Times New Roman', serif" }}
-          >
-            ATELIER ÓPTICA
-          </Link>
+          <div className="flex-shrink-0 flex justify-center z-10 px-2">
+            <Link 
+              href="/" 
+              className={`text-[11px] sm:text-[14px] md:text-[16px] font-bold tracking-[0.05em] sm:tracking-[0.10em] md:tracking-[0.15em] ${activeTextColorClass} drop-shadow-md text-center whitespace-nowrap`} 
+              style={{ fontFamily: "'Georgia', 'Times New Roman', serif" }}
+            >
+              ATELIER ÓPTICA
+            </Link>
+          </div>
   
           {/* Derecha: Iconos */}
-          <div className={`flex items-center gap-2 sm:gap-5 ${activeTextColorClass}`}>
+          <div className={`flex-1 flex justify-end items-center gap-1.5 sm:gap-4 ${activeTextColorClass}`}>
             {currentUser && currentUser.role === 'OPTICA' && (
               <div className="flex items-center gap-1.5 sm:gap-2 mr-1 sm:mr-2">
-                <span className="text-[8px] sm:text-[9.5px] font-black uppercase bg-[#b08f4c] text-white px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full whitespace-nowrap shadow-sm">
+                <span className="text-[8px] sm:text-[9.5px] font-black uppercase bg-[#b08f4c] text-white px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full whitespace-nowrap shadow-sm hidden sm:block">
                   Óptica: {currentUser.name}
+                </span>
+                <span className="text-[8px] font-black uppercase bg-[#b08f4c] text-white px-1.5 py-0.5 rounded-full whitespace-nowrap shadow-sm sm:hidden">
+                  Ópt.
                 </span>
                 <button
                   onClick={async () => {

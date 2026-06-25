@@ -1,43 +1,44 @@
 ---
-title: "Control de Miopía Infantil en Córdoba: Lentes Stellest | Atelier Óptica"
-meta_description: "Frená el avance de la miopía de tus hijos con lentes Essilor Stellest en Córdoba. Asesoramiento clínico pediátrico en Atelier Óptica, Cerro de las Rosas."
-slug: "lentes-control-miopia-infantil-essilor-stellest-cordoba"
+title: 'Control de Miopía Infantil en Córdoba: Lentes Stellest | Atelier Óptica'
+meta_description: 'Frená el avance de la miopía de tus hijos con lentes Essilor Stellest en Córdoba. Asesoramiento pediátrico en Atelier Óptica, Cerro de las Rosas.'
+slug: 'lentes-control-miopia-infantil-essilor-stellest-cordoba'
 ---
 
-# Lentes Stellest en Córdoba: Frenando la Epidemia de Miopía Infantil
+# Lentes Stellest en Córdoba: Cómo Frenar el Avance de la Miopía Infantil
 
-Si tu hijo en edad escolar comenzó a usar anteojos y, cada vez que vas al oftalmólogo en Córdoba, su receta de miopía aumenta un poco más, es normal sentir preocupación. Históricamente, en las ópticas del centro solo nos limitábamos a cambiarle el cristal por uno más grueso para que volviera a ver el pizarrón.
+Si tu hijo en edad escolar comenzó a usar anteojos y, cada vez que vas al oftalmólogo pediátrico en Córdoba, la receta de miopía aumenta un poco más, es normal sentir preocupación. Históricamente, en las ópticas tradicionales de Nueva Córdoba o del centro, nos limitábamos a cambiarle el cristal por uno más grueso y pesado para que volviera a ver bien el pizarrón.
 
-Pero la oftalmología moderna cambió. Hoy sabemos que el crecimiento descontrolado del ojo miópico aumenta el riesgo futuro de desprendimientos de retina. Para combatir esto, **Essilor desarrolló la tecnología Stellest**, un lente clínico que no solo corrige la vista, sino que **frena activamente el avance de la miopía**. 
+Pero la oftalmología moderna y la ciencia visual cambiaron las reglas del juego. Hoy sabemos que el crecimiento descontrolado del ojo miópico aumenta considerablemente el riesgo de patologías severas en la adultez, como desprendimientos de retina o maculopatías. Para combatir esta tendencia, **Essilor desarrolló la tecnología Stellest**, un lente clínico inteligente que no solo corrige la vista de inmediato, sino que **frena activamente el avance de la miopía en los niños**.
 
-En **Atelier Óptica**, liderados por nuestros ópticos contactólogos Ishtar Pissano y Matías Turchi, somos especialistas en el tallado y seguimiento de esta tecnología pediátrica en Córdoba.
+En **Atelier Óptica**, liderados por nuestros ópticos y contactólogos especializados Ishtar Pissano y Matías Turchi, somos expertos certificados en la adaptación milimétrica y el seguimiento de esta tecnología pediátrica avanzada en nuestra boutique del barrio Cerro de las Rosas.
 
-## La Tecnología H.A.L.T. detrás de Essilor Stellest
+## La Tecnología H.A.L.T. detrás de los Anteojos Essilor Stellest
 
-A simple vista, un lente Stellest parece un cristal común y corriente que podés encargar en cualquier óptica de Nueva Córdoba. Pero si lo mirás a trasluz, vas a notar una obra maestra de la micro-ingeniería.
+A simple vista, un cristal Stellest parece una lente de receta común que podrías encargar en cualquier óptica en Córdoba, Argentina. Pero si lo observás a trasluz con detenimiento, descubrirás una auténtica obra maestra de la microingeniería óptica.
 
-*   **1021 Microlentes Invisibles:** El cristal tiene un centro óptico perfecto por donde el niño mira de lejos. Alrededor de ese centro, hay 11 anillos concéntricos formados por diminutas "lupas" (tecnología H.A.L.T.).
-*   **¿Cómo frena la miopía?** Estos anillos proyectan un "escudo de desenfoque" por delante de la retina periférica del niño. Esta señal engaña al cerebro y le da la orden biométrica de **frenar la elongación (crecimiento) del ojo**.
-*   **Eficacia Clínica Comprobada:** Los estudios a 3 años demuestran que, si el niño usa los anteojos de forma permanente (más de 12 horas al día), la progresión de la miopía se reduce hasta en un **67%** comparado con un lente estándar.
+*   **1021 Microlentes Invisibles:** El cristal cuenta con un centro óptico perfecto por donde el niño obtiene una visión nítida de lejos. Alrededor de esta zona, se despliegan 11 anillos concéntricos formados por diminutas "lupas" (tecnología H.A.L.T., por sus siglas en inglés).
+*   **¿Cómo logra frenar la miopía?** Estos anillos inteligentes proyectan un "escudo de desenfoque miópico" por delante de la retina periférica del niño. Esta señal lumínica engaña al cerebro y le da la orden biométrica precisa de **desacelerar la elongación (el crecimiento anormal) del globo ocular**.
+*   **Eficacia Clínica Comprobada:** Múltiples estudios internacionales a tres años demuestran que, si el niño utiliza los anteojos de forma permanente (más de 12 horas al día), la progresión de la miopía se reduce hasta en un **67%** en comparación con un lente monofocal estándar.
 
-## ¿Dónde comprar Lentes Stellest para Control de Miopía en Córdoba?
+## ¿Dónde hacer lentes Stellest para control de miopía en Córdoba?
 
-Los tratamientos clínicos como Essilor Stellest o SightGlass (D.O.T.) no se venden por mostrador como unos anteojos de sol. Requieren la prescripción exacta de un **Oftalmólogo Pediátrico** y la adaptación de un centro **Essilor Expert**.
+Los tratamientos clínicos de control de miopía, como Essilor Stellest o SightGlass (D.O.T.), no se venden por mostrador como simples anteojos de sol o de lectura. Requieren la prescripción médica exacta de un **oftalmólogo pediatra** y la adaptación rigurosa de un centro óptico especializado y certificado como **Essilor Expert**.
 
-En **Atelier Óptica** (José Luis de Tejeda 4380, Cerro de las Rosas), trabajamos codo a codo con los principales oftalmólogos infantiles de Córdoba. Recibimos pacientes de **Río Ceballos, Alta Gracia, Villa Allende, La Calera y Villa Carlos Paz** para realizar este tratamiento.
+En **Atelier Óptica** (José Luis de Tejeda 4380, en pleno corazón del Cerro de las Rosas), trabajamos de manera interdisciplinaria con los principales oftalmólogos infantiles de la ciudad. Recibimos familias y pacientes de **zona norte, Nueva Córdoba, General Paz**, así como de localidades vecinas como **Villa Allende, Río Ceballos, Alta Gracia, La Calera y Villa Carlos Paz**, garantizando un abordaje profesional y cálido.
 
-### Nuestro Protocolo Pediátrico:
-1.  **Seguridad Primero:** Los lentes Stellest se fabrican obligatoriamente en material **Airwear (Policarbonato)** inastillable, para proteger los ojos de tus hijos durante los recreos.
-2.  **Toma de Medidas Digital:** El centrado de este lente no puede fallar por un milímetro. Lo hacemos con equipamiento de alta precisión.
-3.  **Seguimiento:** Ishtar Pissano y Matías Turchi acompañarán la adaptación del niño durante los primeros meses.
+### Nuestro Protocolo Pediátrico Exclusivo:
 
-## FAQ: Preguntas Frecuentes de Madres y Padres
+1.  **Seguridad Infantil Primero:** Los lentes Stellest se tallan de forma obligatoria en material **Airwear (policarbonato)** ultrarresistente e inastillable. Tu hijo estará protegido contra impactos durante los recreos, el deporte o el juego.
+2.  **Toma de Medidas Digitales:** El centrado pupilar de este lente terapéutico no admite un milímetro de margen de error. Lo realizamos con tecnología de alta precisión para asegurar que la mirada cruce exactamente por el centro óptico.
+3.  **Seguimiento Personalizado:** Ishtar Pissano y Matías Turchi acompañan de cerca el proceso de adaptación visual del niño durante los primeros meses, brindando tranquilidad a toda la familia.
 
-**¿Mi hijo se va a marear o va a ver borroso con los anillos del lente?**
-No. La zona central del lente provee una visión de lejos perfecta, como un lente normal. Los anillos periféricos son casi invisibles para el ojo humano cuando están puestos. Los niños cordobeses a los que hemos adaptado Stellest suelen acostumbrarse al 100% en menos de 3 días y pueden leer o jugar sin problemas.
+## FAQ: Preguntas frecuentes de madres y padres sobre el tratamiento
 
-**¿Los tiene que usar todo el día o solo para ir al colegio?**
-Para que el escudo terapéutico funcione y el ojo deje de crecer, el uso debe ser permanente. Los estudios exigen **un mínimo de 12 horas diarias**. Es decir, desde que el niño se levanta hasta que se va a dormir, fines de semana incluidos.
+**¿Mi hijo se va a marear o verá borroso debido a los anillos del lente?**
+En absoluto. La zona central del lente proporciona una visión de lejos perfecta y natural. Los anillos periféricos son imperceptibles para el ojo humano una vez que el anteojo está puesto. Los niños cordobeses a los que hemos adaptado lentes Stellest suelen lograr una adaptación del 100% en menos de 72 horas, pudiendo leer, estudiar y jugar con total normalidad.
+
+**¿Debe usar los anteojos todo el día o solo en el colegio?**
+Para que el escudo terapéutico funcione con éxito y el ojo detenga su elongación, el uso debe ser constante. Los ensayos clínicos exigen **un mínimo de 12 horas diarias de uso continuo**. Es decir, desde que el niño se levanta a la mañana hasta que se acuesta a dormir, incluyendo los fines de semana y las vacaciones.
 
 ---
 
@@ -70,7 +71,7 @@ Para que el escudo terapéutico funcione y el ojo deje de crecer, el uso debe se
     {
       "@type": "Article",
       "headline": "Control de Miopía Infantil en Córdoba: Lentes Stellest | Atelier Óptica",
-      "description": "Frená el avance de la miopía de tus hijos con lentes Essilor Stellest en Córdoba. Asesoramiento clínico pediátrico en Atelier Óptica, Cerro de las Rosas.",
+      "description": "Frená el avance de la miopía de tus hijos con lentes Essilor Stellest en Córdoba. Asesoramiento pediátrico en Atelier Óptica, Cerro de las Rosas.",
       "author": {
         "@type": "Person",
         "name": "Ishtar Pissano & Matías Turchi",
@@ -83,18 +84,18 @@ Para que el escudo terapéutico funcione y el ojo deje de crecer, el uso debe se
       "mainEntity": [
         {
           "@type": "Question",
-          "name": "¿Mi hijo se va a marear o va a ver borroso con los anillos del lente?",
+          "name": "¿Mi hijo se va a marear o verá borroso debido a los anillos del lente?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "No. El centro de la lente tiene graduación normal perfecta. Los anillos están diseñados para no interferir con su visión. La adaptación suele lograrse en 48 horas."
+            "text": "En absoluto. El centro de la lente tiene graduación normal perfecta. Los anillos están diseñados para no interferir con su visión. La adaptación suele lograrse en menos de 72 horas."
           }
         },
         {
           "@type": "Question",
-          "name": "¿Los tiene que usar todo el día o solo para ir al colegio?",
+          "name": "¿Debe usar los anteojos todo el día o solo en el colegio?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Debe usarlos de forma continua. La efectividad clínica del tratamiento Stellest exige un mínimo de 12 horas diarias, de lunes a lunes."
+            "text": "Debe usarlos de forma continua. La efectividad clínica del tratamiento Stellest exige un mínimo de 12 horas diarias de uso, de lunes a lunes."
           }
         }
       ]

@@ -1,7 +1,6 @@
 import { Metadata } from 'next';
 import { StorefrontNavbar } from '@/components/Storefront/StorefrontNavbar';
 import { StorefrontFooter } from '@/components/Storefront/StorefrontFooter';
-import { FloatingWhatsApp } from '@/components/Storefront/FloatingWhatsApp';
 import { ReviewsPageContent } from '@/components/Storefront/ReviewsPageContent';
 import { WHATSAPP_PHONE } from '@/lib/constants';
 
@@ -168,7 +167,7 @@ export default async function ResenasPage() {
       </main>
 
       <StorefrontFooter />
-      <FloatingWhatsApp />
+      
     </div>
   );
 }

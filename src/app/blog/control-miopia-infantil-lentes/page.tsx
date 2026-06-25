@@ -5,9 +5,9 @@ import { WHATSAPP_PHONE } from '@/lib/constants';
 
 export const metadata: Metadata = {
   alternates: { canonical: '/blog/control-miopia-infantil-lentes' },
-  title: "Control de Miopía Infantil: Todo sobre Stellest y MyoFix",
-  description: "Descubrí cómo los cristales Stellest y MyoFix ayudan a ralentizar el avance de la miopía en niños. Asesoramiento óptico en Córdoba basado en tu receta oftalmológica. ¡Consultá a tu oftalmopediatra y vení a visitarnos! Envíos a toda Argentina. Cuotas sin interés. Atención personalizada y asesoramiento estético.",
-  keywords: ["óptica Argentina", "envíos a toda Argentina", "cuotas", "atención personalizada", "anteojos de receta", "control miopia infantil lentes"],
+  title: "Control de Miopía Infantil en Córdoba: Lentes Stellest y MyoFix",
+  description: "Descubrí cómo los cristales Stellest y MyoFix frenan la miopía infantil. Asesoramiento óptico experto en Córdoba (Cerro de las Rosas, Nueva Córdoba). Envíos a todo el país y cuotas.",
+  keywords: ["control miopía infantil", "lentes Stellest Córdoba", "cristales MyoFix", "óptica infantil Córdoba", "Cerro de las Rosas", "Nueva Córdoba", "anteojos para niños", "frenar miopía", "oftalmopediatría", "Atelier Óptica"],
 };
 
 export default function ControlMiopiaInfantilPage() {
@@ -18,68 +18,68 @@ export default function ControlMiopiaInfantilPage() {
       <main className="flex-grow container mx-auto px-4 pt-32 pb-20 max-w-4xl">
         <article className="prose prose-stone lg:prose-lg mx-auto">
           <h1 className="text-4xl md:text-5xl font-serif text-stone-900 mb-8 leading-tight">
-            Control de Miopía Infantil: Todo sobre Stellest y MyoFix
+            Control de Miopía Infantil en Córdoba: Todo sobre Lentes Stellest y MyoFix
           </h1>
           
           <div className="bg-stone-200 p-6 rounded-md mb-10 border-l-4 border-[#c8a55c]">
             <p className="text-sm md:text-base text-stone-800 m-0 font-medium leading-relaxed">
-              <strong>Importante:</strong> En Atelier Óptica somos ópticos, no médicos. Nuestro rol es asesorarte sobre los mejores cristales y armazones basándonos en tu receta previa. Si notás que tu hijo no ve bien, el primer paso y el más fundamental es <strong>visitar a su médico oftalmopediatra</strong>. Solo el profesional de la salud puede diagnosticar y recetar la corrección adecuada. Jamás medimos la vista ni diagnosticamos en nuestro local.
+              <strong>Aviso importante:</strong> En Atelier Óptica somos ópticos especialistas, no médicos. Nuestro rol es brindarte el mejor asesoramiento en cristales y armazones basándonos en tu receta previa. Si notás que tu hijo entrecierra los ojos o se acerca mucho a las pantallas, el paso fundamental es <strong>visitar a su oftalmopediatra de confianza</strong>. Solo un profesional de la salud visual puede diagnosticar y recetar la corrección adecuada. No realizamos medición de vista ni diagnósticos en nuestras sucursales.
             </p>
           </div>
 
           <p className="text-lg text-stone-700 leading-relaxed mb-6">
-            En los últimos años, seguramente escuchaste hablar cada vez más sobre la miopía en los chicos. El uso constante de pantallas y la menor cantidad de tiempo al aire libre hicieron que los casos aumenten muchísimo. Pero la buena noticia es que la tecnología óptica también avanzó a pasos agigantados. Hoy en día, contamos con cristales diseñados específicamente no solo para corregir la visión, sino para ayudar a ralentizar el avance de la miopía.
+            ¿Sabías que los casos de miopía en niños han aumentado drásticamente? El uso intensivo de pantallas y la falta de actividades al aire libre son los principales responsables. Sin embargo, la tecnología óptica avanzó a pasos agigantados. Hoy en día, no solo buscamos que los chicos vean bien, sino que contamos con cristales inteligentes diseñados para ralentizar la progresión de este defecto visual.
           </p>
 
           <h2 className="text-2xl font-serif text-stone-900 mt-10 mb-4">
-            ¿Qué significa "control de miopía"?
+            ¿Qué significa realmente &quot;control de miopía&quot;?
           </h2>
           <p className="text-stone-700 leading-relaxed mb-6">
-            Es fundamental aclarar que la miopía no tiene "cura". Sin embargo, existen tratamientos y tecnologías ópticas que ayudan a frenar su progresión. Cuando el oftalmopediatra de tu hijo detecta que su miopía avanza rápido, puede recetarle cristales especiales. En nuestro local en Córdoba, trabajamos con tecnologías líderes en el mercado, como <strong>Stellest de Essilor</strong> y <strong>MyoFix</strong>.
+            Es crucial entender que la miopía no tiene cura, pero sí se puede frenar su avance. Cuando el oftalmopediatra detecta que la graduación de tu hijo aumenta rápidamente, suele indicar tratamientos ópticos específicos. En <strong>Atelier Óptica</strong>, ubicados estratégicamente para atender a familias de <strong>Cerro de las Rosas, Nueva Córdoba</strong> y toda la <strong>Ciudad de Córdoba</strong>, trabajamos con los laboratorios líderes a nivel mundial: <strong>Stellest de Essilor</strong> y <strong>MyoFix</strong>.
           </p>
 
           <h2 className="text-2xl font-serif text-stone-900 mt-10 mb-4">
-            Cristales Stellest (Essilor)
+            Cristales Stellest de Essilor: La revolución visual
           </h2>
           <p className="text-stone-700 leading-relaxed mb-4">
-            Los cristales Stellest son una verdadera revolución en la óptica pediátrica. Utilizan una tecnología llamada "H.A.L.T." (Highly Aspherical Lenslet Target), que consiste en una constelación de microlentes invisibles distribuidas en el cristal. 
+            Los lentes <strong>Stellest</strong> representan el mayor avance en óptica pediátrica de los últimos tiempos. Incorporan la tecnología H.A.L.T. (Highly Aspherical Lenslet Target), una innovadora &quot;constelación&quot; de microlentes invisibles distribuidas estratégicamente.
           </p>
           <ul className="list-disc pl-6 text-stone-700 space-y-2 mb-6">
-            <li><strong>¿Cómo funcionan?</strong> Mientras el centro del cristal corrige la miopía para que tu hijo vea nítido, las microlentes crean un volumen de señal que ayuda a frenar el alargamiento del ojo, que es la principal causa de que la miopía aumente.</li>
-            <li><strong>Beneficios:</strong> Son estéticos, finos, livianos y súper fáciles de adaptar para los chicos.</li>
+            <li><strong>¿Cómo funcionan?</strong> Mientras el centro del lente corrige la visión para lograr nitidez perfecta, la corona de microlentes genera una señal volumétrica que frena el alargamiento excesivo del ojo, la causa principal del aumento de la miopía.</li>
+            <li><strong>Beneficios clave:</strong> Son cristales estéticos, ultra delgados, súper livianos y con una tasa de adaptación inmediata en los más chicos.</li>
           </ul>
 
           <h2 className="text-2xl font-serif text-stone-900 mt-10 mb-4">
-            Cristales MyoFix
+            Cristales MyoFix: Precisión y confort
           </h2>
           <p className="text-stone-700 leading-relaxed mb-4">
-            Los cristales MyoFix representan otra excelente alternativa tecnológica para el manejo de la miopía infantil, basándose en el principio de desenfoque periférico.
+            Otra alternativa tecnológica de excelencia es <strong>MyoFix</strong>. Estos cristales actúan mediante el principio de desenfoque periférico, una técnica clínicamente comprobada para el cuidado de la salud visual infantil.
           </p>
           <ul className="list-disc pl-6 text-stone-700 space-y-2 mb-6">
-            <li><strong>El diseño:</strong> Presentan una zona central de visión clara que proporciona la corrección exacta que recetó el médico, rodeada de una zona de tratamiento especial.</li>
-            <li><strong>El resultado:</strong> Ayudan a controlar el crecimiento del globo ocular y son muy cómodos para que los chicos jueguen, estudien y hagan su vida normal sin molestias.</li>
+            <li><strong>Diseño inteligente:</strong> Cuentan con una zona central de visión clara, que proporciona la graduación exacta recetada, rodeada por un área de tratamiento periférico.</li>
+            <li><strong>Resultados efectivos:</strong> Ayudan a controlar el crecimiento del globo ocular, permitiendo que los chicos estudien, jueguen y disfruten de su día a día sin ningún tipo de molestia.</li>
           </ul>
 
           <h2 className="text-2xl font-serif text-stone-900 mt-10 mb-4">
             El armazón ideal: Nuestro rol en Atelier Óptica
           </h2>
           <p className="text-stone-700 leading-relaxed mb-4">
-            Para que estas tecnologías de vanguardia funcionen correctamente, la elección del armazón y el centrado exacto del cristal son <strong>clave</strong>. Ahí es donde entramos nosotros con nuestra experiencia óptica.
+            Para que estas tecnologías de vanguardia funcionen al 100%, el centrado exacto del cristal y la elección del marco son <strong>factores críticos</strong>. Es aquí donde nuestra experiencia marca la diferencia.
           </p>
           <p className="text-stone-700 leading-relaxed mb-4">
-            Los chicos necesitan armazones que sean:
+            A la hora de elegir anteojos para niños, priorizamos armazones que sean:
           </p>
           <ul className="list-disc pl-6 text-stone-700 space-y-2 mb-6">
-            <li><strong>Duraderos y seguros:</strong> Materiales flexibles y resistentes a los golpes.</li>
-            <li><strong>Estables:</strong> El cristal debe mantenerse en la posición correcta frente al ojo para que la zona de tratamiento haga su efecto.</li>
-            <li><strong>Cómodos y cancheros:</strong> ¡Si a tu hijo le gustan sus anteojos, los va a usar con ganas!</li>
+            <li><strong>Duraderos y seguros:</strong> Materiales flexibles, hipoalergénicos y resistentes a los impactos.</li>
+            <li><strong>Estables y ergonómicos:</strong> El cristal debe mantenerse perfectamente posicionado frente al ojo para que la zona terapéutica actúe correctamente.</li>
+            <li><strong>Cómodos y con estilo:</strong> ¡Si a tu hijo le encanta su diseño, usará los anteojos todos los días con alegría!</li>
           </ul>
 
           <h2 className="text-2xl font-serif text-stone-900 mt-10 mb-4">
-            Vení a visitarnos
+            Vení a visitarnos en Córdoba Capital
           </h2>
           <p className="text-stone-700 leading-relaxed mb-8">
-            Si el oftalmopediatra ya evaluó a tu hijo y te entregó una receta para el control de la miopía, te esperamos en <strong>Atelier Óptica</strong>. Traé la receta y juntos vamos a buscar el armazón perfecto para acompañar el tratamiento con cristales Stellest o MyoFix. ¡Te asesoramos con la calidez y el profesionalismo de siempre!
+            Si el oftalmopediatra ya evaluó a tu pequeño y te entregó la receta para iniciar el tratamiento de control de miopía, te esperamos en <strong>Atelier Óptica</strong>. Ya seas de zona norte, zona sur o del centro, acercate con tu receta y juntos encontraremos el armazón perfecto para acompañar tu tratamiento. ¡Te brindamos un asesoramiento cálido, estético y sumamente profesional! Además, realizamos <strong>envíos a toda Argentina</strong> y ofrecemos excelentes planes de financiación.
           </p>
 
         
@@ -87,7 +87,7 @@ export default function ControlMiopiaInfantilPage() {
           <div className="mt-16 bg-black/5 p-8 md:p-12 rounded-2xl text-center border border-black/10">
             <h3 className="text-2xl font-medium tracking-tight mb-4">¿Necesitás asesoramiento personalizado?</h3>
             <p className="text-black/70 mb-8 max-w-xl mx-auto">
-              Comunicate directamente con nuestro equipo de ópticos por WhatsApp. Estamos para ayudarte a encontrar el cristal y armazón perfecto según tu receta oftalmológica.
+              Comunicate directamente con nuestro equipo de ópticos por WhatsApp. Estamos para ayudarte a encontrar el cristal y armazón perfectos para tu receta oftalmológica, desde Córdoba hacia todo el país.
             </p>
             <a 
               href={`https://wa.me/${WHATSAPP_PHONE}`}

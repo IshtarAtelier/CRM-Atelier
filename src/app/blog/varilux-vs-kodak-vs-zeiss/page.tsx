@@ -1,13 +1,11 @@
 import { Metadata } from "next";
 import { StorefrontNavbar } from "@/components/Storefront/StorefrontNavbar";
 import { StorefrontFooter } from "@/components/Storefront/StorefrontFooter";
-import { FloatingWhatsApp } from "@/components/Storefront/FloatingWhatsApp";
-
 export const metadata: Metadata = {
   alternates: { canonical: '/blog/varilux-vs-kodak-vs-zeiss' },
-  title: "Varilux vs Kodak vs Zeiss: ¿Qué multifocal premium elegir?",
-  description: "Descubrí las diferencias entre Varilux, Zeiss y Kodak. Comparativa de multifocales premium, adaptación y campos visuales para presbicia. Asesoramiento en Córdoba. Envíos a toda Argentina. Cuotas sin interés. Atención personalizada y asesoramiento estético.",
-  keywords: ["óptica Argentina", "envíos a toda Argentina", "cuotas", "atención personalizada", "anteojos de receta", "varilux vs kodak vs zeiss"],
+  title: "Varilux vs Zeiss vs Kodak: Comparativa de Multifocales Premium | Atelier Óptica",
+  description: "Descubrí las diferencias entre lentes progresivos Varilux, Zeiss y Kodak. La guía definitiva para elegir tu multifocal premium en Córdoba. ¡Conocé más!",
+  keywords: ["óptica en córdoba", "cerro de las rosas", "nueva córdoba", "varilux vs zeiss", "lentes multifocales premium", "anteojos progresivos", "cristales kodak", "presbicia", "multifocales de alta gama"],
 };
 
 export default function VariluxVsKodakVsZeissPage() {
@@ -20,92 +18,95 @@ export default function VariluxVsKodakVsZeissPage() {
           <header className="mb-12 text-center">
             <div className="flex items-center justify-center gap-3 mb-6">
               <span className="text-xs font-bold uppercase tracking-wider text-[#111]">
-                Cristales
+                Guía de Cristales
               </span>
               <span className="text-xs text-black/40">·</span>
               <span className="text-xs text-black/40">Tiempo de lectura: 5 min</span>
             </div>
-            <h1 className="text-4xl md:text-5xl font-medium tracking-tight tracking-tight mb-6">
-              Varilux vs Kodak vs Zeiss: ¿Qué multifocal premium elegir?
+            <h1 className="text-4xl md:text-5xl font-medium tracking-tight mb-6">
+              Varilux, Zeiss o Kodak: ¿Cuál es el Mejor Multifocal Premium para Vos?
             </h1>
             <p className="text-lg text-black/60 md:text-xl">
-              Comparativa de adaptación, campos visuales y tecnologías para que inviertas en la mejor visión posible, siempre partiendo de la receta de tu médico oftalmólogo.
+              Comparativa definitiva de adaptación, campos visuales y tecnologías para que inviertas con seguridad en tu salud visual, partiendo siempre de la receta de tu oftalmólogo.
             </p>
           </header>
 
           <div className="prose prose-lg prose-headings:font-medium tracking-tight prose-a:text-[#111] max-w-none text-black/80">
             <p>
-              Cuando llega el momento de hacerte tus anteojos multifocales (o progresivos), la cantidad de opciones en el mercado puede ser abrumadora. Las marcas premium prometen la mejor visión, pero ¿qué las hace diferentes entre sí? En <strong>Atelier Óptica</strong>, escuchamos todos los días la misma pregunta: <em>“¿Vale la pena invertir en Varilux, o me conviene Zeiss o Kodak?”</em>.
+              Si llegaste a esa etapa donde alejar el celular para leer se volvió una costumbre, o si ya sos usuario de <strong>lentes progresivos</strong> pero sentís que necesitás dar un salto de calidad, probablemente te encuentres frente a un mar de opciones. Las marcas líderes prometen una visión perfecta, pero en la práctica, ¿qué las diferencia realmente?
             </p>
             <p>
-              Antes de empezar, es fundamental aclarar algo: nosotros somos <strong>ópticos</strong>, no médicos. Nuestro trabajo es asesorarte sobre la mejor tecnología en cristales para tu estilo de vida, pero <strong>todo empieza con una visita a tu médico oftalmólogo</strong>. Es él quien debe evaluar la salud de tus ojos y emitir la receta con la graduación exacta. Una vez que tengas tu receta, nos encargamos de que esa indicación médica se traduzca en unos anteojos perfectos para vos.
+              En <strong>Atelier Óptica</strong>, tanto en nuestra sucursal de <strong>Cerro de las Rosas</strong> como en <strong>Nueva Córdoba</strong>, recibimos a diario la misma inquietud: <em>“¿Se justifica la inversión en Varilux? ¿Me conviene más la precisión de Zeiss o la relación calidad-precio de Kodak?”</em>.
+            </p>
+            <p>
+              Antes de sumergirnos en la tecnología, queremos ser muy claros: nosotros somos <strong>ópticos y asesores estéticos</strong>, no médicos. Nuestro rol es traducir la indicación médica en los anteojos perfectos para tu estilo de vida. Por eso, <strong>el primer paso siempre debe ser una consulta con tu médico oftalmólogo</strong>, quien evaluará tu salud ocular y determinará tu graduación exacta.
             </p>
 
-            <h2 className="text-2xl mt-12 mb-6">¿Qué hace que un multifocal sea "Premium"?</h2>
+            <h2 className="text-2xl mt-12 mb-6">¿Qué define a un Cristal Multifocal "Premium"?</h2>
             <p>
-              Un lente multifocal tiene tres zonas de visión (lejos, intermedia y cerca) talladas en el mismo cristal, sin la clásica "rayita" de los bifocales antiguos. El gran desafío de los multifocales son las zonas borrosas en los laterales (aberraciones).
+              A diferencia de los antiguos bifocales (esos que tenían una "rayita" visible), un lente multifocal o progresivo integra tres zonas de visión —lejos, intermedia y cerca— en una transición invisible. El mayor desafío técnico de estos cristales radica en minimizar las zonas borrosas laterales, conocidas como aberraciones.
             </p>
             <p>
-              Los multifocales <strong>premium</strong> (como las líneas altas de Varilux, Zeiss y Kodak) utilizan tecnología de tallado digital punto por punto en la cara interna del cristal. Esto se traduce en:
+              Las líneas <strong>premium</strong> de Varilux, Zeiss y Kodak comparten un denominador común: utilizan <strong>tecnología de tallado digital o Free-Form</strong> en la cara interna del cristal, procesada punto por punto mediante un software complejo. ¿El resultado en tu día a día?
             </p>
             <ul className="list-disc pl-6 mb-8 space-y-2">
-              <li><strong>Campos visuales más amplios:</strong> Menos distorsión en los bordes.</li>
-              <li><strong>Transición suave:</strong> El paso de mirar de lejos a leer un mensaje en el celular se siente natural.</li>
-              <li><strong>Adaptación rápida:</strong> Si sos primerizo, el cerebro se acostumbra mucho más rápido.</li>
+              <li><strong>Campos visuales expansivos:</strong> Disfrutás de una visión periférica más limpia y con menos efecto balanceo.</li>
+              <li><strong>Transición fluida:</strong> Cambiar la vista de la ruta hacia el tablero del auto, o de la computadora al celular, se vuelve un movimiento completamente natural.</li>
+              <li><strong>Adaptación exprés:</strong> Si es tu primer multifocal, tu cerebro integra la nueva forma de ver en tiempo récord.</li>
             </ul>
 
-            <h2 className="text-2xl mt-12 mb-6">1. Varilux (Essilor): El inventor del multifocal</h2>
+            <h2 className="text-2xl mt-12 mb-6">1. Varilux (Essilor): El Pionero en Visión Dinámica</h2>
             <p>
-              Varilux es casi un sinónimo de multifocal. Fueron los primeros en el mundo en crearlos y hoy siguen liderando en innovación, con tecnologías como la inteligencia artificial en su línea Varilux XR.
+              Hablar de Varilux es hablar de la historia del multifocal. Como creadores del primer lente progresivo del mundo, Essilor mantiene su liderazgo a base de innovación constante, incorporando incluso inteligencia artificial en su revolucionaria línea Varilux XR Series.
             </p>
             <ul className="list-disc pl-6 mb-8 space-y-2">
-              <li><strong>Campos visuales:</strong> Extremadamente amplios y dinámicos. Están pensados para el movimiento constante (mirar el celular, caminar, subir escaleras).</li>
-              <li><strong>Adaptación:</strong> Es su punto más fuerte. Tienen tasas de éxito altísimas, incluso en personas que nunca antes usaron multifocales o que tuvieron malas experiencias en el pasado.</li>
-              <li><strong>Perfil ideal:</strong> Para el usuario exigente, dinámico y que busca garantía absoluta de confort visual inmediato.</li>
+              <li><strong>Amplitud visual:</strong> Sus diseños están pensados para el mundo hiperconectado actual. Ofrecen campos visuales ultra dinámicos, ideales si estás en constante movimiento, bajando escaleras o mirando múltiples pantallas.</li>
+              <li><strong>Curva de adaptación:</strong> Es su carta de triunfo. Tienen índices de satisfacción altísimos, siendo la opción más segura para pacientes que tuvieron malas experiencias previas con otras marcas.</li>
+              <li><strong>El veredicto de Atelier:</strong> Es la elección definitiva para el usuario exigente y dinámico que busca garantía de confort inmediato.</li>
             </ul>
 
-            <h2 className="text-2xl mt-12 mb-6">2. Zeiss: Precisión alemana y alta definición</h2>
+            <h2 className="text-2xl mt-12 mb-6">2. Zeiss: Alta Definición y Precisión Alemana</h2>
             <p>
-              La legendaria marca alemana Carl Zeiss es famosa por fabricar las ópticas de los mejores microscopios y cámaras del mundo. En anteojos, esa herencia se nota.
+              Carl Zeiss es una leyenda en el mundo de la óptica de precisión, fabricando lentes para los microscopios y cámaras más sofisticados del planeta. Cuando trasladan esa herencia a tus anteojos, la diferencia es palpable.
             </p>
             <ul className="list-disc pl-6 mb-8 space-y-2">
-              <li><strong>Campos visuales:</strong> Zeiss destaca por la nitidez extrema. Su tecnología SmartLife está optimizada para la vida conectada (pantallas, smartphones) teniendo en cuenta cómo cambia el tamaño de la pupila.</li>
-              <li><strong>Adaptación:</strong> Requiere una toma de medidas milimétrica en la óptica. Al ser tan personalizables, una vez bien centrados, la sensación de "alta definición" es inigualable.</li>
-              <li><strong>Perfil ideal:</strong> Para quienes valoran el detalle, tienen astigmatismos altos o simplemente quieren la óptica más nítida disponible en el mercado.</li>
+              <li><strong>Nitidez extrema:</strong> Zeiss se obsesiona con el contraste y la claridad. Su portafolio, incluyendo la tecnología SmartLife, optimiza el cristal considerando la edad del paciente y el comportamiento de la pupila ante las pantallas.</li>
+              <li><strong>Personalización total:</strong> Exigen una toma de medidas biométricas y de centrado sumamente precisas (algo que realizamos meticulosamente en nuestras ópticas de Córdoba). Una vez calibrados, brindan una experiencia visual de "alta resolución".</li>
+              <li><strong>El veredicto de Atelier:</strong> Ideales para perfeccionistas, profesionales visuales, personas con astigmatismos complejos o quienes priorizan la nitidez absoluta por encima de todo.</li>
             </ul>
 
-            <h2 className="text-2xl mt-12 mb-6">3. Kodak: La decisión inteligente</h2>
+            <h2 className="text-2xl mt-12 mb-6">3. Kodak Lenses: La Decisión Inteligente</h2>
             <p>
-              Kodak Lenses ofrece una alternativa fantástica en el segmento de alta gama, manteniendo precios más accesibles que las líneas top de Essilor o Zeiss, sin sacrificar calidad digital.
+              Kodak logró posicionarse como una alternativa brillante dentro del segmento de alta gama, democratizando el acceso al tallado digital de precisión con un precio mucho más amigable que las insignias tope de gama de Essilor o Zeiss.
             </p>
             <ul className="list-disc pl-6 mb-8 space-y-2">
-              <li><strong>Campos visuales:</strong> Sus diseños digitales (como Kodak Unique) ofrecen zonas de visión muy confortables y una excelente relación entre precio y amplitud visual.</li>
-              <li><strong>Adaptación:</strong> Muy fluida gracias a sus diseños de progresión suave. Además, sus tratamientos antirreflejo y de protección son súper duraderos.</li>
-              <li><strong>Perfil ideal:</strong> Para quien busca dar el salto a la tecnología digital premium sin gastar el presupuesto de las marcas líderes, obteniendo un resultado excelente.</li>
+              <li><strong>Diseño confortable:</strong> Tecnologías como Kodak Unique ofrecen una arquitectura de progresión muy amena, garantizando campos de lectura amplios y cómodos para el día a día.</li>
+              <li><strong>Tratamientos de excelencia:</strong> Sus capas antirreflejo y filtros de luz azul destacan por su durabilidad, protegiendo tanto tu visión como la vida útil del anteojo.</li>
+              <li><strong>El veredicto de Atelier:</strong> La mejor opción si querés experimentar los beneficios innegables de la tecnología digital premium, optimizando al máximo tu presupuesto.</li>
             </ul>
 
-            <h2 className="text-2xl mt-12 mb-6">Comparativa Final: ¿Con cuál me quedo?</h2>
+            <h2 className="text-2xl mt-12 mb-6">Conclusión: ¿Qué multifocal elegir en Córdoba?</h2>
             <p>
-              No hay una respuesta única. La elección depende de varios factores que analizamos juntos en el local:
+              En óptica de alta complejidad, las recetas universales no existen. La decisión final es un proceso a medida que construimos juntos en nuestros locales, analizando:
             </p>
             <ol className="list-decimal pl-6 mb-8 space-y-2">
-              <li><strong>Tu receta:</strong> Miopías, hipermetropías o astigmatismos altos pueden beneficiarse de diseños específicos de Zeiss o Varilux.</li>
-              <li><strong>Tu historial:</strong> Si ya usás Varilux y estás cómodo, muchas veces la recomendación es actualizar a una versión más moderna de la misma marca.</li>
-              <li><strong>Tu trabajo y uso de pantallas:</strong> Analizamos cuántas horas pasás frente a la compu o manejando.</li>
+              <li><strong>Tu receta médica:</strong> Ciertas miopías, hipermetropías o adiciones elevadas por presbicia "piden" características puntuales que un diseño de Zeiss o Varilux puede resolver mejor.</li>
+              <li><strong>Tu memoria visual:</strong> Si hace años usás Varilux y te sentís bárbaro, nuestro consejo suele ser actualizarte a una generación superior dentro de la misma familia.</li>
+              <li><strong>Tu ergonomía visual:</strong> Evaluamos tus horas frente a la computadora, si manejás de noche, o si practicás deportes de precisión.</li>
             </ol>
             <p>
-              Por favor, recordá que si tenés síntomas como visión borrosa repentina, destellos o dolor, <strong>debes consultar urgente a un médico oftalmólogo</strong>. En nuestra óptica no diagnosticamos patologías ni recetamos graduaciones.
+              Una vez más, te recordamos: si experimentás dolores de cabeza persistentes, visión doble, destellos repentinos o una baja de visión abrupta, <strong>acudí de forma urgente a un médico oftalmólogo</strong>. En Atelier Óptica nos encargamos de la física del cristal y la estética del armazón, pero el cuidado clínico de tus ojos es potestad exclusiva del médico.
             </p>
 
             <div className="bg-[#e8e2db]/30 p-8 rounded-2xl mt-12 text-center border border-[#e8e2db]">
-              <h3 className="text-xl font-medium tracking-tight mb-4">Vení a visitarnos con tu receta</h3>
+              <h3 className="text-xl font-medium tracking-tight mb-4">¿Buscás asesoramiento experto? Vení con tu receta</h3>
               <p className="mb-6 text-black/70">
-                Traé la receta de tu oftalmólogo a nuestro local en Córdoba. Te vamos a mostrar los diferentes armazones y te explicaremos en detalle qué cristal se adapta mejor a tu prescripción médica y a tu presupuesto.
+                Traé la receta de tu oftalmólogo a cualquiera de nuestras sucursales en <strong>Cerro de las Rosas</strong> o <strong>Nueva Córdoba</strong>. Te vamos a asesorar de forma personalizada, mostrándote qué cristales y armazones de diseño se adaptan verdaderamente a tus necesidades y presupuesto.
               </p>
               <a href="https://wa.me/5493518685644" target="_blank" rel="noopener noreferrer" 
                 className="inline-block bg-[#111] text-white px-8 py-3 rounded-full font-medium tracking-tight hover:bg-black transition-colors"
               >
-                Solicitar Asesoramiento
+                Reservar Asesoramiento por WhatsApp
               </a>
             </div>
           </div>
@@ -113,7 +114,7 @@ export default function VariluxVsKodakVsZeissPage() {
       </main>
 
       <StorefrontFooter />
-      <FloatingWhatsApp />
+      
     </div>
   );
 }

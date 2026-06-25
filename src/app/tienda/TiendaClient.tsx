@@ -3,10 +3,10 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { X } from "lucide-react";
 import { StorefrontNavbar } from "@/components/Storefront/StorefrontNavbar";
-import { FloatingWhatsApp } from "@/components/Storefront/FloatingWhatsApp";
 import { ProductFilters } from "@/components/Storefront/ProductFilters";
 import { resolveStorageUrl } from "@/lib/utils/storage";
 
@@ -97,10 +97,16 @@ export function TiendaClient({
   const installmentsCount = getInstallmentsCount(webSettings.web_promo_installments);
   const discountRate = webSettings.web_promo_cash_discount / 100;
 
+  const searchParams = useSearchParams();
+  const filterBrand = searchParams.get('marca') || '';
+  const filterShape = searchParams.get('forma') || '';
+  const filterMaterial = searchParams.get('material') || '';
+  const sortParam = searchParams.get('orden') || 'recientes';
+
   // Removed loading state and fetch since products are passed as props
   const products = initialProducts || [];
 
-  const filtered = activeCategory === "Todo"
+  let filtered = activeCategory === "Todo"
     ? products
     : products.filter(p => {
         const cat = (p.category || "").toLowerCase();
@@ -126,6 +132,22 @@ export function TiendaClient({
         }
         return cat === active;
       });
+
+  if (filterBrand) {
+    filtered = filtered.filter(p => p.brand.toLowerCase() === filterBrand.toLowerCase());
+  }
+  if (filterShape) {
+    filtered = filtered.filter(p => p.shape.toLowerCase().includes(filterShape.toLowerCase()) || (filterShape.toLowerCase() === 'xl' && p.shape === 'XL'));
+  }
+  if (filterMaterial) {
+    filtered = filtered.filter(p => p.material.toLowerCase() === filterMaterial.toLowerCase());
+  }
+
+  if (sortParam === 'menor_precio') {
+    filtered = [...filtered].sort((a, b) => a.price - b.price);
+  } else if (sortParam === 'mayor_precio') {
+    filtered = [...filtered].sort((a, b) => b.price - a.price);
+  }
 
   const displayedProducts = filtered.slice(0, visibleCount);
 
@@ -255,7 +277,16 @@ export function TiendaClient({
               transition={{ duration: 0.3 }}
               className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-x-6 gap-y-14"
             >
-              {displayedProducts.map((p, index) => {
+              {displayedProducts.length === 0 ? (
+                <div className="col-span-full py-20 flex flex-col items-center justify-center text-center">
+                  <p className="text-xl font-serif text-stone-900 mb-2">No encontramos resultados</p>
+                  <p className="text-stone-500 mb-6 max-w-md mx-auto">Intentá ajustar los filtros o explorar otra categoría. Tenemos opciones increíbles esperándote.</p>
+                  <Link href="/tienda" className="bg-black text-white px-8 py-3 text-[11px] font-black uppercase tracking-widest hover:bg-stone-800 transition-colors">
+                    Ver Toda la Colección
+                  </Link>
+                </div>
+              ) : (
+                displayedProducts.map((p, index) => {
                 const hasSecondImage = p.imagenesCatalogo && p.imagenesCatalogo.length > 1;
                 const imgUrl = p.imagenesCatalogo?.length > 0
                   ? resolveStorageUrl(p.imagenesCatalogo[0])
@@ -368,9 +399,10 @@ export function TiendaClient({
                     </div>
                   </Link>
                 );
-              })}
+              })
+            )}
 
-              {filtered.length === 0 && (
+            {filtered.length === 0 && (
                 <div className="col-span-full py-24 text-center">
                   <p className="text-stone-400 text-sm uppercase tracking-widest mb-4">Sin productos en esta categoría</p>
                   <button onClick={() => setActiveCategory("Todo")} className="text-xs font-bold underline">
@@ -400,7 +432,7 @@ export function TiendaClient({
       </main>
 
       {footer}
-      <FloatingWhatsApp message="¡Hola Atelier! Estoy recorriendo la tienda online y me gustaría recibir asesoramiento personalizado." />
+      
     </div>
   );
 }

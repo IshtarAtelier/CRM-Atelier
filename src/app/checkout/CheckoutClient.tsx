@@ -2,7 +2,6 @@
 
 import { useCart } from "@/store/useCart";
 import { StorefrontNavbar } from "@/components/Storefront/StorefrontNavbar";
-import { FloatingWhatsApp } from "@/components/Storefront/FloatingWhatsApp";
 import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import { ShieldCheck } from "lucide-react";
@@ -12,6 +11,7 @@ import { CheckoutPaymentOptions } from "@/components/checkout/CheckoutPaymentOpt
 import { CheckoutSummarySidebar } from "@/components/checkout/CheckoutSummarySidebar";
 import { WHATSAPP_PHONE } from "@/lib/constants";
 import { trackInitiateCheckout, trackPurchase } from "@/lib/tracking";
+import { toast } from "sonner";
 
 export function CheckoutClient({ 
   paywayConfig, 
@@ -289,14 +289,14 @@ export function CheckoutClient({
           clearCart();
           setIsSuccess(true);
         } else {
-          alert(formData.paymentMethod === 'MAYORISTA' ? "Error generando pedido mayorista." : "Error generando orden de transferencia.");
+          toast.error(formData.paymentMethod === 'MAYORISTA' ? "Error generando pedido mayorista." : "Error generando orden de transferencia.");
         }
         return;
       }
 
       // PAYWAY LOGIC
       if (!paywayConfig || !(window as any).Decidir) {
-        alert("La pasarela de pagos aún se está cargando. Por favor intentá en unos segundos.");
+        toast.error("La pasarela de pagos aún se está cargando. Por favor intentá en unos segundos.");
         setIsProcessing(false);
         return;
       }
@@ -314,27 +314,31 @@ export function CheckoutClient({
       const [expMonth, expYear] = formData.cardExp.split('/').map(s => s.trim());
       
       if (!cleanedCardNumber || !expMonth || !expYear || !formData.cardCvc || !formData.cardName) {
-         alert("Por favor completá todos los datos de la tarjeta.");
+         toast.error("Por favor completá todos los datos de la tarjeta.");
          setIsProcessing(false);
          return;
       }
 
-      const decidirData = {
-        card_number: cleanedCardNumber,
-        card_expiration_month: expMonth,
-        card_expiration_year: expYear.length === 2 ? `20${expYear}` : expYear,
-        security_code: formData.cardCvc,
-        card_holder_name: formData.cardName,
-        card_holder_identification: {
-            type: "dni",
-            number: formData.dni.replace(/\D/g, '')
-        }
+      const form = document.createElement('form');
+      const createInput = (name: string, value: string) => {
+        const input = document.createElement('input');
+        input.setAttribute('data-decidir', name);
+        input.value = value;
+        form.appendChild(input);
       };
 
-      decidir.createToken(decidirData, async (status: number, response: any) => {
+      createInput('card_number', cleanedCardNumber);
+      createInput('card_expiration_month', expMonth);
+      createInput('card_expiration_year', expYear.length === 4 ? expYear.substring(2) : expYear);
+      createInput('security_code', formData.cardCvc);
+      createInput('card_holder_name', formData.cardName);
+      createInput('card_holder_doc_type', 'dni');
+      createInput('card_holder_doc_number', formData.dni.replace(/\D/g, ''));
+
+      decidir.createToken(form, async (status: number, response: any) => {
         if (status !== 200 && status !== 201) {
           console.error("Error Token:", response);
-          alert("Los datos de la tarjeta son inválidos o fueron rechazados. Por favor verificá.");
+          toast.error("Los datos de la tarjeta son inválidos o fueron rechazados. Por favor verificá.");
           setIsProcessing(false);
           return;
         }
@@ -379,18 +383,18 @@ export function CheckoutClient({
             clearCart();
             setIsSuccess(true);
           } else {
-            alert(data.error || "El pago fue rechazado por la tarjeta.");
+            toast.error(data.error || "El pago fue rechazado por la tarjeta.");
           }
         } else {
           const errorData = await res.json();
-          alert(errorData.error || "Error procesando el pago. Revisá los fondos e intentá de nuevo.");
+          toast.error(errorData.error || "Error procesando el pago. Revisá los fondos e intentá de nuevo.");
         }
         setIsProcessing(false);
       });
 
     } catch (error: any) {
       console.error(error);
-      alert("Error de sistema: " + (error.message || JSON.stringify(error)));
+      toast.error("Error de sistema: " + (error.message || JSON.stringify(error)));
     } finally {
       setIsProcessing(false);
     }

@@ -1,7 +1,6 @@
 import { Metadata } from 'next';
 import { StorefrontNavbar } from "@/components/Storefront/StorefrontNavbar";
 import { StorefrontFooter } from "@/components/Storefront/StorefrontFooter";
-import { FloatingWhatsApp } from "@/components/Storefront/FloatingWhatsApp";
 import { CategoryGrid } from "@/components/Storefront/CategoryGrid";
 import { ProductFilters } from "@/components/Storefront/ProductFilters";
 import { prisma } from '@/lib/db';
@@ -237,7 +236,7 @@ export default async function RecetaPage({ searchParams }: { searchParams: Promi
       </main>
 
       <StorefrontFooter />
-      <FloatingWhatsApp />
+      
     </div>
   );
 }

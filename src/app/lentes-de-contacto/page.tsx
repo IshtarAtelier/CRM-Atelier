@@ -1,7 +1,6 @@
 import { Metadata } from 'next';
 import { StorefrontNavbar } from "@/components/Storefront/StorefrontNavbar";
 import { StorefrontFooter } from "@/components/Storefront/StorefrontFooter";
-import { FloatingWhatsApp } from "@/components/Storefront/FloatingWhatsApp";
 import { Eye } from 'lucide-react';
 import { WHATSAPP_PHONE } from '@/lib/constants';
 
@@ -37,7 +36,7 @@ export default function LentesDeContactoPage() {
       </main>
 
       <StorefrontFooter />
-      <FloatingWhatsApp />
+      
     </div>
   );
 }

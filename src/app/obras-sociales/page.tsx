@@ -1,7 +1,6 @@
 import { Metadata } from "next";
 import { StorefrontNavbar } from "@/components/Storefront/StorefrontNavbar";
 import { StorefrontFooter } from "@/components/Storefront/StorefrontFooter";
-import { FloatingWhatsApp } from "@/components/Storefront/FloatingWhatsApp";
 import { AccordionItem } from "@/components/Storefront/Accordion";
 import { CristalCTA } from "@/components/cristales/CristalCTA";
 
@@ -98,7 +97,7 @@ export default function ObrasSocialesPage() {
       </main>
 
       <StorefrontFooter />
-      <FloatingWhatsApp />
+      
     </div>
   );
 }

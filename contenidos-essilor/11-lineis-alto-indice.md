@@ -1,40 +1,41 @@
 ---
-title: "Cristales Lineis 1.74 en Córdoba: Fin al Efecto Fondo de Botella | Atelier Óptica"
-meta_description: "Lentes extra finos Lineis 1.74 de Essilor para miopía alta. Evitá cristales gruesos en Córdoba Capital con Atelier Óptica, Cerro de las Rosas."
-slug: "lentes-lineis-ultra-alto-indice-essilor-cordoba"
+title: 'Lentes Lineis 1.74 en Córdoba: El Fin del Efecto Fondo de Botella | Atelier Óptica'
+meta_description: 'Descubrí los lentes extra finos Lineis 1.74 de Essilor para miopía alta. Evitá los cristales gruesos en Córdoba Capital y Nueva Córdoba con Atelier Óptica.'
+slug: lentes-lineis-ultra-alto-indice-essilor-cordoba
 ---
 
-# Lentes Lineis 1.74 en Córdoba: El Límite Absoluto de la Delgadez
+# Lentes Lineis 1.74 en Córdoba: El Límite Absoluto de la Delgadez para Altas Miopías
 
-Las personas que conviven con altas miopías (más de -8.00 dioptrías) en Córdoba conocen bien el trauma de la óptica: elegir un armazón precioso y livianito, para que a la semana te lo devuelvan con un cristal tan grueso y pesado que parece el culo de una botella, deformando por completo la cara.
+Las personas que conviven con miopía alta o astigmatismos elevados (más de -8.00 dioptrías) en Córdoba conocen bien una frustración óptica recurrente: elegir un armazón de diseño, liviano y estético, para que a los pocos días les devuelvan un anteojo pesado, con cristales gruesos que provocan el temido efecto "fondo de botella" y distorsionan por completo la mirada.
 
-Para estos casos extremos, la industria oftalmológica global desarrolló el Santo Grial de los materiales: el índice **Ultra High-Index 1.74**. En Essilor, este material se comercializa bajo el nombre **Lineis**, y en **Atelier Óptica** (Cerro de las Rosas, Córdoba) es nuestra herramienta más poderosa para devolverle la estética y la autoestima a pacientes con graduaciones severas.
+Para estos casos de graduaciones extremas, la industria oftalmológica global desarrolló el Santo Grial de los materiales ópticos: el índice **Ultra High-Index 1.74**. En Essilor, líder mundial, este material se comercializa bajo el nombre **Lineis**. En **Atelier Óptica**, ubicados estratégicamente en el barrio Cerro de las Rosas (Córdoba), convertimos a Lineis en nuestra herramienta más poderosa para devolverle la estética, la comodidad y la autoestima a los pacientes con alta miopía.
 
-## ¿Por qué el Índice 1.74 lo cambia todo?
+## ¿Por qué el Índice 1.74 transforma tus anteojos recetados?
 
-El estándar de la industria (el orgánico común) tiene un índice de curbatura de luz de 1.50. El material Lineis escala esa matemática al límite comercial actual de **1.74**. Esto permite curvar la luz violentamente usando poquísima "masa".
+El estándar tradicional en las ópticas (el orgánico común) posee un índice de refracción de 1.50. El material Lineis eleva esa capacidad óptica al límite comercial de **1.74**. En palabras sencillas: permite una curvatura de la luz de altísima precisión utilizando un mínimo de masa. 
 
-### Los Beneficios Visuales y Estéticos de Lineis
-1.  **Reducción Extrema (Hasta un 50%):** Es literalmente el cristal plástico más delgado del mundo. En miopías altas, la diferencia entre un lente común que sobresale grotescamente del marco y un Lineis que queda oculto, es el día y la noche.
-2.  **Chau Peso en la Nariz:** Pesan hasta tres veces menos que los antiguos lentes de vidrio de alta compresión. Elimina las marcas rojas y dolores tensionales al final del día.
-3.  **Lentes Asféricos (Cero deformación):** Su curvatura aplanada evita el efecto lupa. Tus ojos no se verán minúsculos detrás del cristal.
+### Beneficios Visuales y Estéticos Exclusivos de los Cristales Lineis
 
-## ¿Dónde comprar lentes ultra finos Lineis 1.74 en Córdoba Capital?
+1. **Reducción Extrema del Grosor (Hasta un 50%):** Es, literalmente, el cristal plástico más delgado del mundo. En miopías altas, la diferencia entre un lente estándar que sobresale de la montura y un lente Lineis 1.74 que queda perfectamente integrado, marca un antes y un después.
+2. **Chau Peso en la Nariz:** Estos anteojos pesan hasta tres veces menos que los antiguos vidrios de alta compresión. Despedite de las marcas rojas en la nariz y de los dolores tensionales al final del día.
+3. **Diseño Asférico (Cero Deformación):** Su talla asférica aplanada elimina el efecto lupa. Tus ojos mantendrán su tamaño real y natural detrás del cristal, mejorando drásticamente tu estética facial.
 
-Un lente de esta complejidad requiere algo fundamental: **Precisión**. De nada sirve pagar por el cristal más delgado del mundo si la óptica lo centra mal.
+## ¿Dónde hacer lentes ultra finos Lineis 1.74 en Córdoba Capital?
 
-Al buscar "dónde afinar cristales gruesos en Córdoba" vas a encontrar laboratorios que te prometen maravillas. Como **Centro Essilor Expert en Córdoba**, nuestra directora y óptica contactóloga Ishtar Pissano y Matías Turchi toman personalmente tus medidas digitales en **Atelier Óptica** (José Luis de Tejeda 4380).
+Un anteojo de esta complejidad técnica requiere algo innegociable: **Precisión**. De nada sirve invertir en el cristal más delgado del mundo si la óptica lo centra mal o elige una montura inadecuada.
 
-*   Atendemos consultas especiales y recibimos derivaciones oftalmológicas de **Villa Allende, Río Ceballos, Alta Gracia, Villa Carlos Paz, La Calera y Jesús María**.
-*   **Importante:** Los cristales Lineis 1.74 SIEMPRE deben salir del laboratorio con tratamientos antirreflejo premium (como **Crizal Sapphire HR**), ya que al tener tanta compresión, necesitan ayuda para mantener la máxima transparencia óptica.
+Al buscar una "óptica en Córdoba" para afinar cristales gruesos, te encontrarás con múltiples promesas. Sin embargo, como **Centro Essilor Expert en Córdoba**, nuestra propuesta es distinta. Ishtar Pissano y Matías Turchi, ópticos contactólogos directores de **Atelier Óptica** (José Luis de Tejeda 4380, Cerro de las Rosas), toman personalmente cada medida anatómica con tecnología digital de vanguardia. 
 
-## FAQ: Consultas de nuestros pacientes con miopía alta
+*   Atendemos a pacientes de toda **Córdoba Capital**, incluyendo Nueva Córdoba, Centro y Zona Norte, además de recibir derivaciones oftalmológicas frecuentes de **Villa Allende, Río Ceballos, Alta Gracia, Villa Carlos Paz, La Calera y Jesús María**.
+*   **Un detalle clave:** Todo anteojo con cristales Lineis 1.74 debe combinarse obligatoriamente con tratamientos antirreflejo premium (como **Crizal Sapphire HR**). Al poseer un índice de refracción tan alto, la lente requiere de este recubrimiento para garantizar una transparencia óptica cristalina y eliminar brillos molestos.
 
-**¿Existen cristales más delgados que el 1.74?**
-En resinas orgánicas (plástico seguro y liviano), el 1.74 es el máximo límite mundial. Sí existen cristales de vidrio mineral de índice 1.80 o 1.90, pero son extremadamente pesados y muy peligrosos porque estallan fácilmente al menor impacto.
+## FAQ: Consultas de nuestros pacientes con miopía alta en Atelier Óptica
 
-**¿Se pueden usar en marcos al aire (sin borde)?**
-No. El material 1.74 es extremadamente tenso y rígido. Si le pasamos un tornillo para un armazón al aire, se rajará a los pocos meses de uso. En Atelier Óptica te recomendaremos siempre marcos cerrados o monturas con hilo de tanza invisible inferior para armar tus Lineis.
+**¿Existen cristales para anteojos más delgados que el 1.74?**
+En materiales orgánicos (resinas plásticas seguras, livianas e inastillables), el índice 1.74 es el límite máximo mundial. Existen cristales minerales (vidrio) con índices de 1.80 o 1.90, pero en Atelier Óptica no los recomendamos: son excesivamente pesados, muy frágiles y peligrosos ante el menor impacto.
+
+**¿Se pueden armar lentes 1.74 en marcos al aire (sin borde)?**
+No es recomendable. Por su composición molecular, el material 1.74 es rígido y presenta alta tensión superficial. Si se perfora para colocarle los tornillos de un armazón al aire, corre un gran riesgo de rajarse con el uso constante. En nuestra óptica te asesoraremos para elegir monturas cerradas o de medio aro (hilo de nylon invisible), ideales para disimular bordes y garantizar durabilidad a largo plazo.
 
 ---
 
@@ -66,8 +67,8 @@ No. El material 1.74 es extremadamente tenso y rígido. Si le pasamos un tornill
     },
     {
       "@type": "Article",
-      "headline": "Cristales Lineis 1.74 en Córdoba: Fin al Efecto Fondo de Botella | Atelier Óptica",
-      "description": "Lentes extra finos Lineis 1.74 de Essilor para miopía alta. Evitá cristales gruesos en Córdoba Capital con Atelier Óptica, Cerro de las Rosas.",
+      "headline": "Lentes Lineis 1.74 en Córdoba: El Fin del Efecto Fondo de Botella | Atelier Óptica",
+      "description": "Descubrí los lentes extra finos Lineis 1.74 de Essilor para miopía alta. Evitá los cristales gruesos en Córdoba Capital y Nueva Córdoba con Atelier Óptica.",
       "author": {
         "@type": "Person",
         "name": "Ishtar Pissano & Matías Turchi",
@@ -80,18 +81,18 @@ No. El material 1.74 es extremadamente tenso y rígido. Si le pasamos un tornill
       "mainEntity": [
         {
           "@type": "Question",
-          "name": "¿Existen cristales más delgados que el 1.74?",
+          "name": "¿Existen cristales para anteojos más delgados que el 1.74?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "En materiales plásticos irrompibles, 1.74 es el máximo mundial. Existen índices mayores en vidrio (1.80/1.90), pero son pesados e inseguros."
+            "text": "En materiales plásticos irrompibles, 1.74 es el máximo mundial. Existen índices mayores en vidrio mineral (1.80/1.90), pero son pesados e inseguros ante golpes."
           }
         },
         {
           "@type": "Question",
-          "name": "¿Se pueden usar en marcos al aire (sin borde)?",
+          "name": "¿Se pueden armar lentes 1.74 en marcos al aire (sin borde)?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "No. Por su extrema compresión molecular es muy rígido y propenso a rajarse con los tornillos. Se deben armar en monturas cerradas o de medio aro."
+            "text": "No es recomendable. Por su extrema compresión molecular es muy rígido y propenso a rajarse con perforaciones. Se deben armar en monturas cerradas o de medio aro."
           }
         }
       ]

@@ -4,23 +4,30 @@ import { motion } from "framer-motion";
 import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon";
 import { useState, useEffect } from "react";
 import { WHATSAPP_PHONE } from "@/lib/constants";
+import { usePathname } from "next/navigation";
 
 export function FloatingWhatsApp({ message, productName }: { message?: string; productName?: string } = {}) {
   const [isVisible, setIsVisible] = useState(false);
+  const pathname = usePathname();
 
   // Solo mostrar después de un par de segundos para que no sea intrusivo al cargar la página
   useEffect(() => {
     const timer = setTimeout(() => {
       setIsVisible(true);
-    }, 10000);
+    }, 5000);
     return () => clearTimeout(timer);
   }, []);
 
   let defaultText = "¡Hola Atelier! Me gustaría hacer una consulta.";
+  
   if (productName) {
     defaultText = `¡Hola! Tengo dudas sobre el modelo ${productName} y me gustaría recibir asesoramiento.`;
   } else if (message) {
     defaultText = message;
+  } else if (pathname?.includes("/tienda") || pathname?.includes("/producto/")) {
+    defaultText = "¡Hola Atelier! Estoy recorriendo la tienda online y me gustaría recibir asesoramiento.";
+  } else if (pathname?.includes("/arma-tus-lentes")) {
+    defaultText = "¡Hola Atelier! Me gustaría recibir asesoramiento para armar mis lentes.";
   }
 
   const WHATSAPP_MESSAGE = encodeURIComponent(defaultText);

@@ -1,16 +1,25 @@
 import { Metadata } from 'next';
 import { StorefrontNavbar } from "@/components/Storefront/StorefrontNavbar";
 import { StorefrontFooter } from "@/components/Storefront/StorefrontFooter";
-import { FloatingWhatsApp } from "@/components/Storefront/FloatingWhatsApp";
 import { Award, BookOpen, Target, Microscope, Star } from "lucide-react";
 import { WHATSAPP_PHONE } from '@/lib/constants';
 import Image from "next/image";
 
 export const metadata: Metadata = {
   alternates: { canonical: '/blog/matias-turchi' },
-  title: "Matías Turchi | Especialista en Multifocales Essilor Expert",
-  description: "Conocé a Matías Turchi, nuestro especialista en multifocales certificado como Essilor Expert. Precisión visual y última tecnología a tu disposición. Envíos a toda Argentina. Cuotas sin interés. Atención personalizada y asesoramiento estético.",
-  keywords: ["óptica Argentina", "envíos a toda Argentina", "cuotas", "atención personalizada", "anteojos de receta", "matias turchi"],
+  title: "Matías Turchi | Especialista en Lentes Multifocales y Essilor Expert en Córdoba",
+  description: "Conocé a Matías Turchi, especialista en lentes multifocales y cristales Varilux certificado como Essilor Expert en Cerro de las Rosas, Córdoba. Tecnología digital y adaptación precisa sin mareos.",
+  keywords: [
+    "lentes multifocales Córdoba", 
+    "Essilor Expert Córdoba", 
+    "cristales Varilux", 
+    "óptica Cerro de las Rosas", 
+    "óptica Nueva Córdoba", 
+    "anteojos progresivos", 
+    "Matías Turchi óptica", 
+    "adaptación de multifocales sin mareos",
+    "medición digital óptica"
+  ],
 };
 
 export default function MatiasTurchiPage() {
@@ -29,7 +38,7 @@ export default function MatiasTurchiPage() {
         "addressCountry": "AR"
       }
     },
-    "description": "Profesional óptico especialista en adaptación de lentes de alta tecnología, multifocales y cristales Essilor Varilux.",
+    "description": "Profesional óptico especialista en adaptación de lentes de alta tecnología, multifocales y cristales Essilor Varilux en Córdoba.",
     "image": "https://atelieroptica.com/images/blog/matias-turchi.png",
     "url": "https://atelieroptica.com/blog/matias-turchi"
   };
@@ -50,7 +59,7 @@ export default function MatiasTurchiPage() {
             Matías Turchi
           </h1>
           <p className="text-xl md:text-2xl text-stone-500 font-light max-w-2xl mx-auto">
-            Especialista en Multifocales & <strong className="font-medium text-stone-800">Essilor Expert</strong>
+            Especialista en Lentes Multifocales & <strong className="font-medium text-stone-800">Essilor Expert en Córdoba</strong>
           </p>
         </div>
       </div>
@@ -64,7 +73,7 @@ export default function MatiasTurchiPage() {
             <div className="aspect-[3/4] relative overflow-hidden bg-stone-200 rounded-3xl sticky top-24 shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
               <div className="absolute inset-0 bg-gradient-to-t from-stone-900/60 to-transparent z-10" />
               { }
-              <Image src="/images/blog/matias-turchi.png" alt="Matías Turchi - Especialista en Multifocales" className="absolute inset-0 w-full h-full object-cover" />
+              <Image src="/images/blog/matias-turchi.png" alt="Matías Turchi - Especialista en Lentes Multifocales en Córdoba" className="absolute inset-0 w-full h-full object-cover" />
               <div className="absolute bottom-6 left-6 z-20 text-white">
                 <p className="text-xs uppercase tracking-widest font-medium tracking-tight mb-1 drop-shadow-[0_2px_10px_rgba(0,0,0,0.02)]">Certificación</p>
                 <p className="text-lg font-serif">Essilor Expert</p>
@@ -77,14 +86,14 @@ export default function MatiasTurchiPage() {
             
             <section>
               <h2 className=" font-serif">
-                El Arte de la Precisión Visual
+                El Arte de la Precisión Visual Sin Mareos
               </h2>
               <div className="space-y-5 text-stone-600 text-lg leading-relaxed font-light">
                 <p>
-                  Adaptarse a lentes multifocales solía ser un desafío. Hoy, con la combinación de la última tecnología óptica y un especialista capacitado, la transición es natural, inmediata y precisa.
+                  Adaptarse a los <strong>lentes multifocales</strong> solía ser un verdadero desafío. Hoy, gracias a la combinación de tecnología óptica digital de vanguardia y la experiencia de un especialista altamente capacitado, la transición hacia una visión perfecta es natural, rápida y libre de mareos.
                 </p>
                 <p>
-                  <strong>Matías Turchi</strong> es el principal referente de Atelier Óptica en la adaptación de lentes de alta complejidad. Con su prestigiosa certificación <strong>Essilor Expert</strong>, Matías asegura que cada paciente obtenga el máximo rendimiento visual de sus lentes progresivos, adaptados milimétricamente a su postura, fisonomía y estilo de vida.
+                  <strong>Matías Turchi</strong> es el principal referente de <strong>Atelier Óptica</strong> en la adaptación de cristales de alta complejidad. Desde nuestro local en el corazón de <strong>Cerro de las Rosas, Córdoba</strong>, y respaldado por su prestigiosa certificación internacional como <strong>Essilor Expert</strong>, Matías garantiza que cada paciente alcance el máximo confort y rendimiento visual con sus lentes progresivos, adaptados milimétricamente según su postura, fisonomía y ritmo de vida.
                 </p>
               </div>
             </section>
@@ -103,7 +112,7 @@ export default function MatiasTurchiPage() {
                   </div>
                   <div>
                     <h4 className="text-base font-medium tracking-tight text-stone-900 mb-1">Essilor Expert</h4>
-                    <p className="text-sm text-stone-500 font-light leading-relaxed">Profesional certificado por la marca líder mundial en lentes multifocales.</p>
+                    <p className="text-sm text-stone-500 font-light leading-relaxed">Profesional certificado en Córdoba por la marca líder mundial en lentes multifocales y cristales Varilux.</p>
                   </div>
                 </div>
 
@@ -113,7 +122,7 @@ export default function MatiasTurchiPage() {
                   </div>
                   <div>
                     <h4 className="text-base font-medium tracking-tight text-stone-900 mb-1">Precisión Extrema</h4>
-                    <p className="text-sm text-stone-500 font-light leading-relaxed">Especialista en toma de medidas personalizadas (distancia naso-pupilar, altura, ángulo pantoscópico).</p>
+                    <p className="text-sm text-stone-500 font-light leading-relaxed">Especialista en la toma de medidas personalizadas avanzadas (distancia naso-pupilar, altura, ángulo pantoscópico).</p>
                   </div>
                 </div>
 
@@ -123,7 +132,7 @@ export default function MatiasTurchiPage() {
                   </div>
                   <div>
                     <h4 className="text-base font-medium tracking-tight text-stone-900 mb-1">Formación Continua</h4>
-                    <p className="text-sm text-stone-500 font-light leading-relaxed">Muchísimos cursos y actualizaciones constantes sobre los últimos avances en tecnología multifocal.</p>
+                    <p className="text-sm text-stone-500 font-light leading-relaxed">Actualización constante en las últimas tendencias y avances internacionales sobre tecnología multifocal y salud visual.</p>
                   </div>
                 </div>
 
@@ -133,7 +142,7 @@ export default function MatiasTurchiPage() {
                   </div>
                   <div>
                     <h4 className="text-base font-medium tracking-tight text-stone-900 mb-1">Tecnología de Punta</h4>
-                    <p className="text-sm text-stone-500 font-light leading-relaxed">Dominio de instrumentos de medición digitales para diseños de lentes personalizados (Varilux, Zeiss).</p>
+                    <p className="text-sm text-stone-500 font-light leading-relaxed">Dominio experto de instrumentos de medición digitales para el diseño de lentes 100% personalizados, como Essilor y Zeiss.</p>
                   </div>
                 </div>
               </div>
@@ -162,7 +171,7 @@ export default function MatiasTurchiPage() {
                     {[...Array(5)].map((_, i) => <Star key={i} className="w-3.5 h-3.5 fill-current" />)}
                   </div>
                   <p className="text-stone-600 font-light text-sm leading-relaxed mb-4">
-                    &quot;La tecnología que usan para medir es impresionante. Matías me asesoró no solo con los cristales Essilor sino con el armazón ideal para que el lente no quede grueso. Hace años no veía tan bien.&quot;
+                    &quot;La tecnología que usan para medir es impresionante. Matías me asesoró no solo con los cristales Essilor, sino con el armazón ideal para que el lente no quede grueso. Hace años no veía tan bien.&quot;
                   </p>
                   <p className="text-[10px] font-medium tracking-tight text-stone-800 uppercase tracking-widest">— Reseña en Google Maps</p>
                 </div>
@@ -171,10 +180,10 @@ export default function MatiasTurchiPage() {
 
             <div className="bg-stone-900 text-white p-8 md:p-10 rounded-3xl">
               <h3 className=" font-serif">
-                ¿Necesitás asesoramiento para tus multifocales?
+                ¿Necesitás asesoramiento experto para tus multifocales?
               </h3>
               <p className="text-stone-300 font-light mb-8">
-                Agendá una consulta presencial con Matías en nuestro local para asegurar el mejor rendimiento de tu visión.
+                Agendá una consulta presencial exclusiva con Matías en nuestro local de <strong>Cerro de las Rosas</strong> (a minutos de <strong>Nueva Córdoba</strong>) para garantizar una adaptación perfecta y el mejor rendimiento de tu visión.
               </p>
               <a 
                 href={`https://wa.me/${WHATSAPP_PHONE}?text=Hola%2C%20quiero%20agendar%20un%20turno%20con%20Matias%20Turchi%20para%20multifocales`}
@@ -192,7 +201,7 @@ export default function MatiasTurchiPage() {
       </main>
 
       <StorefrontFooter />
-      <FloatingWhatsApp />
+      
     </div>
   );
 }

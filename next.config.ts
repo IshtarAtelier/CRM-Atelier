@@ -34,6 +34,7 @@ const nextConfig: NextConfig = {
       { protocol: 'https', hostname: 'storage.googleapis.com' },
       { protocol: 'https', hostname: 'promo.atelieroptica.com.ar' },
       { protocol: 'https', hostname: 'lh3.googleusercontent.com' },
+      { protocol: 'https', hostname: 'kazwiniopticalgroup.com' },
     ]
   },
   async redirects() {

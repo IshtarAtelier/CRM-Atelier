@@ -15,6 +15,12 @@ export function CheckoutPaymentOptions({ formData, handleChange, isProcessing, w
     }
     handleChange({ target: { name: 'cardExp', value: val } });
   };
+
+  const getBorderColor = (value: string, minLength: number) => {
+    if (!value || value.length === 0) return "border-stone-200 focus:border-black";
+    if (value.replace(/\D/g, '').length >= minLength || value.length >= minLength) return "border-emerald-500 focus:border-emerald-600 bg-emerald-50/20";
+    return "border-stone-200 focus:border-black";
+  };
   return (
     <section>
       <h2 className="text-[11px] font-black uppercase tracking-widest border-b border-stone-200 pb-2 mb-4">3. Pago Seguro</h2>
@@ -77,18 +83,18 @@ export function CheckoutPaymentOptions({ formData, handleChange, isProcessing, w
               {formData.paymentMethod === 'PAYWAY' && (
                 <div role="button" tabIndex={0} className="mt-6 flex flex-col gap-4 p-5 border border-stone-100 bg-white" onClick={(e) => e.stopPropagation()}>
                   <div>
-                    <input type="text" name="cardNumber" value={formData.cardNumber} onChange={handleCardNumberChange} placeholder="Número de Tarjeta (Ej: 4500 1234 5678 9000)" maxLength={19} autoComplete="cc-number" className="w-full border border-stone-200 p-3 text-sm focus:border-black focus:focus:ring-2 focus:ring-amber-500 focus:outline-none transition-colors font-mono tracking-widest" />
+                    <input type="text" name="cardNumber" value={formData.cardNumber} onChange={handleCardNumberChange} placeholder="Número de Tarjeta (Ej: 4500 1234 5678 9000)" maxLength={19} autoComplete="cc-number" className={`w-full border p-3 text-sm focus:outline-none transition-colors font-mono tracking-widest ${getBorderColor(formData.cardNumber, 15)}`} />
                   </div>
                   <div className="flex gap-4">
                     <div className="flex-1">
-                      <input type="text" name="cardExp" value={formData.cardExp} onChange={handleCardExpChange} placeholder="Vencimiento (MM/AA)" maxLength={5} autoComplete="cc-exp" className="w-full border border-stone-200 p-3 text-sm focus:border-black focus:focus:ring-2 focus:ring-amber-500 focus:outline-none transition-colors font-mono tracking-widest text-center" />
+                      <input type="text" name="cardExp" value={formData.cardExp} onChange={handleCardExpChange} placeholder="Vencimiento (MM/AA)" maxLength={5} autoComplete="cc-exp" className={`w-full border p-3 text-sm focus:outline-none transition-colors font-mono tracking-widest text-center ${getBorderColor(formData.cardExp, 5)}`} />
                     </div>
                     <div className="flex-1">
-                      <input type="password" name="cardCvc" value={formData.cardCvc} onChange={handleChange} placeholder="CVC (Ej: 123)" maxLength={4} autoComplete="cc-csc" className="w-full border border-stone-200 p-3 text-sm focus:border-black focus:focus:ring-2 focus:ring-amber-500 focus:outline-none transition-colors font-mono tracking-widest text-center" />
+                      <input type="password" name="cardCvc" value={formData.cardCvc} onChange={handleChange} placeholder="CVC (Ej: 123)" maxLength={4} autoComplete="cc-csc" className={`w-full border p-3 text-sm focus:outline-none transition-colors font-mono tracking-widest text-center ${getBorderColor(formData.cardCvc, 3)}`} />
                     </div>
                   </div>
                   <div>
-                    <input type="text" name="cardName" value={formData.cardName} onChange={handleChange} placeholder="Titular (Como figura en la tarjeta)" autoComplete="cc-name" className="w-full border border-stone-200 p-3 text-sm focus:border-black focus:focus:ring-2 focus:ring-amber-500 focus:outline-none transition-colors uppercase" />
+                    <input type="text" name="cardName" value={formData.cardName} onChange={handleChange} placeholder="Titular (Como figura en la tarjeta)" autoComplete="cc-name" className={`w-full border p-3 text-sm focus:outline-none transition-colors uppercase ${getBorderColor(formData.cardName, 4)}`} />
                   </div>
                   <div>
                     <select name="installments" value={formData.installments || "1"} onChange={handleChange} className="w-full border border-stone-200 p-3 text-sm focus:border-black focus:focus:ring-2 focus:ring-amber-500 focus:outline-none transition-colors bg-white">

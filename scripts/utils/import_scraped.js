@@ -65,6 +65,9 @@ async function syncToWebProduct(p, tx) {
         ? (p.name || p.model || '').trim() 
         : `${p.brand || ''} ${p.model || p.name}`.trim();
 
+    // Only show on storefront if stock >= 20 AND publishToWeb is true
+    const isActive = p.stock >= 20 && p.publishToWeb;
+
     const existing = await db.webProduct.findFirst({ where: { productId: p.id } });
     if (existing) {
         await db.webProduct.update({
@@ -75,7 +78,7 @@ async function syncToWebProduct(p, tx) {
                 category: category,
                 imageUrl: images[0] || null,
                 images: images,
-                isActive: p.stock > 0
+                isActive: isActive
             }
         });
     } else {
@@ -87,7 +90,7 @@ async function syncToWebProduct(p, tx) {
                 category: category,
                 imageUrl: images[0] || null,
                 images: images,
-                isActive: p.stock > 0,
+                isActive: isActive,
                 isFeatured: false
             }
         });
@@ -128,6 +131,8 @@ async function main() {
                 });
                 
                 let product;
+                const shouldPublish = item.stock >= 20;
+
                 if (existingProduct) {
                     // Update existing product stock and price/cost
                     product = await tx.product.update({
@@ -138,7 +143,7 @@ async function main() {
                             stock: item.stock,
                             rawImageUrls: item.rawImageUrls,
                             imagenesCatalogo: item.imagenesCatalogo,
-                            publishToWeb: true
+                            publishToWeb: shouldPublish
                         }
                     });
                 } else {
@@ -155,7 +160,7 @@ async function main() {
                             stock: item.stock,
                             lensIndex: autoCorrectIndex(item.lensIndex),
                             unitType: item.unitType || 'UNIDAD',
-                            publishToWeb: true,
+                            publishToWeb: shouldPublish,
                             origin: item.origin || 'STOCK',
                             rawImageUrls: item.rawImageUrls || [],
                             imagenesCatalogo: item.imagenesCatalogo || []

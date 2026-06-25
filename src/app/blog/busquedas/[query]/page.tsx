@@ -5,7 +5,6 @@ import { notFound } from 'next/navigation';
 import { ArrowLeft, CheckCircle2, MessageSquare, MapPin } from 'lucide-react';
 import { StorefrontNavbar } from '@/components/Storefront/StorefrontNavbar';
 import { StorefrontFooter } from '@/components/Storefront/StorefrontFooter';
-import { FloatingWhatsApp } from '@/components/Storefront/FloatingWhatsApp';
 import { seoKeywords, formatQueryToTitle } from '@/lib/seo-keywords';
 
 interface PageProps {
@@ -158,7 +157,7 @@ export default async function BusquedaPage({ params }: PageProps) {
       </div>
 
       <StorefrontFooter />
-      <FloatingWhatsApp />
+      
     </div>
   );
 }

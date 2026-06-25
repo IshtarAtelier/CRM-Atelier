@@ -6,9 +6,9 @@ import Image from "next/image";
 
 export const metadata: Metadata = {
   alternates: { canonical: '/blog/control-miopia' },
-  title: "control miopia",
-  description: "Descubrí todo sobre control miopia en Atelier Óptica. Envíos a toda Argentina, cuotas sin interés y atención personalizada.",
-  keywords: ["óptica Argentina", "envíos a toda Argentina", "cuotas", "atención personalizada", "anteojos de receta", "control miopia"],
+  title: "Control de Miopía en Córdoba | Cristales Stellest - Atelier Óptica",
+  description: "Descubrí el revolucionario tratamiento de control de miopía con cristales Essilor Stellest en Córdoba. Asesoramiento en Cerro de las Rosas y Nueva Córdoba.",
+  keywords: ["control de miopía Córdoba", "cristales Stellest Córdoba", "desenfoque periférico", "Essilor Stellest", "óptica Cerro de las Rosas", "óptica Nueva Córdoba", "salud visual infantil", "frenar miopía niños"],
 };
 
 export default function MyopiaControlPage() {
@@ -33,7 +33,7 @@ export default function MyopiaControlPage() {
           <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#999] mb-4">Salud Visual e Innovación</p>
           <h1 className="text-3xl lg:text-5xl font-normal tracking-tight mb-6 lg:mb-8">Control de Miopía: La revolución del desenfoque periférico</h1>
           <p className="text-[14px] lg:text-[15px] text-[#666] leading-relaxed max-w-xl mx-auto">
-            La miopía ya no es solo un problema de corrección visual; es un desafío global. Descubrí cómo la tecnología de cristales Essilor Stellest con desenfoque periférico está cambiando el futuro visual de niños y adultos jóvenes.
+            La miopía ya no es solo un problema de corrección visual; es un desafío global. Descubrí cómo la tecnología de cristales <strong>Essilor Stellest</strong> con desenfoque periférico está cambiando el futuro visual de niños y adultos jóvenes en <strong>Córdoba</strong>.
           </p>
         </div>
 
@@ -43,7 +43,9 @@ export default function MyopiaControlPage() {
           <Image 
             src="/images/blog/vidriera-atelier.webp" 
             alt="Interior de Atelier Óptica" 
-            className="w-full h-full object-cover" 
+            className="w-full h-full object-cover"
+            fill
+            sizes="(max-width: 768px) 100vw, 800px" 
           />
         </div>
 
@@ -53,10 +55,10 @@ export default function MyopiaControlPage() {
             <h2 className="text-xl font-medium mb-6 lg:mb-8 text-center">¿Qué es el Desenfoque Periférico?</h2>
             <div className="p-6 lg:p-8 border border-black/10 relative overflow-hidden">
                 <p className="text-[14px] lg:text-[15px] text-[#666] leading-relaxed mb-6">
-                Históricamente, los cristales monofocales tradicionales se han limitado a corregir la visión central, enfocando la luz directamente en la retina. Sin embargo, esto puede generar un &quot;desenfoque hipermetrópico&quot; en la periferia del ojo, lo que paradójicamente estimula su elongación y el aumento de la miopía.
+                Históricamente, los cristales monofocales tradicionales se limitaban a corregir la visión central, enfocando la luz directamente en la retina. Sin embargo, esto puede generar un &quot;desenfoque hipermetrópico&quot; en la periferia del ojo, lo que paradójicamente estimula su elongación y empeora la miopía.
                 </p>
                 <p className="text-[14px] lg:text-[15px] text-[#666] leading-relaxed">
-                La innovación de Essilor con su tecnología <strong>H.A.L.T. (Highly Aspherical Lenslet Target)</strong> introduce una constelación de microlentillas invisibles. Estas crean un volumen de luz no enfocada frente a la retina periférica, enviando una señal clara al ojo: detener su alargamiento anormal.
+                La tecnología <strong>H.A.L.T. (Highly Aspherical Lenslet Target)</strong> de <strong>Essilor Stellest</strong> cambia las reglas del juego. Mediante una constelación de microlentillas invisibles, crea un volumen de luz no enfocada frente a la retina periférica. ¿El resultado? Envía una señal clara al ojo para detener su alargamiento anormal y proteger la salud visual a largo plazo.
                 </p>
             </div>
           </section>
@@ -65,12 +67,12 @@ export default function MyopiaControlPage() {
             <h2 className="text-xl font-medium mb-6 lg:mb-8 text-center">Eficacia Clínica en Niños</h2>
             <div className="p-6 lg:p-8 bg-[#f9f9f9] relative overflow-hidden">
                 <p className="text-[14px] lg:text-[15px] text-[#666] leading-relaxed mb-6">
-                El desarrollo visual en la etapa infantil es crítico. Cuando la miopía aparece de forma temprana, su progresión suele ser rápida, aumentando el riesgo de patologías oculares graves en el futuro.
+                El desarrollo visual infantil es crítico. Cuando la miopía aparece tempranamente, su progresión suele ser rápida, lo que aumenta el riesgo de futuras patologías oculares graves. Actuar a tiempo es la mejor inversión para los más chicos.
                 </p>
                 <ul className="list-disc list-inside text-[14px] lg:text-[15px] text-[#666] leading-relaxed space-y-3">
-                  <li><strong>Ralentización demostrada:</strong> Estudios clínicos indican que el uso constante (12 horas al día) de cristales Essilor Stellest ralentiza la progresión de la miopía en un promedio de 67% comparado con lentes estándar.</li>
-                  <li><strong>Adaptación inmediata:</strong> A pesar de su compleja estructura óptica, los niños se adaptan visual y estéticamente en tiempo récord, ya que las microlentillas son imperceptibles.</li>
-                  <li><strong>Estabilidad:</strong> Contribuye a un desarrollo ocular más saludable y seguro.</li>
+                  <li><strong>Freno demostrado:</strong> Ensayos clínicos revelan que usar los cristales <strong>Essilor Stellest</strong> al menos 12 horas diarias ralentiza la progresión de la miopía en un 67% promedio frente a los lentes tradicionales.</li>
+                  <li><strong>Adaptación inmediata:</strong> A pesar de su ingeniería óptica avanzada, la adaptación visual y estética de los niños es asombrosa, dado que las microlentillas resultan completamente imperceptibles.</li>
+                  <li><strong>Seguridad a largo plazo:</strong> Contribuyen activamente a un desarrollo ocular mucho más estable y saludable.</li>
                 </ul>
             </div>
           </section>
@@ -79,10 +81,10 @@ export default function MyopiaControlPage() {
             <h2 className="text-xl font-medium mb-6 lg:mb-8 text-center">¿El tratamiento es válido para adultos?</h2>
             <div className="p-6 lg:p-8 border border-black/10 relative overflow-hidden">
                 <p className="text-[14px] lg:text-[15px] text-[#666] leading-relaxed mb-6">
-                Si bien el objetivo principal de la tecnología H.A.L.T. es intervenir durante la etapa de crecimiento ocular infantil (entre los 6 y 14 años), el concepto de control de miopía ha despertado un gran interés en la población adulta joven.
+                Aunque el foco de la tecnología <strong>H.A.L.T.</strong> está puesto en la etapa de crecimiento ocular infantil (entre los 6 y 14 años), el control de la miopía capta cada vez más atención en la población adulta joven, especialmente en <strong>Córdoba</strong> y sus zonas universitarias como <strong>Nueva Córdoba</strong>, donde la exigencia visual frente a pantallas es constante.
                 </p>
                 <p className="text-[14px] lg:text-[15px] text-[#666] leading-relaxed">
-                En casos de adultos jóvenes cuya miopía continúa experimentando una progresión activa y poco habitual, los especialistas evalúan el uso de lentes con desenfoque periférico. Aunque la evidencia clínica es más fuerte en niños, frenar la elongación axial sigue siendo un principio válido y prometedor bajo supervisión optométrica y oftalmológica rigurosa, complementando hábitos como la reducción de la fatiga digital.
+                En casos de miopías que continúan progresando de forma inusual, frenar la elongación axial mediante el desenfoque periférico resulta un principio prometedor. Siempre bajo estricta supervisión de profesionales de la oftalmología, esta solución complementa hábitos preventivos fundamentales para el cuidado integral de los ojos.
                 </p>
             </div>
           </section>
@@ -90,9 +92,11 @@ export default function MyopiaControlPage() {
         </div>
 
         <div className="mt-16 lg:mt-20 p-8 lg:p-12 border border-black text-center">
-          <h3 className="text-xl font-medium mb-3">Evaluación Especializada en Atelier</h3>
-          <p className="text-[14px] text-[#666] mb-8">El control de la miopía requiere seguimiento oftalmológico. Acercate con tu receta médica a Atelier Óptica y nuestro equipo evaluará, mediante toma de medidas, si los cristales de control de miopía son la opción indicada que tu médico recetó para vos o para tu hijo.</p>
-          <a href={`https://wa.me/${WHATSAPP_PHONE}`} target="_blank" rel="noopener noreferrer" className="inline-block bg-black text-white px-8 py-4 text-[11px] font-bold uppercase tracking-widest hover:opacity-70 transition-all duration-300 transition-opacity">Coordinar Asesoramiento</a>
+          <h3 className="text-xl font-medium mb-3">Evaluación Especializada en Atelier Óptica</h3>
+          <p className="text-[14px] text-[#666] mb-8">
+            El control de la miopía exige un compromiso profesional. Acercate con tu receta médica a <strong>Atelier Óptica</strong> en el corazón de <strong>Cerro de las Rosas</strong> o contactanos desde cualquier punto de la ciudad de <strong>Córdoba</strong>. Nuestro equipo verificará, con la máxima precisión, si estos cristales son la opción ideal indicada por tu oftalmólogo.
+          </p>
+          <a href={`https://wa.me/${WHATSAPP_PHONE}`} target="_blank" rel="noopener noreferrer" className="inline-block bg-black text-white px-8 py-4 text-[11px] font-bold uppercase tracking-widest hover:opacity-70 transition-all duration-300">Coordinar Asesoramiento</a>
         </div>
       </main>
     </div>

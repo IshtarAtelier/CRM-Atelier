@@ -78,70 +78,42 @@ export function FilmmakerReel() {
   return (
     <section className="relative w-full bg-black overflow-hidden" style={{ height: "100svh", minHeight: 560 }}>
       
-      {/* ─── FILM GRAIN OVERLAY ─── */}
-      <div
-        className="absolute inset-0 z-10 pointer-events-none opacity-[0.03] hidden md:block"
-        style={{
-          backgroundImage: "url(\"data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E\")",
-          backgroundSize: "200px 200px",
-        }}
-      />
-
       {/* ─── LETTERBOX BARS ─── */}
       <div className="absolute top-0 left-0 right-0 h-[6%] bg-black z-20" />
       <div className="absolute bottom-0 left-0 right-0 h-[6%] bg-black z-20" />
 
       {/* ─── IMAGES ─── */}
-      {!mounted ? (
-        <div className="absolute inset-0">
-          <div className="w-full h-full relative">
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={frame.id}
+          className="absolute inset-0"
+          initial={{ opacity: 0, scale: 1.05 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.97 }}
+          transition={{ duration: 1.4, ease: [0.25, 0.1, 0.25, 1] }}
+        >
+          {/* Ken Burns slow zoom */}
+          <motion.div
+            className="w-full h-full relative"
+            initial={{ scale: 1 }}
+            animate={{ scale: 1.06 }}
+            transition={{ duration: 5, ease: "linear" }}
+          >
             <Image
-              src="/images/editorial/monalisa.webp"
-              alt="La Gioconda"
+              src={frame.src}
+              alt={frame.title}
               fill
-              priority
+              priority={current === 0}
               unoptimized
               className="object-cover"
               sizes="100vw"
             />
-          </div>
+          </motion.div>
           {/* Gradient overlays — cinematic vignette */}
           <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/10 to-black/40" />
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/30" />
-        </div>
-      ) : (
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={frame.id}
-            className="absolute inset-0"
-            initial={{ opacity: 0, scale: 1.05 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.97 }}
-            transition={{ duration: 1.4, ease: [0.25, 0.1, 0.25, 1] }}
-          >
-            {/* Ken Burns slow zoom */}
-            <motion.div
-              className="w-full h-full relative"
-              initial={{ scale: 1 }}
-              animate={{ scale: 1.06 }}
-              transition={{ duration: 5, ease: "linear" }}
-            >
-              <Image
-                src={frame.src}
-                alt={frame.title}
-                fill
-                priority={current === 0}
-                unoptimized
-                className="object-cover"
-                sizes="100vw"
-              />
-            </motion.div>
-            {/* Gradient overlays — cinematic vignette */}
-            <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/10 to-black/40" />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/30" />
-          </motion.div>
-        </AnimatePresence>
-      )}
+        </motion.div>
+      </AnimatePresence>
 
       {/* ─── FILM COUNTER / TIMECODE ─── */}
       <div className="absolute top-[15%] left-6 z-30 font-mono text-[10px] text-white/40 tracking-widest select-none">
@@ -185,7 +157,7 @@ export function FilmmakerReel() {
             </p>
             {/* Title */}
             <h2
-              className=" font-serif"
+              className="text-4xl md:text-6xl lg:text-7xl font-serif text-white tracking-tight mb-2"
             >
               {frame.title}
             </h2>
@@ -198,21 +170,30 @@ export function FilmmakerReel() {
             </p>
 
             {/* Subtle CTA Buttons */}
-            <div className="flex flex-wrap gap-3 mt-6">
+            <div className="flex flex-col sm:flex-row gap-3 mt-6">
               <Link
                 href="/tienda"
-                className="px-8 py-3.5 bg-white text-black text-[12px] font-black uppercase tracking-widest hover:bg-white/95 transition-all rounded-full shadow-[0_0_20px_rgba(255,255,255,0.3)]"
+                className="w-full sm:w-auto px-6 py-3.5 bg-white text-black text-[11px] font-black uppercase tracking-widest hover:bg-white/90 hover:scale-105 transition-all rounded-full text-center shadow-[0_0_30px_rgba(255,255,255,0.4)] group flex items-center justify-center gap-2"
               >
-                Explorar Colección
+                1. Elige tu Armazón <span className="opacity-60 group-hover:opacity-100 transition-opacity">→</span>
               </Link>
               <a
                 href={`https://wa.me/${WHATSAPP_PHONE}?text=${encodeURIComponent(`Hola, vi los anteojos de diseño "${frame.title}" en su web y me gustaría recibir asesoramiento.`)}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="px-8 py-3.5 border border-white/30 hover:border-white text-white text-[12px] font-black uppercase tracking-widest transition-all rounded-full flex items-center gap-2 backdrop-blur-sm bg-black/20"
+                className="w-full sm:w-auto px-6 py-3.5 border border-white/30 hover:border-white text-white text-[11px] font-black uppercase tracking-widest transition-all rounded-full flex items-center justify-center gap-2 backdrop-blur-sm bg-black/20 hover:bg-white/10"
               >
-                Recibir Asesoramiento
+                Hablar con un Asesor
               </a>
+            </div>
+
+            {/* Guided Flow Microcopy */}
+            <div className="flex items-center gap-2 mt-5 text-[9px] text-white/50 uppercase tracking-[0.2em] font-black select-none">
+              <span>1. Armazón</span>
+              <span className="opacity-40">/</span>
+              <span>2. Cristales</span>
+              <span className="opacity-40">/</span>
+              <span>3. Envío Gratis</span>
             </div>
           </motion.div>
         </AnimatePresence>

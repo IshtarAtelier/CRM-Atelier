@@ -1,6 +1,5 @@
 import { StorefrontNavbar } from "@/components/Storefront/StorefrontNavbar";
 import { StorefrontFooter } from "@/components/Storefront/StorefrontFooter";
-import { FloatingWhatsApp } from "@/components/Storefront/FloatingWhatsApp";
 import { CristalesTabs } from "./CristalesTabs";
 
 export default function CristalesLayout({ children }: { children: React.ReactNode }) {
@@ -20,7 +19,7 @@ export default function CristalesLayout({ children }: { children: React.ReactNod
       </main>
       
       <StorefrontFooter />
-      <FloatingWhatsApp />
+      
     </div>
   );
 }

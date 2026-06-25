@@ -1,47 +1,48 @@
 ---
-title: "Cristales Policarbonato Airwear en Córdoba: Lentes Irrompibles | Atelier Óptica"
-meta_description: "Lentes de policarbonato Airwear Essilor en Córdoba. Máxima seguridad y resistencia para niños y deportistas. Conseguilos en Atelier Óptica, Cerro de las Rosas."
+title: "Cristales de Policarbonato Airwear en Córdoba | Atelier Óptica"
+meta_description: "¿Buscás máxima seguridad para tus ojos? Descubrí los lentes de policarbonato Airwear de Essilor en Córdoba. Cristales inastillables ideales para niños y deportistas."
 slug: "lentes-airwear-policarbonato-essilor-cordoba"
 ---
 
-# Lentes Airwear (Policarbonato) en Córdoba: El Cristal Inastillable
+# Lentes Airwear (Policarbonato) en Córdoba: El Cristal Inastillable para tu Seguridad
 
-La vida en Córdoba, especialmente en el interior y las sierras, es dinámica, deportiva y al aire libre. Para los niños que juegan al fútbol en los clubes de Alta Gracia, los ciclistas que suben el Pan de Azúcar, o los trabajadores industriales, usar anteojos comunes de resina (orgánicos) es un riesgo enorme: ante un pelotazo o una caída fuerte, el cristal estalla en fragmentos peligrosos para el ojo.
+La vida en Córdoba, especialmente en el centro, Nueva Córdoba, el interior y nuestras sierras, invita a un ritmo dinámico, deportivo y al aire libre. Para los niños que juegan al fútbol en los clubes locales, los ciclistas que recorren nuestras montañas, o los trabajadores con rutinas exigentes, usar anteojos comunes de resina (orgánicos) es un riesgo enorme. Ante un pelotazo, una caída fuerte o un impacto imprevisto, el cristal tradicional estalla en fragmentos peligrosos para el ojo.
 
-Para garantizar seguridad absoluta, la industria óptica militar y aeroespacial (sí, el mismo material de los cascos de astronauta) desarrolló el **Policarbonato**. En **Atelier Óptica**, ubicada en el Cerro de las Rosas (Córdoba Capital), utilizamos **Airwear de Essilor**, el policarbonato de calidad óptica suprema.
+Para garantizar seguridad absoluta, la industria óptica militar y aeroespacial (sí, el mismo material empleado en los cascos de los astronautas) desarrolló el **Policarbonato**. En **Atelier Óptica**, tu óptica en Córdoba de confianza ubicada en el prestigioso barrio Cerro de las Rosas, trabajamos con **Airwear de Essilor**, el policarbonato de calidad óptica suprema a nivel mundial.
 
-## ¿Por qué el Policarbonato Airwear es distinto al Orgánico común?
+## ¿Por qué elegir Policarbonato Airwear sobre el orgánico tradicional para tus anteojos en Córdoba, Argentina?
 
-El cristal Airwear no es simplemente un plástico más duro; es un material que, en lugar de fracturarse, **absorbe la energía del impacto deformándose a nivel molecular**.
+El cristal Airwear no es simplemente un plástico más duro; es un salto tecnológico que, en lugar de fracturarse, **absorbe la energía del impacto deformándose a nivel molecular**.
 
-### Las 3 Ventajas Críticas de Airwear
-1.  **Resistencia Extrema a Impactos:** Es hasta 12 veces más resistente que un cristal estándar. Soporta impactos directos como caídas fuertes o golpes contundentes sin estallar. Es literalmente **inastillable**.
-2.  **Delgadez y Ligereza:** Al tener un índice de refracción de 1.59, Airwear es un 20% más delgado y casi un **30% más ligero** que el plástico orgánico común. 
-3.  **Protección UV 100% de Fábrica:** El material Airwear, por su propia naturaleza molecular, bloquea el 100% de la radiación ultravioleta del sol serrano (sin necesidad de aplicarle baños protectores extra).
+### Las 3 Ventajas Críticas de los Lentes Airwear
 
-## ¿Para quién indicamos Policarbonato en nuestra óptica?
+1. **Resistencia Extrema a Impactos:** Es hasta 12 veces más resistente que un cristal estándar. Soporta impactos directos, caídas fuertes o golpes contundentes sin romperse. Es, literalmente, **inastillable**.
+2. **Delgadez y Extra Ligereza:** Al poseer un índice de refracción de 1.59, Airwear resulta un 20% más delgado y casi un **30% más liviano** que el plástico orgánico común. Ideal para evitar marcas molestas en la nariz.
+3. **Protección UV 100% Integrada:** El material Airwear, por su propia naturaleza molecular, bloquea el 100% de la peligrosa radiación ultravioleta del sol (clave en nuestra región), sin necesidad de aplicarle tratamientos extras.
 
-En Atelier Óptica, Ishtar Pissano (nuestra óptica contactóloga) lo prescribe casi como norma obligatoria para 3 grupos específicos:
+## ¿A quiénes recomendamos Policarbonato en nuestra óptica?
 
-*   **PEDIATRÍA (OBLIGATORIO):** Jamás hacemos anteojos para niños pequeños en cristal orgánico. Airwear es la única opción ética para proteger los ojos de tus hijos durante los juegos y el colegio.
-*   **Armazones al Aire (Ranurados o Perforados):** Las monturas "invisibles" de titanio no tienen borde. Si les ponemos un cristal orgánico común, los tornillos lo van a rajar al primer movimiento brusco. Airwear soporta la tensión mecánica de forma perfecta.
-*   **Deportistas y Estilos de vida dinámicos:** Si hacés running, paddle en Villa Allende, o ciclismo de ruta, el policarbonato garantiza que frente a cualquier accidente de impacto frontal, tus ojos estén intactos.
+En Atelier Óptica, nuestros especialistas ópticos y contactólogos lo prescriben casi como norma obligatoria para 3 grupos específicos:
 
-## ¿Dónde comprar lentes inastillables Airwear en Córdoba Capital?
+* **PEDIATRÍA (USO OBLIGATORIO):** Jamás recomendamos armar anteojos para niños pequeños en cristal orgánico. El policarbonato Airwear es la única opción ética y verdaderamente segura para proteger los ojos de tus hijos durante los juegos y el colegio.
+* **Armazones al Aire (Ranurados o Perforados):** Las monturas "invisibles" (montadas al aire o de titanio) no tienen borde alrededor. Si colocamos un cristal orgánico común, la tensión mecánica y los tornillos lo terminarán rajando al primer movimiento brusco. Airwear soporta esta exigencia de manera impecable.
+* **Deportistas y Estilos de Vida Dinámicos:** Si hacés running por Nueva Córdoba, jugás al paddle o practicás ciclismo de ruta, el policarbonato te asegura que frente a cualquier accidente de impacto frontal, tus ojos permanecerán absolutamente protegidos.
 
-Ojo con esto: existen policarbonatos chinos muy económicos que se rayan con solo mirarlos y tienen una "dispersión cromática" alta (hacen que veas halos de colores alrededor de las luces).
+## ¿Dónde comprar lentes inastillables Airwear de Essilor en Córdoba Capital?
 
-Si buscás verdadera seguridad óptica en Córdoba, **Atelier Óptica** (José Luis de Tejeda 4380, Cerro de las Rosas) es el Centro Essilor Expert que te asegura el material original. Recibimos a diario a clientes de toda la **Ciudad de Córdoba, Villa Carlos Paz y Río Ceballos** que vienen directamente con la receta del oftalmólogo pediatra exigiendo "policarbonato".
+Atención con este detalle: existen en el mercado policarbonatos genéricos, chinos o de muy baja calidad que se rayan con solo limpiarlos y poseen una alta "dispersión cromática" (provocan que veas incómodos halos de colores alrededor de las luces).
 
-*   **Mejorá tus Airwear:** A diferencia de otros materiales, el policarbonato es blando en su superficie. En Atelier Óptica los armamos exclusivamente con tratamiento **Crizal** (para evitar que se rayen) y podés pedirlo fotocromático con **Transitions**.
+Si buscás verdadera seguridad y salud visual para tus anteojos en Córdoba, Argentina, **Atelier Óptica** (José Luis de Tejeda 4380, barrio Cerro de las Rosas) es tu Centro Essilor Expert, lo que te garantiza el acceso al material 100% original. Recibimos a diario a clientes de toda la ciudad que llegan con la receta de su oftalmólogo o pediatra exigiendo la excelencia del "policarbonato Airwear".
 
-## FAQ: Preguntas Frecuentes de Padres y Pacientes
+* **Mejorá tus cristales Airwear:** Como su principal virtud es absorber impactos, el policarbonato puro es blando en su superficie. En Atelier Óptica los armamos exclusivamente con tratamiento antirreflejo **Crizal** (para otorgarles máxima resistencia a las rayas). Además, podés pedir tu versión inteligente con tecnología fotocromática **Transitions**.
+
+## FAQ: Preguntas Frecuentes sobre Policarbonato (Consultas de nuestros pacientes)
 
 **¿Es verdad que el Policarbonato se raya rápido?**
-Sí, en su estado "puro", el material es blando para poder absorber impactos. Por esa razón técnica, Essilor siempre fabrica Airwear con capas de endurecimiento antirrayas (y en Atelier Óptica le sumamos Crizal Rock para que soporte la vida urbana y el trato brusco de los chicos).
+Sí, en su estado "puro", el material es inherentemente flexible para poder absorber los impactos sin romperse. Por esa razón técnica fundamental, Essilor siempre fabrica sus lentes Airwear con excelentes capas de endurecimiento antirrayas. En Atelier Óptica recomendamos sumar el tratamiento **Crizal Rock** para que el lente soporte sin problemas la vida urbana y el trato brusco de los más chicos.
 
-**¿Sirve para graduaciones muy altas de miopía?**
-Sirve, porque afina hasta un 20%. Sin embargo, si tu receta supera los -4.00, Airwear ya no será suficiente para ocultar el grosor. En esos casos, en nuestro consultorio te aconsejaremos pasar a materiales súper reducidos como **Ormix (1.6)** o **Stylis (1.67)**.
+**¿Sirve este material para graduaciones altas de miopía o astigmatismo?**
+Sirve, ya que logra afinar el lente hasta un 20% respecto a los cristales básicos. Sin embargo, si tu receta oftalmológica supera las 4.00 dioptrías, Airwear puede no ser suficiente para lograr el mejor resultado estético (disimular el grosor de los bordes). En esos casos, en nuestro consultorio te asesoraremos para dar el salto hacia materiales súper reducidos o de alto índice, como **Ormix (1.6)** o **Stylis (1.67)**.
 
 ---
 
@@ -73,8 +74,8 @@ Sirve, porque afina hasta un 20%. Sin embargo, si tu receta supera los -4.00, Ai
     },
     {
       "@type": "Article",
-      "headline": "Cristales Policarbonato Airwear en Córdoba: Lentes Irrompibles | Atelier Óptica",
-      "description": "Lentes de policarbonato Airwear Essilor en Córdoba. Máxima seguridad y resistencia para niños y deportistas. Conseguilos en Atelier Óptica, Cerro de las Rosas.",
+      "headline": "Cristales de Policarbonato Airwear en Córdoba | Atelier Óptica",
+      "description": "¿Buscás máxima seguridad para tus ojos? Descubrí los lentes de policarbonato Airwear de Essilor en Córdoba. Cristales inastillables ideales para niños y deportistas.",
       "author": {
         "@type": "Person",
         "name": "Ishtar Pissano & Matías Turchi",
@@ -90,15 +91,15 @@ Sirve, porque afina hasta un 20%. Sin embargo, si tu receta supera los -4.00, Ai
           "name": "¿Es verdad que el Policarbonato se raya rápido?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Su superficie es blanda para absorber impactos. Pero al combinarlos con tratamientos Essilor Crizal Rock, logran una altísima resistencia a las rayaduras."
+            "text": "En su estado puro sí, para poder absorber impactos. Pero al combinarlos con tratamientos antirreflejo y antirrayas como Essilor Crizal Rock, logran una altísima resistencia a las rayaduras."
           }
         },
         {
           "@type": "Question",
-          "name": "¿Sirve para graduaciones muy altas de miopía?",
+          "name": "¿Sirve para graduaciones altas de miopía o astigmatismo?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "El policarbonato es más fino que el plástico común, pero para altas miopías (+4.00) solemos recomendar materiales de alto índice (1.67 Stylis) para mejor estética."
+            "text": "El policarbonato es un 20% más fino que el plástico común, pero para graduaciones altas (superiores a 4.00 dioptrías) recomendamos materiales de alto índice (como 1.67 Stylis) para una mejor estética y bordes más delgados."
           }
         }
       ]

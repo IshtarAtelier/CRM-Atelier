@@ -4,8 +4,6 @@ import Link from 'next/link';
 import { ArrowLeft, MessageSquare, ChevronDown } from 'lucide-react';
 import { StorefrontNavbar } from '@/components/Storefront/StorefrontNavbar';
 import { StorefrontFooter } from '@/components/Storefront/StorefrontFooter';
-import { FloatingWhatsApp } from '@/components/Storefront/FloatingWhatsApp';
-
 export const metadata: Metadata = {
   title: "Preguntas Frecuentes sobre Salud Visual | Atelier Óptica",
   description: "Respuestas de expertos a las dudas más comunes sobre miopía infantil (Stellest, Myopilux), lentes con filtro azul, anteojos inteligentes Meta Ray-Ban y adaptación a multifocales.",
@@ -194,7 +192,7 @@ export default function FAQPage() {
       </div>
 
       <StorefrontFooter />
-      <FloatingWhatsApp />
+      
     </div>
   );
 }

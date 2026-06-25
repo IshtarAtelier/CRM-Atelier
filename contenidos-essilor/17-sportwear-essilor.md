@@ -1,47 +1,51 @@
 ---
 title: "Lentes Deportivos Graduados en Córdoba: Essilor SportWear | Atelier Óptica"
-meta_description: "Cristales deportivos graduados Essilor SportWear en Córdoba. Curvos, envolventes y sin mareos para ciclismo y running. Consultanos en Atelier Óptica."
+meta_description: "Descubrí los lentes deportivos graduados Essilor SportWear en Atelier Óptica, Córdoba. Gafas envolventes para ciclismo y running, sin mareos. ¡Consultanos!"
 slug: "lentes-deportivos-graduados-sportwear-essilor-cordoba"
 ---
 
-# Lentes Deportivos en Córdoba: La Revolución de Essilor SportWear
+# Lentes Deportivos Graduados en Córdoba: La Revolución de Essilor SportWear
 
-El fin de semana en Córdoba significa salir al aire libre. Ya sea un pelotón de ciclistas trepando el Pan de Azúcar, un torneo de Paddle en Villa Allende o runners bordeando La Cañada. Pero para el deportista que usa anteojos con graduación, la experiencia suele ser una tortura.
+El fin de semana en **Córdoba, Argentina**, es sinónimo de salir al aire libre. Ya sea en un pelotón de ciclistas trepando el Pan de Azúcar, disputando un torneo de pádel en Villa Allende o sumando kilómetros como runner bordeando La Cañada. Pero para el deportista que necesita usar anteojos con graduación, la experiencia muchas veces se convierte en una frustración.
 
-Si usás lentes de contacto, el polvo y el viento serrano te secan el ojo. Si le ponés un "clip interno" de aumento a tus lentes de sol deportivos, se empañan, te rozan las pestañas y, lo peor de todo, te marean cuando mirás de reojo.
+Si usás lentes de contacto, el polvo, la tierra y el viento serrano terminan secando e irritando tus ojos. Si intentás ponerle un "clip interno" de aumento a tus lentes de sol deportivos, se empañan constantemente, rozan las pestañas y, lo más peligroso: **te marean cuando mirás de reojo**.
 
-Para solucionar esto, Essilor desarrolló **SportWear**, un diseño de cristal graduado específico para marcos curvos. En **Atelier Óptica** (Cerro de las Rosas) armamos tus anteojos de ciclismo o running con tu receta exacta, sin distorsiones.
+Para ponerle fin a estos problemas, Essilor desarrolló **SportWear**, un diseño de cristal graduado específico para marcos curvos y envolventes. En **Atelier Óptica**, tu óptica de confianza en el barrio Cerro de las Rosas, armamos tus anteojos de ciclismo, running o golf con tu receta exacta, garantizando una visión nítida y sin distorsiones.
 
 ## El Problema del Mareo en Gafas de Ciclismo y Running
 
-Las gafas deportivas son "envolventes". Tienen una curvatura extrema (Base 8) para abrazar tu cara, protegerte del viento cruzado y evitar que entre el sol por los costados. 
+Las gafas deportivas de alto rendimiento son "envolventes". Tienen una curvatura extrema (conocida como Base 8) diseñada para abrazar tu cara, protegerte del viento cruzado y evitar que el sol se cuele por los laterales. 
 
-El problema surge cuando a esa curva le intentás poner cristales con tu receta oftalmológica. La física óptica indica que, al doblar el cristal, se induce un "astigmatismo oblicuo". ¿El resultado? Cuando vas en la bici y mirás de reojo hacia atrás para ver si viene otro ciclista, **el piso se ve hundido, las distancias se calculan mal y terminás con dolor de cabeza**.
+El gran problema surge cuando a esa curva extrema intentás adaptarle cristales tradicionales con tu receta oftalmológica (ya sea para miopía, astigmatismo o hipermetropía). La física óptica es clara: al doblar el cristal, se induce un "astigmatismo oblicuo". 
 
-## Tecnología SportWear: Compensación Digital Prisma
+¿Cuál es el resultado? Cuando vas en la bici y mirás por el rabillo del ojo hacia atrás para ver si viene otro ciclista o un auto, **el piso se ve hundido, las distancias se calculan mal y terminás con dolor de cabeza**.
 
-Para poder graduar un anteojo curvo sin que te maree, Essilor utiliza el sistema **SportWear**.
-En nuestro laboratorio, tomamos tu receta original y el software la recalcula (punto por punto) compensando la curvatura del marco deportivo. 
+## Tecnología SportWear: Precisión Digital y Compensación de Prisma
 
-*   **Visión Periférica Real:** Te permite mirar hacia los costados mientras corrés y ver nítido, sin efecto túnel ni deformaciones en el terreno.
-*   **Material Airwear:** Obligatoriamente, se tallan en Policarbonato inastillable para que, ante cualquier caída en la montaña, el cristal no estalle en tus ojos.
+Para poder graduar un anteojo curvo sin generar mareos, utilizamos el sistema inteligente **Essilor SportWear**. 
 
-## ¿Dónde comprar lentes de ciclismo graduados en Córdoba?
+En nuestro laboratorio, tomamos tu receta original y el software de tallado digital recalcula punto por punto tu graduación, compensando matemáticamente la curvatura específica de tu marco deportivo. 
 
-Hacer unos lentes curvos con graduación requiere tomar parámetros faciales exactos: el ángulo de curvatura, la distancia al vértice y el ángulo pantoscópico de tu cara. No todas las ópticas de Córdoba están capacitadas (ni tienen la maquinaria) para hacer este nivel de centrado.
+*   **Visión Periférica Real:** Te permite mirar hacia los costados mientras corrés y ver el terreno nítido, eliminando el "efecto túnel" y las deformaciones visuales.
+*   **Material Inastillable:** Obligatoriamente, estas lentes se tallan en Policarbonato (Airwear). Ante cualquier caída o impacto en la montaña, el cristal no estallará, protegiendo tus ojos al 100%.
 
-**Atelier Óptica**, ubicada en José Luis de Tejeda 4380 (Cerro de las Rosas), es pionera como **Centro Essilor Expert** en anteojos deportivos.
-*   Recibimos atletas y amateurs de **Villa Carlos Paz, Río Ceballos, Alta Gracia, La Calera y Jesús María**.
-*   Podemos tomar tu propio marco deportivo (Oakley, Rudy Project) y, si tiene aros independientes, armarle cristales SportWear.
-*   **Opciones Premium:** Te recomendamos armarlos con tecnología fotocromática (Transitions) o polarizados (Xperio) y aplicarles sistema **Optifog** para que no se empañen con tu propia transpiración.
+## ¿Dónde comprar lentes deportivos graduados en Córdoba?
+
+Fabricar y calibrar anteojos curvos con graduación no es una tarea estándar. Requiere tomar parámetros faciales exactos con instrumental de precisión: el ángulo de curvatura, la distancia al vértice y el ángulo pantoscópico de tu rostro. No todas las ópticas están capacitadas ni cuentan con la tecnología para lograr este nivel de centrado avanzado.
+
+**Atelier Óptica**, ubicada en José Luis de Tejeda 4380 (Cerro de las Rosas, a minutos de Nueva Córdoba), es pionera como **Centro Essilor Expert** en anteojos deportivos.
+
+*   **Alcance regional:** Recibimos a atletas de élite y deportistas amateurs de **Villa Carlos Paz, Río Ceballos, Alta Gracia, La Calera y Jesús María**.
+*   **Armamos tu propio marco:** Podemos tomar tu marco deportivo favorito (como Oakley, Rudy Project o SPY) y, si tiene aros independientes, instalarle tus nuevos cristales SportWear.
+*   **Tecnología Premium Adicional:** Te recomendamos potenciar tus lentes con tecnología fotocromática (**Transitions**, que se oscurece con el sol) o polarizados (**Xperio**, ideales para eliminar reflejos del asfalto o el agua), y sumarles el tratamiento **Optifog** para evitar que se empañen con tu propia transpiración.
 
 ## FAQ: Preguntas Frecuentes de nuestros deportistas
 
-**¿Se pueden hacer lentes deportivos multifocales?**
-¡Totalmente! Es una de nuestras mayores demandas. Existen diseños progresivos envolventes como Varilux SportWear. Son ideales si necesitás ver nítida la ruta de lejos, y enfocar perfectamente tu reloj Garmin o el GPS de la bicicleta sin sacarte los anteojos.
+### ¿Se pueden hacer lentes deportivos multifocales?
+¡Totalmente! Es una de las mayores demandas en nuestra óptica en Córdoba. Existen diseños progresivos envolventes como **Varilux SportWear**. Son la solución ideal si necesitás ver nítida la ruta o el sendero de lejos, y a la vez enfocar perfectamente la pantalla de tu reloj Garmin, el ciclocomputador o el celular, sin tener que sacarte los anteojos.
 
-**¿Sirven para marcos deportivos tipo máscara (visor continuo)?**
-Lamentablemente no. Para poder tallar tu graduación y montarla en el lente deportivo, el armazón debe tener "dos aros" separados (un cristal derecho y un cristal izquierdo). Las gafas de pantalla continua (visor único) no pueden graduarse directamente con cristales ópticos curvos.
+### ¿Sirven para marcos deportivos tipo máscara o visor continuo?
+Lamentablemente no. Para poder tallar tu graduación y montarla de forma segura en el armazón deportivo, este debe tener "dos aros" separados (uno para el cristal derecho y otro para el izquierdo). Las gafas que son una sola pantalla continua (visor único) no permiten el montaje directo de cristales ópticos curvos.
 
 ---
 
@@ -74,7 +78,7 @@ Lamentablemente no. Para poder tallar tu graduación y montarla en el lente depo
     {
       "@type": "Article",
       "headline": "Lentes Deportivos Graduados en Córdoba: Essilor SportWear | Atelier Óptica",
-      "description": "Cristales deportivos graduados Essilor SportWear en Córdoba. Curvos, envolventes y sin mareos para ciclismo y running. Consultanos en Atelier Óptica.",
+      "description": "Descubrí los lentes deportivos graduados Essilor SportWear en Atelier Óptica, Córdoba. Gafas envolventes para ciclismo y running, sin mareos. ¡Consultanos!",
       "author": {
         "@type": "Person",
         "name": "Ishtar Pissano & Matías Turchi",
@@ -90,7 +94,7 @@ Lamentablemente no. Para poder tallar tu graduación y montarla en el lente depo
           "name": "¿Se pueden hacer lentes deportivos multifocales?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Sí. En Atelier Óptica los armamos con diseño progresivo curvo, lo que te permite enfocar el camino y leer el GPS o smartwatch de cerca sin cambiar de gafas."
+            "text": "Sí. En Atelier Óptica los armamos con diseño progresivo curvo Varilux SportWear, permitiéndote enfocar el camino y leer el GPS o smartwatch de cerca sin cambiar de gafas."
           }
         },
         {
@@ -98,7 +102,7 @@ Lamentablemente no. Para poder tallar tu graduación y montarla en el lente depo
           "name": "¿Sirven para marcos deportivos tipo máscara (visor continuo)?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "No. El marco deportivo debe tener aros individuales para cada ojo para poder engarzar los cristales graduados."
+            "text": "No. El marco deportivo debe tener aros individuales para cada ojo para poder montar los cristales graduados de manera correcta y segura."
           }
         }
       ]

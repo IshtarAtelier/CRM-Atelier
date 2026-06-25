@@ -3,7 +3,6 @@ import { Metadata } from 'next';
 import { ArrowRight } from 'lucide-react';
 import { StorefrontNavbar } from '@/components/Storefront/StorefrontNavbar';
 import { StorefrontFooter } from '@/components/Storefront/StorefrontFooter';
-import { FloatingWhatsApp } from '@/components/Storefront/FloatingWhatsApp';
 import { staticPosts } from '@/lib/static-blog-posts';
 import { prisma } from '@/lib/db';
 import { seoKeywords, formatQueryToTitle } from '@/lib/seo-keywords';
@@ -179,7 +178,7 @@ export default async function BlogPage() {
       <SeoAccordion keywords={seoKeywords} />
 
       <StorefrontFooter />
-      <FloatingWhatsApp />
+      
     </div>
   );
 }

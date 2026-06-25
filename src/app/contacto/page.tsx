@@ -1,6 +1,5 @@
 import { StorefrontNavbar } from "@/components/Storefront/StorefrontNavbar";
 import { StorefrontFooter } from "@/components/Storefront/StorefrontFooter";
-import { FloatingWhatsApp } from "@/components/Storefront/FloatingWhatsApp";
 import { WHATSAPP_PHONE } from "@/lib/constants";
 import { getWebSettings } from "@/lib/web-settings";
 import { ContactoClient } from "./ContactoClient";
@@ -23,7 +22,7 @@ export default async function ContactoPage() {
         locality={locality} 
       />
       <StorefrontFooter />
-      <FloatingWhatsApp />
+      
     </div>
   );
 }

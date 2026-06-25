@@ -20,13 +20,9 @@ export const metadata: Metadata = {
   },
 };
 
-export default async function TiendaPage({ searchParams }: { searchParams?: Promise<any> }) {
-  const resolvedParams = searchParams ? (await searchParams) : {};
-  const filterBrand = resolvedParams?.marca && typeof resolvedParams.marca === 'string' ? resolvedParams.marca : undefined;
-  const sortParam = resolvedParams?.orden && typeof resolvedParams.orden === 'string' ? resolvedParams.orden : 'recientes';
-  const filterShape = resolvedParams?.forma && typeof resolvedParams.forma === 'string' ? resolvedParams.forma : undefined;
-  const filterMaterial = resolvedParams?.material && typeof resolvedParams.material === 'string' ? resolvedParams.material : undefined;
-  
+import { Suspense } from 'react';
+
+export default async function TiendaPage() {
   // We query all active web products to extract distinct filters and then apply filter criteria
   let dbProducts: any[] = [];
   try {
@@ -73,7 +69,7 @@ export default async function TiendaPage({ searchParams }: { searchParams?: Prom
   const availableShapes = Array.from(shapesSet).sort();
   const availableMaterials = Array.from(materialsSet).sort();
 
-  // 2) Map WebProducts to products format needed by storefront & apply filters
+  // 2) Map WebProducts to products format needed by storefront
   let mappedProducts = dbProducts.map(wp => {
     const modelCode = wp.product.model || wp.name || '';
     const { shape, material } = getProductAttributes(modelCode);
@@ -107,33 +103,15 @@ export default async function TiendaPage({ searchParams }: { searchParams?: Prom
     };
   });
 
-  // 3) Apply URL Filters
-  if (filterBrand) {
-    mappedProducts = mappedProducts.filter(p => p.brand.toLowerCase() === filterBrand.toLowerCase());
-  }
-  if (filterShape) {
-    mappedProducts = mappedProducts.filter(p => p.shape.toLowerCase().includes(filterShape.toLowerCase()) || (filterShape.toLowerCase() === 'xl' && p.shape === 'XL'));
-  }
-  if (filterMaterial) {
-    mappedProducts = mappedProducts.filter(p => p.material.toLowerCase() === filterMaterial.toLowerCase());
-  }
-
-  // 4) Apply Sorting
-  if (sortParam === 'menor_precio') {
-    mappedProducts.sort((a, b) => a.price - b.price);
-  } else if (sortParam === 'mayor_precio') {
-    mappedProducts.sort((a, b) => b.price - a.price);
-  } else {
-    // default (recientes is already done by DB order)
-  }
-
   return (
-    <TiendaClient 
-      initialProducts={mappedProducts} 
-      availableBrands={availableBrands}
-      availableShapes={availableShapes}
-      availableMaterials={availableMaterials}
-      footer={<StorefrontFooter />}
-    />
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Cargando...</div>}>
+      <TiendaClient 
+        initialProducts={mappedProducts} 
+        availableBrands={availableBrands}
+        availableShapes={availableShapes}
+        availableMaterials={availableMaterials}
+        footer={<StorefrontFooter />}
+      />
+    </Suspense>
   );
 }

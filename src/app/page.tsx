@@ -324,7 +324,7 @@ export default async function Home() {
       {/* FOOTER Y WIDGETS                               */}
       {/* ═══════════════════════════════════════════════ */}
       <StorefrontFooter />
-      <FloatingWhatsApp />
+      
       <ExitIntentPopup />
     </div>
   );

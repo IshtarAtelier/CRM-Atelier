@@ -6,7 +6,6 @@ import { notFound } from 'next/navigation';
 import { ArrowLeft, Calendar, Tag, ArrowRight, ShoppingBag } from 'lucide-react';
 import { StorefrontNavbar } from '@/components/Storefront/StorefrontNavbar';
 import { StorefrontFooter } from '@/components/Storefront/StorefrontFooter';
-import { FloatingWhatsApp } from '@/components/Storefront/FloatingWhatsApp';
 import { prisma } from '@/lib/db';
 import { resolveStorageUrl } from '@/lib/utils/storage';
 import Image from "next/image";
@@ -111,7 +110,7 @@ const posts: Record<string, Post> = {
     imageUrl: '/images/blog/blog1_marcos.png',
     content: (
       <>
-        <p className="lead">El futuro de los "wearables" (tecnología vestible) por fin llegó a la óptica, y no, no se ven como los viejos anteojos de ciencia ficción con pantallas gigantes. Los nuevos <strong>Ray-Ban Meta</strong> son estéticamente idénticos a los clásicos Wayfarer, pero esconden una computadora completa en su interior. Y sí, <strong>ya podés encontrarlos en Atelier Óptica Córdoba</strong>.</p>
+        <p className="lead"><strong>¡Atención Córdoba!</strong> El futuro de los "wearables" (tecnología vestible) por fin llegó a la óptica, y no, no se ven como los viejos anteojos de ciencia ficción con pantallas gigantes. Los nuevos <strong>Ray-Ban Meta</strong> son estéticamente idénticos a los clásicos Wayfarer, pero esconden una computadora completa en su interior. Y sí, <strong>ya podés encontrarlos en Atelier Óptica Córdoba</strong>.</p>
 
         <h2>¿Qué hace que los Ray-Ban Meta sean tan revolucionarios?</h2>
         <p>A diferencia de intentos anteriores (como las Google Glass), la colaboración entre la legendaria marca Ray-Ban y Meta (la empresa de Mark Zuckerberg detrás de WhatsApp e Instagram) se centró en dos cosas: <strong>diseño y funcionalidad invisible</strong>.</p>
@@ -132,6 +131,7 @@ const posts: Record<string, Post> = {
         <p><strong>¡Por supuesto!</strong> Esa es la gran ventaja de adquirirlos en <strong>Atelier Óptica</strong>. A diferencia de comprarlos en una tienda de electrónica, nosotros te los entregamos con tus cristales recetados (miopía, astigmatismo o presbicia), con filtros antirreflex premium, lentes de sol polarizados, o incluso lentes fotocromáticos (Transitions) que se oscurecen al sol.</p>
 
         <p>Acercate a nuestro local en Cerro de las Rosas y probá en vivo la tecnología que está cambiando la forma en la que documentamos nuestras vidas.</p>
+      <p className="mt-4 font-bold text-[#111]">📍 Encontrá la mejor atención en José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba. ¡Te esperamos en Atelier Óptica!</p>
       </>
     )
   },
@@ -146,7 +146,7 @@ const posts: Record<string, Post> = {
     imageUrl: '/images/blog/blog3_eligiendo.png',
     content: (
       <>
-        <p className="lead">¿Qué pasaría si pudieras controlar qué tan oscuros son tus lentes de sol con solo presionar un botón, como si estuvieras subiendo o bajando el volumen de tu celular? Lo que parece sacado de una película de espías es hoy una realidad gracias a los <strong>lentes electrocrómicos Wicue</strong>, disponibles en Atelier Óptica.</p>
+        <p className="lead"><strong>¡Atención Córdoba!</strong> ¿Qué pasaría si pudieras controlar qué tan oscuros son tus lentes de sol con solo presionar un botón, como si estuvieras subiendo o bajando el volumen de tu celular? Lo que parece sacado de una película de espías es hoy una realidad gracias a los <strong>lentes electrocrómicos Wicue</strong>, disponibles en Atelier Óptica.</p>
 
         <h2>El problema de los lentes fotocromáticos tradicionales</h2>
         <p>Los cristales fotocromáticos (que se oscurecen con el sol) son excelentes, pero tienen limitaciones. Dependen de los rayos UV para activarse. Eso significa que no se oscurecen dentro del auto (porque el parabrisas bloquea los rayos UV) y, lo más molesto, tardan varios minutos en volver a aclararse cuando entrás a un lugar cerrado. Entrás a un supermercado y no ves nada durante un rato.</p>
@@ -167,6 +167,7 @@ const posts: Record<string, Post> = {
         <p>Esta tecnología es especialmente apreciada por ciclistas, conductores y deportistas de alto rendimiento, donde esperar 2 minutos a que un lente se aclare puede resultar peligroso.</p>
 
         <p>En <strong>Atelier Óptica</strong> en Córdoba, nos enorgullece estar a la vanguardia de las soluciones visuales del mundo. Vení a probar los lentes Wicue y experimentá el control absoluto de la luz con la punta de tus dedos.</p>
+      <p className="mt-4 font-bold text-[#111]">📍 Encontrá la mejor atención en José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba. ¡Te esperamos en Atelier Óptica!</p>
       </>
     )
   },
@@ -181,7 +182,7 @@ const posts: Record<string, Post> = {
     imageUrl: '/images/blog/vidriera-atelier.webp',
     content: (
       <>
-        <p className="lead">Hasta hace poco tiempo, cuando a un niño se le diagnosticaba miopía, la única solución era recetar anteojos convencionales. El problema de esta solución clásica es que solo corrige el síntoma (la visión borrosa), pero no ataca la causa: el crecimiento desmedido del globo ocular.</p>
+        <p className="lead"><strong>¡Atención Córdoba!</strong> Hasta hace poco tiempo, cuando a un niño se le diagnosticaba miopía, la única solución era recetar anteojos convencionales. El problema de esta solución clásica es que solo corrige el síntoma (la visión borrosa), pero no ataca la causa: el crecimiento desmedido del globo ocular.</p>
 
         <h2>La epidemia de miopía infantil</h2>
         <p>A nivel mundial, la cantidad de niños con miopía se ha disparado. Factores como la reducción del tiempo al aire libre, la falta de exposición a la luz solar natural y el uso prolongado de pantallas desde edades muy tempranas han creado lo que la Organización Mundial de la Salud llama una "epidemia global".</p>
@@ -201,6 +202,7 @@ const posts: Record<string, Post> = {
         <h2>El rol de la óptica especializada</h2>
         <p>Estos tratamientos requieren precisión milimétrica. En <strong>Atelier Óptica</strong> en Córdoba, nuestra Óptica Contactóloga especializada, Ishtar Pissano, cuenta con más de 10 años de experiencia para centrar estos lentes con exactitud. Además, asesoramos a los padres en la elección de armazones pediátricos adecuados (de acetato o silicona, con buen puente nasal) para asegurar que el lente Stellest funcione correctamente durante todo el día.</p>
         <p>Frenar el avance de la miopía a tiempo es proteger la visión de tu hijo para toda la vida. Consultá con tu oftalmólogo pediatra y visitanos en Cerro de las Rosas para recibir asesoramiento experto.</p>
+      <p className="mt-4 font-bold text-[#111]">📍 Encontrá la mejor atención en José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba. ¡Te esperamos en Atelier Óptica!</p>
       </>
     )
   },
@@ -215,7 +217,7 @@ const posts: Record<string, Post> = {
     imageUrl: '/images/blog/mostrador-marmol.webp',
     content: (
       <>
-        <p className="lead">Cuando te comprás un par de anteojos nuevos, el oftalmólogo o el óptico siempre te pregunta: <em>"¿Los querés con antirreflex?"</em>. La respuesta corta es siempre <strong>SÍ</strong>. Pero la respuesta larga es que no todos los antirreflejos son iguales. Hoy te contamos por qué la tecnología <strong>Crizal de Essilor</strong> es el estándar de oro en protección visual.</p>
+        <p className="lead"><strong>¡Atención Córdoba!</strong> Cuando te comprás un par de anteojos nuevos, el oftalmólogo o el óptico siempre te pregunta: <em>"¿Los querés con antirreflex?"</em>. La respuesta corta es siempre <strong>SÍ</strong>. Pero la respuesta larga es que no todos los antirreflejos son iguales. Hoy te contamos por qué la tecnología <strong>Crizal de Essilor</strong> es el estándar de oro en protección visual.</p>
 
         <h2>¿Qué es exactamente un tratamiento antirreflex?</h2>
         <p>A pesar de lo que mucha gente cree, un antirreflex no es "un cristal para ver mejor la computadora". Es una serie de capas microscópicas aplicadas sobre el lente que <strong>eliminan los reflejos de la luz</strong>. Al no haber reflejos en el cristal, pasa más luz hacia tus ojos, lo que hace que veas más nítido, con mejor contraste y, estéticamente, permite que los demás vean tus ojos y no el reflejo de la ventana en tus anteojos.</p>
@@ -234,6 +236,7 @@ const posts: Record<string, Post> = {
 
         <h2>Garantía de Calidad en Atelier Óptica</h2>
         <p>Todos los lentes con tecnología Crizal vienen con su certificado de autenticidad. En nuestro local en Cerro de las Rosas, Córdoba, podés ver la diferencia vos mismo a través de nuestros demostradores físicos. Vení a visitarnos y protegé tu inversión visual.</p>
+      <p className="mt-4 font-bold text-[#111]">📍 Encontrá la mejor atención en José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba. ¡Te esperamos en Atelier Óptica!</p>
       </>
     )
   },
@@ -248,7 +251,7 @@ const posts: Record<string, Post> = {
     imageUrl: '/images/blog/muestrario-smart-lens.webp',
     content: (
       <>
-        <p className="lead">Si tenés entre 20 y 45 años, es muy probable que pases más de 8 horas al día mirando la pantalla del celular, la notebook o el televisor. Todo este esfuerzo de enfoque cercano genera fatiga visual, ojos secos y dolor de cabeza. Muchos buscan "lentes de descanso", pero <strong>Essilor Eyezen</strong> redefine por completo este concepto.</p>
+        <p className="lead"><strong>¡Atención Córdoba!</strong> Si tenés entre 20 y 45 años, es muy probable que pases más de 8 horas al día mirando la pantalla del celular, la notebook o el televisor. Todo este esfuerzo de enfoque cercano genera fatiga visual, ojos secos y dolor de cabeza. Muchos buscan "lentes de descanso", pero <strong>Essilor Eyezen</strong> redefine por completo este concepto.</p>
 
         <h2>¿Qué pasa en tu ojo cuando mirás el celular?</h2>
         <p>Tus ojos no fueron diseñados por la naturaleza para mirar un objeto luminoso a 30 centímetros de distancia durante horas. Para mantener la imagen nítida de cerca, un músculo dentro de tu ojo (el músculo ciliar) se contrae. Cuando este músculo permanece contraído todo el día, se produce lo que llamamos <strong>estrés o fatiga visual</strong>.</p>
@@ -264,6 +267,7 @@ const posts: Record<string, Post> = {
         <h2>Disponibles con y sin graduación</h2>
         <p>Podés hacer tus lentes Eyezen incluso si no tenés miopía ni astigmatismo. Si ya usás lentes recetados para ver de lejos, Eyezen reemplaza tu cristal monofocal tradicional brindándote esta tecnología extra para el mundo digital.</p>
         <p>Visitá <strong>Atelier Óptica</strong> en Cerro de las Rosas y enterate de cuál de las 4 variaciones de potencia de Eyezen (Start, Plus, Pro o Max) es la ideal para tu estilo de vida.</p>
+      <p className="mt-4 font-bold text-[#111]">📍 Encontrá la mejor atención en José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba. ¡Te esperamos en Atelier Óptica!</p>
       </>
     )
   },
@@ -278,7 +282,7 @@ const posts: Record<string, Post> = {
     imageUrl: '/images/blog/vidriera-atelier.webp',
     content: (
       <>
-        <p className="lead">La miopía infantil es hoy en día una epidemia mundial. Debido al uso excesivo de pantallas y la falta de luz solar natural, los niños desarrollan miopía cada vez más temprano, y sus graduaciones empeoran año tras año. Afortunadamente, Essilor desarrolló una solución médica revolucionaria: los lentes <strong>Stellest</strong>.</p>
+        <p className="lead"><strong>¡Atención Córdoba!</strong> La miopía infantil es hoy en día una epidemia mundial. Debido al uso excesivo de pantallas y la falta de luz solar natural, los niños desarrollan miopía cada vez más temprano, y sus graduaciones empeoran año tras año. Afortunadamente, Essilor desarrolló una solución médica revolucionaria: los lentes <strong>Stellest</strong>.</p>
 
         <h2>El problema de los lentes tradicionales</h2>
         <p>Hasta hace poco, cuando a un niño se le diagnosticaba miopía, el oftalmólogo le recetaba lentes monofocales tradicionales. El niño volvía a ver bien, pero al año siguiente, su graduación invariablemente había subido. El lente tradicional <strong>corrige el síntoma, pero no frena el avance de la miopía</strong>.</p>
@@ -299,6 +303,7 @@ const posts: Record<string, Post> = {
         <h2>El compromiso de Atelier Óptica</h2>
         <p>Estos lentes se realizan bajo estricta indicación de oftalmólogos pediatras especializados. En <strong>Atelier Óptica</strong> en Córdoba Capital, contamos con las certificaciones y el instrumental necesario para centrar y calibrar estos cristales a la perfección en el rostro de tu hijo.</p>
         <p>No dejes que la miopía de tu hijo avance sin control. Acercate a asesorarte con nuestro equipo y cambiemos juntos el futuro de su salud visual.</p>
+      <p className="mt-4 font-bold text-[#111]">📍 Encontrá la mejor atención en José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba. ¡Te esperamos en Atelier Óptica!</p>
       </>
     )
   },
@@ -313,7 +318,7 @@ const posts: Record<string, Post> = {
     imageUrl: '/images/blog/local-varilux.webp',
     content: (
       <>
-        <p className="lead">El mundo de la óptica acaba de dar el salto tecnológico más grande de la última década. Essilor, el creador del lente multifocal, acaba de lanzar su obra maestra: <strong>Varilux XR Series</strong>. En <strong>Atelier Óptica Córdoba</strong> ya somos Centro Experto y te contamos por qué este cristal va a cambiar tu vida.</p>
+        <p className="lead"><strong>¡Atención Córdoba!</strong> El mundo de la óptica acaba de dar el salto tecnológico más grande de la última década. Essilor, el creador del lente multifocal, acaba de lanzar su obra maestra: <strong>Varilux XR Series</strong>. En <strong>Atelier Óptica Córdoba</strong> ya somos Centro Experto y te contamos por qué este cristal va a cambiar tu vida.</p>
 
         <h2>¿Qué hace que el Varilux XR sea diferente a todo?</h2>
         <p>Hasta ahora, incluso los mejores multifocales se diseñaban asumiendo que el ojo se mueve de manera lineal. Pero en el mundo actual (donde miramos el celular, la calle, un smartwatch y a otra persona en cuestión de segundos), nuestros ojos hacen más de 100.000 movimientos diarios en múltiples direcciones.</p>
@@ -335,6 +340,7 @@ const posts: Record<string, Post> = {
         <h2>Certificación Essilor Expert en Córdoba</h2>
         <p>Para que la Inteligencia Artificial del cristal funcione, las medidas de tu rostro deben ser tomadas con precisión milimétrica. En <strong>Atelier Óptica</strong>, nuestra Óptica Contactóloga <strong>Ishtar Pissano</strong> cuenta con más de 10 años de trayectoria y la certificación <strong>Essilor Expert</strong>. Realizamos un proceso de medición minucioso y personalizado para asegurar que tu Varilux XR rinda al 100%.</p>
         <p>Acercate a nuestro local en Cerro de las Rosas y experimentá el futuro de la visión.</p>
+      <p className="mt-4 font-bold text-[#111]">📍 Encontrá la mejor atención en José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba. ¡Te esperamos en Atelier Óptica!</p>
       </>
     )
   },
@@ -343,13 +349,13 @@ const posts: Record<string, Post> = {
     title: '¿Dolor de cuello frente a la compu? Por qué el Varilux Comfort Max es la solución',
     excerpt: 'Si trabajás 8 horas frente a una pantalla, tu postura sufre. Conocé cómo el diseño ergonómico de Varilux te permite ver bien sin levantar la barbilla.',
     metaTitle: 'Varilux Comfort Max en Córdoba | Lentes para Postura | Atelier Óptica',
-    metaDescription: 'Eliminá el dolor de cuello en la oficina con los multifocales Varilux Comfort Max. Ergonomía visual comprobada. Conseguilos en Atelier Óptica.',
+    metaDescription: 'Eliminá el dolor de cuello en la oficina con los multifocales Varilux Comfort Max. Ergonomía visual comprobada. Conseguilos en Atelier Óptica. Visitá Atelier Óptica en Cerro de las Rosas, Córdoba.',
     date: '2026-05-19',
     category: 'Salud Visual',
     imageUrl: '/images/blog/mostrador-marmol.webp',
     content: (
       <>
-        <p className="lead">Terminás tu jornada de trabajo en la oficina y el dolor en las cervicales es insoportable. Vas al kinesiólogo, cambiás la silla, pero el problema persiste. Si usás lentes multifocales, la causa de tu dolor de cuello podría estar, literalmente, frente a tus ojos.</p>
+        <p className="lead"><strong>¡Atención Córdoba!</strong> Terminás tu jornada de trabajo en la oficina y el dolor en las cervicales es insoportable. Vas al kinesiólogo, cambiás la silla, pero el problema persiste. Si usás lentes multifocales, la causa de tu dolor de cuello podría estar, literalmente, frente a tus ojos.</p>
 
         <h2>El problema del "Mentón Levantado"</h2>
         <p>Los multifocales tradicionales exigen que busques la zona intermedia (la graduación de la computadora) en una parte muy específica del cristal. Si sos de las personas que se mueven mucho en la silla, te recostás o te acercás al monitor, terminás levantando o bajando el mentón constantemente para no perder el foco. Esa postura antinatural repetida 8 horas al día destruye tus cervicales.</p>
@@ -368,6 +374,7 @@ const posts: Record<string, Post> = {
         <h2>El Combo Perfecto en Atelier Óptica</h2>
         <p>En nuestra óptica en Cerro de las Rosas (Córdoba), te recomendamos pedir tus Varilux Comfort Max con tratamiento <strong>Crizal Sapphire</strong> (el mejor antirreflex) y <strong>Filtro Azul (Blue UV Capture)</strong> para que, además de cuidar tu cuello, protejas tu retina de la luz dañina de las pantallas.</p>
         <p>Dejá de sufrir en el trabajo. Vení a asesorarte con nosotros y llevate la garantía de adaptación de los expertos de Atelier.</p>
+      <p className="mt-4 font-bold text-[#111]">📍 Encontrá la mejor atención en José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba. ¡Te esperamos en Atelier Óptica!</p>
       </>
     )
   },
@@ -376,13 +383,13 @@ const posts: Record<string, Post> = {
     title: 'Varilux vs Multifocales Genéricos: ¿Vale la pena la diferencia de precio?',
     excerpt: 'Derribamos mitos. Te mostramos exactamente qué cambia entre un lente progresivo de alta gama y uno económico (con esquemas de campo visual reales).',
     metaTitle: 'Diferencia Varilux y Lentes Genéricos | Precios Córdoba | Atelier Óptica',
-    metaDescription: 'Comparativa real entre lentes multifocales genéricos económicos y la línea Varilux de Essilor. Por qué el campo visual lo cambia todo.',
+    metaDescription: 'Comparativa real entre lentes multifocales genéricos económicos y la línea Varilux de Essilor. Por qué el campo visual lo cambia todo. Visitá Atelier Óptica en Cerro de las Rosas, Córdoba.',
     date: '2026-05-18',
     category: 'Cristales',
     imageUrl: '/images/blog/muestrario-smart-lens.webp',
     content: (
       <>
-        <p className="lead">Llegás a la óptica con tu receta de presbicia y te pasan dos presupuestos. Uno por un multifocal genérico "promoción" y otro por un <strong>Varilux original</strong>. La diferencia de precio es notable. La primera pregunta que se te viene a la mente es: <em>¿No son todos vidrios con aumento? ¿Vale la pena pagar más?</em></p>
+        <p className="lead"><strong>¡Atención Córdoba!</strong> Llegás a la óptica con tu receta de presbicia y te pasan dos presupuestos. Uno por un multifocal genérico "promoción" y otro por un <strong>Varilux original</strong>. La diferencia de precio es notable. La primera pregunta que se te viene a la mente es: <em>¿No son todos vidrios con aumento? ¿Vale la pena pagar más?</em></p>
 
         <h2>La anatomía de un lente multifocal</h2>
         <p>Para entender la diferencia de precio, hay que entender un poco de física óptica. Ningún multifocal es perfecto de borde a borde. Todos, absolutamente todos los lentes progresivos del mundo, tienen <strong>zonas de aberración</strong> (zonas borrosas) en los laterales inferiores. La tecnología que pagás en un lente de alta gama es la capacidad de "achicar" y "empujar" esas zonas borrosas hacia los extremos, liberando tu campo de visión.</p>
@@ -408,6 +415,7 @@ const posts: Record<string, Post> = {
         <h2>La Garantía Varilux en Atelier Óptica</h2>
         <p>En Córdoba, <strong>Atelier Óptica</strong> es centro certificado Essilor. Cuando comprás un Varilux con nosotros, te entregamos la tarjeta de autenticidad y contás con <strong>Garantía de Adaptación real</strong>. Si por algún motivo no lográs asimilar el diseño premium, Essilor y nosotros nos hacemos cargo de recambiar los cristales.</p>
         <p>Invertir en Varilux es invertir en calidad de vida. No permitas que un cristal económico te arruine la comodidad de tus ojos todos los días.</p>
+      <p className="mt-4 font-bold text-[#111]">📍 Encontrá la mejor atención en José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba. ¡Te esperamos en Atelier Óptica!</p>
       </>
     )
   },
@@ -422,7 +430,7 @@ const posts: Record<string, Post> = {
     imageUrl: '/images/blog/blog1_header.png',
     content: (
       <>
-        <p className="lead">Si buscás la <strong>mejor óptica para multifocales en Córdoba</strong>, llegaste al lugar correcto. En <strong>Atelier Óptica</strong>, ubicada en José Luis de Tejeda 4380, Cerro de las Rosas, nos especializamos en lentes progresivos con una tasa de adaptación que supera el 98%. No es casualidad que seamos la <strong>óptica con mejores comentarios de Córdoba Capital</strong>.</p>
+        <p className="lead"><strong>¡Atención Córdoba!</strong> Si buscás la <strong>mejor óptica para multifocales en Córdoba</strong>, llegaste al lugar correcto. En <strong>Atelier Óptica</strong>, ubicada en José Luis de Tejeda 4380, Cerro de las Rosas, nos especializamos en lentes progresivos con una tasa de adaptación que supera el 98%. No es casualidad que seamos la <strong>óptica con mejores comentarios de Córdoba Capital</strong>.</p>
 
         <h2>¿Qué hace que una óptica sea la mejor para multifocales?</h2>
         <p>Comprar lentes multifocales no es lo mismo que comprar un par de anteojos de sol. Un multifocal mal hecho puede generarte mareos, dolor de cuello y una frustración enorme. La diferencia entre una buena y una mala experiencia está en tres factores clave:</p>
@@ -446,6 +454,7 @@ const posts: Record<string, Post> = {
 
         <h2>Visitanos en Córdoba Capital</h2>
         <p>Estamos en <strong>José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba Capital</strong>. Atendemos con turno para poder dedicarte el tiempo que mereces. Escribinos por WhatsApp o acercate personalmente y descubrí por qué somos la <strong>mejor óptica de Córdoba para multifocales</strong>.</p>
+      <p className="mt-4 font-bold text-[#111]">📍 Encontrá la mejor atención en José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba. ¡Te esperamos en Atelier Óptica!</p>
       </>
     )
   },
@@ -460,7 +469,7 @@ const posts: Record<string, Post> = {
     imageUrl: '/images/blog/blog2_header.png',
     content: (
       <>
-        <p className="lead">Una de las preguntas más frecuentes que recibimos en <strong>Atelier Óptica Córdoba</strong> es: <em>&ldquo;¿Cuánto cuestan los lentes multifocales?&rdquo;</em>. La respuesta no es tan simple, porque el <strong>precio de un multifocal en Córdoba</strong> depende de muchas variables. En esta guía te explicamos todo para que puedas tomar la mejor decisión.</p>
+        <p className="lead"><strong>¡Atención Córdoba!</strong> Una de las preguntas más frecuentes que recibimos en <strong>Atelier Óptica Córdoba</strong> es: <em>&ldquo;¿Cuánto cuestan los lentes multifocales?&rdquo;</em>. La respuesta no es tan simple, porque el <strong>precio de un multifocal en Córdoba</strong> depende de muchas variables. En esta guía te explicamos todo para que puedas tomar la mejor decisión.</p>
 
         <h2>¿De qué depende el precio de un multifocal?</h2>
         <p>A diferencia de un cristal monofocal (una sola graduación), el multifocal es un producto de alta tecnología óptica. Su precio se compone de:</p>
@@ -485,6 +494,7 @@ const posts: Record<string, Post> = {
 
         <h2>Consultá tu presupuesto personalizado</h2>
         <p>Cada paciente tiene una receta diferente y necesidades distintas. Acercate a <strong>José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba Capital</strong> o mandanos una foto de tu receta por WhatsApp y te armamos un presupuesto a medida. En Atelier Óptica creemos que todos merecen ver bien, por eso te asesoramos para encontrar la mejor solución dentro de tu presupuesto.</p>
+      <p className="mt-4 font-bold text-[#111]">📍 Encontrá la mejor atención en José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba. ¡Te esperamos en Atelier Óptica!</p>
       </>
     )
   },
@@ -499,7 +509,7 @@ const posts: Record<string, Post> = {
     imageUrl: '/images/blog/blog3_header.png',
     content: (
       <>
-        <p className="lead">En el corazón del Cerro de las Rosas, sobre <strong>José Luis de Tejeda 4380</strong>, hay una óptica que rompió todos los moldes. <strong>Atelier Óptica</strong> no es una óptica convencional: es un espacio boutique donde la precisión visual se encuentra con el diseño, el arte y una <strong>atención personalizada sin igual en Córdoba</strong>.</p>
+        <p className="lead"><strong>¡Atención Córdoba!</strong> En el corazón del Cerro de las Rosas, sobre <strong>José Luis de Tejeda 4380</strong>, hay una óptica que rompió todos los moldes. <strong>Atelier Óptica</strong> no es una óptica convencional: es un espacio boutique donde la precisión visual se encuentra con el diseño, el arte y una <strong>atención personalizada sin igual en Córdoba</strong>.</p>
 
         <h2>¿Qué significa ser una óptica exclusiva?</h2>
         <p>Ser <strong>la óptica más exclusiva de Córdoba</strong> no se trata solo de tener un local lindo. Se trata de una filosofía de trabajo que pone al paciente en el centro de todo:</p>
@@ -529,6 +539,7 @@ const posts: Record<string, Post> = {
 
         <h2>Visitá la óptica más exclusiva de Córdoba</h2>
         <p>Te invitamos a vivir la experiencia Atelier. Estamos en <strong>José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba Capital</strong>. Vení a tomarte un café, probarte nuestras colecciones de armazones y descubrir por qué somos la <strong>mejor óptica de Córdoba</strong>.</p>
+      <p className="mt-4 font-bold text-[#111]">📍 Encontrá la mejor atención en José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba. ¡Te esperamos en Atelier Óptica!</p>
       </>
     )
   },
@@ -543,7 +554,7 @@ const posts: Record<string, Post> = {
     imageUrl: '/images/blog/blog4_header.png',
     content: (
       <>
-        <p className="lead">Te sentás a leer el celular y la letra se vuelve borrosa. Estirás el brazo y, como por arte de magia, las letras se aclaran. Si esto te pasa, bienvenido al mundo de la <strong>presbicia</strong>: la vista cansada que aparece después de los 40 años. Tu oftalmólogo te recetó <strong>lentes multifocales</strong> y probablemente tenés mil dudas. En <strong>Atelier Óptica Córdoba</strong>, la <strong>óptica más recomendada para multifocales</strong>, te las resolvemos todas.</p>
+        <p className="lead"><strong>¡Atención Córdoba!</strong> Te sentás a leer el celular y la letra se vuelve borrosa. Estirás el brazo y, como por arte de magia, las letras se aclaran. Si esto te pasa, bienvenido al mundo de la <strong>presbicia</strong>: la vista cansada que aparece después de los 40 años. Tu oftalmólogo te recetó <strong>lentes multifocales</strong> y probablemente tenés mil dudas. En <strong>Atelier Óptica Córdoba</strong>, la <strong>óptica más recomendada para multifocales</strong>, te las resolvemos todas.</p>
 
         <h2>Paso 1: Entendé qué son los multifocales</h2>
         <p>Los lentes multifocales (también llamados progresivos) son cristales que combinan tres graduaciones en uno solo:</p>
@@ -581,6 +592,7 @@ const posts: Record<string, Post> = {
 
         <h2>¿Dónde comprar tus primeros multifocales en Córdoba?</h2>
         <p>En <strong>Atelier Óptica, José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba Capital</strong>. Somos la <strong>óptica con mejor atención de Córdoba</strong> y te acompañamos desde el primer día hasta que veas perfecto a todas las distancias. Contactanos por WhatsApp o visitanos personalmente.</p>
+      <p className="mt-4 font-bold text-[#111]">📍 Encontrá la mejor atención en José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba. ¡Te esperamos en Atelier Óptica!</p>
       </>
     )
   },
@@ -595,7 +607,7 @@ const posts: Record<string, Post> = {
     imageUrl: '/images/blog/blog5_header.png',
     content: (
       <>
-        <p className="lead">Si usás <strong>lentes multifocales</strong> y trabajás todo el día frente a una computadora, probablemente conozcas este problema: para ver la pantalla del monitor tenés que levantar el mentón y mirar por la zona intermedia del cristal, lo que te genera un <strong>dolor de cuello insoportable</strong> después de unas horas. En <strong>Atelier Óptica Córdoba</strong>, la <strong>óptica con mejor atención de Córdoba</strong>, tenemos la solución perfecta.</p>
+        <p className="lead"><strong>¡Atención Córdoba!</strong> Si usás <strong>lentes multifocales</strong> y trabajás todo el día frente a una computadora, probablemente conozcas este problema: para ver la pantalla del monitor tenés que levantar el mentón y mirar por la zona intermedia del cristal, lo que te genera un <strong>dolor de cuello insoportable</strong> después de unas horas. En <strong>Atelier Óptica Córdoba</strong>, la <strong>óptica con mejor atención de Córdoba</strong>, tenemos la solución perfecta.</p>
 
         <h2>El problema: el multifocal clásico no fue pensado para 8 horas de pantalla</h2>
         <p>Un lente multifocal tradicional está diseñado para la vida cotidiana: mirar de lejos al manejar, ver la distancia intermedia al cocinar o mirar el tablero del auto, y leer de cerca el celular o un libro. La zona intermedia (la de la computadora) es un &ldquo;corredor&rdquo; relativamente estrecho que funciona bien para momentos puntuales, pero no para una jornada laboral completa.</p>
@@ -626,6 +638,7 @@ const posts: Record<string, Post> = {
 
         <h2>¿Dónde hacerte lentes ocupacionales en Córdoba?</h2>
         <p>En <strong>Atelier Óptica, José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba Capital</strong>. Somos la <strong>óptica más exclusiva de Córdoba</strong> y la <strong>más recomendada por nuestros pacientes</strong>. Te asesoramos de forma personalizada sobre qué combinación de lentes es ideal para tu trabajo y tu estilo de vida. ¡Escribinos por WhatsApp o visitanos!</p>
+      <p className="mt-4 font-bold text-[#111]">📍 Encontrá la mejor atención en José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba. ¡Te esperamos en Atelier Óptica!</p>
       </>
     )
   },
@@ -640,7 +653,7 @@ const posts: Record<string, Post> = {
     imageUrl: '/images/blog/blog6_header.png',
     content: (
       <>
-        <p className="lead">La tecnología óptica ha avanzado muchísimo, y hoy en día los <strong>lentes multifocales</strong> son la solución definitiva para quienes padecen presbicia y necesitan ver bien de cerca, de lejos y en distancias intermedias sin tener que cambiar de anteojos constantemente.</p>
+        <p className="lead"><strong>¡Atención Córdoba!</strong> La tecnología óptica ha avanzado muchísimo, y hoy en día los <strong>lentes multifocales</strong> son la solución definitiva para quienes padecen presbicia y necesitan ver bien de cerca, de lejos y en distancias intermedias sin tener que cambiar de anteojos constantemente.</p>
         
         <h2>¿Qué es un cristal multifocal o progresivo?</h2>
         <p>A diferencia de los antiguos lentes bifocales (que tenían una línea visible y dividían el lente en dos), los multifocales o progresivos ofrecen una transición gradual de la graduación. Esto permite enfocar a cualquier distancia simplemente moviendo los ojos hacia arriba o hacia abajo.</p>
@@ -657,6 +670,7 @@ const posts: Record<string, Post> = {
 
         <h2>¿Por qué elegirnos?</h2>
         <p>Estamos ubicados en José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba. Brindamos asesoramiento personalizado y garantía de adaptación. ¡Visitános y volvé a ver el mundo con claridad!</p>
+      <p className="mt-4 font-bold text-[#111]">📍 Encontrá la mejor atención en José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba. ¡Te esperamos en Atelier Óptica!</p>
       </>
     )
   },
@@ -671,7 +685,7 @@ const posts: Record<string, Post> = {
     imageUrl: '/images/blog/arte-venus.webp',
     content: (
       <>
-        <p className="lead">Los <strong>anteojos recetados</strong> ya no son solo una necesidad médica; son un accesorio clave en tu estilo diario. Encontrar el armazón ideal puede resaltar tus facciones y darte una apariencia renovada.</p>
+        <p className="lead"><strong>¡Atención Córdoba!</strong> Los <strong>anteojos recetados</strong> ya no son solo una necesidad médica; son un accesorio clave en tu estilo diario. Encontrar el armazón ideal puede resaltar tus facciones y darte una apariencia renovada.</p>
         
         <h2>Armazones según la forma de tu rostro</h2>
         <p>Existe una regla general en el mundo de la óptica estética: buscá el contraste. La forma de tu armazón debe contrastar con la forma de tu rostro.</p>
@@ -815,6 +829,7 @@ const posts: Record<string, Post> = {
         <p>Dependiendo de tu graduación (esfera y cilindro), algunos armazones pueden ser mejores que otros. Por ejemplo, miopías altas requieren cristales de alto índice (más delgados) y armazones de acetato (plástico) con bordes un poco más gruesos para disimular el grosor del lente.</p>
 
         <p>Vení a <strong>Atelier Óptica en Córdoba</strong> y dejate asesorar por nuestro equipo. Te ayudaremos a encontrar el equilibrio perfecto entre visión, comodidad y diseño.</p>
+      <p className="mt-4 font-bold text-[#111]">📍 Encontrá la mejor atención en José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba. ¡Te esperamos en Atelier Óptica!</p>
       </>
     )
   },
@@ -829,7 +844,7 @@ const posts: Record<string, Post> = {
     imageUrl: '/images/blog/fachada-ladrillo.webp',
     content: (
       <>
-        <p className="lead">Ubicados en el corazón de Cerro de las Rosas, <strong>Atelier Óptica Córdoba</strong> nació con la misión de transformar la experiencia de ir a la óptica. Creemos que cada paciente merece tiempo, escucha y soluciones a medida.</p>
+        <p className="lead"><strong>¡Atención Córdoba!</strong> Ubicados en el corazón de Cerro de las Rosas, <strong>Atelier Óptica Córdoba</strong> nació con la misión de transformar la experiencia de ir a la óptica. Creemos que cada paciente merece tiempo, escucha y soluciones a medida.</p>
 
         <h2>Nuestra filosofía</h2>
         <p>Entendemos que los anteojos son algo que vas a llevar puesto todos los días. Por eso combinamos la rigurosidad técnica de la óptica profesional con el cuidado estético de un atelier de diseño.</p>
@@ -844,6 +859,7 @@ const posts: Record<string, Post> = {
 
         <h2>Visitanos</h2>
         <p>Te esperamos en <strong>José Luis de Tejeda 4380</strong>. Ya sea que busques renovar tu estilo, solucionar un problema de visión o simplemente reparar tus anteojos favoritos, en Atelier Óptica vas a encontrar profesionalismo, ética y diseño.</p>
+      <p className="mt-4 font-bold text-[#111]">📍 Encontrá la mejor atención en José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba. ¡Te esperamos en Atelier Óptica!</p>
       </>
     )
   },
@@ -858,7 +874,7 @@ const posts: Record<string, Post> = {
     imageUrl: '/images/blog/local-varilux.webp',
     content: (
       <>
-        <p className="lead">Llegó el momento de renovar tus <strong>lentes de sol</strong>, pero la moda no lo es todo. En esta nota te contamos qué se usa en 2026 y por qué la salud de tus ojos debe ser siempre la prioridad.</p>
+        <p className="lead"><strong>¡Atención Córdoba!</strong> Llegó el momento de renovar tus <strong>lentes de sol</strong>, pero la moda no lo es todo. En esta nota te contamos qué se usa en 2026 y por qué la salud de tus ojos debe ser siempre la prioridad.</p>
 
         <h2>Las formas que marcan el 2026</h2>
         <p>Este año, el estilo retro y los marcos voluminosos están tomando el control en las calles de Córdoba. Algunas tendencias fuertes:</p>
@@ -875,6 +891,7 @@ const posts: Record<string, Post> = {
 
         <h2>Probátelos en Atelier Óptica</h2>
         <p>Te invitamos a nuestro local en Cerro de las Rosas para que te pruebes las últimas colecciones y encuentres un armazón que te proteja y eleve tu estilo al máximo.</p>
+      <p className="mt-4 font-bold text-[#111]">📍 Encontrá la mejor atención en José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba. ¡Te esperamos en Atelier Óptica!</p>
       </>
     )
   },
@@ -882,14 +899,14 @@ const posts: Record<string, Post> = {
     slug: 'como-leer-tu-receta-oftalmologica',
     title: 'Cómo leer tu receta oftalmológica paso a paso',
     excerpt: '¿Qué significan Esfera, Cilindro, Eje y Adición? Te explicamos de forma sencilla cómo interpretar lo que te recetó el oftalmólogo.',
-    metaTitle: 'Cómo entender la receta de anteojos | Esfera, Cilindro y Eje | Atelier Óptica',
-    metaDescription: 'Aprendé a leer tu receta oftalmológica. Explicación fácil de qué es la esfera (miopía/hipermetropía), el cilindro (astigmatismo) y la adición.',
+    metaTitle: 'Cómo entender la receta de anteojos en Córdoba | Esfera, Cilindro y Eje | Atelier Óptica',
+    metaDescription: 'Aprendé a leer tu receta oftalmológica. Explicación fácil de qué es la esfera (miopía/hipermetropía), el cilindro (astigmatismo) y la adición. Visitá Atelier Óptica en Cerro de las Rosas, Córdoba.',
     date: '2026-04-22',
     category: 'Salud Visual',
     imageUrl: '/images/blog/muestrario-smart-lens.webp',
     content: (
       <>
-        <p className="lead">Salís del consultorio del oftalmólogo, mirás el papel y parece que está escrito en otro idioma: <em>OD, OI, Esf -1.25, Cil -0.50, Eje 180°</em>. No te preocupes, en Atelier Óptica te enseñamos a <strong>leer tu receta oftalmológica</strong> en simples pasos.</p>
+        <p className="lead"><strong>¡Atención Córdoba!</strong> Salís del consultorio del oftalmólogo, mirás el papel y parece que está escrito en otro idioma: <em>OD, OI, Esf -1.25, Cil -0.50, Eje 180°</em>. No te preocupes, en Atelier Óptica te enseñamos a <strong>leer tu receta oftalmológica</strong> en simples pasos.</p>
 
         <h2>Tus Ojos: OD y OI</h2>
         <p>Lo primero que vas a ver son las siglas <strong>OD</strong> (Ojo Derecho) y <strong>OI</strong> (Ojo Izquierdo). A veces los oftalmólogos también usan AO para referirse a "Ambos Ojos".</p>
@@ -909,6 +926,7 @@ const posts: Record<string, Post> = {
 
         <h2>¿Tenés dudas con tu receta?</h2>
         <p>Si la letra de tu oftalmólogo es difícil de entender o querés saber qué cristales son los mejores para tu graduación (¿Alto índice? ¿Antirreflex?), envianos una foto de tu receta por WhatsApp y te asesoramos sin cargo.</p>
+      <p className="mt-4 font-bold text-[#111]">📍 Encontrá la mejor atención en José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba. ¡Te esperamos en Atelier Óptica!</p>
       </>
     )
   },
@@ -923,7 +941,7 @@ const posts: Record<string, Post> = {
     imageUrl: '/images/blog/mostrador-marmol.webp',
     content: (
       <>
-        <p className="lead">Si pasás más de 6 horas al día frente a la computadora, el celular o la tablet, es probable que hayas experimentado dolores de cabeza, ardor en los ojos o problemas para dormir. ¿La solución? Los lentes con <strong>Filtro Azul (Blue Light Cut)</strong>.</p>
+        <p className="lead"><strong>¡Atención Córdoba!</strong> Si pasás más de 6 horas al día frente a la computadora, el celular o la tablet, es probable que hayas experimentado dolores de cabeza, ardor en los ojos o problemas para dormir. ¿La solución? Los lentes con <strong>Filtro Azul (Blue Light Cut)</strong>.</p>
         
         <h2>¿Qué es la luz azul?</h2>
         <p>Las pantallas LED emiten una gran cantidad de luz azul de alta energía visible. Aunque parte de la luz azul es natural y nos ayuda a estar despiertos durante el día, la sobreexposición constante a muy corta distancia genera un estrés enorme para nuestra retina.</p>
@@ -937,6 +955,7 @@ const posts: Record<string, Post> = {
 
         <h2>¿Sirven si no tengo aumento?</h2>
         <p>¡Totalmente! Los anteojos de descanso pueden hacerse sin ninguna graduación (neutros) o combinarlos con tu receta para miopía o astigmatismo. Si vivís en Córdoba y trabajás remoto, visitanos para armarte tus anteojos para la PC con los armazones más lindos y livianos.</p>
+      <p className="mt-4 font-bold text-[#111]">📍 Encontrá la mejor atención en José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba. ¡Te esperamos en Atelier Óptica!</p>
       </>
     )
   },
@@ -951,7 +970,7 @@ const posts: Record<string, Post> = {
     imageUrl: '/images/blog/muestrario-smart-lens.webp',
     content: (
       <>
-        <p className="lead">¿Estás cansado de tener que cambiarte de anteojos cada vez que salís a la calle y vuelve a salir el sol? Los cristales <strong>Fotocromáticos (Transitions)</strong> son la respuesta definitiva a este problema.</p>
+        <p className="lead"><strong>¡Atención Córdoba!</strong> ¿Estás cansado de tener que cambiarte de anteojos cada vez que salís a la calle y vuelve a salir el sol? Los cristales <strong>Fotocromáticos (Transitions)</strong> son la respuesta definitiva a este problema.</p>
 
         <h2>¿Cómo funcionan?</h2>
         <p>Estos lentes inteligentes tienen moléculas que reaccionan a los rayos ultravioleta (UV). Cuando estás adentro de tu casa o en la oficina, los lentes son 100% transparentes. En el momento en que salís y el sol te toca, el cristal se oscurece en segundos, protegiendo tus ojos y dándote la comodidad de un lente de sol oscuro.</p>
@@ -965,6 +984,7 @@ const posts: Record<string, Post> = {
 
         <h2>¿Vienen en distintos colores?</h2>
         <p>¡Sí! Las marcas premium con las que trabajamos (como <strong>Transitions Gen 8</strong>) permiten que el cristal se oscurezca en tonos gris, marrón y verde, para que combine perfecto con el armazón que elijas. Vení a conocerlos a nuestro local en Cerro de las Rosas.</p>
+      <p className="mt-4 font-bold text-[#111]">📍 Encontrá la mejor atención en José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba. ¡Te esperamos en Atelier Óptica!</p>
       </>
     )
   },
@@ -979,7 +999,7 @@ const posts: Record<string, Post> = {
     imageUrl: '/images/blog/vidriera-atelier.webp',
     content: (
       <>
-        <p className="lead">Cuidar la visión de los más chicos es vital para su desarrollo, su rendimiento escolar y su autoestima. En Atelier Óptica te contamos cuáles son las señales de alerta y cómo elegir sus primeros lentes.</p>
+        <p className="lead"><strong>¡Atención Córdoba!</strong> Cuidar la visión de los más chicos es vital para su desarrollo, su rendimiento escolar y su autoestima. En Atelier Óptica te contamos cuáles son las señales de alerta y cómo elegir sus primeros lentes.</p>
 
         <h2>¿Cuándo llevarlos al oftalmólogo?</h2>
         <p>Se recomienda que los chicos tengan su primer chequeo oftalmológico a los <strong>3 años</strong> (o antes si notás algo raro) y, obligatoriamente, a los <strong>5 o 6 años</strong>, antes de ingresar al colegio primario.</p>
@@ -999,6 +1019,7 @@ const posts: Record<string, Post> = {
         <p><strong>3. Con agarre trasero:</strong> Las banditas sujetadoras que se agarran por detrás de la nuca aseguran que el anteojo no se caiga al correr.</p>
 
         <p>En Atelier Óptica tenemos una línea especial infantil súper colorida y resistente para que usar lentes sea algo divertido para ellos.</p>
+      <p className="mt-4 font-bold text-[#111]">📍 Encontrá la mejor atención en José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba. ¡Te esperamos en Atelier Óptica!</p>
       </>
     )
   },
@@ -1006,14 +1027,14 @@ const posts: Record<string, Post> = {
     slug: 'como-limpiar-tus-anteojos',
     title: 'Guía definitiva para limpiar tus anteojos sin rayar el antirreflex',
     excerpt: 'El error más común es usar la remera o servilletas de papel. Aprendé los pasos correctos para que tus cristales duren años como nuevos.',
-    metaTitle: 'Cómo limpiar anteojos sin rayarlos | Mantenimiento | Atelier Óptica',
-    metaDescription: 'Paso a paso para limpiar tus lentes sin dañar el antirreflex. No uses servilletas de papel ni alcohol. Consejos de óptica.',
+    metaTitle: 'Cómo limpiar anteojos sin rayarlos en Córdoba | Mantenimiento | Atelier Óptica',
+    metaDescription: 'Paso a paso para limpiar tus lentes sin dañar el antirreflex. No uses servilletas de papel ni alcohol. Consejos de óptica. Visitá Atelier Óptica en Cerro de las Rosas, Córdoba.',
     date: '2026-04-29',
     category: 'Mantenimiento',
     imageUrl: '/images/blog/mostrador-marmol.webp',
     content: (
       <>
-        <p className="lead">Hiciste una gran inversión en tus anteojos y en cristales con antirreflex de alta calidad. Sin embargo, limpiarlos con la punta de la remera o con papel higiénico es el camino más rápido para arruinarlos. Te enseñamos a cuidarlos.</p>
+        <p className="lead"><strong>¡Atención Córdoba!</strong> Hiciste una gran inversión en tus anteojos y en cristales con antirreflex de alta calidad. Sin embargo, limpiarlos con la punta de la remera o con papel higiénico es el camino más rápido para arruinarlos. Te enseñamos a cuidarlos.</p>
 
         <h2>Los enemigos de tus lentes</h2>
         <ul>
@@ -1032,6 +1053,7 @@ const posts: Record<string, Post> = {
 
         <h2>¿Estás en la calle?</h2>
         <p>Llevá siempre con vos un spray limpia cristales específico de óptica y tu paño de microfibra. Si pasás por <strong>Atelier Óptica</strong> en Cerro de las Rosas, ¡podés llevarte el kit de limpieza perfecto para mantener tus lentes como el primer día!</p>
+      <p className="mt-4 font-bold text-[#111]">📍 Encontrá la mejor atención en José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba. ¡Te esperamos en Atelier Óptica!</p>
       </>
     )
   },
@@ -1040,13 +1062,13 @@ const posts: Record<string, Post> = {
     title: 'Marcas de Multifocales en Argentina: ¿Qué diferencias hay entre Varilux, Novar y genéricos?',
     excerpt: 'Comparativa definitiva sobre campos visuales, tecnologías de tallado digital y por qué el precio de un multifocal varía tanto.',
     metaTitle: 'Multifocales Varilux y Novar en Córdoba | Precios y Diferencias | Atelier Óptica',
-    metaDescription: '¿Qué multifocal comprar? Diferencias entre lentes progresivos Varilux, Novar y opciones genéricas. Campos visuales y tecnología de tallado explicada.',
+    metaDescription: '¿Qué multifocal comprar? Diferencias entre lentes progresivos Varilux, Novar y opciones genéricas. Campos visuales y tecnología de tallado explicada. Visitá Atelier Óptica en Cerro de las Rosas, Córdoba.',
     date: '2026-05-02',
     category: 'Cristales',
     imageUrl: '/images/blog/local-varilux.webp',
     content: (
       <>
-        <p className="lead">Si fuiste a una óptica a averiguar por lentes multifocales (progresivos), seguramente te topaste con presupuestos que van desde opciones muy económicas hasta valores premium. La pregunta del millón es: <strong>¿Vale la pena pagar más por una marca reconocida?</strong></p>
+        <p className="lead"><strong>¡Atención Córdoba!</strong> Si fuiste a una óptica a averiguar por lentes multifocales (progresivos), seguramente te topaste con presupuestos que van desde opciones muy económicas hasta valores premium. La pregunta del millón es: <strong>¿Vale la pena pagar más por una marca reconocida?</strong></p>
 
         <h2>El secreto está en el "Campo Visual"</h2>
         <p>A diferencia de un cristal de lectura simple, el multifocal concentra tres distancias (lejos, intermedia y cerca) en un solo lente. Por una cuestión de física óptica, en los bordes laterales del cristal se generan <strong>"zonas de aberración"</strong> (visión borrosa). La diferencia de precio entre marcas radica exactamente en la tecnología que usan para "empujar" esas zonas borrosas hacia los bordes extremos, dejándote un canal central de visión mucho más amplio y cómodo.</p>
@@ -1062,6 +1084,7 @@ const posts: Record<string, Post> = {
 
         <h2>Nuestra recomendación en Atelier Óptica</h2>
         <p>La mejor marca no es la más cara, sino la que mejor se adapta a tus actividades diarias y a tu receta. Acercate a nuestro local en Córdoba y evaluaremos juntos qué tecnología te brindará la mejor calidad de vida sin salirte de tu presupuesto.</p>
+      <p className="mt-4 font-bold text-[#111]">📍 Encontrá la mejor atención en José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba. ¡Te esperamos en Atelier Óptica!</p>
       </>
     )
   },
@@ -1070,13 +1093,13 @@ const posts: Record<string, Post> = {
     title: '¿Tus multifocales te marean? Causas principales y cómo solucionarlo',
     excerpt: 'Si sentís que el piso se mueve o te duele la cabeza al usar progresivos, te contamos por qué pasa y cómo lo calibramos para solucionarlo.',
     metaTitle: 'Solución a mareos con lentes multifocales | Atelier Óptica Córdoba',
-    metaDescription: '¿Te marean tus lentes progresivos? Explicamos las causas comunes (altura mal tomada, error de adaptación) y cómo re-calibrarlos para ver perfecto.',
+    metaDescription: '¿Te marean tus lentes progresivos? Explicamos las causas comunes (altura mal tomada, error de adaptación) y cómo re-calibrarlos para ver perfecto. Visitá Atelier Óptica en Cerro de las Rosas, Córdoba.',
     date: '2026-05-04',
     category: 'Salud Visual',
     imageUrl: '/images/blog/fachada-ladrillo.webp',
     content: (
       <>
-        <p className="lead">Hacerse lentes multifocales es un gran paso, pero muchas personas los abandonan en un cajón tras la primera semana porque sienten que "el piso se mueve", los escalones parecen más altos de lo normal o sienten mareos al mirar de reojo.</p>
+        <p className="lead"><strong>¡Atención Córdoba!</strong> Hacerse lentes multifocales es un gran paso, pero muchas personas los abandonan en un cajón tras la primera semana porque sienten que "el piso se mueve", los escalones parecen más altos de lo normal o sienten mareos al mirar de reojo.</p>
 
         <h2>¿Es normal marearse al principio?</h2>
         <p><strong>Sí.</strong> Tu cerebro estuvo años acostumbrado a mirar de una sola manera. Ahora, debe aprender que para ver de lejos tiene que mirar al frente, y para leer debe bajar la vista. Este proceso de "re-cableado" neuronal se llama neuroadaptación y toma entre 7 a 15 días.</p>
@@ -1095,6 +1118,7 @@ const posts: Record<string, Post> = {
 
         <h2>¿Cómo te ayudamos en Atelier Óptica?</h2>
         <p>Si te hiciste los multifocales en otro lado y no los soportás, o si querés hacerte unos nuevos con <strong>garantía de adaptación total</strong>, vení a visitarnos. Contamos con herramientas de precisión para tomar las medidas correctas y trabajamos con laboratorios que garantizan cristales sin "saltos" molestos. ¡Tus ojos te lo van a agradecer!</p>
+      <p className="mt-4 font-bold text-[#111]">📍 Encontrá la mejor atención en José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba. ¡Te esperamos en Atelier Óptica!</p>
       </>
     )
   },
@@ -1103,13 +1127,13 @@ const posts: Record<string, Post> = {
     title: 'Por qué nuestros multifocales no fallan: El método de doble control en Córdoba',
     excerpt: 'Hacer un lente progresivo perfecto requiere mucho más que una receta. Conocé nuestro protocolo de control cruzado y prueba de probines para una adaptación garantizada.',
     metaTitle: 'Multifocales con Garantía de Adaptación en Córdoba | Atelier Óptica',
-    metaDescription: 'En Atelier Óptica garantizamos la adaptación de tus multifocales gracias a nuestra toma de medidas profesional, keratometría y prueba de probines en Cerro de las Rosas.',
+    metaDescription: 'En Atelier Óptica garantizamos la adaptación de tus multifocales gracias a nuestra toma de medidas profesional, keratometría y prueba de probines en Cerro de las Rosas. Visitá Atelier Óptica en Cerro de las Rosas, Córdoba.',
     date: '2026-05-06',
     category: 'Nuestra Óptica',
     imageUrl: '/images/blog/arte-monalisa.webp',
     content: (
       <>
-        <p className="lead">Uno de los mayores miedos al invertir en lentes multifocales es que no sirvan o terminen guardados en un estuche. En <strong>Atelier Óptica</strong> sabemos que el secreto del éxito no está solo en la marca del cristal, sino en un proceso de calibración clínica exhaustiva. Te contamos por qué nuestra tasa de adaptación es increíblemente superior.</p>
+        <p className="lead"><strong>¡Atención Córdoba!</strong> Uno de los mayores miedos al invertir en lentes multifocales es que no sirvan o terminen guardados en un estuche. En <strong>Atelier Óptica</strong> sabemos que el secreto del éxito no está solo en la marca del cristal, sino en un proceso de calibración clínica exhaustiva. Te contamos por qué nuestra tasa de adaptación es increíblemente superior.</p>
 
         <h2>No armamos lentes "a ciegas"</h2>
         <p>En muchas ópticas, simplemente leen tu receta médica, te piden que te pongas el armazón y mandan a fabricar el cristal. Nosotros consideramos que la receta es solo el punto de partida. Antes de encargar un multifocal, nuestro protocolo incluye un <strong>control cruzado de 4 pasos</strong> para asegurar que tu ojo, tu receta y el lente elegido estén en perfecta sintonía.</p>
@@ -1130,6 +1154,7 @@ const posts: Record<string, Post> = {
         <p>Nuestra confianza en nuestro método de control certificado por Essilor es tan grande que te brindamos <strong>Garantía de Adaptación</strong>. Si tenés problemas para acostumbrarte, re-evaluamos el lente y lo solucionamos.</p>
 
         <p>Si buscás excelencia visual, un trato profesional que no se apure en tomar tus medidas, y resultados reales, te esperamos en Atelier Óptica, en el corazón del Cerro de las Rosas.</p>
+      <p className="mt-4 font-bold text-[#111]">📍 Encontrá la mejor atención en José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba. ¡Te esperamos en Atelier Óptica!</p>
       </>
     )
   },
@@ -1137,14 +1162,14 @@ const posts: Record<string, Post> = {
     slug: 'pasos-faciles-adaptacion-multifocales',
     title: '3 Pasos Fáciles para Adaptarte a tus Multifocales (Sin Estrés)',
     excerpt: 'Acostumbrarse a los lentes progresivos es mucho más natural de lo que parece. Seguí estos 3 simples pasos y empezá a disfrutar de una visión perfecta.',
-    metaTitle: 'Guía fácil para adaptarse a Lentes Multifocales | Atelier Óptica',
-    metaDescription: 'Perdele el miedo a los lentes multifocales. Te damos 3 consejos prácticos y relajados para acostumbrar tus ojos al lente progresivo en tiempo récord.',
+    metaTitle: 'Guía fácil para adaptarse a Lentes Multifocales en Córdoba | Atelier Óptica',
+    metaDescription: 'Perdele el miedo a los lentes multifocales. Te damos 3 consejos prácticos y relajados para acostumbrar tus ojos al lente progresivo en tiempo récord. Visitá Atelier Óptica en Cerro de las Rosas, Córdoba.',
     date: '2026-05-08',
     category: 'Salud Visual',
     imageUrl: '/images/blog/anteojos-rosa-pastel.webp',
     content: (
       <>
-        <p className="lead">Es súper común que el primer día que te ponés unos lentes multifocales sientas que todo está un poco "raro". ¡Tranquilo! Tu cerebro es increíblemente inteligente y solo necesita un par de días para descifrar el nuevo mapa. No hace falta que te estreses, la adaptación es un proceso súper natural.</p>
+        <p className="lead"><strong>¡Atención Córdoba!</strong> Es súper común que el primer día que te ponés unos lentes multifocales sientas que todo está un poco "raro". ¡Tranquilo! Tu cerebro es increíblemente inteligente y solo necesita un par de días para descifrar el nuevo mapa. No hace falta que te estreses, la adaptación es un proceso súper natural.</p>
 
         <p>Acá te dejamos <strong>3 consejos súper simples</strong> para que tu período de acostumbramiento sea rápido y placentero:</p>
 
@@ -1159,6 +1184,7 @@ const posts: Record<string, Post> = {
 
         <h2>Dales tiempo y relajate</h2>
         <p>La regla de oro es usarlos todos los días un poquito más. Tratá de no intercalarlos con tus anteojos viejos, así no confundís a tus ojos. La gran mayoría de las personas se adaptan entre el día 3 y el día 7. Si después de dos semanas sentís que la cosa no mejora, vení a Atelier Óptica y nosotros te los ajustamos, ¡porque queremos verte feliz y viendo perfecto a todas las distancias!</p>
+      <p className="mt-4 font-bold text-[#111]">📍 Encontrá la mejor atención en José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba. ¡Te esperamos en Atelier Óptica!</p>
       </>
     )
   },
@@ -1167,13 +1193,13 @@ const posts: Record<string, Post> = {
     title: 'Bifocales vs Multifocales: Por qué es momento de decirle adiós a la "rayita"',
     excerpt: '¿Seguís usando lentes divididos en dos? Te explicamos por qué la tecnología progresiva es estéticamente superior y mucho más cómoda para tu vista.',
     metaTitle: 'Diferencia entre Bifocales y Multifocales | Atelier Óptica Córdoba',
-    metaDescription: '¿Qué es mejor, bifocal o multifocal? Explicamos por qué los lentes progresivos reemplazaron al bifocal: mejor estética, visión intermedia y adaptación.',
+    metaDescription: '¿Qué es mejor, bifocal o multifocal? Explicamos por qué los lentes progresivos reemplazaron al bifocal: mejor estética, visión intermedia y adaptación. Visitá Atelier Óptica en Cerro de las Rosas, Córdoba.',
     date: '2026-05-10',
     category: 'Cristales',
     imageUrl: '/images/blog/arte-monalisa.webp',
     content: (
       <>
-        <p className="lead">Durante décadas, cuando a alguien le costaba leer de cerca, la única solución era usar lentes <strong>bifocales</strong>. Seguramente los recuerdes: esos anteojos con una "ventanita" o rayita visible en la parte de abajo. Hoy, la tecnología ha avanzado tanto que los lentes <strong>multifocales (progresivos)</strong> los han reemplazado casi por completo. ¿Por qué deberías hacer el cambio?</p>
+        <p className="lead"><strong>¡Atención Córdoba!</strong> Durante décadas, cuando a alguien le costaba leer de cerca, la única solución era usar lentes <strong>bifocales</strong>. Seguramente los recuerdes: esos anteojos con una "ventanita" o rayita visible en la parte de abajo. Hoy, la tecnología ha avanzado tanto que los lentes <strong>multifocales (progresivos)</strong> los han reemplazado casi por completo. ¿Por qué deberías hacer el cambio?</p>
 
         <h2>El gran problema del Bifocal: El "Salto de Imagen"</h2>
         <p>El lente bifocal tiene solo dos distancias: Lejos y Cerca. El problema es que no hay una transición suave entre ambas. Cuando bajás la vista, la imagen "salta" bruscamente. Además, ¿qué pasa con todo lo que está a una distancia media, como el tablero del auto, la computadora o los productos en la góndola del súper? Con un bifocal, todo eso se ve borroso.</p>
@@ -1191,6 +1217,7 @@ const posts: Record<string, Post> = {
 
         <h2>"Me dijeron que los multifocales marean"</h2>
         <p>Ese es el mito más grande. Es cierto que los bifocales son más fáciles de asimilar al principio, pero la tecnología actual de tallado digital que usamos en <strong>Atelier Óptica</strong> hace que la adaptación al multifocal sea rapidísima. Si estás listo para ver bien a todas las distancias y verte mucho más joven, te esperamos en nuestro local en Córdoba para armarte tus primeros progresivos.</p>
+      <p className="mt-4 font-bold text-[#111]">📍 Encontrá la mejor atención en José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba. ¡Te esperamos en Atelier Óptica!</p>
       </>
     )
   },
@@ -1198,14 +1225,14 @@ const posts: Record<string, Post> = {
     slug: 'multifocales-ocupacionales-para-computadora',
     title: 'Multifocales Ocupacionales: El secreto para trabajar en la computadora sin dolor de cuello',
     excerpt: 'Si tu multifocal clásico te molesta para mirar el monitor, los lentes ocupacionales son la solución definitiva para oficinistas y profesionales.',
-    metaTitle: 'Multifocales Ocupacionales para Computadora | Atelier Óptica',
+    metaTitle: 'Multifocales Ocupacionales para Computadora en Córdoba | Atelier Óptica',
     metaDescription: 'Descubrí los lentes ocupacionales (Intermedio/Cerca). La mejor solución para oficinistas, arquitectos y dentistas en Córdoba. Adiós al dolor cervical.',
     date: '2026-05-12',
     category: 'Tecnología',
     imageUrl: '/images/blog/lentes-progresivos-zonas.png',
     content: (
       <>
-        <p className="lead">Si sos usuario de lentes multifocales y trabajás 8 horas frente a una computadora de escritorio, es probable que termines el día con un dolor de cuello terrible. Levantás el mentón constantemente para tratar de "encontrar" el foco del monitor. La solución a este problema tiene nombre: <strong>Multifocal Ocupacional</strong>.</p>
+        <p className="lead"><strong>¡Atención Córdoba!</strong> Si sos usuario de lentes multifocales y trabajás 8 horas frente a una computadora de escritorio, es probable que termines el día con un dolor de cuello terrible. Levantás el mentón constantemente para tratar de "encontrar" el foco del monitor. La solución a este problema tiene nombre: <strong>Multifocal Ocupacional</strong>.</p>
 
         <h2>¿Por qué el multifocal clásico falla en la oficina?</h2>
         <p>Un lente multifocal tradicional está diseñado para la vida diaria: caminar, manejar (visión de lejos), y leer el celular (visión de cerca). La zona "intermedia" (la que usamos para la compu) es el pasillo más estrecho del cristal. Por eso, para ver el monitor nítidamente, tenés que adoptar posturas antinaturales que te destrozan las cervicales.</p>
@@ -1224,6 +1251,7 @@ const posts: Record<string, Post> = {
         <p>Ojo: el lente ocupacional <strong>no sirve para manejar ni para ver la tele</strong> (todo lo que esté a más de 2 metros se verá borroso). Son tu herramienta de trabajo. La mayoría de los profesionales exitosos dejan su anteojo ocupacional en el escritorio de la oficina, y usan su multifocal tradicional para la vida exterior.</p>
 
         <p>Si querés invertir en tu salud postural y tu comodidad visual, vení a <strong>Atelier Óptica en Cerro de las Rosas</strong>. Hacemos lentes ocupacionales a medida con filtro azul integrado para que tus ojos descansen como nunca antes.</p>
+      <p className="mt-4 font-bold text-[#111]">📍 Encontrá la mejor atención en José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba. ¡Te esperamos en Atelier Óptica!</p>
       </>
     )
   },
@@ -1232,13 +1260,13 @@ const posts: Record<string, Post> = {
     title: 'Más que una óptica: La experiencia Boutique en el corazón del Cerro',
     excerpt: 'Lejos de los fríos mostradores clínicos. Conocé cómo fusionamos la precisión visual con el arte, el diseño y un servicio cálido y personalizado.',
     metaTitle: 'Óptica Boutique en Córdoba | Diseño, Arte y Anteojos | Atelier Óptica',
-    metaDescription: 'Descubrí Atelier Óptica, la óptica boutique del Cerro de las Rosas. Armazones de diseño exclusivo en un ambiente cálido que respira arte y estilo.',
+    metaDescription: 'Descubrí Atelier Óptica, la óptica boutique del Cerro de las Rosas. Armazones de diseño exclusivo en un ambiente cálido que respira arte y estilo. Visitá Atelier Óptica en Cerro de las Rosas, Córdoba.',
     date: '2026-05-15',
     category: 'Nuestra Óptica',
     imageUrl: '/images/blog/vidriera-atelier.webp',
     content: (
       <>
-        <p className="lead">Ir a la óptica siempre fue un trámite clínico, aburrido y rodeado de mostradores fríos. Cuando fundamos <strong>Atelier Óptica</strong> en el Cerro de las Rosas, decidimos romper con esa tradición. Queríamos crear un espacio donde elegir tus anteojos se sienta como visitar una galería de arte o un café boutique.</p>
+        <p className="lead"><strong>¡Atención Córdoba!</strong> Ir a la óptica siempre fue un trámite clínico, aburrido y rodeado de mostradores fríos. Cuando fundamos <strong>Atelier Óptica</strong> en el Cerro de las Rosas, decidimos romper con esa tradición. Queríamos crear un espacio donde elegir tus anteojos se sienta como visitar una galería de arte o un café boutique.</p>
 
         <div className="my-10 rounded-3xl overflow-hidden shadow-xl border border-black/5 ">
           <Image src="/images/blog/fachada-ladrillo.webp" alt="Fachada de ladrillo de Atelier Óptica en Córdoba con farol y plantas" width={1200} height={800} className="w-full h-auto object-cover" />
@@ -1269,6 +1297,7 @@ const posts: Record<string, Post> = {
         <p>El concepto "Boutique" no solo habla de la estética del lugar, sino de la forma en que te recibimos. Nos tomamos el tiempo para invitarte un café, charlar sobre tu estilo de vida, entender qué colores te favorecen y probar juntos qué tipo de montura (marcas como Vulk, Rusty, Hanover o Mistral) resalta mejor tus facciones.</p>
 
         <p>A esto le sumamos nuestra maquinaria de medición de alta precisión en consultorio, logrando el equilibrio perfecto entre moda y salud visual. Vení a visitarnos a nuestra esquina en el Cerro y descubrí por qué <strong>Atelier Óptica</strong> es la elegida por quienes buscan verse y sentirse bien.</p>
+      <p className="mt-4 font-bold text-[#111]">📍 Encontrá la mejor atención en José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba. ¡Te esperamos en Atelier Óptica!</p>
       </>
     )
   },
@@ -1283,7 +1312,7 @@ const posts: Record<string, Post> = {
     imageUrl: '/images/blog/anteojos-rosa-pastel.webp',
     content: (
       <>
-        <p className="lead">Cuando decimos que somos una óptica boutique, lo decimos en serio. En Atelier Óptica no vas a encontrar paredes interminables de armazones genéricos. Nuestro equipo realiza una <strong>curaduría de diseño</strong>, seleccionando cuidadosamente cada marco que ingresa a nuestro local.</p>
+        <p className="lead"><strong>¡Atención Córdoba!</strong> Cuando decimos que somos una óptica boutique, lo decimos en serio. En Atelier Óptica no vas a encontrar paredes interminables de armazones genéricos. Nuestro equipo realiza una <strong>curaduría de diseño</strong>, seleccionando cuidadosamente cada marco que ingresa a nuestro local.</p>
 
         <div className="my-10 rounded-3xl overflow-hidden shadow-xl border border-black/5 ">
           <Image src="/images/blog/local-varilux.webp" alt="Fachada exterior de Atelier Óptica mostrando el neón y el gran banner de Varilux" width={1200} height={800} className="w-full h-auto object-cover" />
@@ -1307,6 +1336,7 @@ const posts: Record<string, Post> = {
         <p>Elegir el marco ideal puede ser abrumador. ¿Me queda bien un marco cuadrado o redondo? ¿Un color translúcido o carey oscuro? En Atelier Óptica, te ayudamos a encontrar ese modelo único que contrasta perfectamente con la forma de tu rostro y hace que tus rasgos destaquen.</p>
 
         <p>Renovar tu mirada nunca fue tan inspirador. Acercate a Atelier y descubrí nuestra última colección.</p>
+      <p className="mt-4 font-bold text-[#111]">📍 Encontrá la mejor atención en José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba. ¡Te esperamos en Atelier Óptica!</p>
       </>
     )
   }
@@ -1565,7 +1595,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
       </div>
 
       <StorefrontFooter />
-      <FloatingWhatsApp />
+      
     </div>
   );
 }

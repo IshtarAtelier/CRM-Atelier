@@ -608,9 +608,7 @@ export async function POST(req: Request) {
       currency: "ARS",
       installments: parseInt(customer.installments || "1", 10),
       description: "Compra Atelier Óptica Web",
-      payment_type: "single",
-      establishment_name: "Atelier Optica",
-      sub_payments: []
+      payment_type: "single"
     };
 
     const paywayRes = await fetch(apiUrl, {

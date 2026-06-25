@@ -6,7 +6,6 @@ import { WHATSAPP_PHONE } from "@/lib/constants";
 import { LensConfigurator } from "@/components/Storefront/LensConfigurator";
 import { GlassesDiagram } from "@/components/Storefront/GlassesDiagram";
 import { StorefrontNavbar } from "@/components/Storefront/StorefrontNavbar";
-import { FloatingWhatsApp } from "@/components/Storefront/FloatingWhatsApp";
 import { PaymentOptions } from "@/components/Storefront/PaymentOptions";
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -657,7 +656,7 @@ export function ProductClient({
 
       {footer}
 
-      <FloatingWhatsApp productName={`${product.brand} ${product.model}`} />
+      
 
       {/* Modal Configurador de Cristales para la vista de producto */}
       {showConfigurator && (
