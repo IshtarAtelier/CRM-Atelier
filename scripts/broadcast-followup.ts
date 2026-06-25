@@ -37,6 +37,13 @@ const randomDelay = (min = 120000, max = 300000) => Math.floor(Math.random() * (
 async function main() {
     console.log("Iniciando Bot de Seguimiento Masivo...");
 
+    // Asegurar que la etiqueta exista
+    const botTag = await prisma.tag.upsert({
+        where: { name: 'Seguimiento Bot' },
+        update: {},
+        create: { name: 'Seguimiento Bot', color: '#c8a55c' }
+    });
+
     // Inicializar modelo de IA
     let model;
     try {
@@ -187,6 +194,16 @@ INSTRUCCIONES CRÍTICAS:
                 data: {
                     lastMessageAt: new Date(),
                     lastFollowUpAt: new Date()
+                }
+            });
+
+            // Asignar etiqueta al cliente
+            await prisma.client.update({
+                where: { id: client.id },
+                data: {
+                    tags: {
+                        connect: { id: botTag.id }
+                    }
                 }
             });
 
