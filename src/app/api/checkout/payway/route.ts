@@ -469,7 +469,8 @@ export async function POST(req: Request) {
       currency: "ARS",
       installments: parseInt(customer.installments || "1", 10),
       description: "Compra Atelier Óptica Web",
-      payment_type: "single"
+      payment_type: "single",
+      sub_payments: []
     };
 
     const paywayRes = await fetch(apiUrl, {
@@ -489,14 +490,25 @@ export async function POST(req: Request) {
       // Restore reserved stock on payment failure
       if (globalRestoreStock) await globalRestoreStock();
 
+      let errorMessage = "Contactá al emisor de tu tarjeta o reintentá.";
+      if (paywayData.status_details?.error?.reason?.description) {
+        errorMessage = paywayData.status_details.error.reason.description;
+      } else if (paywayData.validation_errors && paywayData.validation_errors.length > 0) {
+        errorMessage = `Error de validación: ${paywayData.validation_errors.map((e: any) => `${e.param || 'parámetro'} (${e.code || 'código'})`).join(', ')}`;
+      } else if (paywayData.message) {
+        errorMessage = paywayData.message;
+      } else if (paywayData.error_type) {
+        errorMessage = `Error: ${paywayData.error_type}`;
+      }
+
       // Actualizar orden a fallida/rechazada
       await prisma.order.update({
         where: { id: order.id },
-        data: { status: "CANCELED", labNotes: `[PAGO RECHAZADO PAYWAY]: ${paywayData.status_details?.error?.reason?.description || 'Fondos insuficientes o tarjeta rechazada.'}\n\n` + order.labNotes }
+        data: { status: "CANCELED", labNotes: `[PAGO RECHAZADO PAYWAY]: ${errorMessage}\n\n` + order.labNotes }
       });
 
       return NextResponse.json(
-        { error: `Pago rechazado: ${paywayData.status_details?.error?.reason?.description || 'Contactá al emisor de tu tarjeta.'}` },
+        { error: `Pago rechazado: ${errorMessage}` },
         { status: 400 }
       );
     }
