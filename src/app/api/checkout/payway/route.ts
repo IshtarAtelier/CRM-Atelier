@@ -136,7 +136,7 @@ export async function POST(req: Request) {
         throw new Error(`Producto no encontrado en la base de datos: ${item.model}`);
       }
 
-      const calculatedPrice = recalculateItemPrice(item, dbProduct, isWholesaleUser, pricingMap);
+      const calculatedPrice = recalculateItemPrice(item, dbProduct, isWholesaleUser, PRICING);
 
       recalculatedItemsTotal += calculatedPrice * item.quantity;
 
