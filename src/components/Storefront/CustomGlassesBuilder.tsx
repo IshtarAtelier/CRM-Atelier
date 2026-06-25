@@ -360,7 +360,7 @@ export function CustomGlassesBuilder({ products }: { products: Product[] }) {
               <h1 className="text-xl font-serif tracking-tight text-[#1a1714]">Elegí tu Armazón</h1>
             </div>
             <span className="text-[9px] font-black uppercase tracking-widest text-stone-500 bg-stone-100 border border-stone-200/80 px-2.5 py-1 rounded-full">
-              {filteredProducts.length} {filteredProducts.length === 1 ? 'modelo' : 'modelos'}
+              {groupedProducts.length} {groupedProducts.length === 1 ? 'modelo' : 'modelos'}
             </span>
           </div>
           
@@ -446,7 +446,7 @@ export function CustomGlassesBuilder({ products }: { products: Product[] }) {
               </div>
             )}
  
-            {filteredProducts.length === 0 ? (
+            {groupedProducts.length === 0 ? (
               <div className="flex flex-col items-center justify-center text-center py-24 px-4">
                 <p className="text-stone-450 text-[11px] uppercase tracking-widest mb-4">No se encontraron armazones</p>
                 <button 
@@ -461,52 +461,53 @@ export function CustomGlassesBuilder({ products }: { products: Product[] }) {
                 {groupedProducts.map((group) => {
                   const activeVariant = getActiveVariant(group);
                   const isSelected = selectedProduct?.id === activeVariant.id;
-                  const origProduct = products.find(p => p.id === activeVariant.id);
                   
                   return (
-                    <motion.div
-                      whileHover={{ y: -4, scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      key={group.baseName}
-                      onClick={() => handleCardClick(group)}
-                      className={`flex flex-col items-center text-center group focus:outline-none cursor-pointer relative rounded-2xl p-4 pb-5 transition-all duration-500 ${
+                    <div
+                      key={group.baseName + group.brand}
+                      className={`flex flex-col items-center text-center group relative rounded-2xl p-4 pb-5 transition-all duration-500 border bg-white ${
                         isSelected 
-                          ? 'bg-white border-2 border-[#c8a55c] shadow-lg shadow-[#c8a55c]/10' 
-                          : 'bg-white border border-stone-200/60 shadow-sm hover:border-stone-300/80 hover:shadow-md'
+                          ? 'border-[#c8a55c] ring-1 ring-[#c8a55c]/30 shadow-lg shadow-[#c8a55c]/5' 
+                          : 'border-stone-200/60 shadow-sm hover:border-stone-300/85 hover:shadow-md'
                       }`}
                     >
-                      {/* Selected badge */}
-                      {isSelected && (
-                        <motion.div 
-                          initial={{ opacity: 0, scale: 0.8 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          className="absolute top-2.5 right-2.5 bg-[#c8a55c] text-white text-[7px] font-black uppercase tracking-[0.15em] px-2.5 py-1 rounded-full shadow-lg shadow-[#c8a55c]/30 z-10"
-                        >
-                          ✓ Elegido
-                        </motion.div>
-                      )}
+                      <button
+                        onClick={() => handleCardClick(group)}
+                        className="w-full flex flex-col items-center text-center focus:outline-none cursor-pointer"
+                      >
+                        {/* Selected badge */}
+                        {isSelected && (
+                          <motion.div 
+                            initial={{ opacity: 0, scale: 0.8 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            className="absolute top-2.5 right-2.5 bg-[#c8a55c] text-white text-[7px] font-black uppercase tracking-[0.15em] px-2.5 py-1 rounded-full shadow-lg shadow-[#c8a55c]/30 z-10"
+                          >
+                            ✓ Elegido
+                          </motion.div>
+                        )}
  
-                      <div className={`w-full aspect-[4/3] relative mb-4 flex items-center justify-center transition-all duration-500 isolate rounded-xl overflow-hidden bg-stone-50/50 ${isSelected ? 'opacity-100 scale-105' : 'opacity-70 group-hover:opacity-100'}`}>
-                        <Image 
-                          src={(activeVariant.imagenesCatalogo.length > 0 ? resolveStorageUrl(activeVariant.imagenesCatalogo[0]) : "") || (origProduct?.mockImage) || "/images/placeholder.svg"}
-                          alt={group.baseName || 'Anteojo'}
-                          fill
-                          style={{ objectFit: "contain", transform: "translateZ(0)" }}
-                          className={`${((group.baseName || '').toLowerCase().includes('tl3932 c3') || (group.baseName || '').toLowerCase().includes('diana') || activeVariant.id === 'cmq5d11hf002rhy61fhvqs7nj') ? 'scale-125' : ''} brightness-105 contrast-[1.02]`}
-                          sizes="(max-width: 768px) 50vw, 33vw"
-                        />
-                      </div>
-                      <p className={`text-[8px] uppercase tracking-[0.3em] font-bold mb-1.5 transition-colors duration-300 ${isSelected ? 'text-[#c8a55c]' : 'text-stone-400 group-hover:text-stone-500'}`}>
-                        {group.brand}
-                      </p>
-                      <h3 className={`text-sm font-serif uppercase tracking-tight transition-colors duration-300 mb-2 ${isSelected ? 'text-stone-900' : 'text-stone-800 group-hover:text-black'}`}>
-                        {group.baseName}
-                      </h3>
-                      <p className={`text-[11px] font-bold transition-colors duration-300 ${isSelected ? 'text-[#c8a55c]' : 'text-stone-600'}`}>
-                        ${activeVariant.price.toLocaleString()}
-                      </p>
+                        <div className={`w-full aspect-[4/3] relative mb-3 flex items-center justify-center transition-all duration-500 isolate rounded-xl overflow-hidden bg-stone-50/50 ${isSelected ? 'opacity-100 scale-105' : 'opacity-70 group-hover:opacity-100'}`}>
+                          <Image 
+                            src={(activeVariant.imagenesCatalogo.length > 0 ? resolveStorageUrl(activeVariant.imagenesCatalogo[0]) : "") || "/images/placeholder.svg"}
+                            alt={group.baseName}
+                            fill
+                            style={{ objectFit: "contain", transform: "translateZ(0)" }}
+                            className={`${((group.baseName).toLowerCase().includes('tl3932') || (group.baseName).toLowerCase().includes('diana')) ? 'scale-125' : ''} brightness-105 contrast-[1.02]`}
+                            sizes="(max-width: 768px) 50vw, 33vw"
+                          />
+                        </div>
+                        <p className={`text-[8px] uppercase tracking-[0.3em] font-bold mb-1 transition-colors duration-300 ${isSelected ? 'text-[#c8a55c]' : 'text-stone-400 group-hover:text-stone-500'}`}>
+                          {group.brand}
+                        </p>
+                        <h3 className={`text-sm font-serif uppercase tracking-tight transition-colors duration-300 mb-1.5 ${isSelected ? 'text-[#1a1714]' : 'text-stone-800 group-hover:text-black'}`}>
+                          {group.baseName}
+                        </h3>
+                        <p className={`text-[11px] font-bold transition-colors duration-300 ${isSelected ? 'text-[#c8a55c]' : 'text-stone-600'}`}>
+                          ${activeVariant.price.toLocaleString()}
+                        </p>
+                      </button>
 
-                      {/* Variant selectors */}
+                      {/* Variant Selector (Pills) */}
                       {group.variants.length > 1 && (
                         <div className="flex gap-1.5 mt-3 flex-wrap justify-center relative z-20">
                           {group.variants.map((v) => {
@@ -530,7 +531,7 @@ export function CustomGlassesBuilder({ products }: { products: Product[] }) {
                           })}
                         </div>
                       )}
-                    </motion.div>
+                    </div>
                   );
                 })}
               </div>
