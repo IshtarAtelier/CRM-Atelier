@@ -258,10 +258,8 @@ export const ContactService = {
             throw new Error(JSON.stringify({ isBlocked: true, message: `Bloqueo de seguridad: Es obligatorio ingresar un número de celular para crear la ficha.` }));
         }
 
-        // 1. Exact Name, Email, or DNI match
-        const orConditionsClient: any[] = [
-            { name: { equals: data.name.trim(), mode: 'insensitive' } }
-        ];
+        // 1. Email or DNI match (name-only matches removed to avoid false positives with common names)
+        const orConditionsClient: any[] = [];
 
         if (data.email?.trim()) {
             orConditionsClient.push({ email: data.email.trim() });
@@ -270,34 +268,29 @@ export const ContactService = {
             orConditionsClient.push({ dni: data.dni.trim() });
         }
 
-        const potentialDuplicatesClient = await prisma.client.findMany({
-            where: { OR: orConditionsClient },
-            include: {
-                orders: {
-                    where: { orderType: 'SALE', isDeleted: false },
-                    orderBy: { createdAt: 'desc' },
-                    take: 1,
-                    select: { createdAt: true }
+        if (!data.forceCreate && orConditionsClient.length > 0) {
+            const potentialDuplicatesClient = await prisma.client.findMany({
+                where: { OR: orConditionsClient },
+                include: {
+                    orders: {
+                        where: { orderType: 'SALE', isDeleted: false },
+                        orderBy: { createdAt: 'desc' },
+                        take: 1,
+                        select: { createdAt: true }
+                    }
                 }
-            }
-        });
+            });
 
-        if (!data.forceCreate && potentialDuplicatesClient.length > 0) {
-           const exactNameMatch = potentialDuplicatesClient.find(p => p.name.trim().toLowerCase() === normalizedName);
-           if (exactNameMatch) {
-               const lastOrder = exactNameMatch.orders[0];
-               const lastDate = lastOrder ? ` (Última compra: ${new Date(lastOrder.createdAt).toLocaleDateString('es-AR')})` : "";
-               const phoneInfo = exactNameMatch.phone ? ` - Tel: ${exactNameMatch.phone}` : "";
-               throw new Error(JSON.stringify({ isDuplicate: true, existingClient: { id: exactNameMatch.id, name: exactNameMatch.name, phone: exactNameMatch.phone, type: 'CLIENT' }, message: `Posible ficha duplicada: Ya existe un cliente con el nombre exacto "${exactNameMatch.name}"${phoneInfo}${lastDate}.` }));
-           }
-           if (data.email) {
-               const emailMatch = potentialDuplicatesClient.find(p => p.email?.toLowerCase() === data.email?.trim().toLowerCase());
-               if (emailMatch) throw new Error(JSON.stringify({ isDuplicate: true, existingClient: { id: emailMatch.id, name: emailMatch.name, phone: emailMatch.phone, type: 'CLIENT' }, message: `Posible ficha duplicada: El Email ${data.email} ya está registrado a nombre de ${emailMatch.name}.` }));
-           }
-           if (data.dni) {
-               const dniMatch = potentialDuplicatesClient.find(p => p.dni === data.dni?.trim());
-               if (dniMatch) throw new Error(JSON.stringify({ isDuplicate: true, existingClient: { id: dniMatch.id, name: dniMatch.name, phone: dniMatch.phone, type: 'CLIENT' }, message: `Posible ficha duplicada: El DNI ${data.dni} ya está registrado a nombre de ${dniMatch.name}.` }));
-           }
+            if (potentialDuplicatesClient.length > 0) {
+               if (data.email) {
+                   const emailMatch = potentialDuplicatesClient.find(p => p.email?.toLowerCase() === data.email?.trim().toLowerCase());
+                   if (emailMatch) throw new Error(JSON.stringify({ isDuplicate: true, existingClient: { id: emailMatch.id, name: emailMatch.name, phone: emailMatch.phone, type: 'CLIENT' }, message: `Posible ficha duplicada: El Email ${data.email} ya está registrado a nombre de ${emailMatch.name}.` }));
+               }
+               if (data.dni) {
+                   const dniMatch = potentialDuplicatesClient.find(p => p.dni === data.dni?.trim());
+                   if (dniMatch) throw new Error(JSON.stringify({ isDuplicate: true, existingClient: { id: dniMatch.id, name: dniMatch.name, phone: dniMatch.phone, type: 'CLIENT' }, message: `Posible ficha duplicada: El DNI ${data.dni} ya está registrado a nombre de ${dniMatch.name}.` }));
+               }
+            }
         }
 
         // 2. Intelligent Phone Match
