@@ -566,17 +566,6 @@ export async function POST(req: Request) {
           state: getArgentineStateCode(customer.state),
           street1: customer.address || "N/A"
         },
-        ship_to: {
-          city: customer.city || "N/A",
-          country: "AR",
-          email: customer.email,
-          first_name: customer.firstName,
-          last_name: customer.lastName,
-          phone_number: customer.phone?.replace(/\D/g, '') || "",
-          postal_code: customer.zip || "0000",
-          state: getArgentineStateCode(customer.state),
-          street1: customer.address || "N/A"
-        },
         purchase_totals: {
           currency: "ARS",
           amount: amountInCents
@@ -587,6 +576,17 @@ export async function POST(req: Request) {
         },
         device_unique_identifier: deviceUniqueIdentifier || `WEB-${order.id}`,
         retail_transaction_data: {
+          ship_to: {
+            city: customer.city || "N/A",
+            country: "AR",
+            email: customer.email,
+            first_name: customer.firstName,
+            last_name: customer.lastName,
+            phone_number: customer.phone?.replace(/\D/g, '') || "",
+            postal_code: customer.zip || "0000",
+            state: getArgentineStateCode(customer.state),
+            street1: customer.address || "N/A"
+          },
           items: sanitizedItems.map(item => ({
             code: item.productId || 'generic',
             name: item.model || 'Producto',
