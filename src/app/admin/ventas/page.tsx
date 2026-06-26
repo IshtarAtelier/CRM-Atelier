@@ -64,7 +64,7 @@ export default function VentasPage() {
             const fmt = (v: number | null | undefined, plus?: boolean) => {
                 if (v == null) return '';
                 const s = v.toFixed(2);
-                return plus && v > 0 ? '+' + s : s;
+                return plus && v >= 0 ? '+' + s : s;
             };
 
             const clientName = order.client?.name || '';
@@ -100,7 +100,7 @@ export default function VentasPage() {
 
             let tratamiento = order.labTreatment || '';
             if (!tratamiento && lensName) {
-                if (lensName.includes('blue') || lensName.includes('block') || lensName.includes('filtro')) tratamiento = 'Filtro Azul';
+                if (lensName.includes('blue') || lensName.includes('block') || lensName.includes('filtro azul') || lensName.includes('filtro de luz')) tratamiento = 'Filtro Azul';
                 else if (lensName.includes('anti') || lensName.includes('ar')) tratamiento = 'Antirreflejo';
                 else if (lensName.includes('foto') || lensName.includes('transition')) tratamiento = 'Fotocromático';
             }
@@ -113,7 +113,7 @@ export default function VentasPage() {
             for (const item of treatmentItems) {
                 const tName = (item.product?.name || item.productNameSnapshot || '').toLowerCase();
                 if (!tratamiento) {
-                    if (tName.includes('blue') || tName.includes('block') || tName.includes('filtro')) tratamiento = 'Filtro Azul';
+                    if (tName.includes('blue') || tName.includes('block') || tName.includes('filtro azul') || tName.includes('filtro de luz')) tratamiento = 'Filtro Azul';
                     else if (tName.includes('anti') || tName.includes('ar')) tratamiento = 'Antirreflejo';
                     else if (tName.includes('foto') || tName.includes('transition')) tratamiento = 'Fotocromático';
                 }

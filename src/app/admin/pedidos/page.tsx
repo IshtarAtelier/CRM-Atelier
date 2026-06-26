@@ -471,7 +471,7 @@ export default function PedidosPage() {
 
             let tratamiento = order.labTreatment || '';
             if (!tratamiento && lensName) {
-                if (lensName.includes('blue') || lensName.includes('block') || lensName.includes('filtro')) tratamiento = 'Filtro Azul';
+                if (lensName.includes('blue') || lensName.includes('block') || lensName.includes('filtro azul') || lensName.includes('filtro de luz')) tratamiento = 'Filtro Azul';
                 else if (lensName.includes('anti') || lensName.includes('ar')) tratamiento = 'Antirreflejo';
                 else if (lensName.includes('foto') || lensName.includes('transition')) tratamiento = 'Fotocromático';
             }
@@ -484,7 +484,7 @@ export default function PedidosPage() {
             for (const item of treatmentItems) {
                 const tName = (item.product?.name || item.productNameSnapshot || '').toLowerCase();
                 if (!tratamiento) {
-                    if (tName.includes('blue') || tName.includes('block') || tName.includes('filtro')) tratamiento = 'Filtro Azul';
+                    if (tName.includes('blue') || tName.includes('block') || tName.includes('filtro azul') || tName.includes('filtro de luz')) tratamiento = 'Filtro Azul';
                     else if (tName.includes('anti') || tName.includes('ar')) tratamiento = 'Antirreflejo';
                     else if (tName.includes('foto') || tName.includes('transition')) tratamiento = 'Fotocromático';
                 }
@@ -534,23 +534,37 @@ export default function PedidosPage() {
                 tipo_armazon = 'METALICO';
             }
 
+            // Format Rx values for SmartLab: "+0.00", "-0.75", "+1.25", etc.
+            const fmtRx = (v: any) => {
+                if (v === undefined || v === null || v === '') return '';
+                const n = typeof v === 'number' ? v : parseFloat(String(v));
+                if (isNaN(n)) return '';
+                return (n >= 0 ? '+' : '') + n.toFixed(2);
+            };
+            const fmtInt = (v: any) => {
+                if (v === undefined || v === null || v === '') return '';
+                const n = typeof v === 'number' ? v : parseInt(String(v));
+                if (isNaN(n)) return '';
+                return String(n);
+            };
+
             const payload = {
                 tipo_lente,
                 labType: order.labType || '',
                 codigoInterno: order.client.name,
                 paciente_fullname: order.client.name,
-                od_esfera: odItem?.sphereVal || '',
-                od_cilindro: odItem?.cylinderVal || '',
-                od_eje: odItem?.axisVal || '',
-                od_adicion: odItem?.additionVal || '',
-                oi_esfera: oiItem?.sphereVal || '',
-                oi_cilindro: oiItem?.cylinderVal || '',
-                oi_eje: oiItem?.axisVal || '',
-                oi_adicion: oiItem?.additionVal || '',
-                od_esfera_cerca: odItem?.nearSphereVal || '',
-                od_cilindro_cerca: odItem?.nearCylinderVal || '',
-                oi_esfera_cerca: oiItem?.nearSphereVal || '',
-                oi_cilindro_cerca: oiItem?.nearCylinderVal || '',
+                od_esfera: fmtRx(odItem?.sphereVal),
+                od_cilindro: fmtRx(odItem?.cylinderVal),
+                od_eje: fmtInt(odItem?.axisVal),
+                od_adicion: fmtRx(odItem?.additionVal),
+                oi_esfera: fmtRx(oiItem?.sphereVal),
+                oi_cilindro: fmtRx(oiItem?.cylinderVal),
+                oi_eje: fmtInt(oiItem?.axisVal),
+                oi_adicion: fmtRx(oiItem?.additionVal),
+                od_esfera_cerca: fmtRx(odItem?.nearSphereVal),
+                od_cilindro_cerca: fmtRx(odItem?.nearCylinderVal),
+                oi_esfera_cerca: fmtRx(oiItem?.nearSphereVal),
+                oi_cilindro_cerca: fmtRx(oiItem?.nearCylinderVal),
                 od_dp: order.labPdOd || '',
                 oi_dp: order.labPdOi || '',
                 od_dp_cerca: order.labNearPdOd || '',
