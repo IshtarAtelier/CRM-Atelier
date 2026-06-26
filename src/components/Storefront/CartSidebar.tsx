@@ -190,15 +190,13 @@ export function CartSidebar() {
               >
                 <X className="w-5 h-5" />
               </button>
-              <div className="max-w-4xl mx-auto">
                 <LensConfigurator 
-                  basePrice={item.price} 
+                  basePrice={item.basePrice || item.price} 
                   productId={item.productId} 
                   productInfo={{ brand: item.brand, model: item.model, image: item.image }}
                   cartItemId={item.id}
                   onSuccess={() => setConfiguringItemId(null)}
                 />
-              </div>
             </div>
           );
         })()}

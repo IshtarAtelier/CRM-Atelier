@@ -22,6 +22,7 @@ export function StorefrontNavbar({ theme = "dark", mixBlend = false }: Storefron
   const [isExploreOpen, setIsExploreOpen] = useState(false);
   const { items, setIsOpen: setCartOpen } = useCart();
   const cartCount = items.reduce((acc, item) => acc + item.quantity, 0);
+  const [mounted, setMounted] = useState(false);
 
   // Search states
   const [searchQuery, setSearchQuery] = useState("");
@@ -31,6 +32,7 @@ export function StorefrontNavbar({ theme = "dark", mixBlend = false }: Storefron
   const [currentUser, setCurrentUser] = useState<any>(null);
 
   useEffect(() => {
+    setMounted(true);
     // Check localStorage
     const stored = localStorage.getItem('user');
     if (stored) {
@@ -295,9 +297,11 @@ export function StorefrontNavbar({ theme = "dark", mixBlend = false }: Storefron
               onClick={() => setCartOpen(true)}
             >
               <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5" strokeWidth={1.5} />
-              <span className={`absolute top-0.5 right-0.5 sm:-top-1.5 sm:-right-1.5 text-[8px] sm:text-[9px] font-bold ${isDark && !isHeaderScrolled ? 'text-white bg-black/50' : 'text-[#433831] bg-stone-200'} rounded-full w-3.5 h-3.5 sm:w-4 sm:h-4 flex items-center justify-center backdrop-blur-sm pointer-events-none`}>
-                {cartCount}
-              </span>
+              {mounted && cartCount > 0 && (
+                <span className={`absolute top-0.5 right-0.5 sm:-top-1.5 sm:-right-1.5 text-[8px] sm:text-[9px] font-bold ${isDark && !isHeaderScrolled ? 'text-white bg-black/50' : 'text-[#433831] bg-stone-200'} rounded-full w-3.5 h-3.5 sm:w-4 sm:h-4 flex items-center justify-center backdrop-blur-sm pointer-events-none`}>
+                  {cartCount}
+                </span>
+              )}
             </button>
           </div>
         </div>

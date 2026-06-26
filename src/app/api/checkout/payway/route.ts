@@ -79,6 +79,7 @@ function getArgentineStateCode(stateName: string): string {
 
 export async function POST(req: Request) {
   let globalRestoreStock: (() => Promise<void>) | null = null;
+  let order: any = null;
   try {
     const body = await req.json();
     const { customer, items, total } = body;
@@ -408,7 +409,6 @@ export async function POST(req: Request) {
     }
 
     // 3. Crear la Orden (Ficha)
-    let order;
     try {
       order = await prisma.order.create({
         data: {
@@ -627,10 +627,14 @@ export async function POST(req: Request) {
         errorMessage = `Error: ${paywayData.error_type}`;
       }
 
-      // Actualizar orden a fallida/rechazada
+      // Actualizar orden a fallida/rechazada (se marca isDeleted para ocultarla de ventas)
       await prisma.order.update({
         where: { id: order.id },
-        data: { status: "CANCELED", labNotes: `[PAGO RECHAZADO PAYWAY]: ${errorMessage}\n\n` + order.labNotes }
+        data: { 
+          isDeleted: true,
+          status: "CANCELED", 
+          labNotes: `[PAGO RECHAZADO PAYWAY]: ${errorMessage}\n\n` + order.labNotes 
+        }
       });
 
       return NextResponse.json(
@@ -723,6 +727,21 @@ export async function POST(req: Request) {
     // Asegurarse de liberar stock si ocurre CUALQUIER error en la función
     if (globalRestoreStock) {
       await globalRestoreStock();
+    }
+    // Si la orden ya había sido creada, la marcamos como cancelada y eliminada para que no aparezca en ventas
+    if (order?.id) {
+      try {
+        await prisma.order.update({
+          where: { id: order.id },
+          data: { 
+            isDeleted: true,
+            status: "CANCELED",
+            labNotes: `[ERROR API PAYWAY]: ${error?.message || 'Error interno'}\n\n` + (order.labNotes || '')
+          }
+        });
+      } catch (updateErr) {
+        console.error("Error actualizando orden fallida en catch principal:", updateErr);
+      }
     }
     return NextResponse.json(
       { error: error?.message || 'Error procesando solicitud de pago o creando la ficha' },

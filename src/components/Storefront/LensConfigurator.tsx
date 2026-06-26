@@ -543,6 +543,7 @@ export function LensConfigurator({ basePrice, productId, category, onColorChange
                 brand: productInfo.brand,
                 model: productInfo.model,
                 price: calculateTotal(),
+                basePrice: basePrice,
                 image: productInfo.image,
                 lensColor: mapColorToHex(tintColor),
                 lensConfig: {
