@@ -686,33 +686,39 @@ export async function POST(req: Request) {
       });
       const paymentRecord = updatedOrder?.payments?.[updatedOrder.payments.length - 1];
 
-      if (updatedOrder && paymentRecord) {
-        const pdfData = await generateReceiptPDF(paymentRecord, updatedOrder, updatedOrder.client);
-        
-        const attachments = [{
-          filename: pdfData.filename,
-          content: pdfData.base64.split('base64,')[1] || pdfData.base64,
-          encoding: 'base64'
-        }];
+      if (updatedOrder) {
+        let attachments: any[] = [];
+        if (paymentRecord) {
+          try {
+            const pdfData = await generateReceiptPDF(paymentRecord, updatedOrder, updatedOrder.client);
+            attachments = [{
+              filename: pdfData.filename,
+              content: pdfData.base64.split('base64,')[1] || pdfData.base64,
+              encoding: 'base64'
+            }];
+          } catch (pdfErr) {
+            console.error("Error generating receipt PDF, sending email without it:", pdfErr);
+          }
+        }
 
-        // Enviar a cliente
-        await sendEmail({
+        // Enviar a cliente (asincrónico)
+        sendEmail({
           to: customer.email,
           subject: `Confirmación de Orden #${order.id} - Atelier Óptica`,
           html: confirmationHtml,
           attachments
-        });
+        }).catch(err => console.error("Error enviando email a cliente:", err));
 
-        // Adjuntar PDF también al admin re-enviando un update o usando un mail nuevo
-        await sendEmail({
+        // Enviar a los administradores (asincrónico)
+        sendEmail({
           to: adminEmails,
           subject: `🛒 Nueva Compra Web - $${emailTotal.toLocaleString('es-AR')} - ${customer.firstName} ${customer.lastName}`,
           html: adminHtml,
           attachments
-        });
+        }).catch(err => console.error("Error enviando email a administradores:", err));
       }
-    } catch (pdfErr) {
-      console.error("Error generando/enviando PDF de Payway:", pdfErr);
+    } catch (emailErr) {
+      console.error("Error general procesando correos post-pago:", emailErr);
     }
 
     return NextResponse.json({ 
