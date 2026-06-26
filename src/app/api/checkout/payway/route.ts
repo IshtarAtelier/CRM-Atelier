@@ -515,6 +515,7 @@ export async function POST(req: Request) {
     // PAYWAY: Ejecutar el pago real
     const paymentToken = body.paymentToken;
     const bin = body.bin;
+    const deviceUniqueIdentifier = body.deviceUniqueIdentifier;
     
     if (!paymentToken || !bin) {
       if (globalRestoreStock) await globalRestoreStock();
@@ -573,7 +574,7 @@ export async function POST(req: Request) {
           id: client.id,
           email: customer.email
         },
-        device_unique_identifier: `WEB-${order.id}`,
+        device_unique_identifier: deviceUniqueIdentifier || `WEB-${order.id}`,
         retail_transaction_data: {
           items: sanitizedItems.map(item => ({
             code: item.productId || 'generic',

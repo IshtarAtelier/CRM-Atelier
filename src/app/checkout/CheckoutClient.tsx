@@ -27,6 +27,7 @@ export function CheckoutClient({
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [paywayLoaded, setPaywayLoaded] = useState(false);
+  const [decidirInstance, setDecidirInstance] = useState<any>(null);
   const [isWholesale, setIsWholesale] = useState(false);
   const [currentUser, setCurrentUser] = useState<any>(null);
 
@@ -91,7 +92,20 @@ export function CheckoutClient({
         ? 'https://live.decidir.com/static/v2/decidir.js'
         : 'https://developers.decidir.com/static/v2/decidir.js';
       script.async = true;
-      script.onload = () => setPaywayLoaded(true);
+      script.onload = () => {
+        setPaywayLoaded(true);
+        try {
+          const decidirUrl = paywayConfig.environment === 'production' 
+            ? 'https://live.decidir.com/api/v2'
+            : 'https://developers.decidir.com/api/v2';
+          const instance = new (window as any).Decidir(decidirUrl);
+          instance.setPublishableKey(paywayConfig.publicKey);
+          instance.setTimeout(10000);
+          setDecidirInstance(instance);
+        } catch (e) {
+          console.error("Failed to initialize Decidir on mount:", e);
+        }
+      };
       document.body.appendChild(script);
     }
   }, [paywayConfig]);
@@ -301,13 +315,26 @@ export function CheckoutClient({
         return;
       }
 
-      const decidirUrl = paywayConfig.environment === 'production' 
-        ? 'https://live.decidir.com/api/v2'
-        : 'https://developers.decidir.com/api/v2';
-        
-      const decidir = new (window as any).Decidir(decidirUrl);
-      decidir.setPublishableKey(paywayConfig.publicKey);
-      decidir.setTimeout(10000);
+      // Use the mount-initialized instance or fallback to a new one
+      let decidir = decidirInstance;
+      if (!decidir) {
+        try {
+          const decidirUrl = paywayConfig.environment === 'production' 
+            ? 'https://live.decidir.com/api/v2'
+            : 'https://developers.decidir.com/api/v2';
+          decidir = new (window as any).Decidir(decidirUrl);
+          decidir.setPublishableKey(paywayConfig.publicKey);
+          decidir.setTimeout(10000);
+        } catch (e) {
+          console.error("Error fallback initializing Decidir:", e);
+        }
+      }
+
+      if (!decidir) {
+        toast.error("Error al inicializar la pasarela de pagos. Por favor refrescá la página.");
+        setIsProcessing(false);
+        return;
+      }
 
       // Limpiar datos
       const cleanedCardNumber = formData.cardNumber.replace(/\D/g, '');
@@ -352,6 +379,7 @@ export function CheckoutClient({
           const token = response.id;
           const bin = response.bin; // Decidir returns bin in response
           const paymentMethodId = response.payment_method_id; // Decidir returns payment_method_id
+          const deviceFingerprint = decidir.device_unique_identifier;
 
           // Ahora enviamos el token al backend
           const res = await fetch("/api/checkout/payway", {
@@ -367,7 +395,8 @@ export function CheckoutClient({
               total: getCartTotal(),
               paymentToken: token,
               bin: bin,
-              paymentMethodId: paymentMethodId
+              paymentMethodId: paymentMethodId,
+              deviceUniqueIdentifier: deviceFingerprint
             })
           });
 
