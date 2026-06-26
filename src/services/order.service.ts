@@ -64,6 +64,12 @@ const OrderUpdateSchema = z.object({
     // Promo
     appliedPromoName: z.string().nullable().optional(),
     authorizedByAdmin: z.boolean().optional(),
+    // Post Sale
+    postSaleNotes: z.string().nullable().optional(),
+    postSaleCost: z.number().nullable().optional(),
+    postSaleResponsible: z.string().nullable().optional(),
+    postSaleOrderOption: z.string().nullable().optional(),
+    postSaleNewOrderNumber: z.string().nullable().optional(),
 }).passthrough();
 
 // export const dynamic = 'force-dynamic';
@@ -82,6 +88,11 @@ export class OrderService {
                 isLocked: true,
                 authorizedByAdmin: true,
                 total: true,
+                postSaleNotes: true,
+                postSaleCost: true,
+                postSaleResponsible: true,
+                postSaleOrderOption: true,
+                postSaleNewOrderNumber: true,
                 paid: true,
                 markup: true,
                 discountCash: true,
@@ -263,7 +274,9 @@ export class OrderService {
             labFrameShape, labFrameDetails,
             prescriptionId, items, total, markup, 
             discountCash, discountTransfer, discountCard, specialDiscount, subtotalWithMarkup,
-            isLocked, authorizedByAdmin
+            isLocked, authorizedByAdmin,
+            postSaleNotes, postSaleCost, postSaleResponsible,
+            postSaleOrderOption, postSaleNewOrderNumber
         } = body;
 
         const data: any = {};
@@ -577,6 +590,9 @@ export class OrderService {
                         clientId: true,
                         labStatus: true, 
                         labSentAt: true,
+                        total: true,
+                        paid: true,
+                        payments: true,
                         client: { select: { name: true, phone: true } },
                         items: { select: { product: { select: { origin: true, type: true, category: true } } } }
                     }
@@ -595,7 +611,18 @@ export class OrderService {
                         const phone = currentOrder.client?.phone?.replace(/\D/g, '');
                         
                         if (phone && phone.length >= 10) {
-                            const msg = `Hola ${currentOrder.client?.name || ''} su pedido ya fue procesado con exito, leer info importante.\n\n* Una vez que el pedido este listo informamos para el retiro.\n* Si tiene dudas sobre el estado solo consultar pasada la fecha prevista\n* Los tiempos son aproximados\n\n*Fecha aproximada* : ${estimatedDate}`;
+                            const total = currentOrder.total || 0;
+                            const paid = (currentOrder.payments || []).reduce((acc, p) => acc + (p.amount || 0), 0) || currentOrder.paid || 0;
+                            const balance = total - paid;
+
+                            let balanceInfo = '';
+                            if (balance > 0) {
+                                balanceInfo = `\n\n*Detalle del pago:*\n• Total del presupuesto: $${total.toLocaleString('es-AR')}\n• Monto abonado: $${paid.toLocaleString('es-AR')}\n• Saldo pendiente: $${balance.toLocaleString('es-AR')}`;
+                            } else {
+                                balanceInfo = `\n\n*Detalle del pago:*\n• Total del presupuesto: $${total.toLocaleString('es-AR')}\n• Estado: ¡Totalmente abonado!`;
+                            }
+
+                            const msg = `Hola ${currentOrder.client?.name || ''} su pedido ya fue procesado con exito, leer info importante.\n\n* Una vez que el pedido este listo informamos para el retiro.\n* Si tiene dudas sobre el estado solo consultar pasada la fecha prevista\n* Los tiempos son aproximados\n\n*Fecha aproximada* : ${estimatedDate}${balanceInfo}`;
                             
                             fetchWa('/api/send', {
                                 method: 'POST',
@@ -640,6 +667,11 @@ export class OrderService {
         if (userFrameBrand !== undefined) data.userFrameBrand = userFrameBrand;
         if (userFrameModel !== undefined) data.userFrameModel = userFrameModel;
         if (userFrameNotes !== undefined) data.userFrameNotes = userFrameNotes;
+        if (postSaleNotes !== undefined) data.postSaleNotes = postSaleNotes;
+        if (postSaleCost !== undefined) data.postSaleCost = postSaleCost;
+        if (postSaleResponsible !== undefined) data.postSaleResponsible = postSaleResponsible;
+        if (postSaleOrderOption !== undefined) data.postSaleOrderOption = postSaleOrderOption;
+        if (postSaleNewOrderNumber !== undefined) data.postSaleNewOrderNumber = postSaleNewOrderNumber;
 
         // SmartLab lab fields
         if (labColor !== undefined) data.labColor = labColor;
@@ -899,6 +931,11 @@ export class OrderService {
                             },
                             payments: true,
                             prescription: true,
+                            postSaleNotes: true,
+                            postSaleCost: true,
+                            postSaleResponsible: true,
+                            postSaleOrderOption: true,
+                            postSaleNewOrderNumber: true,
                         },
                     });
 
@@ -1008,6 +1045,11 @@ export class OrderService {
                     }
                 },
                 payments: true,
+                postSaleNotes: true,
+                postSaleCost: true,
+                postSaleResponsible: true,
+                postSaleOrderOption: true,
+                postSaleNewOrderNumber: true,
                 client: {
                     select: { id: true, name: true, phone: true }
                 }
