@@ -37,7 +37,27 @@ const NAME_MAPPING = {
   "TL5207 C4": "Niobe",
   "TL5208 C2": "Rhea",
   "TL5213 C4": "Semele",
-  "TL5217 C4": "Vesta"
+  "TL5217 C4": "Vesta",
+  "9004M C2": "Poseidon",
+  "9004M C3": "Dionisio",
+  "9004M C5": "Zeus",
+  "9004M C6": "Apolo",
+  "9006M C1": "Hermes",
+  "9006M C2": "Ares",
+  "9006M C3": "Hades",
+  "9006M C4": "Hefesto",
+  "TG2807 C1": "Helios",
+  "TG2809 C1": "Teseo",
+  "TG2809 C4": "Heracles",
+  "TG2810 C1": "Aquiles",
+  "TG2810 C4": "Perseo",
+  "V99011 C4": "Ulises",
+  "V99018 C1": "Cronos",
+  "V99018 C3": "Prometeo",
+  "YX05 C1": "Orfeo",
+  "YX05 C2": "Eros",
+  "YX05 C3": "Baco",
+  "YX05 C4": "Atlas"
 };
 
 export async function GET() {
