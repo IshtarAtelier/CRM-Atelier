@@ -22,7 +22,22 @@ const NAME_MAPPING = {
   "TL5217 C2": "Leda",
   "91501 C6": "Athena",
   "TL3932 C4": "Ceres",
-  "TL5217 C5": "Thalia"
+  "TL5217 C5": "Thalia",
+  "M7011 C4": "Hebe",
+  "M7027 C4": "Calliope",
+  "M7033 C1": "Hestia",
+  "M7033 C2": "Astraea",
+  "M7237 C1": "Ariadne",
+  "M7237 C2": "Circe",
+  "M7239 C4": "Clotho",
+  "TL3704A C4": "Electra",
+  "TL3704A C5": "Euterpe",
+  "TL3932 C2": "Leto",
+  "TL5206 C4": "Maia",
+  "TL5207 C4": "Niobe",
+  "TL5208 C2": "Rhea",
+  "TL5213 C4": "Semele",
+  "TL5217 C4": "Vesta"
 };
 
 export async function GET() {
