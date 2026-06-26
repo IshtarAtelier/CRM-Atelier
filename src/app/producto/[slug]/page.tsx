@@ -325,7 +325,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }}
       />
-      <ProductClient product={product} variants={variants} similarProducts={relatedProducts} footer={<StorefrontFooter />} />
+      <ProductClient product={{ ...product, material }} variants={variants} similarProducts={relatedProducts} footer={<StorefrontFooter />} />
     </>
   );
 }

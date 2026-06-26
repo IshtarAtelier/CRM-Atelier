@@ -37,11 +37,12 @@ export function TiendaClient({
   footer?: React.ReactNode;
 }) {
   const [activeCategory, setActiveCategory] = useState("Todo");
+  const [searchQuery, setSearchQuery] = useState("");
   const [visibleCount, setVisibleCount] = useState(24);
 
   useEffect(() => {
     setVisibleCount(24);
-  }, [activeCategory]);
+  }, [activeCategory, searchQuery]);
 
   const [isWholesale, setIsWholesale] = useState(false);
   const [webSettings, setWebSettings] = useState({
@@ -141,6 +142,16 @@ export function TiendaClient({
   }
   if (filterMaterial) {
     filtered = filtered.filter(p => p.material.toLowerCase() === filterMaterial.toLowerCase());
+  }
+
+  if (searchQuery.trim()) {
+    const q = searchQuery.toLowerCase().trim();
+    filtered = filtered.filter(p => 
+      (p.brand && p.brand.toLowerCase().includes(q)) ||
+      (p.model && p.model.toLowerCase().includes(q)) ||
+      (p.modelCode && p.modelCode.toLowerCase().includes(q)) ||
+      (p.category && p.category.toLowerCase().includes(q))
+    );
   }
 
   if (sortParam === 'menor_precio') {
@@ -266,8 +277,49 @@ export function TiendaClient({
         </aside>
 
         <div className="flex-1">
+          {/* Buscador de Productos */}
+          <div className="mb-10 w-full max-w-md">
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="Buscar por nombre, modelo o marca..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full bg-stone-50 border border-stone-200 text-stone-900 px-5 py-3.5 pr-12 text-xs font-medium tracking-wider uppercase rounded-full focus:outline-none focus:border-black focus:ring-1 focus:ring-black transition-all duration-300 shadow-sm placeholder:text-stone-400"
+              />
+              <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-2">
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery("")}
+                    className="text-stone-400 hover:text-black p-1 transition-colors"
+                    aria-label="Limpiar búsqueda"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
+                <svg
+                  className="w-4 h-4 text-stone-400 pointer-events-none"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                  />
+                </svg>
+              </div>
+            </div>
+            {searchQuery && (
+              <p className="text-[10px] font-bold text-stone-400 uppercase tracking-widest mt-2 px-2">
+                Resultados para &quot;{searchQuery}&quot;: {filtered.length} {filtered.length === 1 ? "modelo encontrado" : "modelos encontrados"}
+              </p>
+            )}
+          </div>
 
-        {/* The skeleton is no longer needed since data is preloaded */}
+          {/* The skeleton is no longer needed since data is preloaded */}
           <AnimatePresence mode="wait">
             <motion.div
               key={activeCategory}
@@ -357,11 +409,26 @@ export function TiendaClient({
                           {p.shape === "XL" ? `${p.category} · XL` : p.category}
                         </span>
                       )}
+
+                      {/* Titanium Badge */}
+                      {p.material === "Titanio" && (
+                        <span className="absolute bottom-3 left-3 text-[8px] font-black uppercase tracking-[0.18em] bg-stone-900/90 text-stone-100 backdrop-blur-sm px-2.5 py-1 z-10 border border-stone-800 shadow-md flex items-center gap-1.5 rounded-sm">
+                          <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+                          Titanium
+                        </span>
+                      )}
                     </div>
 
                     {/* Info */}
                     <div className="flex flex-col gap-1 mt-4 px-1 pb-4">
-                      <h3 className="text-xs text-stone-500 font-black uppercase tracking-[0.20em] mb-0.5">{p.brand || 'ATELIER'}</h3>
+                      <div className="flex items-center justify-between mb-0.5">
+                        <h3 className="text-[10px] text-stone-500 font-black uppercase tracking-[0.20em]">{p.brand || 'ATELIER'}</h3>
+                        {p.material === "Titanio" && (
+                          <span className="text-[8px] font-black uppercase tracking-[0.15em] bg-amber-50 text-amber-800 border border-amber-200 px-2 py-0.5 rounded-full">
+                            Titanium
+                          </span>
+                        )}
+                      </div>
                       <h2 className="text-xl font-serif tracking-tight text-black leading-tight mb-3 group-hover:text-stone-600 transition-colors">
                         {p.name || p.model}
                       </h2>
