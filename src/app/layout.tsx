@@ -30,7 +30,7 @@ export const metadata: Metadata = {
       {
         url: "/images/og-image.jpg",
         width: 1200,
-        height: 630,
+        height: 220,
         alt: "Atelier Óptica Córdoba",
       },
     ],
