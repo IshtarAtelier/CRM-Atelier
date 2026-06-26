@@ -1386,7 +1386,7 @@ export const ContactService = {
                         remainingText = `✅ *Pedido totalmente abonado*`;
                     }
 
-                    let msgText = `💵 *Nuevo Pago Registrado (${tipoPago})*\n\n`;
+                    let msgText = `💵 *Nuevo Pago Registrado (${tipoPago})*\n`;
                     msgText += `👤 *Cliente:* ${result.clientName}\n`;
                     msgText += `💰 *Monto de este Pago:* $${amount.toLocaleString('es-AR')}\n`;
                     msgText += `💳 *Método:* ${method}\n`;
@@ -1394,7 +1394,7 @@ export const ContactService = {
                     if (notes && notes.trim()) {
                         msgText += `📝 *Referencia/Notas:* ${notes.trim()}\n`;
                     }
-                    msgText += `\n${remainingText}\n\n`;
+                    msgText += `${remainingText}\n`;
                     msgText += `🔗 *Ficha del cliente:* ${clientLink}`;
 
                     const resAdmin = await fetchWa('/api/send', {

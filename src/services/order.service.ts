@@ -960,11 +960,11 @@ export class OrderService {
                     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://crm-atelier-production-ae72.up.railway.app';
                     const link = `${appUrl}/admin/contactos?id=${existingOrder.client.id}`;
                     
-                    const groupMessage = `🎉 *NUEVA VENTA CONFIRMADA* 🎉\n\n` + 
+                    const groupMessage = `🎉 *NUEVA VENTA CONFIRMADA* 🎉\n` + 
                         `👤 *Cliente:* ${existingOrder.client.name}\n` +
                         `💵 *Total:* $${(updatedOrder.total || 0).toLocaleString('es-AR')}\n` +
-                        `💳 *Abonado:* $${(updatedOrder.paid || 0).toLocaleString('es-AR')}\n\n` +
-                        `Detalle:\n• ${saleSummaries}\n\n` +
+                        `💳 *Abonado:* $${(updatedOrder.paid || 0).toLocaleString('es-AR')}\n` +
+                        `Detalle:\n• ${saleSummaries}\n` +
                         `🔗 *Ficha:* ${link}`;
 
                     fetchWa('/api/send', {
