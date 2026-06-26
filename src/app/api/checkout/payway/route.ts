@@ -566,6 +566,17 @@ export async function POST(req: Request) {
           state: getArgentineStateCode(customer.state),
           street1: customer.address || "N/A"
         },
+        ship_to: {
+          city: customer.city || "N/A",
+          country: "AR",
+          email: customer.email,
+          first_name: customer.firstName,
+          last_name: customer.lastName,
+          phone_number: customer.phone?.replace(/\D/g, '') || "",
+          postal_code: customer.zip || "0000",
+          state: getArgentineStateCode(customer.state),
+          street1: customer.address || "N/A"
+        },
         purchase_totals: {
           currency: "ARS",
           amount: amountInCents
