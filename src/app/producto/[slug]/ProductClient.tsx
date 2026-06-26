@@ -192,6 +192,24 @@ export function ProductClient({
             >
               by {product.brand}
             </motion.p>
+
+            {/* Prominent Titanium highlight */}
+            {product.material === "Titanio" && (
+              <motion.div
+                initial={{ opacity: 0, y: 15 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.35, duration: 0.8 }}
+                className="mb-6 p-4.5 bg-gradient-to-r from-stone-900 via-stone-950 to-stone-900 border border-stone-800 text-white rounded-xl shadow-lg flex items-center justify-between"
+              >
+                <div className="flex flex-col gap-0.5">
+                  <span className="text-[9px] font-black tracking-[0.25em] text-amber-400 uppercase">Colección Premium</span>
+                  <span className="text-base font-serif tracking-wide text-stone-100">100% Titanio Puro</span>
+                </div>
+                <span className="text-[8px] font-black uppercase tracking-widest bg-white/10 border border-white/20 px-3 py-1.5 rounded-full whitespace-nowrap">
+                  Ultraliviano y Resistente
+                </span>
+              </motion.div>
+            )}
             
             <motion.div
               initial={{ y: 20, opacity: 0 }}

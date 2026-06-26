@@ -138,56 +138,73 @@ export function HomeProductCarousel({ collections, totalCount }: Props) {
         className="flex w-full overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       >
         {/* Duplicamos para el loop infinito suave */}
-        {[...products, ...products].map((item, i) => (
-          <Link 
-            href={`/producto/${item.slug}`} 
-            key={`${item.id}-${i}`} 
-            className="group flex-shrink-0 w-[45vw] md:w-[33vw] lg:w-[25vw] block transition-shadow duration-500 hover:z-10 relative bg-white hover:shadow-[0_0_40px_rgba(0,0,0,0.05)]"
-          >
-            {/* Contenedor de imagen — fondo gris muy claro */}
-            <div className="bg-[#f5f5f5] aspect-square overflow-hidden border-r border-[#e5e5e5] relative isolate">
-              {/* Badge Urgencia / Escasez */}
-              {item.stock !== undefined && item.stock > 0 && item.stock <= 3 && (
-                <span className="absolute top-3 right-3 z-10 bg-red-650 text-white text-[7.5px] font-black uppercase tracking-[0.15em] px-2.5 py-1 rounded shadow-md animate-pulse">
-                  Últimas {item.stock} u.
-                </span>
-              )}
+        {[...products, ...products].map((item, i) => {
+          const isTitanium = (item.model || '').toUpperCase().includes('TG') || (item.name || '').toUpperCase().includes('TITANIUM');
+          return (
+            <Link 
+              href={`/producto/${item.slug}`} 
+              key={`${item.id}-${i}`} 
+              className="group flex-shrink-0 w-[45vw] md:w-[33vw] lg:w-[25vw] block transition-shadow duration-500 hover:z-10 relative bg-white hover:shadow-[0_0_40px_rgba(0,0,0,0.05)]"
+            >
+              {/* Contenedor de imagen — fondo gris muy claro */}
+              <div className="bg-[#f5f5f5] aspect-square overflow-hidden border-r border-[#e5e5e5] relative isolate">
+                {/* Badge Urgencia / Escasez */}
+                {item.stock !== undefined && item.stock > 0 && item.stock <= 3 && (
+                  <span className="absolute top-3 right-3 z-10 bg-red-650 text-white text-[7.5px] font-black uppercase tracking-[0.15em] px-2.5 py-1 rounded shadow-md animate-pulse">
+                    Últimas {item.stock} u.
+                  </span>
+                )}
 
-              {item.img ? (
-                <Image unoptimized 
-                  src={item.img}
-                  alt={`Anteojos ${item.category || ''} ${item.brand || ''} ${item.name} en Atelier Óptica Córdoba`}
-                  fill
-                  priority={i < 4}
-                  loading={i < 4 ? "eager" : "lazy"}
-                  style={{ transform: "translateZ(0)" }}
-                  sizes="(max-width: 768px) 45vw, (max-width: 1024px) 33vw, 25vw"
-                  className={`object-contain p-6 mix-blend-multiply transition-opacity duration-500 ease-in-out ${item.secondImg ? 'md:group-hover:opacity-0' : ''}`}
-                />
-              ) : (
-                <div className="absolute inset-0 w-full h-full flex items-center justify-center text-stone-400 text-[10px] font-black uppercase tracking-widest text-center">
-                  Sin<br/>Imagen
-                </div>
-              )}
+                {/* Titanium Badge */}
+                {isTitanium && (
+                  <span className="absolute bottom-3 left-3 text-[8px] font-black uppercase tracking-[0.18em] bg-stone-900/90 text-stone-100 backdrop-blur-sm px-2.5 py-1 z-10 border border-stone-850 shadow-md flex items-center gap-1.5 rounded-sm">
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+                    Titanium
+                  </span>
+                )}
 
-              {item.secondImg && (
-                <Image unoptimized 
-                  src={item.secondImg}
-                  alt={`${item.name} Try-On`}
-                  fill
-                  priority={i < 2}
-                  loading={i < 2 ? "eager" : "lazy"}
-                  style={{ transform: "translateZ(0)" }}
-                  sizes="(max-width: 768px) 45vw, (max-width: 1024px) 33vw, 25vw"
-                  className="object-cover opacity-0 md:group-hover:opacity-100 transition-opacity duration-500 ease-in-out"
-                />
-              )}
-            </div>
-            
-            {/* Nombre, precio y botones de acción */}
-            <div className="px-3 pt-6 pb-4 border-r border-[#e5e5e5] flex flex-col justify-between min-h-[150px] h-auto">
-              <div>
-                <h3 className="text-[12px] font-bold text-stone-900 line-clamp-1 uppercase tracking-wide">{item.name}</h3>
+                {item.img ? (
+                  <Image unoptimized 
+                    src={item.img}
+                    alt={`Anteojos ${item.category || ''} ${item.brand || ''} ${item.name} en Atelier Óptica Córdoba`}
+                    fill
+                    priority={i < 4}
+                    loading={i < 4 ? "eager" : "lazy"}
+                    style={{ transform: "translateZ(0)" }}
+                    sizes="(max-width: 768px) 45vw, (max-width: 1024px) 33vw, 25vw"
+                    className={`object-contain p-6 mix-blend-multiply transition-opacity duration-500 ease-in-out ${item.secondImg ? 'md:group-hover:opacity-0' : ''}`}
+                  />
+                ) : (
+                  <div className="absolute inset-0 w-full h-full flex items-center justify-center text-stone-400 text-[10px] font-black uppercase tracking-widest text-center">
+                    Sin<br/>Imagen
+                  </div>
+                )}
+
+                {item.secondImg && (
+                  <Image unoptimized 
+                    src={item.secondImg}
+                    alt={`${item.name} Try-On`}
+                    fill
+                    priority={i < 2}
+                    loading={i < 2 ? "eager" : "lazy"}
+                    style={{ transform: "translateZ(0)" }}
+                    sizes="(max-width: 768px) 45vw, (max-width: 1024px) 33vw, 25vw"
+                    className="object-cover opacity-0 md:group-hover:opacity-100 transition-opacity duration-500 ease-in-out"
+                  />
+                )}
+              </div>
+              
+              {/* Nombre, precio y botones de acción */}
+              <div className="px-3 pt-6 pb-4 border-r border-[#e5e5e5] flex flex-col justify-between min-h-[150px] h-auto">
+                <div>
+                  <div className="flex items-center justify-between gap-2">
+                    <h3 className="text-[12px] font-bold text-stone-900 line-clamp-1 uppercase tracking-wide">{item.name}</h3>
+                    {isTitanium && (
+                      <span className="text-[7.5px] font-black uppercase tracking-[0.15em] bg-amber-50 text-amber-800 border border-amber-200 px-2 py-0.5 rounded-full whitespace-nowrap">
+                        Titanium
+                      </span>
+                    )}
+                  </div>
                 
                 <div className="flex items-center justify-between mt-1 pr-2">
                   <div className="flex flex-col gap-0.5">
@@ -231,7 +248,8 @@ export function HomeProductCarousel({ collections, totalCount }: Props) {
               </div>
             </div>
           </Link>
-        ))}
+        );
+        })}
       </div>
 
       {/* FIXED FOOTER CTA */}
