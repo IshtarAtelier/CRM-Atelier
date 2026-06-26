@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { LensConfigurator } from "./LensConfigurator";
 import dynamic from "next/dynamic";
@@ -59,6 +59,11 @@ export function CustomGlassesBuilder({ products }: { products: Product[] }) {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedBrand, setSelectedBrand] = useState("Todas");
   const [selectedVariantIds, setSelectedVariantIds] = useState<Record<string, string>>({});
+  const [visibleCount, setVisibleCount] = useState(12);
+
+  useEffect(() => {
+    setVisibleCount(12);
+  }, [searchQuery, selectedBrand]);
   
   const { setIsOpen: setCartOpen } = useCart();
 
@@ -457,8 +462,9 @@ export function CustomGlassesBuilder({ products }: { products: Product[] }) {
                 </button>
               </div>
             ) : (
-              <div className="grid grid-cols-2 gap-x-5 gap-y-8">
-                {groupedProducts.map((group) => {
+              <>
+                <div className="grid grid-cols-2 gap-x-5 gap-y-8">
+                {groupedProducts.slice(0, visibleCount).map((group) => {
                   const activeVariant = getActiveVariant(group);
                   const isSelected = selectedProduct?.id === activeVariant.id;
                   
@@ -535,6 +541,17 @@ export function CustomGlassesBuilder({ products }: { products: Product[] }) {
                   );
                 })}
               </div>
+              {groupedProducts.length > visibleCount && (
+                <div className="flex justify-center pt-6">
+                  <button
+                    onClick={() => setVisibleCount(prev => prev + 12)}
+                    className="px-8 py-3.5 bg-stone-900 hover:bg-stone-850 dark:bg-stone-100 dark:hover:bg-stone-200 text-white dark:text-stone-900 rounded-full text-[10px] font-black uppercase tracking-widest transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5 cursor-pointer"
+                  >
+                    Cargar más armazones ({groupedProducts.length - visibleCount} restantes)
+                  </button>
+                </div>
+              )}
+              </>
             )}
           </div>
         </div>
