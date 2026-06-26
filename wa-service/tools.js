@@ -304,6 +304,88 @@ async function getPriceList({ category, search, botRecommended }) {
  * Tool: Check order status + balance calculation
  */
 async function getOrderStatus({ orderId, clientId }) {
+    // 1. Si no hay orderId válido pero sí hay clientId, buscar el pedido del cliente directamente en la base de datos
+    if ((!orderId || orderId === 'none' || orderId === 'null') && clientId) {
+        const { prisma } = require('./db');
+        const orders = await prisma.order.findMany({
+            where: {
+                clientId: clientId,
+                isDeleted: false,
+                orderType: 'ORDER'
+            },
+            include: {
+                payments: true
+            },
+            orderBy: {
+                createdAt: 'desc'
+            }
+        });
+
+        if (orders.length === 0) {
+            // Buscar si tiene algún presupuesto (QUOTE)
+            const quotes = await prisma.order.findMany({
+                where: {
+                    clientId: clientId,
+                    isDeleted: false,
+                    orderType: 'QUOTE'
+                },
+                include: {
+                    payments: true
+                },
+                orderBy: {
+                    createdAt: 'desc'
+                }
+            });
+
+            if (quotes.length === 0) {
+                return { found: false, error: "No se encontraron pedidos ni presupuestos registrados para este cliente." };
+            }
+
+            const quote = quotes[0];
+            const paid = (quote.payments || []).reduce((acc, p) => acc + (p.amount || 0), 0);
+            const total = quote.total || 0;
+            const balance = total - paid;
+
+            return {
+                found: true,
+                orderId: quote.id,
+                status: quote.status,
+                total,
+                paid,
+                balance,
+                updatedAt: quote.updatedAt,
+                isQuote: true
+            };
+        }
+
+        // Buscar si alguno tiene saldo pendiente
+        let selectedOrder = orders.find(o => {
+            const paid = (o.payments || []).reduce((acc, p) => acc + (p.amount || 0), 0);
+            return (o.total || 0) - paid > 0;
+        });
+
+        // Si todos están pagados, tomar el más reciente
+        if (!selectedOrder) {
+            selectedOrder = orders[0];
+        }
+
+        const paid = (selectedOrder.payments || []).reduce((acc, p) => acc + (p.amount || 0), 0);
+        const total = selectedOrder.total || 0;
+        const balance = total - paid;
+
+        return {
+            found: true,
+            orderId: selectedOrder.id,
+            status: selectedOrder.labStatus || selectedOrder.status,
+            total,
+            paid,
+            balance,
+            updatedAt: selectedOrder.updatedAt,
+            isQuote: false
+        };
+    }
+
+    // 2. Comportamiento por defecto con orderId
     const response = await requestWithRetry(() =>
         apiClient.get(`${CRM_API_URL}/orders`, {
             params: { orderId }
@@ -321,6 +403,7 @@ async function getOrderStatus({ orderId, clientId }) {
 
     return { 
         found: true, 
+        orderId: order.id,
         status: order.labStatus || order.status,
         total,
         paid,

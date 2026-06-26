@@ -91,7 +91,7 @@ async function routerNode(state) {
   return { ...state, agentType };
 }
 
-function formatClientData(clientData, userPhone, userName, chatId, chatSummary) {
+async function formatClientData(clientData, userPhone, userName, chatId, chatSummary) {
   const resolvedPhone = (clientData?.phone) || userPhone || '';
   
   let summaryText = '';
@@ -127,6 +127,39 @@ function formatClientData(clientData, userPhone, userName, chatId, chatSummary) 
       if (p.recomendacionIndice) text += `\n- Recomendación de Espesor: ${p.recomendacionIndice}`;
       text += `\n- Restricciones: Apto MiPrimerVarilux: ${p.aptoMiPrimerVarilux ? 'Sí' : 'No'}, Apto MR7: ${p.aptoMr7Asferico ? 'Sí' : 'No'}`;
     });
+  }
+
+  // Obtener pedidos del cliente desde la base de datos para mostrar saldos y estados reales en la ficha
+  try {
+    const orders = await prisma.order.findMany({
+      where: {
+        clientId: clientData.id,
+        isDeleted: false
+      },
+      include: {
+        payments: true
+      },
+      orderBy: {
+        createdAt: 'desc'
+      }
+    });
+
+    if (orders && orders.length > 0) {
+      text += `\n\nPEDIDOS Y PRESUPUESTOS EN FICHA DEL CLIENTE (USAR ESTOS VALORES PARA PASAR SALDOS Y ESTADOS DE PEDIDO):`;
+      orders.forEach((o, i) => {
+        const paid = (o.payments || []).reduce((acc, p) => acc + (p.amount || 0), 0);
+        const balance = (o.total || 0) - paid;
+        text += `\n- Pedido N°: ${o.id}`;
+        text += `\n  Tipo: ${o.orderType}`;
+        text += `\n  Estado: ${o.labStatus || o.status}`;
+        text += `\n  Monto Total: $${o.total.toLocaleString('es-AR')}`;
+        text += `\n  Monto Pagado: $${paid.toLocaleString('es-AR')}`;
+        text += `\n  Saldo Pendiente: $${balance.toLocaleString('es-AR')}`;
+        text += `\n  Fecha: ${new Date(o.createdAt).toLocaleDateString()}`;
+      });
+    }
+  } catch (err) {
+    console.error("Error al cargar pedidos en formatClientData:", err.message);
   }
   
   if (clientData.interactions && clientData.interactions.length > 0) {
@@ -203,7 +236,7 @@ async function getTagsModule() {
 async function salesNode(state) {
   const horaActual = new Date().toLocaleString("es-AR", { timeZone: "America/Argentina/Buenos_Aires", hour: '2-digit', minute:'2-digit' });
   let custom = state.customPrompt || "";
-  const clientInfoText = formatClientData(state.clientData, state.userPhone, state.userName, state.chatId, state.chatSummary);
+  const clientInfoText = await formatClientData(state.clientData, state.userPhone, state.userName, state.chatId, state.chatSummary);
   const tiemposModule = await getTiemposModule();
   const tagsModule = await getTagsModule();
   
@@ -262,7 +295,7 @@ async function salesNode(state) {
 async function executiveNode(state) {
   const horaActual = new Date().toLocaleString("es-AR", { timeZone: "America/Argentina/Buenos_Aires", hour: '2-digit', minute:'2-digit' });
   let custom = state.customPrompt || "";
-  const clientInfoText = formatClientData(state.clientData, state.userPhone, state.userName, state.chatId, state.chatSummary);
+  const clientInfoText = await formatClientData(state.clientData, state.userPhone, state.userName, state.chatId, state.chatSummary);
   const tiemposModule = await getTiemposModule();
   const tagsModule = await getTagsModule();
   

@@ -264,9 +264,9 @@ const updateClientDataTool = new DynamicStructuredTool({
 });
 
 const getOrderStatusTool = new DynamicStructuredTool({
-    schema: z.object({ orderId: z.string(), clientId: z.string().optional() }).catchall(z.any()),
+    schema: z.object({ orderId: z.string().optional(), clientId: z.string().optional() }).catchall(z.any()),
     name: "get_order_status",
-    description: "Consulta estado de un pedido y saldo pendiente. Usa JSON con 'orderId' (MANDATORIO, el ID del pedido) y opcionalmente 'clientId'.",
+    description: "Consulta estado de un pedido y saldo pendiente. Pasa 'clientId' para buscar automáticamente sus pedidos y saldos si no tenés el orderId, o pasá 'orderId' si tenés el ID del pedido específico.",
     func: safeToolRun(async (input) => await getOrderStatus(safeParse(input, "get_order_status"))),
 });
 
