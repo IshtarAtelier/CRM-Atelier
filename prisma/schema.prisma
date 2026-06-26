@@ -270,6 +270,11 @@ model Order {
   specialDiscount      Float?         @default(0.0)
   isLocked             Boolean        @default(true)
   authorizedByAdmin    Boolean        @default(false)
+  postSaleNotes        String?
+  postSaleCost         Float?         @default(0.0)
+  postSaleResponsible  String?
+  postSaleOrderOption  String?
+  postSaleNewOrderNumber String?
   invoices             Invoice[]
   client               Client         @relation(fields: [clientId], references: [id], onDelete: Restrict)
   prescription         Prescription?  @relation(fields: [prescriptionId], references: [id], onDelete: SetNull)
@@ -328,6 +333,8 @@ model OrderItem {
   productNameSnapshot     String?
   productBrandSnapshot    String?
   productCategorySnapshot String?
+  productCostSnapshot     Float?
+  laboratorySnapshot      String?
   crystalColor            String?
   crystalColorType        String?
   order                   Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
