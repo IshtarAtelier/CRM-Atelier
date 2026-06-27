@@ -33,7 +33,7 @@ export default function LentesTransitionsPage() {
           <div className="w-full h-[300px] md:h-[500px] relative mb-12 lg:mb-16 bg-neutral-200 overflow-hidden rounded-lg">
             <Image unoptimized 
               src="/images/blog/vidriera-atelier.webp" 
-              alt="Anteojos con cristales transitions en Atelier Óptica" 
+              alt="Anteojos con cristales Transitions en Atelier Óptica" 
               fill
               sizes="(max-width: 768px) 100vw, 800px"
               className="object-cover" 
@@ -83,7 +83,7 @@ export default function LentesTransitionsPage() {
                 <div className="bg-neutral-100 p-6 rounded-lg">
                   <h3 className="text-lg font-semibold mb-3 text-[#111]">3. Bloqueo de Luz Azul-Violeta</h3>
                   <p className="text-neutral-700 text-sm leading-relaxed">
-                    Las versiones más vanguardistas de Transitions también filtran la luz azul emitida tanto por el sol, como por las pantallas digitales (celulares, computadoras) y las luces LED de interiores.
+                    Las versiones más vanguardistas de Transitions también filtran la luz azul emitida tanto por el sol como por las pantallas digitales (celulares, computadoras) y las luces LED de interiores.
                   </p>
                 </div>
                 <div className="bg-neutral-100 p-6 rounded-lg">

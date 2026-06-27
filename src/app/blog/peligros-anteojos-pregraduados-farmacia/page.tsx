@@ -74,7 +74,7 @@ export default function PeligrosAnteojosFarmaciaPage() {
               Comprar estos lentes por impulso muchas veces retrasa una visita fundamental. Creer que con esto solucionás de raíz tu problema de presbicia o visión borrosa es un error muy frecuente que puede ocultar patologías subyacentes más graves.
             </p>
             <p className="text-[15px] leading-relaxed font-medium">
-              Nuestra recomendación número uno, siempre, es: visitá al médico oftalmólogo anualmente. Ellos son los únicos profesionales capacitados para evaluar el fondo de ojo, tomar la presión ocular, realizar diagnósticos médicos completos y prescribir la receta correcta.
+              Nuestra recomendación número uno, siempre, es: ¡visitá al médico oftalmólogo anualmente! Ellos son los únicos profesionales capacitados para evaluar el fondo de ojo, tomar la presión ocular, realizar diagnósticos médicos completos y prescribir la receta correcta.
             </p>
 
             <div className="border border-black/10 p-8 mt-16 text-center">

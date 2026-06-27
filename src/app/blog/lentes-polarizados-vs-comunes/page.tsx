@@ -42,7 +42,7 @@ export default function LentesPolarizadosVsComunes() {
               Los anteojos de sol tradicionales o &quot;comunes&quot; (siempre asumiendo que cuentan con filtro UV 100%, un requisito innegociable para tu salud ocular) simplemente reducen la cantidad general de luz que llega a tus ojos. En otras palabras, oscurecen el entorno de forma pareja. 
             </p>
             <p>
-              Esto te ayuda a sentir menos fatiga visual en días muy soleados, pero <strong>no eliminan el resplandor focalizado</strong> que rebota en superficies planas. Si el sol impacta contra el asfalto mojado, la nieve, o el capó de un auto en plena avenida, la luz se concentra y rebota directamente hacia tus ojos, causándote ese encandilamiento insoportable. Un lente común solo oscurecerá levemente ese reflejo, pero la molestia aguda y la dificultad en la visión seguirán ahí.
+              Esto te ayuda a sentir menos fatiga visual en días muy soleados, pero <strong>no eliminan el resplandor focalizado</strong> que rebota en superficies planas. Si el sol impacta contra el asfalto mojado, la nieve o el capó de un auto en plena avenida, la luz se concentra y rebota directamente hacia tus ojos, causándote ese encandilamiento insoportable. Un lente común solo oscurecerá levemente ese reflejo, pero la molestia aguda y la dificultad en la visión seguirán ahí.
             </p>
 
             <h2 className="text-2xl font-semibold text-slate-800 mt-8 mb-4">
@@ -81,7 +81,7 @@ export default function LentesPolarizadosVsComunes() {
               En resumen: Una inversión inteligente
             </h2>
             <p>
-              Si manejás habitualmente, hacés viajes largos o simplemente querés disfrutar del aire libre sin molestias, la inversión en cristales polarizados se traduce directamente en <strong>seguridad vial, confort y calidad de vida</strong>. Vení a visitarnos a Atelier Óptica con la receta de tu oftalmólogo y dejá que te mostremos la diferencia. ¡Te aseguramos que tu forma de ver el camino va a cambiar para siempre!
+              Si manejás habitualmente, hacés viajes largos o simplemente querés disfrutar del aire libre sin molestias, la inversión en cristales polarizados se traduce directamente en <strong>seguridad vial, confort y calidad de vida</strong>. ¡Vení a visitarnos a Atelier Óptica con la receta de tu oftalmólogo y dejá que te mostremos la diferencia! ¡Te aseguramos que tu forma de ver el camino va a cambiar para siempre!
             </p>
           </div>
         

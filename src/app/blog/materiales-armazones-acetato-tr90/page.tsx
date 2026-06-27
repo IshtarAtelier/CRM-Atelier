@@ -41,7 +41,7 @@ export default function MaterialesArmazonesPage() {
             <section className="border-t border-black/10 pt-12">
               <h2 className="text-2xl font-medium mb-6">1. Acetato Italiano (Acetato de Celulosa)</h2>
               <p className="mb-6">
-                El acetato es el monarca absoluto de la óptica premium. No es un plástico industrial; proviene de fibras naturales como el algodón y la madera, dándole propiedades excepcionales y un acabado único.
+                El acetato es el monarca absoluto de la óptica prémium. No es un plástico industrial; proviene de fibras naturales como el algodón y la madera, dándole propiedades excepcionales y un acabado único.
               </p>
               <ul className="list-disc pl-5 space-y-4 mb-6">
                 <li>
@@ -63,7 +63,7 @@ export default function MaterialesArmazonesPage() {
               </p>
               <ul className="list-disc pl-5 space-y-4 mb-6">
                 <li>
-                  <strong>Durabilidad:</strong> Excelente. Su resistencia depende de la aleación elegida. El titanio es, sin dudas, el campeón invicto: es irrompible, ultra liviano e inmune a la corrosión del sudor. A diferencia del acetato, el metal utiliza plaquetas nasales, lo que nos permite ajustar el anteojo al milímetro sobre el puente de tu nariz.
+                  <strong>Durabilidad:</strong> Excelente. Su resistencia depende de la aleación elegida. El titanio es, sin dudas, el campeón invicto: es irrompible, ultraliviano e inmune a la corrosión del sudor. A diferencia del acetato, el metal utiliza plaquetas nasales, lo que nos permite ajustar el anteojo al milímetro sobre el puente de tu nariz.
                 </li>
                 <li>
                   <strong>Estética:</strong> Minimalista, súper ligera y elegante. Despejan la mirada y aportan un estilo sutil, limpio y distinguido.

@@ -7,7 +7,7 @@ export const metadata: Metadata = {
   alternates: { canonical: '/blog/colores-cristales' },
   title: "Colores de Cristales para Lentes: Guía Definitiva | Atelier Óptica",
   description: "Descubrí qué color de cristal es ideal para tus anteojos. Guía experta de Atelier Óptica desde el Cerro de las Rosas, Córdoba. Envíos a toda Argentina.",
-  keywords: ["colores de cristales para anteojos", "lentes de sol con aumento", "óptica en Córdoba", "Cerro de las Rosas", "Nueva Córdoba", "anteojos de receta", "cristales entintados", "salud visual", "envíos a toda Argentina", "optica premium"],
+  keywords: ["colores de cristales para anteojos", "lentes de sol con aumento", "óptica en Córdoba", "Cerro de las Rosas", "Nueva Córdoba", "anteojos de receta", "cristales entintados", "salud visual", "envíos a toda Argentina", "óptica premium"],
 };
 
 export default function ColorsGuidePage() {

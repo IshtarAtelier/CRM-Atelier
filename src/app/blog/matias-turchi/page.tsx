@@ -12,7 +12,6 @@ export const metadata: Metadata = {
   keywords: [
     "lentes multifocales Córdoba", 
     "Essilor Expert Córdoba", 
-    "cristales Varilux", 
     "óptica Cerro de las Rosas", 
     "óptica Nueva Córdoba", 
     "anteojos progresivos", 
@@ -186,7 +185,7 @@ export default function MatiasTurchiPage() {
                 Agendá una consulta presencial exclusiva con Matías en nuestro local de <strong>Cerro de las Rosas</strong> (a minutos de <strong>Nueva Córdoba</strong>) para garantizar una adaptación perfecta y el mejor rendimiento de tu visión.
               </p>
               <a 
-                href={`https://wa.me/${WHATSAPP_PHONE}?text=Hola%2C%20quiero%20agendar%20un%20turno%20con%20Matias%20Turchi%20para%20multifocales`}
+                href={`https://wa.me/${WHATSAPP_PHONE}?text=Hola%2C%20quiero%20agendar%20un%20turno%20con%20Matías%20Turchi%20para%20multifocales`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center justify-center px-6 py-3 bg-[#faf8f5] text-black text-xs font-black uppercase tracking-widest hover:bg-stone-200 transition-colors rounded-full"

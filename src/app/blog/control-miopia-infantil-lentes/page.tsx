@@ -46,7 +46,7 @@ export default function ControlMiopiaInfantilPage() {
           </p>
           <ul className="list-disc pl-6 text-stone-700 space-y-2 mb-6">
             <li><strong>¿Cómo funcionan?</strong> Mientras el centro del lente corrige la visión para lograr nitidez perfecta, la corona de microlentes genera una señal volumétrica que frena el alargamiento excesivo del ojo, la causa principal del aumento de la miopía.</li>
-            <li><strong>Beneficios clave:</strong> Son cristales estéticos, ultra delgados, súper livianos y con una tasa de adaptación inmediata en los más chicos.</li>
+            <li><strong>Beneficios clave:</strong> Son cristales estéticos, ultradelgados, súper livianos y con una tasa de adaptación inmediata en los más chicos.</li>
           </ul>
 
           <h2 className="text-2xl font-serif text-stone-900 mt-10 mb-4">
@@ -76,10 +76,10 @@ export default function ControlMiopiaInfantilPage() {
           </ul>
 
           <h2 className="text-2xl font-serif text-stone-900 mt-10 mb-4">
-            Vení a visitarnos en Córdoba Capital
+            ¡Vení a visitarnos en Córdoba Capital!
           </h2>
           <p className="text-stone-700 leading-relaxed mb-8">
-            Si el oftalmopediatra ya evaluó a tu pequeño y te entregó la receta para iniciar el tratamiento de control de miopía, te esperamos en <strong>Atelier Óptica</strong>. Ya seas de zona norte, zona sur o del centro, acercate con tu receta y juntos encontraremos el armazón perfecto para acompañar tu tratamiento. ¡Te brindamos un asesoramiento cálido, estético y sumamente profesional! Además, realizamos <strong>envíos a toda Argentina</strong> y ofrecemos excelentes planes de financiación.
+            Si el oftalmopediatra ya evaluó a tu pequeño y te entregó la receta para iniciar el tratamiento de control de miopía, te esperamos en <strong>Atelier Óptica</strong>. Ya seas de zona norte, zona sur o del centro, acercáte con tu receta y juntos encontraremos el armazón perfecto para acompañar tu tratamiento. ¡Te brindamos un asesoramiento cálido, estético y sumamente profesional! Además, realizamos envíos a toda Argentina y ofrecemos excelentes planes de financiación.
           </p>
 
         

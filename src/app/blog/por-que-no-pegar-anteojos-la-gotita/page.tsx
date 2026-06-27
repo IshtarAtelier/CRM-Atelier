@@ -29,7 +29,7 @@ export default function BlogPegamentoAnteojos() {
 
         <div className="max-w-none text-[#433831] leading-relaxed space-y-6">
           <p className="text-lg">
-            A todos nos pasó: un mal movimiento, te sentás arriba de tus lentes, o simplemente resbalan al piso y... ¡crack! Se rompe el armazón. En medio de la desesperación por volver a ver bien, la primera reacción suele ser correr a buscar &quot;La Gotita&quot; u otro pegamento de cianoacrilato. <strong className="font-semibold">Frená ahí mismo.</strong> Es el peor error que podés cometer para la vida útil de tus anteojos.
+            A todos nos pasó: un mal movimiento, te sentás arriba de tus lentes, o simplemente resbalan al piso y... ¡crack! Se rompe el armazón. En medio de la desesperación por volver a ver bien, la primera reacción suele ser correr a buscar &quot;La Gotita&quot; u otro pegamento de cianoacrilato. <strong className="font-semibold">¡Frená ahí mismo!</strong> Es el peor error que podés cometer para la vida útil de tus anteojos.
           </p>
 
           <p>
@@ -42,7 +42,7 @@ export default function BlogPegamentoAnteojos() {
 
           <ul className="list-disc pl-6 space-y-3">
             <li>
-              <strong className="font-semibold">Arruina los cristales (sin vuelta atrás):</strong> Cuando el cianoacrilato se seca, libera vapores que se adhieren a las superficies cercanas. Si esos vapores tocan tus lentes, <em>queman</em> los tratamientos antirreflex y los filtros de protección. Esas manchas blancas no salen con nada; el cristal queda arruinado para siempre.
+              <strong className="font-semibold">Arruina los cristales (sin vuelta atrás):</strong> Cuando el cianoacrilato se seca, libera vapores que se adhieren a las superficies cercanas. Si esos vapores tocan tus lentes, <em>queman</em> los tratamientos antirreflejo y los filtros de protección. Esas manchas blancas no salen con nada; el cristal queda arruinado para siempre.
             </li>
             <li>
               <strong className="font-semibold">Derrite los armazones:</strong> Muchos marcos modernos y estéticos están hechos de acetato, inyección u otros polímeros. El pegamento genera una reacción química exotérmica (libera calor) que puede derretir o deformar el material del armazón, dejándolo completamente inservible.
@@ -57,7 +57,7 @@ export default function BlogPegamentoAnteojos() {
           </h2>
 
           <p>
-            Entendemos que necesitás tus anteojos graduados para tu rutina diaria, para trabajar o estudiar. Si no podés acercarte de inmediato a nuestra óptica, la solución casera más segura y menos destructiva es usar <strong className="font-semibold">cinta adhesiva</strong> (como cinta de papel o cinta transparente). Sí, estéticamente no es lo ideal, pero no genera reacciones químicas ni mancha los cristales de forma permanente. 
+            Entendemos que necesitás tus anteojos graduados para tu rutina diaria, para trabajar o estudiar. Si no podés acercarte de inmediato a nuestra óptica, la solución casera más segura y menos destructiva es usar <strong className="font-semibold">cinta adhesiva</strong> (como cinta de papel o cinta transparente). Sí, estéticamente no es lo ideal, pero no genera reacciones químicas ni mancha los cristales de forma permanente.
           </p>
           <p>
             Además, si se salió un tornillo o se desprendió una pequeña pieza, <strong className="font-semibold">guardá absolutamente todo en una bolsita o cajita</strong>. Hasta el pedacito más diminuto nos sirve a los profesionales ópticos para entender cómo reconstruir la estructura de manera impecable.
@@ -74,14 +74,14 @@ export default function BlogPegamentoAnteojos() {
           <ul className="list-disc pl-6 space-y-3">
             <li>Realizar <strong className="font-semibold">soldaduras de precisión</strong> en marcos de metal.</li>
             <li><strong className="font-semibold">Reemplazar piezas</strong> dañadas como patillas, bisagras, plaquetas y tornillos con repuestos de alta calidad.</li>
-            <li>Si el armazón original no tiene salvación pero tus cristales están intactos, muchas veces podemos <strong className="font-semibold">calibrar tus lentes</strong> en un armazón nuevo, ajustando la forma y medidas milimétricamente en nuestras biseladoras computarizadas.</li>
+            <li>Si el armazón original no tiene salvación, pero tus cristales están intactos, muchas veces podemos <strong className="font-semibold">calibrar tus lentes</strong> en un armazón nuevo, ajustando la forma y medidas milimétricamente en nuestras biseladoras computarizadas.</li>
           </ul>
 
           <div className="bg-white border border-stone-200 p-6 md:p-8 rounded-xl my-10 shadow-[0_2px_10px_rgba(0,0,0,0.02)] relative overflow-hidden">
             <div className="absolute top-0 left-0 w-1.5 h-full bg-[#c8a55c]"></div>
             <h3 className="font-medium tracking-tight text-lg text-[#433831] mb-3">Un recordatorio importante para tu salud visual</h3>
             <p className="text-stone-600 text-sm md:text-base leading-relaxed">
-              Recordá que en la óptica nos especializamos en el armado, reparación estética y calibración de tus anteojos basándonos en tu receta. <strong className="font-semibold">Es fundamental que visites a tu médico oftalmólogo de confianza al menos una vez al año</strong>. El oftalmólogo es el único profesional capacitado para evaluar la salud integral de tus ojos, diagnosticar condiciones visuales y emitir la receta. Una vez que tengas tu graduación actualizada, ¡te esperamos para brindarte la mejor asesoría estética y técnica!
+              Recordá que en la óptica nos especializamos en el armado, reparación estética y calibración de tus anteojos basándonos en tu receta. <strong className="font-semibold">Es fundamental que visités a tu médico oftalmólogo de confianza al menos una vez al año</strong>. El oftalmólogo es el único profesional capacitado para evaluar la salud integral de tus ojos, diagnosticar condiciones visuales y emitir la receta. Una vez que tengas tu graduación actualizada, ¡te esperamos para brindarte la mejor asesoría estética y técnica!
             </p>
           </div>
 

@@ -82,7 +82,7 @@ export default function SintomasPresbiciaPage() {
 
             <h2 className="text-2xl font-medium tracking-tight mt-10 mb-4 text-[#111]">Asesoramiento personalizado en Atelier Óptica</h2>
             <p className="mb-6 text-black/70 leading-relaxed">
-              Elegir el lente perfecto depende de tu receta, tu armazón ideal y tu rutina. Vení a visitarnos a nuestro local, o envianos tu receta por WhatsApp desde cualquier punto del país. Te vamos a explicar en detalle las diferencias entre las tecnologías disponibles para que tomes una decisión inteligente y a la medida de tus ojos.
+              Elegir el lente perfecto depende de tu receta, tu armazón ideal y tu rutina. Vení a visitarnos a nuestro local, o envianos tu receta por WhatsApp desde cualquier punto del país. Te vamos a explicar en detalle las diferencias entre las tecnologías disponibles para que tomés una decisión inteligente y a la medida de tus ojos.
             </p>
 
             <div className="mt-12 pt-8 border-t border-[#e8e2db] flex flex-col sm:flex-row gap-4 justify-center items-center">

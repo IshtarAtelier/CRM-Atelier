@@ -8,7 +8,7 @@ export const metadata: Metadata = {
   alternates: { canonical: '/blog/como-limpiar-anteojos-sin-rayar' },
   title: "Cómo limpiar anteojos sin rayar el cristal | Atelier Óptica",
   description: "Descubrí el método definitivo para limpiar tus lentes sin dañar el antirreflejo. Guía paso a paso, consejos de expertos en Córdoba y envíos a toda Argentina.",
-  keywords: ["como limpiar anteojos sin rayar", "limpiar lentes de sol", "cuidado de anteojos", "optica cordoba", "nueva cordoba", "cerro de las rosas", "anteojos de receta", "envios a toda argentina"],
+  keywords: ["cómo limpiar anteojos sin rayar", "limpiar lentes de sol", "cuidado de anteojos", "óptica Córdoba", "nueva Córdoba", "cerro de las rosas", "anteojos de receta", "envíos a toda Argentina"],
 };
 
 export default function ComoLimpiarAnteojosPage() {
@@ -37,7 +37,7 @@ export default function ComoLimpiarAnteojosPage() {
         {/* Contenido */}
         <article className="prose prose-lg max-w-none prose-headings:font-medium prose-headings:tracking-tight prose-a:text-black prose-a:underline-offset-4 hover:prose-a:opacity-70 prose-img:rounded-xl">
           <p className="lead text-xl text-black/80 font-medium">
-            Seguro te pasó: estás caminando por las calles de Nueva Córdoba o tomando un café en el Cerro de las Rosas, notás una manchita en el cristal, agarrás el borde de la remera y frotás sin pensar. Grave error. Si querés que tus anteojos te duren y que tratamientos como el antirreflejo sigan intactos, es momento de cambiar esas costumbres.
+            Seguro te pasó: estás caminando por las calles de Nueva Córdoba o tomando un café en el Cerro de las Rosas, notás una manchita en el cristal, agarrás el borde de la remera y frotás sin pensar. ¡Grave error! Si querés que tus anteojos te duren y que tratamientos como el antirreflejo sigan intactos, es momento de cambiar esas costumbres.
           </p>
 
           <p>
@@ -50,7 +50,7 @@ export default function ComoLimpiarAnteojosPage() {
           </p>
           <ul className="space-y-4 mb-8">
             <li>
-              <strong>El papel higiénico o las servilletas de papel:</strong> Están hechos de pulpa de madera. Básicamente, cuando limpiás tus lentes con papel, los estás lijando a nivel microscópico. Adiós a la claridad.
+              <strong>El papel higiénico o las servilletas de papel:</strong> Están hechos de pulpa de madera. Básicamente, cuando limpiás tus lentes con papel, los estás lijando a nivel microscópico. ¡Adiós a la claridad!
             </li>
             <li>
               <strong>La ropa (tu remera, camisa o bufanda):</strong> La tela acumula polvo y partículas abrasivas invisibles a simple vista. Además, los tejidos de la ropa no están diseñados para superficies ópticas delicadas.

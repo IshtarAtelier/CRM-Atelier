@@ -8,7 +8,7 @@ export const metadata: Metadata = {
   alternates: { canonical: '/blog/como-leer-receta-oftalmologica' },
   title: "Cómo Leer tu Receta Oftalmológica: Guía Paso a Paso | Atelier Óptica",
   description: "¿No entendés tu receta oftalmológica (OD, OI, Esfera, Cilindro)? Descubrí cómo interpretarla con nuestra guía. Asesoramiento en Cerro de las Rosas, Nueva Córdoba y envíos a toda Argentina.",
-  keywords: ["como leer receta oftalmologica", "receta de anteojos", "esfera cilindro eje", "óptica en Córdoba", "Cerro de las Rosas", "Nueva Córdoba", "anteojos de receta", "Atelier Óptica", "astigmatismo", "miopía", "presbicia"],
+  keywords: ["cómo leer receta oftalmológica", "receta de anteojos", "esfera cilindro eje", "óptica en Córdoba", "Cerro de las Rosas", "Nueva Córdoba", "anteojos de receta", "Atelier Óptica", "astigmatismo", "miopía", "presbicia"],
 };
 
 export default function LeerRecetaOftalmologicaPage() {

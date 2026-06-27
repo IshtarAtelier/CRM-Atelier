@@ -83,7 +83,7 @@ const faqs = [
     category: "Multifocales y Salud Visual General",
     questions: [
       {
-        question: "¿Cómo saber si necesito usar anteojos para leer?",
+        question: "¿Cómo sabés si necesitás usar anteojos para leer?",
         answer: "Si tenés más de 40 años y empezás a alejar el celular o los libros para verlos nítidos, necesitás más luz para leer, o sufrís de dolores de cabeza tras esfuerzo visual de cerca, es probable que tengas presbicia. Es momento de consultar a un oftalmólogo para una receta de lentes de cerca o multifocales.",
         link: "/blog/busquedas/como-saber-si-necesito-anteojos"
       },

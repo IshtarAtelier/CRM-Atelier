@@ -97,7 +97,7 @@ export default function FiltroAzulVsAntirreflejoPage() {
                 Te esperamos en nuestra óptica para brindarte el mejor asesoramiento personalizado. ¡Hacemos envíos a todo el país!
               </p>
               <a href="https://wa.me/5493518685644" target="_blank" rel="noopener noreferrer" 
-                className="inline-block bg-white text-[#111] font-semibold px-8 py-4 rounded-full hover:bg-neutral-100 transition-colors shadow-[0_2px_10px_rgba(0,0,0,0.02)]"
+                className="inline-block bg-white text-[#111] font-semibold px-8 py-4 rounded-full hover:bg-neutral-100 transition-colors shadow-[0_2px_10px_rgba(0,0,0,0.02)]]"
               >
                 Contactanos por WhatsApp
               </a>

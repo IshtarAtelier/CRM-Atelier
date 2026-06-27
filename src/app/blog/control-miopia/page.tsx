@@ -18,13 +18,13 @@ export default function MyopiaControlPage() {
       {/* HEADER MINIMALISTA ESTILO GM */}
       <header className="fixed top-0 w-full z-50 px-5 py-4 flex justify-between items-center bg-transparent mix-blend-difference text-white">
         <Link href="/blog" className="text-[13px] font-medium hover:opacity-60 transition-opacity" style={{ textShadow: "0 1px 3px rgba(0,0,0,0.3)" }}>
-          Back
+          Volver
         </Link>
         <Link href="/" className=" font-serif">
           ATELIER ÓPTICA
         </Link>
         <div className="flex gap-5">
-           <button className="text-[13px] font-medium hover:opacity-60 transition-opacity" style={{ textShadow: "0 1px 3px rgba(0,0,0,0.3)" }}>Cart(0)</button>
+           <button className="text-[13px] font-medium hover:opacity-60 transition-opacity" style={{ textShadow: "0 1px 3px rgba(0,0,0,0.3)" }}>Carrito (0)</button>
         </div>
       </header>
 
