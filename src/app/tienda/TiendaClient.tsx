@@ -157,6 +157,7 @@ export function TiendaClient({
       filtered = filtered.filter(p => p.gender?.toLowerCase() === 'unisex' || p.gender?.toLowerCase() === 'sin_genero' || p.gender?.toLowerCase() === 'no_gender' || !p.gender);
     }
   }
+
   if (searchQuery.trim()) {
     const q = searchQuery.toLowerCase().trim();
     filtered = filtered.filter(p => 
