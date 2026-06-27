@@ -701,28 +701,38 @@ export async function POST(req: Request) {
               encoding: 'base64'
             }];
           } catch (pdfErr) {
-            console.error("Error generating receipt PDF, sending email without it:", pdfErr);
+            console.error("[PAYWAY EMAIL] Error generating receipt PDF, sending email without it:", pdfErr);
           }
         }
 
-        // Enviar a cliente (asincrónico)
-        sendEmail({
-          to: customer.email,
-          subject: `Confirmación de Orden #${order.id} - Atelier Óptica`,
-          html: confirmationHtml,
-          attachments
-        }).catch(err => console.error("Error enviando email a cliente:", err));
+        // Enviar email al cliente (confirmación de pedido + recibo)
+        try {
+          await sendEmail({
+            to: customer.email,
+            subject: `Confirmación de Orden #${order.id.slice(-6).toUpperCase()} - Atelier Óptica`,
+            html: confirmationHtml,
+            attachments
+          });
+          console.log("[PAYWAY EMAIL] Email de confirmación enviado a cliente:", customer.email);
+        } catch (clientEmailErr) {
+          console.error("[PAYWAY EMAIL] Error enviando email a cliente:", clientEmailErr);
+        }
 
-        // Enviar a los administradores (asincrónico)
-        sendEmail({
-          to: adminEmails,
-          subject: `🛒 Nueva Compra Web - $${emailTotal.toLocaleString('es-AR')} - ${customer.firstName} ${customer.lastName}`,
-          html: adminHtml,
-          attachments
-        }).catch(err => console.error("Error enviando email a administradores:", err));
+        // Enviar email a los administradores (detalle de compra + recibo)
+        try {
+          await sendEmail({
+            to: adminEmails,
+            subject: `🛒 Nueva Compra Web - $${emailTotal.toLocaleString('es-AR')} - ${customer.firstName} ${customer.lastName}`,
+            html: adminHtml,
+            attachments
+          });
+          console.log("[PAYWAY EMAIL] Email de nueva compra enviado a administradores:", adminEmails);
+        } catch (adminEmailErr) {
+          console.error("[PAYWAY EMAIL] Error enviando email a administradores:", adminEmailErr);
+        }
       }
     } catch (emailErr) {
-      console.error("Error general procesando correos post-pago:", emailErr);
+      console.error("[PAYWAY EMAIL] Error general procesando correos post-pago:", emailErr);
     }
 
     return NextResponse.json({ 
