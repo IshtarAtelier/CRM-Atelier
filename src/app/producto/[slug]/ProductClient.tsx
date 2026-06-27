@@ -79,7 +79,7 @@ export function ProductClient({
       .catch(err => console.error("Error loading settings in product client:", err));
   }, []);
 
-  const whatsappPhoneId = settings ? settings.web_store_whatsapp_id : WHATSAPP_PHONE;
+  const whatsappPhoneId = (settings?.web_store_whatsapp_id || WHATSAPP_PHONE).replace(/\D/g, '');
   const cashDiscount = settings && settings.web_promo_cash_discount && !isNaN(Number(settings.web_promo_cash_discount)) ? Number(settings.web_promo_cash_discount) : 15;
   const installmentsText = settings ? settings.web_promo_installments : "6 cuotas sin interés";
 
