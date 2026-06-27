@@ -92,7 +92,7 @@ export default async function LentesDeSolPage({ searchParams }: { searchParams: 
   const materialsSet = new Set<string>();
   uniqueBrandsResult.forEach(wp => {
     const model = wp.product?.model || wp.name;
-    const { shape, material } = getProductAttributes(model);
+    const { shape, material } = getProductAttributes(model, wp.product?.seoTags);
     if (shape) {
       shape.split(',').forEach(s => shapesSet.add(s.trim()));
     }
@@ -108,7 +108,7 @@ export default async function LentesDeSolPage({ searchParams }: { searchParams: 
 
   const products = dbProducts.map(wp => {
     const modelCode = wp.product.model || wp.name;
-    const { shape, material } = getProductAttributes(modelCode);
+    const { shape, material } = getProductAttributes(modelCode, wp.product?.seoTags);
     return {
       id: wp.product.id,
       brand: wp.product.brand || 'Atelier',

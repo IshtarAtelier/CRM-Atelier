@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { X, Save, Package, Layers, DollarSign, Plus, Upload, Database, ChevronDown, CheckCircle2, ArrowRight, ChevronRight, Info } from 'lucide-react';
 import { PRODUCT_CATEGORIES } from '@/lib/constants';
 
-import { autoCorrectLab } from '@/utils/product-controllers';
+import { autoCorrectLab, getSelectedShapeFromTags, getSelectedMaterialFromTags, updateTagsWithShapeAndMaterial } from '@/utils/product-controllers';
 
 interface ProductFormProps {
     onClose: () => void;
@@ -806,6 +806,48 @@ export default function ProductForm({ onClose, onSuccess, isAdmin = false, uniqu
                                     </select>
                                 </div>
                             </div>
+                            {!isCristal && (
+                                <div className="space-y-2 flex gap-2 col-span-2">
+                                    <div className="flex-1">
+                                        <label className="text-[9px] font-black text-stone-400 uppercase tracking-widest ml-2">Forma del Armazón</label>
+                                        <select 
+                                            className="w-full px-3 py-3 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none focus:border-primary transition-all"
+                                            value={getSelectedShapeFromTags(formData.seoTags)}
+                                            onChange={e => {
+                                                const currentMaterial = getSelectedMaterialFromTags(formData.seoTags);
+                                                const updated = updateTagsWithShapeAndMaterial(formData.seoTags, e.target.value, currentMaterial);
+                                                setFormData({ ...formData, seoTags: updated });
+                                            }}
+                                        >
+                                            <option value="">Automático</option>
+                                            <option value="Cuadrado">Cuadrado</option>
+                                            <option value="Redondo">Redondo</option>
+                                            <option value="Cat-Eye">Cat-Eye</option>
+                                            <option value="Hexagonal">Hexagonal</option>
+                                            <option value="Aviador">Aviador</option>
+                                            <option value="XL">XL</option>
+                                        </select>
+                                    </div>
+                                    <div className="flex-1">
+                                        <label className="text-[9px] font-black text-stone-400 uppercase tracking-widest ml-2">Material</label>
+                                        <select 
+                                            className="w-full px-3 py-3 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none focus:border-primary transition-all"
+                                            value={getSelectedMaterialFromTags(formData.seoTags)}
+                                            onChange={e => {
+                                                const currentShape = getSelectedShapeFromTags(formData.seoTags);
+                                                const updated = updateTagsWithShapeAndMaterial(formData.seoTags, currentShape, e.target.value);
+                                                setFormData({ ...formData, seoTags: updated });
+                                            }}
+                                        >
+                                            <option value="">Automático</option>
+                                            <option value="Acetato">Acetato</option>
+                                            <option value="Metal">Metal</option>
+                                            <option value="Titanio">Titanio</option>
+                                            <option value="TR90">TR90</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div>
                 )}

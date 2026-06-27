@@ -53,36 +53,107 @@ export function autoCorrectIndex(index: string | null | undefined): string | nul
     return i;
 }
 
-export function getProductAttributes(modelName: string | null | undefined): { shape: string; material: string } {
+export function getProductAttributes(modelName: string | null | undefined, seoTags?: string | null | undefined): { shape: string; material: string } {
     const modelUpper = (modelName || '').toUpperCase().trim();
+    const tagsUpper = (seoTags || '').toUpperCase().trim();
     
-    // Material
-    let material = 'Metal';
-    if (modelUpper.includes('TG') || modelUpper.includes('TITANIUM') || modelUpper.includes('TITANIO')) {
+    // 1. Determine Material
+    let material = '';
+    if (tagsUpper.includes('TITANIO') || tagsUpper.includes('TITANIUM')) {
         material = 'Titanio';
-    } else if (modelUpper.includes('ACETATO') || modelUpper.includes('WJ5022') || modelUpper.includes('CAREY') || modelUpper.includes('VINTAGE') || ["57201LJH", "57202LJH", "BC3059", "FD88810", "FD88821", "P5783", "P5786", "P5787", "Q5005", "Q5205", "Q6013", "Q8013", "YF3090", "BC3063", "JYB238015 C2-1"].some(code => modelUpper.includes(code))) {
+    } else if (tagsUpper.includes('ACETATO')) {
         material = 'Acetato';
+    } else if (tagsUpper.includes('METAL')) {
+        material = 'Metal';
+    } else if (tagsUpper.includes('TR90') || tagsUpper.includes('TR-90')) {
+        material = 'TR90';
+    } else {
+        // Fallback to model code analysis
+        if (modelUpper.includes('TG') || modelUpper.includes('TITANIUM') || modelUpper.includes('TITANIO')) {
+            material = 'Titanio';
+        } else if (modelUpper.includes('ACETATO') || modelUpper.includes('WJ5022') || modelUpper.includes('CAREY') || modelUpper.includes('VINTAGE') || ["57201LJH", "57202LJH", "BC3059", "FD88810", "FD88821", "P5783", "P5786", "P5787", "Q5005", "Q5205", "Q6013", "Q8013", "YF3090", "BC3063", "JYB238015 C2-1"].some(code => modelUpper.includes(code))) {
+            material = 'Acetato';
+        } else {
+            material = 'Metal';
+        }
     }
     
-    // Forma
-    let shape = 'Cuadrado';
-    if (modelUpper.includes('3684')) {
-        shape = 'Cuadrado, XL';
-    } else if (modelUpper.includes('XL')) {
-        shape = 'XL';
-    } else if (modelUpper.includes('91501') || modelUpper.includes('901501') || modelUpper.includes('G7013') || modelUpper.includes('ZTGX')) {
-        shape = 'Cuadrado';
-    } else if (modelUpper.includes('AVIADOR')) {
-        shape = 'Aviador';
-    } else if (modelUpper.includes('238015')) {
-        shape = 'Cat-Eye, Hexagonal';
-    } else if (modelUpper.includes('69CE') || modelUpper.includes('69CD') || modelUpper.includes('238014') || modelUpper.includes('HEXAGONAL')) {
-        shape = 'Hexagonal';
-    } else if (modelUpper.includes('7015') || modelUpper.includes('3932') || modelUpper.includes('CAT-EYE') || modelUpper.includes('GATO')) {
+    // 2. Determine Shape
+    let shape = '';
+    if (tagsUpper.includes('CAT-EYE') || tagsUpper.includes('CATEYE') || tagsUpper.includes('GATO')) {
         shape = 'Cat-Eye';
-    } else if (modelUpper.includes('011') || modelUpper.includes('238013') || modelUpper.includes('5217') || modelUpper.includes('9030') || modelUpper.includes('REDONDO')) {
+    } else if (tagsUpper.includes('HEXAGONAL')) {
+        shape = 'Hexagonal';
+    } else if (tagsUpper.includes('REDONDO') || tagsUpper.includes('REDONDA')) {
         shape = 'Redondo';
+    } else if (tagsUpper.includes('AVIADOR')) {
+        shape = 'Aviador';
+    } else if (tagsUpper.includes('CUADRADO') || tagsUpper.includes('CUADRADA')) {
+        shape = 'Cuadrado';
+    } else if (tagsUpper.includes('XL')) {
+        shape = 'XL';
+    } else {
+        // Fallback to model code analysis
+        if (modelUpper.includes('3684')) {
+            shape = 'Cuadrado, XL';
+        } else if (modelUpper.includes('XL')) {
+            shape = 'XL';
+        } else if (modelUpper.includes('91501') || modelUpper.includes('901501') || modelUpper.includes('G7013') || modelUpper.includes('ZTGX')) {
+            shape = 'Cuadrado';
+        } else if (modelUpper.includes('AVIADOR')) {
+            shape = 'Aviador';
+        } else if (modelUpper.includes('238015')) {
+            shape = 'Cat-Eye, Hexagonal';
+        } else if (modelUpper.includes('69CE') || modelUpper.includes('69CD') || modelUpper.includes('238014') || modelUpper.includes('HEXAGONAL')) {
+            shape = 'Hexagonal';
+        } else if (modelUpper.includes('7015') || modelUpper.includes('3932') || modelUpper.includes('CAT-EYE') || modelUpper.includes('GATO')) {
+            shape = 'Cat-Eye';
+        } else if (modelUpper.includes('011') || modelUpper.includes('238013') || modelUpper.includes('5217') || modelUpper.includes('9030') || modelUpper.includes('REDONDO')) {
+            shape = 'Redondo';
+        } else {
+            shape = 'Cuadrado';
+        }
     }
     
     return { shape, material };
+}
+
+export function getSelectedShapeFromTags(tags: string | null | undefined): string {
+    if (!tags) return '';
+    const t = tags.toLowerCase();
+    if (t.includes('cat-eye') || t.includes('cateye')) return 'Cat-Eye';
+    if (t.includes('hexagonal')) return 'Hexagonal';
+    if (t.includes('redondo') || t.includes('redonda')) return 'Redondo';
+    if (t.includes('aviador')) return 'Aviador';
+    if (t.includes('cuadrado') || t.includes('cuadrada')) return 'Cuadrado';
+    if (t.includes('xl')) return 'XL';
+    return '';
+}
+
+export function getSelectedMaterialFromTags(tags: string | null | undefined): string {
+    if (!tags) return '';
+    const t = tags.toLowerCase();
+    if (t.includes('titanio') || t.includes('titanium')) return 'Titanio';
+    if (t.includes('acetato')) return 'Acetato';
+    if (t.includes('metal')) return 'Metal';
+    if (t.includes('tr90')) return 'TR90';
+    return '';
+}
+
+export function updateTagsWithShapeAndMaterial(tags: string | null | undefined, newShape: string, newMaterial: string): string {
+    const list = (tags || '').split(',').map(s => s.trim()).filter(Boolean);
+    
+    // Remove existing shape tags case-insensitively
+    const shapes = ['cat-eye', 'cateye', 'hexagonal', 'redondo', 'redonda', 'aviador', 'cuadrado', 'cuadrada', 'xl'];
+    let filtered = list.filter(t => !shapes.includes(t.toLowerCase()));
+    
+    // Remove existing material tags case-insensitively
+    const materials = ['titanio', 'titanium', 'acetato', 'metal', 'tr90'];
+    filtered = filtered.filter(t => !materials.includes(t.toLowerCase()));
+    
+    // Add new ones
+    if (newShape) filtered.push(newShape);
+    if (newMaterial) filtered.push(newMaterial);
+    
+    return filtered.join(', ');
 }

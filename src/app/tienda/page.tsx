@@ -54,7 +54,7 @@ export default async function TiendaPage() {
       brandsSet.add(wp.product.brand.toUpperCase());
     }
     const modelCode = wp.product?.model || wp.name || '';
-    const { shape, material } = getProductAttributes(modelCode);
+    const { shape, material } = getProductAttributes(modelCode, wp.product?.seoTags);
     if (shape) {
       shape.split(',').forEach(s => shapesSet.add(s.trim()));
     }
@@ -72,7 +72,7 @@ export default async function TiendaPage() {
   // 2) Map WebProducts to products format needed by storefront
   const mappedProducts = dbProducts.map(wp => {
     const modelCode = wp.product.model || wp.name || '';
-    const { shape, material } = getProductAttributes(modelCode);
+    const { shape, material } = getProductAttributes(modelCode, wp.product?.seoTags);
     
     // Check if it's XL
     const isXl = modelCode.toLowerCase().includes("91501") ||

@@ -159,7 +159,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
   }
 
   // Get material from product attributes
-  const { material } = getProductAttributes((product as any).modelCode || product.model);
+  const { material } = getProductAttributes((product as any).modelCode || product.model, (product as any).seoTags);
 
   // 1) Sibling variants query
   let variants: any[] = [];
@@ -182,7 +182,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
       
       variants = siblings
         .filter(s => {
-          const { material: siblingMaterial } = getProductAttributes(s.product.model);
+          const { material: siblingMaterial } = getProductAttributes(s.product.model, s.product.seoTags);
           return siblingMaterial === material;
         })
         .map(s => {
