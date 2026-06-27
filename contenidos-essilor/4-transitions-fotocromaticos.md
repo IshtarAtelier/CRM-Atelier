@@ -16,15 +16,13 @@ Como especialistas en salud visual integral en **Atelier Óptica** (ubicados en 
 
 <img src="/images/blog/anteojos-rosa-pastel.webp" alt="Inteligencia que Reacciona a la Luz" class="w-full rounded-3xl my-8 object-cover shadow-sm aspect-[16/9]" />
 
-
-
 Los lentes Transitions contienen trillones de moléculas fotocromáticas patentadas e incrustadas en su superficie. Cuando estas moléculas quedan expuestas a los rayos ultravioleta (UV) del sol, cambian su estructura y oscurecen el cristal gradualmente según la intensidad lumínica. Al entrar a un ambiente cerrado o bajo techo, la reacción se revierte y el lente vuelve a ser totalmente transparente de manera ágil y fluida.
 
 ### 3 Ventajas Clave de usar Transitions en Córdoba Capital
 
-1. **Protección UV Total e Invisible:** Bloquean el 100% de los rayos UVA y UVB, una característica fundamental para proteger tus retinas considerando el altísimo índice UV que padecemos en la provincia durante los meses de verano.
-2. **Defensa contra la Luz Azul-Violeta Nociva:** Filtran la luz azul perjudicial, tanto en interiores (frente a pantallas, celulares y luces LED) como en exteriores (el sol es el mayor emisor de luz azul). Ideal para quienes trabajan largas horas frente a la computadora.
-3. **Máximo Confort Visual:** Reducen dramáticamente el deslumbramiento y previenen dolores de cabeza tensionales ocasionados por fruncir el ceño al caminar por el centro de la ciudad o al manejar en horarios pico.
+1.  **Protección UV Total e Invisible:** Bloquean el 100% de los rayos UVA y UVB, una característica fundamental para proteger tus retinas considerando el altísimo índice UV que padecemos en la provincia durante los meses de verano.
+2.  **Defensa contra la Luz Azul-Violeta Nociva:** Filtran la luz azul perjudicial, tanto en interiores (frente a pantallas, celulares y luces LED) como en exteriores (el sol es el mayor emisor de luz azul). Ideal para quienes trabajan largas horas frente a la computadora.
+3.  **Máximo Confort Visual:** Reducen dramáticamente el deslumbramiento y previenen dolores de cabeza tensionales ocasionados por fruncir el ceño al caminar por el centro de la ciudad o al manejar en horarios pico.
 
 ## La Familia Transitions: Un Cristal Fotocromático para Cada Estilo de Vida
 
@@ -49,7 +47,6 @@ Te esperamos en nuestro exclusivo local ubicado en **José Luis de Tejeda 4380, 
 
 > **Dato de experto:** Podés adaptar la tecnología Transitions a tus anteojos monofocales (para miopía, astigmatismo o hipermetropía) o incluso integrarlos a tus lentes multifocales **Varilux** premium, eligiendo entre los armazones de diseño más exclusivos de nuestro catálogo.
 
-
 <div class="my-10 p-8 bg-stone-100 dark:bg-stone-900 rounded-3xl border border-black/5 flex flex-col md:flex-row gap-6 items-center hover:shadow-md transition-all duration-300">
     <img src="/images/blog/blog3_eligiendo.png" class="w-full md:w-1/3 aspect-[4/3] object-cover rounded-2xl m-0" alt="Inteligencia que Reacciona a la Luz" />
     <div class="flex-1">
@@ -57,7 +54,6 @@ Te esperamos en nuestro exclusivo local ubicado en **José Luis de Tejeda 4380, 
         <p class="text-sm text-stone-600 dark:text-stone-400 mt-3 m-0 leading-relaxed">Transitions® se adaptan automáticamente a cualquier cambio de luz: totalmente transparentes en interiores y oscuros como lentes de sol bajo el sol. Protección 100% contra rayos UVA y UVB.</p>
     </div>
 </div>
-
 
 ## FAQ: Preguntas Frecuentes de nuestros pacientes
 
@@ -140,4 +136,3 @@ La tecnología Transitions mantiene su rendimiento óptimo durante aproximadamen
     }
   ]
 }
-```

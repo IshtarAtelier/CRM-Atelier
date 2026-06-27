@@ -1,7 +1,7 @@
 ---
 title: 'Lentes Lineis 1.74 en Córdoba: El Fin del Efecto Fondo de Botella | Atelier Óptica'
 meta_description: 'Descubrí los lentes extra finos Lineis 1.74 de Essilor para miopía alta. Evitá los cristales gruesos en Córdoba Capital y Nueva Córdoba con Atelier Óptica.'
-slug: lentes-lineis-ultra-alto-indice-essilor-cordoba
+slug: lentes-lineis-ultra-alto-índice-essilor-córdoba
 ---
 
 # Lentes Lineis 1.74 en Córdoba: El Límite Absoluto de la Delgadez para Altas Miopías
@@ -14,25 +14,22 @@ Para estos casos de graduaciones extremas, la industria oftalmológica global de
 
 <img src="/images/blog/mostrador-marmol.webp" alt="La Máxima Reducción: Lineis 1.74®" class="w-full rounded-3xl my-8 object-cover shadow-sm aspect-[16/9]" />
 
-
-
-El estándar tradicional en las ópticas (el orgánico común) posee un índice de refracción de 1.50. El material Lineis eleva esa capacidad óptica al límite comercial de **1.74**. En palabras sencillas: permite una curvatura de la luz de altísima precisión utilizando un mínimo de masa. 
+El estándar tradicional en las ópticas (el orgánico común) posee un índice de refracción de 1.50. El material Lineis eleva esa capacidad óptica al límite comercial de **1.74**. En palabras sencillas: permite una curvatura de la luz de altísima precisión utilizando un mínimo de masa.
 
 ### Beneficios Visuales y Estéticos Exclusivos de los Cristales Lineis
 
-1. **Reducción Extrema del Grosor (Hasta un 50%):** Es, literalmente, el cristal plástico más delgado del mundo. En miopías altas, la diferencia entre un lente estándar que sobresale de la montura y un lente Lineis 1.74 que queda perfectamente integrado, marca un antes y un después.
-2. **Chau Peso en la Nariz:** Estos anteojos pesan hasta tres veces menos que los antiguos vidrios de alta compresión. Despedite de las marcas rojas en la nariz y de los dolores tensionales al final del día.
-3. **Diseño Asférico (Cero Deformación):** Su talla asférica aplanada elimina el efecto lupa. Tus ojos mantendrán su tamaño real y natural detrás del cristal, mejorando drásticamente tu estética facial.
+1.  **Reducción Extrema del Grosor (Hasta un 50%):** Es, literalmente, el cristal plástico más delgado del mundo. En miopías altas, la diferencia entre un lente estándar que sobresale de la montura y un lente Lineis 1.74 que queda perfectamente integrado, marca un antes y un después.
+2.  **Chau Peso en la Nariz:** Estos anteojos pesan hasta tres veces menos que los antiguos vidrios de alta compresión. Despedite de las marcas rojas en la nariz y de los dolores tensionales al final del día.
+3.  **Diseño Asférico (Cero Deformación):** Su talla asférica aplanada elimina el efecto lupa. Tus ojos mantendrán su tamaño real y natural detrás del cristal, mejorando drásticamente tu estética facial.
 
 ## ¿Dónde hacer lentes ultra finos Lineis 1.74 en Córdoba Capital?
 
 Un anteojo de esta complejidad técnica requiere algo innegociable: **Precisión**. De nada sirve invertir en el cristal más delgado del mundo si la óptica lo centra mal o elige una montura inadecuada.
 
-Al buscar una "óptica en Córdoba" para afinar cristales gruesos, te encontrarás con múltiples promesas. Sin embargo, como **Centro Essilor Expert en Córdoba**, nuestra propuesta es distinta. Ishtar Pissano y Matías Turchi, ópticos contactólogos directores de **Atelier Óptica** (José Luis de Tejeda 4380, Cerro de las Rosas), toman personalmente cada medida anatómica con tecnología digital de vanguardia. 
+Al buscar una "óptica en Córdoba" para afinar cristales gruesos, te encontrarás con múltiples promesas. Sin embargo, como **Centro Essilor Expert en Córdoba**, nuestra propuesta es distinta. Ishtar Pissano y Matías Turchi, ópticos contactólogos directores de **Atelier Óptica** (José Luis de Tejeda 4380, Cerro de las Rosas), toman personalmente cada medida anatómica con tecnología digital de vanguardia.
 
 *   Atendemos a pacientes de toda **Córdoba Capital**, incluyendo Nueva Córdoba, Centro y Zona Norte, además de recibir derivaciones oftalmológicas frecuentes de **Villa Allende, Río Ceballos, Alta Gracia, Villa Carlos Paz, La Calera y Jesús María**.
 *   **Un detalle clave:** Todo anteojo con cristales Lineis 1.74 debe combinarse obligatoriamente con tratamientos antirreflejo premium (como **Crizal Sapphire HR**). Al poseer un índice de refracción tan alto, la lente requiere de este recubrimiento para garantizar una transparencia óptica cristalina y eliminar brillos molestos.
-
 
 <div class="my-10 p-8 bg-stone-100 dark:bg-stone-900 rounded-3xl border border-black/5 flex flex-col md:flex-row gap-6 items-center hover:shadow-md transition-all duration-300">
     <img src="/images/blog/blog1_marcos.png" class="w-full md:w-1/3 aspect-[4/3] object-cover rounded-2xl m-0" alt="La Máxima Reducción: Lineis 1.74®" />
@@ -41,7 +38,6 @@ Al buscar una "óptica en Córdoba" para afinar cristales gruesos, te encontrar�
         <p class="text-sm text-stone-600 dark:text-stone-400 mt-3 m-0 leading-relaxed">El cristal orgánico más plano y delgado del mercado. Diseñado especialmente para miopías o hipermetropías elevadas, logrando lentes súper estéticos y un peso mínimo en tu rostro.</p>
     </div>
 </div>
-
 
 ## FAQ: Consultas de nuestros pacientes con miopía alta en Atelier Óptica
 
@@ -113,4 +109,3 @@ No es recomendable. Por su composición molecular, el material 1.74 es rígido y
     }
   ]
 }
-```

@@ -1,6 +1,6 @@
 ---
 title: "👉 Lentes Varilux: precios, beneficios y promociones "
-meta_description: "👉 Descubrí los lentes Varilux de Essilor en Atelier Óptica: precios, beneficios y promociones 2x1 en multifocales premium en Cordoba
+meta_description: "👉 Descubrí los lentes Varilux de Essilor en Atelier Óptica: precios, beneficios y promociones 2x1 en multifocales premium en Córdoba
 
 "
 slug: "lentes-varilux-9f7dbebda6cb"

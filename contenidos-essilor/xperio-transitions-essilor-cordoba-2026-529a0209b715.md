@@ -29,7 +29,7 @@ image_url: ""
 <p data-start="1501" data-end="1529">👉 Beneficios principales:</p>
 <ul data-start="1530" data-end="1825">
 <li data-start="1530" data-end="1596">
-<p data-start="1532" data-end="1596"><strong data-start="1532" data-end="1559">Adaptación ultra rápida</strong> → oscurecen y aclaran en segundos.</p>
+<p data-start="1532" data-end="1596"><strong data-start="1532" data-end="1559">Adaptación ultrarrápida</strong> → oscurecen y aclaran en segundos.</p>
 </li>
 <li data-start="1597" data-end="1665">
 <p data-start="1599" data-end="1665"><strong data-start="1599" data-end="1624">Colores más vibrantes</strong>, incluyendo nuevas opciones como Ruby.</p>

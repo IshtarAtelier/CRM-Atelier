@@ -14,11 +14,9 @@ En **Atelier Óptica**, tu óptica en Córdoba de confianza, ubicada estratégic
 
 <img src="/images/blog/vidriera-atelier.webp" alt="Visión sin Límites bajo el Sol" class="w-full rounded-3xl my-8 object-cover shadow-sm aspect-[16/9]" />
 
-
-
 Un cristal de sol estándar simplemente "oscurece" el entorno, reduciendo la cantidad total de luz que llega a tu ojo. El problema grave es que la luz natural rebota y se refleja en superficies horizontales (el asfalto hirviendo de la Av. Circunvalación, el capó de los autos, la arena o el agua), creando un **deslumbramiento cegador**.
 
-Ese resplandor blanco te obliga a entrecerrar los ojos de forma constante, generando fatiga visual y disminuyendo peligrosamente tu tiempo de reacción al volante. 
+Ese resplandor blanco te obliga a entrecerrar los ojos de forma constante, generando fatiga visual y disminuyendo peligrosamente tu tiempo de reacción al volante.
 
 ## El Filtro Inteligente Xperio: La Elección de Atelier Óptica
 
@@ -26,29 +24,28 @@ Las lentes polarizadas **Xperio de Essilor** funcionan como una "persiana micros
 
 ### Beneficios Clínicos y Visuales de Xperio:
 
-1. **Seguridad al Volante:** Estudios clínicos demuestran que los cristales Xperio mejoran el tiempo de reacción al conducir. A 80 km/h, esto significa poder frenar hasta **7 metros antes**. Una ventaja vital para las rutas y autopistas de Córdoba, Argentina.
-2. **Eliminación Total del Deslumbramiento:** Visión confortable, relajada y sin esfuerzo, incluso bajo el agresivo sol de pleno enero cordobés.
-3. **Colores Reales y Vivos:** A diferencia de otros polarizados baratos que "lavan" o apagan los colores de los árboles y el cielo, la tecnología Xperio realza el contraste hasta un 75% más que un lente común.
-4. **Protección UV de Nivel Médico (E-SPF 50+):** Bloquean el 100% de los peligrosos rayos UVA y UVB, protegiendo no solo tus ojos, sino también la delicada piel de tus párpados.
+1.  **Seguridad al Volante:** Estudios clínicos demuestran que los cristales Xperio mejoran el tiempo de reacción al conducir. A 80 km/h, esto significa poder frenar hasta **7 metros antes**. Una ventaja vital para las rutas y autopistas de Córdoba, Argentina.
+2.  **Eliminación Total del Deslumbramiento:** Visión confortable, relajada y sin esfuerzo, incluso bajo el agresivo sol de pleno enero cordobés.
+3.  **Colores Reales y Vivos:** A diferencia de otros polarizados baratos que "lavan" o apagan los colores de los árboles y el cielo, la tecnología Xperio realza el contraste hasta un 75% más que un lente común.
+4.  **Protección UV de Nivel Médico (E-SPF 50+):** Bloquean el 100% de los peligrosos rayos UVA y UVB, protegiendo no solo tus ojos, sino también la delicada piel de tus párpados.
 
 ## Diferencia entre Xperio y Polarizados Económicos
 
 Seguramente viste decenas de publicidades en redes sociales ofreciendo lentes polarizados muy económicos. ¿Dónde está la trampa?
 
-- **Fabricación por Inyección vs. Film Económico:** Los polarizados baratos (o las réplicas) utilizan una simple lámina de película pegada a la superficie del cristal. Con el intenso calor que hace adentro de un auto al sol en Córdoba, esa lámina se empieza a "descascarar" y deformar en pocos meses. 
-- **Durabilidad Extrema:** En cambio, la tecnología Xperio integra el filtro polarizado **dentro de la masa** del cristal, garantizando una vida útil prolongada, máxima resistencia y un rendimiento óptico inalterable.
+-   **Fabricación por Inyección vs. Film Económico:** Los polarizados baratos (o las réplicas) utilizan una simple lámina de película pegada a la superficie del cristal. Con el intenso calor que hace adentro de un auto al sol en Córdoba, esa lámina se empieza a "descascarar" y deformar en pocos meses.
+-   **Durabilidad Extrema:** En cambio, la tecnología Xperio integra el filtro polarizado **dentro de la masa** del cristal, garantizando una vida útil prolongada, máxima resistencia y un rendimiento óptico inalterable.
 
 ## ¿Dónde comprar lentes polarizados Xperio en Córdoba?
 
-Si estás buscando "anteojos en Córdoba, Argentina" que combinen diseño de vanguardia y la mejor tecnología óptica, la elección del profesional es fundamental. 
+Si estás buscando "anteojos en Córdoba, Argentina" que combinen diseño de vanguardia y la mejor tecnología óptica, la elección del profesional es fundamental.
 
-En nuestro laboratorio y showroom de **Atelier Óptica** (José Luis de Tejeda 4380, barrio Cerro de las Rosas, a minutos de Nueva Córdoba y el centro), nuestros ópticos contactólogos y especialistas Essilor Expert —Ishtar Pissano y Matías Turchi— se encargan de tallar los cristales Xperio a medida, con la graduación exacta de tu receta oftalmológica. 
+En nuestro laboratorio y showroom de **Atelier Óptica** (José Luis de Tejeda 4380, barrio Cerro de las Rosas, a minutos de Nueva Córdoba y el centro), nuestros ópticos contactólogos y especialistas Essilor Expert —Ishtar Pissano y Matías Turchi— se encargan de tallar los cristales Xperio a medida, con la graduación exacta de tu receta oftalmológica.
 
 Recibimos derivaciones constantes de pacientes de *Río Ceballos, Alta Gracia, Villa Allende y La Calera* que buscan armar sus **multifocales progresivos Varilux polarizados** para manejar con total seguridad o disfrutar del golf, el ciclismo y los deportes náuticos.
 
-- Podés personalizar tus Xperio eligiendo tonos clásicos como **Gris, Marrón o Verde G-15**.
-- Además, podés añadirles tratamientos **espejados (Xperio Mirrors)** en colores vibrantes, ideales para realzar tus anteojos envolventes deportivos.
-
+-   Podés personalizar tus Xperio eligiendo tonos clásicos como **Gris, Marrón o Verde G-15**.
+-   Además, podés añadirles tratamientos **espejados (Xperio Mirrors)** en colores vibrantes, ideales para realzar tus anteojos envolventes deportivos.
 
 <div class="my-10 p-8 bg-stone-100 dark:bg-stone-900 rounded-3xl border border-black/5 flex flex-col md:flex-row gap-6 items-center hover:shadow-md transition-all duration-300">
     <img src="/images/blog/blog5_cordoba.png" class="w-full md:w-1/3 aspect-[4/3] object-cover rounded-2xl m-0" alt="Visión sin Límites bajo el Sol" />
@@ -57,7 +54,6 @@ Recibimos derivaciones constantes de pacientes de *Río Ceballos, Alta Gracia, V
         <p class="text-sm text-stone-600 dark:text-stone-400 mt-3 m-0 leading-relaxed">A diferencia de los lentes de sol comunes, los cristales polarizados Xperio® eliminan el resplandor cegador que rebota en el asfalto, agua o nieve, brindando colores más reales y una nitidez inigualable.</p>
     </div>
 </div>
-
 
 ## FAQ: Preguntas Frecuentes sobre Cristales Polarizados
 
@@ -129,4 +125,3 @@ Debido a la naturaleza del filtro físico de polarización, algunas pantallas LC
     }
   ]
 }
-```

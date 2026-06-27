@@ -14,12 +14,10 @@ Para dar una respuesta definitiva a este problema visual y estético, Essilor de
 
 <img src="/images/blog/muestrario-smart-lens.webp" alt="Filtro Inteligente Blue UV Capture®" class="w-full rounded-3xl my-8 object-cover shadow-sm aspect-[16/9]" />
 
-
-
 Para comprender por qué Blue UV Capture supera a los "lentes Blue Cut" tradicionales que se comercializan masivamente, es fundamental entender cómo interactúa el cristal con la luz:
 
-1. **Filtros de Superficie (Ejemplo: Crizal Prevencia):** Actúan como un escudo espejado. La luz azul impacta contra las capas externas del lente y "rebota". Ese reflejo residual es el clásico destello violeta que observamos en el rostro de quien usa este tipo de anteojos.
-2. **Absorción Inteligente Integrada (Blue UV Capture):** En este caso, la protección no es un simple recubrimiento externo. Las moléculas protectoras están formuladas e incrustadas *dentro de la resina* del cristal. La luz azul nociva penetra y es absorbida directamente por el material. **Al no existir un rebote superficial, el lente carece de destellos morados y luce completamente cristalino.**
+1.  **Filtros de Superficie (Ejemplo: Crizal Prevencia):** Actúan como un escudo espejado. La luz azul impacta contra las capas externas del lente y "rebota". Ese reflejo residual es el clásico destello violeta que observamos en el rostro de quien usa este tipo de anteojos.
+2.  **Absorción Inteligente Integrada (Blue UV Capture):** En este caso, la protección no es un simple recubrimiento externo. Las moléculas protectoras están formuladas e incrustadas *dentro de la resina* del cristal. La luz azul nociva penetra y es absorbida directamente por el material. **Al no existir un rebote superficial, el lente carece de destellos morados y luce completamente cristalino.**
 
 ## Beneficios Reales de Blue UV Capture para tu Ritmo de Vida
 
@@ -37,7 +35,6 @@ Como **Centro Essilor Expert**, en **Atelier Óptica** (José Luis de Tejeda 438
 
 *   **Versatilidad total:** Podemos aplicar el núcleo protector **Blue UV Capture** a cualquier diseño de cristal: desde lentes orgánicos de descanso sin graduación (neutros), pasando por los innovadores monofocales **Eyezen**, hasta llegar a tus lentes multifocales **Varilux**.
 
-
 <div class="my-10 p-8 bg-stone-100 dark:bg-stone-900 rounded-3xl border border-black/5 flex flex-col md:flex-row gap-6 items-center hover:shadow-md transition-all duration-300">
     <img src="/images/blog/blog2_homeoffice.png" class="w-full md:w-1/3 aspect-[4/3] object-cover rounded-2xl m-0" alt="Filtro Inteligente Blue UV Capture®" />
     <div class="flex-1">
@@ -46,14 +43,13 @@ Como **Centro Essilor Expert**, en **Atelier Óptica** (José Luis de Tejeda 438
     </div>
 </div>
 
-
 ## Preguntas Frecuentes sobre Lentes con Filtro Azul
 
 ### ¿El filtro Blue UV Capture es mejor que Crizal Prevencia?
 No son competidores directos; ofrecen la misma protección mediante tecnologías distintas. Crizal Prevencia bloquea la luz por "rebote" (generando un leve reflejo violeta en la superficie). Blue UV Capture bloquea por "absorción" (manteniendo el lente ultra-transparente). Si priorizás una estética impecable y la pureza total de los colores, Blue UV Capture es para vos.
 
 ### ¿Puedo usar mis anteojos de descanso en la calle y al aire libre?
-Absolutamente. La tecnología Blue UV Capture no solo neutraliza la luz de las pantallas LED en interiores, sino que actúa como un escudo invisible en el exterior, bloqueando el 100% de la radiación Ultravioleta (UVA y UVB) emitida por el sol.
+¡Absolutamente! La tecnología Blue UV Capture no solo neutraliza la luz de las pantallas LED en interiores, sino que actúa como un escudo invisible en el exterior, bloqueando el 100% de la radiación Ultravioleta (UVA y UVB) emitida por el sol.
 
 ---
 
@@ -117,4 +113,3 @@ Absolutamente. La tecnología Blue UV Capture no solo neutraliza la luz de las p
     }
   ]
 }
-```

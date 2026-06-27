@@ -6,7 +6,7 @@ slug: lentes-conducir-drive-collection-essilor-cordoba
 
 # Lentes para Conducir en Córdoba: Seguridad Nocturna y Diurna al Volante
 
-Cualquier cordobés que maneje asiduamente sabe que las rutas de la provincia pueden ser un verdadero desafío visual. Volver del interior de noche por la Ruta 9 o transitar la Avenida Circunvalación significa, muchas veces, enfrentarse a una marea de luces LED y xenón de los autos que vienen de frente, generando un encandilamiento peligroso. Durante el día, el sol cayendo sobre las Sierras Chicas nos ciega casi por completo.
+Cualquier cordobés que maneje asiduamente sabés que las rutas de la provincia pueden ser un verdadero desafío visual. Volver del interior de noche por la Ruta 9 o transitar la Avenida Circunvalación significa, muchas veces, enfrentarse a una marea de luces LED y xenón de los autos que vienen de frente, generando un encandilamiento peligroso. Durante el día, el sol cayendo sobre las Sierras Chicas nos ciega casi por completo.
 
 Para garantizar tu seguridad y confort al volante, Essilor desarrolló la **Drive Collection**, un ecosistema de cristales específicos para las necesidades visuales del automovilista. En **Atelier Óptica**, ubicada en el corazón del **barrio Cerro de las Rosas**, diseñamos y armamos estos anteojos en Córdoba con precisión milimétrica para que tu tiempo de reacción en la ruta sea siempre óptimo.
 
@@ -14,13 +14,11 @@ Para garantizar tu seguridad y confort al volante, Essilor desarrolló la **Driv
 
 <img src="/images/blog/local-varilux.webp" alt="Seguridad y Confort en Ruta: Drive®" class="w-full rounded-3xl my-8 object-cover shadow-sm aspect-[16/9]" />
 
-
-
 El mayor inconveniente de la conducción nocturna es el "halo" que se forma alrededor de las luces artificiales modernas. Esta luz de onda corta satura la retina, causando fatiga visual y haciendo perder de vista los márgenes de la ruta, las señales de tránsito o a los peatones.
 
 ### La Solución Definitiva: Tratamiento Crizal Drive
 
-Muchas personas compran por internet "anteojos amarillos" para manejar de noche. **Esto es un gravísimo error clínico**, ya que el tinte amarillo distorsiona severamente la percepción de los colores, impidiendo distinguir con seguridad los tonos de los semáforos. 
+Muchas personas compran por internet "anteojos amarillos" para manejar de noche. **Esto es un gravísimo error clínico**, ya que el tinte amarillo distorsiona severamente la percepción de los colores, impidiendo distinguir con seguridad los tonos de los semáforos.
 
 Lo que verdaderamente recomendamos como especialistas es el tratamiento **Crizal Drive**. Se trata de un cristal 100% transparente, calibrado científicamente para absorber las ondas molestas de los faros LED y halógenos.
 
@@ -47,10 +45,9 @@ Manejar hacia Carlos Paz o las sierras a las 6 de la tarde con el sol de frente 
 
 Si tu seguridad vial y la de tu familia es una prioridad, no podés conformarte con comprar anteojos de sol genéricos en estaciones de servicio. Necesitás cristales graduados, certificados y perfectamente calibrados.
 
-**Atelier Óptica** (José Luis de Tejeda 4380) es tu Centro **Essilor Expert** de confianza en Córdoba. Recibimos diariamente a choferes, viajantes y particulares de toda la provincia, incluyendo **Jesús María, Río Ceballos, Alta Gracia, La Calera y Villa Allende**. 
+**Atelier Óptica** (José Luis de Tejeda 4380) es tu Centro **Essilor Expert** de confianza en Córdoba. Recibimos diariamente a choferes, viajantes y particulares de toda la provincia, incluyendo **Jesús María, Río Ceballos, Alta Gracia, La Calera y Villa Allende**.
 
 *   **Armado a medida:** Tomamos tus parámetros faciales digitales y posturales para que el tratamiento Crizal Drive o el multifocal Varilux Road Pilot queden perfectamente centrados en tu pupila, garantizando un rendimiento visual insuperable.
-
 
 <div class="my-10 p-8 bg-stone-100 dark:bg-stone-900 rounded-3xl border border-black/5 flex flex-col md:flex-row gap-6 items-center hover:shadow-md transition-all duration-300">
     <img src="/images/blog/blog5_cordoba.png" class="w-full md:w-1/3 aspect-[4/3] object-cover rounded-2xl m-0" alt="Seguridad y Confort en Ruta: Drive®" />
@@ -59,7 +56,6 @@ Si tu seguridad vial y la de tu familia es una prioridad, no podés conformarte 
         <p class="text-sm text-stone-600 dark:text-stone-400 mt-3 m-0 leading-relaxed">Los cristales adaptados para la conducción reducen hasta un 90% los reflejos molestos provocados por faros LED e iluminación urbana, permitiendo una visión de alto contraste y mayor tiempo de reacción.</p>
     </div>
 </div>
-
 
 ## FAQ: Preguntas Frecuentes de Automovilistas
 
@@ -131,4 +127,3 @@ No. Al ser un lente de sol polarizado fotocromático, siempre conserva un tono b
     }
   ]
 }
-```

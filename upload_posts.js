@@ -51,9 +51,16 @@ async function uploadPosts() {
                 image_url = parseField('image_url') || parseField('imageUrl');
             }
 
-            // Fallbacks
+            // Fallbacks & normalization
             if (!title) title = file.replace('.md', '').replace(/-/g, ' ').toUpperCase();
             if (!slug) slug = file.replace('.md', '');
+            
+            slug = slug.toLowerCase()
+                       .normalize("NFD")
+                       .replace(/[\u0300-\u036f]/g, "")
+                       .replace(/[^a-z0-9_-]/g, "-")
+                       .replace(/-+/g, '-')
+                       .replace(/^-+|-+$/g, '');
 
             // The excerpt can be the meta description
             const excerpt = meta_description || title;

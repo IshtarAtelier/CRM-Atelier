@@ -6,7 +6,7 @@ slug: "lentes-reducidos-ormix-16-essilor-cordoba"
 
 # Cristales Reducidos Ormix 1.6 en Córdoba: El Equilibrio Perfecto para tu Miopía
 
-Si usás anteojos y tenés una graduación media (entre -2.00 y -4.00 dioptrías), es probable que te hayas enfrentado a un problema muy común: al elegir un armazón metálico fino o de estilo aviador, **el borde del cristal sobresale de forma antiestética**. 
+Si usás anteojos y tenés una graduación media (entre -2.00 y -4.00 dioptrías), es probable que te hayas enfrentado a un problema muy común: al elegir un armazón metálico fino o de estilo aviador, **el borde del cristal sobresale de forma antiestética**.
 
 Para resolver este dilema sin recurrir a los altos costos de los materiales de ultra alta compresión, la respuesta de la ingeniería óptica es exacta: el material **Ormix (Índice de Refracción 1.60) de Essilor**.
 
@@ -16,23 +16,20 @@ En **Atelier Óptica**, tu óptica de confianza en el barrio Cerro de las Rosas 
 
 <img src="/images/blog/anteojos-rosa-pastel.webp" alt="El Equilibrio Perfecto: Ormix 1.6®" class="w-full rounded-3xl my-8 object-cover shadow-sm aspect-[16/9]" />
 
-
-
 El material Ormix se posiciona estratégicamente entre la resina orgánica estándar (índice 1.50) y los cristales de alta compresión (como el Stylis 1.67). Su formulación técnica avanzada ofrece tres beneficios inigualables para tus próximos anteojos:
 
-1. **Reducción Estética Notable (Más finos):** Los lentes Ormix son un **20% más delgados** que los orgánicos comunes. Ese porcentaje es, literalmente, la diferencia entre un lente que sobresale por fuera de la montura y uno que queda perfectamente disimulado dentro de un marco de metal elegante.
-2. **Calidad Óptica Superior (Visión sin aberraciones):** A diferencia del policarbonato, que suele presentar baja pureza óptica (generando halos de colores en los bordes), el material Ormix posee un altísimo "Valor Abbe". Esto se traduce en una visión cristalina y nítida. Es la opción ideal para profesionales cordobeses —como diseñadores, arquitectos, médicos o programadores— que exigen máxima precisión visual en su día a día.
-3. **Máxima Resistencia Mecánica:** Soporta altísimos niveles de tensión y perforación. Por lo tanto, es el material definitivo y **obligatorio** si querés armar tus lentes en armazones al aire (sin borde) o ranurados con tanza (medio marco), algo que el orgánico tradicional no tolera porque tiende a astillarse o romperse.
+1.  **Reducción Estética Notable (Más finos):** Los lentes Ormix son un **20% más delgados** que los orgánicos comunes. Ese porcentaje es, literalmente, la diferencia entre un lente que sobresale por fuera de la montura y uno que queda perfectamente disimulado dentro de un marco de metal elegante.
+2.  **Calidad Óptica Superior (Visión sin aberraciones):** A diferencia del policarbonato, que suele presentar baja pureza óptica (generando halos de colores en los bordes), el material Ormix posee un altísimo "Valor Abbe". Esto se traduce en una visión cristalina y nítida. Es la opción ideal para profesionales cordobeses —como diseñadores, arquitectos, médicos o programadores— que exigen máxima precisión visual en su día a día.
+3.  **Máxima Resistencia Mecánica:** Soporta altísimos niveles de tensión y perforación. Por lo tanto, es el material definitivo y **obligatorio** si querés armar tus lentes en armazones al aire (sin borde) o ranurados con tanza (medio marco), algo que el orgánico tradicional no tolera porque tiende a astillarse o romperse.
 
 ## Tu centro Essilor Expert para cristales finos en Córdoba
 
-Buscar "precio de lentes finos en Córdoba" en internet puede derivarte a laboratorios genéricos que comprimen el cristal, pero sacrifican drásticamente la calidad visual y la resistencia. 
+Buscar "precio de lentes finos en Córdoba" en internet puede derivarte a laboratorios genéricos que comprimen el cristal, pero sacrifican drásticamente la calidad visual y la resistencia.
 
-En **Atelier Óptica** somos categoría **Essilor Expert**. Esto garantiza que trabajamos exclusivamente con cristales Ormix 1.60 originales y con certificado de autenticidad. 
+En **Atelier Óptica** somos categoría **Essilor Expert**. Esto garantiza que trabajamos exclusivamente con cristales Ormix 1.60 originales y con certificado de autenticidad.
 
-* Nos enorgullece ser el punto de referencia en la **Zona Norte de Córdoba** (y para pacientes que nos visitan desde Villa Allende, La Calera, Río Ceballos y Alta Gracia) al momento de adaptar multifocales de alta gama **Varilux** o lentes antifatiga **Eyezen**.
-* Para proteger tu inversión, siempre sugerimos combinar la estética del material Ormix 1.60 con los tratamientos antirreflejo de excelencia **Crizal**, que brindan una repelencia superior contra rayas, polvo y suciedad.
-
+*   Nos enorgullece ser el punto de referencia en la **Zona Norte de Córdoba** (y para pacientes que nos visitan desde Villa Allende, La Calera, Río Ceballos y Alta Gracia) al momento de adaptar multifocales de alta gama **Varilux** o lentes antifatiga **Eyezen**.
+*   Para proteger tu inversión, siempre sugerimos combinar la estética del material Ormix 1.60 con los tratamientos antirreflejo de excelencia **Crizal**, que brindan una repelencia superior contra rayas, polvo y suciedad.
 
 <div class="my-10 p-8 bg-stone-100 dark:bg-stone-900 rounded-3xl border border-black/5 flex flex-col md:flex-row gap-6 items-center hover:shadow-md transition-all duration-300">
     <img src="/images/blog/blog1_marcos.png" class="w-full md:w-1/3 aspect-[4/3] object-cover rounded-2xl m-0" alt="El Equilibrio Perfecto: Ormix 1.6®" />
@@ -41,7 +38,6 @@ En **Atelier Óptica** somos categoría **Essilor Expert**. Esto garantiza que t
         <p class="text-sm text-stone-600 dark:text-stone-400 mt-3 m-0 leading-relaxed">Con un índice de refracción de 1.6, los cristales Ormix® son notablemente más delgados y resistentes que los orgánicos estándar. Ideales para armazones al aire (ranurados) y graduaciones moderadas.</p>
     </div>
 </div>
-
 
 ## Preguntas Frecuentes en nuestro Consultorio (FAQ)
 
@@ -113,4 +109,3 @@ La respuesta depende íntegramente del armazón que elijas. Si optás por un mar
     }
   ]
 }
-```

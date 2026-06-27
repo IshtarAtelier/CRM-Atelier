@@ -18,11 +18,11 @@ En **Atelier Óptica**, bajo la dirección de los ópticos contactólogos Ishtar
 
 Un tratamiento económico pierde su eficacia rápidamente: se descascara, se ensucia con facilidad y no resiste el ritmo de la vida diaria. En cambio, los cristales con **tecnología Crizal** utilizan nanotecnología avanzada aplicada en múltiples capas, ofreciendo cinco beneficios directos para tu confort visual:
 
-1. **Antirreflejo de Alta Eficiencia:** Elimina los brillos molestos y los destellos. Mejora drásticamente tu visión al manejar de noche y hace que el cristal se vea prácticamente invisible en fotos y videollamadas.
-2. **Resistencia Anti-Rayas:** Una protección fundamental contra micro-rayaduras, prolongando la vida útil de tus lentes de receta.
-3. **Hidrofóbico:** ¿Te sorprendió una tormenta de verano en la ciudad? Las gotas de agua resbalan sobre la lente sin dejar molestas marcas.
-4. **Oleofóbico:** Facilita la limpieza y repele la grasa de las huellas dactilares.
-5. **Antiestático:** Repele el polvillo ambiental, una ventaja clave para los días de viento en nuestra provincia.
+1.  **Antirreflejo de Alta Eficiencia:** Elimina los brillos molestos y los destellos. Mejora drásticamente tu visión al manejar de noche y hace que el cristal se vea prácticamente invisible en fotos y videollamadas.
+2.  **Resistencia Anti-Rayas:** Una protección fundamental contra micro-rayaduras, prolongando la vida útil de tus lentes de receta.
+3.  **Hidrofóbico:** ¿Te sorprendió una tormenta de verano en la ciudad? Las gotas de agua resbalan sobre la lente sin dejar molestas marcas.
+4.  **Oleofóbico:** Facilita la limpieza y repele la grasa de las huellas dactilares.
+5.  **Antiestático:** Repele el polvillo ambiental, una ventaja clave para los días de viento en nuestra provincia.
 
 ## La Familia Crizal en Atelier Óptica: Encontrá tu Cristal Ideal
 
@@ -44,7 +44,7 @@ Optimiza la visión al volante reduciendo hasta en un 90% los deslumbramientos p
 
 A la hora de cuidar tu salud visual, no te dejes engañar por réplicas o tratamientos de baja calidad. Como **Centro Essilor Expert en Córdoba**, en **Atelier Óptica** garantizamos la autenticidad de tus cristales, entregándote siempre el **Certificado de Autenticidad Crizal** correspondiente.
 
-* **Tu óptica de confianza en zona norte:** Te esperamos en **José Luis de Tejeda 4380, barrio Cerro de las Rosas**. Brindamos asesoramiento personalizado a pacientes de toda Córdoba Capital, Villa Allende, La Calera y alrededores que buscan calidad, garantía y estética inmejorable.
+*   **Tu óptica de confianza en zona norte:** Te esperamos en **José Luis de Tejeda 4380, barrio Cerro de las Rosas**. Brindamos asesoramiento personalizado a pacientes de toda Córdoba Capital, Villa Allende, La Calera y alrededores que buscan calidad, garantía y estética inmejorable.
 
 
 <div class="my-10 p-8 bg-stone-100 dark:bg-stone-900 rounded-3xl border border-black/5 flex flex-col md:flex-row gap-6 items-center hover:shadow-md transition-all duration-300">
@@ -126,4 +126,3 @@ Totalmente. Un antirreflejo genérico suele deteriorarse en pocos meses, lo que 
     }
   ]
 }
-```

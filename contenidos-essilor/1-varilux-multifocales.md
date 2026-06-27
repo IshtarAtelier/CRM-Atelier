@@ -14,8 +14,6 @@ En **Atelier Óptica**, ubicada estratégicamente en el corazón del **barrio Ce
 
 <img src="/images/blog/lentes-progresivos-zonas.png" alt="Tecnología de Vanguardia Varilux®" class="w-full rounded-3xl my-8 object-cover shadow-sm aspect-[16/9]" />
 
-
-
 Caminar por las veredas de Nueva Córdoba o bajar las escaleras de tu casa requiere una visión perfecta y natural. Mientras que un multifocal genérico o "de oferta" obliga a tu ojo a buscar un canal visual muy estrecho (causando mareos y el temido "efecto balanceo"), los cristales Varilux emplean un tallado digital *Freeform* que se adapta milimétricamente a tu fisonomía. Si buscás los mejores **anteojos en Córdoba, Argentina**, la calidad óptica no es negociable.
 
 ### Tecnologías exclusivas que adaptamos en nuestro laboratorio:
@@ -34,7 +32,7 @@ Como tu óptica y contactología de confianza, nuestros especialistas te guiará
 
 ## ¿Dónde comprar lentes progresivos Varilux en Córdoba Capital?
 
-Para que un lente Varilux funcione a la perfección, no alcanza únicamente con que el cristal sea original: **el secreto absoluto radica en la toma de medidas**. En **Atelier Óptica** calibramos tu Altura Pupilar, Distancia Nasopupilar y ángulo pantoscópico con instrumental de altísima precisión. 
+Para que un lente Varilux funcione a la perfección, no alcanza únicamente con que el cristal sea original: **el secreto absoluto radica en la toma de medidas**. En **Atelier Óptica** calibramos tu Altura Pupilar, Distancia Nasopupilar y ángulo pantoscópico con instrumental de altísima precisión.
 
 *   **Consultá precios de Varilux en Córdoba:** Escribinos por WhatsApp o visitanos en nuestro local en **José Luis de Tejeda 4380, barrio Cerro de las Rosas**. Contamos con promociones exclusivas (como 2x1 en multifocales Essilor seleccionados) y excelentes planes de financiación en cuotas.
 
@@ -118,4 +116,3 @@ Con las tecnologías antiguas, el proceso tomaba semanas. Hoy, gracias a la exac
     }
   ]
 }
-```

@@ -81,4 +81,4 @@ image_url: "/images/blog/tiendanube/header_lentes-multifocales-precios-argentina
 <p data-start="3407" data-end="3546">Los <strong data-start="3411" data-end="3434">lentes multifocales</strong> son la mejor solución para quienes quieren <strong data-start="3478" data-end="3543">resolver la visión de todas las distancias en un solo anteojo</strong>.</p>
 <p data-start="3548" data-end="3697">En <strong data-start="3551" data-end="3569">Atelier Óptica</strong> te asesoramos para elegir entre <strong data-start="3602" data-end="3651">Varilux, Smart Lens u opciones más accesibles</strong>, según tus necesidades y tu estilo de vida.</p>
 <p>&nbsp;</p>
-<p data-start="3699" data-end="3801"><a href="https://wa.me/5493541215971">👉 Conocé nuestros precios y promociones 2x1 en multifocales escribinos por whastapp.</a></p></body></html>
+<p data-start="3699" data-end="3801"><a href="https://wa.me/5493541215971">👉 Conocé nuestros precios y promociones 2x1 en multifocales escribinos por whatsapp.</a></p></body></html>

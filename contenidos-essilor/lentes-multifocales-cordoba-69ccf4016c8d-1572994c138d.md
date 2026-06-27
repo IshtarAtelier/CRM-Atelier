@@ -1,7 +1,6 @@
 ---
-title: "Lentes Multifocales en Córdoba Capital : que son y por qué elegirlas "
-meta_description: "Descubrí las diferencias entre lentes multifocales tradicionales y de alta gama. En Óptica Atelier Córdoba te asesoramos con Varilux, Kodak y más.
-"
+title: "Lentes Multifocales en Córdoba Capital: ¿Qué son y por qué elegirlas?"
+meta_description: "Descubrí las diferencias entre lentes multifocales tradicionales y de alta gama. En Óptica Atelier Córdoba te asesoramos con Varilux, Kodak y más."
 slug: "lentes-multifocales-cordoba-69ccf4016c8d-1572994c138d"
 image_url: "/images/blog/tiendanube/header_lentes-multifocales-cordoba-69ccf4016c8d-1572994c138d.jpg"
 ---

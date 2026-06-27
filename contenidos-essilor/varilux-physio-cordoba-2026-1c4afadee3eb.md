@@ -34,7 +34,7 @@ image_url: "/images/blog/tiendanube/header_varilux-physio-cordoba-2026-1c4afadee
 <hr data-start="1430" data-end="1433">
 <h2 data-start="1435" data-end="1485">🔹 Precio de Varilux Physio en Argentina 2026</h2>
 <p data-start="1487" data-end="1670">El <strong data-start="1490" data-end="1535">precio de los Varilux Physio en Argentina</strong> depende de la receta y de los tratamientos adicionales (antirreflejo, fotocromáticos <strong data-start="1621" data-end="1637">Transitions®</strong>, protección blue light, etc.).</p>
-<p data-start="1672" data-end="1830">💡 En <strong data-start="1678" data-end="1696">Atelier Óptica</strong> tenemos <strong data-start="1705" data-end="1740">promoción 2x1 en Varilux Physio</strong> y otras líneas premium, para que combines un par de uso diario con uno de sol graduado.</p>
+<p data-start="1672" data-end="1830">💡 En <strong data-start="1678" data-end="1696">Atelier Óptica</strong> tenemos <strong data-start="1705" data-end="1740">promoción 2x1 en Varilux Physio</strong> y otras líneas premium, para que combinés un par de uso diario con uno de sol graduado.</p>
 <p data-start="1832" data-end="1910">📍 Encontranos en <strong data-start="1850" data-end="1907">Cerro de las Rosas, José Luis de Tejeda 4380, Córdoba</strong>.</p>
 <hr data-start="1912" data-end="1915">
 <h2 data-start="1917" data-end="1966">🔹 Preguntas frecuentes sobre Varilux Physio</h2>

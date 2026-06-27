@@ -6,7 +6,7 @@ slug: "lentes-deportivos-graduados-sportwear-essilor-cordoba"
 
 # Lentes Deportivos Graduados en Córdoba: La Revolución de Essilor SportWear
 
-El fin de semana en **Córdoba, Argentina**, es sinónimo de salir al aire libre. Ya sea en un pelotón de ciclistas trepando el Pan de Azúcar, disputando un torneo de pádel en Villa Allende o sumando kilómetros como runner bordeando La Cañada. Pero para el deportista que necesita usar anteojos con graduación, la experiencia muchas veces se convierte en una frustración.
+El fin de semana en **Córdoba, Argentina**, es sinónimo de salir al aire libre. Ya sea en un pelotón de ciclistas trepando el Pan de Azúcar, disputando un torneo de pádel en Villa Allende o sumando kilómetros como runner bordeando La Cañada. Pero para el deportista que necesitás usar anteojos con graduación, la experiencia muchas veces se convierte en una frustración.
 
 Si usás lentes de contacto, el polvo, la tierra y el viento serrano terminan secando e irritando tus ojos. Si intentás ponerle un "clip interno" de aumento a tus lentes de sol deportivos, se empañan constantemente, rozan las pestañas y, lo más peligroso: **te marean cuando mirás de reojo**.
 
@@ -16,19 +16,17 @@ Para ponerle fin a estos problemas, Essilor desarrolló **SportWear**, un diseñ
 
 <img src="/images/blog/muestrario-smart-lens.webp" alt="Rendimiento y Protección Deportiva" class="w-full rounded-3xl my-8 object-cover shadow-sm aspect-[16/9]" />
 
+Las gafas deportivas de alto rendimiento son "envolventes". Tienen una curvatura extrema (conocida como Base 8) diseñada para abrazar tu cara, protegerte del viento cruzado y evitar que el sol se cuele por los laterales.
 
-
-Las gafas deportivas de alto rendimiento son "envolventes". Tienen una curvatura extrema (conocida como Base 8) diseñada para abrazar tu cara, protegerte del viento cruzado y evitar que el sol se cuele por los laterales. 
-
-El gran problema surge cuando a esa curva extrema intentás adaptarle cristales tradicionales con tu receta oftalmológica (ya sea para miopía, astigmatismo o hipermetropía). La física óptica es clara: al doblar el cristal, se induce un "astigmatismo oblicuo". 
+El gran problema surge cuando a esa curva extrema intentás adaptarle cristales tradicionales con tu receta oftalmológica (ya sea para miopía, astigmatismo o hipermetropía). La física óptica es clara: al doblar el cristal, se induce un "astigmatismo oblicuo".
 
 ¿Cuál es el resultado? Cuando vas en la bici y mirás por el rabillo del ojo hacia atrás para ver si viene otro ciclista o un auto, **el piso se ve hundido, las distancias se calculan mal y terminás con dolor de cabeza**.
 
 ## Tecnología SportWear: Precisión Digital y Compensación de Prisma
 
-Para poder graduar un anteojo curvo sin generar mareos, utilizamos el sistema inteligente **Essilor SportWear**. 
+Para poder graduar un anteojo curvo sin generar mareos, utilizamos el sistema inteligente **Essilor SportWear**.
 
-En nuestro laboratorio, tomamos tu receta original y el software de tallado digital recalcula punto por punto tu graduación, compensando matemáticamente la curvatura específica de tu marco deportivo. 
+En nuestro laboratorio, tomamos tu receta original y el software de tallado digital recalcula punto por punto tu graduación, compensando matemáticamente la curvatura específica de tu marco deportivo.
 
 *   **Visión Periférica Real:** Te permite mirar hacia los costados mientras corrés y ver el terreno nítido, eliminando el "efecto túnel" y las deformaciones visuales.
 *   **Material Inastillable:** Obligatoriamente, estas lentes se tallan en Policarbonato (Airwear). Ante cualquier caída o impacto en la montaña, el cristal no estallará, protegiendo tus ojos al 100%.
@@ -43,7 +41,6 @@ Fabricar y calibrar anteojos curvos con graduación no es una tarea estándar. R
 *   **Armamos tu propio marco:** Podemos tomar tu marco deportivo favorito (como Oakley, Rudy Project o SPY) y, si tiene aros independientes, instalarle tus nuevos cristales SportWear.
 *   **Tecnología Premium Adicional:** Te recomendamos potenciar tus lentes con tecnología fotocromática (**Transitions**, que se oscurece con el sol) o polarizados (**Xperio**, ideales para eliminar reflejos del asfalto o el agua), y sumarles el tratamiento **Optifog** para evitar que se empañen con tu propia transpiración.
 
-
 <div class="my-10 p-8 bg-stone-100 dark:bg-stone-900 rounded-3xl border border-black/5 flex flex-col md:flex-row gap-6 items-center hover:shadow-md transition-all duration-300">
     <img src="/images/blog/blog5_cordoba.png" class="w-full md:w-1/3 aspect-[4/3] object-cover rounded-2xl m-0" alt="Rendimiento y Protección Deportiva" />
     <div class="flex-1">
@@ -51,7 +48,6 @@ Fabricar y calibrar anteojos curvos con graduación no es una tarea estándar. R
         <p class="text-sm text-stone-600 dark:text-stone-400 mt-3 m-0 leading-relaxed">Los lentes de sol deportivos Sportwear® de Essilor están diseñados para resistir impactos y proporcionar el máximo contraste cromático al aire libre, mejorando tu rendimiento en ciclismo, running o golf.</p>
     </div>
 </div>
-
 
 ## FAQ: Preguntas Frecuentes de nuestros deportistas
 
@@ -123,4 +119,3 @@ Lamentablemente no. Para poder tallar tu graduación y montarla de forma segura 
     }
   ]
 }
-```
