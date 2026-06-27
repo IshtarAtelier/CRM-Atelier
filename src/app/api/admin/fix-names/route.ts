@@ -29,7 +29,6 @@ const NAME_MAPPING = {
   "TL5207 C4": "Niobe C4",
   "TL5208 C2": "Rhea C2",
   "TL5213 C4": "Semele C4",
-  "TL5217 C4": "Vesta C4",
   "M7011 C4": "Hebe C4",
   "M7027 C4": "Calliope C4",
   "M7033 C1": "Hestia C1",
