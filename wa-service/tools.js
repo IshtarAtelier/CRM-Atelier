@@ -311,7 +311,7 @@ async function getOrderStatus({ orderId, clientId }) {
             where: {
                 clientId: clientId,
                 isDeleted: false,
-                orderType: 'ORDER'
+                orderType: 'SALE'
             },
             include: {
                 payments: true
@@ -391,12 +391,13 @@ async function getOrderStatus({ orderId, clientId }) {
             params: { orderId }
         })
     );
-    const order = response.data;
+    const orderResponse = response.data;
     
-    if (!order || !order.found) {
+    if (!orderResponse || !orderResponse.found) {
         return { found: false, error: "Pedido no encontrado" };
     }
 
+    const order = orderResponse.order;
     const paid = (order.payments || []).reduce((acc, p) => acc + (p.amount || 0), 0);
     const total = order.total || 0;
     const balance = total - paid;

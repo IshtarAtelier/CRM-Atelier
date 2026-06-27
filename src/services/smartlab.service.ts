@@ -180,16 +180,21 @@ export class SmartLabService {
             // ── Obtener pedidos del CRM que son de Grupo Óptico y activos ──
             const crmOrders = await prisma.order.findMany({
                 where: {
-                    labOrderNumber: { not: null },
                     isDeleted: false,
                     orderType: 'SALE',
                     labStatus: { in: ['SENT', 'IN_PROGRESS'] },
+                    OR: [
+                        { labOrderNumber: { not: null } },
+                        { postSaleOrderOption: 'DIFFERENT', postSaleNewOrderNumber: { not: null } }
+                    ]
                 },
                 select: {
                     id: true,
                     labOrderNumber: true,
                     labStatus: true,
                     smartLabProgress: true,
+                    postSaleOrderOption: true,
+                    postSaleNewOrderNumber: true,
                     client: { select: { name: true } },
                     items: {
                         select: {
@@ -204,14 +209,16 @@ export class SmartLabService {
                     i.product?.category === 'Cristal' &&
                     /grupo[\s\-]?[oó]ptico/i.test(i.product?.laboratory || '')
                 );
-                return isGO && order.labOrderNumber && !/sin\s+(lab|numero|laboratorio)/i.test(order.labOrderNumber);
+                const activeNum = order.postSaleOrderOption === 'DIFFERENT' ? order.postSaleNewOrderNumber : order.labOrderNumber;
+                return isGO && activeNum && !/sin\s+(lab|numero|laboratorio)/i.test(activeNum);
             });
 
             console.log(`[SmartLab Sync] ${grupoOpticoOrders.length} pedidos Grupo Óptico activos`);
 
             const ordersToSearch: { crmOrder: typeof grupoOpticoOrders[0]; numbers: string[] }[] = [];
             for (const order of grupoOpticoOrders) {
-                const nums = order.labOrderNumber!.match(/\d{6,}/g) || [];
+                const activeNum = order.postSaleOrderOption === 'DIFFERENT' ? order.postSaleNewOrderNumber : order.labOrderNumber;
+                const nums = activeNum!.match(/\d{6,}/g) || [];
                 if (nums.length > 0) ordersToSearch.push({ crmOrder: order, numbers: nums });
             }
 

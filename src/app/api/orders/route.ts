@@ -167,6 +167,8 @@ export async function POST(request: Request) {
                                 productNameSnapshot: dbProd ? (dbProd.model || dbProd.name || null) : null,
                                 productBrandSnapshot: dbProd ? (dbProd.brand || null) : null,
                                 productCategorySnapshot: dbProd ? (dbProd.category || null) : null,
+                                productCostSnapshot: dbProd ? (dbProd.cost || 0) : null,
+                                laboratorySnapshot: dbProd ? (dbProd.laboratory || null) : null,
                             };
                         }),
                     },
@@ -240,6 +242,7 @@ export async function GET(request: Request) {
         const dateFrom = searchParams.get('dateFrom');
         const dateTo = searchParams.get('dateTo');
         const laboratory = searchParams.get('laboratory');
+        const hasPostSale = searchParams.get('hasPostSale') === 'true';
 
         // Base query conditions
         const where: any = { isDeleted: false };
@@ -255,6 +258,16 @@ export async function GET(request: Request) {
                         }
                     }
                 }
+            });
+        }
+
+        if (hasPostSale) {
+            andConditions.push({
+                OR: [
+                    { AND: [ { postSaleNotes: { not: null } }, { postSaleNotes: { not: '' } } ] },
+                    { postSaleCost: { gt: 0 } },
+                    { AND: [ { postSaleResponsible: { not: null } }, { postSaleResponsible: { not: '' } } ] }
+                ]
             });
         }
 
@@ -348,6 +361,11 @@ export async function GET(request: Request) {
             frameDbl: true,
             frameEdc: true,
             prescriptionId: true,
+            postSaleNotes: true,
+            postSaleCost: true,
+            postSaleResponsible: true,
+            postSaleOrderOption: true,
+            postSaleNewOrderNumber: true,
             isDeleted: true,
             client: { select: { id: true, name: true, phone: true, dni: true, email: true, status: true } },
             user: { select: { name: true } },

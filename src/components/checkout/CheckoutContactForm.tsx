@@ -60,9 +60,9 @@ export function CheckoutContactForm({ formData, handleChange }: { formData: any,
             name="phone" 
             value={formData.phone}
             required 
-            pattern="[0-9]{10,13}"
-            title="Ingresá un teléfono válido, incluyendo código de área sin el 15. Ej: 3511234567"
-            placeholder="WhatsApp (Ej: 3511234567)" 
+            pattern="^\+?[0-9]{9,15}$"
+            title="Ingresá un teléfono válido, incluyendo código de área (ej: +543511234567 o 3511234567)"
+            placeholder="WhatsApp (Ej: +543511234567)" 
             autoComplete="tel"
             className="w-full border border-stone-200 p-3 text-sm focus:border-black focus:focus:ring-2 focus:ring-amber-500 focus:outline-none transition-colors" 
             onChange={handleChange} 

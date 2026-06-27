@@ -56,6 +56,7 @@ model Client {
   @@index([phone])
   @@index([createdAt])
   @@index([dni])
+  @@index([isDeleted])
 }
 
 model CashMovement {
@@ -205,6 +206,7 @@ model Product {
   @@index([model])
   @@index([updatedAt])
   @@index([category])
+  @@index([publishToWeb])
 }
 
 model Order {
@@ -385,6 +387,7 @@ model WhatsAppChat {
 
   @@index([clientId])
   @@index([status])
+  @@index([lastMessageAt])
 }
 
 model WhatsAppMessage {

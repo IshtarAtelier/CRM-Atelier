@@ -34,9 +34,6 @@ const DEFAULT_TEMPLATES = [
     { type: 'MARKETING', name: 'Gestión de campañas', category: 'MARKETING' },
     { type: 'PROVEEDOR', name: 'Payway Costos de servicios', category: 'PROVEEDOR' },
     { type: 'PROVEEDOR', name: 'Payway Impuestos', category: 'PROVEEDOR' },
-    { type: 'PROVEEDOR', name: 'Laboratorio Optovision', category: 'PROVEEDOR' },
-    { type: 'PROVEEDOR', name: 'Laboratorio Grupo Óptico', category: 'PROVEEDOR' },
-    { type: 'PROVEEDOR', name: 'Cristaldo', category: 'PROVEEDOR' },
     { type: 'PROVEEDOR', name: 'Comisiones', category: 'PROVEEDOR' },
 ];
 
@@ -68,15 +65,16 @@ function ExpenseRow({ expense, onSave, onDelete }: { expense: any, onSave: (e: a
     return (
         <div className={`group flex items-center justify-between p-3 sm:p-4 transition-colors border-b border-stone-100 dark:border-stone-700 hover:bg-stone-50 dark:hover:bg-stone-700/50 ${isFocused ? 'bg-stone-50 dark:bg-stone-700/30' : ''}`}>
             <div className="flex items-center gap-3 flex-1 min-w-0 pr-4">
-                <div className={`flex-shrink-0 w-2 h-2 rounded-full ${isPending ? 'bg-red-400 animate-pulse' : 'bg-emerald-400'}`} />
-                <span className={`text-sm font-bold truncate ${isPending ? 'text-stone-500' : 'text-stone-800 dark:text-white'}`}>
-                    {expense.name}
+                <div className={`flex-shrink-0 w-2 h-2 rounded-full ${(isPending && !expense.isCalculated) ? 'bg-red-400 animate-pulse' : 'bg-emerald-400'}`} />
+                <span className={`text-sm font-bold truncate ${(isPending && !expense.isCalculated) ? 'text-stone-500' : 'text-stone-800 dark:text-white'}`}>
+                    {expense.name} 
+                    {expense.isCalculated && <span className="ml-2 text-[10px] bg-stone-200 dark:bg-stone-700 px-2 py-0.5 rounded-full text-stone-500 dark:text-stone-300 uppercase tracking-wider border border-stone-300 dark:border-stone-600">Calculado Automáticamente</span>}
                 </span>
             </div>
             
             <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
                 <div className="relative">
-                    <span className={`absolute left-3 top-1/2 -translate-y-1/2 font-black text-sm ${isPending && !amount ? 'text-red-400' : 'text-stone-400'}`}>$</span>
+                    <span className={`absolute left-3 top-1/2 -translate-y-1/2 font-black text-sm ${((isPending && !expense.isCalculated) && !amount) ? 'text-red-400' : 'text-stone-400'}`}>$</span>
                     <input 
                         type="number" 
                         value={amount}
@@ -85,20 +83,28 @@ function ExpenseRow({ expense, onSave, onDelete }: { expense: any, onSave: (e: a
                         onBlur={handleBlur}
                         onKeyDown={handleKeyDown}
                         placeholder="0"
+                        disabled={expense.isCalculated}
+                        title={expense.isCalculated ? "Este gasto se calcula automáticamente de las ventas del mes." : ""}
                         className={`w-28 sm:w-36 pl-7 pr-3 py-2 rounded-lg text-right font-black outline-none transition-all text-sm
-                            ${isPending 
-                                ? 'bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-900/50 placeholder:text-red-300 dark:placeholder:text-red-800 focus:ring-2 focus:ring-red-500/20' 
-                                : 'bg-stone-100 dark:bg-stone-900 text-stone-800 dark:text-white border border-stone-200 dark:border-stone-700 focus:border-primary focus:ring-2 focus:ring-primary/20'
+                            ${expense.isCalculated 
+                                ? 'bg-stone-200/50 dark:bg-stone-800 text-stone-600 dark:text-stone-300 border border-transparent cursor-not-allowed opacity-90' 
+                                : isPending 
+                                    ? 'bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-900/50 placeholder:text-red-300 dark:placeholder:text-red-800 focus:ring-2 focus:ring-red-500/20' 
+                                    : 'bg-stone-100 dark:bg-stone-900 text-stone-800 dark:text-white border border-stone-200 dark:border-stone-700 focus:border-primary focus:ring-2 focus:ring-primary/20'
                             }`}
                     />
                 </div>
-                <button 
-                    onClick={() => onDelete(expense)}
-                    className="p-2 text-stone-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg sm:opacity-0 group-hover:opacity-100 transition-all focus:opacity-100"
-                    title="Eliminar gasto"
-                >
-                    <Trash2 size={18} />
-                </button>
+                {!expense.isCalculated ? (
+                    <button 
+                        onClick={() => onDelete(expense)}
+                        className="p-2 text-stone-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg sm:opacity-0 group-hover:opacity-100 transition-all focus:opacity-100"
+                        title="Eliminar gasto"
+                    >
+                        <Trash2 size={18} />
+                    </button>
+                ) : (
+                    <div className="w-[34px]" /> // Spacer to align fields properly when no delete button exists
+                )}
             </div>
         </div>
     );

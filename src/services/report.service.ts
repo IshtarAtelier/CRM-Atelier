@@ -53,6 +53,7 @@ export class ReportService {
                 discountCard: true,
                 discount: true,
                 markup: true,
+                postSaleCost: true,
                 client: { select: { name: true, doctor: true } },
                 user: { select: { id: true, name: true } },
                 items: {
@@ -126,6 +127,7 @@ export class ReportService {
         let totalCostFrames = 0;
         let totalCostLenses = 0;
         let totalCostOther = 0;
+        let totalPostSaleCosts = 0;
         let totalPlatformFees = 0;
         let totalDoctorFees = 0;
         let totalSpecialDiscounts = 0;
@@ -168,13 +170,17 @@ export class ReportService {
             vendorStats[vId].revenue += orderPaidReal;
             vendorStats[vId].orders += 1;
 
+            const pSaleCost = order.postSaleCost || 0;
+            totalPostSaleCosts += pSaleCost;
+
             const date = new Date(order.labSentAt || order.createdAt);
             const monthKey = `${monthNames[date.getMonth()]} ${date.getFullYear()}`;
             if (!monthlyStats[monthKey]) monthlyStats[monthKey] = { revenue: 0, cost: 0, profit: 0, orders: 0 };
             monthlyStats[monthKey].revenue += orderPaidReal;
             monthlyStats[monthKey].orders += 1;
+            monthlyStats[monthKey].cost += pSaleCost;
 
-            let orderCMV = 0;
+            let orderCMV = pSaleCost;
             const orderItems: any[] = [];
             const orderProductTypes = new Set<string>();
             let paidCrystalsCount = 0;
@@ -347,7 +353,7 @@ export class ReportService {
             });
         }
 
-        const totalCosts = totalCostFrames + totalCostLenses + totalCostOther;
+        const totalCosts = totalCostFrames + totalCostLenses + totalCostOther + totalPostSaleCosts;
         const netProfit = totalRevenue - totalCosts - totalPlatformFees - totalDoctorFees - totalFixedCosts - totalMarketingCosts - totalSpecialDiscounts;
         const profitMargin = totalRevenue > 0 ? (netProfit / totalRevenue) * 100 : 0;
 
@@ -389,7 +395,7 @@ export class ReportService {
 
         return {
             summary: {
-                totalRevenue, totalCosts, totalCostFrames, totalCostLenses, totalCostOther,
+                totalRevenue, totalCosts, totalCostFrames, totalCostLenses, totalCostOther, totalPostSaleCosts,
                 totalPlatformFees, totalDoctorFees, totalFixedCosts, totalMarketingCosts, totalProviderCosts, totalSpecialDiscounts,
                 netProfit, profitMargin, totalPaid: totalRevenue, totalPending, totalMarkup, ordersCount: orders.length,
             },

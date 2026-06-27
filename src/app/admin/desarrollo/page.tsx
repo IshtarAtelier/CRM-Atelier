@@ -1,6 +1,6 @@
 'use client';
 
-import { ShoppingCart, Megaphone, Target, ArrowRight, Wrench } from "lucide-react";
+import { ShoppingCart, Megaphone, Target, ArrowRight, Wrench, ShieldAlert } from "lucide-react";
 import Link from "next/link";
 
 export default function DesarrolloPage() {
@@ -34,6 +34,16 @@ export default function DesarrolloPage() {
       textLight: "text-indigo-500",
       bgGlow: "bg-indigo-500/5",
       bgGlowHover: "group-hover:bg-indigo-500/10"
+    },
+    {
+      title: "Control de Post Venta",
+      description: "Historial de garantías, cambios, fallas y costos.",
+      icon: ShieldAlert,
+      href: "/admin/desarrollo/postventa",
+      bgLight: "bg-emerald-500/10",
+      textLight: "text-emerald-500",
+      bgGlow: "bg-emerald-500/5",
+      bgGlowHover: "group-hover:bg-emerald-500/10"
     }
   ];
 

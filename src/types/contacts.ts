@@ -53,6 +53,11 @@ export interface Order {
     paid: number;
     isDeleted?: boolean;
     deletedReason?: string | null;
+    postSaleNotes?: string | null;
+    postSaleCost?: number | null;
+    postSaleResponsible?: string | null;
+    postSaleOrderOption?: string | null;
+    postSaleNewOrderNumber?: string | null;
     createdAt: string;
     items: OrderItem[];
     payments?: Payment[];
