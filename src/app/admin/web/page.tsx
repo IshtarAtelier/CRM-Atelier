@@ -43,6 +43,7 @@ interface WebProduct {
     publishToWeb: boolean;
     imagenesCatalogo: string[];
     seoTags?: string | null;
+    gender?: string | null;
   };
 }
 
@@ -102,7 +103,8 @@ export default function WebManagementPage() {
     isActive: false,
     description: "",
     slug: "",
-    seoTags: ""
+    seoTags: "",
+    gender: ""
   });
 
   const renderStoryContent = (isFullscreen = false) => {
@@ -565,7 +567,8 @@ export default function WebManagementPage() {
       isActive: p.isActive,
       description: p.description || "",
       slug: p.slug,
-      seoTags: p.product.seoTags || ""
+      seoTags: p.product.seoTags || "",
+      gender: p.product.gender || ""
     });
   };
 
@@ -1713,6 +1716,65 @@ export default function WebManagementPage() {
                     value={productForm.slug}
                     onChange={e => setProductForm({ ...productForm, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-') })}
                   />
+                </div>
+              </div>
+
+              <div className="space-y-1.5 pb-2">
+                <label className="text-[9px] font-black text-stone-400 uppercase tracking-widest ml-2">Filtros de Género (Sección Web)</label>
+                <div className="flex flex-wrap gap-5 mt-1 ml-2">
+                  <label className="flex items-center gap-2 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={(productForm.gender || '').toLowerCase().includes('femenino')}
+                      onChange={e => {
+                        let list = (productForm.gender || '').split(',').map(s => s.trim()).filter(Boolean);
+                        if (e.target.checked) {
+                          if (!list.includes('Femenino')) list.push('Femenino');
+                        } else {
+                          list = list.filter(g => g !== 'Femenino');
+                        }
+                        setProductForm({ ...productForm, gender: list.join(', ') });
+                      }}
+                      className="w-4 h-4 rounded border-stone-300 text-primary focus:ring-primary accent-black"
+                    />
+                    <span className="text-xs font-bold text-stone-800 dark:text-stone-200">Mujer (Femme)</span>
+                  </label>
+                  
+                  <label className="flex items-center gap-2 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={(productForm.gender || '').toLowerCase().includes('masculino')}
+                      onChange={e => {
+                        let list = (productForm.gender || '').split(',').map(s => s.trim()).filter(Boolean);
+                        if (e.target.checked) {
+                          if (!list.includes('Masculino')) list.push('Masculino');
+                        } else {
+                          list = list.filter(g => g !== 'Masculino');
+                        }
+                        setProductForm({ ...productForm, gender: list.join(', ') });
+                      }}
+                      className="w-4 h-4 rounded border-stone-300 text-primary focus:ring-primary accent-black"
+                    />
+                    <span className="text-xs font-bold text-stone-800 dark:text-stone-200">Hombre (Homme)</span>
+                  </label>
+
+                  <label className="flex items-center gap-2 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={(productForm.gender || '').toLowerCase().includes('unisex')}
+                      onChange={e => {
+                        let list = (productForm.gender || '').split(',').map(s => s.trim()).filter(Boolean);
+                        if (e.target.checked) {
+                          if (!list.includes('Unisex')) list.push('Unisex');
+                        } else {
+                          list = list.filter(g => g !== 'Unisex');
+                        }
+                        setProductForm({ ...productForm, gender: list.join(', ') });
+                      }}
+                      className="w-4 h-4 rounded border-stone-300 text-primary focus:ring-primary accent-black"
+                    />
+                    <span className="text-xs font-bold text-stone-800 dark:text-stone-200">Unisex (No Gender)</span>
+                  </label>
                 </div>
               </div>
 

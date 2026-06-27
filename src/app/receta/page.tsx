@@ -30,6 +30,7 @@ export default async function RecetaPage({ searchParams }: { searchParams: Promi
   const sortParam = typeof resolvedParams.orden === 'string' ? resolvedParams.orden : 'recientes';
   const filterShape = typeof resolvedParams.forma === 'string' ? resolvedParams.forma : undefined;
   const filterMaterial = typeof resolvedParams.material === 'string' ? resolvedParams.material : undefined;
+  const filterGender = typeof resolvedParams.genero === 'string' ? resolvedParams.genero : undefined;
 
   // Base Where Clause
   const whereClause: any = { 
@@ -130,12 +131,13 @@ export default async function RecetaPage({ searchParams }: { searchParams: Promi
       slug: wp.slug,
       isFeatured: wp.isFeatured,
       shape,
-      material
+      material,
+      gender: wp.product.gender
     };
   });
 
   // Agregamos el producto de demostración de Carey Vintage si la lista está vacía para probar el grid y no hay filtros.
-  if (products.length === 0 && !filterBrand && !filterShape && !filterMaterial) {
+  if (products.length === 0 && !filterBrand && !filterShape && !filterMaterial && !filterGender) {
     const demoModel = "9030 (GLD)";
     const { shape, material } = getProductAttributes(demoModel);
     products.push({
@@ -150,11 +152,12 @@ export default async function RecetaPage({ searchParams }: { searchParams: Promi
       slug: "atelier-carey-vintage",
       isFeatured: true,
       shape,
-      material
+      material,
+      gender: "Unisex"
     } as any);
   }
 
-  // Apply shape and material filters in memory
+  // Apply shape, material, and gender filters in memory
   let filteredProducts = products;
   if (filterShape) {
     filteredProducts = filteredProducts.filter(p => {
@@ -165,6 +168,21 @@ export default async function RecetaPage({ searchParams }: { searchParams: Promi
   }
   if (filterMaterial) {
     filteredProducts = filteredProducts.filter(p => p.material.toLowerCase() === filterMaterial.toLowerCase());
+  }
+  if (filterGender) {
+    const fg = filterGender.toLowerCase();
+    filteredProducts = filteredProducts.filter(p => {
+      if (!p.gender) return true;
+      const g = p.gender.toLowerCase();
+      if (fg === 'femme') {
+        return g.includes('femenino') || g.includes('mujer') || g.includes('femme') || g.includes('unisex') || g.includes('sin_genero') || g.includes('no_gender');
+      } else if (fg === 'homme') {
+        return g.includes('masculino') || g.includes('hombre') || g.includes('homme') || g.includes('unisex') || g.includes('sin_genero') || g.includes('no_gender');
+      } else if (fg === 'no_gender') {
+        return g.includes('unisex') || g.includes('sin_genero') || g.includes('no_gender');
+      }
+      return true;
+    });
   }
 
   if (sortParam === 'forma') {

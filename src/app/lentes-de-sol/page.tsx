@@ -31,6 +31,7 @@ export default async function LentesDeSolPage({ searchParams }: { searchParams: 
   const sortParam = typeof resolvedParams.orden === 'string' ? resolvedParams.orden : 'recientes';
   const filterShape = typeof resolvedParams.forma === 'string' ? resolvedParams.forma : undefined;
   const filterMaterial = typeof resolvedParams.material === 'string' ? resolvedParams.material : undefined;
+  const filterGender = typeof resolvedParams.genero === 'string' ? resolvedParams.genero : undefined;
 
   // Base Where Clause
   const whereClause: any = { 
@@ -132,11 +133,12 @@ export default async function LentesDeSolPage({ searchParams }: { searchParams: 
       slug: wp.slug,
       isFeatured: wp.isFeatured,
       shape,
-      material
+      material,
+      gender: wp.product.gender
     };
   });
 
-  // Apply shape and material filters in memory
+  // Apply shape, material, and gender filters in memory
   let filteredProducts = products;
   if (filterShape) {
     filteredProducts = filteredProducts.filter(p => {
@@ -147,6 +149,21 @@ export default async function LentesDeSolPage({ searchParams }: { searchParams: 
   }
   if (filterMaterial) {
     filteredProducts = filteredProducts.filter(p => p.material.toLowerCase() === filterMaterial.toLowerCase());
+  }
+  if (filterGender) {
+    const fg = filterGender.toLowerCase();
+    filteredProducts = filteredProducts.filter(p => {
+      if (!p.gender) return true;
+      const g = p.gender.toLowerCase();
+      if (fg === 'femme') {
+        return g.includes('femenino') || g.includes('mujer') || g.includes('femme') || g.includes('unisex') || g.includes('sin_genero') || g.includes('no_gender');
+      } else if (fg === 'homme') {
+        return g.includes('masculino') || g.includes('hombre') || g.includes('homme') || g.includes('unisex') || g.includes('sin_genero') || g.includes('no_gender');
+      } else if (fg === 'no_gender') {
+        return g.includes('unisex') || g.includes('sin_genero') || g.includes('no_gender');
+      }
+      return true;
+    });
   }
 
   if (sortParam === 'forma') {

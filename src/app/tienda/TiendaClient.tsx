@@ -149,19 +149,18 @@ export function TiendaClient({
 
   if (filterGender) {
     const fg = filterGender.toLowerCase();
-    if (fg === 'femme') {
-      filtered = filtered.filter(p => 
-        p.gender?.toLowerCase() === 'femenino' || p.gender?.toLowerCase() === 'mujer' || p.gender?.toLowerCase() === 'femme' ||
-        p.gender?.toLowerCase() === 'unisex' || p.gender?.toLowerCase() === 'sin_genero' || p.gender?.toLowerCase() === 'no_gender' || !p.gender
-      );
-    } else if (fg === 'homme') {
-      filtered = filtered.filter(p => 
-        p.gender?.toLowerCase() === 'masculino' || p.gender?.toLowerCase() === 'hombre' || p.gender?.toLowerCase() === 'homme' ||
-        p.gender?.toLowerCase() === 'unisex' || p.gender?.toLowerCase() === 'sin_genero' || p.gender?.toLowerCase() === 'no_gender' || !p.gender
-      );
-    } else if (fg === 'no_gender') {
-      filtered = filtered.filter(p => p.gender?.toLowerCase() === 'unisex' || p.gender?.toLowerCase() === 'sin_genero' || p.gender?.toLowerCase() === 'no_gender' || !p.gender);
-    }
+    filtered = filtered.filter(p => {
+      if (!p.gender) return true;
+      const g = p.gender.toLowerCase();
+      if (fg === 'femme') {
+        return g.includes('femenino') || g.includes('mujer') || g.includes('femme') || g.includes('unisex') || g.includes('sin_genero') || g.includes('no_gender');
+      } else if (fg === 'homme') {
+        return g.includes('masculino') || g.includes('hombre') || g.includes('homme') || g.includes('unisex') || g.includes('sin_genero') || g.includes('no_gender');
+      } else if (fg === 'no_gender') {
+        return g.includes('unisex') || g.includes('sin_genero') || g.includes('no_gender');
+      }
+      return true;
+    });
   }
 
   if (searchQuery.trim()) {

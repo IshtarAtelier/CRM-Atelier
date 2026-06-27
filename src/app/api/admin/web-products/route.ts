@@ -17,6 +17,7 @@ export async function GET() {
                         imagenesCatalogo: true,
                         publishToWeb: true,
                         seoTags: true,
+                        gender: true,
                     }
                 }
             },
@@ -35,7 +36,7 @@ export async function GET() {
 export async function PATCH(request: Request) {
     try {
         const body = await request.json();
-        const { id, category, isFeatured, isActive, description, slug, seoTags } = body;
+        const { id, category, isFeatured, isActive, description, slug, seoTags, gender } = body;
 
         if (!id) {
             return NextResponse.json({ error: 'Falta el ID del WebProduct' }, { status: 400 });
@@ -62,10 +63,11 @@ export async function PATCH(request: Request) {
                 ...(isActive !== undefined ? { isActive } : {}),
                 ...(description !== undefined ? { description } : {}),
                 ...(slug !== undefined ? { slug: slug.toLowerCase().replace(/[^a-z0-9-]/g, '-') } : {}),
-                ...(seoTags !== undefined ? {
+                ...((seoTags !== undefined || gender !== undefined) ? {
                     product: {
                         update: {
-                            seoTags
+                            ...(seoTags !== undefined ? { seoTags } : {}),
+                            ...(gender !== undefined ? { gender } : {}),
                         }
                     }
                 } : {})
