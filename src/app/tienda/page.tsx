@@ -75,16 +75,8 @@ export default async function TiendaPage() {
     const { shape, material } = getProductAttributes(modelCode, wp.product?.seoTags);
     
     // Check if it's XL
-    const isXl = modelCode.toLowerCase().includes("91501") ||
-                 modelCode.toLowerCase().includes("238014") ||
-                 modelCode.toLowerCase().includes("238015") ||
-                 modelCode.toLowerCase().includes("3932") ||
-                 modelCode.toLowerCase().includes("g7013") ||
-                 wp.name?.toLowerCase().includes("athena") ||
-                 wp.name?.toLowerCase().includes("gaia") ||
-                 wp.name?.toLowerCase().includes("clio") ||
-                 wp.name?.toLowerCase().includes("minerva") ||
-                 wp.name?.toLowerCase().includes("artemis");
+    const isXl = ["9004M C3", "9004M C2", "TL3684 C4", "91501 C6"].some(code => modelCode.toUpperCase().includes(code)) ||
+                 ["dionisio", "poseidon", "selene-c4", "atelier-athena-3ytl", "poseidon-c3", "poseidon-c2"].includes(wp.slug);
 
     return {
       id: wp.product.id,
