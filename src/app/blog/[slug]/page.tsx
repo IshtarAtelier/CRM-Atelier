@@ -2,7 +2,7 @@
 import React from 'react';
 import { Metadata } from 'next';
 import Link from 'next/link';
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import { ArrowLeft, Calendar, Tag, ArrowRight, ShoppingBag } from 'lucide-react';
 import { StorefrontNavbar } from '@/components/Storefront/StorefrontNavbar';
 import { StorefrontFooter } from '@/components/Storefront/StorefrontFooter';
@@ -1342,8 +1342,34 @@ const posts: Record<string, Post> = {
   }
 };
 
+const SLUG_REDIRECTS: Record<string, string> = {
+  '1-varilux-multifocales': 'lentes-progresivos-varilux-multifocales-cordoba',
+  '2-crizal-antirreflejo': 'tratamientos-crizal-antirreflejante-essilor-cordoba',
+  '3-eyezen-pantallas': 'lentes-eyezen-fatiga-visual-pantallas-essilor-cordoba',
+  '4-transitions-fotocromaticos': 'lentes-fotocromaticos-transitions-essilor-cordoba',
+  '5-xperio-polarizados': 'lentes-polarizados-xperio-essilor-cordoba',
+  '6-stylis-alto-indice': 'lentes-stylis-alto-indice-essilor-cordoba',
+  '7-orma-organico': 'lentes-orma-organico-essilor-cordoba',
+  '8-airwear-policarbonato': 'lentes-airwear-policarbonato-essilor-cordoba',
+  '9-definity-progresivos': 'lentes-progresivos-definity-essilor-cordoba',
+  '10-ormix-1.6': 'lentes-reducidos-ormix-16-essilor-cordoba',
+  '11-lineis-alto-indice': 'lentes-lineis-ultra-alto-indice-essilor-cordoba',
+  '12-nikon-x-essilor': 'lentes-nikon-essilor-precision-optica-cordoba',
+  '13-miopia-infantil-sightglass': 'lentes-control-miopia-infantil-essilor-stellest-cordoba',
+  '14-blue-uv-luz-azul': 'lentes-filtro-luz-azul-blue-uv-capture-essilor-cordoba',
+  '15-optifog-antivaho': 'lentes-optifog-antivaho-essilor-cordoba',
+  '16-drive-collection': 'lentes-conducir-drive-collection-essilor-cordoba',
+  '17-sportwear-essilor': 'lentes-deportivos-graduados-sportwear-essilor-cordoba',
+  '18-lentes-ninos': 'lentes-para-ninos-essilor-cordoba'
+};
+
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const resolvedParams = await params;
+  
+  if (resolvedParams.slug in SLUG_REDIRECTS) {
+    redirect(`/blog/${SLUG_REDIRECTS[resolvedParams.slug]}`);
+  }
+
   const post = await getPostBySlug(resolvedParams.slug);
   
   if (!post) {
@@ -1370,6 +1396,11 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 
 export default async function BlogPostPage({ params }: { params: Promise<{ slug: string }> }) {
   const resolvedParams = await params;
+  
+  if (resolvedParams.slug in SLUG_REDIRECTS) {
+    redirect(`/blog/${SLUG_REDIRECTS[resolvedParams.slug]}`);
+  }
+
   const post = await getPostBySlug(resolvedParams.slug);
 
   if (!post) {
