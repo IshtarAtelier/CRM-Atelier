@@ -114,6 +114,23 @@ export default function InventarioPage() {
                 setUserRole(u.role || 'STAFF');
             }
         } catch { }
+
+        // Fetch verified user session role from API
+        fetch('/api/auth/me')
+            .then(res => {
+                if (res.ok) return res.json();
+                throw new Error("Unauthorized");
+            })
+            .then(data => {
+                if (data && data.role) {
+                    setUserRole(data.role);
+                    // Sync localStorage
+                    localStorage.setItem('user', JSON.stringify(data));
+                }
+            })
+            .catch(err => {
+                console.error("Error loading user role from session:", err);
+            });
         
         fetch('/api/laboratories').then(r => r.json()).then(d => {
             if(d.laboratories) setLabsConfig(d.laboratories);
