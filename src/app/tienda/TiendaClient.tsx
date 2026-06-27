@@ -392,9 +392,11 @@ export function TiendaClient({
                             priority={index < 4}
                             sizes="(max-width: 768px) 50vw, (max-width: 1280px) 33vw, 25vw"
                             className={`object-contain mix-blend-multiply transition-opacity duration-500 ease-in-out ${
-                              ((p.model || '').toLowerCase().includes('tl3932 c3') || (p.model || '').toLowerCase().includes('diana') || p.id === 'cmq5d11hf002rhy61fhvqs7nj')
+                              ((p.model || '').toLowerCase().includes('tl3932 c3') || p.id === 'cmq5d11hf002rhy61fhvqs7nj')
                                 ? "scale-125"
-                                : "scale-100"
+                                : (p.model || '').toLowerCase().includes('diana')
+                                  ? "scale-110"
+                                  : "scale-100"
                             } ${hasSecondImage ? 'md:group-hover:opacity-0' : ''}`}
                           />
                         </div>
