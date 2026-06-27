@@ -588,13 +588,13 @@ export async function POST(req: Request) {
             street1: customer.address || "N/A"
           },
           items: sanitizedItems.map(item => {
-            const unitPrice = Math.round(item.price * 100);
+            const itemUnitPrice = Math.round(item.price * 100);
             return {
-              productSKU: item.productId || 'generic',
-              productName: item.model || 'Producto',
-              quantity: item.quantity,
-              unitPrice: unitPrice,
-              totalAmount: unitPrice * item.quantity
+              code: String(item.productId || 'generic').substring(0, 255),
+              description: String(item.model || 'Producto').substring(0, 255),
+              quantity: Number(item.quantity) || 1,
+              unit_price: itemUnitPrice,
+              total_amount: itemUnitPrice * (Number(item.quantity) || 1)
             };
           })
         }
