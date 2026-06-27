@@ -552,7 +552,7 @@ export async function POST(req: Request) {
       payment_type: "single",
       sub_payments: [],
       fraud_detection: {
-        send_to_cs: true,
+        send_to_cs: false,
         channel: "Web",
         bill_to: {
           city: customer.city || "N/A",
