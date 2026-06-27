@@ -24,6 +24,14 @@ const FRAMES = [
     credit: "Sandro Botticelli",
   },
   {
+    id: "dali",
+    src: "/images/editorial/filmmaker-dali.webp",
+    title: "La Persistencia",
+    subtitle: "Marco Carey · Detalles en Oro",
+    year: "S. XX",
+    credit: "Salvador Dalí",
+  },
+  {
     id: "pearl",
     src: "/images/editorial/filmmaker-pearl.webp",
     title: "La Chica de la Perla",
