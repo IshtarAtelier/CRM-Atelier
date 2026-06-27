@@ -43,7 +43,7 @@ async function getProduct(slug: string) {
     if (webProduct && webProduct.isActive) {
       return {
         id: webProduct.product.id,
-        brand: webProduct.product.brand || 'Atelier',
+        brand: 'ATELIER',
         model: webProduct.name || webProduct.product.model || '',
         modelCode: webProduct.product.model,
         price: webProduct.product.price,
@@ -75,7 +75,7 @@ async function getProduct(slug: string) {
 
     return {
       id: product.id,
-      brand: product.brand || 'Atelier',
+      brand: 'ATELIER',
       model: product.model || 'Sin modelo',
       modelCode: product.model,
       price: product.price,
@@ -214,7 +214,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
     });
     relatedProducts = siblings.map(wp => ({
       id: wp.product.id,
-      brand: wp.product.brand || 'Atelier',
+      brand: 'ATELIER',
       model: wp.name || wp.product.model || '',
       price: wp.product.price,
       wholesalePrice: wp.product.wholesalePrice,

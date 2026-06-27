@@ -88,7 +88,7 @@ export default async function TiendaPage() {
 
     return {
       id: wp.product.id,
-      brand: wp.product.brand || 'Atelier',
+      brand: 'ATELIER',
       model: wp.name || modelCode,
       modelCode: modelCode,
       category: wp.category,

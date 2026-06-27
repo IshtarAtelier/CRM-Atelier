@@ -109,7 +109,7 @@ export default async function RecetaPage({ searchParams }: { searchParams: Promi
     const { shape, material } = getProductAttributes(modelCode, wp.product?.seoTags);
     return {
       id: wp.product.id,
-      brand: wp.product.brand || 'Atelier',
+      brand: 'ATELIER',
       model: wp.name || modelCode,
       modelCode: modelCode,
       price: wp.product.price,

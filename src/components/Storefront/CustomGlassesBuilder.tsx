@@ -392,7 +392,7 @@ export function CustomGlassesBuilder({ products }: { products: Product[] }) {
             </div>
             
             {/* Pills de Selección de Marcas */}
-            {uniqueBrands.length > 2 && (
+            {uniqueBrands.length > 10 && (
               <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
                 {uniqueBrands.map(brand => (
                   <button

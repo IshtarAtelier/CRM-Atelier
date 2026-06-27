@@ -120,7 +120,7 @@ export default async function Home() {
             : (wp.product.imagenesCatalogo.length > 0 ? resolveStorageUrl(wp.product.imagenesCatalogo[0]) : '/images/og-image.jpg')),
       slug: wp.slug,
       stock: wp.product.stock,
-      brand: wp.product.brand,
+      brand: 'ATELIER',
       model: wp.product.model,
       secondImg: wp.images.length > 1 
         ? resolveStorageUrl(wp.images[1])

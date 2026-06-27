@@ -38,7 +38,7 @@ export async function GET() {
         const mappedProducts = products.map(p => ({
             id: p.id,
             name: p.name,
-            brand: p.brand,
+            brand: 'ATELIER',
             model: p.model,
             category: p.category,
             price: p.price,

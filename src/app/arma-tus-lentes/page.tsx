@@ -30,7 +30,7 @@ export default async function ArmaTusLentesPage() {
 
   const products = dbProducts.map(wp => ({
     id: wp.product.id,
-    brand: wp.product.brand || 'Atelier',
+    brand: 'ATELIER',
     model: wp.name || wp.product.model || '',
     price: wp.product.price,
     stock: wp.product.stock,

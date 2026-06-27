@@ -312,7 +312,7 @@ export function ProductFilters({
               )}
 
               {/* Sección Marca */}
-              {availableBrands.length > 0 && (
+              {availableBrands.length > 1 && (
                 <div>
                   <h3 className="text-xs font-bold text-stone-900 dark:text-stone-200 uppercase tracking-[0.2em] mb-4 border-t lg:border-none pt-8 lg:pt-0">
                     Marca
