@@ -12,6 +12,10 @@ En **Atelier Óptica**, tu óptica en Córdoba de confianza, ubicada estratégic
 
 ## ¿Por qué los anteojos de sol comunes fallan en la ruta?
 
+<img src="/images/blog/vidriera-atelier.webp" alt="Visión sin Límites bajo el Sol" class="w-full rounded-3xl my-8 object-cover shadow-sm aspect-[16/9]" />
+
+
+
 Un cristal de sol estándar simplemente "oscurece" el entorno, reduciendo la cantidad total de luz que llega a tu ojo. El problema grave es que la luz natural rebota y se refleja en superficies horizontales (el asfalto hirviendo de la Av. Circunvalación, el capó de los autos, la arena o el agua), creando un **deslumbramiento cegador**.
 
 Ese resplandor blanco te obliga a entrecerrar los ojos de forma constante, generando fatiga visual y disminuyendo peligrosamente tu tiempo de reacción al volante. 
@@ -44,6 +48,16 @@ Recibimos derivaciones constantes de pacientes de *Río Ceballos, Alta Gracia, V
 
 - Podés personalizar tus Xperio eligiendo tonos clásicos como **Gris, Marrón o Verde G-15**.
 - Además, podés añadirles tratamientos **espejados (Xperio Mirrors)** en colores vibrantes, ideales para realzar tus anteojos envolventes deportivos.
+
+
+<div class="my-10 p-8 bg-stone-100 dark:bg-stone-900 rounded-3xl border border-black/5 flex flex-col md:flex-row gap-6 items-center hover:shadow-md transition-all duration-300">
+    <img src="/images/blog/blog5_cordoba.png" class="w-full md:w-1/3 aspect-[4/3] object-cover rounded-2xl m-0" alt="Visión sin Límites bajo el Sol" />
+    <div class="flex-1">
+        <h4 class="font-medium text-xl text-stone-900 dark:text-white m-0">Visión sin Límites bajo el Sol</h4>
+        <p class="text-sm text-stone-600 dark:text-stone-400 mt-3 m-0 leading-relaxed">A diferencia de los lentes de sol comunes, los cristales polarizados Xperio® eliminan el resplandor cegador que rebota en el asfalto, agua o nieve, brindando colores más reales y una nitidez inigualable.</p>
+    </div>
+</div>
+
 
 ## FAQ: Preguntas Frecuentes sobre Cristales Polarizados
 

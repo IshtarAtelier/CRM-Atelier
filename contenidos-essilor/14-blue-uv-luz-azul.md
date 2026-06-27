@@ -12,6 +12,10 @@ Para dar una respuesta definitiva a este problema visual y estético, Essilor de
 
 ## Tratamiento de Superficie vs. Absorción en Masa: ¿Cuál es la diferencia?
 
+<img src="/images/blog/muestrario-smart-lens.webp" alt="Filtro Inteligente Blue UV Capture®" class="w-full rounded-3xl my-8 object-cover shadow-sm aspect-[16/9]" />
+
+
+
 Para comprender por qué Blue UV Capture supera a los "lentes Blue Cut" tradicionales que se comercializan masivamente, es fundamental entender cómo interactúa el cristal con la luz:
 
 1. **Filtros de Superficie (Ejemplo: Crizal Prevencia):** Actúan como un escudo espejado. La luz azul impacta contra las capas externas del lente y "rebota". Ese reflejo residual es el clásico destello violeta que observamos en el rostro de quien usa este tipo de anteojos.
@@ -32,6 +36,16 @@ Buscar "anteojos para computadora precio Córdoba" suele arrojar cientos de resu
 Como **Centro Essilor Expert**, en **Atelier Óptica** (José Luis de Tejeda 4380, Córdoba) te garantizamos que tus cristales serán procesados y certificados por los laboratorios oficiales de Essilor. Recibimos diariamente a estudiantes y profesionales de **Córdoba Capital, Villa Carlos Paz, Alta Gracia, Río Ceballos, Villa Allende y Jesús María** que buscan máxima calidad óptica.
 
 *   **Versatilidad total:** Podemos aplicar el núcleo protector **Blue UV Capture** a cualquier diseño de cristal: desde lentes orgánicos de descanso sin graduación (neutros), pasando por los innovadores monofocales **Eyezen**, hasta llegar a tus lentes multifocales **Varilux**.
+
+
+<div class="my-10 p-8 bg-stone-100 dark:bg-stone-900 rounded-3xl border border-black/5 flex flex-col md:flex-row gap-6 items-center hover:shadow-md transition-all duration-300">
+    <img src="/images/blog/blog2_homeoffice.png" class="w-full md:w-1/3 aspect-[4/3] object-cover rounded-2xl m-0" alt="Filtro Inteligente Blue UV Capture®" />
+    <div class="flex-1">
+        <h4 class="font-medium text-xl text-stone-900 dark:text-white m-0">Filtro Inteligente Blue UV Capture®</h4>
+        <p class="text-sm text-stone-600 dark:text-stone-400 mt-3 m-0 leading-relaxed">Bloquea de forma inteligente la luz azul-violeta nociva emitida por las pantallas y luces LED, pero permite el paso de la luz azul-turquesa beneficiosa, sin alterar los colores reales y manteniendo el cristal totalmente transparente.</p>
+    </div>
+</div>
+
 
 ## Preguntas Frecuentes sobre Lentes con Filtro Azul
 

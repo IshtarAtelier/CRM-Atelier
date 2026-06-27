@@ -14,6 +14,10 @@ En **Atelier Óptica**, liderados por nuestros ópticos y contactólogos especia
 
 ## La Tecnología H.A.L.T. detrás de los Anteojos Essilor Stellest
 
+<img src="/images/blog/vidriera-atelier.webp" alt="Control de Miopía Infantil Avanzado" class="w-full rounded-3xl my-8 object-cover shadow-sm aspect-[16/9]" />
+
+
+
 A simple vista, un cristal Stellest parece una lente de receta común que podrías encargar en cualquier óptica en Córdoba, Argentina. Pero si lo observás a trasluz con detenimiento, descubrirás una auténtica obra maestra de la microingeniería óptica.
 
 *   **1021 Microlentes Invisibles:** El cristal cuenta con un centro óptico perfecto por donde el niño obtiene una visión nítida de lejos. Alrededor de esta zona, se despliegan 11 anillos concéntricos formados por diminutas "lupas" (tecnología H.A.L.T., por sus siglas en inglés).
@@ -31,6 +35,16 @@ En **Atelier Óptica** (José Luis de Tejeda 4380, en pleno corazón del Cerro d
 1.  **Seguridad Infantil Primero:** Los lentes Stellest se tallan de forma obligatoria en material **Airwear (policarbonato)** ultrarresistente e inastillable. Tu hijo estará protegido contra impactos durante los recreos, el deporte o el juego.
 2.  **Toma de Medidas Digitales:** El centrado pupilar de este lente terapéutico no admite un milímetro de margen de error. Lo realizamos con tecnología de alta precisión para asegurar que la mirada cruce exactamente por el centro óptico.
 3.  **Seguimiento Personalizado:** Ishtar Pissano y Matías Turchi acompañan de cerca el proceso de adaptación visual del niño durante los primeros meses, brindando tranquilidad a toda la familia.
+
+
+<div class="my-10 p-8 bg-stone-100 dark:bg-stone-900 rounded-3xl border border-black/5 flex flex-col md:flex-row gap-6 items-center hover:shadow-md transition-all duration-300">
+    <img src="/images/blog/blog4_leyendo.png" class="w-full md:w-1/3 aspect-[4/3] object-cover rounded-2xl m-0" alt="Control de Miopía Infantil Avanzado" />
+    <div class="flex-1">
+        <h4 class="font-medium text-xl text-stone-900 dark:text-white m-0">Control de Miopía Infantil Avanzado</h4>
+        <p class="text-sm text-stone-600 dark:text-stone-400 mt-3 m-0 leading-relaxed">El crecimiento de la miopía en niños puede frenarse gracias a la tecnología de lentes especializados como Stellest® de Essilor. Ayudá a proteger la salud visual futura de tus hijos.</p>
+    </div>
+</div>
+
 
 ## FAQ: Preguntas frecuentes de madres y padres sobre el tratamiento
 

@@ -12,6 +12,10 @@ El resultado de esta *joint venture* es una de las líneas de cristales premium 
 
 ## El Secreto Japonés: Cálculo Asférico NODE
 
+<img src="/images/blog/local-varilux.webp" alt="Precisión Japonesa Nikon®" class="w-full rounded-3xl my-8 object-cover shadow-sm aspect-[16/9]" />
+
+
+
 La mayoría de los laboratorios tradicionales de anteojos en Córdoba, Argentina, trabajan con cristales "esféricos". Esto significa que la lente posee una curva estándar, similar a la forma de una esfera. ¿El mayor inconveniente? Cuando mirás de reojo, las orillas del cristal distorsionan la imagen, generando un molesto "efecto túnel" o mareos.
 
 Para solucionar este desafío, Nikon aplicó los algoritmos matemáticos de sus cámaras réflex y creó el sistema **NODE (Nikon Optical Design Engine)**:
@@ -38,6 +42,16 @@ Buscar "dónde venden lentes Nikon en Córdoba" suele arrojar pocas respuestas a
 En **Atelier Óptica**, nuestra especialista Ishtar Pissano (Óptica Contactóloga) se asegura de que el centro óptico exacto de tus pupilas coincida al milímetro con el centro del diseño asférico de los lentes Nikon. 
 
 *   **Tu óptica de confianza en Zona Norte:** Si sos de *Cerro de las Rosas, Urca, Villa Allende, Río Ceballos, Alta Gracia o Jesús María* y estás cansado de que los anteojos de tu óptica local te resulten incómodos o borrosos en los laterales, vení a visitarnos a nuestro exclusivo *boutique store* en **José Luis de Tejeda 4380**. 
+
+
+<div class="my-10 p-8 bg-stone-100 dark:bg-stone-900 rounded-3xl border border-black/5 flex flex-col md:flex-row gap-6 items-center hover:shadow-md transition-all duration-300">
+    <img src="/images/blog/muestrario-smart-lens.webp" class="w-full md:w-1/3 aspect-[4/3] object-cover rounded-2xl m-0" alt="Precisión Japonesa Nikon®" />
+    <div class="flex-1">
+        <h4 class="font-medium text-xl text-stone-900 dark:text-white m-0">Precisión Japonesa Nikon®</h4>
+        <p class="text-sm text-stone-600 dark:text-stone-400 mt-3 m-0 leading-relaxed">Fruto de la alianza entre Essilor y Nikon, estas lentes combinan los algoritmos de cálculo óptico japonés más avanzados con la fabricación de precisión de Essilor, ofreciendo una nitidez extraordinaria de borde a borde.</p>
+    </div>
+</div>
+
 
 ## FAQ: Preguntas Frecuentes sobre la Alianza Nikon-Essilor
 

@@ -14,6 +14,10 @@ Como especialistas en salud visual integral en **Atelier Óptica** (ubicados en 
 
 ## ¿Qué son y cómo funcionan exactamente los cristales Transitions?
 
+<img src="/images/blog/anteojos-rosa-pastel.webp" alt="Inteligencia que Reacciona a la Luz" class="w-full rounded-3xl my-8 object-cover shadow-sm aspect-[16/9]" />
+
+
+
 Los lentes Transitions contienen trillones de moléculas fotocromáticas patentadas e incrustadas en su superficie. Cuando estas moléculas quedan expuestas a los rayos ultravioleta (UV) del sol, cambian su estructura y oscurecen el cristal gradualmente según la intensidad lumínica. Al entrar a un ambiente cerrado o bajo techo, la reacción se revierte y el lente vuelve a ser totalmente transparente de manera ágil y fluida.
 
 ### 3 Ventajas Clave de usar Transitions en Córdoba Capital
@@ -44,6 +48,16 @@ En **Atelier Óptica**, bajo la dirección técnica de nuestros ópticos contact
 Te esperamos en nuestro exclusivo local ubicado en **José Luis de Tejeda 4380, Barrio Cerro de las Rosas**. Gracias a nuestra atención personalizada, recibimos a diario pacientes de *Nueva Córdoba, General Paz*, así como de *Villa Carlos Paz, Río Ceballos, Alta Gracia, Villa Allende y La Calera*. Somos el punto de derivación de confianza en la región para invertir inteligentemente en tu salud visual. 
 
 > **Dato de experto:** Podés adaptar la tecnología Transitions a tus anteojos monofocales (para miopía, astigmatismo o hipermetropía) o incluso integrarlos a tus lentes multifocales **Varilux** premium, eligiendo entre los armazones de diseño más exclusivos de nuestro catálogo.
+
+
+<div class="my-10 p-8 bg-stone-100 dark:bg-stone-900 rounded-3xl border border-black/5 flex flex-col md:flex-row gap-6 items-center hover:shadow-md transition-all duration-300">
+    <img src="/images/blog/blog3_eligiendo.png" class="w-full md:w-1/3 aspect-[4/3] object-cover rounded-2xl m-0" alt="Inteligencia que Reacciona a la Luz" />
+    <div class="flex-1">
+        <h4 class="font-medium text-xl text-stone-900 dark:text-white m-0">Inteligencia que Reacciona a la Luz</h4>
+        <p class="text-sm text-stone-600 dark:text-stone-400 mt-3 m-0 leading-relaxed">Transitions® se adaptan automáticamente a cualquier cambio de luz: totalmente transparentes en interiores y oscuros como lentes de sol bajo el sol. Protección 100% contra rayos UVA y UVB.</p>
+    </div>
+</div>
+
 
 ## FAQ: Preguntas Frecuentes de nuestros pacientes
 

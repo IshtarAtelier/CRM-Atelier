@@ -12,6 +12,10 @@ En **Atelier Óptica**, ubicada estratégicamente en el corazón del **barrio Ce
 
 ## ¿Por qué elegir Varilux y evitar un multifocal económico en Córdoba?
 
+<img src="/images/blog/lentes-progresivos-zonas.png" alt="Tecnología de Vanguardia Varilux®" class="w-full rounded-3xl my-8 object-cover shadow-sm aspect-[16/9]" />
+
+
+
 Caminar por las veredas de Nueva Córdoba o bajar las escaleras de tu casa requiere una visión perfecta y natural. Mientras que un multifocal genérico o "de oferta" obliga a tu ojo a buscar un canal visual muy estrecho (causando mareos y el temido "efecto balanceo"), los cristales Varilux emplean un tallado digital *Freeform* que se adapta milimétricamente a tu fisonomía. Si buscás los mejores **anteojos en Córdoba, Argentina**, la calidad óptica no es negociable.
 
 ### Tecnologías exclusivas que adaptamos en nuestro laboratorio:
@@ -33,6 +37,16 @@ Como tu óptica y contactología de confianza, nuestros especialistas te guiará
 Para que un lente Varilux funcione a la perfección, no alcanza únicamente con que el cristal sea original: **el secreto absoluto radica en la toma de medidas**. En **Atelier Óptica** calibramos tu Altura Pupilar, Distancia Nasopupilar y ángulo pantoscópico con instrumental de altísima precisión. 
 
 *   **Consultá precios de Varilux en Córdoba:** Escribinos por WhatsApp o visitanos en nuestro local en **José Luis de Tejeda 4380, barrio Cerro de las Rosas**. Contamos con promociones exclusivas (como 2x1 en multifocales Essilor seleccionados) y excelentes planes de financiación en cuotas.
+
+
+<div class="my-10 p-8 bg-stone-100 dark:bg-stone-900 rounded-3xl border border-black/5 flex flex-col md:flex-row gap-6 items-center hover:shadow-md transition-all duration-300">
+    <img src="/images/blog/local-varilux.webp" class="w-full md:w-1/3 aspect-[4/3] object-cover rounded-2xl m-0" alt="Tecnología de Vanguardia Varilux®" />
+    <div class="flex-1">
+        <h4 class="font-medium text-xl text-stone-900 dark:text-white m-0">Tecnología de Vanguardia Varilux®</h4>
+        <p class="text-sm text-stone-600 dark:text-stone-400 mt-3 m-0 leading-relaxed">Los lentes Varilux® utilizan inteligencia artificial y mapas de comportamiento visual para que no tengas que mover la cabeza al enfocar. En Atelier Óptica realizamos la medición digital exacta para tu receta.</p>
+    </div>
+</div>
+
 
 ## FAQ: Preguntas Frecuentes sobre Lentes Multifocales
 

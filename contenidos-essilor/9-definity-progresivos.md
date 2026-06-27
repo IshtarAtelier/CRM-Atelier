@@ -12,6 +12,10 @@ Para los cordobeses que llevan un estilo de vida sumamente dinámico, ya sea jug
 
 ## ¿Qué es la tecnología Dual ADD 2.0 (Doble Cara)?
 
+<img src="/images/blog/blog6_consulta.png" alt="Tecnología Dual Digital Definity®" class="w-full rounded-3xl my-8 object-cover shadow-sm aspect-[16/9]" />
+
+
+
 A diferencia de un progresivo estándar, el diseño **Definity "divide" el trabajo óptico**. Una parte de la adición (la potencia necesaria para lectura) se talla en la cara frontal del cristal, y la otra mitad en la cara posterior (la que queda más cerca de tu ojo). 
 
 ### Los 3 grandes beneficios de este tallado inteligente:
@@ -37,6 +41,16 @@ Si estás buscando "ópticas especialistas en progresivos en Córdoba", es vital
 **Atelier Óptica** es un **Centro Essilor Expert** de referencia, ubicado en José Luis de Tejeda 4380, en pleno **Cerro de las Rosas**. Nuestros especialistas, Ishtar Pissano y Matías Turchi, se encargan personalmente de realizar las mediciones digitales de alta precisión. Esto garantiza que el centro óptico y las zonas de lectura de tus cristales Definity queden milimétricamente alineados con tus pupilas.
 
 * Recibimos constantemente a pacientes de **Córdoba Capital, Villa Carlos Paz, Río Ceballos y Jesús María** que buscan garantía total de adaptación en sus anteojos de receta. Además, te asesoramos para combinar tu diseño Definity con la protección de la tecnología fotocromática inteligente **Transitions** o el tratamiento antirreflejo premium **Crizal Sapphire HR**.
+
+
+<div class="my-10 p-8 bg-stone-100 dark:bg-stone-900 rounded-3xl border border-black/5 flex flex-col md:flex-row gap-6 items-center hover:shadow-md transition-all duration-300">
+    <img src="/images/blog/local-varilux.webp" class="w-full md:w-1/3 aspect-[4/3] object-cover rounded-2xl m-0" alt="Tecnología Dual Digital Definity®" />
+    <div class="flex-1">
+        <h4 class="font-medium text-xl text-stone-900 dark:text-white m-0">Tecnología Dual Digital Definity®</h4>
+        <p class="text-sm text-stone-600 dark:text-stone-400 mt-3 m-0 leading-relaxed">El diseño progresivo patentado de Definity® suaviza las zonas de transición y amplía la visión de cerca e intermedia, ideal para realizar tareas de oficina y disfrutar del aire libre con comodidad.</p>
+    </div>
+</div>
+
 
 ## FAQ: Preguntas Frecuentes de nuestros pacientes
 

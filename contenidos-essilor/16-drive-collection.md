@@ -12,6 +12,10 @@ Para garantizar tu seguridad y confort al volante, Essilor desarrolló la **Driv
 
 ## El Peligro de Manejar de Noche en Córdoba
 
+<img src="/images/blog/local-varilux.webp" alt="Seguridad y Confort en Ruta: Drive®" class="w-full rounded-3xl my-8 object-cover shadow-sm aspect-[16/9]" />
+
+
+
 El mayor inconveniente de la conducción nocturna es el "halo" que se forma alrededor de las luces artificiales modernas. Esta luz de onda corta satura la retina, causando fatiga visual y haciendo perder de vista los márgenes de la ruta, las señales de tránsito o a los peatones.
 
 ### La Solución Definitiva: Tratamiento Crizal Drive
@@ -46,6 +50,16 @@ Si tu seguridad vial y la de tu familia es una prioridad, no podés conformarte 
 **Atelier Óptica** (José Luis de Tejeda 4380) es tu Centro **Essilor Expert** de confianza en Córdoba. Recibimos diariamente a choferes, viajantes y particulares de toda la provincia, incluyendo **Jesús María, Río Ceballos, Alta Gracia, La Calera y Villa Allende**. 
 
 *   **Armado a medida:** Tomamos tus parámetros faciales digitales y posturales para que el tratamiento Crizal Drive o el multifocal Varilux Road Pilot queden perfectamente centrados en tu pupila, garantizando un rendimiento visual insuperable.
+
+
+<div class="my-10 p-8 bg-stone-100 dark:bg-stone-900 rounded-3xl border border-black/5 flex flex-col md:flex-row gap-6 items-center hover:shadow-md transition-all duration-300">
+    <img src="/images/blog/blog5_cordoba.png" class="w-full md:w-1/3 aspect-[4/3] object-cover rounded-2xl m-0" alt="Seguridad y Confort en Ruta: Drive®" />
+    <div class="flex-1">
+        <h4 class="font-medium text-xl text-stone-900 dark:text-white m-0">Seguridad y Confort en Ruta: Drive®</h4>
+        <p class="text-sm text-stone-600 dark:text-stone-400 mt-3 m-0 leading-relaxed">Los cristales adaptados para la conducción reducen hasta un 90% los reflejos molestos provocados por faros LED e iluminación urbana, permitiendo una visión de alto contraste y mayor tiempo de reacción.</p>
+    </div>
+</div>
+
 
 ## FAQ: Preguntas Frecuentes de Automovilistas
 

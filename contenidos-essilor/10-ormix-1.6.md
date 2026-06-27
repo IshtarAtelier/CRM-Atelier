@@ -14,6 +14,10 @@ En **Atelier Óptica**, tu óptica de confianza en el barrio Cerro de las Rosas 
 
 ## ¿Por qué elegir lentes Ormix 1.60 en lugar de un cristal orgánico tradicional?
 
+<img src="/images/blog/anteojos-rosa-pastel.webp" alt="El Equilibrio Perfecto: Ormix 1.6®" class="w-full rounded-3xl my-8 object-cover shadow-sm aspect-[16/9]" />
+
+
+
 El material Ormix se posiciona estratégicamente entre la resina orgánica estándar (índice 1.50) y los cristales de alta compresión (como el Stylis 1.67). Su formulación técnica avanzada ofrece tres beneficios inigualables para tus próximos anteojos:
 
 1. **Reducción Estética Notable (Más finos):** Los lentes Ormix son un **20% más delgados** que los orgánicos comunes. Ese porcentaje es, literalmente, la diferencia entre un lente que sobresale por fuera de la montura y uno que queda perfectamente disimulado dentro de un marco de metal elegante.
@@ -28,6 +32,16 @@ En **Atelier Óptica** somos categoría **Essilor Expert**. Esto garantiza que t
 
 * Nos enorgullece ser el punto de referencia en la **Zona Norte de Córdoba** (y para pacientes que nos visitan desde Villa Allende, La Calera, Río Ceballos y Alta Gracia) al momento de adaptar multifocales de alta gama **Varilux** o lentes antifatiga **Eyezen**.
 * Para proteger tu inversión, siempre sugerimos combinar la estética del material Ormix 1.60 con los tratamientos antirreflejo de excelencia **Crizal**, que brindan una repelencia superior contra rayas, polvo y suciedad.
+
+
+<div class="my-10 p-8 bg-stone-100 dark:bg-stone-900 rounded-3xl border border-black/5 flex flex-col md:flex-row gap-6 items-center hover:shadow-md transition-all duration-300">
+    <img src="/images/blog/blog1_marcos.png" class="w-full md:w-1/3 aspect-[4/3] object-cover rounded-2xl m-0" alt="El Equilibrio Perfecto: Ormix 1.6®" />
+    <div class="flex-1">
+        <h4 class="font-medium text-xl text-stone-900 dark:text-white m-0">El Equilibrio Perfecto: Ormix 1.6®</h4>
+        <p class="text-sm text-stone-600 dark:text-stone-400 mt-3 m-0 leading-relaxed">Con un índice de refracción de 1.6, los cristales Ormix® son notablemente más delgados y resistentes que los orgánicos estándar. Ideales para armazones al aire (ranurados) y graduaciones moderadas.</p>
+    </div>
+</div>
+
 
 ## Preguntas Frecuentes en nuestro Consultorio (FAQ)
 

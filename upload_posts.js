@@ -8,7 +8,7 @@ const { marked } = require('marked');
 const prisma = new PrismaClient({
     datasources: {
         db: {
-            url: process.env.PROD_DATABASE_URL
+            url: process.env.PROD_DATABASE_URL || process.env.DATABASE_URL
         }
     }
 });
@@ -21,7 +21,7 @@ async function uploadPosts() {
 
         for (const file of files) {
             const filePath = path.join(dir, file);
-            let content = fs.readFileSync(filePath, 'utf8');
+            let content = fs.readFileSync(filePath, 'utf8').replace(/\r\n/g, '\n');
 
             // Simple frontmatter parser
             const frontmatterRegex = /^---\n([\s\S]*?)\n---/;
@@ -37,17 +37,18 @@ async function uploadPosts() {
                 const fm = match[1];
                 bodyMarkdown = content.replace(match[0], '').trim();
 
-                const titleMatch = fm.match(/title:\s*"([^"]+)"/);
-                if (titleMatch) title = titleMatch[1];
+                const parseField = (field) => {
+                    const qMatch = fm.match(new RegExp(`${field}:\\s*['"](.*?)['"]`));
+                    if (qMatch) return qMatch[1].replace(/['"]/g, '').trim();
+                    const uMatch = fm.match(new RegExp(`${field}:\\s*([^\\n]+)`));
+                    if (uMatch) return uMatch[1].replace(/['"]/g, '').trim();
+                    return '';
+                };
 
-                const metaMatch = fm.match(/meta_description:\s*"([^"]+)"/);
-                if (metaMatch) meta_description = metaMatch[1];
-
-                const slugMatch = fm.match(/slug:\s*"([^"]+)"/);
-                if (slugMatch) slug = slugMatch[1];
-                
-                const imageMatch = fm.match(/image_url:\s*"([^"]+)"/);
-                if (imageMatch) image_url = imageMatch[1];
+                title = parseField('title');
+                meta_description = parseField('meta_description') || parseField('metaDescription');
+                slug = parseField('slug');
+                image_url = parseField('image_url') || parseField('imageUrl');
             }
 
             // Fallbacks
@@ -70,8 +71,24 @@ async function uploadPosts() {
             else if (file.includes('varilux') || file.includes('definity')) category = 'Multifocales';
             else if (file.includes('blue-uv') || file.includes('eyezen')) category = 'Salud Visual';
 
-            // Default image
-            const imageUrl = image_url || '/images/blog/blog1_header.png';
+            // Beautiful alternating images
+            const BEAUTIFUL_IMAGES = [
+                '/images/blog/blog1_marcos.png',
+                '/images/blog/blog2_homeoffice.png',
+                '/images/blog/blog3_eligiendo.png',
+                '/images/blog/blog4_leyendo.png',
+                '/images/blog/blog5_cordoba.png',
+                '/images/blog/blog6_consulta.png',
+                '/images/blog/vidriera-atelier.webp',
+                '/images/blog/mostrador-marmol.webp',
+                '/images/blog/muestrario-smart-lens.webp',
+                '/images/blog/local-varilux.webp',
+                '/images/blog/arte-monalisa.webp',
+                '/images/blog/anteojos-rosa-pastel.webp'
+            ];
+            const fileIndex = files.indexOf(file);
+            const alternateImage = BEAUTIFUL_IMAGES[fileIndex % BEAUTIFUL_IMAGES.length];
+            const imageUrl = image_url || alternateImage;
 
             console.log(`Subiendo: ${slug} ...`);
 

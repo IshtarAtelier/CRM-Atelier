@@ -12,6 +12,10 @@ Para garantizar seguridad absoluta, la industria óptica militar y aeroespacial 
 
 ## ¿Por qué elegir Policarbonato Airwear sobre el orgánico tradicional para tus anteojos en Córdoba, Argentina?
 
+<img src="/images/blog/blog5_cordoba.png" alt="Resistencia Extrema con Airwear®" class="w-full rounded-3xl my-8 object-cover shadow-sm aspect-[16/9]" />
+
+
+
 El cristal Airwear no es simplemente un plástico más duro; es un salto tecnológico que, en lugar de fracturarse, **absorbe la energía del impacto deformándose a nivel molecular**.
 
 ### Las 3 Ventajas Críticas de los Lentes Airwear
@@ -35,6 +39,16 @@ Atención con este detalle: existen en el mercado policarbonatos genéricos, chi
 Si buscás verdadera seguridad y salud visual para tus anteojos en Córdoba, Argentina, **Atelier Óptica** (José Luis de Tejeda 4380, barrio Cerro de las Rosas) es tu Centro Essilor Expert, lo que te garantiza el acceso al material 100% original. Recibimos a diario a clientes de toda la ciudad que llegan con la receta de su oftalmólogo o pediatra exigiendo la excelencia del "policarbonato Airwear".
 
 * **Mejorá tus cristales Airwear:** Como su principal virtud es absorber impactos, el policarbonato puro es blando en su superficie. En Atelier Óptica los armamos exclusivamente con tratamiento antirreflejo **Crizal** (para otorgarles máxima resistencia a las rayas). Además, podés pedir tu versión inteligente con tecnología fotocromática **Transitions**.
+
+
+<div class="my-10 p-8 bg-stone-100 dark:bg-stone-900 rounded-3xl border border-black/5 flex flex-col md:flex-row gap-6 items-center hover:shadow-md transition-all duration-300">
+    <img src="/images/blog/muestrario-smart-lens.webp" class="w-full md:w-1/3 aspect-[4/3] object-cover rounded-2xl m-0" alt="Resistencia Extrema con Airwear®" />
+    <div class="flex-1">
+        <h4 class="font-medium text-xl text-stone-900 dark:text-white m-0">Resistencia Extrema con Airwear®</h4>
+        <p class="text-sm text-stone-600 dark:text-stone-400 mt-3 m-0 leading-relaxed">Ideal para deportistas, niños y personas con un estilo de vida activo. Airwear® es prácticamente irrompible, extremadamente liviano y ofrece protección UV integrada de forma nativa en el material.</p>
+    </div>
+</div>
+
 
 ## FAQ: Preguntas Frecuentes sobre Policarbonato (Consultas de nuestros pacientes)
 

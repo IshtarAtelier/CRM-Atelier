@@ -14,6 +14,10 @@ Como ópticos contactólogos especializados en **Atelier Óptica**, analizamos e
 
 ## ¿Por qué un anteojo de descanso común ya no es suficiente?
 
+<img src="/images/blog/muestrario-smart-lens.webp" alt="Fatiga Visual Digital" class="w-full rounded-3xl my-8 object-cover shadow-sm aspect-[16/9]" />
+
+
+
 Un cristal monofocal tradicional (el típico "lente de receta") posee la misma graduación en toda su superficie. Sirve para corregir tu miopía, hipermetropía o astigmatismo, pero *no hace absolutamente nada* para aliviar el esfuerzo muscular que realizás al mirar la pantalla de tu celular a 30 centímetros de distancia.
 
 Es precisamente aquí donde entra en juego la ingeniería óptica exclusiva de Eyezen.
@@ -45,6 +49,16 @@ Si estás buscando "lentes de descanso para la compu con filtro azul" que realme
 Como **Centro Essilor Expert**, en **Atelier Óptica** (ubicados en el exclusivo barrio Cerro de las Rosas) realizamos la toma de medidas digital exacta para que el *Eyezen Focus* quede milimétricamente alineado con tu pupila. Recibimos a diario pacientes de **Villa Carlos Paz, Alta Gracia, La Calera, Jesús María** y todos los rincones de Córdoba que confían en nuestros ópticos contactólogos, Ishtar Pissano y Matías Turchi, para cuidar y potenciar su salud visual.
 
 *   **Consultá por los precios de cristales Eyezen en Córdoba:** Escribinos directamente a nuestro WhatsApp (+54 9 3513 44-7219) o vení a descubrir nuestro local en José Luis de Tejeda 4380.
+
+
+<div class="my-10 p-8 bg-stone-100 dark:bg-stone-900 rounded-3xl border border-black/5 flex flex-col md:flex-row gap-6 items-center hover:shadow-md transition-all duration-300">
+    <img src="/images/blog/blog2_homeoffice.png" class="w-full md:w-1/3 aspect-[4/3] object-cover rounded-2xl m-0" alt="Fatiga Visual Digital" />
+    <div class="flex-1">
+        <h4 class="font-medium text-xl text-stone-900 dark:text-white m-0">Fatiga Visual Digital</h4>
+        <p class="text-sm text-stone-600 dark:text-stone-400 mt-3 m-0 leading-relaxed">Si pasás más de 4 horas al día frente a computadoras, tablets o celulares, tus ojos hacen un esfuerzo extra constante. Eyezen® relaja tus músculos oculares y filtra la luz azul-violeta nociva.</p>
+    </div>
+</div>
+
 
 ## FAQ: Preguntas Frecuentes sobre lentes Eyezen
 

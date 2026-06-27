@@ -12,6 +12,10 @@ Afortunadamente, todo cambió con la introducción de la resina plástica de alt
 
 ## ¿Qué es exactamente un cristal "Orgánico"?
 
+<img src="/images/blog/mostrador-marmol.webp" alt="El Clásico Confiable: Lentes Orma®" class="w-full rounded-3xl my-8 object-cover shadow-sm aspect-[16/9]" />
+
+
+
 Cuando en cualquier óptica te ofrecen un "cristal orgánico blanco", se refieren a una resina plástica avanzada conocida técnicamente como CR-39. **Orma** es el nombre patentado y perfeccionado por la firma francesa Essilor para su resina de máxima pureza, garantizando estándares ópticos de excelencia y un desempeño superior.
 
 ### Las 3 Ventajas Clásicas de Orma 1.50
@@ -34,6 +38,16 @@ Si estás buscando el mejor precio y calidad en cristales orgánicos en Córdoba
 En **Atelier Óptica**, ubicados estratégicamente en el corazón del **barrio Cerro de las Rosas (José Luis de Tejeda 4380)** y a pocos minutos de zonas como Nueva Córdoba, garantizamos cristales **Essilor Orma originales**. Trabajamos diariamente con pacientes de *Córdoba Capital, Villa Carlos Paz, Río Ceballos, Alta Gracia, Villa Allende y La Calera* que buscan armar sus primeros lentes monofocales con garantía de adaptación perfecta.
 
 * **El consejo experto: Mejorá tus Orma.** Aunque sea un material económicamente accesible, siempre sugerimos proteger tu inversión con un tratamiento antirreflejo y anti-rayas **Crizal**. La resina plástica, por su naturaleza, es más propensa a las rayas que el vidrio, y este escudo protector multiplicará su vida útil y resistencia.
+
+
+<div class="my-10 p-8 bg-stone-100 dark:bg-stone-900 rounded-3xl border border-black/5 flex flex-col md:flex-row gap-6 items-center hover:shadow-md transition-all duration-300">
+    <img src="/images/blog/vidriera-atelier.webp" class="w-full md:w-1/3 aspect-[4/3] object-cover rounded-2xl m-0" alt="El Clásico Confiable: Lentes Orma®" />
+    <div class="flex-1">
+        <h4 class="font-medium text-xl text-stone-900 dark:text-white m-0">El Clásico Confiable: Lentes Orma®</h4>
+        <p class="text-sm text-stone-600 dark:text-stone-400 mt-3 m-0 leading-relaxed">Los cristales orgánicos Orma® de Essilor representan el estándar de oro en ligereza y claridad óptica para graduaciones bajas. Un cristal liviano, cómodo y de excelente transmisión de luz.</p>
+    </div>
+</div>
+
 
 ## FAQ: Preguntas Frecuentes sobre Lentes Orgánicos
 

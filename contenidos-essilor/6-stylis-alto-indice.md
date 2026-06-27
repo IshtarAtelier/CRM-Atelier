@@ -12,6 +12,10 @@ En **Atelier Óptica**, nuestro centro especializado en el barrio Cerro de las R
 
 ## ¿Qué significa "Cristal Reducido 1.67"?
 
+<img src="/images/blog/anteojos-rosa-pastel.webp" alt="Estética y Ligereza: Cristales Stylis®" class="w-full rounded-3xl my-8 object-cover shadow-sm aspect-[16/9]" />
+
+
+
 El índice de refracción mide la capacidad de un material para desviar la luz. Cuanto más alto es el índice, menos grosor físico se necesita para alcanzar tu graduación exacta.
 
 *   Un cristal estándar (el clásico lente orgánico) tiene un índice de 1.50.
@@ -39,6 +43,16 @@ Si buscás "cristales extra finos para miopía en Córdoba", "anteojos en Córdo
 Calibramos tus lentes Stylis con tecnología digital de vanguardia para asegurar que el centro óptico sea exacto. Además, para garantizarte una nitidez absoluta, combinamos siempre este material premium con tratamientos antirreflejos de alta gama (**Crizal Sapphire HR**) o tecnología fotocromática inteligente (**Transitions Gen 8**).
 
 *   **Pedí tu presupuesto hoy mismo:** Escribinos por WhatsApp con una foto de tu receta oftalmológica y diseñamos un plan a medida para tus próximos anteojos.
+
+
+<div class="my-10 p-8 bg-stone-100 dark:bg-stone-900 rounded-3xl border border-black/5 flex flex-col md:flex-row gap-6 items-center hover:shadow-md transition-all duration-300">
+    <img src="/images/blog/blog1_marcos.png" class="w-full md:w-1/3 aspect-[4/3] object-cover rounded-2xl m-0" alt="Estética y Ligereza: Cristales Stylis®" />
+    <div class="flex-1">
+        <h4 class="font-medium text-xl text-stone-900 dark:text-white m-0">Estética y Ligereza: Cristales Stylis®</h4>
+        <p class="text-sm text-stone-600 dark:text-stone-400 mt-3 m-0 leading-relaxed">Recomendado para graduaciones medias y altas. Los cristales Stylis® reducen el espesor del lente hasta un 40%, evitando el efecto de "ojo magnificado" y permitiendo elegir armazones de diseño muy delgados.</p>
+    </div>
+</div>
+
 
 ## FAQ: Preguntas Frecuentes sobre Cristales Stylis 1.67
 

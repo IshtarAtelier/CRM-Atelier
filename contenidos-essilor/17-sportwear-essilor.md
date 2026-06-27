@@ -14,6 +14,10 @@ Para ponerle fin a estos problemas, Essilor desarrolló **SportWear**, un diseñ
 
 ## El Problema del Mareo en Gafas de Ciclismo y Running
 
+<img src="/images/blog/muestrario-smart-lens.webp" alt="Rendimiento y Protección Deportiva" class="w-full rounded-3xl my-8 object-cover shadow-sm aspect-[16/9]" />
+
+
+
 Las gafas deportivas de alto rendimiento son "envolventes". Tienen una curvatura extrema (conocida como Base 8) diseñada para abrazar tu cara, protegerte del viento cruzado y evitar que el sol se cuele por los laterales. 
 
 El gran problema surge cuando a esa curva extrema intentás adaptarle cristales tradicionales con tu receta oftalmológica (ya sea para miopía, astigmatismo o hipermetropía). La física óptica es clara: al doblar el cristal, se induce un "astigmatismo oblicuo". 
@@ -38,6 +42,16 @@ Fabricar y calibrar anteojos curvos con graduación no es una tarea estándar. R
 *   **Alcance regional:** Recibimos a atletas de élite y deportistas amateurs de **Villa Carlos Paz, Río Ceballos, Alta Gracia, La Calera y Jesús María**.
 *   **Armamos tu propio marco:** Podemos tomar tu marco deportivo favorito (como Oakley, Rudy Project o SPY) y, si tiene aros independientes, instalarle tus nuevos cristales SportWear.
 *   **Tecnología Premium Adicional:** Te recomendamos potenciar tus lentes con tecnología fotocromática (**Transitions**, que se oscurece con el sol) o polarizados (**Xperio**, ideales para eliminar reflejos del asfalto o el agua), y sumarles el tratamiento **Optifog** para evitar que se empañen con tu propia transpiración.
+
+
+<div class="my-10 p-8 bg-stone-100 dark:bg-stone-900 rounded-3xl border border-black/5 flex flex-col md:flex-row gap-6 items-center hover:shadow-md transition-all duration-300">
+    <img src="/images/blog/blog5_cordoba.png" class="w-full md:w-1/3 aspect-[4/3] object-cover rounded-2xl m-0" alt="Rendimiento y Protección Deportiva" />
+    <div class="flex-1">
+        <h4 class="font-medium text-xl text-stone-900 dark:text-white m-0">Rendimiento y Protección Deportiva</h4>
+        <p class="text-sm text-stone-600 dark:text-stone-400 mt-3 m-0 leading-relaxed">Los lentes de sol deportivos Sportwear® de Essilor están diseñados para resistir impactos y proporcionar el máximo contraste cromático al aire libre, mejorando tu rendimiento en ciclismo, running o golf.</p>
+    </div>
+</div>
+
 
 ## FAQ: Preguntas Frecuentes de nuestros deportistas
 

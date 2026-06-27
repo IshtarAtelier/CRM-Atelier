@@ -12,6 +12,10 @@ En **Atelier Óptica**, bajo la dirección de los ópticos contactólogos Ishtar
 
 ## ¿Por qué elegir un tratamiento Crizal sobre un "antirreflejo genérico"?
 
+<img src="/images/blog/blog6_consulta.png" alt="El Escudo Protector Crizal®" class="w-full rounded-3xl my-8 object-cover shadow-sm aspect-[16/9]" />
+
+
+
 Un tratamiento económico pierde su eficacia rápidamente: se descascara, se ensucia con facilidad y no resiste el ritmo de la vida diaria. En cambio, los cristales con **tecnología Crizal** utilizan nanotecnología avanzada aplicada en múltiples capas, ofreciendo cinco beneficios directos para tu confort visual:
 
 1. **Antirreflejo de Alta Eficiencia:** Elimina los brillos molestos y los destellos. Mejora drásticamente tu visión al manejar de noche y hace que el cristal se vea prácticamente invisible en fotos y videollamadas.
@@ -41,6 +45,16 @@ Optimiza la visión al volante reduciendo hasta en un 90% los deslumbramientos p
 A la hora de cuidar tu salud visual, no te dejes engañar por réplicas o tratamientos de baja calidad. Como **Centro Essilor Expert en Córdoba**, en **Atelier Óptica** garantizamos la autenticidad de tus cristales, entregándote siempre el **Certificado de Autenticidad Crizal** correspondiente.
 
 * **Tu óptica de confianza en zona norte:** Te esperamos en **José Luis de Tejeda 4380, barrio Cerro de las Rosas**. Brindamos asesoramiento personalizado a pacientes de toda Córdoba Capital, Villa Allende, La Calera y alrededores que buscan calidad, garantía y estética inmejorable.
+
+
+<div class="my-10 p-8 bg-stone-100 dark:bg-stone-900 rounded-3xl border border-black/5 flex flex-col md:flex-row gap-6 items-center hover:shadow-md transition-all duration-300">
+    <img src="/images/blog/mostrador-marmol.webp" class="w-full md:w-1/3 aspect-[4/3] object-cover rounded-2xl m-0" alt="El Escudo Protector Crizal®" />
+    <div class="flex-1">
+        <h4 class="font-medium text-xl text-stone-900 dark:text-white m-0">El Escudo Protector Crizal®</h4>
+        <p class="text-sm text-stone-600 dark:text-stone-400 mt-3 m-0 leading-relaxed">Con el tratamiento Crizal® no solo eliminás los reflejos molestos en pantallas y conducción nocturna, sino que protegés tus cristales contra rayas y manchas del uso cotidiano.</p>
+    </div>
+</div>
+
 
 ## Preguntas Frecuentes sobre el Antirreflejo Crizal (FAQ)
 

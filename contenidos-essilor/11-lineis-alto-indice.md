@@ -12,6 +12,10 @@ Para estos casos de graduaciones extremas, la industria oftalmológica global de
 
 ## ¿Por qué el Índice 1.74 transforma tus anteojos recetados?
 
+<img src="/images/blog/mostrador-marmol.webp" alt="La Máxima Reducción: Lineis 1.74®" class="w-full rounded-3xl my-8 object-cover shadow-sm aspect-[16/9]" />
+
+
+
 El estándar tradicional en las ópticas (el orgánico común) posee un índice de refracción de 1.50. El material Lineis eleva esa capacidad óptica al límite comercial de **1.74**. En palabras sencillas: permite una curvatura de la luz de altísima precisión utilizando un mínimo de masa. 
 
 ### Beneficios Visuales y Estéticos Exclusivos de los Cristales Lineis
@@ -28,6 +32,16 @@ Al buscar una "óptica en Córdoba" para afinar cristales gruesos, te encontrar�
 
 *   Atendemos a pacientes de toda **Córdoba Capital**, incluyendo Nueva Córdoba, Centro y Zona Norte, además de recibir derivaciones oftalmológicas frecuentes de **Villa Allende, Río Ceballos, Alta Gracia, Villa Carlos Paz, La Calera y Jesús María**.
 *   **Un detalle clave:** Todo anteojo con cristales Lineis 1.74 debe combinarse obligatoriamente con tratamientos antirreflejo premium (como **Crizal Sapphire HR**). Al poseer un índice de refracción tan alto, la lente requiere de este recubrimiento para garantizar una transparencia óptica cristalina y eliminar brillos molestos.
+
+
+<div class="my-10 p-8 bg-stone-100 dark:bg-stone-900 rounded-3xl border border-black/5 flex flex-col md:flex-row gap-6 items-center hover:shadow-md transition-all duration-300">
+    <img src="/images/blog/blog1_marcos.png" class="w-full md:w-1/3 aspect-[4/3] object-cover rounded-2xl m-0" alt="La Máxima Reducción: Lineis 1.74®" />
+    <div class="flex-1">
+        <h4 class="font-medium text-xl text-stone-900 dark:text-white m-0">La Máxima Reducción: Lineis 1.74®</h4>
+        <p class="text-sm text-stone-600 dark:text-stone-400 mt-3 m-0 leading-relaxed">El cristal orgánico más plano y delgado del mercado. Diseñado especialmente para miopías o hipermetropías elevadas, logrando lentes súper estéticos y un peso mínimo en tu rostro.</p>
+    </div>
+</div>
+
 
 ## FAQ: Consultas de nuestros pacientes con miopía alta en Atelier Óptica
 

@@ -12,6 +12,10 @@ Para terminar definitivamente con esta frustración diaria, **Essilor** trajo a 
 
 ## ¿Por qué se empañan los anteojos?
 
+<img src="/images/blog/vidriera-atelier.webp" alt="Decile Adiós al Empañamiento con Optifog®" class="w-full rounded-3xl my-8 object-cover shadow-sm aspect-[16/9]" />
+
+
+
 El temido "vaho" no es otra cosa que simple condensación. Ocurre cuando el vapor de agua caliente (tu propio aliento detrás del barbijo, dentro del casco de la moto o la humedad ambiente) choca contra la superficie fría de tu cristal. Las moléculas de vapor forman gotas diminutas que bloquean la luz y crean esa incómoda cortina blanca que te nubla la vista.
 
 ## La Química detrás del Sistema Antivaho Optifog
@@ -46,6 +50,16 @@ Atendemos consultas diarias de pacientes de toda la Capital y zonas aledañas co
 ### Máxima Adaptabilidad
 
 Podemos aplicar el tratamiento Optifog a cristales monofocales (visión sencilla), a lentes de descanso digital **Eyezen**, o incluso integrarlo a tus próximos multifocales **Varilux** para una visión perfecta a todas las distancias, sin empañamiento.
+
+
+<div class="my-10 p-8 bg-stone-100 dark:bg-stone-900 rounded-3xl border border-black/5 flex flex-col md:flex-row gap-6 items-center hover:shadow-md transition-all duration-300">
+    <img src="/images/blog/blog6_consulta.png" class="w-full md:w-1/3 aspect-[4/3] object-cover rounded-2xl m-0" alt="Decile Adiós al Empañamiento con Optifog®" />
+    <div class="flex-1">
+        <h4 class="font-medium text-xl text-stone-900 dark:text-white m-0">Decile Adiós al Empañamiento con Optifog®</h4>
+        <p class="text-sm text-stone-600 dark:text-stone-400 mt-3 m-0 leading-relaxed">Los cristales Optifog® cuentan con una capa antivaho inteligente que evita la condensación de vapor al entrar a un ambiente cálido, tomar una bebida caliente o realizar deportes. Visión clara en todo momento.</p>
+    </div>
+</div>
+
 
 ## FAQ: Preguntas Frecuentes sobre Lentes Optifog
 
