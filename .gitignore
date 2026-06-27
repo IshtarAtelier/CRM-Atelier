@@ -64,7 +64,6 @@ backups/
 /scratch/
 
 # content data (already uploaded to DB)
-/contenidos-essilor/
 /data/
 
 # agent sessions (ephemeral state)
