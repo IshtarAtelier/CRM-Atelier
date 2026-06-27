@@ -178,6 +178,14 @@ export function TiendaClient({
     filtered = [...filtered].sort((a, b) => a.price - b.price);
   } else if (sortParam === 'mayor_precio') {
     filtered = [...filtered].sort((a, b) => b.price - a.price);
+  } else if (sortParam === 'forma') {
+    filtered = [...filtered].sort((a, b) => {
+      const shapeA = (a.shape || '').toLowerCase();
+      const shapeB = (b.shape || '').toLowerCase();
+      if (shapeA < shapeB) return -1;
+      if (shapeA > shapeB) return 1;
+      return 0;
+    });
   }
 
   const displayedProducts = filtered.slice(0, visibleCount);

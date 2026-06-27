@@ -162,6 +162,7 @@ export function ProductFilters({
                 <div className="flex flex-col gap-3">
                   {[
                     { id: 'recientes', label: 'Más Recientes' },
+                    { id: 'forma', label: 'Forma del Armazón' },
                     { id: 'menor_precio', label: 'Menor Precio' },
                     { id: 'mayor_precio', label: 'Mayor Precio' },
                   ].map((option) => (

@@ -149,6 +149,16 @@ export default async function LentesDeSolPage({ searchParams }: { searchParams: 
     filteredProducts = filteredProducts.filter(p => p.material.toLowerCase() === filterMaterial.toLowerCase());
   }
 
+  if (sortParam === 'forma') {
+    filteredProducts.sort((a, b) => {
+      const shapeA = (a.shape || '').toLowerCase();
+      const shapeB = (b.shape || '').toLowerCase();
+      if (shapeA < shapeB) return -1;
+      if (shapeA > shapeB) return 1;
+      return 0;
+    });
+  }
+
   // CollectionPage JSON-LD
   const collectionJsonLd = {
     '@context': 'https://schema.org',
