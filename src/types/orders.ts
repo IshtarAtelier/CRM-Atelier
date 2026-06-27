@@ -125,6 +125,11 @@ export interface Order {
     discountCard?: number;
     specialDiscount?: number;
     subtotalWithMarkup?: number;
+    postSaleNotes?: string | null;
+    postSaleCost?: number | null;
+    postSaleResponsible?: string | null;
+    postSaleOrderOption?: string | null;
+    postSaleNewOrderNumber?: string | null;
     labColor?: string | null;
     labTreatment?: string | null;
     labDiameter?: string | null;

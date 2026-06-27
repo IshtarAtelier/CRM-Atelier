@@ -26,7 +26,73 @@ export async function GET(request: Request) {
             }
         });
 
-        return NextResponse.json(expenses);
+        // Calcular dinámicamente los costos de laboratorio
+        const startDate = new Date(y, m - 1, 1);
+        const endDate = new Date(y, m, 1); // 1er día del mes siguiente
+
+        const orders = await prisma.order.findMany({
+            where: {
+                orderType: 'SALE',
+                isDeleted: false,
+                labSentAt: {
+                    gte: startDate,
+                    lt: endDate
+                }
+            },
+            select: {
+                id: true,
+                items: {
+                    select: {
+                        productId: true,
+                        productCostSnapshot: true,
+                        laboratorySnapshot: true
+                    }
+                }
+            }
+        });
+
+        const labCosts = new Map<string, number>();
+        
+        for (const order of orders) {
+            const processedProducts = new Set<string>();
+            for (const item of order.items) {
+                if (item.laboratorySnapshot && item.productCostSnapshot) {
+                    const lab = item.laboratorySnapshot.trim();
+                    const prodId = item.productId || 'unknown';
+                    
+                    // Solo sumar el costo una vez por pedido y producto (para evitar duplicar OD y OI)
+                    if (!processedProducts.has(prodId)) {
+                        processedProducts.add(prodId);
+                        
+                        const currentSum = labCosts.get(lab) || 0;
+                        labCosts.set(lab, currentSum + item.productCostSnapshot);
+                    }
+                }
+            }
+        }
+
+        const dynamicExpenses = Array.from(labCosts.entries()).map(([lab, amount], idx) => ({
+            id: `calc-${m}-${y}-${idx}`,
+            name: lab.toLowerCase().includes('laboratorio') ? lab : `Laboratorio ${lab}`,
+            amount: amount,
+            category: 'PROVEEDOR',
+            type: 'PROVEEDOR',
+            month: m,
+            year: y,
+            isCalculated: true
+        }));
+
+        // Opcional: filtrar de los fijos si están vacíos para evitar duplicados en la UI
+        const manualToExclude = ['Laboratorio Optovision', 'Laboratorio Grupo Óptico', 'Cristaldo'];
+        const filteredExpenses = expenses.filter(e => {
+            if (manualToExclude.includes(e.name) && e.amount === 0) {
+                // Si existe un dinámico o simplemente lo queremos ocultar
+                return false; 
+            }
+            return true;
+        });
+
+        return NextResponse.json([...filteredExpenses, ...dynamicExpenses]);
     } catch (error: any) {
         console.error('Error fetching expenses:', error);
         return NextResponse.json({ error: error.message || 'Error fetching expenses' }, { status: 500 });

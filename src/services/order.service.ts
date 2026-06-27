@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { ContactService } from '@/services/contact.service';
 import { BotService } from '@/services/bot.service';
 import { prisma } from '@/lib/db';
+import { PricingService } from '@/services/PricingService';
 import { calculateQuoteTotals } from '@/lib/promo-utils';
 import { z } from 'zod';
 import { fetchWa } from '@/lib/wa-config';
@@ -460,6 +461,8 @@ export class OrderService {
                         productNameSnapshot: dbProd ? (dbProd.model || dbProd.name || null) : (item.productNameSnapshot || null),
                         productBrandSnapshot: dbProd ? (dbProd.brand || null) : (item.productBrandSnapshot || null),
                         productCategorySnapshot: dbProd ? (dbProd.category || null) : (item.productCategorySnapshot || null),
+                        productCostSnapshot: dbProd ? (dbProd.cost || 0) : null,
+                        laboratorySnapshot: dbProd ? (dbProd.laboratory || null) : null,
                         crystalColor: item.crystalColor || null,
                         crystalColorType: item.crystalColorType || null,
                     };
@@ -584,53 +587,71 @@ export class OrderService {
             data.labOrderNumber = labOrderNumber;
             // Auto-set status to IN_PROGRESS (Procesado) when operation number is loaded
             if (labOrderNumber && labOrderNumber.trim() !== '' && !labStatus) {
-                const currentOrder = await prisma.order.findUnique({
+                const fullOrder = await prisma.order.findUnique({
                     where: { id },
-                    select: { 
-                        clientId: true,
-                        labStatus: true, 
-                        labSentAt: true,
-                        total: true,
-                        paid: true,
-                        payments: true,
-                        client: { select: { name: true, phone: true } },
-                        items: { select: { product: { select: { origin: true, type: true, category: true } } } }
+                    include: {
+                        client: true,
+                        items: {
+                            include: {
+                                product: true
+                            }
+                        },
+                        prescription: true,
+                        payments: true
                     }
                 });
                 // Auto-advance if still in NONE (Pendiente) or SENT (Falta procesar)
-                if (currentOrder && (!currentOrder.labStatus || currentOrder.labStatus === 'NONE' || currentOrder.labStatus === 'SENT')) {
+                if (fullOrder && (!fullOrder.labStatus || fullOrder.labStatus === 'NONE' || fullOrder.labStatus === 'SENT')) {
                     data.labStatus = 'IN_PROGRESS';
-                    if (!currentOrder.labSentAt) {
+                    if (!fullOrder.labSentAt) {
                         data.labSentAt = new Date();
                     }
 
                     // Enviar mensaje automático de laboratorio procesado
                     try {
-                        const estimatedDays = calculateEstimatedDays(currentOrder.items || []);
+                        const estimatedDays = calculateEstimatedDays(fullOrder.items || []);
                         const estimatedDate = format(addBusinessDays(new Date(), estimatedDays), 'dd/MM/yyyy');
-                        const phone = currentOrder.client?.phone?.replace(/\D/g, '');
+                        const phone = fullOrder.client?.phone?.replace(/\D/g, '');
                         
                         if (phone && phone.length >= 10) {
-                            const total = currentOrder.total || 0;
-                            const paid = (currentOrder.payments || []).reduce((acc, p) => acc + (p.amount || 0), 0) || currentOrder.paid || 0;
-                            const balance = total - paid;
+                            const financials = PricingService.calculateOrderFinancials(fullOrder);
+                            const activeLabOrderNumber = labOrderNumber || fullOrder.labOrderNumber || '';
 
                             let balanceInfo = '';
-                            if (balance > 0) {
-                                balanceInfo = `\n\n*Detalle del pago:*\n• Total del presupuesto: $${total.toLocaleString('es-AR')}\n• Monto abonado: $${paid.toLocaleString('es-AR')}\n• Saldo pendiente: $${balance.toLocaleString('es-AR')}`;
+                            if (financials.hasBalance) {
+                                balanceInfo = `Adjuntamos el PDF con el detalle de tu presupuesto, pagos y saldo pendiente.`;
                             } else {
-                                balanceInfo = `\n\n*Detalle del pago:*\n• Total del presupuesto: $${total.toLocaleString('es-AR')}\n• Estado: ¡Totalmente abonado!`;
+                                balanceInfo = `Adjuntamos el PDF con el detalle de tu presupuesto (tu saldo está totalmente abonado).`;
                             }
 
-                            const msg = `Hola ${currentOrder.client?.name || ''} su pedido ya fue procesado con exito, leer info importante.\n\n* Una vez que el pedido este listo informamos para el retiro.\n* Si tiene dudas sobre el estado solo consultar pasada la fecha prevista\n* Los tiempos son aproximados\n\n*Fecha aproximada* : ${estimatedDate}${balanceInfo}`;
-                            
+                            const operationInfo = activeLabOrderNumber ? `• N° de Operación: ${activeLabOrderNumber}\n` : '';
+
+                            // La fecha al principio como primer dato relevante sin formato negrita
+                            const msg = `Fecha aproximada de entrega: ${estimatedDate}\n\nHola ${fullOrder.client?.name || ''}, tu pedido ya fue procesado con éxito.\nPor favor, lee esta info importante: Una vez que el pedido esté listo te informaremos para que pases a retirarlo, si tenés dudas sobre el estado, por favor consultanos recién pasada la fecha prevista, recordá que los tiempos de confeccion son aproximados.\n\n${operationInfo}${balanceInfo}`;
+
+                            // Generar PDF del presupuesto/venta completo
+                            let pdfMedia: any = null;
+                            try {
+                                const { generateOrderPDF } = await import('@/lib/order-pdf-generator');
+                                const pdfResult = await generateOrderPDF(fullOrder, fullOrder.client);
+                                pdfMedia = {
+                                    base64: pdfResult.base64,
+                                    mimetype: 'application/pdf',
+                                    filename: pdfResult.filename
+                                };
+                                console.log('[Lab Status Notification] Order PDF generated successfully:', pdfResult.filename);
+                            } catch (pdfErr) {
+                                console.error('[Lab Status Notification] Failed to generate Order PDF:', pdfErr);
+                            }
+
                             fetchWa('/api/send', {
                                 method: 'POST',
                                 headers: { 'Content-Type': 'application/json' },
                                 body: JSON.stringify({
                                     chatId: `549${phone.slice(-10)}@c.us`,
                                     message: msg,
-                                    senderName: 'Sistema Atelier'
+                                    senderName: 'Sistema Atelier',
+                                    media: pdfMedia
                                 })
                             }).then(async (res) => {
                                 if (!res.ok) {
@@ -639,11 +660,11 @@ export class OrderService {
                             }).catch(async (err) => {
                                 console.error('[Lab Status] Error enviando WhatsApp:', err);
                                 try {
-                                    if (currentOrder && currentOrder.clientId) {
+                                    if (fullOrder && fullOrder.clientId) {
                                         await prisma.clientTask.create({
                                             data: {
-                                                clientId: currentOrder.clientId,
-                                                description: `⚠️ Falló el mensaje automático de laboratorio al cliente (${currentOrder.client?.name || ''}). Por favor, notificar manualmente.`,
+                                                clientId: fullOrder.clientId,
+                                                description: `⚠️ Falló el mensaje automático de laboratorio al cliente (${fullOrder.client?.name || ''}). Por favor, notificar manualmente.`,
                                                 status: 'PENDING',
                                                 type: 'TASK'
                                             }
@@ -654,8 +675,8 @@ export class OrderService {
                                 }
                             });
                         }
-                    } catch (e) {
-                        console.error('Error al preparar mensaje de laboratorio:', e);
+                    } catch (err: any) {
+                        console.error('[Lab Status Notification Error]:', err.message);
                     }
                 }
             }
@@ -670,7 +691,20 @@ export class OrderService {
         if (postSaleNotes !== undefined) data.postSaleNotes = postSaleNotes;
         if (postSaleCost !== undefined) data.postSaleCost = postSaleCost;
         if (postSaleResponsible !== undefined) data.postSaleResponsible = postSaleResponsible;
-        if (postSaleOrderOption !== undefined) data.postSaleOrderOption = postSaleOrderOption;
+        if (postSaleOrderOption !== undefined) {
+            data.postSaleOrderOption = postSaleOrderOption;
+            if (postSaleOrderOption === 'SAME' || postSaleOrderOption === 'DIFFERENT') {
+                const currentOrder = await prisma.order.findUnique({
+                    where: { id },
+                    select: { labStatus: true }
+                });
+                if (currentOrder && currentOrder.labStatus !== 'SENT' && currentOrder.labStatus !== 'IN_PROGRESS') {
+                    data.labStatus = 'SENT';
+                    data.labSentAt = new Date();
+                    data.smartLabProgress = 0;
+                }
+            }
+        }
         if (postSaleNewOrderNumber !== undefined) data.postSaleNewOrderNumber = postSaleNewOrderNumber;
 
         // SmartLab lab fields

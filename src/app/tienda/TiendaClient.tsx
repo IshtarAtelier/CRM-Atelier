@@ -40,9 +40,16 @@ export function TiendaClient({
   const [searchQuery, setSearchQuery] = useState("");
   const [visibleCount, setVisibleCount] = useState(24);
 
+  const searchParams = useSearchParams();
+  const filterBrand = searchParams.get('marca') || '';
+  const filterShape = searchParams.get('forma') || '';
+  const filterMaterial = searchParams.get('material') || '';
+  const filterGender = searchParams.get('genero') || '';
+  const sortParam = searchParams.get('orden') || 'recientes';
+
   useEffect(() => {
     setVisibleCount(24);
-  }, [activeCategory, searchQuery]);
+  }, [activeCategory, searchQuery, filterGender]);
 
   const [isWholesale, setIsWholesale] = useState(false);
   const [webSettings, setWebSettings] = useState({
@@ -98,11 +105,7 @@ export function TiendaClient({
   const installmentsCount = getInstallmentsCount(webSettings.web_promo_installments);
   const discountRate = webSettings.web_promo_cash_discount / 100;
 
-  const searchParams = useSearchParams();
-  const filterBrand = searchParams.get('marca') || '';
-  const filterShape = searchParams.get('forma') || '';
-  const filterMaterial = searchParams.get('material') || '';
-  const sortParam = searchParams.get('orden') || 'recientes';
+
 
   // Removed loading state and fetch since products are passed as props
   const products = initialProducts || [];
@@ -142,6 +145,17 @@ export function TiendaClient({
   }
   if (filterMaterial) {
     filtered = filtered.filter(p => p.material.toLowerCase() === filterMaterial.toLowerCase());
+  }
+
+  if (filterGender) {
+    const fg = filterGender.toLowerCase();
+    if (fg === 'femme') {
+      filtered = filtered.filter(p => p.gender?.toLowerCase() === 'femenino' || p.gender?.toLowerCase() === 'mujer' || p.gender?.toLowerCase() === 'femme');
+    } else if (fg === 'homme') {
+      filtered = filtered.filter(p => p.gender?.toLowerCase() === 'masculino' || p.gender?.toLowerCase() === 'hombre' || p.gender?.toLowerCase() === 'homme');
+    } else if (fg === 'no_gender') {
+      filtered = filtered.filter(p => p.gender?.toLowerCase() === 'unisex' || p.gender?.toLowerCase() === 'sin_genero' || p.gender?.toLowerCase() === 'no_gender' || !p.gender);
+    }
   }
 
   if (searchQuery.trim()) {

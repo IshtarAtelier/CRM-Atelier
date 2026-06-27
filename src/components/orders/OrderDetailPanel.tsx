@@ -53,6 +53,49 @@ export function OrderDetailPanel({
     onRefresh
 }: OrderDetailPanelProps) {
     const [fullImageOpen, setFullImageOpen] = useState(false);
+    const [postSaleNotes, setPostSaleNotes] = useState(order.postSaleNotes || '');
+    const [postSaleCost, setPostSaleCost] = useState<number | ''>(order.postSaleCost ?? '');
+    const [postSaleResponsible, setPostSaleResponsible] = useState(order.postSaleResponsible || '');
+    const [postSaleOrderOption, setPostSaleOrderOption] = useState(order.postSaleOrderOption || '');
+    const [postSaleNewOrderNumber, setPostSaleNewOrderNumber] = useState(order.postSaleNewOrderNumber || '');
+    const [isSavingPostSale, setIsSavingPostSale] = useState(false);
+
+    React.useEffect(() => {
+        setPostSaleNotes(order.postSaleNotes || '');
+        setPostSaleCost(order.postSaleCost ?? '');
+        setPostSaleResponsible(order.postSaleResponsible || '');
+        setPostSaleOrderOption(order.postSaleOrderOption || '');
+        setPostSaleNewOrderNumber(order.postSaleNewOrderNumber || '');
+    }, [order.id, order.postSaleNotes, order.postSaleCost, order.postSaleResponsible, order.postSaleOrderOption, order.postSaleNewOrderNumber]);
+
+    const handleSavePostSale = async () => {
+        setIsSavingPostSale(true);
+        try {
+            const res = await fetch(`/api/orders/${order.id}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    postSaleNotes: postSaleNotes || null,
+                    postSaleCost: postSaleCost === '' ? 0 : Number(postSaleCost),
+                    postSaleResponsible: postSaleResponsible || null,
+                    postSaleOrderOption: postSaleOrderOption || null,
+                    postSaleNewOrderNumber: postSaleOrderOption === 'DIFFERENT' ? (postSaleNewOrderNumber || null) : null,
+                }),
+            });
+            if (res.ok) {
+                if (onRefresh) onRefresh();
+                alert('✓ Cambios de post venta guardados.');
+            } else {
+                const data = await res.json();
+                alert(`⚠️ ${data.error || 'Error al guardar cambios de post venta'}`);
+            }
+        } catch (error) {
+            console.error('Error saving post sale fields:', error);
+            alert('⚠️ Error al conectar con el servidor.');
+        } finally {
+            setIsSavingPostSale(false);
+        }
+    };
 
     const imageUrl = resolveStorageUrl(order.prescription?.imageUrl);
 
@@ -487,6 +530,105 @@ export function OrderDetailPanel({
                             </div>
                         )}
                     </div>
+
+                    {/* Post Venta Form */}
+                    {order.orderType === 'SALE' && (
+                        <div className="bg-white dark:bg-stone-850 rounded-2xl border border-stone-100 dark:border-stone-700/50 p-5 shadow-sm space-y-4">
+                            <div className="flex items-center gap-2 mb-2 pb-2 border-b border-stone-100 dark:border-stone-700/50">
+                                <span className="text-[10px] font-black text-amber-600 dark:text-amber-500 uppercase tracking-widest">
+                                    Servicio de Post Venta
+                                </span>
+                            </div>
+
+                            <div className="space-y-3">
+                                <div>
+                                    <label className="text-[8px] font-black text-stone-400 dark:text-stone-500 uppercase tracking-widest block mb-1">
+                                        Observación / Incidencia / Garantía
+                                    </label>
+                                    <textarea
+                                        rows={3}
+                                        value={postSaleNotes}
+                                        onChange={(e) => setPostSaleNotes(e.target.value)}
+                                        placeholder="Cargar detalles de falla, reclamo, rotura o devolución..."
+                                        className="w-full text-xs p-2.5 rounded-xl border border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-stone-900 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 placeholder-stone-400 transition-all resize-none dark:text-stone-200"
+                                    />
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div>
+                                        <label className="text-[8px] font-black text-stone-400 dark:text-stone-500 uppercase tracking-widest block mb-1">
+                                            Costo Adicional ($)
+                                        </label>
+                                        <input
+                                            type="number"
+                                            value={postSaleCost}
+                                            onChange={(e) => setPostSaleCost(e.target.value === '' ? '' : Number(e.target.value))}
+                                            placeholder="0"
+                                            className="w-full text-xs p-2.5 rounded-xl border border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-stone-900 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 placeholder-stone-400 transition-all dark:text-stone-200"
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="text-[8px] font-black text-stone-400 dark:text-stone-500 uppercase tracking-widest block mb-1">
+                                            Responsable
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={postSaleResponsible}
+                                            onChange={(e) => setPostSaleResponsible(e.target.value)}
+                                            placeholder="Nombre del responsable"
+                                            className="w-full text-xs p-2.5 rounded-xl border border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-stone-900 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 placeholder-stone-400 transition-all dark:text-stone-200"
+                                        />
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label className="text-[8px] font-black text-stone-400 dark:text-stone-500 uppercase tracking-widest block mb-1">
+                                        ¿Requiere procesar en laboratorio?
+                                    </label>
+                                    <select
+                                        value={postSaleOrderOption}
+                                        onChange={(e) => setPostSaleOrderOption(e.target.value)}
+                                        className="w-full text-xs p-2.5 rounded-xl border border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-stone-900 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all dark:text-stone-200"
+                                    >
+                                        <option value="">No requiere / No aplica</option>
+                                        <option value="SAME">Mismo número de pedido ({order.labOrderNumber || 'Sin número'})</option>
+                                        <option value="DIFFERENT">Número de pedido diferente</option>
+                                    </select>
+                                </div>
+
+                                {postSaleOrderOption === 'DIFFERENT' && (
+                                    <div>
+                                        <label className="text-[8px] font-black text-stone-400 dark:text-stone-500 uppercase tracking-widest block mb-1">
+                                            Nuevo Número de Pedido / OP
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={postSaleNewOrderNumber}
+                                            onChange={(e) => setPostSaleNewOrderNumber(e.target.value)}
+                                            placeholder="Ingresar nuevo número de OP en lab..."
+                                            className="w-full text-xs p-2.5 rounded-xl border border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-stone-900 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 placeholder-stone-400 transition-all dark:text-stone-200"
+                                        />
+                                    </div>
+                                )}
+
+                                <button
+                                    onClick={handleSavePostSale}
+                                    disabled={isSavingPostSale}
+                                    className="w-full py-2 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2"
+                                >
+                                    {isSavingPostSale ? (
+                                        <>
+                                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                            Guardando...
+                                        </>
+                                    ) : (
+                                        'Guardar Registro'
+                                    )}
+                                </button>
+                            </div>
+                        </div>
+                    )}
                 </div>
 
             </div>

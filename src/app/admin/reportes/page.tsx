@@ -74,6 +74,7 @@ interface ReportData {
         totalMarketingCosts?: number;
         totalProviderCosts?: number;
         totalSpecialDiscounts: number;
+        totalPostSaleCosts?: number;
         netProfit: number;
         profitMargin: number;
         totalPaid: number;
@@ -369,6 +370,14 @@ export default function ReportsDashboard() {
                                 color="bg-purple-500" 
                                 tooltip="Comisiones PayWay, GoCuotas, etc." 
                             />
+                            {data.summary.totalPostSaleCosts ? (
+                                <ProfitLossChart 
+                                    label="Costos de Post-Venta / Garantías" 
+                                    value={data.summary.totalPostSaleCosts} 
+                                    total={data.summary.totalRevenue} 
+                                    color="bg-amber-600" 
+                                />
+                            ) : null}
                         </div>
                     </div>
 

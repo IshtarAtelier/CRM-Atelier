@@ -136,9 +136,9 @@ const handleMessageCreate = async (msg) => {
         // A. Detección por patrones de texto conocidos de auto-respuestas
         if (msg.body) {
             const metaAutoReplyPatterns = [
-                /[¡!]?hola[,!]?\s*[¿?]?\s*c[oó]mo podemos ayudarte/i,
+                /[¡!]?hola\b.*c[oó]mo podemos ayudarte/i,
                 /bienvenid[oa]\s*(a\s*)?atelier/i,
-                /gracias por (contactarnos|tu mensaje|escribirnos|comunicarte)/i,
+                /gracias por (contactar|escribir|comunicar|tu mensaje)/i,
                 /te (responderemos|contestaremos|atenderemos) (a la brevedad|pronto|en breve)/i,
                 /en breve (te responder|un asesor)/i,
             ];
@@ -937,9 +937,9 @@ const handleMessage = async (msg) => {
                 // significa que este chat ya estaba siendo atendido por un humano previamente.
                 // EXCLUIR auto-respuestas de Meta/WA Business para no dar falsos positivos.
                 const metaAutoPatterns = [
-                    /[¡!]?hola[,!]?\s*[¿?]?\s*c[oó]mo podemos ayudarte/i,
+                    /[¡!]?hola\b.*c[oó]mo podemos ayudarte/i,
                     /bienvenid[oa]\s*(a\s*)?atelier/i,
-                    /gracias por (contactarnos|tu mensaje|escribirnos|comunicarte)/i,
+                    /gracias por (contactar|escribir|comunicar|tu mensaje)/i,
                 ];
                 const hasHumanOutbound = prevMsgs.some(m => {
                     if (!m.fromMe) return false;
@@ -953,6 +953,12 @@ const handleMessage = async (msg) => {
                 if (hasHumanOutbound) {
                     shouldEnableBot = false;
                     console.log(`  Conversación humana previa detectada para ${profileName}. Bot apagado por defecto.`);
+                }
+                
+                // Si entra por un anuncio de Meta Ads, forzar encendido del bot
+                if (body && /\[meta[a-zA-Z0-9_-]+\]/i.test(body)) {
+                    shouldEnableBot = true;
+                    console.log(`  🎯 [Meta Ads] Forzando encendido de bot para nuevo chat de ${profileName || waId}.`);
                 }
             } catch (err) {
                 console.error("Error fetching prev msgs:", err.message);
@@ -985,6 +991,14 @@ const handleMessage = async (msg) => {
                 updateData.archived = false;
                 console.log(`  📥 [Auto-Desarchivar] Chat de ${profileName || waId} desarchivado por nuevo mensaje entrante.`);
             }
+            
+            // Si llega un mensaje de Meta Ads, reactivar el bot para responder al anuncio
+            if (body && /\[meta[a-zA-Z0-9_-]+\]/i.test(body)) {
+                updateData.botEnabled = true;
+                chat.botEnabled = true; // Sincronizar localmente en memoria
+                console.log(`  🎯 [Meta Ads] Reactivando bot para chat existente de ${profileName || waId}.`);
+            }
+            
             chat = await prisma.whatsAppChat.update({
                 where: { id: chat.id },
                 data: updateData,

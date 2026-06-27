@@ -587,12 +587,16 @@ export async function POST(req: Request) {
             state: getArgentineStateCode(customer.state),
             street1: customer.address || "N/A"
           },
-          items: sanitizedItems.map(item => ({
-            code: item.productId || 'generic',
-            name: item.model || 'Producto',
-            qty: item.quantity,
-            price: Math.round(item.price * 100)
-          }))
+          items: sanitizedItems.map(item => {
+            const unitPrice = Math.round(item.price * 100);
+            return {
+              productSKU: item.productId || 'generic',
+              productName: item.model || 'Producto',
+              quantity: item.quantity,
+              unitPrice: unitPrice,
+              totalAmount: unitPrice * item.quantity
+            };
+          })
         }
       }
     };
