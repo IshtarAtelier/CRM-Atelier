@@ -185,6 +185,45 @@ export function ProductFilters({
                 </div>
               </div>
 
+              {/* Sección Género */}
+              <div>
+                <h3 className="text-xs font-bold text-stone-900 dark:text-stone-200 uppercase tracking-[0.2em] mb-4 border-t lg:border-none pt-8 lg:pt-0">
+                  Género
+                </h3>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    onClick={() => handleFilterChange('genero', '')}
+                    className={`px-4 py-2 text-[10px] font-black uppercase tracking-widest rounded-full border transition-all duration-300 ${
+                      !currentGender
+                        ? 'border-stone-950 bg-stone-900 text-white dark:bg-stone-50 dark:text-stone-950 shadow-md scale-[1.02]'
+                        : 'border-stone-200 hover:border-stone-400 bg-white text-stone-600 dark:bg-stone-900 dark:border-stone-800 dark:text-stone-400 hover:bg-stone-50/50 dark:hover:bg-stone-800/30'
+                    }`}
+                  >
+                    Todos
+                  </button>
+                  {[
+                    { id: 'femme', label: 'Femme' },
+                    { id: 'homme', label: 'Homme' },
+                    { id: 'no_gender', label: 'No Gender' }
+                  ].map((genderOption) => {
+                    const isSelected = currentGender === genderOption.id;
+                    return (
+                      <button
+                        key={genderOption.id}
+                        onClick={() => handleFilterChange('genero', isSelected ? '' : genderOption.id)}
+                        className={`px-4 py-2 text-[10px] font-black uppercase tracking-widest rounded-full border transition-all duration-300 ${
+                          isSelected
+                            ? 'border-stone-950 bg-stone-900 text-white dark:bg-stone-50 dark:text-stone-950 shadow-md scale-[1.02]'
+                            : 'border-stone-200 hover:border-stone-400 bg-white text-stone-600 dark:bg-stone-900 dark:border-stone-800 dark:text-stone-400 hover:bg-stone-50/50 dark:hover:bg-stone-800/30'
+                        }`}
+                      >
+                        {genderOption.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
               {/* Sección Forma */}
               {availableShapes.length > 0 && (
                 <div>
@@ -271,45 +310,6 @@ export function ProductFilters({
                   </div>
                 </div>
               )}
-
-              {/* Sección Género */}
-              <div>
-                <h3 className="text-xs font-bold text-stone-900 dark:text-stone-200 uppercase tracking-[0.2em] mb-4 border-t lg:border-none pt-8 lg:pt-0">
-                  Género
-                </h3>
-                <div className="flex flex-wrap gap-2">
-                  <button
-                    onClick={() => handleFilterChange('genero', '')}
-                    className={`px-4 py-2 text-[10px] font-black uppercase tracking-widest rounded-full border transition-all duration-300 ${
-                      !currentGender
-                        ? 'border-stone-950 bg-stone-900 text-white dark:bg-stone-50 dark:text-stone-950 shadow-md scale-[1.02]'
-                        : 'border-stone-200 hover:border-stone-400 bg-white text-stone-600 dark:bg-stone-900 dark:border-stone-800 dark:text-stone-400 hover:bg-stone-50/50 dark:hover:bg-stone-800/30'
-                    }`}
-                  >
-                    Todos
-                  </button>
-                  {[
-                    { id: 'femme', label: 'Femme' },
-                    { id: 'homme', label: 'Homme' },
-                    { id: 'no_gender', label: 'No Gender' }
-                  ].map((genderOption) => {
-                    const isSelected = currentGender === genderOption.id;
-                    return (
-                      <button
-                        key={genderOption.id}
-                        onClick={() => handleFilterChange('genero', isSelected ? '' : genderOption.id)}
-                        className={`px-4 py-2 text-[10px] font-black uppercase tracking-widest rounded-full border transition-all duration-300 ${
-                          isSelected
-                            ? 'border-stone-950 bg-stone-900 text-white dark:bg-stone-50 dark:text-stone-950 shadow-md scale-[1.02]'
-                            : 'border-stone-200 hover:border-stone-400 bg-white text-stone-600 dark:bg-stone-900 dark:border-stone-800 dark:text-stone-400 hover:bg-stone-50/50 dark:hover:bg-stone-800/30'
-                        }`}
-                      >
-                        {genderOption.label}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
 
               {/* Sección Marca */}
               {availableBrands.length > 0 && (
