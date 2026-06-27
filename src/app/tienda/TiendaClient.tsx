@@ -150,9 +150,15 @@ export function TiendaClient({
   if (filterGender) {
     const fg = filterGender.toLowerCase();
     if (fg === 'femme') {
-      filtered = filtered.filter(p => p.gender?.toLowerCase() === 'femenino' || p.gender?.toLowerCase() === 'mujer' || p.gender?.toLowerCase() === 'femme');
+      filtered = filtered.filter(p => 
+        p.gender?.toLowerCase() === 'femenino' || p.gender?.toLowerCase() === 'mujer' || p.gender?.toLowerCase() === 'femme' ||
+        p.gender?.toLowerCase() === 'unisex' || p.gender?.toLowerCase() === 'sin_genero' || p.gender?.toLowerCase() === 'no_gender' || !p.gender
+      );
     } else if (fg === 'homme') {
-      filtered = filtered.filter(p => p.gender?.toLowerCase() === 'masculino' || p.gender?.toLowerCase() === 'hombre' || p.gender?.toLowerCase() === 'homme');
+      filtered = filtered.filter(p => 
+        p.gender?.toLowerCase() === 'masculino' || p.gender?.toLowerCase() === 'hombre' || p.gender?.toLowerCase() === 'homme' ||
+        p.gender?.toLowerCase() === 'unisex' || p.gender?.toLowerCase() === 'sin_genero' || p.gender?.toLowerCase() === 'no_gender' || !p.gender
+      );
     } else if (fg === 'no_gender') {
       filtered = filtered.filter(p => p.gender?.toLowerCase() === 'unisex' || p.gender?.toLowerCase() === 'sin_genero' || p.gender?.toLowerCase() === 'no_gender' || !p.gender);
     }
