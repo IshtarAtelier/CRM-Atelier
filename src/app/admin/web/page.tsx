@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { resolveStorageUrl } from '@/lib/utils/storage';
+import { getSelectedShapeFromTags, getSelectedMaterialFromTags, updateTagsWithShapeAndMaterial } from '@/utils/product-controllers';
 
 interface WebProduct {
   id: string;
@@ -41,6 +42,7 @@ interface WebProduct {
     stock: number;
     publishToWeb: boolean;
     imagenesCatalogo: string[];
+    seoTags?: string | null;
   };
 }
 
@@ -99,7 +101,8 @@ export default function WebManagementPage() {
     isFeatured: false,
     isActive: false,
     description: "",
-    slug: ""
+    slug: "",
+    seoTags: ""
   });
 
   const renderStoryContent = (isFullscreen = false) => {
@@ -561,7 +564,8 @@ export default function WebManagementPage() {
       isFeatured: p.isFeatured,
       isActive: p.isActive,
       description: p.description || "",
-      slug: p.slug
+      slug: p.slug,
+      seoTags: p.product.seoTags || ""
     });
   };
 
@@ -1738,6 +1742,49 @@ export default function WebManagementPage() {
                   </div>
                 </label>
               </div>
+
+              {['Receta', 'Sol', 'XL', 'Clip-On'].includes(productForm.category) && (
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="text-[9px] font-black text-stone-400 uppercase tracking-widest ml-2">Forma del Armazón</label>
+                    <select
+                      className="w-full px-3 py-2.5 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl text-xs outline-none focus:border-primary transition-all"
+                      value={getSelectedShapeFromTags(productForm.seoTags)}
+                      onChange={e => {
+                        const currentMaterial = getSelectedMaterialFromTags(productForm.seoTags);
+                        const updated = updateTagsWithShapeAndMaterial(productForm.seoTags, e.target.value, currentMaterial);
+                        setProductForm({ ...productForm, seoTags: updated });
+                      }}
+                    >
+                      <option value="">Automático</option>
+                      <option value="Cuadrado">Cuadrado</option>
+                      <option value="Redondo">Redondo</option>
+                      <option value="Cat-Eye">Cat-Eye</option>
+                      <option value="Hexagonal">Hexagonal</option>
+                      <option value="Aviador">Aviador</option>
+                      <option value="XL">XL</option>
+                    </select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[9px] font-black text-stone-400 uppercase tracking-widest ml-2">Material</label>
+                    <select
+                      className="w-full px-3 py-2.5 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl text-xs outline-none focus:border-primary transition-all"
+                      value={getSelectedMaterialFromTags(productForm.seoTags)}
+                      onChange={e => {
+                        const currentShape = getSelectedShapeFromTags(productForm.seoTags);
+                        const updated = updateTagsWithShapeAndMaterial(productForm.seoTags, currentShape, e.target.value);
+                        setProductForm({ ...productForm, seoTags: updated });
+                      }}
+                    >
+                      <option value="">Automático</option>
+                      <option value="Acetato">Acetato</option>
+                      <option value="Metal">Metal</option>
+                      <option value="Titanio">Titanio</option>
+                      <option value="TR90">TR90</option>
+                    </select>
+                  </div>
+                </div>
+              )}
 
               <div className="space-y-1.5">
                 <label className="text-[9px] font-black text-stone-400 uppercase tracking-widest">Descripción Comercial Exclusiva Web</label>
