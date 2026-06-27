@@ -188,7 +188,7 @@ export function CustomGlassesBuilder({ products }: { products: Product[] }) {
           src={(selectedProduct.imagenesCatalogo.length > 0 ? resolveStorageUrl(selectedProduct.imagenesCatalogo[0]) : "") || selectedProduct.mockImage || "/images/placeholder.svg"}
           alt={selectedProduct.model || 'Anteojo'}
           className="w-full max-w-[280px] h-40 mb-6"
-          imageClassName={((selectedProduct.model || '').toLowerCase().includes('tl3932 c3') || (selectedProduct.model || '').toLowerCase().includes('diana') || selectedProduct.id === 'cmq5d11hf002rhy61fhvqs7nj') ? 'scale-125' : ''}
+          imageClassName={((selectedProduct.model || '').toLowerCase().includes('tl3932 c3') || selectedProduct.id === 'cmq5d11hf002rhy61fhvqs7nj') ? 'scale-125' : ((selectedProduct.model || '').toLowerCase().includes('diana') ? 'scale-110' : '')}
         />
         <p className="text-[10px] uppercase tracking-[0.3em] text-[#999] font-bold mb-2">{selectedProduct.brand}</p>
         <h4 className="text-3xl font-serif uppercase tracking-tight leading-none mb-4">{selectedProduct.model}</h4>
@@ -498,7 +498,7 @@ export function CustomGlassesBuilder({ products }: { products: Product[] }) {
                             alt={group.baseName}
                             fill
                             style={{ objectFit: "contain", transform: "translateZ(0)" }}
-                            className={`${((group.baseName).toLowerCase().includes('tl3932') || (group.baseName).toLowerCase().includes('diana')) ? 'scale-125' : ''} brightness-105 contrast-[1.02]`}
+                            className={`${(group.baseName).toLowerCase().includes('tl3932') ? 'scale-125' : ((group.baseName).toLowerCase().includes('diana') ? 'scale-110' : '')} brightness-105 contrast-[1.02]`}
                             sizes="(max-width: 768px) 50vw, 33vw"
                           />
                         </div>

@@ -155,7 +155,7 @@ export function ProductClient({
                     fill
                     sizes="(max-width: 1024px) 100vw, 85vw"
                     style={{ objectFit: activeImageIndex === 0 ? "contain" : "cover", transform: "translateZ(0)" }}
-                    className={activeImageIndex === 0 ? (((product.model || '').toLowerCase().includes('tl3932 c3') || (product.model || '').toLowerCase().includes('diana') || product.id === 'cmq5d11hf002rhy61fhvqs7nj') ? "p-0 scale-125" : "p-8 lg:p-12") : ""}
+                    className={activeImageIndex === 0 ? (((product.model || '').toLowerCase().includes('tl3932 c3') || product.id === 'cmq5d11hf002rhy61fhvqs7nj') ? "p-0 scale-125" : ((product.model || '').toLowerCase().includes('diana') ? "p-0 scale-110" : "p-8 lg:p-12")) : ""}
                   />
                 </motion.div>
               ) : (
