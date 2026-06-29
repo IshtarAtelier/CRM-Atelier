@@ -96,7 +96,7 @@ export default function WebManagementPage() {
   const [products, setProducts] = useState<WebProduct[]>([]);
   const [loadingProducts, setLoadingProducts] = useState(true);
   const [productSearch, setProductSearch] = useState("");
-  const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
+  const [viewMode, setViewMode] = useState<'list' | 'grid'>('grid');
   const [editingProduct, setEditingProduct] = useState<WebProduct | null>(null);
   const [savingProduct, setSavingProduct] = useState(false);
   const [productForm, setProductForm] = useState({
