@@ -58,6 +58,7 @@ export function OrderDetailPanel({
     const [postSaleResponsible, setPostSaleResponsible] = useState(order.postSaleResponsible || '');
     const [postSaleOrderOption, setPostSaleOrderOption] = useState(order.postSaleOrderOption || '');
     const [postSaleNewOrderNumber, setPostSaleNewOrderNumber] = useState(order.postSaleNewOrderNumber || '');
+    const [newNoteText, setNewNoteText] = useState('');
     const [isSavingPostSale, setIsSavingPostSale] = useState(false);
 
     React.useEffect(() => {
@@ -66,16 +67,29 @@ export function OrderDetailPanel({
         setPostSaleResponsible(order.postSaleResponsible || '');
         setPostSaleOrderOption(order.postSaleOrderOption || '');
         setPostSaleNewOrderNumber(order.postSaleNewOrderNumber || '');
+        setNewNoteText('');
     }, [order.id, order.postSaleNotes, order.postSaleCost, order.postSaleResponsible, order.postSaleOrderOption, order.postSaleNewOrderNumber]);
 
     const handleSavePostSale = async () => {
         setIsSavingPostSale(true);
         try {
+            let finalNotes = order.postSaleNotes;
+            if (newNoteText.trim()) {
+                const formattedDate = new Date().toLocaleDateString('es-AR', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+                const newEntry = `[${formattedDate}]: ${newNoteText.trim()}`;
+                finalNotes = order.postSaleNotes ? `${order.postSaleNotes}\n${newEntry}` : newEntry;
+            }
+
             const res = await fetch(`/api/orders/${order.id}`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    postSaleNotes: postSaleNotes || null,
+                    postSaleNotes: finalNotes || null,
                     postSaleCost: postSaleCost === '' ? 0 : Number(postSaleCost),
                     postSaleResponsible: postSaleResponsible || null,
                     postSaleOrderOption: postSaleOrderOption || null,
@@ -83,6 +97,7 @@ export function OrderDetailPanel({
                 }),
             });
             if (res.ok) {
+                setNewNoteText('');
                 if (onRefresh) onRefresh();
                 alert('✓ Cambios de post venta guardados.');
             } else {
@@ -542,14 +557,49 @@ export function OrderDetailPanel({
 
                             <div className="space-y-3">
                                 <div>
+                                    {/* Timeline de notas */}
+                                    <div className="bg-stone-50 dark:bg-stone-900/40 rounded-xl p-3 border border-stone-200/50 dark:border-stone-800 space-y-2 max-h-[150px] overflow-y-auto custom-scrollbar mb-3">
+                                        <p className="text-[7.5px] font-black text-stone-400 dark:text-stone-500 uppercase tracking-widest border-b border-stone-200/20 pb-1">
+                                            Historial de Observaciones
+                                        </p>
+                                        {(() => {
+                                            const lines = order.postSaleNotes
+                                                ? order.postSaleNotes.split('\n').filter((l: string) => l.trim() !== '')
+                                                : [];
+                                            if (lines.length === 0) {
+                                                return <p className="text-[10px] text-stone-400 italic">Sin observaciones registradas.</p>;
+                                            }
+                                            return (
+                                                <div className="space-y-2 text-[10px] leading-relaxed">
+                                                    {lines.map((line: string, i: number) => {
+                                                        const match = line.match(/^\[(.*?)\]:\s*(.*)$/);
+                                                        if (match) {
+                                                            return (
+                                                                <div key={i} className="flex flex-col text-stone-600 dark:text-stone-300">
+                                                                    <span className="text-[7.5px] font-black text-amber-600 dark:text-amber-500">{match[1]}</span>
+                                                                    <span className="font-semibold">{match[2]}</span>
+                                                                </div>
+                                                            );
+                                                        }
+                                                        return (
+                                                            <div key={i} className="text-stone-500 dark:text-stone-400 font-semibold">
+                                                                {line}
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            );
+                                        })()}
+                                    </div>
+
                                     <label className="text-[8px] font-black text-stone-400 dark:text-stone-500 uppercase tracking-widest block mb-1">
-                                        Observación / Incidencia / Garantía
+                                        Agregar Nueva Observación / Actualización
                                     </label>
                                     <textarea
-                                        rows={3}
-                                        value={postSaleNotes}
-                                        onChange={(e) => setPostSaleNotes(e.target.value)}
-                                        placeholder="Cargar detalles de falla, reclamo, rotura o devolución..."
+                                        rows={2}
+                                        value={newNoteText}
+                                        onChange={(e) => setNewNoteText(e.target.value)}
+                                        placeholder="Escribir un comentario o actualización de estado de garantía..."
                                         className="w-full text-xs p-2.5 rounded-xl border border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-stone-900 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 placeholder-stone-400 transition-all resize-none dark:text-stone-200"
                                     />
                                 </div>

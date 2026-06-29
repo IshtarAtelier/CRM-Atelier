@@ -32,6 +32,14 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
             return NextResponse.json({ error: 'Orden o cliente no encontrado' }, { status: 404 });
         }
 
+        // Buscar si hay un chat vinculado a este cliente
+        const chat = await prisma.whatsAppChat.findFirst({
+            where: { clientId: order.clientId }
+        });
+
+        const waId = chat ? chat.waId : `${formattedPhone}@c.us`;
+        const chatIdForBot = chat ? chat.id : waId;
+
         // Generar PDF del lado del servidor
         let pdfResult;
         try {
@@ -47,7 +55,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                chatId: `${formattedPhone}@c.us`,
+                chatId: chatIdForBot,
                 message: text,
                 media: {
                     base64: pdfResult.base64,

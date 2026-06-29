@@ -206,13 +206,28 @@ function createApiRouter(deps) {
         // media: { base64: string, mimetype: string, filename?: string }
         try {
             let waId = chatId;
-            let dbChatId = chatId.includes('@c.us') ? null : chatId;
+            let dbChatId = null;
 
-            if (!chatId.includes('@c.us')) {
+            if (!chatId.includes('@c.us') && !chatId.includes('@lid')) {
                 const chat = await prisma.whatsAppChat.findUnique({ where: { id: chatId } });
                 if (!chat) return res.status(404).json({ error: 'Chat not found' });
                 waId = chat.waId;
                 dbChatId = chat.id;
+            } else {
+                // Si es un waId directo, intentamos buscar si ya existe en la DB por waId o realPhone
+                const cleanPhone = chatId.replace('@c.us', '').replace('@lid', '');
+                const chat = await prisma.whatsAppChat.findFirst({
+                    where: {
+                        OR: [
+                            { waId: chatId },
+                            { realPhone: cleanPhone }
+                        ]
+                    }
+                });
+                if (chat) {
+                    dbChatId = chat.id;
+                    waId = chat.waId; // Usamos el waId real de la DB (por si es @lid!)
+                }
             }
             
             const status = getStatus();
@@ -225,7 +240,7 @@ function createApiRouter(deps) {
             botReplyingTo.add(waId);
 
             if (media?.base64) {
-                sent = await sendMessage(waId, message, media);
+                sent = await sendMessage(waId, message, media, { isProactive: false, isAutomated: false });
 
                 // Subir al CRM para tener el pre-render
                 try {
@@ -254,18 +269,28 @@ function createApiRouter(deps) {
                     console.error("Error subiendo media saliente a CRM:", err.message);
                 }
             } else {
-                sent = await sendMessage(waId, message);
+                sent = await sendMessage(waId, message, null, { isProactive: false, isAutomated: false });
             }
 
             if (sent && sent.id && sent.id._serialized && dbChatId) {
                 try {
+                    const msgType = media 
+                        ? (media.mimetype?.startsWith('audio/') 
+                            ? 'AUDIO' 
+                            : (media.mimetype?.startsWith('video/') 
+                                ? 'VIDEO' 
+                                : (media.mimetype?.startsWith('image/') 
+                                    ? 'IMAGE' 
+                                    : 'DOCUMENT')))
+                        : 'TEXT';
+
                     await prisma.whatsAppMessage.upsert({
                         where: { waMessageId: sent.id._serialized },
                         update: { senderName: senderName || 'CRM' },
                         create: {
                             chatId: dbChatId,
                             direction: 'OUTBOUND',
-                            type: media ? 'IMAGE' : 'TEXT',
+                            type: msgType,
                             content: message || '[Media]',
                             mediaUrl: mediaUrl,
                             waMessageId: sent.id._serialized,

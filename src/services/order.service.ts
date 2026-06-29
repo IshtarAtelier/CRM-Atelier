@@ -3,7 +3,7 @@ import { ContactService } from '@/services/contact.service';
 import { BotService } from '@/services/bot.service';
 import { prisma } from '@/lib/db';
 import { PricingService } from '@/services/PricingService';
-import { calculateQuoteTotals } from '@/lib/promo-utils';
+import { calculateQuoteTotals, recalculateCrystalPrices } from '@/lib/promo-utils';
 import { z } from 'zod';
 import { fetchWa } from '@/lib/wa-config';
 import { AdsService } from '@/services/ads.service';
@@ -308,6 +308,14 @@ export class OrderService {
                 const dbProducts = await prisma.product.findMany({
                     where: { id: { in: productIds } }
                 });
+
+                // If items are provided in the update body, recalculate crystal prices to prevent pricing bypasses
+                if (items) {
+                    items.forEach((it: any) => {
+                        it.product = dbProducts.find(p => p.id === it.productId) || it.product;
+                    });
+                    recalculateCrystalPrices(items);
+                }
 
                 // Map items for calculateQuoteTotals utility
                 const cartItems = itemsToCalculate.map((it: any) => ({

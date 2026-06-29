@@ -6,6 +6,11 @@ export const dynamic = 'force-dynamic';
 // GET /api/fixed-costs — List fixed costs (optionally filtered by month/year)
 export async function GET(request: Request) {
     try {
+        const role = request.headers.get('x-user-role') || 'STAFF';
+        if (role !== 'ADMIN') {
+            return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
+        }
+
         const { searchParams } = new URL(request.url);
         const month = searchParams.get('month');
         const year = searchParams.get('year');
@@ -29,6 +34,11 @@ export async function GET(request: Request) {
 // POST /api/fixed-costs — Create a new fixed cost
 export async function POST(request: Request) {
     try {
+        const role = request.headers.get('x-user-role') || 'STAFF';
+        if (role !== 'ADMIN') {
+            return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
+        }
+
         const body = await request.json();
         const { name, amount, category, month, year, notes } = body;
 

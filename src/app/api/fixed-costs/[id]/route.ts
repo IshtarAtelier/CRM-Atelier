@@ -7,6 +7,11 @@ export async function PUT(
     { params }: { params: Promise<{ id: string }> }
 ) {
     try {
+        const role = request.headers.get('x-user-role') || 'STAFF';
+        if (role !== 'ADMIN') {
+            return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
+        }
+
         const { id } = await params;
         const body = await request.json();
         const { name, amount, category, month, year, notes } = body;
@@ -36,6 +41,11 @@ export async function DELETE(
     { params }: { params: Promise<{ id: string }> }
 ) {
     try {
+        const role = request.headers.get('x-user-role') || 'STAFF';
+        if (role !== 'ADMIN') {
+            return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
+        }
+
         const { id } = await params;
 
         await prisma.fixedCost.delete({ where: { id } });

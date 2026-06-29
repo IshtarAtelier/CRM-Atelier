@@ -92,6 +92,17 @@ async function checkEligibility({ client, chat, quote, now }) {
         return { eligible: false, reason: `${client.name} ya registró pagos posteriores` };
     }
 
+    // 8.5. No es un contacto frío (debe tener al menos un mensaje entrante registrado)
+    const inboundCount = await prisma.whatsAppMessage.count({
+        where: {
+            chatId: chat.id,
+            direction: 'INBOUND',
+        },
+    });
+    if (inboundCount === 0) {
+        return { eligible: false, reason: `${client.name} es un contacto frío (sin mensajes entrantes)` };
+    }
+
     // 9. Determinar qué tier de seguimiento le corresponde
     const diffHours = (now.getTime() - new Date(quote.createdAt).getTime()) / 3600000;
 

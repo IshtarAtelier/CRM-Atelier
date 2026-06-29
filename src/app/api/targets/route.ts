@@ -3,6 +3,11 @@ import { prisma } from '@/lib/db';
 
 export async function POST(request: Request) {
     try {
+        const role = request.headers.get('x-user-role') || 'STAFF';
+        if (role !== 'ADMIN') {
+            return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
+        }
+
         const body = await request.json();
         const { target1, target2, target3, month, year } = body;
 

@@ -3,7 +3,7 @@ import { headers } from 'next/headers';
 
 export const dynamic = 'force-dynamic';
 import { prisma } from '@/lib/db';
-import { calculateQuoteTotals, isMultifocal2x1 } from '@/lib/promo-utils';
+import { calculateQuoteTotals, isMultifocal2x1, recalculateCrystalPrices } from '@/lib/promo-utils';
 import { formatOrderItemsSummary } from '@/lib/order-utils';
 import { PricingService } from '@/services/PricingService';
 
@@ -35,9 +35,15 @@ export async function POST(request: Request) {
             where: { id: { in: productIds } }
         });
 
+        // Recalculate crystal prices on the server to prevent client-side bypasses
+        items.forEach((it: any) => {
+            it.product = dbProducts.find(p => p.id === it.productId);
+        });
+        recalculateCrystalPrices(items);
+
         // Map items for calculateQuoteTotals utility
         const cartItems = items.map((it: any) => ({
-            product: dbProducts.find(p => p.id === it.productId) || { price: it.price },
+            product: it.product || { price: it.price },
             quantity: it.quantity,
             customPrice: it.price
         }));
@@ -228,6 +234,9 @@ export async function POST(request: Request) {
 // GET /api/orders — List all orders (paginated or limited list)
 export async function GET(request: Request) {
     try {
+        const role = request.headers.get('x-user-role') || 'STAFF';
+        const isAdmin = role === 'ADMIN';
+
         const { searchParams } = new URL(request.url);
         const paginate = searchParams.get('paginate') === 'true';
         const page = parseInt(searchParams.get('page') || '1');
@@ -447,7 +456,7 @@ export async function GET(request: Request) {
                 const paginated = ordersWithBalance.slice(skip, skip + limit);
                 return NextResponse.json({
                     orders: paginated,
-                    totalRevenue,
+                    totalRevenue: isAdmin ? totalRevenue : 0,
                     pagination: {
                         total,
                         page,
@@ -475,7 +484,7 @@ export async function GET(request: Request) {
 
             return NextResponse.json({
                 orders,
-                totalRevenue: aggregate._sum.total || 0,
+                totalRevenue: isAdmin ? (aggregate._sum.total || 0) : 0,
                 pagination: {
                     total,
                     page,

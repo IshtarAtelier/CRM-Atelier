@@ -214,3 +214,149 @@ export const calculateQuoteTotals = (
         specialDiscountAmount: result.specialDiscountAmount
     };
 };
+
+/**
+ * Recalculates the prices of crystal items based on 2x1 promo rules.
+ * Mutates the items in-place (updating item.customPrice / item.price and item.isPromo).
+ * Returns true if any prices or flags were modified, false otherwise.
+ */
+export function recalculateCrystalPrices(items: any[]): boolean {
+    if (!items || items.length === 0) return false;
+    let modified = false;
+
+    // 1. Gather all crystal items
+    const crystalItems = items.filter(i => isCrystal(i.product));
+
+    // For any crystal that is NOT a 2x1 multifocal, its price should be sprice / 2
+    const regularCrystals = crystalItems.filter(i => !isMultifocal2x1(i.product) || isMiPrimerVarilux(i.product));
+    for (const item of regularCrystals) {
+        const expectedPrice = Math.round(safePrice(item.product?.price) / 2);
+        const currentPrice = item.customPrice !== undefined ? item.customPrice : item.price;
+        if (currentPrice !== expectedPrice) {
+            if (item.customPrice !== undefined) item.customPrice = expectedPrice;
+            else item.price = expectedPrice;
+            modified = true;
+        }
+        if (item.isPromo !== false) {
+            item.isPromo = false;
+            modified = true;
+        }
+    }
+
+    // 2. Process 2x1 Multifocal crystals
+    const promoCrystals = crystalItems.filter(i => isMultifocal2x1(i.product) && !isMiPrimerVarilux(i.product));
+
+    // To resolve the Product-ID Coupling Bug, we pair up ALL 2x1 multifocal crystals together.
+    // Group them by product ID first to make pairs of the same model.
+    const groupedByProduct: Record<string, { od: any[], oi: any[] }> = {};
+    for (const item of promoCrystals) {
+        const pId = item.product?.id || 'unknown';
+        if (!groupedByProduct[pId]) {
+            groupedByProduct[pId] = { od: [], oi: [] };
+        }
+        if (item.eye === 'OD') {
+            groupedByProduct[pId].od.push(item);
+        } else if (item.eye === 'OI') {
+            groupedByProduct[pId].oi.push(item);
+        } else {
+            // Unspecified eye? Treat as standard price
+            const expectedPrice = Math.round(safePrice(item.product?.price) / 2);
+            const currentPrice = item.customPrice !== undefined ? item.customPrice : item.price;
+            if (currentPrice !== expectedPrice) {
+                if (item.customPrice !== undefined) item.customPrice = expectedPrice;
+                else item.price = expectedPrice;
+                modified = true;
+            }
+            if (item.isPromo !== false) {
+                item.isPromo = false;
+                modified = true;
+            }
+        }
+    }
+
+    // Form pairs
+    interface CrystalPair {
+        productId: string;
+        price: number;
+        od: any;
+        oi: any;
+    }
+    const pairs: CrystalPair[] = [];
+    const unmatched: any[] = [];
+
+    for (const [pId, lists] of Object.entries(groupedByProduct)) {
+        const minLen = Math.min(lists.od.length, lists.oi.length);
+        for (let idx = 0; idx < minLen; idx++) {
+            const od = lists.od[idx];
+            const oi = lists.oi[idx];
+            pairs.push({
+                productId: pId,
+                price: safePrice(od.product?.price),
+                od,
+                oi
+            });
+        }
+        // Add unmatched to unmatched list
+        if (lists.od.length > minLen) {
+            unmatched.push(...lists.od.slice(minLen));
+        }
+        if (lists.oi.length > minLen) {
+            unmatched.push(...lists.oi.slice(minLen));
+        }
+    }
+
+    // Sort pairs by price descending so the CHEAPEST pairs are free!
+    pairs.sort((a, b) => b.price - a.price);
+
+    // Apply 2x1 pricing:
+    // First pair (index 0) -> paid (each eye gets Math.round(price / 2))
+    // Second pair (index 1) -> free (each eye gets 0, isPromo = true)
+    // Third pair (index 2) -> paid
+    // Fourth pair (index 3) -> free
+    // etc.
+    pairs.forEach((pair, pairIdx) => {
+        const isFree = pairIdx % 2 !== 0;
+        const expectedPrice = isFree ? 0 : Math.round(pair.price / 2);
+
+        // Update OD
+        const odPrice = pair.od.customPrice !== undefined ? pair.od.customPrice : pair.od.price;
+        if (odPrice !== expectedPrice) {
+            if (pair.od.customPrice !== undefined) pair.od.customPrice = expectedPrice;
+            else pair.od.price = expectedPrice;
+            modified = true;
+        }
+        if (pair.od.isPromo !== isFree) {
+            pair.od.isPromo = isFree;
+            modified = true;
+        }
+
+        // Update OI
+        const oiPrice = pair.oi.customPrice !== undefined ? pair.oi.customPrice : pair.oi.price;
+        if (oiPrice !== expectedPrice) {
+            if (pair.oi.customPrice !== undefined) pair.oi.customPrice = expectedPrice;
+            else pair.oi.price = expectedPrice;
+            modified = true;
+        }
+        if (pair.oi.isPromo !== isFree) {
+            pair.oi.isPromo = isFree;
+            modified = true;
+        }
+    });
+
+    // Unmatched eyes are charged full price (sprice / 2) and are not promo
+    unmatched.forEach(item => {
+        const expectedPrice = Math.round(safePrice(item.product?.price) / 2);
+        const currentPrice = item.customPrice !== undefined ? item.customPrice : item.price;
+        if (currentPrice !== expectedPrice) {
+            if (item.customPrice !== undefined) item.customPrice = expectedPrice;
+            else item.price = expectedPrice;
+            modified = true;
+        }
+        if (item.isPromo !== false) {
+            item.isPromo = false;
+            modified = true;
+        }
+    });
+
+    return modified;
+}

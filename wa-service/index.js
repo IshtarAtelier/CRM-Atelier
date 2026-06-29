@@ -213,7 +213,8 @@ const handleMessageCreate = async (msg) => {
                         if (media) {
                             if (media.mimetype.startsWith('audio/')) messageType = 'AUDIO';
                             else if (media.mimetype.startsWith('video/')) messageType = 'VIDEO';
-                            else messageType = 'IMAGE';
+                            else if (media.mimetype.startsWith('image/')) messageType = 'IMAGE';
+                            else messageType = 'DOCUMENT';
 
                             const buffer = Buffer.from(media.data, 'base64');
                             const ext = getFileExtension(media.mimetype);
@@ -498,7 +499,7 @@ async function processBotTurn(chat, waId, profileName, realPhone) {
                 // Notificar exclusivamente al admin especificado por el usuario
                 const adminNotifyPhone = "5493541215971@c.us";
                 const alertMsg = `🚨 *ERROR TÉCNICO EN BOT* 🚨\nConversación con bot apagado: ${profileName || 'Cliente'} (${realPhone || waId.split('@')[0]})\nMotivo: El bot sufrió un error y se apagó en silencio.\nDetalle: ${apiErrorMessage}`;
-                await sendMessage(adminNotifyPhone, alertMsg);
+                await sendMessage(adminNotifyPhone, alertMsg, null, { isProactive: false });
                 console.log(`  🔔 Alerta de error enviada al administrador (3541215971)`);
             } catch (alertErr) {
                 console.error('Error enviando alerta de error de API al administrador:', alertErr.message);
@@ -654,7 +655,7 @@ async function processBotTurn(chat, waId, profileName, realPhone) {
                     const typingTimeMs = Math.min(Math.max(block.length * 50, 1500), 5000);
                     await new Promise(r => setTimeout(r, typingTimeMs));
 
-                    const sent = await sendMessage(waId, block, mediaObj);
+                    const sent = await sendMessage(waId, block, mediaObj, { isProactive: false });
                     
                     if (sent && sent.id && sent.id._serialized) {
                         if (!global.botMessageIds) global.botMessageIds = new Set();
@@ -772,7 +773,7 @@ async function processBotTurn(chat, waId, profileName, realPhone) {
         try {
             const adminNotifyPhone = "5493541215971@c.us";
             const alertMsg = `🚨 *ERROR TÉCNICO EN BOT* 🚨\nConversación con bot apagado: ${profileName || 'Cliente'} (${realPhone || waId.split('@')[0]})\nMotivo: ${err.message?.substring(0, 100)}`;
-            await sendMessage(adminNotifyPhone, alertMsg);
+            await sendMessage(adminNotifyPhone, alertMsg, null, { isProactive: false });
             console.log(`  🔔 Alerta de falla enviada al administrador (3541215971)`);
         } catch (alertErr) {
             console.error('Error enviando alerta de falla al administrador:', alertErr.message);
@@ -1002,6 +1003,40 @@ const handleMessage = async (msg) => {
             chat = await prisma.whatsAppChat.update({
                 where: { id: chat.id },
                 data: updateData,
+            });
+        }
+
+        // ── Auto-exclusión ante respuestas negativas / "no interesado" ──
+        const cleanBody = (body || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, ""); // remover tildes
+        const negativePatterns = [
+            /\bno\s+me\s+interesa\b/i,
+            /\bno\s+molestar\b/i,
+            /\bno\s+quiero\b/i,
+            /\bno\s+escribas\b/i,
+            /\bno\s+molesten\b/i,
+            /\bquitar\b/i,
+            /\bbaja\b/i,
+            /\beliminar\b/i,
+            /\bstop\b/i,
+            /\bno\s+mas\b/i
+        ];
+        const esNegativo = negativePatterns.some(pattern => pattern.test(cleanBody));
+        
+        if (esNegativo) {
+            console.log(`  🛑 [Auto-Exclusión] Respuesta negativa detectada ("${body}"). Silenciando bot y archivando chat.`);
+            
+            let currentLabels = [...(chat.chatLabels || [])];
+            if (!currentLabels.includes('SIN_SEGUIMIENTO')) {
+                currentLabels.push('SIN_SEGUIMIENTO');
+            }
+            
+            chat = await prisma.whatsAppChat.update({
+                where: { id: chat.id },
+                data: {
+                    botEnabled: false,
+                    archived: true,
+                    chatLabels: currentLabels
+                }
             });
         }
 
@@ -1402,7 +1437,7 @@ const handleMessage = async (msg) => {
 
                 const receiptConfirmation = "Buenísimo, ahí le paso el comprobante a administración para que lo registren en tu ficha!";
                 botReplyingTo.add(waId);
-                const sentReceipt = await sendMessage(waId, receiptConfirmation);
+                const sentReceipt = await sendMessage(waId, receiptConfirmation, null, { isProactive: false });
                 setTimeout(() => botReplyingTo.delete(waId), 3000);
 
                 await prisma.whatsAppMessage.create({

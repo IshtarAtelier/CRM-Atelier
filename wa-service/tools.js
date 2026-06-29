@@ -624,7 +624,7 @@ async function addTagToClient({ clientId, tagName }) {
             try {
                 const message = `🔔 *NOTIFICACIÓN DEL CRM*\nSe ha aplicado la etiqueta *${tag.name}* al cliente *${client.name || 'Sin nombre'}* (ID: ${client.id}).`;
                 const notifyWaId = tag.notifyPhone.includes('@') ? tag.notifyPhone : `${tag.notifyPhone.replace(/[^0-9]/g, '')}@c.us`;
-                await sendMessage(notifyWaId, message);
+                await sendMessage(notifyWaId, message, null, { isProactive: false });
                 console.log(`[Etiqueta Automation] Notificación enviada a ${notifyWaId}`);
             } catch (err) {
                 console.error("[Etiqueta Automation] Error enviando notificación:", err.message);
@@ -725,7 +725,7 @@ async function reportComplaint({ clientId, details }) {
             
             const adminWaId = getAdminWaId();
             const waMsg = `🚨 *NUEVO RECLAMO POST-VENTA* 🚨\n\n*Cliente:* ${clientName}\n\n*Detalles:*\n${details}\n\nRevisa el correo para más información.`;
-            await sendMessage(adminWaId, waMsg);
+            await sendMessage(adminWaId, waMsg, null, { isProactive: false });
         } catch (adminErr) {
             console.error('Error enviando WhatsApp de reclamo a administración:', adminErr.message);
         }
@@ -901,7 +901,7 @@ async function reportInvoiceRequest({ clientId }) {
         const waText = `🚨 *URGENCIA: Solicitud de factura* 🚨\nEl cliente *${client.name || 'Desconocido'}* acaba de solicitar su factura.\n\nFicha: ${crmLink}`;
         
         const { sendMessage } = require('./whatsapp/client');
-        await sendMessage(adminPhone, waText).catch(e => console.error("Error enviando alerta WA de factura:", e.message));
+        await sendMessage(adminPhone, waText, null, { isProactive: false }).catch(e => console.error("Error enviando alerta WA de factura:", e.message));
 
         // 2. Email a Administración
         const emailDest = 'pisano.ishtar@gmail.com';

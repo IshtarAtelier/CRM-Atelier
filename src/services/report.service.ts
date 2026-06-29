@@ -151,7 +151,7 @@ export class ReportService {
             const specialDesc = order.specialDiscount || 0;
             totalSpecialDiscounts += specialDesc;
 
-            const listPrice = order.total || order.subtotalWithMarkup || 0;
+            const listPrice = order.subtotalWithMarkup || order.total || 0;
             totalPending += Math.max(0, listPrice - orderPaidReal);
 
             if (order.subtotalWithMarkup && order.subtotalWithMarkup > 0) {
@@ -212,19 +212,8 @@ export class ReportService {
                     itemCost = ((product.cost || 0) / 2) * item.quantity;
                 }
                 
-                if (is2x1Order && isCrystalItem) {
-                    if (item.price === 0) {
-                        itemCost = 0;
-                    } else {
-                        if (paidCrystalsCount >= 2) {
-                            itemCost = 0;
-                        } else if (paidCrystalsCount + item.quantity > 2) {
-                            const payableQty = 2 - paidCrystalsCount;
-                            itemCost = (itemCost / item.quantity) * payableQty;
-                        }
-                        paidCrystalsCount += item.quantity;
-                    }
-                }
+                // Compute real crystal CMV even for free 2x1 items
+                // Removed the previous block that overrode itemCost to 0 for free crystals
                 
                 const itemRevenue = item.price * item.quantity;
 
@@ -257,7 +246,7 @@ export class ReportService {
                 if (!productStats[pId]) productStats[pId] = { name: pName, type: product.type || product.category || '', qty: 0, revenue: 0, cost: 0 };
                 
                 if (!(is2x1Order && isCrystalItem && item.price === 0)) {
-                    productStats[pId].qty += item.quantity;
+                    productStats[pId].qty += isCrystalItem ? (item.quantity / 2) : item.quantity;
                 }
                 productStats[pId].revenue += itemRevenue;
                 productStats[pId].cost += itemCost;

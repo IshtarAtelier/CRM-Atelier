@@ -21,9 +21,15 @@ export async function GET(request: Request) {
     try {
         const { searchParams } = new URL(request.url);
         const type = searchParams.get('type'); // contacts, products, sales
+        const userRole = request.headers.get('x-user-role') || 'STAFF';
+        const isAdmin = userRole === 'ADMIN';
 
         let csv = '';
         let filename = '';
+
+        if (type === 'sales' && !isAdmin) {
+            return NextResponse.json({ error: 'No autorizado para exportar ventas' }, { status: 403 });
+        }
 
         if (type === 'contacts') {
             const contacts = await prisma.client.findMany({
@@ -45,7 +51,7 @@ export async function GET(request: Request) {
                     c.interest || '',
                     c.doctor || '',
                     c.insurance || '',
-                    salesTotal,
+                    isAdmin ? salesTotal : 0,
                     new Date(c.createdAt).toLocaleDateString('es-AR'),
                 ];
             });
@@ -55,8 +61,7 @@ export async function GET(request: Request) {
         } else if (type === 'products') {
             const products = await prisma.product.findMany({ orderBy: { type: 'asc' } });
 
-            const userRole = request.headers.get('x-user-role') || 'STAFF';
-            const showCost = userRole === 'ADMIN';
+            const showCost = isAdmin;
 
             const headers = showCost
                 ? ['Tipo', 'Marca', 'Nombre', 'Modelo', 'Índice', 'Precio', 'Costo', 'Stock', 'Unidad']

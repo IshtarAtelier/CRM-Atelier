@@ -57,6 +57,10 @@ export async function GET(request: Request) {
         const stats = searchParams.get('stats') === 'true';
 
         if (stats) {
+            const role = request.headers.get('x-user-role') || 'STAFF';
+            if (role !== 'ADMIN') {
+                return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
+            }
             const result = await BillingService.getMonthlyStats();
             return NextResponse.json(result);
         }

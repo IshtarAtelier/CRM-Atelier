@@ -102,7 +102,11 @@ export function TopPerformersSection({ topClients, topProducts }: TopPerformersP
                                                 {product.type}
                                             </span>
                                             <span className="text-[8px] font-black text-stone-400 uppercase tracking-widest bg-stone-50 dark:bg-stone-800/50 px-2 py-0.5 rounded-md border border-stone-100 dark:border-stone-700">
-                                                {product.qty} unid.
+                                                {product.qty} {
+                                                    (product.type.toLowerCase().includes('cristal') || ['monofocal', 'multifocal', 'bifocal', 'ocupacional'].includes(product.type.toLowerCase()))
+                                                        ? (product.qty === 1 ? 'par' : 'pares')
+                                                        : 'unid.'
+                                                }
                                             </span>
                                         </div>
                                     </div>

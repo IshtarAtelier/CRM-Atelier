@@ -40,6 +40,131 @@ interface DashboardData {
   weekSold?: number;
 }
 
+interface PieChart3DProps {
+  data: { name: string; count: number }[];
+}
+
+function PieChart3D({ data }: PieChart3DProps) {
+  const total = data.reduce((sum, item) => sum + item.count, 0);
+  if (total === 0) return <div className="text-center py-16 text-[10px] uppercase font-bold text-stone-400">Sin datos</div>;
+
+  const COLORS = [
+    '#a38067', // primary warm brown
+    '#8c6d58', // dark chocolate
+    '#bfa08a', // light sand
+    '#6b7280', // grey
+    '#3b82f6', // blue
+    '#10b981', // emerald
+  ];
+
+  let accumulatedPercent = 0;
+  const slices = data.map((item, idx) => {
+    const percent = item.count / total;
+    const startPercent = accumulatedPercent;
+    accumulatedPercent += percent;
+    return {
+      name: item.name,
+      percent: percent * 100,
+      startPercent,
+      endPercent: accumulatedPercent,
+      color: COLORS[idx % COLORS.length]
+    };
+  });
+
+  const getCoordinatesForPercent = (percent: number, radius = 80) => {
+    const angle = (percent - 0.25) * 2 * Math.PI;
+    const x = 100 + radius * Math.cos(angle);
+    const y = 100 + radius * Math.sin(angle);
+    return [x, y];
+  };
+
+  return (
+    <div className="flex flex-col items-center gap-6 py-4 animate-in fade-in duration-500">
+      {/* 3D Viewport container */}
+      <div 
+        className="relative w-44 h-28 flex items-center justify-center select-none" 
+        style={{ perspective: '800px' }}
+      >
+        <div 
+          className="relative w-44 h-44 transition-all duration-700 hover:scale-[1.03]" 
+          style={{ 
+            transform: 'rotateX(58deg) rotateZ(-15deg)', 
+            transformStyle: 'preserve-3d',
+            filter: 'drop-shadow(0 25px 25px rgba(0,0,0,0.22))'
+          }}
+        >
+          {/* Render 12 layers for 3D extrusion */}
+          {[...Array(12)].map((_, layerIdx) => {
+            const isTop = layerIdx === 0;
+            return (
+              <svg 
+                key={layerIdx}
+                viewBox="0 0 200 200" 
+                className="absolute inset-0 w-full h-full"
+                style={{ 
+                  transform: `translateZ(${-layerIdx}px)`, 
+                  pointerEvents: isTop ? 'auto' : 'none',
+                }}
+              >
+                {slices.map((slice, idx) => {
+                  const percent = slice.percent / 100;
+                  const largeArcFlag = percent > 0.5 ? 1 : 0;
+                  
+                  let pathData = '';
+                  if (percent >= 0.999) {
+                    return (
+                      <circle
+                        key={idx}
+                        cx="100"
+                        cy="100"
+                        r="80"
+                        fill={slice.color}
+                        style={{
+                          filter: !isTop ? 'brightness(0.65) contrast(1.1)' : 'none',
+                        }}
+                      />
+                    );
+                  } else {
+                    const [startX, startY] = getCoordinatesForPercent(slice.startPercent);
+                    const [endX, endY] = getCoordinatesForPercent(slice.endPercent);
+                    pathData = `M 100 100 L ${startX} ${startY} A 80 80 0 ${largeArcFlag} 1 ${endX} ${endY} Z`;
+                  }
+
+                  return (
+                    <path
+                      key={idx}
+                      d={pathData}
+                      fill={slice.color}
+                      className="transition-all duration-300 hover:opacity-95 cursor-pointer"
+                      style={{
+                        filter: !isTop ? 'brightness(0.65) contrast(1.1)' : 'none',
+                      }}
+                    />
+                  );
+                })}
+              </svg>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Legends wrapped with clean alignment */}
+      <div className="flex flex-wrap gap-x-3 gap-y-2 justify-center max-w-sm px-2">
+        {slices.map((slice, idx) => (
+          <div key={idx} className="flex items-center gap-2 bg-stone-50 dark:bg-stone-800/40 px-2.5 py-1.5 rounded-xl border border-stone-100 dark:border-stone-800/80 shadow-sm transition-all hover:scale-[1.02]">
+            <div 
+              className="w-2.5 h-2.5 rounded-full shadow-inner shrink-0" 
+              style={{ backgroundColor: slice.color }} 
+            />
+            <span className="text-[10px] font-black text-stone-700 dark:text-stone-300 uppercase tracking-tight truncate max-w-[100px]">{slice.name}</span>
+            <span className="text-[10px] font-black text-[#a38067] ml-auto">{slice.percent.toFixed(1)}%</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function Home() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -437,34 +562,36 @@ export default function Home() {
             <h2 className="text-sm font-black uppercase tracking-widest">Ventas por Tipo</h2>
           </div>
           {d.typeStats.length > 0 ? (
-            <div className="space-y-3">
-              {d.typeStats.map((type) => {
-                const rentabilidad = type.total - type.cost;
-                const margin = type.total > 0 ? (rentabilidad / type.total) * 100 : 0;
-                return (
-                  <div key={type.name} className="flex flex-wrap items-center justify-between gap-2 p-4 rounded-xl bg-stone-50 dark:bg-stone-800/40 hover:bg-stone-100 dark:hover:bg-stone-800 transition-all border border-transparent hover:border-sidebar-border group">
-                    <div>
-                      <h4 className="font-black text-xs uppercase group-hover:text-primary transition-colors tracking-tight">{type.name}</h4>
-                      <p className="text-[9px] text-foreground/40 font-bold tracking-widest">
-                        {type.count} {
-                          (type.name.toLowerCase().includes('cristal') || ['monofocal', 'multifocal', 'bifocal', 'ocupacional'].includes(type.name.toLowerCase()))
-                            ? (type.count === 1 ? 'PAR' : 'PARES')
-                            : (type.count === 1 ? 'UNIDAD' : 'UNIDADES')
-                        }
-                      </p>
-                    </div>
-                    {isAdmin && (
+            isAdmin ? (
+              <div className="space-y-3">
+                {d.typeStats.map((type) => {
+                  const rentabilidad = type.total - type.cost;
+                  const margin = type.total > 0 ? (rentabilidad / type.total) * 100 : 0;
+                  return (
+                    <div key={type.name} className="flex flex-wrap items-center justify-between gap-2 p-4 rounded-xl bg-stone-50 dark:bg-stone-800/40 hover:bg-stone-100 dark:hover:bg-stone-800 transition-all border border-transparent hover:border-sidebar-border group">
+                      <div>
+                        <h4 className="font-black text-xs uppercase group-hover:text-primary transition-colors tracking-tight">{type.name}</h4>
+                        <p className="text-[9px] text-foreground/40 font-bold tracking-widest">
+                          {type.count} {
+                            (type.name.toLowerCase().includes('cristal') || ['monofocal', 'multifocal', 'bifocal', 'ocupacional'].includes(type.name.toLowerCase()))
+                              ? (type.count === 1 ? 'PAR' : 'PARES')
+                              : (type.count === 1 ? 'UNIDAD' : 'UNIDADES')
+                          }
+                        </p>
+                      </div>
                       <div className="text-right">
                         <div className="font-black text-sm text-stone-800 dark:text-stone-200 tracking-tight">${type.total.toLocaleString()}</div>
                         <div className={`text-[9px] font-black tracking-[0.1em] ${margin > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-stone-400'}`}>
                           {margin.toFixed(1)}% RENTAB.
                         </div>
                       </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <PieChart3D data={d.typeStats} />
+            )
           ) : (
             <EmptyState message="Sin movimientos de productos." />
           )}
@@ -478,12 +605,16 @@ export default function Home() {
           </div>
           {d.locationStats && d.locationStats.length > 0 ? (
             <div className="space-y-3">
-              {d.locationStats.sort((a, b) => b.total - a.total).map((loc) => {
+              {d.locationStats.sort((a, b) => b.count - a.count).map((loc) => {
+                const totalCount = d.locationStats.reduce((sum, item) => sum + item.count, 0);
+                const pct = totalCount > 0 ? (loc.count / totalCount) * 100 : 0;
                 return (
                   <div key={loc.name} className="flex flex-wrap items-center justify-between gap-2 p-4 rounded-xl bg-stone-50 dark:bg-stone-800/40 hover:bg-stone-100 dark:hover:bg-stone-800 transition-all border border-transparent hover:border-sidebar-border group">
                     <div>
                       <h4 className="font-black text-xs uppercase group-hover:text-primary transition-colors tracking-tight">{loc.name}</h4>
-                      <p className="text-[9px] text-foreground/40 font-bold tracking-widest">{loc.count} VENTAS</p>
+                      <p className="text-[9px] text-foreground/40 font-bold tracking-widest">
+                        {isAdmin ? `${loc.count} VENTAS` : `${pct.toFixed(1)}% DEL TRÁFICO`}
+                      </p>
                     </div>
                     {isAdmin && (
                       <div className="text-right">
@@ -507,12 +638,16 @@ export default function Home() {
           </div>
           {d.tagStats.length > 0 ? (
             <div className="space-y-3">
-              {d.tagStats.sort((a, b) => b.total - a.total).slice(0, 5).map((tag) => {
+              {d.tagStats.sort((a, b) => b.count - a.count).slice(0, 5).map((tag) => {
+                const totalCount = d.tagStats.reduce((sum, item) => sum + item.count, 0);
+                const pct = totalCount > 0 ? (tag.count / totalCount) * 100 : 0;
                 return (
                   <div key={tag.name} className="flex flex-wrap items-center justify-between gap-2 p-4 rounded-xl bg-stone-50 dark:bg-stone-800/40 hover:bg-stone-100 dark:hover:bg-stone-800 transition-all border border-transparent hover:border-sidebar-border group">
                     <div>
                       <h4 className="font-black text-xs uppercase group-hover:text-primary transition-colors tracking-tight">{tag.name}</h4>
-                      <p className="text-[9px] text-foreground/40 font-bold tracking-widest">{tag.count} VENTAS</p>
+                      <p className="text-[9px] text-foreground/40 font-bold tracking-widest">
+                        {isAdmin ? `${tag.count} VENTAS` : `${pct.toFixed(1)}% DEL TOTAL`}
+                      </p>
                     </div>
                     {isAdmin && (
                       <div className="text-right">

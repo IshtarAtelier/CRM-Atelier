@@ -5,6 +5,11 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request) {
     try {
+        const role = request.headers.get('x-user-role') || 'STAFF';
+        if (role !== 'ADMIN') {
+            return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
+        }
+
         const { searchParams } = new URL(request.url);
         const month = searchParams.get('month');
         const year = searchParams.get('year');
@@ -101,6 +106,11 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
     try {
+        const role = request.headers.get('x-user-role') || 'STAFF';
+        if (role !== 'ADMIN') {
+            return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
+        }
+
         const body = await request.json();
         const { id, name, amount, category, type, month, year, notes } = body;
 
@@ -146,6 +156,11 @@ export async function POST(request: Request) {
 
 export async function DELETE(request: Request) {
     try {
+        const role = request.headers.get('x-user-role') || 'STAFF';
+        if (role !== 'ADMIN') {
+            return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
+        }
+
         const { searchParams } = new URL(request.url);
         const id = searchParams.get('id');
 

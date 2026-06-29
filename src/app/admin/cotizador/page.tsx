@@ -31,7 +31,8 @@ import {
     getCategoryKey,
     isMultifocal2x1,
     safePrice,
-    calculateQuoteTotals
+    calculateQuoteTotals,
+    recalculateCrystalPrices
 } from '@/lib/promo-utils';
 import { 
     Glasses, 
@@ -233,6 +234,14 @@ function CotizadorPageContent() {
         setSelectedBrand('');
         setSelectedLab('');
     }, [activeType]);
+
+    // Recalculate crystal prices dynamically when quoteItems change to prevent promo price evasion
+    useEffect(() => {
+        const hasChanges = recalculateCrystalPrices(quoteItems);
+        if (hasChanges) {
+            setQuoteItems([...quoteItems]);
+        }
+    }, [quoteItems]);
 
     // Filter logic
     const availableCategories = useMemo(() => {

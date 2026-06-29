@@ -5,7 +5,8 @@ import {
     Package, Clock, CheckCircle2, Search, Download,
     Save, X, Eye, ArrowRight, Hash,
     Calendar, Loader2, ExternalLink, Copy, CheckCheck, Clipboard,
-    Factory
+    Factory, ChevronLeft, ChevronRight, MessageSquare, Phone,
+    DollarSign, ShieldAlert, Users
 } from 'lucide-react';
 import { OrderDetailPanel } from '@/components/orders/OrderDetailPanel';
 import { WhatsAppIcon } from '@/components/icons/WhatsAppIcon';
@@ -28,6 +29,190 @@ function getNextStatus(current: string): string | null {
     return LAB_STEPS[idx + 1].key;
 }
 
+function PostSaleCard({ 
+    order, 
+    onRefresh, 
+    onMove, 
+    onExpand 
+}: { 
+    order: any; 
+    onRefresh: () => void; 
+    onMove: (direction: 'left' | 'right') => void; 
+    onExpand: () => void; 
+}) {
+    const [newNote, setNewNote] = useState('');
+    const [isSavingNote, setIsSavingNote] = useState(false);
+
+    // Split existing postSaleNotes by newline to show as history entries
+    const notesHistory = order.postSaleNotes 
+        ? order.postSaleNotes.split('\n').filter((line: string) => line.trim() !== '') 
+        : [];
+
+    const handleAddNote = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!newNote.trim()) return;
+
+        setIsSavingNote(true);
+        try {
+            const formattedDate = new Date().toLocaleDateString('es-AR', {
+                day: '2-digit',
+                month: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+            const newEntry = `[${formattedDate}]: ${newNote.trim()}`;
+            const updatedNotes = order.postSaleNotes 
+                ? `${order.postSaleNotes}\n${newEntry}` 
+                : newEntry;
+
+            const res = await fetch(`/api/orders/${order.id}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ postSaleNotes: updatedNotes })
+            });
+
+            if (res.ok) {
+                setNewNote('');
+                onRefresh();
+            } else {
+                const data = await res.json();
+                alert(`⚠️ Error: ${data.error || 'No se pudo guardar la nota'}`);
+            }
+        } catch (err) {
+            console.error('Error adding note:', err);
+            alert('⚠️ Error de red al guardar la nota.');
+        } finally {
+            setIsSavingNote(false);
+        }
+    };
+
+    const currentStatus = order.labStatus || 'NONE';
+    const statusKeys = ['SENT', 'IN_PROGRESS', 'FINISHED', 'READY', 'DELIVERED'];
+    let currentIdx = statusKeys.indexOf(currentStatus);
+    if (currentStatus === 'NONE') currentIdx = 0;
+
+    const canMoveLeft = currentIdx > 0;
+    const canMoveRight = currentIdx < statusKeys.length - 1;
+
+    return (
+        <div className="bg-white dark:bg-stone-850 rounded-2xl border border-stone-200/70 dark:border-stone-750 p-4 shadow-sm hover:shadow-md transition-all space-y-3 flex flex-col justify-between">
+            <div className="space-y-2">
+                {/* Header: Client & Venta ID */}
+                <div className="flex items-start justify-between gap-1">
+                    <div className="min-w-0 flex-1">
+                        <h4 className="text-xs font-black text-stone-850 dark:text-stone-100 uppercase tracking-tight leading-tight truncate">
+                            {order.client.name}
+                        </h4>
+                        <span className="text-[9px] font-black text-stone-400 dark:text-stone-500 uppercase tracking-widest block mt-0.5">
+                            Venta #{order.id.slice(-4).toUpperCase()}
+                        </span>
+                    </div>
+                    <button
+                        onClick={onExpand}
+                        className="p-1.5 hover:bg-stone-100 dark:hover:bg-stone-750 text-stone-400 hover:text-stone-700 dark:hover:text-stone-200 rounded-lg transition-colors flex-shrink-0"
+                        title="Ver Ficha y Medidas"
+                    >
+                        <Eye className="w-3.5 h-3.5" />
+                    </button>
+                </div>
+
+                {/* Info block: Cost & Responsible & OP Option */}
+                <div className="flex flex-wrap gap-1.5 pt-0.5">
+                    {order.postSaleResponsible && (
+                        <span className="bg-stone-100 dark:bg-stone-750 text-stone-600 dark:text-stone-300 text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md flex items-center gap-1">
+                            👤 {order.postSaleResponsible}
+                        </span>
+                    )}
+                    {order.postSaleCost > 0 && (
+                        <span className="bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 border border-red-100 dark:border-red-900/30 text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md">
+                            $ {order.postSaleCost.toLocaleString('es-AR')}
+                        </span>
+                    )}
+                    {order.postSaleOrderOption && (
+                        <span className="bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400 border border-blue-100 dark:border-blue-900/30 text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md">
+                            OP: {order.postSaleOrderOption === 'SAME' ? `Misma (#${order.labOrderNumber || 'Original'})` : `Nueva (#${order.postSaleNewOrderNumber || '—'})`}
+                        </span>
+                    )}
+                </div>
+
+                {/* History Notes list (Timeline feed) */}
+                <div className="bg-stone-50 dark:bg-stone-900/40 rounded-xl p-2.5 border border-stone-100 dark:border-stone-800 space-y-2 max-h-[140px] overflow-y-auto custom-scrollbar">
+                    <p className="text-[7px] font-black text-stone-400 dark:text-stone-500 uppercase tracking-widest border-b border-stone-200/20 pb-1">
+                        Historial de Incidencia
+                    </p>
+                    {notesHistory.length === 0 ? (
+                        <p className="text-[9px] text-stone-400 italic">Sin observaciones registradas.</p>
+                    ) : (
+                        <div className="space-y-1.5 text-[9px] leading-relaxed">
+                            {notesHistory.map((line: string, i: number) => {
+                                const match = line.match(/^\[(.*?)\]:\s*(.*)$/);
+                                if (match) {
+                                    return (
+                                        <div key={i} className="flex flex-col text-stone-600 dark:text-stone-300">
+                                            <span className="text-[7px] font-black text-amber-600 dark:text-amber-500">{match[1]}</span>
+                                            <span className="font-semibold">{match[2]}</span>
+                                        </div>
+                                    );
+                                }
+                                return (
+                                    <div key={i} className="text-stone-500 dark:text-stone-400 font-semibold">
+                                        {line}
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            {/* Note Quick Add & Actions */}
+            <div className="space-y-2 pt-2 border-t border-stone-100 dark:border-stone-800">
+                {/* Note Quick Add Input Form */}
+                <form onSubmit={handleAddNote} className="flex gap-1.5 items-center">
+                    <input
+                        type="text"
+                        placeholder="Comentar..."
+                        value={newNote}
+                        onChange={e => setNewNote(e.target.value)}
+                        disabled={isSavingNote}
+                        className="flex-1 bg-stone-50 dark:bg-stone-900 border border-stone-200/60 dark:border-stone-800 text-[10px] p-2 rounded-xl focus:outline-none focus:ring-1 focus:ring-amber-500 focus:border-amber-500 disabled:opacity-50 dark:text-stone-200"
+                    />
+                    <button
+                        type="submit"
+                        disabled={isSavingNote || !newNote.trim()}
+                        className="px-2.5 py-2 bg-amber-500 hover:bg-amber-600 disabled:opacity-30 text-white rounded-xl text-[10px] font-black transition-all flex-shrink-0"
+                    >
+                        {isSavingNote ? '...' : '+'}
+                    </button>
+                </form>
+
+                {/* Pipeline Arrow controllers */}
+                <div className="flex items-center justify-between pt-1">
+                    <button
+                        onClick={() => onMove('left')}
+                        disabled={!canMoveLeft}
+                        className="p-1 hover:bg-stone-100 dark:hover:bg-stone-700 text-stone-400 hover:text-stone-700 dark:hover:text-stone-200 disabled:opacity-20 rounded-lg transition-colors flex items-center justify-center"
+                        title="Mover a etapa anterior"
+                    >
+                        <ChevronLeft className="w-4 h-4" />
+                    </button>
+                    <span className="text-[7px] font-black text-stone-450 dark:text-stone-500 uppercase tracking-widest italic select-none">
+                        Mover
+                    </span>
+                    <button
+                        onClick={() => onMove('right')}
+                        disabled={!canMoveRight}
+                        className="p-1 hover:bg-stone-100 dark:hover:bg-stone-700 text-stone-450 hover:text-stone-700 dark:hover:text-stone-200 disabled:opacity-20 rounded-lg transition-colors flex items-center justify-center"
+                        title="Mover a siguiente etapa"
+                    >
+                        <ChevronRight className="w-4 h-4" />
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+}
+
 // ── Main Page ─────────────────────────────────────
 
 export default function PedidosPage() {
@@ -47,6 +232,60 @@ export default function PedidosPage() {
     const [isSyncing, setIsSyncing] = useState(false);
     const [syncResult, setSyncResult] = useState<any>(null);
     const [userRole, setUserRole] = useState('STAFF');
+
+    const [viewMode, setViewMode] = useState<'LAB_ORDERS' | 'POST_VENTA'>('LAB_ORDERS');
+
+    const PIPELINE_COLUMNS = [
+        { key: 'SENT', label: 'Reportados / Pendientes', color: 'border-amber-400/80 bg-amber-500/10 text-amber-600' },
+        { key: 'IN_PROGRESS', label: 'En Laboratorio', color: 'border-blue-400/80 bg-blue-500/10 text-blue-600' },
+        { key: 'FINISHED', label: 'Finalizado (Lab)', color: 'border-fuchsia-400/80 bg-fuchsia-500/10 text-fuchsia-600' },
+        { key: 'READY', label: 'Listo p/ Retirar', color: 'border-emerald-400/80 bg-emerald-500/10 text-emerald-600' },
+        { key: 'DELIVERED', label: 'Entregado / Cerrado', color: 'border-indigo-400/80 bg-indigo-500/10 text-indigo-600' }
+    ];
+
+    const postSaleOrders = useMemo(() => {
+        return orders.filter(o => 
+            o.postSaleNotes || 
+            o.postSaleOrderOption || 
+            (o.postSaleCost && o.postSaleCost > 0)
+        ).filter(o => {
+            if (search === '') return true;
+            return o.client.name.toLowerCase().includes(search.toLowerCase()) ||
+                   o.id.toLowerCase().includes(search.toLowerCase()) ||
+                   (o.labOrderNumber || '').toLowerCase().includes(search.toLowerCase()) ||
+                   (o.postSaleNotes || '').toLowerCase().includes(search.toLowerCase());
+        });
+    }, [orders, search]);
+
+    const handleMoveCard = async (order: Order, direction: 'left' | 'right') => {
+        const currentStatus = order.labStatus || 'NONE';
+        const statusKeys = ['SENT', 'IN_PROGRESS', 'FINISHED', 'READY', 'DELIVERED'];
+        let currentIdx = statusKeys.indexOf(currentStatus);
+        if (currentStatus === 'NONE') currentIdx = 0;
+
+        let targetIdx = direction === 'left' ? currentIdx - 1 : currentIdx + 1;
+        if (targetIdx < 0 || targetIdx >= statusKeys.length) return;
+
+        const nextStatus = statusKeys[targetIdx];
+        
+        try {
+            const res = await fetch(`/api/orders/${order.id}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ labStatus: nextStatus })
+            });
+            if (res.ok) {
+                const updatedOrders = orders.map(o => o.id === order.id ? { ...o, labStatus: nextStatus } : o);
+                setOrders(updatedOrders);
+            } else {
+                const data = await res.json();
+                alert(`⚠️ Error al mover: ${data.error}`);
+            }
+        } catch (err) {
+            console.error('Error moving card:', err);
+            alert('⚠️ Error de red al mover tarjeta.');
+        }
+    };
 
     useEffect(() => {
         fetchOrders();
@@ -784,8 +1023,34 @@ export default function PedidosPage() {
                 </div>
             </div>
 
-            {/* Pipeline Stats */}
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 mb-8">
+            {/* View Selector Tabs */}
+            <div className="flex gap-2 p-1.5 bg-stone-100/50 dark:bg-stone-800/50 rounded-2xl border border-stone-200/50 dark:border-stone-700/50 backdrop-blur-sm max-w-md mb-8">
+                <button
+                    onClick={() => setViewMode('LAB_ORDERS')}
+                    className={`flex-1 py-2 px-4 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${
+                        viewMode === 'LAB_ORDERS'
+                            ? 'bg-white dark:bg-stone-700 text-stone-900 dark:text-white shadow-md border border-stone-200/20'
+                            : 'text-stone-400 hover:text-stone-600 dark:hover:text-stone-300'
+                    }`}
+                >
+                    🔬 Laboratorio
+                </button>
+                <button
+                    onClick={() => setViewMode('POST_VENTA')}
+                    className={`flex-1 py-2 px-4 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${
+                        viewMode === 'POST_VENTA'
+                            ? 'bg-amber-500 text-white shadow-md shadow-amber-500/20'
+                            : 'text-stone-400 hover:text-stone-600 dark:hover:text-stone-300'
+                    }`}
+                >
+                    🛡️ Post Venta ({postSaleOrders.length})
+                </button>
+            </div>
+
+            {viewMode === 'LAB_ORDERS' && (
+                <>
+                    {/* Pipeline Stats */}
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 mb-8">
                 {stats.map((step) => {
                     const Icon = step.icon;
                     const isActive = filterStatus === step.key;
@@ -877,6 +1142,8 @@ export default function PedidosPage() {
                     </div>
                 </div>
             </div>
+        </>
+    )}
 
             {/* Search */}
             <div className="flex gap-4 mb-6">
@@ -905,6 +1172,57 @@ export default function PedidosPage() {
                 <div className="text-center py-20">
                     <Loader2 className="w-10 h-10 text-blue-500 animate-spin mx-auto mb-4" />
                     <p className="text-sm font-bold text-stone-400">Cargando pedidos...</p>
+                </div>
+            ) : viewMode === 'POST_VENTA' ? (
+                <div className="space-y-6">
+                    {/* Kanban Board Container */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 items-start pb-4">
+                        {PIPELINE_COLUMNS.map(column => {
+                            const columnOrders = postSaleOrders.filter(o => {
+                                const status = o.labStatus || 'NONE';
+                                if (column.key === 'SENT') {
+                                    return status === 'SENT' || status === 'NONE';
+                                }
+                                return status === column.key;
+                            });
+
+                            return (
+                                <div 
+                                    key={column.key}
+                                    className={`bg-stone-50/50 dark:bg-stone-900/30 rounded-3xl border-2 ${column.color.split(' ')[0]} p-4 flex flex-col min-h-[500px]`}
+                                >
+                                    {/* Column Header */}
+                                    <div className="flex items-center justify-between mb-4 border-b border-stone-200/30 dark:border-stone-800 pb-2 flex-shrink-0">
+                                        <h3 className={`text-xs font-black uppercase tracking-wider ${column.color.split(' ')[2]}`}>
+                                            {column.label}
+                                        </h3>
+                                        <span className={`px-2 py-0.5 rounded-lg text-[10px] font-black ${column.color.split(' ')[1]} ${column.color.split(' ')[2]}`}>
+                                            {columnOrders.length}
+                                        </span>
+                                    </div>
+
+                                    {/* Cards Stack */}
+                                    <div className="space-y-3 flex-1 overflow-y-auto max-h-[70vh] pr-1 scrollbar-thin">
+                                        {columnOrders.length === 0 ? (
+                                            <div className="text-center py-12 text-stone-300 dark:text-stone-700 italic text-[10px] font-bold uppercase tracking-wider">
+                                                Sin casos
+                                            </div>
+                                        ) : (
+                                            columnOrders.map(order => (
+                                                <PostSaleCard 
+                                                    key={order.id} 
+                                                    order={order} 
+                                                    onRefresh={fetchOrders}
+                                                    onMove={(direction) => handleMoveCard(order, direction)}
+                                                    onExpand={() => setExpandedId(expandedId === order.id ? null : order.id)}
+                                                />
+                                            ))
+                                        )}
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
                 </div>
             ) : filtered.length === 0 ? (
                 <div className="text-center py-20 border-2 border-dashed border-stone-200 dark:border-stone-700 rounded-3xl">
@@ -1192,6 +1510,47 @@ export default function PedidosPage() {
                     })}
                 </div>
             )}
+
+            {/* Modal for Order Details in Post Venta view */}
+            {viewMode === 'POST_VENTA' && expandedId && (() => {
+                const order = orders.find(o => o.id === expandedId);
+                if (!order) return null;
+                return (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setExpandedId(null)}>
+                        {/* Backdrop */}
+                        <div className="absolute inset-0 bg-stone-900/60 backdrop-blur-md" />
+
+                        {/* Modal Container */}
+                        <div
+                            className="relative bg-white dark:bg-stone-900 rounded-[2.5rem] shadow-2xl w-full max-w-4xl max-h-[85vh] overflow-y-auto animate-in zoom-in-95 fade-in duration-200 border border-stone-200 dark:border-stone-800"
+                            onClick={e => e.stopPropagation()}
+                        >
+                            <div className="p-6 border-b border-stone-100 dark:border-stone-850 flex justify-between items-center bg-stone-50/50 dark:bg-stone-900/50">
+                                <div>
+                                    <h3 className="text-lg font-black text-stone-850 dark:text-stone-100 uppercase tracking-tight leading-tight">
+                                        Detalle de Caso: {order.client.name}
+                                    </h3>
+                                    <p className="text-[10px] font-bold text-stone-400 dark:text-stone-500 uppercase tracking-widest mt-0.5">
+                                        Venta #{order.id.slice(-4).toUpperCase()}
+                                    </p>
+                                </div>
+                                <button
+                                    onClick={() => setExpandedId(null)}
+                                    className="p-2 hover:bg-stone-100 dark:hover:bg-stone-800 rounded-xl transition-all text-stone-450 hover:text-stone-600 dark:hover:text-stone-300"
+                                >
+                                    <X className="w-5 h-5" />
+                                </button>
+                            </div>
+                            <OrderDetailPanel 
+                                order={order as any} 
+                                context="pedidos"
+                                userRole={userRole}
+                                onRefresh={fetchOrders}
+                            />
+                        </div>
+                    </div>
+                );
+            })()}
 
             {/* ── SmartLab Modal ─────────────────────────── */}
             {smartLabId && (() => {

@@ -39,7 +39,7 @@ export async function POST(req: Request) {
 
             if (order) {
                 clientName = order.client?.name?.split(' ')[0] || 'Cliente';
-                const total = order.total || order.subtotalWithMarkup || 0;
+                const total = order.subtotalWithMarkup || order.total || 0;
                 const itemsList = order.items.map(i => {
                     const name = i.product ? `${i.product.brand || ''} ${i.product.name || ''} ${i.product.model || ''}` : (i.productNameSnapshot || 'Producto Genérico');
                     return `- ${i.quantity}x ${name.trim()}`;

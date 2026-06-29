@@ -92,7 +92,7 @@ async function sendFollowUp({ waId, text, chatId, label, clientName, followUpTyp
 
         // 5. Enviar mensaje
         console.log(`  ✉️ ${logPrefix} Enviando mensaje a ${clientName} (${targetWaId.substring(0, 15)}...)`);
-        const sent = await sendMessage(targetWaId, messageText);
+        const sent = await sendMessage(targetWaId, messageText, null, { isProactive: true });
 
         const msgSerializedId = sent?.id?._serialized || `followup_${Date.now()}`;
 

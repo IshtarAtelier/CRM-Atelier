@@ -11,11 +11,17 @@ const { sendMessage, sendTypingState } = require('../whatsapp/client');
 const { isBusinessHours } = require('../shared/business-hours');
 const { ALL_FOLLOWUP_LABELS } = require('../followups/config');
 
-// Texto del follow-up por inactividad
-const FOLLOW_UP_TEXT = "Hola! Te escribo para saber si te quedó alguna duda o si querés que sigamos viendo opciones 😊";
+// Pool de 5 variantes para follow-up de inactividad (evita texto idéntico y firma repetitiva)
+const FOLLOW_UP_TEXT_VARIANTS = [
+    "Hola! Te escribo para saber si te quedó alguna duda o si querés que sigamos viendo opciones 😊",
+    "Buenas! Cómo estás? Te escribo para ver si pudiste revisar la info y si te quedó alguna consulta sobre los armazones o lentes 👍",
+    "Hola! Quería saber si tenías alguna consulta sobre el presupuesto o si querés que busquemos otras alternativas de cristales 👓",
+    "Buenas! Qué tal? Pasaba a ver si querés que sigamos con la seña del pedido o si necesitás ver algún otro detalle antes 🕶️",
+    "Hola! Espero que estés bien. Te quedó alguna duda pendiente de lo que charlamos ayer o querés coordinar los lentes? 😊"
+];
 
-// Cooldown mínimo entre follow-ups para el mismo chat (24 horas)
-const FOLLOW_UP_COOLDOWN_MS = 24 * 60 * 60 * 1000;
+// Cooldown mínimo entre follow-ups para el mismo chat (48 horas según políticas anti-ban)
+const FOLLOW_UP_COOLDOWN_MS = 48 * 60 * 60 * 1000;
 
 /**
  * Chequea y envía follow-ups por inactividad.
@@ -49,8 +55,8 @@ async function checkAndSendInactivityFollowUps({ isAgentEnabled, botReplyingTo, 
 
         // Solo actuar si el último mensaje fue del Bot (outbound)
         if (lastMsg.direction === 'OUTBOUND' && lastMsg.senderName === 'Bot') {
-            // DEDUP #1: Si el último mensaje ya es el follow-up, saltar
-            if (lastMsg.content === FOLLOW_UP_TEXT) {
+            // DEDUP #1: Si el último mensaje ya es un follow-up de nuestro pool, saltar
+            if (FOLLOW_UP_TEXT_VARIANTS.includes(lastMsg.content)) {
                 continue;
             }
 
@@ -97,7 +103,10 @@ async function checkAndSendInactivityFollowUps({ isAgentEnabled, botReplyingTo, 
                     botReplyingTo.add(chat.waId);
                     await sendTypingState(chat.waId);
                     await new Promise(r => setTimeout(r, 2000));
-                    const sent = await sendMessage(chat.waId, FOLLOW_UP_TEXT);
+                    
+                    // Selección aleatoria del pool de variantes
+                    const selectedText = FOLLOW_UP_TEXT_VARIANTS[Math.floor(Math.random() * FOLLOW_UP_TEXT_VARIANTS.length)];
+                    const sent = await sendMessage(chat.waId, selectedText, null, { isProactive: true });
                     
                     if (sent && sent.id && sent.id._serialized) {
                         await prisma.whatsAppMessage.upsert({
@@ -107,7 +116,7 @@ async function checkAndSendInactivityFollowUps({ isAgentEnabled, botReplyingTo, 
                                 chatId: chat.id,
                                 direction: 'OUTBOUND',
                                 type: 'TEXT',
-                                content: FOLLOW_UP_TEXT,
+                                content: selectedText,
                                 waMessageId: sent.id._serialized,
                                 senderName: 'Bot',
                                 status: 'SENT'
@@ -119,7 +128,7 @@ async function checkAndSendInactivityFollowUps({ isAgentEnabled, botReplyingTo, 
                                 chatId: chat.id,
                                 direction: 'OUTBOUND',
                                 type: 'TEXT',
-                                content: FOLLOW_UP_TEXT,
+                                content: selectedText,
                                 senderName: 'Bot',
                                 status: 'SENT'
                             }

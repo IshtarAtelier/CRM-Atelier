@@ -13,7 +13,7 @@ const TEST_PHONE = '5493541215971@c.us';
 // Intervalos de seguimiento (en horas)
 // ──────────────────────────────────────────────
 const FOLLOWUP_TIERS = [
-    { type: 'DIA_1',  label: 'SEGUIMIENTO_DIA_1',  hoursAfterQuote: 24,  requiresPrevious: null },
+    { type: 'DIA_1',  label: 'SEGUIMIENTO_DIA_1',  hoursAfterQuote: 48,  requiresPrevious: null },
     { type: 'DIA_4',  label: 'SEGUIMIENTO_DIA_4',  hoursAfterQuote: 96,  requiresPrevious: 'SEGUIMIENTO_DIA_1' },
     { type: 'DIA_15', label: 'SEGUIMIENTO_DIA_15', hoursAfterQuote: 360, requiresPrevious: 'SEGUIMIENTO_DIA_4' },
 ];
@@ -24,7 +24,7 @@ const ALL_FOLLOWUP_LABELS = FOLLOWUP_TIERS.map(t => t.label);
 // ──────────────────────────────────────────────
 // Cooldowns y ventanas
 // ──────────────────────────────────────────────
-const COOLDOWN_HOURS = 24;                          // Mínimo entre follow-ups
+const COOLDOWN_HOURS = 48;                          // Mínimo entre follow-ups (48hs según políticas)
 const ACTIVITY_WINDOW_HOURS = 24;                   // Chat debe estar inactivo este tiempo
 const PRE_SEND_ACTIVITY_WINDOW_HOURS = 2;           // Re-check antes de enviar
 const QUOTE_LOOKBACK_DAYS = 20;                     // Buscar presupuestos de los últimos N días

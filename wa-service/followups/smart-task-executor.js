@@ -157,6 +157,19 @@ async function checkAndSendSmartTasks({ isAgentEnabled, botReplyingTo, broadcast
                 continue;
             }
 
+            // Validar si es un contacto frío (debe tener al menos un mensaje entrante registrado)
+            const inboundCount = await prisma.whatsAppMessage.count({
+                where: {
+                    chatId: chat.id,
+                    direction: 'INBOUND',
+                },
+            });
+            if (inboundCount === 0) {
+                console.log(`  🚫 [Smart Task Executor] Tarea cancelada: ${client.name} es un contacto frío (sin mensajes entrantes).`);
+                await cancelTask(task.id);
+                continue;
+            }
+
             // Validar si hubo actividad reciente (el humano le contestó)
             if (chat.lastMessageAt) {
                 // Consideramos que si el humano habló en las últimas 2 horas, tal vez ya cumplió la tarea.
@@ -243,6 +256,19 @@ async function executeSmartTaskAndSend(taskId, clientId, waId, chatId, text, cli
         console.log(`  ✅ [Smart Task Executor] Éxito para ${clientName}. Tarea cumplida.`);
     } else {
         console.error(`  ❌ [Smart Task Executor] Falló envío a ${clientName}: ${reason}`);
+        
+        await prisma.clientTask.update({
+            where: { id: taskId },
+            data: { status: 'FAILED', updatedAt: new Date() }
+        }).catch(() => {});
+
+        await prisma.interaction.create({
+            data: {
+                clientId: clientId,
+                type: 'NOTE',
+                content: `❌ [BOT] Falló envío de Tarea Inteligente (${taskDescription}). Motivo: ${reason}`
+            }
+        }).catch(() => {});
     }
 }
 

@@ -6,7 +6,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import {
     Send, WifiOff, QrCode, RefreshCw, CheckCircle2, Bot, Settings, X, ChevronLeft, Phone,
     Tag, Archive, ArchiveRestore, Plus, Mic, PlaySquare, Image as ImageIcon, Calendar, Search, Play, Paperclip, Smile, Trash2,
-    UserPlus, Loader2, Sparkles, Pin, Heart
+    UserPlus, Loader2, Sparkles, Pin, Heart, FileText
 } from 'lucide-react';
 import { WhatsAppIcon } from '@/components/icons/WhatsAppIcon';
 import { format } from 'date-fns';
@@ -1988,6 +1988,28 @@ export default function WhatsAppPage() {
                                                         {msg.mediaUrl && msg.type === 'VIDEO' && (
                                                             <div className="mb-2 overflow-hidden rounded-xl border border-black/5">
                                                                 <video controls src={resolveMediaUrl(msg.mediaUrl)} className="max-w-full max-h-64 object-contain rounded-xl" />
+                                                            </div>
+                                                        )}
+                                                        {msg.mediaUrl && msg.type === 'DOCUMENT' && (
+                                                            <div className="mb-2 bg-stone-100 dark:bg-stone-800/80 p-3 rounded-2xl flex items-center justify-between border border-stone-200 dark:border-stone-700 max-w-xs gap-3">
+                                                                <div className="flex items-center gap-2 overflow-hidden">
+                                                                    <FileText className="w-6 h-6 text-stone-500 shrink-0" />
+                                                                    <div className="overflow-hidden">
+                                                                        <p className="text-xs font-bold text-stone-700 dark:text-stone-300 truncate">
+                                                                            {msg.content && msg.content !== '[Media/Documento]' && msg.content !== '[Media]' ? msg.content : 'Documento PDF'}
+                                                                        </p>
+                                                                        <span className="text-[9px] text-stone-400 uppercase tracking-widest font-extrabold">Documento</span>
+                                                                    </div>
+                                                                </div>
+                                                                <a 
+                                                                    href={resolveMediaUrl(msg.mediaUrl)} 
+                                                                    target="_blank" 
+                                                                    rel="noopener noreferrer" 
+                                                                    className="p-1.5 hover:bg-black/10 dark:hover:bg-white/10 rounded-full transition-colors shrink-0"
+                                                                    title="Descargar documento"
+                                                                >
+                                                                    <Paperclip className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                                                                </a>
                                                             </div>
                                                         )}
 

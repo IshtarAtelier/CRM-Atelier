@@ -10,15 +10,10 @@ export async function GET(request: Request) {
         const fromParam = searchParams.get('from');
         const toParam = searchParams.get('to');
         const role = request.headers.get('x-user-role') || 'STAFF';
+        const isStaff = role === 'STAFF';
         
         let from = fromParam && fromParam !== '' ? fromParam : null;
         let to = toParam && toParam !== '' ? toParam : null;
-        
-        // Force STAFF to only see the current month (no historical access via query params)
-        if (role === 'STAFF') {
-            from = null;
-            to = null;
-        }
 
         const etiquetaParam = searchParams.get('etiqueta');
         const tipoParam = searchParams.get('tipo');
@@ -29,20 +24,30 @@ export async function GET(request: Request) {
 
         const dateFilter: any = {};
         let hasDateFilter = false;
-        if (from && from !== 'all') {
-            dateFilter.gte = new Date(`${from}T00:00:00.000Z`);
-            hasDateFilter = true;
-        }
-        if (to && to !== 'all') {
-            dateFilter.lte = new Date(`${to}T23:59:59.999Z`);
-            hasDateFilter = true;
-        }
 
-        // If no parameters are provided at all (initial load), default to current month in UTC
-        if (fromParam === null && toParam === null) {
+        if (isStaff) {
+            // Force STAFF to only see the current month (no historical access via query params)
             const now = new Date();
             dateFilter.gte = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
             hasDateFilter = true;
+            from = null;
+            to = null;
+        } else {
+            if (from && from !== 'all') {
+                dateFilter.gte = new Date(`${from}T00:00:00.000Z`);
+                hasDateFilter = true;
+            }
+            if (to && to !== 'all') {
+                dateFilter.lte = new Date(`${to}T23:59:59.999Z`);
+                hasDateFilter = true;
+            }
+
+            // If no parameters are provided at all (initial load), default to current month in UTC
+            if (from === null && to === null) {
+                const now = new Date();
+                dateFilter.gte = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+                hasDateFilter = true;
+            }
         }
 
         const whereClause: any = { orderType: 'SALE', isDeleted: false };
@@ -98,11 +103,14 @@ export async function GET(request: Request) {
             },
         });
 
-        const allOrders = await prisma.order.findMany({
-            where: { orderType: 'SALE', isDeleted: false },
-            select: { total: true, subtotalWithMarkup: true, labSentAt: true, createdAt: true },
-            orderBy: { labSentAt: 'asc' },
-        });
+        let allOrders: any[] = [];
+        if (!isStaff) {
+            allOrders = await prisma.order.findMany({
+                where: { orderType: 'SALE', isDeleted: false },
+                select: { total: true, subtotalWithMarkup: true, labSentAt: true, createdAt: true },
+                orderBy: { labSentAt: 'asc' },
+            });
+        }
 
         const startOfToday = new Date();
         startOfToday.setHours(0,0,0,0);
@@ -116,7 +124,7 @@ export async function GET(request: Request) {
         let weekSold = 0;
 
         const totalSoldMonth = currentMonthOrders.reduce((acc: number, order: any) => {
-            const price = order.total || order.subtotalWithMarkup || 0;
+            const price = order.subtotalWithMarkup || order.total || 0;
             const orderDate = new Date(order.labSentAt || order.createdAt);
             if (orderDate >= startOfToday) todaySold += price;
             if (orderDate >= startOfWeek) weekSold += price;
@@ -124,79 +132,92 @@ export async function GET(request: Request) {
         }, 0);
         const totalPaidMonth = currentMonthOrders.reduce((acc: number, order: any) => acc + (order.paid || 0), 0);
         
-        const clientBalances = await prisma.$queryRaw`
-            WITH ClientSales AS (
-                SELECT "clientId", SUM(COALESCE("total", "subtotalWithMarkup", 0)) as "totalSales"
-                FROM "Order"
-                WHERE "isDeleted" = false AND "orderType" = 'SALE' AND "clientId" IS NOT NULL
-                GROUP BY "clientId"
-            ),
-            ClientPayments AS (
-                SELECT o."clientId", SUM(p."amount") as "totalPaid"
-                FROM "Payment" p
-                JOIN "Order" o ON p."orderId" = o."id"
-                WHERE o."isDeleted" = false AND o."clientId" IS NOT NULL
-                GROUP BY o."clientId"
-            )
-            SELECT 
-                cs."clientId", 
-                cs."totalSales", 
-                COALESCE(cp."totalPaid", 0) as "totalPaid"
-            FROM ClientSales cs
-            LEFT JOIN ClientPayments cp ON cs."clientId" = cp."clientId"
-        `;
+        let globalPendingBalance = 0;
+        if (!isStaff) {
+            const clientBalances = await prisma.$queryRaw`
+                WITH ClientSales AS (
+                    SELECT "clientId", SUM(COALESCE("total", "subtotalWithMarkup", 0)) as "totalSales"
+                    FROM "Order"
+                    WHERE "isDeleted" = false AND "orderType" = 'SALE' AND "clientId" IS NOT NULL
+                    GROUP BY "clientId"
+                ),
+                ClientPayments AS (
+                    SELECT o."clientId", SUM(p."amount") as "totalPaid"
+                    FROM "Payment" p
+                    JOIN "Order" o ON p."orderId" = o."id"
+                    WHERE o."isDeleted" = false AND o."clientId" IS NOT NULL
+                    GROUP BY o."clientId"
+                )
+                SELECT 
+                    cs."clientId", 
+                    cs."totalSales", 
+                    COALESCE(cp."totalPaid", 0) as "totalPaid"
+                FROM ClientSales cs
+                LEFT JOIN ClientPayments cp ON cs."clientId" = cp."clientId"
+            `;
 
-        const globalPendingBalance = (clientBalances as any[]).reduce((acc, row) => {
-            return acc + Math.max(0, Number(row.totalSales || 0) - Number(row.totalPaid || 0));
-        }, 0);
+            globalPendingBalance = (clientBalances as any[]).reduce((acc, row) => {
+                return acc + Math.max(0, Number(row.totalSales || 0) - Number(row.totalPaid || 0));
+            }, 0);
+        }
 
         const ordersCountMonth = currentMonthOrders.length;
         const ticketPromedioMonth = ordersCountMonth > 0 ? totalSoldMonth / ordersCountMonth : 0;
 
         // Open Quotes (Presupuestos Activos)
-        const quoteWhere: any = {
-            orderType: 'QUOTE',
-            isDeleted: false,
-        };
-        if (hasDateFilter && Object.keys(dateFilter).length > 0) {
-            quoteWhere.createdAt = dateFilter;
-        }
-        const openQuotes = await prisma.order.findMany({
-            where: quoteWhere,
-            select: { total: true, subtotalWithMarkup: true, clientId: true },
-            orderBy: { createdAt: 'desc' }
-        });
-        
-        const uniqueClientQuotes = new Map();
         let totalQuotesValue = 0;
-        for (const q of openQuotes) {
-            if (!q.clientId) {
-                totalQuotesValue += (q.total || q.subtotalWithMarkup || 0);
-            } else if (!uniqueClientQuotes.has(q.clientId)) {
-                uniqueClientQuotes.set(q.clientId, true);
-                totalQuotesValue += (q.total || q.subtotalWithMarkup || 0);
+        if (!isStaff) {
+            const quoteWhere: any = {
+                orderType: 'QUOTE',
+                isDeleted: false,
+            };
+            if (hasDateFilter && Object.keys(dateFilter).length > 0) {
+                quoteWhere.createdAt = dateFilter;
+            }
+            const openQuotes = await prisma.order.findMany({
+                where: quoteWhere,
+                select: { total: true, subtotalWithMarkup: true, clientId: true },
+                orderBy: { createdAt: 'desc' }
+            });
+            
+            const uniqueClientQuotes = new Map();
+            for (const q of openQuotes) {
+                if (!q.clientId) {
+                    totalQuotesValue += (q.total || q.subtotalWithMarkup || 0);
+                } else if (!uniqueClientQuotes.has(q.clientId)) {
+                    uniqueClientQuotes.set(q.clientId, true);
+                    totalQuotesValue += (q.total || q.subtotalWithMarkup || 0);
+                }
             }
         }
 
         // CONFIRMADOS: Clients with status CONFIRMED, sum only their latest QUOTE
-        const confirmedClients = await prisma.client.findMany({
-            where: { status: 'CONFIRMED' },
-            select: {
-                id: true,
-                orders: {
-                    where: { orderType: 'QUOTE', isDeleted: false },
-                    orderBy: { createdAt: 'desc' },
-                    take: 1,
-                    select: { total: true, subtotalWithMarkup: true }
+        let confirmedCount = 0;
+        let confirmedTotal = 0;
+        if (isStaff) {
+            confirmedCount = await prisma.client.count({
+                where: { status: 'CONFIRMED' }
+            });
+        } else {
+            const confirmedClients = await prisma.client.findMany({
+                where: { status: 'CONFIRMED' },
+                select: {
+                    id: true,
+                    orders: {
+                        where: { orderType: 'QUOTE', isDeleted: false },
+                        orderBy: { createdAt: 'desc' },
+                        take: 1,
+                        select: { total: true, subtotalWithMarkup: true }
+                    }
                 }
-            }
-        });
-        const confirmedCount = confirmedClients.length;
-        const confirmedTotal = confirmedClients.reduce((acc, c) => {
-            const lastQuote = c.orders[0];
-            if (!lastQuote) return acc;
-            return acc + (lastQuote.total || lastQuote.subtotalWithMarkup || 0);
-        }, 0);
+            });
+            confirmedCount = confirmedClients.length;
+            confirmedTotal = confirmedClients.reduce((acc, c) => {
+                const lastQuote = c.orders[0];
+                if (!lastQuote) return acc;
+                return acc + (lastQuote.total || lastQuote.subtotalWithMarkup || 0);
+            }, 0);
+        }
 
         // Suggested Follow-ups (Multifocal quotes > 2 days old)
         const twoDaysAgo = new Date();
@@ -285,7 +306,7 @@ export async function GET(request: Request) {
             const date = new Date(order.labSentAt || order.createdAt);
             const key = `${monthsNames[date.getUTCMonth()]} ${date.getUTCFullYear()}`;
             if (monthlyStats[key] !== undefined) {
-                const price = order.total || order.subtotalWithMarkup || 0;
+                const price = order.subtotalWithMarkup || order.total || 0;
                 monthlyStats[key] += price;
             }
         });
@@ -314,7 +335,7 @@ export async function GET(request: Request) {
             // Tag stats
             const source = order.client?.contactSource || 'Sin etiqueta';
             if (!tagStats[source]) tagStats[source] = { total: 0, count: 0 };
-            const orderPrice = order.total || order.subtotalWithMarkup || 0;
+            const orderPrice = order.subtotalWithMarkup || order.total || 0;
             tagStats[source].total += orderPrice;
             tagStats[source].count += 1;
 
@@ -360,7 +381,7 @@ export async function GET(request: Request) {
                 }
 
                 if (is2x1Order && isCrystalItem && item.price === 0) {
-                    itemCost = 0;
+                    // Do not increment count for free promo crystals, but keep its cost (do not override itemCost to 0)
                 } else {
                     typeStats[type].count += isCrystalItem ? (item.quantity / 2) : item.quantity;
                 }
@@ -392,18 +413,24 @@ export async function GET(request: Request) {
         // ── Conversion Funnel ──
         const funnelDateFilter: any = {};
         let hasFunnelFilter = false;
-        if (from && from !== 'all') {
-            funnelDateFilter.gte = new Date(`${from}T00:00:00.000Z`);
-            hasFunnelFilter = true;
-        }
-        if (to && to !== 'all') {
-            funnelDateFilter.lte = new Date(`${to}T23:59:59.999Z`);
-            hasFunnelFilter = true;
-        }
-        if (fromParam === null && toParam === null) {
+        if (isStaff) {
             const now = new Date();
             funnelDateFilter.gte = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
             hasFunnelFilter = true;
+        } else {
+            if (from && from !== 'all') {
+                funnelDateFilter.gte = new Date(`${from}T00:00:00.000Z`);
+                hasFunnelFilter = true;
+            }
+            if (to && to !== 'all') {
+                funnelDateFilter.lte = new Date(`${to}T23:59:59.999Z`);
+                hasFunnelFilter = true;
+            }
+            if (from === null && to === null) {
+                const now = new Date();
+                funnelDateFilter.gte = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+                hasFunnelFilter = true;
+            }
         }
 
         // Build client filter for funnel
@@ -474,7 +501,7 @@ export async function GET(request: Request) {
             console.warn('Could not fetch targets, model might not be in client yet:', e);
         }
 
-        const pendingBalancesList = await ContactService.getOrdersWithBalance();
+        const pendingBalancesList = !isStaff ? await ContactService.getOrdersWithBalance() : [];
 
         let personalSoldMonth = 0;
         let personalConfirmedCount = 0;
@@ -512,6 +539,32 @@ export async function GET(request: Request) {
                 }
             });
             personalConfirmedCount = confirmedClients.filter(c => c.orders[0]?.userId === userId).length;
+        }
+
+        if (isStaff) {
+            return NextResponse.json({
+                totalSoldMonth,
+                totalPaidMonth: 0,
+                ordersCountMonth,
+                ticketPromedioMonth,
+                trendPct: null,
+                funnel,
+                targets,
+                totalPendingBalance: 0,
+                pendingBalances: [],
+                totalQuotesValue: 0,
+                confirmedCount,
+                confirmedTotal: 0,
+                suggestedFollowUps,
+                monthlyBilling: [],
+                tagStats: Object.entries(tagStats).map(([name, data]) => ({ name, count: data.count, total: 0 })),
+                locationStats: Object.entries(locationStats).map(([name, data]) => ({ name, count: data.count, total: 0 })),
+                typeStats: Object.entries(typeStats).map(([name, data]) => ({ name, count: data.count, total: 0, cost: 0 })),
+                personalSoldMonth,
+                personalConfirmedCount,
+                todaySold,
+                weekSold,
+            });
         }
 
         return NextResponse.json({
