@@ -42,7 +42,7 @@ async function getProductImageData(imageKeyOrPath: string | null | undefined) {
   }
 }
 
-async function getCoverImageData(imagePath: string) {
+async function getEditorialImageData(imagePath: string) {
   if (!fs.existsSync(imagePath)) return null;
   try {
     const buffer = fs.readFileSync(imagePath);
@@ -51,8 +51,9 @@ async function getCoverImageData(imagePath: string) {
     const height = metadata.height || 1;
     const aspectRatio = width / height;
     
+    // Decompress and format editorial banners to high quality JPEGs
     const compressed = await sharp(buffer)
-      .resize({ width: 1000, height: 1200, fit: 'inside' })
+      .resize({ width: 1200, height: 800, fit: 'cover' })
       .jpeg({ quality: 90 })
       .toBuffer();
 
@@ -61,7 +62,7 @@ async function getCoverImageData(imagePath: string) {
       aspectRatio
     };
   } catch (err) {
-    console.error('Error loading cover image:', err);
+    console.error('Error loading editorial image:', err);
     return null;
   }
 }
@@ -83,12 +84,14 @@ export async function GET(req: NextRequest) {
       return new Response('No se encontraron productos activos', { status: 404 });
     }
 
-    // Load actual home hero webp files directly
+    // Load actual editorial home image assets
     const monaLisaPath = path.join(process.cwd(), 'public', 'images', 'editorial', 'monalisa.webp');
+    const fridaPath = path.join(process.cwd(), 'public', 'images', 'editorial', 'filmmaker-frida.webp');
     const daliPath = path.join(process.cwd(), 'public', 'images', 'editorial', 'filmmaker-dali.webp');
 
-    const monaLisa = await getCoverImageData(monaLisaPath);
-    const dali = await getCoverImageData(daliPath);
+    const monaLisa = await getEditorialImageData(monaLisaPath);
+    const frida = await getEditorialImageData(fridaPath);
+    const dali = await getEditorialImageData(daliPath);
 
     // Resolve product images in parallel
     const imagePromises = webProducts.map(async (wp) => {
@@ -110,78 +113,121 @@ export async function GET(req: NextRequest) {
     const pageHeight = doc.internal.pageSize.getHeight();
 
     // ----------------------------------------------------
-    // COVER PAGE (PAGE 1) - Editorial Luxury Dark Style
+    // EDITORIAL COVER 1: LA GIOCONDA (PAGE 1)
     // ----------------------------------------------------
     doc.setFillColor(10, 10, 10);
     doc.rect(0, 0, pageWidth, pageHeight, 'F');
 
-    // Top gold banner
-    doc.setFillColor(158, 127, 101); // #9e7f65
-    doc.rect(0, 0, pageWidth, 8, 'F');
-
-    doc.setTextColor(255, 255, 255);
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(6.5);
-    doc.text("6 CUOTAS SIN INTERÉS  ·  15% OFF EN EFECTIVO  ·  ENVÍO GRATIS", pageWidth / 2, 5.5, { align: 'center', charSpace: 1.5 });
-
-    // Header Title
-    doc.setTextColor(245, 245, 245);
-    doc.setFont('times', 'bold');
-    doc.setFontSize(32);
-    doc.text("ATELIER ÓPTICA", pageWidth / 2, 42, { align: 'center' });
-
-    // Gold Subtitle
-    doc.setTextColor(158, 127, 101);
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(8);
-    doc.text("COLECCIÓN ÓPTICA  ·  CATÁLOGO OFICIAL 2025", pageWidth / 2, 50, { align: 'center', charSpace: 1.2 });
-
-    // Tagline
-    doc.setTextColor(160, 160, 160);
-    doc.setFont('times', 'italic');
-    doc.setFontSize(10.5);
-    doc.text("Diseño de autor. Edición limitada.", pageWidth / 2, 57, { align: 'center' });
-
-    // Mona Lisa Cover Image
+    // Edge-to-edge landscape cover image (4:3 aspect ratio card)
     if (monaLisa) {
-      const boxW = 120;
-      const boxH = 145;
-      const boxX = 45;
-      const boxY = 72;
-
-      let drawW = boxW;
-      let drawH = boxW / monaLisa.aspectRatio;
-      if (drawH > boxH) {
-        drawH = boxH;
-        drawW = boxH * monaLisa.aspectRatio;
-      }
-      const drawX = boxX + (boxW - drawW) / 2;
-      const drawY = boxY + (boxH - drawH) / 2;
-
-      // Golden border frame
-      doc.setDrawColor(158, 127, 101);
-      doc.setLineWidth(1.2);
-      doc.rect(drawX - 2, drawY - 2, drawW + 4, drawH + 4);
-      doc.setLineWidth(0.3);
-      doc.rect(drawX - 0.5, drawY - 0.5, drawW + 1, drawH + 1);
-
-      doc.addImage(monaLisa.base64, 'JPEG', drawX, drawY, drawW, drawH);
+      // 210mm wide x 140mm high landscape hero card
+      doc.addImage(monaLisa.base64, 'JPEG', 0, 0, pageWidth, 140);
     }
 
-    doc.setTextColor(140, 140, 140);
-    doc.setFont('times', 'italic');
-    doc.setFontSize(9);
-    doc.text("EL ARTE DE DISEÑAR MIRADAS", pageWidth / 2, 242, { align: 'center' });
+    // Top subtle bar overlay (same as home page banner)
+    doc.setFillColor(158, 127, 101);
+    doc.rect(0, 0, pageWidth, 7, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(6);
+    doc.text("6 CUOTAS SIN INTERÉS  ·  15% OFF EN EFECTIVO O TRANSFERENCIA  ·  ENVÍO GRATIS", pageWidth / 2, 4.8, { align: 'center', charSpace: 1.2 });
 
-    doc.setTextColor(100, 100, 100);
+    // Home-like Metadata text
+    doc.setTextColor(150, 150, 150);
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(7.5);
-    doc.text("CÓRDOBA, ARGENTINA", pageWidth / 2, 275, { align: 'center', charSpace: 1 });
+    doc.text("01 / 05  ·  ATELIER FILMS", 20, 158);
+
+    doc.setTextColor(158, 127, 101);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(7.5);
+    doc.text("LEONARDO DA VINCI  ·  S. XVI", 20, 168, { charSpace: 1 });
+
+    doc.setTextColor(255, 255, 255);
+    doc.setFont('times', 'bold');
+    doc.setFontSize(36);
+    doc.text("La Gioconda", 20, 182);
+
+    doc.setTextColor(158, 127, 101);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(9);
+    doc.text("COLECCIÓN OPTICAL  ·  EDICIÓN LIMITADA", 20, 192, { charSpace: 1.5 });
+
+    doc.setTextColor(180, 180, 180);
+    doc.setFont('times', 'italic');
+    doc.setFontSize(10.5);
+    doc.text("Diseño de autor en 6 cuotas sin interés y envío gratis a todo el país.", 20, 202);
+
+    // Atelier Optica logo at the bottom
+    doc.setTextColor(245, 245, 245);
+    doc.setFont('times', 'bold');
+    doc.setFontSize(16);
+    doc.text("ATELIER ÓPTICA", pageWidth / 2, 250, { align: 'center', charSpace: 2 });
+
+    doc.setTextColor(120, 120, 120);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(7.5);
+    doc.text("CATÁLOGO OFICIAL 2025  ·  CÓRDOBA", pageWidth / 2, 258, { align: 'center', charSpace: 1 });
+
+    // ----------------------------------------------------
+    // EDITORIAL COVER 2: LA FRIDA (PAGE 2)
+    // ----------------------------------------------------
+    doc.addPage();
+    doc.setFillColor(10, 10, 10);
+    doc.rect(0, 0, pageWidth, pageHeight, 'F');
+
+    if (frida) {
+      doc.addImage(frida.base64, 'JPEG', 0, 0, pageWidth, 140);
+    }
+
+    // Top gold banner
+    doc.setFillColor(158, 127, 101);
+    doc.rect(0, 0, pageWidth, 7, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(6);
+    doc.text("6 CUOTAS SIN INTERÉS  ·  15% OFF EN EFECTIVO O TRANSFERENCIA  ·  ENVÍO GRATIS", pageWidth / 2, 4.8, { align: 'center', charSpace: 1.2 });
+
+    // Frida Metadata
+    doc.setTextColor(150, 150, 150);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(7.5);
+    doc.text("02 / 05  ·  ATELIER FILMS", 20, 158);
+
+    doc.setTextColor(158, 127, 101);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(7.5);
+    doc.text("FRIDA KAHLO  ·  S. XX", 20, 168, { charSpace: 1 });
+
+    doc.setTextColor(255, 255, 255);
+    doc.setFont('times', 'bold');
+    doc.setFontSize(36);
+    doc.text("La Frida", 20, 182);
+
+    doc.setTextColor(158, 127, 101);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(9);
+    doc.text("COLECCIÓN ACETATO  ·  EDICIÓN LIMITADA", 20, 192, { charSpace: 1.5 });
+
+    doc.setTextColor(180, 180, 180);
+    doc.setFont('times', 'italic');
+    doc.setFontSize(10.5);
+    doc.text("Diseño de autor en 6 cuotas sin interés y envío gratis a todo el país.", 20, 202);
+
+    doc.setTextColor(245, 245, 245);
+    doc.setFont('times', 'bold');
+    doc.setFontSize(16);
+    doc.text("ATELIER ÓPTICA", pageWidth / 2, 250, { align: 'center', charSpace: 2 });
+
+    doc.setTextColor(120, 120, 120);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(7.5);
+    doc.text("CATÁLOGO OFICIAL 2025  ·  CÓRDOBA", pageWidth / 2, 258, { align: 'center', charSpace: 1 });
 
     // ----------------------------------------------------
     // INTERNAL PAGES (Clean Minimalist White Style)
     // ----------------------------------------------------
-    let currentPage = 1;
+    let currentPage = 2;
     const productsPerPage = 2;
 
     for (let i = 0; i < webProducts.length; i += productsPerPage) {
@@ -292,45 +338,47 @@ export async function GET(req: NextRequest) {
 
     // Salvador Dali image
     if (dali) {
-      const boxW = 120;
-      const boxH = 145;
-      const boxX = 45;
-      const boxY = 48;
-
-      let drawW = boxW;
-      let drawH = boxW / dali.aspectRatio;
-      if (drawH > boxH) {
-        drawH = boxH;
-        drawW = boxH * dali.aspectRatio;
-      }
-      const drawX = boxX + (boxW - drawW) / 2;
-      const drawY = boxY + (boxH - drawH) / 2;
-
-      // Golden frame
-      doc.setDrawColor(158, 127, 101);
-      doc.setLineWidth(1.2);
-      doc.rect(drawX - 2, drawY - 2, drawW + 4, drawH + 4);
-      doc.setLineWidth(0.3);
-      doc.rect(drawX - 0.5, drawY - 0.5, drawW + 1, drawH + 1);
-
-      doc.addImage(dali.base64, 'JPEG', drawX, drawY, drawW, drawH);
+      doc.addImage(dali.base64, 'JPEG', 0, 0, pageWidth, 140);
     }
 
-    // Back cover text
+    // Bottom banner
+    doc.setFillColor(158, 127, 101);
+    doc.rect(0, 0, pageWidth, 7, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(6);
+    doc.text("6 CUOTAS SIN INTERÉS  ·  15% OFF EN EFECTIVO O TRANSFERENCIA  ·  ENVÍO GRATIS", pageWidth / 2, 4.8, { align: 'center', charSpace: 1.2 });
+
+    // Back Cover texts matching slide design
+    doc.setTextColor(150, 150, 150);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(7.5);
+    doc.text("03 / 05  ·  ATELIER FILMS", 20, 158);
+
+    doc.setTextColor(158, 127, 101);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(7.5);
+    doc.text("SALVADOR DALÍ  ·  S. XX", 20, 168, { charSpace: 1 });
+
+    doc.setTextColor(255, 255, 255);
+    doc.setFont('times', 'bold');
+    doc.setFontSize(36);
+    doc.text("La Persistencia", 20, 182);
+
     doc.setTextColor(158, 127, 101);
     doc.setFont('times', 'italic');
-    doc.setFontSize(22);
-    doc.text("El arte de ver.", pageWidth / 2, 218, { align: 'center' });
+    doc.setFontSize(20);
+    doc.text("El arte de ver.", 20, 202);
 
     doc.setTextColor(245, 245, 245);
     doc.setFont('times', 'bold');
-    doc.setFontSize(13);
-    doc.text("ATELIER ÓPTICA", pageWidth / 2, 228, { align: 'center', charSpace: 1.5 });
+    doc.setFontSize(16);
+    doc.text("ATELIER ÓPTICA", pageWidth / 2, 250, { align: 'center', charSpace: 2 });
 
     doc.setTextColor(130, 130, 130);
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(7.5);
-    doc.text("Cerro de las Rosas, Córdoba   ·   ★ 5.0 Google   ·   atelier-optica.com", pageWidth / 2, 236, { align: 'center', charSpace: 0.5 });
+    doc.text("Cerro de las Rosas, Córdoba   ·   ★ 5.0 Google   ·   atelier-optica.com", pageWidth / 2, 258, { align: 'center', charSpace: 0.5 });
 
     const pdfOutput = doc.output('arraybuffer');
     const buffer = Buffer.from(pdfOutput);
