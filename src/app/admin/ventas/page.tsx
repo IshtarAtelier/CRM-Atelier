@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { ShoppingCart, Download, Search, Package, Clock, CheckCircle2, Truck, Eye, Pencil, Save, X, AlertTriangle, FileText, Banknote, ArrowRightLeft, CreditCard, ChevronRight, ExternalLink, Loader2, ArrowRight, FlaskConical, Calendar, Factory } from 'lucide-react';
 import { OrderDetailPanel } from '@/components/orders/OrderDetailPanel';
 import { WhatsAppIcon } from '@/components/icons/WhatsAppIcon';
@@ -29,6 +30,8 @@ function getNextStatus(current: string): string | null {
 }
 
 export default function VentasPage() {
+    const searchParams = useSearchParams();
+    const orderIdParam = searchParams.get('id');
     const [orders, setOrders] = useState<Order[]>([]);
     const [search, setSearch] = useState('');
     const [filterLab, setFilterLab] = useState<string>('SENT');
@@ -319,6 +322,42 @@ export default function VentasPage() {
     useEffect(() => {
         fetchOrders(search);
     }, [filterLab, filterBalance, filterLaboratory, dateFrom, dateTo]);
+
+    useEffect(() => {
+        if (orderIdParam) {
+            const exists = orders.find(o => o.id === orderIdParam);
+            if (exists) {
+                setExpandedDetail(orderIdParam);
+                setTimeout(() => {
+                    const el = document.getElementById(`order-${orderIdParam}`);
+                    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }, 300);
+            } else {
+                const fetchSingleOrder = async () => {
+                    try {
+                        const res = await fetch(`/api/orders/${orderIdParam}`);
+                        if (res.ok) {
+                            const singleOrder = await res.json();
+                            if (singleOrder && !singleOrder.isDeleted) {
+                                setOrders(prev => {
+                                    if (prev.find(o => o.id === orderIdParam)) return prev;
+                                    return [singleOrder, ...prev];
+                                });
+                                setExpandedDetail(orderIdParam);
+                                setTimeout(() => {
+                                    const el = document.getElementById(`order-${orderIdParam}`);
+                                    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                }, 300);
+                            }
+                        }
+                    } catch (err) {
+                        console.error('Error fetching single order:', err);
+                    }
+                };
+                fetchSingleOrder();
+            }
+        }
+    }, [orderIdParam, orders.length]);
 
     // Auto-sync SmartLab una sola vez al cargar la página
     useEffect(() => {
@@ -974,7 +1013,7 @@ export default function VentasPage() {
                         ));
 
                         return (
-                            <div key={order.id} className={`border-2 rounded-2xl p-4 lg:p-6 hover:shadow-lg transition-all ${financials.hasBalance
+                            <div key={order.id} id={`order-${order.id}`} className={`border-2 rounded-2xl p-4 lg:p-6 hover:shadow-lg transition-all ${financials.hasBalance
                                     ? 'bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-900/50'
                                     : 'bg-white dark:bg-stone-800 border-stone-100 dark:border-stone-700'
                                 }`}>
