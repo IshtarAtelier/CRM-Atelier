@@ -798,10 +798,6 @@ function StatsCard({ title, value, icon: Icon, trend, sub, highlight }: any) {
       </div>
     </div>
   );
-}v>
-      </div>
-    </div>
-  );
 }
 
 function EmptyState({ message }: { message: string }) {
