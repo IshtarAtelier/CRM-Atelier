@@ -52,10 +52,18 @@ export default function CheckoutModal({
     const minRequired = total * 0.4;
     
     // Prescription Selection
+    const isContactLens = order.items?.some((it: any) => {
+        const str = `${it.product?.type || ''} ${it.product?.category || ''} ${it.product?.name || ''} ${it.productNameSnapshot || ''}`.toLowerCase();
+        return str.includes('contacto') || str.includes('contact');
+    });
+
     const hasCrystals = order.items?.some((it: any) => {
         const str = `${it.product?.type || ''} ${it.product?.category || ''} ${it.product?.name || ''} ${it.productNameSnapshot || ''}`.toLowerCase();
         return str.includes('cristal') || str.includes('monofocal') || str.includes('multifocal') || str.includes('bifocal') || str.includes('progresivo') || str.includes('ocupacional') || str.includes('lente');
     });
+
+    // Contact lenses need Rx but NOT frame measurements
+    const needsFrameData = hasCrystals && !isContactLens;
 
     const isMultifocal = order.items?.some((it: any) => {
         const str = `${it.product?.type || ''} ${it.product?.category || ''} ${it.product?.name || ''} ${it.productNameSnapshot || ''}`.toLowerCase();
@@ -93,7 +101,7 @@ export default function CheckoutModal({
     const [frameMeasureB, setFrameMeasureB] = useState<string>('');
     const [frameMeasureEd, setFrameMeasureEd] = useState<string>('');
 
-    const isFrameDataComplete = !hasCrystals || (
+    const isFrameDataComplete = !needsFrameData || (
         frameDetails.trim() !== '' &&
         frameMeasurePte.trim() !== '' &&
         frameMeasureA.trim() !== '' &&
@@ -414,8 +422,8 @@ export default function CheckoutModal({
                         </section>
                     )}
 
-                    {/* 3.5 SECCION SMARTLAB FORMA DE ARMAZON */}
-                    {hasCrystals && (
+                    {/* 3.5 SECCION SMARTLAB FORMA DE ARMAZON (no para lentes de contacto) */}
+                    {needsFrameData && (
                         <section className="space-y-4">
                             <h3 className="text-xs font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest flex items-center gap-2">
                                 <FlaskConical className="w-4 h-4" /> Laboratorio SmartLab
