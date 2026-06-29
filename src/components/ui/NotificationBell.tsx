@@ -210,24 +210,48 @@ export function NotificationBell() {
                                             </button>
                                         )}
                                         {n.type !== "LAB_READY" && (
-                                            <>
-                                                <button aria-label="Notificaciones" aria-expanded={isOpen} aria-controls="notification-panel"
-                                                    onClick={() => handleAction(n.id, "APPROVED")}
-                                                    disabled={processingId === n.id}
-                                                    className="flex flex-1 items-center justify-center gap-1.5 px-3 py-2 bg-emerald-500 text-white rounded-xl text-xs font-black uppercase tracking-widest hover:bg-emerald-600 active:scale-95 transition-all disabled:opacity-50"
-                                                >
-                                                    {processingId === n.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
-                                                    Aprobar
-                                                </button>
-                                                <button aria-label="Notificaciones" aria-expanded={isOpen} aria-controls="notification-panel"
-                                                    onClick={() => handleAction(n.id, "REJECTED")}
-                                                    disabled={processingId === n.id}
-                                                    className="flex flex-1 items-center justify-center gap-1.5 px-3 py-2 bg-stone-200 dark:bg-stone-700 text-stone-600 dark:text-stone-500 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-stone-300 active:scale-95 transition-all disabled:opacity-50"
-                                                >
-                                                    <X className="w-3 h-3" />
-                                                    Rechazar
-                                                </button>
-                                            </>
+                                            isAdmin ? (
+                                                <>
+                                                    <button aria-label="Notificaciones" aria-expanded={isOpen} aria-controls="notification-panel"
+                                                        onClick={() => handleAction(n.id, "APPROVED")}
+                                                        disabled={processingId === n.id}
+                                                        className="flex flex-1 items-center justify-center gap-1.5 px-3 py-2 bg-emerald-500 text-white rounded-xl text-xs font-black uppercase tracking-widest hover:bg-emerald-600 active:scale-95 transition-all disabled:opacity-50"
+                                                    >
+                                                        {processingId === n.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
+                                                        Aprobar
+                                                    </button>
+                                                    <button aria-label="Notificaciones" aria-expanded={isOpen} aria-controls="notification-panel"
+                                                        onClick={() => handleAction(n.id, "REJECTED")}
+                                                        disabled={processingId === n.id}
+                                                        className="flex flex-1 items-center justify-center gap-1.5 px-3 py-2 bg-stone-200 dark:bg-stone-700 text-stone-600 dark:text-stone-500 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-stone-300 active:scale-95 transition-all disabled:opacity-50"
+                                                    >
+                                                        <X className="w-3 h-3" />
+                                                        Rechazar
+                                                    </button>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <button aria-label="Notificaciones" aria-expanded={isOpen} aria-controls="notification-panel"
+                                                        onClick={() => handleAction(n.id, "APPROVED")}
+                                                        disabled={processingId === n.id}
+                                                        className="flex flex-1 items-center justify-center gap-1.5 px-3 py-2 bg-emerald-500 text-white rounded-xl text-xs font-black uppercase tracking-widest hover:bg-emerald-600 active:scale-95 transition-all disabled:opacity-50"
+                                                    >
+                                                        {processingId === n.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
+                                                        Entendido
+                                                    </button>
+                                                    {n.type === "RECEIPT_ERROR" && (
+                                                        <button aria-label="Notificaciones" aria-expanded={isOpen} aria-controls="notification-panel"
+                                                            onClick={() => handleAction(n.id, "REQUEST_DELETE_RECEIPT" as any)}
+                                                            disabled={processingId === n.id}
+                                                            className="flex flex-1 items-center justify-center gap-1.5 px-3 py-2 bg-red-50 dark:bg-red-950/30 text-red-500 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-red-100 transition-all border border-red-100 dark:border-red-900"
+                                                            title="Solicitar eliminación del comprobante"
+                                                        >
+                                                            {processingId === n.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
+                                                            Solicitar Borrado
+                                                        </button>
+                                                    )}
+                                                </>
+                                            )
                                         )}
                                     </div>
                                 </div>

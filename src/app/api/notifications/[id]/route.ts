@@ -16,15 +16,7 @@ export async function PATCH(
         const adminName = headersList.get('x-user-name') || 'Admin';
 
         const body = await request.json();
-        const { action } = body; // "APPROVED", "REJECTED", or "MARK_DELIVERED"
-
-        if (role !== 'ADMIN' && action !== 'MARK_DELIVERED') {
-            return NextResponse.json({ error: 'Solo el administrador puede gestionar estas solicitudes' }, { status: 403 });
-        }
-
-        if (!['APPROVED', 'REJECTED', 'MARK_DELIVERED'].includes(action)) {
-            return NextResponse.json({ error: 'Acción inválida' }, { status: 400 });
-        }
+        const { action } = body; // "APPROVED", "REJECTED", "MARK_DELIVERED", or "REQUEST_DELETE_RECEIPT"
 
         const notification = await prisma.notification.findUnique({ where: { id } });
         if (!notification) {
@@ -33,6 +25,33 @@ export async function PATCH(
 
         if (notification.status !== 'PENDING') {
             return NextResponse.json({ error: 'Esta solicitud ya fue procesada' }, { status: 409 });
+        }
+
+        if (role !== 'ADMIN') {
+            const isLabReadyMark = action === 'MARK_DELIVERED' && notification.type === 'LAB_READY';
+            const isReceiptErrorDismiss = action === 'APPROVED' && notification.type === 'RECEIPT_ERROR';
+            const isReceiptErrorDeleteRequest = action === 'REQUEST_DELETE_RECEIPT' && notification.type === 'RECEIPT_ERROR';
+            
+            if (!isLabReadyMark && !isReceiptErrorDismiss && !isReceiptErrorDeleteRequest) {
+                return NextResponse.json({ error: 'Solo el administrador puede gestionar estas solicitudes' }, { status: 403 });
+            }
+        }
+
+        if (!['APPROVED', 'REJECTED', 'MARK_DELIVERED', 'REQUEST_DELETE_RECEIPT'].includes(action)) {
+            return NextResponse.json({ error: 'Acción inválida' }, { status: 400 });
+        }
+
+        // If the seller requests deletion of the receipt
+        if (action === 'REQUEST_DELETE_RECEIPT') {
+            const updated = await prisma.notification.update({
+                where: { id },
+                data: {
+                    type: 'DELETE_REQUEST',
+                    message: `⚠️ [SOLICITUD ELIMINACIÓN COMPROBANTE] Vendedor solicita eliminar comprobante. Detalle: ${notification.message}`,
+                    requestedBy: role === 'STAFF' ? (headersList.get('x-user-name') || 'Vendedor') : notification.requestedBy,
+                }
+            });
+            return NextResponse.json(updated);
         }
 
         let finalStatus = action;
