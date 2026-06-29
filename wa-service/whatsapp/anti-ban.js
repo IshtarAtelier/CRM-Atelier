@@ -306,9 +306,9 @@ class AntiBanQueue {
             return;
         }
 
-        // B. Regla: Nunca enviar imágenes o archivos en primer contacto en frío (incluso de forma manual)
-        if (isColdContact && media) {
-            reject(new Error('Política Anti-Spam: Prohibido enviar imágenes o archivos en el primer contacto en frío'));
+        // B. Regla: Nunca enviar imágenes o archivos en primer contacto en frío de forma AUTOMÁTICA
+        if (options.isAutomated !== false && isColdContact && media) {
+            reject(new Error('Política Anti-Spam: Prohibido enviar imágenes o archivos automáticos en el primer contacto en frío'));
             return;
         }
 

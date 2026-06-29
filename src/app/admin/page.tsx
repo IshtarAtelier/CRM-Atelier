@@ -42,9 +42,10 @@ interface DashboardData {
 
 interface PieChart3DProps {
   data: { name: string; count: number; total?: number }[];
+  showValues?: boolean;
 }
 
-function PieChart3D({ data }: PieChart3DProps) {
+function PieChart3D({ data, showValues = false }: PieChart3DProps) {
   const total = data.reduce((sum, item) => sum + item.count, 0);
   if (total === 0) return <div className="text-center py-16 text-[10px] uppercase font-bold text-stone-400">Sin datos</div>;
 
@@ -94,56 +95,62 @@ function PieChart3D({ data }: PieChart3DProps) {
             filter: 'drop-shadow(0 25px 25px rgba(0,0,0,0.22))'
           }}
         >
-          {/* Render 12 layers for 3D extrusion */}
-          {[...Array(12)].map((_, layerIdx) => {
+          {/* Render 15 layers for 3D extrusion */}
+          {[...Array(15)].map((_, layerIdx) => {
             const isTop = layerIdx === 0;
+            const brightness = isTop ? 1 : 0.65 - (layerIdx * 0.02);
             return (
-              <svg 
+              <div 
                 key={layerIdx}
-                viewBox="0 0 200 200" 
                 className="absolute inset-0 w-full h-full"
                 style={{ 
-                  transform: `translateZ(${-layerIdx}px)`, 
+                  transform: `translate3d(0, 0, ${-layerIdx * 1.5}px)`, 
+                  transformStyle: 'preserve-3d',
                   pointerEvents: isTop ? 'auto' : 'none',
                 }}
               >
-                {slices.map((slice, idx) => {
-                  const percent = slice.percent / 100;
-                  const largeArcFlag = percent > 0.5 ? 1 : 0;
-                  
-                  let pathData = '';
-                  if (percent >= 0.999) {
+                <svg 
+                  viewBox="0 0 200 200" 
+                  className="w-full h-full"
+                >
+                  {slices.map((slice, idx) => {
+                    const percent = slice.percent / 100;
+                    const largeArcFlag = percent > 0.5 ? 1 : 0;
+                    
+                    let pathData = '';
+                    if (percent >= 0.999) {
+                      return (
+                        <circle
+                          key={idx}
+                          cx="100"
+                          cy="100"
+                          r="80"
+                          fill={slice.color}
+                          style={{
+                            filter: !isTop ? `brightness(${brightness}) contrast(1.1)` : 'none',
+                          }}
+                        />
+                      );
+                    } else {
+                      const [startX, startY] = getCoordinatesForPercent(slice.startPercent);
+                      const [endX, endY] = getCoordinatesForPercent(slice.endPercent);
+                      pathData = `M 100 100 L ${startX} ${startY} A 80 80 0 ${largeArcFlag} 1 ${endX} ${endY} Z`;
+                    }
+
                     return (
-                      <circle
+                      <path
                         key={idx}
-                        cx="100"
-                        cy="100"
-                        r="80"
+                        d={pathData}
                         fill={slice.color}
+                        className="transition-all duration-300 hover:opacity-95 cursor-pointer"
                         style={{
-                          filter: !isTop ? 'brightness(0.65) contrast(1.1)' : 'none',
+                          filter: !isTop ? `brightness(${brightness}) contrast(1.1)` : 'none',
                         }}
                       />
                     );
-                  } else {
-                    const [startX, startY] = getCoordinatesForPercent(slice.startPercent);
-                    const [endX, endY] = getCoordinatesForPercent(slice.endPercent);
-                    pathData = `M 100 100 L ${startX} ${startY} A 80 80 0 ${largeArcFlag} 1 ${endX} ${endY} Z`;
-                  }
-
-                  return (
-                    <path
-                      key={idx}
-                      d={pathData}
-                      fill={slice.color}
-                      className="transition-all duration-300 hover:opacity-95 cursor-pointer"
-                      style={{
-                        filter: !isTop ? 'brightness(0.65) contrast(1.1)' : 'none',
-                      }}
-                    />
-                  );
-                })}
-              </svg>
+                  })}
+                </svg>
+              </div>
             );
           })}
         </div>
@@ -158,7 +165,7 @@ function PieChart3D({ data }: PieChart3DProps) {
               style={{ backgroundColor: slice.color }} 
             />
             <span className="text-[10px] font-black text-stone-700 dark:text-stone-300 uppercase tracking-tight truncate max-w-[100px]">{slice.name}</span>
-            {slice.total !== undefined ? (
+            {showValues && slice.total !== undefined ? (
               <span className="text-[10px] font-black text-[#a38067] ml-auto">${slice.total.toLocaleString()}</span>
             ) : (
               <span className="text-[10px] font-black text-[#a38067] ml-auto">{slice.percent.toFixed(1)}%</span>
@@ -622,7 +629,7 @@ export default function Home() {
                 })}
               </div>
             ) : (
-              <PieChart3D data={d.typeStats} />
+              <PieChart3D data={d.typeStats} showValues={isAdmin} />
             )
           ) : (
             <EmptyState message="Sin movimientos de productos." />
