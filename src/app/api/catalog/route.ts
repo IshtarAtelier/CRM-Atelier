@@ -7,12 +7,10 @@ import sharp from 'sharp';
 
 export const dynamic = 'force-dynamic';
 
-async function getProductImageBase64(imageKeyOrPath: string | null | undefined): Promise<string | null> {
+async function getProductImageData(imageKeyOrPath: string | null | undefined) {
   if (!imageKeyOrPath) return null;
   try {
     let buffer: Buffer | null = null;
-    
-    // Resolve public assets vs storage uploads
     if (imageKeyOrPath.startsWith('/assets/') || imageKeyOrPath.startsWith('/images/')) {
       const fullPath = path.join(process.cwd(), 'public', imageKeyOrPath.trim());
       if (fs.existsSync(fullPath)) {
@@ -24,15 +22,46 @@ async function getProductImageBase64(imageKeyOrPath: string | null | undefined):
 
     if (!buffer) return null;
 
-    // Convert file (like .avif) to PDF-compatible PNG and compress it using sharp
+    const metadata = await sharp(buffer).metadata();
+    const width = metadata.width || 400;
+    const height = metadata.height || 300;
+    const aspectRatio = width / height;
+
     const pngBuffer = await sharp(buffer)
-      .resize({ width: 400, height: 300, fit: 'inside' })
+      .resize({ width: 600, height: 450, fit: 'inside' })
       .png()
       .toBuffer();
     
-    return `data:image/png;base64,${pngBuffer.toString('base64')}`;
+    return {
+      base64: `data:image/png;base64,${pngBuffer.toString('base64')}`,
+      aspectRatio
+    };
   } catch (e) {
     console.error('Error resolving image for PDF:', e);
+    return null;
+  }
+}
+
+async function getCoverImageData(imagePath: string) {
+  if (!fs.existsSync(imagePath)) return null;
+  try {
+    const buffer = fs.readFileSync(imagePath);
+    const metadata = await sharp(buffer).metadata();
+    const width = metadata.width || 1;
+    const height = metadata.height || 1;
+    const aspectRatio = width / height;
+    
+    const compressed = await sharp(buffer)
+      .resize({ width: 1000, height: 1200, fit: 'inside' })
+      .jpeg({ quality: 90 })
+      .toBuffer();
+
+    return {
+      base64: `data:image/jpeg;base64,${compressed.toString('base64')}`,
+      aspectRatio
+    };
+  } catch (err) {
+    console.error('Error loading cover image:', err);
     return null;
   }
 }
@@ -41,7 +70,6 @@ export async function GET(req: NextRequest) {
   try {
     const { jsPDF } = await import('jspdf');
 
-    // Fetch active products
     const webProducts = await prisma.webProduct.findMany({
       where: { isActive: true },
       include: { product: true },
@@ -55,35 +83,22 @@ export async function GET(req: NextRequest) {
       return new Response('No se encontraron productos activos', { status: 404 });
     }
 
-    // Load cover images (Mona Lisa and Dali)
-    const monaLisaPath = path.join(process.cwd(), 'public', 'images', 'mona_lisa_catalog.jpg');
-    const daliPath = path.join(process.cwd(), 'public', 'images', 'dali_catalog.jpg');
+    // Load actual home hero webp files directly
+    const monaLisaPath = path.join(process.cwd(), 'public', 'images', 'editorial', 'monalisa.webp');
+    const daliPath = path.join(process.cwd(), 'public', 'images', 'editorial', 'filmmaker-dali.webp');
 
-    let monaLisaBase64 = '';
-    let daliBase64 = '';
+    const monaLisa = await getCoverImageData(monaLisaPath);
+    const dali = await getCoverImageData(daliPath);
 
-    try {
-      if (fs.existsSync(monaLisaPath)) {
-        const buf = fs.readFileSync(monaLisaPath);
-        monaLisaBase64 = `data:image/jpeg;base64,${buf.toString('base64')}`;
-      }
-      if (fs.existsSync(daliPath)) {
-        const buf = fs.readFileSync(daliPath);
-        daliBase64 = `data:image/jpeg;base64,${buf.toString('base64')}`;
-      }
-    } catch (err) {
-      console.error('Error loading cover images:', err);
-    }
-
-    // Load all product images in parallel (using batched or concurrent processing)
+    // Resolve product images in parallel
     const imagePromises = webProducts.map(async (wp) => {
       const p = wp.product;
       const imgKey = p.imagenesCatalogo?.[0] || wp.imageUrl || null;
-      const base64 = await getProductImageBase64(imgKey);
-      return { id: wp.id, base64 };
+      const data = await getProductImageData(imgKey);
+      return { id: wp.id, data };
     });
     const resolvedImages = await Promise.all(imagePromises);
-    const imageMap = new Map(resolvedImages.map(item => [item.id, item.base64]));
+    const imageMap = new Map(resolvedImages.map(item => [item.id, item.data]));
 
     const doc = new jsPDF({
       orientation: 'portrait',
@@ -95,13 +110,13 @@ export async function GET(req: NextRequest) {
     const pageHeight = doc.internal.pageSize.getHeight();
 
     // ----------------------------------------------------
-    // COVER PAGE (PAGE 1)
+    // COVER PAGE (PAGE 1) - Editorial Luxury Dark Style
     // ----------------------------------------------------
-    doc.setFillColor(13, 13, 13); // dark background
+    doc.setFillColor(10, 10, 10);
     doc.rect(0, 0, pageWidth, pageHeight, 'F');
 
     // Top gold banner
-    doc.setFillColor(158, 127, 101); // #9e7f65 (bronze/gold)
+    doc.setFillColor(158, 127, 101); // #9e7f65
     doc.rect(0, 0, pageWidth, 8, 'F');
 
     doc.setTextColor(255, 255, 255);
@@ -109,7 +124,7 @@ export async function GET(req: NextRequest) {
     doc.setFontSize(6.5);
     doc.text("6 CUOTAS SIN INTERÉS  ·  15% OFF EN EFECTIVO  ·  ENVÍO GRATIS", pageWidth / 2, 5.5, { align: 'center', charSpace: 1.5 });
 
-    // Main Header
+    // Header Title
     doc.setTextColor(245, 245, 245);
     doc.setFont('times', 'bold');
     doc.setFontSize(32);
@@ -127,20 +142,32 @@ export async function GET(req: NextRequest) {
     doc.setFontSize(10.5);
     doc.text("Diseño de autor. Edición limitada.", pageWidth / 2, 57, { align: 'center' });
 
-    // Embed Mona Lisa Image
-    if (monaLisaBase64) {
-      // Draw golden frame
+    // Mona Lisa Cover Image
+    if (monaLisa) {
+      const boxW = 120;
+      const boxH = 145;
+      const boxX = 45;
+      const boxY = 72;
+
+      let drawW = boxW;
+      let drawH = boxW / monaLisa.aspectRatio;
+      if (drawH > boxH) {
+        drawH = boxH;
+        drawW = boxH * monaLisa.aspectRatio;
+      }
+      const drawX = boxX + (boxW - drawW) / 2;
+      const drawY = boxY + (boxH - drawH) / 2;
+
+      // Golden border frame
       doc.setDrawColor(158, 127, 101);
       doc.setLineWidth(1.2);
-      doc.rect(48, 70, 114, 144);
+      doc.rect(drawX - 2, drawY - 2, drawW + 4, drawH + 4);
       doc.setLineWidth(0.3);
-      doc.rect(49.5, 71.5, 111, 141);
+      doc.rect(drawX - 0.5, drawY - 0.5, drawW + 1, drawH + 1);
 
-      // Draw image
-      doc.addImage(monaLisaBase64, 'JPEG', 50, 72, 110, 140);
+      doc.addImage(monaLisa.base64, 'JPEG', drawX, drawY, drawW, drawH);
     }
 
-    // Cover Footer
     doc.setTextColor(140, 140, 140);
     doc.setFont('times', 'italic');
     doc.setFontSize(9);
@@ -152,7 +179,7 @@ export async function GET(req: NextRequest) {
     doc.text("CÓRDOBA, ARGENTINA", pageWidth / 2, 275, { align: 'center', charSpace: 1 });
 
     // ----------------------------------------------------
-    // PRODUCT PAGES (2 PRODUCTS PER PAGE)
+    // INTERNAL PAGES (Clean Minimalist White Style)
     // ----------------------------------------------------
     let currentPage = 1;
     const productsPerPage = 2;
@@ -161,140 +188,135 @@ export async function GET(req: NextRequest) {
       doc.addPage();
       currentPage++;
 
-      // Light/Off-white background for products
-      doc.setFillColor(250, 249, 246); // warm off-white/cream
+      // Pure white page background
+      doc.setFillColor(255, 255, 255);
       doc.rect(0, 0, pageWidth, pageHeight, 'F');
 
-      // Thin decorative grey borders around the slots
-      doc.setDrawColor(230, 228, 222);
-      doc.setLineWidth(0.3);
-      doc.line(12, 12, pageWidth - 12, 12);
-      doc.line(12, 12, 12, pageHeight - 12);
-      doc.line(pageWidth - 12, 12, pageWidth - 12, pageHeight - 12);
-      doc.line(12, pageHeight - 12, pageWidth - 12, pageHeight - 12);
-
-      // Subtle horizontal divider in the middle
-      doc.line(15, 148, pageWidth - 15, 148);
-
-      // Page Header
-      doc.setTextColor(150, 150, 150);
-      doc.setFont('times', 'italic');
-      doc.setFontSize(7.5);
-      doc.text("ATELIER ÓPTICA  ·  EDITORIAL COLLECTION", 18, 18);
+      // Subtle page header
+      doc.setTextColor(120, 120, 120);
+      doc.setFont('times', 'bold');
+      doc.setFontSize(8);
+      doc.text("ATELIER ÓPTICA", pageWidth / 2, 12, { align: 'center', charSpace: 1.5 });
+      doc.setDrawColor(240, 240, 240);
+      doc.setLineWidth(0.2);
+      doc.line(15, 15, pageWidth - 15, 15);
 
       // Page Footer
-      doc.text(`Página ${currentPage}`, pageWidth - 18, pageHeight - 16, { align: 'right' });
+      doc.setTextColor(150, 150, 150);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(7.5);
+      doc.text(`Página ${currentPage}`, pageWidth / 2, 285, { align: 'center' });
 
-      // Render up to 2 products
       for (let j = 0; j < productsPerPage; j++) {
         const productIndex = i + j;
         if (productIndex >= webProducts.length) break;
 
         const wp = webProducts[productIndex];
         const p = wp.product;
-        const imgBase64 = imageMap.get(wp.id);
+        const imgData = imageMap.get(wp.id);
 
         const isTop = j === 0;
-        const startY = isTop ? 22 : 152;
+        const startY = isTop ? 20 : 150;
 
-        // Image container coordinates
-        const imgX = 45;
-        const imgY = startY + 5;
-        const imgW = 120;
-        const imgH = 75;
+        const imgX = 40;
+        const imgY = startY + 8;
+        const imgW = 130;
+        const imgH = 80;
 
-        // Draw image
-        if (imgBase64) {
-          doc.setFillColor(255, 255, 255); // draw white background behind the glasses
-          doc.rect(imgX, imgY, imgW, imgH, 'F');
-          doc.addImage(imgBase64, 'PNG', imgX, imgY, imgW, imgH);
+        if (imgData && imgData.base64) {
+          let drawW = imgW;
+          let drawH = imgW / imgData.aspectRatio;
+          if (drawH > imgH) {
+            drawH = imgH;
+            drawW = imgH * imgData.aspectRatio;
+          }
+          const drawX = imgX + (imgW - drawW) / 2;
+          const drawY = imgY + (imgH - drawH) / 2;
+
+          doc.addImage(imgData.base64, 'PNG', drawX, drawY, drawW, drawH);
         } else {
-          // Placeholder drawing
-          doc.setFillColor(255, 255, 255);
+          // Placeholder
+          doc.setFillColor(250, 250, 250);
           doc.rect(imgX, imgY, imgW, imgH, 'F');
-          doc.setDrawColor(210, 210, 210);
-          doc.setLineWidth(0.2);
+          doc.setDrawColor(235, 235, 235);
+          doc.setLineWidth(0.25);
           doc.rect(imgX, imgY, imgW, imgH);
           
           doc.setTextColor(180, 180, 180);
           doc.setFont('times', 'italic');
           doc.setFontSize(10);
-          doc.text("Atelier's Silhouette", pageWidth / 2, imgY + (imgH / 2), { align: 'center' });
+          doc.text("Silueta Atelier's", pageWidth / 2, imgY + (imgH / 2), { align: 'center' });
         }
 
-        // Text metadata starts at startY + 88
-        const textY = startY + 88;
+        // Details metadata Y
+        const textY = startY + 98;
 
-        // Brand / Tag
-        doc.setTextColor(158, 127, 101);
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(7.5);
-        doc.text("EDICIÓN LIMITADA", 20, textY, { charSpace: 1 });
+        const modelStr = p.model || '';
+        const parts = modelStr.trim().split(/\s+/);
+        const modelCode = parts[0] || 'MODEL';
+        const colorCode = parts[1] || '';
 
-        // Model Title
-        doc.setTextColor(20, 20, 20);
-        doc.setFont('times', 'bold');
-        doc.setFontSize(13);
-        const nameDisplay = wp.name || p.model || 'Sin Nombre';
-        doc.text(nameDisplay.toUpperCase(), 20, textY + 6);
-
-        // Technical details (Format: CODIGO · TALLE · MATERIAL)
         const lw = p.lensWidth ?? 52;
         const bw = p.bridgeWidth ?? 18;
         const tl = p.templeLength ?? 145;
-        const fh = p.frameHeight ?? Math.round(lw * 0.8);
-        
-        let material = 'ACETATO';
-        if (p.seoTags) {
-          const tags = p.seoTags.toLowerCase();
-          if (tags.includes('titanio')) material = 'TITANIO';
-          else if (tags.includes('metal')) material = 'METAL';
-        }
+        const measuresStr = `${lw}-${bw}-${tl}`;
 
-        doc.setTextColor(80, 80, 80);
+        doc.setTextColor(0, 0, 0);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(9);
+        doc.text(modelCode.toUpperCase(), 40, textY);
+
+        const mWidth = doc.getTextWidth(modelCode.toUpperCase());
+        doc.setTextColor(120, 120, 120);
         doc.setFont('helvetica', 'normal');
-        doc.setFontSize(8);
-        doc.text(`REF: ${p.model || 'AT-MOD'}   ·   MEDIDAS: ${lw}-${bw}-${tl}   ·   ALTO: ${fh} mm   ·   ${material}`, 20, textY + 11);
+        doc.setFontSize(8.5);
+        doc.text(`    ${measuresStr}    ${colorCode.toUpperCase()}`, 40 + mWidth, textY);
 
-        // Stock Badge (on the right side)
+        // Render Stock badge
         const stock = p.stock ?? 0;
-        if (stock > 0) {
-          doc.setTextColor(34, 139, 34); // ForestGreen
-          doc.setFont('helvetica', 'bold');
-          doc.setFontSize(8);
-          doc.text(`✓ STOCK DISPONIBLE`, pageWidth - 20, textY + 6, { align: 'right' });
-        } else {
-          doc.setTextColor(180, 50, 50);
-          doc.setFont('helvetica', 'bold');
-          doc.setFontSize(8);
-          doc.text(`SIN STOCK`, pageWidth - 20, textY + 6, { align: 'right' });
-        }
+        doc.setTextColor(34, 139, 34);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(7.5);
+        doc.text(`✓ STOCK ${stock}`, 170, startY + 12, { align: 'right' });
       }
     }
 
     // ----------------------------------------------------
-    // BACK COVER PAGE (LAST PAGE)
+    // BACK COVER PAGE (LAST PAGE) - Dark Gallery Style
     // ----------------------------------------------------
     doc.addPage();
     currentPage++;
 
-    doc.setFillColor(13, 13, 13); // dark background
+    doc.setFillColor(10, 10, 10);
     doc.rect(0, 0, pageWidth, pageHeight, 'F');
 
-    // Embed Salvador Dali Image
-    if (daliBase64) {
-      // Draw golden frame
+    // Salvador Dali image
+    if (dali) {
+      const boxW = 120;
+      const boxH = 145;
+      const boxX = 45;
+      const boxY = 48;
+
+      let drawW = boxW;
+      let drawH = boxW / dali.aspectRatio;
+      if (drawH > boxH) {
+        drawH = boxH;
+        drawW = boxH * dali.aspectRatio;
+      }
+      const drawX = boxX + (boxW - drawW) / 2;
+      const drawY = boxY + (boxH - drawH) / 2;
+
+      // Golden frame
       doc.setDrawColor(158, 127, 101);
       doc.setLineWidth(1.2);
-      doc.rect(48, 48, 114, 144);
+      doc.rect(drawX - 2, drawY - 2, drawW + 4, drawH + 4);
       doc.setLineWidth(0.3);
-      doc.rect(49.5, 49.5, 111, 141);
+      doc.rect(drawX - 0.5, drawY - 0.5, drawW + 1, drawH + 1);
 
-      // Draw image
-      doc.addImage(daliBase64, 'JPEG', 50, 50, 110, 140);
+      doc.addImage(dali.base64, 'JPEG', drawX, drawY, drawW, drawH);
     }
 
-    // Back Cover text below image
+    // Back cover text
     doc.setTextColor(158, 127, 101);
     doc.setFont('times', 'italic');
     doc.setFontSize(22);
@@ -302,7 +324,7 @@ export async function GET(req: NextRequest) {
 
     doc.setTextColor(245, 245, 245);
     doc.setFont('times', 'bold');
-    doc.setFontSize(14);
+    doc.setFontSize(13);
     doc.text("ATELIER ÓPTICA", pageWidth / 2, 228, { align: 'center', charSpace: 1.5 });
 
     doc.setTextColor(130, 130, 130);
