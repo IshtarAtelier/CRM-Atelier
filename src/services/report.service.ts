@@ -111,6 +111,9 @@ export class ReportService {
             orderBy: { createdAt: 'desc' },
         });
 
+        const labs = await prisma.laboratoryConfig.findMany();
+        const labMap = new Map(labs.map(l => [l.name.toUpperCase(), l]));
+
         const totalFixedCosts = fixedCosts
             .filter((fc: any) => !fc.type || fc.type === 'FIJO' || fc.type === 'OTRO')
             .reduce((sum: number, fc: any) => sum + (fc.amount || 0), 0);
@@ -211,8 +214,19 @@ export class ReportService {
                     itemCost = ((product.cost || 0) / 2) * item.quantity;
                 }
                 
-                // Compute real crystal CMV even for free 2x1 items
-                // Removed the previous block that overrode itemCost to 0 for free crystals
+                // If it is a 2x1 order and the crystal is free (price === 0), only charge the calibration cost
+                if (isCrystalItem && is2x1Order && item.price === 0) {
+                    const labConfig = product.laboratory ? labMap.get(product.laboratory.toUpperCase()) : null;
+                    const calibrado = labConfig ? labConfig.calibrado : 15000;
+                    const iva = labConfig ? labConfig.iva : 21;
+                    const calibradoCost = calibrado * (1 + iva / 100);
+                    
+                    if (item.eye === 'OD' || item.eye === 'OI') {
+                        itemCost = (calibradoCost / 2) * item.quantity;
+                    } else {
+                        itemCost = calibradoCost * item.quantity;
+                    }
+                }
                 
                 const itemRevenue = item.price * item.quantity;
 
