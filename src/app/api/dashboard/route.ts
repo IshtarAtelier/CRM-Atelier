@@ -351,6 +351,9 @@ export async function GET(request: Request) {
             locationStats[locKey].count += 1;
         });
 
+        const labs = await prisma.laboratoryConfig.findMany();
+        const labMap = new Map(labs.map(l => [l.name.toUpperCase(), l]));
+
         // Type stats
         const typeStats: Record<string, { total: number; count: number; cost: number }> = {};
         currentMonthOrders.forEach((order: any) => {
@@ -385,8 +388,22 @@ export async function GET(request: Request) {
                     itemCost = ((product.cost || 0) / 2) * item.quantity;
                 }
 
+                // If it is a 2x1 order and the crystal is free (price === 0), only charge the calibration cost
+                if (isCrystalItem && is2x1Order && item.price === 0) {
+                    const labConfig = product.laboratory ? labMap.get(product.laboratory.toUpperCase()) : null;
+                    const calibrado = labConfig ? labConfig.calibrado : 15000;
+                    const iva = labConfig ? labConfig.iva : 21;
+                    const calibradoCost = calibrado * (1 + iva / 100);
+                    
+                    if (item.eye === 'OD' || item.eye === 'OI') {
+                        itemCost = (calibradoCost / 2) * item.quantity;
+                    } else {
+                        itemCost = calibradoCost * item.quantity;
+                    }
+                }
+
                 if (is2x1Order && isCrystalItem && item.price === 0) {
-                    // Do not increment count for free promo crystals, but keep its cost (do not override itemCost to 0)
+                    // Do not increment count for free promo crystals
                 } else {
                     typeStats[type].count += isCrystalItem ? (item.quantity / 2) : item.quantity;
                 }
