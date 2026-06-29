@@ -92,6 +92,7 @@ export async function GET(request: Request) {
                 },
                 client: {
                     select: {
+                        id: true,
                         contactSource: true,
                         tags: {
                             select: {
@@ -340,7 +341,11 @@ export async function GET(request: Request) {
             tagStats[source].count += 1;
 
             // Location stats
-            const isLocal = order.client && localClientIds.has(order.client.id);
+            const hasVisitTag = order.client?.tags?.some((t: any) => {
+                const name = t.name.toLowerCase().trim();
+                return name === 'visita showroom' || name === 'visita showroom ';
+            }) || false;
+            const isLocal = hasVisitTag || (order.client && localClientIds.has(order.client.id));
             const locKey = isLocal ? 'En Local' : 'Online';
             locationStats[locKey].total += orderPrice;
             locationStats[locKey].count += 1;
