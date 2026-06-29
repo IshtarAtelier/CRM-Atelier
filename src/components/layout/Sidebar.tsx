@@ -80,16 +80,16 @@ export function Sidebar({ userName = "Usuario", userRole = "STAFF", userId = "" 
     <>
       <div className={`px-5 py-6 flex items-center ${isCollapsed ? 'justify-center' : 'justify-between'}`}>
         {!isCollapsed ? (
-          <Image unoptimized src="/assets/logo-atelier-optica.png" alt="Logo Atelier Óptica" width={150} height={40} className="h-10 object-contain dark:invert" />
+          <Image unoptimized src="/assets/logo-atelier-optica.png" alt="Logo Atelier Óptica" width={150} height={40} className="h-10 object-contain brightness-0 invert opacity-95 transition-opacity hover:opacity-100" />
         ) : (
-          <div className="w-9 h-9 bg-gradient-to-tr from-[#8c6d58] to-[#bfa08a] rounded-xl flex items-center justify-center font-black text-white text-base shadow-[0_5px_15px_rgba(140,109,88,0.35)] hover:scale-105 transition-transform duration-300">
+          <div className="w-9 h-9 bg-gradient-to-tr from-[#9e7f65] to-[#c2a38a] rounded-xl flex items-center justify-center font-black text-white text-base shadow-[0_4px_12px_rgba(158,127,101,0.3)] hover:scale-105 transition-transform duration-300">
             A
           </div>
         )}
         {/* Close button only on mobile */}
         <button
           onClick={() => setMobileOpen(false)}
-          className="lg:hidden p-2 rounded-xl hover:bg-foreground/5 text-foreground/50 transition-colors"
+          className="lg:hidden p-2 rounded-xl hover:bg-white/10 text-stone-400 transition-colors"
         >
           <X size={20} />
         </button>
@@ -107,21 +107,21 @@ export function Sidebar({ userName = "Usuario", userRole = "STAFF", userId = "" 
               title={isCollapsed ? link.label : undefined}
               className={`relative flex items-center gap-3 py-2.5 rounded-xl transition-all duration-300 group ${
                 isCollapsed ? 'justify-center px-0' : 'px-3'
-              } ${isActive ? 'text-[#c2a38a]' : 'text-stone-400 hover:text-stone-850 dark:hover:text-stone-100 hover:bg-stone-50/50 dark:hover:bg-stone-900/30'}`}
+              } ${isActive ? 'text-[#c2a38a]' : 'text-stone-400 hover:text-stone-100 hover:bg-white/[0.03]'}`}
             >
               {isActive && (
                 <motion.div
                   layoutId="active-pill"
-                  className="absolute inset-0 bg-gradient-to-r from-[#c2a38a]/15 to-[#c2a38a]/5 dark:from-[#c2a38a]/10 dark:to-transparent rounded-xl border-l-[3px] border-[#c2a38a]"
+                  className="absolute inset-0 bg-gradient-to-r from-[#c2a38a]/18 to-[#c2a38a]/4 rounded-xl border-l-[3px] border-[#c2a38a] shadow-[0_0_15px_rgba(194,163,138,0.1)]"
                   transition={{ type: "spring", stiffness: 300, damping: 30 }}
                 />
               )}
-              <div className={`relative z-10 flex items-center gap-3 w-full transition-transform duration-300 ${isActive ? 'translate-x-0.5' : 'group-hover:translate-x-0.5'}`}>
-                <Icon size={18} className={`transition-all duration-300 ${isActive ? 'text-[#c2a38a] drop-shadow-[0_0_8px_rgba(194,163,138,0.4)]' : 'text-stone-450 group-hover:text-[#c2a38a]'}`} />
-                {!isCollapsed && <span className={`text-[10px] font-semibold whitespace-nowrap tracking-wide uppercase transition-colors ${isActive ? 'text-stone-900 dark:text-stone-150 font-bold' : 'text-stone-400 group-hover:text-stone-800 dark:group-hover:text-stone-200'}`}>{link.label}</span>}
+              <div className={`relative z-10 flex items-center gap-3 w-full transition-transform duration-300 ${isActive ? 'translate-x-0.5' : 'group-hover:translate-x-1'}`}>
+                <Icon size={18} className={`transition-all duration-300 w-[18px] h-[18px] shrink-0 ${isActive ? 'text-[#c2a38a] drop-shadow-[0_0_8px_rgba(194,163,138,0.4)]' : 'text-stone-500 group-hover:text-[#c2a38a]'}`} />
+                {!isCollapsed && <span className={`text-[10px] font-semibold whitespace-nowrap tracking-wide uppercase transition-colors ${isActive ? 'text-white font-bold' : 'text-stone-400 group-hover:text-stone-200'}`}>{link.label}</span>}
                 {link.label === "WhatsApp" && !isCollapsed && <WhatsAppBadge />}
                 {link.label === "WhatsApp" && isCollapsed && (
-                  <div className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-white dark:border-[#221d1a] shadow-[0_0_8px_#22c55e]"></div>
+                  <div className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-[#12100f] shadow-[0_0_8px_#22c55e]"></div>
                 )}
               </div>
             </Link>
@@ -133,7 +133,7 @@ export function Sidebar({ userName = "Usuario", userRole = "STAFF", userId = "" 
         {/* Toggle Collapse Button for Desktop */}
         <button
             onClick={() => setIsCollapsed(!isCollapsed)}
-            className="hidden lg:flex absolute -right-3 top-[-40px] w-6 h-6 bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-full items-center justify-center text-stone-450 hover:text-stone-800 dark:hover:text-stone-250 shadow-md z-50 transition-all hover:scale-115 hover:border-[#c2a38a]/40"
+            className="hidden lg:flex absolute -right-3 top-[-40px] w-6 h-6 bg-[#161413] border border-white/[0.08] rounded-full items-center justify-center text-stone-400 hover:text-white shadow-md z-50 transition-all hover:scale-110 hover:border-[#c2a38a]/40"
         >
             {isCollapsed ? <ChevronRight size={12} /> : <ChevronLeft size={12} />}
         </button>
@@ -141,17 +141,17 @@ export function Sidebar({ userName = "Usuario", userRole = "STAFF", userId = "" 
         {!isCollapsed ? (
             <button
             onClick={() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true }))}
-            className="mx-4 mb-2.5 w-[calc(100%-2rem)] flex items-center gap-2.5 px-3 py-2 bg-stone-50 dark:bg-stone-900/40 border border-stone-200/50 dark:border-stone-850/85 rounded-xl text-stone-400 hover:text-stone-600 dark:hover:text-stone-250 transition-all cursor-pointer hover:border-[#c2a38a]/20"
+            className="mx-4 mb-2.5 w-[calc(100%-2rem)] flex items-center gap-2.5 px-3 py-2 bg-white/[0.03] border border-white/[0.06] rounded-xl text-stone-400 hover:text-stone-200 transition-all cursor-pointer hover:border-white/[0.12]"
             >
-            <Search size={14} className="text-stone-400" />
-            <span className="text-[10px] font-bold uppercase tracking-wider flex-1 text-left">Buscar...</span>
-            <kbd className="px-1.5 py-0.5 bg-stone-100 dark:bg-stone-800 rounded text-[9px] font-black border border-stone-200/60 dark:border-stone-850/80 hidden sm:inline">⌘K</kbd>
+            <Search size={14} className="text-stone-500" />
+            <span className="text-[10px] font-bold uppercase tracking-wider flex-1 text-left text-stone-400">Buscar...</span>
+            <kbd className="px-1.5 py-0.5 bg-white/[0.06] rounded text-[9px] font-black border border-white/[0.08] text-stone-300 hidden sm:inline">⌘K</kbd>
             </button>
         ) : (
             <button
             onClick={() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true }))}
             title="Buscar (⌘K)"
-            className="mx-auto mb-2.5 w-9 h-9 flex items-center justify-center rounded-xl bg-stone-50 dark:bg-stone-900/40 border border-stone-200/50 dark:border-stone-850/85 text-stone-400 hover:text-[#c2a38a] hover:border-[#c2a38a]/20 transition-all cursor-pointer"
+            className="mx-auto mb-2.5 w-9 h-9 flex items-center justify-center rounded-xl bg-white/[0.03] border border-white/[0.06] text-stone-400 hover:text-[#c2a38a] hover:border-[#c2a38a]/20 transition-all cursor-pointer"
             >
             <Search size={14} />
             </button>
@@ -173,10 +173,10 @@ export function Sidebar({ userName = "Usuario", userRole = "STAFF", userId = "" 
       {/* Mobile hamburger button */}
       <button
         onClick={() => setMobileOpen(true)}
-        className="lg:hidden fixed top-4 left-4 z-50 p-2.5 bg-sidebar border border-sidebar-border rounded-xl shadow-lg hover:scale-105 active:scale-95 transition-all"
+        className="lg:hidden fixed top-4 left-4 z-50 p-2.5 bg-gradient-to-b from-[#181615] via-[#0e0c0b] to-[#080707] border border-white/[0.08] rounded-xl shadow-lg hover:scale-105 active:scale-95 transition-all animate-in fade-in duration-200"
         aria-label="Abrir menú"
       >
-        <Menu size={20} className="text-foreground/70" />
+        <Menu size={20} className="text-stone-300" />
       </button>
 
       {/* Desktop sidebar — always visible on lg+ */}
@@ -184,7 +184,7 @@ export function Sidebar({ userName = "Usuario", userRole = "STAFF", userId = "" 
         style={{ width: 'var(--sidebar-width, 16rem)' }}
         className="hidden lg:block fixed left-0 top-0 h-screen z-[60] transition-[width] duration-300 ease-in-out"
       >
-        <aside className="absolute inset-y-4 left-4 right-4 bg-white/80 dark:bg-[#12100f]/80 backdrop-blur-3xl border border-stone-200/50 dark:border-stone-850/80 rounded-[2.2rem] shadow-[0_15px_50px_rgba(0,0,0,0.15)] dark:shadow-[0_20px_60px_rgba(0,0,0,0.4)] flex flex-col transition-all duration-300">
+        <aside className="absolute inset-y-4 left-4 right-4 bg-gradient-to-b from-[#181615]/95 via-[#0e0c0b]/95 to-[#080707]/95 backdrop-blur-3xl border border-white/[0.08] rounded-[2.2rem] shadow-[0_20px_50px_rgba(0,0,0,0.65)] flex flex-col transition-all duration-300">
           {sidebarContent}
         </aside>
       </div>
@@ -192,14 +192,14 @@ export function Sidebar({ userName = "Usuario", userRole = "STAFF", userId = "" 
       {/* Mobile overlay */}
       {mobileOpen && (
         <div
-          className="lg:hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-50 animate-in fade-in duration-200"
+          className="lg:hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-50 animate-in fade-in duration-200"
           onClick={() => setMobileOpen(false)} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.currentTarget.click(); } }}
         />
       )}
 
       {/* Mobile drawer */}
       <aside
-        className={`lg:hidden fixed top-0 left-0 h-[100dvh] w-72 bg-sidebar border-r border-sidebar-border flex flex-col z-50 transition-transform duration-300 ease-out ${
+        className={`lg:hidden fixed top-0 left-0 h-[100dvh] w-72 bg-gradient-to-b from-[#181615] via-[#0e0c0b] to-[#080707] border-r border-white/[0.08] flex flex-col z-50 transition-transform duration-300 ease-out ${
           mobileOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
