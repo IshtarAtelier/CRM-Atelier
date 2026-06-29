@@ -1190,7 +1190,10 @@ export const ContactService = {
             // actualizamos el total de la venta para que la contabilidad y el dashboard reflejen el recargo.
             if (newPaid > currentTotal) {
                 orderUpdateData.total = newPaid;
-                orderUpdateData.subtotalWithMarkup = newPaid;
+                const currentSubtotal = order.subtotalWithMarkup || 0;
+                if (newPaid > currentSubtotal) {
+                    orderUpdateData.subtotalWithMarkup = newPaid;
+                }
             }
 
             await tx.order.update({
@@ -1794,7 +1797,10 @@ export const ContactService = {
                 // Regla automática: Si el pago total editado supera el total original de la venta, actualizamos el total.
                 if (recalculatedPaid > currentTotal) {
                     orderUpdateData.total = recalculatedPaid;
-                    orderUpdateData.subtotalWithMarkup = recalculatedPaid;
+                    const currentSubtotal = oldPayment.order.subtotalWithMarkup || 0;
+                    if (recalculatedPaid > currentSubtotal) {
+                        orderUpdateData.subtotalWithMarkup = recalculatedPaid;
+                    }
                 }
 
                 await tx.order.update({

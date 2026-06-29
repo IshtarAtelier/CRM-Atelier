@@ -1011,7 +1011,7 @@ export default function VentasPage() {
                                         </div>
                                         {/* Total on Mobile Header */}
                                         <div className="lg:hidden text-right">
-                                            <p className="text-lg font-black text-stone-800 dark:text-white">${(order.total || 0).toLocaleString()}</p>
+                                            <p className="text-lg font-black text-stone-800 dark:text-white">${(order.subtotalWithMarkup || order.total || 0).toLocaleString()}</p>
                                         </div>
                                     </div>
 
@@ -1175,7 +1175,7 @@ export default function VentasPage() {
 
                                     {/* Total on Desktop */}
                                     <div className="hidden lg:block flex-shrink-0 text-right">
-                                        <p className="text-xl font-black text-stone-800 dark:text-white">${(order.total || 0).toLocaleString()}</p>
+                                        <p className="text-xl font-black text-stone-800 dark:text-white">${(order.subtotalWithMarkup || order.total || 0).toLocaleString()}</p>
                                         <div className="w-24 h-1.5 bg-stone-100 dark:bg-stone-700 rounded-full mt-2 overflow-hidden">
                                             <div className="h-full bg-emerald-500 rounded-full transition-all" style={{ width: `${financials.progress}%` }} />
                                         </div>

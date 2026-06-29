@@ -97,8 +97,7 @@ export const BillingService = {
             
         const maximumInvoiceable = PricingService.calculateOrderFinancials(order as any).paidReal;
 
-        // 2. Calcular importes e ítems
-        const totalAmount = amount !== undefined ? amount : (order.total || 0);
+        const totalAmount = amount !== undefined ? amount : (order.subtotalWithMarkup || order.total || 0);
 
         // 1.5 Validar doble facturación (ahora con totalAmount real y redondeado a 2 decimales)
         const roundedTotalToInvoice = Math.round((totalInvoiced + totalAmount) * 100) / 100;

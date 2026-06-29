@@ -553,7 +553,8 @@ export default function PedidosPage() {
 
     const sendOrderWhatsApp = async (order: Order) => {
         const items = order.items || [];
-        const saldo = (order.total || 0) - (order.paid || 0);
+        const orderTotal = order.subtotalWithMarkup || order.total || 0;
+        const saldo = orderTotal - (order.paid || 0);
         const labStepLabel = getLabStep(order.labStatus || 'NONE').label;
         const lines = items.map(it => `• ${it.product?.brand || it.productBrandSnapshot || ''} ${it.product?.name || it.productNameSnapshot || ''} x${it.quantity} — $${(it.price * it.quantity).toLocaleString()}`);
 
@@ -565,7 +566,7 @@ export default function PedidosPage() {
         text += `📦 *Estado:* ${labStepLabel}\n\n`;
         text += lines.join('\n');
         text += `\n\n———————————————`;
-        text += `\n*Total:* $${(order.total || 0).toLocaleString()}`;
+        text += `\n*Total:* $${orderTotal.toLocaleString()}`;
         text += `\n*Abonado:* $${(order.paid || 0).toLocaleString()}`;
         if (saldo > 0) text += `\n*Saldo pendiente:* $${saldo.toLocaleString()}`;
         text += `\n\n⏱️ *Tiempo estimado de confección:* 7 a 10 días hábiles`;
@@ -1243,7 +1244,8 @@ export default function PedidosPage() {
                         const Icon = step.icon;
                         const isExpanded = expandedId === order.id;
                         const isUpdating = updatingId === order.id;
-                        const payProgress = order.total > 0 ? Math.min(100, (order.paid / order.total) * 100) : 100;
+                        const orderTotal = order.subtotalWithMarkup || order.total || 0;
+                        const payProgress = orderTotal > 0 ? Math.min(100, (order.paid / orderTotal) * 100) : 100;
 
                         const financials = PricingService.calculateOrderFinancials(order);
                         const isGrupoOptico = order.items.some((i: any) => i.product?.category === 'Cristal' && /grupo[\s\-]?ó?o?ptico/i.test((i.product as any)?.laboratory || ''));
@@ -1421,7 +1423,7 @@ export default function PedidosPage() {
 
                                     {/* Total */}
                                     <div className="flex-shrink-0 text-right w-28">
-                                        <p className="text-xl font-black text-stone-800 dark:text-white">${(order.total || 0).toLocaleString()}</p>
+                                        <p className="text-xl font-black text-stone-800 dark:text-white">${(order.subtotalWithMarkup || order.total || 0).toLocaleString()}</p>
                                         <div className="w-full h-1.5 bg-stone-100 dark:bg-stone-700 rounded-full mt-2 overflow-hidden">
                                             <div className="h-full bg-emerald-500 rounded-full transition-all" style={{ width: `${payProgress}%` }} />
                                         </div>
@@ -2015,7 +2017,7 @@ export default function PedidosPage() {
                                 {/* Reference */}
                                 <div className="flex items-center justify-between text-[10px] font-bold text-stone-400 uppercase tracking-widest pt-2">
                                     <span>Venta #{order.id.slice(-4).toUpperCase()} · {format(new Date(order.createdAt), "d MMM yyyy", { locale: es })}</span>
-                                    <span>Total: ${(order.total || 0).toLocaleString()}</span>
+                                    <span>Total: ${(order.subtotalWithMarkup || order.total || 0).toLocaleString()}</span>
                                 </div>
                             </div>
                         </div>

@@ -76,7 +76,7 @@ export async function GET(request: Request) {
                 orderId: order.id,
                 clientName: clientMap[order.clientId] || 'Desconocido',
                 clientId: order.clientId,
-                orderTotal: order.total || 0,
+                orderTotal: order.subtotalWithMarkup || order.total || 0,
                 paidTotal: orderPaidTotal,
                 platformFee: orderPlatformFee,
                 specialDiscount: specialDesc,

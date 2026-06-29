@@ -34,7 +34,7 @@ export async function POST(
         const chatIdForBot = chat ? chat.id : waId; // Si hay chat mandamos el ID interno, sino mandamos el waId
 
         // 3. Calcular saldo y armar mensaje
-        const saldo = (order.total || 0) - (order.paid || 0);
+        const saldo = (order.subtotalWithMarkup || order.total || 0) - (order.paid || 0);
         const shortName = order.client.name.split(' ')[0];
         
         let msgText = `¡Hola ${shortName}! Te escribimos de *Atelier Óptica* 😊\n\n`;

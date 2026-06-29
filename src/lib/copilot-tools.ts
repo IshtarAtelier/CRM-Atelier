@@ -664,7 +664,7 @@ const getSalesVsTarget: CopilotTool = {
     let totalSold = 0;
     let totalPaid = 0;
     for (const o of orders) {
-      totalSold += o.total || o.subtotalWithMarkup || 0;
+      totalSold += o.subtotalWithMarkup || o.total || 0;
       for (const p of o.payments) {
         totalPaid += p.amount || 0;
       }
@@ -764,7 +764,7 @@ const getFinancialReport: CopilotTool = {
     const orders = await prisma.order.findMany({
       where: { orderType: 'SALE', isDeleted: false, createdAt: { gte: from, lte: to } },
       select: {
-        total: true, paid: true,
+        total: true, paid: true, subtotalWithMarkup: true,
         items: { select: { price: true, quantity: true, product: { select: { cost: true, unitType: true, category: true } } } },
         payments: { select: { amount: true, method: true } },
       },
@@ -772,7 +772,7 @@ const getFinancialReport: CopilotTool = {
 
     let revenue = 0, totalCost = 0, totalPaid = 0;
     for (const order of orders) {
-      revenue += order.total || 0;
+      revenue += order.subtotalWithMarkup || order.total || 0;
       for (const p of order.payments) totalPaid += p.amount || 0;
       for (const item of order.items) {
         if (!item.product) continue;

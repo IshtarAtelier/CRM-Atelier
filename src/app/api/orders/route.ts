@@ -424,7 +424,7 @@ export async function GET(request: Request) {
             const rawIds: {id: string}[] = await prisma.$queryRaw`
                 SELECT id
                 FROM "Order"
-                WHERE "isDeleted" = false AND COALESCE("subtotalWithMarkup", "total", 0) - COALESCE("paid", 0) > 500
+                WHERE "isDeleted" = false AND COALESCE(NULLIF("subtotalWithMarkup", 0), "total", 0) - COALESCE("paid", 0) > 500
             `;
             const candidateIds = rawIds.map(r => r.id);
             

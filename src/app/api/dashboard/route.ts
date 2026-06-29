@@ -136,7 +136,7 @@ export async function GET(request: Request) {
         if (!isStaff) {
             const clientBalances = await prisma.$queryRaw`
                 WITH ClientSales AS (
-                    SELECT "clientId", SUM(COALESCE("total", "subtotalWithMarkup", 0)) as "totalSales"
+                    SELECT "clientId", SUM(COALESCE(NULLIF("subtotalWithMarkup", 0), "total", 0)) as "totalSales"
                     FROM "Order"
                     WHERE "isDeleted" = false AND "orderType" = 'SALE' AND "clientId" IS NOT NULL
                     GROUP BY "clientId"
@@ -183,10 +183,10 @@ export async function GET(request: Request) {
             const uniqueClientQuotes = new Map();
             for (const q of openQuotes) {
                 if (!q.clientId) {
-                    totalQuotesValue += (q.total || q.subtotalWithMarkup || 0);
+                    totalQuotesValue += (q.subtotalWithMarkup || q.total || 0);
                 } else if (!uniqueClientQuotes.has(q.clientId)) {
                     uniqueClientQuotes.set(q.clientId, true);
-                    totalQuotesValue += (q.total || q.subtotalWithMarkup || 0);
+                    totalQuotesValue += (q.subtotalWithMarkup || q.total || 0);
                 }
             }
         }
@@ -215,7 +215,7 @@ export async function GET(request: Request) {
             confirmedTotal = confirmedClients.reduce((acc, c) => {
                 const lastQuote = c.orders[0];
                 if (!lastQuote) return acc;
-                return acc + (lastQuote.total || lastQuote.subtotalWithMarkup || 0);
+                return acc + (lastQuote.subtotalWithMarkup || lastQuote.total || 0);
             }, 0);
         }
 
@@ -403,9 +403,9 @@ export async function GET(request: Request) {
                     orderType: 'SALE',
                     isDeleted: false,
                 },
-                select: { total: true },
+                select: { total: true, subtotalWithMarkup: true },
             });
-            prevTotal = prevOrders.reduce((acc, o) => acc + o.total, 0);
+            prevTotal = prevOrders.reduce((acc, o) => acc + (o.subtotalWithMarkup || o.total || 0), 0);
         }
 
         const trendPct = prevTotal > 0 ? (((totalSoldMonth - prevTotal) / prevTotal) * 100).toFixed(1) : null;
