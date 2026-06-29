@@ -24,7 +24,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { resolveStorageUrl } from '@/lib/utils/storage';
-import { getSelectedShapeFromTags, getSelectedMaterialFromTags, updateTagsWithShapeAndMaterial } from '@/utils/product-controllers';
+import { getSelectedShapeFromTags, getSelectedMaterialFromTags, updateTagsWithShapeAndMaterial, getProductAttributes } from '@/utils/product-controllers';
 
 interface WebProduct {
   id: string;
@@ -96,6 +96,10 @@ export default function WebManagementPage() {
   const [products, setProducts] = useState<WebProduct[]>([]);
   const [loadingProducts, setLoadingProducts] = useState(true);
   const [productSearch, setProductSearch] = useState("");
+  const [filterCategory, setFilterCategory] = useState<string>("ALL");
+  const [filterGender, setFilterGender] = useState<string>("ALL");
+  const [filterShape, setFilterShape] = useState<string>("ALL");
+  const [filterMaterial, setFilterMaterial] = useState<string>("ALL");
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('grid');
   const [editingProduct, setEditingProduct] = useState<WebProduct | null>(null);
   const [savingProduct, setSavingProduct] = useState(false);
@@ -706,11 +710,37 @@ export default function WebManagementPage() {
   // Filter products list
   const filteredProducts = products.filter(wp => {
     const term = productSearch.toLowerCase();
-    return wp.name.toLowerCase().includes(term) || 
+    const matchesSearch = wp.name.toLowerCase().includes(term) || 
            (wp.product.brand || '').toLowerCase().includes(term) ||
            (wp.product.model || '').toLowerCase().includes(term) ||
            wp.slug.toLowerCase().includes(term) ||
            wp.category.toLowerCase().includes(term);
+
+    if (!matchesSearch) return false;
+
+    if (filterCategory !== 'ALL' && wp.category !== filterCategory) return false;
+
+    if (filterGender !== 'ALL') {
+      const productGender = (wp.product.gender || '').toLowerCase();
+      const targetGender = filterGender.toLowerCase();
+      if (!productGender.includes(targetGender)) return false;
+    }
+
+    const { shape, material } = getProductAttributes(wp.product.model, wp.product.seoTags);
+
+    if (filterShape !== 'ALL') {
+      const lowerShape = shape.toLowerCase();
+      const targetShape = filterShape.toLowerCase();
+      if (!lowerShape.includes(targetShape)) return false;
+    }
+
+    if (filterMaterial !== 'ALL') {
+      const lowerMaterial = material.toLowerCase();
+      const targetMaterial = filterMaterial.toLowerCase();
+      if (!lowerMaterial.includes(targetMaterial)) return false;
+    }
+
+    return true;
   });
 
   return (
@@ -800,7 +830,7 @@ export default function WebManagementPage() {
       {activeTab === 'products' && (
         <div className="space-y-6">
           {/* SEARCH BAR */}
-          <div className="flex gap-4 bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 p-4 rounded-2xl shadow-sm">
+          <div className="flex flex-col md:flex-row gap-3 bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 p-4 rounded-2xl shadow-sm">
             <div className="flex-1 relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400" />
               <input
@@ -808,8 +838,64 @@ export default function WebManagementPage() {
                 placeholder="Buscar por marca, modelo, categoría web..."
                 value={productSearch}
                 onChange={e => setProductSearch(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl text-xs outline-none focus:border-primary transition-all"
+                className="w-full pl-10 pr-4 py-2.5 bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl text-xs outline-none focus:border-primary transition-all"
               />
+            </div>
+            
+            <div className="flex flex-wrap gap-2 items-center">
+              {/* Category Filter */}
+              <select
+                value={filterCategory}
+                onChange={e => setFilterCategory(e.target.value)}
+                className="px-3 py-2.5 bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl text-xs outline-none focus:border-primary transition-all font-bold text-stone-600 dark:text-stone-300"
+              >
+                <option value="ALL">Categoría (Todas)</option>
+                <option value="Receta">Receta</option>
+                <option value="Sol">Sol</option>
+                <option value="XL">XL</option>
+                <option value="Clip-On">Clip-On</option>
+                <option value="Contacto">Contacto</option>
+              </select>
+
+              {/* Gender Filter */}
+              <select
+                value={filterGender}
+                onChange={e => setFilterGender(e.target.value)}
+                className="px-3 py-2.5 bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl text-xs outline-none focus:border-primary transition-all font-bold text-stone-600 dark:text-stone-300"
+              >
+                <option value="ALL">Género (Todos)</option>
+                <option value="Femenino">Mujer</option>
+                <option value="Masculino">Hombre</option>
+                <option value="Unisex">Unisex</option>
+              </select>
+
+              {/* Shape Filter */}
+              <select
+                value={filterShape}
+                onChange={e => setFilterShape(e.target.value)}
+                className="px-3 py-2.5 bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl text-xs outline-none focus:border-primary transition-all font-bold text-stone-600 dark:text-stone-300"
+              >
+                <option value="ALL">Forma (Todas)</option>
+                <option value="Cuadrado">Cuadrado</option>
+                <option value="Redondo">Redondo</option>
+                <option value="Cat-Eye">Cat-Eye</option>
+                <option value="Hexagonal">Hexagonal</option>
+                <option value="Aviador">Aviador</option>
+                <option value="XL">XL</option>
+              </select>
+
+              {/* Material Filter */}
+              <select
+                value={filterMaterial}
+                onChange={e => setFilterMaterial(e.target.value)}
+                className="px-3 py-2.5 bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl text-xs outline-none focus:border-primary transition-all font-bold text-stone-600 dark:text-stone-300"
+              >
+                <option value="ALL">Material (Todos)</option>
+                <option value="Acetato">Acetato</option>
+                <option value="Metal">Metal</option>
+                <option value="Titanio">Titanio</option>
+                <option value="TR90">TR90</option>
+              </select>
             </div>
             
             {/* View Mode Toggle */}
@@ -892,10 +978,36 @@ export default function WebManagementPage() {
                                 <p className="text-[9px] text-stone-400 font-mono mt-0.5">Precio: ${wp.product.price?.toLocaleString()} | Stock: {wp.product.stock}</p>
                               </div>
                             </td>
-                            <td className="px-6 py-4">
-                              <span className="px-2.5 py-1 bg-stone-100 dark:bg-stone-800 text-stone-700 dark:text-stone-300 font-bold uppercase tracking-wider rounded-sm text-[9px] border border-stone-200/50 dark:border-stone-700/50">
-                                {wp.category}
-                              </span>
+                            <td className="px-6 py-4 space-y-1.5">
+                              <div>
+                                <span className="px-2.5 py-1 bg-stone-100 dark:bg-stone-800 text-stone-700 dark:text-stone-300 font-bold uppercase tracking-wider rounded-sm text-[9px] border border-stone-200/50 dark:border-stone-700/50">
+                                  {wp.category}
+                                </span>
+                              </div>
+                              <div className="flex flex-wrap gap-1">
+                                {wp.product.gender && (
+                                  <span className="px-1.5 py-0.5 bg-pink-50 dark:bg-pink-950/20 text-pink-600 dark:text-pink-400 font-bold rounded text-[8px] uppercase tracking-wider border border-pink-200/40">
+                                    {wp.product.gender}
+                                  </span>
+                                )}
+                                {(() => {
+                                  const { shape, material } = getProductAttributes(wp.product.model, wp.product.seoTags);
+                                  return (
+                                    <>
+                                      {shape && (
+                                        <span className="px-1.5 py-0.5 bg-blue-50 dark:bg-blue-950/20 text-blue-600 dark:text-blue-400 font-bold rounded text-[8px] uppercase tracking-wider border border-blue-200/40">
+                                          {shape}
+                                        </span>
+                                      )}
+                                      {material && (
+                                        <span className="px-1.5 py-0.5 bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-400 font-bold rounded text-[8px] uppercase tracking-wider border border-stone-200/55">
+                                          {material}
+                                        </span>
+                                      )}
+                                    </>
+                                  );
+                                })()}
+                              </div>
                             </td>
                             <td className="px-6 py-4 font-mono text-[10px] text-stone-500 max-w-[200px] truncate" title={wp.slug}>
                               /{wp.slug}
@@ -977,6 +1089,30 @@ export default function WebManagementPage() {
                             {wp.product.model || wp.name}
                           </h4>
                           <p className="font-mono text-[9px] text-stone-500 truncate mt-1">/{wp.slug}</p>
+                          <div className="flex flex-wrap gap-1 mt-2">
+                            {wp.product.gender && (
+                              <span className="px-1.5 py-0.5 bg-pink-50 dark:bg-pink-950/20 text-pink-600 dark:text-pink-400 font-bold rounded text-[8px] uppercase tracking-wider border border-pink-200/40">
+                                {wp.product.gender}
+                              </span>
+                            )}
+                            {(() => {
+                              const { shape, material } = getProductAttributes(wp.product.model, wp.product.seoTags);
+                              return (
+                                <>
+                                  {shape && (
+                                    <span className="px-1.5 py-0.5 bg-blue-50 dark:bg-blue-950/20 text-blue-600 dark:text-blue-400 font-bold rounded text-[8px] uppercase tracking-wider border border-blue-200/40">
+                                      {shape}
+                                    </span>
+                                  )}
+                                  {material && (
+                                    <span className="px-1.5 py-0.5 bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-400 font-bold rounded text-[8px] uppercase tracking-wider border border-stone-200/55">
+                                      {material}
+                                    </span>
+                                  )}
+                                </>
+                              );
+                            })()}
+                          </div>
                         </div>
 
                         <div className="mt-4 pt-3 border-t border-stone-100 dark:border-stone-800 flex items-center justify-between">
