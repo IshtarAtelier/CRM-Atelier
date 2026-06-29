@@ -1,5 +1,6 @@
 const { Client, LocalAuth, MessageMedia } = require('whatsapp-web.js');
 const qrcode = require('qrcode-terminal');
+const antiBanQueue = require('./anti-ban');
 
 let waClient = null;
 let qrCode = null;
@@ -126,6 +127,7 @@ async function startClient(attempt = 1) {
                 '--disable-accelerated-2d-canvas',
                 '--no-first-run',
                 '--no-zygote',
+                '--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
             ],
         }
     });
@@ -144,6 +146,10 @@ async function startClient(attempt = 1) {
         keepAliveFailCount = 0; // Resetear contador de fallos
         connectedPhone = waClient.info?.wid?.user || 'desconocido';
         console.log(`\n✅ WhatsApp conectado: ${connectedPhone}`);
+        
+        // Registrar cliente en la cola anti-ban
+        antiBanQueue.setClient(waClient);
+
         if (_onStatusChange) _onStatusChange(getStatus());
 
         // Configurar Keep-Alive para verificar salud de Chromium periódicamente
@@ -267,46 +273,26 @@ function getStatus() {
     return { isReady, qrCode, connectedPhone };
 }
 
-async function sendMessage(waId, content, media = null) {
+async function sendMessage(waId, content, media = null, options = {}) {
     if (!waClient || !isReady) throw new Error('WhatsApp not connected');
 
-    try {
-        if (waId.includes('@c.us')) {
-            // Force resolution of the number to avoid "No LID for user" error
-            const numberId = await waClient.getNumberId(waId);
-            if (numberId && numberId._serialized) {
-                waId = numberId._serialized;
-            } else {
-                throw new Error('El número no está registrado en WhatsApp o es inválido');
-            }
-        }
-    } catch (e) {
-        if (e.message.includes('registrado en WhatsApp')) {
-            throw e;
-        }
-        console.warn(`[sendMessage] Could not resolve number ID for ${waId}: ${e.message}`);
-    }
+    // Identificar si es un mensaje proactivo/seguimiento automático
+    const isProactive = options.isProactive !== undefined ? options.isProactive : (
+        content && (
+            content.includes("Te escribo para saber si te quedó alguna duda") || // Inactividad
+            content.includes("Hola") && content.includes("seguimiento") || // Sales followups
+            content.includes("presupuesto") ||
+            global.botReplyingTo && global.botReplyingTo.has(waId)
+        )
+    );
 
-    if (media && media.base64) {
-        const mediaObj = new MessageMedia(media.mimetype, media.base64, media.filename || 'image.jpg');
-        const options = { caption: content || '' };
-        if (media.mimetype.includes('audio/')) {
-            options.sendAudioAsVoice = true;
-        }
-        return await withTimeout(waClient.sendMessage(waId, mediaObj, options), 30000);
-    } else if (media && media.url) {
-        try {
-            const mediaObj = await withTimeout(MessageMedia.fromUrl(media.url, { unsafeMime: true }), 15000);
-            const options = { caption: content || '' };
-            return await withTimeout(waClient.sendMessage(waId, mediaObj, options), 30000);
-        } catch (e) {
-            console.error('Error enviando media desde URL:', e.message);
-            // Fallback: enviar solo texto si falla la descarga de la imagen
-            return await withTimeout(waClient.sendMessage(waId, content), 30000);
-        }
-    } else {
-        return await withTimeout(waClient.sendMessage(waId, content), 30000);
-    }
+    const mergedOptions = {
+        isAutomated: options.isAutomated !== undefined ? options.isAutomated : true,
+        isProactive: !!isProactive,
+        ...options
+    };
+
+    return await antiBanQueue.enqueue(waId, content, media, mergedOptions);
 }
 
 async function sendTypingState(waId) {

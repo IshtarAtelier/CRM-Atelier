@@ -832,6 +832,15 @@ export default function WebManagementPage() {
               </button>
             </div>
 
+            <a 
+              href="/api/catalog"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 px-4 py-2 bg-stone-900 dark:bg-stone-100 text-white dark:text-stone-900 hover:opacity-90 rounded-xl text-xs font-bold transition-opacity"
+            >
+              <FileText className="w-4 h-4" /> Catálogo PDF
+            </a>
+
             <button 
               onClick={loadProducts}
               className="px-4 py-2 border border-stone-200 dark:border-stone-700 hover:bg-stone-50 dark:hover:bg-stone-800 rounded-xl text-xs font-bold transition-colors"

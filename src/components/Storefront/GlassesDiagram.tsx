@@ -48,7 +48,7 @@ export function GlassesDiagram({ productId, measures: initialMeasures, editable 
 
   const lw = measures.lensWidth ?? 52;
   const bw = measures.bridgeWidth ?? 18;
-  const fh = measures.frameHeight ?? 42;
+  const fh = measures.frameHeight ?? Math.round(lw * 0.8);
   const tl = measures.templeLength ?? 145;
 
   // Render SVG Diagram - Delicate Minimalist Silhouette Style
@@ -151,7 +151,7 @@ export function GlassesDiagram({ productId, measures: initialMeasures, editable 
         className="w-full flex justify-between items-center group cursor-pointer border-b border-[#e5e5e5] pb-4"
       >
         <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-black">
-          Size & Fit
+          Medidas y Calce
         </h3>
         <span className="text-xl font-light text-stone-400 group-hover:text-black transition-colors">
           {isOpen ? "−" : "+"}
@@ -169,23 +169,23 @@ export function GlassesDiagram({ productId, measures: initialMeasures, editable 
           
           <div className="flex flex-col gap-3 text-[11px] font-mono tracking-widest text-black mt-6">
             <div className="flex justify-between items-center border-b border-[#f0f0f0] pb-2">
-              <span className="text-stone-500 uppercase font-sans text-[10px] tracking-wider">Frame Front</span>
+              <span className="text-stone-500 uppercase font-sans text-[10px] tracking-wider">Frente</span>
               <span>{((measures.lensWidth ?? 0) * 2) + (measures.bridgeWidth ?? 0) + 12} mm</span>
             </div>
             <div className="flex justify-between items-center border-b border-[#f0f0f0] pb-2">
-              <span className="text-stone-500 uppercase font-sans text-[10px] tracking-wider">Frame Side</span>
+              <span className="text-stone-500 uppercase font-sans text-[10px] tracking-wider">Largo de patilla</span>
               <span>{measures.templeLength ?? "—"} mm</span>
             </div>
             <div className="flex justify-between items-center border-b border-[#f0f0f0] pb-2">
-              <span className="text-stone-500 uppercase font-sans text-[10px] tracking-wider">Lens Width</span>
+              <span className="text-stone-500 uppercase font-sans text-[10px] tracking-wider">Ancho de lente</span>
               <span>{measures.lensWidth ?? "—"} mm</span>
             </div>
             <div className="flex justify-between items-center border-b border-[#f0f0f0] pb-2">
-              <span className="text-stone-500 uppercase font-sans text-[10px] tracking-wider">Lens Height</span>
-              <span>{measures.frameHeight ?? "—"} mm</span>
+              <span className="text-stone-500 uppercase font-sans text-[10px] tracking-wider">Alto de lente</span>
+              <span>{measures.frameHeight ?? Math.round(lw * 0.8)} mm</span>
             </div>
             <div className="flex justify-between items-center pb-2">
-              <span className="text-stone-500 uppercase font-sans text-[10px] tracking-wider">Bridge Width</span>
+              <span className="text-stone-500 uppercase font-sans text-[10px] tracking-wider">Puente</span>
               <span>{measures.bridgeWidth ?? "—"} mm</span>
             </div>
           </div>

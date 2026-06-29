@@ -590,8 +590,8 @@ async function processBotTurn(chat, waId, profileName, realPhone) {
 
             // Seteamos DESPUÉS del check de mensajes nuevos para evitar leak en early return
             botReplyingTo.add(waId);
-            // Limpiar signos de interrogación de apertura para seguir la regla de estilo humano
-            let cleanResponseText = responseText.replace(/¿/g, '');
+            // Limpiar signos de interrogación y exclamación de apertura para seguir la regla de estilo humano
+            let cleanResponseText = responseText.replace(/¿/g, '').replace(/¡/g, '');
 
             // ── Componente 6: Filtro post-procesamiento contra frases repetitivas ──
             const PROHIBITED_FILLER_PHRASES = [

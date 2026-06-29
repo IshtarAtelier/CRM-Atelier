@@ -130,7 +130,17 @@ export default function CotizadorCart({
     // Filter results
     const fullSearchResults = useMemo(() => {
         if (!fullSearch) return [];
-        const normalizeText = (str: string) => str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        const normalizeText = (str: string) => {
+            let text = str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+            text = text.replace(/\barmazones\b/g, 'armazon');
+            text = text.replace(/\bcristales\b/g, 'cristal');
+            text = text.replace(/\blentes\b/g, 'lente');
+            text = text.replace(/\bmarcos\b/g, 'marco');
+            text = text.replace(/\blapiceros\b/g, 'lapicero');
+            text = text.replace(/\bestuches\b/g, 'estuche');
+            text = text.replace(/\bliquidos\b/g, 'liquido');
+            return text;
+        };
         const words = normalizeText(fullSearch).split(/\s+/).filter(Boolean);
         return availableProducts
             .filter(p => {
@@ -143,7 +153,17 @@ export default function CotizadorCart({
 
     const frameResults = useMemo(() => {
         if (!frameSearch) return [];
-        const normalizeText = (str: string) => str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        const normalizeText = (str: string) => {
+            let text = str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+            text = text.replace(/\barmazones\b/g, 'armazon');
+            text = text.replace(/\bcristales\b/g, 'cristal');
+            text = text.replace(/\blentes\b/g, 'lente');
+            text = text.replace(/\bmarcos\b/g, 'marco');
+            text = text.replace(/\blapiceros\b/g, 'lapicero');
+            text = text.replace(/\bestuches\b/g, 'estuche');
+            text = text.replace(/\bliquidos\b/g, 'liquido');
+            return text;
+        };
         const words = normalizeText(frameSearch).split(/\s+/).filter(Boolean);
         return availableProducts
             .filter(p => {

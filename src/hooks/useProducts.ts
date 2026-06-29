@@ -44,7 +44,17 @@ export function useProducts(searchQuery: string = '', selectedType: string = 'AL
 
                 // Filtering
                 if (searchQuery) {
-                    const normalizeText = (str: string) => str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                    const normalizeText = (str: string) => {
+                        let text = str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                        text = text.replace(/\barmazones\b/g, 'armazon');
+                        text = text.replace(/\bcristales\b/g, 'cristal');
+                        text = text.replace(/\blentes\b/g, 'lente');
+                        text = text.replace(/\bmarcos\b/g, 'marco');
+                        text = text.replace(/\blapiceros\b/g, 'lapicero');
+                        text = text.replace(/\bestuches\b/g, 'estuche');
+                        text = text.replace(/\bliquidos\b/g, 'liquido');
+                        return text;
+                    };
                     const words = normalizeText(searchQuery).split(/\s+/).filter(Boolean);
                     data = data.filter(p => {
                         const haystack = normalizeText(`${p.brand || ''} ${p.model || ''} ${p.name || ''} ${p.type || ''} ${p.category || ''} ${p.lensIndex || ''}`);
