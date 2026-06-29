@@ -41,7 +41,7 @@ interface DashboardData {
 }
 
 interface PieChart3DProps {
-  data: { name: string; count: number }[];
+  data: { name: string; count: number; total?: number }[];
 }
 
 function PieChart3D({ data }: PieChart3DProps) {
@@ -67,7 +67,8 @@ function PieChart3D({ data }: PieChart3DProps) {
       percent: percent * 100,
       startPercent,
       endPercent: accumulatedPercent,
-      color: COLORS[idx % COLORS.length]
+      color: COLORS[idx % COLORS.length],
+      total: item.total
     };
   });
 
@@ -157,7 +158,11 @@ function PieChart3D({ data }: PieChart3DProps) {
               style={{ backgroundColor: slice.color }} 
             />
             <span className="text-[10px] font-black text-stone-700 dark:text-stone-300 uppercase tracking-tight truncate max-w-[100px]">{slice.name}</span>
-            <span className="text-[10px] font-black text-[#a38067] ml-auto">{slice.percent.toFixed(1)}%</span>
+            {slice.total !== undefined ? (
+              <span className="text-[10px] font-black text-[#a38067] ml-auto">${slice.total.toLocaleString()}</span>
+            ) : (
+              <span className="text-[10px] font-black text-[#a38067] ml-auto">{slice.percent.toFixed(1)}%</span>
+            )}
           </div>
         ))}
       </div>
@@ -179,6 +184,7 @@ export default function Home() {
   const [abandonedCarts, setAbandonedCarts] = useState<AbandonedCart[]>([]);
   const [emailSending, setEmailSending] = useState<string | null>(null);
   const [emailSent, setEmailSent] = useState<Set<string>>(new Set());
+  const [ventasView, setVentasView] = useState<'list' | 'chart'>('chart');
   const now = new Date();
 
   useEffect(() => {
@@ -557,12 +563,38 @@ export default function Home() {
 
         {/* 3. Venta por Tipo de Producto — Hide values for Staff */}
         <div className="bg-sidebar border border-sidebar-border rounded-2xl p-7 shadow-sm md:col-span-1 lg:col-span-1">
-          <div className="flex items-center gap-2 mb-8">
-            <Layers className="text-stone-600 w-5 h-5" />
-            <h2 className="text-sm font-black uppercase tracking-widest">Ventas por Tipo</h2>
+          <div className="flex items-center justify-between gap-2 mb-8">
+            <div className="flex items-center gap-2">
+              <Layers className="text-stone-600 w-5 h-5" />
+              <h2 className="text-sm font-black uppercase tracking-widest">Ventas por Tipo</h2>
+            </div>
+            {isAdmin && (
+              <div className="flex items-center bg-stone-100 dark:bg-stone-800 p-0.5 rounded-lg border border-stone-200/50 dark:border-stone-700/80">
+                <button
+                  onClick={() => setVentasView('chart')}
+                  className={`px-2 py-1 rounded-md text-[9px] font-black uppercase tracking-wider transition-all cursor-pointer ${
+                    ventasView === 'chart'
+                      ? 'bg-white dark:bg-stone-900 text-primary shadow-sm'
+                      : 'text-stone-450 hover:text-stone-600 dark:hover:text-stone-300'
+                  }`}
+                >
+                  Gráfico
+                </button>
+                <button
+                  onClick={() => setVentasView('list')}
+                  className={`px-2 py-1 rounded-md text-[9px] font-black uppercase tracking-wider transition-all cursor-pointer ${
+                    ventasView === 'list'
+                      ? 'bg-white dark:bg-stone-900 text-primary shadow-sm'
+                      : 'text-stone-450 hover:text-stone-600 dark:hover:text-stone-300'
+                  }`}
+                >
+                  Lista
+                </button>
+              </div>
+            )}
           </div>
           {d.typeStats.length > 0 ? (
-            isAdmin ? (
+            (isAdmin && ventasView === 'list') ? (
               <div className="space-y-3">
                 {d.typeStats.map((type) => {
                   const rentabilidad = type.total - type.cost;
