@@ -164,41 +164,41 @@ export default function DashboardObjectives({
   if (!isMounted) return <div className="h-[400px] bg-stone-900 rounded-[2.5rem] animate-pulse" />;
 
   return (
-    <section className="bg-gradient-to-br from-stone-900 to-stone-800 rounded-[2.5rem] p-6 lg:p-10 shadow-2xl relative overflow-hidden text-white border border-white/5">
-      {/* Decorative background elements */}
-      <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-primary/10 rounded-full -mr-48 -mt-48 blur-[100px] opacity-50" />
-      <div className="absolute bottom-0 left-0 w-[300px] h-[300px] bg-blue-500/5 rounded-full -ml-32 -mb-32 blur-[80px] opacity-30" />
+    <section className="bg-gradient-to-b from-[#141211] to-[#0a0908] rounded-[2.5rem] p-6 lg:p-10 shadow-2xl relative overflow-hidden text-white border border-[#2c2724]">
+      {/* Cinematic ambient background glow flares */}
+      <div className="absolute -top-40 -right-40 w-[600px] h-[600px] bg-gradient-to-br from-[#c2a38a]/15 via-transparent to-transparent rounded-full blur-[140px] opacity-70 pointer-events-none" />
+      <div className="absolute -bottom-40 -left-40 w-[450px] h-[450px] bg-gradient-to-tr from-blue-500/10 via-transparent to-transparent rounded-full blur-[100px] opacity-40 pointer-events-none" />
       
       <div className="relative z-10">
         {/* Header Section */}
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-10">
           <div className="space-y-1">
             <div className="flex items-center gap-2">
-              <div className="w-2 h-2 bg-primary rounded-full animate-pulse" />
-              <h2 className="text-[10px] font-black uppercase tracking-[0.3em] text-stone-400">Objetivos Estratégicos</h2>
+              <div className="w-2 h-2 bg-[#c2a38a] rounded-full animate-pulse shadow-[0_0_8px_#c2a38a]" />
+              <h2 className="text-[10px] font-black uppercase tracking-[0.3em] text-stone-500">Objetivos Estratégicos</h2>
             </div>
             <p className="text-2xl lg:text-3xl font-black tracking-tight italic">
-              Rendimiento <span className="text-primary not-italic">{periodLabel}</span>
+              Rendimiento <span className="text-[#c2a38a] not-italic">{periodLabel}</span>
             </p>
           </div>
 
           <div className="flex flex-wrap items-center gap-4">
             {isAdmin && dolarBlue && (
-              <div className="bg-white/5 backdrop-blur-md px-5 py-3 rounded-2xl border border-white/10 flex flex-col">
-                <span className="text-[9px] font-black uppercase tracking-widest text-stone-500">Dólar Blue Venta</span>
-                <span className="text-xl font-black text-emerald-400 leading-none mt-1">${dolarBlue.toLocaleString()}</span>
+              <div className="bg-white/[0.02] hover:bg-white/[0.04] transition-all duration-300 backdrop-blur-xl px-5 py-3 rounded-2xl border border-white/10 hover:border-white/20 flex flex-col shadow-inner">
+                <span className="text-[9px] font-black uppercase tracking-[0.15em] text-stone-400">Dólar Blue Venta</span>
+                <span className="text-xl font-black text-emerald-400 leading-none mt-1 drop-shadow-[0_0_10px_rgba(52,211,153,0.3)]">${dolarBlue.toLocaleString()}</span>
               </div>
             )}
-            <div className="bg-primary/10 backdrop-blur-md px-5 py-3 rounded-2xl border border-primary/20 flex flex-col">
-              <span className="text-[9px] font-black uppercase tracking-widest text-primary/70">Días Hábiles Restantes</span>
-              <span className="text-xl font-black text-white leading-none mt-1">{remainingBusinessDays} <span className="text-[10px] text-white/50">/ {totalBusinessDays}</span></span>
+            <div className="bg-[#c2a38a]/10 backdrop-blur-xl px-5 py-3 rounded-2xl border border-[#c2a38a]/20 flex flex-col shadow-inner">
+              <span className="text-[9px] font-black uppercase tracking-[0.15em] text-[#c2a38a]/85">Días Hábiles Restantes</span>
+              <span className="text-xl font-black text-white leading-none mt-1">{remainingBusinessDays} <span className="text-xs font-bold text-white/40">/ {totalBusinessDays}</span></span>
             </div>
             {isAdmin && (
               <button 
                 onClick={() => setIsEditing(true)}
-                className="bg-white/10 hover:bg-white/20 transition-colors backdrop-blur-md px-5 py-3 rounded-2xl border border-white/20 flex items-center gap-2"
+                className="bg-white/5 hover:bg-white/10 transition-all duration-300 backdrop-blur-xl px-5 py-3 rounded-2xl border border-white/10 flex items-center gap-2 font-bold hover:scale-102"
               >
-                <Edit3 className="w-4 h-4 text-white" />
+                <Edit3 className="w-4 h-4 text-[#c2a38a]" />
                 <span className="text-xs font-black uppercase tracking-widest text-white">Editar</span>
               </button>
             )}
@@ -210,9 +210,10 @@ export default function DashboardObjectives({
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="mb-10 p-8 bg-white/[0.03] rounded-3xl border border-white/10 backdrop-blur-xl relative overflow-hidden"
+            className="mb-10 p-8 bg-[#181514]/60 rounded-3.5xl border border-[#c2a38a]/10 backdrop-blur-2xl relative overflow-hidden shadow-inner"
           >
-            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-primary/50 to-transparent opacity-50" />
+            {/* Glowing separator header bar */}
+            <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-[#c2a38a]/45 to-transparent" />
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
               <div className="space-y-2">
@@ -398,15 +399,15 @@ function ObjectiveCard({
   const isAhead = progress >= expected;
   
   const colorClasses: any = {
-    base: 'bg-[#c2a38a] shadow-xl shadow-[#c2a38a]/20',
-    stretch: 'bg-[#d4bca6] shadow-xl shadow-[#d4bca6]/20',
-    elite: 'bg-gradient-to-r from-[#c2a38a] via-[#e8dccf] to-[#c2a38a] bg-[length:200%_auto] animate-shimmer shadow-xl shadow-[#c2a38a]/20'
+    base: 'bg-gradient-to-r from-[#c2a38a] to-[#a38067] shadow-[0_0_15px_rgba(194,163,138,0.35)]',
+    stretch: 'bg-gradient-to-r from-[#d4bca6] to-[#bfa08a] shadow-[0_0_15px_rgba(212,188,166,0.35)]',
+    elite: 'bg-gradient-to-r from-[#c2a38a] via-[#e8dccf] to-[#d4bca6] bg-[length:200%_auto] animate-shimmer shadow-[0_0_20px_rgba(232,220,207,0.45)]'
   };
 
   const borderClasses: any = {
-    base: 'border-white/10 hover:border-[#c2a38a]/40',
-    stretch: 'border-white/10 hover:border-[#d4bca6]/40',
-    elite: 'border-white/20 hover:border-[#e8dccf]/40'
+    base: 'border-stone-850 hover:border-[#c2a38a]/40',
+    stretch: 'border-stone-850 hover:border-[#d4bca6]/40',
+    elite: 'border-[#c2a38a]/20 hover:border-[#e8dccf]/40'
   };
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -422,43 +423,49 @@ function ObjectiveCard({
 
   return (
     <motion.div 
-      whileHover={{ y: -5 }}
+      whileHover={{ y: -6 }}
       onMouseMove={handleMouseMove}
-      className={`relative p-8 rounded-[2rem] bg-white/[0.04] border ${borderClasses[color]} transition-all duration-300 group overflow-hidden`}
+      className={`relative p-8 rounded-[2.2rem] bg-white/[0.02] dark:bg-[#12100f]/40 border ${borderClasses[color]} transition-all duration-500 shadow-lg hover:shadow-2xl group overflow-hidden`}
     >
-      {/* Glow Effect */}
+      {/* Cinematic aura background glow */}
       <div 
-        className="pointer-events-none absolute -inset-px rounded-[2rem] opacity-0 transition duration-300 group-hover:opacity-100"
+        className="pointer-events-none absolute -inset-px rounded-[2.2rem] opacity-0 transition-opacity duration-500 group-hover:opacity-100"
         style={{
-          background: `radial-gradient(600px circle at var(--mouse-x) var(--mouse-y), ${color === 'elite' ? 'rgba(232,220,207,0.1)' : 'rgba(194,163,138,0.1)'}, transparent 40%)`
+          background: `radial-gradient(450px circle at var(--mouse-x) var(--mouse-y), ${
+            color === 'elite' 
+              ? 'rgba(232,220,207,0.06)' 
+              : color === 'stretch' 
+                ? 'rgba(212,188,166,0.05)' 
+                : 'rgba(194,163,138,0.05)'
+          }, transparent 50%)`
         }}
       />
 
       {/* Background Icon */}
-      <Icon className={`absolute -right-4 -bottom-4 w-32 h-32 opacity-[0.03] group-hover:opacity-[0.06] transition-opacity -rotate-12`} />
+      <Icon className={`absolute -right-4 -bottom-4 w-32 h-32 opacity-[0.025] group-hover:opacity-[0.065] transition-opacity duration-500 -rotate-12`} />
       
       {/* Card Header */}
       <div className="flex justify-between items-start mb-6">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <div className={`w-1.5 h-1.5 rounded-full ${color === 'elite' ? 'bg-[#e8dccf]' : color === 'stretch' ? 'bg-[#d4bca6]' : 'bg-[#c2a38a]'}`} />
-            <p className="text-[10px] font-black uppercase tracking-widest text-stone-500">{subtitle}</p>
+            <div className={`w-1.5 h-1.5 rounded-full ${color === 'elite' ? 'bg-[#e8dccf] shadow-[0_0_6px_#e8dccf]' : color === 'stretch' ? 'bg-[#d4bca6] shadow-[0_0_6px_#d4bca6]' : 'bg-[#c2a38a] shadow-[0_0_6px_#c2a38a]'}`} />
+            <p className="text-[10px] font-black uppercase tracking-[0.15em] text-stone-500">{subtitle}</p>
           </div>
           <h3 className={`text-2xl font-black italic tracking-tight ${isElite ? 'text-transparent bg-clip-text bg-gradient-to-r from-[#d4bca6] via-white to-[#d4bca6]' : 'text-white'}`}>
             {title}
           </h3>
         </div>
-        <div className={`p-3 rounded-2xl ${color === 'elite' ? 'bg-[#c2a38a]/10 text-[#e8dccf]' : color === 'stretch' ? 'bg-[#d4bca6]/10 text-[#d4bca6]' : 'bg-[#c2a38a]/10 text-[#c2a38a]'}`}>
+        <div className={`p-3 rounded-2xl transition-all duration-300 ${color === 'elite' ? 'bg-[#c2a38a]/10 text-[#e8dccf] group-hover:bg-[#c2a38a]/20' : color === 'stretch' ? 'bg-[#d4bca6]/10 text-[#d4bca6] group-hover:bg-[#d4bca6]/20' : 'bg-[#c2a38a]/10 text-[#c2a38a] group-hover:bg-[#c2a38a]/20'}`}>
           <Icon className="w-5 h-5" />
         </div>
       </div>
 
       {/* Main Metric */}
       <div className="mb-6">
-        <p className="text-[10px] font-black uppercase tracking-widest text-stone-500 mb-1">
+        <p className="text-[10px] font-black uppercase tracking-[0.15em] text-stone-500 mb-1.5">
           {isAdmin ? 'Facturado a la Fecha' : 'Progreso de la Meta'}
         </p>
-        <p className={`text-3xl lg:text-4xl font-black tracking-tighter ${progress >= 100 ? 'text-emerald-400 drop-shadow-[0_0_15px_rgba(52,211,153,0.5)]' : 'text-white'}`}>
+        <p className={`text-3xl lg:text-4xl font-black tracking-tighter transition-all duration-300 ${progress >= 100 ? 'text-emerald-400 drop-shadow-[0_0_15px_rgba(52,211,153,0.45)]' : 'text-white'}`}>
           {isAdmin ? `$${current.toLocaleString()}` : `${progress.toFixed(1)}%`}
         </p>
         {isAdmin && (
@@ -469,17 +476,17 @@ function ObjectiveCard({
       </div>
 
       {/* Reference Targets */}
-      <div className="grid grid-cols-2 gap-4 mb-6 p-3.5 bg-white/[0.02] border border-white/5 rounded-2xl">
+      <div className="grid grid-cols-2 gap-4 mb-6 p-4 bg-[#141211]/35 dark:bg-black/25 border border-white/[0.03] rounded-2.5xl backdrop-blur-md">
         <div className="space-y-1.5">
           <div className="flex justify-between items-center">
-            <span className="text-[9px] font-black uppercase tracking-widest text-stone-500">Obj. Diario</span>
+            <span className="text-[9px] font-black uppercase tracking-[0.1em] text-stone-500">Obj. Diario</span>
             <span className="text-[9px] font-bold text-stone-400">{Math.min((todaySold / dailyTarget) * 100, 100).toFixed(0)}%</span>
           </div>
-          <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
-            <div className={`h-full ${colorClasses[color]}`} style={{ width: `${Math.min((todaySold / dailyTarget) * 100, 100)}%` }} />
+          <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden p-[1px]">
+            <div className={`h-full rounded-full ${colorClasses[color]}`} style={{ width: `${Math.min((todaySold / dailyTarget) * 100, 100)}%` }} />
           </div>
           {isAdmin && (
-            <span className="text-sm font-black text-stone-200 mt-1 block">
+            <span className="text-sm font-black text-stone-250 mt-1 block">
               ${Math.round(todaySold).toLocaleString()} <span className="text-[10px] text-stone-500 font-normal">/ ${Math.round(dailyTarget).toLocaleString()}</span>
             </span>
           )}
@@ -487,14 +494,14 @@ function ObjectiveCard({
         
         <div className="space-y-1.5">
           <div className="flex justify-between items-center">
-            <span className="text-[9px] font-black uppercase tracking-widest text-stone-500">Obj. Semanal</span>
+            <span className="text-[9px] font-black uppercase tracking-[0.1em] text-stone-500">Obj. Semanal</span>
             <span className="text-[9px] font-bold text-stone-400">{Math.min((weekSold / weeklyTarget) * 100, 100).toFixed(0)}%</span>
           </div>
-          <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
-            <div className={`h-full ${colorClasses[color]}`} style={{ width: `${Math.min((weekSold / weeklyTarget) * 100, 100)}%` }} />
+          <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden p-[1px]">
+            <div className={`h-full rounded-full ${colorClasses[color]}`} style={{ width: `${Math.min((weekSold / weeklyTarget) * 100, 100)}%` }} />
           </div>
           {isAdmin && (
-            <span className="text-sm font-black text-stone-200 mt-1 block">
+            <span className="text-sm font-black text-stone-250 mt-1 block">
               ${Math.round(weekSold).toLocaleString()} <span className="text-[10px] text-stone-500 font-normal">/ ${Math.round(weeklyTarget).toLocaleString()}</span>
             </span>
           )}
@@ -502,25 +509,25 @@ function ObjectiveCard({
       </div>
 
       {/* Progress Section */}
-      <div className="space-y-3 mb-8">
+      <div className="space-y-3.5 mb-8">
         <div className="flex justify-between items-end">
-          <span className={`text-xl lg:text-3xl font-black tracking-tighter ${progress >= 100 ? 'text-emerald-400' : isAhead ? 'text-white' : 'text-stone-400'}`}>
+          <span className={`text-2xl lg:text-3xl font-black tracking-tighter transition-all duration-300 ${progress >= 100 ? 'text-emerald-400 drop-shadow-[0_0_12px_rgba(52,211,153,0.35)]' : isAhead ? 'text-white' : 'text-stone-400'}`}>
             {isAdmin ? `${progress.toFixed(progress >= 100 ? 0 : 1)}%` : 'Avance'}
           </span>
           <div className="flex flex-col items-end gap-1">
-            <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${isAhead ? 'bg-emerald-500/20 text-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.2)]' : 'bg-amber-500/20 text-amber-400'}`}>
+            <span className={`text-[10px] font-black px-2.5 py-0.5 rounded-full ${isAhead ? 'bg-emerald-500/20 text-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.25)]' : 'bg-amber-500/20 text-amber-400'}`}>
               {isAhead ? '▲ ADELANTADO' : '▼ ATRASADO'}
             </span>
             <span className="text-[9px] font-bold text-stone-500">Esperado hoy: {expected.toFixed(1)}%</span>
           </div>
         </div>
         
-        <div className="relative h-4 bg-white/5 rounded-full overflow-hidden p-1 backdrop-blur-sm border border-white/5">
+        <div className="relative h-4 bg-[#141211]/45 dark:bg-black/45 rounded-full overflow-hidden p-[3px] backdrop-blur-md border border-white/[0.05] shadow-inner">
           <motion.div 
             initial={{ width: 0 }}
             animate={{ width: `${progress}%` }}
             transition={{ duration: 1.5, ease: "easeOut" }}
-            className={`h-full rounded-full ${colorClasses[color]} ${progress >= 100 ? 'bg-emerald-500 shadow-[0_0_15px_rgba(52,211,153,0.5)]' : ''}`}
+            className={`h-full rounded-full ${colorClasses[color]} ${progress >= 100 ? 'bg-emerald-500 shadow-[0_0_15px_rgba(52,211,153,0.55)]' : ''}`}
           />
           {/* Pace Marker */}
           <div 

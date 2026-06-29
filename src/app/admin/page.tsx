@@ -567,20 +567,61 @@ export default function Home() {
 
 function StatsCard({ title, value, icon: Icon, trend, sub, highlight }: any) {
   return (
-    <div className={`${highlight ? 'bg-gradient-to-br from-primary to-primary/80 text-white shadow-xl shadow-primary/20 border-transparent' : 'bg-sidebar border border-sidebar-border shadow-sm group hover:shadow-lg hover:border-primary/20'} rounded-2xl p-7 transition-all flex flex-wrap justify-between items-center gap-4 relative overflow-hidden group`}>
-      <div className={`absolute top-0 right-0 w-24 h-24 rounded-full -mr-12 -mt-12 blur-2xl transition-colors ${highlight ? 'bg-white/10 group-hover:bg-white/20' : 'bg-primary/5 group-hover:bg-primary/10'}`} />
-      <div className="relative z-10">
-        <p className={`${highlight ? 'text-white/70' : 'text-stone-400'} font-black text-[10px] uppercase tracking-[0.2em] mb-2`}>{title}</p>
-        <h3 className={`text-xl md:text-2xl lg:text-3xl font-black tracking-tight truncate min-w-0 ${highlight ? '' : 'text-stone-800 dark:text-stone-100'}`}>{value}</h3>
-        <div className="flex items-center gap-2 mt-3">
-          <span className={`text-[9px] font-black px-2 py-0.5 rounded-full border uppercase tracking-tighter ${highlight ? 'bg-white/20 text-white border-white/10' : 'bg-stone-100 dark:bg-stone-800 text-primary border-primary/10'}`}>
-            {trend}
-          </span>
-          <span className={`text-[9px] font-bold uppercase tracking-[0.1em] ${highlight ? 'text-white/50' : 'text-stone-400'}`}>{sub}</span>
+    <div className={`relative p-7 rounded-[2rem] overflow-hidden transition-all duration-500 border group ${
+      highlight 
+        ? 'bg-gradient-to-br from-[#8c6d58] via-[#a38067] to-[#bfa08a] text-white shadow-[0_20px_50px_rgba(140,109,88,0.25)] border-white/10 hover:shadow-[0_25px_60px_rgba(140,109,88,0.4)] hover:scale-[1.02]' 
+        : 'bg-white dark:bg-stone-900/60 backdrop-blur-xl border-stone-200/60 dark:border-stone-800/60 shadow-md hover:shadow-xl dark:hover:shadow-[0_20px_40px_rgba(0,0,0,0.4)] hover:border-[#a38067]/40 dark:hover:border-[#a38067]/40 hover:scale-[1.02]'
+    }`}>
+      {/* Dynamic light reflection effect */}
+      <div className={`absolute -inset-px rounded-[2rem] opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none bg-gradient-to-tr ${
+        highlight 
+          ? 'from-white/10 via-transparent to-white/20' 
+          : 'from-[#a38067]/5 via-transparent to-[#a38067]/15'
+      }`} />
+
+      {/* Decorative blurred background aura */}
+      <div className={`absolute -top-12 -right-12 w-32 h-32 rounded-full blur-3xl transition-all duration-700 ${
+        highlight 
+          ? 'bg-white/20 group-hover:scale-125' 
+          : 'bg-[#a38067]/10 dark:bg-[#a38067]/5 group-hover:scale-125 group-hover:bg-[#a38067]/20 dark:group-hover:bg-[#a38067]/10'
+      }`} />
+
+      <div className="flex justify-between items-start gap-4 relative z-10">
+        <div className="flex-1 min-w-0">
+          <p className={`text-[10px] font-black uppercase tracking-[0.2em] mb-2.5 transition-colors duration-300 ${
+            highlight ? 'text-white/80' : 'text-stone-400 dark:text-stone-500 group-hover:text-[#a38067]'
+          }`}>
+            {title}
+          </p>
+          <h3 className={`text-2xl md:text-3xl font-black tracking-tight truncate ${
+            highlight ? 'text-white drop-shadow-sm' : 'text-stone-900 dark:text-white group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-stone-900 group-hover:to-[#a38067] dark:group-hover:from-white dark:group-hover:to-[#bfa08a]'
+          }`}>
+            {value}
+          </h3>
+          
+          <div className="flex items-center gap-2.5 mt-4">
+            <span className={`text-[9px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider border transition-all duration-300 ${
+              highlight 
+                ? 'bg-white/15 text-white border-white/20' 
+                : 'bg-stone-50 dark:bg-stone-800 text-[#a38067] border-[#a38067]/10 dark:border-[#a38067]/20 group-hover:bg-[#a38067]/10'
+            }`}>
+              {trend}
+            </span>
+            <span className={`text-[9px] font-bold uppercase tracking-[0.1em] transition-colors duration-300 ${
+              highlight ? 'text-white/60' : 'text-stone-400'
+            }`}>
+              {sub}
+            </span>
+          </div>
         </div>
-      </div>
-      <div className={`relative z-10 p-4 rounded-2xl transition-all shadow-inner border ${highlight ? 'bg-white/20 border-white/10' : 'bg-stone-50 dark:bg-stone-800 group-hover:scale-110 group-hover:bg-primary group-hover:text-white border-sidebar-border group-hover:border-primary'}`}>
-        <Icon className={`w-6 h-6 stroke-[2.5] transition-colors ${highlight ? 'text-white' : 'text-primary group-hover:text-white'}`} />
+
+        <div className={`p-4 rounded-2.5xl transition-all duration-500 shadow-inner border shrink-0 ${
+          highlight 
+            ? 'bg-white/15 border-white/10 text-white shadow-inner' 
+            : 'bg-stone-50 dark:bg-stone-850 text-[#a38067] border-stone-200/50 dark:border-stone-800/80 group-hover:scale-110 group-hover:bg-[#a38067] group-hover:text-white group-hover:border-transparent group-hover:shadow-[0_10px_20px_rgba(163,128,103,0.3)]'
+        }`}>
+          <Icon className="w-5.5 h-5.5 stroke-[2.5]" />
+        </div>
       </div>
     </div>
   );
