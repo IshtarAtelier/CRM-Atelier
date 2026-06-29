@@ -776,12 +776,12 @@ function StatsCard({ title, value, icon: Icon, trend, sub, highlight }: any) {
             <span className={`text-[9px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider border transition-all duration-300 ${
               highlight 
                 ? 'bg-white/15 text-white border-white/20' 
-                : 'bg-stone-50 dark:bg-stone-800 text-[#a38067] border-[#a38067]/10 dark:border-[#a38067]/20 group-hover:bg-[#a38067]/10'
+                : 'bg-stone-50 dark:bg-stone-800 text-[#a38067] dark:text-[#bfa08a] border-[#a38067]/10 dark:border-[#a38067]/20 group-hover:bg-[#a38067]/10'
             }`}>
               {trend}
             </span>
             <span className={`text-[9px] font-bold uppercase tracking-[0.1em] transition-colors duration-300 ${
-              highlight ? 'text-white/60' : 'text-stone-400'
+              highlight ? 'text-white/70' : 'text-stone-400 dark:text-stone-450'
             }`}>
               {sub}
             </span>
@@ -790,11 +790,15 @@ function StatsCard({ title, value, icon: Icon, trend, sub, highlight }: any) {
 
         <div className={`p-4 rounded-2.5xl transition-all duration-500 shadow-inner border shrink-0 ${
           highlight 
-            ? 'bg-white/15 border-white/10 text-white shadow-inner' 
-            : 'bg-stone-50 dark:bg-stone-850 text-[#a38067] border-stone-200/50 dark:border-stone-800/80 group-hover:scale-110 group-hover:bg-[#a38067] group-hover:text-white group-hover:border-transparent group-hover:shadow-[0_10px_20px_rgba(163,128,103,0.3)]'
+            ? 'bg-white/10 border-white/10 text-white shadow-inner' 
+            : 'bg-stone-100 dark:bg-stone-800 text-[#a38067] dark:text-[#bfa08a] border-stone-200/40 dark:border-stone-700/50 group-hover:scale-110 group-hover:bg-[#a38067] group-hover:text-white group-hover:border-transparent group-hover:shadow-[0_10px_20px_rgba(163,128,103,0.3)]'
         }`}>
           <Icon className="w-5.5 h-5.5 stroke-[2.5]" />
         </div>
+      </div>
+    </div>
+  );
+}v>
       </div>
     </div>
   );
