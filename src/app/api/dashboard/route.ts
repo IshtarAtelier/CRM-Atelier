@@ -9,8 +9,17 @@ export async function GET(request: Request) {
         const { searchParams } = new URL(request.url);
         const fromParam = searchParams.get('from');
         const toParam = searchParams.get('to');
-        const from = fromParam && fromParam !== '' ? fromParam : null;
-        const to = toParam && toParam !== '' ? toParam : null;
+        const role = request.headers.get('x-user-role') || 'STAFF';
+        
+        let from = fromParam && fromParam !== '' ? fromParam : null;
+        let to = toParam && toParam !== '' ? toParam : null;
+        
+        // Force STAFF to only see the current month (no historical access via query params)
+        if (role === 'STAFF') {
+            from = null;
+            to = null;
+        }
+
         const etiquetaParam = searchParams.get('etiqueta');
         const tipoParam = searchParams.get('tipo');
         const etiqueta = etiquetaParam && etiquetaParam !== '' ? etiquetaParam : null;
@@ -353,7 +362,7 @@ export async function GET(request: Request) {
                 if (is2x1Order && isCrystalItem && item.price === 0) {
                     itemCost = 0;
                 } else {
-                    typeStats[type].count += item.quantity;
+                    typeStats[type].count += isCrystalItem ? (item.quantity / 2) : item.quantity;
                 }
 
                 typeStats[type].cost += itemCost;

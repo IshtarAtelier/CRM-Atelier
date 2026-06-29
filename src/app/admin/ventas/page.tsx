@@ -902,32 +902,34 @@ export default function VentasPage() {
                     </div>
 
                     {/* Date filters */}
-                    <div className="flex items-center gap-3 bg-white/50 dark:bg-stone-900/50 backdrop-blur-sm px-4 py-2.5 rounded-full border border-stone-200/50 dark:border-stone-700/50">
-                        <Calendar className="w-4 h-4 text-stone-400" />
-                        <span className="text-[10px] font-black text-stone-400 uppercase tracking-widest">Desde:</span>
-                        <input
-                            type="date"
-                            value={dateFrom}
-                            onChange={e => setDateFrom(e.target.value)}
-                            className="bg-transparent text-xs font-bold text-stone-700 dark:text-stone-300 outline-none cursor-pointer"
-                        />
-                        <span className="text-stone-400 text-xs font-black px-2">a</span>
-                        <input
-                            type="date"
-                            value={dateTo}
-                            onChange={e => setDateTo(e.target.value)}
-                            className="bg-transparent text-xs font-bold text-stone-700 dark:text-stone-300 outline-none cursor-pointer"
-                        />
-                        {(dateFrom || dateTo) && (
-                            <button
-                                onClick={() => { setDateFrom(''); setDateTo(''); }}
-                                className="ml-2 p-1.5 bg-stone-200/50 dark:bg-stone-700/50 text-stone-500 hover:text-stone-800 dark:hover:text-stone-200 rounded-full transition-all"
-                                title="Limpiar fechas"
-                            >
-                                <X className="w-3.5 h-3.5" />
-                            </button>
-                        )}
-                    </div>
+                    {isAdmin && (
+                        <div className="flex items-center gap-3 bg-white/50 dark:bg-stone-900/50 backdrop-blur-sm px-4 py-2.5 rounded-full border border-stone-200/50 dark:border-stone-700/50">
+                            <Calendar className="w-4 h-4 text-stone-400" />
+                            <span className="text-[10px] font-black text-stone-400 uppercase tracking-widest">Desde:</span>
+                            <input
+                                type="date"
+                                value={dateFrom}
+                                onChange={e => setDateFrom(e.target.value)}
+                                className="bg-transparent text-xs font-bold text-stone-700 dark:text-stone-300 outline-none cursor-pointer"
+                            />
+                            <span className="text-stone-400 text-xs font-black px-2">a</span>
+                            <input
+                                type="date"
+                                value={dateTo}
+                                onChange={e => setDateTo(e.target.value)}
+                                className="bg-transparent text-xs font-bold text-stone-700 dark:text-stone-300 outline-none cursor-pointer"
+                            />
+                            {(dateFrom || dateTo) && (
+                                <button
+                                    onClick={() => { setDateFrom(''); setDateTo(''); }}
+                                    className="ml-2 p-1.5 bg-stone-200/50 dark:bg-stone-700/50 text-stone-500 hover:text-stone-800 dark:hover:text-stone-200 rounded-full transition-all"
+                                    title="Limpiar fechas"
+                                >
+                                    <X className="w-3.5 h-3.5" />
+                                </button>
+                            )}
+                        </div>
+                    )}
                 </div>
             </div>
 
