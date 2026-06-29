@@ -445,7 +445,13 @@ export default function Home() {
                   <div key={type.name} className="flex flex-wrap items-center justify-between gap-2 p-4 rounded-xl bg-stone-50 dark:bg-stone-800/40 hover:bg-stone-100 dark:hover:bg-stone-800 transition-all border border-transparent hover:border-sidebar-border group">
                     <div>
                       <h4 className="font-black text-xs uppercase group-hover:text-primary transition-colors tracking-tight">{type.name}</h4>
-                      <p className="text-[9px] text-foreground/40 font-bold tracking-widest">{type.count} UNIDADES</p>
+                      <p className="text-[9px] text-foreground/40 font-bold tracking-widest">
+                        {type.count} {
+                          (type.name.toLowerCase().includes('cristal') || ['monofocal', 'multifocal', 'bifocal', 'ocupacional'].includes(type.name.toLowerCase()))
+                            ? (type.count === 1 ? 'PAR' : 'PARES')
+                            : (type.count === 1 ? 'UNIDAD' : 'UNIDADES')
+                        }
+                      </p>
                     </div>
                     {isAdmin && (
                       <div className="text-right">
