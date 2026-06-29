@@ -183,7 +183,6 @@ export class ReportService {
             let orderCMV = pSaleCost;
             const orderItems: any[] = [];
             const orderProductTypes = new Set<string>();
-            let paidCrystalsCount = 0;
 
             const has2x1Tag = order.tags?.some((t: any) => t.name.toLowerCase().includes('2x1')) || false;
             const has2x1Product = order.items.some((i: any) => i.product && (i.product.name || '').toLowerCase().includes('2x1'));

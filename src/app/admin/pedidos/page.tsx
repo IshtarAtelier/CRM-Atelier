@@ -5,8 +5,7 @@ import {
     Package, Clock, CheckCircle2, Search, Download,
     Save, X, Eye, ArrowRight, Hash,
     Calendar, Loader2, ExternalLink, Copy, CheckCheck, Clipboard,
-    Factory, ChevronLeft, ChevronRight, MessageSquare, Phone,
-    DollarSign, ShieldAlert, Users
+    Factory, ChevronLeft, ChevronRight
 } from 'lucide-react';
 import { OrderDetailPanel } from '@/components/orders/OrderDetailPanel';
 import { WhatsAppIcon } from '@/components/icons/WhatsAppIcon';
@@ -263,7 +262,7 @@ export default function PedidosPage() {
         let currentIdx = statusKeys.indexOf(currentStatus);
         if (currentStatus === 'NONE') currentIdx = 0;
 
-        let targetIdx = direction === 'left' ? currentIdx - 1 : currentIdx + 1;
+        const targetIdx = direction === 'left' ? currentIdx - 1 : currentIdx + 1;
         if (targetIdx < 0 || targetIdx >= statusKeys.length) return;
 
         const nextStatus = statusKeys[targetIdx];
