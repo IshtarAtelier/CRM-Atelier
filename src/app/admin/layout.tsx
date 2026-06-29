@@ -27,11 +27,6 @@ export default async function AdminLayout({
         <LeadToastNotifications />
         <CopilotChat userName={userName} userRole={userRole} />
         
-        {/* Theme Mode Pill Switcher */}
-        <div className="fixed top-4 right-4 z-[70] lg:absolute lg:top-6 lg:right-8">
-          <ThemeToggle />
-        </div>
-
         <div className="flex-1 relative">
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/5 via-background to-background -z-10" />
           <ErrorBoundary>{children}</ErrorBoundary>

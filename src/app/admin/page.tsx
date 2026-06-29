@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { TrendingUp, Tag, Layers, ArrowUpRight, DollarSign, ShoppingCart, Percent, Calendar, Clock, User, ArrowRight, CheckCircle2 } from "lucide-react";
 import DashboardActions from "@/components/dashboard/DashboardActions";
 import DashboardObjectives from "@/components/dashboard/DashboardObjectives";
+import { ThemeToggle } from "@/components/ui/ThemeToggle";
 
 interface AbandonedCart {
   id: string;
@@ -283,6 +284,11 @@ export default function Home() {
 
   return (
     <div className="p-4 lg:p-8 max-w-7xl mx-auto space-y-8 animate-in fade-in duration-500 pb-20">
+      {/* Theme Mode Pill Switcher - Dashboard Only */}
+      <div className="fixed top-4 right-4 z-[70] lg:absolute lg:top-6 lg:right-8">
+        <ThemeToggle />
+      </div>
+
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl lg:text-4xl font-extrabold tracking-tight text-stone-800 dark:text-stone-100 italic">
