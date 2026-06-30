@@ -933,7 +933,7 @@ export default function QuoteSummary({
                     </div>
                 )}
 
-                {isSale && (
+                {isSale && (order.labStatus && order.labStatus !== 'NONE' || order.postSaleNotes || order.postSaleCost > 0 || order.postSaleOrderOption) && (
                     <div className="bg-white dark:bg-stone-850 rounded-[2rem] border-2 border-amber-200/60 dark:border-amber-900/40 p-6 shadow-sm space-y-4">
                         <div className="flex items-center gap-2 mb-2 pb-2 border-b border-stone-100 dark:border-stone-700/50">
                             <span className="text-[10px] font-black text-amber-600 dark:text-amber-500 uppercase tracking-widest">
@@ -1216,6 +1216,12 @@ export default function QuoteSummary({
                                 labMeasureA: data.labMeasureA,
                                 labMeasureB: data.labMeasureB,
                                 labMeasureEd: data.labMeasureEd,
+                                labFrameShape2: data.labFrameShape2,
+                                labFrameDetails2: data.labFrameDetails2,
+                                labMeasurePte2: data.labMeasurePte2,
+                                labMeasureA2: data.labMeasureA2,
+                                labMeasureB2: data.labMeasureB2,
+                                labMeasureEd2: data.labMeasureEd2,
                                 authorizedByAdmin: data.authorizedByAdmin
                             });
                             setShowCheckout(false);

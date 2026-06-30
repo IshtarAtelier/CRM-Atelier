@@ -87,27 +87,15 @@ export async function GET(request: Request) {
                 const snapshotBrand = (item.productBrandSnapshot || '').toUpperCase();
                 const snapshotCategory = (item.productCategorySnapshot || '').toUpperCase();
                 
-                return type.includes('MULTIFOCAL') || 
-                       type.includes('PROGRESIVO') || 
-                       type.includes('OCUPACIONAL') ||
-                       category.includes('MULTIFOCAL') ||
-                       category.includes('PROGRESIVO') ||
-                       category.includes('OCUPACIONAL') ||
-                       name.includes('MULTIFOCAL') || 
-                       name.includes('PROGRESIVO') || 
-                       name.includes('OCUPACIONAL') || 
-                       model.includes('MULTIFOCAL') ||
-                       model.includes('PROGRESIVO') ||
-                       model.includes('OCUPACIONAL') ||
-                       snapshotName.includes('MULTIFOCAL') ||
-                       snapshotName.includes('PROGRESIVO') ||
-                       snapshotName.includes('OCUPACIONAL') ||
-                       snapshotBrand.includes('MULTIFOCAL') ||
-                       snapshotBrand.includes('PROGRESIVO') ||
-                       snapshotBrand.includes('OCUPACIONAL') ||
-                       snapshotCategory.includes('MULTIFOCAL') ||
-                       snapshotCategory.includes('PROGRESIVO') ||
-                       snapshotCategory.includes('OCUPACIONAL');
+                const fullStr = `${type} ${category} ${name} ${model} ${snapshotName} ${snapshotBrand} ${snapshotCategory}`;
+                return fullStr.includes('MULTIFOCAL') || 
+                       fullStr.includes('PROGRESIVO') || 
+                       fullStr.includes('OCUPACIONAL') ||
+                       fullStr.includes('BIFOCAL') ||
+                       fullStr.includes('MYOFIX') ||
+                       fullStr.includes('MYOPILUX') ||
+                       fullStr.includes('STELLEST') ||
+                       fullStr.includes('MIYOSMART');
             });
 
             // 3. Obtener días hábiles y límite

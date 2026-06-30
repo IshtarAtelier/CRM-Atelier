@@ -37,7 +37,7 @@ interface OrderDetailPanelProps {
         totalCard: number;
         paidReal: number;
     };
-    onAutoSubmit?: (order: Order) => void;
+    onAutoSubmit?: (order: any, pairNum?: number) => void;
     isAutoSubmitting?: boolean;
     userRole?: string;
     onRefresh?: () => void;
@@ -390,6 +390,29 @@ export function OrderDetailPanel({
                                         <p className="text-xs font-bold text-stone-800 dark:text-stone-200 mt-1">{order.labFrameDetails}</p>
                                     </div>
                                 )}
+                                {order.labFrameShape2 && (
+                                    <div>
+                                        <p className="text-[8px] font-black text-orange-500 uppercase tracking-widest">Forma / Aro (Par 2)</p>
+                                        <p className="text-xs font-bold text-stone-800 dark:text-stone-200 mt-1 uppercase">{order.labFrameShape2}</p>
+                                    </div>
+                                )}
+                                {(order.frameA2 || order.frameB2 || order.frameEdc2 || order.frameDbl2) && (
+                                    <div>
+                                        <p className="text-[8px] font-black text-orange-500 uppercase tracking-widest">Medidas (Par 2)</p>
+                                        <p className="text-xs font-bold text-stone-800 dark:text-stone-200 mt-1">
+                                            {order.frameA2 && `A: ${order.frameA2} `}
+                                            {order.frameB2 && `B: ${order.frameB2} `}
+                                            {order.frameEdc2 && `ED: ${order.frameEdc2} `}
+                                            {order.frameDbl2 && `Pte: ${order.frameDbl2}`}
+                                        </p>
+                                    </div>
+                                )}
+                                {order.labFrameDetails2 && (
+                                    <div className="col-span-2 border-t border-dashed border-stone-100 dark:border-stone-700/50 pt-2 mt-1">
+                                        <p className="text-[8px] font-black text-orange-500 uppercase tracking-widest">Detalles del Armazón (Par 2)</p>
+                                        <p className="text-xs font-bold text-stone-800 dark:text-stone-200 mt-1">{order.labFrameDetails2}</p>
+                                    </div>
+                                )}
                                 {order.labNotes && (
                                     <div className="col-span-2">
                                         <p className="text-[8px] font-black text-stone-400 uppercase tracking-widest">Observaciones Lab</p>
@@ -435,16 +458,43 @@ export function OrderDetailPanel({
                             <span className="text-[11px] font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-widest">Estado en Laboratorio</span>
                         </div>
                         
-                        {onAutoSubmit && (
-                            <button
-                                onClick={() => onAutoSubmit(order)}
-                                disabled={isAutoSubmitting}
-                                className="px-3 py-1.5 bg-indigo-500 hover:bg-indigo-600 text-white rounded-lg text-[9px] font-black flex items-center gap-2 transition-all shadow-md disabled:opacity-50"
-                            >
-                                {isAutoSubmitting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Package className="w-3.5 h-3.5" />}
-                                {isAutoSubmitting ? 'Copiando...' : 'Autocompletar Form'}
-                            </button>
-                        )}
+                        {onAutoSubmit && (() => {
+                            const is2x1 = order.appliedPromoName?.toLowerCase().includes('2x1') || order.items?.some((it: any) => {
+                                const str = `${it.product?.name || ''} ${it.productNameSnapshot || ''}`.toLowerCase();
+                                return str.includes('2x1');
+                            });
+                            return is2x1 ? (
+                                <div className="flex gap-2">
+                                    <button
+                                        onClick={() => onAutoSubmit(order, 1)}
+                                        disabled={isAutoSubmitting}
+                                        className="px-2.5 py-1.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white rounded-lg text-[9px] font-black flex items-center gap-1 transition-all shadow-md disabled:opacity-50"
+                                        title="Copiar Par 1 y abrir SmartLab"
+                                    >
+                                        {isAutoSubmitting ? <Loader2 className="w-3 h-3 animate-spin" /> : <Package className="w-3 h-3" />}
+                                        <span>Par 1</span>
+                                    </button>
+                                    <button
+                                        onClick={() => onAutoSubmit(order, 2)}
+                                        disabled={isAutoSubmitting}
+                                        className="px-2.5 py-1.5 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white rounded-lg text-[9px] font-black flex items-center gap-1 transition-all shadow-md disabled:opacity-50"
+                                        title="Copiar Par 2 (Bonificado) y abrir SmartLab"
+                                    >
+                                        {isAutoSubmitting ? <Loader2 className="w-3 h-3 animate-spin" /> : <Package className="w-3 h-3" />}
+                                        <span>Par 2</span>
+                                    </button>
+                                </div>
+                            ) : (
+                                <button
+                                    onClick={() => onAutoSubmit(order, 1)}
+                                    disabled={isAutoSubmitting}
+                                    className="px-3 py-1.5 bg-indigo-500 hover:bg-indigo-600 text-white rounded-lg text-[9px] font-black flex items-center gap-2 transition-all shadow-md disabled:opacity-50"
+                                >
+                                    {isAutoSubmitting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Package className="w-3.5 h-3.5" />}
+                                    {isAutoSubmitting ? 'Copiando...' : 'Autocompletar Form'}
+                                </button>
+                            );
+                        })()}
                     </div>
 
                     {/* Progress Pipeline */}
@@ -546,8 +596,8 @@ export function OrderDetailPanel({
                         )}
                     </div>
 
-                    {/* Post Venta Form */}
-                    {order.orderType === 'SALE' && (
+                    {/* Post Venta Form — only after sent to factory */}
+                    {order.orderType === 'SALE' && (order.labStatus && order.labStatus !== 'NONE' || order.postSaleNotes || (order.postSaleCost ?? 0) > 0 || order.postSaleOrderOption) && (
                         <div className="bg-white dark:bg-stone-850 rounded-2xl border border-stone-100 dark:border-stone-700/50 p-5 shadow-sm space-y-4">
                             <div className="flex items-center gap-2 mb-2 pb-2 border-b border-stone-100 dark:border-stone-700/50">
                                 <span className="text-[10px] font-black text-amber-600 dark:text-amber-500 uppercase tracking-widest">

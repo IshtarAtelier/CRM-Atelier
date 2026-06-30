@@ -123,7 +123,7 @@ export async function POST(request: Request) {
                             sphereVal: true, cylinderVal: true, axisVal: true, additionVal: true,
                             crystalColor: true, crystalColorType: true,
                             productNameSnapshot: true, productBrandSnapshot: true, productCategorySnapshot: true,
-                            product: { select: { id: true, name: true, brand: true, model: true, category: true, type: true, price: true, unitType: true } }
+                            product: { select: { id: true, name: true, brand: true, model: true, category: true, type: true, price: true, unitType: true, lensIndex: true } }
                         }
                     },
                 }
@@ -204,7 +204,7 @@ export async function POST(request: Request) {
                             sphereVal: true, cylinderVal: true, axisVal: true, additionVal: true,
                             crystalColor: true, crystalColorType: true,
                             productNameSnapshot: true, productBrandSnapshot: true, productCategorySnapshot: true,
-                            product: { select: { id: true, name: true, brand: true, model: true, category: true, type: true, price: true, unitType: true } }
+                            product: { select: { id: true, name: true, brand: true, model: true, category: true, type: true, price: true, unitType: true, lensIndex: true } }
                         }
                     },
                 }
@@ -369,6 +369,12 @@ export async function GET(request: Request) {
             frameB: true,
             frameDbl: true,
             frameEdc: true,
+            frameA2: true,
+            frameB2: true,
+            frameDbl2: true,
+            frameEdc2: true,
+            labFrameShape2: true,
+            labFrameDetails2: true,
             prescriptionId: true,
             postSaleNotes: true,
             postSaleCost: true,
@@ -385,7 +391,7 @@ export async function GET(request: Request) {
                     pdVal: true, heightVal: true, prismVal: true,
                     crystalColor: true, crystalColorType: true,
                     productNameSnapshot: true, productBrandSnapshot: true, productCategorySnapshot: true,
-                    product: { select: { id: true, name: true, brand: true, model: true, category: true, type: true, price: true, unitType: true, laboratory: true } }
+                    product: { select: { id: true, name: true, brand: true, model: true, category: true, type: true, price: true, unitType: true, laboratory: true, lensIndex: true } }
                 }
             },
             payments: { select: { id: true, amount: true, method: true, date: true, notes: true, receiptUrl: true } },

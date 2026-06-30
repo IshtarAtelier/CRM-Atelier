@@ -675,7 +675,7 @@ export default function PedidosPage() {
         copyToClipboard(lines.join('\n'), 'all');
     };
 
-    const autoSubmitSmartLab = async (order: any) => {
+    const autoSubmitSmartLab = async (order: any, pairNum: number = 1) => {
         setIsAutoSubmitting(true);
         try {
             const lensItems = order.items.filter((i: any) => i.product?.category === 'Cristal');
@@ -683,8 +683,12 @@ export default function PedidosPage() {
             const oiItem = lensItems.find((i: any) => i.eye === 'OI');
 
             const frameItems = order.items?.filter((i: any) => i.product?.category === 'Armazón de Receta' || i.product?.category === 'Lentes de Sol' || i.productCategorySnapshot === 'Armazón de Receta' || i.productCategorySnapshot === 'Lentes de Sol' || i.product?.category === 'FRAME' || i.product?.category === 'SUNGLASS' || i.productCategorySnapshot === 'FRAME' || i.productCategorySnapshot === 'SUNGLASS') || [];
-            const frameInfo = frameItems.length > 0
-                ? `Armazón ${frameItems[0]?.product?.brand || frameItems[0]?.productBrandSnapshot || ''} ${frameItems[0]?.product?.name || frameItems[0]?.productNameSnapshot || ''}`.trim()
+            
+            const frameIdx = (pairNum === 2 && frameItems.length > 1) ? 1 : 0;
+            const currentFrameItem = frameItems[frameIdx];
+
+            const frameInfo = currentFrameItem
+                ? `Armazón ${currentFrameItem?.product?.brand || currentFrameItem?.productBrandSnapshot || ''} ${currentFrameItem?.product?.name || currentFrameItem?.productNameSnapshot || ''}`.trim()
                 : order.frameSource === 'USUARIO'
                     ? `Armazón del cliente ${order.userFrameBrand || ''} ${order.userFrameModel || ''}`.trim()
                     : '';
@@ -692,7 +696,13 @@ export default function PedidosPage() {
             const lensList = order.items?.filter((i: any) => i.product?.category === 'Cristal' || i.productCategorySnapshot === 'Cristal' || i.product?.category === 'LENS' || i.productCategorySnapshot === 'LENS') || [];
             const lensProduct = lensList.length > 0 ? lensList[0]?.product : null;
             const lensName = lensProduct?.name?.toLowerCase() || lensList[0]?.productNameSnapshot?.toLowerCase() || '';
-            const lensIndex = lensProduct?.lensIndex || '';
+            let lensIndex = lensProduct?.lensIndex || '';
+            if (!lensIndex && lensName) {
+                const indexMatch = lensName.match(/\b(1\.\d{2})\b/) || lensName.match(/\b(1\.\d)\b/);
+                if (indexMatch) {
+                    lensIndex = indexMatch[1];
+                }
+            }
 
             let tipo_lente = 'Monofocal';
             if (lensName.includes('multi') || lensName.includes('progresivo')) tipo_lente = 'Multifocal';
@@ -816,18 +826,18 @@ export default function PedidosPage() {
                 tratamiento,
                 color: order.labColor || '',
                 observaciones: order.labNotes || '',
-                armazon: [frameInfo, order.labFrameDetails].filter(Boolean).join(' - '),
-                forma_armazon: order.labFrameShape || '',
-                detalles_armazon: order.labFrameDetails || '',
+                armazon: [frameInfo, pairNum === 2 ? (order.labFrameDetails2 || '') : (order.labFrameDetails || '')].filter(Boolean).join(' - '),
+                forma_armazon: pairNum === 2 ? (order.labFrameShape2 || '') : (order.labFrameShape || ''),
+                detalles_armazon: pairNum === 2 ? (order.labFrameDetails2 || '') : (order.labFrameDetails || ''),
                 tipo_tenido,
                 color_tenido,
                 intensidad_tenido,
                 tipo_aro: 'Calibrado Aro Entero',
                 tipo_armazon,
-                medidaA: order.frameA || '',
-                medidaB: order.frameB || '',
-                medidaED: order.frameEdc || '',
-                medidaPte: order.frameDbl || '',
+                medidaA: pairNum === 2 ? (order.frameA2 || '') : (order.frameA || ''),
+                medidaB: pairNum === 2 ? (order.frameB2 || '') : (order.frameB || ''),
+                medidaED: pairNum === 2 ? (order.frameEdc2 || '') : (order.frameEdc || ''),
+                medidaPte: pairNum === 2 ? (order.frameDbl2 || '') : (order.frameDbl || ''),
                 fuzzy_article: [
                     lensName.includes('pro') ? 'pro' : '',
                     lensName.includes('free') ? 'free' : '',
@@ -1606,14 +1616,43 @@ export default function PedidosPage() {
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-2">
-                                        <button
-                                            onClick={() => autoSubmitSmartLab(order)}
-                                            disabled={isAutoSubmitting}
-                                            className="px-4 py-2 bg-amber-400 text-amber-950 rounded-xl text-xs font-black flex items-center gap-2 hover:scale-105 transition-all shadow-lg disabled:opacity-50"
-                                        >
-                                            {isAutoSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Package className="w-4 h-4" />}
-                                            {isAutoSubmitting ? 'Copiando...' : 'Autocompletar (Bookmarklet)'}
-                                        </button>
+                                        {(() => {
+                                             const is2x1 = order.appliedPromoName?.toLowerCase().includes('2x1') || order.items?.some((it: any) => {
+                                                 const str = `${it.product?.name || ''} ${it.productNameSnapshot || ''}`.toLowerCase();
+                                                 return str.includes('2x1');
+                                             });
+                                             return is2x1 ? (
+                                                 <>
+                                                     <button
+                                                         onClick={() => autoSubmitSmartLab(order, 1)}
+                                                         disabled={isAutoSubmitting}
+                                                         className="px-3 py-2 bg-gradient-to-r from-amber-400 to-amber-500 text-amber-950 rounded-xl text-xs font-black flex items-center gap-1.5 hover:scale-105 transition-all shadow-lg disabled:opacity-50"
+                                                         title="Copiar Par 1 y abrir SmartLab"
+                                                     >
+                                                         {isAutoSubmitting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Package className="w-3.5 h-3.5" />}
+                                                         <span>Par 1</span>
+                                                     </button>
+                                                     <button
+                                                         onClick={() => autoSubmitSmartLab(order, 2)}
+                                                         disabled={isAutoSubmitting}
+                                                         className="px-3 py-2 bg-gradient-to-r from-orange-400 to-orange-500 text-orange-950 rounded-xl text-xs font-black flex items-center gap-1.5 hover:scale-105 transition-all shadow-lg disabled:opacity-50"
+                                                         title="Copiar Par 2 (Bonificado) y abrir SmartLab"
+                                                     >
+                                                         {isAutoSubmitting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Package className="w-3.5 h-3.5" />}
+                                                         <span>Par 2</span>
+                                                     </button>
+                                                 </>
+                                             ) : (
+                                                 <button
+                                                     onClick={() => autoSubmitSmartLab(order, 1)}
+                                                     disabled={isAutoSubmitting}
+                                                     className="px-4 py-2 bg-amber-400 text-amber-950 rounded-xl text-xs font-black flex items-center gap-2 hover:scale-105 transition-all shadow-lg disabled:opacity-50"
+                                                 >
+                                                     {isAutoSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Package className="w-4 h-4" />}
+                                                     {isAutoSubmitting ? 'Copiando...' : 'Autocompletar (Bookmarklet)'}
+                                                 </button>
+                                             );
+                                         })()}
                                         <button
                                             onClick={() => copyAllSmartLab(order)}
                                             className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all hover:scale-105 ${copiedField === 'all'

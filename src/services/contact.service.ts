@@ -2067,6 +2067,10 @@ export const ContactService = {
                         return type === 'MULTIFOCAL' || 
                                name.includes('MULTIFOCAL') || 
                                name.includes('PROGRESIVO') || 
+                               name.includes('MYOFIX') || 
+                               name.includes('MYOPILUX') || 
+                               name.includes('STELLEST') || 
+                               name.includes('MIYOSMART') || 
                                model.includes('MULTIFOCAL');
                     });
                     if (hasMultifocal) isMultifocal = true;

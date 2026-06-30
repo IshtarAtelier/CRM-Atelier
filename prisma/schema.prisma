@@ -254,6 +254,12 @@ model Order {
   frameB               String?
   frameDbl             String?
   frameEdc             String?
+  frameA2              String?
+  frameB2              String?
+  frameDbl2            String?
+  frameEdc2            String?
+  labFrameShape2       String?
+  labFrameDetails2     String?
   labPrismOD           String?
   labPrismOI           String?
   labBaseCurve         String?

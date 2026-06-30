@@ -5,7 +5,6 @@ import CommandPalette from "@/components/ui/CommandPalette";
 import { LeadToastNotifications } from "@/components/ui/LeadToastNotifications";
 import { CopilotChat } from "@/components/admin/CopilotChat";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
-import { ThemeToggle } from "@/components/ui/ThemeToggle";
 
 export default async function AdminLayout({
   children,

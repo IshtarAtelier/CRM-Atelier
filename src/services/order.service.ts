@@ -62,6 +62,12 @@ const OrderUpdateSchema = z.object({
     smartLabScreenshot: z.string().nullable().optional(),
     labFrameShape: z.string().nullable().optional(),
     labFrameDetails: z.string().nullable().optional(),
+    frameA2: z.string().nullable().optional(),
+    frameB2: z.string().nullable().optional(),
+    frameDbl2: z.string().nullable().optional(),
+    frameEdc2: z.string().nullable().optional(),
+    labFrameShape2: z.string().nullable().optional(),
+    labFrameDetails2: z.string().nullable().optional(),
     // Promo
     appliedPromoName: z.string().nullable().optional(),
     authorizedByAdmin: z.boolean().optional(),
@@ -165,6 +171,16 @@ export class OrderService {
                 smartLabLastSync: true,
                 labFrameShape: true,
                 labFrameDetails: true,
+                frameA: true,
+                frameB: true,
+                frameDbl: true,
+                frameEdc: true,
+                frameA2: true,
+                frameB2: true,
+                frameDbl2: true,
+                frameEdc2: true,
+                labFrameShape2: true,
+                labFrameDetails2: true,
                 smartLabEntryDate: true,
                 smartLabDays: true,
             smartLabDetails: true,
@@ -273,6 +289,7 @@ export class OrderService {
             frameA, frameB, frameDbl, frameEdc, smartLabScreenshot,
             labPrismOD, labPrismOI, labBaseCurve, labFrameType, labBevelPosition,
             labFrameShape, labFrameDetails,
+            frameA2, frameB2, frameDbl2, frameEdc2, labFrameShape2, labFrameDetails2,
             prescriptionId, items, total, markup, 
             discountCash, discountTransfer, discountCard, specialDiscount, subtotalWithMarkup,
             isLocked, authorizedByAdmin,
@@ -729,6 +746,12 @@ export class OrderService {
         if (frameB !== undefined) data.frameB = frameB;
         if (frameDbl !== undefined) data.frameDbl = frameDbl;
         if (frameEdc !== undefined) data.frameEdc = frameEdc;
+        if (frameA2 !== undefined) data.frameA2 = frameA2;
+        if (frameB2 !== undefined) data.frameB2 = frameB2;
+        if (frameDbl2 !== undefined) data.frameDbl2 = frameDbl2;
+        if (frameEdc2 !== undefined) data.frameEdc2 = frameEdc2;
+        if (labFrameShape2 !== undefined) data.labFrameShape2 = labFrameShape2;
+        if (labFrameDetails2 !== undefined) data.labFrameDetails2 = labFrameDetails2;
         if (smartLabScreenshot !== undefined) data.smartLabScreenshot = smartLabScreenshot;
 
         // High-precision lab fields
@@ -1092,6 +1115,18 @@ export class OrderService {
                 postSaleResponsible: true,
                 postSaleOrderOption: true,
                 postSaleNewOrderNumber: true,
+                frameA: true,
+                frameB: true,
+                frameDbl: true,
+                frameEdc: true,
+                frameA2: true,
+                frameB2: true,
+                frameDbl2: true,
+                frameEdc2: true,
+                labFrameShape: true,
+                labFrameDetails: true,
+                labFrameShape2: true,
+                labFrameDetails2: true,
                 client: {
                     select: { id: true, name: true, phone: true }
                 }

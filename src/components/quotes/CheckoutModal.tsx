@@ -13,6 +13,7 @@ import { es } from 'date-fns/locale';
 import PrescriptionDetails from '../prescriptions/PrescriptionDetails';
 import { resolveStorageUrl } from '@/lib/utils/storage';
 import { PricingService } from '@/services/PricingService';
+import { isMultifocal2x1 } from '@/lib/promo-utils';
 
 interface CheckoutModalProps {
     order: any;
@@ -59,12 +60,12 @@ export default function CheckoutModal({
 
     const hasCrystals = order.items?.some((it: any) => {
         const str = `${it.product?.type || ''} ${it.product?.category || ''} ${it.product?.name || ''} ${it.productNameSnapshot || ''}`.toLowerCase();
-        return str.includes('cristal') || str.includes('monofocal') || str.includes('multifocal') || str.includes('bifocal') || str.includes('progresivo') || str.includes('ocupacional') || str.includes('lente');
+        return str.includes('cristal') || str.includes('monofocal') || str.includes('multifocal') || str.includes('bifocal') || str.includes('progresivo') || str.includes('ocupacional') || (str.includes('lente') && !str.includes('sol'));
     });
 
     const isMultifocal = order.items?.some((it: any) => {
         const str = `${it.product?.type || ''} ${it.product?.category || ''} ${it.product?.name || ''} ${it.productNameSnapshot || ''}`.toLowerCase();
-        return str.includes('multifocal') || str.includes('progresivo') || str.includes('ocupacional') || str.includes('bifocal');
+        return str.includes('multifocal') || str.includes('progresivo') || str.includes('ocupacional') || str.includes('bifocal') || str.includes('myofix') || str.includes('myopilux') || str.includes('stellest') || str.includes('miyosmart');
     });
 
     // Lab monofocals + all multifocal/bifocal need frame measurements. Stock monofocals and contact lenses don't.
@@ -102,12 +103,35 @@ export default function CheckoutModal({
     const [frameMeasureB, setFrameMeasureB] = useState<string>('');
     const [frameMeasureEd, setFrameMeasureEd] = useState<string>('');
 
+    // Second frame for 2x1 promotions
+    const [frameMeasurePte2, setFrameMeasurePte2] = useState<string>('');
+    const [frameMeasureA2, setFrameMeasureA2] = useState<string>('');
+    const [frameMeasureB2, setFrameMeasureB2] = useState<string>('');
+    const [frameMeasureEd2, setFrameMeasureEd2] = useState<string>('');
+    const [frameShape2, setFrameShape2] = useState<string>('');
+    const [frameDetails2, setFrameDetails2] = useState<string>('');
+
+    const is2x1 = order.appliedPromoName?.toLowerCase().includes('2x1') || order.items?.some((it: any) => {
+        if (it.product && isMultifocal2x1(it.product)) return true;
+        const str = `${it.productNameSnapshot || ''} ${it.productBrandSnapshot || ''}`.toLowerCase();
+        const isMT = str.includes('multifocal') || str.includes('progresivo') || str.includes('ocupacional') || str.includes('bifocal') || str.includes('myofix') || str.includes('myopilux') || str.includes('stellest') || str.includes('miyosmart');
+        const promoRegex = /\b(2\s?x\s?1|2\s?por\s?1|dos\s?por\s?uno|dos\s?x\s?uno)\b/i;
+        return isMT && promoRegex.test(str);
+    });
+
     const isFrameDataComplete = !needsFrameData || (
         frameDetails.trim() !== '' &&
         frameMeasurePte.trim() !== '' &&
         frameMeasureA.trim() !== '' &&
         frameMeasureB.trim() !== '' &&
-        frameMeasureEd.trim() !== ''
+        frameMeasureEd.trim() !== '' &&
+        (!is2x1 || (
+            frameDetails2.trim() !== '' &&
+            frameMeasurePte2.trim() !== '' &&
+            frameMeasureA2.trim() !== '' &&
+            frameMeasureB2.trim() !== '' &&
+            frameMeasureEd2.trim() !== ''
+        ))
     );
 
     const canConvert = Number(paid) >= Number(minRequired) && 
@@ -168,7 +192,13 @@ export default function CheckoutModal({
                 labMeasurePte: frameMeasurePte || undefined,
                 labMeasureA: frameMeasureA || undefined,
                 labMeasureB: frameMeasureB || undefined,
-                labMeasureEd: frameMeasureEd || undefined
+                labMeasureEd: frameMeasureEd || undefined,
+                labFrameShape2: frameShape2 || undefined,
+                labFrameDetails2: frameDetails2 || undefined,
+                labMeasurePte2: frameMeasurePte2 || undefined,
+                labMeasureA2: frameMeasureA2 || undefined,
+                labMeasureB2: frameMeasureB2 || undefined,
+                labMeasureEd2: frameMeasureEd2 || undefined
             });
         } catch (err: any) {
             setError(err.message || 'Error en la operación');
@@ -210,6 +240,14 @@ export default function CheckoutModal({
             if (frameMeasureA) patchBody.frameA = frameMeasureA;
             if (frameMeasureB) patchBody.frameB = frameMeasureB;
             if (frameMeasureEd) patchBody.frameEdc = frameMeasureEd;
+
+            // Second frame fields
+            if (frameMeasurePte2) patchBody.frameDbl2 = frameMeasurePte2;
+            if (frameMeasureA2) patchBody.frameA2 = frameMeasureA2;
+            if (frameMeasureB2) patchBody.frameB2 = frameMeasureB2;
+            if (frameMeasureEd2) patchBody.frameEdc2 = frameMeasureEd2;
+            if (frameShape2) patchBody.labFrameShape2 = frameShape2;
+            if (frameDetails2) patchBody.labFrameDetails2 = frameDetails2;
 
             if (Object.keys(patchBody).length > 0) {
                 const res = await fetch(`/api/orders/${order.id}`, {
@@ -430,6 +468,7 @@ export default function CheckoutModal({
                             <h3 className="text-xs font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest flex items-center gap-2">
                                 <FlaskConical className="w-4 h-4" /> Laboratorio SmartLab
                             </h3>
+
                             <div className="bg-blue-50/50 dark:bg-blue-950/20 border-2 border-blue-100 dark:border-blue-900/50 rounded-3xl p-6">
 
                                         <label className="text-[10px] font-black text-blue-500 uppercase tracking-widest block mb-4">Forma de Armazón (Opcional)</label>
@@ -522,6 +561,95 @@ export default function CheckoutModal({
                                         className="w-full bg-white dark:bg-stone-900 border border-blue-200 dark:border-blue-800/50 px-4 py-3 rounded-xl text-xs font-medium focus:border-blue-500 outline-none"
                                     />
                                 </div>
+
+                                {is2x1 && (
+                                    <div className="bg-orange-50/20 dark:bg-orange-950/10 border-2 border-orange-100 dark:border-orange-900/30 rounded-3xl p-6 mb-4 mt-6">
+                                        <label className="text-[10px] font-black text-orange-600 dark:text-orange-400 uppercase tracking-widest block mb-4">Segundo Armazón (Bonificado 2x1)</label>
+                                        
+                                        <label className="text-[9px] font-black text-stone-400 uppercase tracking-widest block mb-2">Forma de Armazón (Opcional)</label>
+                                        <div className="grid grid-cols-4 gap-x-3 gap-y-3 mb-6 max-w-md mx-auto">
+                                            {[
+                                                { id: 'ovalado', label: 'Ovalado', svg: <ellipse cx="12" cy="12" rx="10" ry="6" fill="none" stroke="currentColor" strokeWidth="2"/> },
+                                                { id: 'redondo', label: 'Redondo', svg: <circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" strokeWidth="2"/> },
+                                                { id: 'rectangular', label: 'Rect', svg: <rect x="2" y="7" width="20" height="10" rx="2" ry="2" fill="none" stroke="currentColor" strokeWidth="2"/> },
+                                                { id: 'cuadrado', label: 'Cuadrado', svg: <rect x="4" y="4" width="16" height="16" rx="3" ry="3" fill="none" stroke="currentColor" strokeWidth="2"/> },
+                                                { id: 'pantos', label: 'Panto', svg: <path d="M5 10a5 5 0 0 1 10 0v2a5 5 0 0 1-10 0v-2zm12 0a5 5 0 0 1 10 0v2a5 5 0 0 1-10 0v-2zM15 10H17M5 10C5 6 8 3 12 3s7 3 7 7" fill="none" stroke="currentColor" strokeWidth="2"/> },
+                                                { id: 'cateye', label: 'Cat-Eye', svg: <><path d="M2 12s4-8 10-8 10 8 10 8-4 8-10 8-10-8-10-8z" fill="none" stroke="currentColor" strokeWidth="2"/><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" strokeWidth="2"/></> },
+                                                { id: 'aviador', label: 'Aviador', svg: <path d="M4 10c-1.1 0-2 .9-2 2v2c0 2.2 1.8 4 4 4h2c2.2 0 4-1.8 4-4v-2c0-1.1-.9-2-2-2H4zm10 0c-1.1 0-2 .9-2 2v2c0 2.2 1.8 4 4 4h2c2.2 0 4-1.8 4-4v-2c0-1.1-.9-2-2-2h-2zM12 10V8c0-1.1.9-2 2-2h4c1.1 0 2 .9 2 2v2" fill="none" stroke="currentColor" strokeWidth="2"/> },
+                                                { id: 'geometrico', label: 'Geométrico', svg: <polygon points="12 3 21 8.5 21 15.5 12 21 3 15.5 3 8.5 12 3" fill="none" stroke="currentColor" strokeWidth="2"/> }
+                                            ].map(shape => {
+                                                const isSel = frameShape2 === shape.id;
+                                                return (
+                                                    <button
+                                                        key={shape.id}
+                                                        type="button"
+                                                        onClick={() => setFrameShape2(shape.id)}
+                                                        className={`flex flex-col items-center justify-center p-2 rounded-xl border-2 transition-all group ${
+                                                            isSel ? 'border-orange-500 bg-orange-100 dark:bg-orange-900/50 text-orange-700 dark:text-orange-300' 
+                                                            : 'border-transparent hover:border-orange-200 bg-white dark:bg-stone-800 text-stone-400 hover:text-orange-500'
+                                                        }`}
+                                                    >
+                                                        <svg viewBox="0 0 24 24" className="w-5 h-5 mb-1 group-hover:scale-110 transition-transform">
+                                                            {shape.svg}
+                                                        </svg>
+                                                        <span className="text-[7px] font-black uppercase tracking-wider">{shape.label}</span>
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+
+                                        <div className="mb-4">
+                                            <label className="text-[9px] font-black text-stone-400 uppercase tracking-widest block mb-2">Medidas del Segundo Armazón</label>
+                                            <div className="flex flex-col sm:flex-row gap-6 items-center bg-white/50 dark:bg-stone-900/30 p-4 rounded-2xl border border-orange-100 dark:border-orange-900/50">
+                                                <div className="w-full sm:w-1/3 flex justify-center">
+                                                    <svg width="120" height="70" viewBox="0 0 120 70" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-stone-400">
+                                                        <path d="M10 35 C10 15, 45 15, 55 35 C45 65, 10 55, 10 35 Z" />
+                                                        <path d="M65 35 C65 15, 100 15, 110 35 C100 65, 65 55, 65 35 Z" />
+                                                        <path d="M55 25 Q60 20 65 25" />
+                                                        <line x1="12" y1="35" x2="53" y2="35" strokeDasharray="2,2" />
+                                                        <text x="32" y="32" fontSize="6" fill="currentColor" stroke="none">A</text>
+                                                        <line x1="32" y1="18" x2="32" y2="52" strokeDasharray="2,2" />
+                                                        <text x="35" y="48" fontSize="6" fill="currentColor" stroke="none">B</text>
+                                                        <line x1="15" y1="20" x2="50" y2="50" strokeDasharray="2,2" />
+                                                        <text x="20" y="45" fontSize="6" fill="currentColor" stroke="none">ED</text>
+                                                        <line x1="55" y1="20" x2="65" y2="20" strokeDasharray="2,2" />
+                                                        <text x="56" y="18" fontSize="6" fill="currentColor" stroke="none">Pte</text>
+                                                    </svg>
+                                                </div>
+                                                <div className="w-full sm:w-2/3 grid grid-cols-2 gap-3">
+                                                    <div className="space-y-1">
+                                                        <label className="text-[9px] font-bold text-stone-500 uppercase">Puente <span className="text-red-500">*</span></label>
+                                                        <input type="number" required={hasCrystals} value={frameMeasurePte2} onChange={e => setFrameMeasurePte2(e.target.value)} className="w-full bg-white dark:bg-stone-900 border border-orange-200 dark:border-orange-800/50 px-3 py-2 rounded-xl text-xs font-medium focus:border-orange-500 outline-none" placeholder="Ej: 16" />
+                                                    </div>
+                                                    <div className="space-y-1">
+                                                        <label className="text-[9px] font-bold text-stone-500 uppercase">Ancho (A) <span className="text-red-500">*</span></label>
+                                                        <input type="number" required={hasCrystals} value={frameMeasureA2} onChange={e => setFrameMeasureA2(e.target.value)} className="w-full bg-white dark:bg-stone-900 border border-orange-200 dark:border-orange-800/50 px-3 py-2 rounded-xl text-xs font-medium focus:border-orange-500 outline-none" placeholder="Ej: 56" />
+                                                    </div>
+                                                    <div className="space-y-1">
+                                                        <label className="text-[9px] font-bold text-stone-500 uppercase">Alto (B) <span className="text-red-500">*</span></label>
+                                                        <input type="number" required={hasCrystals} value={frameMeasureB2} onChange={e => setFrameMeasureB2(e.target.value)} className="w-full bg-white dark:bg-stone-900 border border-orange-200 dark:border-orange-800/50 px-3 py-2 rounded-xl text-xs font-medium focus:border-orange-500 outline-none" placeholder="Ej: 42" />
+                                                    </div>
+                                                    <div className="space-y-1">
+                                                        <label className="text-[9px] font-bold text-stone-500 uppercase">Diagonal (ED) <span className="text-red-500">*</span></label>
+                                                        <input type="number" required={hasCrystals} value={frameMeasureEd2} onChange={e => setFrameMeasureEd2(e.target.value)} className="w-full bg-white dark:bg-stone-900 border border-orange-200 dark:border-orange-800/50 px-3 py-2 rounded-xl text-xs font-medium focus:border-orange-500 outline-none" placeholder="Ej: 54" />
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            <label className="text-[9px] font-black text-stone-400 uppercase tracking-widest block">Detalles del Segundo Armazón <span className="text-red-500">*</span></label>
+                                            <input 
+                                                type="text" 
+                                                required={hasCrystals}
+                                                value={frameDetails2}
+                                                onChange={e => setFrameDetails2(e.target.value)}
+                                                placeholder="Ej: Acetato negro patilla flex..." 
+                                                className="w-full bg-white dark:bg-stone-900 border border-orange-200 dark:border-orange-800/50 px-4 py-3 rounded-xl text-xs font-medium focus:border-orange-500 outline-none"
+                                            />
+                                        </div>
+                                    </div>
+                                )}
 
                                 {hasTinting && (
                                     <div className="mb-4 p-4 bg-white/50 dark:bg-stone-900/50 rounded-2xl border border-blue-100 dark:border-blue-800/50">

@@ -116,6 +116,12 @@ export default function ContactDetail({
                     frameB: conversionData?.labMeasureB,
                     frameEdc: conversionData?.labMeasureEd,
                     frameDbl: conversionData?.labMeasurePte,
+                    frameA2: conversionData?.labMeasureA2,
+                    frameB2: conversionData?.labMeasureB2,
+                    frameEdc2: conversionData?.labMeasureEd2,
+                    frameDbl2: conversionData?.labMeasurePte2,
+                    labFrameShape2: conversionData?.labFrameShape2,
+                    labFrameDetails2: conversionData?.labFrameDetails2,
                     authorizedByAdmin: conversionData?.authorizedByAdmin
                 }),
             });

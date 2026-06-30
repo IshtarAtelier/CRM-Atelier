@@ -59,7 +59,7 @@ export default function VentasPage() {
 
     const [isAutoSubmitting, setIsAutoSubmitting] = useState(false);
 
-    const autoSubmitSmartLab = async (order: any) => {
+    const autoSubmitSmartLab = async (order: any, pairNum: number = 1) => {
         setIsAutoSubmitting(true);
         try {
             const rx = order.prescription || {};
@@ -76,8 +76,12 @@ export default function VentasPage() {
             const nombre = nameParts.join(' ') || apellido;
 
             const frameItems = order.items?.filter((i: any) => i.product?.category === 'Armazón de Receta' || i.product?.category === 'Lentes de Sol' || i.productCategorySnapshot === 'Armazón de Receta' || i.productCategorySnapshot === 'Lentes de Sol' || i.product?.category === 'FRAME' || i.product?.category === 'SUNGLASS' || i.productCategorySnapshot === 'FRAME' || i.productCategorySnapshot === 'SUNGLASS') || [];
-            const frameInfo = frameItems.length > 0
-                ? `Armazón ${frameItems[0]?.product?.brand || frameItems[0]?.productBrandSnapshot || ''} ${frameItems[0]?.product?.name || frameItems[0]?.productNameSnapshot || ''}`.trim()
+            
+            const frameIdx = (pairNum === 2 && frameItems.length > 1) ? 1 : 0;
+            const currentFrameItem = frameItems[frameIdx];
+
+            const frameInfo = currentFrameItem
+                ? `Armazón ${currentFrameItem?.product?.brand || currentFrameItem?.productBrandSnapshot || ''} ${currentFrameItem?.product?.name || currentFrameItem?.productNameSnapshot || ''}`.trim()
                 : order.frameSource === 'USUARIO'
                     ? `Armazón del cliente ${order.userFrameBrand || ''} ${order.userFrameModel || ''}`.trim()
                     : '';
@@ -85,7 +89,13 @@ export default function VentasPage() {
             const lensItems = order.items?.filter((i: any) => i.product?.category === 'Cristal' || i.productCategorySnapshot === 'Cristal' || i.product?.category === 'LENS' || i.productCategorySnapshot === 'LENS') || [];
             const lensProduct = lensItems.length > 0 ? lensItems[0]?.product : null;
             const lensName = lensProduct?.name?.toLowerCase() || lensItems[0]?.productNameSnapshot?.toLowerCase() || '';
-            const lensIndex = lensProduct?.lensIndex || '';
+            let lensIndex = lensProduct?.lensIndex || '';
+            if (!lensIndex && lensName) {
+                const indexMatch = lensName.match(/\b(1\.\d{2})\b/) || lensName.match(/\b(1\.\d)\b/);
+                if (indexMatch) {
+                    lensIndex = indexMatch[1];
+                }
+            }
 
             let tipo_lente = 'Monofocal';
             if (lensName.includes('multi') || lensName.includes('progresivo')) tipo_lente = 'Multifocal';
@@ -198,7 +208,7 @@ export default function VentasPage() {
                 oi_altura: order.labHeightOI != null ? String(order.labHeightOI) : (rx.heightOI != null ? String(rx.heightOI) : ''),
                 observaciones: [rx.notes, order.labNotes].filter(Boolean).join(' | '),
                 color: order.labColor || '',
-                armazon: [frameInfo, order.labFrameDetails].filter(Boolean).join(' - '),
+                armazon: [frameInfo, pairNum === 2 ? (order.labFrameDetails2 || '') : (order.labFrameDetails || '')].filter(Boolean).join(' - '),
                 diametro: order.labDiameter || '',
                 indice: lensIndex,
                 material,
@@ -208,10 +218,10 @@ export default function VentasPage() {
                 intensidad_tenido,
                 tipo_aro: 'Calibrado Aro Entero',
                 tipo_armazon,
-                medidaA: order.frameA || '',
-                medidaB: order.frameB || '',
-                medidaED: order.frameEdc || '',
-                medidaPte: order.frameDbl || '',
+                medidaA: pairNum === 2 ? (order.frameA2 || '') : (order.frameA || ''),
+                medidaB: pairNum === 2 ? (order.frameB2 || '') : (order.frameB || ''),
+                medidaED: pairNum === 2 ? (order.frameEdc2 || '') : (order.frameEdc || ''),
+                medidaPte: pairNum === 2 ? (order.frameDbl2 || '') : (order.frameDbl || ''),
                 fuzzy_article: [
                     lensName.includes('pro') ? 'pro' : '',
                     lensName.includes('free') ? 'free' : '',
@@ -1363,17 +1373,44 @@ export default function VentasPage() {
                                             </button>
                                         )}
                                         {/* === ENVIAR A SMARTLAB — BOTÓN PRINCIPAL === */}
-                                        {isGrupoOptico && (
-                                            <button
-                                                onClick={() => autoSubmitSmartLab(order)}
-                                                disabled={isAutoSubmitting}
-                                                className="px-4 py-2.5 bg-gradient-to-r from-amber-400 to-orange-400 text-amber-950 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 hover:scale-105 active:scale-95 transition-all shadow-lg shadow-amber-400/30 disabled:opacity-50"
-                                                title="Copiar datos y abrir SmartLab"
-                                            >
-                                                {isAutoSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <FlaskConical className="w-4 h-4" />}
-                                                {isAutoSubmitting ? 'Copiando...' : '🧪 SmartLab'}
-                                            </button>
-                                        )}
+                                        {isGrupoOptico && (() => {
+                                             const is2x1 = order.appliedPromoName?.toLowerCase().includes('2x1') || order.items?.some((it: any) => {
+                                                 const str = `${it.product?.name || ''} ${it.productNameSnapshot || ''}`.toLowerCase();
+                                                 return str.includes('2x1');
+                                             });
+                                             return is2x1 ? (
+                                                 <div className="flex gap-2">
+                                                     <button
+                                                         onClick={() => autoSubmitSmartLab(order, 1)}
+                                                         disabled={isAutoSubmitting}
+                                                         className="px-3 py-2 bg-gradient-to-r from-amber-400 to-amber-500 text-amber-950 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-1 hover:scale-105 active:scale-95 transition-all shadow-lg shadow-amber-400/20 disabled:opacity-50"
+                                                         title="Copiar Par 1 y abrir SmartLab"
+                                                     >
+                                                         {isAutoSubmitting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FlaskConical className="w-3.5 h-3.5" />}
+                                                         <span>Par 1</span>
+                                                     </button>
+                                                     <button
+                                                         onClick={() => autoSubmitSmartLab(order, 2)}
+                                                         disabled={isAutoSubmitting}
+                                                         className="px-3 py-2 bg-gradient-to-r from-orange-400 to-orange-500 text-orange-950 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-1 hover:scale-105 active:scale-95 transition-all shadow-lg shadow-orange-400/20 disabled:opacity-50"
+                                                         title="Copiar Par 2 (Bonificado) y abrir SmartLab"
+                                                     >
+                                                         {isAutoSubmitting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FlaskConical className="w-3.5 h-3.5" />}
+                                                         <span>Par 2</span>
+                                                     </button>
+                                                 </div>
+                                             ) : (
+                                                 <button
+                                                     onClick={() => autoSubmitSmartLab(order, 1)}
+                                                     disabled={isAutoSubmitting}
+                                                     className="px-4 py-2.5 bg-gradient-to-r from-amber-400 to-orange-400 text-amber-950 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 hover:scale-105 active:scale-95 transition-all shadow-lg shadow-amber-400/30 disabled:opacity-50"
+                                                     title="Copiar datos y abrir SmartLab"
+                                                 >
+                                                     {isAutoSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <FlaskConical className="w-4 h-4" />}
+                                                     {isAutoSubmitting ? 'Copiando...' : '🧪 SmartLab'}
+                                                 </button>
+                                             );
+                                         })()}
                                         {/* SmartLab detail toggle */}
                                         {isGrupoOptico && (
                                             <button

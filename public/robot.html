@@ -14,13 +14,13 @@ a.robot:active{cursor:grabbing}
 </style></head>
 <body>
 <div class="card">
-<h1>🤖 Robot SmartLab v21</h1>
+<h1>🤖 Robot SmartLab v22</h1>
 <p>Arrastrá el botón naranja a tu barra de favoritos.<br>Si ya tenés uno viejo, borralo primero.</p>
 <div class="drag-zone">
 <a class="robot" id="robotLink" href="#">🤖 Atelier → SmartLab</a>
 <p class="hint">⬆️ Arrastrá este botón a tu barra de favoritos</p>
 </div>
-<p class="ok">✅ v21: Fix esférico 0.00, match exacto autocomplete, fix filtro genérico</p>
+<p class="ok">✅ v22: Fix índice de cristales (1.56, 1.67, etc.) y normalización de decimales</p>
 </div>
 <script>
 var c = "javascript:void(function(){try{"
@@ -126,7 +126,7 @@ var c = "javascript:void(function(){try{"
 +"else if(tl.indexOf('foto')>-1||tl.indexOf('transition')>-1)fz.push('foto');"
 +"else if(tl.indexOf('antirreflejo')>-1||tl.indexOf('ar')>-1)fz.push('c/ar');"
 +"else if(fz.length>0)fz.push('blanco');"
-+"if(D.indice)fz.push(String(D.indice));"
++"if(D.indice){var ind=parseFloat(D.indice);if(!isNaN(ind))fz.push(ind.toFixed(2));}"
 +"if(fz.length>0||D.material)AQ('material-autocomplete',D.material||' ','Material',fz.length>0?fz:null);"
 // Process autocomplete queue
 +"var qi=0;"
