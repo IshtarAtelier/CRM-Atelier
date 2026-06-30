@@ -115,6 +115,13 @@ export interface Order {
     frameB?: string | null;
     frameDbl?: string | null;
     frameEdc?: string | null;
+    frameA2?: string | null;
+    frameB2?: string | null;
+    frameDbl2?: string | null;
+    frameEdc2?: string | null;
+    labFrameShape2?: string | null;
+    labFrameDetails2?: string | null;
+    appliedPromoName?: string | null;
     createdAt: string;
     updatedAt: string;
     isDeleted?: boolean;
