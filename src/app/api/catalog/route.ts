@@ -302,6 +302,13 @@ export async function GET(req: NextRequest) {
         const modelCode = parts[0] || 'MODEL';
         const colorCode = parts[1] || '';
 
+        // Extract clean model name (e.g. Artemis from "Atelier Artemis")
+        let cleanName = wp.name.replace(/atelier/i, '').trim();
+        cleanName = cleanName.replace(new RegExp(modelCode, 'i'), '').trim();
+        cleanName = cleanName.replace(/\bC\d+\b/gi, '').trim();
+        
+        const displayName = cleanName ? `${cleanName.toUpperCase()} (${modelCode.toUpperCase()})` : modelCode.toUpperCase();
+
         const lw = p.lensWidth ?? 52;
         const bw = p.bridgeWidth ?? 18;
         const tl = p.templeLength ?? 145;
@@ -310,9 +317,9 @@ export async function GET(req: NextRequest) {
         doc.setTextColor(0, 0, 0);
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(9);
-        doc.text(modelCode.toUpperCase(), 40, textY);
+        doc.text(displayName, 40, textY);
 
-        const mWidth = doc.getTextWidth(modelCode.toUpperCase());
+        const mWidth = doc.getTextWidth(displayName);
         doc.setTextColor(120, 120, 120);
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(8.5);
