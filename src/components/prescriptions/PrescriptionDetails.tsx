@@ -13,6 +13,8 @@ interface PrescriptionDetailsProps {
     contactId?: string;
     /** Callback after a field is saved */
     onUpdate?: () => void;
+    /** Show near vision editable fields for multifocal */
+    isMultifocal?: boolean;
 }
 
 export default function PrescriptionDetails({
@@ -20,7 +22,8 @@ export default function PrescriptionDetails({
     showEmpty = true,
     editable = false,
     contactId,
-    onUpdate
+    onUpdate,
+    isMultifocal = false
 }: PrescriptionDetailsProps) {
     const [editingField, setEditingField] = useState<string | null>(null);
     const [editValue, setEditValue] = useState('');
@@ -185,34 +188,67 @@ export default function PrescriptionDetails({
             </div>
 
             {/* 2. VISIÓN DE CERCA / LECTURA */}
-            <div className="bg-amber-50/20 dark:bg-amber-950/10 border border-amber-100 dark:border-amber-900/30 rounded-[2rem] overflow-hidden">
-                <div className="bg-amber-500 text-white text-[9px] font-black uppercase tracking-[0.2em] px-6 py-2 italic flex justify-between items-center">
-                    <span>Visión de Cerca / Lectura (Graduación Resultante)</span>
-                    <Activity className="w-4 h-4 opacity-50" />
-                </div>
-                <div className="p-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="flex justify-between items-center p-4 bg-white/50 dark:bg-stone-900/50 rounded-2xl border border-amber-100/50">
-                        <span className="text-[9px] font-black text-amber-600 dark:text-amber-500 uppercase">OD (Cerca)</span>
-                        <span className="text-sm font-black text-stone-800 dark:text-stone-200">
-                            {prescription?.nearSphereOD != null 
-                                ? `ESF ${prescription.nearSphereOD > 0 ? '+' : ''}${prescription.nearSphereOD}`
-                                : (prescription?.additionOD || prescription?.addition) > 0
-                                    ? `ESF ${((prescription.sphereOD || 0) + (prescription.additionOD || prescription.addition || 0)).toFixed(2)}`
-                                    : <span className="text-stone-300 italic text-[10px]">vacio</span>}
-                        </span>
+            {isMultifocal ? (
+                <div className="bg-amber-50/20 dark:bg-amber-950/10 border border-amber-100 dark:border-amber-900/30 rounded-[2rem] overflow-hidden shadow-sm">
+                    <div className="bg-amber-500 text-white text-[9px] font-black uppercase tracking-[0.2em] px-6 py-3 italic flex justify-between items-center">
+                        <span>Graduación: Visión de Cerca / Lectura</span>
+                        <Activity className="w-4 h-4 opacity-50" />
                     </div>
-                    <div className="flex justify-between items-center p-4 bg-white/50 dark:bg-stone-900/50 rounded-2xl border border-amber-100/50">
-                        <span className="text-[9px] font-black text-amber-600 dark:text-amber-500 uppercase">OI (Cerca)</span>
-                        <span className="text-sm font-black text-stone-800 dark:text-stone-200">
-                            {prescription?.nearSphereOI != null 
-                                ? `ESF ${prescription.nearSphereOI > 0 ? '+' : ''}${prescription.nearSphereOI}`
-                                : (prescription?.additionOI || prescription?.addition) > 0
-                                    ? `ESF ${((prescription.sphereOI || 0) + (prescription.additionOI || prescription.addition || 0)).toFixed(2)}`
-                                    : <span className="text-stone-300 italic text-[10px]">vacio</span>}
-                        </span>
+                    <div className="grid grid-cols-1 divide-y divide-amber-100 dark:divide-amber-900/30">
+                        {/* OD Cerca */}
+                        <div className="grid grid-cols-4 sm:grid-cols-6 items-center bg-amber-50/30 dark:bg-amber-950/10">
+                            <div className="px-6 py-4 bg-emerald-500/5 border-r border-amber-100 dark:border-amber-900/30">
+                                <span className="inline-flex items-center justify-center w-8 h-8 rounded-xl bg-emerald-500 text-white text-[10px] font-black">OD</span>
+                            </div>
+                            {renderCell('Esfera', prescription?.nearSphereOD, 'nearSphereOD')}
+                            {renderCell('Cilindro', prescription?.nearCylinderOD, 'nearCylinderOD')}
+                            {renderCell('Eje', prescription?.nearAxisOD, 'nearAxisOD', '°')}
+                            {renderCell('DNP', prescription?.nearDistanceOD, 'nearDistanceOD')}
+                            {renderCell('Altura', prescription?.heightOD, 'heightOD')}
+                        </div>
+                        {/* OI Cerca */}
+                        <div className="grid grid-cols-4 sm:grid-cols-6 items-center bg-white/50 dark:bg-stone-900/5">
+                            <div className="px-6 py-4 bg-blue-500/5 border-r border-amber-100 dark:border-amber-900/30">
+                                <span className="inline-flex items-center justify-center w-8 h-8 rounded-xl bg-blue-500 text-white text-[10px] font-black">OI</span>
+                            </div>
+                            {renderCell('Esfera', prescription?.nearSphereOI, 'nearSphereOI')}
+                            {renderCell('Cilindro', prescription?.nearCylinderOI, 'nearCylinderOI')}
+                            {renderCell('Eje', prescription?.nearAxisOI, 'nearAxisOI', '°')}
+                            {renderCell('DNP', prescription?.nearDistanceOI, 'nearDistanceOI')}
+                            {renderCell('Altura', prescription?.heightOI, 'heightOI')}
+                        </div>
                     </div>
                 </div>
-            </div>
+            ) : (
+                <div className="bg-amber-50/20 dark:bg-amber-950/10 border border-amber-100 dark:border-amber-900/30 rounded-[2rem] overflow-hidden">
+                    <div className="bg-amber-500 text-white text-[9px] font-black uppercase tracking-[0.2em] px-6 py-2 italic flex justify-between items-center">
+                        <span>Visión de Cerca / Lectura (Graduación Resultante)</span>
+                        <Activity className="w-4 h-4 opacity-50" />
+                    </div>
+                    <div className="p-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="flex justify-between items-center p-4 bg-white/50 dark:bg-stone-900/50 rounded-2xl border border-amber-100/50">
+                            <span className="text-[9px] font-black text-amber-600 dark:text-amber-500 uppercase">OD (Cerca)</span>
+                            <span className="text-sm font-black text-stone-800 dark:text-stone-200">
+                                {prescription?.nearSphereOD != null 
+                                    ? `ESF ${prescription.nearSphereOD > 0 ? '+' : ''}${prescription.nearSphereOD}`
+                                    : (prescription?.additionOD || prescription?.addition) > 0
+                                        ? `ESF ${((prescription.sphereOD || 0) + (prescription.additionOD || prescription.addition || 0)).toFixed(2)}`
+                                        : <span className="text-stone-300 italic text-[10px]">vacio</span>}
+                            </span>
+                        </div>
+                        <div className="flex justify-between items-center p-4 bg-white/50 dark:bg-stone-900/50 rounded-2xl border border-amber-100/50">
+                            <span className="text-[9px] font-black text-amber-600 dark:text-amber-500 uppercase">OI (Cerca)</span>
+                            <span className="text-sm font-black text-stone-800 dark:text-stone-200">
+                                {prescription?.nearSphereOI != null 
+                                    ? `ESF ${prescription.nearSphereOI > 0 ? '+' : ''}${prescription.nearSphereOI}`
+                                    : (prescription?.additionOI || prescription?.addition) > 0
+                                        ? `ESF ${((prescription.sphereOI || 0) + (prescription.additionOI || prescription.addition || 0)).toFixed(2)}`
+                                        : <span className="text-stone-300 italic text-[10px]">vacio</span>}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Removed PRISMAS Y OBSERVACIONES */}
             {/* Image Attachment */}

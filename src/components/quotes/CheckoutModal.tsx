@@ -62,13 +62,13 @@ export default function CheckoutModal({
         return str.includes('cristal') || str.includes('monofocal') || str.includes('multifocal') || str.includes('bifocal') || str.includes('progresivo') || str.includes('ocupacional') || str.includes('lente');
     });
 
-    // Contact lenses need Rx but NOT frame measurements
-    const needsFrameData = hasCrystals && !isContactLens;
-
     const isMultifocal = order.items?.some((it: any) => {
         const str = `${it.product?.type || ''} ${it.product?.category || ''} ${it.product?.name || ''} ${it.productNameSnapshot || ''}`.toLowerCase();
-        return str.includes('multifocal') || str.includes('progresivo') || str.includes('ocupacional');
+        return str.includes('multifocal') || str.includes('progresivo') || str.includes('ocupacional') || str.includes('bifocal');
     });
+
+    // Only multifocal/bifocal/progresivo need frame measurements (not monofocal, not contact lenses)
+    const needsFrameData = isMultifocal && !isContactLens;
 
     const hasTinting = order.items?.some((it: any) => {
         const str = `${it.product?.type || ''} ${it.product?.category || ''} ${it.product?.name || ''} ${it.productNameSnapshot || ''}`.toLowerCase();
@@ -416,6 +416,7 @@ export default function CheckoutModal({
                                         editable={true}
                                         contactId={contact.id}
                                         onUpdate={onRefreshContact}
+                                        isMultifocal={isMultifocal}
                                     />
                                 </div>
                             )}
