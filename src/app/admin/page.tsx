@@ -92,8 +92,7 @@ function PieChart3D({ data, showValues = false }: PieChart3DProps) {
           className="relative w-44 h-44 transition-all duration-700 hover:scale-[1.03]" 
           style={{ 
             transform: 'rotateX(58deg) rotateZ(-15deg)', 
-            transformStyle: 'preserve-3d',
-            filter: 'drop-shadow(0 25px 25px rgba(0,0,0,0.22))'
+            transformStyle: 'preserve-3d'
           }}
         >
           {/* Render 15 layers for 3D extrusion */}
@@ -167,9 +166,12 @@ function PieChart3D({ data, showValues = false }: PieChart3DProps) {
             />
             <span className="text-[10px] font-black text-stone-700 dark:text-stone-300 uppercase tracking-tight truncate max-w-[100px]">{slice.name}</span>
             {showValues && slice.total !== undefined ? (
-              <span className="text-[10px] font-black text-[#a38067] ml-auto">${slice.total.toLocaleString()}</span>
+              <>
+                <span className="text-[10px] font-bold text-stone-500 ml-auto">{slice.percent.toFixed(1)}%</span>
+                <span className="text-[10px] font-black text-[#a38067] ml-1">${slice.total.toLocaleString()}</span>
+              </>
             ) : (
-              <span className="text-[10px] font-black text-[#a38067] ml-auto">{slice.percent.toFixed(1)}%</span>
+              <span className="text-[10px] font-bold text-stone-500 ml-auto">{slice.percent.toFixed(1)}%</span>
             )}
           </div>
         ))}

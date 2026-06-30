@@ -322,11 +322,15 @@ export async function GET(request: Request) {
         const clientIdsInOrders = [...new Set(currentMonthOrders.map((o: any) => o.client?.id).filter(Boolean))];
         let localClientIds = new Set();
         if (clientIdsInOrders.length > 0) {
+            const interactionWhere: any = {
+                clientId: { in: clientIdsInOrders },
+                type: 'STORE_VISIT'
+            };
+            if (hasDateFilter && Object.keys(dateFilter).length > 0) {
+                interactionWhere.createdAt = dateFilter;
+            }
             const localInteractions = await prisma.interaction.findMany({
-                where: {
-                    clientId: { in: clientIdsInOrders },
-                    type: 'STORE_VISIT'
-                },
+                where: interactionWhere,
                 select: { clientId: true }
             });
             localClientIds = new Set(localInteractions.map(i => i.clientId));
