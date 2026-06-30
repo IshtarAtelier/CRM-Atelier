@@ -69,7 +69,30 @@ export default function CheckoutModal({
     });
 
     // Lab monofocals + all multifocal/bifocal need frame measurements. Stock monofocals and contact lenses don't.
-    const isLabOrder = order.labType === 'LABORATORY';
+    const isLabOrder = order.labType === 'LABORATORY' || order.items?.some((it: any) => {
+        const prod = it.product || {};
+        const labType = (prod.labType || '').toUpperCase();
+        const origin = (prod.origin || '').toUpperCase();
+        const name = (prod.name || it.productNameSnapshot || '').toLowerCase();
+        const category = (prod.category || it.productCategorySnapshot || '').toLowerCase();
+        
+        // Exclude sunglasses and contact lenses from being confused as laboratory crystals
+        const isLens = (category.includes('cristal') || category.includes('lens')) && 
+                       !name.includes('contacto') && !name.includes('contact') && !name.includes('sol');
+        if (!isLens) return false;
+
+        // Authoritative lab indicators on the product database record
+        if (labType === 'LABORATORY' || origin === 'LABORATORIO') return true;
+
+        // Fallback name heuristics for lab-tallado prescription items
+        return name.includes('tallado') || 
+               name.includes('receta') || 
+               name.includes('digital') || 
+               name.includes('freeform') || 
+               name.includes('free form') ||
+               name.includes('laboratorio') ||
+               name.includes('personalizado');
+    });
     const needsFrameData = (isMultifocal || (hasCrystals && isLabOrder)) && !isContactLens;
 
     const hasTinting = order.items?.some((it: any) => {
