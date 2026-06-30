@@ -28,6 +28,7 @@ export interface Product {
     rawImageUrls?: string[];
     imagenesCatalogo?: string[];
     publishToWeb?: boolean;
+    publishToWholesale?: boolean;
 }
 
 export function useProducts(searchQuery: string = '', selectedType: string = 'ALL') {

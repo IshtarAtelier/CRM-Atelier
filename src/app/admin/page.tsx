@@ -196,6 +196,7 @@ export default function Home() {
   const [emailSent, setEmailSent] = useState<Set<string>>(new Set());
   const [ventasView, setVentasView] = useState<'list' | 'chart'>('chart');
   const [canalView, setCanalView] = useState<'list' | 'chart'>('chart');
+  const [etiquetaView, setEtiquetaView] = useState<'list' | 'chart'>('chart');
   const now = new Date();
 
   useEffect(() => {
@@ -708,32 +709,60 @@ export default function Home() {
 
         {/* 4. Venta por Etiquetas — Hide values for Staff */}
         <div className="bg-sidebar border border-sidebar-border rounded-2xl p-7 shadow-sm md:col-span-2 lg:col-span-1">
-          <div className="flex items-center gap-2 mb-8">
-            <Tag className="text-stone-600 w-5 h-5" />
-            <h2 className="text-sm font-black uppercase tracking-widest">Desempeño por Etiqueta</h2>
+          <div className="flex items-center justify-between gap-2 mb-8">
+            <div className="flex items-center gap-2">
+              <Tag className="text-stone-600 w-5 h-5" />
+              <h2 className="text-sm font-black uppercase tracking-widest">Desempeño por Etiqueta</h2>
+            </div>
+            <div className="flex items-center bg-stone-100 dark:bg-stone-800 p-0.5 rounded-lg border border-stone-200/50 dark:border-stone-700/80">
+              <button
+                onClick={() => setEtiquetaView('chart')}
+                className={`px-2 py-1 rounded-md text-[9px] font-black uppercase tracking-wider transition-all cursor-pointer ${
+                  etiquetaView === 'chart'
+                    ? 'bg-white dark:bg-stone-900 text-primary shadow-sm'
+                    : 'text-stone-450 hover:text-stone-600 dark:hover:text-stone-300'
+                }`}
+              >
+                Gráfico
+              </button>
+              <button
+                onClick={() => setEtiquetaView('list')}
+                className={`px-2 py-1 rounded-md text-[9px] font-black uppercase tracking-wider transition-all cursor-pointer ${
+                  etiquetaView === 'list'
+                    ? 'bg-white dark:bg-stone-900 text-primary shadow-sm'
+                    : 'text-stone-450 hover:text-stone-600 dark:hover:text-stone-300'
+                }`}
+              >
+                Lista
+              </button>
+            </div>
           </div>
           {d.tagStats.length > 0 ? (
-            <div className="space-y-3">
-              {d.tagStats.sort((a, b) => b.count - a.count).slice(0, 5).map((tag) => {
-                const totalCount = d.tagStats.reduce((sum, item) => sum + item.count, 0);
-                const pct = totalCount > 0 ? (tag.count / totalCount) * 100 : 0;
-                return (
-                  <div key={tag.name} className="flex flex-wrap items-center justify-between gap-2 p-4 rounded-xl bg-stone-50 dark:bg-stone-800/40 hover:bg-stone-100 dark:hover:bg-stone-800 transition-all border border-transparent hover:border-sidebar-border group">
-                    <div>
-                      <h4 className="font-black text-xs uppercase group-hover:text-primary transition-colors tracking-tight">{tag.name}</h4>
-                      <p className="text-[9px] text-foreground/40 font-bold tracking-widest">
-                        {isAdmin ? `${tag.count} VENTAS` : `${pct.toFixed(1)}% DEL TOTAL`}
-                      </p>
-                    </div>
-                    {isAdmin && (
-                      <div className="text-right">
-                        <div className="font-black text-sm text-stone-800 dark:text-stone-200 tracking-tight">${tag.total.toLocaleString()}</div>
+            etiquetaView === 'list' ? (
+              <div className="space-y-3">
+                {[...d.tagStats].sort((a, b) => b.count - a.count).slice(0, 5).map((tag) => {
+                  const totalCount = d.tagStats.reduce((sum, item) => sum + item.count, 0);
+                  const pct = totalCount > 0 ? (tag.count / totalCount) * 100 : 0;
+                  return (
+                    <div key={tag.name} className="flex flex-wrap items-center justify-between gap-2 p-4 rounded-xl bg-stone-50 dark:bg-stone-800/40 hover:bg-stone-100 dark:hover:bg-stone-800 transition-all border border-transparent hover:border-sidebar-border group">
+                      <div>
+                        <h4 className="font-black text-xs uppercase group-hover:text-primary transition-colors tracking-tight">{tag.name}</h4>
+                        <p className="text-[9px] text-foreground/40 font-bold tracking-widest">
+                          {isAdmin ? `${tag.count} VENTAS` : `${pct.toFixed(1)}% DEL TOTAL`}
+                        </p>
                       </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
+                      {isAdmin && (
+                        <div className="text-right">
+                          <div className="font-black text-sm text-stone-800 dark:text-stone-200 tracking-tight">${tag.total.toLocaleString()}</div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <PieChart3D data={[...d.tagStats].sort((a, b) => b.count - a.count)} showValues={isAdmin} />
+            )
           ) : (
             <EmptyState message="Sin datos de etiquetas en los pedidos." />
           )}

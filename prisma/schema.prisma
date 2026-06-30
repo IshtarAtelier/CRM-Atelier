@@ -181,6 +181,7 @@ model Product {
   rawImageUrls          String[] @default([])
   imagenesCatalogo      String[] @default([])
   publishToWeb          Boolean  @default(false)
+  publishToWholesale    Boolean  @default(false)
   // Medidas del armazón (en mm)
   lensWidth             Int?
   bridgeWidth           Int?
@@ -207,6 +208,7 @@ model Product {
   @@index([updatedAt])
   @@index([category])
   @@index([publishToWeb])
+  @@index([publishToWholesale])
 }
 
 model Order {

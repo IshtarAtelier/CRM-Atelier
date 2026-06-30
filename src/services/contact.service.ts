@@ -4,7 +4,7 @@ import { ISH_POSNET_THRESHOLD, ISH_POSNET_METHODS } from '@/lib/constants';
 import { ReceiptAgentService } from './receipt-agent.service';
 import { PricingService } from './PricingService';
 import { sendEmail } from '@/lib/email';
-import { fetchWa } from '@/lib/wa-config';
+import { fetchWa, getAdminChatId } from '@/lib/wa-config';
 
 
 export function normalizeArgentinePhone(phone: string | null | undefined): string {
@@ -1404,7 +1404,7 @@ export const ContactService = {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
-                            chatId: '5493541215971@c.us',
+                            chatId: getAdminChatId(),
                             message: msgText,
                             senderName: 'Sistema Atelier'
                         }),
@@ -1490,7 +1490,7 @@ export const ContactService = {
                                     method: 'POST',
                                     headers: { 'Content-Type': 'application/json' },
                                     body: JSON.stringify({
-                                        chatId: '5493541215971@c.us',
+                                        chatId: getAdminChatId(),
                                         message: `🚨 *Alerta de Envío Fallido*\n\nNo se pudo enviar el recibo automático a *${result.clientName}* porque su número parece ser falso o no tener WhatsApp activo.\n\n🔗 *Corregir Ficha:* ${clientLink}`,
                                         senderName: 'Sistema Atelier'
                                     })
@@ -1505,7 +1505,7 @@ export const ContactService = {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({
-                                chatId: '5493541215971@c.us',
+                                chatId: getAdminChatId(),
                                 message: `🤖 *[Copia enviada al cliente]*\n\n${clientMsgText}`,
                                 senderName: 'Sistema Atelier',
                                 media: pdfMedia

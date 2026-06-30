@@ -1,6 +1,6 @@
 import { prisma } from '@/lib/db';
 import { sendEmail } from '@/lib/email';
-import { fetchWa } from '@/lib/wa-config';
+import { fetchWa, getAdminChatId } from '@/lib/wa-config';
 
 interface ScrapedDetail {
     num: string;
@@ -421,7 +421,7 @@ export class SmartLabService {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({
-                                chatId: '5493541215971@c.us',
+                                chatId: getAdminChatId(),
                                 message: `⚠️ *Atelier Alerta - Pedidos Trabados en SmartLab*\n\nSe detectaron nuevos pedidos demorados en el ingreso/validación:\n\n${orderDetailsText}\n\n_Por favor, realiza el seguimiento con el laboratorio._`
                             })
                         }).catch(err => console.error('Error enviando WhatsApp de alerta stuck orders:', err));

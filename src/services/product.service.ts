@@ -45,6 +45,7 @@ export const ProductService = {
                 additionMax: data.additionMax != null ? parseFloat(data.additionMax) : null,
                 is2x1: data.is2x1 === true,
                 publishToWeb: data.publishToWeb === true,
+                publishToWholesale: data.publishToWholesale === true,
                 seoTitle: data.seoTitle,
                 seoDescription: data.seoDescription,
                 seoTags: data.seoTags,
@@ -86,6 +87,7 @@ export const ProductService = {
                 additionMax: data.additionMax !== undefined ? (data.additionMax != null ? parseFloat(data.additionMax) : null) : undefined,
                 is2x1: data.is2x1 !== undefined ? Boolean(data.is2x1) : undefined,
                 publishToWeb: data.publishToWeb !== undefined ? Boolean(data.publishToWeb) : undefined,
+                publishToWholesale: data.publishToWholesale !== undefined ? Boolean(data.publishToWholesale) : undefined,
                 lensWidth: data.lensWidth !== undefined ? (data.lensWidth !== '' ? parseInt(data.lensWidth) : null) : undefined,
                 bridgeWidth: data.bridgeWidth !== undefined ? (data.bridgeWidth !== '' ? parseInt(data.bridgeWidth) : null) : undefined,
                 templeLength: data.templeLength !== undefined ? (data.templeLength !== '' ? parseInt(data.templeLength) : null) : undefined,
@@ -135,6 +137,7 @@ export const ProductService = {
                     additionMax: item.additionMax != null ? parseFloat(item.additionMax) : null,
                     is2x1: item.is2x1 === true,
                     publishToWeb: item.publishToWeb === true,
+                    publishToWholesale: item.publishToWholesale === true,
                     origin: item.origin,
                 }
             }))

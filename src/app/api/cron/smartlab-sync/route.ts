@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { SmartLabService } from '@/services/smartlab.service';
 import { env } from '@/env';
 import { sendEmail } from '@/lib/email';
-import { fetchWa } from '@/lib/wa-config';
+import { fetchWa, getAdminChatId } from '@/lib/wa-config';
 import { prisma } from '@/lib/db';
 
 // Cooldown para alertas de timeout/red: avisar máximo 1 vez cada 2 horas
@@ -49,7 +49,7 @@ export async function GET(req: Request) {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
-                            chatId: '5493541215971@c.us',
+                            chatId: getAdminChatId(),
                             message: `✅ *Atelier Restablecido - SmartLab*\n\nLa sincronización con el laboratorio (Grupo Óptico) se ha restablecido correctamente.\n\n*Último Sync:* exitoso (${result.matched || 0} actualizados, ${result.newlyFinished || 0} nuevos fabricados)\n*Fecha:* ${new Date().toLocaleString('es-AR')}`
                         })
                     });
@@ -114,7 +114,7 @@ export async function GET(req: Request) {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        chatId: '5493541215971@c.us',
+                        chatId: getAdminChatId(),
                         message: `${waEmoji} *Atelier Alerta - SmartLab*\n\nHubo un error al intentar sincronizar los estados con el laboratorio (Grupo Óptico).\n\n*Error:* ${errorMessage}${isTimeout ? '\n\n_Si sigue caído, te aviso de nuevo en 2hs._' : ''}`
                     })
                 });

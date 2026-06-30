@@ -104,11 +104,24 @@ export function TiendaClient({
 
   const installmentsCount = getInstallmentsCount(webSettings.web_promo_installments);
   const discountRate = webSettings.web_promo_cash_discount / 100;
+  // Wholesale product override — refetch from wholesale channel when user is OPTICA
+  const [wholesaleProducts, setWholesaleProducts] = useState<any[] | null>(null);
 
+  useEffect(() => {
+    if (!isWholesale) {
+      setWholesaleProducts(null);
+      return;
+    }
+    fetch('/api/store/products?channel=wholesale')
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data)) setWholesaleProducts(data);
+      })
+      .catch(() => setWholesaleProducts(null));
+  }, [isWholesale]);
 
-
-  // Removed loading state and fetch since products are passed as props
-  const products = initialProducts || [];
+  // Use wholesale products if available, otherwise initial (retail) products
+  const products = (isWholesale && wholesaleProducts) ? wholesaleProducts : (initialProducts || []);
 
   let filtered = activeCategory === "Todo"
     ? products

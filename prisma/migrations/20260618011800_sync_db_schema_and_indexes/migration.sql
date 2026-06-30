@@ -1,3 +1,17 @@
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "AuditLog" (
+    "id" TEXT NOT NULL,
+    "userId" TEXT,
+    "userName" TEXT,
+    "action" TEXT NOT NULL,
+    "entityType" TEXT NOT NULL,
+    "entityId" TEXT NOT NULL,
+    "details" JSONB,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "AuditLog_pkey" PRIMARY KEY ("id")
+);
+
 -- DropForeignKey
 ALTER TABLE "Invoice" DROP CONSTRAINT IF EXISTS "Invoice_orderId_fkey";
 
@@ -32,19 +46,7 @@ CREATE TABLE IF NOT EXISTS "TeamMessage" (
     CONSTRAINT "TeamMessage_pkey" PRIMARY KEY ("id")
 );
 
--- CreateTable
-CREATE TABLE IF NOT EXISTS "AuditLog" (
-    "id" TEXT NOT NULL,
-    "userId" TEXT,
-    "userName" TEXT,
-    "action" TEXT NOT NULL,
-    "entityType" TEXT NOT NULL,
-    "entityId" TEXT NOT NULL,
-    "details" JSONB,
-    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
-    CONSTRAINT "AuditLog_pkey" PRIMARY KEY ("id")
-);
 
 -- CreateIndex
 CREATE INDEX IF NOT EXISTS "TeamMessage_createdAt_idx" ON "TeamMessage"("createdAt");

@@ -5,6 +5,13 @@ import { retryWithBackoff } from './retry-utils';
 // En desarrollo local, cae al default de 127.0.0.1:3100.
 const WA_SERVER_URL = process.env.WA_SERVER_URL || 'http://127.0.0.1:3100';
 
+export const ADMIN_PHONE_FALLBACK = '5493541215971';
+
+export function getAdminChatId(): string {
+    const adminPhone = process.env.ADMIN_PHONE || ADMIN_PHONE_FALLBACK;
+    return adminPhone.includes('@') ? adminPhone : `${adminPhone.replace(/[^0-9]/g, '')}@c.us`;
+}
+
 export function fetchWa(url: string | URL, init?: RequestInit): Promise<Response> {
     const headers = new Headers(init?.headers);
     if (process.env.WA_API_KEY) {

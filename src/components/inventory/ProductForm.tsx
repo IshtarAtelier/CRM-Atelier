@@ -53,7 +53,7 @@ export default function ProductForm({ onClose, onSuccess, isAdmin = false, uniqu
         lensIndex: '', laboratory: '', sphereMin: '', sphereMax: '', 
         cylinderMin: '', cylinderMax: '', additionMin: '', additionMax: '',
         diameterMin: '', diameterMax: '',
-        is2x1: false, publishToWeb: true, origin: 'LABORATORIO',
+        is2x1: false, publishToWeb: true, publishToWholesale: false, origin: 'LABORATORIO',
         seoTitle: '', seoDescription: '', seoTags: '', customSlug: '',
         mpn: '', gender: '', ageGroup: ''
     });
@@ -134,6 +134,7 @@ export default function ProductForm({ onClose, onSuccess, isAdmin = false, uniqu
                 diameterMax: isCristal && formData.diameterMax !== '' ? parseFloat(formData.diameterMax as string) : null,
                 is2x1: formData.is2x1,
                 publishToWeb: formData.publishToWeb,
+                publishToWholesale: formData.publishToWholesale,
                 ...(formData.publishToWeb ? {
                     seoTitle: formData.seoTitle || null,
                     seoDescription: formData.seoDescription || null,
@@ -472,9 +473,10 @@ export default function ProductForm({ onClose, onSuccess, isAdmin = false, uniqu
                                 </div>
                             </div>
 
-                            {/* Precio Mayorista */}
+                            {/* Precio Mayorista — solo si mayorista activo */}
+                            {formData.publishToWholesale && (
                             <div className="space-y-2">
-                                <label className="text-[10px] font-black text-blue-600 uppercase tracking-widest ml-4">Precio Mayorista ($) *</label>
+                                <label className="text-[10px] font-black text-blue-600 uppercase tracking-widest ml-3">Precio Mayorista ($) *</label>
                                 <div className="relative group">
                                     <DollarSign className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-blue-600" />
                                     <input required type="number" min={0} placeholder="0.00"
@@ -484,6 +486,7 @@ export default function ProductForm({ onClose, onSuccess, isAdmin = false, uniqu
                                     />
                                 </div>
                             </div>
+                            )}
 
                             {/* Costo — solo admin */}
                             {isAdmin && (
@@ -682,7 +685,8 @@ export default function ProductForm({ onClose, onSuccess, isAdmin = false, uniqu
                             </div>
 
                             {/* Publicar en la Web (Otros) */}
-                            <div className="col-span-2 pt-2">
+                            <div className="col-span-2 pt-2 space-y-3">
+                                {/* Toggle Tienda Minorista */}
                                 <label className="flex items-center gap-3 cursor-pointer group w-max">
                                     <div className={`relative w-10 h-6 rounded-full transition-colors ${formData.publishToWeb ? 'bg-primary' : 'bg-stone-300 dark:bg-stone-700'}`}>
                                         <div className={`absolute top-1 left-1 bg-white w-4 h-4 rounded-full transition-transform ${formData.publishToWeb ? 'translate-x-4' : 'translate-x-0'}`} />
@@ -690,9 +694,22 @@ export default function ProductForm({ onClose, onSuccess, isAdmin = false, uniqu
                                     <input type="checkbox" className="hidden" checked={formData.publishToWeb} onChange={e => setFormData({ ...formData, publishToWeb: e.target.checked })} />
                                     <div>
                                         <p className={`text-xs font-black uppercase tracking-widest ${formData.publishToWeb ? 'text-primary' : 'text-stone-500'}`}>
-                                            🌐 Publicar en Tienda Online
+                                            🛍️ Publicar en Tienda Minorista
                                         </p>
-                                        <p className="text-[9px] font-bold text-stone-400">El producto aparecerá visible en la web pública.</p>
+                                        <p className="text-[9px] font-bold text-stone-400">El producto aparecerá en la web pública para clientes.</p>
+                                    </div>
+                                </label>
+                                {/* Toggle Tienda Mayorista */}
+                                <label className="flex items-center gap-3 cursor-pointer group w-max">
+                                    <div className={`relative w-10 h-6 rounded-full transition-colors ${formData.publishToWholesale ? 'bg-blue-500' : 'bg-stone-300 dark:bg-stone-700'}`}>
+                                        <div className={`absolute top-1 left-1 bg-white w-4 h-4 rounded-full transition-transform ${formData.publishToWholesale ? 'translate-x-4' : 'translate-x-0'}`} />
+                                    </div>
+                                    <input type="checkbox" className="hidden" checked={formData.publishToWholesale} onChange={e => setFormData({ ...formData, publishToWholesale: e.target.checked })} />
+                                    <div>
+                                        <p className={`text-xs font-black uppercase tracking-widest ${formData.publishToWholesale ? 'text-blue-600' : 'text-stone-500'}`}>
+                                            💼 Publicar en Tienda Mayorista
+                                        </p>
+                                        <p className="text-[9px] font-bold text-stone-400">Visible para ópticas con acceso mayorista.</p>
                                     </div>
                                 </label>
                             </div>
@@ -710,7 +727,8 @@ export default function ProductForm({ onClose, onSuccess, isAdmin = false, uniqu
                                 </div>
                             </div>
 
-                            {/* Precio Mayorista */}
+                            {/* Precio Mayorista — solo si mayorista activo */}
+                            {formData.publishToWholesale && (
                             <div className="space-y-2 col-span-1">
                                 <label className="text-[10px] font-black text-blue-600 uppercase tracking-widest ml-4">Precio Mayorista ($) *</label>
                                 <div className="relative group">
@@ -722,12 +740,13 @@ export default function ProductForm({ onClose, onSuccess, isAdmin = false, uniqu
                                     />
                                 </div>
                             </div>
+                            )}
                         </>
                     )}
                 </div>
 
                 {/* --- SEO & Google Shopping Form --- */}
-                {formData.publishToWeb && (
+                {(formData.publishToWeb || formData.publishToWholesale) && (
                     <div className="mt-6 mb-6 p-6 bg-stone-50 dark:bg-stone-800/40 border border-stone-200 dark:border-stone-700 rounded-3xl space-y-5 animate-in fade-in slide-in-from-bottom-4">
                         <div className="flex items-center justify-between flex-wrap gap-4">
                             <div>

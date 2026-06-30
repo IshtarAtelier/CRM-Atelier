@@ -235,7 +235,8 @@ class AntiBanQueue {
             return;
         }
 
-        if (cleanPhone.length < 11 || (!cleanPhone.startsWith('54') && !cleanPhone.startsWith('1') && !cleanPhone.startsWith('34'))) {
+        const isLid = targetWaId.endsWith('@lid');
+        if (!isLid && (cleanPhone.length < 11 || (!cleanPhone.startsWith('54') && !cleanPhone.startsWith('1') && !cleanPhone.startsWith('34')))) {
             // Valida código internacional completo (Ej: 54 para Argentina, 34 España, 1 USA/Canadá)
             reject(new Error('Número inválido: Falta el código de país internacional obligatorio en el destinatario'));
             return;

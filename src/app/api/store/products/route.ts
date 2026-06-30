@@ -1,14 +1,19 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 
 export const revalidate = 300;
 
-export async function GET() {
+export async function GET(request: NextRequest) {
     try {
+        const channel = request.nextUrl.searchParams.get('channel');
+        const isWholesale = channel === 'wholesale';
+
         const products = await prisma.product.findMany({
             where: {
-                publishToWeb: true,
-                category: { not: 'Cristal' } // Crystals are handled by the configurator, not the catalog
+                ...(isWholesale
+                    ? { publishToWholesale: true }
+                    : { publishToWeb: true }),
+                category: { not: 'Cristal' }
             },
             select: {
                 id: true,
@@ -17,6 +22,7 @@ export async function GET() {
                 model: true,
                 category: true,
                 price: true,
+                ...(isWholesale ? { wholesalePrice: true } : {}),
                 stock: true,
                 imagenesCatalogo: true,
                 lensWidth: true,
@@ -25,9 +31,7 @@ export async function GET() {
                 frameHeight: true,
                 webProducts: {
                     where: { isActive: true },
-                    select: {
-                        slug: true
-                    },
+                    select: { slug: true },
                     take: 1
                 }
             },
@@ -42,6 +46,7 @@ export async function GET() {
             model: p.model,
             category: p.category,
             price: p.price,
+            ...((isWholesale && 'wholesalePrice' in p) ? { wholesalePrice: (p as any).wholesalePrice } : {}),
             stock: p.stock,
             imagenesCatalogo: p.imagenesCatalogo,
             lensWidth: p.lensWidth,

@@ -29,7 +29,7 @@ export default function InventarioPage() {
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
     const [isDeleting, setIsDeleting] = useState(false);
     const [editingProduct, setEditingProduct] = useState<Product | null>(null);
-    const [editForm, setEditForm] = useState({ name: '', brand: '', model: '', type: '', stock: 0, cost: 0, price: 0, wholesalePrice: 0, lensIndex: '', laboratory: '', sphereMin: '' as string, sphereMax: '' as string, cylinderMin: '' as string, cylinderMax: '' as string, additionMin: '' as string, additionMax: '' as string, is2x1: false, publishToWeb: false, lensWidth: '' as string, bridgeWidth: '' as string, templeLength: '' as string, frameHeight: '' as string, seoTitle: '', seoDescription: '', seoTags: '', customSlug: '', mpn: '', gender: '', ageGroup: '', origin: '' });
+    const [editForm, setEditForm] = useState({ name: '', brand: '', model: '', type: '', stock: 0, cost: 0, price: 0, wholesalePrice: 0, lensIndex: '', laboratory: '', sphereMin: '' as string, sphereMax: '' as string, cylinderMin: '' as string, cylinderMax: '' as string, additionMin: '' as string, additionMax: '' as string, is2x1: false, publishToWeb: false, publishToWholesale: false, lensWidth: '' as string, bridgeWidth: '' as string, templeLength: '' as string, frameHeight: '' as string, seoTitle: '', seoDescription: '', seoTags: '', customSlug: '', mpn: '', gender: '', ageGroup: '', origin: '' });
     const [savingEdit, setSavingEdit] = useState(false);
     const [selectedBrand, setSelectedBrand] = useState('');
     const [selectedLab, setSelectedLab] = useState('');
@@ -255,6 +255,7 @@ export default function InventarioPage() {
             additionMax: p.additionMax != null ? String(p.additionMax) : '',
             is2x1: p.is2x1 === true,
             publishToWeb: p.publishToWeb === true,
+            publishToWholesale: (p as any).publishToWholesale === true,
             lensWidth: (p as any).lensWidth != null ? String((p as any).lensWidth) : '',
             bridgeWidth: (p as any).bridgeWidth != null ? String((p as any).bridgeWidth) : '',
             templeLength: (p as any).templeLength != null ? String((p as any).templeLength) : '',
@@ -749,7 +750,12 @@ export default function InventarioPage() {
                                                 </span>
                                                 {p.publishToWeb && (
                                                     <span className="text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-full mt-0.5 inline-block bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400 ml-1.5">
-                                                        🌐 Web
+                                                        🛍️ Mino
+                                                    </span>
+                                                )}
+                                                {(p as any).publishToWholesale && (
+                                                    <span className="text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-full mt-0.5 inline-block bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 ml-1">
+                                                        💼 Mayo
                                                     </span>
                                                 )}
                                             </div>
@@ -969,10 +975,12 @@ export default function InventarioPage() {
                                     <label className="text-[10px] font-black text-primary uppercase tracking-widest ml-3">Precio Minorista ($)</label>
                                     <input type="number" min={0} value={editForm.price} onChange={e => setEditForm({ ...editForm, price: parseFloat(e.target.value) || 0 })} className="w-full px-5 py-5 bg-primary/5 border-2 border-primary/20 rounded-2xl font-black text-xl outline-none focus:border-primary text-primary" />
                                 </div>
+                                {editForm.publishToWholesale && (
                                 <div className="col-span-1 space-y-1">
                                     <label className="text-[10px] font-black text-blue-600 uppercase tracking-widest ml-3">Precio Mayorista ($)</label>
                                     <input type="number" min={0} value={editForm.wholesalePrice} onChange={e => setEditForm({ ...editForm, wholesalePrice: parseFloat(e.target.value) || 0 })} className="w-full px-5 py-5 bg-blue-50/50 dark:bg-blue-950/20 border-2 border-blue-200 dark:border-blue-800 rounded-2xl font-black text-xl outline-none focus:border-blue-500 text-blue-600 dark:text-blue-400" />
                                 </div>
+                                )}
 
                                 {/* Laboratorio — obligatorio para cristales */}
                                 {checkCristal(editingProduct) && (
@@ -1108,15 +1116,27 @@ export default function InventarioPage() {
                                             onSuccess={() => refresh()}
                                         />
                                         
-                                        <div className="pt-4 border-t border-stone-100 dark:border-stone-800">
+                                        <div className="pt-4 border-t border-stone-100 dark:border-stone-800 space-y-3">
+                                            {/* Toggle Tienda Minorista */}
                                             <label className="flex items-center gap-3 cursor-pointer group w-max">
                                                 <div className={`relative w-10 h-6 rounded-full transition-colors ${editForm.publishToWeb ? 'bg-violet-500' : 'bg-stone-300 dark:bg-stone-700'}`}>
                                                     <div className={`absolute top-1 left-1 bg-white w-4 h-4 rounded-full transition-transform ${editForm.publishToWeb ? 'translate-x-4' : 'translate-x-0'}`} />
                                                 </div>
                                                 <input type="checkbox" className="hidden" checked={editForm.publishToWeb} onChange={e => setEditForm({ ...editForm, publishToWeb: e.target.checked })} />
                                                 <div>
-                                                    <p className="text-xs font-black text-stone-800 dark:text-stone-200 uppercase tracking-widest">Publicar en Tienda Web</p>
-                                                    <p className="text-[9px] font-bold text-stone-400">Si está activo, el producto aparecerá en el catálogo público online.</p>
+                                                    <p className="text-xs font-black text-stone-800 dark:text-stone-200 uppercase tracking-widest">🛍️ Tienda Minorista</p>
+                                                    <p className="text-[9px] font-bold text-stone-400">Visible en la web pública para clientes.</p>
+                                                </div>
+                                            </label>
+                                            {/* Toggle Tienda Mayorista */}
+                                            <label className="flex items-center gap-3 cursor-pointer group w-max">
+                                                <div className={`relative w-10 h-6 rounded-full transition-colors ${editForm.publishToWholesale ? 'bg-blue-500' : 'bg-stone-300 dark:bg-stone-700'}`}>
+                                                    <div className={`absolute top-1 left-1 bg-white w-4 h-4 rounded-full transition-transform ${editForm.publishToWholesale ? 'translate-x-4' : 'translate-x-0'}`} />
+                                                </div>
+                                                <input type="checkbox" className="hidden" checked={editForm.publishToWholesale} onChange={e => setEditForm({ ...editForm, publishToWholesale: e.target.checked })} />
+                                                <div>
+                                                    <p className="text-xs font-black text-stone-800 dark:text-stone-200 uppercase tracking-widest">💼 Tienda Mayorista</p>
+                                                    <p className="text-[9px] font-bold text-stone-400">Visible para ópticas con acceso mayorista.</p>
                                                 </div>
                                             </label>
                                         </div>
@@ -1158,7 +1178,7 @@ export default function InventarioPage() {
                             </div>
 
                             {/* --- SEO & Google Shopping Form (Edit) --- */}
-                            {editForm.publishToWeb && (
+                            {(editForm.publishToWeb || editForm.publishToWholesale) && (
                                 <div className="mt-6 p-6 bg-stone-50 dark:bg-stone-800/40 border border-stone-200 dark:border-stone-700 rounded-3xl space-y-5">
                                     <div className="flex items-center justify-between flex-wrap gap-4">
                                         <div>
