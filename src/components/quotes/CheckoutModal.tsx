@@ -67,8 +67,9 @@ export default function CheckoutModal({
         return str.includes('multifocal') || str.includes('progresivo') || str.includes('ocupacional') || str.includes('bifocal');
     });
 
-    // Only multifocal/bifocal/progresivo need frame measurements (not monofocal, not contact lenses)
-    const needsFrameData = isMultifocal && !isContactLens;
+    // Lab monofocals + all multifocal/bifocal need frame measurements. Stock monofocals and contact lenses don't.
+    const isLabOrder = order.labType === 'LABORATORY';
+    const needsFrameData = (isMultifocal || (hasCrystals && isLabOrder)) && !isContactLens;
 
     const hasTinting = order.items?.some((it: any) => {
         const str = `${it.product?.type || ''} ${it.product?.category || ''} ${it.product?.name || ''} ${it.productNameSnapshot || ''}`.toLowerCase();
