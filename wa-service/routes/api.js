@@ -162,7 +162,74 @@ function createApiRouter(deps) {
         const { chatLabels, archived, botEnabled, clientId, chatSummary } = req.body;
         try {
             const data = {};
-            if (chatLabels !== undefined) data.chatLabels = chatLabels;
+            if (chatLabels !== undefined) {
+                data.chatLabels = chatLabels;
+                
+                // Sync SIN_SEGUIMIENTO with CRM client tags and pending tasks
+                if (Array.isArray(chatLabels) && chatLabels.includes('SIN_SEGUIMIENTO')) {
+                    try {
+                        const chatObj = await prisma.whatsAppChat.findUnique({ where: { id } });
+                        if (chatObj && chatObj.clientId) {
+                            const tag = await prisma.tag.upsert({
+                                where: { name: 'Sin Seguimiento' },
+                                update: {},
+                                create: { name: 'Sin Seguimiento', color: '#ef4444' }
+                            });
+                            
+                            const clientData = await prisma.client.findUnique({
+                                where: { id: chatObj.clientId },
+                                select: { tags: true }
+                            });
+                            const hasTag = clientData?.tags.some(t => t.id === tag.id);
+                            
+                            if (!hasTag) {
+                                await prisma.client.update({
+                                    where: { id: chatObj.clientId },
+                                    data: {
+                                        tags: {
+                                            connect: { id: tag.id }
+                                        }
+                                    }
+                                });
+                            }
+
+                            await prisma.clientTask.deleteMany({
+                                where: {
+                                    clientId: chatObj.clientId,
+                                    type: 'FOLLOWUP',
+                                    status: 'PENDING'
+                                }
+                            });
+                        }
+                    } catch (syncErr) {
+                        console.error('[Sync Sin Seguimiento] Error:', syncErr.message);
+                    }
+                } else if (Array.isArray(chatLabels) && !chatLabels.includes('SIN_SEGUIMIENTO')) {
+                    // Reactivated: disconnect "Sin Seguimiento" and "no interesado" tags from the client
+                    try {
+                        const chatObj = await prisma.whatsAppChat.findUnique({ where: { id } });
+                        if (chatObj && chatObj.clientId) {
+                            const tagsToDisconnect = await prisma.tag.findMany({
+                                where: {
+                                    name: { in: ['Sin Seguimiento', 'no interesado'] }
+                                }
+                            });
+                            if (tagsToDisconnect.length > 0) {
+                                await prisma.client.update({
+                                    where: { id: chatObj.clientId },
+                                    data: {
+                                        tags: {
+                                            disconnect: tagsToDisconnect.map(t => ({ id: t.id }))
+                                        }
+                                    }
+                                });
+                            }
+                        }
+                    } catch (syncErr) {
+                        console.error('[Sync Reactivate] Error:', syncErr.message);
+                    }
+                }
+            }
             if (archived !== undefined) data.archived = archived;
             if (clientId !== undefined) data.clientId = clientId;
             if (chatSummary !== undefined) data.chatSummary = chatSummary;

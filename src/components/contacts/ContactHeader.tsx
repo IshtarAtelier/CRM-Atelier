@@ -22,6 +22,8 @@ interface ContactHeaderProps {
     onRevertStatus: () => void;
     onDeleteContact?: (id: string) => void;
     onRegisterVisit?: () => void;
+    onStopFollowUp?: () => void;
+    onReactivateFollowUp?: () => void;
 }
 
 export default function ContactHeader({
@@ -36,9 +38,12 @@ export default function ContactHeader({
     onUpdatePriority,
     onRevertStatus,
     onDeleteContact,
-    onRegisterVisit
+    onRegisterVisit,
+    onStopFollowUp,
+    onReactivateFollowUp
 }: ContactHeaderProps) {
     const router = useRouter();
+    const hasSinSeguimiento = contact?.tags?.some((t: any) => t.name === 'Sin Seguimiento' || t.name === 'no interesado');
 
     const safePrice = (price: any): number => {
         if (price === null || price === undefined || isNaN(Number(price))) return 0;
@@ -128,6 +133,34 @@ export default function ContactHeader({
                                 >
                                     Rol: {currentUserRole}
                                 </button>
+
+                                {onStopFollowUp && onReactivateFollowUp && (
+                                    hasSinSeguimiento ? (
+                                        <button
+                                            onClick={() => {
+                                                if (window.confirm('¿Reactivar los seguimientos para este cliente?')) {
+                                                    onReactivateFollowUp();
+                                                }
+                                            }}
+                                            className="px-3 py-1 bg-green-50 text-green-600 border border-green-200 rounded-xl text-[8px] font-black uppercase tracking-widest hover:bg-green-100 flex items-center gap-1.5 transition-all"
+                                            title="Reactivar seguimientos del cliente"
+                                        >
+                                            Reactivar Seg.
+                                        </button>
+                                    ) : (
+                                        <button
+                                            onClick={() => {
+                                                if (window.confirm('¿Finalizar y cancelar todos los seguimientos de este cliente?')) {
+                                                    onStopFollowUp();
+                                                }
+                                            }}
+                                            className="px-3 py-1 bg-rose-50 text-rose-600 border border-rose-200 rounded-xl text-[8px] font-black uppercase tracking-widest hover:bg-rose-100 flex items-center gap-1.5 transition-all"
+                                            title="Finalizar seguimientos de venta"
+                                        >
+                                            🚫 Finalizar Seg.
+                                        </button>
+                                    )
+                                )}
 
                                 {contact.status === 'CONFIRMED' && 
                                     (!contact.orders || !contact.orders.some((o: any) => o.orderType === 'SALE' && o.isDeleted !== true)) && (

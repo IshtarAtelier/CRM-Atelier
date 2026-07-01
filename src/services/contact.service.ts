@@ -474,6 +474,83 @@ export const ContactService = {
                 };
             }
         }
+        if ((data as any).stopFollowUp) {
+            // 1. Add "Sin Seguimiento" tag to the client
+            const tag = await prisma.tag.upsert({
+                where: { name: 'Sin Seguimiento' },
+                update: {},
+                create: { name: 'Sin Seguimiento', color: '#ef4444' }
+            });
+            updateData.tags = {
+                connect: { id: tag.id }
+            };
+
+            // 2. Remove any pending followup tasks
+            await prisma.clientTask.deleteMany({
+                where: {
+                    clientId: id,
+                    type: 'FOLLOWUP',
+                    status: 'PENDING'
+                }
+            }).catch(() => {});
+
+            // 3. Update the linked WhatsAppChat labels
+            try {
+                const linkedChats = await prisma.whatsAppChat.findMany({
+                    where: { clientId: id }
+                });
+                for (const chat of linkedChats) {
+                    const currentLabels = chat.chatLabels || [];
+                    const nextLabels = [
+                        ...currentLabels.filter((l: string) => !l.startsWith('SEGUIMIENTO_DIA_')),
+                        'SIN_SEGUIMIENTO'
+                    ];
+                    await prisma.whatsAppChat.update({
+                        where: { id: chat.id },
+                        data: {
+                            chatLabels: nextLabels
+                        }
+                    });
+                }
+            } catch (chatErr: any) {
+                console.error('[Stop Followup] Error updating chat labels:', chatErr.message);
+            }
+        }
+        if ((data as any).reactivateFollowUp) {
+            // 1. Find "Sin Seguimiento" and "no interesado" tags and disconnect them
+            const tagsToDisconnect = await prisma.tag.findMany({
+                where: {
+                    name: { in: ['Sin Seguimiento', 'no interesado'] }
+                }
+            });
+            if (tagsToDisconnect.length > 0) {
+                updateData.tags = {
+                    disconnect: tagsToDisconnect.map(t => ({ id: t.id }))
+                };
+            }
+
+            // 2. Update linked WhatsAppChat
+            try {
+                const linkedChats = await prisma.whatsAppChat.findMany({
+                    where: { clientId: id }
+                });
+                for (const chat of linkedChats) {
+                    const currentLabels = chat.chatLabels || [];
+                    const nextLabels = currentLabels.filter((l: string) => 
+                        l !== 'SIN_SEGUIMIENTO' && l !== '[SISTEMA - BOT APAGADO]'
+                    );
+                    await prisma.whatsAppChat.update({
+                        where: { id: chat.id },
+                        data: {
+                            chatLabels: nextLabels,
+                            botEnabled: true
+                        }
+                    });
+                }
+            } catch (chatErr: any) {
+                console.error('[Reactivate Followup] Error updating chat labels:', chatErr.message);
+            }
+        }
 
         let oldClient = null;
         if (data.phone !== undefined) {
@@ -1412,7 +1489,7 @@ export const ContactService = {
                 discountCash: financials.discountCash,
                 discountTransfer: financials.discountTransfer
             };
-        }, { timeout: 25000 }).then(result => {
+        }, { maxWait: 25000, timeout: 25000 }).then(result => {
             // Si es efectivo, verificar alerta de saldo fuera de la transacción
             if (method === 'EFECTIVO' || method === 'CASH') {
                 CashService.checkBalanceAndAlert().catch(err => console.error('Error in cash alert:', err));
@@ -1980,7 +2057,7 @@ export const ContactService = {
             });
 
             return updatedPayment;
-        }, { timeout: 25000 });
+        }, { maxWait: 25000, timeout: 25000 });
     },
 
     async canCloseSale(clientId: string) {
@@ -2262,6 +2339,6 @@ export const ContactService = {
             });
 
             return { success: true, message: `Clientes fusionados con éxito.` };
-        }, { timeout: 25000 });
+        }, { maxWait: 25000, timeout: 25000 });
     }
 };

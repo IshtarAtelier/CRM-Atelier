@@ -199,6 +199,22 @@ export default function ContactDetail({
                         await onAddInteraction(contactId, 'STORE_VISIT', '📍 Cliente visitó el local (marcado desde el perfil)');
                         fetchContact();
                     }}
+                    onStopFollowUp={async () => {
+                        const res = await fetch(`/api/contacts/${contactId}`, {
+                            method: 'PATCH',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ stopFollowUp: true })
+                        });
+                        if (res.ok) fetchContact();
+                    }}
+                    onReactivateFollowUp={async () => {
+                        const res = await fetch(`/api/contacts/${contactId}`, {
+                            method: 'PATCH',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ reactivateFollowUp: true })
+                        });
+                        if (res.ok) fetchContact();
+                    }}
                 />
 
                 <main className="flex-1 overflow-y-auto p-6 custom-scrollbar">
