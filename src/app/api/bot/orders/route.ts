@@ -111,6 +111,8 @@ export async function POST(request: Request) {
                             productNameSnapshot: dbProd ? (dbProd.model || dbProd.name || null) : null,
                             productBrandSnapshot: dbProd ? (dbProd.brand || null) : null,
                             productCategorySnapshot: dbProd ? (dbProd.category || null) : null,
+                            productCostSnapshot: dbProd ? (dbProd.cost || 0) : null,
+                            laboratorySnapshot: dbProd ? (dbProd.laboratory || null) : null,
                         };
                     })
                 }

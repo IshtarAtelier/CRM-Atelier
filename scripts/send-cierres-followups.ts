@@ -267,7 +267,18 @@ async function sendWhatsApp(phone: string, text: string): Promise<boolean> {
       const data = await res.json();
       return data.success !== false;
     } else {
-      console.error(`    ❌ [WhatsApp Send API] HTTP Error: ${res.status}`);
+      let errorText = '';
+      try {
+        const errorJson = await res.json();
+        errorText = errorJson.error || JSON.stringify(errorJson);
+      } catch {
+        try {
+          errorText = await res.text();
+        } catch {
+          errorText = 'Desconocido';
+        }
+      }
+      console.error(`    ❌ [WhatsApp Send API] HTTP Error: ${res.status} - Details: ${errorText}`);
       return false;
     }
   } catch (err: any) {
@@ -596,16 +607,59 @@ async function main() {
     }
   }
 
-  console.log(`Clientes elegibles para seguimiento: ${eligibleOpps.length}\n`);
+  // ── VÁLVULA DE SEGURIDAD ──
+  const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000);
+  const sevenDaysAgoSafety = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
 
-  if (eligibleOpps.length === 0) {
-    console.log("No hay clientes elegibles que cumplan con los cooldowns de 48hs o inactividad de 24hs.");
+  const lastFollowUpChats = await prisma.whatsAppChat.findMany({
+    where: {
+      chatLabels: { has: 'Seguimiento Cierre' },
+      lastFollowUpAt: {
+        gte: sevenDaysAgoSafety,
+        lte: twoHoursAgo
+      }
+    },
+    orderBy: { lastFollowUpAt: 'desc' },
+    take: 5
+  });
+
+  if (lastFollowUpChats.length >= 3) {
+    let repliedCount = 0;
+    for (const chat of lastFollowUpChats) {
+      const inbound = await prisma.whatsAppMessage.findFirst({
+        where: {
+          chatId: chat.id,
+          direction: 'INBOUND',
+          createdAt: { gt: chat.lastFollowUpAt! }
+        }
+      });
+      if (inbound) repliedCount++;
+    }
+
+    console.log(`[Válvula de Seguridad] Chats contactados previos (hace >2hs): ${lastFollowUpChats.length} | Respuestas recibidas: ${repliedCount}`);
+    
+    if (repliedCount === 0) {
+      console.warn(`\n🛑 ABORTANDO EJECUCIÓN: Se detectaron ${lastFollowUpChats.length} envíos previos en la última semana sin NINGUNA respuesta.`);
+      console.warn(`Para evitar bloqueos y spam, el script se detiene. Revisa manualmente las conversaciones.`);
+      process.exit(1);
+    }
+  } else {
+    console.log(`[Válvula de Seguridad] Envíos previos suficientes no encontrados para análisis de respuesta (${lastFollowUpChats.length}/3 necesarios). Continuando.`);
+  }
+
+  // Limitar lote a 5
+  const BATCH_LIMIT = 5;
+  const batchOpps = eligibleOpps.slice(0, BATCH_LIMIT);
+  console.log(`Clientes elegibles para seguimiento (totales): ${eligibleOpps.length} | Limitando este lote a: ${batchOpps.length}\n`);
+
+  if (batchOpps.length === 0) {
+    console.log("No hay clientes elegibles en la cola.");
     process.exit(0);
   }
 
-  for (let i = 0; i < eligibleOpps.length; i++) {
-    const opp = eligibleOpps[i];
-    console.log(`[${i + 1}/${eligibleOpps.length}] Procesando ${opp.client.name} (${opp.type})...`);
+  for (let i = 0; i < batchOpps.length; i++) {
+    const opp = batchOpps[i];
+    console.log(`[${i + 1}/${batchOpps.length}] Procesando ${opp.client.name} (${opp.type})...`);
 
     // 1. Generar mensaje
     const message = await generateFollowUp(opp);
@@ -666,7 +720,7 @@ async function main() {
     }
 
     // Esperar delay aleatorio (3 a 7 minutos) si no es el último
-    if (i < eligibleOpps.length - 1) {
+    if (i < batchOpps.length - 1) {
       const minDelay = 180000; // 3 min
       const maxDelay = 420000; // 7 min
       const delay = Math.floor(Math.random() * (maxDelay - minDelay + 1) + minDelay);

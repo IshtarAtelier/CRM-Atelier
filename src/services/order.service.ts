@@ -736,8 +736,22 @@ export class OrderService {
         if (labColor !== undefined) data.labColor = labColor;
         if (labTreatment !== undefined) data.labTreatment = labTreatment;
         if (labDiameter !== undefined) data.labDiameter = labDiameter;
-        if (labPdOd !== undefined) data.labPdOd = labPdOd;
-        if (labPdOi !== undefined) data.labPdOi = labPdOi;
+        if (labPdOd !== undefined) {
+            if (labPdOd === null || labPdOd === '') {
+                data.labPdOd = null;
+            } else {
+                const parsed = parseFloat(String(labPdOd));
+                data.labPdOd = isNaN(parsed) ? null : parsed;
+            }
+        }
+        if (labPdOi !== undefined) {
+            if (labPdOi === null || labPdOi === '') {
+                data.labPdOi = null;
+            } else {
+                const parsed = parseFloat(String(labPdOi));
+                data.labPdOi = isNaN(parsed) ? null : parsed;
+            }
+        }
         if (body.labFrameShape !== undefined) data.labFrameShape = body.labFrameShape;
         if (body.labFrameDetails !== undefined) data.labFrameDetails = body.labFrameDetails;
 

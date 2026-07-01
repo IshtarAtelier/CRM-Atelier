@@ -77,6 +77,60 @@ function getArgentineStateCode(stateName: string): string {
   }
 }
 
+// Helper to find the matched product by mapping configuration (lowest price to match findPrice logic)
+function findMatchedProduct(crystals: any[], config: any) {
+  let matches = crystals;
+  if (config.type) {
+    matches = matches.filter(p => p.type === config.type);
+  }
+  if (config.exactMatchName) {
+    const exactMatch = matches.find(p => p.name?.toLowerCase() === config.exactMatchName.toLowerCase());
+    if (exactMatch) return exactMatch;
+  }
+  if (config.matchKeywords && config.matchKeywords.length > 0) {
+    matches = matches.filter(p => 
+      config.matchKeywords.some((kw: string) => p.name?.toLowerCase().includes(kw))
+    );
+  } else if (config.matchKeywords && config.matchKeywords.length === 0 && config.type === "Cristal Monofocal") {
+    matches = matches.filter(p => 
+      !p.name?.toLowerCase().includes('blue') && 
+      !p.name?.toLowerCase().includes('foto') &&
+      !p.name?.toLowerCase().includes('transitions')
+    );
+  }
+  if (matches.length === 0) return null;
+  return [...matches].sort((a, b) => (a.price || 0) - (b.price || 0))[0];
+}
+
+// Helper to resolve the crystal product configuration selected on checkout
+function resolveCrystalProduct(item: any, crystals: any[]) {
+  if (!item.lensConfig || (item.lensConfig.lensType === "NONE" && !item.lensConfig.color)) return null;
+
+  const { lensType, treatment, color } = item.lensConfig;
+  let config: any = null;
+
+  if (color) {
+    if (lensType === "NONE" || lensType === "MONOFOCAL") {
+      config = CrystalMapping.MONOFOCAL.ORGANICO_BLANCO;
+    } else if (lensType === "BIFOCAL") {
+      config = CrystalMapping.BIFOCAL.ORGANICO_BLANCO;
+    } else if (lensType === "MULTIFOCAL") {
+      config = CrystalMapping.MULTIFOCAL.SMART_FREE;
+    }
+  } else {
+    if (lensType === "MONOFOCAL") {
+      config = CrystalMapping.MONOFOCAL[treatment as keyof typeof CrystalMapping.MONOFOCAL];
+    } else if (lensType === "BIFOCAL") {
+      config = CrystalMapping.BIFOCAL.ORGANICO_BLANCO;
+    } else if (lensType === "MULTIFOCAL") {
+      config = CrystalMapping.MULTIFOCAL[treatment as keyof typeof CrystalMapping.MULTIFOCAL];
+    }
+  }
+
+  if (!config) return null;
+  return findMatchedProduct(crystals, config);
+}
+
 export async function POST(req: Request) {
   let globalRestoreStock: (() => Promise<void>) | null = null;
   let order: any = null;
@@ -348,6 +402,8 @@ export async function POST(req: Request) {
           productNameSnapshot: item.model,
           productBrandSnapshot: item.brand,
           productCategorySnapshot: dbProduct?.category || "Armazón",
+          productCostSnapshot: dbProduct ? (dbProduct.cost || 0) : null,
+          laboratorySnapshot: dbProduct ? (dbProduct.laboratory || null) : null,
           quantity: item.quantity,
           price: framePrice,
           eye: null
@@ -362,12 +418,19 @@ export async function POST(req: Request) {
           : '';
         const lensName = `${lensTypeDesc}${treatmentDesc}`;
         
+        // Encontrar producto de cristal coincidente en BD para capturar costo y laboratorio reales
+        const matchedCrystal = resolveCrystalProduct(item, crystals);
+        const crystalCost = matchedCrystal ? (matchedCrystal.cost || 0) : 0;
+        const crystalCostPerEye = Math.round(crystalCost / 2);
+        
         // 2. Agregar cristal Ojo Derecho (OD)
         orderItemsToCreate.push({
-          productId: undefined,
+          productId: matchedCrystal ? matchedCrystal.id : undefined,
           productNameSnapshot: lensName,
           productBrandSnapshot: "Laboratorio",
           productCategorySnapshot: "Cristal",
+          productCostSnapshot: crystalCostPerEye,
+          laboratorySnapshot: matchedCrystal ? (matchedCrystal.laboratory || null) : null,
           quantity: item.quantity,
           price: lensPricePerEye,
           eye: "OD",
@@ -377,10 +440,12 @@ export async function POST(req: Request) {
         
         // 3. Agregar cristal Ojo Izquierdo (OI)
         orderItemsToCreate.push({
-          productId: undefined,
+          productId: matchedCrystal ? matchedCrystal.id : undefined,
           productNameSnapshot: lensName,
           productBrandSnapshot: "Laboratorio",
           productCategorySnapshot: "Cristal",
+          productCostSnapshot: crystalCostPerEye,
+          laboratorySnapshot: matchedCrystal ? (matchedCrystal.laboratory || null) : null,
           quantity: item.quantity,
           price: lensPricePerEye,
           eye: "OI",
@@ -401,6 +466,8 @@ export async function POST(req: Request) {
           productNameSnapshot: item.model,
           productBrandSnapshot: item.brand,
           productCategorySnapshot: dbProduct?.category || null,
+          productCostSnapshot: dbProduct ? (dbProduct.cost || 0) : null,
+          laboratorySnapshot: dbProduct ? (dbProduct.laboratory || null) : null,
           quantity: item.quantity,
           price: item.price,
           eye: null
