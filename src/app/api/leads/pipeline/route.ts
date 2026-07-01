@@ -12,15 +12,6 @@ export const dynamic = 'force-dynamic';
 
 const EXCLUSION_TAGS = ['no interesado', 'cancelar bot', 'spam', 'no bot'];
 
-/** Classify a lead into a pipeline stage based on hours since latest quote */
-function classifyStage(hoursElapsed: number | null): PipelineStageKey {
-  if (hoursElapsed === null) return 'nuevaReceta';
-  if (hoursElapsed < 24)  return 'cotizacionEnviada';
-  if (hoursElapsed < 48)  return 'seguimiento1';
-  if (hoursElapsed < 240) return 'seguimiento2';
-  return 'seguimiento10dias';
-}
-
 export async function GET() {
   try {
     const now = Date.now();
@@ -71,12 +62,27 @@ export async function GET() {
     for (const lead of qualifiedLeads) {
       const latestQuote = lead.orders[0] ?? null;
       const latestRx = lead.prescriptions[0];
+      const chatLabels = lead.whatsappChats[0]?.chatLabels || [];
+      const tags = lead.tags.map(t => t.name.toLowerCase());
 
-      const hoursElapsed = latestQuote
-        ? (now - new Date(latestQuote.createdAt).getTime()) / 3_600_000
-        : null;
+      let stage: PipelineStageKey = 'nuevaReceta';
 
-      const stage = classifyStage(hoursElapsed);
+      if (latestQuote) {
+        const searchPool = [
+          ...chatLabels.map(l => l.toLowerCase()),
+          ...tags
+        ];
+
+        if (searchPool.some(x => x.includes('seguimiento_dia_15') || x.includes('seguimiento 15') || x.includes('frío') || x.includes('frio') || x.includes('fríoo'))) {
+          stage = 'seguimiento10dias';
+        } else if (searchPool.some(x => x.includes('seguimiento_dia_4') || x.includes('seguimiento 4') || x.includes('seguimiento 2'))) {
+          stage = 'seguimiento2';
+        } else if (searchPool.some(x => x.includes('seguimiento_dia_1') || x.includes('seguimiento 1'))) {
+          stage = 'seguimiento1';
+        } else {
+          stage = 'cotizacionEnviada';
+        }
+      }
 
       const formattedLead = {
         id: lead.id,
