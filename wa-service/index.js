@@ -24,7 +24,7 @@ const { processPassiveExtraction } = require('./passive-extractor');
 const { transcribeAudio } = require('./transcriber');
 const { checkAndSendSalesFollowUps } = require('./sales-followups');
 const { checkAndSendInactivityFollowUps } = require('./cron/inactivity-followups');
-const { TAGS_SIN_BOT, getFileExtension } = require('./utils');
+const { TAGS_SIN_BOT, getFileExtension, getAdminWaId } = require('./utils');
 
 const configPath = path.join(__dirname, 'agent_config.json');
 
@@ -506,10 +506,10 @@ async function processBotTurn(chat, waId, profileName, realPhone) {
             console.log(`  ⏹️ Error de API detectado en ToolMessage (${chat.id}). Cancelando respuesta.`);
             try {
                 // Notificar exclusivamente al admin especificado por el usuario
-                const adminNotifyPhone = "5493541215971@c.us";
+                const adminNotifyPhone = getAdminWaId();
                 const alertMsg = `🚨 *ERROR TÉCNICO EN BOT* 🚨\nConversación con bot apagado: ${profileName || 'Cliente'} (${realPhone || waId.split('@')[0]})\nMotivo: El bot sufrió un error y se apagó en silencio.\nDetalle: ${apiErrorMessage}`;
-                await sendMessage(adminNotifyPhone, alertMsg, null, { isProactive: false });
-                console.log(`  🔔 Alerta de error enviada al administrador (3541215971)`);
+                await sendMessage(adminNotifyPhone, alertMsg, null, { isProactive: false, isAutomated: false });
+                console.log(`  🔔 Alerta de error enviada al administrador`);
             } catch (alertErr) {
                 console.error('Error enviando alerta de error de API al administrador:', alertErr.message);
             }
@@ -780,10 +780,10 @@ async function processBotTurn(chat, waId, profileName, realPhone) {
 
         // Notificar al administrador especificado (3541215971)
         try {
-            const adminNotifyPhone = "5493541215971@c.us";
+            const adminNotifyPhone = getAdminWaId();
             const alertMsg = `🚨 *ERROR TÉCNICO EN BOT* 🚨\nConversación con bot apagado: ${profileName || 'Cliente'} (${realPhone || waId.split('@')[0]})\nMotivo: ${err.message?.substring(0, 100)}`;
-            await sendMessage(adminNotifyPhone, alertMsg, null, { isProactive: false });
-            console.log(`  🔔 Alerta de falla enviada al administrador (3541215971)`);
+            await sendMessage(adminNotifyPhone, alertMsg, null, { isProactive: false, isAutomated: false });
+            console.log(`  🔔 Alerta de falla enviada al administrador`);
         } catch (alertErr) {
             console.error('Error enviando alerta de falla al administrador:', alertErr.message);
         }
@@ -939,6 +939,7 @@ const handleMessage = async (msg) => {
     // no debe activar la auto-exclusión por la palabra "baja").
     const META_TAG_REGEX = /\[meta[^\]]*\]/i;
     const isMetaAdsMessage = META_TAG_REGEX.test(body);
+    const originalBody = body; // Preservar body original (con tag) para guardar en DB
     // Limpiar el tag del body para que no interfiera con detecciones de negativos, 
     // post-venta, hostilidad, etc. El tag original ya fue evaluado arriba.
     if (isMetaAdsMessage) {
@@ -1305,7 +1306,7 @@ const handleMessage = async (msg) => {
                 chatId: chat.id,
                 direction: 'INBOUND',
                 type: messageType,
-                content: body,
+                content: originalBody, // Guardar body original (con tag [meta...]) para trazabilidad
                 mediaUrl: mediaUrl,
                 waMessageId: msg.id._serialized,
             }
