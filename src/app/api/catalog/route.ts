@@ -95,8 +95,8 @@ export async function GET(req: NextRequest) {
     };
 
     const materialOrder: Record<string, number> = {
-      'acetato': 1,
-      'metal': 2,
+      'metal': 1,
+      'acetato': 2,
       'titanio': 3,
       'otro': 4
     };
@@ -148,7 +148,7 @@ export async function GET(req: NextRequest) {
     const pageHeight = doc.internal.pageSize.getHeight();
 
     // ----------------------------------------------------
-    // EDITORIAL COVER 1: LA GIOCONDA (PAGE 1)
+    // EDITORIAL COVER: LA GIOCONDA (PAGE 1 - METAL COVER)
     // ----------------------------------------------------
     doc.setFillColor(10, 10, 10);
     doc.rect(0, 0, pageWidth, pageHeight, 'F');
@@ -186,7 +186,7 @@ export async function GET(req: NextRequest) {
     doc.setTextColor(158, 127, 101);
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(9);
-    doc.text("COLECCIÓN OPTICAL  ·  EDICIÓN LIMITADA", 20, 192, { charSpace: 1.5 });
+    doc.text("COLECCIÓN METAL  ·  EDICIÓN LIMITADA", 20, 192, { charSpace: 1.5 });
 
     doc.setTextColor(180, 180, 180);
     doc.setFont('times', 'italic');
@@ -205,78 +205,19 @@ export async function GET(req: NextRequest) {
     doc.text("CATÁLOGO OFICIAL 2025  ·  CÓRDOBA", pageWidth / 2, 258, { align: 'center', charSpace: 1 });
 
     // ----------------------------------------------------
-    // EDITORIAL COVER 2: LA FRIDA (PAGE 2)
+    // PRODUCT PAGES (Grouped by Material)
+    // Editorial covers used as section dividers:
+    //   - La Gioconda (page 1) = Metal cover
+    //   - La Frida = Acetato cover (inserted before acetato products)
     // ----------------------------------------------------
-    doc.addPage();
-    doc.setFillColor(10, 10, 10);
-    doc.rect(0, 0, pageWidth, pageHeight, 'F');
-
-    if (frida) {
-      doc.addImage(frida.base64, 'JPEG', 0, 0, pageWidth, 140);
-    }
-
-    // Top gold banner
-    doc.setFillColor(158, 127, 101);
-    doc.rect(0, 0, pageWidth, 7, 'F');
-    doc.setTextColor(255, 255, 255);
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(6);
-    doc.text("6 CUOTAS SIN INTERÉS  ·  15% OFF EN EFECTIVO O TRANSFERENCIA  ·  ENVÍO GRATIS", pageWidth / 2, 4.8, { align: 'center', charSpace: 1.2 });
-
-    // Frida Metadata
-    doc.setTextColor(150, 150, 150);
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(7.5);
-    doc.text("02 / 05  ·  ATELIER FILMS", 20, 158);
-
-    doc.setTextColor(158, 127, 101);
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(7.5);
-    doc.text("FRIDA KAHLO  ·  S. XX", 20, 168, { charSpace: 1 });
-
-    doc.setTextColor(255, 255, 255);
-    doc.setFont('times', 'bold');
-    doc.setFontSize(36);
-    doc.text("La Frida", 20, 182);
-
-    doc.setTextColor(158, 127, 101);
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(9);
-    doc.text("COLECCIÓN ACETATO  ·  EDICIÓN LIMITADA", 20, 192, { charSpace: 1.5 });
-
-    doc.setTextColor(180, 180, 180);
-    doc.setFont('times', 'italic');
-    doc.setFontSize(10.5);
-    doc.text("Diseño de autor en 6 cuotas sin interés y envío gratis a todo el país.", 20, 202);
-
-    doc.setTextColor(245, 245, 245);
-    doc.setFont('times', 'bold');
-    doc.setFontSize(16);
-    doc.text("ATELIER ÓPTICA", pageWidth / 2, 250, { align: 'center', charSpace: 2 });
-
-    doc.setTextColor(120, 120, 120);
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(7.5);
-    doc.text("CATÁLOGO OFICIAL 2025  ·  CÓRDOBA", pageWidth / 2, 258, { align: 'center', charSpace: 1 });
-
-    // ----------------------------------------------------
-    // INTERNAL PAGES (Grouped by Material with Section Covers)
-    // ----------------------------------------------------
-    let currentPage = 2;
+    let currentPage = 1;
     const productsPerPage = 2;
 
-    // Group products by material preserving sort order
     const materialLabels: Record<string, string> = {
       'acetato': 'ACETATO',
       'metal': 'METAL',
       'titanio': 'TITANIO',
       'otro': 'OTROS MATERIALES'
-    };
-    const materialSubtitles: Record<string, string> = {
-      'acetato': 'Calidez, color y personalidad en cada armazón',
-      'metal': 'Elegancia y ligereza en estado puro',
-      'titanio': 'Resistencia premium, peso pluma',
-      'otro': 'Diseños únicos que desafían lo convencional'
     };
 
     // Build ordered groups
@@ -291,51 +232,9 @@ export async function GET(req: NextRequest) {
       materialGroups[materialGroups.length - 1].products.push(wp);
     }
 
-    for (const group of materialGroups) {
-      // ── Section Cover Page ──
-      doc.addPage();
-      currentPage++;
-
-      // Dark background
-      doc.setFillColor(15, 15, 15);
-      doc.rect(0, 0, pageWidth, pageHeight, 'F');
-
-      // Gold accent line
-      doc.setDrawColor(158, 127, 101);
-      doc.setLineWidth(0.6);
-      doc.line(pageWidth / 2 - 30, 120, pageWidth / 2 + 30, 120);
-
-      // Material label
-      doc.setTextColor(255, 255, 255);
-      doc.setFont('times', 'bold');
-      doc.setFontSize(32);
-      doc.text(materialLabels[group.material] || group.material.toUpperCase(), pageWidth / 2, 140, { align: 'center', charSpace: 4 });
-
-      // Gold accent line below
-      doc.setDrawColor(158, 127, 101);
-      doc.setLineWidth(0.6);
-      doc.line(pageWidth / 2 - 30, 148, pageWidth / 2 + 30, 148);
-
-      // Subtitle
-      doc.setTextColor(158, 127, 101);
-      doc.setFont('times', 'italic');
-      doc.setFontSize(12);
-      doc.text(materialSubtitles[group.material] || '', pageWidth / 2, 162, { align: 'center' });
-
-      // Product count
-      doc.setTextColor(100, 100, 100);
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(8);
-      doc.text(`${group.products.length} ${group.products.length === 1 ? 'modelo' : 'modelos'}`, pageWidth / 2, 175, { align: 'center', charSpace: 1 });
-
-      // Atelier branding at the bottom
-      doc.setTextColor(60, 60, 60);
-      doc.setFont('times', 'bold');
-      doc.setFontSize(9);
-      doc.text("ATELIER ÓPTICA", pageWidth / 2, 258, { align: 'center', charSpace: 2 });
-
-      // ── Product Pages ──
-      for (let i = 0; i < group.products.length; i += productsPerPage) {
+    // Helper to render product pages for a group
+    const renderProductPages = (products: typeof webProducts, materialKey: string) => {
+      for (let i = 0; i < products.length; i += productsPerPage) {
         doc.addPage();
         currentPage++;
 
@@ -347,7 +246,7 @@ export async function GET(req: NextRequest) {
         doc.setTextColor(120, 120, 120);
         doc.setFont('times', 'bold');
         doc.setFontSize(8);
-        doc.text(`ATELIER ÓPTICA  ·  ${materialLabels[group.material] || group.material.toUpperCase()}`, pageWidth / 2, 12, { align: 'center', charSpace: 1.5 });
+        doc.text(`ATELIER ÓPTICA  ·  ${materialLabels[materialKey] || materialKey.toUpperCase()}`, pageWidth / 2, 12, { align: 'center', charSpace: 1.5 });
         doc.setDrawColor(240, 240, 240);
         doc.setLineWidth(0.2);
         doc.line(15, 15, pageWidth - 15, 15);
@@ -360,9 +259,9 @@ export async function GET(req: NextRequest) {
 
         for (let j = 0; j < productsPerPage; j++) {
           const productIndex = i + j;
-          if (productIndex >= group.products.length) break;
+          if (productIndex >= products.length) break;
 
-          const wp = group.products[productIndex];
+          const wp = products[productIndex];
           const p = wp.product;
           const imgData = imageMap.get(wp.id);
 
@@ -437,6 +336,78 @@ export async function GET(req: NextRequest) {
           doc.setFontSize(7.5);
           doc.text(`✓ STOCK ${stock}`, 170, startY + 12, { align: 'right' });
         }
+      }
+    };
+
+    // Helper to render La Frida editorial cover (Acetato section cover)
+    const renderFridaCover = () => {
+      doc.addPage();
+      currentPage++;
+
+      doc.setFillColor(10, 10, 10);
+      doc.rect(0, 0, pageWidth, pageHeight, 'F');
+
+      if (frida) {
+        doc.addImage(frida.base64, 'JPEG', 0, 0, pageWidth, 140);
+      }
+
+      // Top gold banner
+      doc.setFillColor(158, 127, 101);
+      doc.rect(0, 0, pageWidth, 7, 'F');
+      doc.setTextColor(255, 255, 255);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(6);
+      doc.text("6 CUOTAS SIN INTERÉS  ·  15% OFF EN EFECTIVO O TRANSFERENCIA  ·  ENVÍO GRATIS", pageWidth / 2, 4.8, { align: 'center', charSpace: 1.2 });
+
+      // Frida Metadata
+      doc.setTextColor(150, 150, 150);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(7.5);
+      doc.text("02 / 05  ·  ATELIER FILMS", 20, 158);
+
+      doc.setTextColor(158, 127, 101);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(7.5);
+      doc.text("FRIDA KAHLO  ·  S. XX", 20, 168, { charSpace: 1 });
+
+      doc.setTextColor(255, 255, 255);
+      doc.setFont('times', 'bold');
+      doc.setFontSize(36);
+      doc.text("La Frida", 20, 182);
+
+      doc.setTextColor(158, 127, 101);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(9);
+      doc.text("COLECCIÓN ACETATO  ·  EDICIÓN LIMITADA", 20, 192, { charSpace: 1.5 });
+
+      doc.setTextColor(180, 180, 180);
+      doc.setFont('times', 'italic');
+      doc.setFontSize(10.5);
+      doc.text("Diseño de autor en 6 cuotas sin interés y envío gratis a todo el país.", 20, 202);
+
+      doc.setTextColor(245, 245, 245);
+      doc.setFont('times', 'bold');
+      doc.setFontSize(16);
+      doc.text("ATELIER ÓPTICA", pageWidth / 2, 250, { align: 'center', charSpace: 2 });
+
+      doc.setTextColor(120, 120, 120);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(7.5);
+      doc.text("CATÁLOGO OFICIAL 2025  ·  CÓRDOBA", pageWidth / 2, 258, { align: 'center', charSpace: 1 });
+    };
+
+    // Render each material group with appropriate covers
+    for (const group of materialGroups) {
+      if (group.material === 'metal') {
+        // Metal: La Gioconda is already page 1, just render products
+        renderProductPages(group.products, group.material);
+      } else if (group.material === 'acetato') {
+        // Acetato: Insert La Frida editorial cover, then products
+        renderFridaCover();
+        renderProductPages(group.products, group.material);
+      } else {
+        // Other materials: just render products directly
+        renderProductPages(group.products, group.material);
       }
     }
 
