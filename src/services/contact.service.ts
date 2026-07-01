@@ -723,7 +723,7 @@ export const ContactService = {
                     paid: 0
                 }
             });
-        });
+        }, { timeout: 25000 });
     },
 
     async updatePriority(id: string, priority: number) {
@@ -738,7 +738,7 @@ export const ContactService = {
             return await tx.client.delete({
                 where: { id }
             });
-        });
+        }, { timeout: 25000 });
     },
 
     async toggleFavorite(id: string) {
@@ -1412,7 +1412,7 @@ export const ContactService = {
                 discountCash: financials.discountCash,
                 discountTransfer: financials.discountTransfer
             };
-        }).then(result => {
+        }, { timeout: 25000 }).then(result => {
             // Si es efectivo, verificar alerta de saldo fuera de la transacción
             if (method === 'EFECTIVO' || method === 'CASH') {
                 CashService.checkBalanceAndAlert().catch(err => console.error('Error in cash alert:', err));
@@ -1626,7 +1626,7 @@ export const ContactService = {
             return await tx.payment.delete({
                 where: { id: paymentId }
             });
-        });
+        }, { timeout: 25000 });
     },
 
     /**
@@ -1980,7 +1980,7 @@ export const ContactService = {
             });
 
             return updatedPayment;
-        });
+        }, { timeout: 25000 });
     },
 
     async canCloseSale(clientId: string) {
@@ -2262,6 +2262,6 @@ export const ContactService = {
             });
 
             return { success: true, message: `Clientes fusionados con éxito.` };
-        });
+        }, { timeout: 25000 });
     }
 };

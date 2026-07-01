@@ -359,17 +359,23 @@ async function processBotTurn(chat, waId, profileName, realPhone) {
             TAGS_SIN_BOT.some(t => label.toLowerCase().includes(t))
         );
         if (tieneTagSinBot) {
-            // Verificar si el mensaje más reciente es de Meta Ads (override de exclusión)
-            const newestInbound = await prisma.whatsAppMessage.findFirst({
-                where: { chatId: chat.id, direction: 'INBOUND' },
+            // Verificar si hubo un mensaje de Meta Ads en las últimas 4 horas (override de exclusión)
+            const timeWindow = new Date(Date.now() - 4 * 60 * 60 * 1000);
+            const recentMetaMsg = await prisma.whatsAppMessage.findFirst({
+                where: { 
+                    chatId: chat.id, 
+                    direction: 'INBOUND',
+                    content: { contains: '[meta', mode: 'insensitive' },
+                    createdAt: { gte: timeWindow }
+                },
                 orderBy: { createdAt: 'desc' }
             });
-            const isRecentMetaAds = newestInbound && /\[meta[^\]]*\]/i.test(newestInbound.content || '');
+            const isRecentMetaAds = recentMetaMsg && /\[meta[^\]]*\]/i.test(recentMetaMsg.content || '');
             if (!isRecentMetaAds) {
                 console.log(`  🚫 Turno de bot cancelado para ${profileName || waId} por etiqueta de exclusión (etiquetas o labels de chat).`);
                 return;
             }
-            console.log(`  🎯 [Meta Ads Override] Tag de exclusión presente pero mensaje de Meta Ads detectado. Permitiendo respuesta.`);
+            console.log(`  🎯 [Meta Ads Session Override] Tag de exclusión presente pero se detectó sesión de Meta Ads. Permitiendo respuesta.`);
         }
 
         console.log(`  🤖 Bot procesando bloque de mensajes de ${profileName}...`);
@@ -1031,6 +1037,27 @@ const handleMessage = async (msg) => {
             });
         }
 
+        // ── Determinación de "Meta Ads Session" ──
+        // Si el usuario envía un segundo mensaje (ej: "hola") poco después de hacer click
+        // en el anuncio, este mensaje NO tendrá el tag [meta...]. Para no perder la
+        // exención de exclusiones, buscamos si hubo un tag Meta en las últimas 4 horas.
+        let isMetaAdsSession = isMetaAdsMessage;
+        if (!isMetaAdsSession && chat) {
+            const timeWindow = new Date(Date.now() - 4 * 60 * 60 * 1000); // 4 horas
+            const recentMetaMsg = await prisma.whatsAppMessage.findFirst({
+                where: {
+                    chatId: chat.id,
+                    direction: 'INBOUND',
+                    content: { contains: '[meta', mode: 'insensitive' },
+                    createdAt: { gte: timeWindow }
+                },
+                orderBy: { createdAt: 'desc' }
+            });
+            if (recentMetaMsg && /\[meta[^\]]*\]/i.test(recentMetaMsg.content || '')) {
+                isMetaAdsSession = true;
+            }
+        }
+
         // ── Auto-exclusión ante respuestas negativas / "no interesado" ──
         // IMPORTANTE: Saltear esta comprobación si es un mensaje de Meta Ads, porque
         // el tag [meta...] ya fue limpiado del body pero el contenido original de la
@@ -1123,7 +1150,7 @@ const handleMessage = async (msg) => {
         // Si el contacto está guardado en la agenda del teléfono, es un proveedor,
         // familiar o contacto conocido. El bot se apaga silenciosamente.
         // EXCEPCIÓN: Si viene de Meta Ads, el bot debe responder siempre.
-        if (contact.isMyContact && !isMetaAdsMessage) {
+        if (contact.isMyContact && !isMetaAdsSession) {
             if (chat.botEnabled) {
                 console.log(`  📇 Contacto agendado detectado: ${profileName || waId}. Apagando bot silenciosamente.`);
                 await disableBotForChatById(chat.id, 'Contacto agendado en teléfono');
@@ -1142,7 +1169,7 @@ const handleMessage = async (msg) => {
         ) || chatLabels.some(label =>
             TAGS_SIN_BOT.some(t => label.toLowerCase().includes(t))
         );
-        if (tieneTagSinBot && !isMetaAdsMessage) {
+        if (tieneTagSinBot && !isMetaAdsSession) {
             if (chat.botEnabled) {
                 await disableBotForChatById(chat.id, 'Etiquetas excluidas (Sin Bot)');
                 chat.botEnabled = false; // sincronizar localmente
@@ -1189,7 +1216,7 @@ const handleMessage = async (msg) => {
             }
         }
         
-        if (esPostVenta && !isMetaAdsMessage) {
+        if (esPostVenta && !isMetaAdsSession) {
             if (chat.botEnabled) {
                 await disableBotForChatById(chat.id, 'Post-Venta / Reclamo / Estado de Pedido detectado');
                 chat.botEnabled = false; // desactivar bot localmente para no responder
@@ -1497,7 +1524,7 @@ const handleMessage = async (msg) => {
         }
 
         // 3. Bot Logic — Llamada DIRECTA al grafo (sin HTTP intermedio) con DEBOUNCE
-        if (agentEnabled && chat.botEnabled && (!tieneTagSinBot || isMetaAdsMessage)) {
+        if (agentEnabled && chat.botEnabled && (!tieneTagSinBot || isMetaAdsSession)) {
             console.log(`  🕒 Programando respuesta del bot para ${profileName} en 25s...`);
             
             if (botDebounceTimers.has(chat.id)) {
