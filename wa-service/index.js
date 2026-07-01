@@ -1524,7 +1524,7 @@ const handleMessage = async (msg) => {
         }
 
         // 3. Bot Logic — Llamada DIRECTA al grafo (sin HTTP intermedio) con DEBOUNCE
-        if (agentEnabled && chat.botEnabled && (!tieneTagSinBot || isMetaAdsSession)) {
+        if (agentEnabled && chat.botEnabled && (!tieneTagSinBot || isMetaAdsMessage)) {
             console.log(`  🕒 Programando respuesta del bot para ${profileName} en 25s...`);
             
             if (botDebounceTimers.has(chat.id)) {
@@ -1537,20 +1537,20 @@ const handleMessage = async (msg) => {
             }, 25000); // 25 segundos de debounce para que no sea tan inmediato
 
             botDebounceTimers.set(chat.id, timer);
-        } else if (!chat.botEnabled) {
-            console.log(`  🕒 Programando extracción pasiva para ${profileName} en 20s...`);
-            
-            if (passiveDebounceTimers.has(chat.id)) {
-                clearTimeout(passiveDebounceTimers.get(chat.id));
-            }
-
-            const timer = setTimeout(() => {
-                passiveDebounceTimers.delete(chat.id);
-                processPassiveExtraction(chat.id, waId, profileName).catch(e => console.error("❌ Error async en passiveExtraction:", e.message));
-            }, 20000); // 20 segundos de debounce
-
-            passiveDebounceTimers.set(chat.id, timer);
         }
+
+        // Ejecutar extracción pasiva SIEMPRE en segundo plano tras 20s para capturar datos estructurados y postergaciones
+        console.log(`  🕒 Programando extracción pasiva de datos para ${profileName} en 20s...`);
+        if (passiveDebounceTimers.has(chat.id)) {
+            clearTimeout(passiveDebounceTimers.get(chat.id));
+        }
+
+        const passiveTimer = setTimeout(() => {
+            passiveDebounceTimers.delete(chat.id);
+            processPassiveExtraction(chat.id, waId, profileName).catch(e => console.error("❌ Error async en passiveExtraction:", e.message));
+        }, 20000); // 20 segundos de debounce
+
+        passiveDebounceTimers.set(chat.id, passiveTimer);
 
     } catch (error) {
         console.error('Error general:', error);

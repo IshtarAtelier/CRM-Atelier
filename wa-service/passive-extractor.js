@@ -68,15 +68,17 @@ Información actual:
 Conversación reciente:
 ${conversationText}
 
-Tu tarea es devolver un JSON estrictamente válido con los siguientes campos:
-1. "clientName": string o null. (Si el cliente NO está en la base, intenta extraer su nombre real de la conversación. Si no dice su nombre pero el perfil de WA tiene un nombre humano coherente, úsalo. Si es puramente anónimo, null).
-2. "interestTag": string o null. (Si el cliente mostró interés en "Multifocal", "Monofocal", "Armazón", "Sol", "Lentes de Contacto". Solo si es nuevo y no está en sus etiquetas actuales).
-3. "insurance": string o null. (Si mencionó su obra social o prepaga, ej: "OSDE", "Galeno", "PAMI").
-4. "summary": string o null. (Un breve resumen de 1 o 2 oraciones sobre lo que el cliente quiere o el estado actual de la charla, para actualizar el historial. Si no hay nada relevante, null).
-5. "suggestedTask": objeto o null. Si el cliente o el vendedor se comprometen a una acción futura concreta (ej: "paso el lunes", "escribime la semana que viene"), devuelve un objeto {"description": "Breve descripción de la tarea", "dueDate": "YYYY-MM-DD"}. Si es una visita al local, la descripción DEBE incluir "Visita programada. Recordar ubicación y horarios". Si la fecha es incierta o no hay compromiso, null.
-6. "invoiceRequested": boolean. (True SOLO si el cliente pide explícitamente que se le envíe la factura, ticket fiscal o comprobante oficial de compra).
+Your task is to return a strictly valid JSON object with the following fields:
+1. "clientName": string or null.
+2. "interestTag": string or null.
+3. "insurance": string or null.
+4. "summary": string or null.
+5. "suggestedTask": object or null {"description": string, "dueDate": "YYYY-MM-DD"}.
+6. "invoiceRequested": boolean.
+7. "shouldPostponeFollowup": boolean. (Set to true if the client explicitly asks to postpone, wait, says they don't have the prescription yet, will have it in a week/few days, is busy and asks to be contacted later, or states they cannot buy/visit until a certain future date like next week, next month, etc.)
+8. "postponeUntilDate": "YYYY-MM-DD" or null. (If shouldPostponeFollowup is true, estimate the best future date to resume contact based on their message, e.g. next week = 7 days from now, next month = 30 days from now, or use the specific date they mentioned. Default to 7 days from now if unclear. Today is: ${new Date().toISOString().split('T')[0]}).
 
-Responde ÚNICAMENTE con el JSON puro. Sin markdown.
+Respond ONLY with the raw JSON. No markdown.
 `;
 
         const model = getPassiveModel();
@@ -152,6 +154,65 @@ Responde ÚNICAMENTE con el JSON puro. Sin markdown.
                         });
                     }
                 }
+            }
+
+            // Handle postponement request
+            if (parsed.shouldPostponeFollowup) {
+                console.log(`  ⏱️ [Ficha Inteligente] Solicitud de postergación de seguimiento detectada para ${currentClientId}`);
+                
+                // 1. Delete all current active followup tasks (to stop active automated sequence)
+                await prisma.clientTask.deleteMany({
+                    where: {
+                        clientId: currentClientId,
+                        type: 'FOLLOWUP',
+                        status: 'PENDING'
+                    }
+                }).catch(() => {});
+
+                // 2. Add "Sin Seguimiento" tag to client
+                const tag = await prisma.tag.upsert({
+                    where: { name: 'Sin Seguimiento' },
+                    update: {},
+                    create: { name: 'Sin Seguimiento', color: '#ef4444' }
+                });
+                await prisma.client.update({
+                    where: { id: currentClientId },
+                    data: {
+                        tags: {
+                            connect: { id: tag.id }
+                        }
+                    }
+                }).catch(() => {});
+
+                // 3. Update WhatsAppChat labels: remove active followups, set bot to disabled, add SIN_SEGUIMIENTO
+                let updatedLabels = [...(chatInfo.chatLabels || [])].filter((l) => !l.startsWith('SEGUIMIENTO_DIA_'));
+                if (!updatedLabels.includes('SIN_SEGUIMIENTO')) {
+                    updatedLabels.push('SIN_SEGUIMIENTO');
+                }
+                await prisma.whatsAppChat.update({
+                    where: { id: chatId },
+                    data: {
+                        chatLabels: updatedLabels,
+                        botEnabled: false
+                    }
+                }).catch(() => {});
+
+                // 4. Reschedule a FUTURE follow-up trigger task for the determined date
+                const resumeDate = parsed.postponeUntilDate ? new Date(parsed.postponeUntilDate) : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+                resumeDate.setHours(11, 0, 0, 0); // Schedule for 11:00 AM
+
+                await prisma.clientTask.create({
+                    data: {
+                        clientId: currentClientId,
+                        description: `[SISTEMA] Reanudación Automática de Seguimientos`,
+                        type: 'TASK',
+                        status: 'PENDING',
+                        dueDate: resumeDate,
+                        createdBy: 'Bot Trigger'
+                    }
+                }).catch(() => {});
+
+                console.log(`  ✅ [Ficha Inteligente] Proactive followups paused. Rescheduled resume task for ${resumeDate.toLocaleDateString()}`);
             }
         }
 

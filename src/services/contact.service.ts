@@ -800,7 +800,7 @@ export const ContactService = {
                     paid: 0
                 }
             });
-        }, { timeout: 25000 });
+        }, { maxWait: 25000, timeout: 25000 });
     },
 
     async updatePriority(id: string, priority: number) {
@@ -815,7 +815,7 @@ export const ContactService = {
             return await tx.client.delete({
                 where: { id }
             });
-        }, { timeout: 25000 });
+        }, { maxWait: 25000, timeout: 25000 });
     },
 
     async toggleFavorite(id: string) {
@@ -1703,7 +1703,7 @@ export const ContactService = {
             return await tx.payment.delete({
                 where: { id: paymentId }
             });
-        }, { timeout: 25000 });
+        }, { maxWait: 25000, timeout: 25000 });
     },
 
     /**
