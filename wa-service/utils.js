@@ -54,10 +54,59 @@ function getFileExtension(mimetype) {
     return 'bin';
 }
 
+// ── WhatsApp ID format helpers ────────────────────────
+// LID = Local Internal ID (new WhatsApp format, e.g. "265656914161793@lid")
+// C.US = Classic phone-based ID (e.g. "5493541215971@c.us")
+
+/**
+ * Returns true if the waId uses WhatsApp's new LID format.
+ * LIDs are internal IDs that don't follow phone number conventions.
+ */
+function isLidFormat(waId) {
+    return typeof waId === 'string' && waId.endsWith('@lid');
+}
+
+/**
+ * Returns true if the waId is a group chat.
+ */
+function isGroupId(waId) {
+    return typeof waId === 'string' && waId.includes('@g.us');
+}
+
+/**
+ * Validates that a waId is a valid individual recipient.
+ * - LID format: always valid (internal WhatsApp ID, no phone semantics)
+ * - C.US format: must have valid international country code prefix
+ * - Groups: always invalid (not an individual recipient)
+ * @returns {{ valid: boolean, reason?: string }}
+ */
+function isValidRecipient(waId) {
+    if (!waId || typeof waId !== 'string') {
+        return { valid: false, reason: 'waId vacío o inválido' };
+    }
+    if (isGroupId(waId)) {
+        return { valid: false, reason: 'Prohibido enviar mensajes automáticos a grupos' };
+    }
+    if (isLidFormat(waId)) {
+        return { valid: true }; // LIDs are internal — no phone number validation needed
+    }
+    // Classic @c.us format: validate country code prefix
+    const cleanPhone = waId.split('@')[0];
+    const VALID_PREFIXES = ['54', '1', '34']; // Argentina, USA/Canada, Spain
+    const hasValidPrefix = VALID_PREFIXES.some(p => cleanPhone.startsWith(p));
+    if (cleanPhone.length < 11 || !hasValidPrefix) {
+        return { valid: false, reason: 'Falta el código de país internacional obligatorio en el destinatario' };
+    }
+    return { valid: true };
+}
+
 module.exports = {
     TAGS_SIN_BOT,
     ADMIN_PHONE_FALLBACK,
     getAdminWaId,
     withTimeout,
-    getFileExtension
+    getFileExtension,
+    isLidFormat,
+    isGroupId,
+    isValidRecipient
 };

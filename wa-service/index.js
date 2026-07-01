@@ -359,8 +359,17 @@ async function processBotTurn(chat, waId, profileName, realPhone) {
             TAGS_SIN_BOT.some(t => label.toLowerCase().includes(t))
         );
         if (tieneTagSinBot) {
-            console.log(`  🚫 Turno de bot cancelado para ${profileName || waId} por etiqueta de exclusión (etiquetas o labels de chat).`);
-            return;
+            // Verificar si el mensaje más reciente es de Meta Ads (override de exclusión)
+            const newestInbound = await prisma.whatsAppMessage.findFirst({
+                where: { chatId: chat.id, direction: 'INBOUND' },
+                orderBy: { createdAt: 'desc' }
+            });
+            const isRecentMetaAds = newestInbound && /\[meta[^\]]*\]/i.test(newestInbound.content || '');
+            if (!isRecentMetaAds) {
+                console.log(`  🚫 Turno de bot cancelado para ${profileName || waId} por etiqueta de exclusión (etiquetas o labels de chat).`);
+                return;
+            }
+            console.log(`  🎯 [Meta Ads Override] Tag de exclusión presente pero mensaje de Meta Ads detectado. Permitiendo respuesta.`);
         }
 
         console.log(`  🤖 Bot procesando bloque de mensajes de ${profileName}...`);
@@ -924,6 +933,21 @@ const handleMessage = async (msg) => {
 
     let body = msg.body || '';
 
+    // ── Extracción temprana del tag de campaña Meta Ads ──
+    // Detectamos y preservamos el tag [meta...] del mensaje ANTES de cualquier
+    // procesamiento de keywords para evitar falsos positivos (ej: [meta baja] 
+    // no debe activar la auto-exclusión por la palabra "baja").
+    const META_TAG_REGEX = /\[meta[^\]]*\]/i;
+    const isMetaAdsMessage = META_TAG_REGEX.test(body);
+    // Limpiar el tag del body para que no interfiera con detecciones de negativos, 
+    // post-venta, hostilidad, etc. El tag original ya fue evaluado arriba.
+    if (isMetaAdsMessage) {
+        body = body.replace(/\[meta[^\]]*\]/gi, '').trim();
+        if (!body) {
+            body = 'Hola, vengo de un anuncio de Facebook/Instagram y estoy interesado.';
+        }
+    }
+
     try {
         // 2. Buscar o crear el Chat en la base de datos evaluando si es una charla vieja
         let chat = await prisma.whatsAppChat.findUnique({ where: { waId } });
@@ -957,7 +981,7 @@ const handleMessage = async (msg) => {
                 }
                 
                 // Si entra por un anuncio de Meta Ads, forzar encendido del bot
-                if (body && /\[meta[^\]]*\]/i.test(body)) {
+                if (isMetaAdsMessage) {
                     shouldEnableBot = true;
                     console.log(`  🎯 [Meta Ads] Forzando encendido de bot para nuevo chat de ${profileName || waId}.`);
                 }
@@ -994,7 +1018,7 @@ const handleMessage = async (msg) => {
             }
             
             // Si llega un mensaje de Meta Ads, reactivar el bot para responder al anuncio
-            if (body && /\[meta[^\]]*\]/i.test(body)) {
+            if (isMetaAdsMessage) {
                 updateData.botEnabled = true;
                 chat.botEnabled = true; // Sincronizar localmente en memoria
                 console.log(`  🎯 [Meta Ads] Reactivando bot para chat existente de ${profileName || waId}.`);
@@ -1007,6 +1031,11 @@ const handleMessage = async (msg) => {
         }
 
         // ── Auto-exclusión ante respuestas negativas / "no interesado" ──
+        // IMPORTANTE: Saltear esta comprobación si es un mensaje de Meta Ads, porque
+        // el tag [meta...] ya fue limpiado del body pero el contenido original de la
+        // plantilla de la campaña podría contener palabras como "baja", "eliminar", etc.
+        // que son falsos positivos (el cliente NO está rechazando, está llegando de un anuncio).
+        if (!isMetaAdsMessage) {
         const cleanBody = (body || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, ""); // remover tildes
         const negativePatterns = [
             /\bno\s+me\s+interesa\b/i,
@@ -1039,6 +1068,7 @@ const handleMessage = async (msg) => {
                 }
             });
         }
+        } // fin !isMetaAdsMessage
 
         // 2. Auto-vincular cliente del CRM por número de teléfono
         if (!chat.clientId && realPhone && realPhone.length >= 8) {
@@ -1091,7 +1121,8 @@ const handleMessage = async (msg) => {
         // ── Chequeo de Contacto en Agenda (Teléfono) ──────────
         // Si el contacto está guardado en la agenda del teléfono, es un proveedor,
         // familiar o contacto conocido. El bot se apaga silenciosamente.
-        if (contact.isMyContact) {
+        // EXCEPCIÓN: Si viene de Meta Ads, el bot debe responder siempre.
+        if (contact.isMyContact && !isMetaAdsMessage) {
             if (chat.botEnabled) {
                 console.log(`  📇 Contacto agendado detectado: ${profileName || waId}. Apagando bot silenciosamente.`);
                 await disableBotForChatById(chat.id, 'Contacto agendado en teléfono');
@@ -1110,7 +1141,7 @@ const handleMessage = async (msg) => {
         ) || chatLabels.some(label =>
             TAGS_SIN_BOT.some(t => label.toLowerCase().includes(t))
         );
-        if (tieneTagSinBot) {
+        if (tieneTagSinBot && !isMetaAdsMessage) {
             if (chat.botEnabled) {
                 await disableBotForChatById(chat.id, 'Etiquetas excluidas (Sin Bot)');
                 chat.botEnabled = false; // sincronizar localmente
@@ -1157,7 +1188,7 @@ const handleMessage = async (msg) => {
             }
         }
         
-        if (esPostVenta) {
+        if (esPostVenta && !isMetaAdsMessage) {
             if (chat.botEnabled) {
                 await disableBotForChatById(chat.id, 'Post-Venta / Reclamo / Estado de Pedido detectado');
                 chat.botEnabled = false; // desactivar bot localmente para no responder
@@ -1283,7 +1314,7 @@ const handleMessage = async (msg) => {
         broadcastChatUpdate(chat.id);
         
         // ── Auto-etiquetado Meta Ads y Multifocales ──
-        if (body && /\[meta[^\]]*\]/i.test(body) && chat.clientId) {
+        if (isMetaAdsMessage && chat.clientId) {
             const { addTagToClient } = require('./tools');
             await addTagToClient({ clientId: chat.clientId, tagName: 'Meta Ads' }).catch(e => console.error("Error auto-tag Meta:", e.message));
             await addTagToClient({ clientId: chat.clientId, tagName: 'Multifocal' }).catch(e => console.error("Error auto-tag Multifocal:", e.message));
@@ -1465,7 +1496,7 @@ const handleMessage = async (msg) => {
         }
 
         // 3. Bot Logic — Llamada DIRECTA al grafo (sin HTTP intermedio) con DEBOUNCE
-        if (agentEnabled && chat.botEnabled && !tieneTagSinBot) {
+        if (agentEnabled && chat.botEnabled && (!tieneTagSinBot || isMetaAdsMessage)) {
             console.log(`  🕒 Programando respuesta del bot para ${profileName} en 25s...`);
             
             if (botDebounceTimers.has(chat.id)) {

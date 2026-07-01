@@ -1,5 +1,5 @@
 const { prisma } = require('../db');
-const { getAdminWaId } = require('../utils');
+const { getAdminWaId, isValidRecipient, isLidFormat } = require('../utils');
 
 class AntiBanQueue {
     constructor() {
@@ -225,44 +225,39 @@ class AntiBanQueue {
             throw new Error('El cliente de WhatsApp no está inicializado en AntiBanQueue');
         }
 
-        // 1. Validar indicativo de país y formato (No permitir números sin indicativo completo)
+        // 1. Validar formato del destinatario usando helper centralizado
         let targetWaId = waId;
-        const cleanPhone = targetWaId.split('@')[0];
-        
-        // Bloquear llamadas a grupos
-        if (targetWaId.includes('@g.us')) {
-            reject(new Error('Política Anti-Spam: Prohibido enviar mensajes automáticos o difusiones a grupos'));
+
+        const recipientCheck = isValidRecipient(targetWaId);
+        if (!recipientCheck.valid) {
+            reject(new Error(`Número inválido: ${recipientCheck.reason}`));
             return;
         }
 
-        const isLid = targetWaId.endsWith('@lid');
-        if (!isLid && (cleanPhone.length < 11 || (!cleanPhone.startsWith('54') && !cleanPhone.startsWith('1') && !cleanPhone.startsWith('34')))) {
-            // Valida código internacional completo (Ej: 54 para Argentina, 34 España, 1 USA/Canadá)
-            reject(new Error('Número inválido: Falta el código de país internacional obligatorio en el destinatario'));
-            return;
-        }
-
-        // Resolver el número en WhatsApp Web para normalizar LID
-        try {
-            if (targetWaId.includes('@c.us')) {
-                const numberId = await this.client.getNumberId(targetWaId);
-                if (numberId && numberId._serialized) {
-                    targetWaId = numberId._serialized;
-                } else {
-                    reject(new Error('El número no está registrado en WhatsApp o es inválido'));
-                    return;
+        // Resolver @c.us → @lid vía WhatsApp Web (los LIDs ya están resueltos)
+        if (!isLidFormat(targetWaId)) {
+            try {
+                if (targetWaId.includes('@c.us')) {
+                    const numberId = await this.client.getNumberId(targetWaId);
+                    if (numberId && numberId._serialized) {
+                        targetWaId = numberId._serialized;
+                    } else {
+                        reject(new Error('El número no está registrado en WhatsApp o es inválido'));
+                        return;
+                    }
                 }
+            } catch (e) {
+                console.warn(`[AntiBanQueue] No se pudo validar el ID de número para ${targetWaId}: ${e.message}`);
             }
-        } catch (e) {
-            console.warn(`[AntiBanQueue] No se pudo validar el ID de número para ${targetWaId}: ${e.message}`);
         }
 
         // 2. Analizar historial del chat en la DB para auditoría anti-ban
         let isColdContact = false;
         let isOutOfWindow = false;
+        let chatDb = null; // Hoisted para que sea accesible en Rule D
 
         try {
-            const chatDb = await prisma.whatsAppChat.findUnique({
+            chatDb = await prisma.whatsAppChat.findUnique({
                 where: { waId: targetWaId },
                 include: {
                     messages: {
