@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import type { PipelineData, PipelineLead, PipelineStageKey, PipelineColumn } from '@/types/leads';
+import type { PipelineData, PipelineLead, PipelineColumn } from '@/types/leads';
 
 // ─────────────────────────────────────────────────────────────
 // useLeadsPipeline — Custom hook for embudo de ventas

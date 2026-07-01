@@ -76,7 +76,15 @@ async function checkAndSendSalesFollowUps({ isAgentEnabled, botReplyingTo, broad
             }
 
             // Validar elegibilidad "just-in-time" por si compró desde que se generó la tarea
-            const { eligible, followUpType, label, reason } = await checkEligibility({ client, chat, quote: latestQuote, now });
+            const isManual = task.createdBy === 'Bot Trigger';
+            const { eligible, followUpType, label, reason } = await checkEligibility({
+                client,
+                chat,
+                quote: latestQuote,
+                now,
+                isManual,
+                taskDescription: task.description
+            });
 
             if (!eligible) {
                 console.log(`  🚫 [Bot Executor] Tarea cancelada para ${client.name}: ${reason}`);

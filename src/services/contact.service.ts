@@ -547,6 +547,55 @@ export const ContactService = {
             }
         }
 
+        // If a follow-up tag was added, trigger the follow-up process
+        if ((data as any).addTagName) {
+            const addedTag = (data as any).addTagName;
+            let taskDesc = null;
+
+            if (addedTag === 'Seguimiento 1') {
+                taskDesc = '[SISTEMA] DIA_1 - Seguimiento de Venta';
+            } else if (addedTag === 'Seguimiento 2') {
+                taskDesc = '[SISTEMA] DIA_4 - Seguimiento de Venta';
+            } else if (addedTag === 'Frío' || addedTag === 'Frio' || addedTag === 'Seguimiento 10dias') {
+                taskDesc = '[SISTEMA] DIA_15 - Seguimiento de Venta';
+            }
+
+            if (taskDesc) {
+                try {
+                    // First delete any other pending follow-up task to avoid duplicate/conflicting tasks
+                    await prisma.clientTask.deleteMany({
+                        where: {
+                            clientId: id,
+                            type: 'FOLLOWUP',
+                            status: 'PENDING'
+                        }
+                    });
+
+                    // Create the task immediately due
+                    await prisma.clientTask.create({
+                        data: {
+                            clientId: id,
+                            description: taskDesc,
+                            type: 'FOLLOWUP',
+                            status: 'PENDING',
+                            dueDate: new Date(),
+                            createdBy: 'Bot Trigger'
+                        }
+                    });
+
+                    // Call the wa-service endpoint to process immediately
+                    const waServerUrl = process.env.WA_SERVER_URL || 'http://127.0.0.1:3100';
+                    const apiKey = process.env.WA_API_KEY;
+                    fetch(`${waServerUrl}/api/followups/trigger`, {
+                        method: 'POST',
+                        headers: apiKey ? { 'x-api-key': apiKey, 'Content-Type': 'application/json' } : { 'Content-Type': 'application/json' }
+                    }).catch((err: any) => console.error('[Bot Trigger] Error triggering bot followups endpoint:', err.message));
+                } catch (taskErr: any) {
+                    console.error('[Bot Trigger] Error creating manual follow-up task:', taskErr.message);
+                }
+            }
+        }
+
         return updatedClient;
     },
 

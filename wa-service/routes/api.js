@@ -200,6 +200,22 @@ function createApiRouter(deps) {
         }
     });
 
+    // ── POST /followups/trigger ───────────────────
+    router.post('/followups/trigger', async (req, res) => {
+        try {
+            const { checkAndSendSalesFollowUps } = require('../sales-followups');
+            const cronDeps = { isAgentEnabled: () => agentState.agentEnabled, botReplyingTo, broadcastChatUpdate };
+            
+            checkAndSendSalesFollowUps(cronDeps)
+                .then(() => console.log('⚡ [Bot API] Manual followup trigger execution finished.'))
+                .catch(e => console.error('❌ [Bot API] Manual followup trigger error:', e.message));
+
+            res.json({ success: true, message: 'Followups execution triggered.' });
+        } catch (error) {
+            res.status(500).json({ error: error.message });
+        }
+    });
+
     // ── POST /send ─────────────────────────────────
     router.post('/send', async (req, res) => {
         const { chatId, message, media, senderName } = req.body;

@@ -22,16 +22,16 @@ const {
  * @param {Date} params.now - Fecha actual
  * @returns {Promise<{ eligible: boolean, followUpType?: string, label?: string, reason?: string }>}
  */
-async function checkEligibility({ client, chat, quote, now }) {
+async function checkEligibility({ client, chat, quote, now, isManual = false, taskDescription = null }) {
 
     // 1. Bot habilitado para este chat
     if (!chat.botEnabled) {
         return { eligible: false, reason: `Bot desactivado para ${client.name}` };
     }
 
-    // 2. No tiene SIN_SEGUIMIENTO
+    // 2. No tiene SIN_SEGUIMIENTO (Only block if NOT manual trigger)
     const labels = chat.chatLabels || [];
-    if (labels.includes('SIN_SEGUIMIENTO')) {
+    if (!isManual && labels.includes('SIN_SEGUIMIENTO')) {
         return { eligible: false, reason: `${client.name} tiene SIN_SEGUIMIENTO` };
     }
 
@@ -52,16 +52,16 @@ async function checkEligibility({ client, chat, quote, now }) {
         return { eligible: false, reason: `Chat de ${client.name} desactivado manualmente` };
     }
 
-    // 5. Cooldown: mínimo COOLDOWN_HOURS desde último follow-up
-    if (chat.lastFollowUpAt) {
+    // 5. Cooldown: mínimo COOLDOWN_HOURS desde último follow-up (Bypassed if manual trigger)
+    if (!isManual && chat.lastFollowUpAt) {
         const hoursSinceLastFU = (now.getTime() - new Date(chat.lastFollowUpAt).getTime()) / 3600000;
         if (hoursSinceLastFU < COOLDOWN_HOURS) {
             return { eligible: false, reason: `${client.name} recibió follow-up hace ${hoursSinceLastFU.toFixed(1)}hs (cooldown: ${COOLDOWN_HOURS}hs)` };
         }
     }
 
-    // 6. Chat sin actividad reciente
-    if (chat.lastMessageAt) {
+    // 6. Chat sin actividad reciente (Bypassed if manual trigger)
+    if (!isManual && chat.lastMessageAt) {
         const hoursSinceLastMsg = (now.getTime() - new Date(chat.lastMessageAt).getTime()) / 3600000;
         if (hoursSinceLastMsg < ACTIVITY_WINDOW_HOURS) {
             return { eligible: false, reason: `Chat de ${client.name} tuvo actividad hace ${hoursSinceLastMsg.toFixed(1)}hs` };
@@ -92,18 +92,33 @@ async function checkEligibility({ client, chat, quote, now }) {
         return { eligible: false, reason: `${client.name} ya registró pagos posteriores` };
     }
 
-    // 8.5. No es un contacto frío (debe tener al menos un mensaje entrante registrado)
-    const inboundCount = await prisma.whatsAppMessage.count({
-        where: {
-            chatId: chat.id,
-            direction: 'INBOUND',
-        },
-    });
-    if (inboundCount === 0) {
-        return { eligible: false, reason: `${client.name} es un contacto frío (sin mensajes entrantes)` };
+    // 8.5. No es un contacto frío (debe tener al menos un mensaje entrante registrado) (Bypassed if manual trigger)
+    if (!isManual) {
+        const inboundCount = await prisma.whatsAppMessage.count({
+            where: {
+                chatId: chat.id,
+                direction: 'INBOUND',
+            },
+        });
+        if (inboundCount === 0) {
+            return { eligible: false, reason: `${client.name} es un contacto frío (sin mensajes entrantes)` };
+        }
     }
 
     // 9. Determinar qué tier de seguimiento le corresponde
+    if (isManual && taskDescription) {
+        const tierType = taskDescription.includes('DIA_15') ? 'DIA_15' : (taskDescription.includes('DIA_4') ? 'DIA_4' : 'DIA_1');
+        const tier = FOLLOWUP_TIERS.find(t => t.type === tierType);
+        if (tier) {
+            return {
+                eligible: true,
+                followUpType: tier.type,
+                label: tier.label,
+                reason: `${client.name} califica por trigger manual para ${tier.type}`,
+            };
+        }
+    }
+
     const diffHours = (now.getTime() - new Date(quote.createdAt).getTime()) / 3600000;
 
     for (const tier of FOLLOWUP_TIERS) {
