@@ -10,7 +10,7 @@ export const dynamic = 'force-dynamic';
 // grouped by funnel stage based on latest quote age.
 // ─────────────────────────────────────────────────────────────
 
-const EXCLUSION_TAGS = ['no interesado', 'cancelar bot', 'spam', 'no bot'];
+const EXCLUSION_TAGS = ['no interesado', 'cancelar bot', 'spam', 'no bot', 'cerrado', 'post-venta'];
 
 export async function GET() {
   try {
@@ -21,7 +21,7 @@ export async function GET() {
       include: {
         prescriptions: { orderBy: { date: 'desc' } },
         orders: {
-          where: { orderType: 'QUOTE', isDeleted: false },
+          where: { isDeleted: false },
           orderBy: { createdAt: 'desc' },
         },
         tags: true,
@@ -33,12 +33,16 @@ export async function GET() {
       orderBy: { createdAt: 'desc' },
     });
 
-    // Filter: must have prescription, must NOT have exclusion tags
+    // Filter: must have prescription, must NOT have exclusion tags, must NOT have purchased
     const qualifiedLeads = leads.filter(lead => {
       if (lead.prescriptions.length === 0) return false;
-      return !lead.tags.some(tag =>
+      // Excluir si tiene tags de exclusión (no interesado, cerrado, etc.)
+      if (lead.tags.some(tag =>
         EXCLUSION_TAGS.some(ex => tag.name.toLowerCase().includes(ex))
-      );
+      )) return false;
+      // Excluir si ya compró (tiene una orden de tipo SALE u ORDER)
+      if (lead.orders.some(o => o.orderType === 'SALE' || o.orderType === 'ORDER')) return false;
+      return true;
     });
 
     // Build columns from config
@@ -60,7 +64,7 @@ export async function GET() {
 
     // Classify each lead
     for (const lead of qualifiedLeads) {
-      const latestQuote = lead.orders[0] ?? null;
+      const latestQuote = lead.orders.find(o => o.orderType === 'QUOTE') ?? null;
       const latestRx = lead.prescriptions[0];
       const chatLabels = lead.whatsappChats[0]?.chatLabels || [];
       const tags = lead.tags.map(t => t.name.toLowerCase());
