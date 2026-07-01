@@ -13,7 +13,7 @@ const HomeMacroFilm = dynamic(() => import("@/components/Storefront/HomeMacroFil
 const HomeStorePreview = dynamic(() => import("@/components/Storefront/HomeStorePreview").then(mod => mod.HomeStorePreview));
 const HomeWhyChooseUs = dynamic(() => import("@/components/Storefront/HomeWhyChooseUs").then(mod => mod.HomeWhyChooseUs));
 const HomeRecommendationQuiz = dynamic(() => import("@/components/Storefront/HomeRecommendationQuiz").then(mod => mod.HomeRecommendationQuiz));
-const ExitIntentPopup = dynamic(() => import("@/components/Storefront/ExitIntentPopup").then(mod => mod.ExitIntentPopup));
+
 import { prisma } from "@/lib/db";
 import { resolveStorageUrl } from "@/lib/utils/storage";
 
@@ -340,7 +340,7 @@ export default async function Home() {
       {/* ═══════════════════════════════════════════════ */}
       <StorefrontFooter />
       
-      <ExitIntentPopup />
+
     </div>
   );
 }
