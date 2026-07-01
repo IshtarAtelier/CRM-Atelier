@@ -31,9 +31,9 @@ import {
     getCategoryKey,
     isMultifocal2x1,
     safePrice,
-    calculateQuoteTotals,
     recalculateCrystalPrices
 } from '@/lib/promo-utils';
+import { calculateQuoteTotals } from '@/services/PricingService';
 import { 
     Glasses, 
     Sun, 

@@ -122,13 +122,16 @@ export default function ContactDetail({
                     frameDbl2: conversionData?.labMeasurePte2,
                     labFrameShape2: conversionData?.labFrameShape2,
                     labFrameDetails2: conversionData?.labFrameDetails2,
+                    frameSource: conversionData?.frameSource,
+                    userFrameBrand: conversionData?.userFrameBrand,
+                    userFrameModel: conversionData?.userFrameModel,
                     authorizedByAdmin: conversionData?.authorizedByAdmin
                 }),
             });
             if (!res.ok) {
                 const errData = await res.json();
                 setConvertError(errData.error || 'Error al convertir pedido');
-                return;
+                throw new Error(errData.error || 'Error al convertir pedido');
             }
             setConvertSuccess(true);
             setActiveSection('sales');

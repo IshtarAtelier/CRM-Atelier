@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronDown, Search, ShoppingBag, X, ShoppingCart, Gem, Glasses, BookOpen, Users, MapPin, HelpCircle, Star, MessageCircle, ChevronRight } from "lucide-react";
+import { ChevronDown, Search, ShoppingBag, X, ShoppingCart, Gem, Glasses, BookOpen, Users, MapPin, HelpCircle, Star, MessageCircle, ChevronRight, Briefcase } from "lucide-react";
 import { useCart } from "@/store/useCart";
 import dynamic from "next/dynamic";
 const CartSidebar = dynamic(() => import('./CartSidebar').then(mod => mod.CartSidebar), { ssr: false });
@@ -234,6 +234,13 @@ export function StorefrontNavbar({ theme = "dark", mixBlend = false }: Storefron
                           Opiniones de Clientes
                           <ChevronRight className="w-3 h-3 text-white/20 ml-auto group-hover:text-white/50 group-hover:translate-x-0.5 transition-all" />
                         </Link>
+                        {(!currentUser || currentUser.role !== 'OPTICA') && (
+                          <Link href="/login" className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-[12px] font-medium text-white/80 hover:bg-white/5 hover:text-white transition-all group">
+                            <Briefcase className="w-4 h-4 text-[#c8a55c] opacity-60 group-hover:opacity-100 transition-opacity" strokeWidth={1.5} />
+                            Ingreso Mayorista
+                            <ChevronRight className="w-3 h-3 text-white/20 ml-auto group-hover:text-white/50 group-hover:translate-x-0.5 transition-all" />
+                          </Link>
+                        )}
                       </div>
 
                       {/* CTA Footer */}
@@ -264,7 +271,7 @@ export function StorefrontNavbar({ theme = "dark", mixBlend = false }: Storefron
   
           {/* Derecha: Iconos */}
           <div className={`flex-1 flex justify-end items-center gap-1.5 sm:gap-4 ${activeTextColorClass}`}>
-            {currentUser && currentUser.role === 'OPTICA' && (
+            {currentUser && currentUser.role === 'OPTICA' ? (
               <div className="flex items-center gap-1.5 sm:gap-2 mr-1 sm:mr-2">
                 <span className="text-[8px] sm:text-[9.5px] font-black uppercase bg-[#b08f4c] text-white px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full whitespace-nowrap shadow-sm hidden sm:block">
                   Óptica: {currentUser.name}
@@ -283,6 +290,15 @@ export function StorefrontNavbar({ theme = "dark", mixBlend = false }: Storefron
                   Salir
                 </button>
               </div>
+            ) : (
+              <Link 
+                href="/login" 
+                className="text-[9px] sm:text-[11px] font-black uppercase tracking-wider hover:opacity-75 transition-all flex items-center gap-1 bg-[#c8a55c]/10 text-[#c8a55c] px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-xl border border-[#c8a55c]/25 mr-1"
+              >
+                <Briefcase className="w-3 h-3" />
+                <span className="hidden sm:inline">Mayoristas</span>
+                <span className="sm:hidden">Opticas</span>
+              </Link>
             )}
             <button 
               onClick={() => setIsSearchOpen(true)} 

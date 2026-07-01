@@ -6,7 +6,7 @@ import {
 } from 'lucide-react';
 import CotizadorCart from '@/components/quotes/CotizadorCart';
 import QuoteSummary from '@/components/quotes/QuoteSummary';
-import { calculateQuoteTotals } from '@/lib/promo-utils';
+import { calculateQuoteTotals } from '@/services/PricingService';
 
 interface OrderManagerProps {
     contactId: string;

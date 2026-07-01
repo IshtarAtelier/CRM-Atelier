@@ -222,3 +222,39 @@ export class PricingService {
         return { discount: 0, itemName: null };
     }
 }
+
+export const calculateQuoteTotals = (
+    items: any[],
+    markup: number,
+    discountCash: number,
+    availableProducts?: any[],
+    specialDiscount: number = 0
+): { 
+    rawSubtotal: number; 
+    promoFrameDiscount: number; 
+    subtotal: number; 
+    subtotalWithMarkup: number; 
+    totalCash: number;
+    appliedPromoName: string | null;
+    specialDiscountAmount: number;
+} => {
+    const cartItems: CartItem[] = items.map(i => ({
+        productId: i.productId || null,
+        product: i.product,
+        quantity: i.quantity,
+        price: i.customPrice || i.price
+    }));
+
+    const result = PricingService.calculateTotals(cartItems, markup, discountCash, availableProducts || [], specialDiscount);
+
+    return {
+        rawSubtotal: result.rawSubtotal,
+        promoFrameDiscount: result.promoFrameDiscount,
+        subtotal: result.subtotal,
+        subtotalWithMarkup: result.subtotalWithMarkup,
+        totalCash: result.totalCash,
+        appliedPromoName: result.promoFrameName || (result.appliedPromos.length > 0 ? result.appliedPromos[0] : null),
+        specialDiscountAmount: result.specialDiscountAmount
+    };
+};
+

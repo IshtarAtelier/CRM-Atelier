@@ -1,5 +1,7 @@
 import { Metadata } from 'next';
-import { LoginClient } from './LoginClient';
+import LoginWrapper from './LoginWrapper';
+
+export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
   alternates: { canonical: '/login' },
@@ -12,5 +14,5 @@ export const metadata: Metadata = {
 };
 
 export default function LoginPage() {
-  return <LoginClient />;
+  return <LoginWrapper />;
 }

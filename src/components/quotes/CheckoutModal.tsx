@@ -114,25 +114,45 @@ export default function CheckoutModal({
     }, [contact.prescriptions, selectedRxId]);
 
     // SmartLab Frame Selection
-    const [frameShape, setFrameShape] = useState<string>('');
-    const [frameDetails, setFrameDetails] = useState<string>('');
-    const [labNotes, setLabNotes] = useState<string>('');
+    const [frameShape, setFrameShape] = useState<string>(order.labFrameShape || '');
+    const [frameDetails, setFrameDetails] = useState<string>(order.labFrameDetails || '');
+    const [labNotes, setLabNotes] = useState<string>(order.labNotes || '');
     const [tintType, setTintType] = useState<string>('');
     const [tintColor, setTintColor] = useState<string>('');
     const [tintIntensity, setTintIntensity] = useState<string>('');
 
-    const [frameMeasurePte, setFrameMeasurePte] = useState<string>('');
-    const [frameMeasureA, setFrameMeasureA] = useState<string>('');
-    const [frameMeasureB, setFrameMeasureB] = useState<string>('');
-    const [frameMeasureEd, setFrameMeasureEd] = useState<string>('');
+    const [frameMeasurePte, setFrameMeasurePte] = useState<string>(order.frameDbl || '');
+    const [frameMeasureA, setFrameMeasureA] = useState<string>(order.frameA || '');
+    const [frameMeasureB, setFrameMeasureB] = useState<string>(order.frameB || '');
+    const [frameMeasureEd, setFrameMeasureEd] = useState<string>(order.frameEdc || '');
 
     // Second frame for 2x1 promotions
-    const [frameMeasurePte2, setFrameMeasurePte2] = useState<string>('');
-    const [frameMeasureA2, setFrameMeasureA2] = useState<string>('');
-    const [frameMeasureB2, setFrameMeasureB2] = useState<string>('');
-    const [frameMeasureEd2, setFrameMeasureEd2] = useState<string>('');
-    const [frameShape2, setFrameShape2] = useState<string>('');
-    const [frameDetails2, setFrameDetails2] = useState<string>('');
+    const [frameMeasurePte2, setFrameMeasurePte2] = useState<string>(order.frameDbl2 || '');
+    const [frameMeasureA2, setFrameMeasureA2] = useState<string>(order.frameA2 || '');
+    const [frameMeasureB2, setFrameMeasureB2] = useState<string>(order.frameB2 || '');
+    const [frameMeasureEd2, setFrameMeasureEd2] = useState<string>(order.frameEdc2 || '');
+    const [frameShape2, setFrameShape2] = useState<string>(order.labFrameShape2 || '');
+    const [frameDetails2, setFrameDetails2] = useState<string>(order.labFrameDetails2 || '');
+
+    // Frame Source and User Frame details
+    const [frameSource, setFrameSource] = useState<'OPTICA' | 'USUARIO'>(order.frameSource as any || 'OPTICA');
+    const [userFrameBrand, setUserFrameBrand] = useState<string>(order.userFrameBrand || '');
+    const [userFrameModel, setUserFrameModel] = useState<string>(order.userFrameModel || '');
+
+    // Parse order.labColor on mount or change
+    useEffect(() => {
+        if (order.labColor) {
+            const regex = /^([A-ZÁÉÍÓÚÑa-záéíóúñ]+)\s+(.+?)(?:\s*\(Grado:\s*(.+?)\))?$/i;
+            const match = order.labColor.match(regex);
+            if (match) {
+                setTintType(match[1]);
+                setTintColor(match[2]);
+                if (match[3]) setTintIntensity(match[3]);
+            } else {
+                setTintColor(order.labColor);
+            }
+        }
+    }, [order.labColor]);
 
     const is2x1 = order.appliedPromoName?.toLowerCase().includes('2x1') || order.items?.some((it: any) => {
         if (it.product && isMultifocal2x1(it.product)) return true;
@@ -148,6 +168,7 @@ export default function CheckoutModal({
         frameMeasureA.trim() !== '' &&
         frameMeasureB.trim() !== '' &&
         frameMeasureEd.trim() !== '' &&
+        (frameSource !== 'USUARIO' || (userFrameBrand.trim() !== '' || userFrameModel.trim() !== '')) &&
         (!is2x1 || (
             frameDetails2.trim() !== '' &&
             frameMeasurePte2.trim() !== '' &&
@@ -221,7 +242,10 @@ export default function CheckoutModal({
                 labMeasurePte2: frameMeasurePte2 || undefined,
                 labMeasureA2: frameMeasureA2 || undefined,
                 labMeasureB2: frameMeasureB2 || undefined,
-                labMeasureEd2: frameMeasureEd2 || undefined
+                labMeasureEd2: frameMeasureEd2 || undefined,
+                frameSource: frameSource,
+                userFrameBrand: frameSource === 'USUARIO' ? userFrameBrand : undefined,
+                userFrameModel: frameSource === 'USUARIO' ? userFrameModel : undefined
             });
         } catch (err: any) {
             setError(err.message || 'Error en la operación');
@@ -272,6 +296,16 @@ export default function CheckoutModal({
             if (frameShape2) patchBody.labFrameShape2 = frameShape2;
             if (frameDetails2) patchBody.labFrameDetails2 = frameDetails2;
 
+            // Frame source fields
+            patchBody.frameSource = frameSource;
+            if (frameSource === 'USUARIO') {
+                patchBody.userFrameBrand = userFrameBrand || null;
+                patchBody.userFrameModel = userFrameModel || null;
+            } else {
+                patchBody.userFrameBrand = null;
+                patchBody.userFrameModel = null;
+            }
+
             if (Object.keys(patchBody).length > 0) {
                 const res = await fetch(`/api/orders/${order.id}`, {
                     method: 'PATCH',
@@ -282,6 +316,7 @@ export default function CheckoutModal({
                     const d = await res.json();
                     throw new Error(d.error || 'Error al guardar');
                 }
+                await onRefreshContact();
             }
 
             setSavedDraft(true);
@@ -525,8 +560,79 @@ export default function CheckoutModal({
                                             })}
                                         </div>
 
+                                        <div className="mb-6 p-4 bg-blue-50/50 dark:bg-blue-950/10 rounded-2xl border border-blue-100 dark:border-blue-900/50 space-y-4">
+                                            <label className="text-[10px] font-black text-blue-500 uppercase tracking-widest block">Origen del Armazón</label>
+                                            <div className="flex gap-3">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setFrameSource('OPTICA')}
+                                                    className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all border ${
+                                                        frameSource === 'OPTICA'
+                                                            ? 'bg-blue-500 text-white border-blue-500 shadow-md shadow-blue-500/20'
+                                                            : 'bg-white dark:bg-stone-850 text-stone-500 border-stone-200 dark:border-stone-750'
+                                                    }`}
+                                                >
+                                                    De la Óptica
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setFrameSource('USUARIO')}
+                                                    className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all border ${
+                                                        frameSource === 'USUARIO'
+                                                            ? 'bg-blue-500 text-white border-blue-500 shadow-md shadow-blue-500/20'
+                                                            : 'bg-white dark:bg-stone-850 text-stone-500 border-stone-200 dark:border-stone-750'
+                                                    }`}
+                                                >
+                                                    Del Usuario
+                                                </button>
+                                            </div>
+
+                                            {frameSource === 'USUARIO' && (
+                                                <div className="grid grid-cols-2 gap-3 animate-in fade-in slide-in-from-top-1 duration-200">
+                                                    <div className="space-y-1">
+                                                        <label className="text-[9px] font-bold text-stone-500 uppercase">Marca {hasCrystals && <span className="text-red-500">*</span>}</label>
+                                                        <input
+                                                            type="text"
+                                                            required={hasCrystals}
+                                                            placeholder="Ej: Ray-Ban"
+                                                            value={userFrameBrand}
+                                                            onChange={e => setUserFrameBrand(e.target.value)}
+                                                            className="w-full bg-white dark:bg-stone-900 border border-blue-200 dark:border-blue-800/50 px-3 py-2 rounded-xl text-xs font-medium focus:border-blue-500 outline-none text-stone-800 dark:text-stone-100"
+                                                        />
+                                                    </div>
+                                                    <div className="space-y-1">
+                                                        <label className="text-[9px] font-bold text-stone-500 uppercase">Modelo {hasCrystals && <span className="text-red-500">*</span>}</label>
+                                                        <input
+                                                            type="text"
+                                                            required={hasCrystals}
+                                                            placeholder="Ej: Clubmaster"
+                                                            value={userFrameModel}
+                                                            onChange={e => setUserFrameModel(e.target.value)}
+                                                            className="w-full bg-white dark:bg-stone-900 border border-blue-200 dark:border-blue-800/50 px-3 py-2 rounded-xl text-xs font-medium focus:border-blue-500 outline-none text-stone-800 dark:text-stone-100"
+                                                        />
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+
                                         <div className="mb-4">
-                                            <label className="text-[10px] font-black text-blue-500 uppercase tracking-widest block mb-4">Medidas del Armazón</label>
+                                            <div className="flex justify-between items-center mb-4">
+                                                <label className="text-[10px] font-black text-blue-500 uppercase tracking-widest block">Medidas del Armazón</label>
+                                                <button
+                                                    type="button"
+                                                    onClick={handleSaveDraft}
+                                                    disabled={savingDraft}
+                                                    className="px-3 py-1.5 text-[9px] font-black uppercase tracking-wider bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-lg flex items-center gap-1.5 transition-all border border-blue-200"
+                                                >
+                                                    {savingDraft ? (
+                                                        <Loader2 className="w-3 h-3 animate-spin" />
+                                                    ) : savedDraft ? (
+                                                        <><CheckCircle2 className="w-3 h-3" /> ¡Guardado!</>
+                                                    ) : (
+                                                        <><Save className="w-3 h-3" /> Guardar Medidas</>
+                                                    )}
+                                                </button>
+                                            </div>
                                             <div className="flex flex-col sm:flex-row gap-6 items-center bg-white/50 dark:bg-stone-900/30 p-4 rounded-2xl border border-blue-100 dark:border-blue-900/50">
                                                 <div className="w-full sm:w-1/3 flex justify-center">
                                                     <svg width="120" height="70" viewBox="0 0 120 70" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-stone-400">
@@ -622,7 +728,23 @@ export default function CheckoutModal({
                                         </div>
 
                                         <div className="mb-4">
-                                            <label className="text-[9px] font-black text-stone-400 uppercase tracking-widest block mb-2">Medidas del Segundo Armazón</label>
+                                            <div className="flex justify-between items-center mb-2">
+                                                <label className="text-[9px] font-black text-stone-400 uppercase tracking-widest block">Medidas del Segundo Armazón</label>
+                                                <button
+                                                    type="button"
+                                                    onClick={handleSaveDraft}
+                                                    disabled={savingDraft}
+                                                    className="px-3 py-1.5 text-[9px] font-black uppercase tracking-wider bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-lg flex items-center gap-1.5 transition-all border border-blue-200"
+                                                >
+                                                    {savingDraft ? (
+                                                        <Loader2 className="w-3 h-3 animate-spin" />
+                                                    ) : savedDraft ? (
+                                                        <><CheckCircle2 className="w-3 h-3" /> ¡Guardado!</>
+                                                    ) : (
+                                                        <><Save className="w-3 h-3" /> Guardar Medidas</>
+                                                    )}
+                                                </button>
+                                            </div>
                                             <div className="flex flex-col sm:flex-row gap-6 items-center bg-white/50 dark:bg-stone-900/30 p-4 rounded-2xl border border-orange-100 dark:border-orange-900/50">
                                                 <div className="w-full sm:w-1/3 flex justify-center">
                                                     <svg width="120" height="70" viewBox="0 0 120 70" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-stone-400">

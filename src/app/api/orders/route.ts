@@ -3,9 +3,9 @@ import { headers } from 'next/headers';
 
 export const dynamic = 'force-dynamic';
 import { prisma } from '@/lib/db';
-import { calculateQuoteTotals, isMultifocal2x1, recalculateCrystalPrices } from '@/lib/promo-utils';
+import { isMultifocal2x1, recalculateCrystalPrices } from '@/lib/promo-utils';
 import { formatOrderItemsSummary } from '@/lib/order-utils';
-import { PricingService } from '@/services/PricingService';
+import { PricingService, calculateQuoteTotals } from '@/services/PricingService';
 
 // POST /api/orders — Create order from inline cotizador
 export async function POST(request: Request) {

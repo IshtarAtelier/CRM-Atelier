@@ -168,52 +168,7 @@ export const calculatePromoFrameDiscount = (
     return Math.min(framePrice, safePrice(atelierAvgPrice));
 };
 
-/**
- * Calculates the complete quote totals including promo frame discount.
- * This is the single source of truth for subtotal/total calculations.
- * 
- * @param items - Array of cart items with { product, quantity, customPrice }
- * @param markup - Markup percentage (e.g. 10 for 10%)
- * @param discountCash - Cash discount percentage
- * @param availableProducts - Optional full product list for Atelier avg price calculation
- * @returns { subtotal, subtotalWithMarkup, totalCash }
- */
-import { PricingService, CartItem } from '@/services/PricingService';
 
-export const calculateQuoteTotals = (
-    items: any[],
-    markup: number,
-    discountCash: number,
-    availableProducts?: any[],
-    specialDiscount: number = 0
-): { 
-    rawSubtotal: number; 
-    promoFrameDiscount: number; 
-    subtotal: number; 
-    subtotalWithMarkup: number; 
-    totalCash: number;
-    appliedPromoName: string | null;
-    specialDiscountAmount: number;
-} => {
-    const cartItems: CartItem[] = items.map(i => ({
-        productId: i.productId || null,
-        product: i.product,
-        quantity: i.quantity,
-        price: i.customPrice || i.price
-    }));
-
-    const result = PricingService.calculateTotals(cartItems, markup, discountCash, availableProducts || [], specialDiscount);
-
-    return {
-        rawSubtotal: result.rawSubtotal,
-        promoFrameDiscount: result.promoFrameDiscount,
-        subtotal: result.subtotal,
-        subtotalWithMarkup: result.subtotalWithMarkup,
-        totalCash: result.totalCash,
-        appliedPromoName: result.promoFrameName || (result.appliedPromos.length > 0 ? result.appliedPromos[0] : null),
-        specialDiscountAmount: result.specialDiscountAmount
-    };
-};
 
 /**
  * Recalculates the prices of crystal items based on 2x1 promo rules.

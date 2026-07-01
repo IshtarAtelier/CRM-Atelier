@@ -71,13 +71,48 @@ export async function GET(req: NextRequest) {
   try {
     const { jsPDF } = await import('jspdf');
 
-    const webProducts = await prisma.webProduct.findMany({
+    const webProductsData = await prisma.webProduct.findMany({
       where: { isActive: true },
-      include: { product: true },
-      orderBy: [
-        { category: 'asc' },
-        { name: 'asc' }
-      ]
+      include: { product: true }
+    });
+
+    const getMaterial = (wp: any) => {
+      const desc = wp.description?.toLowerCase() || '';
+      const name = wp.name.toLowerCase();
+      const tags = wp.product?.seoTags?.toLowerCase() || '';
+      const img = wp.imageUrl || '';
+
+      if (desc.includes('titani') || name.includes('titani') || tags.includes('titani') || img.includes('titanio')) {
+        return 'titanio';
+      }
+      if (img.includes('/metal/') || desc.includes('metal') || tags.includes('metal')) {
+        return 'metal';
+      }
+      if (img.includes('/acetato/') || desc.includes('acetato') || tags.includes('acetato')) {
+        return 'acetato';
+      }
+      return 'otro';
+    };
+
+    const materialOrder: Record<string, number> = {
+      'titanio': 1,
+      'metal': 2,
+      'acetato': 3,
+      'otro': 4
+    };
+
+    const webProducts = webProductsData.sort((a, b) => {
+      const matA = getMaterial(a);
+      const matB = getMaterial(b);
+      
+      if (materialOrder[matA] !== materialOrder[matB]) {
+        return materialOrder[matA] - materialOrder[matB];
+      }
+      
+      if (a.category !== b.category) {
+        return a.category.localeCompare(b.category);
+      }
+      return a.name.localeCompare(b.name);
     });
 
     if (webProducts.length === 0) {

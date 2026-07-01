@@ -6,9 +6,9 @@ import { Search, Save, Loader2,
 } from 'lucide-react';
 import { 
     isMultifocal2x1, isAtelierFrame, isCrystal, 
-    isMiPrimerVarilux, getCategoryKey, isFrame, safePrice,
-    calculateQuoteTotals
+    isMiPrimerVarilux, getCategoryKey, isFrame, safePrice
 } from '@/lib/promo-utils';
+import { calculateQuoteTotals } from '@/services/PricingService';
 import { WhatsAppIcon } from '@/components/icons/WhatsAppIcon';
 
 // Modular Components

@@ -2,7 +2,7 @@
 
 import QRCode from 'qrcode';
 import Link from 'next/link';
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, Suspense } from 'react';
 import {
     Send, WifiOff, QrCode, RefreshCw, CheckCircle2, Bot, Settings, X, ChevronLeft, Phone,
     Tag, Archive, ArchiveRestore, Plus, Mic, PlaySquare, Image as ImageIcon, Calendar, Search, Play, Paperclip, Smile, Trash2,
@@ -10,7 +10,6 @@ import {
 } from 'lucide-react';
 import { WhatsAppIcon } from '@/components/icons/WhatsAppIcon';
 import { format } from 'date-fns';
-import { io as SocketIOClient } from 'socket.io-client';
 import { TestChatModal } from '@/components/ui/TestChatModal';
 import dynamic from 'next/dynamic';
 import { useSearchParams } from 'next/navigation';
@@ -128,7 +127,7 @@ interface Message {
 }
 
 // ── Main Component ────────────────────────────────
-export default function WhatsAppPage() {
+function WhatsAppPageContent() {
     const [status, setStatus] = useState<{ connected: boolean; phone: string | null; qr: string | null; agentEnabled: boolean }>({
         connected: false, phone: null, qr: null, agentEnabled: false
     });
@@ -692,9 +691,10 @@ export default function WhatsAppPage() {
                 setStatus(data);
                 setLoadingStatus(false);
 
-                const token = data.socketToken;
+                 const token = data.socketToken;
                 const socketUrl = process.env.NEXT_PUBLIC_WA_URL || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3100');
-                socket = SocketIOClient(socketUrl, {
+                const { io } = await import('socket.io-client');
+                socket = io(socketUrl, {
                     auth: { token }
                 });
 
@@ -2408,4 +2408,16 @@ function QRRenderer({ qr }: { qr: string }) {
         });
     }, [qr]);
     return <canvas ref={canvasRef} className="mx-auto rounded-[2rem] shadow-sm" />;
+}
+
+export default function WhatsAppPage() {
+    return (
+        <Suspense fallback={
+            <div className="flex items-center justify-center min-h-screen">
+                <Loader2 className="w-10 h-10 text-primary animate-spin" />
+            </div>
+        }>
+            <WhatsAppPageContent />
+        </Suspense>
+    );
 }
