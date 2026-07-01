@@ -95,9 +95,9 @@ export async function GET(req: NextRequest) {
     };
 
     const materialOrder: Record<string, number> = {
-      'titanio': 1,
+      'acetato': 1,
       'metal': 2,
-      'acetato': 3,
+      'titanio': 3,
       'otro': 4
     };
 
@@ -260,112 +260,183 @@ export async function GET(req: NextRequest) {
     doc.text("CATÁLOGO OFICIAL 2025  ·  CÓRDOBA", pageWidth / 2, 258, { align: 'center', charSpace: 1 });
 
     // ----------------------------------------------------
-    // INTERNAL PAGES (Clean Minimalist White Style)
+    // INTERNAL PAGES (Grouped by Material with Section Covers)
     // ----------------------------------------------------
     let currentPage = 2;
     const productsPerPage = 2;
 
-    for (let i = 0; i < webProducts.length; i += productsPerPage) {
+    // Group products by material preserving sort order
+    const materialLabels: Record<string, string> = {
+      'acetato': 'ACETATO',
+      'metal': 'METAL',
+      'titanio': 'TITANIO',
+      'otro': 'OTROS MATERIALES'
+    };
+    const materialSubtitles: Record<string, string> = {
+      'acetato': 'Calidez, color y personalidad en cada armazón',
+      'metal': 'Elegancia y ligereza en estado puro',
+      'titanio': 'Resistencia premium, peso pluma',
+      'otro': 'Diseños únicos que desafían lo convencional'
+    };
+
+    // Build ordered groups
+    const materialGroups: { material: string; products: typeof webProducts }[] = [];
+    let currentMaterial = '';
+    for (const wp of webProducts) {
+      const mat = getMaterial(wp);
+      if (mat !== currentMaterial) {
+        materialGroups.push({ material: mat, products: [] });
+        currentMaterial = mat;
+      }
+      materialGroups[materialGroups.length - 1].products.push(wp);
+    }
+
+    for (const group of materialGroups) {
+      // ── Section Cover Page ──
       doc.addPage();
       currentPage++;
 
-      // Pure white page background
-      doc.setFillColor(255, 255, 255);
+      // Dark background
+      doc.setFillColor(15, 15, 15);
       doc.rect(0, 0, pageWidth, pageHeight, 'F');
 
-      // Subtle page header
-      doc.setTextColor(120, 120, 120);
+      // Gold accent line
+      doc.setDrawColor(158, 127, 101);
+      doc.setLineWidth(0.6);
+      doc.line(pageWidth / 2 - 30, 120, pageWidth / 2 + 30, 120);
+
+      // Material label
+      doc.setTextColor(255, 255, 255);
       doc.setFont('times', 'bold');
-      doc.setFontSize(8);
-      doc.text("ATELIER ÓPTICA", pageWidth / 2, 12, { align: 'center', charSpace: 1.5 });
-      doc.setDrawColor(240, 240, 240);
-      doc.setLineWidth(0.2);
-      doc.line(15, 15, pageWidth - 15, 15);
+      doc.setFontSize(32);
+      doc.text(materialLabels[group.material] || group.material.toUpperCase(), pageWidth / 2, 140, { align: 'center', charSpace: 4 });
 
-      // Page Footer
-      doc.setTextColor(150, 150, 150);
+      // Gold accent line below
+      doc.setDrawColor(158, 127, 101);
+      doc.setLineWidth(0.6);
+      doc.line(pageWidth / 2 - 30, 148, pageWidth / 2 + 30, 148);
+
+      // Subtitle
+      doc.setTextColor(158, 127, 101);
+      doc.setFont('times', 'italic');
+      doc.setFontSize(12);
+      doc.text(materialSubtitles[group.material] || '', pageWidth / 2, 162, { align: 'center' });
+
+      // Product count
+      doc.setTextColor(100, 100, 100);
       doc.setFont('helvetica', 'normal');
-      doc.setFontSize(7.5);
-      doc.text(`Página ${currentPage}`, pageWidth / 2, 285, { align: 'center' });
+      doc.setFontSize(8);
+      doc.text(`${group.products.length} ${group.products.length === 1 ? 'modelo' : 'modelos'}`, pageWidth / 2, 175, { align: 'center', charSpace: 1 });
 
-      for (let j = 0; j < productsPerPage; j++) {
-        const productIndex = i + j;
-        if (productIndex >= webProducts.length) break;
+      // Atelier branding at the bottom
+      doc.setTextColor(60, 60, 60);
+      doc.setFont('times', 'bold');
+      doc.setFontSize(9);
+      doc.text("ATELIER ÓPTICA", pageWidth / 2, 258, { align: 'center', charSpace: 2 });
 
-        const wp = webProducts[productIndex];
-        const p = wp.product;
-        const imgData = imageMap.get(wp.id);
+      // ── Product Pages ──
+      for (let i = 0; i < group.products.length; i += productsPerPage) {
+        doc.addPage();
+        currentPage++;
 
-        const isTop = j === 0;
-        const startY = isTop ? 20 : 150;
+        // Pure white page background
+        doc.setFillColor(255, 255, 255);
+        doc.rect(0, 0, pageWidth, pageHeight, 'F');
 
-        const imgX = 40;
-        const imgY = startY + 8;
-        const imgW = 130;
-        const imgH = 80;
-
-        if (imgData && imgData.base64) {
-          let drawW = imgW;
-          let drawH = imgW / imgData.aspectRatio;
-          if (drawH > imgH) {
-            drawH = imgH;
-            drawW = imgH * imgData.aspectRatio;
-          }
-          const drawX = imgX + (imgW - drawW) / 2;
-          const drawY = imgY + (imgH - drawH) / 2;
-
-          doc.addImage(imgData.base64, 'PNG', drawX, drawY, drawW, drawH);
-        } else {
-          // Placeholder
-          doc.setFillColor(250, 250, 250);
-          doc.rect(imgX, imgY, imgW, imgH, 'F');
-          doc.setDrawColor(235, 235, 235);
-          doc.setLineWidth(0.25);
-          doc.rect(imgX, imgY, imgW, imgH);
-          
-          doc.setTextColor(180, 180, 180);
-          doc.setFont('times', 'italic');
-          doc.setFontSize(10);
-          doc.text("Silueta Atelier's", pageWidth / 2, imgY + (imgH / 2), { align: 'center' });
-        }
-
-        // Details metadata Y
-        const textY = startY + 98;
-
-        const modelStr = p.model || '';
-        const parts = modelStr.trim().split(/\s+/);
-        const modelCode = parts[0] || 'MODEL';
-        const colorCode = parts[1] || '';
-
-        // Extract clean model name (e.g. Artemis from "Atelier Artemis")
-        let cleanName = wp.name.replace(/atelier/i, '').trim();
-        cleanName = cleanName.replace(new RegExp(modelCode, 'i'), '').trim();
-        cleanName = cleanName.replace(/\bC\d+\b/gi, '').trim();
-        
-        const displayName = cleanName ? `${cleanName.toUpperCase()} (${modelCode.toUpperCase()})` : modelCode.toUpperCase();
-
-        const lw = p.lensWidth ?? 52;
-        const bw = p.bridgeWidth ?? 18;
-        const tl = p.templeLength ?? 145;
-        const measuresStr = `${lw}-${bw}-${tl}`;
-
-        doc.setTextColor(0, 0, 0);
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(9);
-        doc.text(displayName, 40, textY);
-
-        const mWidth = doc.getTextWidth(displayName);
+        // Subtle page header with section name
         doc.setTextColor(120, 120, 120);
-        doc.setFont('helvetica', 'normal');
-        doc.setFontSize(8.5);
-        doc.text(`    ${measuresStr}    ${colorCode.toUpperCase()}`, 40 + mWidth, textY);
+        doc.setFont('times', 'bold');
+        doc.setFontSize(8);
+        doc.text(`ATELIER ÓPTICA  ·  ${materialLabels[group.material] || group.material.toUpperCase()}`, pageWidth / 2, 12, { align: 'center', charSpace: 1.5 });
+        doc.setDrawColor(240, 240, 240);
+        doc.setLineWidth(0.2);
+        doc.line(15, 15, pageWidth - 15, 15);
 
-        // Render Stock badge
-        const stock = p.stock ?? 0;
-        doc.setTextColor(34, 139, 34);
-        doc.setFont('helvetica', 'bold');
+        // Page Footer
+        doc.setTextColor(150, 150, 150);
+        doc.setFont('helvetica', 'normal');
         doc.setFontSize(7.5);
-        doc.text(`✓ STOCK ${stock}`, 170, startY + 12, { align: 'right' });
+        doc.text(`Página ${currentPage}`, pageWidth / 2, 285, { align: 'center' });
+
+        for (let j = 0; j < productsPerPage; j++) {
+          const productIndex = i + j;
+          if (productIndex >= group.products.length) break;
+
+          const wp = group.products[productIndex];
+          const p = wp.product;
+          const imgData = imageMap.get(wp.id);
+
+          const isTop = j === 0;
+          const startY = isTop ? 20 : 150;
+
+          const imgX = 40;
+          const imgY = startY + 8;
+          const imgW = 130;
+          const imgH = 80;
+
+          if (imgData && imgData.base64) {
+            let drawW = imgW;
+            let drawH = imgW / imgData.aspectRatio;
+            if (drawH > imgH) {
+              drawH = imgH;
+              drawW = imgH * imgData.aspectRatio;
+            }
+            const drawX = imgX + (imgW - drawW) / 2;
+            const drawY = imgY + (imgH - drawH) / 2;
+
+            doc.addImage(imgData.base64, 'PNG', drawX, drawY, drawW, drawH);
+          } else {
+            // Placeholder
+            doc.setFillColor(250, 250, 250);
+            doc.rect(imgX, imgY, imgW, imgH, 'F');
+            doc.setDrawColor(235, 235, 235);
+            doc.setLineWidth(0.25);
+            doc.rect(imgX, imgY, imgW, imgH);
+            
+            doc.setTextColor(180, 180, 180);
+            doc.setFont('times', 'italic');
+            doc.setFontSize(10);
+            doc.text("Silueta Atelier's", pageWidth / 2, imgY + (imgH / 2), { align: 'center' });
+          }
+
+          // Details metadata Y
+          const textY = startY + 98;
+
+          const modelStr = p.model || '';
+          const parts = modelStr.trim().split(/\s+/);
+          const modelCode = parts[0] || 'MODEL';
+          const colorCode = parts[1] || '';
+
+          // Extract clean model name (e.g. Artemis from "Atelier Artemis")
+          let cleanName = wp.name.replace(/atelier/i, '').trim();
+          cleanName = cleanName.replace(new RegExp(modelCode, 'i'), '').trim();
+          cleanName = cleanName.replace(/\bC\d+\b/gi, '').trim();
+          
+          const displayName = cleanName ? `${cleanName.toUpperCase()} (${modelCode.toUpperCase()})` : modelCode.toUpperCase();
+
+          const lw = p.lensWidth ?? 52;
+          const bw = p.bridgeWidth ?? 18;
+          const tl = p.templeLength ?? 145;
+          const measuresStr = `${lw}-${bw}-${tl}`;
+
+          doc.setTextColor(0, 0, 0);
+          doc.setFont('helvetica', 'bold');
+          doc.setFontSize(9);
+          doc.text(displayName, 40, textY);
+
+          const mWidth = doc.getTextWidth(displayName);
+          doc.setTextColor(120, 120, 120);
+          doc.setFont('helvetica', 'normal');
+          doc.setFontSize(8.5);
+          doc.text(`    ${measuresStr}    ${colorCode.toUpperCase()}`, 40 + mWidth, textY);
+
+          // Render Stock badge
+          const stock = p.stock ?? 0;
+          doc.setTextColor(34, 139, 34);
+          doc.setFont('helvetica', 'bold');
+          doc.setFontSize(7.5);
+          doc.text(`✓ STOCK ${stock}`, 170, startY + 12, { align: 'right' });
+        }
       }
     }
 
