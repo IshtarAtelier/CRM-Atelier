@@ -212,7 +212,20 @@ Respond ONLY with the raw JSON. No markdown.
                     }
                 }).catch(() => {});
 
-                console.log(`  ✅ [Ficha Inteligente] Proactive followups paused. Rescheduled resume task for ${resumeDate.toLocaleDateString()}`);
+                // 5. Create a calendar follow-up task for the SALESPERSON (humano)
+                const humanTaskDescription = `[Seguimiento Manual] Contactar a ${chatInfo.client?.name || 'cliente'} - Razón: "${parsed.summary || 'Postergación detectada'}"`;
+                await prisma.clientTask.create({
+                    data: {
+                        clientId: currentClientId,
+                        description: humanTaskDescription,
+                        type: 'TASK',
+                        status: 'PENDING',
+                        dueDate: resumeDate,
+                        createdBy: 'Sistema (Pasivo)'
+                    }
+                }).catch((e) => console.error("Error creating human task:", e.message));
+
+                console.log(`  ✅ [Ficha Inteligente] Proactive followups paused. Rescheduled resume task and created human task for ${resumeDate.toLocaleDateString()}`);
             }
         }
 
