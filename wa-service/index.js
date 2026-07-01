@@ -1044,12 +1044,12 @@ const handleMessage = async (msg) => {
         if (!chat.clientId && realPhone && realPhone.length >= 8) {
             const searchPhoneStr = realPhone.slice(-8).replace(/\D/g, '');
             if (searchPhoneStr.length >= 8) {
-                const rawDuplicates = await prisma.$queryRawUnsafe(`
+                const rawDuplicates = await prisma.$queryRaw`
                     SELECT id 
                     FROM "Client" 
-                    WHERE REGEXP_REPLACE(COALESCE(phone, ''), '\\D', '', 'g') LIKE '%${searchPhoneStr}%'
+                    WHERE REGEXP_REPLACE(COALESCE(phone, ''), '\\D', '', 'g') LIKE ${'%' + searchPhoneStr + '%'}
                     LIMIT 1
-                `);
+                `;
                 
                 if (rawDuplicates && rawDuplicates.length > 0) {
                     const client = await prisma.client.findUnique({

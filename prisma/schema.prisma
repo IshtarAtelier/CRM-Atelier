@@ -301,6 +301,7 @@ model Order {
   @@index([status])
   @@index([prescriptionId])
   @@index([labStatus])
+  @@index([labSentAt])
 }
 
 model Invoice {

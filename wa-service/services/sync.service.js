@@ -169,12 +169,12 @@ const syncRecentChatsAndMessages = async (deps, wc) => {
                         const searchPhoneStr = realPhone.slice(-8).replace(/\D/g, '');
                         if (searchPhoneStr.length >= 8) {
                             try {
-                                const rawDuplicates = await prisma.$queryRawUnsafe(`
+                                const rawDuplicates = await prisma.$queryRaw`
                                     SELECT id 
                                     FROM "Client" 
-                                    WHERE REGEXP_REPLACE(COALESCE(phone, ''), '\\D', '', 'g') LIKE '%${searchPhoneStr}%'
+                                    WHERE REGEXP_REPLACE(COALESCE(phone, ''), '\\D', '', 'g') LIKE ${'%' + searchPhoneStr + '%'}
                                     LIMIT 1
-                                `);
+                                `;
                                 if (rawDuplicates && rawDuplicates.length > 0) {
                                     linkedClientId = rawDuplicates[0].id;
                                 }
