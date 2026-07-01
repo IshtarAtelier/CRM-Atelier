@@ -93,7 +93,7 @@ async function detectContactSourceFromChat(chatId) {
 
     // 0. Deterministic Template Matches
     // Meta templates with brackets, e.g. [metaSofi], [Metaplaca]
-    if (/\[meta[a-zA-Z0-9_-]+\]/i.test(firstMessage.content)) {
+    if (/\[meta[^\]]*\]/i.test(firstMessage.content)) {
         return 'Meta';
     }
     // Google templates: "Los vi en Google,", "Hola! Vi su anuncio en Google..."

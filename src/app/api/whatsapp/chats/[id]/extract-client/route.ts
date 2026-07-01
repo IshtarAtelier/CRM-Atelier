@@ -167,7 +167,7 @@ INSTRUCCIONES:
         let deterministicSource: string | null = null;
         if (firstInbound && firstInbound.content) {
             const firstContent = firstInbound.content;
-            if (/\[meta[a-zA-Z0-9_-]+\]/i.test(firstContent)) {
+            if (/\[meta[^\]]*\]/i.test(firstContent)) {
                 deterministicSource = 'Meta';
             } else if (/vi su anuncio en google|los vi en google/i.test(firstContent)) {
                 deterministicSource = 'Google Ads';

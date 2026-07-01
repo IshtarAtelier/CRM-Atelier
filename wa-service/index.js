@@ -168,7 +168,7 @@ const handleMessageCreate = async (msg) => {
                         });
                         if (lastInbound) {
                             const timeSinceInbound = Date.now() - new Date(lastInbound.createdAt).getTime();
-                            const hasMetaTag = /\[meta[a-zA-Z0-9_-]+\]/i.test(lastInbound.content || '');
+                            const hasMetaTag = /\[meta[^\]]*\]/i.test(lastInbound.content || '');
                             if (hasMetaTag && timeSinceInbound < 30000) {
                                 isMetaAutoReply = true;
                                 console.log(`  🤖 [Meta Auto-Reply] Outbound ${Math.round(timeSinceInbound/1000)}s después de mensaje [meta]. Ignorando.`);
@@ -402,8 +402,8 @@ async function processBotTurn(chat, waId, profileName, realPhone) {
                     return { role: 'human', content: `${timestamp}[El cliente envió un audio transcrito. Mensaje: ${m.content}]` };
                 } else {
                     let cleanContent = m.content || '';
-                    if (/\[meta[a-zA-Z0-9_-]+\]/i.test(cleanContent)) {
-                        cleanContent = cleanContent.replace(/\[meta[a-zA-Z0-9_-]+\]/gi, '').trim();
+                    if (/\[meta[^\]]*\]/i.test(cleanContent)) {
+                        cleanContent = cleanContent.replace(/\[meta[^\]]*\]/gi, '').trim();
                         if (!cleanContent) {
                             cleanContent = "Hola, vengo de un anuncio de Facebook/Instagram y estoy interesado.";
                         }
@@ -957,7 +957,7 @@ const handleMessage = async (msg) => {
                 }
                 
                 // Si entra por un anuncio de Meta Ads, forzar encendido del bot
-                if (body && /\[meta[a-zA-Z0-9_-]+\]/i.test(body)) {
+                if (body && /\[meta[^\]]*\]/i.test(body)) {
                     shouldEnableBot = true;
                     console.log(`  🎯 [Meta Ads] Forzando encendido de bot para nuevo chat de ${profileName || waId}.`);
                 }
@@ -994,7 +994,7 @@ const handleMessage = async (msg) => {
             }
             
             // Si llega un mensaje de Meta Ads, reactivar el bot para responder al anuncio
-            if (body && /\[meta[a-zA-Z0-9_-]+\]/i.test(body)) {
+            if (body && /\[meta[^\]]*\]/i.test(body)) {
                 updateData.botEnabled = true;
                 chat.botEnabled = true; // Sincronizar localmente en memoria
                 console.log(`  🎯 [Meta Ads] Reactivando bot para chat existente de ${profileName || waId}.`);
@@ -1283,7 +1283,7 @@ const handleMessage = async (msg) => {
         broadcastChatUpdate(chat.id);
         
         // ── Auto-etiquetado Meta Ads y Multifocales ──
-        if (body && /\[meta[a-zA-Z0-9_-]+\]/i.test(body) && chat.clientId) {
+        if (body && /\[meta[^\]]*\]/i.test(body) && chat.clientId) {
             const { addTagToClient } = require('./tools');
             await addTagToClient({ clientId: chat.clientId, tagName: 'Meta Ads' }).catch(e => console.error("Error auto-tag Meta:", e.message));
             await addTagToClient({ clientId: chat.clientId, tagName: 'Multifocal' }).catch(e => console.error("Error auto-tag Multifocal:", e.message));
