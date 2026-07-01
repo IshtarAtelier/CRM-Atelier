@@ -458,7 +458,7 @@ export class OrderService {
                             data: { stock: { decrement: newItem.quantity } }
                         });
                     }
-                });
+                }, { maxWait: 25000, timeout: 25000 });
             }
 
             const productIds = items.map((it: any) => it.productId).filter(Boolean);
@@ -1044,7 +1044,7 @@ export class OrderService {
                     }
 
                     return ord;
-                });
+                }, { maxWait: 25000, timeout: 25000 });
 
                 // Enviar conversión offline a Meta/Google de forma asíncrona (fire and forget)
                 AdsService.sendOfflineConversion(updatedOrder as any).catch(err => {

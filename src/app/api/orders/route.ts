@@ -222,7 +222,7 @@ export async function POST(request: Request) {
             });
 
             return createdOrder;
-        });
+        }, { maxWait: 25000, timeout: 25000 });
 
         return NextResponse.json(order);
     } catch (error: any) {

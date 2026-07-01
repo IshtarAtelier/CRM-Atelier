@@ -75,6 +75,10 @@ export async function GET(request: Request) {
                         price: true,
                         quantity: true,
                         eye: true,
+                        productCostSnapshot: true,
+                        productCategorySnapshot: true,
+                        productNameSnapshot: true,
+                        laboratorySnapshot: true,
                         product: {
                             select: {
                                 name: true,

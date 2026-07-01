@@ -61,6 +61,11 @@ export class ReportService {
                         quantity: true,
                         price: true,
                         eye: true,
+                        productCostSnapshot: true,
+                        productCategorySnapshot: true,
+                        productNameSnapshot: true,
+                        productBrandSnapshot: true,
+                        laboratorySnapshot: true,
                         product: {
                             select: {
                                 id: true,
@@ -188,35 +193,58 @@ export class ReportService {
             const orderProductTypes = new Set<string>();
 
             const has2x1Tag = order.tags?.some((t: any) => t.name.toLowerCase().includes('2x1')) || false;
-            const has2x1Product = order.items.some((i: any) => i.product && (i.product.name || '').toLowerCase().includes('2x1'));
+            const has2x1Product = order.items.some((i: any) => i.productNameSnapshot ? i.productNameSnapshot.toLowerCase().includes('2x1') : (i.product && (i.product.name || '').toLowerCase().includes('2x1')));
             const hasFreeCrystal = order.items.some((i: any) => {
-                if (!i.product) return false;
-                const isCrystal = (i.product.category || '').toUpperCase().includes('CRISTAL')
-                    || (i.product.type || '').includes('Cristal')
-                    || (i.product.type || '').includes('Multifocal')
-                    || (i.product.type || '').includes('Monofocal');
+                const categoryVal = i.productCategorySnapshot || (i.product ? (i.product.category || '') : '');
+                const typeVal = (i.product ? i.product.type : null) || (categoryVal.toUpperCase().includes('CRISTAL') ? 'Cristal' : 'Armazón');
+                const isCrystal = categoryVal.toUpperCase().includes('CRISTAL')
+                    || typeVal.includes('Cristal')
+                    || typeVal.includes('Multifocal')
+                    || typeVal.includes('Monofocal');
                 return isCrystal && i.price === 0;
             });
             const is2x1Order = (order.appliedPromoName || '').toLowerCase().includes('2x1') || has2x1Tag || has2x1Product || hasFreeCrystal;
 
             for (const item of order.items) {
                 const product = item.product;
-                if (!product) continue;
-
-                const isCrystalItem = (product.category || '').toUpperCase().includes('CRISTAL')
-                    || (product.type || '').includes('Cristal')
-                    || (product.type || '').includes('Multifocal')
-                    || (product.type || '').includes('Monofocal');
-
-                let itemCost = (product.cost || 0) * item.quantity;
                 
-                if (isCrystalItem && (item.eye === 'OD' || item.eye === 'OI') && (product.cost || 0) > 0) {
-                    itemCost = ((product.cost || 0) / 2) * item.quantity;
+                const costVal = item.productCostSnapshot !== null && item.productCostSnapshot !== undefined
+                    ? item.productCostSnapshot
+                    : (product ? (product.cost || 0) : 0);
+
+                const categoryVal = item.productCategorySnapshot
+                    ? item.productCategorySnapshot
+                    : (product ? (product.category || '') : '');
+
+                const nameVal = item.productNameSnapshot
+                    ? item.productNameSnapshot
+                    : (product ? (product.name || '') : '');
+
+                const brandVal = item.productBrandSnapshot
+                    ? item.productBrandSnapshot
+                    : (product ? (product.brand || '') : '');
+
+                const labName = item.laboratorySnapshot
+                    ? item.laboratorySnapshot
+                    : (product ? product.laboratory : null);
+
+                const typeVal = (product ? product.type : null) 
+                    || (categoryVal.toUpperCase().includes('CRISTAL') ? 'Cristal' : 'Armazón');
+
+                const isCrystalItem = categoryVal.toUpperCase().includes('CRISTAL')
+                    || typeVal.includes('Cristal')
+                    || typeVal.includes('Multifocal')
+                    || typeVal.includes('Monofocal');
+
+                let itemCost = costVal * item.quantity;
+                
+                if (isCrystalItem && (item.eye === 'OD' || item.eye === 'OI') && costVal > 0) {
+                    itemCost = (costVal / 2) * item.quantity;
                 }
                 
                 // If it is a 2x1 order and the crystal is free (price === 0), only charge the calibration cost
                 if (isCrystalItem && is2x1Order && item.price === 0) {
-                    const labConfig = product.laboratory ? labMap.get(product.laboratory.toUpperCase()) : null;
+                    const labConfig = labName ? labMap.get(labName.toUpperCase()) : null;
                     const calibrado = labConfig ? labConfig.calibrado : 15000;
                     const iva = labConfig ? labConfig.iva : 21;
                     const calibradoCost = calibrado * (1 + iva / 100);
@@ -230,11 +258,11 @@ export class ReportService {
                 
                 const itemRevenue = item.price * item.quantity;
 
-                const cat = (product.category || '').toUpperCase();
-                if (cat.includes('FRAME') || cat.includes('SUNGLASS') || (product.type || '').includes('Armazón') || (product.type || '').includes('Lentes de Sol')) {
+                const cat = categoryVal.toUpperCase();
+                if (cat.includes('FRAME') || cat.includes('SUNGLASS') || typeVal.includes('Armazón') || typeVal.includes('Lentes de Sol')) {
                     totalCostFrames += itemCost;
                     orderProductTypes.add('ARMAZÓN');
-                } else if (cat.includes('CRISTAL') || (product.type || '').includes('Cristal') || (product.type || '').includes('Multifocal') || (product.type || '').includes('Monofocal')) {
+                } else if (cat.includes('CRISTAL') || typeVal.includes('Cristal') || typeVal.includes('Multifocal') || typeVal.includes('Monofocal')) {
                     totalCostLenses += itemCost;
                     orderProductTypes.add('CRISTAL');
                 } else {
@@ -245,18 +273,18 @@ export class ReportService {
                 orderCMV += itemCost;
 
                 orderItems.push({
-                    name: `${product.brand || ''} ${product.name || 'Sin nombre'}`.trim(),
-                    type: product.type || product.category || '',
+                    name: `${brandVal} ${nameVal}`.trim() || 'Producto',
+                    type: typeVal || categoryVal || '',
                     eye: item.eye || null,
                     price: itemRevenue,
                     cost: itemCost,
-                    lab: product.laboratory || null,
+                    lab: labName || null,
                     is2x1Free: !!(is2x1Order && isCrystalItem && item.price === 0),
                 });
 
-                const pName = `${product.brand || ''} ${product.name || 'Sin nombre'}`.trim();
-                const pId = product.id;
-                if (!productStats[pId]) productStats[pId] = { name: pName, type: product.type || product.category || '', qty: 0, revenue: 0, cost: 0 };
+                const pName = `${brandVal} ${nameVal}`.trim() || 'Producto';
+                const pId = item.productId || 'dynamic-crystal';
+                if (!productStats[pId]) productStats[pId] = { name: pName, type: typeVal || categoryVal || '', qty: 0, revenue: 0, cost: 0 };
                 
                 if (!(is2x1Order && isCrystalItem && item.price === 0)) {
                     productStats[pId].qty += isCrystalItem ? (item.quantity / 2) : item.quantity;
@@ -266,16 +294,16 @@ export class ReportService {
 
                 monthlyStats[monthKey].cost += itemCost;
 
-                const labName = product.laboratory;
-                if ((cat.includes('CRISTAL') || (product.type || '').includes('Cristal') || (product.type || '').includes('Multifocal') || (product.type || '').includes('Monofocal')) && labName) {
-                    if (!labProfitStats[labName]) labProfitStats[labName] = { laboratory: labName, revenue: 0, cost: 0, profit: 0, ordersCount: 0, clients: [] };
-                    labProfitStats[labName].revenue += itemRevenue;
-                    labProfitStats[labName].cost += itemCost;
-                    labProfitStats[labName].profit += itemRevenue - itemCost;
-                    labProfitStats[labName].clients.push({
+                if (isCrystalItem && labName) {
+                    const labKey = labName.toUpperCase();
+                    if (!labProfitStats[labKey]) labProfitStats[labKey] = { laboratory: labName, revenue: 0, cost: 0, profit: 0, ordersCount: 0, clients: [] };
+                    labProfitStats[labKey].revenue += itemRevenue;
+                    labProfitStats[labKey].cost += itemCost;
+                    labProfitStats[labKey].profit += itemRevenue - itemCost;
+                    labProfitStats[labKey].clients.push({
                         name: order.client?.name || 'Desconocido',
                         date: order.createdAt.toISOString(),
-                        product: `${product.brand || ''} ${product.name || ''}`.trim(),
+                        product: pName,
                         revenue: itemRevenue,
                         cost: itemCost
                     });
