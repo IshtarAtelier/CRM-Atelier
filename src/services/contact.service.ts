@@ -556,7 +556,7 @@ export const ContactService = {
                 taskDesc = '[SISTEMA] DIA_1 - Seguimiento de Venta';
             } else if (addedTag === 'Seguimiento 2') {
                 taskDesc = '[SISTEMA] DIA_4 - Seguimiento de Venta';
-            } else if (addedTag === 'Frío' || addedTag === 'Frio' || addedTag === 'Seguimiento 10dias') {
+            } else if (['Frío', 'Frio', 'Seguimiento 10dias'].includes(addedTag)) {
                 taskDesc = '[SISTEMA] DIA_15 - Seguimiento de Venta';
             }
 
@@ -583,13 +583,9 @@ export const ContactService = {
                         }
                     });
 
-                    // Call the wa-service endpoint to process immediately
-                    const waServerUrl = process.env.WA_SERVER_URL || 'http://127.0.0.1:3100';
-                    const apiKey = process.env.WA_API_KEY;
-                    fetch(`${waServerUrl}/api/followups/trigger`, {
-                        method: 'POST',
-                        headers: apiKey ? { 'x-api-key': apiKey, 'Content-Type': 'application/json' } : { 'Content-Type': 'application/json' }
-                    }).catch((err: any) => console.error('[Bot Trigger] Error triggering bot followups endpoint:', err.message));
+                    // Call the wa-service endpoint to process immediately using the centralized fetchWa helper
+                    fetchWa('/api/followups/trigger', { method: 'POST' })
+                        .catch((err: any) => console.error('[Bot Trigger] Error triggering bot followups endpoint:', err.message));
                 } catch (taskErr: any) {
                     console.error('[Bot Trigger] Error creating manual follow-up task:', taskErr.message);
                 }
