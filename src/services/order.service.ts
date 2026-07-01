@@ -5,7 +5,8 @@ import { prisma } from '@/lib/db';
 import { PricingService, calculateQuoteTotals } from '@/services/PricingService';
 import { recalculateCrystalPrices } from '@/lib/promo-utils';
 import { z } from 'zod';
-import { fetchWa } from '@/lib/wa-config';
+import { fetchWa, getAdminChatId } from '@/lib/wa-config';
+import { normalizeArgentinePhone } from '@/services/contact.service';
 import { AdsService } from '@/services/ads.service';
 import { GoogleContactsService } from '@/services/google-contacts.service';
 import { formatOrderItemsSummary } from '@/lib/order-utils';
@@ -669,11 +670,13 @@ export class OrderService {
                                 console.error('[Lab Status Notification] Failed to generate Order PDF:', pdfErr);
                             }
 
+                            const formattedPhone = normalizeArgentinePhone(phone);
+
                             fetchWa('/api/send', {
                                 method: 'POST',
                                 headers: { 'Content-Type': 'application/json' },
                                 body: JSON.stringify({
-                                    chatId: `549${phone.slice(-10)}@c.us`,
+                                    chatId: `${formattedPhone}@c.us`,
                                     message: msg,
                                     senderName: 'Sistema Atelier',
                                     media: pdfMedia
@@ -699,6 +702,18 @@ export class OrderService {
                                     console.error('Error creating fallback task for WhatsApp failure:', dbErr);
                                 }
                             });
+
+                            // Enviar copia al admin
+                            fetchWa('/api/send', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    chatId: getAdminChatId(),
+                                    message: `🏭 *[Pedido enviado a fábrica — Copia]*\n\n👤 *Cliente:* ${fullOrder.client?.name || ''}\n📋 *N° Operación:* ${labOrderNumber || fullOrder.labOrderNumber || 'Sin asignar'}\n\n${msg}`,
+                                    senderName: 'Sistema Atelier',
+                                    media: pdfMedia
+                                })
+                            }).catch(err => console.error('[Lab Status] Error enviando copia al admin:', err));
                         }
                     } catch (err: any) {
                         console.error('[Lab Status Notification Error]:', err.message);

@@ -1565,9 +1565,7 @@ export const ContactService = {
 
                     // Enviar comprobante automático al cliente para cualquier método de pago
                     if (result.clientPhone) {
-                        let phoneTo = result.clientPhone.replace(/\D/g, '');
-                        if (!phoneTo.startsWith('549') && phoneTo.startsWith('54')) phoneTo = phoneTo.replace(/^54/, '549');
-                        if (!phoneTo.startsWith('549')) phoneTo = `549${phoneTo}`;
+                        let phoneTo = normalizeArgentinePhone(result.clientPhone);
                         if (!phoneTo.endsWith('@c.us')) phoneTo = `${phoneTo}@c.us`;
 
                         const today = new Date().toLocaleDateString('es-AR');
