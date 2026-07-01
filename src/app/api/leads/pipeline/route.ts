@@ -1,27 +1,36 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { PIPELINE_COLUMNS, type PipelineStageKey } from '@/types/leads';
 
 export const dynamic = 'force-dynamic';
 
+// ─────────────────────────────────────────────────────────────
+// GET /api/leads/pipeline
+// Returns qualified leads (CONTACT + has prescription)
+// grouped by funnel stage based on latest quote age.
+// ─────────────────────────────────────────────────────────────
+
+const EXCLUSION_TAGS = ['no interesado', 'cancelar bot', 'spam', 'no bot'];
+
+/** Classify a lead into a pipeline stage based on hours since latest quote */
+function classifyStage(hoursElapsed: number | null): PipelineStageKey {
+  if (hoursElapsed === null) return 'nuevaReceta';
+  if (hoursElapsed < 24)  return 'cotizacionEnviada';
+  if (hoursElapsed < 48)  return 'seguimiento1';
+  if (hoursElapsed < 240) return 'seguimiento2';
+  return 'seguimiento10dias';
+}
+
 export async function GET() {
   try {
-    const now = new Date();
+    const now = Date.now();
 
-    // Obtener los leads (CONTACT) que no están eliminados
     const leads = await prisma.client.findMany({
-      where: {
-        status: 'CONTACT',
-        isDeleted: false,
-      },
+      where: { status: 'CONTACT', isDeleted: false },
       include: {
-        prescriptions: {
-          orderBy: { date: 'desc' },
-        },
+        prescriptions: { orderBy: { date: 'desc' } },
         orders: {
-          where: {
-            orderType: 'QUOTE',
-            isDeleted: false,
-          },
+          where: { orderType: 'QUOTE', isDeleted: false },
           orderBy: { createdAt: 'desc' },
         },
         tags: true,
@@ -30,37 +39,45 @@ export async function GET() {
           take: 1,
         },
       },
-      orderBy: {
-        createdAt: 'desc',
-      },
+      orderBy: { createdAt: 'desc' },
     });
 
-    // Filtros de exclusión:
-    // 1. Debe tener receta.
-    // 2. No debe tener etiquetas como "no interesado", "cancelar bot" o "spam".
-    const exclusionTags = ['no interesado', 'cancelar bot', 'spam', 'no bot'];
+    // Filter: must have prescription, must NOT have exclusion tags
     const qualifiedLeads = leads.filter(lead => {
-      const hasPrescription = lead.prescriptions.length > 0;
-      const hasExclusionTag = lead.tags.some(tag => 
-        exclusionTags.some(exclude => tag.name.toLowerCase().includes(exclude))
+      if (lead.prescriptions.length === 0) return false;
+      return !lead.tags.some(tag =>
+        EXCLUSION_TAGS.some(ex => tag.name.toLowerCase().includes(ex))
       );
-      return hasPrescription && !hasExclusionTag;
     });
 
-    // Estructura de las columnas
-    const columns: Record<string, { title: string; count: number; totalAmount: number; leads: any[] }> = {
-      nuevaReceta: { title: 'Nueva Receta', count: 0, totalAmount: 0, leads: [] },
-      cotizacionEnviada: { title: 'Cotización Enviada', count: 0, totalAmount: 0, leads: [] },
-      seguimiento1: { title: 'Seguimiento 1 (24-48h)', count: 0, totalAmount: 0, leads: [] },
-      seguimiento2: { title: 'Seguimiento 2 (48-96h)', count: 0, totalAmount: 0, leads: [] },
-      seguimiento10dias: { title: 'Seguimiento 10 Días', count: 0, totalAmount: 0, leads: [] },
-    };
+    // Build columns from config
+    const columns: Record<PipelineStageKey, {
+      title: string; color: string; icon: string;
+      count: number; totalAmount: number; leads: any[];
+    }> = {} as any;
 
+    for (const [key, cfg] of Object.entries(PIPELINE_COLUMNS)) {
+      columns[key as PipelineStageKey] = {
+        title: cfg.title,
+        color: cfg.color,
+        icon: cfg.icon,
+        count: 0,
+        totalAmount: 0,
+        leads: [],
+      };
+    }
+
+    // Classify each lead
     for (const lead of qualifiedLeads) {
-      const latestQuote = lead.orders[0]; // La cotización más reciente
+      const latestQuote = lead.orders[0] ?? null;
       const latestRx = lead.prescriptions[0];
 
-      // Formatear información del lead para el Kanban
+      const hoursElapsed = latestQuote
+        ? (now - new Date(latestQuote.createdAt).getTime()) / 3_600_000
+        : null;
+
+      const stage = classifyStage(hoursElapsed);
+
       const formattedLead = {
         id: lead.id,
         name: lead.name,
@@ -71,7 +88,8 @@ export async function GET() {
         isFavorite: lead.isFavorite,
         createdAt: lead.createdAt,
         interest: lead.interest,
-        latestRx: latestRx ? {
+        contactSource: lead.contactSource,
+        latestRx: {
           id: latestRx.id,
           date: latestRx.date,
           sphereOD: latestRx.sphereOD,
@@ -79,7 +97,7 @@ export async function GET() {
           sphereOI: latestRx.sphereOI,
           cylinderOI: latestRx.cylinderOI,
           addition: latestRx.addition || latestRx.additionOD || latestRx.additionOI || null,
-        } : null,
+        },
         latestQuote: latestQuote ? {
           id: latestQuote.id,
           total: latestQuote.total,
@@ -88,36 +106,10 @@ export async function GET() {
         waChatId: lead.whatsappChats[0]?.id || null,
       };
 
-      if (!latestQuote) {
-        // Nueva Receta: no tiene cotización
-        columns.nuevaReceta.leads.push(formattedLead);
-        columns.nuevaReceta.count++;
-      } else {
-        const quoteTime = new Date(latestQuote.createdAt).getTime();
-        const hoursElapsed = (now.getTime() - quoteTime) / (1000 * 60 * 60);
-
-        if (hoursElapsed < 24) {
-          // Cotización Enviada (< 24hs)
-          columns.cotizacionEnviada.leads.push(formattedLead);
-          columns.cotizacionEnviada.count++;
-          columns.cotizacionEnviada.totalAmount += latestQuote.total;
-        } else if (hoursElapsed >= 24 && hoursElapsed < 48) {
-          // Seguimiento 1 (24hs a 48hs)
-          columns.seguimiento1.leads.push(formattedLead);
-          columns.seguimiento1.count++;
-          columns.seguimiento1.totalAmount += latestQuote.total;
-        } else if (hoursElapsed >= 48 && hoursElapsed < 240) {
-          // Seguimiento 2 (48hs a 10 días / 240hs)
-          columns.seguimiento2.leads.push(formattedLead);
-          columns.seguimiento2.count++;
-          columns.seguimiento2.totalAmount += latestQuote.total;
-        } else {
-          // Seguimiento 10 Días (>= 240hs)
-          columns.seguimiento10dias.leads.push(formattedLead);
-          columns.seguimiento10dias.count++;
-          columns.seguimiento10dias.totalAmount += latestQuote.total;
-        }
-      }
+      const col = columns[stage];
+      col.leads.push(formattedLead);
+      col.count++;
+      if (latestQuote) col.totalAmount += latestQuote.total;
     }
 
     return NextResponse.json({
@@ -125,10 +117,9 @@ export async function GET() {
       columns,
       stats: {
         totalLeads: qualifiedLeads.length,
-        totalValue: Object.values(columns).reduce((sum, col) => sum + col.totalAmount, 0),
-      }
+        totalValue: Object.values(columns).reduce((s, c) => s + c.totalAmount, 0),
+      },
     });
-
   } catch (error: any) {
     console.error('[API Leads Pipeline] Error:', error.message);
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
