@@ -366,39 +366,54 @@ export async function GET(request: Request) {
         const typeStats: Record<string, { total: number; count: number; cost: number }> = {};
         currentMonthOrders.forEach((order: any) => {
             const has2x1Tag = order.tags?.some((t: any) => t.name.toLowerCase().includes('2x1')) || false;
-            const has2x1Product = order.items.some((i: any) => i.product && (i.product.name || '').toLowerCase().includes('2x1'));
+            const has2x1Product = order.items.some((i: any) => i.productNameSnapshot ? i.productNameSnapshot.toLowerCase().includes('2x1') : (i.product && (i.product.name || '').toLowerCase().includes('2x1')));
             const hasFreeCrystal = order.items.some((i: any) => {
-                if (!i.product) return false;
-                const isCrystal = (i.product.category || '').toUpperCase().includes('CRISTAL')
-                    || (i.product.type || '').includes('Cristal')
-                    || (i.product.type || '').includes('Multifocal')
-                    || (i.product.type || '').includes('Monofocal');
+                const categoryVal = i.productCategorySnapshot || (i.product ? (i.product.category || '') : '');
+                const typeVal = (i.product ? i.product.type : null) || (categoryVal.toUpperCase().includes('CRISTAL') ? 'Cristal' : 'Armazón');
+                const isCrystal = categoryVal.toUpperCase().includes('CRISTAL')
+                    || typeVal.includes('Cristal')
+                    || typeVal.includes('Multifocal')
+                    || typeVal.includes('Monofocal');
                 return isCrystal && i.price === 0;
             });
             const is2x1Order = ((order as any).appliedPromoName || '').toLowerCase().includes('2x1') || has2x1Tag || has2x1Product || hasFreeCrystal;
 
             order.items.forEach((item: any) => {
                 const product = item.product;
-                if (!product) return; // Skip if product was deleted
 
-                const type = product.type || "OTROS";
+                const costVal = item.productCostSnapshot !== null && item.productCostSnapshot !== undefined
+                    ? item.productCostSnapshot
+                    : (product ? (product.cost || 0) : 0);
+
+                const categoryVal = item.productCategorySnapshot
+                    ? item.productCategorySnapshot
+                    : (product ? (product.category || '') : '');
+
+                const labName = item.laboratorySnapshot
+                    ? item.laboratorySnapshot
+                    : (product ? product.laboratory : null);
+
+                const typeVal = (product ? product.type : null) 
+                    || (categoryVal.toUpperCase().includes('CRISTAL') ? 'Cristal' : 'Armazón');
+
+                const type = typeVal || "OTROS";
                 if (!typeStats[type]) typeStats[type] = { total: 0, count: 0, cost: 0 };
-                const orderPrice = Math.max(item.price * item.quantity, 0); // Using item price for type stats is usually better as it's more granular
+                const orderPrice = Math.max(item.price * item.quantity, 0);
                 typeStats[type].total += orderPrice;
 
-                const isCrystalItem = (product.category || '').toUpperCase().includes('CRISTAL')
-                    || (product.type || '').includes('Cristal')
-                    || (product.type || '').includes('Multifocal')
-                    || (product.type || '').includes('Monofocal');
+                const isCrystalItem = categoryVal.toUpperCase().includes('CRISTAL')
+                    || typeVal.includes('Cristal')
+                    || typeVal.includes('Multifocal')
+                    || typeVal.includes('Monofocal');
 
-                let itemCost = (product.cost || 0) * item.quantity;
-                if (isCrystalItem && item.eye && (product.cost || 0) > 0) {
-                    itemCost = ((product.cost || 0) / 2) * item.quantity;
+                let itemCost = costVal * item.quantity;
+                if (isCrystalItem && item.eye && costVal > 0) {
+                    itemCost = (costVal / 2) * item.quantity;
                 }
 
                 // If it is a 2x1 order and the crystal is free (price === 0), only charge the calibration cost
                 if (isCrystalItem && is2x1Order && item.price === 0) {
-                    const labConfig = product.laboratory ? labMap.get(product.laboratory.toUpperCase()) : null;
+                    const labConfig = labName ? labMap.get(labName.toUpperCase()) : null;
                     const calibrado = labConfig ? labConfig.calibrado : 15000;
                     const iva = labConfig ? labConfig.iva : 21;
                     const calibradoCost = calibrado * (1 + iva / 100);

@@ -61,6 +61,7 @@ export class ReportService {
                         quantity: true,
                         price: true,
                         eye: true,
+                        productId: true,
                         productCostSnapshot: true,
                         productCategorySnapshot: true,
                         productNameSnapshot: true,
