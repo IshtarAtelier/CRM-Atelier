@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { fetchWa } from '@/lib/wa-config';
+import { normalizeArgentinePhone } from '@/services/contact.service';
 
 // POST /api/orders/[id]/notify-ready
 export async function POST(
@@ -29,8 +30,8 @@ export async function POST(
             where: { clientId: order.clientId }
         });
 
-        const phoneNum = order.client.phone.replace(/\D/g, '');
-        const waId = chat ? chat.waId : `549${phoneNum.slice(-10)}@c.us`; // Fallback simple a formato internacional AR
+        const formattedPhone = normalizeArgentinePhone(order.client.phone);
+        const waId = chat ? chat.waId : `${formattedPhone}@c.us`;
         const chatIdForBot = chat ? chat.id : waId; // Si hay chat mandamos el ID interno, sino mandamos el waId
 
         // 3. Calcular saldo y armar mensaje

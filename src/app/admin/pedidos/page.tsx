@@ -13,6 +13,7 @@ import { PricingService } from '@/services/PricingService';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import type { Order } from '@/types/orders';
+import { formatPhoneForWhatsApp } from '@/lib/phone-utils';
 
 // ── Lab Status Config ─────────────────────────────
 
@@ -571,12 +572,7 @@ export default function PedidosPage() {
         text += `\n\n⏱️ *Tiempo estimado de confección:* 7 a 10 días hábiles`;
         if (order.labNotes) text += `\n\n📝 *Observaciones:* ${order.labNotes}`;
 
-        const rawPhone = order.client.phone?.replace(/\D/g, '') || '';
-        if (!rawPhone) {
-            alert('⚠️ El cliente no tiene teléfono registrado.');
-            return;
-        }
-        const phone = rawPhone.length >= 10 ? `549${rawPhone.slice(-10)}` : rawPhone;
+        const phone = formatPhoneForWhatsApp(order.client.phone);
 
         try {
             const res = await fetch('/api/whatsapp/send', {

@@ -10,6 +10,7 @@ import { es } from 'date-fns/locale';
 import InvoiceModal from '@/components/billing/InvoiceModal';
 import { resolveStorageUrl } from '@/lib/utils/storage';
 import { generateInvoicePDF } from '@/lib/invoice-generator';
+import { formatPhoneForWhatsApp } from '@/lib/phone-utils';
 import { WhatsAppIcon } from '@/components/icons/WhatsAppIcon';
 import type { Order } from '@/types/orders';
 
@@ -93,12 +94,11 @@ export default function BillingPage() {
     };
 
     const handleSendWhatsAppInvoice = async (order: Order, invoiceId: string) => {
-        const rawPhone = order.client?.phone?.replace(/\D/g, '');
-        if (!rawPhone) {
+        const phone = formatPhoneForWhatsApp(order.client?.phone);
+        if (!phone || phone === '549') {
             alert('⚠️ El cliente no tiene teléfono registrado.');
             return;
         }
-        const phone = rawPhone.length >= 10 ? `549${rawPhone.slice(-10)}` : rawPhone;
 
         setDownloadingId(`wsp-${invoiceId}`);
         try {

@@ -92,9 +92,9 @@ function isValidRecipient(waId) {
     }
     // Classic @c.us format: validate country code prefix
     const cleanPhone = waId.split('@')[0];
-    const VALID_PREFIXES = ['54', '1', '34']; // Argentina, USA/Canada, Spain
-    const hasValidPrefix = VALID_PREFIXES.some(p => cleanPhone.startsWith(p));
-    if (cleanPhone.length < 11 || !hasValidPrefix) {
+    
+    // Allow any country code. Just verify it has a reasonable minimum length and doesn't start with a local prefix '0'
+    if (cleanPhone.length < 10 || cleanPhone.startsWith('0')) {
         return { valid: false, reason: 'Falta el código de país internacional obligatorio en el destinatario' };
     }
     return { valid: true };

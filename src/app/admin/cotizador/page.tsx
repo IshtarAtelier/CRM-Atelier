@@ -25,6 +25,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 // import { toast } from 'sonner';
 import CotizadorCart from '@/components/quotes/CotizadorCart';
 import { resolveStorageUrl } from '@/lib/utils/storage';
+import { formatPhoneForWhatsApp } from '@/lib/phone-utils';
 import QuoteSummary from '@/components/quotes/QuoteSummary';
 import { 
     isCrystal, 
@@ -567,8 +568,7 @@ function CotizadorPageContent() {
         msg += `   ↳ 6 cuotas sin interés: $${inst6.toLocaleString()} c/u\n`;
         msg += `\nAtelier Óptica`;
         
-        const rawPhone = pendingContact.phone.replace(/\D/g, '');
-        const phone = rawPhone.length >= 10 ? '549' + rawPhone.slice(-10) : rawPhone;
+        const phone = formatPhoneForWhatsApp(pendingContact.phone);
 
         try {
             const res = await fetch('/api/whatsapp/send', {

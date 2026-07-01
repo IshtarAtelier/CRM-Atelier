@@ -11,6 +11,7 @@ import {
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { resolveStorageUrl } from '@/lib/utils/storage';
+import { formatPhoneForWhatsApp } from '@/lib/phone-utils';
 import { PricingService } from '@/services/PricingService';
 import { WhatsAppIcon } from '@/components/icons/WhatsAppIcon';
 
@@ -348,11 +349,8 @@ export default function QuoteSummary({
         text += `   ↳ 3 cuotas sin interés: $${financials.installment3.toLocaleString()} c/u\n`;
         text += `   ↳ 6 cuotas sin interés: $${financials.installment6.toLocaleString()} c/u\n`;
 
-        const phoneNum = contact.phone?.replace(/\D/g, '');
-        if (!phoneNum) return;
-        
-        let formattedPhone = phoneNum;
-        if (formattedPhone.length === 10) formattedPhone = '549' + formattedPhone;
+        const formattedPhone = formatPhoneForWhatsApp(contact.phone);
+        if (!formattedPhone || formattedPhone === '549') return;
 
         setIsSendingWhatsApp(true);
         try {
@@ -378,11 +376,8 @@ export default function QuoteSummary({
     };
 
     const handleWhatsAppPDF = async () => {
-        const phoneNum = contact.phone?.replace(/\D/g, '');
-        if (!phoneNum) return;
-        
-        let formattedPhone = phoneNum;
-        if (formattedPhone.length === 10) formattedPhone = '549' + formattedPhone;
+        const formattedPhone = formatPhoneForWhatsApp(contact.phone);
+        if (!formattedPhone || formattedPhone === '549') return;
 
         setIsSendingPDF(true);
         try {

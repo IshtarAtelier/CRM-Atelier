@@ -11,6 +11,7 @@ import { es } from 'date-fns/locale';
 import InvoiceModal from '@/components/billing/InvoiceModal';
 import { generateInvoicePDF } from '@/lib/invoice-generator';
 import type { Order } from '@/types/orders';
+import { formatPhoneForWhatsApp } from '@/lib/phone-utils';
 
 const LAB_STATUS: Record<string, { key: string, label: string; color: string; icon: any; bg: string; text: string; ring: string }> = {
     'NONE': { key: 'NONE', label: 'Sin enviar', color: 'bg-stone-100 text-stone-500', bg: 'bg-stone-100 dark:bg-stone-800', text: 'text-stone-500 dark:text-stone-400', ring: 'ring-stone-200 dark:ring-stone-700', icon: Clock },
@@ -254,12 +255,11 @@ export default function VentasPage() {
     };
 
     const handleSendWhatsAppInvoice = async (order: Order, invoiceId: string) => {
-        const rawPhone = order.client?.phone?.replace(/\D/g, '');
-        if (!rawPhone) {
+        const phone = formatPhoneForWhatsApp(order.client?.phone);
+        if (!phone || phone === '549') {
             alert('⚠️ El cliente no tiene teléfono registrado.');
             return;
         }
-        const phone = rawPhone.length >= 10 ? `549${rawPhone.slice(-10)}` : rawPhone;
 
         setRequestingInvoiceId(`wsp-${invoiceId}`);
         try {
@@ -1344,12 +1344,11 @@ export default function VentasPage() {
                                                     msg += `*Horarios:*\n   • Lunes a viernes de 9:00 a 13:30 y de 16:00 a 19:30\n   • Sábados de 10:00 a 14:00 hs\n\n`;
                                                     msg += `¡Te esperamos! Muchas gracias.\n`;
                                                     msg += `\n_La óptica mejor calificada en Google Business 5/5_`;
-                                                    const rawPhone = (order.client?.phone || '').replace(/\D/g, '');
-                                                    if (!rawPhone) {
+                                                    const phone = formatPhoneForWhatsApp(order.client?.phone);
+                                                    if (!phone || phone === '549') {
                                                         alert('⚠️ El cliente no tiene teléfono registrado.');
                                                         return;
                                                     }
-                                                    const phone = rawPhone.length >= 10 ? `549${rawPhone.slice(-10)}` : rawPhone;
                                                     try {
                                                         const res = await fetch('/api/whatsapp/send', {
                                                             method: 'POST',

@@ -39,9 +39,17 @@ export async function GET(request: Request) {
       if (!session.phone) continue;
 
       let waPhone = session.phone.replace(/\D/g, '');
+      // Strip international prefix if present
+      if (waPhone.startsWith('549')) waPhone = waPhone.substring(3);
+      else if (waPhone.startsWith('54')) waPhone = waPhone.substring(2);
+      // Strip leading local trunk prefix
       if (waPhone.startsWith('0')) waPhone = waPhone.substring(1);
-      if (waPhone.startsWith('15')) waPhone = '9' + waPhone.substring(2);
-      if (!waPhone.startsWith('54')) waPhone = '54' + waPhone;
+      // Remove embedded mobile prefix '15' after area code
+      if (waPhone.length > 10) {
+        const match15 = waPhone.match(/^([1-3]\d{1,3})15(\d{6,8})$/);
+        if (match15) waPhone = match15[1] + match15[2];
+      }
+      waPhone = '549' + waPhone;
 
       // Ensure proper waId format
       const waId = `${waPhone}@c.us`;
@@ -54,9 +62,8 @@ export async function GET(request: Request) {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            waId: waId,
-            text: messageText,
-            chatId: null // It will create or find the chat
+            chatId: waId,
+            message: messageText
           })
         });
 
