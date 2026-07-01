@@ -450,6 +450,30 @@ export const ContactService = {
         if (data.insurance !== undefined) updateData.insurance = data.insurance?.trim() === "" ? null : data.insurance;
         if (data.doctor !== undefined) updateData.doctor = data.doctor?.trim() === "" ? null : data.doctor;
         if (data.metaLid !== undefined) updateData.metaLid = data.metaLid?.trim() === "" ? null : data.metaLid;
+        
+        // Support custom tag operations
+        if ((data as any).addTagName) {
+            const tagName = (data as any).addTagName;
+            const tag = await prisma.tag.upsert({
+                where: { name: tagName },
+                update: {},
+                create: { name: tagName, color: '#9e7f65' }
+            });
+            updateData.tags = {
+                connect: { id: tag.id }
+            };
+        }
+        if ((data as any).removeTagName) {
+            const tagName = (data as any).removeTagName;
+            const tag = await prisma.tag.findUnique({
+                where: { name: tagName }
+            });
+            if (tag) {
+                updateData.tags = {
+                    disconnect: { id: tag.id }
+                };
+            }
+        }
 
         let oldClient = null;
         if (data.phone !== undefined) {
