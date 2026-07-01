@@ -259,6 +259,9 @@ async function getPriceList({ category, search, botRecommended }) {
     // Filtramos la instrucción del sistema y formateamos cada producto
     const products = (Array.isArray(rawData) ? rawData : []).filter(
         p => p.source !== 'SERVICE' && p.priceCash > 0
+    ).filter(
+        // Excluir clip-ons infantiles/kids — nadie los consulta por WhatsApp
+        p => !(p.name && /kid|niño|nino|infantil|chico/i.test(p.name) && /clip/i.test(p.name))
     );
 
     if (products.length === 0) {
@@ -278,17 +281,10 @@ async function getPriceList({ category, search, botRecommended }) {
         const cuotaFormatted = cuota.toLocaleString('es-AR');
         const creditTotalFormatted = creditTotal.toLocaleString('es-AR');
 
-        let line = "";
-        if (p.imageUrl) {
-            line += `[IMAGE: ${p.imageUrl}]\n`;
-        }
-        line += `*Opción ${i + 1} – ${name}*\n`;
+        let line = `*Opción ${i + 1} – ${name}*\n`;
         line += `• Precio contado: *$${cashFormatted}*\n`;
         line += `• 6 cuotas sin interés de *$${cuotaFormatted}* (total *$${creditTotalFormatted}*)`;
         
-        if (p.link) {
-            line += `\n• Link: ${p.link}`;
-        }
         if (p.is2x1) {
             line += `\n🎉 *Promo 2x1* - Incluye dos pares de cristales!`;
         }
