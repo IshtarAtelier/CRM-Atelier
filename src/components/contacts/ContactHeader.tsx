@@ -172,6 +172,18 @@ export default function ContactHeader({
                             >
                                 <Phone className="w-4 h-4" /> {contact.phone || 'Sin número'}
                             </button>
+                            {contact.phone && (
+                                <button
+                                    onClick={() => {
+                                        onClose();
+                                        router.push(`/admin/whatsapp?phone=${encodeURIComponent(contact.phone)}`);
+                                    }}
+                                    className="flex items-center gap-1.5 px-2.5 py-1 bg-green-500/10 text-green-600 dark:text-green-400 border border-green-500/20 rounded-lg font-black text-[10px] uppercase tracking-widest hover:bg-green-500 hover:text-white transition-all shadow-sm"
+                                    title="Abrir chat en WhatsApp"
+                                >
+                                    <WhatsAppIcon className="w-3.5 h-3.5" /> Chatear
+                                </button>
+                            )}
                             {contact.email && (
                                 <button 
                                     onClick={() => onEdit(contact)}
