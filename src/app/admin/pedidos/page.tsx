@@ -86,8 +86,8 @@ function PostSaleCard({
         }
     };
 
-    const currentStatus = order.postSaleStatus || 'PENDING';
-    const statusKeys = ['PENDING', 'IN_PROGRESS', 'READY', 'DELIVERED'];
+    const currentStatus = order.postSaleStatus || 'SENT';
+    const statusKeys = ['SENT', 'IN_PROGRESS', 'FINISHED', 'READY', 'DELIVERED'];
     let currentIdx = statusKeys.indexOf(currentStatus);
     if (currentIdx === -1) currentIdx = 0;
 
@@ -134,6 +134,30 @@ function PostSaleCard({
                         </span>
                     )}
                 </div>
+
+                {/* SmartLab Progress Info */}
+                {order.smartLabProgress != null && order.smartLabProgress > 0 && (
+                    <div className="bg-blue-50/50 dark:bg-blue-950/20 rounded-xl px-2.5 py-2 border border-blue-100/50 dark:border-blue-800/30">
+                        <div className="flex items-center justify-between mb-1">
+                            <span className="text-[7px] font-black text-blue-500 uppercase tracking-widest">SmartLab</span>
+                            <span className={`text-[9px] font-black ${order.smartLabProgress >= 100 ? 'text-emerald-500' : 'text-blue-600'}`}>
+                                {order.smartLabProgress}%
+                            </span>
+                        </div>
+                        <div className="h-1 bg-blue-100/70 dark:bg-blue-900/30 rounded-full overflow-hidden mb-1">
+                            <div 
+                                className={`h-full rounded-full transition-all duration-500 ${order.smartLabProgress >= 100 ? 'bg-emerald-500' : 'bg-blue-500'}`}
+                                style={{ width: `${Math.min(100, order.smartLabProgress)}%` }}
+                            />
+                        </div>
+                        <div className="flex items-center justify-between text-[7.5px] font-semibold text-stone-500 dark:text-stone-400">
+                            <span className="truncate max-w-[120px]">{order.smartLabSector || '—'}</span>
+                            {order.smartLabDays != null && (
+                                <span className="font-bold text-amber-500">{order.smartLabDays}d</span>
+                            )}
+                        </div>
+                    </div>
+                )}
 
                 {/* History Notes list (Timeline feed) */}
                 <div className="bg-stone-50 dark:bg-stone-900/40 rounded-xl p-2.5 border border-stone-100 dark:border-stone-800 space-y-2 max-h-[140px] overflow-y-auto custom-scrollbar">
@@ -246,12 +270,6 @@ export default function PedidosPage() {
         { key: 'DELIVERED', label: 'Entregado / Cerrado', color: 'border-indigo-400/80 bg-indigo-500/10 text-indigo-600' }
     ];
 
-    const POST_SALE_COLUMNS = [
-        { key: 'PENDING', label: 'Reportados / Pendientes', color: 'border-amber-400/80 bg-amber-500/10 text-amber-600' },
-        { key: 'IN_PROGRESS', label: 'En Laboratorio', color: 'border-blue-400/80 bg-blue-500/10 text-blue-600' },
-        { key: 'READY', label: 'Listo p/ Retirar', color: 'border-emerald-400/80 bg-emerald-500/10 text-emerald-600' },
-        { key: 'DELIVERED', label: 'Entregado / Cerrado', color: 'border-indigo-400/80 bg-indigo-500/10 text-indigo-600' }
-    ];
 
     const postSaleOrders = useMemo(() => {
         return orders.filter(o => 
@@ -269,8 +287,8 @@ export default function PedidosPage() {
 
     const handleMoveCard = async (order: Order, direction: 'left' | 'right') => {
         if (viewMode === 'POST_VENTA') {
-            const currentStatus = order.postSaleStatus || 'PENDING';
-            const statusKeys = ['PENDING', 'IN_PROGRESS', 'READY', 'DELIVERED'];
+            const currentStatus = order.postSaleStatus || 'SENT';
+            const statusKeys = ['SENT', 'IN_PROGRESS', 'FINISHED', 'READY', 'DELIVERED'];
             let currentIdx = statusKeys.indexOf(currentStatus);
             if (currentIdx === -1) currentIdx = 0;
 
@@ -1275,10 +1293,10 @@ export default function PedidosPage() {
             ) : viewMode === 'POST_VENTA' ? (
                 <div className="space-y-6">
                     {/* Kanban Board Container */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-start pb-4">
-                        {POST_SALE_COLUMNS.map(column => {
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 items-start pb-4">
+                        {PIPELINE_COLUMNS.map(column => {
                             const columnOrders = postSaleOrders.filter(o => {
-                                const status = o.postSaleStatus || 'PENDING';
+                                const status = o.postSaleStatus || 'SENT';
                                 return status === column.key;
                             });
 

@@ -7,20 +7,27 @@ export const dynamic = 'force-dynamic';
 // ─────────────────────────────────────────────────────────────
 // PATCH /api/leads/pipeline/move
 // Moves a lead to a different pipeline stage by updating its
-// follow-up tags. Also handles "desinteresado" as a special stage.
+// chatLabels on the WhatsApp chat (the source of truth for
+// pipeline stage classification).
 // ─────────────────────────────────────────────────────────────
 
-// Tags that map to each pipeline stage (used to SET the new stage)
-const STAGE_TAGS: Record<string, string> = {
-  nuevaReceta: '',                    // No tag needed — absence of quote = nueva receta
-  cotizacionEnviada: '',              // Presence of quote without follow-up tags
-  seguimiento1: 'Seguimiento 1',
-  seguimiento2: 'Seguimiento 2',
-  seguimiento10dias: 'Frío',
+// The followup system uses these chatLabels to classify stage:
+// SEGUIMIENTO_DIA_1  → seguimiento1
+// SEGUIMIENTO_DIA_4  → seguimiento2
+// SEGUIMIENTO_DIA_15 → seguimiento10dias (frío)
+// (absence of all)   → cotizacionEnviada (if has quote) or nuevaReceta
+
+// Label to ADD for each target stage
+const STAGE_TO_LABEL: Record<string, string> = {
+  nuevaReceta: '',
+  cotizacionEnviada: '',
+  seguimiento1: 'SEGUIMIENTO_DIA_1',
+  seguimiento2: 'SEGUIMIENTO_DIA_4',
+  seguimiento10dias: 'SEGUIMIENTO_DIA_15',
 };
 
-// All follow-up tags that need to be REMOVED when moving to a new stage
-const ALL_FOLLOWUP_TAGS = ['Seguimiento 1', 'Seguimiento 2', 'Frío'];
+// All followup labels that must be REMOVED before setting a new one
+const ALL_FOLLOWUP_LABELS = ['SEGUIMIENTO_DIA_1', 'SEGUIMIENTO_DIA_4', 'SEGUIMIENTO_DIA_15'];
 
 export async function PATCH(req: NextRequest) {
   try {
@@ -31,61 +38,86 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ success: false, error: 'leadId y targetStage son requeridos' }, { status: 400 });
     }
 
-    // 1. Remove all existing follow-up tags from this client
-    const existingTags = await prisma.tag.findMany({
-      where: {
-        clients: { some: { id: leadId } },
-        name: { in: ALL_FOLLOWUP_TAGS, mode: 'insensitive' },
-      },
-    });
-
-    if (existingTags.length > 0) {
-      await prisma.client.update({
-        where: { id: leadId },
-        data: {
-          tags: {
-            disconnect: existingTags.map(t => ({ id: t.id })),
-          },
-        },
-      });
-    }
-
-    // 2. Also clean chatLabels on the WhatsApp chat
+    // 1. Find the client's WhatsApp chat
     const chat = await prisma.whatsAppChat.findFirst({
       where: { clientId: leadId },
       orderBy: { lastMessageAt: 'desc' },
     });
 
-    if (chat) {
-      const cleanedLabels = (chat.chatLabels || []).filter(
-        (label: string) => !ALL_FOLLOWUP_TAGS.some(t => label.toLowerCase().includes(t.toLowerCase())) &&
-          !label.toLowerCase().includes('seguimiento_dia') &&
-          !label.toLowerCase().includes('frío') &&
-          !label.toLowerCase().includes('frio')
-      );
-      await prisma.whatsAppChat.update({
-        where: { id: chat.id },
-        data: { chatLabels: cleanedLabels },
-      });
+    if (!chat) {
+      return NextResponse.json({ success: false, error: 'No se encontró chat de WhatsApp para este lead' }, { status: 404 });
     }
 
-    // 3. Add the new stage tag (if the stage requires one)
-    const newTagName = STAGE_TAGS[targetStage];
-    if (newTagName) {
-      // Find or create the tag
-      let tag = await prisma.tag.findFirst({
-        where: { name: { equals: newTagName, mode: 'insensitive' } },
-      });
-      if (!tag) {
-        tag = await prisma.tag.create({ data: { name: newTagName } });
-      }
+    // 2. Clean ALL followup labels from chatLabels
+    let updatedLabels = (chat.chatLabels || []).filter(
+      (label: string) => !ALL_FOLLOWUP_LABELS.includes(label)
+    );
+
+    // Also remove SIN_SEGUIMIENTO if moving to an active stage
+    if (targetStage !== 'nuevaReceta') {
+      updatedLabels = updatedLabels.filter((l: string) => l !== 'SIN_SEGUIMIENTO');
+    }
+
+    // 3. Add the new stage label (if applicable)
+    const newLabel = STAGE_TO_LABEL[targetStage];
+    if (newLabel) {
+      updatedLabels.push(newLabel);
+    }
+
+    // 4. Update the chat
+    await prisma.whatsAppChat.update({
+      where: { id: chat.id },
+      data: { chatLabels: updatedLabels },
+    });
+
+    // 5. Also sync client tags for consistency (add/remove Frío, Seguimiento tags)
+    const FOLLOWUP_CLIENT_TAGS = ['Seguimiento 1', 'Seguimiento 2', 'Frío', 'Sin Seguimiento'];
+    const existingTags = await prisma.tag.findMany({
+      where: {
+        clients: { some: { id: leadId } },
+        name: { in: FOLLOWUP_CLIENT_TAGS, mode: 'insensitive' },
+      },
+    });
+
+    // Disconnect old followup tags
+    if (existingTags.length > 0) {
       await prisma.client.update({
         where: { id: leadId },
         data: {
-          tags: { connect: { id: tag.id } },
+          tags: { disconnect: existingTags.map(t => ({ id: t.id })) },
         },
       });
     }
+
+    // Connect new stage tag on client if applicable
+    const CLIENT_STAGE_TAGS: Record<string, string> = {
+      seguimiento1: 'Seguimiento 1',
+      seguimiento2: 'Seguimiento 2',
+      seguimiento10dias: 'Frío',
+    };
+    const clientTagName = CLIENT_STAGE_TAGS[targetStage];
+    if (clientTagName) {
+      let tag = await prisma.tag.findFirst({
+        where: { name: { equals: clientTagName, mode: 'insensitive' } },
+      });
+      if (!tag) {
+        tag = await prisma.tag.create({ data: { name: clientTagName } });
+      }
+      await prisma.client.update({
+        where: { id: leadId },
+        data: { tags: { connect: { id: tag.id } } },
+      });
+    }
+
+    // 6. Cancel any pending FOLLOWUP tasks (the cron will regenerate if needed)
+    await prisma.clientTask.updateMany({
+      where: {
+        clientId: leadId,
+        type: 'FOLLOWUP',
+        status: 'PENDING',
+      },
+      data: { status: 'CANCELLED' },
+    });
 
     return NextResponse.json({ success: true, stage: targetStage });
   } catch (error: any) {
