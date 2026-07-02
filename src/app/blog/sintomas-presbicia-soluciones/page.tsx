@@ -32,7 +32,7 @@ export default function SintomasPresbiciaPage() {
             </p>
           </header>
 
-          <div className="prose prose-lg prose-neutral mx-auto bg-white p-8 md:p-12 rounded-2xl shadow-[0_2px_10px_rgba(0,0,0,0.02)] border border-[#e8e2db]">
+          <div className="blog-article w-full max-w-none">
             <p className="lead text-xl text-black/80 font-medium mb-8">
               Estás en tu café favorito de Nueva Córdoba o del Cerro de las Rosas, querés leer el menú y de repente te das cuenta de que necesitás estirar el brazo para ver las letras con claridad. Si esta escena te resulta familiar, es muy probable que estés experimentando los primeros síntomas de la presbicia.
             </p>

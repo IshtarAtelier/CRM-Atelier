@@ -25,7 +25,7 @@ export default function BlogMultifocales2026() {
           <div className="h-1 w-20 bg-neutral-900 mb-8"></div>
         </header>
 
-        <section className="prose prose-lg md:prose-xl prose-neutral max-w-none space-y-8">
+        <section className="blog-article w-full max-w-none">
           <p>
             Si ya pasaste la barrera de los 40 años, es muy probable que el viejo truco de estirar el brazo para lograr leer la pantalla del celular ya no sea suficiente. Esta etapa completamente natural de la visión, conocida como presbicia, tiene una solución óptica excepcional, cómoda y altamente estética: los <strong>lentes multifocales</strong> o progresivos.
           </p>

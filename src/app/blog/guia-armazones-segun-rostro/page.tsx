@@ -61,7 +61,7 @@ export default function GlassesFrameGuidePage() {
         <section className="py-12 md:py-20 bg-[#faf8f5]">
           <div className="max-w-3xl mx-auto px-6">
             
-            <div className="prose prose-lg prose-neutral max-w-none">
+            <div className="blog-article w-full max-w-none">
               <p className="text-neutral-700 mb-8">
                 Como ópticos especializados en <strong>Atelier Óptica</strong>, todos los días recibimos pacientes en nuestro exclusivo local en <strong>Córdoba</strong> —asesorando a quienes nos visitan desde el <strong>Cerro de las Rosas</strong> hasta <strong>Nueva Córdoba</strong> y zonas aledañas— que nos hacen exactamente la misma pregunta: <em>&quot;¿Qué anteojos me quedan bien?&quot;</em>. Sabemos que la elección de tus próximos <strong>armazones de diseño</strong> es una decisión fundamental. Al final del día, es el accesorio que te acompaña en cada momento, enmarcando tu mirada y definiendo tu estilo personal.
               </p>

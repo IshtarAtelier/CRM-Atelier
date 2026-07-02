@@ -26,7 +26,7 @@ export default function LentesDeContactoBlog() {
             <div className="w-24 h-1 bg-stone-300 mx-auto rounded-full"></div>
           </header>
 
-          <article className="prose prose-stone prose-lg max-w-none">
+          <article className="blog-article w-full max-w-none">
             <p>
               Dar el salto a los lentes de contacto por primera vez puede generar dudas e inseguridades. ¿Duelen? ¿Se pueden perder detrás del ojo? ¿Serán muy difíciles de cuidar? En <strong>Atelier Óptica</strong> —con atención de primera tanto para quienes nos visitan desde el <strong>Cerro de las Rosas</strong> como desde <strong>Nueva Córdoba</strong> y alrededores— queremos acompañarte. Hoy te ayudamos a despejar todos esos miedos y te contamos por qué, gracias a la innovación en biometría y materiales, la adaptación es más cómoda, segura y rápida que nunca.
             </p>

@@ -39,7 +39,7 @@ export default function PeligrosAnteojosFarmaciaPage() {
             </p>
           </header>
 
-          <div className="prose prose-lg max-w-none text-[#333] space-y-8">
+          <div className="blog-article w-full max-w-none">
             <p className="text-[15px] leading-relaxed">
               Es una historia súper común: estás apurado por el centro o dando un paseo por Nueva Córdoba, te olvidaste tus lentes, entrás a una farmacia o a un kiosco y te probás unos anteojos genéricos hasta que sentís que &quot;ves bien&quot;. Te los llevás puestos creyendo que salvaste el día. Sin embargo, como profesionales de la salud visual en Atelier Óptica, tenemos la responsabilidad de explicarte por qué esta costumbre es tan perjudicial.
             </p>

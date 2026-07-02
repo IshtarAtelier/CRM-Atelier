@@ -16,7 +16,7 @@ export default function MiopiaHipermetropiaAstigmatismoBlog() {
       <StorefrontNavbar />
       
       <main className="flex-grow container mx-auto px-4 py-12 max-w-3xl">
-        <article className="prose prose-stone lg:prose-lg mx-auto">
+        <article className="blog-article w-full max-w-none">
           <header className="mb-10">
             <h1 className="text-4xl font-medium tracking-tight text-stone-800 mb-4">
               ¿Miopía, Hipermetropía o Astigmatismo? Entendiendo tu Receta Oftalmológica

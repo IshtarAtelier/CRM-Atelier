@@ -28,7 +28,7 @@ export default function FiltroAzulVsAntirreflejoPage() {
             </p>
           </header>
 
-          <div className="prose prose-lg md:prose-xl max-w-none prose-neutral prose-headings:font-medium tracking-tight prose-headings:text-[#111] prose-a:text-[#111]">
+          <div className="blog-article w-full max-w-none">
             <p className="lead">
               Cuando nos visitás en <strong>Atelier Óptica</strong>, ya sea desde Nueva Córdoba, el Cerro de las Rosas o cualquier punto de la ciudad, para hacerte tus anteojos nuevos, surge una duda muy frecuente: <em>&quot;¿Le pongo filtro azul o con antirreflejo está bien?&quot;</em>. Gracias a los avances en la tecnología óptica, hoy contamos con soluciones específicas para cada estilo de vida y necesidad visual.
             </p>

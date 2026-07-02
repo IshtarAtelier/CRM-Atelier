@@ -35,7 +35,7 @@ export default function ComoLimpiarAnteojosPage() {
         </header>
 
         {/* Contenido */}
-        <article className="prose prose-lg max-w-none prose-headings:font-medium prose-headings:tracking-tight prose-a:text-black prose-a:underline-offset-4 hover:prose-a:opacity-70 prose-img:rounded-xl">
+        <article className="blog-article w-full max-w-none">
           <p className="lead text-xl text-black/80 font-medium">
             Seguro te pasó: estás caminando por las calles de Nueva Córdoba o tomando un café en el Cerro de las Rosas, notás una manchita en el cristal, agarrás el borde de la remera y frotás sin pensar. ¡Grave error! Si querés que tus anteojos te duren y que tratamientos como el antirreflejo sigan intactos, es momento de cambiar esas costumbres.
           </p>

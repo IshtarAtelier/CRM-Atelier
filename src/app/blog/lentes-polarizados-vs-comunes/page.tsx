@@ -26,7 +26,7 @@ export default function LentesPolarizadosVsComunes() {
             </p>
           </header>
 
-          <div className="prose prose-slate md:prose-lg max-w-none text-slate-700 space-y-6">
+          <div className="blog-article w-full max-w-none">
             <p>
               ¿Te pasó alguna vez de ir manejando hacia las sierras de Córdoba al atardecer, o atravesando el bullicio de Nueva Córdoba, y sentir que el reflejo del asfalto o del parabrisas de otros autos te ciega por completo? Ese <strong>deslumbramiento</strong> no solo es extremadamente molesto, sino que representa un peligro real y latente para tu seguridad vial.
             </p>

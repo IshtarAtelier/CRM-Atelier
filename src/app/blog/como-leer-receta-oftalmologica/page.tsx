@@ -30,7 +30,7 @@ export default function LeerRecetaOftalmologicaPage() {
             </div>
           </header>
 
-          <div className="prose prose-lg prose-neutral max-w-none">
+          <div className="blog-article w-full max-w-none">
             <p className="text-xl text-[#444] mb-8 leading-relaxed">
               ¿Saliste del consultorio médico, miraste la receta que te dieron y sentiste que estaba escrita en otro idioma? ¡No te preocupes, nos pasa a todos! En <strong>Atelier Óptica</strong>, tu óptica de confianza en Córdoba (con envíos a todo el país), te ayudamos a &quot;traducir&quot; esos números y letras. Descubrí de forma sencilla qué significan para entender exactamente qué cristales necesitás para cuidar tu visión.
             </p>

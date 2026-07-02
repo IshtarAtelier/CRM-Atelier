@@ -16,7 +16,7 @@ export default function ControlMiopiaInfantilPage() {
       <StorefrontNavbar theme="light" />
       
       <main className="flex-grow container mx-auto px-4 pt-32 pb-20 max-w-4xl">
-        <article className="prose prose-stone lg:prose-lg mx-auto">
+        <article className="blog-article w-full max-w-none">
           <h1 className="text-4xl md:text-5xl font-serif text-stone-900 mb-8 leading-tight">
             Control de Miopía Infantil en Córdoba: Todo sobre Lentes Stellest y MyoFix
           </h1>

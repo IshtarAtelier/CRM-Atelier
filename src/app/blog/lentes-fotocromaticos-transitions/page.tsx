@@ -41,7 +41,7 @@ export default function LentesTransitionsPage() {
           </div>
 
           {/* Content */}
-          <div className="prose prose-lg prose-neutral max-w-none space-y-12">
+          <div className="blog-article w-full max-w-none">
             
             <section>
               <h2 className="text-2xl font-medium mb-6 text-[#111]">¿Qué son exactamente los lentes fotocromáticos?</h2>

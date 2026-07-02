@@ -13,6 +13,7 @@ import sanitizeHtml from 'sanitize-html';
 import { FAQSection } from '@/components/blog/FAQSection';
 import blogFaqs from '@/lib/blog-faqs.json';
 
+
 async function getPostBySlug(slug: string) {
   try {
     const dbPost = await prisma.blogPost.findUnique({
@@ -1556,7 +1557,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
           <Image unoptimized src={post.imageUrl || '/images/og-image.jpg'} alt={post.title} fill className="w-full h-full object-cover" />
         </div>
 
-        <article className="prose prose-stone dark:prose-invert prose-lg max-w-none prose-headings:font-medium tracking-tight prose-a:text-[#111] hover:prose-a:text-[#111]/80 prose-p:leading-relaxed prose-li:my-1">
+        <article className="blog-article w-full max-w-none">
           {post.isDb ? (
             <div dangerouslySetInnerHTML={{ __html: sanitizeHtml(post.content as string, { allowedTags: sanitizeHtml.defaults.allowedTags.concat(['img', 'iframe']), allowedAttributes: false }) }} />
           ) : (

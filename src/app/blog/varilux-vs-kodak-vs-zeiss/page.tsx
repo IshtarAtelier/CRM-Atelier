@@ -31,7 +31,7 @@ export default function VariluxVsKodakVsZeissPage() {
             </p>
           </header>
 
-          <div className="prose prose-lg prose-headings:font-medium tracking-tight prose-a:text-[#111] max-w-none text-black/80">
+          <div className="blog-article w-full max-w-none">
             <p>
               Si llegaste a esa etapa donde alejar el celular para leer se volvió una costumbre, o si ya sos usuario de <strong>lentes progresivos</strong> pero sentís que necesitás dar un salto de calidad, probablemente te encuentres frente a un mar de opciones. Las marcas líderes prometen una visión perfecta, pero en la práctica, ¿qué las diferencia realmente?
             </p>
