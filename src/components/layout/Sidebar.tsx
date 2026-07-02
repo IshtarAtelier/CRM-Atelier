@@ -3,7 +3,7 @@ import Image from "next/image";
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { Glasses, ClipboardList, LayoutDashboard, Cog, FileText, Contact, Calculator, ShoppingCart, Wallet, Search, Menu, X, Receipt, Banknote, TrendingDown, ChevronLeft, ChevronRight, Wrench } from "lucide-react";
 import { motion } from "framer-motion";
 import { UserProfile } from "@/components/admin/UserProfile";
@@ -19,6 +19,7 @@ interface SidebarProps {
 
 export function Sidebar({ userName = "Usuario", userRole = "STAFF", userId = "" }: SidebarProps) {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -45,7 +46,7 @@ export function Sidebar({ userName = "Usuario", userRole = "STAFF", userId = "" 
   // Close drawer on route change
   useEffect(() => {
     setMobileOpen(false);
-  }, [pathname]);
+  }, [pathname, searchParams]);
 
   // Prevent body scroll when drawer is open
   useEffect(() => {
@@ -57,23 +58,24 @@ export function Sidebar({ userName = "Usuario", userRole = "STAFF", userId = "" 
     return () => { document.body.style.overflow = ''; };
   }, [mobileOpen]);
 
-  const allLinks = [
-    { href: "/admin", label: "Dashboard", icon: LayoutDashboard, adminOnly: false },
-    { href: "/admin/contactos", label: "Contactos y Clientes", icon: Contact, adminOnly: false },
-    { href: "/admin/leads", label: "Embudo de Leads", icon: ClipboardList, adminOnly: false },
-    { href: "/admin/inventario", label: "Stock y Productos", icon: Glasses, adminOnly: true },
-    { href: "/admin/web", label: "Sitio Web", icon: ShoppingCart, adminOnly: true },
-    { href: "/admin/cotizador", label: "Cotizador", icon: Calculator, adminOnly: false },
-    { href: "/admin/ventas", label: "Ventas / Laboratorio", icon: ClipboardList, adminOnly: false },
-    { href: "/admin/facturacion", label: "Facturación", icon: Receipt, adminOnly: true },
-    { href: "/admin/whatsapp", label: "WhatsApp", icon: WhatsAppIcon, adminOnly: false },
-    { href: "/admin/caja", label: "Caja Efectivo", icon: Banknote, adminOnly: true },
-    { href: "/admin/gastos", label: "Gastos", icon: TrendingDown, adminOnly: true },
-    { href: "/admin/administracion", label: "Administración", icon: Wallet, adminOnly: true },
-    { href: "/admin/reportes", label: "Reportes", icon: FileText, adminOnly: true },
-    { href: "/admin/desarrollo", label: "Desarrollo", icon: Wrench, adminOnly: true },
-    { href: "/admin/configuracion", label: "Configuración", icon: Cog, adminOnly: true },
-  ];
+    const allLinks = [
+      { href: "/admin", label: "Dashboard", icon: LayoutDashboard, adminOnly: false },
+      { href: "/admin/contactos", label: "Contactos y Clientes", icon: Contact, adminOnly: false },
+      { href: "/admin/leads", label: "Embudo de Leads", icon: ClipboardList, adminOnly: false },
+      { href: "/admin/inventario", label: "Stock y Productos", icon: Glasses, adminOnly: true },
+      { href: "/admin/web", label: "Sitio Web", icon: ShoppingCart, adminOnly: true },
+      { href: "/admin/cotizador", label: "Cotizador", icon: Calculator, adminOnly: false },
+      { href: "/admin/ventas", label: "Ventas / Laboratorio", icon: ClipboardList, adminOnly: false },
+      { href: "/admin/ventas?mode=POST_VENTA", label: "↳ Post Venta", icon: Wrench, adminOnly: false, isSubLink: true },
+      { href: "/admin/facturacion", label: "Facturación", icon: Receipt, adminOnly: true },
+      { href: "/admin/whatsapp", label: "WhatsApp", icon: WhatsAppIcon, adminOnly: false },
+      { href: "/admin/caja", label: "Caja Efectivo", icon: Banknote, adminOnly: true },
+      { href: "/admin/gastos", label: "Gastos", icon: TrendingDown, adminOnly: true },
+      { href: "/admin/administracion", label: "Administración", icon: Wallet, adminOnly: true },
+      { href: "/admin/reportes", label: "Reportes", icon: FileText, adminOnly: true },
+      { href: "/admin/desarrollo", label: "Desarrollo", icon: Wrench, adminOnly: true },
+      { href: "/admin/configuracion", label: "Configuración", icon: Cog, adminOnly: true },
+    ];
 
   const links = allLinks.filter(link => !link.adminOnly || isAdmin);
 
@@ -99,7 +101,13 @@ export function Sidebar({ userName = "Usuario", userRole = "STAFF", userId = "" 
       <nav className={`flex-1 overflow-y-auto space-y-1.5 no-scrollbar ${isCollapsed ? 'px-2' : 'px-4'}`}>
         {links.map((link) => {
           const Icon = link.icon;
-          const isActive = pathname === link.href || (link.href !== "/admin" && pathname.startsWith(link.href));
+          let isActive = pathname === link.href || (link.href !== "/admin" && pathname.startsWith(link.href) && !link.href.includes('?'));
+          
+          if (link.href === '/admin/ventas') {
+             isActive = pathname === '/admin/ventas' && searchParams.get('mode') !== 'POST_VENTA';
+          } else if (link.href === '/admin/ventas?mode=POST_VENTA') {
+             isActive = pathname === '/admin/ventas' && searchParams.get('mode') === 'POST_VENTA';
+          }
 
           return (
             <Link

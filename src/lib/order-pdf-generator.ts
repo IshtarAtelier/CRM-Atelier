@@ -312,7 +312,7 @@ export async function generateOrderPDF(order: any, contact: any): Promise<{ base
         const context = await browser.newContext();
         const page = await context.newPage();
         
-        await page.setContent(html, { waitUntil: 'networkidle' });
+        await page.setContent(html, { waitUntil: 'load', timeout: 8000 });
         
         const pdfBuffer = await page.pdf({
             format: 'A4',

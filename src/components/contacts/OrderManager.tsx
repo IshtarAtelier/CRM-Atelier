@@ -165,7 +165,7 @@ export default function OrderManager({
         await ensureProductsLoaded();
     };
 
-    const relevantOrders = orders.filter((o: any) => activeSection === 'sales' ? o.orderType === 'SALE' : o.orderType !== 'SALE');
+    const relevantOrders = orders.filter((o: any) => activeSection === 'sales' ? (o.orderType === 'SALE' || o.orderType === 'MAYORISTA') : (o.orderType !== 'SALE' && o.orderType !== 'MAYORISTA'));
 
     if (isQuoting) {
         return (

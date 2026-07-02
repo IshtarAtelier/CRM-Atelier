@@ -49,7 +49,12 @@ const FRAMES = [
   },
 ];
 
-export function FilmmakerReel() {
+interface FilmmakerReelProps {
+  reviewCount?: number;
+  rating?: number;
+}
+
+export function FilmmakerReel({ reviewCount = 642, rating = 5.0 }: FilmmakerReelProps) {
   const [mounted, setMounted] = useState(false);
   const [current, setCurrent] = useState(0);
   const [isPlaying, setIsPlaying] = useState(true);
@@ -114,7 +119,7 @@ export function FilmmakerReel() {
             animate={{ scale: 1.06 }}
             transition={{ duration: 5, ease: "linear" }}
           >
-            <Image unoptimized
+            <Image
               src={frame.src}
               alt={frame.title}
               fill
@@ -161,7 +166,7 @@ export function FilmmakerReel() {
                 rel="noopener noreferrer"
                 className="text-[9px] font-black uppercase tracking-[0.2em] bg-white/10 hover:bg-white/20 text-white px-2.5 py-1.5 backdrop-blur-md rounded-full flex items-center gap-1 transition-colors"
               >
-                <span className="text-amber-500">★</span> 5.0 Google (89+ reseñas) · Verificada
+                <span className="text-amber-500">★</span> {rating.toFixed(1)} Google ({reviewCount} reseñas) · Verificada
               </a>
             </div>
 
@@ -266,7 +271,7 @@ export function FilmmakerReel() {
               idx === current ? "border-white opacity-100 scale-105" : "border-white/20 opacity-40 hover:opacity-70"
             }`}
           >
-            <Image unoptimized 
+            <Image 
               src={f.src} 
               alt={f.title} 
               fill

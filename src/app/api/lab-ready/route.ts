@@ -1,11 +1,18 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { serverCache } from '@/lib/cache';
 
 export const dynamic = 'force-dynamic';
 
 // GET /api/lab-ready — Orders that are 100% in SmartLab but not yet marked as READY in CRM
 export async function GET() {
     try {
+        const cacheKey = 'lab-ready';
+        const cached = serverCache.get<any[]>(cacheKey);
+        if (cached !== null) {
+            return NextResponse.json(cached);
+        }
+
         const orders = await prisma.order.findMany({
             where: {
                 isDeleted: false,
@@ -50,6 +57,8 @@ export async function GET() {
             }
             return false;
         });
+
+        serverCache.set(cacheKey, readyOrders, 30); // Cache for 30 seconds
 
         return NextResponse.json(readyOrders);
     } catch (error: any) {

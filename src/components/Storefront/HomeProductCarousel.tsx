@@ -115,7 +115,7 @@ export function HomeProductCarousel({ collections, totalCount }: Props) {
       <div className="flex gap-4 px-5 mb-8 w-full max-w-7xl mx-auto overflow-x-auto no-scrollbar">
         {[
           { key: 'destacados', label: 'Destacados' },
-          { key: 'sol', label: 'Sol' },
+          { key: 'sol', label: 'ClipOn' },
           { key: 'receta', label: 'Receta' },
           { key: 'nuevos', label: 'Nuevos' }
         ].map(tab => (
@@ -164,7 +164,7 @@ export function HomeProductCarousel({ collections, totalCount }: Props) {
                 )}
 
                 {item.img ? (
-                  <Image unoptimized 
+                  <Image 
                     src={item.img}
                     alt={`Anteojos ${item.category || ''} ${item.brand || ''} ${item.name} en Atelier Óptica Córdoba`}
                     fill
@@ -181,7 +181,7 @@ export function HomeProductCarousel({ collections, totalCount }: Props) {
                 )}
 
                 {item.secondImg && (
-                  <Image unoptimized 
+                  <Image 
                     src={item.secondImg}
                     alt={`${item.name} Try-On`}
                     fill

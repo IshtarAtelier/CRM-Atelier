@@ -19,6 +19,7 @@ export const dynamic = 'force-dynamic';
 
 // Label to ADD for each target stage
 const STAGE_TO_LABEL: Record<string, string> = {
+  primerContacto: '',
   nuevaReceta: '',
   cotizacionEnviada: '',
   seguimiento1: 'SEGUIMIENTO_DIA_1',
@@ -54,7 +55,7 @@ export async function PATCH(req: NextRequest) {
     );
 
     // Also remove SIN_SEGUIMIENTO if moving to an active stage
-    if (targetStage !== 'nuevaReceta') {
+    if (targetStage !== 'nuevaReceta' && targetStage !== 'primerContacto') {
       updatedLabels = updatedLabels.filter((l: string) => l !== 'SIN_SEGUIMIENTO');
     }
 

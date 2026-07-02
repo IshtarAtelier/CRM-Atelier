@@ -20,6 +20,7 @@ interface PipelineColumnPanelProps {
 
 // Accent pill color per stage
 const ACCENT_MAP: Record<string, string> = {
+  violet:  'from-violet-500/20 to-violet-500/5 border-violet-500/30',
   blue:    'from-blue-500/20 to-blue-500/5 border-blue-500/30',
   emerald: 'from-emerald-500/20 to-emerald-500/5 border-emerald-500/30',
   amber:   'from-amber-500/20 to-amber-500/5 border-amber-500/30',
@@ -28,6 +29,7 @@ const ACCENT_MAP: Record<string, string> = {
 };
 
 const COUNT_COLOR: Record<string, string> = {
+  violet:  'bg-violet-500/15 text-violet-500',
   blue:    'bg-blue-500/15 text-blue-500',
   emerald: 'bg-emerald-500/15 text-emerald-500',
   amber:   'bg-amber-500/15 text-amber-500',

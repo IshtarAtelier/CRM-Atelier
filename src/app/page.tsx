@@ -16,6 +16,7 @@ const HomeRecommendationQuiz = dynamic(() => import("@/components/Storefront/Hom
 
 import { prisma } from "@/lib/db";
 import { resolveStorageUrl } from "@/lib/utils/storage";
+import { getGoogleReviews } from "@/lib/googleReviews";
 
 export const revalidate = 300;
 
@@ -176,6 +177,10 @@ export default async function Home() {
     }
   };
 
+  const reviewsData = await getGoogleReviews();
+  const reviewCountStr = reviewsData.userRatingCount.toString();
+  const ratingStr = reviewsData.rating.toFixed(1);
+
   const localBusinessSchema = {
     "@context": "https://schema.org",
     "@type": "Optician",
@@ -218,8 +223,8 @@ export default async function Home() {
     ],
     "aggregateRating": {
       "@type": "AggregateRating",
-      "ratingValue": "5.0",
-      "reviewCount": "89"
+      "ratingValue": ratingStr,
+      "reviewCount": reviewCountStr
     },
     "sameAs": [
       "https://www.instagram.com/atelier.optica/",
@@ -270,7 +275,7 @@ export default async function Home() {
       {/* ═══════════════════════════════════════════════ */}
       {/* FILMMAKER REEL — Hero principal cinematográfico   */}
       {/* ═══════════════════════════════════════════════ */}
-      <FilmmakerReel />
+      <FilmmakerReel reviewCount={reviewsData.userRatingCount} rating={reviewsData.rating} />
 
       <h1 className="sr-only">Atelier Óptica Córdoba — Anteojos de Receta, Lentes de Sol y Multifocales</h1>
 

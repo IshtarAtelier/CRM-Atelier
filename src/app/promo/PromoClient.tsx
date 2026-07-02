@@ -5,7 +5,11 @@ import Image from "next/image";
 import { motion, AnimatePresence, Variants } from "framer-motion";
 import { ChevronDown, Star, Diamond, Glasses, ShieldCheck, X, Eye, Layers } from "lucide-react";
 
-export function PromoClient() {
+interface PromoClientProps {
+  reviewCount?: number;
+}
+
+export function PromoClient({ reviewCount = 642 }: PromoClientProps) {
   const [mounted, setMounted] = useState(false);
   const [openFaq, setOpenFaq] = useState<number | null>(null);
   
@@ -98,7 +102,7 @@ export function PromoClient() {
       {/* Hero Section */}
       <section className="relative w-full bg-[#0F0F0F] pt-20 pb-32 px-6 overflow-hidden">
         <div className="absolute inset-0 opacity-20 pointer-events-none">
-           <Image unoptimized src="/img/store-inside-1.jpg" alt="Atelier Interior" fill sizes="100vw" className="object-cover grayscale" priority />
+           <Image src="/img/store-inside-1.jpg" alt="Atelier Interior" fill sizes="100vw" className="object-cover grayscale" priority />
            <div className="absolute inset-0 bg-gradient-to-t from-[#0F0F0F] via-[#0F0F0F]/80 to-transparent" />
         </div>
         
@@ -237,7 +241,7 @@ export function PromoClient() {
             </div>
           </div>
           <div className="relative h-[500px] w-full rounded-3xl overflow-hidden border border-white/10">
-             <Image unoptimized 
+             <Image 
                 src="/img/store-inside-1.jpg" 
                 alt="Tecnología Multifocal" 
                 fill 
@@ -277,7 +281,7 @@ export function PromoClient() {
                 className="group relative bg-[#FCFCFC] border border-gray-100 rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all"
               >
                 <div className="relative h-60 w-full bg-white p-4">
-                  <Image unoptimized 
+                  <Image 
                     src={glass.src} 
                     alt={glass.title} 
                     fill 
@@ -311,7 +315,7 @@ export function PromoClient() {
           <div className="flex flex-col items-center text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-serif text-white mb-6">Confianza Absoluta</h2>
             <a href="https://maps.app.goo.gl/fQ9T1xBFmDV8Tpim9" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-[#C5A059] border-b border-[#C5A059] pb-1 hover:text-white hover:border-white transition-colors text-sm font-bold uppercase tracking-widest">
-              Ver las 200+ reseñas en Google
+              Ver las {reviewCount} reseñas en Google
             </a>
           </div>
           

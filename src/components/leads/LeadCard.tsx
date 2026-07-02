@@ -8,7 +8,6 @@ import {
   X,
   Loader2,
   Calendar,
-  GripVertical,
 } from 'lucide-react';
 import type { PipelineLead } from '@/types/leads';
 import type { PipelineStageKey } from '@/types/leads';

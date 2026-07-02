@@ -35,6 +35,7 @@ export interface PipelineLead {
 }
 
 export type PipelineStageKey =
+  | 'primerContacto'
   | 'nuevaReceta'
   | 'cotizacionEnviada'
   | 'seguimiento1'
@@ -62,6 +63,7 @@ export interface PipelineData {
 
 // Column configuration — single source of truth for display metadata
 export const PIPELINE_COLUMNS: Record<PipelineStageKey, { title: string; color: string; icon: string; accent: string }> = {
+  primerContacto:     { title: 'Primer Contacto',           color: 'violet',  icon: 'User',        accent: '#8b5cf6' },
   nuevaReceta:        { title: 'Nueva Receta',              color: 'blue',    icon: 'FileText',    accent: '#3b82f6' },
   cotizacionEnviada:  { title: 'Cotización Enviada',        color: 'emerald', icon: 'Send',        accent: '#10b981' },
   seguimiento1:       { title: 'Seguimiento 1 (24-48h)',    color: 'amber',   icon: 'Clock',       accent: '#f59e0b' },

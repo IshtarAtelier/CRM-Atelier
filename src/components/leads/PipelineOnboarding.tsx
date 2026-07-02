@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { X, GripVertical, MousePointerClick, Eye, Check, ArrowRight } from 'lucide-react';
+import { X, GripVertical, MousePointerClick, Eye, ArrowRight } from 'lucide-react';
 
 // ─────────────────────────────────────────────────────────────
 // PipelineOnboarding — First-time usage guide overlay
@@ -26,13 +26,13 @@ const STEPS = [
   {
     icon: Eye,
     title: 'Solo leads activos',
-    description: 'Acá solo aparecen contactos con receta que todavía no compraron. Los que ya cerraron se retiran automáticamente.',
+    description: 'Acá aparecen contactos activos que todavía no compraron. Los que ya cerraron se retiran automáticamente.',
     color: 'text-amber-500 bg-amber-500/10',
   },
   {
     icon: ArrowRight,
     title: 'Flujo del embudo',
-    description: 'Las columnas van de izquierda a derecha: Nueva Receta → Cotización → Seguimiento 1 → Seguimiento 2 → Frío.',
+    description: 'Las columnas van de izquierda a derecha: Primer Contacto → Nueva Receta → Cotización → Seguimiento 1 → Seguimiento 2 → Frío.',
     color: 'text-rose-500 bg-rose-500/10',
   },
 ];

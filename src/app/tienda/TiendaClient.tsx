@@ -104,173 +104,88 @@ export function TiendaClient({
 
   const installmentsCount = getInstallmentsCount(webSettings.web_promo_installments);
   const discountRate = webSettings.web_promo_cash_discount / 100;
-  // Wholesale product override — refetch from wholesale channel when user is OPTICA
-  const [wholesaleProducts, setWholesaleProducts] = useState<any[] | null>(null);
-  // Fallback: if server pre-render returned empty products (DB hiccup during ISR), fetch client-side
-  const [fallbackProducts, setFallbackProducts] = useState<any[] | null>(null);
-  // Track if we're still trying to recover products
-  const [isRecoveringProducts, setIsRecoveringProducts] = useState(
-    !initialProducts || initialProducts.length === 0
-  );
 
-  // ── BULLETPROOF PRODUCT LOADING ──
-  // Layer 1: Server ISR data (initialProducts) — instant, from cache
-  // Layer 2: Client API fetch with retry — recovers from ISR cache miss
-  // Layer 3: localStorage cache — last resort, always has data after first successful load
+  // ── STATE FOR PRODUCTS & PAGINATION ──
+  const [products, setProducts] = useState<any[]>(initialProducts);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(initialProducts.length);
+  const [isLoading, setIsLoading] = useState(false);
+  const isRecoveringProducts = isLoading;
 
-  // On mount: if server data is good, cache it to localStorage
+  // Whenever filters change, reset page to 1
   useEffect(() => {
-    if (initialProducts && initialProducts.length > 0 && !isWholesale) {
+    setCurrentPage(1);
+  }, [activeCategory, searchQuery, filterBrand, filterShape, filterMaterial, filterGender, sortParam, isWholesale]);
+
+  // Load products from API based on current filters and page
+  useEffect(() => {
+    let active = true;
+
+    // Check if it's the initial server load (page 1, no filters, not wholesale)
+    const isFirstRenderWithInitialData =
+      currentPage === 1 &&
+      activeCategory === "Todo" &&
+      searchQuery === "" &&
+      !filterBrand &&
+      !filterShape &&
+      !filterMaterial &&
+      !filterGender &&
+      sortParam === "recientes" &&
+      !isWholesale;
+
+    if (isFirstRenderWithInitialData && products.length > 0) {
+      return;
+    }
+
+    const loadProducts = async () => {
+      setIsLoading(true);
       try {
-        localStorage.setItem('atelier_products_cache', JSON.stringify(initialProducts));
-        localStorage.setItem('atelier_products_cache_ts', Date.now().toString());
-      } catch {}
-    }
-  }, [initialProducts, isWholesale]);
+        const queryParams = new URLSearchParams();
+        queryParams.set('page', currentPage.toString());
+        queryParams.set('limit', '24');
+        queryParams.set('category', activeCategory);
+        if (filterBrand) queryParams.set('brand', filterBrand);
+        if (filterShape) queryParams.set('shape', filterShape);
+        if (filterMaterial) queryParams.set('material', filterMaterial);
+        if (filterGender) queryParams.set('gender', filterGender);
+        queryParams.set('sort', sortParam);
+        if (searchQuery) queryParams.set('search', searchQuery);
+        if (isWholesale) queryParams.set('channel', 'wholesale');
 
-  useEffect(() => {
-    if (initialProducts && initialProducts.length > 0) {
-      setIsRecoveringProducts(false);
-      return; // server data is fine, no fallback needed
-    }
-    if (isWholesale) {
-      setIsRecoveringProducts(false);
-      return; // wholesale has its own fetch
-    }
+        const res = await fetch(`/api/store/products?${queryParams.toString()}`);
+        if (!res.ok) throw new Error();
+        const data = await res.json();
 
-    // Immediately try localStorage cache (instant, no network)
-    try {
-      const cached = localStorage.getItem('atelier_products_cache');
-      if (cached) {
-        const parsed = JSON.parse(cached);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          setFallbackProducts(parsed);
-          // Don't set isRecoveringProducts to false yet — still try fresh API data
-        }
-      }
-    } catch {}
-
-    // Then fetch fresh data from API (with retry)
-    const fetchWithRetry = async (retries = 3) => {
-      for (let i = 0; i < retries; i++) {
-        try {
-          const res = await fetch('/api/store/products');
-          if (!res.ok) throw new Error('API error');
-          const data = await res.json();
-          if (Array.isArray(data) && data.length > 0) {
-            setFallbackProducts(data);
-            // Cache successful fetch
-            try {
-              localStorage.setItem('atelier_products_cache', JSON.stringify(data));
-              localStorage.setItem('atelier_products_cache_ts', Date.now().toString());
-            } catch {}
-            return;
+        if (active) {
+          if (currentPage === 1) {
+            setProducts(data.products || []);
+          } else {
+            setProducts(prev => {
+              // Deduplicate products just in case
+              const existingIds = new Set(prev.map(p => p.id));
+              const newProducts = (data.products || []).filter((p: any) => !existingIds.has(p.id));
+              return [...prev, ...newProducts];
+            });
           }
-        } catch {}
-        // Wait before retry (500ms, 1s, 1.5s)
-        if (i < retries - 1) {
-          await new Promise(r => setTimeout(r, 500 * (i + 1)));
+          setTotalPages(data.totalPages || 1);
+          setTotalCount(data.totalCount || 0);
         }
+      } catch (err) {
+        console.error("Error loading products:", err);
+      } finally {
+        if (active) setIsLoading(false);
       }
     };
 
-    fetchWithRetry().finally(() => setIsRecoveringProducts(false));
-  }, [initialProducts, isWholesale]);
+    loadProducts();
 
-  useEffect(() => {
-    if (!isWholesale) {
-      setWholesaleProducts(null);
-      return;
-    }
-    fetch('/api/store/products?channel=wholesale')
-      .then(res => res.json())
-      .then(data => {
-        if (Array.isArray(data)) setWholesaleProducts(data);
-      })
-      .catch(() => setWholesaleProducts(null));
-  }, [isWholesale]);
+    return () => {
+      active = false;
+    };
+  }, [currentPage, activeCategory, searchQuery, filterBrand, filterShape, filterMaterial, filterGender, sortParam, isWholesale]);
 
-  // Use wholesale products if available, then initial server products, then client-side fallback
-  const products = (isWholesale && wholesaleProducts) ? wholesaleProducts : (initialProducts && initialProducts.length > 0 ? initialProducts : (fallbackProducts || []));
-
-  let filtered = activeCategory === "Todo"
-    ? products
-    : products.filter(p => {
-        const cat = (p.category || "").toLowerCase();
-        const active = activeCategory.toLowerCase();
-        
-        if (active === "receta") {
-          return cat.includes("receta") || cat.includes("armazón") || cat.includes("armazon") || cat.includes("frame");
-        }
-        if (active === "sol") {
-          return cat.includes("sol") || cat.includes("sun");
-        }
-        if (active === "xl") {
-          return p.shape === "XL";
-        }
-        if (active === "clip-on") {
-          return cat.includes("clip");
-        }
-        if (active === "contacto") {
-          return cat.includes("contacto") || cat.includes("contact");
-        }
-        if (active === "cristales") {
-          return cat.includes("cristal") || cat.includes("lente");
-        }
-        return cat === active;
-      });
-
-  if (filterBrand) {
-    filtered = filtered.filter(p => p.brand.toLowerCase() === filterBrand.toLowerCase());
-  }
-  if (filterShape) {
-    filtered = filtered.filter(p => p.shape.toLowerCase().includes(filterShape.toLowerCase()) || (filterShape.toLowerCase() === 'xl' && p.shape === 'XL'));
-  }
-  if (filterMaterial) {
-    filtered = filtered.filter(p => p.material.toLowerCase() === filterMaterial.toLowerCase());
-  }
-
-  if (filterGender) {
-    const fg = filterGender.toLowerCase();
-    filtered = filtered.filter(p => {
-      if (!p.gender) return true;
-      const g = p.gender.toLowerCase();
-      if (fg === 'femme') {
-        return g.includes('femenino') || g.includes('mujer') || g.includes('femme') || g.includes('unisex') || g.includes('sin_genero') || g.includes('no_gender');
-      } else if (fg === 'homme') {
-        return g.includes('masculino') || g.includes('hombre') || g.includes('homme') || g.includes('unisex') || g.includes('sin_genero') || g.includes('no_gender');
-      } else if (fg === 'no_gender') {
-        return g.includes('unisex') || g.includes('sin_genero') || g.includes('no_gender');
-      }
-      return true;
-    });
-  }
-
-  if (searchQuery.trim()) {
-    const q = searchQuery.toLowerCase().trim();
-    filtered = filtered.filter(p => 
-      (p.brand && p.brand.toLowerCase().includes(q)) ||
-      (p.model && p.model.toLowerCase().includes(q)) ||
-      (p.modelCode && p.modelCode.toLowerCase().includes(q)) ||
-      (p.category && p.category.toLowerCase().includes(q))
-    );
-  }
-
-  if (sortParam === 'menor_precio') {
-    filtered = [...filtered].sort((a, b) => a.price - b.price);
-  } else if (sortParam === 'mayor_precio') {
-    filtered = [...filtered].sort((a, b) => b.price - a.price);
-  } else if (sortParam === 'forma') {
-    filtered = [...filtered].sort((a, b) => {
-      const shapeA = (a.shape || '').toLowerCase();
-      const shapeB = (b.shape || '').toLowerCase();
-      if (shapeA < shapeB) return -1;
-      if (shapeA > shapeB) return 1;
-      return 0;
-    });
-  }
-
-  const displayedProducts = filtered.slice(0, visibleCount);
+  const displayedProducts = products;
 
   return (
     <div className="bg-white min-h-screen text-black font-sans selection:bg-black selection:text-white">
@@ -304,12 +219,13 @@ export function TiendaClient({
               transition={{ duration: 0.6 }}
               className="absolute inset-0"
             >
-              <Image unoptimized
+              <Image
                 src={CATEGORY_IMAGES[activeCategory] || CATEGORY_IMAGES["Todo"]}
                 alt={`Colección ${activeCategory}`}
                 fill
                 priority
                 className="object-cover object-center"
+                sizes="100vw"
               />
               <div className="absolute inset-0 bg-black/20" />
             </motion.div>
@@ -424,7 +340,7 @@ export function TiendaClient({
             </div>
             {searchQuery && (
               <p className="text-[10px] font-bold text-stone-400 uppercase tracking-widest mt-2 px-2">
-                Resultados para &quot;{searchQuery}&quot;: {filtered.length} {filtered.length === 1 ? "modelo encontrado" : "modelos encontrados"}
+                Resultados para &quot;{searchQuery}&quot;: {totalCount} {totalCount === 1 ? "modelo encontrado" : "modelos encontrados"}
               </p>
             )}
           </div>
@@ -494,7 +410,7 @@ export function TiendaClient({
                       <div className="absolute inset-0 transition-transform duration-700 ease-out md:group-hover:scale-110">
                         {imgUrl ? (
                           <div className="absolute inset-0 flex items-center justify-center">
-                            <Image unoptimized
+                            <Image
                               src={imgUrl}
                               alt={`${p.brand} ${p.model}`}
                               fill
@@ -519,7 +435,7 @@ export function TiendaClient({
                         )}
 
                         {hasSecondImage && secondImgUrl && (
-                          <Image unoptimized
+                          <Image
                             src={secondImgUrl}
                             alt={`${p.brand} ${p.model} Try-On`}
                             fill
@@ -595,7 +511,7 @@ export function TiendaClient({
               })
             )}
 
-            {filtered.length === 0 && (
+            {displayedProducts.length === 0 && (
                 <div className="col-span-full py-24 text-center">
                   <p className="text-stone-400 text-sm uppercase tracking-widest mb-4">Sin productos en esta categoría</p>
                   <button onClick={() => setActiveCategory("Todo")} className="text-xs font-bold underline">
@@ -605,20 +521,21 @@ export function TiendaClient({
               )}
             </motion.div>
           </AnimatePresence>
-        {filtered.length > visibleCount && (
+        {currentPage < totalPages && (
           <div className="mt-12 flex justify-center w-full">
             <button 
-              onClick={() => setVisibleCount(v => v + 24)}
-              className="border-2 border-stone-900 text-stone-900 hover:bg-stone-900 hover:text-white px-8 py-3 text-[11px] font-black uppercase tracking-[0.2em] rounded-full transition-all duration-300 shadow-sm hover:shadow-md"
+              onClick={() => setCurrentPage(p => p + 1)}
+              disabled={isLoading}
+              className="border-2 border-stone-900 text-stone-900 hover:bg-stone-900 hover:text-white px-8 py-3 text-[11px] font-black uppercase tracking-[0.2em] rounded-full transition-all duration-300 shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Cargar más productos
+              {isLoading ? "Cargando..." : "Cargar más productos"}
             </button>
           </div>
         )}
         
-        {filtered.length > 0 && (
+        {displayedProducts.length > 0 && (
           <p className="mt-8 text-center text-[10px] text-stone-300 uppercase tracking-widest font-bold">
-            Mostrando {Math.min(visibleCount, filtered.length)} de {filtered.length} {filtered.length === 1 ? "modelo" : "modelos"} · Atelier Óptica
+            Mostrando {displayedProducts.length} de {totalCount} {totalCount === 1 ? "modelo" : "modelos"} · Atelier Óptica
           </p>
         )}
         </div>

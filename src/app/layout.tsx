@@ -46,6 +46,9 @@ export const metadata: Metadata = {
     icon: "/assets/logo-pwa-192.png",
     apple: "/assets/logo-pwa-512.png",
   },
+  verification: {
+    google: "AjRzLWV7Kf6VgRcityyLkoXxJDag70DOQ2vxUompEgE",
+  },
   other: { "theme-color": "#c8a55c" },
   formatDetection: {
     email: false,
@@ -66,6 +69,8 @@ export default function RootLayout({
   return (
     <html lang="es" suppressHydrationWarning>
       <head>
+        <link rel="dns-prefetch" href="https://firebasestorage.googleapis.com" />
+        <link rel="preconnect" href="https://firebasestorage.googleapis.com" crossOrigin="anonymous" />
         <link rel="preconnect" href="https://storage.googleapis.com" />
       </head>
       <body

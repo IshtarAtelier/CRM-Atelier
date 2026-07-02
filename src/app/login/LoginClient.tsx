@@ -1,11 +1,14 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 
-export default function LoginClient() {
+function LoginForm() {
     const router = useRouter();
+    const searchParams = useSearchParams();
+    const isMayorista = searchParams.get("type") === "mayorista";
+    
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [error, setError] = useState("");
@@ -30,7 +33,11 @@ export default function LoginClient() {
                 if (data.user) {
                     localStorage.setItem('user', JSON.stringify(data.user));
                 }
-                router.push("/admin");
+                if (data.user && data.user.role === 'OPTICA') {
+                    router.push("/tienda");
+                } else {
+                    router.push("/admin");
+                }
                 router.refresh(); // Force a full reload to apply middleware redirects properly
             } else {
                 const data = await res.json();
@@ -58,10 +65,10 @@ export default function LoginClient() {
                     </div>
                 </div>
                 <h2 className="mt-6 text-center text-3xl font-extrabold text-foreground tracking-tight">
-                    Ingreso a Atelier Óptica
+                    {isMayorista ? "Acceso Mayorista" : "Ingreso a Atelier Óptica"}
                 </h2>
                 <p className="mt-2 text-center text-sm text-foreground/60">
-                    Sistema de Gestión y CRM
+                    {isMayorista ? "Portal exclusivo para Ópticas y Distribuidores" : "Sistema de Gestión y CRM"}
                 </p>
             </div>
 
@@ -182,5 +189,13 @@ export default function LoginClient() {
                 </div>
             </div>
         </div>
+    );
+}
+
+export default function LoginClient() {
+    return (
+        <Suspense fallback={<div className="min-h-screen bg-background flex flex-col justify-center py-12"><div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto" /></div>}>
+            <LoginForm />
+        </Suspense>
     );
 }

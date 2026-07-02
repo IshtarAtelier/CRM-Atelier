@@ -298,7 +298,7 @@ export default function QuoteSummary({
         );
     }
 
-    const isSale = order.orderType === 'SALE';
+    const isSale = order.orderType === 'SALE' || order.orderType === 'MAYORISTA';
     const isQuote = !isSale;
     const isLockedSale = isSale && order.isLocked !== false;
     

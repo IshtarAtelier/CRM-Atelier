@@ -16,6 +16,8 @@ interface NuestroLocalClientProps {
     phone: string;
     whatsappPhoneId: string;
   };
+  reviewCount?: number;
+  rating?: number;
   children?: React.ReactNode;
 }
 
@@ -49,7 +51,7 @@ const SERVICES = [
   },
 ];
 
-export function NuestroLocalClient({ settings, children }: NuestroLocalClientProps) {
+export function NuestroLocalClient({ settings, reviewCount = 642, rating = 5.0, children }: NuestroLocalClientProps) {
   const heroRef = useRef<HTMLDivElement>(null);
   const { scrollYProgress } = useScroll({
     target: heroRef,
@@ -93,7 +95,7 @@ export function NuestroLocalClient({ settings, children }: NuestroLocalClientPro
           <div className="flex items-center gap-3 mb-6">
             <div className="flex items-center gap-2 bg-white/10 backdrop-blur-xl border border-white/20 rounded-full px-4 py-2 shadow-2xl">
               <span className="text-amber-400 text-sm">★★★★★</span>
-              <span className="text-white/90 text-[10px] font-black uppercase tracking-[0.15em]">5.0 en Google · 89+ Reseñas</span>
+              <span className="text-white/90 text-[10px] font-black uppercase tracking-[0.15em]">{rating.toFixed(1)} en Google · {reviewCount} Reseñas</span>
             </div>
           </div>
 

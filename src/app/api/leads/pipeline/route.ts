@@ -33,9 +33,8 @@ export async function GET() {
       orderBy: { createdAt: 'desc' },
     });
 
-    // Filter: must have prescription, must NOT have exclusion tags, must NOT have purchased
+    // Filter: must NOT have exclusion tags, must NOT have purchased
     const qualifiedLeads = leads.filter(lead => {
-      if (lead.prescriptions.length === 0) return false;
       // Excluir si tiene tags de exclusión (no interesado, cerrado, etc.)
       if (lead.tags.some(tag =>
         EXCLUSION_TAGS.some(ex => tag.name.toLowerCase().includes(ex))
@@ -86,6 +85,8 @@ export async function GET() {
         } else {
           stage = 'cotizacionEnviada';
         }
+      } else if (!latestRx) {
+        stage = 'primerContacto';
       }
 
       const formattedLead = {
@@ -99,7 +100,7 @@ export async function GET() {
         createdAt: lead.createdAt,
         interest: lead.interest,
         contactSource: lead.contactSource,
-        latestRx: {
+        latestRx: latestRx ? {
           id: latestRx.id,
           date: latestRx.date,
           sphereOD: latestRx.sphereOD,
@@ -107,7 +108,7 @@ export async function GET() {
           sphereOI: latestRx.sphereOI,
           cylinderOI: latestRx.cylinderOI,
           addition: latestRx.addition || latestRx.additionOD || latestRx.additionOI || null,
-        },
+        } : null,
         latestQuote: latestQuote ? {
           id: latestQuote.id,
           total: latestQuote.total,

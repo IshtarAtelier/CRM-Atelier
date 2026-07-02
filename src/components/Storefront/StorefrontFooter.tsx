@@ -65,13 +65,17 @@ export async function StorefrontFooter() {
             <Link href="/politicas-de-cambio" className="text-[13px] font-medium hover:opacity-60 transition-opacity py-2 md:py-0">Cambios y Devoluciones</Link>
             <Link href="/terminos-y-condiciones" className="text-[13px] font-medium hover:opacity-60 transition-opacity py-2 md:py-0">Términos y Condiciones</Link>
             <Link href="/politicas-de-privacidad" className="text-[13px] font-medium hover:opacity-60 transition-opacity py-2 md:py-0">Políticas de Privacidad</Link>
+            <div className="mt-4">
+              <p className="text-[10px] uppercase tracking-widest font-bold text-stone-400 mb-2">Corporativo</p>
+              <Link href="/login?type=mayorista" className="text-[13px] font-medium hover:opacity-60 transition-opacity py-2 md:py-0 text-[#c8a55c]">Acceso Mayoristas</Link>
+            </div>
           </div>
 
           {/* Redes sociales */}
           <div className="flex flex-col gap-1 md:gap-3">
             <p className="text-[10px] uppercase tracking-widest font-bold text-stone-400 mb-2">Social</p>
             <a href="https://instagram.com/atelieroptica_" target="_blank" rel="noopener noreferrer" className="text-[13px] font-medium hover:opacity-60 transition-opacity py-2 md:py-0">Instagram</a>
-            <a href="https://www.youtube.com/@atelieroptica" target="_blank" rel="noopener noreferrer" className="text-[13px] font-medium hover:opacity-60 transition-opacity py-2 md:py-0">YouTube</a>
+            <a href="https://www.youtube.com/@AtelierOptica/shorts" target="_blank" rel="noopener noreferrer" className="text-[13px] font-medium hover:opacity-60 transition-opacity py-2 md:py-0">YouTube</a>
             <a href={`https://wa.me/${whatsappPhoneId}`} target="_blank" rel="noopener noreferrer" className="text-[13px] font-medium hover:opacity-60 transition-opacity py-2 md:py-0">WhatsApp</a>
           </div>
           

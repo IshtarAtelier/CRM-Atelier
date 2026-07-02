@@ -2,6 +2,7 @@ import { Metadata } from 'next';
 import { getWebSettings } from '@/lib/web-settings';
 import { NuestroLocalClient } from './NuestroLocalClient';
 import { StorefrontFooter } from '@/components/Storefront/StorefrontFooter';
+import { getGoogleReviews } from '@/lib/googleReviews';
 
 export const metadata: Metadata = {
   title: "Nuestro Local | Óptica Boutique en Cerro de las Rosas, Córdoba",
@@ -31,6 +32,8 @@ export default async function NuestroLocalPage() {
   const mapsUrl = settings.web_store_maps_url;
   const phone = settings.web_store_phone;
   const whatsappPhoneId = settings.web_store_whatsapp_id;
+
+  const reviewsData = await getGoogleReviews();
 
   const localBusinessJsonLd = {
     '@context': 'https://schema.org',
@@ -76,10 +79,10 @@ export default async function NuestroLocalPage() {
     ],
     'aggregateRating': {
       '@type': 'AggregateRating',
-      'ratingValue': '5.0',
+      'ratingValue': reviewsData.rating.toFixed(1),
       'bestRating': '5',
       'worstRating': '1',
-      'ratingCount': '89',
+      'ratingCount': reviewsData.userRatingCount.toString(),
     }
   };
 
@@ -97,6 +100,8 @@ export default async function NuestroLocalPage() {
           phone,
           whatsappPhoneId,
         }}
+        reviewCount={reviewsData.userRatingCount}
+        rating={reviewsData.rating}
       >
         <StorefrontFooter />
       </NuestroLocalClient>

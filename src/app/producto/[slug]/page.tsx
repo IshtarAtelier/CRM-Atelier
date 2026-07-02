@@ -1,5 +1,5 @@
 import { Metadata } from 'next';
-import { notFound } from 'next/navigation';
+import { redirect } from 'next/navigation';
 import { prisma } from '@/lib/db';
 import { getProductAttributes } from '@/utils/product-controllers';
 
@@ -155,7 +155,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
   const product = await getProduct(resolvedParams.slug);
 
   if (!product) {
-    notFound();
+    redirect('/tienda');
   }
 
   // Get material from product attributes

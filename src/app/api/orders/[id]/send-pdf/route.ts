@@ -41,48 +41,80 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
         const chatIdForBot = chat ? chat.id : waId;
 
         // Generar PDF del lado del servidor
-        let pdfResult;
+        let pdfResult = null;
+        let pdfErrorStr = null;
         try {
             pdfResult = await generateOrderPDF(order, order.client);
             console.log('[send-pdf] PDF generated successfully:', pdfResult.filename, '| Size:', Math.round(pdfResult.base64.length * 0.75 / 1024), 'KB');
         } catch (pdfError: any) {
             console.error('[send-pdf] PDF generation failed:', pdfError.message);
-            return NextResponse.json({ error: `Error generando PDF: ${pdfError.message}` }, { status: 500 });
+            pdfErrorStr = pdfError.message;
+            // No hacemos un early return, seguimos adelante para enviar el link como respaldo
         }
 
-        // Enviar por WhatsApp
-        const res = await fetchWa('/api/send', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                chatId: chatIdForBot,
-                message: text,
-                media: {
-                    base64: pdfResult.base64,
-                    mimetype: 'application/pdf',
-                    filename: pdfResult.filename
+        let sentAsMedia = false;
+
+        // Intento 1: Enviar como Documento si pudimos generar el PDF
+        if (pdfResult) {
+            try {
+                const res = await fetchWa('/api/send', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        chatId: chatIdForBot,
+                        message: text,
+                        media: {
+                            base64: pdfResult.base64,
+                            mimetype: 'application/pdf',
+                            filename: pdfResult.filename
+                        }
+                    }),
+                });
+
+                if (res.ok) {
+                    sentAsMedia = true;
+                    console.log('[send-pdf] PDF sent successfully as media to:', formattedPhone);
+                    return NextResponse.json({ success: true, method: 'media' });
+                } else {
+                    const responseText = await res.text();
+                    console.warn('[send-pdf] Failed to send PDF as media, falling back to link...', res.status, responseText.substring(0, 200));
                 }
-            }),
-        });
-
-        const responseText = await res.text();
-        let responseData;
-        try {
-            responseData = JSON.parse(responseText);
-        } catch {
-            console.error('[send-pdf] Non-JSON response from wa-service:', res.status, responseText.substring(0, 200));
-            return NextResponse.json({ error: `wa-service respondió con formato inválido (${res.status})` }, { status: 502 });
+            } catch (mediaErr: any) {
+                console.warn('[send-pdf] Network error sending PDF as media, falling back to link...', mediaErr.message);
+            }
         }
 
-        if (!res.ok) {
-            console.error('[send-pdf] Bot API Error:', res.status, responseData);
-            const rawError = responseData?.error || 'desconocido';
-            const cleanError = rawError.includes('registrado') ? rawError : `Error del bot al enviar PDF (${res.status}): ${rawError}`;
-            return NextResponse.json({ error: cleanError }, { status: 500 });
-        }
+        // Intento 2 (Fallback Infalible): Enviar como Link
+        if (!sentAsMedia) {
+            console.log('[send-pdf] Executing Link Fallback for order:', orderId);
+            
+            const pdfUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://www.atelieroptica.com.ar'}/api/orders/${orderId}/pdf`;
+            const extraMsg = pdfErrorStr ? `(Nota: Ocurrió un problema menor adjuntando el archivo). ` : ``;
+            const fallbackText = `${text}\n\n📄 ${extraMsg}*Descargar Documento:* ${pdfUrl}`;
+            
+            try {
+                const resLink = await fetchWa('/api/send', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        chatId: chatIdForBot,
+                        message: fallbackText
+                    }),
+                });
 
-        console.log('[send-pdf] PDF sent successfully to:', formattedPhone);
-        return NextResponse.json({ success: true });
+                if (resLink.ok) {
+                    console.log('[send-pdf] PDF sent successfully as link to:', formattedPhone);
+                    return NextResponse.json({ success: true, method: 'link' });
+                } else {
+                    const responseText = await resLink.text();
+                    console.error('[send-pdf] Bot API Error on Link Fallback:', resLink.status, responseText);
+                    return NextResponse.json({ error: `Error del bot al enviar link (${resLink.status})` }, { status: 500 });
+                }
+            } catch (linkErr: any) {
+                console.error('[send-pdf] Network error sending link:', linkErr.message);
+                return NextResponse.json({ error: `Error de red al enviar el link: ${linkErr.message}` }, { status: 500 });
+            }
+        }
 
     } catch (error: any) {
         console.error('[send-pdf] Error:', error.message, error.stack);

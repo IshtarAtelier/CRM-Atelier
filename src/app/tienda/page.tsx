@@ -3,6 +3,7 @@ import { TiendaClient } from './TiendaClient';
 import { StorefrontFooterStatic } from '@/components/Storefront/StorefrontFooterStatic';
 import { Metadata } from 'next';
 import { getProductAttributes } from '@/utils/product-controllers';
+import { Suspense } from 'react';
 
 export const revalidate = 300;
 
@@ -20,43 +21,37 @@ export const metadata: Metadata = {
   },
 };
 
-import { Suspense } from 'react';
-
 export default async function TiendaPage() {
-  // We query all active web products to extract distinct filters and then apply filter criteria
-  let dbProducts: any[] = [];
-  const MAX_RETRIES = 3;
-  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
-    try {
-      dbProducts = await prisma.webProduct.findMany({
-        where: {
-          isActive: true,
-          product: {
-            publishToWeb: true,
-          }
-        },
-        include: {
-          product: true
-        },
-        orderBy: {
-          createdAt: 'desc'
+  // 1) Fetch only filter metadata for the sidebar (very light query selecting only specific text fields)
+  let filterMetadata: any[] = [];
+  try {
+    filterMetadata = await prisma.webProduct.findMany({
+      where: {
+        isActive: true,
+        product: {
+          publishToWeb: true,
         }
-      });
-      break; // Success — exit retry loop
-    } catch (error) {
-      console.error(`[Tienda] DB query attempt ${attempt}/${MAX_RETRIES} failed:`, error);
-      if (attempt < MAX_RETRIES) {
-        await new Promise(r => setTimeout(r, 500 * attempt)); // Backoff: 500ms, 1s, 1.5s
+      },
+      select: {
+        name: true,
+        product: {
+          select: {
+            brand: true,
+            model: true,
+            seoTags: true,
+          }
+        }
       }
-    }
+    });
+  } catch (error) {
+    console.error(`[Tienda] Error fetching filter metadata:`, error);
   }
 
-  // 1) Extract filter options dynamically from all available active web products
   const brandsSet = new Set<string>();
   const shapesSet = new Set<string>();
   const materialsSet = new Set<string>();
 
-  dbProducts.forEach(wp => {
+  filterMetadata.forEach(wp => {
     if (wp.product?.brand) {
       brandsSet.add(wp.product.brand.toUpperCase());
     }
@@ -76,18 +71,38 @@ export default async function TiendaPage() {
   const availableShapes = Array.from(shapesSet).sort();
   const availableMaterials = Array.from(materialsSet).sort();
 
-  // 2) Map WebProducts to products format needed by storefront
-  const mappedProducts = dbProducts.map(wp => {
+  // 2) Fetch ONLY the first 24 products for the initial server render & SEO (instant, small payload)
+  let initialDbProducts: any[] = [];
+  try {
+    initialDbProducts = await prisma.webProduct.findMany({
+      where: {
+        isActive: true,
+        product: {
+          publishToWeb: true,
+        }
+      },
+      include: {
+        product: true
+      },
+      orderBy: {
+        createdAt: 'desc'
+      },
+      take: 24
+    });
+  } catch (error) {
+    console.error(`[Tienda] Error fetching initial products:`, error);
+  }
+
+  const mappedInitialProducts = initialDbProducts.map(wp => {
     const modelCode = wp.product.model || wp.name || '';
     const { shape, material } = getProductAttributes(modelCode, wp.product?.seoTags);
     
-    // Check if it's XL
     const isXl = ["9004M C3", "9004M C2", "TL3684 C4", "91501 C6"].some(code => modelCode.toUpperCase().includes(code)) ||
                  ["dionisio", "poseidon", "selene-c4", "atelier-athena-3ytl", "poseidon-c3", "poseidon-c2"].includes(wp.slug);
 
     return {
       id: wp.product.id,
-      brand: 'ATELIER',
+      brand: wp.product.brand || 'ATELIER',
       model: wp.name || modelCode,
       modelCode: modelCode,
       category: wp.category,
@@ -105,7 +120,7 @@ export default async function TiendaPage() {
   return (
     <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Cargando...</div>}>
       <TiendaClient 
-        initialProducts={mappedProducts} 
+        initialProducts={mappedInitialProducts} 
         availableBrands={availableBrands}
         availableShapes={availableShapes}
         availableMaterials={availableMaterials}

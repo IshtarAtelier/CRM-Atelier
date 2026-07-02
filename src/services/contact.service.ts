@@ -832,13 +832,38 @@ export const ContactService = {
     },
 
     async addInteraction(clientId: string, type: string, content: string) {
-        return await prisma.interaction.create({
+        const interaction = await prisma.interaction.create({
             data: {
                 clientId,
                 type,
                 content
             }
         });
+
+        if (type === 'STORE_VISIT') {
+            try {
+                const client = await prisma.client.findUnique({ where: { id: clientId } });
+                if (client) {
+                    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://crm-atelier-production-ae72.up.railway.app';
+                    const link = `${appUrl}/admin/contactos?id=${client.id}`;
+                    const groupMessage = `📍 *Ingreso de cliente al Atelier*\n👤 *Cliente:* ${client.name}\n\n⚠️ _Aclarar si es calle / meta / referido_\n🔗 *Ficha:* ${link}`;
+                    
+                    fetchWa('/api/send', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            chatId: process.env.WHATSAPP_SALES_GROUP_ID || '120363321589178129@g.us',
+                            message: groupMessage,
+                            senderName: 'Sistema Atelier'
+                        }),
+                    }).catch(err => console.error('[Store Visit Notification] Error:', err));
+                }
+            } catch (e) {
+                console.error('Error sending store visit notification:', e);
+            }
+        }
+
+        return interaction;
     },
 
     async getById(id: string) {

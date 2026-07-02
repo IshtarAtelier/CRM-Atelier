@@ -61,6 +61,24 @@ export async function POST(request: Request) {
             },
         });
 
+        // Crear automáticamente la ficha de cliente en el CRM si es una Óptica
+        if (user.role === 'OPTICA') {
+            const existingClient = await prisma.client.findFirst({
+                where: { email: user.email }
+            });
+            
+            if (!existingClient) {
+                await prisma.client.create({
+                    data: {
+                        name: user.name,
+                        email: user.email,
+                        status: 'CONTACT',
+                        contactSource: 'Alta Manual Sistema'
+                    }
+                });
+            }
+        }
+
         return NextResponse.json(user, { status: 201 });
     } catch (error: any) {
         console.error('Error creating user:', error);

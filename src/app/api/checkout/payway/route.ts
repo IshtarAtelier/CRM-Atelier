@@ -329,7 +329,10 @@ export async function POST(req: Request) {
     }
 
     // 2. Encontrar usuario de sistema (o el primer admin disponible) para asignar la venta
-    const systemUser = await prisma.user.findFirst();
+    let systemUser = await prisma.user.findFirst();
+    if (customer.paymentMethod.includes('MAYORISTA')) {
+      systemUser = await prisma.user.findFirst({ where: { role: 'ADMIN' } }) || systemUser;
+    }
     if (!systemUser) throw new Error("No system user found to assign order.");
 
     // Perform stock check before creating anything or charging card
@@ -482,7 +485,7 @@ export async function POST(req: Request) {
           clientId: client.id,
           userId: systemUser.id,
           status: "WEB_PENDING",
-          orderType: "SALE",
+          orderType: customer.paymentMethod.includes('MAYORISTA') ? "MAYORISTA" : "SALE",
           total: customer.paymentMethod === 'TRANSFER' ? recalculatedItemsTotal * transferMultiplier : recalculatedItemsTotal,
           labNotes: `Método de envío: ${shippingMethodLabel}${customer.shippingBranch ? ` (Sucursal: ${customer.shippingBranch})` : ''}. Método de pago: ${customer.paymentMethod}. Dirección: ${customer.address}, ${customer.city}, ${customer.state} ${customer.zip}`,
           items: {

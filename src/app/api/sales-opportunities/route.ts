@@ -1,10 +1,17 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { serverCache } from '@/lib/cache';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
     try {
+        const cacheKey = 'sales-opportunities';
+        const cached = serverCache.get<any>(cacheKey);
+        if (cached !== null) {
+            return NextResponse.json(cached);
+        }
+
         const threeDaysAgo = new Date();
         threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
 
@@ -395,6 +402,8 @@ export async function GET() {
             }
         }
 
+        serverCache.set(cacheKey, uniqueOpportunities, 60); // Cache for 60 seconds
+
         return NextResponse.json(uniqueOpportunities);
     } catch (error) {
         console.error('Error fetching sales opportunities:', error);
@@ -443,6 +452,8 @@ export async function POST(req: Request) {
         } else {
             return NextResponse.json({ error: 'Tipo inválido' }, { status: 400 });
         }
+
+        serverCache.clear();
 
         return NextResponse.json({ success: true });
     } catch (error) {

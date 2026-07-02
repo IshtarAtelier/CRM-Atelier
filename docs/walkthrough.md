@@ -1,6 +1,28 @@
-# Walkthrough: Atribución de Orígenes (Google Ads / Meta) y Fichas Manuales Obligatorias
+# Walkthrough: Rendimiento, Caché de API y Conexiones de Red
 
 ## Resumen de Cambios Recientes
+
+Se implementó y ejecutó de manera exitosa el plan de optimización de velocidad de carga y rendimiento de la base de datos en producción:
+
+1. **Preconexiones y DNS Prefetch (Frontend)**:
+   - Modificamos [layout.tsx](file:///Users/ishtarpissano/proyectos/atelier/src/app/layout.tsx) para añadir etiquetas `<link rel="dns-prefetch" />` y `<link rel="preconnect" />` enfocadas en los servidores de almacenamiento de Firebase (`firebasestorage.googleapis.com`) y Google Cloud (`storage.googleapis.com`). Esto acelera la carga inicial y visualización de imágenes de productos y recetas.
+2. **Utilidad de Caché en Memoria (Backend)**:
+   - Creamos la utilidad [cache.ts](file:///Users/ishtarpissano/proyectos/atelier/src/lib/cache.ts) que implementa un cache en memoria con tiempo de vida (TTL) en segundos.
+3. **Caché en Endpoints de Polling y Reportes**:
+   - Envolvimos las consultas de lectura en los endpoints del panel de control que se consultan repetitivamente mediante polling automático:
+     - `/api/lab-ready` (Caché por 30s)
+     - `/api/tasks/pending` (Caché por 30s)
+     - `/api/orders/with-balance` (Caché por 60s)
+     - `/api/sales-opportunities` (Caché por 60s)
+     - `/api/review-requests/pending` (Caché por 60s)
+   - Envolvimos el cálculo pesado del generador de reportes en `/api/reports` (Caché por 60s usando parámetros `from` y `to` como clave única).
+4. **Invalidación Automática de Caché**:
+   - Modificamos el manejador global [api-handler.ts](file:///Users/ishtarpissano/proyectos/atelier/src/lib/api-handler.ts) para limpiar la memoria caché automáticamente en cualquier petición de mutación exitosa (`POST`, `PATCH`, `PUT`, `DELETE`).
+   - Modificamos el endpoint `/api/sales-opportunities` para limpiar el caché al completar/descartar una oportunidad.
+
+---
+
+## Cambios Realizados Anteriormente
 
 Se implementó y ejecutó de manera exitosa el plan de atribución de orígenes y obligatoriedad en fichas de contactos, logrando:
 1. **Apagado Silencioso por Falta de Interés**: Se configuraron reglas de negocio estrictas en los prompts principales (`salesPrompt.js` y `executivePrompt.js`) para que si un contacto no demuestra interés real o indica explícitamente que no quiere anteojos/lentes, el bot no le responda nada, no le cree una ficha y apague el bot silenciosamente usando `disable_bot_for_personal_chat`.
