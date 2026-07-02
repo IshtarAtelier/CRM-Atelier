@@ -8,6 +8,7 @@ import { PIPELINE_COLUMNS, type PipelineStageKey } from '@/types/leads';
 import PipelineHeader from '@/components/leads/PipelineHeader';
 import PipelineStatsBar from '@/components/leads/PipelineStatsBar';
 import PipelineColumnPanel from '@/components/leads/PipelineColumnPanel';
+import PipelineOnboarding from '@/components/leads/PipelineOnboarding';
 
 // ─────────────────────────────────────────────────────────────
 // LeadsPipelinePage — Orchestrator page
@@ -50,6 +51,7 @@ export default function LeadsPipelinePage() {
   return (
     <div className="p-4 lg:p-8 max-w-full mx-auto space-y-8 animate-in fade-in duration-500 pb-24 select-none">
 
+      <PipelineOnboarding />
       <PipelineHeader searchQuery={searchQuery} onSearchChange={setSearchQuery} />
       <PipelineStatsBar stats={stats} />
 

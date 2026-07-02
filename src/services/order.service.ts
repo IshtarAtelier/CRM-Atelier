@@ -748,13 +748,13 @@ export class OrderService {
                 if (postSaleStatus !== undefined) {
                     data.postSaleStatus = postSaleStatus;
                 } else if ((postSaleNotes || postSaleOrderOption || postSaleCost) && !currentOrderForPostSale.postSaleStatus) {
-                    data.postSaleStatus = 'PENDING';
+                    data.postSaleStatus = 'SENT';
                 }
 
                 // If adding postSaleNotes (a new entry) and previously there were no notes,
-                // or if it was not in postSaleStatus and now it is initialized to 'PENDING',
+                // or if it was not in postSaleStatus and now it is initialized to 'SENT',
                 // send email notification to admin.
-                const wasPostSaleInitialized = (data.postSaleStatus === 'PENDING' && !currentOrderForPostSale.postSaleStatus);
+                const wasPostSaleInitialized = (data.postSaleStatus === 'SENT' && !currentOrderForPostSale.postSaleStatus);
                 const isNewPostSaleNotes = (postSaleNotes && !currentOrderForPostSale.postSaleNotes);
 
                 if (wasPostSaleInitialized || isNewPostSaleNotes) {
