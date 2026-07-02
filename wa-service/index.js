@@ -666,21 +666,39 @@ async function processBotTurn(chat, waId, profileName, realPhone) {
                 let block = messageBlocks[i];
                 let mediaObj = null;
 
-                // Extraer URL de imagen si el bot la incluyó con el formato [IMAGE: url]
-                const imgMatch = block.match(/\[IMAGE:\s*(https?:\/\/[^\]]+)\]/i);
-                if (imgMatch) {
-                    mediaObj = { url: imgMatch[1] };
-                    block = block.replace(imgMatch[0], '').trim();
+                // Extraer todas las URLs de imágenes si el bot incluyó múltiples [IMAGE: url]
+                const imgRegex = /\[IMAGE:\s*(https?:\/\/[^\]]+)\]/gi;
+                let match;
+                const mediaUrls = [];
+                while ((match = imgRegex.exec(block)) !== null) {
+                    mediaUrls.push(match[1]);
                 }
+                
+                // Limpiar todos los tags de imagen del texto
+                block = block.replace(/\[IMAGE:\s*(https?:\/\/[^\]]+)\]/gi, '').trim();
 
-                if (block.length > 0 || mediaObj) {
-                    // Simular que el bot está escribiendo (demora dinámica basada en la longitud)
-                    await sendTypingState(waId);
-                    // Calculamos un tiempo humano: ~50ms por caracter, mínimo 1.5s, máximo 5s
-                    const typingTimeMs = Math.min(Math.max(block.length * 50, 1500), 5000);
-                    await new Promise(r => setTimeout(r, typingTimeMs));
+                // Si no hay texto ni imágenes, saltar
+                if (block.length === 0 && mediaUrls.length === 0) continue;
 
-                    const sent = await sendMessage(waId, block, mediaObj, { isProactive: false });
+                // Simular que el bot está escribiendo (demora dinámica basada en la longitud)
+                await sendTypingState(waId);
+                const typingTimeMs = Math.min(Math.max(block.length * 50, 1500), 5000);
+                await new Promise(r => setTimeout(r, typingTimeMs));
+
+                let sent;
+                // Si hay imágenes, mandamos la primera con el caption (el texto del bloque)
+                // y las siguientes solas sin caption
+                if (mediaUrls.length > 0) {
+                    for (let j = 0; j < mediaUrls.length; j++) {
+                        const mediaObj = { url: mediaUrls[j] };
+                        const captionText = j === 0 ? block : ''; 
+                        const result = await sendMessage(waId, captionText, mediaObj, { isProactive: false });
+                        if (j === 0) sent = result;
+                    }
+                } else {
+                    // Si no hay imágenes, mandamos solo el texto
+                    sent = await sendMessage(waId, block, null, { isProactive: false });
+                }
                     
                     if (sent && sent.id && sent.id._serialized) {
                         if (!global.botMessageIds) global.botMessageIds = new Set();
