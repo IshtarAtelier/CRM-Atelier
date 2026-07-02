@@ -14,6 +14,7 @@ import { formatOrderItemsSummary } from '@/lib/order-utils';
 import { logAudit } from '@/lib/audit';
 import { addBusinessDays, calculateEstimatedDays } from '@/lib/business-days';
 import { format } from 'date-fns';
+import { OptovisionAuditService } from '@/services/optovision-audit.service';
 
 const OrderItemSchema = z.object({
     productId: z.string().nullable().optional(),
@@ -771,6 +772,14 @@ export class OrderService {
                         }
                     },
                     client: { select: { name: true } },
+                    items: {
+                        select: {
+                            product: { select: { laboratory: true } },
+                            productCategorySnapshot: true,
+                            laboratorySnapshot: true
+                        }
+                    },
+                    labOrderNumber: true,
                     id: true
                 }
             });
@@ -879,6 +888,19 @@ export class OrderService {
                             subject,
                             html
                         }).catch(err => console.error('[Post-Sale Email Error]:', err));
+                    }
+
+                    // Check if it is an Optovision case to run IMAP billing audit
+                    const isOptovision = currentOrderForPostSale.items?.some((item: any) =>
+                        item.product?.laboratory?.toUpperCase().includes('OPTOVISION') ||
+                        item.laboratorySnapshot?.toUpperCase().includes('OPTOVISION')
+                    );
+
+                    if (isOptovision && currentOrderForPostSale.labOrderNumber) {
+                        OptovisionAuditService.checkOptovisionBillingAndAlert(
+                            id,
+                            currentOrderForPostSale.labOrderNumber
+                        ).catch(err => console.error('[Optovision Audit Trigger Error]:', err));
                     }
                 } else {
                     // Update existing active case
