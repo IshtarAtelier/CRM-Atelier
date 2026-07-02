@@ -5,7 +5,7 @@ import {
     Package, Clock, CheckCircle2, Search, Download,
     Save, X, Eye, ArrowRight, Hash,
     Calendar, Loader2, ExternalLink, Copy, CheckCheck, Clipboard,
-    Factory, ChevronLeft, ChevronRight
+    Factory, ChevronLeft, ChevronRight, User, Users, ChevronDown
 } from 'lucide-react';
 import { OrderDetailPanel } from '@/components/orders/OrderDetailPanel';
 import { WhatsAppIcon } from '@/components/icons/WhatsAppIcon';
@@ -86,10 +86,10 @@ function PostSaleCard({
         }
     };
 
-    const currentStatus = order.labStatus || 'NONE';
-    const statusKeys = ['SENT', 'IN_PROGRESS', 'FINISHED', 'READY', 'DELIVERED'];
+    const currentStatus = order.postSaleStatus || 'PENDING';
+    const statusKeys = ['PENDING', 'IN_PROGRESS', 'READY', 'DELIVERED'];
     let currentIdx = statusKeys.indexOf(currentStatus);
-    if (currentStatus === 'NONE') currentIdx = 0;
+    if (currentIdx === -1) currentIdx = 0;
 
     const canMoveLeft = currentIdx > 0;
     const canMoveRight = currentIdx < statusKeys.length - 1;
@@ -232,6 +232,9 @@ export default function PedidosPage() {
     const [isSyncing, setIsSyncing] = useState(false);
     const [syncResult, setSyncResult] = useState<any>(null);
     const [userRole, setUserRole] = useState('STAFF');
+    const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+    const [currentUserName, setCurrentUserName] = useState<string | null>(null);
+    const [filterSeller, setFilterSeller] = useState<string>('__LOADING__');
 
     const [viewMode, setViewMode] = useState<'LAB_ORDERS' | 'POST_VENTA'>('LAB_ORDERS');
 
@@ -239,6 +242,13 @@ export default function PedidosPage() {
         { key: 'SENT', label: 'Reportados / Pendientes', color: 'border-amber-400/80 bg-amber-500/10 text-amber-600' },
         { key: 'IN_PROGRESS', label: 'En Laboratorio', color: 'border-blue-400/80 bg-blue-500/10 text-blue-600' },
         { key: 'FINISHED', label: 'Finalizado (Lab)', color: 'border-fuchsia-400/80 bg-fuchsia-500/10 text-fuchsia-600' },
+        { key: 'READY', label: 'Listo p/ Retirar', color: 'border-emerald-400/80 bg-emerald-500/10 text-emerald-600' },
+        { key: 'DELIVERED', label: 'Entregado / Cerrado', color: 'border-indigo-400/80 bg-indigo-500/10 text-indigo-600' }
+    ];
+
+    const POST_SALE_COLUMNS = [
+        { key: 'PENDING', label: 'Reportados / Pendientes', color: 'border-amber-400/80 bg-amber-500/10 text-amber-600' },
+        { key: 'IN_PROGRESS', label: 'En Laboratorio', color: 'border-blue-400/80 bg-blue-500/10 text-blue-600' },
         { key: 'READY', label: 'Listo p/ Retirar', color: 'border-emerald-400/80 bg-emerald-500/10 text-emerald-600' },
         { key: 'DELIVERED', label: 'Entregado / Cerrado', color: 'border-indigo-400/80 bg-indigo-500/10 text-indigo-600' }
     ];
@@ -258,6 +268,36 @@ export default function PedidosPage() {
     }, [orders, search]);
 
     const handleMoveCard = async (order: Order, direction: 'left' | 'right') => {
+        if (viewMode === 'POST_VENTA') {
+            const currentStatus = order.postSaleStatus || 'PENDING';
+            const statusKeys = ['PENDING', 'IN_PROGRESS', 'READY', 'DELIVERED'];
+            let currentIdx = statusKeys.indexOf(currentStatus);
+            if (currentIdx === -1) currentIdx = 0;
+
+            const targetIdx = direction === 'left' ? currentIdx - 1 : currentIdx + 1;
+            if (targetIdx < 0 || targetIdx >= statusKeys.length) return;
+
+            const nextStatus = statusKeys[targetIdx];
+            try {
+                const res = await fetch(`/api/orders/${order.id}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ postSaleStatus: nextStatus })
+                });
+                if (res.ok) {
+                    const updatedOrders = orders.map(o => o.id === order.id ? { ...o, postSaleStatus: nextStatus } : o);
+                    setOrders(updatedOrders);
+                } else {
+                    const data = await res.json();
+                    alert(`⚠️ Error al mover: ${data.error}`);
+                }
+            } catch (err) {
+                console.error('Error moving post-sale card:', err);
+                alert('⚠️ Error de red al mover tarjeta de post-venta.');
+            }
+            return;
+        }
+
         const currentStatus = order.labStatus || 'NONE';
         const statusKeys = ['SENT', 'IN_PROGRESS', 'FINISHED', 'READY', 'DELIVERED'];
         let currentIdx = statusKeys.indexOf(currentStatus);
@@ -307,22 +347,33 @@ export default function PedidosPage() {
             }
         };
         const loadUserRole = async () => {
+            let user: any = null;
             try {
                 const stored = localStorage.getItem('user');
                 if (stored) {
-                    const u = JSON.parse(stored);
-                    setUserRole(u.role || 'STAFF');
-                    return;
+                    user = JSON.parse(stored);
                 }
             } catch { }
-            try {
-                const res = await fetch('/api/auth/me');
-                if (res.ok) {
-                    const u = await res.json();
-                    setUserRole(u.role || 'STAFF');
-                    localStorage.setItem('user', JSON.stringify(u));
+            if (!user) {
+                try {
+                    const res = await fetch('/api/auth/me');
+                    if (res.ok) {
+                        user = await res.json();
+                        localStorage.setItem('user', JSON.stringify(user));
+                    }
+                } catch { }
+            }
+            if (user) {
+                setUserRole(user.role || 'STAFF');
+                setCurrentUserId(user.id || null);
+                setCurrentUserName(user.name || null);
+                // ADMIN siempre ve todos; STAFF ve sus propios pedidos por defecto
+                if (user.role === 'ADMIN') {
+                    setFilterSeller('ALL');
+                } else {
+                    setFilterSeller(user.id || 'ALL');
                 }
-            } catch { }
+            }
         };
         autoSync();
         loadUserRole();
@@ -894,6 +945,18 @@ export default function PedidosPage() {
         setTimeout(() => setSavingField(null), 500);
     };
 
+    // ── Sellers list (unique from orders) ────────────────────────
+
+    const sellers = useMemo(() => {
+        const map = new Map<string, string>();
+        orders.forEach(o => {
+            if (o.userId && o.user?.name) {
+                map.set(o.userId, o.user.name);
+            }
+        });
+        return Array.from(map.entries()).map(([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name));
+    }, [orders]);
+
     // ── Filters ────────────────────────────────
 
     const filtered = orders.filter(o => {
@@ -902,7 +965,8 @@ export default function PedidosPage() {
             o.id.toLowerCase().includes(search.toLowerCase()) ||
             (o.labOrderNumber || '').toLowerCase().includes(search.toLowerCase());
         const matchStatus = filterStatus === 'ALL' || (o.labStatus || 'NONE') === filterStatus;
-        return matchSearch && matchStatus;
+        const matchSeller = filterSeller === 'ALL' || filterSeller === '__LOADING__' || o.userId === filterSeller;
+        return matchSearch && matchStatus && matchSeller;
     });
 
     // ── Stats ──────────────────────────────────
@@ -1151,7 +1215,7 @@ export default function PedidosPage() {
         </>
     )}
 
-            {/* Search */}
+            {/* Search + Seller Filter */}
             <div className="flex gap-4 mb-6">
                 <div className="relative flex-1">
                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400" />
@@ -1163,6 +1227,35 @@ export default function PedidosPage() {
                         className="w-full pl-12 pr-4 py-3 bg-white dark:bg-stone-800 border-2 border-stone-100 dark:border-stone-700 rounded-2xl text-sm font-medium focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none"
                     />
                 </div>
+
+                {/* Seller Filter Dropdown */}
+                <div className="relative flex-shrink-0">
+                    <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                        {filterSeller === 'ALL' ? (
+                            <Users className="w-4 h-4 text-blue-500" />
+                        ) : (
+                            <User className="w-4 h-4 text-amber-500" />
+                        )}
+                    </div>
+                    <select
+                        value={filterSeller}
+                        onChange={e => setFilterSeller(e.target.value)}
+                        className={`pl-9 pr-9 py-3 appearance-none rounded-2xl text-xs font-black uppercase tracking-widest border-2 transition-all outline-none cursor-pointer ${
+                            filterSeller !== 'ALL' && filterSeller !== '__LOADING__'
+                                ? 'bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-400'
+                                : 'bg-white dark:bg-stone-800 border-stone-100 dark:border-stone-700 text-stone-600 dark:text-stone-300'
+                        } focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500`}
+                    >
+                        <option value="ALL">👥 Todos</option>
+                        {sellers.map(s => (
+                            <option key={s.id} value={s.id}>
+                                👤 {s.name}
+                            </option>
+                        ))}
+                    </select>
+                    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-stone-400 pointer-events-none" />
+                </div>
+
                 {filterStatus !== 'ALL' && (
                     <button
                         onClick={() => setFilterStatus('ALL')}
@@ -1182,13 +1275,10 @@ export default function PedidosPage() {
             ) : viewMode === 'POST_VENTA' ? (
                 <div className="space-y-6">
                     {/* Kanban Board Container */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 items-start pb-4">
-                        {PIPELINE_COLUMNS.map(column => {
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-start pb-4">
+                        {POST_SALE_COLUMNS.map(column => {
                             const columnOrders = postSaleOrders.filter(o => {
-                                const status = o.labStatus || 'NONE';
-                                if (column.key === 'SENT') {
-                                    return status === 'SENT' || status === 'NONE';
-                                }
+                                const status = o.postSaleStatus || 'PENDING';
                                 return status === column.key;
                             });
 
@@ -1290,6 +1380,15 @@ export default function PedidosPage() {
                                                 <Calendar className="w-3 h-3" />
                                                 {format(new Date(order.createdAt), "d MMM yyyy", { locale: es })}
                                             </span>
+                                            {order.user?.name && (
+                                                <>
+                                                    <span>·</span>
+                                                    <span className="flex items-center gap-1 text-violet-500 font-black">
+                                                        <User className="w-3 h-3" />
+                                                        {order.user.name}
+                                                    </span>
+                                                </>
+                                            )}
                                             {order.labSentAt && (() => {
                                                 const start = new Date(order.labSentAt);
                                                 const end = ['READY', 'DELIVERED'].includes(order.labStatus || '') && order.updatedAt

@@ -8,15 +8,18 @@ import {
   X,
   Loader2,
   Calendar,
+  GripVertical,
 } from 'lucide-react';
 import type { PipelineLead } from '@/types/leads';
+import type { PipelineStageKey } from '@/types/leads';
 
 // ─────────────────────────────────────────────────────────────
-// LeadCard — Single lead card inside a pipeline column
+// LeadCard — Single draggable lead card inside a pipeline column
 // ─────────────────────────────────────────────────────────────
 
 interface LeadCardProps {
   lead: PipelineLead;
+  stageKey: PipelineStageKey;
   actionLoading: string | null;
   onMarkWon: (id: string) => void;
   onMarkLost: (id: string) => void;
@@ -42,11 +45,28 @@ function fmtSphere(v: number | null): string {
   return v > 0 ? `+${v}` : String(v);
 }
 
-export default function LeadCard({ lead, actionLoading, onMarkWon, onMarkLost }: LeadCardProps) {
+export default function LeadCard({ lead, stageKey, actionLoading, onMarkWon, onMarkLost }: LeadCardProps) {
   const isActing = actionLoading === lead.id;
 
+  const handleDragStart = (e: React.DragEvent) => {
+    e.dataTransfer.setData('text/plain', lead.id);
+    e.dataTransfer.setData('application/x-stage', stageKey);
+    e.dataTransfer.effectAllowed = 'move';
+    // Add slight opacity to dragged card
+    (e.target as HTMLElement).style.opacity = '0.5';
+  };
+
+  const handleDragEnd = (e: React.DragEvent) => {
+    (e.target as HTMLElement).style.opacity = '1';
+  };
+
   return (
-    <div className="p-4 bg-white dark:bg-stone-950/80 border border-stone-200/40 dark:border-stone-800/80 rounded-2xl shadow-sm hover:shadow-md transition-all duration-300 flex flex-col gap-3.5 group">
+    <div
+      draggable
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
+      className="p-4 bg-white dark:bg-stone-950/80 border border-stone-200/40 dark:border-stone-800/80 rounded-2xl shadow-sm hover:shadow-md transition-all duration-300 flex flex-col gap-3.5 group cursor-grab active:cursor-grabbing"
+    >
 
       {/* ── Header: Name + Priority Stars ──────────────────── */}
       <div className="flex justify-between items-start gap-2">

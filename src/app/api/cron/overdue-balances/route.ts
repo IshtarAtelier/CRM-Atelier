@@ -77,8 +77,8 @@ export async function GET(request: Request) {
                 continue;
             }
 
-            // 2. Determinar si es multifocal
-            const isMultifocal = order.items.some((item: any) => {
+            // 2. Determinar tipo de cristal para el threshold de vencimiento
+            const buildItemFullStr = (item: any) => {
                 const type = item.product?.type?.toUpperCase() || '';
                 const category = item.product?.category?.toUpperCase() || '';
                 const name = (item.product?.name || '').toUpperCase();
@@ -86,21 +86,29 @@ export async function GET(request: Request) {
                 const snapshotName = (item.productNameSnapshot || '').toUpperCase();
                 const snapshotBrand = (item.productBrandSnapshot || '').toUpperCase();
                 const snapshotCategory = (item.productCategorySnapshot || '').toUpperCase();
-                
-                const fullStr = `${type} ${category} ${name} ${model} ${snapshotName} ${snapshotBrand} ${snapshotCategory}`;
+                return `${type} ${category} ${name} ${model} ${snapshotName} ${snapshotBrand} ${snapshotCategory}`;
+            };
+
+            // Stellest: 25 días hábiles de entrega
+            const isStellest = order.items.some((item: any) => {
+                return buildItemFullStr(item).includes('STELLEST');
+            });
+
+            // Multifocal/Progresivo/Ocupacional/Bifocal/etc: 15 días hábiles
+            const isMultifocal = !isStellest && order.items.some((item: any) => {
+                const fullStr = buildItemFullStr(item);
                 return fullStr.includes('MULTIFOCAL') || 
                        fullStr.includes('PROGRESIVO') || 
                        fullStr.includes('OCUPACIONAL') ||
                        fullStr.includes('BIFOCAL') ||
                        fullStr.includes('MYOFIX') ||
                        fullStr.includes('MYOPILUX') ||
-                       fullStr.includes('STELLEST') ||
                        fullStr.includes('MIYOSMART');
             });
 
             // 3. Obtener días hábiles y límite
             const bizDays = getBusinessDays(new Date(order.createdAt), today);
-            const threshold = isMultifocal ? 15 : 4;
+            const threshold = isStellest ? 25 : isMultifocal ? 15 : 4;
 
             // Si no pasó el tiempo programado, omitir
             if (bizDays <= threshold) {

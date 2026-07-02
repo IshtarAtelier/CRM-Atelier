@@ -285,6 +285,7 @@ model Order {
   postSaleResponsible  String?
   postSaleOrderOption  String?
   postSaleNewOrderNumber String?
+  postSaleStatus       String?        @default("PENDING")
   invoices             Invoice[]
   client               Client         @relation(fields: [clientId], references: [id], onDelete: Restrict)
   prescription         Prescription?  @relation(fields: [prescriptionId], references: [id], onDelete: SetNull)

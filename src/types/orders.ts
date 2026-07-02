@@ -137,6 +137,7 @@ export interface Order {
     postSaleResponsible?: string | null;
     postSaleOrderOption?: string | null;
     postSaleNewOrderNumber?: string | null;
+    postSaleStatus?: string | null;
     labColor?: string | null;
     labTreatment?: string | null;
     labDiameter?: string | null;

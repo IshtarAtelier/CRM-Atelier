@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { sendEmail } from '@/lib/email';
 import { ContactService } from '@/services/contact.service';
 import { BotService } from '@/services/bot.service';
 import { prisma } from '@/lib/db';
@@ -78,6 +79,7 @@ const OrderUpdateSchema = z.object({
     postSaleResponsible: z.string().nullable().optional(),
     postSaleOrderOption: z.string().nullable().optional(),
     postSaleNewOrderNumber: z.string().nullable().optional(),
+    postSaleStatus: z.string().nullable().optional(),
 }).passthrough();
 
 // export const dynamic = 'force-dynamic';
@@ -101,6 +103,7 @@ export class OrderService {
                 postSaleResponsible: true,
                 postSaleOrderOption: true,
                 postSaleNewOrderNumber: true,
+                postSaleStatus: true,
                 paid: true,
                 markup: true,
                 discountCash: true,
@@ -295,7 +298,7 @@ export class OrderService {
             discountCash, discountTransfer, discountCard, specialDiscount, subtotalWithMarkup,
             isLocked, authorizedByAdmin,
             postSaleNotes, postSaleCost, postSaleResponsible,
-            postSaleOrderOption, postSaleNewOrderNumber
+            postSaleOrderOption, postSaleNewOrderNumber, postSaleStatus
         } = body;
 
         const data: any = {};
@@ -728,6 +731,78 @@ export class OrderService {
         if (userFrameBrand !== undefined) data.userFrameBrand = userFrameBrand;
         if (userFrameModel !== undefined) data.userFrameModel = userFrameModel;
         if (userFrameNotes !== undefined) data.userFrameNotes = userFrameNotes;
+        // Post-Sale status initialization and email notification check
+        if (postSaleNotes !== undefined || postSaleCost !== undefined || postSaleResponsible !== undefined || postSaleOrderOption !== undefined || postSaleStatus !== undefined) {
+            const currentOrderForPostSale = await prisma.order.findUnique({
+                where: { id },
+                select: {
+                    postSaleNotes: true,
+                    postSaleStatus: true,
+                    client: { select: { name: true } },
+                    id: true
+                }
+            });
+
+            if (currentOrderForPostSale) {
+                // Initialize postSaleStatus if not present
+                if (postSaleStatus !== undefined) {
+                    data.postSaleStatus = postSaleStatus;
+                } else if ((postSaleNotes || postSaleOrderOption || postSaleCost) && !currentOrderForPostSale.postSaleStatus) {
+                    data.postSaleStatus = 'PENDING';
+                }
+
+                // If adding postSaleNotes (a new entry) and previously there were no notes,
+                // or if it was not in postSaleStatus and now it is initialized to 'PENDING',
+                // send email notification to admin.
+                const wasPostSaleInitialized = (data.postSaleStatus === 'PENDING' && !currentOrderForPostSale.postSaleStatus);
+                const isNewPostSaleNotes = (postSaleNotes && !currentOrderForPostSale.postSaleNotes);
+
+                if (wasPostSaleInitialized || isNewPostSaleNotes) {
+                    const adminEmail = process.env.ADMIN_EMAIL || 'Pisano.ishtar@gmail.com';
+                    const clientName = currentOrderForPostSale.client?.name || 'Cliente';
+                    const subject = `⚠️ Nuevo caso de Post-Venta registrado - ${clientName}`;
+                    const html = `
+                        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e5e7eb; border-radius: 12px; padding: 24px; background-color: #ffffff; color: #1f2937;">
+                            <h2 style="color: #d97706; margin-top: 0; border-bottom: 2px solid #f59e0b; padding-bottom: 8px;">⚠️ Nuevo Caso de Post-Venta Registrado</h2>
+                            <p style="font-size: 14px; line-height: 1.5;">Se ha registrado un nuevo caso de post-venta en el sistema con los siguientes detalles:</p>
+                            <table style="width: 100%; border-collapse: collapse; margin-top: 16px; font-size: 14px;">
+                                <tr style="border-bottom: 1px solid #f3f4f6;">
+                                    <td style="padding: 10px 0; font-weight: bold; color: #4b5563; width: 150px;">Cliente:</td>
+                                    <td style="padding: 10px 0; color: #1f2937; font-weight: bold;">${clientName}</td>
+                                </tr>
+                                <tr style="border-bottom: 1px solid #f3f4f6;">
+                                    <td style="padding: 10px 0; font-weight: bold; color: #4b5563;">N° Pedido:</td>
+                                    <td style="padding: 10px 0; color: #2563eb; font-family: monospace; font-weight: bold;">#${id.slice(-6).toUpperCase()}</td>
+                                </tr>
+                                <tr style="border-bottom: 1px solid #f3f4f6;">
+                                    <td style="padding: 10px 0; font-weight: bold; color: #4b5563;">Responsable:</td>
+                                    <td style="padding: 10px 0; color: #1f2937;">${postSaleResponsible || body.postSaleResponsible || 'No especificado'}</td>
+                                </tr>
+                                <tr style="border-bottom: 1px solid #f3f4f6;">
+                                    <td style="padding: 10px 0; font-weight: bold; color: #4b5563;">Costo Adicional:</td>
+                                    <td style="padding: 10px 0; color: #b91c1c; font-weight: bold;">$${postSaleCost || body.postSaleCost || 0}</td>
+                                </tr>
+                                <tr style="border-bottom: 1px solid #f3f4f6;">
+                                    <td style="padding: 10px 0; font-weight: bold; color: #4b5563;">Opción en Lab:</td>
+                                    <td style="padding: 10px 0; color: #1f2937; text-transform: uppercase; font-size: 12px; font-weight: bold;">${postSaleOrderOption || body.postSaleOrderOption || 'No requiere'}</td>
+                                </tr>
+                            </table>
+                            <div style="margin-top: 24px; padding: 16px; background-color: #fffbeb; border-left: 4px solid #d97706; border-radius: 8px;">
+                                <strong style="color: #b45309; display: block; margin-bottom: 6px; font-size: 14px;">Detalle / Observaciones del caso:</strong>
+                                <p style="margin: 0; color: #4b5563; white-space: pre-wrap; font-size: 13px; line-height: 1.5;">${body.postSaleNotesEntry || postSaleNotes || 'Sin notas descriptivas'}</p>
+                            </div>
+                            <p style="margin-top: 32px; font-size: 11px; color: #9ca3af; text-align: center; border-top: 1px solid #f3f4f6; padding-top: 16px;">Este es un mensaje automático del Sistema de Gestión de Atelier Óptica.</p>
+                        </div>
+                    `;
+                    sendEmail({
+                        to: adminEmail,
+                        subject,
+                        html
+                    }).catch(err => console.error('[Post-Sale Email Error]:', err));
+                }
+            }
+        }
+
         if (postSaleNotes !== undefined) data.postSaleNotes = postSaleNotes;
         if (postSaleCost !== undefined) data.postSaleCost = postSaleCost;
         if (postSaleResponsible !== undefined) data.postSaleResponsible = postSaleResponsible;
@@ -1030,6 +1105,7 @@ export class OrderService {
                             postSaleResponsible: true,
                             postSaleOrderOption: true,
                             postSaleNewOrderNumber: true,
+                            postSaleStatus: true,
                         },
                     });
 
@@ -1144,6 +1220,7 @@ export class OrderService {
                 postSaleResponsible: true,
                 postSaleOrderOption: true,
                 postSaleNewOrderNumber: true,
+                postSaleStatus: true,
                 frameA: true,
                 frameB: true,
                 frameDbl: true,

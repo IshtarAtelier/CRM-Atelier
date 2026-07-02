@@ -26,6 +26,7 @@ export default function LeadsPipelinePage() {
     fetchPipeline,
     markWon,
     markLost,
+    moveLead,
   } = useLeadsPipeline();
 
   // Wrap actions with user confirmation
@@ -37,6 +38,10 @@ export default function LeadsPipelinePage() {
   const handleMarkLost = async (leadId: string) => {
     if (!confirm('¿Marcar como Desinteresado? Se le aplicará la etiqueta "no interesado".')) return;
     try { await markLost(leadId); } catch (err: any) { alert(`Error: ${err.message}`); }
+  };
+
+  const handleMoveLead = async (leadId: string, targetStage: string) => {
+    try { await moveLead(leadId, targetStage); } catch (err: any) { alert(`Error al mover: ${err.message}`); }
   };
 
   // Column keys in display order
@@ -82,6 +87,7 @@ export default function LeadsPipelinePage() {
                 actionLoading={actionLoading}
                 onMarkWon={handleMarkWon}
                 onMarkLost={handleMarkLost}
+                onMoveLead={handleMoveLead}
               />
             );
           })}

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { ShoppingCart, Download, Search, Package, Clock, CheckCircle2, Truck, Eye, Pencil, Save, X, AlertTriangle, FileText, Banknote, ArrowRightLeft, CreditCard, ChevronRight, ExternalLink, Loader2, ArrowRight, FlaskConical, Calendar, Factory } from 'lucide-react';
+import { ShoppingCart, Download, Search, Package, Clock, CheckCircle2, Truck, Eye, Pencil, Save, X, AlertTriangle, FileText, Banknote, ArrowRightLeft, CreditCard, ChevronRight, ExternalLink, Loader2, ArrowRight, FlaskConical, Calendar, Factory, User, Users, ChevronDown } from 'lucide-react';
 import { OrderDetailPanel } from '@/components/orders/OrderDetailPanel';
 import { WhatsAppIcon } from '@/components/icons/WhatsAppIcon';
 import { PricingService } from '@/services/PricingService';
@@ -43,6 +43,9 @@ export default function VentasPage() {
     const [editingOrderNumber, setEditingOrderNumber] = useState<string | null>(null);
     const [editValue, setEditValue] = useState('');
     const [userRole, setUserRole] = useState('STAFF');
+    const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+    const [currentUserName, setCurrentUserName] = useState<string | null>(null);
+    const [filterSeller, setFilterSeller] = useState<string>('__LOADING__');
     const [loading, setLoading] = useState(true);
     const [invoiceOrder, setInvoiceOrder] = useState<Order | null>(null);
     const [expandedDetail, setExpandedDetail] = useState<string | null>(null);
@@ -308,26 +311,36 @@ export default function VentasPage() {
     useEffect(() => {
         // Get user role from localStorage or fallback to API
         const loadUserRole = async () => {
+            let user: any = null;
             try {
                 const stored = localStorage.getItem('user');
                 if (stored) {
-                    const u = JSON.parse(stored);
-                    setUserRole(u.role || 'STAFF');
-                    return;
+                    user = JSON.parse(stored);
                 }
             } catch { }
-            // Fallback: fetch from API if localStorage is empty
-            try {
-                const res = await fetch('/api/auth/me');
-                if (res.ok) {
-                    const u = await res.json();
-                    setUserRole(u.role || 'STAFF');
-                    localStorage.setItem('user', JSON.stringify(u));
+            if (!user) {
+                try {
+                    const res = await fetch('/api/auth/me');
+                    if (res.ok) {
+                        user = await res.json();
+                        localStorage.setItem('user', JSON.stringify(user));
+                    }
+                } catch { }
+            }
+            if (user) {
+                setUserRole(user.role || 'STAFF');
+                setCurrentUserId(user.id || null);
+                setCurrentUserName(user.name || null);
+                // ADMIN siempre ve todos; STAFF ve sus propios pedidos por defecto
+                if (user.role === 'ADMIN') {
+                    setFilterSeller('ALL');
+                } else {
+                    setFilterSeller(user.id || 'ALL');
                 }
-            } catch { }
+            }
         };
         loadUserRole();
-    }, []);
+    }, [])
 
     useEffect(() => {
         fetchOrders(search);
@@ -512,6 +525,17 @@ export default function VentasPage() {
         )
     ).sort();
 
+    // Extract unique sellers from orders
+    const sellers = useMemo(() => {
+        const map = new Map<string, string>();
+        orders.forEach(o => {
+            if (o.userId && o.user?.name) {
+                map.set(o.userId, o.user.name);
+            }
+        });
+        return Array.from(map.entries()).map(([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name));
+    }, [orders]);
+
     // Memoize financials per order to avoid redundant recalculations in filter, stats & render
     const financialsMap = useMemo(() => {
         const map = new Map<string, ReturnType<typeof PricingService.calculateOrderFinancials>>();
@@ -552,7 +576,8 @@ export default function VentasPage() {
         const matchLaboratory = filterLaboratory === 'ALL' || (o.items || []).some(i => i.product?.category === 'Cristal' && (i.product as any)?.laboratory === filterLaboratory);
         const matchDate = (!dateFrom || new Date(o.createdAt) >= new Date(dateFrom)) && (!dateTo || new Date(o.createdAt) <= new Date(dateTo + 'T23:59:59'));
         const matchBalance = !filterBalance || getFinancials(o.id).hasBalance;
-        return matchSearch && matchLab && matchLaboratory && matchDate && matchBalance;
+        const matchSeller = filterSeller === 'ALL' || filterSeller === '__LOADING__' || o.userId === filterSeller;
+        return matchSearch && matchLab && matchLaboratory && matchDate && matchBalance && matchSeller;
     });
 
     const saveLabOrderNumber = async (orderId: string) => {
@@ -932,7 +957,7 @@ export default function VentasPage() {
                     </div>
                 </div>
 
-                {/* Laboratory & Date Filters */}
+                {/* Laboratory, Seller & Date Filters */}
                 <div className="flex items-center gap-4 flex-wrap">
                     {/* Lab filter dropdown */}
                     <div className="flex items-center gap-3 bg-white/50 dark:bg-stone-900/50 backdrop-blur-sm px-4 py-2 rounded-full border border-stone-200/50 dark:border-stone-700/50">
@@ -946,6 +971,34 @@ export default function VentasPage() {
                             <option value="ALL">Todos los laboratorios</option>
                             {uniqueLaboratories.map(lab => (
                                 <option key={lab} value={lab}>{lab}</option>
+                            ))}
+                        </select>
+                    </div>
+
+                    {/* Seller filter dropdown */}
+                    <div className={`flex items-center gap-3 backdrop-blur-sm px-4 py-2 rounded-full border transition-all ${
+                        filterSeller !== 'ALL' && filterSeller !== '__LOADING__'
+                            ? 'bg-amber-50/80 dark:bg-amber-950/30 border-amber-200/80 dark:border-amber-800/50'
+                            : 'bg-white/50 dark:bg-stone-900/50 border-stone-200/50 dark:border-stone-700/50'
+                    }`}>
+                        {filterSeller !== 'ALL' && filterSeller !== '__LOADING__' ? (
+                            <User className="w-4 h-4 text-amber-500" />
+                        ) : (
+                            <Users className="w-4 h-4 text-stone-400" />
+                        )}
+                        <span className="text-[10px] font-black text-stone-400 uppercase tracking-widest">Vendedor:</span>
+                        <select
+                            value={filterSeller}
+                            onChange={e => setFilterSeller(e.target.value)}
+                            className={`bg-transparent text-xs font-bold outline-none cursor-pointer ${
+                                filterSeller !== 'ALL' && filterSeller !== '__LOADING__'
+                                    ? 'text-amber-700 dark:text-amber-400'
+                                    : 'text-stone-700 dark:text-stone-300'
+                            }`}
+                        >
+                            <option value="ALL">Todos</option>
+                            {sellers.map(s => (
+                                <option key={s.id} value={s.id}>{s.name}</option>
                             ))}
                         </select>
                     </div>
@@ -1056,6 +1109,12 @@ export default function VentasPage() {
                                                         {lab}
                                                     </span>
                                                 ))}
+                                                {order.user?.name && (
+                                                    <span className="px-2 py-0.5 rounded-lg text-[8px] lg:text-[9px] font-black uppercase tracking-widest bg-amber-100 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-800/50 flex items-center gap-1">
+                                                        <User className="w-2.5 h-2.5" />
+                                                        {order.user.name}
+                                                    </span>
+                                                )}
                                             </div>
                                         </div>
                                         {/* Total on Mobile Header */}

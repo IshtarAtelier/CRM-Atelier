@@ -99,6 +99,27 @@ export function useLeadsPipeline() {
     }
   }, [fetchPipeline]);
 
+  /** Move lead to a different pipeline stage (drag & drop) */
+  const moveLead = useCallback(async (leadId: string, targetStage: string) => {
+    setActionLoading(leadId);
+    try {
+      const res = await fetch('/api/leads/pipeline/move', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ leadId, targetStage }),
+      });
+      if (!res.ok) {
+        const d = await res.json();
+        throw new Error(d.error || 'Error al mover el lead');
+      }
+      await fetchPipeline();
+    } catch (err: any) {
+      throw err;
+    } finally {
+      setActionLoading(null);
+    }
+  }, [fetchPipeline]);
+
   return {
     // Data
     columns: filteredColumns,
@@ -117,5 +138,6 @@ export function useLeadsPipeline() {
     fetchPipeline,
     markWon,
     markLost,
+    moveLead,
   };
 }
