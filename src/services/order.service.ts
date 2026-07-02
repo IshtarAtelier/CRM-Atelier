@@ -99,13 +99,28 @@ export class OrderService {
                 isLocked: true,
                 authorizedByAdmin: true,
                 total: true,
-                postSaleNotes: true,
-                postSaleCost: true,
-                postSaleResponsible: true,
-                postSaleOrderOption: true,
-                postSaleNewOrderNumber: true,
-                postSaleStatus: true,
-                postSaleRxData: true,
+                postSaleCases: {
+                    orderBy: { createdAt: 'desc' as const },
+                    select: {
+                        id: true,
+                        status: true,
+                        cost: true,
+                        newOrderNumber: true,
+                        notes: true,
+                        orderOption: true,
+                        responsible: true,
+                        rxData: true,
+                        createdAt: true,
+                        notesList: {
+                            select: {
+                                id: true,
+                                content: true,
+                                createdBy: true,
+                                createdAt: true
+                            }
+                        }
+                    }
+                },
                 paid: true,
                 markup: true,
                 discountCash: true,
@@ -189,7 +204,7 @@ export class OrderService {
                 labFrameDetails2: true,
                 smartLabEntryDate: true,
                 smartLabDays: true,
-            smartLabDetails: true,
+                smartLabDetails: true,
             }
         });
 
@@ -197,10 +212,19 @@ export class OrderService {
             return NextResponse.json({ error: 'Order not found' }, { status: 404 });
         }
 
+        const activeCase = order.postSaleCases?.[0];
+        
         // Map client → contact shape expected by cotizador/page.tsx
         const response = {
             ...order,
             contact: order.client,
+            postSaleStatus: activeCase?.status || 'PENDING',
+            postSaleNotes: activeCase?.notes || null,
+            postSaleCost: activeCase?.cost != null ? activeCase.cost : 0.0,
+            postSaleResponsible: activeCase?.responsible || null,
+            postSaleOrderOption: activeCase?.orderOption || null,
+            postSaleNewOrderNumber: activeCase?.newOrderNumber || null,
+            postSaleRxData: activeCase?.rxData || null,
         };
 
         return response;
@@ -734,86 +758,184 @@ export class OrderService {
         if (userFrameModel !== undefined) data.userFrameModel = userFrameModel;
         if (userFrameNotes !== undefined) data.userFrameNotes = userFrameNotes;
         // Post-Sale status initialization and email notification check
-        if (postSaleNotes !== undefined || postSaleCost !== undefined || postSaleResponsible !== undefined || postSaleOrderOption !== undefined || postSaleStatus !== undefined) {
+        // Post-Sale status initialization and email notification check
+        if (postSaleNotes !== undefined || postSaleCost !== undefined || postSaleResponsible !== undefined || postSaleOrderOption !== undefined || postSaleStatus !== undefined || postSaleRxData !== undefined || postSaleNewOrderNumber !== undefined) {
             const currentOrderForPostSale = await prisma.order.findUnique({
                 where: { id },
                 select: {
-                    postSaleNotes: true,
-                    postSaleStatus: true,
+                    postSaleCases: {
+                        orderBy: { createdAt: 'desc' as const },
+                        select: {
+                            notes: true,
+                            status: true
+                        }
+                    },
                     client: { select: { name: true } },
                     id: true
                 }
             });
 
             if (currentOrderForPostSale) {
+                const activeCaseObj = currentOrderForPostSale.postSaleCases?.[0];
+                const currentCaseNotes = activeCaseObj?.notes;
+                const currentCaseStatus = activeCaseObj?.status;
+
                 // Initialize postSaleStatus if not present
-                if (postSaleStatus !== undefined) {
-                    data.postSaleStatus = postSaleStatus;
-                } else if ((postSaleNotes || postSaleOrderOption || (postSaleCost !== undefined && postSaleCost !== null) || postSaleResponsible) && !currentOrderForPostSale.postSaleStatus) {
-                    data.postSaleStatus = 'SENT';
+                let resolvedStatus = postSaleStatus;
+                if (resolvedStatus === undefined) {
+                    if ((postSaleNotes || postSaleOrderOption || (postSaleCost !== undefined && postSaleCost !== null) || postSaleResponsible) && !currentCaseStatus) {
+                        resolvedStatus = 'SENT';
+                    }
                 }
 
-                // If adding postSaleNotes (a new entry) and previously there were no notes,
-                // or if it was not in postSaleStatus and now it is initialized to 'SENT',
-                // send email notification to admin.
-                const wasPostSaleInitialized = (data.postSaleStatus === 'SENT' && !currentOrderForPostSale.postSaleStatus);
-                const isNewPostSaleNotes = (postSaleNotes && !currentOrderForPostSale.postSaleNotes);
-                const isNewPostSaleCase = wasPostSaleInitialized || isNewPostSaleNotes;
+                // ── Find or Create PostSaleCase ──
+                let activeCase = await prisma.postSaleCase.findFirst({
+                    where: { orderId: id },
+                    orderBy: { createdAt: 'desc' as const }
+                });
 
-                if (isNewPostSaleCase) {
-                    const adminEmail = process.env.ADMIN_EMAIL || 'Pisano.ishtar@gmail.com';
-                    const clientName = currentOrderForPostSale.client?.name || 'Cliente';
-                    const subject = `⚠️ Nuevo caso de Post-Venta registrado - ${clientName}`;
-                    const html = `
-                        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e5e7eb; border-radius: 12px; padding: 24px; background-color: #ffffff; color: #1f2937;">
-                            <h2 style="color: #d97706; margin-top: 0; border-bottom: 2px solid #f59e0b; padding-bottom: 8px;">⚠️ Nuevo Caso de Post-Venta Registrado</h2>
-                            <p style="font-size: 14px; line-height: 1.5;">Se ha registrado un nuevo caso de post-venta en el sistema con los siguientes detalles:</p>
-                            <table style="width: 100%; border-collapse: collapse; margin-top: 16px; font-size: 14px;">
-                                <tr style="border-bottom: 1px solid #f3f4f6;">
-                                    <td style="padding: 10px 0; font-weight: bold; color: #4b5563; width: 150px;">Cliente:</td>
-                                    <td style="padding: 10px 0; color: #1f2937; font-weight: bold;">${clientName}</td>
-                                </tr>
-                                <tr style="border-bottom: 1px solid #f3f4f6;">
-                                    <td style="padding: 10px 0; font-weight: bold; color: #4b5563;">N° Pedido:</td>
-                                    <td style="padding: 10px 0; color: #2563eb; font-family: monospace; font-weight: bold;">#${id.slice(-6).toUpperCase()}</td>
-                                </tr>
-                                <tr style="border-bottom: 1px solid #f3f4f6;">
-                                    <td style="padding: 10px 0; font-weight: bold; color: #4b5563;">Responsabilidad:</td>
-                                    <td style="padding: 10px 0; color: #1f2937;">${postSaleResponsible || body.postSaleResponsible || 'No especificado'}</td>
-                                </tr>
-                                <tr style="border-bottom: 1px solid #f3f4f6;">
-                                    <td style="padding: 10px 0; font-weight: bold; color: #4b5563;">Costo Adicional:</td>
-                                    <td style="padding: 10px 0; color: #b91c1c; font-weight: bold;">$${postSaleCost || body.postSaleCost || 0}</td>
-                                </tr>
-                                <tr style="border-bottom: 1px solid #f3f4f6;">
-                                    <td style="padding: 10px 0; font-weight: bold; color: #4b5563;">Opción en Lab:</td>
-                                    <td style="padding: 10px 0; color: #1f2937; text-transform: uppercase; font-size: 12px; font-weight: bold;">${postSaleOrderOption || body.postSaleOrderOption || 'No requiere'}</td>
-                                </tr>
-                            </table>
-                            <div style="margin-top: 24px; padding: 16px; background-color: #fffbeb; border-left: 4px solid #d97706; border-radius: 8px;">
-                                <strong style="color: #b45309; display: block; margin-bottom: 6px; font-size: 14px;">Detalle / Observaciones del caso:</strong>
-                                <p style="margin: 0; color: #4b5563; white-space: pre-wrap; font-size: 13px; line-height: 1.5;">${body.postSaleNotesEntry || postSaleNotes || 'Sin notas descriptivas'}</p>
+                if (!activeCase) {
+                    activeCase = await prisma.postSaleCase.create({
+                        data: {
+                            orderId: id,
+                            status: resolvedStatus || 'SENT',
+                            cost: postSaleCost !== undefined && postSaleCost !== null ? Number(postSaleCost) : 0.0,
+                            newOrderNumber: postSaleNewOrderNumber || null,
+                            notes: postSaleNotes || null,
+                            orderOption: postSaleOrderOption || null,
+                            responsible: postSaleResponsible || null,
+                            rxData: postSaleRxData || null
+                        }
+                    });
+
+                    // Add note if notes are present
+                    if (postSaleNotes) {
+                        const lines = postSaleNotes.split('\n').filter((line: string) => line.trim() !== '');
+                        const lastLine = lines[lines.length - 1] || postSaleNotes;
+                        const match = lastLine.match(/^\[(.*?)\]:\s*(.*)$/);
+                        const noteContent = match ? match[2] : lastLine;
+
+                        await prisma.postSaleNote.create({
+                            data: {
+                                caseId: activeCase.id,
+                                content: noteContent,
+                                createdBy: postSaleResponsible || userName || 'Sistema'
+                            }
+                        });
+                    }
+
+                    // Log initial status to history
+                    await prisma.postSaleStatusHistory.create({
+                        data: {
+                            caseId: activeCase.id,
+                            fromStatus: 'SENT',
+                            toStatus: resolvedStatus || 'SENT',
+                            changedBy: userName || 'Sistema'
+                        }
+                    });
+
+                    // Send email notification for new case
+                    const wasPostSaleInitialized = (resolvedStatus === 'SENT' && !currentCaseStatus);
+                    const isNewPostSaleNotes = (postSaleNotes && !currentCaseNotes);
+                    if (wasPostSaleInitialized || isNewPostSaleNotes) {
+                        const adminEmail = process.env.ADMIN_EMAIL || 'Pisano.ishtar@gmail.com';
+                        const clientName = currentOrderForPostSale.client?.name || 'Cliente';
+                        const subject = `⚠️ Nuevo caso de Post-Venta registrado - ${clientName}`;
+                        const html = `
+                            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e5e7eb; border-radius: 12px; padding: 24px; background-color: #ffffff; color: #1f2937;">
+                                <h2 style="color: #d97706; margin-top: 0; border-bottom: 2px solid #f59e0b; padding-bottom: 8px;">⚠️ Nuevo Caso de Post-Venta Registrado</h2>
+                                <p style="font-size: 14px; line-height: 1.5;">Se ha registrado un nuevo caso de post-venta en el sistema con los siguientes detalles:</p>
+                                <table style="width: 100%; border-collapse: collapse; margin-top: 16px; font-size: 14px;">
+                                    <tr style="border-bottom: 1px solid #f3f4f6;">
+                                        <td style="padding: 10px 0; font-weight: bold; color: #4b5563; width: 150px;">Cliente:</td>
+                                        <td style="padding: 10px 0; color: #1f2937; font-weight: bold;">${clientName}</td>
+                                    </tr>
+                                    <tr style="border-bottom: 1px solid #f3f4f6;">
+                                        <td style="padding: 10px 0; font-weight: bold; color: #4b5563;">N° Pedido:</td>
+                                        <td style="padding: 10px 0; color: #2563eb; font-family: monospace; font-weight: bold;">#${id.slice(-6).toUpperCase()}</td>
+                                    </tr>
+                                    <tr style="border-bottom: 1px solid #f3f4f6;">
+                                        <td style="padding: 10px 0; font-weight: bold; color: #4b5563;">Responsabilidad:</td>
+                                        <td style="padding: 10px 0; color: #1f2937;">${postSaleResponsible || body.postSaleResponsible || 'No especificado'}</td>
+                                    </tr>
+                                    <tr style="border-bottom: 1px solid #f3f4f6;">
+                                        <td style="padding: 10px 0; font-weight: bold; color: #4b5563;">Costo Adicional:</td>
+                                        <td style="padding: 10px 0; color: #b91c1c; font-weight: bold;">$${postSaleCost || body.postSaleCost || 0}</td>
+                                    </tr>
+                                    <tr style="border-bottom: 1px solid #f3f4f6;">
+                                        <td style="padding: 10px 0; font-weight: bold; color: #4b5563;">Opción en Lab:</td>
+                                        <td style="padding: 10px 0; color: #1f2937; text-transform: uppercase; font-size: 12px; font-weight: bold;">${postSaleOrderOption || body.postSaleOrderOption || 'No requiere'}</td>
+                                    </tr>
+                                </table>
+                                <div style="margin-top: 24px; padding: 16px; background-color: #fffbeb; border-left: 4px solid #d97706; border-radius: 8px;">
+                                    <strong style="color: #b45309; display: block; margin-bottom: 6px; font-size: 14px;">Detalle / Observaciones del caso:</strong>
+                                    <p style="margin: 0; color: #4b5563; white-space: pre-wrap; font-size: 13px; line-height: 1.5;">${body.postSaleNotesEntry || postSaleNotes || 'Sin notas descriptivas'}</p>
+                                </div>
+                                <p style="margin-top: 32px; font-size: 11px; color: #9ca3af; text-align: center; border-top: 1px solid #f3f4f6; padding-top: 16px;">Este es un mensaje automático del Sistema de Gestión de Atelier Óptica.</p>
                             </div>
-                            <p style="margin-top: 32px; font-size: 11px; color: #9ca3af; text-align: center; border-top: 1px solid #f3f4f6; padding-top: 16px;">Este es un mensaje automático del Sistema de Gestión de Atelier Óptica.</p>
-                        </div>
-                    `;
-                    sendEmail({
-                        to: adminEmail,
-                        subject,
-                        html
-                    }).catch(err => console.error('[Post-Sale Email Error]:', err));
+                        `;
+                        sendEmail({
+                            to: adminEmail,
+                            subject,
+                            html
+                        }).catch(err => console.error('[Post-Sale Email Error]:', err));
+                    }
+                } else {
+                    // Update existing active case
+                    const caseData: any = {};
+                    if (resolvedStatus !== undefined) caseData.status = resolvedStatus;
+                    if (postSaleCost !== undefined && postSaleCost !== null) caseData.cost = Number(postSaleCost);
+                    if (postSaleNotes !== undefined) caseData.notes = postSaleNotes;
+                    if (postSaleOrderOption !== undefined) caseData.orderOption = postSaleOrderOption;
+                    if (postSaleResponsible !== undefined) caseData.responsible = postSaleResponsible;
+                    if (postSaleRxData !== undefined) caseData.rxData = postSaleRxData;
+                    if (postSaleNewOrderNumber !== undefined) caseData.newOrderNumber = postSaleNewOrderNumber;
+
+                    const oldStatus = activeCase.status;
+                    const updatedCase = await prisma.postSaleCase.update({
+                        where: { id: activeCase.id },
+                        data: caseData
+                    });
+
+                    // Log status transition if changed
+                    if (resolvedStatus !== undefined && resolvedStatus !== oldStatus) {
+                        await prisma.postSaleStatusHistory.create({
+                            data: {
+                                caseId: activeCase.id,
+                                fromStatus: oldStatus,
+                                toStatus: resolvedStatus,
+                                changedBy: userName || 'Sistema'
+                            }
+                        });
+                    }
+
+                    // Extract and create new note entry if notes were updated/appended
+                    if (postSaleNotes !== undefined && postSaleNotes !== activeCase.notes) {
+                        const oldNotes = activeCase.notes || '';
+                        let newAppendedNotes = postSaleNotes;
+                        if (postSaleNotes.startsWith(oldNotes)) {
+                            newAppendedNotes = postSaleNotes.slice(oldNotes.length).trim();
+                        }
+                        if (newAppendedNotes) {
+                            const lines = newAppendedNotes.split('\n').filter((line: string) => line.trim() !== '');
+                            for (const line of lines) {
+                                const match = line.match(/^\[(.*?)\]:\s*(.*)$/);
+                                const noteContent = match ? match[2] : line;
+
+                                await prisma.postSaleNote.create({
+                                    data: {
+                                        caseId: activeCase.id,
+                                        content: noteContent,
+                                        createdBy: postSaleResponsible || userName || 'Sistema'
+                                    }
+                                });
+                            }
+                        }
+                    }
                 }
             }
         }
 
-        if (postSaleNotes !== undefined) data.postSaleNotes = postSaleNotes;
-        if (postSaleCost !== undefined) data.postSaleCost = postSaleCost;
-        if (postSaleResponsible !== undefined) data.postSaleResponsible = postSaleResponsible;
-        if (postSaleOrderOption !== undefined) {
-            data.postSaleOrderOption = postSaleOrderOption;
-        }
-        if (postSaleNewOrderNumber !== undefined) data.postSaleNewOrderNumber = postSaleNewOrderNumber;
-        if (postSaleRxData !== undefined) data.postSaleRxData = postSaleRxData;
 
         // SmartLab lab fields
         if (labColor !== undefined) data.labColor = labColor;
@@ -1093,12 +1215,20 @@ export class OrderService {
                             },
                             payments: true,
                             prescription: true,
-                            postSaleNotes: true,
-                            postSaleCost: true,
-                            postSaleResponsible: true,
-                            postSaleOrderOption: true,
-                            postSaleNewOrderNumber: true,
-                            postSaleStatus: true,
+                            postSaleCases: {
+                                orderBy: { createdAt: 'desc' as const },
+                                select: {
+                                    id: true,
+                                    status: true,
+                                    cost: true,
+                                    newOrderNumber: true,
+                                    notes: true,
+                                    orderOption: true,
+                                    responsible: true,
+                                    rxData: true,
+                                    createdAt: true
+                                }
+                            },
                         },
                     });
 
@@ -1208,12 +1338,20 @@ export class OrderService {
                     }
                 },
                 payments: true,
-                postSaleNotes: true,
-                postSaleCost: true,
-                postSaleResponsible: true,
-                postSaleOrderOption: true,
-                postSaleNewOrderNumber: true,
-                postSaleStatus: true,
+                postSaleCases: {
+                    orderBy: { createdAt: 'desc' as const },
+                    select: {
+                        id: true,
+                        status: true,
+                        cost: true,
+                        newOrderNumber: true,
+                        notes: true,
+                        orderOption: true,
+                        responsible: true,
+                        rxData: true,
+                        createdAt: true
+                    }
+                },
                 frameA: true,
                 frameB: true,
                 frameDbl: true,

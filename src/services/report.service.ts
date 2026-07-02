@@ -53,7 +53,9 @@ export class ReportService {
                 discountCard: true,
                 discount: true,
                 markup: true,
-                postSaleCost: true,
+                postSaleCases: {
+                    select: { cost: true }
+                },
                 client: { select: { name: true, doctor: true } },
                 user: { select: { id: true, name: true } },
                 items: {
@@ -179,7 +181,7 @@ export class ReportService {
             vendorStats[vId].revenue += orderPaidReal;
             vendorStats[vId].orders += 1;
 
-            const pSaleCost = order.postSaleCost || 0;
+            const pSaleCost = order.postSaleCases.reduce((sum: number, c: any) => sum + (c.cost || 0), 0) || 0;
             totalPostSaleCosts += pSaleCost;
 
             const date = new Date(order.labSentAt || order.createdAt);

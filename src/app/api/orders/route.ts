@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { headers } from 'next/headers';
+import { Prisma } from '@prisma/client';
 
 export const dynamic = 'force-dynamic';
 import { prisma } from '@/lib/db';
@@ -272,13 +273,7 @@ export async function GET(request: Request) {
 
         if (hasPostSale) {
             andConditions.push({
-                OR: [
-                    { AND: [ { postSaleNotes: { not: null } }, { postSaleNotes: { not: '' } } ] },
-                    { postSaleCost: { gt: 0 } },
-                    { AND: [ { postSaleResponsible: { not: null } }, { postSaleResponsible: { not: '' } } ] },
-                    { AND: [ { postSaleOrderOption: { not: null } }, { postSaleOrderOption: { not: '' } } ] },
-                    { AND: [ { postSaleStatus: { not: null } }, { postSaleStatus: { not: '' } } ] }
-                ]
+                postSaleCases: { some: {} }
             });
         }
 
@@ -345,7 +340,7 @@ export async function GET(request: Request) {
             where.AND = andConditions;
         }
 
-        const select = {
+        const select: Prisma.OrderSelect = {
             id: true,
             total: true,
             paid: true,
@@ -378,13 +373,28 @@ export async function GET(request: Request) {
             labFrameShape2: true,
             labFrameDetails2: true,
             prescriptionId: true,
-            postSaleNotes: true,
-            postSaleCost: true,
-            postSaleResponsible: true,
-            postSaleOrderOption: true,
-            postSaleNewOrderNumber: true,
-            postSaleStatus: true,
-            postSaleRxData: true,
+            postSaleCases: {
+                orderBy: { createdAt: 'desc' as const },
+                select: {
+                    id: true,
+                    status: true,
+                    cost: true,
+                    newOrderNumber: true,
+                    notes: true,
+                    orderOption: true,
+                    responsible: true,
+                    rxData: true,
+                    createdAt: true,
+                    notesList: {
+                        select: {
+                            id: true,
+                            content: true,
+                            createdBy: true,
+                            createdAt: true
+                        }
+                    }
+                }
+            },
             isDeleted: true,
             client: { select: { id: true, name: true, phone: true, dni: true, email: true, status: true } },
             user: { select: { name: true } },
@@ -455,10 +465,25 @@ export async function GET(request: Request) {
                 orderBy,
             });
 
-            const ordersWithBalance = allMatchingOrders.filter((o: any) => {
+            const helperMapOrder = (o: any) => {
+                if (!o) return o;
+                const activeCase = o.postSaleCases?.[0];
+                return {
+                    ...o,
+                    postSaleStatus: activeCase?.status || o.postSaleStatus || 'PENDING',
+                    postSaleNotes: activeCase?.notes || o.postSaleNotes || null,
+                    postSaleCost: activeCase?.cost != null ? activeCase.cost : (o.postSaleCost || 0.0),
+                    postSaleResponsible: activeCase?.responsible || o.postSaleResponsible || null,
+                    postSaleOrderOption: activeCase?.orderOption || o.postSaleOrderOption || null,
+                    postSaleNewOrderNumber: activeCase?.newOrderNumber || o.postSaleNewOrderNumber || null,
+                    postSaleRxData: activeCase?.rxData || o.postSaleRxData || null,
+                };
+            };
+
+            const ordersWithBalance = allMatchingOrders.map((o: any) => {
                 const financials = PricingService.calculateOrderFinancials(o);
-                return financials.hasBalance;
-            });
+                return { ...helperMapOrder(o), financials };
+            }).filter((o: any) => o.financials.hasBalance);
 
             if (paginate) {
                 const total = ordersWithBalance.length;
@@ -492,8 +517,23 @@ export async function GET(request: Request) {
                 prisma.order.aggregate({ _sum: { total: true }, where })
             ]);
 
+            const helperMapOrder = (o: any) => {
+                if (!o) return o;
+                const activeCase = o.postSaleCases?.[0];
+                return {
+                    ...o,
+                    postSaleStatus: activeCase?.status || o.postSaleStatus || 'PENDING',
+                    postSaleNotes: activeCase?.notes || o.postSaleNotes || null,
+                    postSaleCost: activeCase?.cost != null ? activeCase.cost : (o.postSaleCost || 0.0),
+                    postSaleResponsible: activeCase?.responsible || o.postSaleResponsible || null,
+                    postSaleOrderOption: activeCase?.orderOption || o.postSaleOrderOption || null,
+                    postSaleNewOrderNumber: activeCase?.newOrderNumber || o.postSaleNewOrderNumber || null,
+                    postSaleRxData: activeCase?.rxData || o.postSaleRxData || null,
+                };
+            };
+
             return NextResponse.json({
-                orders,
+                orders: orders.map(helperMapOrder),
                 totalRevenue: isAdmin ? (aggregate._sum.total || 0) : 0,
                 pagination: {
                     total,
@@ -510,7 +550,21 @@ export async function GET(request: Request) {
                 orderBy,
                 take: 100, // Safety limit to avoid 502/timeouts
             });
-            return NextResponse.json(orders);
+            const helperMapOrder = (o: any) => {
+                if (!o) return o;
+                const activeCase = o.postSaleCases?.[0];
+                return {
+                    ...o,
+                    postSaleStatus: activeCase?.status || o.postSaleStatus || 'PENDING',
+                    postSaleNotes: activeCase?.notes || o.postSaleNotes || null,
+                    postSaleCost: activeCase?.cost != null ? activeCase.cost : (o.postSaleCost || 0.0),
+                    postSaleResponsible: activeCase?.responsible || o.postSaleResponsible || null,
+                    postSaleOrderOption: activeCase?.orderOption || o.postSaleOrderOption || null,
+                    postSaleNewOrderNumber: activeCase?.newOrderNumber || o.postSaleNewOrderNumber || null,
+                    postSaleRxData: activeCase?.rxData || o.postSaleRxData || null,
+                };
+            };
+            return NextResponse.json(orders.map(helperMapOrder));
         }
     } catch (error: any) {
         console.error('Error fetching orders:', error);

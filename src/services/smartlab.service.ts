@@ -185,7 +185,14 @@ export class SmartLabService {
                     labStatus: { in: ['SENT', 'IN_PROGRESS'] },
                     OR: [
                         { labOrderNumber: { not: null } },
-                        { postSaleOrderOption: 'DIFFERENT', postSaleNewOrderNumber: { not: null } }
+                        {
+                            postSaleCases: {
+                                some: {
+                                    orderOption: 'DIFFERENT',
+                                    newOrderNumber: { not: null }
+                                }
+                            }
+                        }
                     ]
                 },
                 select: {
@@ -193,8 +200,13 @@ export class SmartLabService {
                     labOrderNumber: true,
                     labStatus: true,
                     smartLabProgress: true,
-                    postSaleOrderOption: true,
-                    postSaleNewOrderNumber: true,
+                    postSaleCases: {
+                        orderBy: { createdAt: 'desc' as const },
+                        select: {
+                            orderOption: true,
+                            newOrderNumber: true
+                        }
+                    },
                     client: { select: { name: true } },
                     items: {
                         select: {
@@ -209,7 +221,8 @@ export class SmartLabService {
                     i.product?.category === 'Cristal' &&
                     /grupo[\s\-]?[oó]ptico/i.test(i.product?.laboratory || '')
                 );
-                const activeNum = order.postSaleOrderOption === 'DIFFERENT' ? order.postSaleNewOrderNumber : order.labOrderNumber;
+                const activeCase = order.postSaleCases?.[0];
+                const activeNum = activeCase?.orderOption === 'DIFFERENT' ? activeCase.newOrderNumber : order.labOrderNumber;
                 return isGO && activeNum && !/sin\s+(lab|numero|laboratorio)/i.test(activeNum);
             });
 
@@ -217,7 +230,8 @@ export class SmartLabService {
 
             const ordersToSearch: { crmOrder: typeof grupoOpticoOrders[0]; numbers: string[] }[] = [];
             for (const order of grupoOpticoOrders) {
-                const activeNum = order.postSaleOrderOption === 'DIFFERENT' ? order.postSaleNewOrderNumber : order.labOrderNumber;
+                const activeCase = order.postSaleCases?.[0];
+                const activeNum = activeCase?.orderOption === 'DIFFERENT' ? activeCase.newOrderNumber : order.labOrderNumber;
                 const nums = activeNum!.match(/\d{6,}/g) || [];
                 if (nums.length > 0) ordersToSearch.push({ crmOrder: order, numbers: nums });
             }

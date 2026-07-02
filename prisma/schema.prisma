@@ -16,9 +16,9 @@ model User {
   role          String         @default("STAFF")
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
+  auditLogs     AuditLog[]
   cashMovements CashMovement[]
   orders        Order[]
-  auditLogs     AuditLog[]
 }
 
 model Client {
@@ -36,11 +36,11 @@ model Client {
   address       String?
   insurance     String?
   doctor        String?
-  metaLid       String?
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
-  createdBy     String?        @default("Sistema")
   wantsInvoice  Boolean?
+  metaLid       String?
+  createdBy     String?        @default("Sistema")
   isDeleted     Boolean        @default(false)
   tasks         ClientTask[]
   interactions  Interaction[]
@@ -64,12 +64,12 @@ model CashMovement {
   type       String
   amount     Float
   reason     String
-  category   String   @default("OTRO")
-  laboratory String?
   userId     String
   receiptUrl String?
   createdAt  DateTime @default(now())
-  user       User     @relation(fields: [userId], references: [id], onDelete: Restrict)
+  category   String   @default("OTRO")
+  laboratory String?
+  user       User     @relation(fields: [userId], references: [id])
 
   @@index([userId])
 }
@@ -89,7 +89,7 @@ model Tag {
   id                  String   @id @default(cuid())
   name                String   @unique
   color               String?  @default("#9e7f65")
-  botAction           String?  @default("NONE") // NONE, TURN_OFF, TURN_ON
+  botAction           String?  @default("NONE")
   notifyPhone         String?
   autoAssignCondition String?
   clients             Client[] @relation("ClientToTag")
@@ -101,11 +101,11 @@ model ClientTask {
   clientId    String
   description String
   status      String    @default("PENDING")
-  type        String    @default("TASK") // TASK, REVIEW_REQUEST
   dueDate     DateTime?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   createdBy   String?
+  type        String    @default("TASK")
   client      Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
 
   @@index([clientId])
@@ -128,9 +128,6 @@ model Prescription {
   distanceOI       Float?
   heightOD         Float?
   heightOI         Float?
-  nearPd           Float?
-  nearDistanceOD   Float?
-  nearDistanceOI   Float?
   imageUrl         String?
   notes            String?
   date             DateTime @default(now())
@@ -143,6 +140,9 @@ model Prescription {
   nearAxisOI       Int?
   prismOD          String?
   prismOI          String?
+  nearDistanceOD   Float?
+  nearDistanceOI   Float?
+  nearPd           Float?
   orders           Order[]
   client           Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
 
@@ -150,57 +150,52 @@ model Prescription {
 }
 
 model Product {
-  id                    String   @id @default(cuid())
+  id                    String       @id @default(cuid())
   name                  String?
   category              String
   type                  String?
   brand                 String?
   model                 String?
-  stock                 Int      @default(0)
+  stock                 Int          @default(0)
   lensIndex             String?
-  unitType              String?  @default("UNIDAD")
+  unitType              String?      @default("UNIDAD")
   laboratory            String?
-  price                 Float    @default(0.0)
-  wholesalePrice        Float    @default(0.0)
-  cost                  Float    @default(0.0)
+  price                 Float        @default(0.0)
+  cost                  Float        @default(0.0)
   sphereMin             Float?
   sphereMax             Float?
   cylinderMin           Float?
   cylinderMax           Float?
   additionMin           Float?
   additionMax           Float?
-  diameterMin           Float?
-  diameterMax           Float?
-  is2x1                 Boolean  @default(false)
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
-  labType               String? // STOCK o LABORATORY
+  createdAt             DateTime     @default(now())
+  updatedAt             DateTime     @updatedAt
+  is2x1                 Boolean      @default(false)
+  botRecommended        Boolean      @default(false)
   botLabel              String?
-  botRecommended        Boolean  @default(false)
-  imageProcessingStatus String?  @default("IDLE")
-  rawImageUrls          String[] @default([])
-  imagenesCatalogo      String[] @default([])
-  publishToWeb          Boolean  @default(false)
-  publishToWholesale    Boolean  @default(false)
-  // Medidas del armazón (en mm)
-  lensWidth             Int?
+  ageGroup              String?
   bridgeWidth           Int?
-  templeLength          Int?
+  customSlug            String?
   frameHeight           Int?
-
-  origin String? // "STOCK" or "LABORATORIO"
-
-  // SEO & E-Commerce (TiendaNube Style)
-  seoTitle       String?
-  seoDescription String?
-  seoTags        String?
-  customSlug     String?
-  mpn            String?
-  gender         String?
-  ageGroup       String?
-
-  orderItems  OrderItem[]
-  webProducts WebProduct[]
+  gender                String?
+  imageProcessingStatus String?      @default("IDLE")
+  imagenesCatalogo      String[]     @default([])
+  lensWidth             Int?
+  mpn                   String?
+  publishToWeb          Boolean      @default(false)
+  rawImageUrls          String[]     @default([])
+  seoDescription        String?
+  seoTags               String?
+  seoTitle              String?
+  templeLength          Int?
+  labType               String?
+  origin                String?
+  diameterMax           Float?
+  diameterMin           Float?
+  wholesalePrice        Float        @default(0.0)
+  publishToWholesale    Boolean      @default(false)
+  orderItems            OrderItem[]
+  webProducts           WebProduct[]
 
   @@index([name])
   @@index([brand])
@@ -212,89 +207,83 @@ model Product {
 }
 
 model Order {
-  id                   String         @id @default(cuid())
-  clientId             String
-  userId               String
-  status               String         @default("PENDING")
-  total                Float          @default(0.0)
-  paid                 Float          @default(0.0)
-  isDeleted            Boolean        @default(false)
-  deletedReason        String?
-  createdAt            DateTime       @default(now())
-  updatedAt            DateTime       @updatedAt
-  prescriptionId       String?
-  labStatus            String?        @default("NONE")
-  labSentAt            DateTime?
-  labNotes             String?
-  labFrameShape        String? // Forma del armazón (redondo, cuadrado, etc)
-  labFrameDetails      String? // Detalles del armazón escritos por el vendedor
-  labOrderNumber       String?
-  discount             Float?         @default(0.0)
-  markup               Float?         @default(0.0)
-  discountCash         Float?         @default(0.0)
-  discountTransfer     Float?         @default(0.0)
-  discountCard         Float?         @default(0.0)
-  subtotalWithMarkup   Float?         @default(0.0)
-  orderType            String?        @default("QUOTE")
-  frameSource          String?
-  userFrameBrand       String?
-  userFrameModel       String?
-  userFrameNotes       String?
-  labType              String? // STOCK o LABORATORY
-  labColor             String?
-  labMaterial          String? // Material para el lab (ej: Orgánico, Poli)
-  labTreatment         String?
-  labDiameter          String?
-  labPdOd              Float?
-  labPdOi              Float?
-  labNearPdOd          Float?
-  labNearPdOi          Float?
-  labHeightOD          Float?
-  labHeightOI          Float?
-  labEdgeInStore       Boolean        @default(false) // Si es TRUE, el lab solo manda los cristales tallados ("Calibra en óptica")
-  frameA               String?
-  frameB               String?
-  frameDbl             String?
-  frameEdc             String?
-  frameA2              String?
-  frameB2              String?
-  frameDbl2            String?
-  frameEdc2            String?
-  labFrameShape2       String?
-  labFrameDetails2     String?
-  labPrismOD           String?
-  labPrismOI           String?
-  labBaseCurve         String?
-  labFrameType         String?
-  labBevelPosition     String?
-  smartLabScreenshot   String?
-  smartLabSector       String?
-  smartLabProgress     Int?
-  smartLabLastSync     DateTime?
-  smartLabEntryDate    String?
-  smartLabDays         Int?
-  smartLabDetails      String? // JSON: [{num, sector, progress, entryDate, days}]
-  prescriptionSnapshot String?
-  appliedPromoName     String?
-  appliedPromoDiscount Float?
-  specialDiscount      Float?         @default(0.0)
-  isLocked             Boolean        @default(true)
-  authorizedByAdmin    Boolean        @default(false)
-  postSaleNotes        String?
-  postSaleCost         Float?         @default(0.0)
-  postSaleResponsible  String?
-  postSaleOrderOption  String?
-  postSaleNewOrderNumber String?
-  postSaleStatus       String?        @default("SENT")
-  postSaleRxData       String? // JSON string containing custom prescription and measurements
-  invoices             Invoice[]
-  client               Client         @relation(fields: [clientId], references: [id], onDelete: Restrict)
-  prescription         Prescription?  @relation(fields: [prescriptionId], references: [id], onDelete: SetNull)
-  user                 User           @relation(fields: [userId], references: [id], onDelete: Restrict)
-  items                OrderItem[]
-  payments             Payment[]
-  tags                 Tag[]          @relation("OrderToTag")
-  notifications        Notification[]
+  id                     String         @id @default(cuid())
+  clientId               String
+  userId                 String
+  status                 String         @default("PENDING")
+  total                  Float          @default(0.0)
+  paid                   Float          @default(0.0)
+  isDeleted              Boolean        @default(false)
+  deletedReason          String?
+  createdAt              DateTime       @default(now())
+  updatedAt              DateTime       @updatedAt
+  prescriptionId         String?
+  labStatus              String?        @default("NONE")
+  labSentAt              DateTime?
+  labNotes               String?
+  labOrderNumber         String?
+  discount               Float?         @default(0.0)
+  markup                 Float?         @default(0.0)
+  discountCash           Float?         @default(0.0)
+  discountTransfer       Float?         @default(0.0)
+  discountCard           Float?         @default(0.0)
+  subtotalWithMarkup     Float?         @default(0.0)
+  orderType              String?        @default("QUOTE")
+  frameSource            String?
+  userFrameBrand         String?
+  userFrameModel         String?
+  userFrameNotes         String?
+  labColor               String?
+  labTreatment           String?
+  labDiameter            String?
+  labPdOd                Float?
+  labPdOi                Float?
+  frameA                 String?
+  frameB                 String?
+  frameDbl               String?
+  frameEdc               String?
+  labPrismOD             String?
+  labPrismOI             String?
+  labBaseCurve           String?
+  labFrameType           String?
+  labBevelPosition       String?
+  smartLabScreenshot     String?
+  appliedPromoDiscount   Float?
+  appliedPromoName       String?
+  prescriptionSnapshot   String?
+  specialDiscount        Float?         @default(0)
+  smartLabSector         String?
+  smartLabProgress       Int?
+  smartLabLastSync       DateTime?
+  smartLabEntryDate      String?
+  smartLabDays           Int?
+  smartLabDetails        String?
+  labEdgeInStore         Boolean        @default(false)
+  labHeightOD            Float?
+  labHeightOI            Float?
+  labMaterial            String?
+  labNearPdOd            Float?
+  labNearPdOi            Float?
+  labType                String?
+  isLocked               Boolean        @default(true)
+  labFrameDetails        String?
+  labFrameShape          String?
+  authorizedByAdmin      Boolean        @default(false)
+  frameA2                String?
+  frameB2                String?
+  frameDbl2              String?
+  frameEdc2              String?
+  labFrameDetails2       String?
+  labFrameShape2         String?
+  postSaleCases          PostSaleCase[]
+  invoices               Invoice[]
+  notifications          Notification[]
+  client                 Client         @relation(fields: [clientId], references: [id])
+  prescription           Prescription?  @relation(fields: [prescriptionId], references: [id])
+  user                   User           @relation(fields: [userId], references: [id])
+  items                  OrderItem[]
+  payments               Payment[]
+  tags                   Tag[]          @relation("OrderToTag")
 
   @@index([clientId])
   @@index([orderType, isDeleted])
@@ -323,7 +312,7 @@ model Invoice {
   status         String   @default("COMPLETED")
   createdAt      DateTime @default(now())
   observations   String?
-  order          Order    @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  order          Order    @relation(fields: [orderId], references: [id])
 
   @@index([orderId])
   @@index([cae])
@@ -343,15 +332,15 @@ model OrderItem {
   pdVal                   Float?
   heightVal               Float?
   prismVal                String?
-  productNameSnapshot     String?
   productBrandSnapshot    String?
   productCategorySnapshot String?
-  productCostSnapshot     Float?
-  laboratorySnapshot      String?
+  productNameSnapshot     String?
   crystalColor            String?
   crystalColorType        String?
+  laboratorySnapshot      String?
+  productCostSnapshot     Float?
   order                   Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  product                 Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+  product                 Product? @relation(fields: [productId], references: [id])
 
   @@index([orderId])
   @@index([productId])
@@ -365,7 +354,7 @@ model Payment {
   date       DateTime @default(now())
   notes      String?
   receiptUrl String?
-  order      Order    @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  order      Order    @relation(fields: [orderId], references: [id])
 
   @@index([orderId])
 }
@@ -381,7 +370,6 @@ model WhatsAppChat {
   id             String            @id @default(cuid())
   clientId       String?
   waId           String            @unique
-  realPhone      String?
   profileName    String?
   lastMessageAt  DateTime?
   status         String            @default("OPEN")
@@ -391,9 +379,10 @@ model WhatsAppChat {
   botEnabled     Boolean           @default(true)
   archived       Boolean           @default(false)
   chatLabels     String[]          @default([])
-  chatSummary    String?           @db.Text
+  realPhone      String?
+  chatSummary    String?
   lastFollowUpAt DateTime?
-  client         Client?           @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  client         Client?           @relation(fields: [clientId], references: [id])
   messages       WhatsAppMessage[]
 
   @@index([clientId])
@@ -410,8 +399,8 @@ model WhatsAppMessage {
   mediaUrl    String?
   waMessageId String?      @unique
   status      String       @default("SENT")
-  senderName  String?
   createdAt   DateTime     @default(now())
+  senderName  String?
   chat        WhatsAppChat @relation(fields: [chatId], references: [id], onDelete: Cascade)
 
   @@index([chatId, createdAt(sort: Desc)])
@@ -426,7 +415,7 @@ model DoctorPayment {
   receiptUrl String?
   notes      String?
   date       DateTime @default(now())
-  doctor     Doctor?  @relation(fields: [doctorId], references: [id], onDelete: SetNull)
+  doctor     Doctor?  @relation(fields: [doctorId], references: [id])
 
   @@index([doctorName])
   @@index([doctorId])
@@ -440,9 +429,9 @@ model Notification {
   orderId     String?
   requestedBy String
   resolvedBy  String?
-  order       Order?   @relation(fields: [orderId], references: [id], onDelete: Cascade)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+  order       Order?   @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
   @@index([status])
   @@index([orderId])
@@ -495,19 +484,18 @@ model ServicePricing {
 
 model WebProduct {
   id          String   @id @default(cuid())
-  productId   String // ID del producto genérico en el CRM
+  productId   String
   name        String
   slug        String   @unique
-  description String? // Texto comercial (puede ser generado por IA)
-  imageUrl    String? // Foto principal
-  images      String[] @default([]) // Galería de fotos
+  description String?
+  imageUrl    String?
+  images      String[] @default([])
   isActive    Boolean  @default(true)
   isFeatured  Boolean  @default(false)
-  category    String // Ej: "Receta Mujer", "Sol Hombre"
+  category    String
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-
-  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
 
   @@index([productId])
   @@index([category])
@@ -518,9 +506,9 @@ model LaboratoryConfig {
   name         String   @unique
   calibrado    Float    @default(0.0)
   iva          Float    @default(0.0)
-  deliveryTime String?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+  deliveryTime String?
 }
 
 model SystemSetting {
@@ -535,9 +523,9 @@ model CheckoutSession {
   firstName    String?
   lastName     String?
   phone        String?
-  cartData     Json // Store items, quantities, prices
-  shippingData Json? // Store selected shipping method
-  status       String   @default("PENDING") // PENDING, RECOVERED, COMPLETED, ABANDONED
+  cartData     Json
+  shippingData Json?
+  status       String   @default("PENDING")
   total        Float    @default(0.0)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
@@ -556,25 +544,25 @@ model BlogPost {
   date            DateTime @default(now())
   category        String
   imageUrl        String?
-  status          String   @default("DRAFT") // DRAFT, PUBLISHED
+  status          String   @default("DRAFT")
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 }
 
 model SocialContent {
   id          String   @id @default(cuid())
-  platform    String // INSTAGRAM, FACEBOOK, WHATSAPP
-  format      String // POST, STORY, REEL, CAROUSEL
-  sourceType  String // PRODUCT, BLOG, PROMO, FREE
-  sourceId    String? // ID del producto o blog post
-  sourceName  String? // Nombre del producto o blog para referencia rápida
-  copy        String // Texto principal generado
-  hashtags    String? // Hashtags separados por espacio
-  cta         String? // Call to action
-  imageUrl    String? // URL de la imagen generada (S3/storage)
-  imagePrompt String? // Prompt usado para generar la imagen
-  publishTips String? // Indicaciones de publicación en JSON
-  status      String   @default("DRAFT") // DRAFT, PUBLISHED, ARCHIVED
+  platform    String
+  format      String
+  sourceType  String
+  sourceId    String?
+  sourceName  String?
+  copy        String
+  hashtags    String?
+  cta         String?
+  imageUrl    String?
+  imagePrompt String?
+  publishTips String?
+  status      String   @default("DRAFT")
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -599,7 +587,7 @@ model CrystalColor {
 
 model TeamMessage {
   id        String   @id @default(cuid())
-  sender    String // ISHTAR, MATIAS, SYSTEM
+  sender    String
   content   String
   createdAt DateTime @default(now())
 
@@ -608,17 +596,60 @@ model TeamMessage {
 
 model AuditLog {
   id         String   @id @default(cuid())
-  userId     String? // Puede ser null si es una acción del sistema
-  userName   String? // Nombre del usuario (STAFF, ADMIN, etc)
-  action     String // CREATE, UPDATE, DELETE
-  entityType String // ORDER, CONTACT, PAYMENT, etc.
+  userId     String?
+  userName   String?
+  action     String
+  entityType String
   entityId   String
-  details    Json? // Qué campos cambiaron o razón
+  details    Json?
   createdAt  DateTime @default(now())
-
-  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+  user       User?    @relation(fields: [userId], references: [id])
 
   @@index([entityType, entityId])
   @@index([userId])
   @@index([createdAt])
+}
+
+model PostSaleCase {
+  id               String                  @id @default(cuid())
+  orderId          String
+  status           String                  @default("SENT")
+  cost             Float                   @default(0.0)
+  newOrderNumber   String?
+  notes            String?
+  orderOption      String?
+  responsible      String?
+  rxData           String?
+  createdAt        DateTime                @default(now())
+  updatedAt        DateTime                @updatedAt
+
+  order            Order                   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  notesList        PostSaleNote[]
+  statusHistory    PostSaleStatusHistory[]
+
+  @@index([orderId])
+  @@index([status])
+}
+
+model PostSaleNote {
+  id             String       @id @default(cuid())
+  caseId         String
+  content        String
+  createdBy      String?
+  createdAt      DateTime     @default(now())
+  postSaleCase   PostSaleCase @relation(fields: [caseId], references: [id], onDelete: Cascade)
+
+  @@index([caseId])
+}
+
+model PostSaleStatusHistory {
+  id             String       @id @default(cuid())
+  caseId         String
+  fromStatus     String
+  toStatus       String
+  changedBy      String?
+  createdAt      DateTime     @default(now())
+  postSaleCase   PostSaleCase @relation(fields: [caseId], references: [id], onDelete: Cascade)
+
+  @@index([caseId])
 }
