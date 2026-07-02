@@ -286,6 +286,7 @@ model Order {
   postSaleOrderOption  String?
   postSaleNewOrderNumber String?
   postSaleStatus       String?        @default("SENT")
+  postSaleRxData       String? // JSON string containing custom prescription and measurements
   invoices             Invoice[]
   client               Client         @relation(fields: [clientId], references: [id], onDelete: Restrict)
   prescription         Prescription?  @relation(fields: [prescriptionId], references: [id], onDelete: SetNull)

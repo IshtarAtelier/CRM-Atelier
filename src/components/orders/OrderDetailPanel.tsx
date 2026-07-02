@@ -43,6 +43,30 @@ interface OrderDetailPanelProps {
     onRefresh?: () => void;
 }
 
+const getRxDefaults = (order: any) => {
+    const rx = order.prescription || {};
+    return {
+        sphereOD: rx.sphereOD != null ? String(rx.sphereOD) : '',
+        cylinderOD: rx.cylinderOD != null ? String(rx.cylinderOD) : '',
+        axisOD: rx.axisOD != null ? String(rx.axisOD) : '',
+        additionOD: rx.additionOD != null ? String(rx.additionOD) : (rx.addition != null ? String(rx.addition) : ''),
+        sphereOI: rx.sphereOI != null ? String(rx.sphereOI) : '',
+        cylinderOI: rx.cylinderOI != null ? String(rx.cylinderOI) : '',
+        axisOI: rx.axisOI != null ? String(rx.axisOI) : '',
+        additionOI: rx.additionOI != null ? String(rx.additionOI) : (rx.addition != null ? String(rx.addition) : ''),
+        pdOd: order.labPdOd != null ? String(order.labPdOd) : (rx.distanceOD != null ? String(rx.distanceOD) : ''),
+        pdOi: order.labPdOi != null ? String(order.labPdOi) : (rx.distanceOI != null ? String(rx.distanceOI) : ''),
+        heightOD: order.labHeightOD != null ? String(order.labHeightOD) : (rx.heightOD != null ? String(rx.heightOD) : ''),
+        heightOI: order.labHeightOI != null ? String(order.labHeightOI) : (rx.heightOI != null ? String(rx.heightOI) : ''),
+        material: order.labMaterial || '',
+        treatment: order.labTreatment || '',
+        color: order.labColor || '',
+        diameter: order.labDiameter || '',
+        notes: rx.notes || '',
+        imageUrl: rx.imageUrl || ''
+    };
+};
+
 export function OrderDetailPanel({ 
     order, 
     context = 'ventas', 
@@ -52,6 +76,11 @@ export function OrderDetailPanel({
     userRole = 'STAFF',
     onRefresh
 }: OrderDetailPanelProps) {
+    const is2x1 = order.appliedPromoName?.toLowerCase().includes('2x1') || order.items?.some((it: any) => {
+        const str = `${it.product?.name || ''} ${it.productNameSnapshot || ''}`.toLowerCase();
+        return str.includes('2x1');
+    });
+
     const [fullImageOpen, setFullImageOpen] = useState(false);
     const [postSaleNotes, setPostSaleNotes] = useState(order.postSaleNotes || '');
     const [postSaleCost, setPostSaleCost] = useState<number | ''>(order.postSaleCost ?? '');
@@ -61,6 +90,12 @@ export function OrderDetailPanel({
     const [newNoteText, setNewNoteText] = useState('');
     const [isSavingPostSale, setIsSavingPostSale] = useState(false);
 
+    const [pair1Faulty, setPair1Faulty] = useState(true);
+    const [pair2Faulty, setPair2Faulty] = useState(false);
+    const [rx1, setRx1] = useState<any>(() => getRxDefaults(order));
+    const [rx2, setRx2] = useState<any>(() => getRxDefaults(order));
+    const [clientPrescriptions, setClientPrescriptions] = useState<any[]>([]);
+
     React.useEffect(() => {
         setPostSaleNotes(order.postSaleNotes || '');
         setPostSaleCost(order.postSaleCost ?? '');
@@ -68,7 +103,88 @@ export function OrderDetailPanel({
         setPostSaleOrderOption(order.postSaleOrderOption || '');
         setPostSaleNewOrderNumber(order.postSaleNewOrderNumber || '');
         setNewNoteText('');
-    }, [order.id, order.postSaleNotes, order.postSaleCost, order.postSaleResponsible, order.postSaleOrderOption, order.postSaleNewOrderNumber]);
+
+        if (order.postSaleRxData) {
+            try {
+                const parsed = JSON.parse(order.postSaleRxData);
+                setPair1Faulty(parsed.pair1Faulty !== undefined ? parsed.pair1Faulty : true);
+                setPair2Faulty(parsed.pair2Faulty !== undefined ? parsed.pair2Faulty : false);
+                if (parsed.rx1) setRx1(parsed.rx1);
+                if (parsed.rx2) setRx2(parsed.rx2);
+            } catch (e) {
+                console.error('Error parsing postSaleRxData in useEffect:', e);
+            }
+        } else {
+            setPair1Faulty(true);
+            setPair2Faulty(false);
+            const defaults = getRxDefaults(order);
+            setRx1(defaults);
+            setRx2(defaults);
+        }
+    }, [order.id, order.postSaleNotes, order.postSaleCost, order.postSaleResponsible, order.postSaleOrderOption, order.postSaleNewOrderNumber, order.postSaleRxData]);
+
+    React.useEffect(() => {
+        if (postSaleOrderOption === 'DIFFERENT' && order.clientId) {
+            fetch(`/api/contacts/${order.clientId}/prescriptions`)
+                .then(res => res.json())
+                .then(data => {
+                    if (Array.isArray(data)) {
+                        setClientPrescriptions(data);
+                    }
+                })
+                .catch(err => console.error('Error loading client prescriptions:', err));
+        }
+    }, [postSaleOrderOption, order.clientId]);
+
+    const handleImportPrescription = (rxId: string, pair: 1 | 2) => {
+        const found = clientPrescriptions.find(p => p.id === rxId);
+        if (!found) return;
+        
+        const imported = {
+            sphereOD: found.sphereOD != null ? String(found.sphereOD) : '',
+            cylinderOD: found.cylinderOD != null ? String(found.cylinderOD) : '',
+            axisOD: found.axisOD != null ? String(found.axisOD) : '',
+            additionOD: found.additionOD != null ? String(found.additionOD) : (found.addition != null ? String(found.addition) : ''),
+            sphereOI: found.sphereOI != null ? String(found.sphereOI) : '',
+            cylinderOI: found.cylinderOI != null ? String(found.cylinderOI) : '',
+            axisOI: found.axisOI != null ? String(found.axisOI) : '',
+            additionOI: found.additionOI != null ? String(found.additionOI) : (found.addition != null ? String(found.addition) : ''),
+            pdOd: found.distanceOD != null ? String(found.distanceOD) : '',
+            pdOi: found.distanceOI != null ? String(found.distanceOI) : '',
+            heightOD: found.heightOD != null ? String(found.heightOD) : '',
+            heightOI: found.heightOI != null ? String(found.heightOI) : '',
+            notes: found.notes || '',
+            imageUrl: found.imageUrl || '',
+            material: pair === 1 ? rx1.material : rx2.material,
+            treatment: pair === 1 ? rx1.treatment : rx2.treatment,
+            color: pair === 1 ? rx1.color : rx2.color,
+            diameter: pair === 1 ? rx1.diameter : rx2.diameter
+        };
+
+        if (pair === 1) setRx1(imported);
+        else setRx2(imported);
+    };
+
+    const handleImageUpload = async (file: File, pair: 1 | 2) => {
+        const formData = new FormData();
+        formData.append('file', file);
+        try {
+            const res = await fetch('/api/upload', { method: 'POST', body: formData });
+            if (res.ok) {
+                const data = await res.json();
+                if (pair === 1) {
+                    setRx1((prev: any) => ({ ...prev, imageUrl: data.url }));
+                } else {
+                    setRx2((prev: any) => ({ ...prev, imageUrl: data.url }));
+                }
+            } else {
+                alert('Error al subir la receta.');
+            }
+        } catch (e) {
+            console.error('Error uploading recipe image:', e);
+            alert('Error de red al subir la receta.');
+        }
+    };
 
     const handleSavePostSale = async () => {
         setIsSavingPostSale(true);
@@ -85,6 +201,13 @@ export function OrderDetailPanel({
                 finalNotes = order.postSaleNotes ? `${order.postSaleNotes}\n${newEntry}` : newEntry;
             }
 
+            const payloadRxData = {
+                pair1Faulty,
+                pair2Faulty,
+                rx1,
+                rx2
+            };
+
             const res = await fetch(`/api/orders/${order.id}`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
@@ -94,6 +217,7 @@ export function OrderDetailPanel({
                     postSaleResponsible: postSaleResponsible || null,
                     postSaleOrderOption: postSaleOrderOption || null,
                     postSaleNewOrderNumber: postSaleOrderOption === 'DIFFERENT' ? (postSaleNewOrderNumber || null) : null,
+                    postSaleRxData: postSaleOrderOption === 'DIFFERENT' ? JSON.stringify(payloadRxData) : null,
                 }),
             });
             if (res.ok) {
@@ -113,6 +237,256 @@ export function OrderDetailPanel({
     };
 
     const imageUrl = resolveStorageUrl(order.prescription?.imageUrl);
+
+    const renderRxForm = (pairRx: any, setPairRx: any, pairNum: 1 | 2) => {
+        const updateField = (field: string, val: string) => {
+            setPairRx((prev: any) => ({ ...prev, [field]: val }));
+        };
+
+        return (
+            <div className="space-y-4 bg-stone-50 dark:bg-stone-900/35 border border-stone-200/50 dark:border-stone-800 p-4 rounded-2xl">
+                <div className="flex items-center justify-between border-b border-stone-250/20 dark:border-stone-800 pb-2 mb-2">
+                    <span className="text-[10px] font-black text-amber-500 uppercase tracking-widest">
+                        Especificación del Par {pairNum}
+                    </span>
+                    
+                    {clientPrescriptions.length > 0 && (
+                        <div className="flex items-center gap-2">
+                            <span className="text-[9px] text-stone-400 font-bold uppercase tracking-wider">Cargar Receta:</span>
+                            <select
+                                onChange={(e) => {
+                                    if (e.target.value) {
+                                        handleImportPrescription(e.target.value, pairNum);
+                                        e.target.value = '';
+                                    }
+                                }}
+                                className="text-[10px] p-1.5 rounded-lg border border-stone-200 dark:border-stone-750 bg-white dark:bg-stone-800 outline-none"
+                            >
+                                <option value="">Seleccionar...</option>
+                                {clientPrescriptions.map(p => (
+                                    <option key={p.id} value={p.id}>
+                                        {new Date(p.date).toLocaleDateString('es-AR')} - OD: {p.sphereOD != null ? (p.sphereOD > 0 ? '+' : '') + p.sphereOD : '0'}/{p.sphereOI != null ? (p.sphereOI > 0 ? '+' : '') + p.sphereOI : '0'}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+                    )}
+                </div>
+
+                {/* Grid Table for Graduation */}
+                <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse text-[10px]">
+                        <thead>
+                            <tr className="border-b border-stone-200/50 dark:border-stone-800 text-[8px] font-black text-stone-400 dark:text-stone-500 uppercase tracking-widest">
+                                <th className="pb-1.5">Ojo</th>
+                                <th className="pb-1.5 text-center">Esfera</th>
+                                <th className="pb-1.5 text-center">Cilindro</th>
+                                <th className="pb-1.5 text-center">Eje</th>
+                                <th className="pb-1.5 text-center">Adición</th>
+                                <th className="pb-1.5 text-center">DNP</th>
+                                <th className="pb-1.5 text-center">Altura</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr className="border-b border-stone-100 dark:border-stone-850/50">
+                                <td className="py-2 font-black text-stone-700 dark:text-stone-300">OD (Der)</td>
+                                <td className="py-1 px-1">
+                                    <input
+                                        type="text"
+                                        value={pairRx.sphereOD}
+                                        onChange={(e) => updateField('sphereOD', e.target.value)}
+                                        placeholder="Esf"
+                                        className="w-12 text-center p-1.5 border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 rounded-lg focus:outline-none"
+                                    />
+                                </td>
+                                <td className="py-1 px-1">
+                                    <input
+                                        type="text"
+                                        value={pairRx.cylinderOD}
+                                        onChange={(e) => updateField('cylinderOD', e.target.value)}
+                                        placeholder="Cil"
+                                        className="w-12 text-center p-1.5 border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 rounded-lg focus:outline-none"
+                                    />
+                                </td>
+                                <td className="py-1 px-1">
+                                    <input
+                                        type="text"
+                                        value={pairRx.axisOD}
+                                        onChange={(e) => updateField('axisOD', e.target.value)}
+                                        placeholder="Eje"
+                                        className="w-12 text-center p-1.5 border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 rounded-lg focus:outline-none"
+                                    />
+                                </td>
+                                <td className="py-1 px-1">
+                                    <input
+                                        type="text"
+                                        value={pairRx.additionOD}
+                                        onChange={(e) => updateField('additionOD', e.target.value)}
+                                        placeholder="Add"
+                                        className="w-12 text-center p-1.5 border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 rounded-lg focus:outline-none"
+                                    />
+                                </td>
+                                <td className="py-1 px-1">
+                                    <input
+                                        type="text"
+                                        value={pairRx.pdOd}
+                                        onChange={(e) => updateField('pdOd', e.target.value)}
+                                        placeholder="DNP"
+                                        className="w-12 text-center p-1.5 border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 rounded-lg focus:outline-none"
+                                    />
+                                </td>
+                                <td className="py-1 px-1">
+                                    <input
+                                        type="text"
+                                        value={pairRx.heightOD}
+                                        onChange={(e) => updateField('heightOD', e.target.value)}
+                                        placeholder="Alt"
+                                        className="w-12 text-center p-1.5 border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 rounded-lg focus:outline-none"
+                                    />
+                                </td>
+                            </tr>
+                            <tr>
+                                <td className="py-2 font-black text-stone-700 dark:text-stone-300">OI (Izq)</td>
+                                <td className="py-1 px-1">
+                                    <input
+                                        type="text"
+                                        value={pairRx.sphereOI}
+                                        onChange={(e) => updateField('sphereOI', e.target.value)}
+                                        placeholder="Esf"
+                                        className="w-12 text-center p-1.5 border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 rounded-lg focus:outline-none"
+                                    />
+                                </td>
+                                <td className="py-1 px-1">
+                                    <input
+                                        type="text"
+                                        value={pairRx.cylinderOI}
+                                        onChange={(e) => updateField('cylinderOI', e.target.value)}
+                                        placeholder="Cil"
+                                        className="w-12 text-center p-1.5 border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 rounded-lg focus:outline-none"
+                                    />
+                                </td>
+                                <td className="py-1 px-1">
+                                    <input
+                                        type="text"
+                                        value={pairRx.axisOI}
+                                        onChange={(e) => updateField('axisOI', e.target.value)}
+                                        placeholder="Eje"
+                                        className="w-12 text-center p-1.5 border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 rounded-lg focus:outline-none"
+                                    />
+                                </td>
+                                <td className="py-1 px-1">
+                                    <input
+                                        type="text"
+                                        value={pairRx.additionOI}
+                                        onChange={(e) => updateField('additionOI', e.target.value)}
+                                        placeholder="Add"
+                                        className="w-12 text-center p-1.5 border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 rounded-lg focus:outline-none"
+                                    />
+                                </td>
+                                <td className="py-1 px-1">
+                                    <input
+                                        type="text"
+                                        value={pairRx.pdOi}
+                                        onChange={(e) => updateField('pdOi', e.target.value)}
+                                        placeholder="DNP"
+                                        className="w-12 text-center p-1.5 border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 rounded-lg focus:outline-none"
+                                    />
+                                </td>
+                                <td className="py-1 px-1">
+                                    <input
+                                        type="text"
+                                        value={pairRx.heightOI}
+                                        onChange={(e) => updateField('heightOI', e.target.value)}
+                                        placeholder="Alt"
+                                        className="w-12 text-center p-1.5 border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 rounded-lg focus:outline-none"
+                                    />
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                {/* Lab Details Fields */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-2 border-t border-stone-200/50 dark:border-stone-800">
+                    <div>
+                        <label className="text-[8px] font-black text-stone-400 dark:text-stone-500 uppercase tracking-widest block mb-0.5">Material</label>
+                        <input
+                            type="text"
+                            value={pairRx.material}
+                            onChange={(e) => updateField('material', e.target.value)}
+                            placeholder="ej. Orgánico"
+                            className="w-full text-[10px] p-2 border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 rounded-xl focus:outline-none focus:ring-1 focus:ring-amber-500"
+                        />
+                    </div>
+                    <div>
+                        <label className="text-[8px] font-black text-stone-400 dark:text-stone-500 uppercase tracking-widest block mb-0.5">Tratamiento</label>
+                        <input
+                            type="text"
+                            value={pairRx.treatment}
+                            onChange={(e) => updateField('treatment', e.target.value)}
+                            placeholder="ej. Antirreflejo"
+                            className="w-full text-[10px] p-2 border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 rounded-xl focus:outline-none focus:ring-1 focus:ring-amber-500"
+                        />
+                    </div>
+                    <div>
+                        <label className="text-[8px] font-black text-stone-400 dark:text-stone-500 uppercase tracking-widest block mb-0.5">Color / Tinte</label>
+                        <input
+                            type="text"
+                            value={pairRx.color}
+                            onChange={(e) => updateField('color', e.target.value)}
+                            placeholder="ej. Gris"
+                            className="w-full text-[10px] p-2 border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 rounded-xl focus:outline-none focus:ring-1 focus:ring-amber-500"
+                        />
+                    </div>
+                    <div>
+                        <label className="text-[8px] font-black text-stone-400 dark:text-stone-500 uppercase tracking-widest block mb-0.5">Diámetro</label>
+                        <input
+                            type="text"
+                            value={pairRx.diameter}
+                            onChange={(e) => updateField('diameter', e.target.value)}
+                            placeholder="ej. 65"
+                            className="w-full text-[10px] p-2 border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 rounded-xl focus:outline-none focus:ring-1 focus:ring-amber-500"
+                        />
+                    </div>
+                </div>
+
+                {/* Recipe Image Attachment */}
+                <div className="pt-2 border-t border-stone-200/50 dark:border-stone-800">
+                    <label className="text-[8px] font-black text-stone-400 dark:text-stone-500 uppercase tracking-widest block mb-1">
+                        Adjuntar Foto de Nueva Receta
+                    </label>
+                    <div className="flex items-center gap-3">
+                        <input
+                            type="file"
+                            accept="image/*"
+                            onChange={async (e) => {
+                                const file = e.target.files?.[0];
+                                if (file) {
+                                    updateField('isUploadingRx', 'true');
+                                    await handleImageUpload(file, pairNum);
+                                    updateField('isUploadingRx', '');
+                                }
+                            }}
+                            className="text-[10px] text-stone-500 file:mr-4 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-[10px] file:font-black file:bg-indigo-50 dark:file:bg-indigo-950/20 file:text-indigo-600 dark:file:text-indigo-400 hover:file:bg-indigo-100 cursor-pointer"
+                        />
+                        {pairRx.imageUrl && (
+                            <a
+                                href={pairRx.imageUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-[9px] font-black text-indigo-500 hover:underline uppercase tracking-widest flex items-center gap-1"
+                            >
+                                👁️ Ver Adjunto
+                            </a>
+                        )}
+                        {pairRx.isUploadingRx && (
+                            <span className="text-[9px] text-amber-500 font-bold animate-pulse">Subiendo...</span>
+                        )}
+                    </div>
+                </div>
+            </div>
+        );
+    };
 
     const handleToggleAuth = async (checked: boolean) => {
         try {
@@ -670,7 +1044,7 @@ export function OrderDetailPanel({
 
                                     <div>
                                         <label className="text-[8px] font-black text-stone-400 dark:text-stone-500 uppercase tracking-widest block mb-1">
-                                            Responsable
+                                            Responsabilidad
                                         </label>
                                         <input
                                             type="text"
@@ -698,17 +1072,73 @@ export function OrderDetailPanel({
                                 </div>
 
                                 {postSaleOrderOption === 'DIFFERENT' && (
-                                    <div>
-                                        <label className="text-[8px] font-black text-stone-400 dark:text-stone-500 uppercase tracking-widest block mb-1">
-                                            Nuevo Número de Pedido / OP
-                                        </label>
-                                        <input
-                                            type="text"
-                                            value={postSaleNewOrderNumber}
-                                            onChange={(e) => setPostSaleNewOrderNumber(e.target.value)}
-                                            placeholder="Ingresar nuevo número de OP en lab..."
-                                            className="w-full text-xs p-2.5 rounded-xl border border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-stone-900 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 placeholder-stone-400 transition-all dark:text-stone-200"
-                                        />
+                                    <div className="space-y-4 pt-2 border-t border-stone-150 dark:border-stone-850">
+                                        <div>
+                                            <label className="text-[8px] font-black text-stone-400 dark:text-stone-500 uppercase tracking-widest block mb-1">
+                                                Nuevo Número de Pedido / OP
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={postSaleNewOrderNumber}
+                                                onChange={(e) => setPostSaleNewOrderNumber(e.target.value)}
+                                                placeholder="Ingresar nuevo número de OP en lab..."
+                                                className="w-full text-xs p-2.5 rounded-xl border border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-stone-900 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 placeholder-stone-400 transition-all dark:text-stone-200"
+                                            />
+                                        </div>
+
+                                        {/* Pair Selectors */}
+                                        <div className="flex gap-4 p-2 bg-stone-50/50 dark:bg-stone-900/30 rounded-xl border border-stone-200/50 dark:border-stone-850">
+                                            <label className="flex items-center gap-2 text-xs font-bold text-stone-700 dark:text-stone-300 cursor-pointer">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={pair1Faulty}
+                                                    onChange={(e) => setPair1Faulty(e.target.checked)}
+                                                    className="rounded border-stone-300 text-amber-500 focus:ring-amber-500"
+                                                />
+                                                <span>Re-hacer Par 1</span>
+                                            </label>
+                                            {is2x1 && (
+                                                <label className="flex items-center gap-2 text-xs font-bold text-stone-700 dark:text-stone-300 cursor-pointer">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={pair2Faulty}
+                                                        onChange={(e) => setPair2Faulty(e.target.checked)}
+                                                        className="rounded border-stone-300 text-amber-500 focus:ring-amber-500"
+                                                    />
+                                                    <span>Re-hacer Par 2</span>
+                                                </label>
+                                            )}
+                                        </div>
+
+                                        {/* Prescription Forms */}
+                                        {pair1Faulty && renderRxForm(rx1, setRx1, 1)}
+                                        {is2x1 && pair2Faulty && renderRxForm(rx2, setRx2, 2)}
+
+                                        {/* Dynamic SmartLab Buttons from Post-Venta form */}
+                                        <div className="flex gap-2">
+                                            {pair1Faulty && onAutoSubmit && (
+                                                <button
+                                                    onClick={() => onAutoSubmit(order, 1)}
+                                                    disabled={isAutoSubmitting}
+                                                    className="flex-1 py-2 bg-gradient-to-r from-amber-500 to-amber-600 text-white rounded-xl text-[9px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-1 shadow-md hover:scale-105 active:scale-95 disabled:opacity-50"
+                                                    title="Cargar Par 1 en SmartLab con nuevos datos"
+                                                >
+                                                    {isAutoSubmitting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FlaskConical className="w-3.5 h-3.5" />}
+                                                    <span>Cargar Par 1</span>
+                                                </button>
+                                            )}
+                                            {is2x1 && pair2Faulty && onAutoSubmit && (
+                                                <button
+                                                    onClick={() => onAutoSubmit(order, 2)}
+                                                    disabled={isAutoSubmitting}
+                                                    className="flex-1 py-2 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-xl text-[9px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-1 shadow-md hover:scale-105 active:scale-95 disabled:opacity-50"
+                                                    title="Cargar Par 2 en SmartLab con nuevos datos"
+                                                >
+                                                    {isAutoSubmitting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FlaskConical className="w-3.5 h-3.5" />}
+                                                    <span>Cargar Par 2</span>
+                                                </button>
+                                            )}
+                                        </div>
                                     </div>
                                 )}
 

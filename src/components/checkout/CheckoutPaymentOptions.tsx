@@ -27,17 +27,21 @@ export function CheckoutPaymentOptions({ formData, handleChange, isProcessing, w
       
       {isWholesale ? (
         <div className="flex flex-col gap-3 mb-10 animate-in fade-in">
-          <div className="border border-blue-200 bg-blue-50/50 p-6 rounded-xl flex items-start gap-4 shadow-sm select-none">
-            <ShieldCheck className="w-6 h-6 text-blue-600 shrink-0 mt-0.5 animate-pulse" />
-            <div>
-              <span className="text-[12px] font-black uppercase tracking-wider text-blue-900 block mb-1">
-                Pedido Mayorista (Coordinación Externa)
-              </span>
-              <span className="text-[11px] text-blue-800/80 block leading-relaxed">
-                Al confirmar tu compra se cerrará el carrito y se descontará la mercadería de nuestro stock. Te enviaremos un email de confirmación y nos pondremos en contacto para coordinar el pago por fuera.
-              </span>
+          <label className={`flex items-start gap-3 border p-4 cursor-pointer transition-colors ${formData.paymentMethod === 'TRANSFER_MAYORISTA' ? 'border-black bg-stone-50' : 'border-stone-200 hover:border-stone-300'}`}>
+            <input type="radio" name="paymentMethod" value="TRANSFER_MAYORISTA" checked={formData.paymentMethod === 'TRANSFER_MAYORISTA'} onChange={handleChange} className="accent-black mt-1" />
+            <div className="flex-1">
+              <p className="text-sm font-bold">Transferencia Bancaria</p>
+              <p className="text-[11px] text-stone-500 leading-relaxed mt-1">Recibirás los datos bancarios al confirmar el pedido. Pago en su totalidad por transferencia (sin cuotas).</p>
             </div>
-          </div>
+          </label>
+          
+          <label className={`flex items-start gap-3 border p-4 cursor-pointer transition-colors ${formData.paymentMethod === 'ACORDAR_MAYORISTA' ? 'border-black bg-stone-50' : 'border-stone-200 hover:border-stone-300'}`}>
+            <input type="radio" name="paymentMethod" value="ACORDAR_MAYORISTA" checked={formData.paymentMethod === 'ACORDAR_MAYORISTA'} onChange={handleChange} className="accent-black mt-1" />
+            <div className="flex-1">
+              <p className="text-sm font-bold">A convenir</p>
+              <p className="text-[11px] text-stone-500 leading-relaxed mt-1">Pago en dos entregas a acordar con el vendedor.</p>
+            </div>
+          </label>
         </div>
       ) : (
         <div className="flex flex-col gap-3 mb-10">

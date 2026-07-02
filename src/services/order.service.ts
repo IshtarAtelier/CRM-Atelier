@@ -80,6 +80,7 @@ const OrderUpdateSchema = z.object({
     postSaleOrderOption: z.string().nullable().optional(),
     postSaleNewOrderNumber: z.string().nullable().optional(),
     postSaleStatus: z.string().nullable().optional(),
+    postSaleRxData: z.string().nullable().optional(),
 }).passthrough();
 
 // export const dynamic = 'force-dynamic';
@@ -104,6 +105,7 @@ export class OrderService {
                 postSaleOrderOption: true,
                 postSaleNewOrderNumber: true,
                 postSaleStatus: true,
+                postSaleRxData: true,
                 paid: true,
                 markup: true,
                 discountCash: true,
@@ -298,7 +300,7 @@ export class OrderService {
             discountCash, discountTransfer, discountCard, specialDiscount, subtotalWithMarkup,
             isLocked, authorizedByAdmin,
             postSaleNotes, postSaleCost, postSaleResponsible,
-            postSaleOrderOption, postSaleNewOrderNumber, postSaleStatus
+            postSaleOrderOption, postSaleNewOrderNumber, postSaleStatus, postSaleRxData
         } = body;
 
         const data: any = {};
@@ -775,7 +777,7 @@ export class OrderService {
                                     <td style="padding: 10px 0; color: #2563eb; font-family: monospace; font-weight: bold;">#${id.slice(-6).toUpperCase()}</td>
                                 </tr>
                                 <tr style="border-bottom: 1px solid #f3f4f6;">
-                                    <td style="padding: 10px 0; font-weight: bold; color: #4b5563;">Responsable:</td>
+                                    <td style="padding: 10px 0; font-weight: bold; color: #4b5563;">Responsabilidad:</td>
                                     <td style="padding: 10px 0; color: #1f2937;">${postSaleResponsible || body.postSaleResponsible || 'No especificado'}</td>
                                 </tr>
                                 <tr style="border-bottom: 1px solid #f3f4f6;">
@@ -821,6 +823,7 @@ export class OrderService {
             }
         }
         if (postSaleNewOrderNumber !== undefined) data.postSaleNewOrderNumber = postSaleNewOrderNumber;
+        if (postSaleRxData !== undefined) data.postSaleRxData = postSaleRxData;
 
         // SmartLab lab fields
         if (labColor !== undefined) data.labColor = labColor;

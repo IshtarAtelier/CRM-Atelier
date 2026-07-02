@@ -131,7 +131,7 @@ export function CheckoutClient({
             setCurrentUser(u);
             setFormData(prev => ({
               ...prev,
-              paymentMethod: 'MAYORISTA',
+              paymentMethod: 'TRANSFER_MAYORISTA',
               firstName: prev.firstName || u.name || '',
               email: prev.email || u.email || ''
             }));
@@ -152,7 +152,7 @@ export function CheckoutClient({
           setCurrentUser(data);
           setFormData(prev => ({
             ...prev,
-            paymentMethod: 'MAYORISTA',
+            paymentMethod: 'TRANSFER_MAYORISTA',
             firstName: prev.firstName || data.name || '',
             email: prev.email || data.email || ''
           }));
@@ -269,7 +269,7 @@ export function CheckoutClient({
     setIsProcessing(true);
     
     try {
-      if (formData.paymentMethod === 'TRANSFER' || formData.paymentMethod === 'MAYORISTA') {
+      if (formData.paymentMethod === 'TRANSFER' || formData.paymentMethod === 'TRANSFER_MAYORISTA' || formData.paymentMethod === 'ACORDAR_MAYORISTA') {
         const res = await fetch("/api/checkout/payway", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -303,7 +303,7 @@ export function CheckoutClient({
           clearCart();
           setIsSuccess(true);
         } else {
-          toast.error(formData.paymentMethod === 'MAYORISTA' ? "Error generando pedido mayorista." : "Error generando orden de transferencia.");
+          toast.error(formData.paymentMethod.includes('MAYORISTA') ? "Error generando pedido mayorista." : "Error generando orden de transferencia.");
         }
         return;
       }
@@ -454,7 +454,7 @@ export function CheckoutClient({
           <p className="text-stone-500 mb-8 leading-relaxed">
             {formData.paymentMethod === 'TRANSFER' 
               ? "Hemos registrado tu pedido con éxito."
-              : formData.paymentMethod === 'MAYORISTA'
+              : formData.paymentMethod.includes('MAYORISTA')
                 ? "Hemos registrado tu pedido mayorista con éxito. Descontamos el stock de la mercadería."
                 : "Hemos registrado tu pedido de forma exitosa. Te enviamos un correo con la confirmación."}
             <br/><br/>
@@ -484,12 +484,12 @@ export function CheckoutClient({
             </div>
           )}
 
-          {formData.paymentMethod === 'MAYORISTA' && (
+          {(formData.paymentMethod === 'TRANSFER_MAYORISTA' || formData.paymentMethod === 'ACORDAR_MAYORISTA') && (
             <div className="bg-stone-50 border border-stone-200 rounded-lg p-6 mb-8 text-left animate-in fade-in">
               <h3 className="font-bold text-stone-900 mb-4 text-sm uppercase tracking-widest border-b border-stone-200 pb-2">Pedido Mayorista Registrado</h3>
               <div className="bg-blue-50 text-blue-900 border border-blue-200 rounded p-4 text-xs mb-4">
                 <p className="font-bold mb-1">Próximos pasos:</p>
-                <p>La mercadería ya fue reservada de nuestro stock. Te enviamos un email de confirmación y en breve nos comunicaremos contigo para enviarte la proforma y coordinar el pago.</p>
+                <p>La mercadería ya fue reservada de nuestro stock. Te enviamos un email de confirmación y en breve nos comunicaremos contigo para enviarte la proforma y coordinar el pago ({formData.paymentMethod === 'TRANSFER_MAYORISTA' ? 'por transferencia' : 'a convenir en dos entregas'}).</p>
               </div>
               <a 
                 href={`https://wa.me/${whatsappPhoneId}?text=${encodeURIComponent(`¡Hola! Acabo de registrar un pedido mayorista en la web y me gustaría coordinar el pago.`)}`}
@@ -502,7 +502,7 @@ export function CheckoutClient({
             </div>
           )}
 
-          {formData.paymentMethod !== 'TRANSFER' && formData.paymentMethod !== 'MAYORISTA' && (
+          {formData.paymentMethod !== 'TRANSFER' && !formData.paymentMethod.includes('MAYORISTA') && (
             <div className="bg-green-50 text-green-900 border border-green-200 rounded-lg p-4 mb-8 text-sm">
               <p className="font-medium mb-1">¿Tenés alguna duda con tu pedido?</p>
               <p className="text-green-700/80 mb-2">Escribinos directamente a nuestro canal de soporte.</p>

@@ -136,7 +136,7 @@ function PostSaleCard({
                 </div>
 
                 {/* SmartLab Progress Info */}
-                {order.smartLabProgress != null && order.smartLabProgress > 0 && (
+                {order.smartLabProgress != null && order.smartLabProgress > 0 && (order.postSaleOrderOption === 'SAME' || order.postSaleOrderOption === 'DIFFERENT') && (
                     <div className="bg-blue-50/50 dark:bg-blue-950/20 rounded-xl px-2.5 py-2 border border-blue-100/50 dark:border-blue-800/30">
                         <div className="flex items-center justify-between mb-1">
                             <span className="text-[7px] font-black text-blue-500 uppercase tracking-widest">SmartLab</span>
@@ -274,7 +274,53 @@ export default function VentasPage() {
     const autoSubmitSmartLab = async (order: any, pairNum: number = 1) => {
         setIsAutoSubmitting(true);
         try {
-            const rx = order.prescription || {};
+            let rx = order.prescription || {};
+            let pdOd = order.labPdOd;
+            let pdOi = order.labPdOi;
+            let nearPdOd = order.labNearPdOd;
+            let nearPdOi = order.labNearPdOi;
+            let heightOD = order.labHeightOD;
+            let heightOI = order.labHeightOI;
+            let material = order.labMaterial || '';
+            let tratamiento = order.labTreatment || '';
+            let color = order.labColor || '';
+            let diameter = order.labDiameter || '';
+            let notes = order.labNotes || '';
+
+            if (order.postSaleOrderOption === 'DIFFERENT' && order.postSaleRxData) {
+                try {
+                    const rxData = JSON.parse(order.postSaleRxData);
+                    const activeRx = pairNum === 2 ? rxData.rx2 : rxData.rx1;
+                    if (activeRx) {
+                        const getVal = (v: any) => (v === '' || v === undefined || v === null) ? null : parseFloat(v);
+                        const getIntVal = (v: any) => (v === '' || v === undefined || v === null) ? null : parseInt(v);
+
+                        rx = {
+                            ...rx,
+                            sphereOD: activeRx.sphereOD !== undefined ? getVal(activeRx.sphereOD) : rx.sphereOD,
+                            cylinderOD: activeRx.cylinderOD !== undefined ? getVal(activeRx.cylinderOD) : rx.cylinderOD,
+                            axisOD: activeRx.axisOD !== undefined ? getIntVal(activeRx.axisOD) : rx.axisOD,
+                            additionOD: activeRx.additionOD !== undefined ? getVal(activeRx.additionOD) : rx.additionOD,
+                            sphereOI: activeRx.sphereOI !== undefined ? getVal(activeRx.sphereOI) : rx.sphereOI,
+                            cylinderOI: activeRx.cylinderOI !== undefined ? getVal(activeRx.cylinderOI) : rx.cylinderOI,
+                            axisOI: activeRx.axisOI !== undefined ? getIntVal(activeRx.axisOI) : rx.axisOI,
+                            additionOI: activeRx.additionOI !== undefined ? getVal(activeRx.additionOI) : rx.additionOI,
+                            notes: activeRx.notes !== undefined ? activeRx.notes : rx.notes,
+                            imageUrl: activeRx.imageUrl !== undefined ? activeRx.imageUrl : rx.imageUrl,
+                        };
+                        if (activeRx.pdOd !== undefined) pdOd = activeRx.pdOd;
+                        if (activeRx.pdOi !== undefined) pdOi = activeRx.pdOi;
+                        if (activeRx.heightOD !== undefined) heightOD = activeRx.heightOD;
+                        if (activeRx.heightOI !== undefined) heightOI = activeRx.heightOI;
+                        if (activeRx.material !== undefined) material = activeRx.material;
+                        if (activeRx.treatment !== undefined) tratamiento = activeRx.treatment;
+                        if (activeRx.color !== undefined) color = activeRx.color;
+                        if (activeRx.diameter !== undefined) diameter = activeRx.diameter;
+                    }
+                } catch (e) {
+                    console.error('Error parsing postSaleRxData in autoSubmitSmartLab:', e);
+                }
+            }
 
             const fmt = (v: number | null | undefined, plus?: boolean) => {
                 if (v == null) return '';
@@ -315,16 +361,14 @@ export default function VentasPage() {
             else if (lensName.includes('bifo')) tipo_lente = 'Bifocal Ft';
             else if (lensName.includes('ocupa') || lensName.includes('intermedio')) tipo_lente = 'Ocupacional';
 
-            let material = order.labMaterial || '';
-            if (!material && lensName) {
+            if (!material) {
                 if (lensName.includes('poli')) material = 'Policarbonato';
                 else if (lensName.includes('orga') || lensName.includes('orgá')) material = 'Orgánico';
                 else if (lensName.includes('alto') || lensName.includes('1.6') || lensName.includes('1.7')) material = 'Alto Índice';
                 else if (lensName.includes('vidrio') || lensName.includes('mineral')) material = 'Mineral';
             }
 
-            let tratamiento = order.labTreatment || '';
-            if (!tratamiento && lensName) {
+            if (!tratamiento) {
                 if (lensName.includes('blue') || lensName.includes('block') || lensName.includes('filtro azul') || lensName.includes('filtro de luz')) tratamiento = 'Filtro Azul';
                 else if (lensName.includes('anti') || lensName.includes('ar')) tratamiento = 'Antirreflejo';
                 else if (lensName.includes('foto') || lensName.includes('transition')) tratamiento = 'Fotocromático';
@@ -412,16 +456,16 @@ export default function VentasPage() {
                 oi_esfera_cerca: fmt(rx.nearSphereOI, true),
                 oi_cilindro_cerca: fmt(rx.nearCylinderOI),
                 oi_eje_cerca: rx.nearAxisOI != null ? String(rx.nearAxisOI) : '',
-                od_dp: order.labPdOd != null ? String(order.labPdOd) : (rx.distanceOD != null ? String(rx.distanceOD) : ''),
-                oi_dp: order.labPdOi != null ? String(order.labPdOi) : (rx.distanceOI != null ? String(rx.distanceOI) : ''),
-                od_dp_cerca: order.labNearPdOd != null ? String(order.labNearPdOd) : (rx.nearDistanceOD != null ? String(rx.nearDistanceOD) : ''),
-                oi_dp_cerca: order.labNearPdOi != null ? String(order.labNearPdOi) : (rx.nearDistanceOI != null ? String(rx.nearDistanceOI) : ''),
-                od_altura: order.labHeightOD != null ? String(order.labHeightOD) : (rx.heightOD != null ? String(rx.heightOD) : ''),
-                oi_altura: order.labHeightOI != null ? String(order.labHeightOI) : (rx.heightOI != null ? String(rx.heightOI) : ''),
-                observaciones: [rx.notes, order.labNotes].filter(Boolean).join(' | '),
-                color: order.labColor || '',
+                od_dp: pdOd != null ? String(pdOd) : (rx.distanceOD != null ? String(rx.distanceOD) : ''),
+                oi_dp: pdOi != null ? String(pdOi) : (rx.distanceOI != null ? String(rx.distanceOI) : ''),
+                od_dp_cerca: nearPdOd != null ? String(nearPdOd) : (rx.nearDistanceOD != null ? String(rx.nearDistanceOD) : ''),
+                oi_dp_cerca: nearPdOi != null ? String(nearPdOi) : (rx.nearDistanceOI != null ? String(rx.nearDistanceOI) : ''),
+                od_altura: heightOD != null ? String(heightOD) : (rx.heightOD != null ? String(rx.heightOD) : ''),
+                oi_altura: heightOI != null ? String(heightOI) : (rx.heightOI != null ? String(rx.heightOI) : ''),
+                observaciones: [rx.notes, notes].filter(Boolean).join(' | '),
+                color: color || '',
                 armazon: [frameInfo, pairNum === 2 ? (order.labFrameDetails2 || '') : (order.labFrameDetails || '')].filter(Boolean).join(' - '),
-                diametro: order.labDiameter || '',
+                diametro: diameter || '',
                 indice: lensIndex,
                 material,
                 tratamiento,

@@ -382,6 +382,7 @@ export async function GET(request: Request) {
             postSaleOrderOption: true,
             postSaleNewOrderNumber: true,
             postSaleStatus: true,
+            postSaleRxData: true,
             isDeleted: true,
             client: { select: { id: true, name: true, phone: true, dni: true, email: true, status: true } },
             user: { select: { name: true } },

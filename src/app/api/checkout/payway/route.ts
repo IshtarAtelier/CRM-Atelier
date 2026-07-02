@@ -154,11 +154,11 @@ export async function POST(req: Request) {
       }
     }
 
-    if (customer.paymentMethod === 'MAYORISTA' && !isWholesaleUser) {
+    if (customer.paymentMethod.includes('MAYORISTA') && !isWholesaleUser) {
       return NextResponse.json({ error: "Método de pago no autorizado." }, { status: 403 });
     }
-    if (isWholesaleUser) {
-      customer.paymentMethod = 'MAYORISTA';
+    if (isWholesaleUser && !customer.paymentMethod.includes('MAYORISTA')) {
+      customer.paymentMethod = 'TRANSFER_MAYORISTA';
     }
 
     const shippingMethodLabel = (() => {
@@ -557,7 +557,7 @@ export async function POST(req: Request) {
     }
 
     // Si es un pedido mayorista, enviar email especial y finalizar sin cargo
-    if (customer.paymentMethod === 'MAYORISTA') {
+    if (customer.paymentMethod.includes('MAYORISTA')) {
       sendEmail({
         to: customer.email,
         subject: `Confirmación de Pedido Mayorista #${order.id.slice(-4).toUpperCase()} - Atelier Óptica`,

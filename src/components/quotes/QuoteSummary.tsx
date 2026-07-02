@@ -1001,7 +1001,7 @@ export default function QuoteSummary({
 
                                 <div>
                                     <label className="text-[8px] font-black text-stone-400 dark:text-stone-500 uppercase tracking-widest block mb-1">
-                                        Responsable
+                                        Responsabilidad
                                     </label>
                                     <input
                                         type="text"
