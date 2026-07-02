@@ -64,7 +64,8 @@ export async function POST(req: Request) {
       </div>
     `;
 
-    await sendEmail({
+    // Send email alert to admins asynchronously so the API responds immediately
+    sendEmail({
       to: adminEmails,
       subject: `📬 Nueva Consulta Web - ${subject || 'Contacto'} - ${name}`,
       html: emailHtml

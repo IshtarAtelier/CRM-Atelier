@@ -7,11 +7,15 @@ import { motion } from "framer-motion";
 export function ContactoClient({ 
   whatsappPhoneId, 
   phone, 
-  locality 
+  address,
+  locality,
+  mapsUrl
 }: { 
   whatsappPhoneId: string; 
   phone: string; 
-  locality: string 
+  address: string;
+  locality: string;
+  mapsUrl: string;
 }) {
   const [formData, setFormData] = useState({
     name: "",
@@ -299,17 +303,22 @@ export function ContactoClient({
           </div>
         </div>
 
-        <div className="flex gap-4">
-          <div className="w-10 h-10 rounded-xl bg-stone-50 border border-stone-150 flex items-center justify-center flex-shrink-0 text-stone-800">
+        <a 
+          href={mapsUrl} 
+          target="_blank" 
+          rel="noopener noreferrer" 
+          className="flex gap-4 group cursor-pointer"
+        >
+          <div className="w-10 h-10 rounded-xl bg-stone-50 border border-stone-150 flex items-center justify-center flex-shrink-0 text-stone-800 group-hover:bg-[#c8a55c] group-hover:text-white group-hover:border-[#c8a55c] transition-all duration-300">
             <MapPin className="w-4 h-4" />
           </div>
           <div>
-            <h4 className="text-[10px] font-bold uppercase tracking-widest text-stone-400 mb-1">Visitanos</h4>
-            <p className="text-stone-800 font-medium">
-              {locality}
+            <h4 className="text-[10px] font-bold uppercase tracking-widest text-stone-400 mb-1 group-hover:text-[#c8a55c] transition-colors">Visitanos</h4>
+            <p className="text-stone-800 font-medium text-sm leading-snug group-hover:underline decoration-[#c8a55c]/30 underline-offset-2">
+              {address}, {locality}
             </p>
           </div>
-        </div>
+        </a>
       </div>
     </main>
   );

@@ -11,7 +11,9 @@ export default async function ContactoPage() {
 
   const whatsappPhoneId = settings?.web_store_whatsapp_id || WHATSAPP_PHONE;
   const phone = settings?.web_store_phone || "+54 9 354 121 5971";
-  const locality = settings?.web_store_locality || "Cerro de las Rosas, Córdoba Capital.";
+  const address = settings?.web_store_address || "José Luis de Tejeda 4380";
+  const locality = settings?.web_store_locality || "Cerro de las Rosas, Córdoba";
+  const mapsUrl = settings?.web_store_maps_url || "https://www.google.com/maps/search/?api=1&query=Atelier+Optica+Cordoba+Jose+Luis+de+Tejeda+4380";
 
   return (
     <div className="bg-white min-h-screen text-black font-sans selection:bg-black selection:text-white">
@@ -19,10 +21,11 @@ export default async function ContactoPage() {
       <ContactoClient 
         whatsappPhoneId={whatsappPhoneId} 
         phone={phone} 
+        address={address}
         locality={locality} 
+        mapsUrl={mapsUrl}
       />
       <StorefrontFooter />
-      
     </div>
   );
 }
