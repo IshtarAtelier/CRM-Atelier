@@ -1797,6 +1797,8 @@ export default function VentasPage() {
                                                         onRefresh={() => fetchOrders(search)}
                                                         onMove={(direction) => handleMoveCard(order, direction)}
                                                         onExpand={() => setExpandedDetail(expandedDetail === order.id ? null : order.id)}
+                                                        onAutoSubmit={autoSubmitSmartLab}
+                                                        isAutoSubmitting={isAutoSubmitting}
                                                     />
                                                 ))
                                             )}
