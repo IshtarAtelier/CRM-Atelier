@@ -136,7 +136,7 @@ function PostSaleCard({
                 </div>
 
                 {/* SmartLab Progress Info */}
-                {order.smartLabProgress != null && order.smartLabProgress > 0 && (
+                {order.smartLabProgress != null && order.smartLabProgress > 0 && (order.postSaleOrderOption === 'SAME' || order.postSaleOrderOption === 'DIFFERENT') && (
                     <div className="bg-blue-50/50 dark:bg-blue-950/20 rounded-xl px-2.5 py-2 border border-blue-100/50 dark:border-blue-800/30">
                         <div className="flex items-center justify-between mb-1">
                             <span className="text-[7px] font-black text-blue-500 uppercase tracking-widest">SmartLab</span>
