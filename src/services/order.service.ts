@@ -811,17 +811,6 @@ export class OrderService {
         if (postSaleResponsible !== undefined) data.postSaleResponsible = postSaleResponsible;
         if (postSaleOrderOption !== undefined) {
             data.postSaleOrderOption = postSaleOrderOption;
-            if (postSaleOrderOption === 'SAME' || postSaleOrderOption === 'DIFFERENT') {
-                const currentOrder = await prisma.order.findUnique({
-                    where: { id },
-                    select: { labStatus: true }
-                });
-                if (currentOrder && currentOrder.labStatus !== 'SENT' && currentOrder.labStatus !== 'IN_PROGRESS') {
-                    data.labStatus = 'SENT';
-                    data.labSentAt = new Date();
-                    data.smartLabProgress = 0;
-                }
-            }
         }
         if (postSaleNewOrderNumber !== undefined) data.postSaleNewOrderNumber = postSaleNewOrderNumber;
         if (postSaleRxData !== undefined) data.postSaleRxData = postSaleRxData;
