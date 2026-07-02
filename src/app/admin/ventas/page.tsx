@@ -2,8 +2,9 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { ShoppingCart, Download, Search, Package, Clock, CheckCircle2, Truck, Eye, Pencil, Save, X, AlertTriangle, FileText, Banknote, ArrowRightLeft, CreditCard, ChevronRight, ChevronLeft, ExternalLink, Loader2, ArrowRight, FlaskConical, Calendar, Factory, User, Users, ChevronDown } from 'lucide-react';
+import { ShoppingCart, Download, Search, Package, Clock, CheckCircle2, Truck, Eye, Pencil, Save, X, AlertTriangle, FileText, Banknote, ArrowRightLeft, CreditCard, ChevronRight, ChevronLeft, ExternalLink, Loader2, ArrowRight, FlaskConical, Calendar, Factory, User, Users } from 'lucide-react';
 import { OrderDetailPanel } from '@/components/orders/OrderDetailPanel';
+import { PostSaleCard } from '@/components/orders/PostSaleCard';
 import { WhatsAppIcon } from '@/components/icons/WhatsAppIcon';
 import { PricingService } from '@/services/PricingService';
 import { format } from 'date-fns';
@@ -30,210 +31,7 @@ function getNextStatus(current: string): string | null {
     return LAB_STEPS[idx + 1].key;
 }
 
-function PostSaleCard({ 
-    order, 
-    onRefresh, 
-    onMove, 
-    onExpand 
-}: { 
-    order: any; 
-    onRefresh: () => void; 
-    onMove: (direction: 'left' | 'right') => void; 
-    onExpand: () => void; 
-}) {
-    const [newNote, setNewNote] = useState('');
-    const [isSavingNote, setIsSavingNote] = useState(false);
 
-    const notesHistory = order.postSaleNotes 
-        ? order.postSaleNotes.split('\n').filter((line: string) => line.trim() !== '') 
-        : [];
-
-    const handleAddNote = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!newNote.trim()) return;
-
-        setIsSavingNote(true);
-        try {
-            const formattedDate = new Date().toLocaleDateString('es-AR', {
-                day: '2-digit',
-                month: '2-digit',
-                hour: '2-digit',
-                minute: '2-digit'
-            });
-            const newEntry = `[${formattedDate}]: ${newNote.trim()}`;
-            const updatedNotes = order.postSaleNotes 
-                ? `${order.postSaleNotes}\n${newEntry}` 
-                : newEntry;
-
-            const res = await fetch(`/api/orders/${order.id}`, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ postSaleNotes: updatedNotes })
-            });
-
-            if (res.ok) {
-                setNewNote('');
-                onRefresh();
-            } else {
-                const data = await res.json();
-                alert(`⚠️ Error: ${data.error || 'No se pudo guardar la nota'}`);
-            }
-        } catch (err) {
-            console.error('Error adding note:', err);
-            alert('⚠️ Error de red al guardar la nota.');
-        } finally {
-            setIsSavingNote(false);
-        }
-    };
-
-    const currentStatus = order.postSaleStatus || 'SENT';
-    const statusKeys = ['SENT', 'IN_PROGRESS', 'FINISHED', 'READY', 'DELIVERED'];
-    let currentIdx = statusKeys.indexOf(currentStatus);
-    if (currentIdx === -1) currentIdx = 0;
-
-    const canMoveLeft = currentIdx > 0;
-    const canMoveRight = currentIdx < statusKeys.length - 1;
-
-    return (
-        <div className="bg-white dark:bg-stone-850 rounded-2xl border border-stone-200/70 dark:border-stone-750 p-4 shadow-sm hover:shadow-md transition-all space-y-3 flex flex-col justify-between">
-            <div className="space-y-2">
-                {/* Header: Client & Venta ID */}
-                <div className="flex items-start justify-between gap-1">
-                    <div className="min-w-0 flex-1">
-                        <h4 className="text-xs font-black text-stone-850 dark:text-stone-100 uppercase tracking-tight leading-tight truncate">
-                            {order.client.name}
-                        </h4>
-                        <span className="text-[9px] font-black text-stone-400 dark:text-stone-500 uppercase tracking-widest block mt-0.5">
-                            Venta #{order.id.slice(-4).toUpperCase()}
-                        </span>
-                    </div>
-                    <button
-                        onClick={onExpand}
-                        className="p-1.5 hover:bg-stone-100 dark:hover:bg-stone-750 text-stone-400 hover:text-stone-700 dark:hover:text-stone-200 rounded-lg transition-colors flex-shrink-0"
-                        title="Ver Ficha y Medidas"
-                    >
-                        <Eye className="w-3.5 h-3.5" />
-                    </button>
-                </div>
-
-                {/* Info block: Cost & Responsible & OP Option */}
-                <div className="flex flex-wrap gap-1.5 pt-0.5">
-                    {order.postSaleResponsible && (
-                        <span className="bg-stone-100 dark:bg-stone-750 text-stone-600 dark:text-stone-300 text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md flex items-center gap-1">
-                            👤 {order.postSaleResponsible}
-                        </span>
-                    )}
-                    {order.postSaleCost > 0 && (
-                        <span className="bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 border border-red-100 dark:border-red-900/30 text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md">
-                            $ {order.postSaleCost.toLocaleString('es-AR')}
-                        </span>
-                    )}
-                    {order.postSaleOrderOption && (
-                        <span className="bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400 border border-blue-100 dark:border-blue-900/30 text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md">
-                            OP: {order.postSaleOrderOption === 'SAME' ? `Misma (#${order.labOrderNumber || 'Original'})` : `Nueva (#${order.postSaleNewOrderNumber || '—'})`}
-                        </span>
-                    )}
-                </div>
-
-                {/* SmartLab Progress Info */}
-                {order.smartLabProgress != null && order.smartLabProgress > 0 && (order.postSaleOrderOption === 'SAME' || order.postSaleOrderOption === 'DIFFERENT') && (
-                    <div className="bg-blue-50/50 dark:bg-blue-950/20 rounded-xl px-2.5 py-2 border border-blue-100/50 dark:border-blue-800/30">
-                        <div className="flex items-center justify-between mb-1">
-                            <span className="text-[7px] font-black text-blue-500 uppercase tracking-widest">SmartLab</span>
-                            <span className={`text-[9px] font-black ${order.smartLabProgress >= 100 ? 'text-emerald-500' : 'text-blue-600'}`}>
-                                {order.smartLabProgress}%
-                            </span>
-                        </div>
-                        <div className="h-1 bg-blue-100/70 dark:bg-blue-900/30 rounded-full overflow-hidden mb-1">
-                            <div 
-                                className={`h-full rounded-full transition-all duration-500 ${order.smartLabProgress >= 100 ? 'bg-emerald-500' : 'bg-blue-500'}`}
-                                style={{ width: `${Math.min(100, order.smartLabProgress)}%` }}
-                            />
-                        </div>
-                        <div className="flex items-center justify-between text-[7.5px] font-semibold text-stone-500 dark:text-stone-400">
-                            <span className="truncate max-w-[120px]">{order.smartLabSector || '—'}</span>
-                            {order.smartLabDays != null && (
-                                <span className="font-bold text-amber-500">{order.smartLabDays}d</span>
-                            )}
-                        </div>
-                    </div>
-                )}
-
-                {/* History Notes list (Timeline feed) */}
-                <div className="bg-stone-50 dark:bg-stone-900/40 rounded-xl p-2.5 border border-stone-100 dark:border-stone-800 space-y-2 max-h-[140px] overflow-y-auto custom-scrollbar">
-                    <p className="text-[7px] font-black text-stone-400 dark:text-stone-500 uppercase tracking-widest border-b border-stone-200/20 pb-1">
-                        Historial de Incidencia
-                    </p>
-                    {notesHistory.length === 0 ? (
-                        <p className="text-[9px] text-stone-400 italic">Sin observaciones registradas.</p>
-                    ) : (
-                        <div className="space-y-1.5 text-[9px] leading-relaxed">
-                            {notesHistory.map((line: string, i: number) => {
-                                const match = line.match(/^\[(.*?)\]:\s*(.*)$/);
-                                if (match) {
-                                    return (
-                                        <div key={i} className="flex flex-col text-stone-600 dark:text-stone-300">
-                                            <span className="text-[7px] font-black text-amber-600 dark:text-amber-500">{match[1]}</span>
-                                            <span className="font-semibold">{match[2]}</span>
-                                        </div>
-                                    );
-                                }
-                                return (
-                                    <div key={i} className="text-stone-500 dark:text-stone-400 font-semibold">
-                                        {line}
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    )}
-                </div>
-            </div>
-
-            {/* Note Quick Add & Actions */}
-            <div className="space-y-2 pt-2 border-t border-stone-100 dark:border-stone-800">
-                <form onSubmit={handleAddNote} className="flex gap-1.5 items-center">
-                    <input
-                        type="text"
-                        placeholder="Comentar..."
-                        value={newNote}
-                        onChange={e => setNewNote(e.target.value)}
-                        disabled={isSavingNote}
-                        className="flex-1 bg-stone-50 dark:bg-stone-900 border border-stone-200/60 dark:border-stone-800 text-[10px] p-2 rounded-xl focus:outline-none focus:ring-1 focus:ring-amber-500 focus:border-amber-500 disabled:opacity-50 dark:text-stone-200"
-                    />
-                    <button
-                        type="submit"
-                        disabled={isSavingNote || !newNote.trim()}
-                        className="px-2.5 py-2 bg-amber-500 hover:bg-amber-600 disabled:opacity-30 text-white rounded-xl text-[10px] font-black transition-all flex-shrink-0"
-                    >
-                        {isSavingNote ? '...' : '+'}
-                    </button>
-                </form>
-
-                <div className="flex items-center justify-between pt-1">
-                    <button
-                        onClick={() => onMove('left')}
-                        disabled={!canMoveLeft}
-                        className="p-1 hover:bg-stone-100 dark:hover:bg-stone-700 text-stone-450 hover:text-stone-700 dark:hover:text-stone-200 disabled:opacity-20 rounded-lg transition-colors flex items-center justify-center"
-                        title="Mover a etapa anterior"
-                    >
-                        <ChevronLeft className="w-4 h-4" />
-                    </button>
-                    <span className="text-[7px] font-black text-stone-450 dark:text-stone-500 uppercase tracking-widest italic select-none">
-                        Mover
-                    </span>
-                    <button
-                        onClick={() => onMove('right')}
-                        disabled={!canMoveRight}
-                        className="p-1 hover:bg-stone-100 dark:hover:bg-stone-700 text-stone-450 hover:text-stone-700 dark:hover:text-stone-200 disabled:opacity-20 rounded-lg transition-colors flex items-center justify-center"
-                        title="Mover a siguiente etapa"
-                    >
-                        <ChevronRight className="w-4 h-4" />
-                    </button>
-                </div>
-            </div>
-        </div>
-    );
-}
 
 export default function VentasPage() {
     const searchParams = useSearchParams();
@@ -254,9 +52,17 @@ export default function VentasPage() {
     const [loading, setLoading] = useState(true);
     const [invoiceOrder, setInvoiceOrder] = useState<Order | null>(null);
     const [expandedDetail, setExpandedDetail] = useState<string | null>(null);
-    const [viewMode, setViewMode] = useState<'VENTAS' | 'POST_VENTA'>('VENTAS');
+    const [viewMode, setViewMode] = useState<'VENTAS' | 'POST_VENTA'>((searchParams.get('mode') as any) || 'VENTAS');
     const [isSyncing, setIsSyncing] = useState(false);
     const [syncResult, setSyncResult] = useState<any>(null);
+
+    // Sync viewMode with URL
+    useEffect(() => {
+        const mode = searchParams.get('mode');
+        if (mode === 'POST_VENTA' || mode === 'VENTAS') {
+            setViewMode(mode);
+        }
+    }, [searchParams]);
 
     const [error, setError] = useState<string | null>(null);
     const [pageSize, setPageSize] = useState(20);
@@ -277,15 +83,15 @@ export default function VentasPage() {
             let rx = order.prescription || {};
             let pdOd = order.labPdOd;
             let pdOi = order.labPdOi;
-            let nearPdOd = order.labNearPdOd;
-            let nearPdOi = order.labNearPdOi;
+            const nearPdOd = order.labNearPdOd;
+            const nearPdOi = order.labNearPdOi;
             let heightOD = order.labHeightOD;
             let heightOI = order.labHeightOI;
             let material = order.labMaterial || '';
             let tratamiento = order.labTreatment || '';
             let color = order.labColor || '';
             let diameter = order.labDiameter || '';
-            let notes = order.labNotes || '';
+            const notes = order.labNotes || '';
 
             if (order.postSaleOrderOption === 'DIFFERENT' && order.postSaleRxData) {
                 try {
@@ -596,7 +402,7 @@ export default function VentasPage() {
 
     useEffect(() => {
         fetchOrders(search);
-    }, [filterLab, filterBalance, filterLaboratory, dateFrom, dateTo]);
+    }, [filterLab, filterBalance, filterLaboratory, dateFrom, dateTo, viewMode]);
 
     useEffect(() => {
         if (orderIdParam) {
@@ -663,7 +469,14 @@ export default function VentasPage() {
             if (loadAll) params.set('nolimit', 'true');
 
             // Apply active filters directly to API request
-            if (filterLab !== 'ALL') params.set('labStatus', filterLab);
+            if (viewMode === 'POST_VENTA') {
+                // In post-sale mode, fetch ALL post-sale orders regardless of lab status
+                params.set('hasPostSale', 'true');
+                params.set('nolimit', 'true');
+                params.set('limit', '9999');
+            } else {
+                if (filterLab !== 'ALL') params.set('labStatus', filterLab);
+            }
             if (filterBalance) params.set('hasBalance', 'true');
             if (dateFrom) params.set('dateFrom', dateFrom);
             if (dateTo) params.set('dateTo', dateTo);
@@ -820,7 +633,9 @@ export default function VentasPage() {
         return orders.filter(o => 
             o.postSaleNotes || 
             o.postSaleOrderOption || 
-            (o.postSaleCost && o.postSaleCost > 0)
+            (o.postSaleCost && o.postSaleCost > 0) ||
+            o.postSaleResponsible ||
+            o.postSaleStatus
         ).filter(o => {
             if (search === '') return true;
             return (o.client?.name || '').toLowerCase().includes(search.toLowerCase()) ||
@@ -1156,15 +971,15 @@ export default function VentasPage() {
                 <div className="flex flex-col sm:flex-row sm:items-center gap-4">
                     <div>
                         <h1 className="text-3xl lg:text-4xl font-black text-stone-800 dark:text-white tracking-tight flex items-center gap-3">
-                            <ShoppingCart className="w-8 h-8 lg:w-9 lg:h-9 text-emerald-500" /> Ventas
+                            <ShoppingCart className={`w-8 h-8 lg:w-9 lg:h-9 ${viewMode === 'POST_VENTA' ? 'text-amber-500' : 'text-emerald-500'}`} /> {viewMode === 'POST_VENTA' ? 'Post Venta' : 'Ventas'}
                         </h1>
-                        <p className="text-stone-400 text-xs lg:text-sm mt-1">Operaciones confirmadas y enviadas a laboratorio</p>
+                        <p className="text-stone-400 text-xs lg:text-sm mt-1">{viewMode === 'POST_VENTA' ? 'Gestión de reclamos, reposiciones y garantías' : 'Operaciones confirmadas y enviadas a laboratorio'}</p>
                     </div>
 
                     {/* View Switcher Pill */}
                     <div className="flex gap-1 p-1 bg-stone-100 dark:bg-stone-850 rounded-full border border-stone-200/50 dark:border-stone-700/50 backdrop-blur-sm self-start sm:self-center">
                         <button
-                            onClick={() => setViewMode('VENTAS')}
+                            onClick={() => { setViewMode('VENTAS'); window.history.replaceState(null, '', '/admin/ventas?mode=VENTAS'); }}
                             className={`py-1.5 px-4 rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${
                                 viewMode === 'VENTAS'
                                     ? 'bg-emerald-500 text-white shadow-md shadow-emerald-500/20'
@@ -1174,7 +989,7 @@ export default function VentasPage() {
                             🛍️ Ventas
                         </button>
                         <button
-                            onClick={() => setViewMode('POST_VENTA')}
+                            onClick={() => { setViewMode('POST_VENTA'); window.history.replaceState(null, '', '/admin/ventas?mode=POST_VENTA'); }}
                             className={`py-1.5 px-4 rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${
                                 viewMode === 'POST_VENTA'
                                     ? 'bg-amber-500 text-white shadow-md shadow-amber-500/20'

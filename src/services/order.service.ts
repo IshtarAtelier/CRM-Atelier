@@ -749,7 +749,7 @@ export class OrderService {
                 // Initialize postSaleStatus if not present
                 if (postSaleStatus !== undefined) {
                     data.postSaleStatus = postSaleStatus;
-                } else if ((postSaleNotes || postSaleOrderOption || postSaleCost) && !currentOrderForPostSale.postSaleStatus) {
+                } else if ((postSaleNotes || postSaleOrderOption || (postSaleCost !== undefined && postSaleCost !== null) || postSaleResponsible) && !currentOrderForPostSale.postSaleStatus) {
                     data.postSaleStatus = 'SENT';
                 }
 
@@ -758,8 +758,9 @@ export class OrderService {
                 // send email notification to admin.
                 const wasPostSaleInitialized = (data.postSaleStatus === 'SENT' && !currentOrderForPostSale.postSaleStatus);
                 const isNewPostSaleNotes = (postSaleNotes && !currentOrderForPostSale.postSaleNotes);
+                const isNewPostSaleCase = wasPostSaleInitialized || isNewPostSaleNotes;
 
-                if (wasPostSaleInitialized || isNewPostSaleNotes) {
+                if (isNewPostSaleCase) {
                     const adminEmail = process.env.ADMIN_EMAIL || 'Pisano.ishtar@gmail.com';
                     const clientName = currentOrderForPostSale.client?.name || 'Cliente';
                     const subject = `⚠️ Nuevo caso de Post-Venta registrado - ${clientName}`;
@@ -925,8 +926,8 @@ export class OrderService {
 
                 // Check: client must have name and phone at minimum
                 const client = existingOrder.client;
-                if (!client?.name || !client?.phone || !client?.dni || !client?.address) {
-                    throw new Error('La ficha del contacto debe estar completa (nombre, teléfono, DNI y dirección obligatorios)');
+                if (!client?.name || !client?.phone) {
+                    throw new Error('La ficha del contacto debe tener al menos nombre y teléfono para generar la venta');
                 }
 
                 // Check: 50% minimum payment

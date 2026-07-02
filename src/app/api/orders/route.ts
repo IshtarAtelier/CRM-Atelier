@@ -275,7 +275,9 @@ export async function GET(request: Request) {
                 OR: [
                     { AND: [ { postSaleNotes: { not: null } }, { postSaleNotes: { not: '' } } ] },
                     { postSaleCost: { gt: 0 } },
-                    { AND: [ { postSaleResponsible: { not: null } }, { postSaleResponsible: { not: '' } } ] }
+                    { AND: [ { postSaleResponsible: { not: null } }, { postSaleResponsible: { not: '' } } ] },
+                    { AND: [ { postSaleOrderOption: { not: null } }, { postSaleOrderOption: { not: '' } } ] },
+                    { AND: [ { postSaleStatus: { not: null } }, { postSaleStatus: { not: '' } } ] }
                 ]
             });
         }
