@@ -1109,22 +1109,99 @@ export default function VentasPage() {
         <main className="p-4 lg:p-8 max-w-7xl mx-auto">
             {/* Header */}
             <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-8">
-                <div>
-                    <h1 className="text-3xl lg:text-4xl font-black text-stone-800 dark:text-white tracking-tight flex items-center gap-3">
-                        <ShoppingCart className="w-8 h-8 lg:w-9 lg:h-9 text-emerald-500" /> Ventas
-                    </h1>
-                    <p className="text-stone-400 text-xs lg:text-sm mt-1">Operaciones confirmadas y enviadas a laboratorio</p>
+                <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+                    <div>
+                        <h1 className="text-3xl lg:text-4xl font-black text-stone-800 dark:text-white tracking-tight flex items-center gap-3">
+                            <ShoppingCart className="w-8 h-8 lg:w-9 lg:h-9 text-emerald-500" /> Ventas
+                        </h1>
+                        <p className="text-stone-400 text-xs lg:text-sm mt-1">Operaciones confirmadas y enviadas a laboratorio</p>
+                    </div>
+
+                    {/* View Switcher Pill */}
+                    <div className="flex gap-1 p-1 bg-stone-100 dark:bg-stone-850 rounded-full border border-stone-200/50 dark:border-stone-700/50 backdrop-blur-sm self-start sm:self-center">
+                        <button
+                            onClick={() => setViewMode('VENTAS')}
+                            className={`py-1.5 px-4 rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${
+                                viewMode === 'VENTAS'
+                                    ? 'bg-emerald-500 text-white shadow-md shadow-emerald-500/20'
+                                    : 'text-stone-400 hover:text-stone-600 dark:hover:text-stone-300'
+                            }`}
+                        >
+                            🛍️ Ventas
+                        </button>
+                        <button
+                            onClick={() => setViewMode('POST_VENTA')}
+                            className={`py-1.5 px-4 rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${
+                                viewMode === 'POST_VENTA'
+                                    ? 'bg-amber-500 text-white shadow-md shadow-amber-500/20'
+                                    : 'text-stone-400 hover:text-stone-600 dark:hover:text-stone-300'
+                            }`}
+                        >
+                            🛡️ Post-Venta ({postSaleOrders.length})
+                        </button>
+                    </div>
                 </div>
-                {isAdmin && (
-                    <div className="text-left md:text-right w-full md:w-auto p-4 bg-emerald-50 dark:bg-emerald-950/20 rounded-2xl md:bg-transparent md:p-0">
-                        <p className="text-2xl lg:text-3xl font-black text-emerald-500">${stats.revenue.toLocaleString()}</p>
-                        <p className="text-[10px] font-black text-stone-400 uppercase tracking-widest">Facturación total</p>
+
+                {viewMode === 'VENTAS' ? (
+                    isAdmin && (
+                        <div className="text-left md:text-right w-full md:w-auto p-4 bg-emerald-50 dark:bg-emerald-950/20 rounded-2xl md:bg-transparent md:p-0">
+                            <p className="text-2xl lg:text-3xl font-black text-emerald-500">${stats.revenue.toLocaleString()}</p>
+                            <p className="text-[10px] font-black text-stone-400 uppercase tracking-widest">Facturación total</p>
+                        </div>
+                    )
+                ) : (
+                    <div className="flex items-center gap-4 w-full md:w-auto justify-between md:justify-end">
+                        <button
+                            onClick={async () => {
+                                setIsSyncing(true);
+                                setSyncResult(null);
+                                try {
+                                    const res = await fetch('/api/smartlab-sync', { method: 'POST' });
+                                    const data = await res.json();
+                                    if (res.ok) {
+                                        setSyncResult(data);
+                                        fetchOrders();
+                                        setTimeout(() => setSyncResult(null), 8000);
+                                    } else {
+                                        alert(`❌ Error sync: ${data.error}`);
+                                    }
+                                } catch (err) {
+                                    alert('❌ Error de red al sincronizar');
+                                } finally {
+                                    setIsSyncing(false);
+                                }
+                            }}
+                            disabled={isSyncing}
+                            className={`px-5 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 transition-all hover:scale-105 active:scale-95 disabled:opacity-50 border-2 ${
+                                isSyncing 
+                                    ? 'bg-blue-55 border-blue-200 text-blue-500'
+                                    : syncResult 
+                                        ? 'bg-emerald-50 border-emerald-200 text-emerald-600' 
+                                        : 'bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900'
+                            }`}
+                            title="Sincronizar estados con SmartLab"
+                        >
+                            {isSyncing ? (
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : syncResult ? (
+                                <CheckCircle2 className="w-4 h-4" />
+                            ) : (
+                                <Factory className="w-4 h-4" />
+                            )}
+                            {isSyncing ? 'Sincronizando...' : syncResult ? `${syncResult.matched} sync · ${syncResult.newlyFinished || 0} nuevos` : 'Sync SmartLab'}
+                        </button>
+                        <div className="text-right">
+                            <p className="text-3xl font-black text-amber-500">{postSaleOrders.length}</p>
+                            <p className="text-[10px] font-black text-stone-400 uppercase tracking-widest">Casos activos</p>
+                        </div>
                     </div>
                 )}
             </div>
 
-            {/* Stats */}
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
+            {viewMode === 'VENTAS' ? (
+                <>
+                    {/* Stats */}
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
                 {[
                     { label: 'Total Ventas', value: stats.total, color: 'bg-stone-900 text-white' },
                     { label: 'Falta Procesar', value: stats.sent, color: 'bg-amber-100 text-amber-600' },
@@ -1798,6 +1875,95 @@ export default function VentasPage() {
                             </button>
                         </div>
                     )}
+                </div>
+            )}
+                </>
+            ) : (
+                <div className="space-y-6">
+                    {/* Search bar for post-sales */}
+                    <div className="relative flex-1 group max-w-lg">
+                        <Search className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-stone-400 group-focus-within:text-amber-500 transition-colors duration-300" />
+                        <input
+                            type="text"
+                            placeholder="Buscar por cliente, id, N° de OP o nota..."
+                            value={search}
+                            onChange={e => setSearch(e.target.value)}
+                            className="w-full pl-14 pr-6 py-4 bg-stone-50/50 dark:bg-stone-800/30 backdrop-blur-md border border-stone-200/50 dark:border-stone-700/50 rounded-full focus:bg-white dark:focus:bg-stone-900 focus:ring-4 focus:ring-amber-500/10 focus:border-amber-500 outline-none transition-all font-medium text-stone-850 dark:text-stone-100 placeholder-stone-400"
+                        />
+                    </div>
+
+                    {/* Kanban Board Container */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 items-start pb-4">
+                        {(() => {
+                            const PIPELINE_COLUMNS = [
+                                { key: 'SENT', label: 'Reportados / Pendientes', color: 'border-amber-400/80 bg-amber-500/10 text-amber-600' },
+                                { key: 'IN_PROGRESS', label: 'En Laboratorio', color: 'border-blue-400/80 bg-blue-500/10 text-blue-600' },
+                                { key: 'FINISHED', label: 'Finalizado (Lab)', color: 'border-fuchsia-400/80 bg-fuchsia-500/10 text-fuchsia-600' },
+                                { key: 'READY', label: 'Listo p/ Retirar', color: 'border-emerald-400/80 bg-emerald-500/10 text-emerald-600' },
+                                { key: 'DELIVERED', label: 'Entregado / Cerrado', color: 'border-indigo-400/80 bg-indigo-500/10 text-indigo-600' }
+                            ];
+
+                            return PIPELINE_COLUMNS.map(column => {
+                                const columnOrders = postSaleOrders.filter(o => {
+                                    const status = o.postSaleStatus || 'SENT';
+                                    return status === column.key;
+                                });
+
+                                return (
+                                    <div 
+                                        key={column.key}
+                                        className={`bg-stone-50/50 dark:bg-stone-900/30 rounded-3xl border-2 ${column.color.split(' ')[0]} p-4 flex flex-col min-h-[500px]`}
+                                    >
+                                        {/* Column Header */}
+                                        <div className="flex items-center justify-between mb-4 border-b border-stone-200/30 dark:border-stone-800 pb-2 flex-shrink-0">
+                                            <h3 className={`text-xs font-black uppercase tracking-wider ${column.color.split(' ')[2]}`}>
+                                                {column.label}
+                                            </h3>
+                                            <span className={`px-2 py-0.5 rounded-lg text-[10px] font-black ${column.color.split(' ')[1]} ${column.color.split(' ')[2]}`}>
+                                                {columnOrders.length}
+                                            </span>
+                                        </div>
+
+                                        {/* Cards Stack */}
+                                        <div className="space-y-3 flex-1 overflow-y-auto max-h-[70vh] pr-1 scrollbar-thin">
+                                            {columnOrders.length === 0 ? (
+                                                <div className="text-center py-12 text-stone-300 dark:text-stone-700 italic text-[10px] font-bold uppercase tracking-wider">
+                                                    Sin casos
+                                                </div>
+                                            ) : (
+                                                columnOrders.map(order => (
+                                                    <PostSaleCard 
+                                                        key={order.id} 
+                                                        order={order} 
+                                                        onRefresh={() => fetchOrders(search)}
+                                                        onMove={(direction) => handleMoveCard(order, direction)}
+                                                        onExpand={() => setExpandedDetail(expandedDetail === order.id ? null : order.id)}
+                                                    />
+                                                ))
+                                            )}
+                                        </div>
+                                    </div>
+                                );
+                            });
+                        })()}
+                    </div>
+
+                    {/* Expandable Order Detail Panel in Post-Venta */}
+                    {expandedDetail && postSaleOrders.some(o => o.id === expandedDetail) && (() => {
+                        const order = orders.find(o => o.id === expandedDetail);
+                        return order && (
+                            <div className="mt-6 border-2 border-amber-200 dark:border-amber-900/50 rounded-2xl p-6 bg-white dark:bg-stone-850">
+                                <OrderDetailPanel 
+                                    order={order as any} 
+                                    context="ventas"
+                                    onAutoSubmit={autoSubmitSmartLab}
+                                    isAutoSubmitting={isAutoSubmitting}
+                                    userRole={userRole}
+                                    onRefresh={() => fetchOrders(search)}
+                                />
+                            </div>
+                        );
+                    })()}
                 </div>
             )}
 

@@ -257,12 +257,22 @@ const handleMessageCreate = async (msg) => {
                     }
                 }
                 
+                let senderNameVal = null;
+                if (isMetaAutoReply) {
+                    senderNameVal = 'Meta (Auto-Reply)';
+                } else if (!isBotReplying && !isSystemReply) {
+                    senderNameVal = 'Humano';
+                } else if (isSystemReply) {
+                    senderNameVal = 'Bot';
+                }
+
                 const createData = {
                     chatId: chat.id,
                     direction: 'OUTBOUND',
                     type: messageType,
                     content: msg.body || '[Media/Documento]',
                     waMessageId: msg.id._serialized,
+                    senderName: senderNameVal,
                 };
                 if (mediaUrl) createData.mediaUrl = mediaUrl;
 

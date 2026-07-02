@@ -239,6 +239,21 @@ const syncRecentChatsAndMessages = async (deps, wc) => {
                         else if (msg.type === 'document') msgType = 'DOCUMENT';
                         else if (msg.hasMedia) msgType = 'IMAGE';
                         
+                        let senderNameValue = null;
+                        if (msg.fromMe) {
+                            const metaAutoPatterns = [
+                                /[¡!]?hola\b.*c[oó]mo podemos ayudarte/i,
+                                /bienvenid[oa]\s*(a\s*)?atelier/i,
+                                /gracias por (contactar|escribir|comunicar|tu mensaje)/i,
+                            ];
+                            const bodyText = msg.body || '';
+                            if (metaAutoPatterns.some(p => p.test(bodyText))) {
+                                senderNameValue = 'Meta (Auto-Reply)';
+                            } else {
+                                senderNameValue = 'Humano (Sincronizado)';
+                            }
+                        }
+
                         dbMsg = await prisma.whatsAppMessage.create({
                             data: {
                                 chatId: dbChat.id,
@@ -246,7 +261,7 @@ const syncRecentChatsAndMessages = async (deps, wc) => {
                                 type: msgType,
                                 content: msg.body || ((msg.hasMedia || ['image', 'video', 'audio', 'ptt', 'document', 'sticker'].includes(msg.type)) ? '[Media/Documento]' : ''),
                                 waMessageId: msg.id._serialized,
-                                senderName: msg.fromMe ? 'Humano (Sincronizado)' : null,
+                                senderName: senderNameValue,
                                 createdAt: new Date(msg.timestamp * 1000)
                             }
                         });
