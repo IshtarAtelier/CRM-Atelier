@@ -137,8 +137,8 @@ export default function ContactDetail({
             setActiveSection('sales');
             fetchContact();
             setTimeout(() => setConvertSuccess(false), 5000);
-        } catch (e) {
-            setConvertError('Error de red al convertir');
+        } catch (e: any) {
+            setConvertError(e.message || 'Error de red al convertir');
         }
     };
 

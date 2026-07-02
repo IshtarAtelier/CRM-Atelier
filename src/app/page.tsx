@@ -55,7 +55,9 @@ export default async function Home() {
   let nuevosProducts: any[] = [];
   let totalCatalogCount: number = 120;
 
-  try {
+  const MAX_RETRIES = 3;
+  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    try {
       dbWebProducts = await prisma.webProduct.findMany({
         where: {
           isActive: true,
@@ -100,8 +102,13 @@ export default async function Home() {
       recetaProducts = dbReceta;
       nuevosProducts = dbNuevos;
       totalCatalogCount = count;
-  } catch (error) {
-    console.error("Prerendering warning: Database not reachable at build time. Using fallbacks.", error);
+      break; // Success — exit retry loop
+    } catch (error) {
+      console.error(`[Home] DB query attempt ${attempt}/${MAX_RETRIES} failed:`, error);
+      if (attempt < MAX_RETRIES) {
+        await new Promise(r => setTimeout(r, 500 * attempt)); // Backoff: 500ms, 1s, 1.5s
+      }
+    }
   }
 
   // Formateamos los productos para el carrusel y evitamos variantes repetidas

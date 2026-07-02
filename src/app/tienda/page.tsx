@@ -1,6 +1,6 @@
 import { prisma } from '@/lib/db';
 import { TiendaClient } from './TiendaClient';
-import { StorefrontFooter } from '@/components/Storefront/StorefrontFooter';
+import { StorefrontFooterStatic } from '@/components/Storefront/StorefrontFooterStatic';
 import { Metadata } from 'next';
 import { getProductAttributes } from '@/utils/product-controllers';
 
@@ -25,23 +25,30 @@ import { Suspense } from 'react';
 export default async function TiendaPage() {
   // We query all active web products to extract distinct filters and then apply filter criteria
   let dbProducts: any[] = [];
-  try {
-    dbProducts = await prisma.webProduct.findMany({
-      where: {
-        isActive: true,
-        product: {
-          publishToWeb: true,
+  const MAX_RETRIES = 3;
+  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      dbProducts = await prisma.webProduct.findMany({
+        where: {
+          isActive: true,
+          product: {
+            publishToWeb: true,
+          }
+        },
+        include: {
+          product: true
+        },
+        orderBy: {
+          createdAt: 'desc'
         }
-      },
-      include: {
-        product: true
-      },
-      orderBy: {
-        createdAt: 'desc'
+      });
+      break; // Success — exit retry loop
+    } catch (error) {
+      console.error(`[Tienda] DB query attempt ${attempt}/${MAX_RETRIES} failed:`, error);
+      if (attempt < MAX_RETRIES) {
+        await new Promise(r => setTimeout(r, 500 * attempt)); // Backoff: 500ms, 1s, 1.5s
       }
-    });
-  } catch (error) {
-    console.error("Prerendering warning: Database not reachable at build time in Tienda page.", error);
+    }
   }
 
   // 1) Extract filter options dynamically from all available active web products
@@ -102,7 +109,7 @@ export default async function TiendaPage() {
         availableBrands={availableBrands}
         availableShapes={availableShapes}
         availableMaterials={availableMaterials}
-        footer={<StorefrontFooter />}
+        footer={<StorefrontFooterStatic />}
       />
     </Suspense>
   );

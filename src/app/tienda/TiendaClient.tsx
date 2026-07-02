@@ -106,6 +106,76 @@ export function TiendaClient({
   const discountRate = webSettings.web_promo_cash_discount / 100;
   // Wholesale product override — refetch from wholesale channel when user is OPTICA
   const [wholesaleProducts, setWholesaleProducts] = useState<any[] | null>(null);
+  // Fallback: if server pre-render returned empty products (DB hiccup during ISR), fetch client-side
+  const [fallbackProducts, setFallbackProducts] = useState<any[] | null>(null);
+  // Track if we're still trying to recover products
+  const [isRecoveringProducts, setIsRecoveringProducts] = useState(
+    !initialProducts || initialProducts.length === 0
+  );
+
+  // ── BULLETPROOF PRODUCT LOADING ──
+  // Layer 1: Server ISR data (initialProducts) — instant, from cache
+  // Layer 2: Client API fetch with retry — recovers from ISR cache miss
+  // Layer 3: localStorage cache — last resort, always has data after first successful load
+
+  // On mount: if server data is good, cache it to localStorage
+  useEffect(() => {
+    if (initialProducts && initialProducts.length > 0 && !isWholesale) {
+      try {
+        localStorage.setItem('atelier_products_cache', JSON.stringify(initialProducts));
+        localStorage.setItem('atelier_products_cache_ts', Date.now().toString());
+      } catch {}
+    }
+  }, [initialProducts, isWholesale]);
+
+  useEffect(() => {
+    if (initialProducts && initialProducts.length > 0) {
+      setIsRecoveringProducts(false);
+      return; // server data is fine, no fallback needed
+    }
+    if (isWholesale) {
+      setIsRecoveringProducts(false);
+      return; // wholesale has its own fetch
+    }
+
+    // Immediately try localStorage cache (instant, no network)
+    try {
+      const cached = localStorage.getItem('atelier_products_cache');
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setFallbackProducts(parsed);
+          // Don't set isRecoveringProducts to false yet — still try fresh API data
+        }
+      }
+    } catch {}
+
+    // Then fetch fresh data from API (with retry)
+    const fetchWithRetry = async (retries = 3) => {
+      for (let i = 0; i < retries; i++) {
+        try {
+          const res = await fetch('/api/store/products');
+          if (!res.ok) throw new Error('API error');
+          const data = await res.json();
+          if (Array.isArray(data) && data.length > 0) {
+            setFallbackProducts(data);
+            // Cache successful fetch
+            try {
+              localStorage.setItem('atelier_products_cache', JSON.stringify(data));
+              localStorage.setItem('atelier_products_cache_ts', Date.now().toString());
+            } catch {}
+            return;
+          }
+        } catch {}
+        // Wait before retry (500ms, 1s, 1.5s)
+        if (i < retries - 1) {
+          await new Promise(r => setTimeout(r, 500 * (i + 1)));
+        }
+      }
+    };
+
+    fetchWithRetry().finally(() => setIsRecoveringProducts(false));
+  }, [initialProducts, isWholesale]);
 
   useEffect(() => {
     if (!isWholesale) {
@@ -120,8 +190,8 @@ export function TiendaClient({
       .catch(() => setWholesaleProducts(null));
   }, [isWholesale]);
 
-  // Use wholesale products if available, otherwise initial (retail) products
-  const products = (isWholesale && wholesaleProducts) ? wholesaleProducts : (initialProducts || []);
+  // Use wholesale products if available, then initial server products, then client-side fallback
+  const products = (isWholesale && wholesaleProducts) ? wholesaleProducts : (initialProducts && initialProducts.length > 0 ? initialProducts : (fallbackProducts || []));
 
   let filtered = activeCategory === "Todo"
     ? products
@@ -370,13 +440,24 @@ export function TiendaClient({
               className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-x-6 gap-y-14"
             >
               {displayedProducts.length === 0 ? (
-                <div className="col-span-full py-20 flex flex-col items-center justify-center text-center">
-                  <p className="text-xl font-serif text-stone-900 mb-2">No encontramos resultados</p>
-                  <p className="text-stone-500 mb-6 max-w-md mx-auto">Intentá ajustar los filtros o explorar otra categoría. Tenemos opciones increíbles esperándote.</p>
-                  <Link href="/tienda" className="bg-black text-white px-8 py-3 text-[11px] font-black uppercase tracking-widest hover:bg-stone-800 transition-colors">
-                    Ver Toda la Colección
-                  </Link>
-                </div>
+                isRecoveringProducts ? (
+                  /* Show skeleton cards while recovering products — never show empty */
+                  <>{Array.from({ length: 8 }).map((_, i) => (
+                    <div key={i} className="col-span-1 animate-pulse">
+                      <div className="bg-stone-200 aspect-square mb-4 rounded" />
+                      <div className="h-3 bg-stone-200 rounded w-3/4 mb-2" />
+                      <div className="h-3 bg-stone-200 rounded w-1/2" />
+                    </div>
+                  ))}</>
+                ) : (
+                  <div className="col-span-full py-20 flex flex-col items-center justify-center text-center">
+                    <p className="text-xl font-serif text-stone-900 mb-2">No encontramos resultados</p>
+                    <p className="text-stone-500 mb-6 max-w-md mx-auto">Intentá ajustar los filtros o explorar otra categoría. Tenemos opciones increíbles esperándote.</p>
+                    <Link href="/tienda" className="bg-black text-white px-8 py-3 text-[11px] font-black uppercase tracking-widest hover:bg-stone-800 transition-colors">
+                      Ver Toda la Colección
+                    </Link>
+                  </div>
+                )
               ) : (
                 displayedProducts.map((p, index) => {
                 const hasSecondImage = p.imagenesCatalogo && p.imagenesCatalogo.length > 1;
@@ -409,41 +490,44 @@ export function TiendaClient({
                         )}
                       </div>
 
-                      {imgUrl ? (
-                        <div className="absolute inset-0 flex items-center justify-center">
-                          <Image unoptimized
-                            src={imgUrl}
-                            alt={`${p.brand} ${p.model}`}
-                            fill
-                            priority={index < 4}
-                            sizes="(max-width: 768px) 50vw, (max-width: 1280px) 33vw, 25vw"
-                            className={`object-contain mix-blend-multiply transition-opacity duration-500 ease-in-out ${
-                              ((p.model || '').toLowerCase().includes('tl3932 c3') || p.id === 'cmq5d11hf002rhy61fhvqs7nj')
-                                ? "scale-125"
-                                : (p.model || '').toLowerCase().includes('diana')
-                                  ? "scale-110"
-                                  : "scale-100"
-                            } ${hasSecondImage ? 'md:group-hover:opacity-0' : ''}`}
-                          />
-                        </div>
-                      ) : (
-                        <div className="absolute inset-0 w-full h-full flex flex-col items-center justify-center gap-2 text-stone-300">
-                          <svg className="w-10 h-10" fill="none" stroke="currentColor" strokeWidth="1" viewBox="0 0 24 24">
-                            <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/>
-                          </svg>
-                          <span className="text-[9px] uppercase tracking-widest">Sin foto</span>
-                        </div>
-                      )}
+                      {/* Contenedor de imágenes con efecto zoom */}
+                      <div className="absolute inset-0 transition-transform duration-700 ease-out md:group-hover:scale-110">
+                        {imgUrl ? (
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            <Image unoptimized
+                              src={imgUrl}
+                              alt={`${p.brand} ${p.model}`}
+                              fill
+                              priority={index < 4}
+                              sizes="(max-width: 768px) 50vw, (max-width: 1280px) 33vw, 25vw"
+                              className={`object-contain mix-blend-multiply transition-opacity duration-500 ease-in-out ${
+                                ((p.model || '').toLowerCase().includes('tl3932 c3') || p.id === 'cmq5d11hf002rhy61fhvqs7nj')
+                                  ? "scale-125"
+                                  : (p.model || '').toLowerCase().includes('diana')
+                                    ? "scale-110"
+                                    : "scale-100"
+                              } ${hasSecondImage ? 'md:group-hover:opacity-0' : ''}`}
+                            />
+                          </div>
+                        ) : (
+                          <div className="absolute inset-0 w-full h-full flex flex-col items-center justify-center gap-2 text-stone-300">
+                            <svg className="w-10 h-10" fill="none" stroke="currentColor" strokeWidth="1" viewBox="0 0 24 24">
+                              <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/>
+                            </svg>
+                            <span className="text-[9px] uppercase tracking-widest">Sin foto</span>
+                          </div>
+                        )}
 
-                      {hasSecondImage && secondImgUrl && (
-                        <Image unoptimized
-                          src={secondImgUrl}
-                          alt={`${p.brand} ${p.model} Try-On`}
-                          fill
-                          sizes="(max-width: 768px) 50vw, (max-width: 1280px) 33vw, 25vw"
-                          className="object-cover opacity-0 md:group-hover:opacity-100 transition-opacity duration-500 ease-in-out"
-                        />
-                      )}
+                        {hasSecondImage && secondImgUrl && (
+                          <Image unoptimized
+                            src={secondImgUrl}
+                            alt={`${p.brand} ${p.model} Try-On`}
+                            fill
+                            sizes="(max-width: 768px) 50vw, (max-width: 1280px) 33vw, 25vw"
+                            className="object-cover opacity-0 md:group-hover:opacity-100 transition-opacity duration-500 ease-in-out"
+                          />
+                        )}
+                      </div>
 
                       {/* Badge categoría */}
                       {p.category && (
