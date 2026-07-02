@@ -723,7 +723,6 @@ async function processBotTurn(chat, waId, profileName, realPhone) {
                             console.error('Error guardando senderName del Bot:', e.message);
                         }
                     }
-                }
                 
                 // Pausa extra entre mensajes si manda más de uno seguido
                 if (i < messageBlocks.length - 1) {
