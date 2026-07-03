@@ -7,6 +7,7 @@
   },
   "scripts": {
     "dev": "next dev",
+    "dev:preview": "NEXT_DIST_DIR=.next-preview next dev -p 3010",
     "build": "npx prisma generate && next build && (PLAYWRIGHT_BROWSERS_PATH=./.playwright-browsers npx playwright install chromium || echo 'Playwright install skipped')",
     "postinstall": "npx playwright install chromium",
     "start": "npx prisma migrate deploy && next start -p ${PORT:-3000} -H 0.0.0.0",

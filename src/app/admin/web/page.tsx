@@ -20,9 +20,11 @@ import {
   Maximize2,
   Copy,
   Grid,
-  List
+  List,
+  Ticket
 } from "lucide-react";
 import Link from "next/link";
+import CouponsManager from '@/components/admin/CouponsManager';
 import { resolveStorageUrl } from '@/lib/utils/storage';
 import { getSelectedShapeFromTags, getSelectedMaterialFromTags, updateTagsWithShapeAndMaterial, getProductAttributes } from '@/utils/product-controllers';
 
@@ -64,7 +66,7 @@ interface BlogPost {
 }
 
 export default function WebManagementPage() {
-  const [activeTab, setActiveTab] = useState<'products' | 'blog' | 'config' | 'flyers'>('products');
+  const [activeTab, setActiveTab] = useState<'products' | 'blog' | 'config' | 'flyers' | 'coupons'>('products');
 
   // Flyer Builder states
   const [flyerTheme, setFlyerTheme] = useState<'cream' | 'obsidian' | 'rose'>('cream');
@@ -824,6 +826,16 @@ export default function WebManagementPage() {
         >
           <Sparkles className="w-4 h-4" /> Creador de Flyers
         </button>
+        <button
+          onClick={() => setActiveTab('coupons')}
+          className={`flex items-center gap-2 px-6 py-3 border-b-2 text-xs font-bold uppercase tracking-widest transition-all ${
+            activeTab === 'coupons'
+              ? 'border-primary text-primary'
+              : 'border-transparent text-stone-400 hover:text-stone-700 dark:hover:text-stone-200'
+          }`}
+        >
+          <Ticket className="w-4 h-4" /> Cupones
+        </button>
       </div>
 
       {/* TAB 1: PRODUCTS LIST */}
@@ -1413,6 +1425,12 @@ export default function WebManagementPage() {
       )}
 
       {/* TAB 4: FLYER GENERATOR & SOCIAL MARKETING */}
+      {activeTab === 'coupons' && (
+        <div className="animate-in fade-in duration-300">
+          <CouponsManager />
+        </div>
+      )}
+
       {activeTab === 'flyers' && (
         <div className="space-y-8 animate-in fade-in duration-300">
           {/* INTRO HERO */}

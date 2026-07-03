@@ -5,6 +5,7 @@ const withBundleAnalyzer = require('@next/bundle-analyzer')({
 });
 
 const nextConfig: NextConfig = {
+  distDir: process.env.NEXT_DIST_DIR || '.next',
   output: process.env.NODE_ENV === 'production' ? 'standalone' : undefined,
   typescript: {
     ignoreBuildErrors: false,

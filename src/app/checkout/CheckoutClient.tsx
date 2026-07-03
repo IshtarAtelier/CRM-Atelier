@@ -9,6 +9,7 @@ import { CheckoutContactForm } from "@/components/checkout/CheckoutContactForm";
 import { CheckoutShippingForm } from "@/components/checkout/CheckoutShippingForm";
 import { CheckoutPaymentOptions } from "@/components/checkout/CheckoutPaymentOptions";
 import { CheckoutSummarySidebar } from "@/components/checkout/CheckoutSummarySidebar";
+import type { AppliedCoupon } from "@/components/checkout/CouponField";
 import { WHATSAPP_PHONE } from "@/lib/constants";
 import { trackInitiateCheckout, trackPurchase } from "@/lib/tracking";
 import { toast } from "sonner";
@@ -30,6 +31,18 @@ export function CheckoutClient({
   const [decidirInstance, setDecidirInstance] = useState<any>(null);
   const [isWholesale, setIsWholesale] = useState(false);
   const [currentUser, setCurrentUser] = useState<any>(null);
+  const [appliedCoupon, setAppliedCoupon] = useState<AppliedCoupon | null>(null);
+
+  // Monto del descuento por cupón, calculado sobre el subtotal actual (solo display;
+  // el backend lo vuelve a validar y calcular al pagar). No aplica a mayoristas.
+  const couponDiscount = (() => {
+    if (!appliedCoupon || isWholesale) return 0;
+    const subtotal = getCartTotal();
+    const raw = appliedCoupon.discountType === 'PERCENT'
+      ? Math.round((subtotal * appliedCoupon.discountValue) / 100)
+      : Math.round(appliedCoupon.discountValue);
+    return Math.max(0, Math.min(raw, Math.round(subtotal)));
+  })();
 
   const initiatedRef = useRef(false);
 
@@ -281,6 +294,7 @@ export function CheckoutClient({
             },
             items: items,
             total: getCartTotal(),
+            couponCode: appliedCoupon?.code || null,
             paymentToken: null
           })
         });
@@ -393,6 +407,7 @@ export function CheckoutClient({
               },
               items: items,
               total: getCartTotal(),
+              couponCode: appliedCoupon?.code || null,
               paymentToken: token,
               bin: bin,
               paymentMethodId: paymentMethodId,
@@ -562,7 +577,16 @@ export function CheckoutClient({
         </div>
 
         {/* DERECHA: Resumen de Compra */}
-        <CheckoutSummarySidebar items={items} getCartTotal={getCartTotal} formData={formData} webSettings={webSettings} isWholesale={isWholesale} />
+        <CheckoutSummarySidebar
+          items={items}
+          getCartTotal={getCartTotal}
+          formData={formData}
+          webSettings={webSettings}
+          isWholesale={isWholesale}
+          appliedCoupon={appliedCoupon}
+          couponDiscount={couponDiscount}
+          onCouponApplied={setAppliedCoupon}
+        />
       </main>
       
       {footer}

@@ -11,6 +11,10 @@ export interface WebSettings {
   web_store_whatsapp_id: string;
   web_promo_installments: string;
   web_promo_cash_discount: number;
+  // Cupón de recuperación de carrito abandonado (se muestra en el email de las 24hs).
+  // El código debe coincidir con el que valida el motor de cupones del checkout.
+  web_recovery_coupon_code: string;
+  web_recovery_coupon_percent: number;
 }
 
 export const defaultWebSettings: WebSettings = {
@@ -24,6 +28,8 @@ export const defaultWebSettings: WebSettings = {
   web_store_whatsapp_id: "5493541215971",
   web_promo_installments: "6 cuotas sin interés",
   web_promo_cash_discount: 15,
+  web_recovery_coupon_code: "",
+  web_recovery_coupon_percent: 0,
 };
 
 export async function getWebSettings(): Promise<WebSettings> {

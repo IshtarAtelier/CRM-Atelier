@@ -278,6 +278,25 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Discrepancia de precio detectada. Por favor, reintente." }, { status: 400 });
     }
 
+    // Validar y aplicar CUPÓN (server-side = fuente de verdad). El descuento del
+    // cupón se resta del subtotal ANTES del descuento por método de pago (se acumulan).
+    // Los pedidos mayoristas no aceptan cupones.
+    let couponDiscount = 0;
+    let appliedCouponCode: string | null = null;
+    if (body.couponCode && !customer.paymentMethod.includes('MAYORISTA')) {
+      const { validateCoupon } = await import('@/lib/coupons');
+      const couponResult = await validateCoupon(body.couponCode, recalculatedItemsTotal);
+      if (!couponResult.valid) {
+        return NextResponse.json({ error: couponResult.reason || 'Cupón inválido.' }, { status: 400 });
+      }
+      couponDiscount = couponResult.discountAmount;
+      appliedCouponCode = couponResult.coupon!.code;
+      console.log(`[PAYWAY CHECKOUT] Cupón ${appliedCouponCode} aplicado: -$${couponDiscount}`);
+    }
+
+    // Subtotal ya con el descuento del cupón (sobre esto se aplica luego el % por método de pago)
+    const finalItemsTotal = Math.max(0, recalculatedItemsTotal - couponDiscount);
+
     // 1. Encontrar o crear cliente
     const normalizedPhone = normalizeArgentinePhone(customer.phone);
     
@@ -485,8 +504,10 @@ export async function POST(req: Request) {
           userId: systemUser.id,
           status: "WEB_PENDING",
           orderType: customer.paymentMethod.includes('MAYORISTA') ? "MAYORISTA" : "SALE",
-          total: customer.paymentMethod === 'TRANSFER' ? recalculatedItemsTotal * transferMultiplier : recalculatedItemsTotal,
-          labNotes: `Método de envío: ${shippingMethodLabel}${customer.shippingBranch ? ` (Sucursal: ${customer.shippingBranch})` : ''}. Método de pago: ${customer.paymentMethod}. Dirección: ${customer.address}, ${customer.city}, ${customer.state} ${customer.zip}`,
+          total: customer.paymentMethod === 'TRANSFER' ? finalItemsTotal * transferMultiplier : finalItemsTotal,
+          appliedPromoName: appliedCouponCode ? `Cupón ${appliedCouponCode}` : undefined,
+          appliedPromoDiscount: couponDiscount > 0 ? couponDiscount : undefined,
+          labNotes: `Método de envío: ${shippingMethodLabel}${customer.shippingBranch ? ` (Sucursal: ${customer.shippingBranch})` : ''}. Método de pago: ${customer.paymentMethod}. Dirección: ${customer.address}, ${customer.city}, ${customer.state} ${customer.zip}${appliedCouponCode ? `. Cupón: ${appliedCouponCode} (-$${couponDiscount})` : ''}`,
           items: {
             create: orderItemsToCreate
           }
@@ -501,7 +522,7 @@ export async function POST(req: Request) {
 
     // 4. Enviar email de confirmación (asincrónico, usando sendEmail centralizado)
     const isTransfer = customer.paymentMethod === 'TRANSFER';
-    const emailTotal = isTransfer ? recalculatedItemsTotal * transferMultiplier : recalculatedItemsTotal;
+    const emailTotal = isTransfer ? finalItemsTotal * transferMultiplier : finalItemsTotal;
     const hasCrystals = sanitizedItems.some((item: any) => item.lensConfig && (item.lensConfig.lensType !== "NONE" || item.lensConfig.color));
 
     const itemsHtml = sanitizedItems.map((item: any) => `
@@ -565,6 +586,11 @@ export async function POST(req: Request) {
           console.error("Error creando notificación de venta web:", notifErr);
         }
 
+        if (appliedCouponCode) {
+          const { incrementCouponUsage } = await import('@/lib/coupons');
+          await incrementCouponUsage(appliedCouponCode);
+        }
+
         return NextResponse.json({
           success: true,
           message: "Orden de transferencia generada",
@@ -621,7 +647,8 @@ export async function POST(req: Request) {
       : 'https://developers.decidir.com/api/v2/payments';
 
     // PayWay/Decidir API requires amount in CENTS (integer, multiply by 100)
-    const amountInCents = Math.round(total * 100);
+    // Cobramos el total con el cupón ya aplicado (la tarjeta no tiene descuento por método de pago).
+    const amountInCents = Math.round(finalItemsTotal * 100);
 
     const paywayRequest = {
       site_transaction_id: `WEB-${order.id}`,
@@ -742,7 +769,7 @@ export async function POST(req: Request) {
         where: { id: order.id },
         data: {
           status: "WEB_PAID",
-          paid: total
+          paid: finalItemsTotal
         }
       });
 
@@ -750,7 +777,7 @@ export async function POST(req: Request) {
       await tx.payment.create({
         data: {
           orderId: order.id,
-          amount: total,
+          amount: finalItemsTotal,
           method: "TARJETA",
           notes: `Pago aprobado por Payway. Transacción ID: ${paywayData.id}`
         }
@@ -760,7 +787,7 @@ export async function POST(req: Request) {
       await tx.notification.create({
         data: {
           type: "INVOICE_REQUEST",
-          message: `Factura solicitada automáticamente para la Venta #${order.id.slice(-4).toUpperCase()} por un total de $${total.toLocaleString('es-AR')}`,
+          message: `Factura solicitada automáticamente para la Venta #${order.id.slice(-4).toUpperCase()} por un total de $${finalItemsTotal.toLocaleString('es-AR')}`,
           orderId: order.id,
           requestedBy: "Sistema (Payway)",
           status: "PENDING"
@@ -771,13 +798,19 @@ export async function POST(req: Request) {
       await tx.notification.create({
         data: {
           type: "WEB_SALE",
-          message: `Nueva Venta Web #${order.id.slice(-4).toUpperCase()} de ${customer.firstName} ${customer.lastName} por $${total.toLocaleString('es-AR')} (Tarjeta - PAGADA vía Payway). Revisar y confirmar en Ventas.`,
+          message: `Nueva Venta Web #${order.id.slice(-4).toUpperCase()} de ${customer.firstName} ${customer.lastName} por $${finalItemsTotal.toLocaleString('es-AR')} (Tarjeta - PAGADA vía Payway). Revisar y confirmar en Ventas.`,
           orderId: order.id,
           requestedBy: "Sistema (Web)",
           status: "PENDING"
         }
       });
     });
+
+    // Pago con tarjeta aprobado: contar el uso del cupón
+    if (appliedCouponCode) {
+      const { incrementCouponUsage } = await import('@/lib/coupons');
+      await incrementCouponUsage(appliedCouponCode);
+    }
 
     try {
       const updatedOrder = await prisma.order.findUnique({

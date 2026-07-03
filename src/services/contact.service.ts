@@ -7,11 +7,12 @@ import { sendEmail } from '@/lib/email';
 import { fetchWa, getAdminChatId } from '@/lib/wa-config';
 
 
-// Estados de laboratorio que significan que el pedido ya salió a fábrica.
-// Una vez enviada/procesada la orden, la receta queda congelada: editarla en el
-// lugar alteraría lo que fábrica ya recibió. Para cambiar la graduación hay que
-// usar el flujo de Post-Venta / Reproceso (con nuevo número de OP).
-const LAB_SENT_STATUSES = ['SENT', 'IN_PROGRESS', 'FINISHED', 'READY', 'DELIVERED'];
+// Estados de laboratorio en los que el pedido ya está EN PROCESO de fabricación
+// (o más avanzado). A partir de "Procesado" la receta queda congelada: cambiarla
+// en el lugar alteraría lo que fábrica ya está produciendo. Solo un ADMIN puede
+// autorizar el cambio; de lo contrario hay que manejarlo como Post-Venta / Reproceso.
+// (Nota: 'SENT' = "Falta procesar" NO bloquea; todavía se puede corregir.)
+const LAB_PROCESSED_STATUSES = ['IN_PROGRESS', 'FINISHED', 'READY', 'DELIVERED'];
 const LAB_STATUS_LABELS: Record<string, string> = {
     SENT: 'Falta procesar',
     IN_PROGRESS: 'Procesado',
@@ -1152,12 +1153,16 @@ export const ContactService = {
         });
     },
 
-    async _assertPrescriptionEditable(presId: string) {
+    async _assertPrescriptionEditable(presId: string, role?: string | null) {
+        // El ADMIN puede modificar la receta aunque el pedido esté procesado:
+        // su acción ES la autorización requerida.
+        if (role === 'ADMIN') return;
+
         const lockedOrder = await prisma.order.findFirst({
             where: {
                 prescriptionId: presId,
                 isDeleted: false,
-                labStatus: { in: LAB_SENT_STATUSES },
+                labStatus: { in: LAB_PROCESSED_STATUSES },
             },
             select: { id: true, labStatus: true, labOrderNumber: true },
             orderBy: { labSentAt: 'desc' },
@@ -1166,16 +1171,16 @@ export const ContactService = {
             const label = LAB_STATUS_LABELS[lockedOrder.labStatus || ''] || lockedOrder.labStatus;
             const opRef = lockedOrder.labOrderNumber ? ` (OP ${lockedOrder.labOrderNumber})` : '';
             const err: any = new Error(
-                `No se puede modificar la receta: el pedido ya fue enviado a fábrica${opRef} y está en estado "${label}". ` +
-                `Para cambiar la graduación usá el flujo de Post-Venta / Reproceso.`
+                `No se puede modificar la receta: el pedido ya está en fábrica${opRef} (estado "${label}"). ` +
+                `Se requiere autorización del administrador. Si corresponde un cambio, manejalo como caso de Post-Venta / Reproceso.`
             );
             err.code = 'PRESCRIPTION_LOCKED';
             throw err;
         }
     },
 
-    async updatePrescription(presId: string, data: any) {
-        await this._assertPrescriptionEditable(presId);
+    async updatePrescription(presId: string, data: any, role?: string | null) {
+        await this._assertPrescriptionEditable(presId, role);
         const transposed = this._transposePrescription(data);
         const isNear = data.prescriptionType === 'NEAR';
         return await prisma.prescription.update({
@@ -1208,8 +1213,8 @@ export const ContactService = {
         });
     },
 
-    async deletePrescription(presId: string) {
-        await this._assertPrescriptionEditable(presId);
+    async deletePrescription(presId: string, role?: string | null) {
+        await this._assertPrescriptionEditable(presId, role);
         return await prisma.prescription.delete({
             where: { id: presId }
         });

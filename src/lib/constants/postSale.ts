@@ -14,6 +14,12 @@ export const POST_SALE_CASE_TYPES = [
 
 export type PostSaleCaseType = typeof POST_SALE_CASE_TYPES[number];
 
+// Atribución de responsabilidad: ¿de quién fue el error?
+export const POST_SALE_FAULTS = ['Laboratorio', 'Óptica', 'Cliente', 'Médico'] as const;
+
+// Cobertura del caso: ¿lo cubre la óptica o va con cargo al cliente?
+export const POST_SALE_COVERAGE = ['Sin cargo', 'Con cargo'] as const;
+
 // Color de badge por tipo (clases Tailwind). Fallback para tipos no listados.
 export const POST_SALE_CASE_TYPE_STYLES: Record<string, string> = {
     'Cambio de receta': 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-900/40',

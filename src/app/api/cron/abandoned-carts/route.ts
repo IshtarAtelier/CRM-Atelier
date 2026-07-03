@@ -1,89 +1,68 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { fetchWa } from '@/lib/wa-config';
+import { sendRecoveryEmailForSession } from '@/lib/checkout/recovery';
 
 // To verify Vercel Cron trigger
 const CRON_SECRET = process.env.CRON_SECRET || 'atelier-cron-secret-key-2026';
 
+/**
+ * Recuperación de carritos abandonados (SOLO tienda, por email).
+ * A las ~24hs de la última actividad, si el carrito sigue sin comprarse, se envía
+ * el email de recuperación con el cupón (si está configurado en los ajustes de la web).
+ * El candado dentro de sendRecoveryEmailForSession evita mandar a quien ya compró.
+ * Se envía una sola vez (la sesión pasa a EMAIL_SENT).
+ */
 export async function GET(request: Request) {
   try {
     const authHeader = request.headers.get('authorization');
-    // Si viene de Vercel Cron
     if (authHeader !== `Bearer ${CRON_SECRET}` && !request.url.includes('localhost')) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const now = new Date();
-    // 2 hours ago
-    const twoHoursAgo = new Date(now.getTime() - 2 * 60 * 60 * 1000);
-    // 24 hours ago (so we don't message very old carts from days ago)
-    const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+    const now = Date.now();
+    const twentyFourHoursAgo = new Date(now - 24 * 60 * 60 * 1000);
+    // Piso: no perseguir carritos de hace más de 3 días
+    const threeDaysAgo = new Date(now - 72 * 60 * 60 * 1000);
 
     const abandonedSessions = await prisma.checkoutSession.findMany({
       where: {
         status: 'PENDING',
         updatedAt: {
-          lte: twoHoursAgo,
-          gte: twentyFourHoursAgo
+          lte: twentyFourHoursAgo,
+          gte: threeDaysAgo
         },
-        phone: {
+        email: {
           not: null,
           notIn: ['']
         }
       }
     });
 
-    let sentCount = 0;
+    let sent = 0;
+    let skippedPurchased = 0;
+    let failed = 0;
 
     for (const session of abandonedSessions) {
-      if (!session.phone) continue;
-
-      let waPhone = session.phone.replace(/\D/g, '');
-      // Strip international prefix if present
-      if (waPhone.startsWith('549')) waPhone = waPhone.substring(3);
-      else if (waPhone.startsWith('54')) waPhone = waPhone.substring(2);
-      // Strip leading local trunk prefix
-      if (waPhone.startsWith('0')) waPhone = waPhone.substring(1);
-      // Remove embedded mobile prefix '15' after area code
-      if (waPhone.length > 10) {
-        const match15 = waPhone.match(/^([1-3]\d{1,3})15(\d{6,8})$/);
-        if (match15) waPhone = match15[1] + match15[2];
-      }
-      waPhone = '549' + waPhone;
-
-      // Ensure proper waId format
-      const waId = `${waPhone}@c.us`;
-
-      const messageText = `¡Hola ${session.firstName || 'ahí'}! Vimos que dejaste unos anteojos en tu carrito en Atelier Óptica 😎 ¿Tuviste algún problema con el pago o necesitás ayuda con los cristales? Avisanos y te asesoramos.\n\nPara que puedas cerrar tu compra hoy, te dejo un *cupón de 5% de descuento extra* usando el código: *CUPON5* 🎁`;
-
       try {
-        console.log(`[Cron Abandoned Cart] Sending message to ${waPhone} for session ${session.id}`);
-        const res = await fetchWa('/api/send', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            chatId: waId,
-            message: messageText
-          })
-        });
-
-        if (res.ok) {
-          // Mark as ABANDONED so we don't message them again
-          await prisma.checkoutSession.update({
-            where: { id: session.id },
-            data: { status: 'ABANDONED' }
-          });
-          sentCount++;
-        } else {
-          console.error(`[Cron Abandoned Cart] wa-service error for ${waPhone}:`, await res.text());
-        }
+        const result = await sendRecoveryEmailForSession(session);
+        if (result.sent) sent++;
+        else if (result.skipped === 'purchased') skippedPurchased++;
+        else failed++;
       } catch (err: any) {
-        console.error(`[Cron Abandoned Cart] Error sending to ${waPhone}:`, err.message);
+        console.error(`[Cron Abandoned Cart] Error en sesión ${session.id}:`, err.message);
+        failed++;
       }
     }
 
-    return NextResponse.json({ success: true, processed: abandonedSessions.length, sent: sentCount });
+    console.log(`[Cron Abandoned Cart] ${sent} emails enviados, ${skippedPurchased} omitidos (ya compró), ${failed} fallidos de ${abandonedSessions.length}`);
 
+    return NextResponse.json({
+      success: true,
+      processed: abandonedSessions.length,
+      sent,
+      skippedPurchased,
+      failed
+    });
   } catch (error: any) {
     console.error('[Cron Abandoned Cart] Error:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
