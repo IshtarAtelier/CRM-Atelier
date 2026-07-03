@@ -116,12 +116,17 @@ export function FilmmakerReel({ reviewCount = 642, rating = 5.0 }: FilmmakerReel
       <div className="absolute top-0 left-0 right-0 h-[6%] bg-black z-20" />
       <div className="absolute bottom-0 left-0 right-0 h-[6%] bg-black z-20" />
 
-      {/* ─── PRELOAD ALL IMAGES ─── */}
-      <div className="absolute opacity-0 pointer-events-none w-px h-px overflow-hidden" aria-hidden="true">
-        {FRAMES.map(f => (
-          <Image key={f.id + "-preload"} src={f.src} alt="preload" width={10} height={10} priority />
-        ))}
-      </div>
+      {/* ─── PRELOAD DE LOS DEMÁS FRAMES (solo tras interacción) ─── */}
+      {/* El 1er frame ya carga con priority en el hero de abajo. Los frames 2-5 se
+          precargan SOLO después de que el visitante interactúa (armed): así no compiten
+          con el primer pintado en móvil 4G (antes precargábamos los 5 → FCP lento). */}
+      {armed && (
+        <div className="absolute opacity-0 pointer-events-none w-px h-px overflow-hidden" aria-hidden="true">
+          {FRAMES.map(f => (
+            <Image key={f.id + "-preload"} src={f.src} alt="" width={10} height={10} priority />
+          ))}
+        </div>
+      )}
 
       {/* ─── IMAGES ─── */}
       {/* initial={false}: el primer frame sale visible desde el SSR (sin esperar
