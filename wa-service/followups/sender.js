@@ -96,9 +96,21 @@ async function sendFollowUp({ waId, text, chatId, label, clientName, followUpTyp
 
         const msgSerializedId = sent?.id?._serialized || `followup_${Date.now()}`;
 
-        // 6. Guardar en DB (siempre en el chat original, no en el test)
-        await prisma.whatsAppMessage.create({
-            data: {
+        // Registrar el ID como mensaje del bot para que handleMessageCreate lo ignore
+        // (si no, el listener de salientes lo puede tratar como intervención humana)
+        if (sent?.id?._serialized) {
+            if (!global.botMessageIds) global.botMessageIds = new Set();
+            global.botMessageIds.add(sent.id._serialized);
+            setTimeout(() => global.botMessageIds.delete(sent.id._serialized), 10 * 60 * 1000);
+        }
+
+        // 6. Guardar en DB (siempre en el chat original, no en el test).
+        // Upsert: si el listener de salientes ya lo registró, forzamos senderName 'Bot'
+        // para que en el CRM figure como seguimiento del bot y no como "Teléfono".
+        await prisma.whatsAppMessage.upsert({
+            where: { waMessageId: msgSerializedId },
+            update: { senderName: 'Bot' },
+            create: {
                 chatId: chatId,
                 direction: 'OUTBOUND',
                 type: 'TEXT',

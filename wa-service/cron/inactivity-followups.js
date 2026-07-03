@@ -10,8 +10,9 @@ const { prisma } = require('../db');
 const { sendMessage, sendTypingState } = require('../whatsapp/client');
 const { isBusinessHours } = require('../shared/business-hours');
 const { ALL_FOLLOWUP_LABELS } = require('../followups/config');
+const { generateFollowUpMessage } = require('../followups/message-generator');
 
-// Pool de 5 variantes para follow-up de inactividad (evita texto idéntico y firma repetitiva)
+// Pool de variantes de RESPALDO: solo se usa si la generación personalizada falla
 const FOLLOW_UP_TEXT_VARIANTS = [
     "Hola! Te escribo para saber si te quedó alguna duda o si querés que sigamos viendo opciones 😊",
     "Buenas! Cómo estás? Te escribo para ver si pudiste revisar la info y si te quedó alguna consulta sobre los armazones o lentes 👍",
@@ -101,13 +102,51 @@ async function checkAndSendInactivityFollowUps({ isAgentEnabled, botReplyingTo, 
                 
                 try {
                     botReplyingTo.add(chat.waId);
+
+                    // Generar un mensaje 100% personalizado que retome la charla donde quedó
+                    let selectedText = null;
+                    try {
+                        const recentMessages = await prisma.whatsAppMessage.findMany({
+                            where: { chatId: chat.id },
+                            orderBy: { createdAt: 'desc' },
+                            take: 10
+                        });
+                        const generated = await generateFollowUpMessage({
+                            client: { name: chat.profileName || 'Cliente' },
+                            chat,
+                            quote: null,
+                            followUpType: 'INACTIVIDAD',
+                            recentMessages
+                        });
+                        selectedText = generated.text;
+                    } catch (genErr) {
+                        console.warn(`  ⚠️ [Follow-Up] Falló generación personalizada para ${chat.profileName || chat.waId}: ${genErr.message}`);
+                    }
+
+                    // Respaldo: variante del pool (evitando repetir una ya enviada en este chat)
+                    if (!selectedText) {
+                        const previousContents = (await prisma.whatsAppMessage.findMany({
+                            where: { chatId: chat.id, direction: 'OUTBOUND' },
+                            orderBy: { createdAt: 'desc' },
+                            take: 15
+                        })).map(m => m.content);
+                        const unused = FOLLOW_UP_TEXT_VARIANTS.filter(v => !previousContents.includes(v));
+                        const pool = unused.length > 0 ? unused : FOLLOW_UP_TEXT_VARIANTS;
+                        selectedText = pool[Math.floor(Math.random() * pool.length)];
+                    }
+
                     await sendTypingState(chat.waId);
                     await new Promise(r => setTimeout(r, 2000));
-                    
-                    // Selección aleatoria del pool de variantes
-                    const selectedText = FOLLOW_UP_TEXT_VARIANTS[Math.floor(Math.random() * FOLLOW_UP_TEXT_VARIANTS.length)];
+
                     const sent = await sendMessage(chat.waId, selectedText, null, { isProactive: true });
-                    
+
+                    // Registrar como mensaje del bot para que el listener de salientes lo ignore
+                    if (sent && sent.id && sent.id._serialized) {
+                        if (!global.botMessageIds) global.botMessageIds = new Set();
+                        global.botMessageIds.add(sent.id._serialized);
+                        setTimeout(() => global.botMessageIds.delete(sent.id._serialized), 10 * 60 * 1000);
+                    }
+
                     if (sent && sent.id && sent.id._serialized) {
                         await prisma.whatsAppMessage.upsert({
                             where: { waMessageId: sent.id._serialized },
