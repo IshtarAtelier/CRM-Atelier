@@ -104,6 +104,98 @@ export function getClientItemsHtml(items: any[]) {
   `).join('');
 }
 
+export function getAbandonedCartHtml(
+  firstName: string,
+  itemsHtml: string,
+  total: number,
+  ctaUrl: string,
+  coupon?: { code: string; label: string }
+) {
+  const couponBlock = coupon ? `
+    <tr>
+      <td style="padding: 36px 40px 0;">
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#14120c" style="background-color: #14120c; border: 1px solid ${GOLD};">
+          <tr>
+            <td align="center" style="padding: 30px 26px;">
+              <p style="margin: 0; font-family: ${SANS}; font-size: 11px; font-weight: bold; letter-spacing: 5px; text-transform: uppercase; color: ${GOLD};">Un regalo para que la retomes</p>
+              <p style="margin: 12px 0 0; font-family: ${SERIF}; font-size: 34px; color: ${IVORY};">${coupon.label}</p>
+              <p style="margin: 16px 0 6px; font-family: ${SANS}; font-size: 12px; letter-spacing: 2px; text-transform: uppercase; color: ${MUTED};">Tu c&oacute;digo</p>
+              <p style="margin: 0;">
+                <span style="display: inline-block; padding: 12px 30px; background-color: ${GOLD}; font-family: 'Courier New', monospace; font-size: 22px; font-weight: bold; letter-spacing: 4px; color: #000000;">${coupon.code}</span>
+              </p>
+              <p style="margin: 16px 0 0; font-family: ${SANS}; font-size: 12px; line-height: 1.7; color: #8f897c;">Aplic&aacute; el c&oacute;digo al finalizar tu compra.</p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  ` : '';
+
+  return emailShell(`
+    <tr>
+      <td align="center" style="padding: 40px 40px 0;">
+        <p style="margin: 0; font-family: ${SANS}; font-size: 13px; font-weight: bold; letter-spacing: 6px; text-transform: uppercase; color: ${GOLD};">Tu carrito te espera</p>
+        <h1 style="margin: 20px 0 0; font-family: ${SERIF}; font-size: 38px; font-weight: normal; line-height: 1.2; color: ${IVORY};">Lo perfecto no se apura, ${firstName}.</h1>
+        <p style="margin: 14px 0 0; font-family: ${SERIF}; font-size: 19px; font-style: italic; color: ${GOLD_SOFT};">Te guardamos tu selecci&oacute;n.</p>
+        <p style="margin: 18px 0 0; font-family: ${SANS}; font-size: 14px; line-height: 1.9; color: ${MUTED};">
+          Encontrar el anteojo justo lleva su tiempo.<br/>
+          Lo tuyo sigue reservado, esper&aacute;ndote donde lo dejaste.
+        </p>
+      </td>
+    </tr>
+    <tr>
+      <td style="padding: 40px 40px 0;">
+        <p style="margin: 0 0 4px; font-family: ${SANS}; font-size: 11px; font-weight: bold; letter-spacing: 4px; text-transform: uppercase; color: ${GOLD};">Tu selecci&oacute;n</p>
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-top: 1px solid ${HAIRLINE};">${itemsHtml}</table>
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="${GOLD}" style="background-color: ${GOLD}; margin-top: 24px;">
+          <tr>
+            <td style="padding: 16px 24px; font-family: ${SANS}; font-size: 13px; font-weight: bold; letter-spacing: 4px; text-transform: uppercase; color: #000000;">Total</td>
+            <td style="padding: 16px 24px; text-align: right; font-family: ${SERIF}; font-size: 28px; color: #000000;">$${total.toLocaleString('es-AR')}</td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+    ${couponBlock}
+    <tr>
+      <td align="center" style="padding: 36px 40px 0;">
+        <table cellpadding="0" cellspacing="0" border="0" align="center" style="margin: 0 auto;">
+          <tr>
+            <td bgcolor="${GOLD}" style="border-radius: 2px; box-shadow: 0 0 24px rgba(201,162,39,0.35);">
+              <a href="${ctaUrl}" target="_blank"
+                 style="display: inline-block; padding: 18px 48px; font-family: ${SANS}; font-size: 14px; font-weight: bold; letter-spacing: 3px; text-transform: uppercase; color: #000000; text-decoration: none;">
+                Completar mi compra
+              </a>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+    <tr>
+      <td style="padding: 36px 40px 0;">
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#14120c" style="background-color: #14120c; border-left: 3px solid ${GOLD};">
+          <tr>
+            <td style="padding: 22px 26px; font-family: ${SANS}; font-size: 13px; line-height: 2.2; color: #d8d2c4;">
+              <span style="color: ${GOLD};">&#10022;</span>&nbsp; 6 cuotas sin inter&eacute;s con tarjeta<br/>
+              <span style="color: ${GOLD};">&#10022;</span>&nbsp; 15% OFF pagando por transferencia<br/>
+              <span style="color: ${GOLD};">&#10022;</span>&nbsp; Env&iacute;o gratis a todo el pa&iacute;s<br/>
+              <span style="color: ${GOLD};">&#10022;</span>&nbsp; Garant&iacute;a oficial en todos los armazones
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+    <tr>
+      <td align="center" style="padding: 40px 40px 44px;">
+        <h2 style="margin: 0; font-family: ${SERIF}; font-size: 26px; font-weight: normal; color: ${IVORY};">&iquest;Te qued&oacute; alguna duda?</h2>
+        <p style="margin: 12px 0 26px; font-family: ${SANS}; font-size: 14px; line-height: 1.8; color: ${MUTED};">
+          Cristales, graduaci&oacute;n, calce, env&iacute;os — lo que sea, te asesoramos.
+        </p>
+        ${whatsappButton('Escribinos por WhatsApp', 'Hola Atelier! Estaba por comprar en la web y me quedó una duda.')}
+      </td>
+    </tr>
+  `);
+}
+
 export function getConfirmationHtml(customer: any, orderId: string, emailTotal: number, shippingMethodLabel: string, hasCrystals: boolean, itemsHtml: string) {
   const shortId = orderId.slice(-4).toUpperCase();
   return emailShell(`
