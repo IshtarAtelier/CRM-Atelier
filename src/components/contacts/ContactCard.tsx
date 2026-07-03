@@ -25,6 +25,14 @@ export const ContactCard: React.FC<ContactCardProps> = ({
     onDeleteContact,
     onRegisterVisit
 }) => {
+    // Sin atender: contacto sin presupuesto armado y sin venta → requiere atención.
+    // Se gradúa por antigüedad para no llenar de rojo lo recién ingresado:
+    //   < 48h → pendiente (ámbar, sin parpadeo) · ≥ 48h → urgente (rojo, parpadea)
+    const needsAttention = !contact.hasQuote && !contact.hasSales;
+    const attentionDays = needsAttention
+        ? Math.floor((Date.now() - new Date(contact.createdAt).getTime()) / 86_400_000)
+        : 0;
+    const attentionOverdue = attentionDays >= 2;
     return (
         <div
             onClick={() => onClick(contact.id)}
@@ -64,6 +72,18 @@ export const ContactCard: React.FC<ContactCardProps> = ({
                             <CheckCircle2 className="w-3 h-3" />
                         </div>
                     )}
+                    {needsAttention && (
+                        <div
+                            className={`absolute -bottom-1 -left-1 p-1 text-white rounded-full shadow-md border-2 border-white dark:border-stone-800 ${
+                                attentionOverdue ? 'bg-red-500 animate-pulse' : 'bg-amber-500'
+                            }`}
+                            title={attentionOverdue
+                                ? `Sin presupuesto hace ${attentionDays} días — requiere atención`
+                                : 'Sin presupuesto armado — pendiente'}
+                        >
+                            <AlertTriangle className="w-3 h-3" />
+                        </div>
+                    )}
                 </div>
 
                 <div className="flex-1 space-y-1 overflow-hidden">
@@ -81,6 +101,19 @@ export const ContactCard: React.FC<ContactCardProps> = ({
                                     contact.status === 'CONFIRMED' ? 'Confirmado' :
                                         'Cerrado'}
                             </span>
+                            {needsAttention && (
+                                <span
+                                    className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest ${
+                                        attentionOverdue
+                                            ? 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400'
+                                            : 'bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400'
+                                    }`}
+                                    title={attentionOverdue ? `Sin atender hace ${attentionDays} días` : 'Sin presupuesto armado'}
+                                >
+                                    <AlertTriangle className="w-2.5 h-2.5" />
+                                    {attentionOverdue ? `Sin atender · ${attentionDays}d` : 'Sin presupuesto'}
+                                </span>
+                            )}
                         </div>
                         <div role="button" tabIndex={0} className="flex gap-0.5" onClick={(e) => e.stopPropagation()}>
                             {[1, 2, 3, 4, 5].map((star) => (

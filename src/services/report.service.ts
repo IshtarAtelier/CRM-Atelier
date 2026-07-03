@@ -122,6 +122,17 @@ export class ReportService {
         const labs = await prisma.laboratoryConfig.findMany();
         const labMap = new Map(labs.map(l => [l.name.toUpperCase(), l]));
 
+        // Contactos atendidos: nuevos contactos ingresados al CRM en el período
+        const contactsWhere: any = { isDeleted: false };
+        if (from || to) contactsWhere.createdAt = dateFilter;
+        const contactsCount = await prisma.client.count({ where: contactsWhere });
+
+        // Contactos con cotización armada: contactos nuevos del período que tienen
+        // al menos un presupuesto (QUOTE) generado. Los que no la tienen quedaron sin atender.
+        const quotedContactsCount = await prisma.client.count({
+            where: { ...contactsWhere, orders: { some: { orderType: 'QUOTE', isDeleted: false } } },
+        });
+
         const totalFixedCosts = fixedCosts
             .filter((fc: any) => !fc.type || fc.type === 'FIJO' || fc.type === 'OTRO')
             .reduce((sum: number, fc: any) => sum + (fc.amount || 0), 0);
@@ -431,6 +442,7 @@ export class ReportService {
                 totalRevenue, totalCosts, totalCostFrames, totalCostLenses, totalCostOther, totalPostSaleCosts,
                 totalPlatformFees, totalDoctorFees, totalFixedCosts, totalMarketingCosts, totalProviderCosts, totalSpecialDiscounts,
                 netProfit, profitMargin, totalPaid: totalRevenue, totalPending, totalMarkup, ordersCount: orders.length,
+                contactsCount, quotedContactsCount,
             },
             billingStats: Object.values(billingStats),
             fixedCosts,

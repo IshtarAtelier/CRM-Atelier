@@ -75,6 +75,7 @@ export interface Contact {
     expectedValue: number | null;
     avgTicket?: number;
     hasSales?: boolean;
+    hasQuote?: boolean;
     hasVisitedStore?: boolean;
     hasPaidNotSent?: boolean;
     priority: number;

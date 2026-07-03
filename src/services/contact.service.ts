@@ -20,6 +20,14 @@ const LAB_STATUS_LABELS: Record<string, string> = {
     DELIVERED: 'Entregado',
 };
 
+// ── "Sin atender" ──────────────────────────────────────────────
+// Definición ÚNICA de contacto sin atender: no tiene ningún presupuesto (QUOTE)
+// ni venta (SALE) activos. Se usa igual en el filtro de la lista, el contador del
+// botón y el badge del sidebar, para que los tres números siempre coincidan.
+const UNATTENDED_ORDER_FILTER = {
+    none: { orderType: { in: ['QUOTE', 'SALE'] }, isDeleted: false },
+};
+
 export function normalizeArgentinePhone(phone: string | null | undefined): string {
     if (!phone) return '';
     let base = phone.replace(/\D/g, '');
@@ -122,10 +130,15 @@ export interface ContactCreateData {
 }
 
 export const ContactService = {
-    async getAll(status?: string | null, search?: string | null, favoritesOnly?: boolean, interest?: string | null, location?: string | null) {
+    async getAll(status?: string | null, search?: string | null, favoritesOnly?: boolean, interest?: string | null, location?: string | null, unattended?: boolean) {
         try {
-            console.log('[ContactService] Fetching contacts:', { status, search, favoritesOnly, interest, location });
+            console.log('[ContactService] Fetching contacts:', { status, search, favoritesOnly, interest, location, unattended });
             const where: any = {};
+            // Sin atender: sin presupuesto ni venta. Se combina vía AND para no pisar
+            // otros filtros relacionales (ej. tabs CONFIRMED/CLIENT que usan `orders`).
+            if (unattended) {
+                where.AND = [...(where.AND || []), { orders: UNATTENDED_ORDER_FILTER }];
+            }
             if (status && status !== 'ALL') {
                 if (status === 'CLIENT') {
                     // VENTAS tab: show contacts that have at least one SALE order
@@ -237,8 +250,9 @@ export const ContactService = {
                 return { 
                     ...rest, 
                     status: item.status === 'NEW' ? 'CONTACT' : item.status,
-                    avgTicket: Math.round(avgTicket), 
+                    avgTicket: Math.round(avgTicket),
                     hasSales: saleOrders.length > 0,
+                    hasQuote: (item.orders || []).some((o: any) => o.orderType === 'QUOTE'),
                     hasActiveConfirmedQuote: (item.orders || []).some((o: any) => o.orderType === 'QUOTE' && o.status === 'CONFIRMED'),
                     hasVisitedStore: (interactions || []).length > 0,
                     hasPaidNotSent
@@ -248,6 +262,14 @@ export const ContactService = {
             console.error('[ContactService.getAll] Critical Error:', error);
             throw error; // Let the API route handle it
         }
+    },
+
+    // Cantidad global de contactos sin atender (sin presupuesto ni venta).
+    // Fuente única para el contador del filtro y el badge del sidebar.
+    async getUnattendedCount() {
+        return prisma.client.count({
+            where: { isDeleted: false, orders: UNATTENDED_ORDER_FILTER },
+        });
     },
 
     async create(data: ContactCreateData) {

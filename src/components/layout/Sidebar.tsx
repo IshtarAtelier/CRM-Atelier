@@ -10,6 +10,7 @@ import { UserProfile } from "@/components/admin/UserProfile";
 import { NotificationBell } from "@/components/ui/NotificationBell";
 import { WhatsAppBadge } from "@/components/ui/WhatsAppBadge";
 import { WebSalesBadge } from "@/components/ui/WebSalesBadge";
+import { ContactsAttentionBadge } from "@/components/ui/ContactsAttentionBadge";
 import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon";
 
 interface SidebarProps {
@@ -134,9 +135,11 @@ export function Sidebar({ userName = "Usuario", userRole = "STAFF", userId = "" 
                 {!isCollapsed && <span className={`text-[10px] font-semibold whitespace-nowrap tracking-wide uppercase transition-colors ${isActive ? 'text-white font-bold' : 'text-stone-400 group-hover:text-stone-200'}`}>{link.label}</span>}
                 {link.label === "WhatsApp" && !isCollapsed && <WhatsAppBadge />}
                 {link.label === "↳ Ventas Web" && !isCollapsed && <WebSalesBadge />}
+                {link.label === "Contactos y Clientes" && !isCollapsed && <ContactsAttentionBadge />}
                 {link.label === "WhatsApp" && isCollapsed && (
                   <div className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-[#12100f] shadow-[0_0_8px_#22c55e]"></div>
                 )}
+                {link.label === "Contactos y Clientes" && isCollapsed && <ContactsAttentionBadge collapsed />}
               </div>
             </Link>
           );
