@@ -69,7 +69,7 @@ export function Sidebar({ userName = "Usuario", userRole = "STAFF", userId = "" 
       { href: "/admin/ventas?mode=POST_VENTA", label: "↳ Post Venta", icon: Wrench, adminOnly: false, isSubLink: true },
       { href: "/admin/facturacion", label: "Facturación", icon: Receipt, adminOnly: true },
       { href: "/admin/whatsapp", label: "WhatsApp", icon: WhatsAppIcon, adminOnly: false },
-      { href: "/admin/caja", label: "Caja Efectivo", icon: Banknote, adminOnly: true },
+      { href: "/admin/caja", label: "Caja Efectivo", icon: Banknote, adminOnly: false },
       { href: "/admin/gastos", label: "Gastos", icon: TrendingDown, adminOnly: true },
       { href: "/admin/administracion", label: "Administración", icon: Wallet, adminOnly: true },
       { href: "/admin/reportes", label: "Reportes", icon: FileText, adminOnly: true },
