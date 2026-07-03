@@ -72,6 +72,36 @@ export function CheckoutClient({
     web_store_whatsapp_id: initialSettings?.web_store_whatsapp_id || WHATSAPP_PHONE
   });
 
+  // Cupón de descuento
+  const [coupon, setCoupon] = useState<{ code: string; discount: number } | null>(null);
+  const [couponError, setCouponError] = useState<string | null>(null);
+  const [couponLoading, setCouponLoading] = useState(false);
+
+  const applyCoupon = async (code: string) => {
+    setCouponLoading(true);
+    setCouponError(null);
+    try {
+      const res = await fetch('/api/checkout/validate-coupon', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code, total: getCartTotal() })
+      });
+      const data = await res.json();
+      if (res.ok && data.valid) {
+        setCoupon({ code: data.code, discount: data.discount });
+      } else {
+        setCoupon(null);
+        setCouponError(data.error || 'El cupón no es válido.');
+      }
+    } catch (e) {
+      setCouponError('No pudimos validar el cupón. Intentá de nuevo.');
+    } finally {
+      setCouponLoading(false);
+    }
+  };
+
+  const removeCoupon = () => { setCoupon(null); setCouponError(null); };
+
   const whatsappPhoneId = webSettings?.web_store_whatsapp_id || WHATSAPP_PHONE;
 
   const isLocalCity = (() => {
@@ -281,6 +311,7 @@ export function CheckoutClient({
             },
             items: items,
             total: getCartTotal(),
+            couponCode: coupon?.code || null,
             paymentToken: null
           })
         });
@@ -393,6 +424,7 @@ export function CheckoutClient({
               },
               items: items,
               total: getCartTotal(),
+              couponCode: coupon?.code || null,
               paymentToken: token,
               bin: bin,
               paymentMethodId: paymentMethodId,
@@ -562,7 +594,7 @@ export function CheckoutClient({
         </div>
 
         {/* DERECHA: Resumen de Compra */}
-        <CheckoutSummarySidebar items={items} getCartTotal={getCartTotal} formData={formData} webSettings={webSettings} isWholesale={isWholesale} />
+        <CheckoutSummarySidebar items={items} getCartTotal={getCartTotal} formData={formData} webSettings={webSettings} isWholesale={isWholesale} coupon={coupon} couponError={couponError} couponLoading={couponLoading} onApplyCoupon={applyCoupon} onRemoveCoupon={removeCoupon} />
       </main>
       
       {footer}

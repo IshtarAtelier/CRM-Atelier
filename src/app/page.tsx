@@ -187,7 +187,7 @@ export default async function Home() {
     "url": "https://www.atelieroptica.com.ar",
     "logo": "https://www.atelieroptica.com.ar/assets/logo-pwa-512.png",
     "sameAs": [
-      "https://www.instagram.com/atelier.optica/",
+      "https://www.instagram.com/atelieroptica_/",
       "https://maps.app.goo.gl/atelieroptica"
     ],
     "contactPoint": {
@@ -249,7 +249,7 @@ export default async function Home() {
       "reviewCount": reviewCountStr
     },
     "sameAs": [
-      "https://www.instagram.com/atelier.optica/",
+      "https://www.instagram.com/atelieroptica_/",
       "https://maps.app.goo.gl/atelieroptica"
     ]
   };

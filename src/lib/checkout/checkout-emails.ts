@@ -93,7 +93,9 @@ export function getClientItemsHtml(items: any[]) {
             Cristales: ${item.lensConfig.lensType === "NONE" ? "Sin Aumento" : item.lensConfig.lensType}
             ${item.lensConfig.treatment ? `- ${item.lensConfig.treatment.replace(/_/g, ' ')}` : ''}
             ${item.lensConfig.color ? `<br/>Tinte: ${item.lensConfig.color}` : ''}
-            ${item.lensConfig.prescriptionFile ? `<br/>Receta: ${item.lensConfig.prescriptionFile}` : ''}
+            ${item.lensConfig.prescriptionFile === 'Enviar luego por WhatsApp'
+              ? `<br/><span style="color: ${GOLD_SOFT};">Receta: pendiente de env&iacute;o por WhatsApp</span>`
+              : item.lensConfig.prescriptionFile ? `<br/>Receta: ${item.lensConfig.prescriptionFile}` : ''}
           </p>
         ` : ''}
       </td>
@@ -104,8 +106,27 @@ export function getClientItemsHtml(items: any[]) {
   `).join('');
 }
 
-export function getConfirmationHtml(customer: any, orderId: string, emailTotal: number, shippingMethodLabel: string, hasCrystals: boolean, itemsHtml: string) {
+export function getConfirmationHtml(customer: any, orderId: string, emailTotal: number, shippingMethodLabel: string, hasCrystals: boolean, itemsHtml: string, needsPrescription = false) {
   const shortId = orderId.slice(-4).toUpperCase();
+  const prescriptionBlock = needsPrescription ? `
+    <tr>
+      <td style="padding: 32px 40px 0;">
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#14120c" style="background-color: #14120c; border: 1px solid ${GOLD};">
+          <tr>
+            <td align="center" style="padding: 28px 26px;">
+              <p style="margin: 0; font-family: ${SANS}; font-size: 11px; font-weight: bold; letter-spacing: 5px; text-transform: uppercase; color: ${GOLD};">Importante &middot; Tu receta</p>
+              <p style="margin: 14px 0 22px; font-family: ${SANS}; font-size: 14px; line-height: 1.9; color: #d8d2c4;">
+                Elegiste enviarnos tu receta por WhatsApp.<br/>
+                La necesitamos para comenzar el trabajo de laboratorio:<br/>
+                <span style="color: ${IVORY}; font-weight: bold;">envianosla y ponemos tus cristales en marcha.</span>
+              </p>
+              ${whatsappButton('Enviar mi receta', `Hola Atelier! Les envío la receta de mi pedido #${shortId}.`)}
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  ` : '';
   return emailShell(`
     <tr>
       <td align="center" style="padding: 40px 40px 0;">
@@ -151,6 +172,7 @@ export function getConfirmationHtml(customer: any, orderId: string, emailTotal: 
         </table>
       </td>
     </tr>
+    ${prescriptionBlock}
     <tr>
       <td align="center" style="padding: 44px 40px 44px;">
         <h2 style="margin: 0; font-family: ${SERIF}; font-size: 26px; font-weight: normal; color: ${IVORY};">&iquest;Ten&eacute;s dudas?</h2>
@@ -158,6 +180,110 @@ export function getConfirmationHtml(customer: any, orderId: string, emailTotal: 
           Estamos del otro lado para ayudarte con lo que necesites sobre tu pedido.
         </p>
         ${whatsappButton('Escribinos por WhatsApp', `Hola Atelier! Tengo una consulta sobre mi pedido #${shortId}.`)}
+      </td>
+    </tr>
+  `);
+}
+
+export function getAbandonedCartHtml(firstName: string, itemsHtml: string, total: number, ctaUrl: string) {
+  return emailShell(`
+    <tr>
+      <td align="center" style="padding: 40px 40px 0;">
+        <p style="margin: 0; font-family: ${SANS}; font-size: 13px; font-weight: bold; letter-spacing: 6px; text-transform: uppercase; color: ${GOLD};">Tu carrito te espera</p>
+        <h1 style="margin: 20px 0 0; font-family: ${SERIF}; font-size: 38px; font-weight: normal; line-height: 1.2; color: ${IVORY};">Lo perfecto no se apura, ${firstName}.</h1>
+        <p style="margin: 14px 0 0; font-family: ${SERIF}; font-size: 19px; font-style: italic; color: ${GOLD_SOFT};">Te guardamos tu selecci&oacute;n.</p>
+        <p style="margin: 18px 0 0; font-family: ${SANS}; font-size: 14px; line-height: 1.9; color: ${MUTED};">
+          Encontrar el anteojo justo lleva su tiempo.<br/>
+          Lo tuyo sigue reservado, esper&aacute;ndote donde lo dejaste.
+        </p>
+      </td>
+    </tr>
+    <tr>
+      <td style="padding: 40px 40px 0;">
+        <p style="margin: 0 0 4px; font-family: ${SANS}; font-size: 11px; font-weight: bold; letter-spacing: 4px; text-transform: uppercase; color: ${GOLD};">Tu selecci&oacute;n</p>
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-top: 1px solid ${HAIRLINE};">${itemsHtml}</table>
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="${GOLD}" style="background-color: ${GOLD}; margin-top: 24px;">
+          <tr>
+            <td style="padding: 16px 24px; font-family: ${SANS}; font-size: 13px; font-weight: bold; letter-spacing: 4px; text-transform: uppercase; color: #000000;">Total</td>
+            <td style="padding: 16px 24px; text-align: right; font-family: ${SERIF}; font-size: 28px; color: #000000;">$${total.toLocaleString('es-AR')}</td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+    <tr>
+      <td align="center" style="padding: 36px 40px 0;">
+        <table cellpadding="0" cellspacing="0" border="0" align="center" style="margin: 0 auto;">
+          <tr>
+            <td bgcolor="${GOLD}" style="border-radius: 2px; box-shadow: 0 0 24px rgba(201,162,39,0.35);">
+              <a href="${ctaUrl}" target="_blank"
+                 style="display: inline-block; padding: 18px 48px; font-family: ${SANS}; font-size: 14px; font-weight: bold; letter-spacing: 3px; text-transform: uppercase; color: #000000; text-decoration: none;">
+                Completar mi compra
+              </a>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+    <tr>
+      <td style="padding: 36px 40px 0;">
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#14120c" style="background-color: #14120c; border-left: 3px solid ${GOLD};">
+          <tr>
+            <td style="padding: 22px 26px; font-family: ${SANS}; font-size: 13px; line-height: 2.2; color: #d8d2c4;">
+              <span style="color: ${GOLD};">&#10022;</span>&nbsp; 6 cuotas sin inter&eacute;s con tarjeta<br/>
+              <span style="color: ${GOLD};">&#10022;</span>&nbsp; 15% OFF pagando por transferencia<br/>
+              <span style="color: ${GOLD};">&#10022;</span>&nbsp; Env&iacute;o gratis a todo el pa&iacute;s<br/>
+              <span style="color: ${GOLD};">&#10022;</span>&nbsp; Garant&iacute;a oficial en todos los armazones
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+    <tr>
+      <td align="center" style="padding: 40px 40px 44px;">
+        <h2 style="margin: 0; font-family: ${SERIF}; font-size: 26px; font-weight: normal; color: ${IVORY};">&iquest;Te qued&oacute; alguna duda?</h2>
+        <p style="margin: 12px 0 26px; font-family: ${SANS}; font-size: 14px; line-height: 1.8; color: ${MUTED};">
+          Cristales, graduaci&oacute;n, calce, env&iacute;os — lo que sea, te asesoramos.
+        </p>
+        ${whatsappButton('Escribinos por WhatsApp', 'Hola Atelier! Estaba por comprar en la web y me quedó una duda.')}
+      </td>
+    </tr>
+  `);
+}
+
+export function getPrescriptionReminderHtml(firstName: string, orderId: string) {
+  const shortId = orderId.slice(-4).toUpperCase();
+  return emailShell(`
+    <tr>
+      <td align="center" style="padding: 40px 40px 0;">
+        <p style="margin: 0; font-family: ${SANS}; font-size: 13px; font-weight: bold; letter-spacing: 6px; text-transform: uppercase; color: ${GOLD};">Recordatorio</p>
+        <h1 style="margin: 20px 0 0; font-family: ${SERIF}; font-size: 38px; font-weight: normal; line-height: 1.2; color: ${IVORY};">Tu receta nos est&aacute; esperando, ${firstName}.</h1>
+        <p style="margin: 18px 0 0; font-family: ${SANS}; font-size: 14px; line-height: 1.9; color: ${MUTED};">
+          Tu pedido <span style="color: ${GOLD_SOFT};">#${shortId}</span> sigue reservado, pero para comenzar<br/>
+          el trabajo de laboratorio necesitamos la receta de tu oftalm&oacute;logo.
+        </p>
+      </td>
+    </tr>
+    <tr>
+      <td align="center" style="padding: 36px 40px 0;">
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#14120c" style="background-color: #14120c; border: 1px solid ${GOLD};">
+          <tr>
+            <td align="center" style="padding: 28px 26px;">
+              <p style="margin: 0 0 22px; font-family: ${SANS}; font-size: 14px; line-height: 1.9; color: #d8d2c4;">
+                Una foto n&iacute;tida de la receta alcanza.<br/>
+                <span style="color: ${IVORY}; font-weight: bold;">Envianosla y ponemos tus cristales en marcha hoy mismo.</span>
+              </p>
+              ${whatsappButton('Enviar mi receta', `Hola Atelier! Les envío la receta de mi pedido #${shortId}.`)}
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+    <tr>
+      <td align="center" style="padding: 28px 40px 40px;">
+        <p style="margin: 0; font-family: ${SANS}; font-size: 12px; line-height: 1.8; color: #6f6a5e;">
+          &iquest;Ya la enviaste? Ignor&aacute; este mensaje — la estamos procesando.<br/>
+          &iquest;Dudas con la receta? Respond&eacute; este correo o escribinos: estamos para ayudarte.
+        </p>
       </td>
     </tr>
   `);
@@ -192,7 +318,7 @@ export function getAdminHtml(customer: any, orderId: string, emailTotal: number,
   `;
 }
 
-export function getClientTransferHtml(customer: any, orderId: string, emailTotal: number) {
+export function getClientTransferHtml(customer: any, orderId: string, emailTotal: number, needsPrescription = false) {
   const shortId = orderId.slice(-4).toUpperCase();
   return emailShell(`
     <tr>
@@ -229,7 +355,12 @@ export function getClientTransferHtml(customer: any, orderId: string, emailTotal
           Una vez realizada la transferencia, envianos el comprobante<br/>
           para que empecemos a preparar tu pedido.
         </p>
-        ${whatsappButton('Enviar comprobante por WhatsApp', `Hola Atelier! Les envío el comprobante de mi pedido #${shortId}.`)}
+        ${needsPrescription ? `
+        <p style="margin: 0 0 22px; font-family: ${SANS}; font-size: 13px; line-height: 1.8; color: ${GOLD_SOFT};">
+          Acordate de adjuntar tambi&eacute;n <strong style="color: ${GOLD_SOFT};">tu receta</strong> en el mismo chat:<br/>
+          la necesitamos para comenzar el trabajo de laboratorio.
+        </p>` : ''}
+        ${whatsappButton(needsPrescription ? 'Enviar comprobante y receta' : 'Enviar comprobante por WhatsApp', needsPrescription ? `Hola Atelier! Les envío el comprobante y la receta de mi pedido #${shortId}.` : `Hola Atelier! Les envío el comprobante de mi pedido #${shortId}.`)}
         <p style="margin: 26px 0 0; font-family: ${SANS}; font-size: 13px; color: ${MUTED};">
           &iquest;Ten&eacute;s dudas? Respond&eacute; este correo o escribinos: estamos para ayudarte.
         </p>

@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import {
-    FileText, TrendingUp, DollarSign, Package, ArrowDown, RefreshCw, AlertCircle, Save, CheckCircle2
+    FileText, TrendingUp, DollarSign, Package, ArrowDown, RefreshCw, AlertCircle, Save, CheckCircle2,
+    Users, ShoppingCart, Percent, Send, UserX
 } from 'lucide-react';
 import { format } from 'date-fns';
 
@@ -80,6 +81,8 @@ interface ReportData {
         totalPaid: number;
         totalPending: number;
         ordersCount: number;
+        contactsCount: number;
+        quotedContactsCount: number;
     };
     fixedCosts: FixedCost[];
     topClients: { name: string; total: number; orders: number }[];
@@ -286,7 +289,14 @@ export default function ReportsDashboard() {
                 <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 ease-out fill-mode-both space-y-8">
                     
                     {/* ── KPIs Principales ── */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
+                        <KPICard
+                            title="Facturación Total"
+                            value={formatCurrency(data.summary.totalRevenue + data.summary.totalPending)}
+                            sub={`Cobrado ${formatCurrency(data.summary.totalRevenue)} · Pendiente ${formatCurrency(data.summary.totalPending)}`}
+                            icon={FileText}
+                            color="amber"
+                        />
                         <KPICard
                             title="Ingreso Real (Cobrado)"
                             value={formatCurrency(data.summary.totalRevenue)}
@@ -315,6 +325,45 @@ export default function ReportsDashboard() {
                             sub={`Ticket prom: ${formatCurrency(data.summary.ordersCount > 0 ? data.summary.totalRevenue / data.summary.ordersCount : 0)}`}
                             icon={Package}
                             color="purple"
+                        />
+                    </div>
+
+                    {/* ── Embudo Comercial ── */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
+                        <KPICard
+                            title="Contactos Nuevos"
+                            value={data.summary.contactsCount}
+                            sub="Ingresados a la base en el período"
+                            icon={Users}
+                            color="blue"
+                        />
+                        <KPICard
+                            title="Con Cotización"
+                            value={data.summary.quotedContactsCount}
+                            sub={`${(data.summary.contactsCount > 0 ? (data.summary.quotedContactsCount / data.summary.contactsCount) * 100 : 0).toFixed(1)}% de los contactos`}
+                            icon={Send}
+                            color="purple"
+                        />
+                        <KPICard
+                            title="Sin Atender"
+                            value={Math.max(0, data.summary.contactsCount - data.summary.quotedContactsCount)}
+                            sub="Contactos sin cotización armada"
+                            icon={UserX}
+                            color="red"
+                        />
+                        <KPICard
+                            title="Ventas Efectuadas"
+                            value={data.summary.ordersCount}
+                            sub={`Ticket prom: ${formatCurrency(data.summary.ordersCount > 0 ? data.summary.totalRevenue / data.summary.ordersCount : 0)}`}
+                            icon={ShoppingCart}
+                            color="emerald"
+                        />
+                        <KPICard
+                            title="Conversión"
+                            value={`${(data.summary.contactsCount > 0 ? (data.summary.ordersCount / data.summary.contactsCount) * 100 : 0).toFixed(1)}%`}
+                            sub={`${data.summary.ordersCount} ventas / ${data.summary.contactsCount} contactos`}
+                            icon={Percent}
+                            color="amber"
                         />
                     </div>
 

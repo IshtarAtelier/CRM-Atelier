@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { fetchWa } from '@/lib/wa-config';
+import { hasClosedOrder } from '@/lib/checkout/purchase-guard';
 
 // To verify Vercel Cron trigger
 const CRON_SECRET = process.env.CRON_SECRET || 'atelier-cron-secret-key-2026';
@@ -34,9 +35,20 @@ export async function GET(request: Request) {
     });
 
     let sentCount = 0;
+    let skippedPurchased = 0;
 
     for (const session of abandonedSessions) {
       if (!session.phone) continue;
+
+      // CANDADO: si el cliente ya compró (venta confirmada o vendida), no mensajear.
+      if (await hasClosedOrder(session.email, session.phone)) {
+        await prisma.checkoutSession.update({
+          where: { id: session.id },
+          data: { status: 'COMPLETED' }
+        }).catch(() => {});
+        skippedPurchased++;
+        continue;
+      }
 
       let waPhone = session.phone.replace(/\D/g, '');
       // Strip international prefix if present
@@ -54,7 +66,7 @@ export async function GET(request: Request) {
       // Ensure proper waId format
       const waId = `${waPhone}@c.us`;
 
-      const messageText = `¡Hola ${session.firstName || 'ahí'}! Vimos que dejaste unos anteojos en tu carrito en Atelier Óptica 😎 ¿Tuviste algún problema con el pago o necesitás ayuda con los cristales? Avisanos y te asesoramos.\n\nPara que puedas cerrar tu compra hoy, te dejo un *cupón de 5% de descuento extra* usando el código: *CUPON5* 🎁`;
+      const messageText = `¡Hola ${session.firstName || 'ahí'}! Soy de Atelier Óptica 👋 Vi que estabas armando tu pedido y quedó a mitad de camino. ¿Te doy una mano con algo? Cualquier duda con los cristales, el pago o el envío, contame y lo resolvemos juntos.`;
 
       try {
         console.log(`[Cron Abandoned Cart] Sending message to ${waPhone} for session ${session.id}`);
@@ -82,7 +94,7 @@ export async function GET(request: Request) {
       }
     }
 
-    return NextResponse.json({ success: true, processed: abandonedSessions.length, sent: sentCount });
+    return NextResponse.json({ success: true, processed: abandonedSessions.length, sent: sentCount, skippedPurchased });
 
   } catch (error: any) {
     console.error('[Cron Abandoned Cart] Error:', error);

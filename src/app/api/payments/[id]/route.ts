@@ -112,6 +112,27 @@ export async function PUT(
             ).catch(err => console.error('[ReceiptAgent Background Error from Edit]', err));
         }
 
+        // Aviso al admin con la imagen del comprobante actualizado
+        if (body.receiptUrl) {
+            const { prisma } = await import('@/lib/db');
+            const orderInfo = await prisma.order.findUnique({
+                where: { id: updatedPayment.orderId },
+                select: { clientId: true, client: { select: { name: true } } }
+            });
+            import('@/lib/receipt-notify').then(({ notifyReceiptUploaded }) =>
+                notifyReceiptUploaded({
+                    clientName: orderInfo?.client?.name || 'Cliente',
+                    clientId: orderInfo?.clientId,
+                    orderId: updatedPayment.orderId,
+                    amount: updatedPayment.amount,
+                    method: updatedPayment.method,
+                    reference: updatedPayment.notes,
+                    receiptUrl: body.receiptUrl,
+                    context: 'Comprobante actualizado (edición de pago)'
+                })
+            ).catch(err => console.error('[ReceiptNotify Background Error from Edit]', err));
+        }
+
         return NextResponse.json(updatedPayment);
     } catch (error: any) {
         console.error('Error updating payment:', error);

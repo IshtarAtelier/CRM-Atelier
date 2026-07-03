@@ -13,8 +13,9 @@ export async function GET(request: Request) {
         const favorites = searchParams.get('favorites') === 'true';
         const interest = searchParams.get('interest');
         const location = searchParams.get('location');
+        const unattended = searchParams.get('unattended') === 'true';
 
-        const contacts = await ContactService.getAll(status, search, favorites, interest, location);
+        const contacts = await ContactService.getAll(status, search, favorites, interest, location, unattended);
         return NextResponse.json(contacts);
     } catch (error: any) {
         console.error('[API Contacts] Full error object:', JSON.stringify(error, Object.getOwnPropertyNames(error)));

@@ -21,6 +21,8 @@ interface SendEmailOptions {
         filename: string;
         content: string | Buffer;
         encoding?: string;
+        cid?: string;
+        contentType?: string;
     }>;
 }
 

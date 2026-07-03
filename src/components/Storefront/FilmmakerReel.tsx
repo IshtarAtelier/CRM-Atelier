@@ -57,7 +57,9 @@ interface FilmmakerReelProps {
 export function FilmmakerReel({ reviewCount = 642, rating = 5.0 }: FilmmakerReelProps) {
   const [mounted, setMounted] = useState(false);
   const [current, setCurrent] = useState(0);
-  const [isPlaying, setIsPlaying] = useState(true);
+  // isPlaying=false: carrusel solo avanza cuando el usuario hace click (sin auto-play)
+  // Esto deja el LCP en el primer frame (~1.8s) en vez de esperar al 2° frame (~11s)
+  const [isPlaying, setIsPlaying] = useState(false);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {

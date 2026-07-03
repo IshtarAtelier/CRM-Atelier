@@ -69,6 +69,13 @@ body {
   100% { transform: translateX(-25%); }
 }
 
+/* Entrada suave del hero de la landing. Es sólo un realce: el contenido
+   permanece visible aunque la animación no llegue a ejecutarse. */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
 /* ═══════════════════════════════════════════════════════════
    Blog Article Styles — Atelier Óptica
    Premium typography for readable, beautiful blog posts.

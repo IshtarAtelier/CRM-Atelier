@@ -42,12 +42,23 @@ const MAX_OUTPUT_TOKENS = 300;
 const TEMPERATURE = 0.7;
 const MODEL_NAME = 'gemini-2.5-flash';
 const GENERATION_TIMEOUT_MS = 30000;
-const MAX_RETRIES = 1;                              // Reintentos si falla validación
+const MAX_RETRIES = 2;                              // Reintentos si falla validación (la validación de contenido de venta es estricta)
+
+// ──────────────────────────────────────────────
+// Cupón del seguimiento final (Día 15)
+// ──────────────────────────────────────────────
+// Descuento ADICIONAL que se le ofrece al cliente en el último seguimiento
+// para cerrar la venta. Ajustar acá el porcentaje y la vigencia.
+const DIA_15_COUPON = {
+    enabled: true,
+    percent: 10,        // % adicional sobre el presupuesto ya cotizado
+    validityDays: 7,    // vigencia que se le comunica al cliente
+};
 
 // ──────────────────────────────────────────────
 // Validación de mensajes
 // ──────────────────────────────────────────────
-const MIN_MESSAGE_LENGTH = 20;
+const MIN_MESSAGE_LENGTH = 50;                      // Un saludo pelado ("Hola! cómo andás?") no alcanza
 const MAX_MESSAGE_LENGTH = 250;                     // ~40 palabras máximo
 const MAX_WORD_COUNT = 45;                          // Límite duro por palabras
 
@@ -63,6 +74,7 @@ module.exports = {
     TEST_PHONE,
     FOLLOWUP_TIERS,
     ALL_FOLLOWUP_LABELS,
+    DIA_15_COUPON,
     COOLDOWN_HOURS,
     ACTIVITY_WINDOW_HOURS,
     PRE_SEND_ACTIVITY_WINDOW_HOURS,
