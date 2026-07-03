@@ -8,6 +8,7 @@ require('dotenv').config({ path: path.join(__dirname, '.env') });
 const { prisma } = require('./db');
 const DEFAULT_SALES_PROMPT = require('./prompts/salesPrompt');
 const DEFAULT_EXECUTIVE_PROMPT = require('./prompts/executivePrompt');
+const { buildContextModules } = require('./prompts/context-modules');
 
 
 
@@ -245,7 +246,7 @@ async function getTagsModule() {
 // ── NODOS 2 y 3: AGENTE DE VENTAS (Prospectos) y EJECUTIVO DE CUENTAS (Clientes) ──
 // Misma mecánica de invocación/reintentos; solo cambian el prompt por defecto,
 // las herramientas y la regla para descartar un prompt custom que no corresponde al rol.
-function createAgentNode({ nodeName, toolsList, defaultPrompt, rejectCustomPrompt }) {
+function createAgentNode({ nodeName, agentType, toolsList, defaultPrompt, rejectCustomPrompt }) {
   return async function agentNode(state) {
     const horaActual = new Date().toLocaleString("es-AR", { timeZone: "America/Argentina/Buenos_Aires", hour: '2-digit', minute:'2-digit' });
     const custom = state.customPrompt || "";
@@ -258,7 +259,16 @@ function createAgentNode({ nodeName, toolsList, defaultPrompt, rejectCustomPromp
       basePrompt = defaultPrompt;
     }
 
+    // Módulos contextuales: solo las reglas relevantes a esta conversación.
+    // Si el prompt (custom) no tiene el placeholder, el replace no altera nada.
+    const contextModules = buildContextModules({
+      agentType,
+      messages: state.messages,
+      clientData: state.clientData,
+    });
+
     const systemPrompt = basePrompt
+      .replace(/\[MODULOS_CONTEXTUALES\]/g, contextModules)
       .replace(/\[HORA_ACTUAL\]/g, horaActual)
       .replace(/\[DATOS_CLIENTE\]/g, clientInfoText)
       .replace(/\[REGLAS_ETIQUETADO_AUTOMATICO\]/g, tagsModule)
@@ -307,12 +317,14 @@ function createAgentNode({ nodeName, toolsList, defaultPrompt, rejectCustomPromp
 
 const salesNode = createAgentNode({
   nodeName: 'salesNode',
+  agentType: 'sales',
   toolsList: salesToolsList,
   defaultPrompt: DEFAULT_SALES_PROMPT,
 });
 
 const executiveNode = createAgentNode({
   nodeName: 'executiveNode',
+  agentType: 'executive',
   toolsList: executiveToolsList,
   defaultPrompt: DEFAULT_EXECUTIVE_PROMPT,
   // Un prompt custom escrito para el rol de ventas no debe usarse con clientes existentes
