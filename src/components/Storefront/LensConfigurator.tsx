@@ -194,7 +194,6 @@ export function LensConfigurator({ basePrice, productId, category, onColorChange
                   <ColorOption color="Amarillo" hex="#e1b854" selected={tintColor === "Amarillo"} onClick={() => { setTintColor("Amarillo"); if (onColorChange) onColorChange("#e1b854"); setStep(2); }} />
                   <ColorOption color="Naranja" hex="#d6804a" selected={tintColor === "Naranja"} onClick={() => { setTintColor("Naranja"); if (onColorChange) onColorChange("#d6804a"); setStep(2); }} />
                   <ColorOption color="Rojo" hex="#ab4040" selected={tintColor === "Rojo"} onClick={() => { setTintColor("Rojo"); if (onColorChange) onColorChange("#ab4040"); setStep(2); }} />
-                  <ColorOption color="A Muestra" hex="#e5e5e5" selected={tintColor === "A Muestra"} onClick={() => { setTintColor("A Muestra"); if (onColorChange) onColorChange(null); setTintStyle("SEGÚN MUESTRA"); setStep(3); }} />
                 </div>
               </>
             )}
@@ -212,10 +211,9 @@ export function LensConfigurator({ basePrice, productId, category, onColorChange
                       <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-[#999] mb-2">02 / Estilo de Teñido</p>
                       <p className="text-sm font-serif italic text-black">Elegí la forma en que se aplicará el color en tu lente.</p>
                     </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-6">
                       <OptionCard selected={tintStyle === "COMPACTO"} onClick={() => { setTintStyle("COMPACTO"); setStep(3); }} title="Compacto" desc="Color uniforme en todo el lente." />
                       <OptionCard selected={tintStyle === "DEGRADÉ"} onClick={() => { setTintStyle("DEGRADÉ"); setStep(3); }} title="Degradé" desc="Más oscuro arriba y claro abajo." />
-                      <OptionCard selected={tintStyle === "SEGÚN MUESTRA"} onClick={() => { setTintStyle("SEGÚN MUESTRA"); setStep(3); }} title="Según Muestra" desc="Igualamos el color de una foto o muestra." />
                     </div>
                   </>
                 )}
