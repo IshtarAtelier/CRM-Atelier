@@ -181,14 +181,29 @@ const handleMessageCreate = async (msg) => {
                     // Persistir la marca de apagado para que el Auto-Resume de 24hs NO reactive
                     // el bot en una charla que tomó un humano. Se usa el mismo label exacto que
                     // el apagado manual del CRM, así la reactivación manual lo limpia.
+                    // EXCEPCIÓN: si este saliente llegó a segundos del último mensaje del cliente
+                    // (timing típico de una auto-respuesta de Meta no reconocida), NO se marca:
+                    // el apagado queda recuperable por Auto-Resume aunque los patrones fallen.
                     try {
-                        const currentLabels = [...(chat.chatLabels || [])];
-                        if (!currentLabels.includes('[SISTEMA - BOT APAGADO]')) {
-                            currentLabels.push('[SISTEMA - BOT APAGADO]');
-                            await prisma.whatsAppChat.update({
-                                where: { id: chat.id },
-                                data: { chatLabels: currentLabels }
-                            });
+                        const lastInboundMsg = await prisma.whatsAppMessage.findFirst({
+                            where: { chatId: chat.id, direction: 'INBOUND' },
+                            orderBy: { createdAt: 'desc' }
+                        });
+                        const secsSinceInbound = lastInboundMsg
+                            ? (Date.now() - new Date(lastInboundMsg.createdAt).getTime()) / 1000
+                            : Infinity;
+
+                        if (secsSinceInbound > 120) {
+                            const currentLabels = [...(chat.chatLabels || [])];
+                            if (!currentLabels.includes('[SISTEMA - BOT APAGADO]')) {
+                                currentLabels.push('[SISTEMA - BOT APAGADO]');
+                                await prisma.whatsAppChat.update({
+                                    where: { id: chat.id },
+                                    data: { chatLabels: currentLabels }
+                                });
+                            }
+                        } else {
+                            console.log(`  ⏱️ Apagado por saliente a ${Math.round(secsSinceInbound)}s del inbound (posible auto-respuesta no reconocida). Sin marca permanente: recuperable por Auto-Resume.`);
                         }
                     } catch (labelErr) {
                         console.error('Error persistiendo label de apagado por intervención humana:', labelErr.message);
@@ -1103,6 +1118,19 @@ const handleMessage = async (msg) => {
             if (recentMetaMsg && /\[meta[^\]]*\]/i.test(recentMetaMsg.content || '')) {
                 isMetaAdsSession = true;
             }
+        }
+
+        // ── Garantía de respuesta en sesiones de Meta Ads ──
+        // Si el bot quedó apagado durante la sesión del anuncio (ej: la auto-respuesta
+        // de Meta se clasificó mal como intervención humana), el próximo mensaje del
+        // cliente lo reactiva. Un lead que pagamos por traer JAMÁS queda sin respuesta.
+        if (isMetaAdsSession && !isMetaAdsMessage && chat && !chat.botEnabled) {
+            const cleanedLabels = (chat.chatLabels || []).filter(l => l !== '[SISTEMA - BOT APAGADO]');
+            chat = await prisma.whatsAppChat.update({
+                where: { id: chat.id },
+                data: { botEnabled: true, chatLabels: cleanedLabels }
+            });
+            console.log(`  🎯 [Meta Ads Session] Bot reactivado para ${profileName || waId} (sesión de anuncio activa, el lead no queda sin respuesta).`);
         }
 
         // ── Auto-exclusión ante respuestas negativas / "no interesado" ──
