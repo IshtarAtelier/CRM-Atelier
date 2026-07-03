@@ -22,20 +22,32 @@ export function fetchWa(url: string | URL, init?: RequestInit): Promise<Response
         ? `${WA_SERVER_URL}${url}`
         : url;
 
+    // Timeout duro por intento: si el wa-service no responde (p.ej. cola/sesión
+    // colgada), abortamos en vez de esperar para siempre. Un AbortError no es
+    // "transitorio", así que retryWithBackoff no lo reintenta en bucle.
+    const FETCH_TIMEOUT_MS = 70000;
+
     return retryWithBackoff(
         async () => {
-            const res = await fetch(resolvedUrl, {
-                ...init,
-                headers
-            });
-            // Retry transient 5xx server status codes
-            if (!res.ok && [502, 503, 504].includes(res.status)) {
-                throw Object.assign(
-                    new Error(`WhatsApp API responded with transient status ${res.status}`),
-                    { status: res.status }
-                );
+            const controller = new AbortController();
+            const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+            try {
+                const res = await fetch(resolvedUrl, {
+                    ...init,
+                    headers,
+                    signal: init?.signal ?? controller.signal
+                });
+                // Retry transient 5xx server status codes
+                if (!res.ok && [502, 503, 504].includes(res.status)) {
+                    throw Object.assign(
+                        new Error(`WhatsApp API responded with transient status ${res.status}`),
+                        { status: res.status }
+                    );
+                }
+                return res;
+            } finally {
+                clearTimeout(timer);
             }
-            return res;
         },
         {
             maxRetries: 3,

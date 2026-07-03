@@ -397,14 +397,25 @@ export default function QuoteSummary({
             const clientName = contact.name?.split(' ')[0] || 'Cliente';
             const text = `Hola ${clientName}, adjunto tu ${isSale ? 'orden' : 'presupuesto'} por: ${itemNames}.\n\nAtelier Óptica, la óptica mejor calificada en Córdoba ⭐⭐⭐⭐⭐.`;
             
-            const sendRes = await fetch(`/api/orders/${order.id}/send-pdf`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    formattedPhone,
-                    text
-                })
-            });
+            // Timeout de seguridad: si el backend no responde en 90s, cortamos
+            // para que el botón nunca quede "Enviando..." indefinidamente.
+            const controller = new AbortController();
+            const timer = setTimeout(() => controller.abort(), 90000);
+
+            let sendRes: Response;
+            try {
+                sendRes = await fetch(`/api/orders/${order.id}/send-pdf`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        formattedPhone,
+                        text
+                    }),
+                    signal: controller.signal
+                });
+            } finally {
+                clearTimeout(timer);
+            }
 
             if (sendRes.ok) {
                 alert(`✅ PDF enviado por WhatsApp`);
@@ -414,8 +425,13 @@ export default function QuoteSummary({
                 alert(`❌ Error al enviar PDF (${sendRes.status}): ${errData?.error || 'Error desconocido'}`);
             }
         } catch (err: any) {
-            console.error('[WhatsApp PDF] Network Error:', err);
-            alert(`❌ Error de red al enviar PDF: ${err.message}`);
+            if (err?.name === 'AbortError') {
+                console.error('[WhatsApp PDF] Timeout (90s)');
+                alert('⏱️ El envío está tardando demasiado. Puede que el bot de WhatsApp esté desconectado o saturado. Revisá el estado del bot e intentá de nuevo.');
+            } else {
+                console.error('[WhatsApp PDF] Network Error:', err);
+                alert(`❌ Error de red al enviar PDF: ${err.message}`);
+            }
         } finally {
             setIsSendingPDF(false);
         }

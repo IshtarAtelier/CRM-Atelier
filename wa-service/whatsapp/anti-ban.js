@@ -1,6 +1,19 @@
 const { prisma } = require('../db');
 const { getAdminWaId, isValidRecipient, isLidFormat } = require('../utils');
 
+/**
+ * Envuelve una promesa con un timeout duro. Si la promesa no resuelve/rechaza
+ * dentro de `ms`, rechaza con un error. Evita que un envío colgado de
+ * whatsapp-web.js bloquee la cola (y por ende la UI del CRM) de forma indefinida.
+ */
+function withTimeout(promise, ms, label = 'operación') {
+    let timer;
+    const timeout = new Promise((_, reject) => {
+        timer = setTimeout(() => reject(new Error(`Timeout de ${ms}ms en ${label}`)), ms);
+    });
+    return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
+}
+
 class AntiBanQueue {
     constructor() {
         this.queue = [];
@@ -48,8 +61,16 @@ class AntiBanQueue {
                 return;
             }
 
-            this.queue.push({ waId, content, media, options, resolve, reject });
-            console.log(`[AntiBanQueue] Mensaje encolado para ${waId}. Tamaño de cola: ${this.queue.length}`);
+            const task = { waId, content, media, options, resolve, reject };
+            // Los envíos manuales (acción humana desde el CRM) tienen prioridad:
+            // van al frente para no quedar atrapados detrás de la automatización
+            // (pausas de lote, límite horario, etc.).
+            if (options.isAutomated === false) {
+                this.queue.unshift(task);
+            } else {
+                this.queue.push(task);
+            }
+            console.log(`[AntiBanQueue] Mensaje encolado para ${waId} (${options.isAutomated === false ? 'MANUAL/prioritario' : 'automático'}). Tamaño de cola: ${this.queue.length}`);
             this.processQueue();
         });
     }
@@ -110,7 +131,10 @@ class AntiBanQueue {
     /**
      * Verifica y espera si se superó el límite de mensajes por hora (máximo 30).
      */
-    async checkHourlyLimit() {
+    async checkHourlyLimit(options = {}) {
+        // Los envíos manuales de un humano no se frenan por el límite horario
+        // (ese límite existe para throttlear la automatización masiva).
+        if (options.isAutomated === false) return;
         this.cleanHourlyTimestamps();
         if (this.sentTimestamps.length >= 30) {
             const oldest = this.sentTimestamps[0];
@@ -151,7 +175,14 @@ class AntiBanQueue {
      * Loop de procesamiento de la cola.
      */
     async processQueue() {
-        if (this.isProcessing || this.isPaused || this.queue.length === 0) {
+        if (this.isProcessing || this.queue.length === 0) {
+            return;
+        }
+
+        // Si la cola está pausada (circuit breaker), solo frenamos la automatización.
+        // Un envío manual iniciado por un humano debe poder salir igual.
+        const headIsManual = this.queue[0]?.options?.isAutomated === false;
+        if (this.isPaused && !headIsManual) {
             return;
         }
 
@@ -159,8 +190,8 @@ class AntiBanQueue {
         const task = this.queue.shift();
 
         try {
-            // Verificar límites horarios antes de procesar
-            await this.checkHourlyLimit();
+            // Verificar límites horarios antes de procesar (los manuales no se frenan)
+            await this.checkHourlyLimit(task.options);
             // Verificar horario permitido para mensajes automáticos
             await this.checkAllowedHours(task.options);
 
@@ -392,10 +423,11 @@ class AntiBanQueue {
             await new Promise(r => setTimeout(r, typingDuration));
         }
 
-        // 6. Enviar mensaje
+        // 6. Enviar mensaje (con timeout duro para no colgar la cola si la sesión falla)
         console.log(`[AntiBanQueue] Enviando mensaje a ${targetWaId}...`);
-        
+
         const MessageMedia = require('whatsapp-web.js').MessageMedia;
+        const SEND_TIMEOUT_MS = media ? 60000 : 25000; // media puede tardar en subir
         let sentReceipt;
 
         if (media && media.base64) {
@@ -404,17 +436,38 @@ class AntiBanQueue {
             if (media.mimetype.includes('audio/')) {
                 sendOptions.sendAudioAsVoice = true;
             }
-            sentReceipt = await this.client.sendMessage(targetWaId, mediaObj, sendOptions);
+            sentReceipt = await withTimeout(
+                this.client.sendMessage(targetWaId, mediaObj, sendOptions),
+                SEND_TIMEOUT_MS,
+                'sendMessage (media base64)'
+            );
         } else if (media && media.url) {
-            const mediaObj = await MessageMedia.fromUrl(media.url, { unsafeMime: true });
+            const mediaObj = await withTimeout(
+                MessageMedia.fromUrl(media.url, { unsafeMime: true }),
+                30000,
+                'MessageMedia.fromUrl'
+            );
             const sendOptions = { caption: processedContent || '' };
-            sentReceipt = await this.client.sendMessage(targetWaId, mediaObj, sendOptions);
+            sentReceipt = await withTimeout(
+                this.client.sendMessage(targetWaId, mediaObj, sendOptions),
+                SEND_TIMEOUT_MS,
+                'sendMessage (media url)'
+            );
         } else {
-            sentReceipt = await this.client.sendMessage(targetWaId, processedContent);
+            sentReceipt = await withTimeout(
+                this.client.sendMessage(targetWaId, processedContent),
+                SEND_TIMEOUT_MS,
+                'sendMessage (texto)'
+            );
         }
 
         // Guardar timestamp de envío para límites horarios
         this.sentTimestamps.push(Date.now());
+
+        // El mensaje ya se envió: resolvemos de inmediato para que el CRM no espere
+        // el jitter de espaciado. El delay posterior sigue bloqueando el PRÓXIMO
+        // envío de la cola (protección anti-ban), pero no al que acaba de mandar.
+        resolve(sentReceipt);
 
         // 7. Retardo posterior al envío (Jitter) para espaciado humano
         // Mensajes proactivos/fuera de ventana automatizados: 45 a 90 segundos.
@@ -437,8 +490,6 @@ class AntiBanQueue {
 
         console.log(`[AntiBanQueue] Mensaje enviado. Aplicando retraso de ${(delayMs / 1000).toFixed(1)}s antes del próximo envío.`);
         await new Promise(r => setTimeout(r, delayMs));
-
-        resolve(sentReceipt);
     }
 
     /**

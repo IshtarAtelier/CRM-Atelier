@@ -341,13 +341,22 @@ function createApiRouter(deps) {
                     const filename = media.filename ? (media.filename.includes('.') ? media.filename : `${media.filename}.${outExt}`) : `media.${outExt}`;
                     f.append('file', blob, `out_${Date.now()}_${filename}`);
                     const uploadUrl = process.env.CRM_API_URL.replace('/api/bot', '/api/upload');
-                    const uploadRes = await fetch(uploadUrl, { 
-                        method: 'POST', 
-                        body: f,
-                        headers: { 'x-api-key': process.env.BOT_API_KEY }
-                    });
-                    const resJson = await uploadRes.json();
-                    if (resJson.url) mediaUrl = resJson.url;
+                    // Paso NO crítico (solo genera el pre-render en el CRM): lo acotamos
+                    // con un timeout para que no bloquee la confirmación del envío.
+                    const uploadController = new AbortController();
+                    const uploadTimer = setTimeout(() => uploadController.abort(), 15000);
+                    try {
+                        const uploadRes = await fetch(uploadUrl, {
+                            method: 'POST',
+                            body: f,
+                            headers: { 'x-api-key': process.env.BOT_API_KEY },
+                            signal: uploadController.signal
+                        });
+                        const resJson = await uploadRes.json();
+                        if (resJson.url) mediaUrl = resJson.url;
+                    } finally {
+                        clearTimeout(uploadTimer);
+                    }
                 } catch (err) {
                     console.error("Error subiendo media saliente a CRM:", err.message);
                 }
