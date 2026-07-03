@@ -654,3 +654,19 @@ model PostSaleStatusHistory {
 
   @@index([caseId])
 }
+
+model Coupon {
+  id        String    @id @default(cuid())
+  code      String    @unique
+  type      String    // PERCENT | FIXED
+  value     Float
+  active    Boolean   @default(true)
+  expiresAt DateTime?
+  maxUses   Int?
+  usedCount Int       @default(0)
+  minTotal  Float?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@index([code])
+}

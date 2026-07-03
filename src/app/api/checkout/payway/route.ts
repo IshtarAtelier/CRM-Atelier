@@ -278,6 +278,23 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Discrepancia de precio detectada. Por favor, reintente." }, { status: 400 });
     }
 
+    // Cupón de descuento: re-validar SIEMPRE en el backend (el front solo manda el código).
+    // El descuento se calcula sobre el total base y se acumula con el descuento por transferencia.
+    let appliedCoupon: any = null;
+    let couponDiscount = 0;
+    if (body.couponCode) {
+      const { validateCoupon, computeCouponDiscount, normalizeCouponCode } = await import('@/lib/checkout/coupon-utils');
+      const couponCode = normalizeCouponCode(body.couponCode);
+      const coupon = await prisma.coupon.findUnique({ where: { code: couponCode } });
+      const check = validateCoupon(coupon, recalculatedItemsTotal);
+      if (!check.ok || !coupon) {
+        return NextResponse.json({ error: check.reason || 'Cupón inválido.' }, { status: 400 });
+      }
+      appliedCoupon = coupon;
+      couponDiscount = computeCouponDiscount(coupon, recalculatedItemsTotal);
+      console.log(`[PAYWAY CHECKOUT] Cupón ${coupon.code} aplicado: -$${couponDiscount}`);
+    }
+
     // 1. Encontrar o crear cliente
     const normalizedPhone = normalizeArgentinePhone(customer.phone);
     
@@ -485,8 +502,10 @@ export async function POST(req: Request) {
           userId: systemUser.id,
           status: "WEB_PENDING",
           orderType: customer.paymentMethod.includes('MAYORISTA') ? "MAYORISTA" : "SALE",
-          total: customer.paymentMethod === 'TRANSFER' ? recalculatedItemsTotal * transferMultiplier : recalculatedItemsTotal,
-          labNotes: `Método de envío: ${shippingMethodLabel}${customer.shippingBranch ? ` (Sucursal: ${customer.shippingBranch})` : ''}. Método de pago: ${customer.paymentMethod}. Dirección: ${customer.address}, ${customer.city}, ${customer.state} ${customer.zip}`,
+          total: Math.max(0, (customer.paymentMethod === 'TRANSFER' ? recalculatedItemsTotal * transferMultiplier : recalculatedItemsTotal) - couponDiscount),
+          appliedPromoName: appliedCoupon ? `CUPÓN ${appliedCoupon.code}` : undefined,
+          appliedPromoDiscount: appliedCoupon ? couponDiscount : undefined,
+          labNotes: `Método de envío: ${shippingMethodLabel}${customer.shippingBranch ? ` (Sucursal: ${customer.shippingBranch})` : ''}. Método de pago: ${customer.paymentMethod}.${appliedCoupon ? ` Cupón: ${appliedCoupon.code} (-$${couponDiscount.toLocaleString('es-AR')}).` : ''} Dirección: ${customer.address}, ${customer.city}, ${customer.state} ${customer.zip}`,
           items: {
             create: orderItemsToCreate
           }
@@ -501,8 +520,9 @@ export async function POST(req: Request) {
 
     // 4. Enviar email de confirmación (asincrónico, usando sendEmail centralizado)
     const isTransfer = customer.paymentMethod === 'TRANSFER';
-    const emailTotal = isTransfer ? recalculatedItemsTotal * transferMultiplier : recalculatedItemsTotal;
+    const emailTotal = Math.max(0, (isTransfer ? recalculatedItemsTotal * transferMultiplier : recalculatedItemsTotal) - couponDiscount);
     const hasCrystals = sanitizedItems.some((item: any) => item.lensConfig && (item.lensConfig.lensType !== "NONE" || item.lensConfig.color));
+    const needsPrescription = sanitizedItems.some((item: any) => item.lensConfig?.prescriptionFile === 'Enviar luego por WhatsApp');
 
     const itemsHtml = sanitizedItems.map((item: any) => `
       <tr>
@@ -524,7 +544,7 @@ export async function POST(req: Request) {
       </tr>
     `).join('');
 
-    const confirmationHtml = getConfirmationHtml(customer, order.id, emailTotal, shippingMethodLabel, hasCrystals, getClientItemsHtml(sanitizedItems));
+    const confirmationHtml = getConfirmationHtml(customer, order.id, emailTotal, shippingMethodLabel, hasCrystals, getClientItemsHtml(sanitizedItems), needsPrescription);
     const adminEmails = 'pisano.ishtar@gmail.com, atelier.optica.cerro@gmail.com';
     const adminHtml = getAdminHtml(customer, order.id, emailTotal, shippingMethodLabel, isTransfer, itemsHtml);
 
@@ -542,7 +562,7 @@ export async function POST(req: Request) {
         subject: `🛒 Nueva Compra Web - $${emailTotal.toLocaleString('es-AR')} - ${customer.firstName} ${customer.lastName}`,
         html: adminHtml
       }).catch(err => console.error("Error admin email:", err));
-       const clientTransferHtml = getClientTransferHtml(customer, order.id, emailTotal);
+       const clientTransferHtml = getClientTransferHtml(customer, order.id, emailTotal, needsPrescription);
 
        sendEmail({
          to: customer.email,
@@ -563,6 +583,14 @@ export async function POST(req: Request) {
           });
         } catch (notifErr) {
           console.error("Error creando notificación de venta web:", notifErr);
+        }
+
+        // Consumir un uso del cupón (la orden ya quedó creada con el descuento aplicado)
+        if (appliedCoupon) {
+          await prisma.coupon.update({
+            where: { id: appliedCoupon.id },
+            data: { usedCount: { increment: 1 } }
+          }).catch(err => console.error("Error incrementando uso de cupón:", err));
         }
 
         return NextResponse.json({
@@ -620,8 +648,11 @@ export async function POST(req: Request) {
       ? 'https://live.decidir.com/api/v2/payments'
       : 'https://developers.decidir.com/api/v2/payments';
 
+    // Total efectivo a cobrar con tarjeta: base recalculada menos cupón (si hay)
+    const cardChargeTotal = Math.max(0, recalculatedItemsTotal - couponDiscount);
+
     // PayWay/Decidir API requires amount in CENTS (integer, multiply by 100)
-    const amountInCents = Math.round(total * 100);
+    const amountInCents = Math.round(cardChargeTotal * 100);
 
     const paywayRequest = {
       site_transaction_id: `WEB-${order.id}`,
@@ -742,7 +773,7 @@ export async function POST(req: Request) {
         where: { id: order.id },
         data: {
           status: "WEB_PAID",
-          paid: total
+          paid: cardChargeTotal
         }
       });
 
@@ -750,17 +781,25 @@ export async function POST(req: Request) {
       await tx.payment.create({
         data: {
           orderId: order.id,
-          amount: total,
+          amount: cardChargeTotal,
           method: "TARJETA",
-          notes: `Pago aprobado por Payway. Transacción ID: ${paywayData.id}`
+          notes: `Pago aprobado por Payway. Transacción ID: ${paywayData.id}${appliedCoupon ? ` | Cupón ${appliedCoupon.code}: -$${couponDiscount.toLocaleString('es-AR')}` : ''}`
         }
       });
+
+      // 2b. Consumir un uso del cupón (solo si el pago fue aprobado)
+      if (appliedCoupon) {
+        await tx.coupon.update({
+          where: { id: appliedCoupon.id },
+          data: { usedCount: { increment: 1 } }
+        });
+      }
 
       // 3. Create the notification request
       await tx.notification.create({
         data: {
           type: "INVOICE_REQUEST",
-          message: `Factura solicitada automáticamente para la Venta #${order.id.slice(-4).toUpperCase()} por un total de $${total.toLocaleString('es-AR')}`,
+          message: `Factura solicitada automáticamente para la Venta #${order.id.slice(-4).toUpperCase()} por un total de $${cardChargeTotal.toLocaleString('es-AR')}`,
           orderId: order.id,
           requestedBy: "Sistema (Payway)",
           status: "PENDING"
@@ -771,7 +810,7 @@ export async function POST(req: Request) {
       await tx.notification.create({
         data: {
           type: "WEB_SALE",
-          message: `Nueva Venta Web #${order.id.slice(-4).toUpperCase()} de ${customer.firstName} ${customer.lastName} por $${total.toLocaleString('es-AR')} (Tarjeta - PAGADA vía Payway). Revisar y confirmar en Ventas.`,
+          message: `Nueva Venta Web #${order.id.slice(-4).toUpperCase()} de ${customer.firstName} ${customer.lastName} por $${cardChargeTotal.toLocaleString('es-AR')} (Tarjeta - PAGADA vía Payway). Revisar y confirmar en Ventas.`,
           orderId: order.id,
           requestedBy: "Sistema (Web)",
           status: "PENDING"

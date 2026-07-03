@@ -1,9 +1,31 @@
-import React from "react";
+import React, { useState } from "react";
 import Image from "next/image";
-import { CreditCard, BadgePercent, Truck } from "lucide-react";
+import { CreditCard, BadgePercent, Truck, Ticket, X, Loader2 } from "lucide-react";
 
-export function CheckoutSummarySidebar({ items, getCartTotal, formData, webSettings, isWholesale }: { items: any[], getCartTotal: any, formData: any, webSettings?: { web_promo_cash_discount: number, web_promo_installments: string }, isWholesale?: boolean }) {
+export interface AppliedCoupon {
+  code: string;
+  discount: number;
+}
+
+export function CheckoutSummarySidebar({ items, getCartTotal, formData, webSettings, isWholesale, coupon, couponError, couponLoading, onApplyCoupon, onRemoveCoupon }: {
+  items: any[],
+  getCartTotal: any,
+  formData: any,
+  webSettings?: { web_promo_cash_discount: number, web_promo_installments: string },
+  isWholesale?: boolean,
+  coupon?: AppliedCoupon | null,
+  couponError?: string | null,
+  couponLoading?: boolean,
+  onApplyCoupon?: (code: string) => void,
+  onRemoveCoupon?: () => void
+}) {
   const discountRate = (webSettings?.web_promo_cash_discount || 15) / 100;
+  const [couponInput, setCouponInput] = useState("");
+
+  const baseTotal = getCartTotal();
+  const transferDiscount = formData.paymentMethod === 'TRANSFER' ? baseTotal * discountRate : 0;
+  const couponDiscount = coupon?.discount || 0;
+  const finalTotal = Math.max(0, baseTotal - transferDiscount - couponDiscount);
 
   return (
     <div className="lg:col-span-5 bg-[#fafafa] p-8 lg:p-10 border border-stone-200 sticky top-32">
@@ -61,6 +83,49 @@ export function CheckoutSummarySidebar({ items, getCartTotal, formData, webSetti
         ))}
       </div>
 
+      {/* Cupón de descuento */}
+      {!isWholesale && onApplyCoupon && (
+        <div className="mb-6">
+          {coupon ? (
+            <div className="flex items-center gap-3 bg-emerald-50 border border-emerald-300 px-4 py-3 animate-in fade-in">
+              <Ticket className="w-4 h-4 text-emerald-600 shrink-0" />
+              <p className="text-xs font-bold flex-1 text-emerald-900 uppercase tracking-widest">Cupón {coupon.code} aplicado</p>
+              <span className="text-xs font-black text-emerald-700">-${coupon.discount.toLocaleString("es-AR")}</span>
+              <button type="button" onClick={onRemoveCoupon} aria-label="Quitar cupón" className="p-1 text-stone-400 hover:text-red-500 transition-colors">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          ) : (
+            <>
+              <div className="flex gap-2">
+                <div className="flex items-center gap-2 flex-1 bg-white border border-stone-200 px-3">
+                  <Ticket className="w-4 h-4 text-stone-400 shrink-0" />
+                  <input
+                    type="text"
+                    value={couponInput}
+                    onChange={e => setCouponInput(e.target.value.toUpperCase())}
+                    onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); if (couponInput.trim()) onApplyCoupon(couponInput); } }}
+                    placeholder="¿Tenés un cupón de descuento?"
+                    className="w-full py-3 text-xs font-semibold uppercase tracking-widest bg-transparent focus:outline-none placeholder:normal-case placeholder:tracking-normal placeholder:font-normal"
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => { if (couponInput.trim()) onApplyCoupon(couponInput); }}
+                  disabled={couponLoading || !couponInput.trim()}
+                  className="px-4 py-3 bg-stone-900 text-white text-[10px] font-black uppercase tracking-widest hover:bg-stone-700 disabled:opacity-40 transition-colors flex items-center gap-2"
+                >
+                  {couponLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : 'Aplicar'}
+                </button>
+              </div>
+              {couponError && (
+                <p className="text-[11px] text-red-500 font-medium mt-2 animate-in fade-in">{couponError}</p>
+              )}
+            </>
+          )}
+        </div>
+      )}
+
       <div className="border-t border-stone-200 pt-6 flex flex-col gap-3">
         <div className="flex justify-between text-sm text-stone-500">
           <span>Subtotal</span>
@@ -70,7 +135,7 @@ export function CheckoutSummarySidebar({ items, getCartTotal, formData, webSetti
           <span>Envío</span>
           <span className="text-black font-bold uppercase tracking-widest text-[10px] mt-1">Gratis</span>
         </div>
-        
+
         {isWholesale && (
           <div className="flex justify-between text-[10px] text-blue-600 font-black uppercase tracking-widest bg-blue-50/50 p-2 rounded border border-blue-100/80 my-1 animate-in fade-in">
             <span>Tarifa Mayorista Activa</span>
@@ -81,7 +146,14 @@ export function CheckoutSummarySidebar({ items, getCartTotal, formData, webSetti
         {formData.paymentMethod === 'TRANSFER' && (
           <div className="flex justify-between text-sm text-green-600 font-medium animate-in fade-in">
             <span>Descuento ({Math.round(discountRate * 100)}% OFF Transferencia)</span>
-            <span>-${(getCartTotal() * discountRate).toLocaleString("es-AR")}</span>
+            <span>-${transferDiscount.toLocaleString("es-AR")}</span>
+          </div>
+        )}
+
+        {coupon && (
+          <div className="flex justify-between text-sm text-emerald-600 font-medium animate-in fade-in">
+            <span>Cupón {coupon.code}</span>
+            <span>-${coupon.discount.toLocaleString("es-AR")}</span>
           </div>
         )}
 
@@ -90,7 +162,7 @@ export function CheckoutSummarySidebar({ items, getCartTotal, formData, webSetti
           <div className="text-right">
             <span className="text-xs text-stone-400 block mb-1">ARS</span>
             <span className="text-2xl font-light transition-all">
-              ${(formData.paymentMethod === 'TRANSFER' ? getCartTotal() * (1 - discountRate) : getCartTotal()).toLocaleString("es-AR")}
+              ${finalTotal.toLocaleString("es-AR")}
             </span>
           </div>
         </div>
