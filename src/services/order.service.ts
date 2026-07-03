@@ -15,6 +15,7 @@ import { logAudit } from '@/lib/audit';
 import { addBusinessDays, calculateEstimatedDays } from '@/lib/business-days';
 import { format } from 'date-fns';
 import { OptovisionAuditService } from '@/services/optovision-audit.service';
+import { mapOrderPostSale } from '@/types/orders';
 
 const OrderItemSchema = z.object({
     productId: z.string().nullable().optional(),
@@ -213,19 +214,10 @@ export class OrderService {
             return NextResponse.json({ error: 'Order not found' }, { status: 404 });
         }
 
-        const activeCase = order.postSaleCases?.[0];
-        
-        // Map client → contact shape expected by cotizador/page.tsx
+        const mapped = mapOrderPostSale(order);
         const response = {
-            ...order,
-            contact: order.client,
-            postSaleStatus: activeCase?.status || 'PENDING',
-            postSaleNotes: activeCase?.notes || null,
-            postSaleCost: activeCase?.cost != null ? activeCase.cost : 0.0,
-            postSaleResponsible: activeCase?.responsible || null,
-            postSaleOrderOption: activeCase?.orderOption || null,
-            postSaleNewOrderNumber: activeCase?.newOrderNumber || null,
-            postSaleRxData: activeCase?.rxData || null,
+            ...mapped,
+            contact: order.client
         };
 
         return response;

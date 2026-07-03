@@ -7,6 +7,7 @@ import { prisma } from '@/lib/db';
 import { isMultifocal2x1, recalculateCrystalPrices } from '@/lib/promo-utils';
 import { formatOrderItemsSummary } from '@/lib/order-utils';
 import { PricingService, calculateQuoteTotals } from '@/services/PricingService';
+import { mapOrderPostSale } from '@/types/orders';
 
 // POST /api/orders — Create order from inline cotizador
 export async function POST(request: Request) {
@@ -465,24 +466,9 @@ export async function GET(request: Request) {
                 orderBy,
             });
 
-            const helperMapOrder = (o: any) => {
-                if (!o) return o;
-                const activeCase = o.postSaleCases?.[0];
-                return {
-                    ...o,
-                    postSaleStatus: activeCase?.status || o.postSaleStatus || 'PENDING',
-                    postSaleNotes: activeCase?.notes || o.postSaleNotes || null,
-                    postSaleCost: activeCase?.cost != null ? activeCase.cost : (o.postSaleCost || 0.0),
-                    postSaleResponsible: activeCase?.responsible || o.postSaleResponsible || null,
-                    postSaleOrderOption: activeCase?.orderOption || o.postSaleOrderOption || null,
-                    postSaleNewOrderNumber: activeCase?.newOrderNumber || o.postSaleNewOrderNumber || null,
-                    postSaleRxData: activeCase?.rxData || o.postSaleRxData || null,
-                };
-            };
-
             const ordersWithBalance = allMatchingOrders.map((o: any) => {
                 const financials = PricingService.calculateOrderFinancials(o);
-                return { ...helperMapOrder(o), financials };
+                return { ...mapOrderPostSale(o), financials };
             }).filter((o: any) => o.financials.hasBalance);
 
             if (paginate) {
@@ -517,23 +503,8 @@ export async function GET(request: Request) {
                 prisma.order.aggregate({ _sum: { total: true }, where })
             ]);
 
-            const helperMapOrder = (o: any) => {
-                if (!o) return o;
-                const activeCase = o.postSaleCases?.[0];
-                return {
-                    ...o,
-                    postSaleStatus: activeCase?.status || o.postSaleStatus || 'PENDING',
-                    postSaleNotes: activeCase?.notes || o.postSaleNotes || null,
-                    postSaleCost: activeCase?.cost != null ? activeCase.cost : (o.postSaleCost || 0.0),
-                    postSaleResponsible: activeCase?.responsible || o.postSaleResponsible || null,
-                    postSaleOrderOption: activeCase?.orderOption || o.postSaleOrderOption || null,
-                    postSaleNewOrderNumber: activeCase?.newOrderNumber || o.postSaleNewOrderNumber || null,
-                    postSaleRxData: activeCase?.rxData || o.postSaleRxData || null,
-                };
-            };
-
             return NextResponse.json({
-                orders: orders.map(helperMapOrder),
+                orders: orders.map(mapOrderPostSale),
                 totalRevenue: isAdmin ? (aggregate._sum.total || 0) : 0,
                 pagination: {
                     total,
@@ -550,21 +521,7 @@ export async function GET(request: Request) {
                 orderBy,
                 take: 100, // Safety limit to avoid 502/timeouts
             });
-            const helperMapOrder = (o: any) => {
-                if (!o) return o;
-                const activeCase = o.postSaleCases?.[0];
-                return {
-                    ...o,
-                    postSaleStatus: activeCase?.status || o.postSaleStatus || 'PENDING',
-                    postSaleNotes: activeCase?.notes || o.postSaleNotes || null,
-                    postSaleCost: activeCase?.cost != null ? activeCase.cost : (o.postSaleCost || 0.0),
-                    postSaleResponsible: activeCase?.responsible || o.postSaleResponsible || null,
-                    postSaleOrderOption: activeCase?.orderOption || o.postSaleOrderOption || null,
-                    postSaleNewOrderNumber: activeCase?.newOrderNumber || o.postSaleNewOrderNumber || null,
-                    postSaleRxData: activeCase?.rxData || o.postSaleRxData || null,
-                };
-            };
-            return NextResponse.json(orders.map(helperMapOrder));
+            return NextResponse.json(orders.map(mapOrderPostSale));
         }
     } catch (error: any) {
         console.error('Error fetching orders:', error);

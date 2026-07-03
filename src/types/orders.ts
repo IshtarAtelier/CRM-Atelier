@@ -211,3 +211,18 @@ export interface CashMovement {
     receiptUrl?: string | null;
     user?: { name: string };
 }
+
+export function mapOrderPostSale(order: any): any {
+    if (!order) return order;
+    const activeCase = order.postSaleCases?.[0];
+    return {
+        ...order,
+        postSaleStatus: activeCase?.status || order.postSaleStatus || 'PENDING',
+        postSaleNotes: activeCase?.notes || order.postSaleNotes || null,
+        postSaleCost: activeCase?.cost != null ? activeCase.cost : (order.postSaleCost || 0.0),
+        postSaleResponsible: activeCase?.responsible || order.postSaleResponsible || null,
+        postSaleOrderOption: activeCase?.orderOption || order.postSaleOrderOption || null,
+        postSaleNewOrderNumber: activeCase?.newOrderNumber || order.postSaleNewOrderNumber || null,
+        postSaleRxData: activeCase?.rxData || order.postSaleRxData || null,
+    };
+}
