@@ -1,0 +1,8 @@
+{
+  "components/Storefront/StorefrontNavbar.tsx -> ./CartSidebar": {
+    "id": "components/Storefront/StorefrontNavbar.tsx -> ./CartSidebar",
+    "files": [
+      "static/chunks/_app-pages-browser_src_components_Storefront_CartSidebar_tsx.js"
+    ]
+  }
+}

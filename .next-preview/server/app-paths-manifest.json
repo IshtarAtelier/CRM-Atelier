@@ -1,0 +1,8 @@
+{
+  "/api/auth/me/route": "app/api/auth/me/route.js",
+  "/api/reviews/route": "app/api/reviews/route.js",
+  "/api/cron/smartlab-sync/route": "app/api/cron/smartlab-sync/route.js",
+  "/page": "app/page.js",
+  "/_not-found/page": "app/_not-found/page.js",
+  "/landing/[slug]/page": "app/landing/[slug]/page.js"
+}
