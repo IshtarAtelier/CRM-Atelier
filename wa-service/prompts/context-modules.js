@@ -249,11 +249,17 @@ const MODULES = [
  * @param {string} params.agentType - 'sales' | 'executive'
  * @param {Array}  params.messages - Mensajes LangChain del estado
  * @param {Object} params.clientData - Ficha del cliente (puede ser null)
+ * @param {string} params.chatSummary - Resumen persistente del chat (puede ser null)
  * @returns {string} Texto de los módulos activos (o cadena vacía)
  */
-function buildContextModules({ agentType, messages, clientData }) {
+function buildContextModules({ agentType, messages, clientData, chatSummary }) {
     const { conversationText, hasImage } = getConversationSignals(messages);
-    const signals = { text: conversationText, hasImage, clientData: clientData || null };
+    // El resumen persistente también dispara módulos: si dice "cotización entregada
+    // de multifocales", las reglas de precios siguen cargadas aunque las palabras
+    // clave hayan salido de la ventana de mensajes recientes. Sin pérdida de contexto
+    // en conversaciones largas o retomadas días después.
+    const summaryText = normalizeText(chatSummary || '');
+    const signals = { text: conversationText + '\n' + summaryText, hasImage, clientData: clientData || null };
 
     const active = [];
     for (const mod of MODULES) {

@@ -260,11 +260,14 @@ function createAgentNode({ nodeName, agentType, toolsList, defaultPrompt, reject
     }
 
     // Módulos contextuales: solo las reglas relevantes a esta conversación.
-    // Si el prompt (custom) no tiene el placeholder, el replace no altera nada.
+    // El resumen persistente del chat también dispara módulos (temas ya tratados
+    // siguen cargados en charlas largas o retomadas). Si el prompt (custom) no
+    // tiene el placeholder, el replace no altera nada.
     const contextModules = buildContextModules({
       agentType,
       messages: state.messages,
       clientData: state.clientData,
+      chatSummary: state.chatSummary,
     });
 
     const systemPrompt = basePrompt
