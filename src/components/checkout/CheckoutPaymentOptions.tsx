@@ -105,8 +105,6 @@ export function CheckoutPaymentOptions({ formData, handleChange, isProcessing, w
                       <option value="1">1 pago sin interés</option>
                       <option value="3">3 Cuotas Fijas</option>
                       <option value="6">6 Cuotas Fijas (Cuota Simple)</option>
-                      <option value="9">9 Cuotas Fijas</option>
-                      <option value="12">12 Cuotas Fijas (Cuota Simple)</option>
                     </select>
                   </div>
                 </div>

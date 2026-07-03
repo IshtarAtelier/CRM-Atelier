@@ -644,7 +644,8 @@ export async function POST(req: Request) {
       bin: bin,
       amount: amountInCents,
       currency: "ARS",
-      installments: parseInt(customer.installments || "1", 10),
+      // Solo planes ofrecidos por el comercio: 1 pago, 3 o 6 cuotas (los demás valores caen a 1 pago)
+      installments: [1, 3, 6].includes(parseInt(customer.installments || "1", 10)) ? parseInt(customer.installments || "1", 10) : 1,
       description: "Compra Atelier Óptica Web",
       payment_type: "single",
       sub_payments: [],
