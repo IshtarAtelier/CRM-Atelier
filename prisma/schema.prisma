@@ -517,6 +517,23 @@ model SystemSetting {
   updatedAt DateTime @updatedAt
 }
 
+model Coupon {
+  id             String    @id @default(cuid())
+  code           String    @unique // Guardado en MAYÚSCULAS; es lo que tipea el cliente
+  discountType   String    @default("FIXED") // "FIXED" (monto $) | "PERCENT" (%)
+  discountValue  Float // Monto en $ si FIXED, porcentaje si PERCENT
+  isActive       Boolean   @default(true)
+  expiresAt      DateTime? // null = sin vencimiento
+  maxUses        Int? // null = usos ilimitados
+  usedCount      Int       @default(0)
+  minOrderAmount Float?    @default(0) // Compra mínima para que aplique
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([code])
+  @@index([isActive])
+}
+
 model CheckoutSession {
   id           String   @id @default(cuid())
   email        String?
