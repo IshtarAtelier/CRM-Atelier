@@ -9,7 +9,7 @@ export async function GET(request: NextRequest) {
         const channel = request.nextUrl.searchParams.get('channel');
         const isWholesale = channel === 'wholesale';
         const page = Number(request.nextUrl.searchParams.get('page') || 1);
-        const limit = Number(request.nextUrl.searchParams.get('limit') || 24);
+        const limit = Number(request.nextUrl.searchParams.get('limit') || 10000);
         const category = request.nextUrl.searchParams.get('category') || 'Todo';
         const brand = request.nextUrl.searchParams.get('brand') || '';
         const shape = request.nextUrl.searchParams.get('shape') || '';

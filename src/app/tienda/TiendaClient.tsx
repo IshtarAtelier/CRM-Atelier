@@ -50,7 +50,7 @@ export function TiendaClient({
   const sortParam = searchParams.get('orden') || 'recientes';
 
   useEffect(() => {
-    setVisibleCount(24);
+    setVisibleCount(10000);
   }, [activeCategory, searchQuery, filterGender]);
 
   const [isWholesale, setIsWholesale] = useState(false);
@@ -110,7 +110,7 @@ export function TiendaClient({
   // ── STATE FOR PRODUCTS & PAGINATION ──
   const [products, setProducts] = useState<any[]>(initialProducts);
   const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(Math.ceil((initialTotalCount || initialProducts.length) / 24) || 1);
+  const [totalPages, setTotalPages] = useState(Math.ceil((initialTotalCount || initialProducts.length) / 10000) || 1);
   const [totalCount, setTotalCount] = useState(initialTotalCount || initialProducts.length);
   const [isLoading, setIsLoading] = useState(false);
   const isRecoveringProducts = isLoading;
@@ -145,7 +145,7 @@ export function TiendaClient({
       try {
         const queryParams = new URLSearchParams();
         queryParams.set('page', currentPage.toString());
-        queryParams.set('limit', '24');
+        queryParams.set('limit', '10000');
         queryParams.set('category', activeCategory);
         if (filterBrand) queryParams.set('brand', filterBrand);
         if (filterShape) queryParams.set('shape', filterShape);

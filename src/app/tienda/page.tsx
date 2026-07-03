@@ -90,7 +90,7 @@ export default async function TiendaPage() {
       orderBy: {
         createdAt: 'desc'
       },
-      take: 24
+      take: 10000
     });
   } catch (error) {
     console.error(`[Tienda] Error fetching initial products:`, error);
