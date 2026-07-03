@@ -281,7 +281,7 @@ export function PromoClient({ reviewCount = 642 }: PromoClientProps) {
                 className="group relative bg-[#FCFCFC] border border-gray-100 rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all"
               >
                 <div className="relative h-60 w-full bg-white p-4">
-                  <Image 
+                  <Image unoptimized 
                     src={glass.src} 
                     alt={glass.title} 
                     fill 
