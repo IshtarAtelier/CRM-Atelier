@@ -27,6 +27,7 @@ const nextConfig: NextConfig = {
     return config;
   },
   images: {
+    unoptimized: true,
     formats: ['image/avif', 'image/webp'],
     remotePatterns: [
       { protocol: 'https', hostname: '*.firebasestorage.googleapis.com' },

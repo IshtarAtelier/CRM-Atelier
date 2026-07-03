@@ -5,8 +5,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends openssl ca-cert
 FROM base AS deps
 WORKDIR /app
 COPY package*.json ./
-# --ignore-scripts evita instalar Playwright browsers en esta etapa (se hace en builder)
-RUN npm ci --ignore-scripts
+# -- Evita descargar navegadores de Playwright durante npm ci, pero permite otros postinstalls (como sharp)
+ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
+RUN npm ci
 
 # ── Build ──
 FROM base AS builder
