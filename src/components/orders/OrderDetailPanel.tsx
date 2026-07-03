@@ -19,7 +19,7 @@ import {
 import type { Order } from '@/types/orders';
 import { resolveStorageUrl } from '@/lib/utils/storage';
 import { requiresFrameMeasurements, frameMeasuresForPair, hasFrameMeasures } from '@/lib/utils/lens';
-import { POST_SALE_CASE_TYPES } from '@/lib/constants/postSale';
+import { POST_SALE_CASE_TYPES, POST_SALE_FAULTS, POST_SALE_COVERAGE } from '@/lib/constants/postSale';
 
 export const LAB_STEPS = [
     { key: 'NONE', label: 'Pendiente', icon: Clock, color: 'stone', bg: 'bg-stone-100 dark:bg-stone-800', text: 'text-stone-500 dark:text-stone-400', ring: 'ring-stone-200 dark:ring-stone-700' },
@@ -106,6 +106,8 @@ export function OrderDetailPanel({
     const [postSaleCost, setPostSaleCost] = useState<number | ''>(order.postSaleCost ?? '');
     const [postSaleResponsible, setPostSaleResponsible] = useState(order.postSaleResponsible || '');
     const [postSaleCaseType, setPostSaleCaseType] = useState(order.postSaleCaseType || '');
+    const [postSaleFault, setPostSaleFault] = useState(order.postSaleFault || '');
+    const [postSaleCoverage, setPostSaleCoverage] = useState(order.postSaleCoverage || '');
     const [postSaleOrderOption, setPostSaleOrderOption] = useState(order.postSaleOrderOption || '');
     const [postSaleNewOrderNumber, setPostSaleNewOrderNumber] = useState(order.postSaleNewOrderNumber || '');
     const [newNoteText, setNewNoteText] = useState('');
@@ -129,6 +131,8 @@ export function OrderDetailPanel({
         setPostSaleCost(order.postSaleCost ?? '');
         setPostSaleResponsible(order.postSaleResponsible || '');
         setPostSaleCaseType(order.postSaleCaseType || '');
+        setPostSaleFault(order.postSaleFault || '');
+        setPostSaleCoverage(order.postSaleCoverage || '');
         setPostSaleOrderOption(order.postSaleOrderOption || '');
         setPostSaleNewOrderNumber(order.postSaleNewOrderNumber || '');
         setNewNoteText('');
@@ -158,7 +162,7 @@ export function OrderDetailPanel({
         // Al cambiar de orden se reinician las subidas frescas de esta sesión
         setRxUploaded1(false);
         setRxUploaded2(false);
-    }, [order.id, order.postSaleNotes, order.postSaleCost, order.postSaleResponsible, order.postSaleCaseType, order.postSaleOrderOption, order.postSaleNewOrderNumber, order.postSaleRxData]);
+    }, [order.id, order.postSaleNotes, order.postSaleCost, order.postSaleResponsible, order.postSaleCaseType, order.postSaleFault, order.postSaleCoverage, order.postSaleOrderOption, order.postSaleNewOrderNumber, order.postSaleRxData]);
 
     React.useEffect(() => {
         if (postSaleOrderOption === 'DIFFERENT' && order.clientId) {
@@ -262,6 +266,8 @@ export function OrderDetailPanel({
                     postSaleCost: postSaleCost === '' ? 0 : Number(postSaleCost),
                     postSaleResponsible: postSaleResponsible || null,
                     postSaleCaseType: postSaleCaseType || null,
+                    postSaleFault: postSaleFault || null,
+                    postSaleCoverage: postSaleCoverage || null,
                     postSaleOrderOption: postSaleOrderOption || null,
                     postSaleNewOrderNumber: postSaleOrderOption === 'DIFFERENT' ? (postSaleNewOrderNumber || null) : null,
                     postSaleRxData: postSaleOrderOption === 'DIFFERENT' ? JSON.stringify(payloadRxData) : null,
@@ -1134,7 +1140,7 @@ export function OrderDetailPanel({
 
                                     <div>
                                         <label className="text-[8px] font-black text-stone-400 dark:text-stone-500 uppercase tracking-widest block mb-1">
-                                            Responsabilidad
+                                            Responsable (quién gestiona)
                                         </label>
                                         <input
                                             type="text"
@@ -1143,6 +1149,39 @@ export function OrderDetailPanel({
                                             placeholder="Nombre del responsable"
                                             className="w-full text-xs p-2.5 rounded-xl border border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-stone-900 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 placeholder-stone-400 transition-all dark:text-stone-200"
                                         />
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div>
+                                        <label className="text-[8px] font-black text-stone-400 dark:text-stone-500 uppercase tracking-widest block mb-1">
+                                            Atribución (de quién fue el error)
+                                        </label>
+                                        <select
+                                            value={postSaleFault}
+                                            onChange={(e) => setPostSaleFault(e.target.value)}
+                                            className="w-full text-xs p-2.5 rounded-xl border border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-stone-900 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all dark:text-stone-200"
+                                        >
+                                            <option value="">Sin definir</option>
+                                            {POST_SALE_FAULTS.map(f => (
+                                                <option key={f} value={f}>{f}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="text-[8px] font-black text-stone-400 dark:text-stone-500 uppercase tracking-widest block mb-1">
+                                            Cobertura
+                                        </label>
+                                        <select
+                                            value={postSaleCoverage}
+                                            onChange={(e) => setPostSaleCoverage(e.target.value)}
+                                            className={`w-full text-xs p-2.5 rounded-xl border bg-stone-50 dark:bg-stone-900 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all dark:text-stone-200 ${postSaleCoverage === 'Con cargo' ? 'border-amber-300 dark:border-amber-800' : postSaleCoverage === 'Sin cargo' ? 'border-emerald-300 dark:border-emerald-800' : 'border-stone-200 dark:border-stone-700'}`}
+                                        >
+                                            <option value="">Sin definir</option>
+                                            {POST_SALE_COVERAGE.map(c => (
+                                                <option key={c} value={c}>{c}</option>
+                                            ))}
+                                        </select>
                                     </div>
                                 </div>
 

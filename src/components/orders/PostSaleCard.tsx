@@ -362,6 +362,16 @@ export function PostSaleCard({
                             {order.postSaleCaseType}
                         </span>
                     )}
+                    {order.postSaleCoverage && (
+                        <span className={`text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md border ${order.postSaleCoverage === 'Con cargo' ? 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-900/40' : 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-900/40'}`}>
+                            {order.postSaleCoverage}
+                        </span>
+                    )}
+                    {order.postSaleFault && (
+                        <span className="bg-stone-100 dark:bg-stone-750 text-stone-500 dark:text-stone-400 text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md">
+                            Culpa: {order.postSaleFault}
+                        </span>
+                    )}
                     {order.postSaleResponsible && (
                         <span className="bg-stone-100 dark:bg-stone-750 text-stone-600 dark:text-stone-300 text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md flex items-center gap-1">
                             👤 {order.postSaleResponsible}
