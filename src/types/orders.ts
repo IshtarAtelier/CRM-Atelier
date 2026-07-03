@@ -141,6 +141,8 @@ export interface Order {
     postSaleStatus?: string | null;
     postSaleRxData?: string | null;
     postSaleCaseType?: string | null;
+    postSaleFault?: string | null;
+    postSaleCoverage?: string | null;
     labColor?: string | null;
     labTreatment?: string | null;
     labDiameter?: string | null;
@@ -230,5 +232,7 @@ export function mapOrderPostSale(order: any): any {
         postSaleNewOrderNumber: activeCase?.newOrderNumber || order.postSaleNewOrderNumber || null,
         postSaleRxData: activeCase?.rxData || order.postSaleRxData || null,
         postSaleCaseType: activeCase?.caseType || order.postSaleCaseType || null,
+        postSaleFault: activeCase?.fault || order.postSaleFault || null,
+        postSaleCoverage: activeCase?.coverage || order.postSaleCoverage || null,
     };
 }

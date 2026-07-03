@@ -20,9 +20,11 @@ import {
   Maximize2,
   Copy,
   Grid,
-  List
+  List,
+  Ticket
 } from "lucide-react";
 import Link from "next/link";
+import CouponsManager from '@/components/admin/CouponsManager';
 import { resolveStorageUrl } from '@/lib/utils/storage';
 import { getSelectedShapeFromTags, getSelectedMaterialFromTags, updateTagsWithShapeAndMaterial, getProductAttributes } from '@/utils/product-controllers';
 
@@ -64,7 +66,7 @@ interface BlogPost {
 }
 
 export default function WebManagementPage() {
-  const [activeTab, setActiveTab] = useState<'products' | 'blog' | 'config' | 'flyers'>('products');
+  const [activeTab, setActiveTab] = useState<'products' | 'blog' | 'config' | 'flyers' | 'coupons'>('products');
 
   // Flyer Builder states
   const [flyerTheme, setFlyerTheme] = useState<'cream' | 'obsidian' | 'rose'>('cream');
