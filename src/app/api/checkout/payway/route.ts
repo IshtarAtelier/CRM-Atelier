@@ -618,13 +618,38 @@ export async function POST(req: Request) {
       throw new Error("Token de pago o BIN no proporcionado.");
     }
 
-    let paymentMethodId = body.paymentMethodId ? parseInt(body.paymentMethodId, 10) : null;
-    if (!paymentMethodId || isNaN(paymentMethodId)) {
-      paymentMethodId = 1; // Default Visa
-      if (bin.startsWith("58")) paymentMethodId = 63; // Cabal
-      else if (bin.startsWith("5") || bin.startsWith("2")) paymentMethodId = 15; // Mastercard
-      else if (bin.startsWith("34") || bin.startsWith("37")) paymentMethodId = 39; // Amex
+    // payment_method_id según tabla oficial de Decidir/Payway:
+    // Visa 1 · Visa Débito 31 · Mastercard 15 · MC Débito 66 · Maestro 99
+    // Amex 65 · Cabal 63 · Cabal Débito 67 · Naranja 24
+    // El BIN no distingue crédito de débito, por eso el cliente lo elige en el checkout
+    // (customer.cardType: 'CREDIT' | 'DEBIT'). Mandar el id equivocado da
+    // "payment_method_id (invalid_param)".
+    const isDebit = customer.cardType === 'DEBIT';
+
+    const guessPaymentMethodId = (): number => {
+      if (bin.startsWith("589562")) return 24;                    // Naranja
+      if (bin.startsWith("6042") || bin.startsWith("6043") || bin.startsWith("6044") || bin.startsWith("5896")) {
+        return isDebit ? 67 : 63;                                 // Cabal
+      }
+      if (bin.startsWith("34") || bin.startsWith("37")) return 65; // Amex
+      if (bin.startsWith("5") || bin.startsWith("2")) {
+        return isDebit ? 66 : 15;                                 // Mastercard
+      }
+      return isDebit ? 31 : 1;                                    // Visa (default)
+    };
+
+    let paymentMethodId: number;
+    if (isDebit) {
+      // Débito: mapear SIEMPRE desde el BIN + tipo elegido (el token de Decidir
+      // no distingue débito, y un id de crédito sería rechazado).
+      paymentMethodId = guessPaymentMethodId();
+    } else {
+      paymentMethodId = body.paymentMethodId ? parseInt(body.paymentMethodId, 10) : NaN;
+      if (!paymentMethodId || isNaN(paymentMethodId)) {
+        paymentMethodId = guessPaymentMethodId();
+      }
     }
+    console.log(`[PAYWAY CHECKOUT] payment_method_id=${paymentMethodId} (bin=${bin.substring(0, 6)}, tipo=${isDebit ? 'DEBITO' : 'CREDITO'})`);
 
     const privateKey = process.env.PAYWAY_PRIVATE_KEY;
     const isProd = process.env.PAYWAY_ENVIRONMENT === 'production';
@@ -644,7 +669,7 @@ export async function POST(req: Request) {
       bin: bin,
       amount: amountInCents,
       currency: "ARS",
-      installments: parseInt(customer.installments || "1", 10),
+      installments: isDebit ? 1 : parseInt(customer.installments || "1", 10),
       description: "Compra Atelier Óptica Web",
       payment_type: "single",
       sub_payments: [],

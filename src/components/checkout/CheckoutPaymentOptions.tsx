@@ -86,6 +86,23 @@ export function CheckoutPaymentOptions({ formData, handleChange, isProcessing, w
               
               {formData.paymentMethod === 'PAYWAY' && (
                 <div role="button" tabIndex={0} className="mt-6 flex flex-col gap-4 p-5 border border-stone-100 bg-white" onClick={(e) => e.stopPropagation()}>
+                  {/* Tipo de tarjeta: Payway exige un código distinto para débito y crédito */}
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handleChange({ target: { name: 'cardType', value: 'CREDIT' } })}
+                      className={`flex-1 p-3 text-xs font-black uppercase tracking-widest border transition-colors ${(formData.cardType || 'CREDIT') === 'CREDIT' ? 'border-black bg-black text-white' : 'border-stone-200 text-stone-400 hover:border-stone-400'}`}
+                    >
+                      💳 Crédito
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { handleChange({ target: { name: 'cardType', value: 'DEBIT' } }); handleChange({ target: { name: 'installments', value: '1' } }); }}
+                      className={`flex-1 p-3 text-xs font-black uppercase tracking-widest border transition-colors ${formData.cardType === 'DEBIT' ? 'border-black bg-black text-white' : 'border-stone-200 text-stone-400 hover:border-stone-400'}`}
+                    >
+                      🏦 Débito
+                    </button>
+                  </div>
                   <div>
                     <input type="text" name="cardNumber" value={formData.cardNumber} onChange={handleCardNumberChange} placeholder="Número de Tarjeta (Ej: 4500 1234 5678 9000)" maxLength={19} autoComplete="cc-number" className={`w-full border p-3 text-sm focus:outline-none transition-colors font-mono tracking-widest ${getBorderColor(formData.cardNumber, 15)}`} />
                   </div>
@@ -101,13 +118,19 @@ export function CheckoutPaymentOptions({ formData, handleChange, isProcessing, w
                     <input type="text" name="cardName" value={formData.cardName} onChange={handleChange} placeholder="Titular (Como figura en la tarjeta)" autoComplete="cc-name" className={`w-full border p-3 text-sm focus:outline-none transition-colors uppercase ${getBorderColor(formData.cardName, 4)}`} />
                   </div>
                   <div>
-                    <select name="installments" value={formData.installments || "1"} onChange={handleChange} className="w-full border border-stone-200 p-3 text-sm focus:border-black focus:focus:ring-2 focus:ring-amber-500 focus:outline-none transition-colors bg-white">
-                      <option value="1">1 pago sin interés</option>
-                      <option value="3">3 Cuotas Fijas</option>
-                      <option value="6">6 Cuotas Fijas (Cuota Simple)</option>
-                      <option value="9">9 Cuotas Fijas</option>
-                      <option value="12">12 Cuotas Fijas (Cuota Simple)</option>
-                    </select>
+                    {formData.cardType === 'DEBIT' ? (
+                      <div className="w-full border border-stone-200 p-3 text-sm bg-stone-50 text-stone-500">
+                        1 pago (las tarjetas de débito no permiten cuotas)
+                      </div>
+                    ) : (
+                      <select name="installments" value={formData.installments || "1"} onChange={handleChange} className="w-full border border-stone-200 p-3 text-sm focus:border-black focus:focus:ring-2 focus:ring-amber-500 focus:outline-none transition-colors bg-white">
+                        <option value="1">1 pago sin interés</option>
+                        <option value="3">3 Cuotas Fijas</option>
+                        <option value="6">6 Cuotas Fijas (Cuota Simple)</option>
+                        <option value="9">9 Cuotas Fijas</option>
+                        <option value="12">12 Cuotas Fijas (Cuota Simple)</option>
+                      </select>
+                    )}
                   </div>
                 </div>
               )}
