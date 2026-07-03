@@ -39,20 +39,32 @@ export async function getCampaignProducts(
       take: 8,
     });
 
-    const formatted: LandingProduct[] = rows.map((wp) => ({
-      name: wp.name,
-      price: wp.product.price
-        ? `6 cuotas de $${Math.round(wp.product.price / 6).toLocaleString("es-AR")}`
-        : "",
-      img: wp.imageUrl
-        ? resolveStorageUrl(wp.imageUrl)
-        : wp.images.length > 0
-          ? resolveStorageUrl(wp.images[0])
-          : wp.product.imagenesCatalogo.length > 0
-            ? resolveStorageUrl(wp.product.imagenesCatalogo[0])
-            : "/images/og-image.jpg",
-      slug: wp.slug,
-    }));
+    // Se arma fila por fila: si una sola tiene datos legados incompletos (imágenes
+    // null, relación de producto rota) se descarta ESA fila, no el batch entero.
+    const formatted: LandingProduct[] = [];
+    for (const wp of rows) {
+      try {
+        if (!wp.product) continue;
+        const images = wp.images ?? [];
+        const catalogImages = wp.product.imagenesCatalogo ?? [];
+        formatted.push({
+          name: wp.name,
+          price: wp.product.price
+            ? `6 cuotas de $${Math.round(wp.product.price / 6).toLocaleString("es-AR")}`
+            : "",
+          img: wp.imageUrl
+            ? resolveStorageUrl(wp.imageUrl)
+            : images.length > 0
+              ? resolveStorageUrl(images[0])
+              : catalogImages.length > 0
+                ? resolveStorageUrl(catalogImages[0])
+                : "/images/og-image.jpg",
+          slug: wp.slug,
+        });
+      } catch (rowError) {
+        console.error("[Landing] fila de producto descartada:", wp.slug, rowError);
+      }
+    }
 
     return formatted.length >= 4 ? formatted.slice(0, 8) : FALLBACK_PRODUCTS;
   } catch (error) {
