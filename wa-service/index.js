@@ -257,13 +257,13 @@ const handleMessageCreate = async (msg) => {
                     }
                 }
                 
-                let senderNameVal = null;
+                let senderNameVal;
                 if (isMetaAutoReply) {
                     senderNameVal = 'Meta (Auto-Reply)';
-                } else if (!isBotReplying && !isSystemReply) {
-                    senderNameVal = 'Humano';
-                } else if (isSystemReply) {
+                } else if (isBotReplying) {
                     senderNameVal = 'Bot';
+                } else {
+                    senderNameVal = 'Humano';
                 }
 
                 const createData = {
