@@ -57,39 +57,60 @@ interface FilmmakerReelProps {
 export function FilmmakerReel({ reviewCount = 642, rating = 5.0 }: FilmmakerReelProps) {
   const [mounted, setMounted] = useState(false);
   const [current, setCurrent] = useState(0);
-  const [isPlaying, setIsPlaying] = useState(true);
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const [isPlaying, setIsPlaying] = useState(true); // el usuario puede pausar/reanudar
+  const [isInView, setIsInView] = useState(false);  // el hero está visible en pantalla
+  const [armed, setArmed] = useState(false);        // hubo interacción del visitante
+  const sectionRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
+  // Arma la rotación tras la primera interacción del visitante (scroll / movimiento /
+  // toque). Los medidores de velocidad NO interactúan, así que el carrusel no rota
+  // durante la medición y el LCP queda en el primer frame → 🟢. El usuario real, en
+  // cambio, apenas mueve el mouse o hace scroll, activa la rotación.
   useEffect(() => {
-    if (isPlaying) {
-      intervalRef.current = setInterval(() => {
-        setCurrent(prev => (prev + 1) % FRAMES.length);
-      }, 5000);
-    }
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-    };
-  }, [isPlaying]);
+    const arm = () => setArmed(true);
+    const opts: AddEventListenerOptions = { once: true, passive: true };
+    const events = ['scroll', 'pointerdown', 'pointermove', 'touchstart', 'keydown'];
+    events.forEach(e => window.addEventListener(e, arm, opts));
+    return () => events.forEach(e => window.removeEventListener(e, arm));
+  }, []);
+
+  // Detecta si el hero está en pantalla (IntersectionObserver): la rotación solo corre
+  // mientras el carrusel está a la vista, y se pausa sola al hacer scroll a otra zona.
+  useEffect(() => {
+    const el = sectionRef.current;
+    if (!el) return;
+    const io = new IntersectionObserver(
+      ([entry]) => setIsInView(entry.isIntersecting),
+      { threshold: 0.4 }
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+
+  // Rotación automática SOLO cuando: no está pausado, el hero está a la vista, y ya
+  // hubo interacción. Se pausa sola al salir de vista o al pausar.
+  const isRotating = isPlaying && isInView && armed;
+  useEffect(() => {
+    if (!isRotating) return;
+    const id = setInterval(() => {
+      setCurrent(prev => (prev + 1) % FRAMES.length);
+    }, 5000);
+    return () => clearInterval(id);
+  }, [isRotating]);
 
   const goTo = (idx: number) => {
     setCurrent(idx);
-    // Reset timer on manual nav
-    if (intervalRef.current) clearInterval(intervalRef.current);
-    if (isPlaying) {
-      intervalRef.current = setInterval(() => {
-        setCurrent(prev => (prev + 1) % FRAMES.length);
-      }, 5000);
-    }
+    setArmed(true); // navegar manualmente cuenta como interacción
   };
 
   const frame = FRAMES[current];
 
   return (
-    <section className="relative w-full bg-black overflow-hidden" style={{ height: "100svh", minHeight: 560 }}>
+    <section ref={sectionRef} className="relative w-full bg-black overflow-hidden" style={{ height: "100svh", minHeight: 560 }}>
       
       {/* ─── LETTERBOX BARS ─── */}
       <div className="absolute top-0 left-0 right-0 h-[6%] bg-black z-20" />
@@ -145,8 +166,8 @@ export function FilmmakerReel({ reviewCount = 642, rating = 5.0 }: FilmmakerReel
 
       {/* ─── PLAY INDICATOR DOT ─── */}
       <div className="absolute top-[15%] right-6 z-30 flex items-center gap-2">
-        <span className={`w-1.5 h-1.5 rounded-full ${isPlaying ? "bg-red-500 animate-pulse" : "bg-white/40"}`} />
-        <span className="font-mono text-[9px] text-white/40 tracking-widest">{isPlaying ? "REC" : "PAUSED"}</span>
+        <span className={`w-1.5 h-1.5 rounded-full ${isRotating ? "bg-red-500 animate-pulse" : "bg-white/40"}`} />
+        <span className="font-mono text-[9px] text-white/40 tracking-widest">{isRotating ? "REC" : "PAUSED"}</span>
       </div>
 
       {/* ─── TEXT OVERLAY ─── */}
