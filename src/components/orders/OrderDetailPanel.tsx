@@ -81,6 +81,11 @@ export function OrderDetailPanel({
         return str.includes('2x1');
     });
 
+    const isOptovision = order.items?.some((it: any) => {
+        const labName = (it.laboratorySnapshot || it.product?.laboratory || '').toUpperCase();
+        return labName.includes('OPTOVISION');
+    }) || false;
+
     const [fullImageOpen, setFullImageOpen] = useState(false);
     const [postSaleNotes, setPostSaleNotes] = useState(order.postSaleNotes || '');
     const [postSaleCost, setPostSaleCost] = useState<number | ''>(order.postSaleCost ?? '');
@@ -908,67 +913,69 @@ export function OrderDetailPanel({
                     </div>
 
                     {/* SmartLab Live Status */}
-                    <div className="bg-gradient-to-br from-indigo-50 to-blue-50 dark:from-indigo-950/30 dark:to-blue-950/30 rounded-2xl border border-indigo-100 dark:border-indigo-900/50 p-5 shadow-sm">
-                        <div className="flex items-center justify-between mb-4">
-                            <h4 className="text-[10px] font-black text-indigo-500 uppercase tracking-widest flex items-center gap-1.5">
-                                <Activity className="w-3.5 h-3.5" /> SmartLab Digital Tracker
-                            </h4>
-                            {order.labOrderNumber && (
-                                <span className="bg-indigo-100 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300 px-2 py-1 rounded text-[9px] font-black uppercase tracking-wider">
-                                    OP: {order.labOrderNumber}
-                                </span>
-                            )}
-                        </div>
-
-                        {order.smartLabProgress != null ? (
-                            <div className="space-y-5">
-                                {/* Progress Bar */}
-                                <div>
-                                    <div className="flex justify-between text-[10px] font-black mb-2 uppercase tracking-widest">
-                                        <span className="text-indigo-600 dark:text-indigo-400">Progreso de Fabricación</span>
-                                        <span className={order.smartLabProgress === 100 ? 'text-emerald-500' : 'text-indigo-500'}>{order.smartLabProgress}%</span>
-                                    </div>
-                                    <div className="h-3 w-full bg-indigo-100 dark:bg-indigo-950/50 rounded-full overflow-hidden">
-                                        <div 
-                                            className={`h-full transition-all duration-1000 ${order.smartLabProgress === 100 ? 'bg-emerald-500' : 'bg-indigo-500'}`}
-                                            style={{ width: `${order.smartLabProgress}%` }}
-                                        />
-                                    </div>
-                                </div>
-
-                                {/* Stats Grid */}
-                                <div className="grid grid-cols-2 gap-3">
-                                    <div className="bg-white/60 dark:bg-black/20 p-3 rounded-xl border border-indigo-50 dark:border-indigo-900/30">
-                                        <Layers className="w-4 h-4 text-indigo-400 mb-2" />
-                                        <p className="text-[8px] font-black text-stone-400 uppercase tracking-widest">Sector Actual</p>
-                                        <p className="text-xs font-bold text-stone-800 dark:text-stone-200 truncate mt-0.5" title={order.smartLabSector || 'Desconocido'}>
-                                            {order.smartLabSector || '—'}
-                                        </p>
-                                    </div>
-                                    <div className="bg-white/60 dark:bg-black/20 p-3 rounded-xl border border-indigo-50 dark:border-indigo-900/30">
-                                        <Calendar className="w-4 h-4 text-indigo-400 mb-2" />
-                                        <p className="text-[8px] font-black text-stone-400 uppercase tracking-widest">Días en Lab</p>
-                                        <p className="text-xs font-bold text-stone-800 dark:text-stone-200 mt-0.5">
-                                            {order.smartLabDays != null ? `${order.smartLabDays} días` : '—'}
-                                        </p>
-                                    </div>
-                                </div>
-
-                                {order.smartLabEntryDate && (
-                                    <p className="text-[9px] text-stone-500 text-center font-medium">
-                                        Ingresado: {order.smartLabEntryDate}
-                                    </p>
+                    {!isOptovision && (
+                        <div className="bg-gradient-to-br from-indigo-50 to-blue-50 dark:from-indigo-950/30 dark:to-blue-950/30 rounded-2xl border border-indigo-100 dark:border-indigo-900/50 p-5 shadow-sm">
+                            <div className="flex items-center justify-between mb-4">
+                                <h4 className="text-[10px] font-black text-indigo-500 uppercase tracking-widest flex items-center gap-1.5">
+                                    <Activity className="w-3.5 h-3.5" /> SmartLab Digital Tracker
+                                </h4>
+                                {order.labOrderNumber && (
+                                    <span className="bg-indigo-100 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300 px-2 py-1 rounded text-[9px] font-black uppercase tracking-wider">
+                                        OP: {order.labOrderNumber}
+                                    </span>
                                 )}
                             </div>
-                        ) : (
-                            <div className="flex flex-col items-center justify-center py-6 text-center">
-                                <div className="w-10 h-10 rounded-full bg-indigo-100/50 dark:bg-indigo-900/30 flex items-center justify-center mb-3">
-                                    <Activity className="w-4 h-4 text-indigo-300 dark:text-indigo-700" />
+
+                            {order.smartLabProgress != null ? (
+                                <div className="space-y-5">
+                                    {/* Progress Bar */}
+                                    <div>
+                                        <div className="flex justify-between text-[10px] font-black mb-2 uppercase tracking-widest">
+                                            <span className="text-indigo-600 dark:text-indigo-400">Progreso de Fabricación</span>
+                                            <span className={order.smartLabProgress === 100 ? 'text-emerald-500' : 'text-indigo-500'}>{order.smartLabProgress}%</span>
+                                        </div>
+                                        <div className="h-3 w-full bg-indigo-100 dark:bg-indigo-950/50 rounded-full overflow-hidden">
+                                            <div 
+                                                className={`h-full transition-all duration-1000 ${order.smartLabProgress === 100 ? 'bg-emerald-500' : 'bg-indigo-500'}`}
+                                                style={{ width: `${order.smartLabProgress}%` }}
+                                            />
+                                        </div>
+                                    </div>
+
+                                    {/* Stats Grid */}
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div className="bg-white/60 dark:bg-black/20 p-3 rounded-xl border border-indigo-50 dark:border-indigo-900/30">
+                                            <Layers className="w-4 h-4 text-indigo-400 mb-2" />
+                                            <p className="text-[8px] font-black text-stone-400 uppercase tracking-widest">Sector Actual</p>
+                                            <p className="text-xs font-bold text-stone-800 dark:text-stone-200 truncate mt-0.5" title={order.smartLabSector || 'Desconocido'}>
+                                                {order.smartLabSector || '—'}
+                                            </p>
+                                        </div>
+                                        <div className="bg-white/60 dark:bg-black/20 p-3 rounded-xl border border-indigo-50 dark:border-indigo-900/30">
+                                            <Calendar className="w-4 h-4 text-indigo-400 mb-2" />
+                                            <p className="text-[8px] font-black text-stone-400 uppercase tracking-widest">Días en Lab</p>
+                                            <p className="text-xs font-bold text-stone-800 dark:text-stone-200 mt-0.5">
+                                                {order.smartLabDays != null ? `${order.smartLabDays} días` : '—'}
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    {order.smartLabEntryDate && (
+                                        <p className="text-[9px] text-stone-500 text-center font-medium">
+                                            Ingresado: {order.smartLabEntryDate}
+                                        </p>
+                                    )}
                                 </div>
-                                <p className="text-xs text-stone-400 max-w-[200px]">Sin datos de fabricación sincronizados todavía.</p>
-                            </div>
-                        )}
-                    </div>
+                            ) : (
+                                <div className="flex flex-col items-center justify-center py-6 text-center">
+                                    <div className="w-10 h-10 rounded-full bg-indigo-100/50 dark:bg-indigo-900/30 flex items-center justify-center mb-3">
+                                        <Activity className="w-4 h-4 text-indigo-300 dark:text-indigo-700" />
+                                    </div>
+                                    <p className="text-xs text-stone-400 max-w-[200px]">Sin datos de fabricación sincronizados todavía.</p>
+                                </div>
+                            )}
+                        </div>
+                    )}
 
                     {/* Post Venta Form — only after sent to factory */}
                     {order.orderType === 'SALE' && (order.labStatus && order.labStatus !== 'NONE' || order.postSaleNotes || (order.postSaleCost ?? 0) > 0 || order.postSaleOrderOption) && (

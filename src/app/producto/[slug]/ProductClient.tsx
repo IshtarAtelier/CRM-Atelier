@@ -90,7 +90,7 @@ export function ProductClient({
   const getThumbnailLabel = (index: number) => {
     if (images[index]) {
       return (
-        <Image 
+        <Image unoptimized
           src={images[index]} 
           alt={`Vista ${index + 1}`} 
           fill 
@@ -150,7 +150,7 @@ export function ProductClient({
                   transition={{ duration: 0.4 }}
                   className={`absolute inset-0 z-10 isolate group-hover:scale-[1.3] group-hover:cursor-zoom-in transition-transform duration-700 ease-out origin-center ${activeImageIndex === 0 ? 'mix-blend-multiply' : ''}`}
                 >
-                  <Image 
+                  <Image unoptimized
                     src={images[activeImageIndex]} 
                     alt={`${product.brand} ${product.model}`}
                     fill
@@ -254,7 +254,7 @@ export function ProductClient({
                       >
                         {v.imageUrl ? (
                           <div className="w-8 h-8 rounded-full overflow-hidden relative bg-white">
-                            <Image
+                            <Image unoptimized
                               src={resolveStorageUrl(v.imageUrl)}
                               alt={v.colorCode}
                               fill
@@ -653,7 +653,7 @@ export function ProductClient({
                   className="group block bg-white border border-[#f0f0f0] hover:border-stone-300 p-4 transition-all duration-300 rounded-lg"
                 >
                   <div className="aspect-square relative overflow-hidden bg-stone-50 mb-3 rounded-md">
-                    <Image 
+                    <Image unoptimized
                       src={resolveStorageUrl(p.imageUrl)} 
                       alt={`${p.brand} ${p.model}`} 
                       fill 

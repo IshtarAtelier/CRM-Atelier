@@ -19,6 +19,9 @@ Se implementó y ejecutó de manera exitosa el plan de optimización de velocida
 4. **Invalidación Automática de Caché**:
    - Modificamos el manejador global [api-handler.ts](file:///Users/ishtarpissano/proyectos/atelier/src/lib/api-handler.ts) para limpiar la memoria caché automáticamente en cualquier petición de mutación exitosa (`POST`, `PATCH`, `PUT`, `DELETE`).
    - Modificamos el endpoint `/api/sales-opportunities` para limpiar el caché al completar/descartar una oportunidad.
+5. **Exclusión de Seguimiento para Pedidos de Optovision**:
+   - Modificamos [OrderDetailPanel.tsx](file:///Users/ishtarpissano/proyectos/atelier/src/components/orders/OrderDetailPanel.tsx) y [QuoteSummary.tsx](file:///Users/ishtarpissano/proyectos/atelier/src/components/quotes/QuoteSummary.tsx) para ocultar el panel de seguimiento digital de Grupo Óptico (`SmartLab Digital Tracker`) si el pedido original pertenece al laboratorio `OPTOVISION` (detectado automáticamente en base al laboratorio del cristal).
+   - Añadimos declaraciones de tipos seguras en [declarations.d.ts](file:///Users/ishtarpissano/proyectos/atelier/src/types/declarations.d.ts) para evitar errores del compilador relacionados con librerías externas.
 
 ---
 

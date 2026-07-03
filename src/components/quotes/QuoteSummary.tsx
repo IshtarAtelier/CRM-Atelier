@@ -89,6 +89,11 @@ export default function QuoteSummary({
     const [newNoteText, setNewNoteText] = React.useState('');
     const [isSavingPostSale, setIsSavingPostSale] = React.useState(false);
 
+    const isOptovision = order.items?.some((it: any) => {
+        const labName = (it.laboratorySnapshot || it.product?.laboratory || '').toUpperCase();
+        return labName.includes('OPTOVISION');
+    }) || false;
+
     React.useEffect(() => {
         setLabFrameShape(order.labFrameShape || '');
         setFrameA(order.frameA || '');
@@ -697,7 +702,7 @@ export default function QuoteSummary({
                 )}
 
                 {/* SmartLab Info Block - Expanded View */}
-                {isSale && order.smartLabProgress != null && order.smartLabProgress > 0 && (
+                {isSale && !isOptovision && order.smartLabProgress != null && order.smartLabProgress > 0 && (
                     <div className="bg-gradient-to-br from-blue-50/80 to-indigo-50/50 dark:from-blue-950/30 dark:to-indigo-950/20 rounded-[2rem] p-5 border-2 border-blue-200/50 dark:border-blue-800/30">
                         <div className="flex items-center gap-2 mb-4">
                             <Factory className="w-5 h-5 text-blue-500" />
