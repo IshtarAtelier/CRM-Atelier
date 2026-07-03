@@ -59,10 +59,10 @@ export function CustomGlassesBuilder({ products }: { products: Product[] }) {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedBrand, setSelectedBrand] = useState("Todas");
   const [selectedVariantIds, setSelectedVariantIds] = useState<Record<string, string>>({});
-  const [visibleCount, setVisibleCount] = useState(10000);
+  const [visibleCount, setVisibleCount] = useState(12);
 
   useEffect(() => {
-    setVisibleCount(10000);
+    setVisibleCount(12);
   }, [searchQuery, selectedBrand]);
   
   const { setIsOpen: setCartOpen } = useCart();
