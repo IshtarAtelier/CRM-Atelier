@@ -72,7 +72,7 @@ export const recalculateItemPrice = (
       else if (lensType === "BIFOCAL") calculatedPrice += (pricingMap.BIFOCAL.ORGANICO_BLANCO || 0);
       else if (lensType === "MULTIFOCAL") calculatedPrice += (pricingMap.MULTIFOCAL.SMART_FREE || 0);
       
-      if (lensType !== null && lensType !== "NONE") {
+      if (lensType !== null) {
         calculatedPrice += pricingMap.EXTRAS.TINT;
       }
     } else {

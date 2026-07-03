@@ -1,4 +1,5 @@
 import { Metadata } from "next";
+import Image from "next/image";
 import { AccordionItem } from "@/components/Storefront/Accordion";
 import { CristalHero } from "@/components/cristales/CristalHero";
 import { CristalFeatures } from "@/components/cristales/CristalFeatures";
@@ -99,6 +100,20 @@ export default function StellestPage() {
         </div>
       </section>
 
+      <section className="w-full py-12 px-6">
+        <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="relative h-64 md:h-80 w-full rounded-2xl overflow-hidden shadow-lg">
+            <Image src="/images/stellest/stellest-1.jpeg" alt="Stellest Control Miopía 1" fill className="object-cover" />
+          </div>
+          <div className="relative h-64 md:h-80 w-full rounded-2xl overflow-hidden shadow-lg">
+            <Image src="/images/stellest/stellest-2.jpeg" alt="Stellest Control Miopía 2" fill className="object-cover" />
+          </div>
+          <div className="relative h-64 md:h-80 w-full rounded-2xl overflow-hidden shadow-lg">
+            <Image src="/images/stellest/stellest-3.jpeg" alt="Stellest Control Miopía 3" fill className="object-cover" />
+          </div>
+        </div>
+      </section>
+
       <CristalCTA 
         title="El futuro de sus ojos comienza hoy"
         description={
@@ -108,7 +123,7 @@ export default function StellestPage() {
             Traenos la receta de su oftalmopediatra para comenzar el tratamiento adecuado.
           </>
         }
-        buttonText="Reservar Consulta Pediátrica"
+        buttonText="Consulta con un óptico pediátrico"
         whatsappMotivo="Asesoramiento sobre tratamiento Stellest Control Miopía"
       />
     </div>

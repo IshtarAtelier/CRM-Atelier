@@ -451,73 +451,47 @@ export function ProductClient({
                       className="overflow-hidden"
                     >
                       <div className="pb-6">
-                        <div className="bg-[#f9f9f9] border border-[#e5e5e5] p-4 rounded-sm flex gap-2">
-                          <input 
-                            type="text" 
-                            placeholder="Tu código postal"
-                            value={zipCode}
-                            onChange={(e) => setZipCode(e.target.value)}
-                            className="flex-1 bg-white border border-[#e5e5e5] px-3 py-2 text-xs font-mono outline-none focus:border-black transition-colors"
-                            maxLength={8}
-                          />
-                          <button 
-                            onClick={() => {
-                              if (zipCode.length > 2) {
-                                setShippingResult("calculated");
-                              } else {
-                                setShippingResult("invalid");
-                              }
-                            }}
-                            className="bg-black text-white px-4 py-2 text-[10px] font-bold uppercase tracking-widest hover:bg-stone-800 transition-colors"
-                          >
-                            Calcular
-                          </button>
+                        <div className="bg-[#f0faeb] border border-[#d3ecc3] p-4 rounded-sm flex items-center gap-3">
+                          <Truck className="w-5 h-5 text-[#2b6a22]" />
+                          <div>
+                            <p className="text-sm font-bold text-[#2b6a22]">Envío gratis a todo el país</p>
+                            <p className="text-[11px] text-[#2b6a22]/80 mt-0.5">Promoción especial por esta semana.</p>
+                          </div>
                         </div>
-                        {shippingResult === "calculated" && (
-                          <motion.div 
-                            initial={{ opacity: 0, y: 5 }} 
-                            animate={{ opacity: 1, y: 0 }} 
-                            className="mt-4 p-4 bg-stone-50 border border-stone-200 text-stone-800 text-xs flex flex-col gap-3 rounded-lg"
-                          >
-                            <div className="flex gap-2 items-center font-bold text-black border-b border-stone-200 pb-2">
-                              <Truck className="w-4 h-4 text-[#1b4332]" />
-                              <span>Opciones de Envío Correo Argentino (Sin Cargo)</span>
-                            </div>
-                            
-                            <div className="space-y-3.5 divide-y divide-stone-100">
-                              <div className="flex flex-col gap-1 pt-1.5 first:pt-0">
-                                <div className="flex justify-between items-baseline">
-                                  <span className="font-bold text-stone-900">1. Envío a Domicilio</span>
-                                  <span className="text-[10px] font-bold text-[#1b4332] bg-green-50 px-2 py-0.5 rounded-sm">GRATIS</span>
-                                </div>
-                                <p className="text-[11px] text-stone-600 mt-1">
-                                  Llega a tu domicilio en <strong>3 a 5 días hábiles</strong> desde que se despacha.
-                                </p>
+                        <div className="mt-4 p-4 bg-stone-50 border border-stone-200 text-stone-800 text-xs flex flex-col gap-3 rounded-lg">
+                          <div className="flex gap-2 items-center font-bold text-black border-b border-stone-200 pb-2">
+                            <Truck className="w-4 h-4 text-[#1b4332]" />
+                            <span>Opciones de Envío Correo Argentino (Sin Cargo)</span>
+                          </div>
+                          
+                          <div className="space-y-3.5 divide-y divide-stone-100">
+                            <div className="flex flex-col gap-1 pt-1.5 first:pt-0">
+                              <div className="flex justify-between items-baseline">
+                                <span className="font-bold text-stone-900">1. Envío a Domicilio</span>
+                                <span className="text-[10px] font-bold text-[#1b4332] bg-green-50 px-2 py-0.5 rounded-sm">GRATIS</span>
                               </div>
-
-                              <div className="flex flex-col gap-1 pt-3">
-                                <div className="flex justify-between items-baseline">
-                                  <span className="font-bold text-stone-900">2. Envío a Sucursal Oficial</span>
-                                  <span className="text-[10px] font-bold text-[#1b4332] bg-green-50 px-2 py-0.5 rounded-sm">GRATIS</span>
-                                </div>
-                                <p className="text-[11px] text-stone-600 mt-1">
-                                  Retirás en la sucursal de Correo Argentino en <strong>3 a 5 días hábiles</strong> desde que se despacha.
-                                </p>
-                              </div>
+                              <p className="text-[11px] text-stone-600 mt-1">
+                                Llega a tu domicilio en <strong>3 a 5 días hábiles</strong> desde que se despacha.
+                              </p>
                             </div>
 
-                            <div className="mt-2 bg-[#fdfaf2] border border-[#f5ecd5] p-3 rounded text-[11px] text-[#856404] leading-relaxed">
-                              <p className="font-bold mb-1">⏰ Tiempos de preparación / despacho:</p>
-                              <p>• <strong>Solo Armazón / Anteojo de sol:</strong> Despacho en <strong>2 días hábiles</strong>.</p>
-                              <p>• <strong>Con Cristales Recetados:</strong> Calibrado y laboratorio en <strong>5 días hábiles</strong>.</p>
+                            <div className="flex flex-col gap-1 pt-3">
+                              <div className="flex justify-between items-baseline">
+                                <span className="font-bold text-stone-900">2. Envío a Sucursal Oficial</span>
+                                <span className="text-[10px] font-bold text-[#1b4332] bg-green-50 px-2 py-0.5 rounded-sm">GRATIS</span>
+                              </div>
+                              <p className="text-[11px] text-stone-600 mt-1">
+                                Retirás en la sucursal de Correo Argentino en <strong>3 a 5 días hábiles</strong> desde que se despacha.
+                              </p>
                             </div>
-                          </motion.div>
-                        )}
-                        {shippingResult === "invalid" && (
-                          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mt-3 text-red-500 text-xs">
-                            Por favor, ingresá un código postal válido.
-                          </motion.div>
-                        )}
+                          </div>
+
+                          <div className="mt-2 bg-[#fdfaf2] border border-[#f5ecd5] p-3 rounded text-[11px] text-[#856404] leading-relaxed">
+                            <p className="font-bold mb-1">⏰ Tiempos de preparación / despacho:</p>
+                            <p>• <strong>Solo Armazón / Anteojo de sol:</strong> Despacho en <strong>2 días hábiles</strong>.</p>
+                            <p>• <strong>Con Cristales Recetados:</strong> Calibrado y laboratorio en <strong>5 días hábiles</strong>.</p>
+                          </div>
+                        </div>
                         <p className="text-[10px] text-stone-500 mt-4 leading-relaxed">
                           Hacemos envíos a todo el país. Todos nuestros despachos se realizan con embalaje reforzado para garantizar que tus anteojos lleguen en perfecto estado.
                         </p>

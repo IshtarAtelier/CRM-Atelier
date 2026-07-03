@@ -194,6 +194,7 @@ export function LensConfigurator({ basePrice, productId, category, onColorChange
                   <ColorOption color="Amarillo" hex="#e1b854" selected={tintColor === "Amarillo"} onClick={() => { setTintColor("Amarillo"); if (onColorChange) onColorChange("#e1b854"); setStep(2); }} />
                   <ColorOption color="Naranja" hex="#d6804a" selected={tintColor === "Naranja"} onClick={() => { setTintColor("Naranja"); if (onColorChange) onColorChange("#d6804a"); setStep(2); }} />
                   <ColorOption color="Rojo" hex="#ab4040" selected={tintColor === "Rojo"} onClick={() => { setTintColor("Rojo"); if (onColorChange) onColorChange("#ab4040"); setStep(2); }} />
+                  <ColorOption color="A Muestra" hex="#e5e5e5" selected={tintColor === "A Muestra"} onClick={() => { setTintColor("A Muestra"); if (onColorChange) onColorChange(null); setTintStyle("SEGÚN MUESTRA"); setStep(3); }} />
                 </div>
               </>
             )}
@@ -232,7 +233,7 @@ export function LensConfigurator({ basePrice, productId, category, onColorChange
                   <>
                     <div className="mb-6 mt-4">
                       <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-[#999] mb-2">03 / Visión</p>
-                      <p className="text-sm font-serif italic text-black">Podés hacer que tus anteojos de sol tengan tu receta (El teñido solo es válido sobre Orgánico Blanco).</p>
+                      <p className="text-sm font-serif italic text-black">Podés hacer que tus anteojos de sol tengan tu receta.</p>
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-6">
                       <OptionCard 
@@ -254,10 +255,10 @@ export function LensConfigurator({ basePrice, productId, category, onColorChange
                         desc="Visión dividida para lejos y cerca." 
                       />
                       <OptionCard 
-                        selected={false} 
-                        onClick={() => { alert("Los teñidos se pueden hacer solo en cristales orgánicos blancos."); }} 
+                        selected={lensType === "MULTIFOCAL"} 
+                        onClick={() => { setLensType("MULTIFOCAL"); setTreatment("SMART_FREE"); setStep(4); }} 
                         title="Multifocal Teñido" 
-                        desc="No disponible (Solo válido para orgánicos blancos)." 
+                        desc="Visión progresiva para todas las distancias." 
                       />
                     </div>
                   </>
@@ -378,9 +379,13 @@ export function LensConfigurator({ basePrice, productId, category, onColorChange
           >
             <div className="mb-6">
               <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-[#999] mb-2">
-                {flowType === "SUN" ? "04" : "03"} / Tu Receta
+                {flowType === "SUN" ? "04" : "03"} / {tintStyle === "SEGÚN MUESTRA" ? "Receta y Muestra" : "Tu Receta"}
               </p>
-              <p className="text-sm font-serif italic text-black">Adjuntá la receta de tu oftalmólogo para fabricarlos exactos.</p>
+              <p className="text-sm font-serif italic text-black">
+                {tintStyle === "SEGÚN MUESTRA" 
+                  ? "Adjuntá la foto del color a igualar (y tu receta si llevan aumento)."
+                  : "Adjuntá la receta de tu oftalmólogo para fabricarlos exactos."}
+              </p>
             </div>
             
             <div 
@@ -402,15 +407,21 @@ export function LensConfigurator({ basePrice, productId, category, onColorChange
                   <div className="w-16 h-16 bg-[#fafafa] border border-black/10 rounded-full flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-500">
                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-6 h-6 text-black/50"><path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" /></svg>
                   </div>
-                  <h4 className="font-bold text-[14px] uppercase tracking-widest mb-2">Subir Receta</h4>
-                  <p className="text-[11px] text-[#666] max-w-xs mx-auto leading-relaxed">Tomale una foto clara con el celular o subí el archivo PDF.</p>
+                  <h4 className="font-bold text-[14px] uppercase tracking-widest mb-2">
+                    {tintStyle === "SEGÚN MUESTRA" ? "Subir Archivo" : "Subir Receta"}
+                  </h4>
+                  <p className="text-[11px] text-[#666] max-w-xs mx-auto leading-relaxed">
+                    {tintStyle === "SEGÚN MUESTRA" 
+                      ? "Subí la foto del color que querés que igualemos o tu receta."
+                      : "Tomale una foto clara con el celular o subí el archivo PDF."}
+                  </p>
                 </div>
               ) : (
                 <div className="flex flex-col items-center justify-center">
                   <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center text-green-600 mb-4 shadow-inner scale-110">
                     <svg viewBox="0 0 24 24" fill="none" className="w-8 h-8"><path d="M5 13l4 4L19 7" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
                   </div>
-                  <h4 className="font-bold text-[14px] uppercase tracking-widest text-green-800 mb-1">¡Receta Cargada!</h4>
+                  <h4 className="font-bold text-[14px] uppercase tracking-widest text-green-800 mb-1">¡Archivo Cargado!</h4>
                   <p className="text-[11px] text-green-700/80 mb-4 max-w-[250px] truncate">{prescriptionFile.name}</p>
                   <span className="text-[10px] font-bold text-black/50 group-hover:text-black uppercase tracking-[0.2em] underline underline-offset-4 transition-colors relative z-20">
                     Cambiar archivo
@@ -434,9 +445,9 @@ export function LensConfigurator({ basePrice, productId, category, onColorChange
                 className="mt-1 h-4 w-4 rounded border-[#e5e5e5] text-black focus:ring-black cursor-pointer"
               />
               <label htmlFor="sendPrescriptionLater" className="text-xs text-stone-700 cursor-pointer select-none leading-relaxed text-left">
-                <strong>Prefiero enviar mi receta por WhatsApp luego.</strong>
+                <strong>Prefiero enviar {tintStyle === "SEGÚN MUESTRA" ? "la muestra/receta" : "mi receta"} por WhatsApp luego.</strong>
                 <span className="block text-[11px] text-stone-500 mt-0.5">
-                  Podés finalizar la compra ahora y un asesor te contactará para pedirte la receta.
+                  Podés finalizar la compra ahora y un asesor te contactará para pedírtela.
                 </span>
               </label>
             </div>
@@ -554,6 +565,7 @@ export function LensConfigurator({ basePrice, productId, category, onColorChange
                 },
                 quantity: 1
               });
+              if (onSuccess) onSuccess();
             }
           }}
           className="w-full py-5 bg-black text-white font-bold uppercase tracking-[0.2em] text-[12px] hover:bg-black/80 transition-colors disabled:opacity-30 disabled:cursor-not-allowed flex justify-center items-center gap-2 rounded-full shadow-lg"

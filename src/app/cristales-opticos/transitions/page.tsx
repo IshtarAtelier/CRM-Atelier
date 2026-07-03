@@ -3,6 +3,7 @@ import { AccordionItem } from "@/components/Storefront/Accordion";
 import { CristalHero } from "@/components/cristales/CristalHero";
 import { CristalFeatures } from "@/components/cristales/CristalFeatures";
 import { CristalCTA } from "@/components/cristales/CristalCTA";
+import { TransitionsColorViewer } from "@/components/cristales/TransitionsColorViewer";
 
 export const metadata: Metadata = {
   alternates: { canonical: '/cristales-opticos/transitions' },
@@ -33,6 +34,8 @@ export default function TransitionsPage() {
           { icon: "🎨", title: "Style Colors", subtitle: "8 colores vibrantes y de tendencia" },
         ]}
       />
+
+      <TransitionsColorViewer />
 
       <section className="w-full py-24 px-6">
         <div className="max-w-4xl mx-auto">
