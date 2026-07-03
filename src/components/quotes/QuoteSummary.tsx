@@ -397,10 +397,10 @@ export default function QuoteSummary({
             const clientName = contact.name?.split(' ')[0] || 'Cliente';
             const text = `Hola ${clientName}, adjunto tu ${isSale ? 'orden' : 'presupuesto'} por: ${itemNames}.\n\nAtelier Óptica, la óptica mejor calificada en Córdoba ⭐⭐⭐⭐⭐.`;
             
-            // Timeout de seguridad: si el backend no responde en 90s, cortamos
+            // Timeout de seguridad: si el backend no responde en 110s, cortamos
             // para que el botón nunca quede "Enviando..." indefinidamente.
             const controller = new AbortController();
-            const timer = setTimeout(() => controller.abort(), 90000);
+            const timer = setTimeout(() => controller.abort(), 110000);
 
             let sendRes: Response;
             try {

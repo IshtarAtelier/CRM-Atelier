@@ -42,19 +42,18 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
 
         // Generar PDF del lado del servidor
         let pdfResult = null;
-        let pdfErrorStr = null;
         try {
             pdfResult = await generateOrderPDF(order, order.client);
             console.log('[send-pdf] PDF generated successfully:', pdfResult.filename, '| Size:', Math.round(pdfResult.base64.length * 0.75 / 1024), 'KB');
         } catch (pdfError: any) {
             console.error('[send-pdf] PDF generation failed:', pdfError.message);
-            pdfErrorStr = pdfError.message;
-            // No hacemos un early return, seguimos adelante para enviar el link como respaldo
+            // No hacemos un early return: caemos al link de respaldo (Caso B).
         }
 
-        let sentAsMedia = false;
-
-        // Intento 1: Enviar como Documento si pudimos generar el PDF
+        // Caso A: El PDF se generó bien → lo enviamos como Documento adjunto.
+        // IMPORTANTE: si el envío de media falla o tarda, NO caemos al link,
+        // porque el PDF podría estar en curso y llegar igual → mensaje duplicado.
+        // Devolvemos error y que el humano verifique antes de reintentar.
         if (pdfResult) {
             try {
                 const res = await fetchWa('/api/send', {
@@ -72,48 +71,53 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
                 });
 
                 if (res.ok) {
-                    sentAsMedia = true;
                     console.log('[send-pdf] PDF sent successfully as media to:', formattedPhone);
                     return NextResponse.json({ success: true, method: 'media' });
-                } else {
-                    const responseText = await res.text();
-                    console.warn('[send-pdf] Failed to send PDF as media, falling back to link...', res.status, responseText.substring(0, 200));
                 }
+
+                const responseText = await res.text();
+                console.error('[send-pdf] Media send failed (sin fallback a link para evitar duplicados):', res.status, responseText.substring(0, 200));
+                return NextResponse.json(
+                    { error: `El bot no pudo adjuntar el PDF (${res.status}). Verificá si le llegó al cliente antes de reintentar.` },
+                    { status: 502 }
+                );
             } catch (mediaErr: any) {
-                console.warn('[send-pdf] Network error sending PDF as media, falling back to link...', mediaErr.message);
+                console.error('[send-pdf] Media send network error:', mediaErr.message);
+                return NextResponse.json(
+                    { error: `Error de red enviando el PDF: ${mediaErr.message}. Verificá si le llegó al cliente antes de reintentar.` },
+                    { status: 502 }
+                );
             }
         }
 
-        // Intento 2 (Fallback Infalible): Enviar como Link
-        if (!sentAsMedia) {
-            console.log('[send-pdf] Executing Link Fallback for order:', orderId);
-            
-            const pdfUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://www.atelieroptica.com.ar'}/api/orders/${orderId}/pdf`;
-            const extraMsg = pdfErrorStr ? `(Nota: Ocurrió un problema menor adjuntando el archivo). ` : ``;
-            const fallbackText = `${text}\n\n📄 ${extraMsg}*Descargar Documento:* ${pdfUrl}`;
-            
-            try {
-                const resLink = await fetchWa('/api/send', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        chatId: chatIdForBot,
-                        message: fallbackText
-                    }),
-                });
+        // Caso B: No se pudo generar el PDF → único caso donde el link es el respaldo
+        // (no hay riesgo de duplicado porque nunca se envió media).
+        console.log('[send-pdf] Sin PDF generado, enviando link de respaldo para orden:', orderId);
 
-                if (resLink.ok) {
-                    console.log('[send-pdf] PDF sent successfully as link to:', formattedPhone);
-                    return NextResponse.json({ success: true, method: 'link' });
-                } else {
-                    const responseText = await resLink.text();
-                    console.error('[send-pdf] Bot API Error on Link Fallback:', resLink.status, responseText);
-                    return NextResponse.json({ error: `Error del bot al enviar link (${resLink.status})` }, { status: 500 });
-                }
-            } catch (linkErr: any) {
-                console.error('[send-pdf] Network error sending link:', linkErr.message);
-                return NextResponse.json({ error: `Error de red al enviar el link: ${linkErr.message}` }, { status: 500 });
+        const pdfUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://www.atelieroptica.com.ar'}/api/orders/${orderId}/pdf`;
+        const fallbackText = `${text}\n\n📄 *Descargar Documento:* ${pdfUrl}`;
+
+        try {
+            const resLink = await fetchWa('/api/send', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    chatId: chatIdForBot,
+                    message: fallbackText
+                }),
+            });
+
+            if (resLink.ok) {
+                console.log('[send-pdf] Link de respaldo enviado a:', formattedPhone);
+                return NextResponse.json({ success: true, method: 'link' });
+            } else {
+                const responseText = await resLink.text();
+                console.error('[send-pdf] Bot API Error on Link Fallback:', resLink.status, responseText);
+                return NextResponse.json({ error: `Error del bot al enviar link (${resLink.status})` }, { status: 500 });
             }
+        } catch (linkErr: any) {
+            console.error('[send-pdf] Network error sending link:', linkErr.message);
+            return NextResponse.json({ error: `Error de red al enviar el link: ${linkErr.message}` }, { status: 500 });
         }
 
     } catch (error: any) {

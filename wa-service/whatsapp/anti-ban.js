@@ -29,6 +29,11 @@ class AntiBanQueue {
         // Control de lotes y timing por hora
         this.sentMessagesInBatch = 0;
         this.sentTimestamps = [];
+
+        // Espaciado anti-ban: en vez de bloquear la cola durante la pausa entre
+        // envíos, guardamos hasta cuándo hay que esperar. Ese cooldown SOLO frena
+        // a los próximos envíos automáticos; los manuales lo saltan.
+        this.cooldownUntil = 0;
     }
 
     /**
@@ -129,46 +134,41 @@ class AntiBanQueue {
     }
 
     /**
-     * Verifica y espera si se superó el límite de mensajes por hora (máximo 30).
+     * Devuelve cuántos ms hay que esperar por el límite de mensajes por hora (máx 30).
+     * 0 = puede enviar ya. NO bloquea: solo calcula (así no retiene el lock de la cola).
+     * Los envíos manuales de un humano no se frenan por este límite.
      */
-    async checkHourlyLimit(options = {}) {
-        // Los envíos manuales de un humano no se frenan por el límite horario
-        // (ese límite existe para throttlear la automatización masiva).
-        if (options.isAutomated === false) return;
+    hourlyLimitWaitMs(options = {}) {
+        if (options.isAutomated === false) return 0;
         this.cleanHourlyTimestamps();
         if (this.sentTimestamps.length >= 30) {
             const oldest = this.sentTimestamps[0];
-            const waitMs = 3600000 - (Date.now() - oldest) + 5000; // Margen de seguridad de 5s
-            console.warn(`[AntiBanQueue] 🚨 Límite horario alcanzado (${this.sentTimestamps.length}/30 envíos en la última hora). Pausando cola por ${(waitMs / 60000).toFixed(1)} minutos...`);
-            await new Promise(r => setTimeout(r, waitMs));
-            await this.checkHourlyLimit(); // Re-validar
+            return 3600000 - (Date.now() - oldest) + 5000; // Margen de seguridad de 5s
         }
+        return 0;
     }
 
     /**
-     * Verifica y suspende temporalmente la cola de automatización si está fuera del horario permitido (09:00 - 20:00 AR).
+     * Devuelve cuántos ms hay que esperar hasta las 09:00 AR si estamos fuera del
+     * horario permitido (09:00 - 20:00). 0 = puede enviar ya. NO bloquea.
+     * Los envíos manuales (vendedores reales) pueden salir a cualquier hora.
      */
-    async checkAllowedHours(options) {
-        if (options.isAutomated === false) return; // Los vendedores reales pueden mandar mensajes a cualquier hora
-        
+    allowedHoursWaitMs(options = {}) {
+        if (options.isAutomated === false) return 0;
+
         const nowARStr = new Date().toLocaleString("en-US", { timeZone: "America/Argentina/Buenos_Aires" });
         const nowAR = new Date(nowARStr);
         const hour = nowAR.getHours();
 
         if (hour < 9 || hour >= 20) {
-            console.log(`[AntiBanQueue] 🌙 Fuera de horario comercial permitido (09:00 - 20:00 AR). Pausando cola...`);
-            
             const targetAR = new Date(nowARStr);
             if (hour >= 20) {
                 targetAR.setDate(targetAR.getDate() + 1);
             }
             targetAR.setHours(9, 0, 0, 0);
-            
-            const waitMs = targetAR.getTime() - nowAR.getTime();
-            console.log(`[AntiBanQueue] La cola se reanudará automáticamente en ${(waitMs / 3600000).toFixed(1)} horas a las 09:00 AM de Argentina.`);
-            await new Promise(r => setTimeout(r, waitMs));
-            await this.checkAllowedHours(options); // Re-validar
+            return targetAR.getTime() - nowAR.getTime();
         }
+        return 0;
     }
 
     /**
@@ -186,15 +186,30 @@ class AntiBanQueue {
             return;
         }
 
+        // Los siguientes frenos anti-ban (cooldown de espaciado, límite horario y
+        // horario comercial) se evalúan ANTES de tomar el lock y SIN bloquearlo:
+        // si toca esperar, reprogramamos y salimos. Así una espera larga de la
+        // automatización nunca deja el lock tomado bloqueando un envío manual.
+        // Todos estos frenos solo aplican a envíos automáticos; los manuales pasan.
+        if (!headIsManual) {
+            const cooldownWait = this.cooldownUntil && Date.now() < this.cooldownUntil
+                ? this.cooldownUntil - Date.now() : 0;
+            const hourlyWait = this.hourlyLimitWaitMs(this.queue[0].options);
+            const hoursWait = this.allowedHoursWaitMs(this.queue[0].options);
+            const wait = Math.max(cooldownWait, hourlyWait, hoursWait);
+            if (wait > 0) {
+                console.log(`[AntiBanQueue] Freno anti-ban para automático: reintento en ${(Math.min(wait, 300000) / 1000).toFixed(0)}s (espera total ${(wait / 1000).toFixed(0)}s).`);
+                // Reevaluamos al menos cada 5 min (un envío manual entrante dispara
+                // processQueue de inmediato por su cuenta, sin esperar esto).
+                setTimeout(() => this.processQueue(), Math.min(wait + 50, 300000));
+                return;
+            }
+        }
+
         this.isProcessing = true;
         const task = this.queue.shift();
 
         try {
-            // Verificar límites horarios antes de procesar (los manuales no se frenan)
-            await this.checkHourlyLimit(task.options);
-            // Verificar horario permitido para mensajes automáticos
-            await this.checkAllowedHours(task.options);
-
             await this.executeTask(task);
             this.consecutiveFailures = 0; // Resetear fallos tras éxito
         } catch (error) {
@@ -241,8 +256,9 @@ class AntiBanQueue {
             task.reject(error);
         } finally {
             this.isProcessing = false;
-            // Pequeña espera de cortesía antes del siguiente ciclo
-            setTimeout(() => this.processQueue(), 1000);
+            // Ciclo siguiente casi inmediato; el espaciado real lo aplica el cooldown
+            // (que solo frena a los automáticos), no este delay.
+            setTimeout(() => this.processQueue(), 200);
         }
     }
 
@@ -427,7 +443,7 @@ class AntiBanQueue {
         console.log(`[AntiBanQueue] Enviando mensaje a ${targetWaId}...`);
 
         const MessageMedia = require('whatsapp-web.js').MessageMedia;
-        const SEND_TIMEOUT_MS = media ? 60000 : 25000; // media puede tardar en subir
+        const SEND_TIMEOUT_MS = media ? 90000 : 25000; // media puede tardar en subir
         let sentReceipt;
 
         if (media && media.base64) {
@@ -488,8 +504,11 @@ class AntiBanQueue {
             delayMs = Math.floor(Math.random() * (7000 - 3000 + 1)) + 3000;
         }
 
-        console.log(`[AntiBanQueue] Mensaje enviado. Aplicando retraso de ${(delayMs / 1000).toFixed(1)}s antes del próximo envío.`);
-        await new Promise(r => setTimeout(r, delayMs));
+        // En vez de bloquear la cola durante el espaciado (lo que trababa los envíos
+        // manuales detrás de la automatización), registramos un cooldown. Solo frena
+        // a los PRÓXIMOS envíos automáticos; los manuales lo saltan.
+        this.cooldownUntil = Date.now() + delayMs;
+        console.log(`[AntiBanQueue] Mensaje enviado. Cooldown de ${(delayMs / 1000).toFixed(1)}s para el próximo envío automático.`);
     }
 
     /**

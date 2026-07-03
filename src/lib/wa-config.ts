@@ -25,7 +25,7 @@ export function fetchWa(url: string | URL, init?: RequestInit): Promise<Response
     // Timeout duro por intento: si el wa-service no responde (p.ej. cola/sesión
     // colgada), abortamos en vez de esperar para siempre. Un AbortError no es
     // "transitorio", así que retryWithBackoff no lo reintenta en bucle.
-    const FETCH_TIMEOUT_MS = 70000;
+    const FETCH_TIMEOUT_MS = 100000;
 
     return retryWithBackoff(
         async () => {
