@@ -6,6 +6,11 @@
 export function resolveStorageUrl(urlOrKey: string | null | undefined): string {
     if (!urlOrKey) return '';
 
+    // Si es un recurso local de clipon
+    if (urlOrKey.startsWith('clipon-') || urlOrKey.startsWith('clip-on-')) {
+        return `/images/products/${urlOrKey}`;
+    }
+
     // Si es base64, lo retornamos directo
     if (urlOrKey.startsWith('data:image')) {
         return urlOrKey;
