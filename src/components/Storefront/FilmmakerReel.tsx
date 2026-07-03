@@ -103,7 +103,11 @@ export function FilmmakerReel({ reviewCount = 642, rating = 5.0 }: FilmmakerReel
       </div>
 
       {/* ─── IMAGES ─── */}
-      <AnimatePresence mode="wait">
+      {/* initial={false}: el primer frame sale visible desde el SSR (sin esperar
+          la hidratación de JS). Antes el hero llegaba con opacity:0 y en móvil 4G
+          quedaba invisible ~12s → era el LCP de la página. Las transiciones entre
+          frames siguen animando normalmente. */}
+      <AnimatePresence mode="wait" initial={false}>
         <motion.div
           key={frame.id}
           className="absolute inset-0"
@@ -147,7 +151,9 @@ export function FilmmakerReel({ reviewCount = 642, rating = 5.0 }: FilmmakerReel
 
       {/* ─── TEXT OVERLAY ─── */}
       <div className="absolute bottom-[10%] left-6 lg:left-16 z-30 max-w-xl">
-        <AnimatePresence mode="wait">
+        {/* initial={false}: ídem imágenes — el texto del hero (título, badges) debe
+            estar visible en el primer pintado, no después de hidratar. */}
+        <AnimatePresence mode="wait" initial={false}>
           <motion.div
             key={frame.id + "-text"}
             initial={{ opacity: 0, y: 20 }}
