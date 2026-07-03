@@ -14,9 +14,12 @@ import { usePathname } from "next/navigation";
 interface StorefrontNavbarProps {
   theme?: "light" | "dark"; // dark = dark background (needs white text), light = light background (needs black text)
   mixBlend?: boolean;
+  // Settings resueltos en el servidor: evita el fetch client-side a /api/settings
+  // (ese fetch re-renderizaba la barra de anuncios tarde y arruinaba el LCP en móvil)
+  initialSettings?: any;
 }
 
-export function StorefrontNavbar({ theme = "dark", mixBlend = false }: StorefrontNavbarProps) {
+export function StorefrontNavbar({ theme = "dark", mixBlend = false, initialSettings }: StorefrontNavbarProps) {
   const pathname = usePathname();
   const [scrolled, setScrolled] = useState(false);
   const [isExploreOpen, setIsExploreOpen] = useState(false);
@@ -28,7 +31,7 @@ export function StorefrontNavbar({ theme = "dark", mixBlend = false }: Storefron
   const [searchQuery, setSearchQuery] = useState("");
   const [allProducts, setAllProducts] = useState<any[]>([]);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
-  const [webSettings, setWebSettings] = useState<any>(null);
+  const [webSettings, setWebSettings] = useState<any>(initialSettings ?? null);
   const [currentUser, setCurrentUser] = useState<any>(null);
 
   useEffect(() => {
@@ -64,12 +67,16 @@ export function StorefrontNavbar({ theme = "dark", mixBlend = false }: Storefron
   }, []);
 
   useEffect(() => {
+    // Si el servidor ya pasó los settings, no hay nada que buscar (y evitamos
+    // el re-render tardío de la barra de anuncios que degradaba el LCP)
+    if (initialSettings) return;
     fetch('/api/settings')
       .then(res => res.json())
       .then(data => {
         setWebSettings(data);
       })
       .catch(err => console.error("Error loading web settings for navbar:", err));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {

@@ -17,6 +17,7 @@ const HomeRecommendationQuiz = dynamic(() => import("@/components/Storefront/Hom
 import { prisma } from "@/lib/db";
 import { resolveStorageUrl } from "@/lib/utils/storage";
 import { getGoogleReviews } from "@/lib/googleReviews";
+import { getWebSettings, defaultWebSettings } from "@/lib/web-settings";
 
 export const revalidate = 300;
 
@@ -56,6 +57,28 @@ export default async function Home() {
   let nuevosProducts: any[] = [];
   let totalCatalogCount: number = 120;
 
+  // Solo los campos que usa formatProducts (evita traer la fila completa del producto → HTML más liviano)
+  const PRODUCT_SELECT = {
+    name: true,
+    imageUrl: true,
+    images: true,
+    slug: true,
+    product: {
+      select: {
+        id: true,
+        price: true,
+        stock: true,
+        model: true,
+        category: true,
+        imagenesCatalogo: true,
+      },
+    },
+  };
+
+  // Reseñas de Google y settings web en paralelo con las consultas de productos (antes bloqueaban en serie)
+  const reviewsPromise = getGoogleReviews();
+  const webSettingsPromise = getWebSettings().catch(() => defaultWebSettings);
+
   const MAX_RETRIES = 3;
   for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
     try {
@@ -68,31 +91,29 @@ export default async function Home() {
             category: { not: 'Cristal' }
           }
         },
-        include: {
-          product: true
-        },
+        select: PRODUCT_SELECT,
         orderBy: { createdAt: 'desc' },
-        take: 50 // Fetch more to allow for deduplication
+        take: 24 // Fetch more to allow for deduplication
       });
       
       const [dbSol, dbReceta, dbNuevos, count] = await Promise.all([
         prisma.webProduct.findMany({
           where: { isActive: true, product: { publishToWeb: true, category: 'Lentes de Sol' } },
-          include: { product: true },
+          select: PRODUCT_SELECT,
           orderBy: { createdAt: 'desc' },
-          take: 50
+          take: 24
         }),
         prisma.webProduct.findMany({
           where: { isActive: true, product: { publishToWeb: true, category: 'Armazón de Receta' } },
-          include: { product: true },
+          select: PRODUCT_SELECT,
           orderBy: { createdAt: 'desc' },
-          take: 50
+          take: 24
         }),
         prisma.webProduct.findMany({
           where: { isActive: true, product: { publishToWeb: true, category: { not: 'Cristal' } } },
-          include: { product: true },
+          select: PRODUCT_SELECT,
           orderBy: { createdAt: 'desc' },
-          take: 50
+          take: 24
         }),
         prisma.webProduct.count({
           where: { isActive: true, product: { publishToWeb: true, category: { not: 'Cristal' } } }
@@ -177,7 +198,8 @@ export default async function Home() {
     }
   };
 
-  const reviewsData = await getGoogleReviews();
+  const reviewsData = await reviewsPromise;
+  const webSettings = await webSettingsPromise;
   const reviewCountStr = reviewsData.userRatingCount.toString();
   const ratingStr = reviewsData.rating.toFixed(1);
 
@@ -270,7 +292,7 @@ export default async function Home() {
       {/* ═══════════════════════════════════════════════ */}
       {/* NAV — Replica exacta de Gentle Monster          */}
       {/* ═══════════════════════════════════════════════ */}
-      <StorefrontNavbar theme="dark" />
+      <StorefrontNavbar theme="dark" initialSettings={webSettings} />
 
       {/* ═══════════════════════════════════════════════ */}
       {/* FILMMAKER REEL — Hero principal cinematográfico   */}
