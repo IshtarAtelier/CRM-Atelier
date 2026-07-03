@@ -8,6 +8,7 @@ require('dotenv').config({ path: path.join(__dirname, '.env') });
 const { prisma } = require('./db');
 const DEFAULT_SALES_PROMPT = require('./prompts/salesPrompt');
 const DEFAULT_EXECUTIVE_PROMPT = require('./prompts/executivePrompt');
+const { buildContextModules } = require('./prompts/context-modules');
 
 
 
@@ -33,10 +34,20 @@ const salesToolNode = new ToolNode(salesToolsList, { handleToolErrors: true });
 const executiveToolNode = new ToolNode(executiveToolsList, { handleToolErrors: true });
 
 // ── Wrappers con detección de ciclos de error en herramientas ──
-const toolErrorTracker = new Map(); // key: chatId, value: { toolName, count, lastArgs }
+const toolErrorTracker = new Map(); // key: chatId, value: { toolName, count, lastArgs, ts }
+const TRACKER_TTL_MS = 15 * 60 * 1000;
+
+// Purga entradas viejas para que el Map no crezca indefinidamente con chats que dejaron de escribir
+function pruneToolErrorTracker() {
+    const now = Date.now();
+    for (const [key, val] of toolErrorTracker) {
+        if (now - (val.ts || 0) > TRACKER_TTL_MS) toolErrorTracker.delete(key);
+    }
+}
 
 function wrapToolNodeWithCycleDetection(originalToolNode, agentType) {
     return async (state) => {
+        pruneToolErrorTracker();
         const chatId = state.chatId || 'unknown';
         const result = await originalToolNode.invoke(state);
 
@@ -57,16 +68,21 @@ function wrapToolNodeWithCycleDetection(originalToolNode, agentType) {
             if (isError) {
                 if (tracker && tracker.toolName === toolName) {
                     tracker.count++;
+                    tracker.ts = Date.now();
                 } else {
-                    toolErrorTracker.set(chatId, { toolName, count: 1, lastArgs: toolArgs });
+                    toolErrorTracker.set(chatId, { toolName, count: 1, lastArgs: toolArgs, ts: Date.now() });
                 }
 
                 const current = toolErrorTracker.get(chatId);
-                // Reducido de 3→2 para cortar loops más rápido
+                // Umbral 2 para cortar loops rápido. El error se marca como transitorio:
+                // el turno se aborta en silencio (el cliente no recibe nada) pero el bot
+                // queda activo y reintenta cuando el cliente vuelva a escribir.
                 if (current && current.count >= 2) {
-                    console.error(`  🛑 [${agentType}] Tool "${toolName}" falló ${current.count} veces consecutivas para chat ${chatId}. Rompiendo ciclo y abortando.`);
+                    console.error(`  🛑 [${agentType}] Tool "${toolName}" falló ${current.count} veces consecutivas para chat ${chatId}. Rompiendo ciclo y abortando turno en silencio.`);
                     toolErrorTracker.delete(chatId);
-                    throw new Error(`Tool ${toolName} falló repetidamente. Forzando apagado silencioso.`);
+                    const cycleError = new Error(`Tool ${toolName} falló repetidamente. Turno abortado en silencio (error transitorio).`);
+                    cycleError.isTransient = true;
+                    throw cycleError;
                 }
             } else {
                 // Tool exitoso: resetear tracker
@@ -145,16 +161,11 @@ async function formatClientData(clientData, userPhone, userName, chatId, chatSum
     });
 
     if (orders && orders.length > 0) {
-      text += `\n\nPEDIDOS Y PRESUPUESTOS EN FICHA DEL CLIENTE (USAR ESTOS VALORES PARA PASAR SALDOS Y ESTADOS DE PEDIDO):`;
-      orders.forEach((o, i) => {
-        const paid = (o.payments || []).reduce((acc, p) => acc + (p.amount || 0), 0);
-        const balance = (o.total || 0) - paid;
+      text += `\n\nPEDIDOS Y PRESUPUESTOS EN FICHA DEL CLIENTE (solo referencia de estados; para SALDOS y MONTOS usá SIEMPRE la herramienta 'get_order_status', que devuelve los valores verificados del sistema):`;
+      orders.forEach((o) => {
         text += `\n- Pedido N°: ${o.id}`;
         text += `\n  Tipo: ${o.orderType}`;
         text += `\n  Estado: ${o.labStatus || o.status}`;
-        text += `\n  Monto Total: $${o.total.toLocaleString('es-AR')}`;
-        text += `\n  Monto Pagado: $${paid.toLocaleString('es-AR')}`;
-        text += `\n  Saldo Pendiente: $${balance.toLocaleString('es-AR')}`;
         text += `\n  Fecha: ${new Date(o.createdAt).toLocaleDateString()}`;
       });
     }
@@ -232,124 +243,97 @@ async function getTagsModule() {
   }
 }
 
-// ── NODO 2: AGENTE DE VENTAS (Prospectos) ──
-async function salesNode(state) {
-  const horaActual = new Date().toLocaleString("es-AR", { timeZone: "America/Argentina/Buenos_Aires", hour: '2-digit', minute:'2-digit' });
-  let custom = state.customPrompt || "";
-  const clientInfoText = await formatClientData(state.clientData, state.userPhone, state.userName, state.chatId, state.chatSummary);
-  const tiemposModule = await getTiemposModule();
-  const tagsModule = await getTagsModule();
-  
-  let basePrompt = custom;
-  if (!basePrompt || basePrompt.trim().length <= 300) {
-    basePrompt = DEFAULT_SALES_PROMPT;
-  }
+// ── NODOS 2 y 3: AGENTE DE VENTAS (Prospectos) y EJECUTIVO DE CUENTAS (Clientes) ──
+// Misma mecánica de invocación/reintentos; solo cambian el prompt por defecto,
+// las herramientas y la regla para descartar un prompt custom que no corresponde al rol.
+function createAgentNode({ nodeName, agentType, toolsList, defaultPrompt, rejectCustomPrompt }) {
+  return async function agentNode(state) {
+    const horaActual = new Date().toLocaleString("es-AR", { timeZone: "America/Argentina/Buenos_Aires", hour: '2-digit', minute:'2-digit' });
+    const custom = state.customPrompt || "";
+    const clientInfoText = await formatClientData(state.clientData, state.userPhone, state.userName, state.chatId, state.chatSummary);
+    const tiemposModule = await getTiemposModule();
+    const tagsModule = await getTagsModule();
 
-  const systemPrompt = basePrompt
-    .replace(/\[HORA_ACTUAL\]/g, horaActual)
-    .replace(/\[DATOS_CLIENTE\]/g, clientInfoText)
-    .replace(/\[REGLAS_ETIQUETADO_AUTOMATICO\]/g, tagsModule)
-    .replace(/\[TIEMPOS_CONFECCION\]/g, tiemposModule)
-    .replace(/\[INSTRUCCIONES_CUSTOM\]/g, state.dailyContext || "")
-    .replace(/\[telefono\]/g, state.userPhone || "")
-    .replace(/\[nombre\]/g, state.clientData?.name || state.userName || "");
-
-  const messagesWithSystem = [new SystemMessage(systemPrompt), ...state.messages];
-  const MAX_RETRIES = 3;
-  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
-    let response;
-    try {
-      response = await getModel().bindTools(salesToolsList).invoke(messagesWithSystem);
-    } catch (llmError) {
-      console.error(`❌ salesNode: Error en invocación LLM (intento ${attempt}/${MAX_RETRIES}):`, llmError.message);
-      if (attempt < MAX_RETRIES) {
-        await new Promise(r => setTimeout(r, 1000));
-        continue;
-      }
-      throw llmError;
+    let basePrompt = custom;
+    if (!basePrompt || basePrompt.trim().length <= 300 || (rejectCustomPrompt && rejectCustomPrompt(custom))) {
+      basePrompt = defaultPrompt;
     }
-    const hasContent = response.content && (typeof response.content === 'string' ? response.content.trim().length > 0 : response.content.length > 0);
-    const hasToolCalls = response.tool_calls && response.tool_calls.length > 0;
-    if (!hasContent && !hasToolCalls) {
-      const hasCancelOrDisableInHistory = state.messages.some(msg => 
-        msg.tool_calls && msg.tool_calls.some(call => 
-          call.name === 'cancel_bot' || call.name === 'disable_bot_for_personal_chat'
-        )
-      );
-      if (hasCancelOrDisableInHistory) {
-        console.log(`ℹ️ salesNode: Permitida respuesta vacía debido a solicitud de apagado de bot previa.`);
-      } else {
-        console.warn(`⚠️ salesNode: LLM devolvió respuesta vacía (intento ${attempt}/${MAX_RETRIES}).`);
+
+    // Módulos contextuales: solo las reglas relevantes a esta conversación.
+    // El resumen persistente del chat también dispara módulos (temas ya tratados
+    // siguen cargados en charlas largas o retomadas). Si el prompt (custom) no
+    // tiene el placeholder, el replace no altera nada.
+    const contextModules = buildContextModules({
+      agentType,
+      messages: state.messages,
+      clientData: state.clientData,
+      chatSummary: state.chatSummary,
+    });
+
+    const systemPrompt = basePrompt
+      .replace(/\[MODULOS_CONTEXTUALES\]/g, contextModules)
+      .replace(/\[HORA_ACTUAL\]/g, horaActual)
+      .replace(/\[DATOS_CLIENTE\]/g, clientInfoText)
+      .replace(/\[REGLAS_ETIQUETADO_AUTOMATICO\]/g, tagsModule)
+      .replace(/\[TIEMPOS_CONFECCION\]/g, tiemposModule)
+      .replace(/\[INSTRUCCIONES_CUSTOM\]/g, state.dailyContext || "")
+      .replace(/\[telefono\]/g, state.userPhone || "")
+      .replace(/\[nombre\]/g, state.clientData?.name || state.userName || "");
+
+    const messagesWithSystem = [new SystemMessage(systemPrompt), ...state.messages];
+    const MAX_RETRIES = 3;
+    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+      let response;
+      try {
+        response = await getModel().bindTools(toolsList).invoke(messagesWithSystem);
+      } catch (llmError) {
+        console.error(`❌ ${nodeName}: Error en invocación LLM (intento ${attempt}/${MAX_RETRIES}):`, llmError.message);
         if (attempt < MAX_RETRIES) {
           await new Promise(r => setTimeout(r, 1000));
           continue;
         }
-        throw new Error('LLM devolvió respuesta vacía luego de múltiples intentos');
+        throw llmError;
       }
-    }
-    return { messages: [response] };
-  }
-}
-
-// ── NODO 3: EJECUTIVO DE CUENTAS (Clientes) ──
-async function executiveNode(state) {
-  const horaActual = new Date().toLocaleString("es-AR", { timeZone: "America/Argentina/Buenos_Aires", hour: '2-digit', minute:'2-digit' });
-  let custom = state.customPrompt || "";
-  const clientInfoText = await formatClientData(state.clientData, state.userPhone, state.userName, state.chatId, state.chatSummary);
-  const tiemposModule = await getTiemposModule();
-  const tagsModule = await getTagsModule();
-  
-  const isSalesOnly = custom.includes("prospectos nuevos") || custom.includes("AGENTE DE VENTAS") || custom.includes("Óptico Contactólogo");
-  let basePrompt = custom;
-  if (!basePrompt || basePrompt.trim().length <= 300 || isSalesOnly) {
-    basePrompt = DEFAULT_EXECUTIVE_PROMPT;
-  }
-
-  const systemPrompt = basePrompt
-    .replace(/\[HORA_ACTUAL\]/g, horaActual)
-    .replace(/\[DATOS_CLIENTE\]/g, clientInfoText)
-    .replace(/\[REGLAS_ETIQUETADO_AUTOMATICO\]/g, tagsModule)
-    .replace(/\[TIEMPOS_CONFECCION\]/g, tiemposModule)
-    .replace(/\[INSTRUCCIONES_CUSTOM\]/g, state.dailyContext || "")
-    .replace(/\[telefono\]/g, state.userPhone || "")
-    .replace(/\[nombre\]/g, state.clientData?.name || state.userName || "");
-
-  const messagesWithSystem = [new SystemMessage(systemPrompt), ...state.messages];
-  const MAX_RETRIES = 3;
-  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
-    let response;
-    try {
-      response = await getModel().bindTools(executiveToolsList).invoke(messagesWithSystem);
-    } catch (llmError) {
-      console.error(`❌ executiveNode: Error en invocación LLM (intento ${attempt}/${MAX_RETRIES}):`, llmError.message);
-      if (attempt < MAX_RETRIES) {
-        await new Promise(r => setTimeout(r, 1000));
-        continue;
-      }
-      throw llmError;
-    }
-    const hasContent = response.content && (typeof response.content === 'string' ? response.content.trim().length > 0 : response.content.length > 0);
-    const hasToolCalls = response.tool_calls && response.tool_calls.length > 0;
-    if (!hasContent && !hasToolCalls) {
-      const hasCancelOrDisableInHistory = state.messages.some(msg => 
-        msg.tool_calls && msg.tool_calls.some(call => 
-          call.name === 'cancel_bot' || call.name === 'disable_bot_for_personal_chat'
-        )
-      );
-      if (hasCancelOrDisableInHistory) {
-        console.log(`ℹ️ executiveNode: Permitida respuesta vacía debido a solicitud de apagado de bot previa.`);
-      } else {
-        console.warn(`⚠️ executiveNode: LLM devolvió respuesta vacía (intento ${attempt}/${MAX_RETRIES}).`);
-        if (attempt < MAX_RETRIES) {
-          await new Promise(r => setTimeout(r, 1000));
-          continue;
+      const hasContent = response.content && (typeof response.content === 'string' ? response.content.trim().length > 0 : response.content.length > 0);
+      const hasToolCalls = response.tool_calls && response.tool_calls.length > 0;
+      if (!hasContent && !hasToolCalls) {
+        const hasCancelOrDisableInHistory = state.messages.some(msg =>
+          msg.tool_calls && msg.tool_calls.some(call =>
+            call.name === 'cancel_bot' || call.name === 'disable_bot_for_personal_chat'
+          )
+        );
+        if (hasCancelOrDisableInHistory) {
+          console.log(`ℹ️ ${nodeName}: Permitida respuesta vacía debido a solicitud de apagado de bot previa.`);
+        } else {
+          console.warn(`⚠️ ${nodeName}: LLM devolvió respuesta vacía (intento ${attempt}/${MAX_RETRIES}).`);
+          if (attempt < MAX_RETRIES) {
+            await new Promise(r => setTimeout(r, 1000));
+            continue;
+          }
+          throw new Error('LLM devolvió respuesta vacía luego de múltiples intentos');
         }
-        throw new Error('LLM devolvió respuesta vacía luego de múltiples intentos');
       }
+      return { messages: [response] };
     }
-    return { messages: [response] };
-  }
+  };
 }
+
+const salesNode = createAgentNode({
+  nodeName: 'salesNode',
+  agentType: 'sales',
+  toolsList: salesToolsList,
+  defaultPrompt: DEFAULT_SALES_PROMPT,
+});
+
+const executiveNode = createAgentNode({
+  nodeName: 'executiveNode',
+  agentType: 'executive',
+  toolsList: executiveToolsList,
+  defaultPrompt: DEFAULT_EXECUTIVE_PROMPT,
+  // Un prompt custom escrito para el rol de ventas no debe usarse con clientes existentes
+  rejectCustomPrompt: (custom) =>
+    custom.includes("prospectos nuevos") || custom.includes("AGENTE DE VENTAS") || custom.includes("Óptico Contactólogo"),
+});
 
 // ── NODO 4: AUDITORIA ──
 async function auditorNode(state) {
