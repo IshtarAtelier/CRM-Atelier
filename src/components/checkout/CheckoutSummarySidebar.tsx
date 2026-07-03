@@ -1,5 +1,6 @@
 import React from "react";
 import Image from "next/image";
+import { CreditCard, BadgePercent, Truck } from "lucide-react";
 
 export function CheckoutSummarySidebar({ items, getCartTotal, formData, webSettings, isWholesale }: { items: any[], getCartTotal: any, formData: any, webSettings?: { web_promo_cash_discount: number, web_promo_installments: string }, isWholesale?: boolean }) {
   const discountRate = (webSettings?.web_promo_cash_discount || 15) / 100;
@@ -7,7 +8,27 @@ export function CheckoutSummarySidebar({ items, getCartTotal, formData, webSetti
   return (
     <div className="lg:col-span-5 bg-[#fafafa] p-8 lg:p-10 border border-stone-200 sticky top-32">
       <h2 className="text-[11px] font-black uppercase tracking-widest border-b border-stone-200 pb-4 mb-6">Resumen de Compra</h2>
-      
+
+      {!isWholesale && (
+        <div className="flex flex-col gap-2 mb-6">
+          <div className="flex items-center gap-3 bg-white border border-stone-200 px-4 py-3">
+            <CreditCard className="w-4 h-4 text-stone-700 shrink-0" />
+            <p className="text-xs font-semibold flex-1 capitalize">{webSettings?.web_promo_installments || "6 cuotas sin interés"}</p>
+            <span className="text-[9px] font-black uppercase tracking-widest bg-stone-900 text-white px-2 py-1">Con tarjeta</span>
+          </div>
+          <div className="flex items-center gap-3 bg-emerald-50/60 border border-emerald-200 px-4 py-3">
+            <BadgePercent className="w-4 h-4 text-emerald-600 shrink-0" />
+            <p className="text-xs font-semibold flex-1 text-emerald-900">{Math.round(discountRate * 100)}% OFF en efectivo o transferencia</p>
+            <span className="text-[9px] font-black uppercase tracking-widest bg-emerald-600 text-white px-2 py-1">Ahorrás ${(getCartTotal() * discountRate).toLocaleString("es-AR", { maximumFractionDigits: 0 })}</span>
+          </div>
+          <div className="flex items-center gap-3 bg-white border border-stone-200 px-4 py-3">
+            <Truck className="w-4 h-4 text-stone-700 shrink-0" />
+            <p className="text-xs font-semibold flex-1">Envío gratis a todo el país</p>
+            <span className="text-[9px] font-black uppercase tracking-widest border border-stone-900 px-2 py-1">Sin cargo</span>
+          </div>
+        </div>
+      )}
+
       <div className="flex flex-col gap-6 mb-6 overflow-y-auto max-h-[40vh] pr-2">
         {items.map((item) => (
           <div key={item.id} className="flex gap-4">

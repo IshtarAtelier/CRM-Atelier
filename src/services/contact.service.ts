@@ -7,6 +7,19 @@ import { sendEmail } from '@/lib/email';
 import { fetchWa, getAdminChatId } from '@/lib/wa-config';
 
 
+// Estados de laboratorio que significan que el pedido ya salió a fábrica.
+// Una vez enviada/procesada la orden, la receta queda congelada: editarla en el
+// lugar alteraría lo que fábrica ya recibió. Para cambiar la graduación hay que
+// usar el flujo de Post-Venta / Reproceso (con nuevo número de OP).
+const LAB_SENT_STATUSES = ['SENT', 'IN_PROGRESS', 'FINISHED', 'READY', 'DELIVERED'];
+const LAB_STATUS_LABELS: Record<string, string> = {
+    SENT: 'Falta procesar',
+    IN_PROGRESS: 'Procesado',
+    FINISHED: 'Finalizado',
+    READY: 'Listo para retirar',
+    DELIVERED: 'Entregado',
+};
+
 export function normalizeArgentinePhone(phone: string | null | undefined): string {
     if (!phone) return '';
     let base = phone.replace(/\D/g, '');
@@ -1139,7 +1152,30 @@ export const ContactService = {
         });
     },
 
+    async _assertPrescriptionEditable(presId: string) {
+        const lockedOrder = await prisma.order.findFirst({
+            where: {
+                prescriptionId: presId,
+                isDeleted: false,
+                labStatus: { in: LAB_SENT_STATUSES },
+            },
+            select: { id: true, labStatus: true, labOrderNumber: true },
+            orderBy: { labSentAt: 'desc' },
+        });
+        if (lockedOrder) {
+            const label = LAB_STATUS_LABELS[lockedOrder.labStatus || ''] || lockedOrder.labStatus;
+            const opRef = lockedOrder.labOrderNumber ? ` (OP ${lockedOrder.labOrderNumber})` : '';
+            const err: any = new Error(
+                `No se puede modificar la receta: el pedido ya fue enviado a fábrica${opRef} y está en estado "${label}". ` +
+                `Para cambiar la graduación usá el flujo de Post-Venta / Reproceso.`
+            );
+            err.code = 'PRESCRIPTION_LOCKED';
+            throw err;
+        }
+    },
+
     async updatePrescription(presId: string, data: any) {
+        await this._assertPrescriptionEditable(presId);
         const transposed = this._transposePrescription(data);
         const isNear = data.prescriptionType === 'NEAR';
         return await prisma.prescription.update({
@@ -1173,6 +1209,7 @@ export const ContactService = {
     },
 
     async deletePrescription(presId: string) {
+        await this._assertPrescriptionEditable(presId);
         return await prisma.prescription.delete({
             where: { id: presId }
         });

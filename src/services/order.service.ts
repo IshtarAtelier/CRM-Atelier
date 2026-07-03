@@ -83,6 +83,7 @@ const OrderUpdateSchema = z.object({
     postSaleNewOrderNumber: z.string().nullable().optional(),
     postSaleStatus: z.string().nullable().optional(),
     postSaleRxData: z.string().nullable().optional(),
+    postSaleCaseType: z.string().nullable().optional(),
 }).passthrough();
 
 // export const dynamic = 'force-dynamic';
@@ -111,6 +112,7 @@ export class OrderService {
                         notes: true,
                         orderOption: true,
                         responsible: true,
+                        caseType: true,
                         rxData: true,
                         createdAt: true,
                         notesList: {
@@ -317,7 +319,7 @@ export class OrderService {
             discountCash, discountTransfer, discountCard, specialDiscount, subtotalWithMarkup,
             isLocked, authorizedByAdmin,
             postSaleNotes, postSaleCost, postSaleResponsible,
-            postSaleOrderOption, postSaleNewOrderNumber, postSaleStatus, postSaleRxData
+            postSaleOrderOption, postSaleNewOrderNumber, postSaleStatus, postSaleRxData, postSaleCaseType
         } = body;
 
         const data: any = {};
@@ -752,7 +754,7 @@ export class OrderService {
         if (userFrameNotes !== undefined) data.userFrameNotes = userFrameNotes;
         // Post-Sale status initialization and email notification check
         // Post-Sale status initialization and email notification check
-        if (postSaleNotes !== undefined || postSaleCost !== undefined || postSaleResponsible !== undefined || postSaleOrderOption !== undefined || postSaleStatus !== undefined || postSaleRxData !== undefined || postSaleNewOrderNumber !== undefined) {
+        if (postSaleNotes !== undefined || postSaleCost !== undefined || postSaleResponsible !== undefined || postSaleOrderOption !== undefined || postSaleStatus !== undefined || postSaleRxData !== undefined || postSaleNewOrderNumber !== undefined || postSaleCaseType !== undefined) {
             const currentOrderForPostSale = await prisma.order.findUnique({
                 where: { id },
                 select: {
@@ -805,6 +807,7 @@ export class OrderService {
                             notes: postSaleNotes || null,
                             orderOption: postSaleOrderOption || null,
                             responsible: postSaleResponsible || null,
+                            caseType: postSaleCaseType || null,
                             rxData: postSaleRxData || null
                         }
                     });
@@ -905,6 +908,7 @@ export class OrderService {
                     if (postSaleNotes !== undefined) caseData.notes = postSaleNotes;
                     if (postSaleOrderOption !== undefined) caseData.orderOption = postSaleOrderOption;
                     if (postSaleResponsible !== undefined) caseData.responsible = postSaleResponsible;
+                    if (postSaleCaseType !== undefined) caseData.caseType = postSaleCaseType;
                     if (postSaleRxData !== undefined) caseData.rxData = postSaleRxData;
                     if (postSaleNewOrderNumber !== undefined) caseData.newOrderNumber = postSaleNewOrderNumber;
 

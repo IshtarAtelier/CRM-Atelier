@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { Eye, ChevronLeft, ChevronRight, FlaskConical, Loader2, RotateCcw, X, Upload, FileText } from 'lucide-react';
 import { Order } from '@/types/orders';
 import { resolveStorageUrl } from '@/lib/utils/storage';
+import { requiresFrameMeasurements, frameMeasuresForPair, hasFrameMeasures } from '@/lib/utils/lens';
+import { caseTypeStyle } from '@/lib/constants/postSale';
 
 interface PostSaleCardProps {
     order: Order;
@@ -10,11 +12,13 @@ interface PostSaleCardProps {
     onExpand: () => void;
     onAutoSubmit?: (order: any, pairNum?: number) => void;
     isAutoSubmitting?: boolean;
+    userRole?: string;
 }
 
-const getRxDefaults = (order: any) => {
+const getRxDefaults = (order: any, pair: 1 | 2 = 1) => {
     const rx = order.prescription || {};
     return {
+        ...frameMeasuresForPair(order, pair),
         sphereOD: rx.sphereOD != null ? String(rx.sphereOD) : '',
         cylinderOD: rx.cylinderOD != null ? String(rx.cylinderOD) : '',
         axisOD: rx.axisOD != null ? String(rx.axisOD) : '',
@@ -27,19 +31,25 @@ const getRxDefaults = (order: any) => {
         pdOi: order.labPdOi != null ? String(order.labPdOi) : (rx.distanceOI != null ? String(rx.distanceOI) : ''),
         heightOD: order.labHeightOD != null ? String(order.labHeightOD) : (rx.heightOD != null ? String(rx.heightOD) : ''),
         heightOI: order.labHeightOI != null ? String(order.labHeightOI) : (rx.heightOI != null ? String(rx.heightOI) : ''),
+        material: order.labMaterial || '',
+        treatment: order.labTreatment || '',
+        color: order.labColor || '',
+        diameter: order.labDiameter || '',
         notes: rx.notes || '',
         imageUrl: rx.imageUrl || ''
     };
 };
 
-export function PostSaleCard({ 
-    order, 
-    onRefresh, 
-    onMove, 
+export function PostSaleCard({
+    order,
+    onRefresh,
+    onMove,
     onExpand,
     onAutoSubmit,
-    isAutoSubmitting = false
+    isAutoSubmitting = false,
+    userRole = 'STAFF'
 }: PostSaleCardProps) {
+    const isAdmin = userRole === 'ADMIN';
     const [newNote, setNewNote] = useState('');
     const [isSavingNote, setIsSavingNote] = useState(false);
     const [showReprocess, setShowReprocess] = useState(false);
@@ -48,17 +58,36 @@ export function PostSaleCard({
     // Rx state for reprocess form
     const [pair1Faulty, setPair1Faulty] = useState(true);
     const [pair2Faulty, setPair2Faulty] = useState(false);
-    const [rx1, setRx1] = useState<any>(() => getRxDefaults(order));
-    const [rx2, setRx2] = useState<any>(() => getRxDefaults(order));
+    const [rx1, setRx1] = useState<any>(() => getRxDefaults(order, 1));
+    const [rx2, setRx2] = useState<any>(() => getRxDefaults(order, 2));
     const [clientPrescriptions, setClientPrescriptions] = useState<any[]>([]);
     const [newRxImageFile, setNewRxImageFile] = useState<File | null>(null);
     const [newRxImagePreview, setNewRxImagePreview] = useState<string | null>(null);
     const [isUploadingImage, setIsUploadingImage] = useState(false);
+    // Reproceso por cambio de receta: obliga a adjuntar la nueva receta antes de cargar
+    const [rxChange, setRxChange] = useState(false);
+    // Autorización del administrador para reprocesar sin la nueva receta
+    const [reprocessAuthNoRx, setReprocessAuthNoRx] = useState(false);
+    const rxChangeMissingImage = rxChange && !newRxImageFile;
+    // Bloqueado: falta la nueva receta y ningún administrador autorizó el reproceso
+    const reprocessBlocked = rxChangeMissingImage && !reprocessAuthNoRx;
 
     const is2x1 = order.appliedPromoName?.toLowerCase().includes('2x1') || order.items?.some((it: any) => {
         const str = `${it.product?.name || ''} ${it.productNameSnapshot || ''}`.toLowerCase();
         return str.includes('2x1');
     });
+    // Hay un segundo par si es 2x1 o si el pedido tiene datos de armazón/lab del Par 2
+    const o = order as any;
+    const hasSecondPair = is2x1 || !!(o.frameA2 || o.frameB2 || o.frameDbl2 || o.frameEdc2 || o.labFrameShape2 || o.labFrameDetails2);
+
+    // ¿El lente del pedido requiere cargar las medidas del armazón (multifocal o monofocal de lab)?
+    const needsFrameMeasures = requiresFrameMeasurements(order);
+
+    // Trae los datos completos del pedido original al formulario de un par
+    const importFullOrder = (pair: 1 | 2) => {
+        const full = getRxDefaults(order, pair);
+        if (pair === 1) setRx1(full); else setRx2(full);
+    };
 
     const requiresLab = order.postSaleOrderOption === 'SAME' || order.postSaleOrderOption === 'DIFFERENT';
 
@@ -69,16 +98,22 @@ export function PostSaleCard({
                 const parsed = JSON.parse(order.postSaleRxData);
                 setPair1Faulty(parsed.pair1Faulty !== undefined ? parsed.pair1Faulty : true);
                 setPair2Faulty(parsed.pair2Faulty !== undefined ? parsed.pair2Faulty : false);
-                if (parsed.rx1) setRx1(parsed.rx1);
-                if (parsed.rx2) setRx2(parsed.rx2);
+                setRxChange(parsed.rxChange ?? false);
+                setReprocessAuthNoRx(parsed.reprocessAuthNoRx ?? false);
+                // Rellenar siempre desde el pedido (medidas de armazón, material, etc.);
+                // lo guardado tiene prioridad. Así las medidas vienen llenas y editables.
+                setRx1({ ...getRxDefaults(order, 1), ...(parsed.rx1 || {}) });
+                setRx2({ ...getRxDefaults(order, 2), ...(parsed.rx2 || {}) });
             } catch (e) {
                 console.error('Error parsing postSaleRxData:', e);
             }
         } else {
             setPair1Faulty(true);
             setPair2Faulty(false);
-            setRx1(getRxDefaults(order));
-            setRx2(getRxDefaults(order));
+            setRxChange(false);
+            setReprocessAuthNoRx(false);
+            setRx1(getRxDefaults(order, 1));
+            setRx2(getRxDefaults(order, 2));
         }
     }, [order.id, order.postSaleRxData]);
 
@@ -140,7 +175,12 @@ export function PostSaleCard({
             pdOi: found.distanceOI != null ? String(found.distanceOI) : '',
             heightOD: found.heightOD != null ? String(found.heightOD) : '',
             heightOI: found.heightOI != null ? String(found.heightOI) : '',
-            notes: found.notes || '', imageUrl: found.imageUrl || ''
+            notes: found.notes || '', imageUrl: found.imageUrl || '',
+            // Preservar medidas del armazón y datos de lab ya cargados
+            ...(() => { const cur = pair === 1 ? rx1 : rx2; return {
+                frameA: cur.frameA, frameB: cur.frameB, frameEd: cur.frameEd, framePte: cur.framePte,
+                material: cur.material, treatment: cur.treatment, color: cur.color, diameter: cur.diameter
+            }; })()
         };
         if (pair === 1) setRx1(imported); else setRx2(imported);
     };
@@ -169,6 +209,15 @@ export function PostSaleCard({
 
     const handleSaveAndLaunch = async (pairNum: number) => {
         if (!onAutoSubmit) return;
+        if (reprocessBlocked) {
+            alert('Cambio de receta sin la nueva receta adjunta: no se puede enviar el reproceso sin cargo. Pedile a un administrador que autorice el reproceso del pedido.');
+            return;
+        }
+        const pairRx = pairNum === 1 ? rx1 : rx2;
+        if (needsFrameMeasures && !hasFrameMeasures(pairRx)) {
+            alert('Este lente (multifocal o monofocal de laboratorio) requiere las medidas del armazón (A, B, ED, Puente). Ampliá la ficha (👁️) y cargalas antes de enviar a SmartLab.');
+            return;
+        }
         setIsSavingRx(true);
         try {
             let newImageUrl: string | null = null;
@@ -181,7 +230,7 @@ export function PostSaleCard({
             }
             const finalRx1 = { ...rx1, ...(newImageUrl && pairNum === 1 ? { imageUrl: newImageUrl } : {}) };
             const finalRx2 = { ...rx2, ...(newImageUrl && pairNum === 2 ? { imageUrl: newImageUrl } : {}) };
-            const payloadRxData = { pair1Faulty, pair2Faulty, rx1: finalRx1, rx2: finalRx2 };
+            const payloadRxData = { pair1Faulty, pair2Faulty, rxChange, reprocessAuthNoRx, rx1: finalRx1, rx2: finalRx2 };
 
             const res = await fetch(`/api/orders/${order.id}`, {
                 method: 'PATCH',
@@ -230,23 +279,30 @@ export function PostSaleCard({
 
         return (
             <div className="space-y-2 bg-stone-50 dark:bg-stone-900/40 border border-stone-200/50 dark:border-stone-800 p-3 rounded-xl">
-                <div className="flex items-center justify-between mb-1">
-                    <span className="text-[8px] font-black text-amber-500 uppercase tracking-widest">
+                <div className="flex items-center justify-between gap-1.5 mb-1">
+                    <span className="text-[8px] font-black text-amber-500 uppercase tracking-widest flex-shrink-0">
                         Receta Par {pairNum}
                     </span>
-                    {clientPrescriptions.length > 0 && (
-                        <select
-                            onChange={(e) => { if (e.target.value) { handleImportPrescription(e.target.value, pairNum); e.target.value = ''; } }}
-                            className="text-[9px] p-1 rounded-md border border-stone-200 dark:border-stone-750 bg-white dark:bg-stone-800 outline-none"
-                        >
-                            <option value="">Importar Receta...</option>
-                            {clientPrescriptions.map((p: any) => (
-                                <option key={p.id} value={p.id}>
-                                    {new Date(p.date).toLocaleDateString('es-AR')} - OD: {p.sphereOD != null ? (p.sphereOD > 0 ? '+' : '') + p.sphereOD : '0'}/{p.sphereOI != null ? (p.sphereOI > 0 ? '+' : '') + p.sphereOI : '0'}
-                                </option>
-                            ))}
-                        </select>
-                    )}
+                    <div className="flex items-center gap-1 min-w-0">
+                        <button type="button" onClick={() => importFullOrder(pairNum)}
+                            className="text-[8px] font-black uppercase tracking-wider px-2 py-1 rounded-md border border-amber-200 dark:border-amber-900/50 bg-amber-50 dark:bg-amber-950/20 text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-950/40 transition-colors flex-shrink-0"
+                            title="Traer los datos completos del pedido original">
+                            📋 Traer pedido
+                        </button>
+                        {clientPrescriptions.length > 0 && (
+                            <select
+                                onChange={(e) => { if (e.target.value) { handleImportPrescription(e.target.value, pairNum); e.target.value = ''; } }}
+                                className="text-[9px] p-1 rounded-md border border-stone-200 dark:border-stone-750 bg-white dark:bg-stone-800 outline-none min-w-0"
+                            >
+                                <option value="">Importar Receta...</option>
+                                {clientPrescriptions.map((p: any) => (
+                                    <option key={p.id} value={p.id}>
+                                        {new Date(p.date).toLocaleDateString('es-AR')} - OD: {p.sphereOD != null ? (p.sphereOD > 0 ? '+' : '') + p.sphereOD : '0'}/{p.sphereOI != null ? (p.sphereOI > 0 ? '+' : '') + p.sphereOI : '0'}
+                                    </option>
+                                ))}
+                            </select>
+                        )}
+                    </div>
                 </div>
                 {/* OD Row */}
                 <div className="flex items-center gap-1">
@@ -301,6 +357,11 @@ export function PostSaleCard({
 
                 {/* Info badges */}
                 <div className="flex flex-wrap gap-1.5 pt-0.5">
+                    {order.postSaleCaseType && (
+                        <span className={`text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md border ${caseTypeStyle(order.postSaleCaseType)}`}>
+                            {order.postSaleCaseType}
+                        </span>
+                    )}
                     {order.postSaleResponsible && (
                         <span className="bg-stone-100 dark:bg-stone-750 text-stone-600 dark:text-stone-300 text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md flex items-center gap-1">
                             👤 {order.postSaleResponsible}
@@ -379,7 +440,7 @@ export function PostSaleCard({
                                         className="rounded border-stone-300 text-amber-500 focus:ring-amber-500 w-3.5 h-3.5" />
                                     Re-hacer Par 1
                                 </label>
-                                {is2x1 && (
+                                {hasSecondPair && (
                                     <label className="flex items-center gap-1.5 text-[9px] font-bold text-stone-700 dark:text-stone-300 cursor-pointer">
                                         <input type="checkbox" checked={pair2Faulty} onChange={(e) => setPair2Faulty(e.target.checked)}
                                             className="rounded border-stone-300 text-amber-500 focus:ring-amber-500 w-3.5 h-3.5" />
@@ -388,15 +449,24 @@ export function PostSaleCard({
                                 )}
                             </div>
 
+                            {/* Motivo: cambio de receta → obliga a subir la nueva receta */}
+                            <label className="flex items-start gap-1.5 text-[9px] font-bold text-stone-700 dark:text-stone-300 cursor-pointer px-1">
+                                <input type="checkbox" checked={rxChange} onChange={(e) => setRxChange(e.target.checked)}
+                                    className="rounded border-stone-300 text-amber-500 focus:ring-amber-500 w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
+                                <span>Es por <b>cambio de receta</b> <span className="text-amber-600 dark:text-amber-500">(obligatorio adjuntar la nueva receta)</span></span>
+                            </label>
+
                             {pair1Faulty && renderRxFormInline(rx1, 1)}
-                            {is2x1 && pair2Faulty && renderRxFormInline(rx2, 2)}
+                            {hasSecondPair && pair2Faulty && renderRxFormInline(rx2, 2)}
 
                             {/* New Recipe Image Upload */}
                             <div className="space-y-1.5">
-                                <label className="text-[7px] font-black text-stone-400 uppercase tracking-widest block">Adjuntar Nueva Receta</label>
+                                <label className="text-[7px] font-black text-stone-400 uppercase tracking-widest block">
+                                    Adjuntar Nueva Receta{rxChange && <span className="text-red-500"> * obligatorio</span>}
+                                </label>
                                 <div className="flex items-center gap-2">
-                                    <label className="flex-1 flex items-center gap-2 px-3 py-2 bg-stone-50 dark:bg-stone-900 border border-dashed border-stone-300 dark:border-stone-700 rounded-xl cursor-pointer hover:border-amber-400 transition-colors">
-                                        <Upload className="w-3.5 h-3.5 text-stone-400" />
+                                    <label className={`flex-1 flex items-center gap-2 px-3 py-2 bg-stone-50 dark:bg-stone-900 border border-dashed rounded-xl cursor-pointer transition-colors ${rxChangeMissingImage ? 'border-red-400 hover:border-red-500' : 'border-stone-300 dark:border-stone-700 hover:border-amber-400'}`}>
+                                        <Upload className={`w-3.5 h-3.5 ${rxChangeMissingImage ? 'text-red-400' : 'text-stone-400'}`} />
                                         <span className="text-[9px] text-stone-500 font-semibold truncate">
                                             {newRxImageFile ? newRxImageFile.name : 'Seleccionar imagen...'}
                                         </span>
@@ -406,22 +476,54 @@ export function PostSaleCard({
                                         <img src={newRxImagePreview} alt="Preview" className="w-10 h-10 rounded-lg object-cover border border-stone-200 dark:border-stone-700" />
                                     )}
                                 </div>
+                                {rxChangeMissingImage && (
+                                    <div className={`mt-1 space-y-1.5 border rounded-xl p-2.5 ${reprocessAuthNoRx ? 'bg-emerald-50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-900/40' : 'bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-900/40'}`}>
+                                        {reprocessAuthNoRx ? (
+                                            <p className="text-[8px] font-bold text-emerald-600 dark:text-emerald-400 leading-snug">
+                                                ✓ Reproceso sin receta autorizado por administrador. Podés cargarlo, pero recordá que sin receta no corresponde envío sin cargo.
+                                            </p>
+                                        ) : (
+                                            <p className="text-[8px] font-bold text-red-600 dark:text-red-400 leading-snug">
+                                                ⚠️ Sin la nueva receta no se puede enviar el reproceso sin cargo. Pedile a un administrador que autorice el reproceso del pedido.
+                                            </p>
+                                        )}
+                                        {isAdmin ? (
+                                            <label className="flex items-start gap-1.5 text-[8px] font-bold text-stone-700 dark:text-stone-300 cursor-pointer">
+                                                <input type="checkbox" checked={reprocessAuthNoRx} onChange={(e) => setReprocessAuthNoRx(e.target.checked)}
+                                                    className="rounded border-stone-300 text-emerald-500 focus:ring-emerald-500 w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
+                                                <span>Autorizo el reproceso sin la nueva receta (como administrador).</span>
+                                            </label>
+                                        ) : !reprocessAuthNoRx && (
+                                            <p className="text-[8px] font-semibold text-red-500/80 italic">Solo un administrador puede autorizar el reproceso sin receta.</p>
+                                        )}
+                                    </div>
+                                )}
                             </div>
+
+                            {/* Aviso: faltan medidas del armazón (se cargan en la ficha ampliada) */}
+                            {needsFrameMeasures && ((pair1Faulty && !hasFrameMeasures(rx1)) || (hasSecondPair && pair2Faulty && !hasFrameMeasures(rx2))) && (
+                                <button type="button" onClick={onExpand}
+                                    className="w-full text-left bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/40 rounded-xl p-2.5 hover:bg-red-100 dark:hover:bg-red-950/40 transition-colors">
+                                    <p className="text-[8px] font-bold text-red-600 dark:text-red-400 leading-snug">
+                                        📐 Este lente (multifocal o monofocal de lab) requiere las <b>medidas del armazón</b> (A, B, ED, Puente). Tocá para <b>ampliar la ficha</b> y cargarlas.
+                                    </p>
+                                </button>
+                            )}
 
                             {/* Launch buttons */}
                             <div className="flex gap-2">
                                 {pair1Faulty && (
-                                    <button onClick={() => handleSaveAndLaunch(1)} disabled={isAutoSubmitting || isSavingRx || isUploadingImage}
-                                        className="flex-1 py-2.5 bg-gradient-to-r from-amber-500 to-amber-600 text-white rounded-xl text-[9px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-1.5 shadow-md hover:shadow-lg hover:scale-[1.02] active:scale-95 disabled:opacity-50"
-                                        title="Guardar datos y cargar Par 1 en SmartLab">
+                                    <button onClick={() => handleSaveAndLaunch(1)} disabled={isAutoSubmitting || isSavingRx || isUploadingImage || reprocessBlocked || (needsFrameMeasures && !hasFrameMeasures(rx1))}
+                                        className="flex-1 py-2.5 bg-gradient-to-r from-amber-500 to-amber-600 text-white rounded-xl text-[9px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-1.5 shadow-md hover:shadow-lg hover:scale-[1.02] active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                                        title={needsFrameMeasures && !hasFrameMeasures(rx1) ? 'Faltan las medidas del armazón del Par 1 — ampliá la ficha' : (reprocessBlocked ? 'Falta la nueva receta o la autorización del administrador' : 'Guardar datos y cargar Par 1 en SmartLab')}>
                                         {(isAutoSubmitting || isSavingRx) ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FlaskConical className="w-3.5 h-3.5" />}
                                         🤖 Cargar Par 1
                                     </button>
                                 )}
-                                {is2x1 && pair2Faulty && (
-                                    <button onClick={() => handleSaveAndLaunch(2)} disabled={isAutoSubmitting || isSavingRx || isUploadingImage}
-                                        className="flex-1 py-2.5 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-xl text-[9px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-1.5 shadow-md hover:shadow-lg hover:scale-[1.02] active:scale-95 disabled:opacity-50"
-                                        title="Guardar datos y cargar Par 2 en SmartLab">
+                                {hasSecondPair && pair2Faulty && (
+                                    <button onClick={() => handleSaveAndLaunch(2)} disabled={isAutoSubmitting || isSavingRx || isUploadingImage || reprocessBlocked || (needsFrameMeasures && !hasFrameMeasures(rx2))}
+                                        className="flex-1 py-2.5 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-xl text-[9px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-1.5 shadow-md hover:shadow-lg hover:scale-[1.02] active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                                        title={needsFrameMeasures && !hasFrameMeasures(rx2) ? 'Faltan las medidas del armazón del Par 2 — ampliá la ficha' : (reprocessBlocked ? 'Falta la nueva receta o la autorización del administrador' : 'Guardar datos y cargar Par 2 en SmartLab')}>
                                         {(isAutoSubmitting || isSavingRx) ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FlaskConical className="w-3.5 h-3.5" />}
                                         🤖 Cargar Par 2
                                     </button>

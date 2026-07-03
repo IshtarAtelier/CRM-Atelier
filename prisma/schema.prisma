@@ -619,6 +619,7 @@ model PostSaleCase {
   notes            String?
   orderOption      String?
   responsible      String?
+  caseType         String?
   rxData           String?
   createdAt        DateTime                @default(now())
   updatedAt        DateTime                @updatedAt

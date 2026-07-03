@@ -2,12 +2,11 @@ import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { prisma } from '@/lib/db';
 import { sendEmail } from '@/lib/email';
-import { WHATSAPP_PHONE } from '@/lib/constants';
 import { ContactService, normalizeArgentinePhone } from '@/services/contact.service';
 import { getWebSettings } from '@/lib/web-settings';
 import { CrystalMapping } from '@/lib/config/crystal-mapping';
 import { generateReceiptPDF } from '@/lib/receipt-pdf-generator';
-import { getAdminHtml, getAdminWholesaleHtml, getClientTransferHtml, getClientWholesaleHtml, getConfirmationHtml } from '@/lib/checkout/checkout-emails';
+import { getAdminHtml, getAdminWholesaleHtml, getClientItemsHtml, getClientTransferHtml, getClientWholesaleHtml, getConfirmationHtml } from '@/lib/checkout/checkout-emails';
 import { recalculateItemPrice } from '@/lib/checkout/checkout-pricing';
 
 function getArgentineStateCode(stateName: string): string {
@@ -504,8 +503,7 @@ export async function POST(req: Request) {
     const isTransfer = customer.paymentMethod === 'TRANSFER';
     const emailTotal = isTransfer ? recalculatedItemsTotal * transferMultiplier : recalculatedItemsTotal;
     const hasCrystals = sanitizedItems.some((item: any) => item.lensConfig && (item.lensConfig.lensType !== "NONE" || item.lensConfig.color));
-    const whatsappPhone = WHATSAPP_PHONE;
-    
+
     const itemsHtml = sanitizedItems.map((item: any) => `
       <tr>
         <td style="padding: 15px 0; border-bottom: 1px solid #eeeeee;">
@@ -526,7 +524,7 @@ export async function POST(req: Request) {
       </tr>
     `).join('');
 
-    const confirmationHtml = getConfirmationHtml(customer, order.id, emailTotal, shippingMethodLabel, hasCrystals, itemsHtml);
+    const confirmationHtml = getConfirmationHtml(customer, order.id, emailTotal, shippingMethodLabel, hasCrystals, getClientItemsHtml(sanitizedItems));
     const adminEmails = 'pisano.ishtar@gmail.com, atelier.optica.cerro@gmail.com';
     const adminHtml = getAdminHtml(customer, order.id, emailTotal, shippingMethodLabel, isTransfer, itemsHtml);
 
@@ -552,8 +550,23 @@ export async function POST(req: Request) {
          html: clientTransferHtml
        }).catch(err => console.error("Error client transfer email:", err));
 
-        return NextResponse.json({ 
-          success: true, 
+        // Notificación en el sistema: nueva venta web pendiente de acreditar transferencia
+        try {
+          await prisma.notification.create({
+            data: {
+              type: "WEB_SALE",
+              message: `Nueva Venta Web #${order.id.slice(-4).toUpperCase()} de ${customer.firstName} ${customer.lastName} por $${emailTotal.toLocaleString('es-AR')} (Transferencia). Pago pendiente de acreditación.`,
+              orderId: order.id,
+              requestedBy: "Sistema (Web)",
+              status: "PENDING"
+            }
+          });
+        } catch (notifErr) {
+          console.error("Error creando notificación de venta web:", notifErr);
+        }
+
+        return NextResponse.json({
+          success: true,
           message: "Orden de transferencia generada",
           orderId: order.id
         });
@@ -722,11 +735,13 @@ export async function POST(req: Request) {
 
     // Wrap approved card payments in a Prisma transaction
     await prisma.$transaction(async (tx) => {
-      // 1. Update order status and paid amount
+      // 1. Update order status and paid amount.
+      // WEB_PAID = pago acreditado por Payway, pendiente de confirmación humana
+      // antes de pasar al flujo normal de venta (se confirma desde Ventas en el CRM).
       await tx.order.update({
         where: { id: order.id },
         data: {
-          status: "PAID",
+          status: "WEB_PAID",
           paid: total
         }
       });
@@ -748,6 +763,17 @@ export async function POST(req: Request) {
           message: `Factura solicitada automáticamente para la Venta #${order.id.slice(-4).toUpperCase()} por un total de $${total.toLocaleString('es-AR')}`,
           orderId: order.id,
           requestedBy: "Sistema (Payway)",
+          status: "PENDING"
+        }
+      });
+
+      // 4. Notificación en el sistema: nueva venta web con pago acreditado, a confirmar
+      await tx.notification.create({
+        data: {
+          type: "WEB_SALE",
+          message: `Nueva Venta Web #${order.id.slice(-4).toUpperCase()} de ${customer.firstName} ${customer.lastName} por $${total.toLocaleString('es-AR')} (Tarjeta - PAGADA vía Payway). Revisar y confirmar en Ventas.`,
+          orderId: order.id,
+          requestedBy: "Sistema (Web)",
           status: "PENDING"
         }
       });

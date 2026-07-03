@@ -12,6 +12,7 @@ export interface OrderItemProduct {
     unitType?: string | null;
     lensIndex?: string | null;
     laboratory?: string | null;
+    origin?: string | null;
 }
 
 export interface OrderItem {
@@ -139,9 +140,13 @@ export interface Order {
     postSaleNewOrderNumber?: string | null;
     postSaleStatus?: string | null;
     postSaleRxData?: string | null;
+    postSaleCaseType?: string | null;
     labColor?: string | null;
     labTreatment?: string | null;
     labDiameter?: string | null;
+    labMaterial?: string | null;
+    labHeightOD?: string | null;
+    labHeightOI?: string | null;
     labPdOd?: string | null;
     labPdOi?: string | null;
     labPrismOD?: string | null;
@@ -224,5 +229,6 @@ export function mapOrderPostSale(order: any): any {
         postSaleOrderOption: activeCase?.orderOption || order.postSaleOrderOption || null,
         postSaleNewOrderNumber: activeCase?.newOrderNumber || order.postSaleNewOrderNumber || null,
         postSaleRxData: activeCase?.rxData || order.postSaleRxData || null,
+        postSaleCaseType: activeCase?.caseType || order.postSaleCaseType || null,
     };
 }

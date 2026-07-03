@@ -71,7 +71,7 @@ function getModel() {
 const savePrescriptionDataTool = new DynamicStructuredTool({
     schema: z.object({ chatId: z.string().optional(), clientId: z.string().optional(), tipoDeLente: z.string().optional(), odEsf: z.number().optional(), odCil: z.number().optional(), odEje: z.number().optional(), oiEsf: z.number().optional(), oiCil: z.number().optional(), oiEje: z.number().optional(), add: z.number().optional(), odDip: z.number().optional(), oiDip: z.number().optional(), origen: z.string().optional(), obraSocial: z.string().optional(), notes: z.string().optional(), userName: z.string().optional(), userPhone: z.string().optional() }).catchall(z.any()),
     name: "save_prescription_data",
-    description: "Guarda los valores de una receta médica (esferas, cilindros, ejes, adición, DIP, etc.) en la ficha del cliente en el CRM. Úsala de forma MANDATORIA cuando has leído una receta en el chat y querés dejarla guardada. Requisitos: JSON estricto con 'chatId' (MANDATORIO), 'clientId' (MANDATORIO, o null/none/empty si el contacto aún no está registrado), 'tipoDeLente' ('Monofocal' o 'Multifocal'), 'odEsf' (número), 'odCil' (número), 'odEje' (entero), 'oiEsf' (número), 'oiCil' (número), 'oiEje' (entero), 'add' (adición, número, opcional), 'odDip' (DIP ojo derecho, opcional), 'oiDip' (DIP ojo izquierdo, opcional), 'origen' (opcional), 'obraSocial' (opcional), 'notes' (comentarios, opcional), 'userName' (nombre del cliente si clientId es null, opcional), 'userPhone' (teléfono si clientId es null, opcional). La herramienta buscará la foto de la receta en la caché de la charla y la subirá automáticamente.",
+    description: "Guarda los valores de una receta médica (esferas, cilindros, ejes, adición, DIP, etc.) en la ficha del cliente en el CRM. Úsala de forma MANDATORIA cuando has leído una receta en el chat y querés dejarla guardada. Requisitos: JSON estricto con 'chatId' (MANDATORIO), 'clientId' (MANDATORIO, o null/none/empty si el contacto aún no está registrado), 'tipoDeLente' ('Monofocal' o 'Multifocal'), 'odEsf' (número), 'odCil' (número), 'odEje' (entero), 'oiEsf' (número), 'oiCil' (número), 'oiEje' (entero), 'add' (adición, número, opcional), 'odDip' (DIP ojo derecho, opcional), 'oiDip' (DIP ojo izquierdo, opcional), 'origen' (opcional), 'obraSocial' (MANDATORIO: obra social que figura en la receta o que indicó el cliente, o el texto 'Particular' si no tiene o ignoró la pregunta), 'notes' (comentarios, opcional), 'userName' (nombre del cliente si clientId es null, opcional), 'userPhone' (teléfono si clientId es null, opcional). La herramienta buscará la foto de la receta en la caché de la charla y la subirá automáticamente.",
     func: safeToolRun(async (input) => {
         const { ChatGoogleGenerativeAI } = require("@langchain/google-genai");
         const { HumanMessage } = require("@langchain/core/messages");
@@ -226,7 +226,7 @@ const getPriceListTool = new DynamicStructuredTool({
 const convertIntoLeadTool = new DynamicStructuredTool({
     schema: z.object({ phone: z.string().optional(), name: z.string().optional(), contactSource: z.string().optional(), interest: z.string().optional(), chatId: z.string().optional(), insurance: z.string().optional() }).catchall(z.any()),
     name: "convert_into_lead",
-    description: "Registra un prospecto nuevo. Usa JSON con 'phone' (MANDATORIO, usa el del cliente), 'name', 'contactSource', 'interest' (SOLO USAR UNO DE ESTOS VALORES: Monofocal, Multifocal, Bifocal, Ocupacional, Solar, Accesorios, Lentes de Contacto, Otros), 'chatId' (MANDATORIO), y 'insurance' (Obra Social si la tiene).",
+    description: "Registra un prospecto nuevo. Usa JSON con 'phone' (MANDATORIO, usa el del cliente), 'name', 'contactSource', 'interest' (SOLO USAR UNO DE ESTOS VALORES: Monofocal, Multifocal, Bifocal, Ocupacional, Solar, Accesorios, Lentes de Contacto, Otros), 'chatId' (MANDATORIO), y 'insurance' (MANDATORIO: nombre de la Obra Social/prepaga que indicó el cliente, o el texto 'Particular' si dijo que no tiene o ignoró la pregunta).",
     func: safeToolRun(async (input) => {
         const parsed = safeParse(input, "convert_into_lead");
         const nameClean = (parsed.name || '').trim();
@@ -266,7 +266,7 @@ const updateClientDataTool = new DynamicStructuredTool({
 const getOrderStatusTool = new DynamicStructuredTool({
     schema: z.object({ orderId: z.string().optional(), clientId: z.string().optional() }).catchall(z.any()),
     name: "get_order_status",
-    description: "Consulta estado de un pedido y saldo pendiente. Pasa 'clientId' para buscar automáticamente sus pedidos y saldos si no tenés el orderId, o pasá 'orderId' si tenés el ID del pedido específico.",
+    description: "Consulta estado de un pedido y su saldo pendiente VERIFICADO por el sistema, desglosado por forma de pago (efectivo, transferencia, tarjeta con cuotas). Pasá 'clientId' para buscar automáticamente el pedido relevante, o 'orderId' si tenés el ID específico. Los montos que devuelve ya incluyen los descuentos: usalos TAL CUAL, nunca los recalcules. Si no devuelve el desglose verificado, seguí su instrucción interna y NO informes montos.",
     func: safeToolRun(async (input) => await getOrderStatus(safeParse(input, "get_order_status"))),
 });
 
@@ -357,6 +357,7 @@ const salesToolsList = [
     checkExistingClientTool,
     getPriceListTool,
     savePrescriptionDataTool,
+    convertIntoLeadTool,
     cancelBotTool,
     addTagToClientTool,
     addInteractionTool,

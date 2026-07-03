@@ -5,6 +5,7 @@ import { QuoteAgent, QuoteResponse } from "./agents/QuoteAgent";
 import { SalesAgent } from "./agents/SalesAgent";
 import { getModel } from "./model";
 import { SystemMessage, HumanMessage } from "@langchain/core/messages";
+import { BUSINESS_INFO, PROMOS_TEXT } from "@/lib/business-info";
 
 export interface OrchestratorResult {
   intent: Intent;
@@ -117,7 +118,7 @@ export class AgentOrchestrator {
         }
 
       } else if (intent === 'BOOK_APPOINTMENT') {
-        replyText = `¡Hola ${clientName}! Claro, con gusto te agendamos un turno para que te atiendan nuestros profesionales en el local de José Luis de Tejeda 4380. ¿Te queda cómodo algún día de esta semana por la mañana (9:30 a 13:30) o por la tarde (16:30 a 20:30)?`;
+        replyText = `¡Hola ${clientName}! Claro, con gusto te agendamos un turno para que te atiendan nuestros profesionales en el local de ${BUSINESS_INFO.address}. ¿Te queda cómodo algún día de esta semana ${BUSINESS_INFO.appointmentSlots}?`;
 
       } else if (intent === 'ORDER_STATUS') {
         // Buscar pedidos activos del cliente
@@ -130,23 +131,22 @@ export class AgentOrchestrator {
         });
 
         if (activeOrder) {
-          replyText = `Hola ${clientName}, tu pedido de anteojos se encuentra actualmente en estado: *${activeOrder.status}*. Te avisaremos de forma automática a este chat apenas esté listo para retirar en nuestra sucursal de Tejeda 4380.`;
+          replyText = `Hola ${clientName}, tu pedido de anteojos se encuentra actualmente en estado: *${activeOrder.status}*. Te avisaremos de forma automática a este chat apenas esté listo para retirar en nuestra sucursal de ${BUSINESS_INFO.address}.`;
         } else {
           replyText = `Hola ${clientName}, no encuentro ningún pedido pendiente de entrega a tu nombre en este momento. Si realizaste una compra recientemente, pasame el número de orden o aguardanos un momento que lo consulto con administración.`;
         }
 
       } else {
         // GENERAL_INQUIRY
-        const queryText = incomingMessage || "";
         const model = getModel(0.5);
-        const systemPrompt = `Eres un asistente automatizado para la atención al cliente de Atelier Óptica (José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba).
+        const systemPrompt = `Eres un asistente automatizado para la atención al cliente de ${BUSINESS_INFO.name} (${BUSINESS_INFO.address}).
 Responde de forma muy cortés, breve y natural a la consulta del cliente.
 
 DATOS CLAVE DE ATELIER:
-- Dirección: José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba.
-- Horarios: Lunes a Viernes de 9:00 a 13:30 y de 16:00 a 19:30. Sábados de 10:00 a 14:00.
-- Teléfono/WhatsApp: +54 9 354 121 5971.
-- Promociones: 6 cuotas sin interés con tarjeta, 15% de descuento por transferencia/efectivo.
+- Dirección: ${BUSINESS_INFO.address}.
+- Horarios: ${BUSINESS_INFO.hours}.
+- Teléfono/WhatsApp: ${BUSINESS_INFO.phone}.
+- Promociones: ${PROMOS_TEXT}.
 
 REGLAS:
 - Mantén la respuesta en menos de 3 o 4 oraciones.

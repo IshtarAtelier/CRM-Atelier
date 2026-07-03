@@ -254,6 +254,7 @@ export async function GET(request: Request) {
         const dateTo = searchParams.get('dateTo');
         const laboratory = searchParams.get('laboratory');
         const hasPostSale = searchParams.get('hasPostSale') === 'true';
+        const webPending = searchParams.get('webPending') === 'true';
 
         // Base query conditions
         const where: any = { isDeleted: false };
@@ -276,6 +277,10 @@ export async function GET(request: Request) {
             andConditions.push({
                 postSaleCases: { some: {} }
             });
+        }
+
+        if (webPending) {
+            andConditions.push({ status: { in: ['WEB_PENDING', 'WEB_PAID'] } });
         }
 
         if (typeFilter) {
@@ -384,6 +389,7 @@ export async function GET(request: Request) {
                     notes: true,
                     orderOption: true,
                     responsible: true,
+                    caseType: true,
                     rxData: true,
                     createdAt: true,
                     notesList: {
@@ -406,7 +412,7 @@ export async function GET(request: Request) {
                     pdVal: true, heightVal: true, prismVal: true,
                     crystalColor: true, crystalColorType: true,
                     productNameSnapshot: true, productBrandSnapshot: true, productCategorySnapshot: true,
-                    product: { select: { id: true, name: true, brand: true, model: true, category: true, type: true, price: true, unitType: true, laboratory: true, lensIndex: true } }
+                    product: { select: { id: true, name: true, brand: true, model: true, category: true, type: true, price: true, unitType: true, laboratory: true, lensIndex: true, origin: true } }
                 }
             },
             payments: { select: { id: true, amount: true, method: true, date: true, notes: true, receiptUrl: true } },
@@ -419,6 +425,9 @@ export async function GET(request: Request) {
             labColor: true,
             labTreatment: true,
             labDiameter: true,
+            labMaterial: true,
+            labHeightOD: true,
+            labHeightOI: true,
             labPdOd: true,
             labPdOi: true,
             labPrismOD: true,

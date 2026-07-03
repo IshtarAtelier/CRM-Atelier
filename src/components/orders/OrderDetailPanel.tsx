@@ -18,6 +18,8 @@ import {
 } from 'lucide-react';
 import type { Order } from '@/types/orders';
 import { resolveStorageUrl } from '@/lib/utils/storage';
+import { requiresFrameMeasurements, frameMeasuresForPair, hasFrameMeasures } from '@/lib/utils/lens';
+import { POST_SALE_CASE_TYPES } from '@/lib/constants/postSale';
 
 export const LAB_STEPS = [
     { key: 'NONE', label: 'Pendiente', icon: Clock, color: 'stone', bg: 'bg-stone-100 dark:bg-stone-800', text: 'text-stone-500 dark:text-stone-400', ring: 'ring-stone-200 dark:ring-stone-700' },
@@ -43,9 +45,10 @@ interface OrderDetailPanelProps {
     onRefresh?: () => void;
 }
 
-const getRxDefaults = (order: any) => {
+const getRxDefaults = (order: any, pair: 1 | 2 = 1) => {
     const rx = order.prescription || {};
     return {
+        ...frameMeasuresForPair(order, pair),
         sphereOD: rx.sphereOD != null ? String(rx.sphereOD) : '',
         cylinderOD: rx.cylinderOD != null ? String(rx.cylinderOD) : '',
         axisOD: rx.axisOD != null ? String(rx.axisOD) : '',
@@ -80,6 +83,18 @@ export function OrderDetailPanel({
         const str = `${it.product?.name || ''} ${it.productNameSnapshot || ''}`.toLowerCase();
         return str.includes('2x1');
     });
+    // Hay un segundo par si es 2x1 o si el pedido tiene datos de armazón/lab del Par 2
+    const oAny = order as any;
+    const hasSecondPair = is2x1 || !!(oAny.frameA2 || oAny.frameB2 || oAny.frameDbl2 || oAny.frameEdc2 || order.labFrameShape2 || order.labFrameDetails2);
+
+    // ¿El lente del pedido requiere cargar las medidas del armazón (multifocal o monofocal de lab)?
+    const needsFrameMeasures = requiresFrameMeasurements(order);
+
+    // Trae los datos completos del pedido original al formulario de un par
+    const importFullOrder = (pair: 1 | 2) => {
+        const full = getRxDefaults(order, pair);
+        if (pair === 1) setRx1(full); else setRx2(full);
+    };
 
     const isOptovision = order.items?.some((it: any) => {
         const labName = (it.laboratorySnapshot || it.product?.laboratory || '').toUpperCase();
@@ -90,6 +105,7 @@ export function OrderDetailPanel({
     const [postSaleNotes, setPostSaleNotes] = useState(order.postSaleNotes || '');
     const [postSaleCost, setPostSaleCost] = useState<number | ''>(order.postSaleCost ?? '');
     const [postSaleResponsible, setPostSaleResponsible] = useState(order.postSaleResponsible || '');
+    const [postSaleCaseType, setPostSaleCaseType] = useState(order.postSaleCaseType || '');
     const [postSaleOrderOption, setPostSaleOrderOption] = useState(order.postSaleOrderOption || '');
     const [postSaleNewOrderNumber, setPostSaleNewOrderNumber] = useState(order.postSaleNewOrderNumber || '');
     const [newNoteText, setNewNoteText] = useState('');
@@ -97,14 +113,22 @@ export function OrderDetailPanel({
 
     const [pair1Faulty, setPair1Faulty] = useState(true);
     const [pair2Faulty, setPair2Faulty] = useState(false);
-    const [rx1, setRx1] = useState<any>(() => getRxDefaults(order));
-    const [rx2, setRx2] = useState<any>(() => getRxDefaults(order));
+    const [rx1, setRx1] = useState<any>(() => getRxDefaults(order, 1));
+    const [rx2, setRx2] = useState<any>(() => getRxDefaults(order, 2));
     const [clientPrescriptions, setClientPrescriptions] = useState<any[]>([]);
+    // Reproceso por cambio de receta: obliga a subir una nueva receta en esta sesión antes de cargar
+    const [rxChange, setRxChange] = useState(false);
+    const [rxUploaded1, setRxUploaded1] = useState(false);
+    const [rxUploaded2, setRxUploaded2] = useState(false);
+    // Autorización del administrador para reprocesar sin la nueva receta
+    const [reprocessAuthNoRx, setReprocessAuthNoRx] = useState(false);
+    const isReprocessAdmin = userRole === 'ADMIN';
 
     React.useEffect(() => {
         setPostSaleNotes(order.postSaleNotes || '');
         setPostSaleCost(order.postSaleCost ?? '');
         setPostSaleResponsible(order.postSaleResponsible || '');
+        setPostSaleCaseType(order.postSaleCaseType || '');
         setPostSaleOrderOption(order.postSaleOrderOption || '');
         setPostSaleNewOrderNumber(order.postSaleNewOrderNumber || '');
         setNewNoteText('');
@@ -114,19 +138,27 @@ export function OrderDetailPanel({
                 const parsed = JSON.parse(order.postSaleRxData);
                 setPair1Faulty(parsed.pair1Faulty !== undefined ? parsed.pair1Faulty : true);
                 setPair2Faulty(parsed.pair2Faulty !== undefined ? parsed.pair2Faulty : false);
-                if (parsed.rx1) setRx1(parsed.rx1);
-                if (parsed.rx2) setRx2(parsed.rx2);
+                setRxChange(parsed.rxChange ?? false);
+                setReprocessAuthNoRx(parsed.reprocessAuthNoRx ?? false);
+                // Rellenar siempre desde el pedido (medidas de armazón, material, etc.);
+                // lo guardado tiene prioridad. Así las medidas vienen llenas y editables.
+                setRx1({ ...getRxDefaults(order, 1), ...(parsed.rx1 || {}) });
+                setRx2({ ...getRxDefaults(order, 2), ...(parsed.rx2 || {}) });
             } catch (e) {
                 console.error('Error parsing postSaleRxData in useEffect:', e);
             }
         } else {
             setPair1Faulty(true);
             setPair2Faulty(false);
-            const defaults = getRxDefaults(order);
-            setRx1(defaults);
-            setRx2(defaults);
+            setRxChange(false);
+            setReprocessAuthNoRx(false);
+            setRx1(getRxDefaults(order, 1));
+            setRx2(getRxDefaults(order, 2));
         }
-    }, [order.id, order.postSaleNotes, order.postSaleCost, order.postSaleResponsible, order.postSaleOrderOption, order.postSaleNewOrderNumber, order.postSaleRxData]);
+        // Al cambiar de orden se reinician las subidas frescas de esta sesión
+        setRxUploaded1(false);
+        setRxUploaded2(false);
+    }, [order.id, order.postSaleNotes, order.postSaleCost, order.postSaleResponsible, order.postSaleCaseType, order.postSaleOrderOption, order.postSaleNewOrderNumber, order.postSaleRxData]);
 
     React.useEffect(() => {
         if (postSaleOrderOption === 'DIFFERENT' && order.clientId) {
@@ -163,7 +195,12 @@ export function OrderDetailPanel({
             material: pair === 1 ? rx1.material : rx2.material,
             treatment: pair === 1 ? rx1.treatment : rx2.treatment,
             color: pair === 1 ? rx1.color : rx2.color,
-            diameter: pair === 1 ? rx1.diameter : rx2.diameter
+            diameter: pair === 1 ? rx1.diameter : rx2.diameter,
+            // Preservar las medidas del armazón ya cargadas
+            frameA: pair === 1 ? rx1.frameA : rx2.frameA,
+            frameB: pair === 1 ? rx1.frameB : rx2.frameB,
+            frameEd: pair === 1 ? rx1.frameEd : rx2.frameEd,
+            framePte: pair === 1 ? rx1.framePte : rx2.framePte
         };
 
         if (pair === 1) setRx1(imported);
@@ -179,8 +216,10 @@ export function OrderDetailPanel({
                 const data = await res.json();
                 if (pair === 1) {
                     setRx1((prev: any) => ({ ...prev, imageUrl: data.url }));
+                    setRxUploaded1(true);
                 } else {
                     setRx2((prev: any) => ({ ...prev, imageUrl: data.url }));
+                    setRxUploaded2(true);
                 }
             } else {
                 alert('Error al subir la receta.');
@@ -209,6 +248,8 @@ export function OrderDetailPanel({
             const payloadRxData = {
                 pair1Faulty,
                 pair2Faulty,
+                rxChange,
+                reprocessAuthNoRx,
                 rx1,
                 rx2
             };
@@ -220,6 +261,7 @@ export function OrderDetailPanel({
                     postSaleNotes: finalNotes || null,
                     postSaleCost: postSaleCost === '' ? 0 : Number(postSaleCost),
                     postSaleResponsible: postSaleResponsible || null,
+                    postSaleCaseType: postSaleCaseType || null,
                     postSaleOrderOption: postSaleOrderOption || null,
                     postSaleNewOrderNumber: postSaleOrderOption === 'DIFFERENT' ? (postSaleNewOrderNumber || null) : null,
                     postSaleRxData: postSaleOrderOption === 'DIFFERENT' ? JSON.stringify(payloadRxData) : null,
@@ -250,32 +292,39 @@ export function OrderDetailPanel({
 
         return (
             <div className="space-y-4 bg-stone-50 dark:bg-stone-900/35 border border-stone-200/50 dark:border-stone-800 p-4 rounded-2xl">
-                <div className="flex items-center justify-between border-b border-stone-250/20 dark:border-stone-800 pb-2 mb-2">
-                    <span className="text-[10px] font-black text-amber-500 uppercase tracking-widest">
+                <div className="flex items-center justify-between gap-2 border-b border-stone-250/20 dark:border-stone-800 pb-2 mb-2">
+                    <span className="text-[10px] font-black text-amber-500 uppercase tracking-widest flex-shrink-0">
                         Especificación del Par {pairNum}
                     </span>
-                    
-                    {clientPrescriptions.length > 0 && (
-                        <div className="flex items-center gap-2">
-                            <span className="text-[9px] text-stone-400 font-bold uppercase tracking-wider">Cargar Receta:</span>
-                            <select
-                                onChange={(e) => {
-                                    if (e.target.value) {
-                                        handleImportPrescription(e.target.value, pairNum);
-                                        e.target.value = '';
-                                    }
-                                }}
-                                className="text-[10px] p-1.5 rounded-lg border border-stone-200 dark:border-stone-750 bg-white dark:bg-stone-800 outline-none"
-                            >
-                                <option value="">Seleccionar...</option>
-                                {clientPrescriptions.map(p => (
-                                    <option key={p.id} value={p.id}>
-                                        {new Date(p.date).toLocaleDateString('es-AR')} - OD: {p.sphereOD != null ? (p.sphereOD > 0 ? '+' : '') + p.sphereOD : '0'}/{p.sphereOI != null ? (p.sphereOI > 0 ? '+' : '') + p.sphereOI : '0'}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
-                    )}
+
+                    <div className="flex items-center gap-2 min-w-0">
+                        <button type="button" onClick={() => importFullOrder(pairNum)}
+                            className="text-[9px] font-black uppercase tracking-wider px-2.5 py-1.5 rounded-lg border border-amber-200 dark:border-amber-900/50 bg-amber-50 dark:bg-amber-950/20 text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-950/40 transition-colors flex-shrink-0"
+                            title="Traer los datos completos del pedido original (graduación, material, tratamiento, color, diámetro, DNP, altura)">
+                            📋 Traer pedido completo
+                        </button>
+                        {clientPrescriptions.length > 0 && (
+                            <div className="flex items-center gap-2 min-w-0">
+                                <span className="text-[9px] text-stone-400 font-bold uppercase tracking-wider flex-shrink-0">Cargar Receta:</span>
+                                <select
+                                    onChange={(e) => {
+                                        if (e.target.value) {
+                                            handleImportPrescription(e.target.value, pairNum);
+                                            e.target.value = '';
+                                        }
+                                    }}
+                                    className="text-[10px] p-1.5 rounded-lg border border-stone-200 dark:border-stone-750 bg-white dark:bg-stone-800 outline-none min-w-0"
+                                >
+                                    <option value="">Seleccionar...</option>
+                                    {clientPrescriptions.map(p => (
+                                        <option key={p.id} value={p.id}>
+                                            {new Date(p.date).toLocaleDateString('es-AR')} - OD: {p.sphereOD != null ? (p.sphereOD > 0 ? '+' : '') + p.sphereOD : '0'}/{p.sphereOI != null ? (p.sphereOI > 0 ? '+' : '') + p.sphereOI : '0'}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                        )}
+                    </div>
                 </div>
 
                 {/* Grid Table for Graduation */}
@@ -455,10 +504,44 @@ export function OrderDetailPanel({
                     </div>
                 </div>
 
+                {/* Medidas del Armazón — obligatorias para multifocal / monofocal de laboratorio */}
+                {needsFrameMeasures && (() => {
+                    const frameFields = [
+                        { key: 'frameA', label: 'A' },
+                        { key: 'frameB', label: 'B' },
+                        { key: 'frameEd', label: 'ED' },
+                        { key: 'framePte', label: 'Puente' },
+                    ];
+                    const frameComplete = hasFrameMeasures(pairRx);
+                    return (
+                        <div className={`pt-2 border-t ${frameComplete ? 'border-stone-200/50 dark:border-stone-800' : 'border-red-200 dark:border-red-900/40'}`}>
+                            <label className="text-[8px] font-black text-stone-400 dark:text-stone-500 uppercase tracking-widest block mb-1">
+                                Medidas del Armazón <span className="text-red-500">* obligatorio</span>
+                            </label>
+                            <div className="grid grid-cols-4 gap-2">
+                                {frameFields.map(f => (
+                                    <div key={f.key}>
+                                        <label className="text-[7px] font-bold text-stone-400 uppercase block mb-0.5 text-center">{f.label}</label>
+                                        <input
+                                            type="text"
+                                            value={pairRx[f.key] || ''}
+                                            onChange={(e) => updateField(f.key, e.target.value)}
+                                            className={`w-full text-center text-[10px] p-2 border bg-white dark:bg-stone-800 rounded-xl focus:outline-none focus:ring-1 focus:ring-amber-500 dark:text-stone-200 ${!pairRx[f.key] ? 'border-red-300 dark:border-red-900/50' : 'border-stone-200 dark:border-stone-700'}`}
+                                        />
+                                    </div>
+                                ))}
+                            </div>
+                            {!frameComplete && (
+                                <p className="text-[9px] font-bold text-red-500 mt-1">Completá A, B, ED y Puente: este lente (multifocal o monofocal de lab) requiere las medidas del armazón.</p>
+                            )}
+                        </div>
+                    );
+                })()}
+
                 {/* Recipe Image Attachment */}
                 <div className="pt-2 border-t border-stone-200/50 dark:border-stone-800">
                     <label className="text-[8px] font-black text-stone-400 dark:text-stone-500 uppercase tracking-widest block mb-1">
-                        Adjuntar Foto de Nueva Receta
+                        Adjuntar Foto de Nueva Receta{rxChange && <span className="text-red-500"> * obligatorio</span>}
                     </label>
                     <div className="flex items-center gap-3">
                         <input
@@ -1065,6 +1148,22 @@ export function OrderDetailPanel({
 
                                 <div>
                                     <label className="text-[8px] font-black text-stone-400 dark:text-stone-500 uppercase tracking-widest block mb-1">
+                                        Tipo de caso
+                                    </label>
+                                    <select
+                                        value={postSaleCaseType}
+                                        onChange={(e) => setPostSaleCaseType(e.target.value)}
+                                        className="w-full text-xs p-2.5 rounded-xl border border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-stone-900 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all dark:text-stone-200"
+                                    >
+                                        <option value="">Sin clasificar</option>
+                                        {POST_SALE_CASE_TYPES.map(t => (
+                                            <option key={t} value={t}>{t}</option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label className="text-[8px] font-black text-stone-400 dark:text-stone-500 uppercase tracking-widest block mb-1">
                                         ¿Requiere procesar en laboratorio?
                                     </label>
                                     <select
@@ -1104,7 +1203,7 @@ export function OrderDetailPanel({
                                                 />
                                                 <span>Re-hacer Par 1</span>
                                             </label>
-                                            {is2x1 && (
+                                            {hasSecondPair && (
                                                 <label className="flex items-center gap-2 text-xs font-bold text-stone-700 dark:text-stone-300 cursor-pointer">
                                                     <input
                                                         type="checkbox"
@@ -1117,29 +1216,67 @@ export function OrderDetailPanel({
                                             )}
                                         </div>
 
+                                        {/* Motivo: cambio de receta → obliga a subir la nueva receta */}
+                                        <label className="flex items-start gap-2 text-xs font-bold text-stone-700 dark:text-stone-300 cursor-pointer px-1">
+                                            <input
+                                                type="checkbox"
+                                                checked={rxChange}
+                                                onChange={(e) => setRxChange(e.target.checked)}
+                                                className="rounded border-stone-300 text-amber-500 focus:ring-amber-500 mt-0.5 flex-shrink-0"
+                                            />
+                                            <span>Es por <b>cambio de receta</b> <span className="text-amber-600 dark:text-amber-500 font-semibold">(obligatorio adjuntar la nueva receta de cada par a rehacer)</span></span>
+                                        </label>
+
                                         {/* Prescription Forms */}
                                         {pair1Faulty && renderRxForm(rx1, setRx1, 1)}
-                                        {is2x1 && pair2Faulty && renderRxForm(rx2, setRx2, 2)}
+                                        {hasSecondPair && pair2Faulty && renderRxForm(rx2, setRx2, 2)}
+
+                                        {rxChange && ((pair1Faulty && !rxUploaded1) || (hasSecondPair && pair2Faulty && !rxUploaded2)) && (
+                                            <div className={`space-y-2 border rounded-xl p-3 ${reprocessAuthNoRx ? 'bg-emerald-50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-900/40' : 'bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-900/40'}`}>
+                                                {reprocessAuthNoRx ? (
+                                                    <p className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 leading-snug">
+                                                        ✓ Reproceso sin receta autorizado por administrador. Se puede cargar, pero sin la receta no corresponde envío sin cargo.
+                                                    </p>
+                                                ) : (
+                                                    <p className="text-[10px] font-bold text-red-600 dark:text-red-400 leading-snug">
+                                                        ⚠️ Sin la nueva receta no se puede enviar el reproceso sin cargo. Adjuntá la nueva receta (campo &ldquo;Adjuntar Foto de Nueva Receta&rdquo;) de cada par a rehacer, o pedile a un administrador que autorice el reproceso del pedido.
+                                                    </p>
+                                                )}
+                                                {isReprocessAdmin ? (
+                                                    <label className="flex items-start gap-2 text-[10px] font-bold text-stone-700 dark:text-stone-300 cursor-pointer">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={reprocessAuthNoRx}
+                                                            onChange={(e) => setReprocessAuthNoRx(e.target.checked)}
+                                                            className="rounded border-stone-300 text-emerald-500 focus:ring-emerald-500 mt-0.5 flex-shrink-0"
+                                                        />
+                                                        <span>Autorizo el reproceso sin la nueva receta (como administrador).</span>
+                                                    </label>
+                                                ) : !reprocessAuthNoRx && (
+                                                    <p className="text-[10px] font-semibold text-red-500/80 italic">Solo un administrador puede autorizar el reproceso sin receta.</p>
+                                                )}
+                                            </div>
+                                        )}
 
                                         {/* Dynamic SmartLab Buttons from Post-Venta form */}
                                         <div className="flex gap-2">
                                             {pair1Faulty && onAutoSubmit && (
                                                 <button
                                                     onClick={() => onAutoSubmit(order, 1)}
-                                                    disabled={isAutoSubmitting}
-                                                    className="flex-1 py-2 bg-gradient-to-r from-amber-500 to-amber-600 text-white rounded-xl text-[9px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-1 shadow-md hover:scale-105 active:scale-95 disabled:opacity-50"
-                                                    title="Cargar Par 1 en SmartLab con nuevos datos"
+                                                    disabled={isAutoSubmitting || (rxChange && !rxUploaded1 && !reprocessAuthNoRx) || (needsFrameMeasures && !hasFrameMeasures(rx1))}
+                                                    className="flex-1 py-2 bg-gradient-to-r from-amber-500 to-amber-600 text-white rounded-xl text-[9px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-1 shadow-md hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                    title={needsFrameMeasures && !hasFrameMeasures(rx1) ? 'Faltan las medidas del armazón del Par 1 (A, B, ED, Puente)' : (rxChange && !rxUploaded1 && !reprocessAuthNoRx ? 'Falta la nueva receta del Par 1 o la autorización del administrador' : 'Cargar Par 1 en SmartLab con nuevos datos')}
                                                 >
                                                     {isAutoSubmitting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FlaskConical className="w-3.5 h-3.5" />}
                                                     <span>Cargar Par 1</span>
                                                 </button>
                                             )}
-                                            {is2x1 && pair2Faulty && onAutoSubmit && (
+                                            {hasSecondPair && pair2Faulty && onAutoSubmit && (
                                                 <button
                                                     onClick={() => onAutoSubmit(order, 2)}
-                                                    disabled={isAutoSubmitting}
-                                                    className="flex-1 py-2 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-xl text-[9px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-1 shadow-md hover:scale-105 active:scale-95 disabled:opacity-50"
-                                                    title="Cargar Par 2 en SmartLab con nuevos datos"
+                                                    disabled={isAutoSubmitting || (rxChange && !rxUploaded2 && !reprocessAuthNoRx) || (needsFrameMeasures && !hasFrameMeasures(rx2))}
+                                                    className="flex-1 py-2 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-xl text-[9px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-1 shadow-md hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                    title={needsFrameMeasures && !hasFrameMeasures(rx2) ? 'Faltan las medidas del armazón del Par 2 (A, B, ED, Puente)' : (rxChange && !rxUploaded2 && !reprocessAuthNoRx ? 'Falta la nueva receta del Par 2 o la autorización del administrador' : 'Cargar Par 2 en SmartLab con nuevos datos')}
                                                 >
                                                     {isAutoSubmitting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FlaskConical className="w-3.5 h-3.5" />}
                                                     <span>Cargar Par 2</span>

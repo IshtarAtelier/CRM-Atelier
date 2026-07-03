@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { formatOrderItemsSummary } from '@/lib/order-utils';
+import { PricingService } from '@/services/PricingService';
 
 export const dynamic = 'force-dynamic';
 
@@ -9,35 +10,62 @@ export async function GET(request: Request) {
         const { searchParams } = new URL(request.url);
         const orderId = searchParams.get('orderId');
         const orderNumber = searchParams.get('orderNumber');
+        const clientId = searchParams.get('clientId');
 
-        if (!orderId && !orderNumber) {
-            return NextResponse.json({ error: 'orderId o orderNumber es requerido' }, { status: 400 });
+        if (!orderId && !orderNumber && !clientId) {
+            return NextResponse.json({ error: 'orderId, orderNumber o clientId es requerido' }, { status: 400 });
         }
 
-        const order = await prisma.order.findFirst({
-            where: {
-                OR: [
-                    { id: orderId || undefined },
-                    { labOrderNumber: orderNumber || undefined }
-                ],
-                isDeleted: false
-            },
-            include: {
-                client: true,
-                items: {
-                    include: {
-                        product: true
-                    }
+        let order = null;
+
+        if (orderId || orderNumber) {
+            order = await prisma.order.findFirst({
+                where: {
+                    OR: [
+                        { id: orderId || undefined },
+                        { labOrderNumber: orderNumber || undefined }
+                    ],
+                    isDeleted: false
                 },
-                payments: true
+                include: {
+                    client: true,
+                    items: {
+                        include: {
+                            product: true
+                        }
+                    },
+                    payments: true
+                }
+            });
+        } else if (clientId) {
+            // Buscar el pedido relevante del cliente: primero una venta con saldo pendiente,
+            // si no la venta más reciente, y como último recurso el presupuesto más reciente
+            const sales = await prisma.order.findMany({
+                where: { clientId, isDeleted: false, orderType: 'SALE' },
+                include: { client: true, items: { include: { product: true } }, payments: true },
+                orderBy: { createdAt: 'desc' }
+            });
+
+            order = sales.find(o => PricingService.calculateOrderFinancials(o).hasBalance) || sales[0] || null;
+
+            if (!order) {
+                order = await prisma.order.findFirst({
+                    where: { clientId, isDeleted: false, orderType: 'QUOTE' },
+                    include: { client: true, items: { include: { product: true } }, payments: true },
+                    orderBy: { createdAt: 'desc' }
+                });
             }
-        });
+        }
 
         if (!order) {
             return NextResponse.json({ found: false });
         }
 
-        return NextResponse.json({ found: true, order });
+        // Desglose financiero oficial: exactamente el mismo cálculo que muestran
+        // las vistas de saldos del CRM (ventas, pedidos, modales de pago)
+        const financials = PricingService.calculateOrderFinancials(order);
+
+        return NextResponse.json({ found: true, order, financials });
     } catch (error: any) {
         console.error('[Bot Bridge Orders GET] Error:', error);
         return NextResponse.json({ error: 'Error al consultar pedido' }, { status: 500 });

@@ -154,7 +154,7 @@ export function CartSidebar() {
                   onClick={() => setIsOpen(false)}
                   className="w-full flex items-center justify-center gap-2 bg-black text-white px-6 py-4 text-xs font-black uppercase tracking-widest hover:bg-stone-800 transition-colors"
                 >
-                  Checkout Seguro <ChevronRight className="w-4 h-4" />
+                  Finalizar mi compra <ChevronRight className="w-4 h-4" />
                 </Link>
                 
                 <div className="mt-4 grid grid-cols-3 gap-2 border-t border-stone-200 pt-4">
