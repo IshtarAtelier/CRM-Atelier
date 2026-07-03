@@ -241,19 +241,9 @@ const syncRecentChatsAndMessages = async (deps, wc) => {
                         
                         let senderNameValue = null;
                         if (msg.fromMe) {
-                            const metaAutoPatterns = [
-                                /[¡!]?hola\b.*c[oó]mo podemos ayudarte/i,
-                                /bienvenid[oa]\s*(a\s*)?atelier/i,
-                                /gracias por (contactar|escribir|comunicar|tu mensaje)/i,
-                                /te (responderemos|contestaremos|atenderemos) (a la brevedad|pronto|en breve)/i,
-                                /en breve (te responder|un asesor)/i,
-                                // Textos reales configurados en WhatsApp Business (ausencia y bienvenida)
-                                /en este momento el local est[aá] cerrado/i,
-                                /contame c[oó]mo puedo ayudarte/i,
-                                /pod[eé]s dejarme tu consulta/i,
-                            ];
+                            const { isMetaAutoReplyText } = require('../shared/meta-auto-patterns');
                             const bodyText = msg.body || '';
-                            if (metaAutoPatterns.some(p => p.test(bodyText))) {
+                            if (isMetaAutoReplyText(bodyText)) {
                                 senderNameValue = 'Meta (Auto-Reply)';
                             } else {
                                 senderNameValue = 'Humano (Sincronizado)';

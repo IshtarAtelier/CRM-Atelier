@@ -25,6 +25,7 @@ const { transcribeAudio } = require('./transcriber');
 const { checkAndSendSalesFollowUps } = require('./sales-followups');
 const { checkAndSendInactivityFollowUps } = require('./cron/inactivity-followups');
 const { TAGS_SIN_BOT, getFileExtension, getAdminWaId } = require('./utils');
+const { isMetaAutoReplyText } = require('./shared/meta-auto-patterns');
 
 const configPath = path.join(__dirname, 'agent_config.json');
 
@@ -134,22 +135,9 @@ const handleMessageCreate = async (msg) => {
         let isMetaAutoReply = false;
 
         // A. Detección por patrones de texto conocidos de auto-respuestas
-        if (msg.body) {
-            const metaAutoReplyPatterns = [
-                /[¡!]?hola\b.*c[oó]mo podemos ayudarte/i,
-                /bienvenid[oa]\s*(a\s*)?atelier/i,
-                /gracias por (contactar|escribir|comunicar|tu mensaje)/i,
-                /te (responderemos|contestaremos|atenderemos) (a la brevedad|pronto|en breve)/i,
-                /en breve (te responder|un asesor)/i,
-                // Textos reales configurados en WhatsApp Business (ausencia y bienvenida)
-                /en este momento el local est[aá] cerrado/i,
-                /contame c[oó]mo puedo ayudarte/i,
-                /pod[eé]s dejarme tu consulta/i,
-            ];
-            if (metaAutoReplyPatterns.some(p => p.test(msg.body))) {
-                isMetaAutoReply = true;
-                console.log(`  🤖 [Meta Auto-Reply] Detectado por patrón de texto: "${msg.body.substring(0, 80)}". Ignorando.`);
-            }
+        if (msg.body && isMetaAutoReplyText(msg.body)) {
+            isMetaAutoReply = true;
+            console.log(`  🤖 [Meta Auto-Reply] Detectado por patrón de texto: "${msg.body.substring(0, 80)}". Ignorando.`);
         }
 
         // B. Detección por proximidad temporal: si el chat se creó hace < 15 segundos,
@@ -1017,16 +1005,11 @@ const handleMessage = async (msg) => {
                 // Si en el historial reciente de WhatsApp vemos mensajes enviados por nosotros (fromMe)
                 // significa que este chat ya estaba siendo atendido por un humano previamente.
                 // EXCLUIR auto-respuestas de Meta/WA Business para no dar falsos positivos.
-                const metaAutoPatterns = [
-                    /[¡!]?hola\b.*c[oó]mo podemos ayudarte/i,
-                    /bienvenid[oa]\s*(a\s*)?atelier/i,
-                    /gracias por (contactar|escribir|comunicar|tu mensaje)/i,
-                ];
                 const hasHumanOutbound = prevMsgs.some(m => {
                     if (!m.fromMe) return false;
                     const body = m.body || '';
                     // Si el mensaje encaja con auto-reply de Meta, NO es humano
-                    if (metaAutoPatterns.some(p => p.test(body))) return false;
+                    if (isMetaAutoReplyText(body)) return false;
                     // Si no tiene body (media de bienvenida automática) y es el primer outbound, ignorar
                     if (!body && prevMsgs.filter(pm => pm.fromMe).length <= 1) return false;
                     return true;
