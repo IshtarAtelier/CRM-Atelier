@@ -178,6 +178,21 @@ const handleMessageCreate = async (msg) => {
             if (chat) {
                 if (chat.botEnabled && !isBotReplying && !isMetaAutoReply) {
                     await disableBotForChatById(chat.id, 'Intervención humana (mensaje saliente)');
+                    // Persistir la marca de apagado para que el Auto-Resume de 24hs NO reactive
+                    // el bot en una charla que tomó un humano. Se usa el mismo label exacto que
+                    // el apagado manual del CRM, así la reactivación manual lo limpia.
+                    try {
+                        const currentLabels = [...(chat.chatLabels || [])];
+                        if (!currentLabels.includes('[SISTEMA - BOT APAGADO]')) {
+                            currentLabels.push('[SISTEMA - BOT APAGADO]');
+                            await prisma.whatsAppChat.update({
+                                where: { id: chat.id },
+                                data: { chatLabels: currentLabels }
+                            });
+                        }
+                    } catch (labelErr) {
+                        console.error('Error persistiendo label de apagado por intervención humana:', labelErr.message);
+                    }
                 }
 
                 // Actualizar timestamp de actividad y desarchivar chat por mensaje saliente
@@ -1097,17 +1112,24 @@ const handleMessage = async (msg) => {
         // que son falsos positivos (el cliente NO está rechazando, está llegando de un anuncio).
         if (!isMetaAdsMessage) {
         const cleanBody = (body || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, ""); // remover tildes
+        // Solo frases inequ\u00edvocas de rechazo. Palabras sueltas como "baja", "quitar" o
+        // "eliminar" daban falsos positivos con frases de venta ("graduaci\u00f3n baja",
+        // "quiero eliminar el reflejo", "me quiero quitar los lentes de contacto").
         const negativePatterns = [
             /\bno\s+me\s+interesa\b/i,
             /\bno\s+molestar\b/i,
             /\bno\s+quiero\b/i,
             /\bno\s+escribas\b/i,
             /\bno\s+molesten\b/i,
-            /\bquitar\b/i,
-            /\bbaja\b/i,
-            /\beliminar\b/i,
+            /\bquitame\s+de\b/i,
+            /\bquitar\s+de\s+(la\s+)?lista\b/i,
+            /\b(dar|darme|dame|den|denme)\s+de\s+baja\b/i,
+            /\bquiero\s+la\s+baja\b/i,
+            /\beliminar\s+mis\s+datos\b/i,
+            /\beliminame\b/i,
+            /\bborrame\b/i,
             /\bstop\b/i,
-            /\bno\s+mas\b/i
+            /\bno\s+mas\s+mensajes\b/i
         ];
         const esNegativo = negativePatterns.some(pattern => pattern.test(cleanBody));
         
@@ -1458,10 +1480,13 @@ const handleMessage = async (msg) => {
             // C. Expresiones hostiles de reclamo grave
             if (messageType === 'TEXT' && body) {
                 const normalizedBody = body.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                // "devolucion" sola no es hostil ("¿hacen devoluciones?" es consulta pre-compra);
+                // solo cuenta con contexto de reclamo de dinero.
                 const hostileKeywords = [
-                    'defensa al consumidor', 'coprec', 'denuncia', 'denunciar', 'estafa', 
-                    'estafadores', 'sinverguenza', 'sinvergüenza', 'quiero mi plata', 
-                    'devolucion', 'devolución', 'me mintieron', 'una porqueria', 'una porquería',
+                    'defensa al consumidor', 'coprec', 'denuncia', 'denunciar', 'estafa',
+                    'estafadores', 'sinverguenza', 'sinvergüenza', 'quiero mi plata',
+                    'me devuelvan', 'devolucion de la plata', 'devolucion del dinero', 'exijo la devolucion',
+                    'me mintieron', 'una porqueria', 'una porquería',
                     'abogado', 'carta documento'
                 ];
                 const matchesHostile = hostileKeywords.some(keyword => normalizedBody.includes(keyword));
@@ -1484,7 +1509,7 @@ const handleMessage = async (msg) => {
                         dueDate: new Date()
                     }
                 }).catch(e => console.error("Error creando tarea de filtro de seguridad:", e.message));
-                
+
                 await prisma.interaction.create({
                     data: {
                         clientId: chat.clientId,
@@ -1492,6 +1517,17 @@ const handleMessage = async (msg) => {
                         content: `⚠️ [Alerta Seguridad] Bot desactivado automáticamente. Razón: ${filterReason}`
                     }
                 }).catch(e => console.error('Error guardando nota:', e.message));
+            } else {
+                // Lead sin registrar: no hay ficha donde crear la tarea, avisar al
+                // administrador para que la conversación no quede muda sin que nadie se entere
+                try {
+                    const adminNotifyPhone = getAdminWaId();
+                    const alertMsg = `⚠️ *ATENCIÓN HUMANA REQUERIDA* ⚠️\nChat sin registrar necesita atención: ${profileName || 'Cliente'} (${realPhone || waId.split('@')[0]})\nMotivo: ${filterReason}\nEl bot quedó apagado para ese chat.`;
+                    await sendMessage(adminNotifyPhone, alertMsg, null, { isProactive: false, isAutomated: false });
+                    console.log(`  🔔 Alerta de filtro de seguridad (lead sin registrar) enviada al administrador`);
+                } catch (alertErr) {
+                    console.error('Error enviando alerta de filtro de seguridad:', alertErr.message);
+                }
             }
 
             broadcastChatUpdate(chat.id);
