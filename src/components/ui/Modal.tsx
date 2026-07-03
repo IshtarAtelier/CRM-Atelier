@@ -36,7 +36,7 @@ export function Modal({ isOpen, onClose, children, maxWidth = '2xl' }: ModalProp
         <AnimatePresence>
             {isOpen && (
                 <div 
-                    className="fixed inset-0 z-[100] flex min-h-full items-center justify-center p-4 overflow-y-auto" 
+                    className="fixed inset-0 z-[1000] flex min-h-full items-center justify-center p-4 overflow-y-auto" 
                     role="dialog"
                     aria-modal="true"
                 >
