@@ -332,7 +332,7 @@ export function LandingClient({
                 onClick={handleWhatsAppClick}
                 className="text-[12px] font-bold uppercase tracking-[0.15em] underline underline-offset-4 decoration-[#C5A059] decoration-2 hover:opacity-60 transition-opacity text-left"
               >
-                Pedir precios por WhatsApp
+                Solicitar catálogo completo por WhatsApp
               </button>
             </div>
 
