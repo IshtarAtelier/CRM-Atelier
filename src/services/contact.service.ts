@@ -7,11 +7,12 @@ import { sendEmail } from '@/lib/email';
 import { fetchWa, getAdminChatId } from '@/lib/wa-config';
 
 
-// Estados de laboratorio que significan que el pedido ya salió a fábrica.
-// Una vez enviada/procesada la orden, la receta queda congelada: editarla en el
-// lugar alteraría lo que fábrica ya recibió. Para cambiar la graduación hay que
-// usar el flujo de Post-Venta / Reproceso (con nuevo número de OP).
-const LAB_SENT_STATUSES = ['SENT', 'IN_PROGRESS', 'FINISHED', 'READY', 'DELIVERED'];
+// Estados de laboratorio en los que el pedido ya está EN PROCESO de fabricación
+// (o más avanzado). A partir de "Procesado" la receta queda congelada: cambiarla
+// en el lugar alteraría lo que fábrica ya está produciendo. Solo un ADMIN puede
+// autorizar el cambio; de lo contrario hay que manejarlo como Post-Venta / Reproceso.
+// (Nota: 'SENT' = "Falta procesar" NO bloquea; todavía se puede corregir.)
+const LAB_PROCESSED_STATUSES = ['IN_PROGRESS', 'FINISHED', 'READY', 'DELIVERED'];
 const LAB_STATUS_LABELS: Record<string, string> = {
     SENT: 'Falta procesar',
     IN_PROGRESS: 'Procesado',

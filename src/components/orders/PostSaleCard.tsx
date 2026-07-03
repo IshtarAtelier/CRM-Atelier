@@ -35,6 +35,8 @@ const getRxDefaults = (order: any, pair: 1 | 2 = 1) => {
         treatment: order.labTreatment || '',
         color: order.labColor || '',
         diameter: order.labDiameter || '',
+        prismOD: order.labPrismOD != null ? String(order.labPrismOD) : (rx.prismOD != null ? String(rx.prismOD) : ''),
+        prismOI: order.labPrismOI != null ? String(order.labPrismOI) : (rx.prismOI != null ? String(rx.prismOI) : ''),
         notes: rx.notes || '',
         imageUrl: rx.imageUrl || ''
     };

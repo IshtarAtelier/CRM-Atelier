@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { resolveStorageUrl } from '@/lib/utils/storage';
+import { CouponsManager } from '@/components/admin/CouponsManager';
 import { getSelectedShapeFromTags, getSelectedMaterialFromTags, updateTagsWithShapeAndMaterial, getProductAttributes } from '@/utils/product-controllers';
 
 interface WebProduct {
@@ -1235,7 +1236,9 @@ export default function WebManagementPage() {
 
       {/* TAB 3: WEB CONFIGURATION */}
       {activeTab === 'config' && (
-        <div className="bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-3xl p-6 sm:p-8 shadow-sm space-y-8 animate-in fade-in duration-300">
+        <div className="space-y-6 animate-in fade-in duration-300">
+        <CouponsManager />
+        <div className="bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-3xl p-6 sm:p-8 shadow-sm space-y-8">
           <div className="border-b border-stone-100 dark:border-stone-800 pb-4">
             <h2 className="text-lg font-black text-stone-900 dark:text-white uppercase tracking-wider">Ajustes Generales del Sitio y Promos</h2>
             <p className="text-xs text-stone-500 mt-1">Configurá las promociones globales, banner de anuncio y los datos de contacto/dirección del local.</p>
@@ -1409,6 +1412,7 @@ export default function WebManagementPage() {
               </div>
             </form>
           )}
+        </div>
         </div>
       )}
 

@@ -390,6 +390,8 @@ export async function GET(request: Request) {
                     orderOption: true,
                     responsible: true,
                     caseType: true,
+                    fault: true,
+                    coverage: true,
                     rxData: true,
                     createdAt: true,
                     notesList: {
