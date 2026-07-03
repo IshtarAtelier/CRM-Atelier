@@ -141,6 +141,10 @@ const handleMessageCreate = async (msg) => {
                 /gracias por (contactar|escribir|comunicar|tu mensaje)/i,
                 /te (responderemos|contestaremos|atenderemos) (a la brevedad|pronto|en breve)/i,
                 /en breve (te responder|un asesor)/i,
+                // Textos reales configurados en WhatsApp Business (ausencia y bienvenida)
+                /en este momento el local est[aá] cerrado/i,
+                /contame c[oó]mo puedo ayudarte/i,
+                /pod[eé]s dejarme tu consulta/i,
             ];
             if (metaAutoReplyPatterns.some(p => p.test(msg.body))) {
                 isMetaAutoReply = true;
