@@ -73,14 +73,17 @@ export default async function TiendaPage() {
 
   // 2) Fetch ONLY the first 24 products for the initial server render & SEO (instant, small payload)
   let initialDbProducts: any[] = [];
+  let initialTotalCount = 0;
   try {
+    const whereClause = {
+      isActive: true,
+      product: {
+        publishToWeb: true,
+      }
+    };
+    initialTotalCount = await prisma.webProduct.count({ where: whereClause });
     initialDbProducts = await prisma.webProduct.findMany({
-      where: {
-        isActive: true,
-        product: {
-          publishToWeb: true,
-        }
-      },
+      where: whereClause,
       include: {
         product: true
       },
@@ -121,6 +124,7 @@ export default async function TiendaPage() {
     <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Cargando...</div>}>
       <TiendaClient 
         initialProducts={mappedInitialProducts} 
+        initialTotalCount={initialTotalCount}
         availableBrands={availableBrands}
         availableShapes={availableShapes}
         availableMaterials={availableMaterials}

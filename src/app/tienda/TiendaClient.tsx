@@ -25,12 +25,14 @@ const CATEGORY_IMAGES: Record<string, string> = {
 
 export function TiendaClient({ 
   initialProducts,
+  initialTotalCount = 0,
   availableBrands = [],
   availableShapes = [],
   availableMaterials = [],
   footer
 }: { 
   initialProducts: any[];
+  initialTotalCount?: number;
   availableBrands?: string[];
   availableShapes?: string[];
   availableMaterials?: string[];
@@ -108,8 +110,8 @@ export function TiendaClient({
   // ── STATE FOR PRODUCTS & PAGINATION ──
   const [products, setProducts] = useState<any[]>(initialProducts);
   const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [totalCount, setTotalCount] = useState(initialProducts.length);
+  const [totalPages, setTotalPages] = useState(Math.ceil((initialTotalCount || initialProducts.length) / 24) || 1);
+  const [totalCount, setTotalCount] = useState(initialTotalCount || initialProducts.length);
   const [isLoading, setIsLoading] = useState(false);
   const isRecoveringProducts = isLoading;
 
