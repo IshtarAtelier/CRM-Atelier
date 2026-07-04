@@ -378,31 +378,41 @@ class AntiBanQueue {
             }
         }
 
-        // D. Regla de 3er Intento: si se enviaron 3 mensajes consecutivos sin respuesta del usuario, pausar por 30 días
-        if (options.isAutomated !== false) {
+        // D. Regla de 3er Intento: si se hicieron 3 INTENTOS DE CONTACTO sin respuesta del usuario, pausar por 30 días.
+        // Solo aplica a envíos PROACTIVOS (seguimientos): responder a un cliente que escribió nunca es spam.
+        // Un "intento" es una ráfaga de mensajes: las burbujas de una misma respuesta (separadas por
+        // menos de 10 minutos entre sí) cuentan como UN solo intento, no como varios.
+        if (options.isAutomated !== false && options.isProactive === true) {
             try {
                 const lastMessages = chatDb ? chatDb.messages : [];
-                let consecutiveOutbound = 0;
+                const BURST_GAP_MS = 10 * 60 * 1000;
+                let contactAttempts = 0;
                 let lastOutboundTime = null;
+                let prevOutboundMs = null;
 
                 for (const msg of lastMessages) {
                     if (msg.direction === 'INBOUND') {
                         break; // Se detiene al encontrar respuesta del usuario
                     }
                     if (msg.direction === 'OUTBOUND') {
-                        consecutiveOutbound++;
+                        const msgMs = new Date(msg.createdAt).getTime();
                         if (!lastOutboundTime) {
                             lastOutboundTime = new Date(msg.createdAt);
                         }
+                        // Mensajes en orden descendente: gap = mensaje más nuevo - mensaje más viejo
+                        if (prevOutboundMs === null || (prevOutboundMs - msgMs) > BURST_GAP_MS) {
+                            contactAttempts++;
+                        }
+                        prevOutboundMs = msgMs;
                     }
                 }
 
-                if (consecutiveOutbound >= 3 && lastOutboundTime) {
+                if (contactAttempts >= 3 && lastOutboundTime) {
                     const daysSinceLastOutbound = (Date.now() - lastOutboundTime.getTime()) / (1000 * 60 * 60 * 24);
                     if (daysSinceLastOutbound < 30) {
                         const daysLeft = (30 - daysSinceLastOutbound).toFixed(1);
-                        console.warn(`[AntiBanQueue] 🛡️ Regla de 3er Intento activada para ${targetWaId}. 3 mensajes enviados sin respuesta. Bloqueando por 30 días (${daysLeft} días restantes).`);
-                        reject(new Error(`Pausa de 30 días activa: El destinatario no respondió a los últimos 3 mensajes (${daysLeft} días restantes)`));
+                        console.warn(`[AntiBanQueue] 🛡️ Regla de 3er Intento activada para ${targetWaId}. ${contactAttempts} intentos de contacto sin respuesta. Bloqueando seguimientos por 30 días (${daysLeft} días restantes).`);
+                        reject(new Error(`Pausa de 30 días activa: El destinatario no respondió a los últimos ${contactAttempts} intentos de contacto (${daysLeft} días restantes)`));
                         return;
                     }
                 }

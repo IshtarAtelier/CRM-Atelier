@@ -368,6 +368,53 @@ const disableBotForChatById = (chatId, reason) => botService.disableBotForChatBy
 const detectAndCreateVisitTask = (clientId, text) => botService.detectAndCreateVisitTask(clientId, text);
 
 
+// ── Manejo de fallas transitorias del bot ──
+// El cliente NUNCA recibe información de errores internos. Ante una falla el turno
+// se aborta en silencio y el bot queda activo para reintentar cuando el cliente
+// vuelva a escribir. Solo tras varios turnos consecutivos fallidos se apaga el bot
+// y se alerta al administrador (falla persistente real, no un microcorte).
+const MAX_CONSECUTIVE_FAILED_TURNS = 3;
+
+async function handleTransientBotFailure(chat, waId, profileName, realPhone, reasonText) {
+    const failures = (chatErrorCounts.get(chat.id) || 0) + 1;
+    chatErrorCounts.set(chat.id, failures);
+
+    if (failures < MAX_CONSECUTIVE_FAILED_TURNS) {
+        console.warn(`  🔇 Turno abortado en silencio (${failures}/${MAX_CONSECUTIVE_FAILED_TURNS}) para ${profileName || waId}. Motivo: ${reasonText}`);
+        return false; // El bot sigue activo, sin mensajes al cliente ni alertas
+    }
+
+    chatErrorCounts.delete(chat.id);
+    console.error(`  🛑 ${MAX_CONSECUTIVE_FAILED_TURNS} turnos consecutivos fallidos para ${profileName || waId}. Apagando bot y alertando al administrador.`);
+
+    try {
+        await disableBotForChatById(chat.id, `Errores técnicos persistentes (${(reasonText || '').substring(0, 50)})`);
+        broadcastChatUpdate(chat.id);
+    } catch (e) {
+        console.error('Error al apagar bot tras fallas persistentes:', e.message);
+    }
+
+    if (global.io) {
+        global.io.emit('bot_error', {
+            chatId: chat.id,
+            name: profileName || chat.profileName || 'Cliente',
+            phone: realPhone || chat.realPhone || waId.split('@')[0],
+            error: `Desactivado por errores persistentes: ${(reasonText || '').substring(0, 80)}`
+        });
+    }
+
+    try {
+        const adminNotifyPhone = getAdminWaId();
+        const alertMsg = `🚨 *ERROR TÉCNICO EN BOT* 🚨\nConversación con bot apagado: ${profileName || 'Cliente'} (${realPhone || waId.split('@')[0]})\nMotivo: Falló en ${MAX_CONSECUTIVE_FAILED_TURNS} turnos seguidos (falla persistente). El cliente NO recibió ningún mensaje de error.\nDetalle: ${(reasonText || '').substring(0, 150)}`;
+        await sendMessage(adminNotifyPhone, alertMsg, null, { isProactive: false, isAutomated: false });
+        console.log(`  🔔 Alerta de falla persistente enviada al administrador`);
+    } catch (alertErr) {
+        console.error('Error enviando alerta al administrador:', alertErr.message);
+    }
+
+    return true; // Bot apagado
+}
+
 // ── Bot Orchestrator (Extraído para Modularidad) ─
 async function processBotTurn(chat, waId, profileName, realPhone) {
     try {
@@ -541,25 +588,11 @@ async function processBotTurn(chat, waId, profileName, realPhone) {
         }
 
         if (hasApiError) {
-            console.log(`  ⏹️ Error de API detectado en ToolMessage (${chat.id}). Cancelando respuesta.`);
-            try {
-                // Notificar exclusivamente al admin especificado por el usuario
-                const adminNotifyPhone = getAdminWaId();
-                const alertMsg = `🚨 *ERROR TÉCNICO EN BOT* 🚨\nConversación con bot apagado: ${profileName || 'Cliente'} (${realPhone || waId.split('@')[0]})\nMotivo: El bot sufrió un error y se apagó en silencio.\nDetalle: ${apiErrorMessage}`;
-                await sendMessage(adminNotifyPhone, alertMsg, null, { isProactive: false, isAutomated: false });
-                console.log(`  🔔 Alerta de error enviada al administrador`);
-            } catch (alertErr) {
-                console.error('Error enviando alerta de error de API al administrador:', alertErr.message);
-            }
-            
-            // Apagar el bot EN ABSOLUTO SILENCIO
-            try {
-                await disableBotForChatById(chat.id, 'Error técnico (Apagado silencioso)');
-                broadcastChatUpdate(chat.id);
-            } catch (e) {
-                console.error('Error al apagar bot en silencio:', e.message);
-            }
-            
+            // Error transitorio de API: silencio absoluto hacia el cliente, el bot queda
+            // activo para reintentar en el próximo mensaje. Solo se apaga y alerta si la
+            // falla persiste varios turnos seguidos.
+            console.log(`  ⏹️ Error de API detectado en ToolMessage (${chat.id}). Abortando turno en silencio.`);
+            await handleTransientBotFailure(chat, waId, profileName, realPhone, `Error de API en herramienta: ${apiErrorMessage.substring(0, 120)}`);
             return; // RETORNAR EN ABSOLUTO SILENCIO SIN ENVIAR NADA AL CLIENTE
         }
 
@@ -579,9 +612,16 @@ async function processBotTurn(chat, waId, profileName, realPhone) {
             const guardrail = runOutputGuardrail(responseText);
             if (!guardrail.safe) {
                 console.warn(`  ⚠️ [Output Guardrail] Respuesta bloqueada para ${profileName} por: ${guardrail.reason}`);
-                
+
+                // Narración de error interno: se bloquea el mensaje pero NO se apaga el bot.
+                // Es una falla transitoria — silencio este turno y reintento en el próximo mensaje.
+                if (guardrail.reason === 'Narración de Error Interno') {
+                    await handleTransientBotFailure(chat, waId, profileName, realPhone, `Guardrail bloqueó narración de error interno: "${responseText.substring(0, 100)}"`);
+                    return;
+                }
+
                 const isIdentityReveal = guardrail.reason.includes('Revelación de Identidad');
-                
+
                 // 1. Apagar bot para este chat
                 await disableBotForChatById(chat.id, `Brecha de seguridad (Guardrail: ${guardrail.reason})`);
                 
@@ -815,35 +855,8 @@ async function processBotTurn(chat, waId, profileName, realPhone) {
         botReplyingTo.delete(waId); // B1: limpiar tracking en caso de error
         console.error('  ❌ Error bot:', err.message);
 
-        // Apagar el bot inmediatamente ante cualquier falla
-        try {
-            await disableBotForChatById(chat.id, `Error técnico (${err.message?.substring(0, 50)})`);
-            broadcastChatUpdate(chat.id);
-        } catch (e) {
-            console.error('Error al apagar bot tras falla general:', e.message);
-        }
-
-        // Emitir notificación por WebSocket al CRM
-        if (global.io) {
-            global.io.emit('bot_error', {
-                chatId: chat.id,
-                name: profileName || chat.profileName || 'Cliente',
-                phone: realPhone || chat.realPhone || waId.split('@')[0],
-                error: `Desactivado por error: ${err.message?.substring(0, 80)}`
-            });
-        }
-
-        // Notificar al administrador especificado (3541215971)
-        try {
-            const adminNotifyPhone = getAdminWaId();
-            const alertMsg = `🚨 *ERROR TÉCNICO EN BOT* 🚨\nConversación con bot apagado: ${profileName || 'Cliente'} (${realPhone || waId.split('@')[0]})\nMotivo: ${err.message?.substring(0, 100)}`;
-            await sendMessage(adminNotifyPhone, alertMsg, null, { isProactive: false, isAutomated: false });
-            console.log(`  🔔 Alerta de falla enviada al administrador`);
-        } catch (alertErr) {
-            console.error('Error enviando alerta de falla al administrador:', alertErr.message);
-        }
-
         if (err.message && (err.message.includes('429') || err.message.includes('RESOURCE_EXHAUSTED'))) {
+            // Cuota agotada: no es transitorio, apagar de inmediato y alertar
             // 1. Apagar bot en la DB para este chat
             chatErrorCounts.delete(chat.id);
             await disableBotForChatById(chat.id, 'Cuota agotada de API (Error 429)');
@@ -865,6 +878,11 @@ async function processBotTurn(chat, waId, profileName, realPhone) {
                 subject: '🚨 ALERTA: Crédito Agotado en Bot de WhatsApp (Gemini)',
                 message: 'El bot de WhatsApp intentó procesar un mensaje pero la solicitud fue rechazada por falta de créditos (Error 429: RESOURCE_EXHAUSTED).\n\nPor favor, recargá saldo en tu cuenta de Google Cloud / AI Studio para que el bot y el sistema vuelvan a funcionar.\n\nLink: https://aistudio.google.com/app/billing'
             }).catch(e => console.error('Error enviando alerta de email:', e.message));
+        } else {
+            // Cualquier otra falla (timeout de LLM, red, tool caída, etc.) se trata como
+            // transitoria: silencio hacia el cliente, el bot queda activo y reintenta en el
+            // próximo mensaje. Se apaga y alerta solo si falla varios turnos seguidos.
+            await handleTransientBotFailure(chat, waId, profileName, realPhone, err.message || 'Error desconocido');
         }
     }
 }

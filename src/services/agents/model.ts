@@ -3,7 +3,14 @@ import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
 
 import { retryWithBackoff } from "@/lib/retry-utils";
 
-let globalUseFallback = false;
+// Cooldown de Vertex: tras una falla se usa Gemini directo, pero se vuelve a
+// intentar Vertex pasado el cooldown (antes la degradación era permanente hasta reiniciar).
+const VERTEX_COOLDOWN_MS = 10 * 60 * 1000;
+let vertexFailedAt: number | null = null;
+
+function isVertexInCooldown(): boolean {
+  return vertexFailedAt !== null && Date.now() - vertexFailedAt < VERTEX_COOLDOWN_MS;
+}
 
 class FallbackModel {
   private vertexModel: ChatVertexAI;
@@ -25,7 +32,7 @@ class FallbackModel {
   }
 
   async invoke(messages: any, options?: any): Promise<any> {
-    if (globalUseFallback) {
+    if (isVertexInCooldown()) {
       return retryWithBackoff(
         () => this.geminiModel.invoke(messages, options),
         { label: 'Gemini (Fallback) Invoke' }
@@ -33,17 +40,19 @@ class FallbackModel {
     }
 
     try {
-      // Retry VertexAI up to 2 times for transient network issues before falling back permanently
-      return await retryWithBackoff(
+      // Retry VertexAI up to 2 times for transient network issues before entering cooldown
+      const result = await retryWithBackoff(
         () => this.vertexModel.invoke(messages, options),
         { maxRetries: 2, delayMs: 500, label: 'VertexAI Invoke' }
       );
+      vertexFailedAt = null;
+      return result;
     } catch (error: any) {
       console.warn(
-        '[Agent Model] ChatVertexAI invocation failed after retries, falling back to ChatGoogleGenerativeAI permanently. Error:',
+        `[Agent Model] ChatVertexAI invocation failed after retries, falling back to ChatGoogleGenerativeAI for ${VERTEX_COOLDOWN_MS / 60000} min. Error:`,
         error.message
       );
-      globalUseFallback = true;
+      vertexFailedAt = Date.now();
       return retryWithBackoff(
         () => this.geminiModel.invoke(messages, options),
         { label: 'Gemini (Fallback) Invoke' }
