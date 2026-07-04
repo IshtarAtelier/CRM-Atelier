@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { getProductAttributes } from '@/utils/product-controllers';
+import { serverCache } from '@/lib/cache';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,47 +19,58 @@ export async function GET(request: NextRequest) {
         const sort = request.nextUrl.searchParams.get('sort') || 'recientes';
         const search = request.nextUrl.searchParams.get('search') || '';
 
-        const webProducts = await prisma.webProduct.findMany({
-            where: {
-                isActive: true,
-                product: {
-                    ...(isWholesale
-                        ? { publishToWholesale: true }
-                        : { publishToWeb: true }),
-                    category: { not: 'Cristal' }
-                }
-            },
-            include: {
-                product: true
-            },
-            orderBy: { createdAt: 'desc' }
-        });
+        // El catálogo mapeado solo depende del canal (web vs mayorista): la query a la
+        // base es idéntica para cualquier filtro/orden/página (todo eso se resuelve en
+        // JS más abajo). Lo cacheamos por canal 180s para no rebajar el catálogo entero
+        // de la DB en cada cambio de filtro del storefront. Staleza aceptable para una
+        // tienda; una edición de producto se refleja en ≤3 min.
+        const cacheKey = `store-products-mapped:${isWholesale ? 'wholesale' : 'web'}`;
+        let mappedProducts = serverCache.get<any[]>(cacheKey);
+        if (mappedProducts === null) {
+            const webProducts = await prisma.webProduct.findMany({
+                where: {
+                    isActive: true,
+                    product: {
+                        ...(isWholesale
+                            ? { publishToWholesale: true }
+                            : { publishToWeb: true }),
+                        category: { not: 'Cristal' }
+                    }
+                },
+                include: {
+                    product: true
+                },
+                orderBy: { createdAt: 'desc' }
+            });
 
-        const mappedProducts = webProducts.map(wp => {
-            const modelCode = wp.product.model || wp.name || '';
-            const { shape: productShape, material: productMaterial } = getProductAttributes(modelCode, wp.product.seoTags);
-            
-            const isXl = ["9004M C3", "9004M C2", "TL3684 C4", "91501 C6"].some(code => modelCode.toUpperCase().includes(code)) ||
-                         ["dionisio", "poseidon", "selene-c4", "atelier-athena-3ytl", "poseidon-c3", "poseidon-c2"].includes(wp.slug);
-            
-            return {
-                id: wp.product.id,
-                brand: wp.product.brand || 'ATELIER',
-                model: wp.name || modelCode, // WebProduct name mapped to model (matches page.tsx)
-                modelCode: modelCode,
-                category: wp.category,
-                price: wp.product.price,
-                ...(isWholesale ? { wholesalePrice: wp.product.wholesalePrice } : {}),
-                stock: wp.product.stock,
-                slug: wp.slug,
-                imagenesCatalogo: wp.images.length > 0 ? wp.images : (wp.product.imagenesCatalogo || []),
-                shape: isXl ? "XL" : (productShape || "Otros"),
-                material: productMaterial || "Acetato",
-                gender: wp.product.gender || "Unisex"
-            };
-        });
+            mappedProducts = webProducts.map(wp => {
+                const modelCode = wp.product.model || wp.name || '';
+                const { shape: productShape, material: productMaterial } = getProductAttributes(modelCode, wp.product.seoTags);
 
-        let filtered = mappedProducts;
+                const isXl = ["9004M C3", "9004M C2", "TL3684 C4", "91501 C6"].some(code => modelCode.toUpperCase().includes(code)) ||
+                             ["dionisio", "poseidon", "selene-c4", "atelier-athena-3ytl", "poseidon-c3", "poseidon-c2"].includes(wp.slug);
+
+                return {
+                    id: wp.product.id,
+                    brand: wp.product.brand || 'ATELIER',
+                    model: wp.name || modelCode, // WebProduct name mapped to model (matches page.tsx)
+                    modelCode: modelCode,
+                    category: wp.category,
+                    price: wp.product.price,
+                    ...(isWholesale ? { wholesalePrice: wp.product.wholesalePrice } : {}),
+                    stock: wp.product.stock,
+                    slug: wp.slug,
+                    imagenesCatalogo: wp.images.length > 0 ? wp.images : (wp.product.imagenesCatalogo || []),
+                    shape: isXl ? "XL" : (productShape || "Otros"),
+                    material: productMaterial || "Acetato",
+                    gender: wp.product.gender || "Unisex"
+                };
+            });
+            serverCache.set(cacheKey, mappedProducts, 180);
+        }
+
+        // Copia para no mutar el array cacheado con el .sort() de más abajo.
+        let filtered = [...mappedProducts];
 
         // 1) Filtrado por Categoría
         if (category && category !== 'Todo') {
