@@ -19,7 +19,10 @@ export function WhatsAppBadge() {
         };
 
         fetchCount();
-        const interval = setInterval(fetchCount, 15000);
+        // Respaldo lento: el socket.io de abajo ya refresca el contador al instante
+        // ante mensajes nuevos y cambios de lectura. Este intervalo solo cubre el caso
+        // de socket caído; a 15s era polling redundante que golpeaba la DB por pestaña.
+        const interval = setInterval(fetchCount, 120000);
 
         import('socket.io-client').then(({ io }) => {
             fetch('/api/whatsapp/status').then(r => r.json()).then(statusData => {

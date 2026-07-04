@@ -13,7 +13,10 @@ export async function GET() {
         }
 
         const orders = await ContactService.getOrdersWithBalance();
-        serverCache.set(cacheKey, orders, 60); // Cache for 60 seconds
+        // 120s > los 60s de polling: así la caché absorbe el request siguiente en vez
+        // de expirar justo cuando llega. Esta query es la más cara del panel (dump de
+        // clientes con venta + includes anidados), conviene correrla lo menos posible.
+        serverCache.set(cacheKey, orders, 120);
         return NextResponse.json(orders);
     } catch (error) {
         console.error('Error fetching orders with balance:', error);

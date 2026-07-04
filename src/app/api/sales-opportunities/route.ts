@@ -402,7 +402,9 @@ export async function GET() {
             }
         }
 
-        serverCache.set(cacheKey, uniqueOpportunities, 60); // Cache for 60 seconds
+        // 120s > los 60s de polling: la caché absorbe el request siguiente en vez de
+        // expirar justo al llegar. Son 4 queries relacionales pesadas sobre Client.
+        serverCache.set(cacheKey, uniqueOpportunities, 120);
 
         return NextResponse.json(uniqueOpportunities);
     } catch (error) {
