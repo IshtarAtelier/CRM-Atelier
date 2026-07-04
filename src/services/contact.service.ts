@@ -22,11 +22,21 @@ const LAB_STATUS_LABELS: Record<string, string> = {
 };
 
 // ── "Sin atender" ──────────────────────────────────────────────
-// Definición ÚNICA de contacto sin atender: no tiene ningún presupuesto (QUOTE)
-// ni venta (SALE) activos. Se usa igual en el filtro de la lista, el contador del
-// botón y el badge del sidebar, para que los tres números siempre coincidan.
+// Estados de "ya es cliente": CLIENT (cliente nuevo del CRM) y 'active' (clientes
+// importados del sistema anterior). Estos NUNCA son "sin atender": ya son clientes
+// atendidos, aunque no tengan presupuesto/venta cargados en este sistema.
+const CUSTOMER_STATUSES = ['CLIENT', 'active'];
+
+// Definición ÚNICA de contacto sin atender: es un lead (no un cliente ya existente)
+// que no tiene ningún presupuesto (QUOTE) ni venta (SALE) activos. Se usa igual en el
+// filtro de la lista, el contador del botón y el badge del sidebar, para que los tres
+// números siempre coincidan.
 const UNATTENDED_ORDER_FILTER = {
     none: { orderType: { in: ['QUOTE', 'SALE'] }, isDeleted: false },
+};
+const UNATTENDED_WHERE = {
+    status: { notIn: CUSTOMER_STATUSES },
+    orders: UNATTENDED_ORDER_FILTER,
 };
 
 export function normalizeArgentinePhone(phone: string | null | undefined): string {
@@ -138,7 +148,7 @@ export const ContactService = {
             // Sin atender: sin presupuesto ni venta. Se combina vía AND para no pisar
             // otros filtros relacionales (ej. tabs CONFIRMED/CLIENT que usan `orders`).
             if (unattended) {
-                where.AND = [...(where.AND || []), { orders: UNATTENDED_ORDER_FILTER }];
+                where.AND = [...(where.AND || []), UNATTENDED_WHERE];
             }
             if (status && status !== 'ALL') {
                 if (status === 'CLIENT') {
@@ -269,7 +279,7 @@ export const ContactService = {
     // Fuente única para el contador del filtro y el badge del sidebar.
     async getUnattendedCount() {
         return prisma.client.count({
-            where: { isDeleted: false, orders: UNATTENDED_ORDER_FILTER },
+            where: { isDeleted: false, ...UNATTENDED_WHERE },
         });
     },
 

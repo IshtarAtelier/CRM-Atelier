@@ -25,10 +25,13 @@ export const ContactCard: React.FC<ContactCardProps> = ({
     onDeleteContact,
     onRegisterVisit
 }) => {
-    // Sin atender: contacto sin presupuesto armado y sin venta → requiere atención.
+    // Sin atender: lead sin presupuesto armado y sin venta → requiere atención.
+    // Los que ya son clientes (CLIENT nuevo del CRM o 'active' importado del sistema
+    // anterior) nunca se marcan: ya son clientes atendidos aunque no tengan órdenes acá.
     // Se gradúa por antigüedad para no llenar de rojo lo recién ingresado:
     //   < 48h → pendiente (ámbar, sin parpadeo) · ≥ 48h → urgente (rojo, parpadea)
-    const needsAttention = !contact.hasQuote && !contact.hasSales;
+    const isCustomer = contact.status === 'CLIENT' || contact.status === 'active';
+    const needsAttention = !isCustomer && !contact.hasQuote && !contact.hasSales;
     const attentionDays = needsAttention
         ? Math.floor((Date.now() - new Date(contact.createdAt).getTime()) / 86_400_000)
         : 0;
