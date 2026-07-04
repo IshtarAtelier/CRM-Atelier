@@ -347,6 +347,28 @@ export async function POST(req: Request) {
       throw new Error("No se pudo obtener o crear el cliente.");
     }
 
+    // GUARD ANTI DOBLE COBRO: si este mismo cliente ya generó una orden web por el
+    // mismo total en los últimos 2 minutos (doble click / reintento), NO crear otra
+    // orden ni volver a cobrar la tarjeta.
+    const expectedOrderTotal = Math.max(0, (customer.paymentMethod === 'TRANSFER' ? finalItemsTotal * transferMultiplier : finalItemsTotal));
+    const duplicateWindow = new Date(Date.now() - 2 * 60 * 1000);
+    const duplicateOrder = await prisma.order.findFirst({
+      where: {
+        clientId: client.id,
+        isDeleted: false,
+        createdAt: { gte: duplicateWindow },
+        status: { in: ['WEB_PENDING', 'PAID', 'WEB_PAID'] },
+        total: { gte: expectedOrderTotal - 1, lte: expectedOrderTotal + 1 }
+      },
+      select: { id: true, status: true, paid: true }
+    });
+    if (duplicateOrder) {
+      console.warn(`[PAYWAY CHECKOUT] DUPLICADO BLOQUEADO: cliente ${client.id} ya tiene la orden ${duplicateOrder.id} (status ${duplicateOrder.status}) por el mismo total hace <2min.`);
+      return NextResponse.json({
+        error: "Tu pedido ya fue procesado hace un momento. No volvimos a cobrarte. Si no recibís el email de confirmación en unos minutos, escribinos por WhatsApp."
+      }, { status: 409 });
+    }
+
     // 2. Encontrar usuario de sistema (o el primer admin disponible) para asignar la venta
     let systemUser = await prisma.user.findFirst();
     if (customer.paymentMethod.includes('MAYORISTA')) {

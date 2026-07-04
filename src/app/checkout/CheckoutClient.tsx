@@ -45,6 +45,7 @@ export function CheckoutClient({
   })();
 
   const initiatedRef = useRef(false);
+  const payLockRef = useRef(false);
 
   useEffect(() => {
     if (mounted && items.length > 0 && !initiatedRef.current) {
@@ -279,8 +280,14 @@ export function CheckoutClient({
 
   const handlePaywaySubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    // Candado anti doble-envío: bloquea reintentos instantáneos aunque React
+    // todavía no haya re-renderizado el botón deshabilitado.
+    if (payLockRef.current || isProcessing) return;
+    payLockRef.current = true;
+    // Cooldown de 5s: incluso tras un error, evita ametrallar el botón y duplicar cobros
+    setTimeout(() => { payLockRef.current = false; }, 5000);
     setIsProcessing(true);
-    
+
     try {
       if (formData.paymentMethod === 'TRANSFER' || formData.paymentMethod === 'TRANSFER_MAYORISTA' || formData.paymentMethod === 'ACORDAR_MAYORISTA') {
         const res = await fetch("/api/checkout/payway", {
