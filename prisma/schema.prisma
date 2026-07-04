@@ -287,6 +287,10 @@ model Order {
 
   @@index([clientId])
   @@index([orderType, isDeleted])
+  // Cubre los anti-joins EXISTS/NOT EXISTS de Client.orders { some/none }
+  // (contactos "sin atender", oportunidades de venta, saldos): filtra por cliente
+  // y tipo/borrado en un solo índice, sin recorrer todas las órdenes del cliente.
+  @@index([clientId, orderType, isDeleted])
   @@index([createdAt])
   @@index([userId])
   @@index([status])

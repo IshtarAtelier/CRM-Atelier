@@ -2267,8 +2267,11 @@ export const ContactService = {
             },
             include: {
                 orders: {
-                    where: { isDeleted: false },
-                    include: { 
+                    // Solo VENTAS: el cálculo de abajo procesa únicamente las órdenes
+                    // con orderType === 'SALE' e ignora los presupuestos. Traer los QUOTE
+                    // (con sus payments + items + product) era puro peso muerto.
+                    where: { isDeleted: false, orderType: 'SALE' },
+                    include: {
                         payments: true,
                         items: { include: { product: true } }
                     }
