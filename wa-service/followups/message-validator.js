@@ -100,6 +100,29 @@ function validateMessage(text) {
 }
 
 /**
+ * Verifica que el mensaje sea un seguimiento de VENTAS: debe hacer referencia
+ * concreta a la compra pendiente (producto, presupuesto, cuotas, etc.).
+ * Un saludo genérico sin contenido comercial se rechaza.
+ * @param {string} text - Texto del mensaje
+ * @returns {{ valid: boolean, reason?: string }}
+ */
+const SALES_CONTENT_KEYWORDS = [
+    'anteoj', 'lente', 'presupuesto', 'cotiza', 'armaz', 'cristal', 'marco',
+    'cuota', 'señ', 'sena', 'descuento', 'cupón', 'cupon', 'multifocal',
+    'monofocal', 'bifocal', 'gafa', 'receta', 'precio', 'valor', 'promo',
+    'compra', 'pedido', 'probarte', 'probar', 'recet'
+];
+
+function validateSalesContent(text) {
+    const lower = (text || '').toLowerCase();
+    const hasSalesContent = SALES_CONTENT_KEYWORDS.some(kw => lower.includes(kw));
+    if (!hasSalesContent) {
+        return { valid: false, reason: 'Sin contenido de venta (saludo genérico): no menciona el presupuesto, producto ni ninguna referencia comercial' };
+    }
+    return { valid: true };
+}
+
+/**
  * Verifica que el nombre del cliente no aparezca más de 1 vez en el mensaje.
  * @param {string} text - Texto del mensaje
  * @param {string} clientName - Nombre completo del cliente
@@ -149,5 +172,6 @@ function sanitizeMessage(text) {
 module.exports = {
     validateMessage,
     validateNameFrequency,
+    validateSalesContent,
     sanitizeMessage,
 };

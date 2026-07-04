@@ -25,6 +25,7 @@ const { transcribeAudio } = require('./transcriber');
 const { checkAndSendSalesFollowUps } = require('./sales-followups');
 const { checkAndSendInactivityFollowUps } = require('./cron/inactivity-followups');
 const { TAGS_SIN_BOT, getFileExtension, getAdminWaId } = require('./utils');
+const { isMetaAutoReplyText } = require('./shared/meta-auto-patterns');
 
 const configPath = path.join(__dirname, 'agent_config.json');
 
@@ -134,18 +135,9 @@ const handleMessageCreate = async (msg) => {
         let isMetaAutoReply = false;
 
         // A. Detección por patrones de texto conocidos de auto-respuestas
-        if (msg.body) {
-            const metaAutoReplyPatterns = [
-                /[¡!]?hola\b.*c[oó]mo podemos ayudarte/i,
-                /bienvenid[oa]\s*(a\s*)?atelier/i,
-                /gracias por (contactar|escribir|comunicar|tu mensaje)/i,
-                /te (responderemos|contestaremos|atenderemos) (a la brevedad|pronto|en breve)/i,
-                /en breve (te responder|un asesor)/i,
-            ];
-            if (metaAutoReplyPatterns.some(p => p.test(msg.body))) {
-                isMetaAutoReply = true;
-                console.log(`  🤖 [Meta Auto-Reply] Detectado por patrón de texto: "${msg.body.substring(0, 80)}". Ignorando.`);
-            }
+        if (msg.body && isMetaAutoReplyText(msg.body)) {
+            isMetaAutoReply = true;
+            console.log(`  🤖 [Meta Auto-Reply] Detectado por patrón de texto: "${msg.body.substring(0, 80)}". Ignorando.`);
         }
 
         // B. Detección por proximidad temporal: si el chat se creó hace < 15 segundos,
@@ -186,6 +178,36 @@ const handleMessageCreate = async (msg) => {
             if (chat) {
                 if (chat.botEnabled && !isBotReplying && !isMetaAutoReply) {
                     await disableBotForChatById(chat.id, 'Intervención humana (mensaje saliente)');
+                    // Persistir la marca de apagado para que el Auto-Resume de 24hs NO reactive
+                    // el bot en una charla que tomó un humano. Se usa el mismo label exacto que
+                    // el apagado manual del CRM, así la reactivación manual lo limpia.
+                    // EXCEPCIÓN: si este saliente llegó a segundos del último mensaje del cliente
+                    // (timing típico de una auto-respuesta de Meta no reconocida), NO se marca:
+                    // el apagado queda recuperable por Auto-Resume aunque los patrones fallen.
+                    try {
+                        const lastInboundMsg = await prisma.whatsAppMessage.findFirst({
+                            where: { chatId: chat.id, direction: 'INBOUND' },
+                            orderBy: { createdAt: 'desc' }
+                        });
+                        const secsSinceInbound = lastInboundMsg
+                            ? (Date.now() - new Date(lastInboundMsg.createdAt).getTime()) / 1000
+                            : Infinity;
+
+                        if (secsSinceInbound > 120) {
+                            const currentLabels = [...(chat.chatLabels || [])];
+                            if (!currentLabels.includes('[SISTEMA - BOT APAGADO]')) {
+                                currentLabels.push('[SISTEMA - BOT APAGADO]');
+                                await prisma.whatsAppChat.update({
+                                    where: { id: chat.id },
+                                    data: { chatLabels: currentLabels }
+                                });
+                            }
+                        } else {
+                            console.log(`  ⏱️ Apagado por saliente a ${Math.round(secsSinceInbound)}s del inbound (posible auto-respuesta no reconocida). Sin marca permanente: recuperable por Auto-Resume.`);
+                        }
+                    } catch (labelErr) {
+                        console.error('Error persistiendo label de apagado por intervención humana:', labelErr.message);
+                    }
                 }
 
                 // Actualizar timestamp de actividad y desarchivar chat por mensaje saliente
@@ -257,13 +279,13 @@ const handleMessageCreate = async (msg) => {
                     }
                 }
                 
-                let senderNameVal = null;
+                let senderNameVal;
                 if (isMetaAutoReply) {
                     senderNameVal = 'Meta (Auto-Reply)';
-                } else if (!isBotReplying && !isSystemReply) {
-                    senderNameVal = 'Humano';
-                } else if (isSystemReply) {
+                } else if (isBotReplying) {
                     senderNameVal = 'Bot';
+                } else {
+                    senderNameVal = 'Humano';
                 }
 
                 const createData = {
@@ -345,6 +367,53 @@ const disableBotForChatById = (chatId, reason) => botService.disableBotForChatBy
  */
 const detectAndCreateVisitTask = (clientId, text) => botService.detectAndCreateVisitTask(clientId, text);
 
+
+// ── Manejo de fallas transitorias del bot ──
+// El cliente NUNCA recibe información de errores internos. Ante una falla el turno
+// se aborta en silencio y el bot queda activo para reintentar cuando el cliente
+// vuelva a escribir. Solo tras varios turnos consecutivos fallidos se apaga el bot
+// y se alerta al administrador (falla persistente real, no un microcorte).
+const MAX_CONSECUTIVE_FAILED_TURNS = 3;
+
+async function handleTransientBotFailure(chat, waId, profileName, realPhone, reasonText) {
+    const failures = (chatErrorCounts.get(chat.id) || 0) + 1;
+    chatErrorCounts.set(chat.id, failures);
+
+    if (failures < MAX_CONSECUTIVE_FAILED_TURNS) {
+        console.warn(`  🔇 Turno abortado en silencio (${failures}/${MAX_CONSECUTIVE_FAILED_TURNS}) para ${profileName || waId}. Motivo: ${reasonText}`);
+        return false; // El bot sigue activo, sin mensajes al cliente ni alertas
+    }
+
+    chatErrorCounts.delete(chat.id);
+    console.error(`  🛑 ${MAX_CONSECUTIVE_FAILED_TURNS} turnos consecutivos fallidos para ${profileName || waId}. Apagando bot y alertando al administrador.`);
+
+    try {
+        await disableBotForChatById(chat.id, `Errores técnicos persistentes (${(reasonText || '').substring(0, 50)})`);
+        broadcastChatUpdate(chat.id);
+    } catch (e) {
+        console.error('Error al apagar bot tras fallas persistentes:', e.message);
+    }
+
+    if (global.io) {
+        global.io.emit('bot_error', {
+            chatId: chat.id,
+            name: profileName || chat.profileName || 'Cliente',
+            phone: realPhone || chat.realPhone || waId.split('@')[0],
+            error: `Desactivado por errores persistentes: ${(reasonText || '').substring(0, 80)}`
+        });
+    }
+
+    try {
+        const adminNotifyPhone = getAdminWaId();
+        const alertMsg = `🚨 *ERROR TÉCNICO EN BOT* 🚨\nConversación con bot apagado: ${profileName || 'Cliente'} (${realPhone || waId.split('@')[0]})\nMotivo: Falló en ${MAX_CONSECUTIVE_FAILED_TURNS} turnos seguidos (falla persistente). El cliente NO recibió ningún mensaje de error.\nDetalle: ${(reasonText || '').substring(0, 150)}`;
+        await sendMessage(adminNotifyPhone, alertMsg, null, { isProactive: false, isAutomated: false });
+        console.log(`  🔔 Alerta de falla persistente enviada al administrador`);
+    } catch (alertErr) {
+        console.error('Error enviando alerta al administrador:', alertErr.message);
+    }
+
+    return true; // Bot apagado
+}
 
 // ── Bot Orchestrator (Extraído para Modularidad) ─
 async function processBotTurn(chat, waId, profileName, realPhone) {
@@ -519,25 +588,11 @@ async function processBotTurn(chat, waId, profileName, realPhone) {
         }
 
         if (hasApiError) {
-            console.log(`  ⏹️ Error de API detectado en ToolMessage (${chat.id}). Cancelando respuesta.`);
-            try {
-                // Notificar exclusivamente al admin especificado por el usuario
-                const adminNotifyPhone = getAdminWaId();
-                const alertMsg = `🚨 *ERROR TÉCNICO EN BOT* 🚨\nConversación con bot apagado: ${profileName || 'Cliente'} (${realPhone || waId.split('@')[0]})\nMotivo: El bot sufrió un error y se apagó en silencio.\nDetalle: ${apiErrorMessage}`;
-                await sendMessage(adminNotifyPhone, alertMsg, null, { isProactive: false, isAutomated: false });
-                console.log(`  🔔 Alerta de error enviada al administrador`);
-            } catch (alertErr) {
-                console.error('Error enviando alerta de error de API al administrador:', alertErr.message);
-            }
-            
-            // Apagar el bot EN ABSOLUTO SILENCIO
-            try {
-                await disableBotForChatById(chat.id, 'Error técnico (Apagado silencioso)');
-                broadcastChatUpdate(chat.id);
-            } catch (e) {
-                console.error('Error al apagar bot en silencio:', e.message);
-            }
-            
+            // Error transitorio de API: silencio absoluto hacia el cliente, el bot queda
+            // activo para reintentar en el próximo mensaje. Solo se apaga y alerta si la
+            // falla persiste varios turnos seguidos.
+            console.log(`  ⏹️ Error de API detectado en ToolMessage (${chat.id}). Abortando turno en silencio.`);
+            await handleTransientBotFailure(chat, waId, profileName, realPhone, `Error de API en herramienta: ${apiErrorMessage.substring(0, 120)}`);
             return; // RETORNAR EN ABSOLUTO SILENCIO SIN ENVIAR NADA AL CLIENTE
         }
 
@@ -557,9 +612,16 @@ async function processBotTurn(chat, waId, profileName, realPhone) {
             const guardrail = runOutputGuardrail(responseText);
             if (!guardrail.safe) {
                 console.warn(`  ⚠️ [Output Guardrail] Respuesta bloqueada para ${profileName} por: ${guardrail.reason}`);
-                
+
+                // Narración de error interno: se bloquea el mensaje pero NO se apaga el bot.
+                // Es una falla transitoria — silencio este turno y reintento en el próximo mensaje.
+                if (guardrail.reason === 'Narración de Error Interno') {
+                    await handleTransientBotFailure(chat, waId, profileName, realPhone, `Guardrail bloqueó narración de error interno: "${responseText.substring(0, 100)}"`);
+                    return;
+                }
+
                 const isIdentityReveal = guardrail.reason.includes('Revelación de Identidad');
-                
+
                 // 1. Apagar bot para este chat
                 await disableBotForChatById(chat.id, `Brecha de seguridad (Guardrail: ${guardrail.reason})`);
                 
@@ -793,35 +855,8 @@ async function processBotTurn(chat, waId, profileName, realPhone) {
         botReplyingTo.delete(waId); // B1: limpiar tracking en caso de error
         console.error('  ❌ Error bot:', err.message);
 
-        // Apagar el bot inmediatamente ante cualquier falla
-        try {
-            await disableBotForChatById(chat.id, `Error técnico (${err.message?.substring(0, 50)})`);
-            broadcastChatUpdate(chat.id);
-        } catch (e) {
-            console.error('Error al apagar bot tras falla general:', e.message);
-        }
-
-        // Emitir notificación por WebSocket al CRM
-        if (global.io) {
-            global.io.emit('bot_error', {
-                chatId: chat.id,
-                name: profileName || chat.profileName || 'Cliente',
-                phone: realPhone || chat.realPhone || waId.split('@')[0],
-                error: `Desactivado por error: ${err.message?.substring(0, 80)}`
-            });
-        }
-
-        // Notificar al administrador especificado (3541215971)
-        try {
-            const adminNotifyPhone = getAdminWaId();
-            const alertMsg = `🚨 *ERROR TÉCNICO EN BOT* 🚨\nConversación con bot apagado: ${profileName || 'Cliente'} (${realPhone || waId.split('@')[0]})\nMotivo: ${err.message?.substring(0, 100)}`;
-            await sendMessage(adminNotifyPhone, alertMsg, null, { isProactive: false, isAutomated: false });
-            console.log(`  🔔 Alerta de falla enviada al administrador`);
-        } catch (alertErr) {
-            console.error('Error enviando alerta de falla al administrador:', alertErr.message);
-        }
-
         if (err.message && (err.message.includes('429') || err.message.includes('RESOURCE_EXHAUSTED'))) {
+            // Cuota agotada: no es transitorio, apagar de inmediato y alertar
             // 1. Apagar bot en la DB para este chat
             chatErrorCounts.delete(chat.id);
             await disableBotForChatById(chat.id, 'Cuota agotada de API (Error 429)');
@@ -843,6 +878,11 @@ async function processBotTurn(chat, waId, profileName, realPhone) {
                 subject: '🚨 ALERTA: Crédito Agotado en Bot de WhatsApp (Gemini)',
                 message: 'El bot de WhatsApp intentó procesar un mensaje pero la solicitud fue rechazada por falta de créditos (Error 429: RESOURCE_EXHAUSTED).\n\nPor favor, recargá saldo en tu cuenta de Google Cloud / AI Studio para que el bot y el sistema vuelvan a funcionar.\n\nLink: https://aistudio.google.com/app/billing'
             }).catch(e => console.error('Error enviando alerta de email:', e.message));
+        } else {
+            // Cualquier otra falla (timeout de LLM, red, tool caída, etc.) se trata como
+            // transitoria: silencio hacia el cliente, el bot queda activo y reintenta en el
+            // próximo mensaje. Se apaga y alerta solo si falla varios turnos seguidos.
+            await handleTransientBotFailure(chat, waId, profileName, realPhone, err.message || 'Error desconocido');
         }
     }
 }
@@ -995,16 +1035,11 @@ const handleMessage = async (msg) => {
                 // Si en el historial reciente de WhatsApp vemos mensajes enviados por nosotros (fromMe)
                 // significa que este chat ya estaba siendo atendido por un humano previamente.
                 // EXCLUIR auto-respuestas de Meta/WA Business para no dar falsos positivos.
-                const metaAutoPatterns = [
-                    /[¡!]?hola\b.*c[oó]mo podemos ayudarte/i,
-                    /bienvenid[oa]\s*(a\s*)?atelier/i,
-                    /gracias por (contactar|escribir|comunicar|tu mensaje)/i,
-                ];
                 const hasHumanOutbound = prevMsgs.some(m => {
                     if (!m.fromMe) return false;
                     const body = m.body || '';
                     // Si el mensaje encaja con auto-reply de Meta, NO es humano
-                    if (metaAutoPatterns.some(p => p.test(body))) return false;
+                    if (isMetaAutoReplyText(body)) return false;
                     // Si no tiene body (media de bienvenida automática) y es el primer outbound, ignorar
                     if (!body && prevMsgs.filter(pm => pm.fromMe).length <= 1) return false;
                     return true;
@@ -1085,6 +1120,19 @@ const handleMessage = async (msg) => {
             }
         }
 
+        // ── Garantía de respuesta en sesiones de Meta Ads ──
+        // Si el bot quedó apagado durante la sesión del anuncio (ej: la auto-respuesta
+        // de Meta se clasificó mal como intervención humana), el próximo mensaje del
+        // cliente lo reactiva. Un lead que pagamos por traer JAMÁS queda sin respuesta.
+        if (isMetaAdsSession && !isMetaAdsMessage && chat && !chat.botEnabled) {
+            const cleanedLabels = (chat.chatLabels || []).filter(l => l !== '[SISTEMA - BOT APAGADO]');
+            chat = await prisma.whatsAppChat.update({
+                where: { id: chat.id },
+                data: { botEnabled: true, chatLabels: cleanedLabels }
+            });
+            console.log(`  🎯 [Meta Ads Session] Bot reactivado para ${profileName || waId} (sesión de anuncio activa, el lead no queda sin respuesta).`);
+        }
+
         // ── Auto-exclusión ante respuestas negativas / "no interesado" ──
         // IMPORTANTE: Saltear esta comprobación si es un mensaje de Meta Ads, porque
         // el tag [meta...] ya fue limpiado del body pero el contenido original de la
@@ -1092,17 +1140,24 @@ const handleMessage = async (msg) => {
         // que son falsos positivos (el cliente NO está rechazando, está llegando de un anuncio).
         if (!isMetaAdsMessage) {
         const cleanBody = (body || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, ""); // remover tildes
+        // Solo frases inequ\u00edvocas de rechazo. Palabras sueltas como "baja", "quitar" o
+        // "eliminar" daban falsos positivos con frases de venta ("graduaci\u00f3n baja",
+        // "quiero eliminar el reflejo", "me quiero quitar los lentes de contacto").
         const negativePatterns = [
             /\bno\s+me\s+interesa\b/i,
             /\bno\s+molestar\b/i,
             /\bno\s+quiero\b/i,
             /\bno\s+escribas\b/i,
             /\bno\s+molesten\b/i,
-            /\bquitar\b/i,
-            /\bbaja\b/i,
-            /\beliminar\b/i,
+            /\bquitame\s+de\b/i,
+            /\bquitar\s+de\s+(la\s+)?lista\b/i,
+            /\b(dar|darme|dame|den|denme)\s+de\s+baja\b/i,
+            /\bquiero\s+la\s+baja\b/i,
+            /\beliminar\s+mis\s+datos\b/i,
+            /\beliminame\b/i,
+            /\bborrame\b/i,
             /\bstop\b/i,
-            /\bno\s+mas\b/i
+            /\bno\s+mas\s+mensajes\b/i
         ];
         const esNegativo = negativePatterns.some(pattern => pattern.test(cleanBody));
         
@@ -1453,10 +1508,13 @@ const handleMessage = async (msg) => {
             // C. Expresiones hostiles de reclamo grave
             if (messageType === 'TEXT' && body) {
                 const normalizedBody = body.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                // "devolucion" sola no es hostil ("¿hacen devoluciones?" es consulta pre-compra);
+                // solo cuenta con contexto de reclamo de dinero.
                 const hostileKeywords = [
-                    'defensa al consumidor', 'coprec', 'denuncia', 'denunciar', 'estafa', 
-                    'estafadores', 'sinverguenza', 'sinvergüenza', 'quiero mi plata', 
-                    'devolucion', 'devolución', 'me mintieron', 'una porqueria', 'una porquería',
+                    'defensa al consumidor', 'coprec', 'denuncia', 'denunciar', 'estafa',
+                    'estafadores', 'sinverguenza', 'sinvergüenza', 'quiero mi plata',
+                    'me devuelvan', 'devolucion de la plata', 'devolucion del dinero', 'exijo la devolucion',
+                    'me mintieron', 'una porqueria', 'una porquería',
                     'abogado', 'carta documento'
                 ];
                 const matchesHostile = hostileKeywords.some(keyword => normalizedBody.includes(keyword));
@@ -1479,7 +1537,7 @@ const handleMessage = async (msg) => {
                         dueDate: new Date()
                     }
                 }).catch(e => console.error("Error creando tarea de filtro de seguridad:", e.message));
-                
+
                 await prisma.interaction.create({
                     data: {
                         clientId: chat.clientId,
@@ -1487,6 +1545,17 @@ const handleMessage = async (msg) => {
                         content: `⚠️ [Alerta Seguridad] Bot desactivado automáticamente. Razón: ${filterReason}`
                     }
                 }).catch(e => console.error('Error guardando nota:', e.message));
+            } else {
+                // Lead sin registrar: no hay ficha donde crear la tarea, avisar al
+                // administrador para que la conversación no quede muda sin que nadie se entere
+                try {
+                    const adminNotifyPhone = getAdminWaId();
+                    const alertMsg = `⚠️ *ATENCIÓN HUMANA REQUERIDA* ⚠️\nChat sin registrar necesita atención: ${profileName || 'Cliente'} (${realPhone || waId.split('@')[0]})\nMotivo: ${filterReason}\nEl bot quedó apagado para ese chat.`;
+                    await sendMessage(adminNotifyPhone, alertMsg, null, { isProactive: false, isAutomated: false });
+                    console.log(`  🔔 Alerta de filtro de seguridad (lead sin registrar) enviada al administrador`);
+                } catch (alertErr) {
+                    console.error('Error enviando alerta de filtro de seguridad:', alertErr.message);
+                }
             }
 
             broadcastChatUpdate(chat.id);

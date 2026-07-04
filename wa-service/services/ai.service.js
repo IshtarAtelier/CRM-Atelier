@@ -37,10 +37,32 @@ function runOutputGuardrail(text) {
     const lowerText = text.toLowerCase();
     const revealsBot = botRevealKeywords.some(keyword => lowerText.includes(keyword));
 
-    if (hasCuid || hasJson || revealsBot) {
+    // 4. Detectar narración de errores/procesos internos: el cliente NUNCA debe recibir
+    // información de fallas técnicas. Si el modelo intenta contarlas, se bloquea el envío
+    // (el turno se aborta en silencio y el bot reintenta en el próximo mensaje).
+    const internalErrorKeywords = [
+        'error técnico', 'error tecnico', 'problema técnico', 'problema tecnico',
+        'inconveniente técnico', 'inconveniente tecnico', 'falla técnica', 'falla tecnica',
+        'error en el sistema', 'error del sistema', 'problema con el sistema',
+        'problema en el sistema', 'se cayó el sistema', 'se cayo el sistema',
+        'error de red', 'problema de red', 'fallo de conexión', 'fallo de conexion',
+        'problema de conexión', 'problema de conexion', 'error de conexión', 'error de conexion',
+        'no pude acceder al sistema', 'no puedo acceder al sistema',
+        'estamos con problemas técnicos', 'estamos con problemas tecnicos',
+        'intermitencia en el sistema', 'error interno'
+    ];
+    const narratesInternalError = internalErrorKeywords.some(keyword => lowerText.includes(keyword));
+
+    if (hasCuid || hasJson || revealsBot || narratesInternalError) {
         return {
             safe: false,
-            reason: hasCuid ? 'ID de Base de Datos Detectado' : (hasJson ? 'Estructura JSON Detectada' : 'Revelación de Identidad de Bot o Desactivación Manual'),
+            reason: hasCuid
+                ? 'ID de Base de Datos Detectado'
+                : (hasJson
+                    ? 'Estructura JSON Detectada'
+                    : (revealsBot
+                        ? 'Revelación de Identidad de Bot o Desactivación Manual'
+                        : 'Narración de Error Interno')),
             matched: hasCuid ? text.match(cuidRegex) : null
         };
     }

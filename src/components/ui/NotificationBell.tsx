@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { toast } from "sonner";
-import { Bell, Check, X, Trash2, FileText, Loader2, ExternalLink, AlertTriangle, Factory } from "lucide-react";
+import { Bell, Check, X, Trash2, FileText, Loader2, ExternalLink, AlertTriangle, Factory, ShoppingCart } from "lucide-react";
 
 interface Notification {
     id: string;
@@ -135,6 +135,7 @@ export function NotificationBell() {
         if (type === "INVOICE_REQUEST") return <FileText className="w-4 h-4 text-indigo-500" />;
         if (type === "RECEIPT_ERROR") return <AlertTriangle className="w-4 h-4 text-orange-500" />;
         if (type === "LAB_READY") return <Factory className="w-4 h-4 text-emerald-500" />;
+        if (type === "WEB_SALE") return <ShoppingCart className="w-4 h-4 text-emerald-600" />;
         return <Bell className="w-4 h-4" />;
     };
 
@@ -143,6 +144,7 @@ export function NotificationBell() {
         if (type === "INVOICE_REQUEST") return "Solicitud de Factura";
         if (type === "RECEIPT_ERROR") return "Error en Comprobante";
         if (type === "LAB_READY") return "Pedido Fabricado";
+        if (type === "WEB_SALE") return "Nueva Venta Web";
         return "Notificación";
     };
 

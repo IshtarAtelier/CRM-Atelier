@@ -268,10 +268,19 @@ async function getPriceList({ category, search, botRecommended }) {
         return '[INSTRUCCIÓN INTERNA] No se encontraron productos para esta búsqueda. Intentá con otra categoría o sin filtro de búsqueda. NO le digas al cliente que no hay productos.';
     }
 
+    // Para no abrumar al cliente se envían como máximo 3 opciones,
+    // priorizando los productos sugeridos por la óptica (botRecommended)
+    const MAX_QUOTE_OPTIONS = 3;
+    const prioritized = [...products].sort(
+        (a, b) => (b.botRecommended === true ? 1 : 0) - (a.botRecommended === true ? 1 : 0)
+    );
+    const selected = prioritized.slice(0, MAX_QUOTE_OPTIONS);
+    const omitted = prioritized.slice(MAX_QUOTE_OPTIONS);
+
     // Formatear cada producto con template fijo
     // El sistema de index.js splitea por \n\n para crear burbujas separadas
     // Cada producto completo = 1 burbuja de WhatsApp
-    const formatted = products.map((p, i) => {
+    const formatted = selected.map((p, i) => {
         const name = p.name || 'Producto';
         const cash = p.priceCash;
         const cashFormatted = cash.toLocaleString('es-AR');
@@ -292,120 +301,82 @@ async function getPriceList({ category, search, botRecommended }) {
         return line;
     }).join('\n\n');
 
+    // Si quedaron opciones afuera, avisar internamente al bot sin exponerlas al cliente
+    let omittedNote = '';
+    if (omitted.length > 0) {
+        const omittedNames = omitted.map(p => p.name).filter(Boolean).join(', ');
+        omittedNote = `\n\n[INSTRUCCIÓN INTERNA] Hay ${omitted.length} producto(s) más que coinciden y no se incluyeron para no abrumar al cliente: ${omittedNames}. Si el cliente pide más alternativas o alguno de estos en particular, volvé a consultar 'get_price_list' usando 'search' con ese nombre específico.`;
+    }
+
     // Devolver instrucción + texto pre-formateado para que el LLM lo use directamente
-    return `[INSTRUCCIÓN INTERNA] Abajo tenés los precios del sistema ya formateados. Envialos al cliente TAL CUAL están, separando cada opción con un doble salto de línea para que lleguen como burbujas separadas de WhatsApp. Podés agregar una introducción breve antes y una pregunta de cierre después, pero NO modifiques los precios, nombres ni el formato de las opciones.\n\n${formatted}`;
+    return `[INSTRUCCIÓN INTERNA] Abajo tenés los precios del sistema ya formateados. Envialos al cliente TAL CUAL están, separando cada opción con un doble salto de línea para que lleguen como burbujas separadas de WhatsApp. Podés agregar una introducción breve antes y una pregunta de cierre después, pero NO modifiques los precios, nombres ni el formato de las opciones.\n\n${formatted}${omittedNote}`;
 }
 
 /**
  * Tool: Check order status + balance calculation
  */
 async function getOrderStatus({ orderId, clientId }) {
-    // 1. Si no hay orderId válido pero sí hay clientId, buscar el pedido del cliente directamente en la base de datos
-    if ((!orderId || orderId === 'none' || orderId === 'null') && clientId) {
-        const { prisma } = require('./db');
-        const orders = await prisma.order.findMany({
-            where: {
-                clientId: clientId,
-                isDeleted: false,
-                orderType: 'SALE'
-            },
-            include: {
-                payments: true
-            },
-            orderBy: {
-                createdAt: 'desc'
-            }
-        });
+    // Los saldos se piden SIEMPRE al CRM, que los calcula con PricingService
+    // (markup, descuentos por pedido, equivalente de lista según método de pago).
+    // El bot no calcula nada: muestra exactamente lo que muestran los accesos
+    // de saldos del CRM, o no informa ningún monto.
+    const SILENT_FAIL_INSTRUCTION = "[INSTRUCCIÓN INTERNA] No se pudo obtener el saldo verificado del sistema. TERMINANTEMENTE PROHIBIDO informar montos, saldos o estados de pago al cliente (ni aproximados ni calculados por vos). Creá una tarea con 'create_task' (description: 'Cliente consulta saldo/estado de pedido - verificar en CRM y responder manualmente') y apagá el bot con 'cancel_bot' en silencio total, sin enviar ningún mensaje.";
 
-        if (orders.length === 0) {
-            // Buscar si tiene algún presupuesto (QUOTE)
-            const quotes = await prisma.order.findMany({
-                where: {
-                    clientId: clientId,
-                    isDeleted: false,
-                    orderType: 'QUOTE'
-                },
-                include: {
-                    payments: true
-                },
-                orderBy: {
-                    createdAt: 'desc'
-                }
-            });
+    const hasOrderId = orderId && orderId !== 'none' && orderId !== 'null';
+    const params = hasOrderId ? { orderId } : { clientId };
 
-            if (quotes.length === 0) {
-                return { found: false, error: "No se encontraron pedidos ni presupuestos registrados para este cliente." };
-            }
-
-            const quote = quotes[0];
-            const paid = (quote.payments || []).reduce((acc, p) => acc + (p.amount || 0), 0);
-            const total = quote.total || 0;
-            const balance = total - paid;
-
-            return {
-                found: true,
-                orderId: quote.id,
-                status: quote.status,
-                total,
-                paid,
-                balance,
-                updatedAt: quote.updatedAt,
-                isQuote: true
-            };
-        }
-
-        // Buscar si alguno tiene saldo pendiente
-        let selectedOrder = orders.find(o => {
-            const paid = (o.payments || []).reduce((acc, p) => acc + (p.amount || 0), 0);
-            return (o.total || 0) - paid > 0;
-        });
-
-        // Si todos están pagados, tomar el más reciente
-        if (!selectedOrder) {
-            selectedOrder = orders[0];
-        }
-
-        const paid = (selectedOrder.payments || []).reduce((acc, p) => acc + (p.amount || 0), 0);
-        const total = selectedOrder.total || 0;
-        const balance = total - paid;
-
-        return {
-            found: true,
-            orderId: selectedOrder.id,
-            status: selectedOrder.labStatus || selectedOrder.status,
-            total,
-            paid,
-            balance,
-            updatedAt: selectedOrder.updatedAt,
-            isQuote: false
-        };
+    if (!hasOrderId && (!clientId || clientId === 'none' || clientId === 'null')) {
+        return { found: false, error: SILENT_FAIL_INSTRUCTION };
     }
 
-    // 2. Comportamiento por defecto con orderId
-    const response = await requestWithRetry(() =>
-        apiClient.get(`${CRM_API_URL}/orders`, {
-            params: { orderId }
-        })
-    );
-    const orderResponse = response.data;
-    
+    let orderResponse;
+    try {
+        const response = await requestWithRetry(() =>
+            apiClient.get(`${CRM_API_URL}/orders`, { params })
+        );
+        orderResponse = response.data;
+    } catch (e) {
+        console.error('[getOrderStatus] Error consultando CRM:', e.message);
+        return { found: false, error: SILENT_FAIL_INSTRUCTION };
+    }
+
     if (!orderResponse || !orderResponse.found) {
-        return { found: false, error: "Pedido no encontrado" };
+        return { found: false, error: "No se encontraron pedidos ni presupuestos registrados para este cliente. NO inventes estados ni saldos. Si el cliente insiste en que tiene una compra, derivá a un humano con 'create_task' y 'cancel_bot' en silencio." };
     }
 
     const order = orderResponse.order;
-    const paid = (order.payments || []).reduce((acc, p) => acc + (p.amount || 0), 0);
-    const total = order.total || 0;
-    const balance = total - paid;
+    const fin = orderResponse.financials;
 
-    return { 
-        found: true, 
+    if (!fin) {
+        // Respuesta del CRM sin desglose financiero verificado: no informar montos
+        return { found: false, error: SILENT_FAIL_INSTRUCTION };
+    }
+
+    const fmt = (n) => `$${Math.round(n || 0).toLocaleString('es-AR')}`;
+    const status = order.labStatus || order.status;
+    const isQuote = order.orderType === 'QUOTE';
+
+    let text = `[INSTRUCCIÓN INTERNA] Datos EXACTOS y verificados del sistema para el ${isQuote ? 'presupuesto' : 'pedido'} N° ${order.id}. Usá ÚNICAMENTE estos montos, TAL CUAL están. PROHIBIDO calcular, redondear o aplicar descuentos por tu cuenta.\n`;
+    text += `\nEstado: ${status}`;
+    text += `\nPrecio de lista: ${fmt(fin.listPrice)}`;
+    text += `\nPagado hasta ahora: ${fmt(fin.paidReal)}`;
+
+    if (fin.hasBalance) {
+        text += `\n\nSALDO PENDIENTE SEGÚN FORMA DE PAGO (informar las tres opciones):`;
+        text += `\n• Efectivo en el local: ${fmt(fin.remainingCash)}`;
+        text += `\n• Transferencia: ${fmt(fin.remainingTransfer)}`;
+        text += `\n• Tarjeta: ${fmt(fin.remainingCard)} (3 cuotas sin interés de ${fmt(fin.remainingCard / 3)} o 6 cuotas sin interés de ${fmt(fin.remainingCard / 6)})`;
+    } else {
+        text += `\n\nSALDO PENDIENTE: Ninguno. El ${isQuote ? 'presupuesto' : 'pedido'} está completamente pagado (o con diferencia menor a $1.000). NO le reclames ningún pago al cliente.`;
+    }
+
+    return {
+        found: true,
         orderId: order.id,
-        status: order.labStatus || order.status,
-        total,
-        paid,
-        balance,
-        updatedAt: order.updatedAt
+        status,
+        isQuote,
+        updatedAt: order.updatedAt,
+        verifiedBalanceReport: text
     };
 }
 

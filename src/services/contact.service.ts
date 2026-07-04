@@ -7,6 +7,28 @@ import { sendEmail } from '@/lib/email';
 import { fetchWa, getAdminChatId } from '@/lib/wa-config';
 
 
+// Estados de laboratorio en los que el pedido ya está EN PROCESO de fabricación
+// (o más avanzado). A partir de "Procesado" la receta queda congelada: cambiarla
+// en el lugar alteraría lo que fábrica ya está produciendo. Solo un ADMIN puede
+// autorizar el cambio; de lo contrario hay que manejarlo como Post-Venta / Reproceso.
+// (Nota: 'SENT' = "Falta procesar" NO bloquea; todavía se puede corregir.)
+const LAB_PROCESSED_STATUSES = ['IN_PROGRESS', 'FINISHED', 'READY', 'DELIVERED'];
+const LAB_STATUS_LABELS: Record<string, string> = {
+    SENT: 'Falta procesar',
+    IN_PROGRESS: 'Procesado',
+    FINISHED: 'Finalizado',
+    READY: 'Listo para retirar',
+    DELIVERED: 'Entregado',
+};
+
+// ── "Sin atender" ──────────────────────────────────────────────
+// Definición ÚNICA de contacto sin atender: no tiene ningún presupuesto (QUOTE)
+// ni venta (SALE) activos. Se usa igual en el filtro de la lista, el contador del
+// botón y el badge del sidebar, para que los tres números siempre coincidan.
+const UNATTENDED_ORDER_FILTER = {
+    none: { orderType: { in: ['QUOTE', 'SALE'] }, isDeleted: false },
+};
+
 export function normalizeArgentinePhone(phone: string | null | undefined): string {
     if (!phone) return '';
     let base = phone.replace(/\D/g, '');
@@ -109,10 +131,15 @@ export interface ContactCreateData {
 }
 
 export const ContactService = {
-    async getAll(status?: string | null, search?: string | null, favoritesOnly?: boolean, interest?: string | null, location?: string | null) {
+    async getAll(status?: string | null, search?: string | null, favoritesOnly?: boolean, interest?: string | null, location?: string | null, unattended?: boolean) {
         try {
-            console.log('[ContactService] Fetching contacts:', { status, search, favoritesOnly, interest, location });
+            console.log('[ContactService] Fetching contacts:', { status, search, favoritesOnly, interest, location, unattended });
             const where: any = {};
+            // Sin atender: sin presupuesto ni venta. Se combina vía AND para no pisar
+            // otros filtros relacionales (ej. tabs CONFIRMED/CLIENT que usan `orders`).
+            if (unattended) {
+                where.AND = [...(where.AND || []), { orders: UNATTENDED_ORDER_FILTER }];
+            }
             if (status && status !== 'ALL') {
                 if (status === 'CLIENT') {
                     // VENTAS tab: show contacts that have at least one SALE order
@@ -224,8 +251,9 @@ export const ContactService = {
                 return { 
                     ...rest, 
                     status: item.status === 'NEW' ? 'CONTACT' : item.status,
-                    avgTicket: Math.round(avgTicket), 
+                    avgTicket: Math.round(avgTicket),
                     hasSales: saleOrders.length > 0,
+                    hasQuote: (item.orders || []).some((o: any) => o.orderType === 'QUOTE'),
                     hasActiveConfirmedQuote: (item.orders || []).some((o: any) => o.orderType === 'QUOTE' && o.status === 'CONFIRMED'),
                     hasVisitedStore: (interactions || []).length > 0,
                     hasPaidNotSent
@@ -235,6 +263,14 @@ export const ContactService = {
             console.error('[ContactService.getAll] Critical Error:', error);
             throw error; // Let the API route handle it
         }
+    },
+
+    // Cantidad global de contactos sin atender (sin presupuesto ni venta).
+    // Fuente única para el contador del filtro y el badge del sidebar.
+    async getUnattendedCount() {
+        return prisma.client.count({
+            where: { isDeleted: false, orders: UNATTENDED_ORDER_FILTER },
+        });
     },
 
     async create(data: ContactCreateData) {
@@ -1139,7 +1175,34 @@ export const ContactService = {
         });
     },
 
-    async updatePrescription(presId: string, data: any) {
+    async _assertPrescriptionEditable(presId: string, role?: string | null) {
+        // El ADMIN puede modificar la receta aunque el pedido esté procesado:
+        // su acción ES la autorización requerida.
+        if (role === 'ADMIN') return;
+
+        const lockedOrder = await prisma.order.findFirst({
+            where: {
+                prescriptionId: presId,
+                isDeleted: false,
+                labStatus: { in: LAB_PROCESSED_STATUSES },
+            },
+            select: { id: true, labStatus: true, labOrderNumber: true },
+            orderBy: { labSentAt: 'desc' },
+        });
+        if (lockedOrder) {
+            const label = LAB_STATUS_LABELS[lockedOrder.labStatus || ''] || lockedOrder.labStatus;
+            const opRef = lockedOrder.labOrderNumber ? ` (OP ${lockedOrder.labOrderNumber})` : '';
+            const err: any = new Error(
+                `No se puede modificar la receta: el pedido ya está en fábrica${opRef} (estado "${label}"). ` +
+                `Se requiere autorización del administrador. Si corresponde un cambio, manejalo como caso de Post-Venta / Reproceso.`
+            );
+            err.code = 'PRESCRIPTION_LOCKED';
+            throw err;
+        }
+    },
+
+    async updatePrescription(presId: string, data: any, role?: string | null) {
+        await this._assertPrescriptionEditable(presId, role);
         const transposed = this._transposePrescription(data);
         const isNear = data.prescriptionType === 'NEAR';
         return await prisma.prescription.update({
@@ -1172,7 +1235,8 @@ export const ContactService = {
         });
     },
 
-    async deletePrescription(presId: string) {
+    async deletePrescription(presId: string, role?: string | null) {
+        await this._assertPrescriptionEditable(presId, role);
         return await prisma.prescription.delete({
             where: { id: presId }
         });

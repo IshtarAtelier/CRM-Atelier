@@ -11,6 +11,10 @@ export interface WebSettings {
   web_store_whatsapp_id: string;
   web_promo_installments: string;
   web_promo_cash_discount: number;
+  // Código del cupón que se muestra en el email de recuperación de carrito
+  // abandonado (24hs). Debe ser un código existente en el modelo Coupon; el
+  // descuento real (monto/%) sale de esa fila, no de acá. Vacío = email sin cupón.
+  web_recovery_coupon_code: string;
 }
 
 export const defaultWebSettings: WebSettings = {
@@ -24,6 +28,7 @@ export const defaultWebSettings: WebSettings = {
   web_store_whatsapp_id: "5493541215971",
   web_promo_installments: "6 cuotas sin interés",
   web_promo_cash_discount: 15,
+  web_recovery_coupon_code: "",
 };
 
 export async function getWebSettings(): Promise<WebSettings> {

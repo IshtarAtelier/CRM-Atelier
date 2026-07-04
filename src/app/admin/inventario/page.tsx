@@ -311,7 +311,7 @@ export default function InventarioPage() {
             };
             const res = await fetch(`/api/products/${editingProduct.id}`, {
                 method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 'Content-Type': 'application/json', 'x-user-role': 'ADMIN' },
                 body: JSON.stringify(payload)
             });
             if (res.ok) {

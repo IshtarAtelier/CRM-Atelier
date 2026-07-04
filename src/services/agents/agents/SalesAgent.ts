@@ -1,6 +1,7 @@
 import { getModel } from "../model";
 import { SystemMessage, HumanMessage } from "@langchain/core/messages";
 import { QuoteResponse } from "./QuoteAgent";
+import { BUSINESS_INFO, PROMOS_TEXT } from "@/lib/business-info";
 
 export class SalesAgent {
   /**
@@ -28,7 +29,7 @@ REGLAS DE COMUNICACIÓN Y REDACCIÓN (RETRODIRECTIVAS):
 3. **Estructura Clara y Limpia:** Usa emojis de forma sobria (por ejemplo: 👓, ✨, 💳, 📍). Organiza la información con viñetas claras para que sea fácil de leer en WhatsApp o web.
 4. **Llamados a la Acción (CTAs) Fuertes:**
    - Si se presentan opciones de precios, invita a la acción sugiriendo: "Cotizar/confirmar el pedido por WhatsApp" o "Reservar un turno para probar los marcos".
-   - Recuerda los beneficios clave: 6 cuotas sin interés con tarjeta, o 15% de descuento por transferencia/efectivo.
+   - Recuerda los beneficios clave: ${PROMOS_TEXT}.
    - Ejemplo de cierre efectivo: "¡Si querés avanzar con alguna de las opciones, avisame y te armo el link de pago o te agendo un turno!"
 5. **Autoverificación Obligatoria:** Antes de finalizar el texto, realiza mentalmente una comparación entre los números escritos en tu mensaje y el JSON del presupuesto. Deben ser idénticos.
 
@@ -69,18 +70,26 @@ Escribe el mensaje directamente como respuesta lista para enviar al cliente.`;
       validPrices.add(Math.round(opt.installments6));
     }
 
-    // Buscar números que parezcan precios en el texto
-    // Ej: $120.000, 120000, 15.500, etc.
-    const priceRegex = /\b\d{1,3}(?:\.\d{3})+|\b\d{4,6}/g;
+    // Buscar números que parezcan precios en el texto, con separador de miles "." o ","
+    // Ej: $120.000, 120,000, 120000, 15.500, etc.
+    const priceRegex = /\b\d{1,3}(?:[.,]\d{3})+\b|\b\d{4,6}\b/g;
     const matches = pitch.match(priceRegex) || [];
 
+    // Números legítimos que no son precios: la altura de la dirección del local y años cercanos
+    const currentYear = new Date().getFullYear();
+    const nonPriceNumbers = new Set<number>([
+      BUSINESS_INFO.addressStreetNumber,
+      currentYear - 1,
+      currentYear,
+      currentYear + 1,
+    ]);
+
     for (const match of matches) {
-      // Normalizar quitando puntos para obtener el número puro (ej: "120.000" -> 120000)
-      const numberVal = parseInt(match.replace(/\./g, ''), 10);
+      // Normalizar quitando separadores de miles para obtener el número puro (ej: "120.000" -> 120000)
+      const numberVal = parseInt(match.replace(/[.,]/g, ''), 10);
       if (isNaN(numberVal)) continue;
 
-      // Omitir números que coincidan con la dirección local (4380) o años
-      if (numberVal === 4380 || numberVal === 2026) continue;
+      if (nonPriceNumbers.has(numberVal)) continue;
 
       // Si es un número grande (precio) y no coincide con ningún precio del JSON, es una alucinación
       if (numberVal > 999 && !validPrices.has(numberVal)) {

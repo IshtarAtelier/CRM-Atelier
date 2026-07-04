@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import { ShoppingCart, Download, Search, Package, Clock, CheckCircle2, Truck, Eye, Pencil, Save, X, AlertTriangle, FileText, Banknote, ArrowRightLeft, CreditCard, ChevronRight, ChevronLeft, ExternalLink, Loader2, ArrowRight, FlaskConical, Calendar, Factory, User, Users } from 'lucide-react';
 import { OrderDetailPanel } from '@/components/orders/OrderDetailPanel';
 import { PostSaleCard } from '@/components/orders/PostSaleCard';
+import { caseTypeStyle } from '@/lib/constants/postSale';
 import { WhatsAppIcon } from '@/components/icons/WhatsAppIcon';
 import { PricingService } from '@/services/PricingService';
 import { format } from 'date-fns';
@@ -52,15 +53,20 @@ export default function VentasPage() {
     const [loading, setLoading] = useState(true);
     const [invoiceOrder, setInvoiceOrder] = useState<Order | null>(null);
     const [expandedDetail, setExpandedDetail] = useState<string | null>(null);
-    const [viewMode, setViewMode] = useState<'VENTAS' | 'POST_VENTA'>((searchParams.get('mode') as any) || 'VENTAS');
+    const [caseTypeFilter, setCaseTypeFilter] = useState<string>('');
+    const [viewMode, setViewMode] = useState<'VENTAS' | 'POST_VENTA'>(searchParams.get('mode') === 'POST_VENTA' ? 'POST_VENTA' : 'VENTAS');
     const [isSyncing, setIsSyncing] = useState(false);
     const [syncResult, setSyncResult] = useState<any>(null);
+    // Modo Ventas Web: muestra solo ventas web pendientes de confirmación (sidebar → ↳ Ventas Web)
+    const webOnly = searchParams.get('mode') === 'WEB';
 
     // Sync viewMode with URL
     useEffect(() => {
         const mode = searchParams.get('mode');
         if (mode === 'POST_VENTA' || mode === 'VENTAS') {
             setViewMode(mode);
+        } else if (mode === 'WEB') {
+            setViewMode('VENTAS');
         }
     }, [searchParams]);
 
@@ -402,7 +408,7 @@ export default function VentasPage() {
 
     useEffect(() => {
         fetchOrders(search);
-    }, [filterLab, filterBalance, filterLaboratory, dateFrom, dateTo, viewMode]);
+    }, [filterLab, filterBalance, filterLaboratory, dateFrom, dateTo, viewMode, webOnly]);
 
     useEffect(() => {
         if (orderIdParam) {
@@ -472,6 +478,11 @@ export default function VentasPage() {
             if (viewMode === 'POST_VENTA') {
                 // In post-sale mode, fetch ALL post-sale orders regardless of lab status
                 params.set('hasPostSale', 'true');
+                params.set('nolimit', 'true');
+                params.set('limit', '9999');
+            } else if (webOnly) {
+                // Modo Ventas Web: solo pendientes de confirmación, sin paginar (son pocas)
+                params.set('webPending', 'true');
                 params.set('nolimit', 'true');
                 params.set('limit', '9999');
             } else {
@@ -671,6 +682,39 @@ export default function VentasPage() {
         } catch (err) {
             console.error('Error moving post-sale card:', err);
             alert('⚠️ Error de red al mover tarjeta de post-venta.');
+        }
+    };
+
+    // Confirmar venta web (revisión humana): transferencia registra el pago acreditado;
+    // tarjeta (Payway) ya viene con el pago cargado. En ambos casos pasa al flujo normal.
+    const confirmWebSale = async (order: Order) => {
+        const esTarjeta = order.status === 'WEB_PAID';
+        const pendiente = (order.total || 0) - (order.paid || 0);
+        const ok = window.confirm(
+            esTarjeta
+                ? `¿Confirmar la Venta Web #${order.id.slice(-4).toUpperCase()} de ${order.client?.name || 'Cliente'}?\n\n` +
+                  `El pago con tarjeta de $${(order.total || 0).toLocaleString('es-AR')} ya fue acreditado vía Payway.\n\n` +
+                  `Al confirmar, la venta pasa al flujo normal de preparación.`
+                : `¿Confirmar la Venta Web #${order.id.slice(-4).toUpperCase()} de ${order.client?.name || 'Cliente'}?\n\n` +
+                  `Se registrará el pago por transferencia de $${pendiente.toLocaleString('es-AR')} y la venta pasará al flujo normal.\n\n` +
+                  `Confirmá solo si verificaste que la transferencia se acreditó en la cuenta.`
+        );
+        if (!ok) return;
+
+        setUpdatingId(order.id);
+        try {
+            const res = await fetch(`/api/orders/${order.id}/confirm-web`, { method: 'POST' });
+            const data = await res.json();
+            if (res.ok) {
+                fetchOrders(search);
+            } else {
+                alert(`⚠️ Error al confirmar: ${data.error}`);
+            }
+        } catch (err) {
+            console.error('Error confirming web sale:', err);
+            alert('⚠️ Error de red al confirmar la venta web.');
+        } finally {
+            setUpdatingId(null);
         }
     };
 
@@ -971,9 +1015,9 @@ export default function VentasPage() {
                 <div className="flex flex-col sm:flex-row sm:items-center gap-4">
                     <div>
                         <h1 className="text-3xl lg:text-4xl font-black text-stone-800 dark:text-white tracking-tight flex items-center gap-3">
-                            <ShoppingCart className={`w-8 h-8 lg:w-9 lg:h-9 ${viewMode === 'POST_VENTA' ? 'text-amber-500' : 'text-emerald-500'}`} /> {viewMode === 'POST_VENTA' ? 'Post Venta' : 'Ventas'}
+                            <ShoppingCart className={`w-8 h-8 lg:w-9 lg:h-9 ${viewMode === 'POST_VENTA' ? 'text-amber-500' : webOnly ? 'text-sky-500' : 'text-emerald-500'}`} /> {viewMode === 'POST_VENTA' ? 'Post Venta' : webOnly ? 'Ventas Web' : 'Ventas'}
                         </h1>
-                        <p className="text-stone-400 text-xs lg:text-sm mt-1">{viewMode === 'POST_VENTA' ? 'Gestión de reclamos, reposiciones y garantías' : 'Operaciones confirmadas y enviadas a laboratorio'}</p>
+                        <p className="text-stone-400 text-xs lg:text-sm mt-1">{viewMode === 'POST_VENTA' ? 'Gestión de reclamos, reposiciones y garantías' : webOnly ? 'Ventas de la tienda online pendientes de confirmación humana' : 'Operaciones confirmadas y enviadas a laboratorio'}</p>
                     </div>
 
                     {/* View Switcher Pill */}
@@ -1243,8 +1287,8 @@ export default function VentasPage() {
             ) : filteredOrders.length === 0 ? (
                 <div className="text-center py-20 border-2 border-dashed border-stone-200 dark:border-stone-700 rounded-3xl">
                     <ShoppingCart className="w-16 h-16 text-stone-200 mx-auto mb-4" />
-                    <p className="text-sm font-black text-stone-300 uppercase tracking-widest">No hay ventas {filterLab !== 'ALL' ? 'con ese estado' : ''}</p>
-                    <p className="text-xs text-stone-300 mt-2">Las ventas se crean al convertir un presupuesto en la ficha del contacto</p>
+                    <p className="text-sm font-black text-stone-300 uppercase tracking-widest">{webOnly ? 'No hay ventas web pendientes de confirmar ✓' : `No hay ventas ${filterLab !== 'ALL' ? 'con ese estado' : ''}`}</p>
+                    <p className="text-xs text-stone-300 mt-2">{webOnly ? 'Cuando entre una compra desde la tienda online va a aparecer acá para su revisión' : 'Las ventas se crean al convertir un presupuesto en la ficha del contacto'}</p>
                 </div>
             ) : (
                 <div className="space-y-4">
@@ -1287,6 +1331,16 @@ export default function VentasPage() {
                                                 <span className={`px-2 py-0.5 rounded-lg text-[8px] lg:text-[9px] font-black uppercase tracking-widest ${labInfo.color}`}>
                                                     {labInfo.label}
                                                 </span>
+                                                {order.status === 'WEB_PENDING' && (
+                                                    <span className="px-2 py-0.5 rounded-lg text-[8px] lg:text-[9px] font-black uppercase tracking-widest bg-sky-100 dark:bg-sky-950/40 text-sky-600 dark:text-sky-400 border border-sky-200 dark:border-sky-800/50 flex items-center gap-1 animate-pulse">
+                                                        🌐 Venta Web · A Confirmar
+                                                    </span>
+                                                )}
+                                                {order.status === 'WEB_PAID' && (
+                                                    <span className="px-2 py-0.5 rounded-lg text-[8px] lg:text-[9px] font-black uppercase tracking-widest bg-emerald-100 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/50 flex items-center gap-1 animate-pulse">
+                                                        🌐 Venta Web Pagada · A Confirmar
+                                                    </span>
+                                                )}
                                                 {financials.progress >= 100 && (
                                                     <span className="px-2 py-0.5 rounded-lg text-[8px] lg:text-[9px] font-black uppercase tracking-widest bg-emerald-100 text-emerald-600">PAGADO</span>
                                                 )}
@@ -1365,6 +1419,36 @@ export default function VentasPage() {
                                         })()}
                                     </div>
                                 </div>
+
+                                    {/* Venta Web pendiente de confirmación humana */}
+                                    {(order.status === 'WEB_PENDING' || order.status === 'WEB_PAID') && (
+                                        <div className={`mt-3 rounded-xl p-3 border flex flex-col sm:flex-row sm:items-center gap-3 ${order.status === 'WEB_PAID'
+                                                ? 'bg-emerald-50/80 dark:bg-emerald-950/30 border-emerald-100 dark:border-emerald-800/50'
+                                                : 'bg-sky-50/80 dark:bg-sky-950/30 border-sky-100 dark:border-sky-800/50'
+                                            }`}>
+                                            <div className="flex-1">
+                                                {order.status === 'WEB_PAID' ? (
+                                                    <>
+                                                        <p className="text-[9px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-widest">🌐 Venta web con tarjeta — pago acreditado vía Payway ✓</p>
+                                                        <p className="text-[10px] font-bold text-stone-500 mt-0.5">El pago de ${(order.total || 0).toLocaleString('es-AR')} ya está registrado. Revisá el pedido y confirmá para pasarlo al flujo de preparación.</p>
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <p className="text-[9px] font-black text-sky-600 dark:text-sky-400 uppercase tracking-widest">🌐 Venta web por transferencia — pago pendiente de acreditación</p>
+                                                        <p className="text-[10px] font-bold text-stone-500 mt-0.5">Verificá que la transferencia de ${((order.total || 0) - (order.paid || 0)).toLocaleString('es-AR')} se haya acreditado en la cuenta antes de confirmar.</p>
+                                                    </>
+                                                )}
+                                            </div>
+                                            <button
+                                                onClick={() => confirmWebSale(order)}
+                                                disabled={isUpdating}
+                                                className="px-4 py-2.5 bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 flex-shrink-0 justify-center"
+                                            >
+                                                {isUpdating ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+                                                Confirmar Venta
+                                            </button>
+                                        </div>
+                                    )}
 
                                     {/* SmartLab Info — Multi-cristal */}
                                     {order.smartLabProgress != null && order.smartLabProgress > 0 && (() => {
@@ -1751,6 +1835,40 @@ export default function VentasPage() {
                         />
                     </div>
 
+                    {/* Reporte: conteo por tipo de caso (clickeable para filtrar) */}
+                    {(() => {
+                        const counts: Record<string, number> = {};
+                        postSaleOrders.forEach(o => {
+                            const t = o.postSaleCaseType || 'Sin clasificar';
+                            counts[t] = (counts[t] || 0) + 1;
+                        });
+                        const entries = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+                        if (entries.length === 0) return null;
+                        return (
+                            <div className="flex flex-wrap items-center gap-2">
+                                <span className="text-[9px] font-black text-stone-400 dark:text-stone-500 uppercase tracking-widest mr-1">Por tipo:</span>
+                                <button
+                                    onClick={() => setCaseTypeFilter('')}
+                                    className={`text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-lg border transition-all ${caseTypeFilter === '' ? 'bg-stone-800 text-white border-stone-800 dark:bg-stone-100 dark:text-stone-900 dark:border-stone-100' : 'bg-white dark:bg-stone-850 text-stone-500 border-stone-200 dark:border-stone-750 hover:border-stone-400'}`}
+                                >
+                                    Todos ({postSaleOrders.length})
+                                </button>
+                                {entries.map(([type, count]) => {
+                                    const active = caseTypeFilter === type;
+                                    return (
+                                        <button
+                                            key={type}
+                                            onClick={() => setCaseTypeFilter(active ? '' : type)}
+                                            className={`text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-lg border transition-all ${active ? 'ring-2 ring-amber-400 ' : ''}${caseTypeStyle(type === 'Sin clasificar' ? null : type)}`}
+                                        >
+                                            {type} ({count})
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        );
+                    })()}
+
                     {/* Kanban Board Container */}
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 items-start pb-4">
                         {(() => {
@@ -1765,7 +1883,12 @@ export default function VentasPage() {
                             return PIPELINE_COLUMNS.map(column => {
                                 const columnOrders = postSaleOrders.filter(o => {
                                     const status = o.postSaleStatus || 'SENT';
-                                    return status === column.key;
+                                    if (status !== column.key) return false;
+                                    if (caseTypeFilter) {
+                                        const t = o.postSaleCaseType || 'Sin clasificar';
+                                        if (t !== caseTypeFilter) return false;
+                                    }
+                                    return true;
                                 });
 
                                 return (
@@ -1791,14 +1914,15 @@ export default function VentasPage() {
                                                 </div>
                                             ) : (
                                                 columnOrders.map(order => (
-                                                    <PostSaleCard 
-                                                        key={order.id} 
-                                                        order={order} 
+                                                    <PostSaleCard
+                                                        key={order.id}
+                                                        order={order}
                                                         onRefresh={() => fetchOrders(search)}
                                                         onMove={(direction) => handleMoveCard(order, direction)}
                                                         onExpand={() => setExpandedDetail(expandedDetail === order.id ? null : order.id)}
                                                         onAutoSubmit={autoSubmitSmartLab}
                                                         isAutoSubmitting={isAutoSubmitting}
+                                                        userRole={userRole}
                                                     />
                                                 ))
                                             )}
@@ -1809,19 +1933,44 @@ export default function VentasPage() {
                         })()}
                     </div>
 
-                    {/* Expandable Order Detail Panel in Post-Venta */}
+                    {/* Ficha ampliada (modal) para trabajar el caso de post-venta */}
                     {expandedDetail && postSaleOrders.some(o => o.id === expandedDetail) && (() => {
                         const order = orders.find(o => o.id === expandedDetail);
-                        return order && (
-                            <div className="mt-6 border-2 border-amber-200 dark:border-amber-900/50 rounded-2xl p-6 bg-white dark:bg-stone-850">
-                                <OrderDetailPanel 
-                                    order={order as any} 
-                                    context="ventas"
-                                    onAutoSubmit={autoSubmitSmartLab}
-                                    isAutoSubmitting={isAutoSubmitting}
-                                    userRole={userRole}
-                                    onRefresh={() => fetchOrders(search)}
-                                />
+                        if (!order) return null;
+                        return (
+                            <div
+                                className="fixed inset-0 z-[90] flex items-start justify-center bg-black/60 backdrop-blur-sm p-3 sm:p-6 overflow-y-auto animate-in fade-in duration-200"
+                                onClick={() => setExpandedDetail(null)}
+                            >
+                                <div
+                                    className="relative w-full max-w-3xl my-4 bg-white dark:bg-stone-850 rounded-3xl border-2 border-amber-200 dark:border-amber-900/50 shadow-2xl animate-in zoom-in-95 duration-200"
+                                    onClick={(e) => e.stopPropagation()}
+                                >
+                                    {/* Header sticky con cierre */}
+                                    <div className="sticky top-0 z-10 flex items-center justify-between px-5 py-3 border-b border-stone-100 dark:border-stone-800 bg-white/95 dark:bg-stone-850/95 backdrop-blur rounded-t-3xl">
+                                        <div className="flex items-center gap-2 min-w-0">
+                                            <span className="text-[10px] font-black text-amber-500 uppercase tracking-widest flex-shrink-0">Ficha Post Venta</span>
+                                            <span className="text-xs font-bold text-stone-700 dark:text-stone-200 truncate">
+                                                {order.client?.name || 'Cliente'} · #{order.id.slice(-4).toUpperCase()}
+                                            </span>
+                                        </div>
+                                        <button
+                                            onClick={() => setExpandedDetail(null)}
+                                            className="p-1.5 rounded-lg hover:bg-stone-100 dark:hover:bg-stone-800 text-stone-400 hover:text-stone-700 dark:hover:text-stone-200 transition-colors flex-shrink-0"
+                                            title="Cerrar ficha"
+                                        >
+                                            <X className="w-4 h-4" />
+                                        </button>
+                                    </div>
+                                    <OrderDetailPanel
+                                        order={order as any}
+                                        context="ventas"
+                                        onAutoSubmit={autoSubmitSmartLab}
+                                        isAutoSubmitting={isAutoSubmitting}
+                                        userRole={userRole}
+                                        onRefresh={() => fetchOrders(search)}
+                                    />
+                                </div>
                             </div>
                         );
                     })()}

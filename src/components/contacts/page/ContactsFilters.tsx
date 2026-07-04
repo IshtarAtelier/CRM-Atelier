@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Search, Globe, Store, Filter } from 'lucide-react';
+import { Search, Globe, Store, Filter, AlertTriangle } from 'lucide-react';
 
 interface ContactsFiltersProps {
     searchQuery: string;
@@ -10,6 +10,9 @@ interface ContactsFiltersProps {
     setSelectedInterest: (val: string) => void;
     locationFilter: string;
     setLocationFilter: (val: string) => void;
+    showUnattendedOnly: boolean;
+    setShowUnattendedOnly: (val: boolean) => void;
+    unattendedCount: number;
 }
 
 export default function ContactsFilters({
@@ -18,7 +21,10 @@ export default function ContactsFilters({
     selectedInterest,
     setSelectedInterest,
     locationFilter,
-    setLocationFilter
+    setLocationFilter,
+    showUnattendedOnly,
+    setShowUnattendedOnly,
+    unattendedCount
 }: ContactsFiltersProps) {
     const productTypes = [
         { id: 'ALL', label: 'Todos' },
@@ -51,6 +57,23 @@ export default function ContactsFilters({
 
             {/* Filters */}
             <div className="flex flex-col gap-5">
+                {/* Sin atender toggle */}
+                <button
+                    onClick={() => setShowUnattendedOnly(!showUnattendedOnly)}
+                    className={`inline-flex w-max items-center gap-2 px-5 py-2.5 rounded-full text-[11px] uppercase tracking-widest font-black transition-all duration-300 border ${
+                        showUnattendedOnly
+                            ? 'bg-red-500 text-white border-red-400 shadow-md shadow-red-500/20 scale-105'
+                            : 'bg-red-50 dark:bg-red-900/10 text-red-600 dark:text-red-400 border-red-200 dark:border-red-800/40 hover:bg-red-100 dark:hover:bg-red-900/20'
+                    }`}
+                    title="Contactos sin presupuesto armado"
+                >
+                    <AlertTriangle className="w-3.5 h-3.5" />
+                    Sin atender
+                    <span className={`px-1.5 py-0.5 rounded-full text-[10px] leading-none ${
+                        showUnattendedOnly ? 'bg-white/25 text-white' : 'bg-red-500 text-white'
+                    }`}>{unattendedCount}</span>
+                </button>
+
                 {/* Modern Pill Location Toggle */}
                 <div className="inline-flex w-max bg-stone-100/50 dark:bg-stone-800/50 backdrop-blur-md p-1.5 rounded-full border border-stone-200/50 dark:border-stone-700/50">
                     {locationTypes.map((type) => {
