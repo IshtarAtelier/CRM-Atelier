@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { ContactService } from '@/services/contact.service';
+import { ATTENTION_CUTOFF_ISO } from '@/lib/constants';
 
 export const dynamic = 'force-dynamic';
 
@@ -124,6 +125,36 @@ export async function GET(request: Request) {
         const diffToMonday = startOfWeek.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
         startOfWeek.setDate(diffToMonday);
         startOfWeek.setHours(0,0,0,0);
+
+        // ── Nuevos contactos subidos al sistema ──
+        // Contador independiente del período/filtro del dashboard: mide el ingreso de
+        // leads nuevos al CRM. El número principal (sinceCutoff) acumula desde el
+        // "borrón y cuenta nueva" (mismo corte que el "sin atender", ver constants.ts).
+        // Límites de tiempo en horario de Argentina (UTC-3, sin horario de verano) para
+        // que "hoy" corte a la medianoche local y no a las 00:00 UTC (21:00 ART) del server.
+        const ART_OFFSET_MS = 3 * 60 * 60 * 1000;
+        const artNow = new Date(Date.now() - ART_OFFSET_MS);
+        const artY = artNow.getUTCFullYear();
+        const artM = artNow.getUTCMonth();
+        const artD = artNow.getUTCDate();
+        const startOfDayART = new Date(Date.UTC(artY, artM, artD) + ART_OFFSET_MS);
+        const daysFromMonday = (artNow.getUTCDay() + 6) % 7; // lunes = inicio de semana
+        const startOfWeekART = new Date(startOfDayART.getTime() - daysFromMonday * 24 * 60 * 60 * 1000);
+        const startOfMonthART = new Date(Date.UTC(artY, artM, 1) + ART_OFFSET_MS);
+        const attentionCutoff = new Date(process.env.ATTENTION_CUTOFF_DATE || ATTENTION_CUTOFF_ISO);
+        const [newContactsSinceCutoff, newContactsToday, newContactsWeek, newContactsMonth] = await Promise.all([
+            prisma.client.count({ where: { isDeleted: false, createdAt: { gte: attentionCutoff } } }),
+            prisma.client.count({ where: { isDeleted: false, createdAt: { gte: startOfDayART } } }),
+            prisma.client.count({ where: { isDeleted: false, createdAt: { gte: startOfWeekART } } }),
+            prisma.client.count({ where: { isDeleted: false, createdAt: { gte: startOfMonthART } } }),
+        ]);
+        const newContacts = {
+            sinceCutoff: newContactsSinceCutoff,
+            today: newContactsToday,
+            week: newContactsWeek,
+            month: newContactsMonth,
+            cutoffISO: attentionCutoff.toISOString(),
+        };
 
         let todaySold = 0;
         let weekSold = 0;
@@ -609,6 +640,7 @@ export async function GET(request: Request) {
                 personalConfirmedCount,
                 todaySold,
                 weekSold,
+                newContacts,
             });
         }
 
@@ -634,6 +666,7 @@ export async function GET(request: Request) {
             personalConfirmedCount,
             todaySold,
             weekSold,
+            newContacts,
         });
     } catch (error: any) {
         console.error('Error fetching dashboard data:', error);
