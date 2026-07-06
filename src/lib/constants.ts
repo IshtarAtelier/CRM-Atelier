@@ -1,6 +1,13 @@
 // WhatsApp phone number (single source of truth for all storefront pages)
 export const WHATSAPP_PHONE = process.env.NEXT_PUBLIC_WHATSAPP_PHONE || '5493541215971';
 
+// "Sin atender" — borrón y cuenta nueva. El backlog viejo de leads sin atender se
+// dio por cerrado el 2026-07-06: solo los contactos ingresados a partir de este
+// momento cuentan/marcan como "sin atender" (contador del botón, badge del sidebar,
+// filtro de la lista y el chip rojo de cada ficha). Para reiniciar de nuevo en el
+// futuro, mover esta fecha (el server además admite override por ATTENTION_CUTOFF_DATE).
+export const ATTENTION_CUTOFF_ISO = '2026-07-06T18:16:07.000Z';
+
 // Platform commission rates for payment methods
 export const PLATFORM_COMMISSIONS: Record<string, number> = {
     // ── Pay Way 6 cuotas (20% plataforma) ──

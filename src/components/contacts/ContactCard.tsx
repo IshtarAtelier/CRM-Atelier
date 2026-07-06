@@ -1,6 +1,7 @@
 import React from 'react';
 import { UserPlus, Star, Phone, Tag as TagIcon, ChevronRight, CheckCircle2, UserCheck, Building2, Heart, FileText, Trash2, MapPin, Store, AlertTriangle, Banknote } from "lucide-react";
 import { Contact } from '@/types/contacts';
+import { ATTENTION_CUTOFF_ISO } from '@/lib/constants';
 
 interface ContactCardProps {
     contact: Contact;
@@ -31,7 +32,10 @@ export const ContactCard: React.FC<ContactCardProps> = ({
     // Se gradúa por antigüedad para no llenar de rojo lo recién ingresado:
     //   < 48h → pendiente (ámbar, sin parpadeo) · ≥ 48h → urgente (rojo, parpadea)
     const isCustomer = contact.status === 'CLIENT' || contact.status === 'active';
-    const needsAttention = !isCustomer && !contact.hasQuote && !contact.hasSales;
+    // Borrón y cuenta nueva: el backlog viejo (creado antes del corte) ya no se marca
+    // como "sin atender", igual que el contador y el badge del sidebar.
+    const afterCutoff = new Date(contact.createdAt).getTime() >= new Date(ATTENTION_CUTOFF_ISO).getTime();
+    const needsAttention = !isCustomer && !contact.hasQuote && !contact.hasSales && afterCutoff;
     const attentionDays = needsAttention
         ? Math.floor((Date.now() - new Date(contact.createdAt).getTime()) / 86_400_000)
         : 0;
