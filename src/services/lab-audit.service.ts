@@ -1,7 +1,7 @@
 import { prisma } from '../lib/db';
 import { OptovisionParserService } from './optovision-parser.service';
 import { PricingService } from './PricingService';
-import nodemailer from 'nodemailer';
+import { sendEmail } from '../lib/email';
 
 export class LabAuditService {
     // 100 pesos of tolerance by default for rounding differences
@@ -86,20 +86,10 @@ export class LabAuditService {
             <p><a href="https://crm-atelier-production-ae72.up.railway.app/admin/contactos?clientId=${order.clientId}">Ver ficha del cliente en el CRM</a></p>
         `;
 
-        const transporter = nodemailer.createTransport({
-            host: 'smtp.gmail.com',
-            port: 465,
-            secure: true,
-            auth: {
-                user: 'crm.atelier.optica@gmail.com',
-                pass: 'mpjbysckqphdxevd' // we should move this to env var later
-            }
-        });
-
-        await transporter.sendMail({
-            from: '"Atelier CRM Alertas" <crm.atelier.optica@gmail.com>',
-            to: 'pisano.ishtar@gmail.com',
-            cc: 'atelier.optica.cerro@gmail.com',
+        // Usa el sistema central de emails (Resend/SMTP según configuración).
+        // Antes había un transporter propio con la contraseña de Gmail hardcodeada.
+        await sendEmail({
+            to: 'pisano.ishtar@gmail.com, atelier.optica.cerro@gmail.com',
             subject: `⚠️ Alerta Sobrecosto: Operación ${invoice.labOrderNumber} (${order.client?.name})`,
             html: htmlContent
         });
