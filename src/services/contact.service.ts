@@ -34,9 +34,17 @@ const CUSTOMER_STATUSES = ['CLIENT', 'active'];
 const UNATTENDED_ORDER_FILTER = {
     none: { orderType: { in: ['QUOTE', 'SALE'] }, isDeleted: false },
 };
+
+// Fecha de "borrón y cuenta nueva": el backlog viejo de leads sin atender se dio por
+// cerrado el 2026-07-06. Solo los contactos ingresados a partir de este momento cuentan
+// como "sin atender". Para reiniciar el contador de nuevo en el futuro, basta mover esta
+// fecha (o setear ATTENTION_CUTOFF_DATE en las variables de entorno de Railway).
+const ATTENTION_CUTOFF = new Date(process.env.ATTENTION_CUTOFF_DATE || '2026-07-06T18:16:07.000Z');
+
 const UNATTENDED_WHERE = {
     status: { notIn: CUSTOMER_STATUSES },
     orders: UNATTENDED_ORDER_FILTER,
+    createdAt: { gte: ATTENTION_CUTOFF },
 };
 
 export function normalizeArgentinePhone(phone: string | null | undefined): string {
