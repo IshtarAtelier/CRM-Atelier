@@ -335,12 +335,29 @@ export function StorefrontNavbar({ theme = "dark", mixBlend = false, initialSett
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[100] bg-[#faf8f5]/55 dark:bg-stone-950/60 backdrop-blur-[8px] flex flex-col p-6 md:p-16 text-black dark:text-white"
+            className="fixed inset-0 z-[100] text-black dark:text-white"
           >
+            {/* Fondo oscurecido: el home se ve detrás, click para cerrar */}
+            <div
+              className="absolute inset-0 bg-black/40 backdrop-blur-[3px]"
+              onClick={() => {
+                setIsSearchOpen(false);
+                setSearchQuery("");
+              }}
+            />
+
+            {/* Panel de búsqueda que baja del header */}
+            <motion.div
+              initial={{ y: -24 }}
+              animate={{ y: 0 }}
+              exit={{ y: -24 }}
+              transition={{ duration: 0.25, ease: "easeOut" }}
+              className="relative bg-[#faf8f5] dark:bg-stone-950 border-b border-stone-200/70 dark:border-stone-800 shadow-2xl flex flex-col max-h-[85vh] p-6 md:px-16 md:py-10"
+            >
             {/* Close button */}
-            <div className="flex justify-between items-center mb-12">
+            <div className="flex justify-between items-center mb-8">
               <span className="text-[10px] font-black uppercase tracking-[0.25em] text-stone-500 dark:text-stone-400">Buscar en Atelier</span>
-              <button 
+              <button
                 onClick={() => {
                   setIsSearchOpen(false);
                   setSearchQuery("");
@@ -353,19 +370,19 @@ export function StorefrontNavbar({ theme = "dark", mixBlend = false, initialSett
             </div>
 
             {/* Input field */}
-            <div className="max-w-4xl mx-auto w-full mb-10">
+            <div className="max-w-4xl mx-auto w-full mb-8">
               <input
                 type="text"
                 autoFocus
                 placeholder="Buscar por modelo, marca o categoría..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full text-2xl md:text-4xl font-light tracking-tight border-b border-stone-200 dark:border-stone-850 pb-4 focus:ring-2 focus:ring-amber-500 focus:outline-none bg-transparent placeholder-stone-300 dark:placeholder-stone-700 text-stone-900 dark:text-stone-100 focus:border-black dark:focus:border-white transition-colors"
+                className="w-full text-2xl md:text-4xl font-light tracking-tight border-b border-stone-200 dark:border-stone-850 pb-4 focus:ring-2 focus:ring-amber-500 focus:outline-none bg-transparent placeholder-stone-400 dark:placeholder-stone-600 text-stone-900 dark:text-stone-100 focus:border-black dark:focus:border-white transition-colors"
               />
             </div>
 
             {/* Results */}
-            <div className="max-w-4xl mx-auto w-full flex-1 overflow-y-auto pr-2">
+            <div className="max-w-4xl mx-auto w-full flex-1 min-h-0 overflow-y-auto pr-2">
               {searchQuery.trim().length < 2 ? (
                 <div className="flex flex-col gap-4">
                   <p className="text-[10px] font-black uppercase tracking-widest text-stone-500 dark:text-stone-400">Sugerencias</p>
@@ -421,6 +438,7 @@ export function StorefrontNavbar({ theme = "dark", mixBlend = false, initialSett
                 <p className="text-stone-500 dark:text-stone-500 text-sm italic">No se encontraron productos que coincidan con &quot;{searchQuery}&quot;.</p>
               )}
             </div>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
