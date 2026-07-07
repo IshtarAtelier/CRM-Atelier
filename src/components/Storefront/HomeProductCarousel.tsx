@@ -208,9 +208,20 @@ export function HomeProductCarousel({ collections, totalCount }: Props) {
                 
                 <div className="flex items-center justify-between mt-1 pr-2">
                   <div className="flex flex-col gap-0.5">
-                    <p className="text-[13px] font-black text-stone-900 tracking-tight">
-                      {item.price}
-                    </p>
+                    {item.price.includes("$") ? (
+                      <p className="flex flex-col">
+                        <span className="text-[10px] font-medium text-stone-500 whitespace-nowrap">
+                          {item.price.slice(0, item.price.indexOf("$")).trim()}
+                        </span>
+                        <span className="text-[13px] font-black text-stone-900 tracking-tight whitespace-nowrap">
+                          {item.price.slice(item.price.indexOf("$"))}
+                        </span>
+                      </p>
+                    ) : (
+                      <p className="text-[13px] font-black text-stone-900 tracking-tight">
+                        {item.price}
+                      </p>
+                    )}
                     {item.rawPrice && (
                       <p className="text-[10px] text-stone-500 font-medium">
                         ${Math.round(item.rawPrice * 0.85).toLocaleString("es-AR")} eft/transf
