@@ -4,11 +4,13 @@ import Image from "next/image";
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
-import { Glasses, ClipboardList, LayoutDashboard, Cog, FileText, Contact, Calculator, ShoppingCart, Wallet, Search, Menu, X, Receipt, Banknote, TrendingDown, ChevronLeft, ChevronRight, Wrench } from "lucide-react";
+import { Glasses, ClipboardList, LayoutDashboard, Cog, FileText, Contact, Calculator, ShoppingCart, Wallet, Search, Menu, X, Receipt, Banknote, TrendingDown, ChevronLeft, ChevronRight, Wrench, Globe } from "lucide-react";
 import { motion } from "framer-motion";
 import { UserProfile } from "@/components/admin/UserProfile";
 import { NotificationBell } from "@/components/ui/NotificationBell";
 import { WhatsAppBadge } from "@/components/ui/WhatsAppBadge";
+import { WebSalesBadge } from "@/components/ui/WebSalesBadge";
+import { ContactsAttentionBadge } from "@/components/ui/ContactsAttentionBadge";
 import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon";
 
 interface SidebarProps {
@@ -66,6 +68,7 @@ export function Sidebar({ userName = "Usuario", userRole = "STAFF", userId = "" 
       { href: "/admin/web", label: "Sitio Web", icon: ShoppingCart, adminOnly: true },
       { href: "/admin/cotizador", label: "Cotizador", icon: Calculator, adminOnly: false },
       { href: "/admin/ventas", label: "Ventas / Laboratorio", icon: ClipboardList, adminOnly: false },
+      { href: "/admin/ventas?mode=WEB", label: "↳ Ventas Web", icon: Globe, adminOnly: false, isSubLink: true },
       { href: "/admin/ventas?mode=POST_VENTA", label: "↳ Post Venta", icon: Wrench, adminOnly: false, isSubLink: true },
       { href: "/admin/facturacion", label: "Facturación", icon: Receipt, adminOnly: true },
       { href: "/admin/whatsapp", label: "WhatsApp", icon: WhatsAppIcon, adminOnly: false },
@@ -104,9 +107,11 @@ export function Sidebar({ userName = "Usuario", userRole = "STAFF", userId = "" 
           let isActive = pathname === link.href || (link.href !== "/admin" && pathname.startsWith(link.href) && !link.href.includes('?'));
           
           if (link.href === '/admin/ventas') {
-             isActive = pathname === '/admin/ventas' && searchParams.get('mode') !== 'POST_VENTA';
+             isActive = pathname === '/admin/ventas' && searchParams.get('mode') !== 'POST_VENTA' && searchParams.get('mode') !== 'WEB';
           } else if (link.href === '/admin/ventas?mode=POST_VENTA') {
              isActive = pathname === '/admin/ventas' && searchParams.get('mode') === 'POST_VENTA';
+          } else if (link.href === '/admin/ventas?mode=WEB') {
+             isActive = pathname === '/admin/ventas' && searchParams.get('mode') === 'WEB';
           }
 
           return (
@@ -129,9 +134,12 @@ export function Sidebar({ userName = "Usuario", userRole = "STAFF", userId = "" 
                 <Icon size={18} className={`transition-all duration-300 w-[18px] h-[18px] shrink-0 ${isActive ? 'text-[#c2a38a] drop-shadow-[0_0_8px_rgba(194,163,138,0.4)]' : 'text-stone-500 group-hover:text-[#c2a38a]'}`} />
                 {!isCollapsed && <span className={`text-[10px] font-semibold whitespace-nowrap tracking-wide uppercase transition-colors ${isActive ? 'text-white font-bold' : 'text-stone-400 group-hover:text-stone-200'}`}>{link.label}</span>}
                 {link.label === "WhatsApp" && !isCollapsed && <WhatsAppBadge />}
+                {link.label === "↳ Ventas Web" && !isCollapsed && <WebSalesBadge />}
+                {link.label === "Contactos y Clientes" && !isCollapsed && <ContactsAttentionBadge />}
                 {link.label === "WhatsApp" && isCollapsed && (
                   <div className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-[#12100f] shadow-[0_0_8px_#22c55e]"></div>
                 )}
+                {link.label === "Contactos y Clientes" && isCollapsed && <ContactsAttentionBadge collapsed />}
               </div>
             </Link>
           );

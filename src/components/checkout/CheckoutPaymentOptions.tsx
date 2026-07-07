@@ -1,5 +1,5 @@
 import React from "react";
-import { CreditCard, ShieldCheck } from "lucide-react";
+import { ShieldCheck } from "lucide-react";
 
 export function CheckoutPaymentOptions({ formData, handleChange, isProcessing, webSettings, paywayLoaded, isWholesale }: { formData: any, handleChange: any, isProcessing: boolean, webSettings?: { web_promo_cash_discount: number, web_promo_installments: string }, paywayLoaded?: boolean, isWholesale?: boolean }) {
   const handleCardNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -48,9 +48,9 @@ export function CheckoutPaymentOptions({ formData, handleChange, isProcessing, w
           <label className={`flex items-start gap-3 border p-4 cursor-pointer transition-colors ${formData.paymentMethod === 'PAYWAY' ? 'border-black bg-stone-50' : 'border-stone-200 hover:border-stone-300'}`}>
             <input type="radio" name="paymentMethod" value="PAYWAY" checked={formData.paymentMethod === 'PAYWAY'} onChange={handleChange} className="accent-black mt-1" />
             <div className="flex-1">
-              <div className="flex justify-between items-center mb-1">
+              <div className="flex justify-between items-center mb-1 gap-2 flex-wrap">
                 <p className="text-sm font-bold">Tarjeta de Crédito / Débito</p>
-                <CreditCard className="w-4 h-4 text-stone-400" />
+                <span className="text-[9px] font-black uppercase tracking-widest bg-stone-900 text-white px-2 py-1">{webSettings?.web_promo_installments || "6 cuotas sin interés"}</span>
               </div>
               <p className="text-[11px] text-stone-500 leading-relaxed mb-2">Procesado de forma segura por Payway. {webSettings?.web_promo_installments ? `Promo: ${webSettings.web_promo_installments}` : "Hasta 6 cuotas sin interés"} con tarjetas bancarias.</p>
               
@@ -115,7 +115,10 @@ export function CheckoutPaymentOptions({ formData, handleChange, isProcessing, w
           <label className={`flex items-start gap-3 border p-4 cursor-pointer transition-colors ${formData.paymentMethod === 'TRANSFER' ? 'border-black bg-stone-50' : 'border-stone-200 hover:border-stone-300'}`}>
             <input type="radio" name="paymentMethod" value="TRANSFER" checked={formData.paymentMethod === 'TRANSFER'} onChange={handleChange} className="accent-black mt-1" />
             <div className="flex-1">
-              <p className="text-sm font-bold">Transferencia Bancaria ({webSettings?.web_promo_cash_discount || 15}% OFF)</p>
+              <div className="flex justify-between items-center gap-2 flex-wrap">
+                <p className="text-sm font-bold">Transferencia Bancaria</p>
+                <span className="text-[9px] font-black uppercase tracking-widest bg-emerald-600 text-white px-2 py-1">{webSettings?.web_promo_cash_discount || 15}% OFF</span>
+              </div>
               <p className="text-[11px] text-stone-500 leading-relaxed mt-1">Recibirás los datos bancarios al confirmar el pedido. El descuento se aplica sobre el total.</p>
             </div>
           </label>

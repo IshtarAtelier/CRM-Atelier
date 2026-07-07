@@ -49,9 +49,13 @@ export default function PrescriptionDetails({
                 setEditingField(null);
                 setTimeout(() => setSavedField(null), 2000);
                 if (onUpdate) onUpdate();
+            } else {
+                const data = await res.json().catch(() => ({}));
+                alert(data?.error || 'No se pudo guardar el cambio en la receta.');
             }
         } catch (err) {
             console.error('Error saving rx field:', err);
+            alert('No se pudo guardar el cambio en la receta.');
         }
         setSaving(false);
     }, [editingField, editValue, prescription?.id, contactId, onUpdate]);

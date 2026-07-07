@@ -636,6 +636,9 @@ model PostSaleCase {
   notes            String?
   orderOption      String?
   responsible      String?
+  caseType         String?
+  fault            String?
+  coverage         String?
   rxData           String?
   createdAt        DateTime                @default(now())
   updatedAt        DateTime                @updatedAt

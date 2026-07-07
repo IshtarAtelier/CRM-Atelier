@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Contact, ContactStatus, ContactFormData } from '@/types/contacts';
 
-export function useContacts(activeTab: ContactStatus, searchQuery: string, favoritesOnly: boolean = false, interest: string = 'ALL', locationFilter: string = 'ALL') {
+export function useContacts(activeTab: ContactStatus, searchQuery: string, favoritesOnly: boolean = false, interest: string = 'ALL', locationFilter: string = 'ALL', unattendedOnly: boolean = false) {
     const [contacts, setContacts] = useState<Contact[]>([]);
     const [expiredRx, setExpiredRx] = useState<{ id: string; name: string; months: number }[]>([]);
     const [loading, setLoading] = useState(true);
@@ -18,7 +18,7 @@ export function useContacts(activeTab: ContactStatus, searchQuery: string, favor
 
         try {
             setLoading(true);
-            const res = await fetch(`/api/contacts?status=${activeTab}&search=${encodeURIComponent(searchQuery)}&favorites=${favoritesOnly}&interest=${interest}&location=${locationFilter}`, {
+            const res = await fetch(`/api/contacts?status=${activeTab}&search=${encodeURIComponent(searchQuery)}&favorites=${favoritesOnly}&interest=${interest}&location=${locationFilter}&unattended=${unattendedOnly}`, {
                 signal: controller.signal
             });
             if (controller.signal.aborted) return;
@@ -59,7 +59,7 @@ export function useContacts(activeTab: ContactStatus, searchQuery: string, favor
                 setLoading(false);
             }
         }
-    }, [activeTab, searchQuery, favoritesOnly, interest, locationFilter]);
+    }, [activeTab, searchQuery, favoritesOnly, interest, locationFilter, unattendedOnly]);
 
     useEffect(() => {
         // Debounce search queries, but instant for tab/filter changes

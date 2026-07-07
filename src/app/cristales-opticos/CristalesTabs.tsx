@@ -8,6 +8,15 @@ export function CristalesTabs() {
 
   const tabGroups = [
     {
+      label: "Monofocales",
+      tabs: [
+        { name: "Eyezen", path: "/cristales-opticos/eyezen" },
+        { name: "Super Blue 1.60", path: "/cristales-opticos/super-blue" },
+        { name: "Antirreflejo y Blue", path: "/cristales-opticos/antirreflejo" },
+        { name: "HD 1.67 Poli", path: "/cristales-opticos/policarbonato" },
+      ]
+    },
+    {
       label: "Multifocales Premium",
       tabs: [
         { name: "Varilux", path: "/cristales-opticos/varilux" },

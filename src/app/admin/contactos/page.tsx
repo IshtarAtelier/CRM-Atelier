@@ -24,6 +24,7 @@ function ContactosPageContent() {
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedInterest, setSelectedInterest] = useState('ALL');
     const [locationFilter, setLocationFilter] = useState('ALL');
+    const [showUnattendedOnly, setShowUnattendedOnly] = useState(false);
     const [currentUserRole, setCurrentUserRole] = useState('STAFF');
     
     const [showForm, setShowForm] = useState(false);
@@ -53,7 +54,7 @@ function ContactosPageContent() {
         checkCanClose,
         deleteOrder,
         deleteContact
-    } = useContacts(activeTab, searchQuery, showFavorites, selectedInterest, locationFilter);
+    } = useContacts(activeTab, searchQuery, showFavorites, selectedInterest, locationFilter, showUnattendedOnly);
 
     useEffect(() => {
         const clientId = searchParams.get('clientId');
@@ -99,6 +100,23 @@ function ContactosPageContent() {
 
     const favoriteContacts = contacts.filter(c => c.isFavorite);
 
+    // Contador global de "sin atender" (server-side, no limitado por el tope de la lista).
+    // Se refresca al cambiar la lista (tras cotizar/crear un contacto se actualiza solo).
+    const [unattendedCount, setUnattendedCount] = useState(0);
+    useEffect(() => {
+        let cancelled = false;
+        fetch('/api/contacts/attention-count')
+            .then(r => r.json())
+            .then(d => { if (!cancelled && typeof d.count === 'number') setUnattendedCount(d.count); })
+            .catch(() => { });
+        return () => { cancelled = true; };
+    }, [contacts]);
+
+    // Con el filtro activo, mostrar primero los más urgentes (más antiguos sin atender).
+    const visibleContacts = showUnattendedOnly
+        ? [...contacts].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
+        : contacts;
+
     const tabs = [
         { id: 'ALL', label: 'Todos', icon: Users },
         { id: 'CONTACT', label: 'Contactos', icon: UserPlus },
@@ -142,17 +160,20 @@ function ContactosPageContent() {
                 })}
             </div>
 
-            <ContactsFilters 
+            <ContactsFilters
                 searchQuery={searchQuery}
                 setSearchQuery={setSearchQuery}
                 selectedInterest={selectedInterest}
                 setSelectedInterest={setSelectedInterest}
                 locationFilter={locationFilter}
                 setLocationFilter={setLocationFilter}
+                showUnattendedOnly={showUnattendedOnly}
+                setShowUnattendedOnly={setShowUnattendedOnly}
+                unattendedCount={unattendedCount}
             />
 
-            <ContactsList 
-                contacts={contacts}
+            <ContactsList
+                contacts={visibleContacts}
                 loading={loading}
                 error={error}
                 activeTab={activeTab}

@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { TrendingUp, Tag, Layers, ArrowUpRight, DollarSign, ShoppingCart, Percent, Calendar, Clock, User, ArrowRight, CheckCircle2 } from "lucide-react";
+import { TrendingUp, Tag, Layers, ArrowUpRight, DollarSign, ShoppingCart, Percent, Calendar, Clock, User, ArrowRight, CheckCircle2, UserPlus } from "lucide-react";
+import Link from "next/link";
 import DashboardActions from "@/components/dashboard/DashboardActions";
 import DashboardObjectives from "@/components/dashboard/DashboardObjectives";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
@@ -39,6 +40,7 @@ interface DashboardData {
   personalConfirmedCount?: number;
   todaySold?: number;
   weekSold?: number;
+  newContacts?: { sinceCutoff: number; today: number; week: number; month: number; cutoffISO: string };
 }
 
 interface PieChart3DProps {
@@ -281,6 +283,7 @@ export default function Home() {
     personalConfirmedCount: 0,
     todaySold: 0,
     weekSold: 0,
+    newContacts: { sinceCutoff: 0, today: 0, week: 0, month: 0, cutoffISO: '' },
   };
 
   const currentTotal = d.totalSoldMonth || 0;
@@ -301,6 +304,9 @@ export default function Home() {
         </div>
         {isAdmin && <DashboardActions onPeriodChange={handlePeriodChange} />}
       </header>
+
+      {/* Nuevos contactos subidos al sistema — contador destacado (todos los roles) */}
+      <NewContactsHero nc={d.newContacts} loading={loading} />
 
       {/* 1. Reporte General de Ventas / Métricas — Only for Admin */}
       {isAdmin && (
@@ -808,6 +814,50 @@ export default function Home() {
         </section>
       )}
     </div>
+  );
+}
+
+function NewContactsHero({ nc, loading }: { nc?: { sinceCutoff: number; today: number; week: number; month: number; cutoffISO: string }; loading?: boolean }) {
+  const data = nc || { sinceCutoff: 0, today: 0, week: 0, month: 0, cutoffISO: '' };
+  const hoy = new Date().toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' });
+  return (
+    <Link
+      href="/admin/contactos"
+      className={`group relative block overflow-hidden rounded-[2rem] border border-white/10 bg-gradient-to-br from-[#1c1917] via-[#3a2e26] to-[#8c6d58] text-white shadow-[0_20px_50px_rgba(28,25,23,0.35)] transition-all duration-500 hover:shadow-[0_28px_70px_rgba(140,109,88,0.45)] hover:scale-[1.005] ${loading ? 'opacity-60' : 'opacity-100'}`}
+    >
+      {/* Aura decorativa dorada */}
+      <div className="pointer-events-none absolute -top-16 -right-10 h-56 w-56 rounded-full bg-[#bfa08a]/25 blur-3xl transition-all duration-700 group-hover:scale-125 group-hover:bg-[#bfa08a]/35" />
+      <div className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-700 group-hover:opacity-100 bg-gradient-to-tr from-white/5 via-transparent to-white/10" />
+
+      <div className="relative z-10 flex items-center justify-between gap-4 p-6 md:p-8">
+        {/* Número del día */}
+        <div className="flex items-center gap-5">
+          <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl border border-white/15 bg-white/10 shadow-inner">
+            <UserPlus className="h-8 w-8 stroke-[2.5] text-[#f0dcc8]" />
+          </div>
+          <div>
+            <p className="mb-1 text-[10px] font-black uppercase tracking-[0.25em] text-[#e7d3c1]/80">
+              Nuevos contactos hoy
+            </p>
+            <div className="flex items-end gap-3">
+              <span className="text-6xl font-black leading-none tracking-tight drop-shadow-sm md:text-7xl">
+                {data.today.toLocaleString()}
+              </span>
+              <span className="mb-1.5 inline-flex items-center gap-1 rounded-full bg-white/15 px-2.5 py-0.5 text-[9px] font-black uppercase tracking-wider text-white/90">
+                <UserPlus className="h-3 w-3" /> {data.today === 1 ? 'contacto' : 'contactos'}
+              </span>
+            </div>
+            <p className="mt-1.5 text-[10px] font-bold uppercase tracking-[0.1em] text-white/60">
+              Subidos al sistema · {hoy}
+            </p>
+          </div>
+        </div>
+
+        <div className="hidden items-center pr-1 text-white/50 transition-all duration-300 group-hover:translate-x-1 group-hover:text-white/90 md:flex">
+          <ArrowRight className="h-7 w-7" />
+        </div>
+      </div>
+    </Link>
   );
 }
 
