@@ -243,7 +243,7 @@ export function HomeProductCarousel({ collections, totalCount }: Props) {
                   className="flex items-center justify-center gap-1.5 text-[10px] font-black uppercase tracking-widest px-3.5 py-2 border border-stone-200 text-stone-700 hover:border-[#25D366] hover:text-[#25D366] transition-colors rounded-full cursor-pointer bg-white"
                 >
                   <WhatsAppIcon className="w-3 h-3" />
-                  Consultar
+                  WhatsApp
                 </button>
               </div>
             </div>
