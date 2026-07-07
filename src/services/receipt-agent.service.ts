@@ -4,6 +4,7 @@ import { SystemMessage, HumanMessage } from "@langchain/core/messages";
 import { getFileBuffer } from '@/lib/storage';
 import { detectBillingAccount, getBillingAccountConfig } from '@/lib/afip';
 import { retryWithBackoff } from '@/lib/retry-utils';
+import { notifyReceiptUploaded } from '@/lib/receipt-notify';
 
 export class ReceiptAgentService {
     /**
@@ -16,13 +17,30 @@ export class ReceiptAgentService {
         expectedAmount: number,
         method: string
     ) {
+        let adminEmailSent = false;
         try {
             console.log(`[ReceiptAgent] Beginning analysis for Payment ${paymentId}`);
+
+            const orderInfo = await prisma.order.findUnique({
+                where: { id: orderId },
+                select: { client: { select: { id: true, name: true } } }
+            });
+            const clientName = orderInfo?.client?.name || 'Desconocido';
+            const emailBase = {
+                clientName,
+                clientId: orderInfo?.client?.id,
+                orderId,
+                amount: expectedAmount,
+                method,
+                receiptUrl
+            };
 
             // 1. Convert file from storage to base64
             const buffer = await getFileBuffer(receiptUrl);
             if (!buffer) {
                 console.warn(`[ReceiptAgent] No se pudo leer el archivo ${receiptUrl}`);
+                adminEmailSent = true;
+                await notifyReceiptUploaded({ ...emailBase, auditErrors: null });
                 return;
             }
 
@@ -181,12 +199,6 @@ Solo devuelve el JSON, sin texto antes ni después.`;
 
             // 6. Report if errors
             if (errors.length > 0) {
-                const clientNameQuery = await prisma.order.findUnique({
-                    where: { id: orderId },
-                    select: { client: { select: { name: true } } }
-                });
-                const clientName = clientNameQuery?.client?.name || 'Desconocido';
-
                 const alertMsg = `ERROR IA en Comprobante (${clientName}): ${errors.join(' ')}`;
 
                 await prisma.notification.create({
@@ -198,18 +210,17 @@ Solo devuelve el JSON, sin texto antes ni después.`;
                         status: 'PENDING'
                     }
                 });
-
-                // Send immediate email alert to admin
-                import('@/lib/email').then(({ sendEmail }) => {
-                    sendEmail({
-                        to: process.env.ADMIN_EMAIL || 'pisano.ishtar@gmail.com',
-                        subject: '⚠️ Alerta de Auditoría de Comprobante',
-                        text: `El auditor automático de comprobantes ha detectado observaciones en el pago de la orden #${orderId.slice(-4).toUpperCase()} del cliente "${clientName}".\n\nDetalles:\n${errors.map(e => `- ${e}`).join('\n')}\n\nPuedes revisar esto en el panel de administración.`
-                    });
-                }).catch(err => console.error('[ReceiptAgent Email Alert Error]', err));
             } else {
                  console.log(`[ReceiptAgent] Payment ${paymentId} check passed successfully.`);
             }
+
+            // Email único al admin: comprobante adjunto + veredicto de la auditoría
+            adminEmailSent = true;
+            await notifyReceiptUploaded({
+                ...emailBase,
+                reference: extracted.transaction_id || null,
+                auditErrors: errors
+            });
 
         } catch (err: any) {
              const { handleAIError } = await import('@/lib/ai-error-handler');
@@ -217,6 +228,26 @@ Solo devuelve el JSON, sin texto antes ni después.`;
                  await handleAIError(err, 'Agente Auditor de Comprobantes (OCR)');
              } catch (handledError: any) {
                  console.error(`[ReceiptAgent] Agent failed for ${paymentId}:`, handledError.message);
+             }
+             // Aunque la auditoría falle, el admin recibe el comprobante por email
+             if (!adminEmailSent) {
+                 try {
+                     const orderInfo = await prisma.order.findUnique({
+                         where: { id: orderId },
+                         select: { client: { select: { id: true, name: true } } }
+                     });
+                     await notifyReceiptUploaded({
+                         clientName: orderInfo?.client?.name || 'Desconocido',
+                         clientId: orderInfo?.client?.id,
+                         orderId,
+                         amount: expectedAmount,
+                         method,
+                         receiptUrl,
+                         auditErrors: null
+                     });
+                 } catch (emailErr) {
+                     console.error('[ReceiptAgent] No se pudo enviar el email de comprobante:', emailErr);
+                 }
              }
         }
     }

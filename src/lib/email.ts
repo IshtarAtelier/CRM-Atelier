@@ -38,6 +38,8 @@ interface SendEmailOptions {
         filename: string;
         content: string | Buffer;
         encoding?: string;
+        contentType?: string;
+        cid?: string; // para embeber imágenes inline con <img src="cid:...">
     }>;
 }
 
@@ -62,7 +64,9 @@ async function sendViaResend({ to, subject, text, html, attachments }: SendEmail
             // Resend espera el contenido como base64 string
             content: Buffer.isBuffer(a.content)
                 ? a.content.toString('base64')
-                : a.content
+                : a.content,
+            ...(a.contentType ? { content_type: a.contentType } : {}),
+            ...(a.cid ? { content_id: a.cid } : {})
         }));
     }
 
