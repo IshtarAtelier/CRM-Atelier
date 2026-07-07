@@ -21,6 +21,8 @@ interface SendEmailOptions {
         filename: string;
         content: string | Buffer;
         encoding?: string;
+        contentType?: string;
+        cid?: string; // para embeber imágenes inline con <img src="cid:...">
     }>;
 }
 
