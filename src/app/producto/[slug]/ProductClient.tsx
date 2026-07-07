@@ -659,7 +659,7 @@ export function ProductClient({
                 rel="noopener noreferrer"
                 className="text-xs text-stone-500 font-bold uppercase tracking-widest hover:text-black transition-colors flex items-center justify-center gap-1.5"
               >
-                Consultar dudas por WhatsApp
+                <WhatsAppIcon className="w-3.5 h-3.5 fill-current" /> Escribinos por WhatsApp
               </a>
             </div>
           </div>
