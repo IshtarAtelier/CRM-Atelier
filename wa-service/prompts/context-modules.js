@@ -174,8 +174,8 @@ const MODULES = [
         trigger: ({ text }) => /multifocal|bifocal|progresiv|cerca y (de )?lejos|lejos y (de )?cerca|varilux/.test(text),
         text: {
             sales: `<multifocales_y_bifocales>
-  - MULTIFOCALES: Cuando expliques qué es un multifocal, es OBLIGATORIO que pegues exactamente este texto en tu respuesta: [IMAGE: https://crm-atelier-production-ae72.up.railway.app/api/storage/view?key=agent_1780528296961_multifocales.jpg]
-  - BIFOCALES: Cuando expliques qué es un bifocal, es OBLIGATORIO que pegues exactamente este texto en tu respuesta: [IMAGE: https://crm-atelier-production-ae72.up.railway.app/api/storage/view?key=agent_1780528106345_BIFOCAL.jpg]
+  - MULTIFOCALES: "Son lentes progresivos que te permiten ver bien a todas las distancias (lejos, intermedio y cerca) sin saltos de imagen y con un solo anteojo."
+  - BIFOCALES: "Tienen dos zonas bien definidas: la parte de arriba para lejos y la ventanita de abajo para cerca."
   - 🏠 A DISTANCIA: Multifocales a distancia mediante videollamada o foto.
 </multifocales_y_bifocales>`,
             executive: `<multifocales_y_bifocales>

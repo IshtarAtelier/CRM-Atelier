@@ -739,6 +739,11 @@ async function processBotTurn(chat, waId, profileName, realPhone) {
                 return;
             }
 
+            // Kill-switch de imágenes: por ahora el bot NO envía ninguna imagen.
+            // Cuando la web esté lista, va a usar las fotos de los productos
+            // activos cargados en la web — recién ahí volver a poner true.
+            const BOT_IMAGES_ENABLED = false;
+
             const messageBlocks = cleanResponseText.split('\n\n').map(b => b.trim()).filter(b => b.length > 0);
             
             for (let i = 0; i < messageBlocks.length; i++) {
@@ -755,6 +760,12 @@ async function processBotTurn(chat, waId, profileName, realPhone) {
                 
                 // Limpiar todos los tags de imagen del texto
                 block = block.replace(/\[IMAGE:\s*(https?:\/\/[^\]]+)\]/gi, '').trim();
+
+                // Con las imágenes apagadas, descartar las URLs y mandar solo el texto
+                if (!BOT_IMAGES_ENABLED && mediaUrls.length > 0) {
+                    console.log(`  🚫 [Imágenes OFF] ${mediaUrls.length} imagen(es) descartada(s); se envía solo texto.`);
+                    mediaUrls.length = 0;
+                }
 
                 // Si no hay texto ni imágenes, saltar
                 if (block.length === 0 && mediaUrls.length === 0) continue;
