@@ -162,7 +162,7 @@ export async function POST(req: Request) {
 
     const shippingMethodLabel = (() => {
       switch (customer.shippingMethod) {
-        case 'LOCAL': return 'Cadetería Local (Cba/Carlos Paz)';
+        case 'LOCAL': return 'Retiro en Tienda (Córdoba)';
         case 'CORREO_DOMICILIO': return 'Envío a Domicilio (Correo Argentino)';
         case 'CORREO_SUCURSAL': return 'Envío a Sucursal (Correo Argentino)';
         default: return customer.shippingMethod || 'No especificado';
@@ -529,7 +529,7 @@ export async function POST(req: Request) {
           total: customer.paymentMethod === 'TRANSFER' ? finalItemsTotal * transferMultiplier : finalItemsTotal,
           appliedPromoName: appliedCouponCode ? `Cupón ${appliedCouponCode}` : undefined,
           appliedPromoDiscount: couponDiscount > 0 ? couponDiscount : undefined,
-          labNotes: `Método de envío: ${shippingMethodLabel}${customer.shippingBranch ? ` (Sucursal: ${customer.shippingBranch})` : ''}. Método de pago: ${customer.paymentMethod}. Dirección: ${customer.address}, ${customer.city}, ${customer.state} ${customer.zip}${appliedCouponCode ? `. Cupón: ${appliedCouponCode} (-$${couponDiscount})` : ''}`,
+          labNotes: `Método de envío: ${shippingMethodLabel}${customer.shippingBranch ? ` (Sucursal: ${customer.shippingBranch})` : ''}. Método de pago: ${customer.paymentMethod}.${customer.shippingMethod === 'LOCAL' ? '' : ` Dirección: ${customer.address}, ${customer.city}, ${customer.state} ${customer.zip}`}${appliedCouponCode ? `. Cupón: ${appliedCouponCode} (-$${couponDiscount})` : ''}`,
           items: {
             create: orderItemsToCreate
           }

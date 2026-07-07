@@ -88,16 +88,6 @@ export function CheckoutClient({
 
   const whatsappPhoneId = webSettings?.web_store_whatsapp_id || WHATSAPP_PHONE;
 
-  const isLocalCity = (() => {
-    const city = (formData.city || "").toLowerCase().trim();
-    return city === "cordoba" || 
-           city === "córdoba" || 
-           city === "cordoba capital" || 
-           city === "córdoba capital" || 
-           city === "carlos paz" || 
-           city === "villa carlos paz";
-  })();
-
   useEffect(() => {
     if (paywayConfig) {
       // Load Decidir SDK immediately on mount using server props
@@ -198,19 +188,6 @@ export function CheckoutClient({
       isMounted = false;
     };
   }, []);
-
-  // Auto-adjust shipping method when local/national city transitions
-  useEffect(() => {
-    if (isLocalCity) {
-      if (formData.shippingMethod !== "LOCAL" && formData.shippingMethod !== "CORREO_DOMICILIO" && formData.shippingMethod !== "CORREO_SUCURSAL") {
-        setFormData(prev => ({ ...prev, shippingMethod: "LOCAL" }));
-      }
-    } else {
-      if (formData.shippingMethod === "LOCAL") {
-        setFormData(prev => ({ ...prev, shippingMethod: "CORREO_DOMICILIO" }));
-      }
-    }
-  }, [isLocalCity, formData.shippingMethod]);
 
   useEffect(() => {
     if (mounted) {
@@ -588,7 +565,7 @@ export function CheckoutClient({
             <fieldset disabled={isProcessing} className="flex flex-col gap-10 border-0 p-0 m-0 disabled:opacity-75 transition-opacity">
               <CheckoutContactForm formData={formData} handleChange={handleChange} />
               
-              <CheckoutShippingForm formData={formData} handleChange={handleChange} isLocalCity={isLocalCity} hasCrystals={hasCrystals} />
+              <CheckoutShippingForm formData={formData} handleChange={handleChange} hasCrystals={hasCrystals} />
               
               <CheckoutPaymentOptions formData={formData} handleChange={handleChange} isProcessing={isProcessing} webSettings={webSettings} paywayLoaded={paywayLoaded} isWholesale={isWholesale} />
             </fieldset>

@@ -236,7 +236,7 @@ export function getConfirmationHtml(customer: any, orderId: string, emailTotal: 
             <td style="padding: 22px 26px; font-family: ${SANS}; font-size: 13px; line-height: 2.1; color: #d8d2c4;">
               <span style="color: ${GOLD}; letter-spacing: 3px; font-size: 11px; text-transform: uppercase; font-weight: bold;">Tu env&iacute;o</span><br/>
               <strong style="color: ${IVORY};">M&eacute;todo:</strong> ${shippingMethodLabel} ${customer.shippingBranch ? `(Sucursal: ${customer.shippingBranch})` : ''}<br/>
-              <strong style="color: ${IVORY};">Tiempo de tr&aacute;nsito:</strong> ${customer.shippingMethod === 'LOCAL' ? 'Entrega express 24-48hs hábiles.' : '3 a 5 días hábiles desde que se despacha.'}<br/>
+              <strong style="color: ${IVORY};">${customer.shippingMethod === 'LOCAL' ? 'Retiro:' : 'Tiempo de tr&aacute;nsito:'}</strong> ${customer.shippingMethod === 'LOCAL' ? 'Te avisamos por WhatsApp apenas tu pedido esté listo para retirar en nuestro atelier de Cerro de las Rosas.' : '3 a 5 días hábiles desde que se despacha.'}<br/>
               <strong style="color: ${IVORY};">Preparaci&oacute;n / despacho:</strong> ${hasCrystals ? '5 días hábiles por calibración y trabajo de laboratorio a medida.' : 'Despacho rápido dentro de los 2 días hábiles.'}
             </td>
           </tr>
@@ -269,7 +269,7 @@ export function getAdminHtml(customer: any, orderId: string, emailTotal: number,
         <li><strong>WhatsApp:</strong> ${customer.phone}</li>
         <li><strong>DNI:</strong> ${customer.dni}</li>
         <li><strong>Método de Envío:</strong> ${shippingMethodLabel} ${customer.shippingBranch ? `(Sucursal: ${customer.shippingBranch})` : ''}</li>
-        <li><strong>Dirección:</strong> ${customer.address}, ${customer.city}, ${customer.state} ${customer.zip}</li>
+        ${customer.shippingMethod === 'LOCAL' ? '' : `<li><strong>Dirección:</strong> ${customer.address}, ${customer.city}, ${customer.state} ${customer.zip}</li>`}
       </ul>
 
       <h3 style="background: #f4f4f4; padding: 10px; margin-top: 20px;">Productos Comprados</h3>
@@ -367,7 +367,7 @@ export function getAdminWholesaleHtml(customer: any, orderId: string, emailTotal
         <li><strong>WhatsApp:</strong> ${customer.phone}</li>
         <li><strong>DNI/CUIT:</strong> ${customer.dni}</li>
         <li><strong>Método de Envío:</strong> ${shippingMethodLabel} ${customer.shippingBranch ? `(Sucursal: ${customer.shippingBranch})` : ''}</li>
-        <li><strong>Dirección:</strong> ${customer.address}, ${customer.city}, ${customer.state} ${customer.zip}</li>
+        ${customer.shippingMethod === 'LOCAL' ? '' : `<li><strong>Dirección:</strong> ${customer.address}, ${customer.city}, ${customer.state} ${customer.zip}</li>`}
       </ul>
 
       <h3 style="background: #f4f4f4; padding: 10px; margin-top: 20px;">Productos Comprados</h3>
