@@ -525,6 +525,9 @@ export async function POST(req: Request) {
           clientId: client.id,
           userId: systemUser.id,
           status: "WEB_PENDING",
+          // Las ventas web nacen en "Falta procesar": así aparecen en la solapa
+          // y el contador por defecto de Ventas Web, sin quedar sueltas en "Todas".
+          labStatus: "SENT",
           orderType: customer.paymentMethod.includes('MAYORISTA') ? "MAYORISTA" : "SALE",
           total: customer.paymentMethod === 'TRANSFER' ? finalItemsTotal * transferMultiplier : finalItemsTotal,
           appliedPromoName: appliedCouponCode ? `Cupón ${appliedCouponCode}` : undefined,
