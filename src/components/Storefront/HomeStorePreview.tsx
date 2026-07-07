@@ -14,13 +14,13 @@ export async function HomeStorePreview() {
   const whatsappPhoneId = settings.web_store_whatsapp_id || WHATSAPP_PHONE;
 
   return (
-    <section className="relative w-full bg-stone-950 py-24 lg:py-32 overflow-hidden border-t border-stone-900">
+    <section className="relative w-full bg-stone-950 pt-24 lg:pt-32 pb-16 lg:pb-20 overflow-hidden border-t border-stone-900">
       {/* Dynamic Background Effects */}
       <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-[#b08f4c]/10 rounded-full blur-[150px] pointer-events-none translate-x-1/3 -translate-y-1/3" />
       <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-[#b08f4c]/5 rounded-full blur-[120px] pointer-events-none -translate-x-1/3 translate-y-1/3" />
 
       <div className="relative max-w-[1400px] mx-auto px-6 lg:px-16">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-16 lg:gap-12 items-center">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-16 lg:gap-12 items-start">
           
           {/* Info Column (Left 5 cols on lg) */}
           <div className="lg:col-span-5 space-y-10">
