@@ -335,7 +335,7 @@ export function StorefrontNavbar({ theme = "dark", mixBlend = false, initialSett
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[100] bg-[#faf8f5]/70 dark:bg-stone-950/70 backdrop-blur-xl flex flex-col p-6 md:p-16 text-black dark:text-white"
+            className="fixed inset-0 z-[100] bg-[#faf8f5]/55 dark:bg-stone-950/60 backdrop-blur-[8px] flex flex-col p-6 md:p-16 text-black dark:text-white"
           >
             {/* Close button */}
             <div className="flex justify-between items-center mb-12">
