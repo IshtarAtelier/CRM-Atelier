@@ -412,7 +412,7 @@ export function TiendaClient({
                       <div className="absolute inset-0 transition-transform duration-700 ease-out md:group-hover:scale-110">
                         {imgUrl ? (
                           <div className="absolute inset-0 flex items-center justify-center">
-                            <Image unoptimized
+                            <Image unoptimized={String(imgUrl).startsWith('data:')}
                               src={imgUrl}
                               alt={`${p.brand} ${p.model}`}
                               fill
@@ -437,7 +437,7 @@ export function TiendaClient({
                         )}
 
                         {hasSecondImage && secondImgUrl && (
-                          <Image unoptimized
+                          <Image unoptimized={String(secondImgUrl).startsWith('data:')}
                             src={secondImgUrl}
                             alt={`${p.brand} ${p.model} Try-On`}
                             fill

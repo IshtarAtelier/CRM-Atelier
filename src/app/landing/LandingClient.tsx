@@ -341,7 +341,7 @@ export function LandingClient({
                 <div key={i} className="group bg-white">
                   <div className="relative h-48 md:h-64 w-full overflow-hidden">
                     <Image
-                      unoptimized
+                      unoptimized={String(p.img).startsWith('data:')}
                       src={p.img}
                       alt={p.name}
                       fill

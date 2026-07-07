@@ -108,7 +108,7 @@ export function HomeMacroFilm() {
       >
         <div className="absolute inset-0 w-[200%] h-full left-0">
           {/* WARNING: Do NOT change this image. The Acetate Macro Film is a critical brand asset requested by the owner. */}
-          <Image unoptimized
+          <Image
             src="/images/atelier-macro-film.webp"
             alt="Atelier Macro Detail Left"
             fill
@@ -139,7 +139,7 @@ export function HomeMacroFilm() {
       >
         <div className="absolute inset-0 w-[200%] h-full left-[-100%]">
           {/* WARNING: Do NOT change this image. The Acetate Macro Film is a critical brand asset requested by the owner. */}
-          <Image unoptimized
+          <Image
             src="/images/atelier-macro-film.webp"
             alt="Atelier Macro Detail Right"
             fill

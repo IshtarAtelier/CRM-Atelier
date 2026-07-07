@@ -17,7 +17,7 @@ const FOLLOW_UP_TEXT_VARIANTS = [
     "Hola! Te escribo para saber si te quedó alguna duda o si querés que sigamos viendo opciones 😊",
     "Buenas! Cómo estás? Te escribo para ver si pudiste revisar la info y si te quedó alguna consulta sobre los armazones o lentes 👍",
     "Hola! Quería saber si tenías alguna consulta sobre el presupuesto o si querés que busquemos otras alternativas de cristales 👓",
-    "Buenas! Qué tal? Pasaba a ver si querés que sigamos con la seña del pedido o si necesitás ver algún otro detalle antes 🕶️",
+    "Hola! Qué tal? Pudiste ver las opciones que te pasé? Contame qué te parecieron, o si buscabas algo un poco más económico y vemos alternativas 👓",
     "Hola! Espero que estés bien. Te quedó alguna duda pendiente de lo que charlamos ayer o querés coordinar los lentes? 😊"
 ];
 

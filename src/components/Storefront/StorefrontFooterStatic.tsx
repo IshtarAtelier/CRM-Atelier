@@ -12,7 +12,7 @@ export function StorefrontFooterStatic() {
     <footer className="w-full relative z-10 overflow-hidden">
       {/* Cinematic Background Image */}
       <div className="absolute inset-0 z-0">
-        <Image unoptimized 
+        <Image
           src="/footer-hands-compressed.jpg" 
           alt="Atelier Creation" 
           fill 

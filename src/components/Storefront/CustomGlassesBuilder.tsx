@@ -493,7 +493,7 @@ export function CustomGlassesBuilder({ products }: { products: Product[] }) {
                         )}
  
                         <div className={`w-full aspect-[4/3] relative mb-3 flex items-center justify-center transition-all duration-500 isolate rounded-xl overflow-hidden bg-stone-50/50 ${isSelected ? 'opacity-100 scale-105' : 'opacity-70 group-hover:opacity-100'}`}>
-                          <Image unoptimized 
+                          <Image unoptimized={String((activeVariant.imagenesCatalogo.length > 0 ? resolveStorageUrl(activeVariant.imagenesCatalogo[0]) : "") || "/images/placeholder.svg").startsWith('data:')}
                             src={(activeVariant.imagenesCatalogo.length > 0 ? resolveStorageUrl(activeVariant.imagenesCatalogo[0]) : "") || "/images/placeholder.svg"}
                             alt={group.baseName}
                             fill

@@ -72,7 +72,7 @@ export default function MatiasTurchiPage() {
             <div className="aspect-[3/4] relative overflow-hidden bg-stone-200 rounded-3xl sticky top-24 shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
               <div className="absolute inset-0 bg-gradient-to-t from-stone-900/60 to-transparent z-10" />
               { }
-              <Image unoptimized src="/images/blog/matias-turchi.png" alt="Matías Turchi - Especialista en Lentes Multifocales en Córdoba" fill sizes="(max-width: 768px) 100vw, 400px" className="object-cover" />
+              <Image src="/images/blog/matias-turchi.png" alt="Matías Turchi - Especialista en Lentes Multifocales en Córdoba" fill sizes="(max-width: 768px) 100vw, 400px" className="object-cover" />
               <div className="absolute bottom-6 left-6 z-20 text-white">
                 <p className="text-xs uppercase tracking-widest font-medium tracking-tight mb-1 drop-shadow-[0_2px_10px_rgba(0,0,0,0.02)]">Certificación</p>
                 <p className="text-lg font-serif">Essilor Expert</p>

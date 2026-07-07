@@ -90,7 +90,7 @@ export function ProductClient({
   const getThumbnailLabel = (index: number) => {
     if (images[index]) {
       return (
-        <Image unoptimized
+        <Image unoptimized={String(images[index]).startsWith('data:')}
           src={images[index]} 
           alt={`Vista ${index + 1}`} 
           fill 
@@ -134,10 +134,10 @@ export function ProductClient({
             </div>
           )}
 
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 1.5, ease: [0.16, 1, 0.3, 1] }}
+            transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
             className="w-full lg:w-[85%] aspect-square relative bg-[#fdfdfd] border border-[#f0f0f0] shadow-sm flex items-center justify-center"
           >
             <AnimatePresence mode="wait">
@@ -150,10 +150,11 @@ export function ProductClient({
                   transition={{ duration: 0.4 }}
                   className={`absolute inset-0 z-10 isolate group-hover:scale-[1.3] group-hover:cursor-zoom-in transition-transform duration-700 ease-out origin-center ${activeImageIndex === 0 ? 'mix-blend-multiply' : ''}`}
                 >
-                  <Image unoptimized
-                    src={images[activeImageIndex]} 
+                  <Image unoptimized={String(images[activeImageIndex]).startsWith('data:')}
+                    src={images[activeImageIndex]}
                     alt={`${product.brand} ${product.model}`}
                     fill
+                    priority={activeImageIndex === 0}
                     sizes="(max-width: 1024px) 100vw, 85vw"
                     style={{ objectFit: activeImageIndex === 0 ? "contain" : "cover", transform: "translateZ(0)" }}
                     className={activeImageIndex === 0 ? (((product.model || '').toLowerCase().includes('tl3932 c3') || product.id === 'cmq5d11hf002rhy61fhvqs7nj') ? "p-0 scale-125" : ((product.model || '').toLowerCase().includes('diana') ? "p-0 scale-110" : "p-8 lg:p-12")) : ""}
@@ -254,7 +255,7 @@ export function ProductClient({
                       >
                         {v.imageUrl ? (
                           <div className="w-8 h-8 rounded-full overflow-hidden relative bg-white">
-                            <Image unoptimized
+                            <Image unoptimized={String(resolveStorageUrl(v.imageUrl)).startsWith('data:')}
                               src={resolveStorageUrl(v.imageUrl)}
                               alt={v.colorCode}
                               fill
@@ -627,7 +628,7 @@ export function ProductClient({
                   className="group block bg-white border border-[#f0f0f0] hover:border-stone-300 p-4 transition-all duration-300 rounded-lg"
                 >
                   <div className="aspect-square relative overflow-hidden bg-stone-50 mb-3 rounded-md">
-                    <Image unoptimized
+                    <Image unoptimized={String(resolveStorageUrl(p.imageUrl)).startsWith('data:')}
                       src={resolveStorageUrl(p.imageUrl)} 
                       alt={`${p.brand} ${p.model}`} 
                       fill 

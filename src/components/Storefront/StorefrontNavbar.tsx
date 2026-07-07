@@ -393,7 +393,7 @@ export function StorefrontNavbar({ theme = "dark", mixBlend = false, initialSett
                       >
                         <div className="w-16 h-16 bg-[#f5f5f5] dark:bg-stone-900 rounded-xl flex items-center justify-center overflow-hidden shrink-0 relative">
                           {imgUrl ? (
-                            <Image unoptimized src={imgUrl} alt={p.model} fill sizes="64px" className="object-contain mix-blend-multiply dark:mix-blend-normal" />
+                            <Image unoptimized={String(imgUrl).startsWith('data:')} src={imgUrl} alt={p.model} fill sizes="64px" className="object-contain mix-blend-multiply dark:mix-blend-normal" />
                           ) : (
                             <Search className="w-6 h-6 text-stone-300" />
                           )}

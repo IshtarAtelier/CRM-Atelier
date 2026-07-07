@@ -120,7 +120,7 @@ export default async function BlogPage() {
               <Link key={post.slug} href={`/blog/${post.slug}`} className={`group bg-white dark:bg-stone-900 rounded-3xl border border-stone-200 dark:border-stone-800 shadow-sm hover:shadow-xl hover:border-primary/40 transition-all duration-300 overflow-hidden flex flex-col ${layoutStyle}`}>
                 <div className={`${imgHeight} w-full overflow-hidden bg-stone-100 relative shrink-0`}>
                   { }
-                  <Image unoptimized src={post.imageUrl || '/images/blog/blog1_header.png'} alt={post.title} fill sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw" className={`object-cover group-hover:scale-105 transition-transform duration-700 ${post.slug === 'matias-turchi' ? 'object-top' : 'object-center'}`} />
+                  <Image unoptimized={String(post.imageUrl || '/images/blog/blog1_header.png').startsWith('data:')} src={post.imageUrl || '/images/blog/blog1_header.png'} alt={post.title} fill sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw" className={`object-cover group-hover:scale-105 transition-transform duration-700 ${post.slug === 'matias-turchi' ? 'object-top' : 'object-center'}`} />
                   <div className="absolute inset-0 bg-gradient-to-t from-stone-900/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                 </div>
                 <div className="p-6 lg:p-8 flex-1 flex flex-col relative bg-white dark:bg-stone-900 h-full">
@@ -158,7 +158,7 @@ export default async function BlogPage() {
                 const visualElement = (
                   <div key={`visual-${index}`} className="group col-span-1 md:col-span-1 lg:col-span-1 row-span-1 rounded-3xl overflow-hidden relative shadow-sm hover:shadow-xl transition-all duration-300 bg-stone-900">
                     { }
-                    <Image unoptimized src={visualBlocks[vIndex]} alt="Atelier Lifestyle" fill sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw" className="object-cover group-hover:scale-105 transition-transform duration-700 opacity-90 group-hover:opacity-100" />
+                    <Image unoptimized={String(visualBlocks[vIndex]).startsWith('data:')} src={visualBlocks[vIndex]} alt="Atelier Lifestyle" fill sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw" className="object-cover group-hover:scale-105 transition-transform duration-700 opacity-90 group-hover:opacity-100" />
                     <div className="absolute inset-0 bg-stone-900/10 group-hover:bg-transparent transition-colors duration-300" />
                     <div className="absolute bottom-6 left-6 right-6 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                       <p className="text-white text-xs font-bold uppercase tracking-widest drop-shadow-md">

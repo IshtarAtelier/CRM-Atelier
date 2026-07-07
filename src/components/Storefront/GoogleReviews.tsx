@@ -137,7 +137,7 @@ export function GoogleReviews() {
 
                 <div className="flex items-center gap-3 pt-5 border-t border-stone-100 mt-auto">
                   {review.profile_photo_url ? (
-                    <Image unoptimized 
+                    <Image unoptimized={String(review.profile_photo_url).startsWith('data:')}
                       src={review.profile_photo_url} 
                       alt={review.author_name} 
                       width={36}

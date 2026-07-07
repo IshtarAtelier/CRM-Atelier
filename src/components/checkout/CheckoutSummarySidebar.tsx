@@ -39,7 +39,7 @@ export function CheckoutSummarySidebar({ items, getCartTotal, formData, webSetti
         {items.map((item) => (
           <div key={item.id} className="flex gap-4">
             <div className="w-16 h-16 bg-white border border-stone-100 flex items-center justify-center overflow-hidden shrink-0 relative p-2">
-              <Image unoptimized src={item.image || '/images/og-image.jpg'} alt={item.model || 'Producto'} fill className="w-full h-full object-contain mix-blend-multiply p-2" />
+              <Image unoptimized={String(item.image || '/images/og-image.jpg').startsWith('data:')} src={item.image || '/images/og-image.jpg'} alt={item.model || 'Producto'} fill className="w-full h-full object-contain mix-blend-multiply p-2" />
               <div className="absolute -top-2 -right-2 bg-stone-200 text-[9px] font-bold w-5 h-5 rounded-full flex items-center justify-center z-10">
                 {item.quantity}
               </div>

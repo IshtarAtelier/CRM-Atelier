@@ -142,13 +142,20 @@ export default function CotizadorCart({
             return text;
         };
         const words = normalizeText(fullSearch).split(/\s+/).filter(Boolean);
+        // Relevancia: los términos que matchean la MARCA pesan más que los que solo
+        // matchean el modelo/nombre (ej: buscar "atelier" prioriza marca Atelier por
+        // sobre un KAZWINI cuyo modelo contiene "atelier").
+        const relevance = (p: any) => {
+            const brand = normalizeText(p.brand || '');
+            return words.reduce((score, w) => score + (brand.includes(w) ? 1 : 0), 0);
+        };
         return availableProducts
             .filter(p => {
                 const haystack = normalizeText(`${p.brand || ''} ${p.model || ''} ${p.name || ''} ${p.type || ''} ${p.category || ''} ${p.lensIndex || ''}`);
                 return words.every(w => haystack.includes(w));
             })
-            .sort((a, b) => safePrice(a.price) - safePrice(b.price))
-            .slice(0, 15);
+            .sort((a, b) => (relevance(b) - relevance(a)) || (safePrice(a.price) - safePrice(b.price)))
+            .slice(0, 30);
     }, [fullSearch, availableProducts]);
 
     const frameResults = useMemo(() => {
@@ -165,14 +172,18 @@ export default function CotizadorCart({
             return text;
         };
         const words = normalizeText(frameSearch).split(/\s+/).filter(Boolean);
+        const relevance = (p: any) => {
+            const brand = normalizeText(p.brand || '');
+            return words.reduce((score, w) => score + (brand.includes(w) ? 1 : 0), 0);
+        };
         return availableProducts
             .filter(p => {
                 if (!isFrame(p)) return false;
                 const haystack = normalizeText(`${p.brand || ''} ${p.model || ''} ${p.name || ''} ${p.type || ''} ${p.category || ''}`);
                 return words.every(w => haystack.includes(w));
             })
-            .sort((a, b) => safePrice(a.price) - safePrice(b.price))
-            .slice(0, 15);
+            .sort((a, b) => (relevance(b) - relevance(a)) || (safePrice(a.price) - safePrice(b.price)))
+            .slice(0, 30);
     }, [frameSearch, availableProducts]);
 
     const framesInQuote = items.filter(i => i.product && isFrame(i.product));
