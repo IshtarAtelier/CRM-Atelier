@@ -1,12 +1,20 @@
 import { Metadata } from 'next';
-import { redirect } from 'next/navigation';
+import { redirect, permanentRedirect } from 'next/navigation';
 import { prisma } from '@/lib/db';
+import { rethrowUnlessBuild } from '@/lib/db-guard';
 import { getProductAttributes } from '@/utils/product-controllers';
 
 export const revalidate = 300;
 import { ProductClient } from './ProductClient';
 import { StorefrontFooter } from '@/components/Storefront/StorefrontFooter';
 import { resolveStorageUrl } from "@/lib/utils/storage";
+
+// Slugs históricos de productos renombrados (julio 2026): la URL vieja redirige a la definitiva
+const LEGACY_SLUGS: Record<string, string> = {
+  'poseidon': 'dionisio-c2',
+  'venus-c4': 'hera-c4',
+  'clip-on-roma-7036-c2-lentes-de-sol-armazon': 'clip-on-genova-7036-c2-lentes-de-sol-armazon',
+};
 
 // Constante para el producto demo
 const DEMO_PRODUCT = {
@@ -97,7 +105,9 @@ async function getProduct(slug: string) {
       ageGroup: product.ageGroup,
     };
   } catch (error) {
-    console.error("Prerendering warning: Database not reachable at build time inside getProduct.", error);
+    // Falla de DB ≠ producto inexistente: en runtime lanzamos para no cachear
+    // un redirect a /tienda sobre una página de producto que sí existe.
+    rethrowUnlessBuild(error, 'Producto');
     return null;
   }
 }
@@ -162,6 +172,9 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 
 export default async function ProductPage({ params }: { params: Promise<{ slug: string }> }) {
   const resolvedParams = await params;
+  if (LEGACY_SLUGS[resolvedParams.slug]) {
+    permanentRedirect(`/producto/${LEGACY_SLUGS[resolvedParams.slug]}`);
+  }
   const product = await getProduct(resolvedParams.slug);
 
   if (!product) {
