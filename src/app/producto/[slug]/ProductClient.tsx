@@ -644,7 +644,7 @@ export function ProductClient({
                 href={`https://wa.me/${whatsappPhoneId}?text=${encodeURIComponent(
                   isWholesale 
                     ? `¡Hola! Soy de la óptica ${currentUser?.name || ''} y quiero consultar por el anteojo mayorista ${product.brand || ''} ${product.model || ''} por $${(product.wholesalePrice || product.price || 0).toLocaleString("es-AR")}.`
-                    : `¡Hola! Quiero comprar el anteojo ${product.brand || ''} ${product.model || ''} por $${(product.price || 0).toLocaleString("es-AR")}. ¿Me pasarían los datos para transferencia/link de pago?`
+                    : `¡Hola! Quiero comprar el anteojo ${product.brand || ''} ${product.model || ''} — $${Math.round((product.price || 0) * 0.85).toLocaleString("es-AR")} por transferencia o $${(product.price || 0).toLocaleString("es-AR")} en cuotas. ¿Me pasarían los datos de pago?`
                 )}`}
                 target="_blank"
                 rel="noopener noreferrer"

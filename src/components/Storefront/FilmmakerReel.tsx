@@ -165,14 +165,14 @@ export function FilmmakerReel({ reviewCount = 642, rating = 5.0 }: FilmmakerReel
       </AnimatePresence>
 
       {/* ─── FILM COUNTER / TIMECODE ─── */}
-      <div className="absolute top-[15%] left-6 z-30 font-mono text-[10px] text-white/40 tracking-widest select-none">
+      <div className="absolute top-[15%] left-6 z-30 font-mono text-[10px] text-white/60 tracking-widest select-none">
         {String(current + 1).padStart(2, "0")} / {String(FRAMES.length).padStart(2, "0")} &nbsp;·&nbsp; ATELIER FILMS
       </div>
 
       {/* ─── PLAY INDICATOR DOT ─── */}
       <div className="absolute top-[15%] right-6 z-30 flex items-center gap-2">
         <span className={`w-1.5 h-1.5 rounded-full ${isRotating ? "bg-red-500 animate-pulse" : "bg-white/40"}`} />
-        <span className="font-mono text-[9px] text-white/40 tracking-widest">{isRotating ? "REC" : "PAUSA"}</span>
+        <span className="font-mono text-[10px] text-white/60 tracking-widest">{isRotating ? "REC" : "PAUSA"}</span>
       </div>
 
       {/* ─── TEXT OVERLAY ─── */}
@@ -189,21 +189,21 @@ export function FilmmakerReel({ reviewCount = 642, rating = 5.0 }: FilmmakerReel
           >
             {/* Local SEO & Google Review Badges */}
             <div className="flex flex-wrap items-center gap-2 mb-3 select-none">
-              <span className="text-[9px] font-black uppercase tracking-[0.2em] bg-white/10 text-white px-2.5 py-1.5 backdrop-blur-md rounded-full flex items-center gap-1">
+              <span className="text-[10px] font-black uppercase tracking-[0.2em] bg-white/10 text-white px-2.5 py-1.5 backdrop-blur-md rounded-full flex items-center gap-1">
                 <span className="text-amber-500 text-[10px]">📍</span> Cerro de las Rosas, Córdoba
               </span>
               <a 
                 href="https://www.google.com/maps?cid=14830223812501661125"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-[9px] font-black uppercase tracking-[0.2em] bg-white/10 hover:bg-white/20 text-white px-2.5 py-1.5 backdrop-blur-md rounded-full flex items-center gap-1 transition-colors"
+                className="text-[10px] font-black uppercase tracking-[0.2em] bg-white/10 hover:bg-white/20 text-white px-2.5 py-1.5 backdrop-blur-md rounded-full flex items-center gap-1 transition-colors"
               >
                 <span className="text-amber-500">★</span> {rating.toFixed(1)} Google ({reviewCount} reseñas) · Verificada
               </a>
             </div>
 
             {/* Credit line */}
-            <p className="text-white/40 font-mono text-[10px] tracking-[0.25em] uppercase mb-3">
+            <p className="text-white/60 font-mono text-[10px] tracking-[0.25em] uppercase mb-3">
               {frame.credit} &nbsp;·&nbsp; {frame.year}
             </p>
             {/* Title */}
@@ -239,7 +239,7 @@ export function FilmmakerReel({ reviewCount = 642, rating = 5.0 }: FilmmakerReel
             </div>
 
             {/* Guided Flow Microcopy */}
-            <div className="flex items-center gap-2 mt-5 text-[9px] text-white/50 uppercase tracking-[0.2em] font-black select-none">
+            <div className="flex items-center gap-2 mt-5 text-[10px] text-white/50 uppercase tracking-[0.2em] font-black select-none">
               <span>1. Armazón</span>
               <span className="opacity-40">/</span>
               <span>2. Cristales</span>
@@ -277,7 +277,7 @@ export function FilmmakerReel({ reviewCount = 642, rating = 5.0 }: FilmmakerReel
         {/* Pause/Play */}
         <button
           onClick={() => setIsPlaying(p => !p)}
-          className="ml-2 text-white/40 hover:text-white transition-colors"
+          className="ml-2 text-white/60 hover:text-white transition-colors"
           aria-label={isPlaying ? "Pausar" : "Reproducir"}
         >
           {isPlaying ? (

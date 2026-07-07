@@ -18,6 +18,7 @@ export const metadata: Metadata = {
     description: 'Descubrí nuestra colección completa de anteojos de diseño. Marcos premium seleccionados a mano.',
     url: 'https://atelieroptica.com.ar/tienda',
     type: 'website',
+    images: [{ url: '/images/blog/mostrador-marmol.webp', width: 1200, height: 630, alt: 'Colección Atelier Óptica' }],
   },
 };
 

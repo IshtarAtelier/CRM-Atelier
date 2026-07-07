@@ -140,6 +140,10 @@ const nextConfig: NextConfig = {
   },
   async headers() {
     const isDev = process.env.NODE_ENV === 'development';
+    // El panel admin de WhatsApp abre un socket.io contra el wa-service (otro
+    // origen en Railway): sin esto, promover la CSP estricta rompería el tiempo real.
+    const waUrl = process.env.NEXT_PUBLIC_WA_URL?.replace(/\/$/, '');
+    const waOrigins = waUrl ? ` ${waUrl} ${waUrl.replace(/^https:/, 'wss:')}` : '';
     // CSP endurecida (sin wildcards en connect/frame, sin unsafe-eval en prod).
     // Corre como Report-Only junto a la CSP activa: loguea violaciones en la
     // consola del navegador sin bloquear nada. Cuando se valide en producción
@@ -150,7 +154,7 @@ const nextConfig: NextConfig = {
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       "img-src 'self' data: blob: https://kazwiniopticalgroup.com https://*.firebasestorage.googleapis.com https://firebasestorage.googleapis.com https://storage.googleapis.com https://promo.atelieroptica.com.ar https://lh3.googleusercontent.com https://www.facebook.com https://*.google-analytics.com https://www.googletagmanager.com https://stats.g.doubleclick.net",
       "font-src 'self' data: https://fonts.gstatic.com",
-      "connect-src 'self' https://live.decidir.com https://developers.decidir.com https://*.google-analytics.com https://*.analytics.google.com https://www.googletagmanager.com https://www.facebook.com https://mercados.ambito.com",
+      `connect-src 'self' https://live.decidir.com https://developers.decidir.com https://*.google-analytics.com https://*.analytics.google.com https://www.googletagmanager.com https://www.facebook.com https://mercados.ambito.com${waOrigins}`,
       "frame-src 'self' https://maps.google.com https://www.google.com",
       "media-src 'self' blob:",
       "object-src 'none'",
@@ -164,7 +168,7 @@ const nextConfig: NextConfig = {
           { key: 'Strict-Transport-Security', value: 'max-age=31536000; includeSubDomains' },
           { key: 'X-Content-Type-Options', value: 'nosniff' },
           { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
-          { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
+          { key: 'Permissions-Policy', value: 'camera=(), microphone=(self), geolocation=()' },
           { key: 'Content-Security-Policy', value: "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' https://live.decidir.com https://developers.decidir.com https://www.googletagmanager.com https://connect.facebook.net https://www.google-analytics.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob: https://kazwiniopticalgroup.com https://*.firebasestorage.googleapis.com https://firebasestorage.googleapis.com https://storage.googleapis.com https://promo.atelieroptica.com.ar https://lh3.googleusercontent.com; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' https://* wss://*; frame-src 'self' https://*; media-src 'self' https://cdn.pixabay.com;" },
           { key: 'Content-Security-Policy-Report-Only', value: cspStrict },
         ],

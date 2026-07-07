@@ -150,14 +150,14 @@ export function HomeProductCarousel({ collections, totalCount }: Props) {
               <div className="bg-[#f5f5f5] aspect-square overflow-hidden border-r border-[#e5e5e5] relative isolate">
                 {/* Badge Urgencia / Escasez */}
                 {item.stock !== undefined && item.stock > 0 && item.stock <= 3 && (
-                  <span className="absolute top-3 right-3 z-10 bg-red-650 text-white text-[7.5px] font-black uppercase tracking-[0.15em] px-2.5 py-1 rounded shadow-md animate-pulse">
+                  <span className="absolute top-3 right-3 z-10 bg-red-600 text-white text-[10px] font-black uppercase tracking-[0.15em] px-2.5 py-1 rounded shadow-md animate-pulse">
                     Últimas {item.stock} u.
                   </span>
                 )}
 
                 {/* Titanium Badge */}
                 {isTitanium && (
-                  <span className="absolute bottom-3 left-3 text-[8px] font-black uppercase tracking-[0.18em] bg-stone-900/90 text-stone-100 backdrop-blur-sm px-2.5 py-1 z-10 border border-stone-850 shadow-md flex items-center gap-1.5 rounded-sm">
+                  <span className="absolute bottom-3 left-3 text-[10px] font-black uppercase tracking-[0.18em] bg-stone-900/90 text-stone-100 backdrop-blur-sm px-2.5 py-1 z-10 border border-stone-700 shadow-md flex items-center gap-1.5 rounded-sm">
                     <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
                     Titanio
                   </span>
@@ -200,7 +200,7 @@ export function HomeProductCarousel({ collections, totalCount }: Props) {
                   <div className="flex items-center justify-between gap-2">
                     <h3 className="text-[12px] font-bold text-stone-900 line-clamp-1 uppercase tracking-wide">{item.name}</h3>
                     {isTitanium && (
-                      <span className="text-[7.5px] font-black uppercase tracking-[0.15em] bg-amber-50 text-amber-800 border border-amber-200 px-2 py-0.5 rounded-full whitespace-nowrap">
+                      <span className="text-[10px] font-black uppercase tracking-[0.15em] bg-amber-50 text-amber-800 border border-amber-200 px-2 py-0.5 rounded-full whitespace-nowrap">
                         Titanio
                       </span>
                     )}

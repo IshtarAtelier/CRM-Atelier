@@ -180,7 +180,7 @@ export default function FAQPage() {
             Nuestro equipo de especialistas está listo para responder tus dudas por WhatsApp.
           </p>
           <a 
-            href={`https://wa.me/5493513447219?text=${encodeURIComponent('Hola, tengo una consulta sobre anteojos/cristales.')}`}
+            href={`https://wa.me/5493518685644?text=${encodeURIComponent('Hola, tengo una consulta sobre anteojos/cristales.')}`}
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center justify-center px-8 py-4 bg-[#25D366] text-white rounded-full font-bold text-lg shadow-lg hover:bg-[#20bd5a] hover:-translate-y-1 transition-all"

@@ -1,7 +1,7 @@
 import { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Contacto | Atelier Óptica Córdoba',
+  title: 'Contacto',
   description: 'Contactá a Atelier Óptica Córdoba. WhatsApp, Instagram y visita a nuestro local en Cerro de las Rosas. Turnos y consultas.',
   alternates: { canonical: 'https://atelieroptica.com.ar/contacto' },
   openGraph: {

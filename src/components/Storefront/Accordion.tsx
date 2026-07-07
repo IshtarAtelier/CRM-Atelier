@@ -32,7 +32,7 @@ export function AccordionItem({ title, subtitle, children, defaultOpen = false }
         ref={contentRef}
         className="transition-all duration-300 ease-in-out"
         style={{
-          maxHeight: isOpen ? `${contentRef.current?.scrollHeight}px` : "0px",
+          maxHeight: isOpen ? (contentRef.current ? `${contentRef.current.scrollHeight}px` : "none") : "0px",
           opacity: isOpen ? 1 : 0,
         }}
       >

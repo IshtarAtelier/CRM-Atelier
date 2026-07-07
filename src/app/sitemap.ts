@@ -18,13 +18,23 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     '/lentes-de-sol',
     '/receta',
     '/lentes-de-contacto',
-    '/cristales-opticos',
+    '/cristales-opticos/varilux',
+    '/cristales-opticos/antirreflejo',
+    '/cristales-opticos/crizal',
+    '/cristales-opticos/transitions',
+    '/cristales-opticos/blue-uv',
+    '/cristales-opticos/super-blue',
+    '/cristales-opticos/eyezen',
+    '/cristales-opticos/stellest',
+    '/cristales-opticos/myofix',
+    '/cristales-opticos/policarbonato',
+    '/cristales-opticos/kodak',
+    '/cristales-opticos/xperio',
     '/clip-on',
     '/resenas',
     '/blog',
     '/blog/faq',
     '/arma-tus-lentes',
-    '/varilux',
   ].map((route) => ({
     url: `${baseUrl}${route}`,
     lastModified: new Date(),
@@ -139,13 +149,19 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.8,
   }));
 
-  return [
+  // Dedupe por URL — los posts de DB pisan a los fallbacks hardcodeados
+  // (traen lastModified real) y evitamos las ~30 entradas duplicadas del blog.
+  const byUrl = new Map<string, any>();
+  for (const route of [
     ...staticRoutes,
     ...physicalBlogRoutes,
     ...fallbackBlogRoutes,
     ...dbBlogRoutes,
     ...productRoutes,
-    ...seoKeywordRoutes
-  ];
+    ...seoKeywordRoutes,
+  ]) {
+    byUrl.set(route.url, route);
+  }
+  return Array.from(byUrl.values());
 }
 

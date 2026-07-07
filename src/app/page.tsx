@@ -32,6 +32,7 @@ export const metadata: Metadata = {
     description: "Especialistas en anteojos de receta, lentes de sol, y multifocales Varilux. Envíos a todo el país y presupuestos por WhatsApp.",
     url: 'https://atelieroptica.com.ar',
     type: 'website',
+    images: [{ url: '/images/og-image.jpg', width: 1200, height: 630 }],
   },
 };
 

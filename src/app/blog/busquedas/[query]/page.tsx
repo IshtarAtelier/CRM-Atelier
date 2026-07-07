@@ -75,7 +75,7 @@ export default async function BusquedaPage({ params }: PageProps) {
           </p>
           <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
             <a 
-              href={`https://wa.me/5493513447219?text=${whatsappMessage}`}
+              href={`https://wa.me/5493518685644?text=${whatsappMessage}`}
               target="_blank"
               rel="noopener noreferrer"
               className="w-full sm:w-auto inline-flex items-center justify-center px-8 py-4 bg-[#25D366] text-white rounded-full font-bold text-lg shadow-lg hover:bg-[#20bd5a] hover:-translate-y-1 transition-all"

@@ -239,12 +239,12 @@ export function TiendaClient({
       <div className="pt-28 pb-8 bg-white border-b border-stone-100">
         <div className="max-w-[1600px] mx-auto px-5 flex flex-col md:flex-row md:items-end justify-between gap-4">
           <div>
-            <p className="text-[10px] font-black uppercase tracking-[0.25em] text-stone-400 mb-2">Atelier Óptica</p>
+            <p className="text-[10px] font-black uppercase tracking-[0.25em] text-stone-500 mb-2">Atelier Óptica</p>
             <h1 className="text-4xl md:text-5xl font-serif">
               Tienda — Anteojos de diseño
             </h1>
           </div>
-          <p className="text-sm text-stone-400 max-w-xs leading-relaxed">
+          <p className="text-sm text-stone-500 max-w-xs leading-relaxed">
             Armazones seleccionados a mano. Cada pieza elegida por diseño, calidad y carácter.
           </p>
         </div>
@@ -312,7 +312,7 @@ export function TiendaClient({
               {activeCategory !== "Todo" && (
                 <button
                   onClick={() => setActiveCategory("Todo")}
-                  className="shrink-0 ml-2 flex items-center gap-1 text-[10px] font-bold text-stone-400 hover:text-black transition-colors"
+                  className="shrink-0 ml-2 flex items-center gap-1 text-[10px] font-bold text-stone-500 hover:text-black transition-colors"
                 >
                   <X className="w-3 h-3" /> Limpiar
                 </button>
@@ -389,7 +389,7 @@ export function TiendaClient({
               </div>
             </div>
             {searchQuery && (
-              <p className="text-[10px] font-bold text-stone-400 uppercase tracking-widest mt-2 px-2">
+              <p className="text-[10px] font-bold text-stone-500 uppercase tracking-widest mt-2 px-2">
                 Resultados para &quot;{searchQuery}&quot;: {totalCount} {totalCount === 1 ? "modelo encontrado" : "modelos encontrados"}
               </p>
             )}
@@ -451,7 +451,7 @@ export function TiendaClient({
                           </span>
                         )}
                         {p.stock !== undefined && p.stock > 0 && p.stock <= 3 && (
-                          <span className="bg-red-650 text-white text-[7.5px] font-black uppercase tracking-[0.15em] px-2.5 py-1 rounded shadow-md animate-pulse">
+                          <span className="bg-red-600 text-white text-[10px] font-black uppercase tracking-[0.15em] px-2.5 py-1 rounded shadow-md animate-pulse">
                             Últimas {p.stock} u.
                           </span>
                         )}
@@ -498,14 +498,14 @@ export function TiendaClient({
 
                       {/* Badge categoría */}
                       {p.category && (
-                        <span className="absolute top-3 left-3 text-[8px] font-black uppercase tracking-widest bg-white/80 backdrop-blur-sm px-2 py-1 z-10">
+                        <span className="absolute top-3 left-3 text-[10px] font-black uppercase tracking-widest bg-white/80 backdrop-blur-sm px-2 py-1 z-10">
                           {p.shape === "XL" ? `${p.category} · XL` : p.category}
                         </span>
                       )}
 
                       {/* Titanium Badge */}
                       {p.material === "Titanio" && (
-                        <span className="absolute bottom-3 left-3 text-[8px] font-black uppercase tracking-[0.18em] bg-stone-900/90 text-stone-100 backdrop-blur-sm px-2.5 py-1 z-10 border border-stone-800 shadow-md flex items-center gap-1.5 rounded-sm">
+                        <span className="absolute bottom-3 left-3 text-[10px] font-black uppercase tracking-[0.18em] bg-stone-900/90 text-stone-100 backdrop-blur-sm px-2.5 py-1 z-10 border border-stone-800 shadow-md flex items-center gap-1.5 rounded-sm">
                           <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
                           Titanio
                         </span>
@@ -517,7 +517,7 @@ export function TiendaClient({
                       <div className="flex items-center justify-between mb-0.5">
                         <h3 className="text-[10px] text-stone-500 font-black uppercase tracking-[0.20em]">{p.brand || 'ATELIER'}</h3>
                         {p.material === "Titanio" && (
-                          <span className="text-[8px] font-black uppercase tracking-[0.15em] bg-amber-50 text-amber-800 border border-amber-200 px-2 py-0.5 rounded-full">
+                          <span className="text-[10px] font-black uppercase tracking-[0.15em] bg-amber-50 text-amber-800 border border-amber-200 px-2 py-0.5 rounded-full">
                             Titanio
                           </span>
                         )}
@@ -536,7 +536,7 @@ export function TiendaClient({
                               ${(p.wholesalePrice || p.price || 0).toLocaleString("es-AR")}
                             </p>
                             {p.wholesalePrice < p.price && (
-                              <p className="text-xs font-medium text-stone-400 line-through decoration-1">
+                              <p className="text-xs font-medium text-stone-500 line-through decoration-1">
                                 ${(p.price || 0).toLocaleString("es-AR")} (P. Lista)
                               </p>
                             )}
@@ -547,7 +547,7 @@ export function TiendaClient({
                           <p className="text-lg font-black text-stone-900 tracking-tight">
                             ${Math.round((p.price || 0) * (1 - discountRate)).toLocaleString("es-AR")}
                           </p>
-                          <p className="text-sm font-medium text-stone-400 line-through decoration-1">
+                          <p className="text-sm font-medium text-stone-500 line-through decoration-1">
                             ${(p.price || 0).toLocaleString("es-AR")}
                           </p>
                         </div>

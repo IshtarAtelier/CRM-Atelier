@@ -91,7 +91,7 @@ export function ContactoClient({
 
           <div>
             {/* Live Status Badge */}
-            <div className="flex items-center gap-2 bg-[#c8a55c]/10 border border-[#c8a55c]/20 text-[#967634] text-[9px] font-bold tracking-widest uppercase px-3 py-1.5 rounded-full w-max mb-8">
+            <div className="flex items-center gap-2 bg-[#c8a55c]/10 border border-[#c8a55c]/20 text-[#8a6d3b] text-[9px] font-bold tracking-widest uppercase px-3 py-1.5 rounded-full w-max mb-8">
               <span className="relative flex h-2 w-2">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
@@ -191,14 +191,15 @@ export function ContactoClient({
           ) : (
             <form className="space-y-6" onSubmit={handleSubmit}>
               <h3 className="font-serif text-2xl text-stone-900 mb-2">Dejanos tu consulta</h3>
-              <p className="text-xs text-stone-400 mb-6">
+              <p className="text-xs text-stone-500 mb-6">
                 Si preferís escribirnos un email, completá los campos a continuación y te responderemos por correo.
               </p>
 
               <div>
-                <label className="block text-[10px] font-bold uppercase tracking-widest text-[#a07e3c] mb-1">Nombre completo</label>
+                <label htmlFor="contacto-name" className="block text-[11px] font-bold uppercase tracking-widest text-[#8a6d3b] mb-1">Nombre completo</label>
                 <input 
                   type="text" 
+                  id="contacto-name"
                   name="name" 
                   value={formData.name} 
                   onChange={handleChange} 
@@ -210,9 +211,10 @@ export function ContactoClient({
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 <div>
-                  <label className="block text-[10px] font-bold uppercase tracking-widest text-[#a07e3c] mb-1">Email</label>
+                  <label htmlFor="contacto-email" className="block text-[11px] font-bold uppercase tracking-widest text-[#8a6d3b] mb-1">Email</label>
                   <input 
                     type="email" 
+                    id="contacto-email"
                     name="email" 
                     value={formData.email} 
                     onChange={handleChange} 
@@ -222,9 +224,10 @@ export function ContactoClient({
                   />
                 </div>
                 <div>
-                  <label className="block text-[10px] font-bold uppercase tracking-widest text-[#a07e3c] mb-1">Teléfono / WhatsApp</label>
+                  <label htmlFor="contacto-phone" className="block text-[11px] font-bold uppercase tracking-widest text-[#8a6d3b] mb-1">Teléfono / WhatsApp</label>
                   <input 
                     type="tel" 
+                    id="contacto-phone"
                     name="phone" 
                     value={formData.phone} 
                     onChange={handleChange} 
@@ -235,9 +238,10 @@ export function ContactoClient({
               </div>
 
               <div>
-                <label className="block text-[10px] font-bold uppercase tracking-widest text-[#a07e3c] mb-1">Asunto</label>
+                <label htmlFor="contacto-subject" className="block text-[11px] font-bold uppercase tracking-widest text-[#8a6d3b] mb-1">Asunto</label>
                 <input 
                   type="text" 
+                  id="contacto-subject"
                   name="subject" 
                   value={formData.subject} 
                   onChange={handleChange} 
@@ -248,8 +252,9 @@ export function ContactoClient({
               </div>
 
               <div>
-                <label className="block text-[10px] font-bold uppercase tracking-widest text-[#a07e3c] mb-1">Tu consulta</label>
+                <label htmlFor="contacto-message" className="block text-[11px] font-bold uppercase tracking-widest text-[#8a6d3b] mb-1">Tu consulta</label>
                 <textarea 
+                  id="contacto-message"
                   name="message" 
                   value={formData.message} 
                   onChange={handleChange} 
@@ -280,11 +285,11 @@ export function ContactoClient({
       {/* Info de contacto tradicional e Info del Local en footer-like section */}
       <div className="border-t border-stone-100 pt-16 grid grid-cols-1 md:grid-cols-3 gap-10">
         <div className="flex gap-4">
-          <div className="w-10 h-10 rounded-xl bg-stone-50 border border-stone-150 flex items-center justify-center flex-shrink-0 text-stone-800">
+          <div className="w-10 h-10 rounded-xl bg-stone-50 border border-stone-200 flex items-center justify-center flex-shrink-0 text-stone-800">
             <Phone className="w-4 h-4" />
           </div>
           <div>
-            <h4 className="text-[10px] font-bold uppercase tracking-widest text-stone-400 mb-1">Llamanos</h4>
+            <h4 className="text-[11px] font-bold uppercase tracking-widest text-stone-500 mb-1">Llamanos</h4>
             <a href={`tel:${whatsappPhoneId.replace(/\D/g, '')}`} className="text-stone-800 hover:text-[#c8a55c] font-medium transition-colors">
               {phone}
             </a>
@@ -292,11 +297,11 @@ export function ContactoClient({
         </div>
 
         <div className="flex gap-4">
-          <div className="w-10 h-10 rounded-xl bg-stone-50 border border-stone-150 flex items-center justify-center flex-shrink-0 text-stone-800">
+          <div className="w-10 h-10 rounded-xl bg-stone-50 border border-stone-200 flex items-center justify-center flex-shrink-0 text-stone-800">
             <Instagram className="w-4 h-4" />
           </div>
           <div>
-            <h4 className="text-[10px] font-bold uppercase tracking-widest text-stone-400 mb-1">Instagram</h4>
+            <h4 className="text-[11px] font-bold uppercase tracking-widest text-stone-500 mb-1">Instagram</h4>
             <a href="https://instagram.com/atelieroptica_" target="_blank" rel="noopener noreferrer" className="text-stone-800 hover:text-[#c8a55c] font-medium transition-colors">
               @atelieroptica_
             </a>
@@ -309,11 +314,11 @@ export function ContactoClient({
           rel="noopener noreferrer" 
           className="flex gap-4 group cursor-pointer"
         >
-          <div className="w-10 h-10 rounded-xl bg-stone-50 border border-stone-150 flex items-center justify-center flex-shrink-0 text-stone-800 group-hover:bg-[#c8a55c] group-hover:text-white group-hover:border-[#c8a55c] transition-all duration-300">
+          <div className="w-10 h-10 rounded-xl bg-stone-50 border border-stone-200 flex items-center justify-center flex-shrink-0 text-stone-800 group-hover:bg-[#c8a55c] group-hover:text-white group-hover:border-[#c8a55c] transition-all duration-300">
             <MapPin className="w-4 h-4" />
           </div>
           <div>
-            <h4 className="text-[10px] font-bold uppercase tracking-widest text-stone-400 mb-1 group-hover:text-[#c8a55c] transition-colors">Visitanos</h4>
+            <h4 className="text-[11px] font-bold uppercase tracking-widest text-stone-500 mb-1 group-hover:text-[#c8a55c] transition-colors">Visitanos</h4>
             <p className="text-stone-800 font-medium text-sm leading-snug group-hover:underline decoration-[#c8a55c]/30 underline-offset-2">
               {address}, {locality}
             </p>

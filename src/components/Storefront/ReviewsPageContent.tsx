@@ -271,7 +271,7 @@ export function ReviewsPageContent({
               href="https://www.google.com/maps?cid=14830223812501661125"
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 px-8 py-4 bg-black text-white hover:bg-stone-850 dark:bg-white dark:text-black dark:hover:bg-stone-150 text-xs font-black tracking-widest uppercase rounded-full transition-all duration-300 shadow-md hover:shadow-lg hover:scale-105"
+              className="inline-flex items-center gap-2 px-8 py-4 bg-black text-white hover:bg-stone-800 dark:bg-white dark:text-black dark:hover:bg-stone-100 text-xs font-black tracking-widest uppercase rounded-full transition-all duration-300 shadow-md hover:shadow-lg hover:scale-105"
             >
               Seguir viendo opiniones en Google Business <ExternalLink className="w-4 h-4" />
             </a>

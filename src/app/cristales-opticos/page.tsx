@@ -1,5 +1,5 @@
-import { redirect } from "next/navigation";
+import { permanentRedirect } from "next/navigation";
 
 export default function CristalesHub() {
-  redirect("/cristales-opticos/varilux");
+  permanentRedirect("/cristales-opticos/varilux");
 }
