@@ -27,7 +27,7 @@ export const metadata: Metadata = {
 
 export default async function LandingPage() {
   const [reviewsData, products] = await Promise.all([
-    getGoogleReviews().catch(() => ({ userRatingCount: 642, rating: 5.0 })),
+    getGoogleReviews().catch(() => ({ userRatingCount: 0, rating: 0 })),
     DEFAULT.products ?? getCampaignProducts(DEFAULT.productCategory),
   ]);
 

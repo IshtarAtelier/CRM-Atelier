@@ -3,6 +3,7 @@ import { Metadata } from 'next';
 import { StorefrontNavbar } from '@/components/Storefront/StorefrontNavbar';
 import { StorefrontFooter } from '@/components/Storefront/StorefrontFooter';
 import { FileText, Eye, CheckCircle } from 'lucide-react';
+import { WHATSAPP_PHONE } from '@/lib/constants';
 
 export const metadata: Metadata = {
   alternates: { canonical: '/blog/como-leer-receta-oftalmologica' },
@@ -130,7 +131,7 @@ export default function LeerRecetaOftalmologicaPage() {
               <p className="text-[#111] mb-6 max-w-xl mx-auto">
                 ¿Estás en Córdoba Capital? Ya sea que te encuentres por Nueva Córdoba, el Centro o el Cerro de las Rosas, traé la receta que te dio tu oftalmólogo y nuestro equipo se encargará del resto. Si estás en otra provincia, ¡hacemos envíos a toda Argentina! Vas a tener unos anteojos increíbles que vas a amar.
               </p>
-              <a href="https://wa.me/5493518685644" target="_blank" rel="noopener noreferrer" 
+              <a href={`https://wa.me/${WHATSAPP_PHONE}`} target="_blank" rel="noopener noreferrer"
                 className="inline-flex items-center justify-center px-6 py-3 bg-[#faf8f5] text-white font-medium rounded-lg hover:bg-[#faf8f5] transition-colors"
               >
                 Contactanos por WhatsApp

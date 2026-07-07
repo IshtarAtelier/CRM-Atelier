@@ -1,6 +1,7 @@
 import { Metadata } from 'next';
 import { StorefrontNavbar } from '@/components/Storefront/StorefrontNavbar';
 import { StorefrontFooter } from '@/components/Storefront/StorefrontFooter';
+import { WHATSAPP_PHONE } from '@/lib/constants';
 
 export const metadata: Metadata = {
   alternates: { canonical: '/blog/guia-precios-multifocales-argentina' },
@@ -89,7 +90,7 @@ export default function BlogMultifocales2026() {
             <p className="mb-6">
               Te invitamos a visitarnos en nuestro exclusivo espacio en <strong>Córdoba Capital</strong>. Traé la receta de tu médico y juntos descubriremos el armazón que mejor realce tus facciones y el cristal tecnológico que se adapte perfectamente a tu estilo de vida. Además, realizamos envíos seguros a toda Argentina y contamos con excelentes planes de financiación en cuotas.
             </p>
-            <a href="https://wa.me/5493518685644" target="_blank" rel="noopener noreferrer" className="inline-block bg-white text-[#111] font-semibold px-6 py-3 hover:bg-neutral-200 transition-colors">
+            <a href={`https://wa.me/${WHATSAPP_PHONE}`} target="_blank" rel="noopener noreferrer" className="inline-block bg-white text-[#111] font-semibold px-6 py-3 hover:bg-neutral-200 transition-colors">
               Contactanos para un asesoramiento personalizado
             </a>
           </div>

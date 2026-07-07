@@ -1,5 +1,5 @@
 // WhatsApp phone number (single source of truth for all storefront pages)
-export const WHATSAPP_PHONE = process.env.NEXT_PUBLIC_WHATSAPP_PHONE || '5493541215971';
+export const WHATSAPP_PHONE = process.env.NEXT_PUBLIC_WHATSAPP_PHONE || '5493518685644';
 
 // "Sin atender" — borrón y cuenta nueva. El backlog viejo de leads sin atender se
 // dio por cerrado el 2026-07-06: solo los contactos ingresados a partir de este

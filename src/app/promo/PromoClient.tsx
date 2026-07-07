@@ -4,18 +4,19 @@ import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import { motion, AnimatePresence, Variants } from "framer-motion";
 import { ChevronDown, Star, Diamond, Glasses, ShieldCheck, X, Eye, Layers } from "lucide-react";
+import { WHATSAPP_PHONE } from "@/lib/constants";
 
 interface PromoClientProps {
   reviewCount?: number;
 }
 
-export function PromoClient({ reviewCount = 642 }: PromoClientProps) {
+export function PromoClient({ reviewCount = 0 }: PromoClientProps) {
   const [mounted, setMounted] = useState(false);
   const [openFaq, setOpenFaq] = useState<number | null>(null);
   
   // WhatsApp State
   const [isRedirecting, setIsRedirecting] = useState(false);
-  const waNumber = "5493541215971";
+  const waNumber = WHATSAPP_PHONE;
   const waMessage = "Hola! Vi la Promo 2x1 en la web y quiero recibir asesoramiento.";
   const waUrl = `https://wa.me/${waNumber}?text=${encodeURIComponent(waMessage)}`;
 
@@ -315,7 +316,7 @@ export function PromoClient({ reviewCount = 642 }: PromoClientProps) {
           <div className="flex flex-col items-center text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-serif text-white mb-6">Confianza Absoluta</h2>
             <a href="https://maps.app.goo.gl/fQ9T1xBFmDV8Tpim9" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-[#C5A059] border-b border-[#C5A059] pb-1 hover:text-white hover:border-white transition-colors text-sm font-bold uppercase tracking-widest">
-              Ver las {reviewCount} reseñas en Google
+              Ver las {reviewCount > 0 ? `${reviewCount} ` : ""}reseñas en Google
             </a>
           </div>
           

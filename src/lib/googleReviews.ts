@@ -59,8 +59,8 @@ export async function fetchLegacyReviews(placeId: string, apiKey: string) {
   }));
   return {
     reviews,
-    rating: data.result?.rating || 5.0,
-    userRatingCount: data.result?.user_ratings_total || 642
+    rating: data.result?.rating || 0,
+    userRatingCount: data.result?.user_ratings_total || 0
   };
 }
 
@@ -94,8 +94,8 @@ export async function fetchNewReviews(placeId: string, apiKey: string) {
   }));
   return {
     reviews,
-    rating: data.rating || 5.0,
-    userRatingCount: data.userRatingCount || 642
+    rating: data.rating || 0,
+    userRatingCount: data.userRatingCount || 0
   };
 }
 
@@ -105,7 +105,7 @@ export async function getGoogleReviews() {
 
   if (!apiKey) {
     console.warn('Falta la API Key de Google Places en el entorno. Retornando reseñas de respaldo.');
-    return { reviews: FALLBACK_REVIEWS, rating: 5.0, userRatingCount: 642 };
+    return { reviews: FALLBACK_REVIEWS, rating: 0, userRatingCount: 0 };
   }
 
   try {
@@ -129,5 +129,5 @@ export async function getGoogleReviews() {
   }
 
   console.warn('No se pudieron obtener reseñas reales de Google. Retornando reseñas de respaldo.');
-  return { reviews: FALLBACK_REVIEWS, rating: 5.0, userRatingCount: 642 };
+  return { reviews: FALLBACK_REVIEWS, rating: 0, userRatingCount: 0 };
 }

@@ -51,7 +51,7 @@ const SERVICES = [
   },
 ];
 
-export function NuestroLocalClient({ settings, reviewCount = 642, rating = 5.0, children }: NuestroLocalClientProps) {
+export function NuestroLocalClient({ settings, reviewCount = 0, rating = 0, children }: NuestroLocalClientProps) {
   const heroRef = useRef<HTMLDivElement>(null);
   const { scrollYProgress } = useScroll({
     target: heroRef,
@@ -90,13 +90,15 @@ export function NuestroLocalClient({ settings, reviewCount = 642, rating = 5.0, 
           className="absolute inset-0 z-20 flex flex-col justify-end pb-[12%] px-6 md:px-16 lg:px-24"
           style={{ opacity: heroOpacity }}
         >
-          {/* Google Badge */}
-          <div className="flex items-center gap-3 mb-6">
-            <div className="flex items-center gap-2 bg-white/10 backdrop-blur-xl border border-white/20 rounded-full px-4 py-2 shadow-2xl">
-              <span className="text-amber-400 text-sm">★★★★★</span>
-              <span className="text-white/90 text-[10px] font-black uppercase tracking-[0.15em]">{rating.toFixed(1)} en Google · {reviewCount} Reseñas</span>
+          {/* Google Badge — solo con datos reales de Google */}
+          {reviewCount > 0 && (
+            <div className="flex items-center gap-3 mb-6">
+              <div className="flex items-center gap-2 bg-white/10 backdrop-blur-xl border border-white/20 rounded-full px-4 py-2 shadow-2xl">
+                <span className="text-amber-400 text-sm">★★★★★</span>
+                <span className="text-white/90 text-[10px] font-black uppercase tracking-[0.15em]">{rating.toFixed(1)} en Google · {reviewCount} Reseñas</span>
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Title */}
           <h1 className="text-5xl md:text-7xl lg:text-8xl font-serif text-white tracking-tight leading-[0.9] mb-4">

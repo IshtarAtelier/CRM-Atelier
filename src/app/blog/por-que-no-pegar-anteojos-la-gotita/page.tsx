@@ -1,6 +1,7 @@
 import { StorefrontNavbar } from "@/components/Storefront/StorefrontNavbar";
 import { StorefrontFooter } from "@/components/Storefront/StorefrontFooter";
 import { Metadata } from "next";
+import { WHATSAPP_PHONE } from "@/lib/constants";
 
 export const metadata: Metadata = {
   alternates: { canonical: '/blog/por-que-no-pegar-anteojos-la-gotita' },
@@ -90,7 +91,7 @@ export default function BlogPegamentoAnteojos() {
           </p>
 
           <div className="mt-14 flex justify-center">
-            <a href="https://wa.me/5493518685644" target="_blank" rel="noopener noreferrer" 
+            <a href={`https://wa.me/${WHATSAPP_PHONE}`} target="_blank" rel="noopener noreferrer"
               className="inline-flex items-center justify-center bg-[#433831] text-white px-8 py-4 text-sm font-medium hover:bg-[#c8a55c] transition-colors rounded-full shadow-md"
             >
               Consultar por la reparación de mis anteojos

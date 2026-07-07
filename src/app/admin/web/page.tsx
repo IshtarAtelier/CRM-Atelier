@@ -26,6 +26,7 @@ import {
 import Link from "next/link";
 import CouponsManager from '@/components/admin/CouponsManager';
 import { resolveStorageUrl } from '@/lib/utils/storage';
+import { WHATSAPP_PHONE } from '@/lib/constants';
 import { getSelectedShapeFromTags, getSelectedMaterialFromTags, updateTagsWithShapeAndMaterial, getProductAttributes } from '@/utils/product-controllers';
 
 interface WebProduct {
@@ -477,8 +478,8 @@ export default function WebManagementPage() {
           web_store_address: data.web_store_address || "José Luis de Tejeda 4380",
           web_store_locality: data.web_store_locality || "Cerro de las Rosas, Córdoba",
           web_store_maps_url: data.web_store_maps_url || "https://www.google.com/maps?cid=14830223812501661125",
-          web_store_phone: data.web_store_phone || "+54 9 354 121 5971",
-          web_store_whatsapp_id: data.web_store_whatsapp_id || "5493541215971",
+          web_store_phone: data.web_store_phone || "+54 9 351 868-5644",
+          web_store_whatsapp_id: data.web_store_whatsapp_id || WHATSAPP_PHONE,
           web_promo_installments: data.web_promo_installments || "6 cuotas sin interés",
           web_promo_cash_discount: data.web_promo_cash_discount !== undefined ? Number(data.web_promo_cash_discount) : 15
         });
@@ -1371,7 +1372,7 @@ export default function WebManagementPage() {
                     <input
                       type="text"
                       className="w-full px-3 py-2.5 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl text-xs outline-none focus:border-primary transition-all font-medium"
-                      placeholder="Ej: +54 9 354 121 5971"
+                      placeholder="Ej: +54 9 351 868-5644"
                       value={configForm.web_store_phone}
                       onChange={e => setConfigForm({ ...configForm, web_store_phone: e.target.value })}
                     />
@@ -1382,7 +1383,7 @@ export default function WebManagementPage() {
                     <input
                       type="text"
                       className="w-full px-3 py-2.5 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl text-xs outline-none focus:border-primary transition-all font-mono"
-                      placeholder="Ej: 5493541215971"
+                      placeholder="Ej: 5493518685644"
                       value={configForm.web_store_whatsapp_id}
                       onChange={e => setConfigForm({ ...configForm, web_store_whatsapp_id: e.target.value.replace(/\D/g, '') })}
                     />

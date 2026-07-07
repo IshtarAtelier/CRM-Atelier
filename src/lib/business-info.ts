@@ -10,8 +10,37 @@ export const BUSINESS_INFO = {
   name: "Atelier Óptica",
   address: "José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba",
   addressStreetNumber: 4380,
-  phone: "+54 9 354 121 5971",
+  phone: "+54 9 351 868-5644",
+  phoneE164: "+5493518685644",
+  postalCode: "5009",
+  // Aproximado del domicilio — verificar contra el pin de Google Business Profile
+  geo: { latitude: -31.3688, longitude: -64.2401 },
+  instagramUrl: "https://www.instagram.com/atelieroptica_",
+  youtubeUrl: "https://www.youtube.com/@AtelierOptica",
+  mapsUrl: "https://www.google.com/maps?cid=14830223812501661125",
+  entityId: "https://atelieroptica.com.ar/#optica",
   hours: "Lunes a Viernes de 9:00 a 13:30 y de 16:00 a 19:30. Sábados de 10:00 a 14:00",
+  /** Mismos horarios que `hours`, en formato schema.org — mantener sincronizados. */
+  openingHoursSpecification: [
+    {
+      "@type": "OpeningHoursSpecification",
+      dayOfWeek: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
+      opens: "09:00",
+      closes: "13:30",
+    },
+    {
+      "@type": "OpeningHoursSpecification",
+      dayOfWeek: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
+      opens: "16:00",
+      closes: "19:30",
+    },
+    {
+      "@type": "OpeningHoursSpecification",
+      dayOfWeek: ["Saturday"],
+      opens: "10:00",
+      closes: "14:00",
+    },
+  ],
   appointmentSlots: "por la mañana (9:00 a 13:30) o por la tarde (16:00 a 19:30)",
   discountCashPercent: 20,
   discountTransferPercent: 15,

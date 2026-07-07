@@ -2,7 +2,7 @@ import { Metadata } from 'next';
 import { StorefrontNavbar } from '@/components/Storefront/StorefrontNavbar';
 import { StorefrontFooter } from '@/components/Storefront/StorefrontFooter';
 import { ReviewsPageContent } from '@/components/Storefront/ReviewsPageContent';
-import { WHATSAPP_PHONE } from '@/lib/constants';
+import { buildOpticianSchema } from '@/lib/schema';
 
 export const metadata: Metadata = {
   title: "Reseñas de Clientes",
@@ -31,8 +31,8 @@ async function fetchLegacyReviews(placeId: string, apiKey: string) {
   }));
   return {
     reviews,
-    rating: data.result?.rating || 5.0,
-    userRatingCount: data.result?.user_ratings_total || 642
+    rating: data.result?.rating || 0,
+    userRatingCount: data.result?.user_ratings_total || 0
   };
 }
 
@@ -66,8 +66,8 @@ async function fetchNewReviews(placeId: string, apiKey: string) {
   }));
   return {
     reviews,
-    rating: data.rating || 5.0,
-    userRatingCount: data.userRatingCount || 642
+    rating: data.rating || 0,
+    userRatingCount: data.userRatingCount || 0
   };
 }
 
@@ -78,7 +78,7 @@ async function getGoogleReviews() {
 
     if (!apiKey) {
       console.warn("GOOGLE_PLACES_API_KEY no configurada. Cargando reseñas en base a testimonios locales.");
-      return { reviews: [], rating: 5.0, userRatingCount: 642 };
+      return { reviews: [], rating: 0, userRatingCount: 0 };
     }
 
     try {
@@ -95,60 +95,20 @@ async function getGoogleReviews() {
         console.error('Fallo la API Legacy en Página:', legacyError.message);
       }
     }
-    return { reviews: [], rating: 5.0, userRatingCount: 642 };
+    return { reviews: [], rating: 0, userRatingCount: 0 };
   } catch (error) {
     console.error('Error fetching reviews on server page:', error);
-    return { reviews: [], rating: 5.0, userRatingCount: 642 };
+    return { reviews: [], rating: 0, userRatingCount: 0 };
   }
 }
 
 export default async function ResenasPage() {
   const data = await getGoogleReviews();
 
-  const jsonLd = {
-    '@context': 'https://schema.org',
-    '@type': 'LocalBusiness',
-    'name': 'Atelier Óptica Córdoba',
-    'image': 'https://atelieroptica.com.ar/images/og-image.jpg',
-    '@id': 'https://www.google.com/maps?cid=14830223812501661125',
-    'url': 'https://atelieroptica.com.ar',
-    'telephone': `+${WHATSAPP_PHONE}`,
-    'priceRange': '$$',
-    'address': {
-      '@type': 'PostalAddress',
-      'streetAddress': 'José Luis de Tejeda 4380',
-      'addressLocality': 'Córdoba',
-      'addressRegion': 'Córdoba',
-      'postalCode': 'X5000',
-      'addressCountry': 'AR',
-    },
-    'geo': {
-      '@type': 'GeoCoordinates',
-      'latitude': -31.3734062,
-      'longitude': -64.2269986,
-    },
-    'openingHoursSpecification': [
-      {
-        '@type': 'OpeningHoursSpecification',
-        'dayOfWeek': ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
-        'opens': '09:00',
-        'closes': '18:00',
-      },
-      {
-        '@type': 'OpeningHoursSpecification',
-        'dayOfWeek': ['Saturday'],
-        'opens': '09:00',
-        'closes': '13:00',
-      }
-    ],
-    'aggregateRating': {
-      '@type': 'AggregateRating',
-      'ratingValue': data.rating.toString(),
-      'bestRating': '5',
-      'worstRating': '1',
-      'ratingCount': data.userRatingCount.toString(),
-    }
-  };
+  // El builder omite aggregateRating si rating/count no son reales (> 0)
+  const jsonLd = buildOpticianSchema({
+    aggregateRating: { rating: data.rating, count: data.userRatingCount },
+  });
 
   return (
     <div className="bg-white min-h-screen text-black font-sans selection:bg-black selection:text-white">

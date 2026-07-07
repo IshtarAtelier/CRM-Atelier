@@ -113,8 +113,8 @@ function Marquee() {
 
 export function LandingClient({
   slug = "default",
-  reviewCount = 642,
-  rating = 5.0,
+  reviewCount = 0,
+  rating = 0,
   products = [],
 }: LandingClientProps) {
   const config = CAMPAIGNS[slug] ?? CAMPAIGNS.default;
@@ -266,16 +266,19 @@ export function LandingClient({
                 {isRedirecting ? Spinner : config.primaryCta}
               </motion.button>
 
-              <div className="flex items-center gap-2.5">
-                <div className="flex text-[#C5A059]">
-                  {[...Array(5)].map((_, j) => (
-                    <Star key={j} className="w-3.5 h-3.5 fill-current" />
-                  ))}
+              {/* Badge de rating solo con datos reales de Google */}
+              {reviewCount > 0 && (
+                <div className="flex items-center gap-2.5">
+                  <div className="flex text-[#C5A059]">
+                    {[...Array(5)].map((_, j) => (
+                      <Star key={j} className="w-3.5 h-3.5 fill-current" />
+                    ))}
+                  </div>
+                  <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-stone-300">
+                    {ratingStr} — {reviewCount} reseñas en Google
+                  </span>
                 </div>
-                <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-stone-300">
-                  {ratingStr} — {reviewCount} reseñas en Google
-                </span>
-              </div>
+              )}
             </div>
           </div>
         </div>
@@ -436,10 +439,12 @@ export function LandingClient({
               ))}
             </div>
             <h2 className="font-serif text-4xl md:text-5xl mb-5">
-              {ratingStr} · <em className="italic">{reviewCount} reseñas reales</em>
+              {reviewCount > 0
+                ? <>{ratingStr} · <em className="italic">{reviewCount} reseñas reales</em></>
+                : <em className="italic">Reseñas reales</em>}
             </h2>
             <a
-              href="https://maps.app.goo.gl/atelieroptica"
+              href="https://www.google.com/maps?cid=14830223812501661125"
               target="_blank"
               rel="noopener noreferrer"
               className="text-[12px] font-bold uppercase tracking-[0.15em] underline underline-offset-4 decoration-[#C5A059] decoration-2 hover:opacity-60 transition-opacity"

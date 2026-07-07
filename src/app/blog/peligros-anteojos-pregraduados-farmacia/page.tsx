@@ -1,6 +1,7 @@
 import { Metadata } from 'next';
 import { StorefrontNavbar } from '@/components/Storefront/StorefrontNavbar';
 import { StorefrontFooter } from '@/components/Storefront/StorefrontFooter';
+import { WHATSAPP_PHONE } from '@/lib/constants';
 
 export const metadata: Metadata = {
   alternates: { canonical: '/blog/peligros-anteojos-pregraduados-farmacia' },
@@ -82,7 +83,7 @@ export default function PeligrosAnteojosFarmaciaPage() {
               <p className="text-[15px] text-[#666] mb-8 max-w-lg mx-auto">
                 No arriesgues tus ojos con soluciones temporales que cuestan caro a largo plazo. Una vez que tengas tu receta oftalmológica actualizada en mano, te esperamos en Atelier Óptica, en el Cerro de las Rosas, Córdoba. Te vamos a asesorar sobre los cristales de alta precisión y los armazones estéticos ideales para vos. Además, realizamos envíos a toda Argentina.
               </p>
-              <a href="https://wa.me/5493518685644" target="_blank" rel="noopener noreferrer" 
+              <a href={`https://wa.me/${WHATSAPP_PHONE}`} target="_blank" rel="noopener noreferrer"
                 className="inline-block bg-black text-white px-8 py-4 text-[11px] font-bold uppercase tracking-widest hover:bg-[#333] transition-colors"
               >
                 Asesorate hoy

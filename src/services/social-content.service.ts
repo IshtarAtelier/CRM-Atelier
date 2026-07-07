@@ -38,7 +38,7 @@ PRODUCTOS ESTRELLA: Multifocales Varilux, armazones de diseño, cristales Essilo
 DIFERENCIAL: Atención personalizada uno a uno, garantía de adaptación en multifocales, tecnología de medición de alta precisión.
 AUDIENCIA: Adultos 30-65 años, profesionales, interesados en salud visual premium.
 WEB: atelieroptica.com.ar
-INSTAGRAM: @atelier.optica
+INSTAGRAM: @atelieroptica_
 
 ENFOQUE PRINCIPAL: Aportar valor real al usuario. No sonar como un catálogo de ventas ni forzar promociones salvo que se pida explícitamente. Priorizar la educación sobre salud visual, tendencias de diseño, y el storytelling de la marca. 
 NO USAR: Lenguaje genérico, humor forzado, emojis excesivos. Máximo 3-4 emojis por post. Tonos agresivos de venta ("¡Comprá ya!").

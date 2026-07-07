@@ -2,6 +2,8 @@ import { StorefrontNavbar } from "@/components/Storefront/StorefrontNavbar";
 import { StorefrontFooter } from "@/components/Storefront/StorefrontFooter";
 import { WHATSAPP_PHONE } from "@/lib/constants";
 import { getWebSettings } from "@/lib/web-settings";
+import { BUSINESS_INFO } from "@/lib/business-info";
+import { buildOpticianSchema } from "@/lib/schema";
 import { ContactoClient } from "./ContactoClient";
 
 export const revalidate = 300;
@@ -10,13 +12,24 @@ export default async function ContactoPage() {
   const settings = await getWebSettings();
 
   const whatsappPhoneId = settings?.web_store_whatsapp_id || WHATSAPP_PHONE;
-  const phone = settings?.web_store_phone || "+54 9 354 121 5971";
+  const phone = settings?.web_store_phone || BUSINESS_INFO.phone;
   const address = settings?.web_store_address || "José Luis de Tejeda 4380";
   const locality = settings?.web_store_locality || "Cerro de las Rosas, Córdoba";
-  const mapsUrl = settings?.web_store_maps_url || "https://www.google.com/maps/search/?api=1&query=Atelier+Optica+Cordoba+Jose+Luis+de+Tejeda+4380";
+  const mapsUrl = settings?.web_store_maps_url || BUSINESS_INFO.mapsUrl;
+
+  const opticianSchema = buildOpticianSchema();
+  const contactPageSchema = {
+    "@context": "https://schema.org",
+    "@type": "ContactPage",
+    "url": "https://atelieroptica.com.ar/contacto",
+    "name": `Contacto | ${BUSINESS_INFO.name}`,
+    "mainEntity": { "@id": BUSINESS_INFO.entityId },
+  };
 
   return (
     <div className="bg-white min-h-screen text-black font-sans selection:bg-black selection:text-white">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(opticianSchema) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(contactPageSchema) }} />
       <StorefrontNavbar theme="light" />
       <ContactoClient 
         whatsappPhoneId={whatsappPhoneId} 

@@ -35,7 +35,7 @@ export default function QuienesSomosPage() {
             Quiénes <span className="text-primary italic">Somos</span>
           </h1>
           <p className="text-xl text-stone-600 dark:text-stone-400 max-w-2xl mx-auto leading-relaxed">
-            En Óptica Atelier, tu visión es nuestra obra maestra. Somos un equipo de ópticos creativos que ama lo que hace.
+            En Atelier Óptica, tu visión es nuestra obra maestra. Somos un equipo de ópticos creativos que ama lo que hace.
           </p>
         </div>
       </div>
@@ -121,7 +121,7 @@ export default function QuienesSomosPage() {
         <div className="text-center pt-8">
           <h3 className="text-2xl font-bold text-stone-900 dark:text-white mb-4">Te acompañamos a descubrir tu visión del mundo</h3>
           <p className="text-stone-600 dark:text-stone-400 max-w-xl mx-auto">
-            Desde el primer momento, estamos acá para ayudarte, asesorarte y acompañarte en cada paso. Porque en Óptica Atelier, tu visión es nuestra obra maestra.
+            Desde el primer momento, estamos acá para ayudarte, asesorarte y acompañarte en cada paso. Porque en Atelier Óptica, tu visión es nuestra obra maestra.
           </p>
         </div>
 

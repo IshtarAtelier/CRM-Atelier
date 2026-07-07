@@ -12,6 +12,7 @@ import Image from "next/image";
 import sanitizeHtml from 'sanitize-html';
 import { FAQSection } from '@/components/blog/FAQSection';
 import blogFaqs from '@/lib/blog-faqs.json';
+import { WHATSAPP_PHONE } from '@/lib/constants';
 
 
 async function getPostBySlug(slug: string) {
@@ -1546,7 +1547,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
     "image": `${baseUrl}/icon.png`,
     "@id": baseUrl,
     "url": baseUrl,
-    "telephone": "+5493518685644",
+    "telephone": `+${WHATSAPP_PHONE}`,
     "address": {
       "@type": "PostalAddress",
       "streetAddress": "José Luis de Tejeda 4380",
@@ -1644,7 +1645,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
         <div className="mt-16 pt-8 border-t border-black/5  text-center">
           <h3 className="text-2xl font-medium tracking-tight mb-4 ">¿Necesitás asesoramiento personalizado?</h3>
           <p className="text-[#444]  mb-8">Te esperamos en Atelier Óptica para encontrar tus anteojos ideales.</p>
-          <a href="https://wa.me/5493518685644" target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center px-8 py-4 text-sm font-medium tracking-tight text-white bg-[#111] hover:bg-[#111]/90 rounded-full transition-colors">
+          <a href={`https://wa.me/${WHATSAPP_PHONE}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center px-8 py-4 text-sm font-medium tracking-tight text-white bg-[#111] hover:bg-[#111]/90 rounded-full transition-colors">
             Contactanos por WhatsApp
           </a>
         </div>

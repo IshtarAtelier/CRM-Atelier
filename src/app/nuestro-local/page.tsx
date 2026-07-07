@@ -3,6 +3,7 @@ import { getWebSettings } from '@/lib/web-settings';
 import { NuestroLocalClient } from './NuestroLocalClient';
 import { StorefrontFooter } from '@/components/Storefront/StorefrontFooter';
 import { getGoogleReviews } from '@/lib/googleReviews';
+import { buildOpticianSchema } from '@/lib/schema';
 
 export const metadata: Metadata = {
   title: "Nuestro Local | Óptica Boutique en Cerro de las Rosas, Córdoba",
@@ -35,56 +36,10 @@ export default async function NuestroLocalPage() {
 
   const reviewsData = await getGoogleReviews();
 
-  const localBusinessJsonLd = {
-    '@context': 'https://schema.org',
-    '@type': 'LocalBusiness',
-    'name': 'Atelier Óptica',
-    'image': 'https://atelieroptica.com.ar/images/og-image.jpg',
-    '@id': mapsUrl,
-    'url': 'https://atelieroptica.com.ar',
-    'telephone': phone,
-    'priceRange': '$$',
-    'address': {
-      '@type': 'PostalAddress',
-      'streetAddress': addressLine,
-      'addressLocality': localityLine,
-      'addressRegion': 'Córdoba',
-      'postalCode': '5009',
-      'addressCountry': 'AR',
-    },
-    'geo': {
-      '@type': 'GeoCoordinates',
-      'latitude': -31.3831,
-      'longitude': -64.24005,
-    },
-    'openingHoursSpecification': [
-      {
-        '@type': 'OpeningHoursSpecification',
-        'dayOfWeek': ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
-        'opens': '09:30',
-        'closes': '13:00',
-      },
-      {
-        '@type': 'OpeningHoursSpecification',
-        'dayOfWeek': ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
-        'opens': '16:30',
-        'closes': '20:30',
-      },
-      {
-        '@type': 'OpeningHoursSpecification',
-        'dayOfWeek': ['Saturday'],
-        'opens': '09:30',
-        'closes': '13:00',
-      }
-    ],
-    'aggregateRating': {
-      '@type': 'AggregateRating',
-      'ratingValue': reviewsData.rating.toFixed(1),
-      'bestRating': '5',
-      'worstRating': '1',
-      'ratingCount': reviewsData.userRatingCount.toString(),
-    }
-  };
+  // El builder omite aggregateRating si rating/count no son reales (> 0)
+  const localBusinessJsonLd = buildOpticianSchema({
+    aggregateRating: { rating: reviewsData.rating, count: reviewsData.userRatingCount },
+  });
 
   return (
     <>

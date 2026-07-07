@@ -1,4 +1,5 @@
 import { prisma } from './db';
+import { WHATSAPP_PHONE } from './constants';
 
 export interface WebSettings {
   web_announcement_text: string;
@@ -24,8 +25,8 @@ export const defaultWebSettings: WebSettings = {
   web_store_address: "José Luis de Tejeda 4380",
   web_store_locality: "Cerro de las Rosas, Córdoba",
   web_store_maps_url: "https://www.google.com/maps?cid=14830223812501661125",
-  web_store_phone: "+54 9 354 121 5971",
-  web_store_whatsapp_id: "5493541215971",
+  web_store_phone: "+54 9 351 868-5644",
+  web_store_whatsapp_id: WHATSAPP_PHONE,
   web_promo_installments: "6 cuotas sin interés",
   web_promo_cash_discount: 15,
   web_recovery_coupon_code: "",

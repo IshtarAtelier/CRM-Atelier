@@ -1,6 +1,7 @@
 import { getModel } from "../model";
 import { SystemMessage, HumanMessage } from "@langchain/core/messages";
 import { prisma } from "@/lib/db";
+import { WHATSAPP_PHONE } from "@/lib/constants";
 
 export interface SeoPageData {
   title: string;
@@ -71,7 +72,7 @@ Aquí tienes los artículos de blog ya existentes en el sitio. No generes conten
 ${existingContentContext}
 
 DIRECTIVAS DE REDACCIÓN Y EVITACIÓN DE ALUCINACIONES (RETRODIRECTIVAS):
-1. **Veracidad de Datos:** La dirección oficial de Atelier es "José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba, Argentina". El teléfono/WhatsApp es "+54 9 354 121 5971". No inventes otras direcciones ni teléfonos para Atelier.
+1. **Veracidad de Datos:** La dirección oficial de Atelier es "José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba, Argentina". El teléfono/WhatsApp es "+54 9 351 868-5644". No inventes otras direcciones ni teléfonos para Atelier.
 2. **Estrategia de Clúster Temático:** Define el tema de esta página como un "Pillar Page" (artículo pilar) e indica 3 a 5 temas satélites recomendados que deban escribirse alrededor del tema para ganar autoridad real.
 3. **E-E-A-T Explícito (Experience, Expertise, Authoritativeness, Trust):** Proporciona una biografía ficticia o real de un experto óptico/optometrista con credenciales (ej: "Matías Turchi, Especialista Certificado por Essilor y Director Técnico en Atelier Óptica"), fecha de revisión médica reciente y un descargo de responsabilidad profesional (medical disclaimer).
 4. **Optimización GEO (SearchGPT y Perplexity):**
@@ -101,7 +102,7 @@ Debes responder ÚNICAMENTE con un JSON con la estructura del tipo \`SeoPageData
   "keywords": ["palabra clave 1", "palabra clave 2"],
   "callToAction": {
     "label": "Texto del botón principal de acción",
-    "url": "URL de destino (ej. https://wa.me/5493541215971 o /arma-tus-lentes)",
+    "url": "URL de destino (ej. https://wa.me/${WHATSAPP_PHONE} o /arma-tus-lentes)",
     "secondaryLabel": "Texto del botón secundario (opcional)",
     "secondaryUrl": "URL del botón secundario (opcional)"
   },
@@ -172,7 +173,7 @@ Debes responder ÚNICAMENTE con un JSON con la estructura del tipo \`SeoPageData
       }
       // Si el JSON-LD contiene un teléfono, sobreescribir con el oficial
       if (data.jsonLd.telephone) {
-        data.jsonLd.telephone = "+54 9 354 121 5971";
+        data.jsonLd.telephone = "+54 9 351 868-5644";
       }
     }
     return data;

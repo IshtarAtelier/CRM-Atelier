@@ -1,6 +1,7 @@
 import { Metadata } from 'next';
 import { StorefrontNavbar } from '@/components/Storefront/StorefrontNavbar';
 import { StorefrontFooter } from '@/components/Storefront/StorefrontFooter';
+import { WHATSAPP_PHONE } from '@/lib/constants';
 
 export const metadata: Metadata = {
   alternates: { canonical: '/blog/mitos-lentes-contacto' },
@@ -86,7 +87,7 @@ export default function LentesDeContactoBlog() {
             <div className="mt-12 bg-stone-100 p-8 rounded-2xl text-center shadow-sm">
               <h3 className="text-2xl font-serif mb-4 text-stone-800">¿Ya visitaste a tu oftalmólogo y tenés la receta lista?</h3>
               <p className="mb-6 text-stone-600">Te esperamos para encontrar los lentes de contacto perfectos para vos y acompañarte en cada paso de tu adaptación.</p>
-              <a href="https://wa.me/5493518685644" target="_blank" rel="noopener noreferrer" className="inline-block bg-stone-900 text-white px-8 py-3 rounded-full hover:bg-stone-800 transition-colors shadow-md hover:shadow-lg font-medium">
+              <a href={`https://wa.me/${WHATSAPP_PHONE}`} target="_blank" rel="noopener noreferrer" className="inline-block bg-stone-900 text-white px-8 py-3 rounded-full hover:bg-stone-800 transition-colors shadow-md hover:shadow-lg font-medium">
                 Quiero agendar mi asesoramiento
               </a>
             </div>

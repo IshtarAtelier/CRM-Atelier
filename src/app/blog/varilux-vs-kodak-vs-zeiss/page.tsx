@@ -1,6 +1,7 @@
 import { Metadata } from "next";
 import { StorefrontNavbar } from "@/components/Storefront/StorefrontNavbar";
 import { StorefrontFooter } from "@/components/Storefront/StorefrontFooter";
+import { WHATSAPP_PHONE } from "@/lib/constants";
 export const metadata: Metadata = {
   alternates: { canonical: '/blog/varilux-vs-kodak-vs-zeiss' },
   title: "Varilux vs Zeiss vs Kodak: Comparativa de Multifocales Prémium | Atelier Óptica",
@@ -103,7 +104,7 @@ export default function VariluxVsKodakVsZeissPage() {
               <p className="mb-6 text-black/70">
                 Traé la receta de tu oftalmólogo a cualquiera de nuestras sucursales en <strong>Cerro de las Rosas</strong> o <strong>Nueva Córdoba</strong>. Te vamos a asesorar de forma personalizada, mostrándote qué cristales y armazones de diseño se adaptan verdaderamente a tus necesidades y presupuesto.
               </p>
-              <a href="https://wa.me/5493518685644" target="_blank" rel="noopener noreferrer" 
+              <a href={`https://wa.me/${WHATSAPP_PHONE}`} target="_blank" rel="noopener noreferrer"
                 className="inline-block bg-[#111] text-white px-8 py-3 rounded-full font-medium tracking-tight hover:bg-black transition-colors"
               >
                 Reservar Asesoramiento por WhatsApp

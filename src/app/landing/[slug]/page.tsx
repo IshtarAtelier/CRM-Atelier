@@ -51,7 +51,7 @@ export default async function CampaignLandingPage({
   if (!campaign) notFound();
 
   const [reviewsData, products] = await Promise.all([
-    getGoogleReviews().catch(() => ({ userRatingCount: 642, rating: 5.0 })),
+    getGoogleReviews().catch(() => ({ userRatingCount: 0, rating: 0 })),
     // Campañas sin catálogo web (ej. clip-on) traen productos curados en la config.
     campaign.products ?? getCampaignProducts(campaign.productCategory),
   ]);

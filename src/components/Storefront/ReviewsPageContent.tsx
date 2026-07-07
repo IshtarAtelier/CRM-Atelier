@@ -63,10 +63,10 @@ interface ReviewsPageContentProps {
   userRatingCount?: number;
 }
 
-export function ReviewsPageContent({ 
+export function ReviewsPageContent({
   initialReviews,
-  rating = 5.0,
-  userRatingCount = 642
+  rating = 0,
+  userRatingCount = 0
 }: ReviewsPageContentProps) {
   // Mostrar únicamente las reseñas reales de Google si están disponibles.
   // Solo usar la lista de fallback si no se cargó ninguna reseña desde la API de Google.
@@ -114,23 +114,26 @@ export function ReviewsPageContent({
 
             {/* Scorecard Visual Premium */}
             <div className="bg-white dark:bg-stone-950 p-8 rounded-3xl border border-stone-200 dark:border-stone-800 shadow-sm shrink-0 flex flex-col md:flex-row items-center gap-8 md:gap-12 lg:max-w-md">
-              <div className="text-center md:text-left">
-                <div className="text-6xl font-black text-stone-900 dark:text-white tracking-tight mb-1 flex items-baseline justify-center md:justify-start gap-1">
-                  <span>{averageRating.toFixed(1)}</span>
-                  <span className="text-xl text-stone-400 dark:text-stone-600 font-normal">/ 5.0</span>
+              {/* Bloque de rating solo con datos reales de Google */}
+              {totalReviewsCount > 0 && (
+                <div className="text-center md:text-left">
+                  <div className="text-6xl font-black text-stone-900 dark:text-white tracking-tight mb-1 flex items-baseline justify-center md:justify-start gap-1">
+                    <span>{averageRating.toFixed(1)}</span>
+                    <span className="text-xl text-stone-400 dark:text-stone-600 font-normal">/ 5.0</span>
+                  </div>
+                  <div className="flex justify-center md:justify-start text-yellow-400 mb-3">
+                    {[...Array(5)].map((_, idx) => (
+                      <Star key={idx} className="w-5 h-5 fill-current" />
+                    ))}
+                  </div>
+                  <p className="text-[10px] text-stone-900 dark:text-stone-100 font-black uppercase tracking-[0.15em] mb-1">
+                    ★ Calificación Máxima
+                  </p>
+                  <p className="text-[10px] text-stone-500 dark:text-stone-400 uppercase tracking-widest font-medium">
+                    {totalReviewsCount} Reseñas en Google
+                  </p>
                 </div>
-                <div className="flex justify-center md:justify-start text-yellow-400 mb-3">
-                  {[...Array(5)].map((_, idx) => (
-                    <Star key={idx} className="w-5 h-5 fill-current" />
-                  ))}
-                </div>
-                <p className="text-[10px] text-stone-900 dark:text-stone-100 font-black uppercase tracking-[0.15em] mb-1">
-                  ★ Calificación Máxima
-                </p>
-                <p className="text-[10px] text-stone-500 dark:text-stone-400 uppercase tracking-widest font-medium">
-                  {totalReviewsCount} Reseñas en Google
-                </p>
-              </div>
+              )}
 
               <div className="flex flex-col gap-3 w-full md:w-auto">
                 <a

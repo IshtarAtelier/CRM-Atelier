@@ -54,7 +54,7 @@ interface FilmmakerReelProps {
   rating?: number;
 }
 
-export function FilmmakerReel({ reviewCount = 642, rating = 5.0 }: FilmmakerReelProps) {
+export function FilmmakerReel({ reviewCount = 0, rating = 0 }: FilmmakerReelProps) {
   const [mounted, setMounted] = useState(false);
   const [current, setCurrent] = useState(0);
   const [isPlaying, setIsPlaying] = useState(true); // el usuario puede pausar/reanudar
@@ -192,14 +192,17 @@ export function FilmmakerReel({ reviewCount = 642, rating = 5.0 }: FilmmakerReel
               <span className="text-[10px] font-black uppercase tracking-[0.2em] bg-white/10 text-white px-2.5 py-1.5 backdrop-blur-md rounded-full flex items-center gap-1">
                 <span className="text-amber-500 text-[10px]">📍</span> Cerro de las Rosas, Córdoba
               </span>
-              <a 
-                href="https://www.google.com/maps?cid=14830223812501661125"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-[10px] font-black uppercase tracking-[0.2em] bg-white/10 hover:bg-white/20 text-white px-2.5 py-1.5 backdrop-blur-md rounded-full flex items-center gap-1 transition-colors"
-              >
-                <span className="text-amber-500">★</span> {rating.toFixed(1)} Google ({reviewCount} reseñas) · Verificada
-              </a>
+              {/* Badge de Google solo con datos reales */}
+              {reviewCount > 0 && (
+                <a
+                  href="https://www.google.com/maps?cid=14830223812501661125"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[10px] font-black uppercase tracking-[0.2em] bg-white/10 hover:bg-white/20 text-white px-2.5 py-1.5 backdrop-blur-md rounded-full flex items-center gap-1 transition-colors"
+                >
+                  <span className="text-amber-500">★</span> {rating.toFixed(1)} Google ({reviewCount} reseñas) · Verificada
+                </a>
+              )}
             </div>
 
             {/* Credit line */}

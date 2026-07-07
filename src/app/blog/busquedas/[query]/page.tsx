@@ -6,6 +6,7 @@ import { ArrowLeft, CheckCircle2, MessageSquare, MapPin } from 'lucide-react';
 import { StorefrontNavbar } from '@/components/Storefront/StorefrontNavbar';
 import { StorefrontFooter } from '@/components/Storefront/StorefrontFooter';
 import { seoKeywords, formatQueryToTitle } from '@/lib/seo-keywords';
+import { WHATSAPP_PHONE } from '@/lib/constants';
 
 interface PageProps {
   params: Promise<{ query: string }>;
@@ -75,7 +76,7 @@ export default async function BusquedaPage({ params }: PageProps) {
           </p>
           <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
             <a 
-              href={`https://wa.me/5493518685644?text=${whatsappMessage}`}
+              href={`https://wa.me/${WHATSAPP_PHONE}?text=${whatsappMessage}`}
               target="_blank"
               rel="noopener noreferrer"
               className="w-full sm:w-auto inline-flex items-center justify-center px-8 py-4 bg-[#25D366] text-white rounded-full font-bold text-lg shadow-lg hover:bg-[#20bd5a] hover:-translate-y-1 transition-all"

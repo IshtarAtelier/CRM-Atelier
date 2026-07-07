@@ -1,6 +1,7 @@
 import { Metadata } from "next";
 import { StorefrontNavbar } from "@/components/Storefront/StorefrontNavbar";
 import { StorefrontFooter } from "@/components/Storefront/StorefrontFooter";
+import { WHATSAPP_PHONE } from "@/lib/constants";
 
 export const metadata: Metadata = {
   alternates: { canonical: '/blog/filtro-azul-vs-antirreflejo' },
@@ -96,7 +97,7 @@ export default function FiltroAzulVsAntirreflejoPage() {
               <p className="mb-8 text-neutral-300 text-lg max-w-lg mx-auto">
                 Te esperamos en nuestra óptica para brindarte el mejor asesoramiento personalizado. ¡Hacemos envíos a todo el país!
               </p>
-              <a href="https://wa.me/5493518685644" target="_blank" rel="noopener noreferrer" 
+              <a href={`https://wa.me/${WHATSAPP_PHONE}`} target="_blank" rel="noopener noreferrer"
                 className="inline-block bg-white text-[#111] font-semibold px-8 py-4 rounded-full hover:bg-neutral-100 transition-colors shadow-[0_2px_10px_rgba(0,0,0,0.02)]]"
               >
                 Contactanos por WhatsApp

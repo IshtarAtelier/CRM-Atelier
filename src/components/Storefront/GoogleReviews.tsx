@@ -33,8 +33,8 @@ const FALLBACK_REVIEWS = [
 
 export function GoogleReviews() {
   const [reviews, setReviews] = useState<any[]>(FALLBACK_REVIEWS);
-  const [rating, setRating] = useState<number>(5.0);
-  const [userRatingCount, setUserRatingCount] = useState<number>(642);
+  const [rating, setRating] = useState<number>(0);
+  const [userRatingCount, setUserRatingCount] = useState<number>(0);
 
   useEffect(() => {
     fetch('/api/reviews')
@@ -42,8 +42,8 @@ export function GoogleReviews() {
       .then(data => {
         if (data && data.reviews && data.reviews.length > 0) {
           setReviews(data.reviews);
-          setRating(data.rating || 5.0);
-          setUserRatingCount(data.userRatingCount || 642);
+          setRating(data.rating || 0);
+          setUserRatingCount(data.userRatingCount || 0);
         }
       })
       .catch(err => {
@@ -84,7 +84,10 @@ export function GoogleReviews() {
             </h2>
 
             <div className="flex items-center justify-center lg:justify-start gap-4 mb-8">
-              <span className="text-5xl font-black text-stone-900 tracking-tighter">{rating.toFixed(1)}</span>
+              {/* Nota numérica solo con datos reales de Google */}
+              {rating > 0 && (
+                <span className="text-5xl font-black text-stone-900 tracking-tighter">{rating.toFixed(1)}</span>
+              )}
               <div className="flex flex-col gap-1 items-start">
                 <div className="flex text-amber-500">
                   {[...Array(5)].map((_, idx) => (
@@ -109,7 +112,7 @@ export function GoogleReviews() {
               rel="noopener noreferrer"
               className="inline-flex items-center justify-center lg:justify-start gap-2 text-xs font-bold uppercase tracking-widest text-[#8a6d3b] hover:text-stone-900 transition-colors"
             >
-              Ver todas las opiniones ({userRatingCount}) →
+              Ver todas las opiniones{userRatingCount > 0 ? ` (${userRatingCount})` : ""} →
             </a>
           </div>
 

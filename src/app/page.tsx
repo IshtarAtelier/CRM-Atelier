@@ -18,6 +18,8 @@ import { prisma } from "@/lib/db";
 import { resolveStorageUrl } from "@/lib/utils/storage";
 import { getGoogleReviews } from "@/lib/googleReviews";
 import { getWebSettings, defaultWebSettings } from "@/lib/web-settings";
+import { BUSINESS_INFO } from "@/lib/business-info";
+import { buildOpticianSchema } from "@/lib/schema";
 
 export const revalidate = 300;
 
@@ -130,6 +132,10 @@ export default async function Home() {
       console.error(`[Home] DB query attempt ${attempt}/${MAX_RETRIES} failed:`, error);
       if (attempt < MAX_RETRIES) {
         await new Promise(r => setTimeout(r, 500 * attempt)); // Backoff: 500ms, 1s, 1.5s
+      } else {
+        // Si la DB no responde, lanzar en vez de cachear el home vacío:
+        // con ISR, Next conserva la última versión buena de la página.
+        throw error;
       }
     }
   }
@@ -184,16 +190,13 @@ export default async function Home() {
   const organizationSchema = {
     "@context": "https://schema.org",
     "@type": "Organization",
-    "name": "Atelier Óptica",
+    "name": BUSINESS_INFO.name,
     "url": "https://atelieroptica.com.ar",
     "logo": "https://atelieroptica.com.ar/assets/logo-pwa-512.png",
-    "sameAs": [
-      "https://www.instagram.com/atelier.optica/",
-      "https://maps.app.goo.gl/atelieroptica"
-    ],
+    "sameAs": [BUSINESS_INFO.instagramUrl, BUSINESS_INFO.youtubeUrl],
     "contactPoint": {
       "@type": "ContactPoint",
-      "telephone": "+54 9 354 121 5971",
+      "telephone": BUSINESS_INFO.phoneE164,
       "contactType": "customer service",
       "availableLanguage": "Spanish"
     }
@@ -201,59 +204,11 @@ export default async function Home() {
 
   const reviewsData = await reviewsPromise;
   const webSettings = await webSettingsPromise;
-  const reviewCountStr = reviewsData.userRatingCount.toString();
-  const ratingStr = reviewsData.rating.toFixed(1);
 
-  const localBusinessSchema = {
-    "@context": "https://schema.org",
-    "@type": "Optician",
-    "name": "Atelier Óptica",
-    "image": "https://atelieroptica.com.ar/assets/logo-pwa-512.png",
-    "url": "https://atelieroptica.com.ar",
-    "telephone": "+54 9 354 121 5971",
-    "address": {
-      "@type": "PostalAddress",
-      "streetAddress": "José Luis de Tejeda 4380",
-      "addressLocality": "Cerro de las Rosas, Córdoba",
-      "addressRegion": "Córdoba",
-      "postalCode": "5009",
-      "addressCountry": "AR"
-    },
-    "geo": {
-      "@type": "GeoCoordinates",
-      "latitude": -31.3831,
-      "longitude": -64.24005
-    },
-    "openingHoursSpecification": [
-      {
-        "@type": "OpeningHoursSpecification",
-        "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
-        "opens": "09:30",
-        "closes": "13:00"
-      },
-      {
-        "@type": "OpeningHoursSpecification",
-        "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
-        "opens": "16:30",
-        "closes": "20:30"
-      },
-      {
-        "@type": "OpeningHoursSpecification",
-        "dayOfWeek": "Saturday",
-        "opens": "09:30",
-        "closes": "13:00"
-      }
-    ],
-    "aggregateRating": {
-      "@type": "AggregateRating",
-      "ratingValue": ratingStr,
-      "reviewCount": reviewCountStr
-    },
-    "sameAs": [
-      "https://www.instagram.com/atelier.optica/",
-      "https://maps.app.goo.gl/atelieroptica"
-    ]
-  };
+  // El builder omite aggregateRating si rating/count no son reales (> 0)
+  const localBusinessSchema = buildOpticianSchema({
+    aggregateRating: { rating: reviewsData.rating, count: reviewsData.userRatingCount },
+  });
 
   const webSiteSchema = {
     "@context": "https://schema.org",

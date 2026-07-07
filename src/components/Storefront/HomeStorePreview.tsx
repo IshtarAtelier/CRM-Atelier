@@ -3,14 +3,15 @@ import { MapPin, Clock, Phone, ArrowRight } from "lucide-react";
 import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon";
 import Image from "next/image";
 import { WHATSAPP_PHONE } from "@/lib/constants";
+import { BUSINESS_INFO } from "@/lib/business-info";
 
 export async function HomeStorePreview() {
   const settings = await getWebSettings();
 
   const addressLine = settings.web_store_address || "José Luis de Tejeda 4380";
   const localityLine = settings.web_store_locality || "Cerro de las Rosas, Córdoba";
-  const mapsUrl = settings.web_store_maps_url || "https://www.google.com/maps?cid=14830223812501661125";
-  const phone = settings.web_store_phone || "+54 9 354 121 5971";
+  const mapsUrl = settings.web_store_maps_url || BUSINESS_INFO.mapsUrl;
+  const phone = settings.web_store_phone || BUSINESS_INFO.phone;
   const whatsappPhoneId = settings.web_store_whatsapp_id || WHATSAPP_PHONE;
 
   return (

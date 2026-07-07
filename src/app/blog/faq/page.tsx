@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { ArrowLeft, MessageSquare, ChevronDown } from 'lucide-react';
 import { StorefrontNavbar } from '@/components/Storefront/StorefrontNavbar';
 import { StorefrontFooter } from '@/components/Storefront/StorefrontFooter';
+import { WHATSAPP_PHONE } from '@/lib/constants';
 export const metadata: Metadata = {
   title: "Preguntas Frecuentes sobre Salud Visual | Atelier Óptica",
   description: "Respuestas de expertos a las dudas más comunes sobre miopía infantil (Stellest, Myopilux), lentes con filtro azul, anteojos inteligentes Meta Ray-Ban y adaptación a multifocales.",
@@ -180,7 +181,7 @@ export default function FAQPage() {
             Nuestro equipo de especialistas está listo para responder tus dudas por WhatsApp.
           </p>
           <a 
-            href={`https://wa.me/5493518685644?text=${encodeURIComponent('Hola, tengo una consulta sobre anteojos/cristales.')}`}
+            href={`https://wa.me/${WHATSAPP_PHONE}?text=${encodeURIComponent('Hola, tengo una consulta sobre anteojos/cristales.')}`}
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center justify-center px-8 py-4 bg-[#25D366] text-white rounded-full font-bold text-lg shadow-lg hover:bg-[#20bd5a] hover:-translate-y-1 transition-all"
