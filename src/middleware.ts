@@ -41,7 +41,7 @@ export async function middleware(request: NextRequest) {
     // Las rutas de bot (/api/bot/) tienen su propia validación de API KEY abajo
     // Las rutas públicas del e-commerce (store, web, checkout) no requieren auth
     const isCheckoutBypass = pathname.startsWith('/api/checkout/') && !(pathname === '/api/checkout/session' && request.method === 'GET');
-    const isPublicGetApi = request.method === 'GET' && (pathname === '/api/settings' || pathname === '/api/reviews');
+    const isPublicGetApi = request.method === 'GET' && (pathname === '/api/settings' || pathname === '/api/reviews' || pathname === '/api/health');
     
     if (isApiRoute && !isAuthRoute && !pathname.startsWith('/api/cron/') && !pathname.startsWith('/api/bot/') && !pathname.startsWith('/api/whatsapp/') && !pathname.startsWith('/api/upload') && !pathname.startsWith('/api/store/') && !pathname.startsWith('/api/web/') && !isCheckoutBypass && !pathname.startsWith('/api/storage/view') && !pathname.startsWith('/api/admin/alert') && !isPublicGetApi) {
         if (!token) {
