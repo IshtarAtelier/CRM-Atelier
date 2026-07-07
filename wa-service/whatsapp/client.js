@@ -31,6 +31,24 @@ function clearKeepAlive() {
     }
 }
 
+// Avisa al admin por EMAIL (no por WhatsApp: si esto se dispara, WhatsApp está caído y no
+// puede avisar de sí mismo). Pega al endpoint /api/admin/alert del CRM, que ya manda mail.
+// Best-effort: nunca tira, solo loguea si falla.
+async function notifyAdminDown(subject, message) {
+    try {
+        const base = (process.env.CRM_API_URL || '').replace('/api/bot', '');
+        if (!base) { console.error('⚠️ No se pudo alertar: CRM_API_URL no configurada.'); return; }
+        const axios = require('axios');
+        await axios.post(`${base}/api/admin/alert`, { subject, message }, {
+            headers: { 'x-api-key': process.env.BOT_API_KEY || '' },
+            timeout: 15000,
+        });
+        console.log('📧 Alerta de caída enviada al admin por email.');
+    } catch (e) {
+        console.error('⚠️ No se pudo enviar la alerta de caída al admin:', e.message);
+    }
+}
+
 async function initWhatsApp({ onMessage, onMessageCreate, onStatusChange, onUnreadCount }) {
     _onMessage = onMessage;
     _onMessageCreate = onMessageCreate;
@@ -265,6 +283,10 @@ async function startClient(attempt = 1) {
         } else {
             console.error('🛑 Se agotaron los reintentos. El servicio seguirá corriendo pero WhatsApp no está conectado.');
             console.error('   Reinicie el servicio manualmente si el problema persiste.');
+            notifyAdminDown(
+                '🚨 WhatsApp caído: el bot no logró conectar',
+                `El bot de WhatsApp intentó iniciar ${MAX_RETRIES} veces y no lo logró. El servicio sigue vivo pero WhatsApp está DESCONECTADO — los clientes no reciben respuestas.\n\nÚltimo error: ${err.message}\n\nQué hacer: revisá el panel /admin/whatsapp. Si sigue caído, reiniciá el servicio "Pagina Web" en Railway. Si al reiniciar aparece un QR, hay que re-escanearlo desde el celular.`
+            );
         }
     }
 }

@@ -25,7 +25,14 @@ RUN npx prisma generate
 # Chrome refuses to run --no-sandbox as root ("Running as root without --no-sandbox is
 # not supported"), so the browser must run as a non-root user. Chrome for Testing (unlike
 # Debian's packaged chromium) launches reliably as that user on this host.
-RUN npx --yes @puppeteer/browsers install chrome@stable --path /opt/chrome && \
+#
+# The version is PINNED on purpose: an unpinned "@stable" lets a rebuild silently pull a
+# newer Chrome that may be broken on this host — which is exactly the outage this replaced
+# (Debian's chromium bumped to a version that crashed with SIGTRAP). Only bump this after
+# verifying the new version launches here. Keep it compatible with puppeteer-core in
+# wa-service/package.json.
+ENV CHROME_VERSION=150.0.7871.46
+RUN npx --yes @puppeteer/browsers install chrome@${CHROME_VERSION} --path /opt/chrome && \
     ln -s "$(find /opt/chrome -maxdepth 4 -type f -name chrome)" /usr/local/bin/chrome-for-testing
 ENV PUPPETEER_EXECUTABLE_PATH=/usr/local/bin/chrome-for-testing
 
