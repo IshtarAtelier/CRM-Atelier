@@ -13,6 +13,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     '/quienes-somos',
     '/como-comprar',
     '/politicas-de-cambio',
+    '/faq',
     '/contacto',
     '/nuestro-local',
     '/lentes-de-sol',
