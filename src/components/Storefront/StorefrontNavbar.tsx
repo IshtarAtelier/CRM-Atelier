@@ -85,11 +85,12 @@ export function StorefrontNavbar({ theme = "dark", mixBlend = false, initialSett
 
   useEffect(() => {
     if (isSearchOpen && allProducts.length === 0) {
-      fetch('/api/store/products')
+      fetch('/api/store/products?limit=500')
         .then(res => res.json())
         .then(data => {
-          if (Array.isArray(data)) {
-            setAllProducts(data);
+          const list = Array.isArray(data) ? data : data?.products;
+          if (Array.isArray(list) && list.length > 0) {
+            setAllProducts(list);
           }
         })
         .catch(err => console.error("Error loading products for search:", err));
